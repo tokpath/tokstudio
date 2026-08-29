@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"embed"
+	"errors"
 	"io/fs"
 	"strings"
 	"time"
@@ -857,7 +858,14 @@ func deref(p *string) string {
 }
 
 func (s *Service) ForcePeriodEnd(ctx context.Context, subID string, end time.Time) error {
-	return s.db.WithContext(ctx).Model(&subRow{}).Where("id = ?", subID).Updates(map[string]any{
+	res := s.db.WithContext(ctx).Model(&subRow{}).Where("id = ?", subID).Updates(map[string]any{
 		"current_period_end": end, "updated_at": time.Now().UTC(),
-	}).Error
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("subscription not found")
+	}
+	return nil
 }

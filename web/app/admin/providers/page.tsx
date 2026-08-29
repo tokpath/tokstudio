@@ -156,8 +156,8 @@ function AccountPoolPanel() {
       return;
     }
     form.reset();
-    setMessage(`已添加，指纹 ${body.item?.fingerprint || ""}`);
     await load(id);
+    setMessage(`已添加，指纹 ${body.item?.fingerprint || ""}`);
   }
 
   return (

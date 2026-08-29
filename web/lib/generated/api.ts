@@ -90,6 +90,14 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/v1/me/media"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/media"
+  },
+  {
+    "method": "GET",
     "path": "/admin/billing/export"
   },
   {

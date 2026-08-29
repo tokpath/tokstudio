@@ -169,6 +169,18 @@ paths:
       responses:
         "200":
           description: expired
+  /v1/me/media:
+    get:
+      operationId: listMyMedia
+      responses:
+        "200":
+          description: current user media jobs
+  /admin/media:
+    get:
+      operationId: listAdminMedia
+      responses:
+        "200":
+          description: media jobs without prompts
   /admin/billing/export:
     get:
       operationId: exportBilling

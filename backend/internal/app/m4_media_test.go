@@ -53,6 +53,23 @@ func TestM4MediaJobs(t *testing.T) {
 	if first["id"] != second["id"] {
 		t.Fatalf("idempotency created a new job: %v %v", first["id"], second["id"])
 	}
+	mine := getAuthJSON(t, server.URL+"/v1/me/media", session)
+	found := false
+	for _, raw := range mine["items"].([]any) {
+		if raw.(map[string]any)["id"] == first["id"] {
+			found = true
+			if raw.(map[string]any)["kind"] != "video" {
+				t.Fatalf("media list kind: %+v", raw)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("user media list missing job: %+v", mine)
+	}
+	adminCSV := getBytesAuth(t, server.URL+"/admin/media?format=csv", "m4_admin")
+	if !strings.Contains(string(adminCSV), first["id"].(string)) || strings.Contains(string(adminCSV), "a cat walks") {
+		t.Fatalf("admin media csv should list id without prompt: %s", adminCSV)
+	}
 	if application.Media.TestCreates() != before+1 {
 		t.Fatalf("adapter resubmitted after upstream id was stored: %d -> %d", before, application.Media.TestCreates())
 	}
@@ -157,6 +174,22 @@ func postCallback(t *testing.T, url, sig string, payload map[string]any) map[str
 		t.Fatalf("callback %d %v", resp.StatusCode, out)
 	}
 	return out
+}
+
+func getBytesAuth(t *testing.T, url, token string) []byte {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		t.Fatalf("GET %s %d %s", url, resp.StatusCode, body)
+	}
+	return body
 }
 
 func getBytes(t *testing.T, url string) []byte {

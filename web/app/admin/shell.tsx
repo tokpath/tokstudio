@@ -13,6 +13,7 @@ const links = [
   { href: "/admin/users", key: "users" },
   { href: "/admin/billing", key: "billing" },
   { href: "/admin/usage", key: "usage" },
+  { href: "/admin/media", key: "media" },
   { href: "/admin/channels", key: "channels" },
   { href: "/admin/audit", key: "audit" },
   { href: "/admin/settings", key: "settings" },

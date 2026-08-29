@@ -121,6 +121,21 @@ func (a *App) listAdminAPIKeys(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
 	}
+	if status := c.Query("status"); status != "" {
+		filtered := make([]identity.APIKeyView, 0, len(items))
+		for _, item := range items {
+			if item.Status == status {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if c.Query("format") == "csv" {
+		httpx.WriteCSV(c, "api-keys.csv", []string{"id", "name", "prefix", "status", "user_id"}, items, func(item identity.APIKeyView) []string {
+			return []string{item.ID, item.Name, item.Prefix, item.Status, item.UserID}
+		})
+		return
+	}
 	httpx.OKPage(c, items, 100, func(item identity.APIKeyView) string { return item.ID })
 }
 
@@ -327,6 +342,12 @@ func (a *App) listProviders(c *gin.Context) {
 	items, err := a.Catalog.ListProviders(c.Request.Context())
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Provider 失败", true)
+		return
+	}
+	if c.Query("format") == "csv" {
+		httpx.WriteCSV(c, "providers.csv", []string{"id", "slug", "adapter", "status", "health"}, items, func(item catalog.ProviderView) []string {
+			return []string{item.ID, item.Slug, item.Adapter, item.Status, item.Health}
+		})
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item catalog.ProviderView) string { return item.ID })

@@ -1,4 +1,5 @@
 import KeysPanel from "./keys";
+import MediaPanel from "./media";
 import PlansPanel from "./plans";
 import UsagePanel from "./usage";
 import WalletPanel from "./wallet";
@@ -15,6 +16,7 @@ export default function UserConsole() {
       <PlansPanel />
       <KeysPanel />
       <UsagePanel />
+      <MediaPanel />
     </main>
   );
 }

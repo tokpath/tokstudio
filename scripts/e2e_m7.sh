@@ -140,6 +140,8 @@ if [[ "$code" != "403" ]]; then echo "disabled key should 403, got $code" >&2; e
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/billing/export" | grep -q gross_profit
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/usage?format=csv" | grep -q request_id
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys?limit=5" | grep -q next_cursor
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys?format=csv" | grep -q prefix
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/media?format=csv" | grep -q kind
 code="$(curl -s -o /tmp/m7-ssrf.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"name\":\"ssrf\",\"slug\":\"ssrf-$RANDOM\",\"adapter\":\"openai\",\"base_url\":\"http://169.254.169.254/\"}")"
 if [[ "$code" != "400" ]]; then echo "metadata url should 400, got $code $(cat /tmp/m7-ssrf.json)" >&2; exit 1; fi

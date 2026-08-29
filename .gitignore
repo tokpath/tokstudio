@@ -31,6 +31,8 @@ go.work.sum
 node_modules/
 web/.next/
 web/out/
+web/test-results/
+web/playwright-report/
 npm-debug.log*
 
 # Local e2e leftovers

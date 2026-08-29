@@ -16,6 +16,8 @@ import (
 )
 
 func (a *App) registerMediaRoutes(r *gin.Engine) {
+	r.GET("/v1/me/media", a.requireAnyUser(), a.listMyMedia)
+	r.GET("/admin/media", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminMedia)
 	r.POST("/v1/videos", a.requireAPIKey(), a.createVideo)
 	r.GET("/v1/videos/:id", a.requireAPIKey(), a.getVideo)
 	r.GET("/v1/videos/:id/content", a.requireAPIKey(), a.videoContent)
@@ -26,6 +28,30 @@ func (a *App) registerMediaRoutes(r *gin.Engine) {
 	r.GET("/v1/images/:id/content", a.requireAPIKey(), a.videoContent)
 	r.POST("/v1/media/callbacks", a.mediaCallback)
 	r.GET("/v1/media/objects", a.mediaObject)
+}
+
+func (a *App) listMyMedia(c *gin.Context) {
+	items, err := a.Media.List(c.Request.Context(), a.currentPrincipal(c).UserID, c.Query("kind"), c.Query("status"), 200)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
+		return
+	}
+	httpx.OKPage(c, items, 20, func(item media.JobView) string { return item.ID })
+}
+
+func (a *App) listAdminMedia(c *gin.Context) {
+	items, err := a.Media.List(c.Request.Context(), c.Query("user_id"), c.Query("kind"), c.Query("status"), 200)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
+		return
+	}
+	if c.Query("format") == "csv" {
+		httpx.WriteCSV(c, "media.csv", []string{"id", "kind", "status", "model"}, items, func(item media.JobView) []string {
+			return []string{item.ID, item.Kind, item.Status, item.Model}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 50, func(item media.JobView) string { return item.ID })
 }
 
 func (a *App) createVideo(c *gin.Context) {

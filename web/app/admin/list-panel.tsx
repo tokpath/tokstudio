@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 
 type ListResponse<T> = { items?: T[]; error?: { message?: string } };
@@ -23,7 +25,26 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-      <h2 className="mb-3 text-xl font-medium">{title}</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-medium">{title}</h2>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            const sep = path.includes("?") ? "&" : "?";
+            const response = await fetch(`${apiBase}${path}${sep}format=csv&limit=100`, { credentials: "include" });
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "export.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
+          导出 CSV
+        </Button>
+      </div>
       {query.isError || query.data?.error ? (
         <p className="text-sm text-slate-400">{query.data?.error?.message || "需要平台管理员登录后才能加载。"}</p>
       ) : (

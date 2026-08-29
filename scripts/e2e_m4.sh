@@ -88,6 +88,12 @@ vid2="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H
   -H 'Idempotency-Key: e2e-vid-1' -d '{"model":"bytedance/seedance-1.0","prompt":"a river","duration":5}')"
 python3 -c "import json,sys; a=json.load(open('/tmp/m4_vid.json')); b=json.loads(sys.argv[1]); assert a['id']==b['id'] and a['upstream_job_id']==b['upstream_job_id']" "$vid2"
 
+echo "== user can list own media jobs without prompt leak in admin csv"
+curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/media" | grep -q "$jid"
+csv="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/media?format=csv")"
+echo "$csv" | grep -q "$jid"
+if echo "$csv" | grep -q "a river"; then echo "admin media csv leaked prompt" >&2; exit 1; fi
+
 echo "== signed content url, not a permanent public link"
 content="$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/videos/$jid/content")"
 echo "$content" | grep -q '/v1/media/objects'

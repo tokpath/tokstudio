@@ -1,7 +1,9 @@
 package httpx
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,4 +59,15 @@ func OKPage[T any](c *gin.Context, items []T, defaultLimit int, idFn func(T) str
 	limit, cursor := Page(c, defaultLimit)
 	page, next := Paginate(items, limit, cursor, idFn)
 	OK(c, gin.H{"items": page, "limit": limit, "next_cursor": next, "request_id": c.GetString(ContextRequestID)})
+}
+
+func WriteCSV[T any](c *gin.Context, filename string, headers []string, items []T, row func(T) []string) {
+	var b strings.Builder
+	b.WriteString(strings.Join(headers, ",") + "\n")
+	for _, item := range items {
+		b.WriteString(strings.Join(row(item), ",") + "\n")
+	}
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.String(200, b.String())
 }

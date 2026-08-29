@@ -137,6 +137,8 @@
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
 - `GET /admin/usage?format=csv`：用量明细导出。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
+- `GET /v1/me/media`：当前用户媒体任务（kind/status 筛选，不含他人数据）。
+- `GET /admin/media`：管理端媒体任务列表；`?format=csv` 导出且不含 prompt。
 - `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
 - `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态。
 - `POST /admin/commissions/recalc`：按价格快照重算佣金。

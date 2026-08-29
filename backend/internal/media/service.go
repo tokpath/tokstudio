@@ -116,6 +116,7 @@ type CreateInput struct {
 type JobView struct {
 	ID         string         `json:"id"`
 	Object     string         `json:"object"`
+	Kind       string         `json:"kind,omitempty"`
 	Status     string         `json:"status"`
 	Model      string         `json:"model"`
 	CreatedAt  int64          `json:"created_at"`
@@ -290,6 +291,34 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		return s.fail(ctx, job, "upstream_error")
 	}
 	return s.fail(ctx, job, "provider_unavailable")
+}
+
+func (s *Service) List(ctx context.Context, userID, kind, status string, limit int) ([]JobView, error) {
+	q := s.db.WithContext(ctx).Order("created_at DESC")
+	if userID != "" {
+		q = q.Where("user_id = ?", userID)
+	}
+	if kind != "" {
+		q = q.Where("job_kind = ?", kind)
+	}
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	var rows []jobRow
+	if err := q.Limit(limit).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]JobView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, *s.view(ctx, row))
+	}
+	return out, nil
 }
 
 func (s *Service) Get(ctx context.Context, jobID, userID string) (*JobView, error) {
@@ -491,7 +520,7 @@ func (s *Service) view(_ context.Context, job jobRow) *JobView {
 		object = "image"
 	}
 	view := &JobView{
-		ID: job.ID, Object: object, Status: job.Status, Model: job.PublicModelID,
+		ID: job.ID, Object: object, Kind: job.JobKind, Status: job.Status, Model: job.PublicModelID,
 		CreatedAt: job.CreatedAt.Unix(), StatusURL: "/v1/videos/" + job.ID,
 		Progress: job.Progress, Usage: usage,
 	}

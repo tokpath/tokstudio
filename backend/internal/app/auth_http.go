@@ -432,7 +432,13 @@ func (a *App) listUsersAdmin(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if c.Query("format") == "csv" {
+		httpx.WriteCSV(c, "users.csv", []string{"id", "email", "status", "channel_org_id"}, items, func(item identity.UserView) []string {
+			return []string{item.ID, item.Email, item.Status, item.ChannelOrgID}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item identity.UserView) string { return item.ID })
 }
 
 func (a *App) listUsersChannel(c *gin.Context) {

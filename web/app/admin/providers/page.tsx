@@ -49,11 +49,13 @@ function ProbeCell({ id }: { id: string }) {
 
 function RotateCredentialForm() {
   const queryClient = useQueryClient();
-  const [providerID, setProviderID] = useState("");
-  const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("轮换需要二次确认头。响应和列表只回 credential_ref，不会回显明文。");
 
-  async function rotate() {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const providerID = String(data.get("provider_id") || "").trim();
+    const secret = String(data.get("secret") || "");
     const res = await fetch(`${apiBase}/admin/providers/${providerID}/credentials`, {
       method: "POST",
       credentials: "include",
@@ -65,24 +67,24 @@ function RotateCredentialForm() {
       setMessage(body.error?.message || "轮换失败");
       return;
     }
-    setSecret("");
+    event.currentTarget.reset();
     setMessage(`已轮换，credential_ref=${body.credential_ref || ""}`);
     await queryClient.invalidateQueries();
   }
 
   return (
-    <section className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+    <form className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={onSubmit}>
       <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
       <p className="mb-3 text-sm text-slate-400">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
       <div className="mb-3 flex flex-wrap gap-2">
-        <Input className="w-72" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="轮换 provider id" placeholder="provider id" />
-        <Input className="w-72" type="password" value={secret} onChange={(e) => setSecret(e.target.value)} aria-label="上游凭据" placeholder="upstream secret" autoComplete="new-password" />
-        <Button size="sm" onClick={rotate}>
+        <Input className="w-72" name="provider_id" aria-label="轮换 provider id" placeholder="provider id" />
+        <Input className="w-72" type="password" name="secret" aria-label="上游凭据" placeholder="upstream secret" autoComplete="new-password" />
+        <Button size="sm" type="submit">
           轮换凭据
         </Button>
       </div>
       <p className="text-sm text-slate-300">{message}</p>
-    </section>
+    </form>
   );
 }
 

@@ -258,11 +258,21 @@ func (a *App) docsContext(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
 	}
+	channelID := identity.OfficialChannelID
+	if brand.ID == identity.OEMBrandID {
+		channelID = identity.OEMChannelID
+	}
+	models, _ := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	ids := make([]string, 0, len(models))
+	for _, model := range models {
+		ids = append(ids, model.ID)
+	}
 	httpx.OK(c, gin.H{
-		"brand": brand,
+		"brand":  brand,
+		"models": ids,
 		"examples": gin.H{
-			"curl":   "curl -H 'Authorization: Bearer $TOKENHUB_API_KEY' https://" + brand.APIDomain + "/v1/models",
-			"python": "from openai import OpenAI\nclient = OpenAI(base_url='https://" + brand.APIDomain + "/v1', api_key='...')",
+			"curl":   "curl -H 'Authorization: Bearer $TOKENHUB_API_KEY' https://" + brand.APIDomain + "/v1/chat/completions -d '{\"model\":\"tokenhub/echo-1\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}'",
+			"python": "from openai import OpenAI\nclient = OpenAI(base_url='https://" + brand.APIDomain + "/v1', api_key='...')\nprint(client.chat.completions.create(model='tokenhub/echo-1', messages=[{'role':'user','content':'hi'}]))",
 			"node":   "const client = new OpenAI({ baseURL: 'https://" + brand.APIDomain + "/v1', apiKey: process.env.TOKENHUB_API_KEY })",
 		},
 		"request_id": c.GetString(httpx.ContextRequestID),

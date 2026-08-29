@@ -699,10 +699,11 @@ func retryOffsets() []time.Duration {
 // ProcessRenewals 按文档：到期日、+1/+3/+5 天重试；失败 past_due；7 天宽限后 cancelled。
 func (s *Service) ProcessRenewals(ctx context.Context, now time.Time, charger func(subID, adapter, methodRef string) error) (int, error) {
 	var due []subRow
+	// 不能只取前 100 条：共享库过期订阅多时，后创建的支付宝手动续费会被漏掉，一直停在 active。
 	if err := s.db.WithContext(ctx).
 		Where("status IN ? AND ((current_period_end IS NOT NULL AND current_period_end <= ?) OR (next_retry_at IS NOT NULL AND next_retry_at <= ?))",
 			[]string{SubActive, SubPastDue, SubCancelAtPeriodEnd}, now, now).
-		Limit(100).Find(&due).Error; err != nil {
+		Order("id").Find(&due).Error; err != nil {
 		return 0, err
 	}
 	n := 0

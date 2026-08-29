@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "public": "公共站",
+    "docs": "开发者文档",
+    "app": "用户控制台",
+    "channel": "渠道控制台",
+    "admin": "平台管理",
+    "login": "登录"
+  },
+  "admin": {
+    "title": "平台管理控制台",
+    "overview": "总览",
+    "providers": "提供商",
+    "models": "模型",
+    "routes": "路由组",
+    "keys": "API Key",
+    "users": "用户/项目",
+    "billing": "余额/充值",
+    "usage": "用量/账单",
+    "channels": "渠道/代理商",
+    "audit": "审计日志",
+    "settings": "系统设置",
+    "refresh": "刷新"
+  }
+}

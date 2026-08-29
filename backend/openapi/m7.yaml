@@ -21,3 +21,20 @@ paths:
   /admin/ops/circuit/{id}:
     post:
       summary: Trip or reset a provider circuit breaker
+  /admin/providers:
+    get:
+      summary: List providers including health, adapter and rate-limit fields
+    post:
+      summary: Create a provider (confirm + optional TOTP)
+  /admin/models:
+    get:
+      summary: List public models for admin
+  /admin/routes:
+    get:
+      summary: List route groups and candidates
+  /admin/me/2fa/setup:
+    post:
+      summary: Start admin TOTP enrollment
+  /v1/chat/completions:
+    post:
+      summary: Includes google/gemini-flash via the Gemini sandbox adapter when no Base URL is set

@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "public": "Public",
+    "docs": "Docs",
+    "app": "Console",
+    "channel": "Channel",
+    "admin": "Admin",
+    "login": "Sign in"
+  },
+  "admin": {
+    "title": "Platform admin",
+    "overview": "Overview",
+    "providers": "Providers",
+    "models": "Models",
+    "routes": "Routes",
+    "keys": "API keys",
+    "users": "Users",
+    "billing": "Wallet",
+    "usage": "Usage",
+    "channels": "Channels",
+    "audit": "Audit",
+    "settings": "Settings",
+    "refresh": "Refresh"
+  }
+}

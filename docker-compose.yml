@@ -5,6 +5,16 @@ services:
       POSTGRES_USER: tokenhub
       POSTGRES_PASSWORD: tokenhub
       POSTGRES_DB: tokenhub
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f
+      - -c
+      - archive_timeout=60
     ports:
       - "5432:5432"
     healthcheck:
@@ -14,6 +24,7 @@ services:
       retries: 20
     volumes:
       - tokenhub_pg:/var/lib/postgresql/data
+      - tokenhub_wal:/var/lib/postgresql/wal_archive
 
   redis:
     image: redis:7-alpine
@@ -104,3 +115,4 @@ services:
 
 volumes:
   tokenhub_pg:
+  tokenhub_wal:

@@ -140,10 +140,12 @@
 
 ## 7. 管理后台 API（P0）
 
-- Provider：`GET/POST/PATCH /admin/providers`、健康检查和凭据轮换；
+- Provider：`GET/POST/PATCH /admin/providers`、`POST /admin/providers/{id}/health-check`、`POST /admin/providers/{id}/credentials` 凭据轮换（不回显明文）；
 - 模型：`GET/POST/PATCH /admin/models`、同步、审核、发布、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
+- 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；
+- API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
 - 推广：`GET/POST /admin/acquisition-roles`、`POST /admin/promotion-codes`；
 - 分销只读：`GET /v1/partner/users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；
 - 佣金：`GET /admin/commissions`、`POST /admin/commissions/unfreeze`、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；

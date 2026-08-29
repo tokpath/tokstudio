@@ -27,6 +27,12 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.listChannels)
+	r.POST("/admin/channels", a.requireRoles("platform_admin"), a.createChannel)
+	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin"), a.patchChannel)
+	r.GET("/admin/me/2fa", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPStatus)
+	r.POST("/admin/me/2fa/setup", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPSetup)
+	r.POST("/admin/me/2fa/enable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPEnable)
+	r.POST("/admin/me/2fa/disable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPDisable)
 	r.GET("/admin/users", a.requireRoles("platform_admin"), a.listUsersAdmin)
 	r.POST("/admin/users/:id/attribution", a.requireRoles("platform_admin"), a.reattribute)
 	r.GET("/channel/me", a.requireRoles("channel_admin"), a.channelMe)
@@ -286,6 +292,97 @@ func (a *App) listChannels(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) createChannel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body identity.ChannelInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Identity.CreateChannel(c.Request.Context(), *a.currentPrincipal(c), body)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.create", ResourceType: "channel", ResourceID: item.ID,
+		After: map[string]string{"code": item.Code, "type": item.Type},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchChannel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body identity.ChannelInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Identity.PatchChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"), body)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.patch", ResourceType: "channel", ResourceID: item.ID,
+		After: map[string]string{"status": item.Status},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminTOTPStatus(c *gin.Context) {
+	item, err := a.Identity.TOTPStatus(c.Request.Context(), a.currentPrincipal(c).UserID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 2FA 失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminTOTPSetup(c *gin.Context) {
+	item, err := a.Identity.SetupTOTP(c.Request.Context(), *a.currentPrincipal(c), a.Config.EncryptionKey, "TokenHub")
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "admin.2fa.setup", ResourceType: "user",
+		ResourceID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminTOTPEnable(c *gin.Context) {
+	var body struct {
+		Code string `json:"code"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if err := a.Identity.EnableTOTP(c.Request.Context(), a.currentPrincipal(c).UserID, body.Code, a.Config.EncryptionKey); err != nil {
+		httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "TOTP 无效", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "admin.2fa.enable", ResourceType: "user",
+		ResourceID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"status": "enabled", "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminTOTPDisable(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	if err := a.Identity.DisableTOTP(c.Request.Context(), a.currentPrincipal(c).UserID); err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "关闭 2FA 失败", true)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "admin.2fa.disable", ResourceType: "user",
+		ResourceID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"status": "disabled", "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) listUsersAdmin(c *gin.Context) {

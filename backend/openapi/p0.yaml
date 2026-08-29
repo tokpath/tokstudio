@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: TokenHub P0
+  version: 0.1.0-m7
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      responses:
+        "200":
+          description: ok
+  /admin/ops/dashboard:
+    get:
+      operationId: getAdminDashboard
+      responses:
+        "200":
+          description: dashboard
+  /admin/metrics:
+    get:
+      operationId: getAdminMetrics
+      parameters:
+        - name: dimension
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: metrics
+  /admin/providers:
+    get:
+      operationId: listProviders
+      responses:
+        "200":
+          description: providers
+    post:
+      operationId: createProvider
+      responses:
+        "201":
+          description: created
+  /admin/providers/{id}:
+    patch:
+      operationId: patchProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated
+  /admin/models:
+    get:
+      operationId: listAdminModels
+      responses:
+        "200":
+          description: models
+    post:
+      operationId: createAdminModel
+      responses:
+        "201":
+          description: created
+  /admin/models/{id}:
+    patch:
+      operationId: patchAdminModel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated
+  /admin/routes:
+    get:
+      operationId: listAdminRoutes
+      responses:
+        "200":
+          description: routes
+    post:
+      operationId: createAdminRoute
+      responses:
+        "201":
+          description: created
+  /admin/channels:
+    get:
+      operationId: listChannels
+      responses:
+        "200":
+          description: channels
+    post:
+      operationId: createChannel
+      responses:
+        "201":
+          description: created
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      responses:
+        "200":
+          description: users
+  /admin/api-keys:
+    get:
+      operationId: listAdminAPIKeys
+      responses:
+        "200":
+          description: keys without secrets
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      responses:
+        "200":
+          description: audit
+  /admin/me/2fa/setup:
+    post:
+      operationId: setupAdminTOTP
+      responses:
+        "200":
+          description: pending totp
+  /admin/billing/report:
+    get:
+      operationId: getBillingReport
+      responses:
+        "200":
+          description: money
+  /v1/chat/completions:
+    post:
+      operationId: chatCompletions
+      responses:
+        "200":
+          description: chat

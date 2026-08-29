@@ -95,6 +95,28 @@ type BifrostAdapter struct {
 
 func (a BifrostAdapter) Name() string { return "bifrost" }
 
+// GeminiAdapter 在未配置真实 Base URL 时走沙箱回声，保证 P0 可验证 Google Gemini 目录与路由。
+type GeminiAdapter struct {
+	BaseURL string
+}
+
+func (GeminiAdapter) Name() string { return "gemini" }
+
+func (a GeminiAdapter) Chat(ctx context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
+	_ = ctx
+	if strings.TrimSpace(a.BaseURL) == "" {
+		result, err := TestAdapter{}.Chat(ctx, providerSlug, behavior, req)
+		if err != nil {
+			return result, err
+		}
+		if result.HTTPStatus == 200 && len(result.Body.Choices) > 0 {
+			result.Body.Choices[0].Message.Content = "gemini:" + result.Body.Choices[0].Message.Content
+		}
+		return result, nil
+	}
+	return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini upstream not configured")
+}
+
 func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req ChatRequest) (AdapterResult, error) {
 	if strings.TrimSpace(a.BaseURL) == "" {
 		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("bifrost unavailable")

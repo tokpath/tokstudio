@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
@@ -19,14 +20,24 @@ import (
 func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/me/api-keys", a.requireAnyUser(), a.createAPIKey)
 	r.GET("/v1/me/api-keys", a.requireAnyUser(), a.listAPIKeys)
+	r.GET("/admin/api-keys", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminAPIKeys)
 	r.GET("/v1/models", a.requireAPIKey(), a.listModels)
 	r.GET("/v1/models/:model", a.requireAPIKey(), a.getModel)
 	r.POST("/v1/chat/completions", a.requireAPIKey(), a.chatCompletions)
 	r.POST("/v1/responses", a.requireAPIKey(), a.responses)
 	r.POST("/v1/messages", a.requireAPIKey(), a.messages)
 	r.GET("/v1/requests/:id/attempts", a.requireAPIKey(), a.listAttempts)
-	r.GET("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.listProviders)
+	r.GET("/admin/providers", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviders)
+	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
+	r.PATCH("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchProvider)
+	r.POST("/admin/providers/:id/credentials", a.requireRoles("platform_admin", "tech_admin"), a.rotateProviderCredential)
 	r.POST("/admin/providers/:id/health-check", a.requireRoles("platform_admin", "tech_admin"), a.healthCheckProvider)
+	r.GET("/admin/models", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
+	r.POST("/admin/models", a.requireRoles("platform_admin", "ops_admin"), a.createAdminModel)
+	r.PATCH("/admin/models/:id", a.requireRoles("platform_admin", "ops_admin"), a.patchAdminModel)
+	r.GET("/admin/routes", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
+	r.POST("/admin/routes", a.requireRoles("platform_admin", "tech_admin"), a.createAdminRoute)
+	r.PATCH("/admin/routes/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
 }
 
 func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
@@ -87,6 +98,15 @@ func (a *App) createAPIKey(c *gin.Context) {
 
 func (a *App) listAPIKeys(c *gin.Context) {
 	items, err := a.Identity.ListAPIKeys(c.Request.Context(), *a.currentPrincipal(c), a.Config.EncryptionKey)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) listAdminAPIKeys(c *gin.Context) {
+	items, err := a.Identity.ListAPIKeySummaries(c.Request.Context())
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
@@ -239,4 +259,158 @@ func (a *App) healthCheckProvider(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"health": health, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) createProvider(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.ProviderInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.CreateProvider(c.Request.Context(), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建 Provider 失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.create", ResourceType: "provider", ResourceID: item.ID,
+		After: map[string]string{"slug": item.Slug, "adapter": item.Adapter},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchProvider(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.ProviderInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.PatchProvider(c.Request.Context(), c.Param("id"), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "Provider 不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.patch", ResourceType: "provider", ResourceID: item.ID,
+		After: map[string]string{"status": item.Status, "health": item.Health},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) rotateProviderCredential(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		Secret string `json:"secret"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if strings.TrimSpace(body.Secret) == "" {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "凭据不能为空", false)
+		return
+	}
+	ref, err := a.Catalog.RotateCredential(c.Request.Context(), c.Param("id"), body.Secret, a.Config.EncryptionKey)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "轮换凭据失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.credential.rotate", ResourceType: "provider",
+		ResourceID: c.Param("id"), After: map[string]string{"credential_ref": ref},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"credential_ref": ref, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) listAdminModels(c *gin.Context) {
+	items, err := a.Catalog.ListAdminModels(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) createAdminModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.ModelInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.CreateModel(c.Request.Context(), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建模型失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.create", ResourceType: "model", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchAdminModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.ModelInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.PatchModel(c.Request.Context(), c.Param("id"), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.patch", ResourceType: "model", ResourceID: item.ID,
+		After: map[string]string{"status": item.Status},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) listAdminRoutes(c *gin.Context) {
+	items, err := a.Catalog.ListRoutes(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取路由失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) createAdminRoute(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.RouteInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.CreateRoute(c.Request.Context(), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建路由失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "route.create", ResourceType: "route", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchAdminRoute(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.RouteInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.PatchRoute(c.Request.Context(), c.Param("id"), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "路由不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "route.patch", ResourceType: "route", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }

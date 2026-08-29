@@ -1,0 +1,9 @@
+-- Provider 运营字段：限流、超时、权重和凭据引用。明文密钥仍只存在凭据表密文里。
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS weight INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS timeout_ms INTEGER NOT NULL DEFAULT 30000;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS retry_max INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS rpm_limit INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS concurrency_limit INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS capability_tags TEXT NOT NULL DEFAULT '';
+ALTER TABLE catalog_providers ADD COLUMN IF NOT EXISTS credential_ref TEXT;

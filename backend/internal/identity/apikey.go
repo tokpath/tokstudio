@@ -33,12 +33,26 @@ func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_polic
 
 type APIKeyView struct {
 	ID        string    `json:"id"`
+	UserID    string    `json:"user_id,omitempty"`
 	Name      string    `json:"name"`
 	Prefix    string    `json:"prefix"`
 	Secret    string    `json:"key,omitempty"`
 	Status    string    `json:"status"`
+	RPMLimit  int       `json:"rpm_limit,omitempty"`
 	Allowlist []string  `json:"allowlist,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error) {
+	var rows []apiKeyRow
+	if err := s.db.WithContext(ctx).Order("created_at DESC").Limit(200).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]APIKeyView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, APIKeyView{ID: row.ID, UserID: row.UserID, Name: row.Name, Prefix: row.Prefix, Status: row.Status, RPMLimit: row.RPMLimit, CreatedAt: row.CreatedAt})
+	}
+	return out, nil
 }
 
 type APIKeyPrincipal struct {

@@ -111,6 +111,67 @@ func (s *Service) BrandByHost(ctx context.Context, host string) (*BrandView, err
 	return brandView(row), nil
 }
 
+type ChannelInput struct {
+	Code     string `json:"code"`
+	Type     string `json:"type"`
+	Status   string `json:"status"`
+	BrandID  string `json:"brand_id"`
+	ParentID string `json:"parent_id"`
+}
+
+func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in ChannelInput) (*ChannelView, error) {
+	if !viewer.IsPlatformAdmin() {
+		return nil, ErrChannelImmutable
+	}
+	in.Code = strings.TrimSpace(in.Code)
+	if in.Code == "" || in.Type == "" {
+		return nil, ErrPromotionInvalid
+	}
+	if in.Status == "" {
+		in.Status = "active"
+	}
+	if in.BrandID == "" {
+		in.BrandID = OfficialBrandID
+	}
+	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC()}
+	if in.ParentID != "" {
+		row.ParentID = &in.ParentID
+	}
+	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+		return nil, err
+	}
+	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
+}
+
+func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID string, in ChannelInput) (*ChannelView, error) {
+	if !viewer.IsPlatformAdmin() {
+		return nil, ErrChannelImmutable
+	}
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	updates := map[string]any{}
+	if in.Status != "" {
+		updates["status"] = in.Status
+	}
+	if in.BrandID != "" {
+		updates["brand_id"] = in.BrandID
+	}
+	if in.Type != "" {
+		updates["type"] = in.Type
+	}
+	if len(updates) > 0 {
+		if err := s.db.WithContext(ctx).Model(&channelRow{}).Where("id = ?", channelID).Updates(updates).Error; err != nil {
+			return nil, err
+		}
+	}
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
+}
+
 func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]ChannelView, error) {
 	q := s.db.WithContext(ctx).Model(&channelRow{})
 	if channelID := viewer.VisibleChannelID(); channelID != "" {

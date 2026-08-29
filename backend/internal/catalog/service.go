@@ -23,23 +23,33 @@ const (
 	OEMModelID          = "tokenhub/oem-demo"
 	SeedanceModelID     = "bytedance/seedance-1.0"
 	ImageModelID        = "tokenhub/image-demo"
+	GeminiModelID       = "google/gemini-flash"
 	PrimaryProvider     = "echo-primary"
 	BackupProvider      = "echo-backup"
 	ArkSeedanceProvider = "ark-seedance"
 	OpenRouterProvider  = "openrouter-seedance"
+	GeminiProvider      = "gemini-flash"
 )
 
 type providerRow struct {
-	ID           string `gorm:"column:id;primaryKey"`
-	Name         string `gorm:"column:name"`
-	Slug         string `gorm:"column:slug"`
-	Kind         string `gorm:"column:kind"`
-	Adapter      string `gorm:"column:adapter"`
-	BaseURL      string `gorm:"column:base_url"`
-	Region       string `gorm:"column:region"`
-	Status       string `gorm:"column:status"`
-	Health       string `gorm:"column:health"`
-	TestBehavior string `gorm:"column:test_behavior"`
+	ID               string `gorm:"column:id;primaryKey"`
+	Name             string `gorm:"column:name"`
+	Slug             string `gorm:"column:slug"`
+	Kind             string `gorm:"column:kind"`
+	Adapter          string `gorm:"column:adapter"`
+	BaseURL          string `gorm:"column:base_url"`
+	Region           string `gorm:"column:region"`
+	Status           string `gorm:"column:status"`
+	Health           string `gorm:"column:health"`
+	TestBehavior     string `gorm:"column:test_behavior"`
+	Priority         int    `gorm:"column:priority"`
+	Weight           int    `gorm:"column:weight"`
+	TimeoutMS        int    `gorm:"column:timeout_ms"`
+	RetryMax         int    `gorm:"column:retry_max"`
+	RPMLimit         int    `gorm:"column:rpm_limit"`
+	ConcurrencyLimit int    `gorm:"column:concurrency_limit"`
+	CapabilityTags   string `gorm:"column:capability_tags"`
+	CredentialRef    string `gorm:"column:credential_ref"`
 }
 
 func (providerRow) TableName() string { return "catalog_providers" }
@@ -216,7 +226,10 @@ func (s *Service) Seed(ctx context.Context) error {
 				return err
 			}
 		}
-		return seedMediaCatalog(tx, mediaCaps, mediaPrice)
+		if err := seedMediaCatalog(tx, mediaCaps, mediaPrice); err != nil {
+			return err
+		}
+		return seedGeminiCatalog(tx, caps, price)
 	})
 }
 
@@ -281,6 +294,49 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 	}
 	for i := range policies {
 		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", policies[i].ChannelOrgID, policies[i].PublicModelID).FirstOrCreate(&policies[i]).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
+	if err := tx.Where("slug = ?", GeminiProvider).FirstOrCreate(&providerRow{
+		ID: "prd_gemini", Name: "Google Gemini Flash", Slug: GeminiProvider, Kind: "direct",
+		Adapter: "gemini", Status: "active", Health: "available", TestBehavior: "ok",
+		Priority: 80, Weight: 1, TimeoutMS: 30000, RetryMax: 1, CapabilityTags: "text,gemini",
+	}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("public_id = ?", GeminiModelID).FirstOrCreate(&publicModelRow{
+		ID: "mdl_gemini", PublicID: GeminiModelID, Vendor: "google", DisplayName: "Gemini Flash",
+		Capabilities: caps, Status: "published",
+	}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "map_gemini").FirstOrCreate(&mappingRow{
+		ID: "map_gemini", PublicModelID: "mdl_gemini", ProviderID: "prd_gemini",
+		UpstreamModelID: "gemini-2.0-flash", Status: "active",
+	}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "price_gemini").FirstOrCreate(&priceRow{
+		ID: "price_gemini", PublicModelID: "mdl_gemini", UnitPrices: price, Status: "published",
+	}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "rg_gemini").FirstOrCreate(&routeGroupRow{
+		ID: "rg_gemini", PublicModelID: "mdl_gemini", Strategy: "priority", Status: "active",
+	}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("route_group_id = ? AND provider_id = ?", "rg_gemini", "prd_gemini").
+		FirstOrCreate(&candidateRow{RouteGroupID: "rg_gemini", ProviderID: "prd_gemini", Priority: 1}).Error; err != nil {
+		return err
+	}
+	for _, channelID := range []string{identity.OfficialChannelID, identity.ResellerChannelID, identity.OEMChannelID} {
+		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, "mdl_gemini").
+			FirstOrCreate(&channelPolicyRow{ChannelOrgID: channelID, PublicModelID: "mdl_gemini", Enabled: true}).Error; err != nil {
 			return err
 		}
 	}
@@ -417,11 +473,24 @@ func (s *Service) MarkHealth(ctx context.Context, providerID, health string) err
 }
 
 type ProviderView struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Slug   string `json:"slug"`
-	Health string `json:"health"`
-	Status string `json:"status"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Slug             string `json:"slug"`
+	Kind             string `json:"kind"`
+	Adapter          string `json:"adapter"`
+	BaseURL          string `json:"base_url,omitempty"`
+	Region           string `json:"region,omitempty"`
+	Health           string `json:"health"`
+	Status           string `json:"status"`
+	Priority         int    `json:"priority"`
+	Weight           int    `json:"weight"`
+	TimeoutMS        int    `json:"timeout_ms"`
+	RetryMax         int    `json:"retry_max"`
+	RPMLimit         int    `json:"rpm_limit"`
+	ConcurrencyLimit int    `json:"concurrency_limit"`
+	CapabilityTags   string `json:"capability_tags,omitempty"`
+	CredentialRef    string `json:"credential_ref,omitempty"`
+	TestBehavior     string `json:"test_behavior,omitempty"`
 }
 
 func (s *Service) ListProviders(ctx context.Context) ([]ProviderView, error) {
@@ -431,7 +500,7 @@ func (s *Service) ListProviders(ctx context.Context) ([]ProviderView, error) {
 	}
 	out := make([]ProviderView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, ProviderView{ID: row.ID, Name: row.Name, Slug: row.Slug, Health: row.Health, Status: row.Status})
+		out = append(out, *providerView(row))
 	}
 	return out, nil
 }

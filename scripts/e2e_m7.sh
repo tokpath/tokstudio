@@ -103,6 +103,28 @@ curl -sf -X POST "$API_URL/admin/ops/drills/payment" -H "Authorization: Bearer $
 curl -sf -X POST "$API_URL/admin/ops/drills/media" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q passed
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/runbooks" | grep -q pending_reconciliation
 
+echo "== admin catalog, gemini, 2fa"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers" | grep -q gemini-flash
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models" | grep -q google/gemini-flash
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes" | grep -q rg_gemini
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"google/gemini-flash","messages":[{"role":"user","content":"gemini"}]}' | grep -q gemini
+code="$(curl -s -o /tmp/m7-prov.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"slug":"no-confirm","name":"x"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 creating provider without confirm, got $code" >&2
+  exit 1
+fi
+slug="ops-e2e-$RANDOM"
+curl -sf -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}" | grep -q "$slug"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys" | grep -q prefix
+setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+echo "$setup" | grep -q otpauth
+# 不在共享管理员上启用 2FA，避免后续脚本被 totp_required 打断
+
+echo "== loadtest"
+bash "$ROOT/scripts/loadtest_limits.sh"
+
 echo "== health"
 curl -sf "$API_URL/healthz" | grep -q 0.1.0-m7
 echo "M7 e2e passed"

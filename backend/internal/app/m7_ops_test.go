@@ -2,7 +2,9 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,6 +32,14 @@ func TestM7OpsHardening(t *testing.T) {
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
+	if me := getAuthJSON(t, server.URL+"/admin/me", "m7_admin"); me["user_id"] != nil {
+		_ = application.Identity.DisableTOTP(context.Background(), me["user_id"].(string))
+	}
+	defer func() {
+		if me := getAuthJSON(t, server.URL+"/admin/me", "m7_admin"); me["user_id"] != nil {
+			_ = application.Identity.DisableTOTP(context.Background(), me["user_id"].(string))
+		}
+	}()
 
 	health := getJSON(t, server.URL+"/healthz", "")
 	if ver, _ := health["version"].(string); ver != "0.1.0-m7" {
@@ -128,6 +138,93 @@ func TestM7OpsHardening(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/ops/alerts/evaluate", "m7_admin", map[string]any{})
 	if books := getAuthJSON(t, server.URL+"/admin/ops/runbooks", "m7_admin")["items"].([]any); len(books) == 0 {
 		t.Fatal("runbooks missing")
+	}
+
+	gemini := postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+		"model": catalog.GeminiModelID, "messages": []map[string]string{{"role": "user", "content": "hi-gemini"}},
+	})
+	if gemini["provider"] != catalog.GeminiProvider {
+		t.Fatalf("gemini sandbox: %+v", gemini)
+	}
+
+	if code := postStatus(t, server.URL+"/admin/providers", "m7_admin", map[string]any{"slug": "ops-echo", "name": "Ops Echo"}); code != http.StatusConflict {
+		t.Fatalf("create provider without confirm should be 409, got %d", code)
+	}
+	created := postJSONRaw(t, server.URL+"/admin/providers", "m7_admin", map[string]any{
+		"name": "Ops Echo", "slug": "ops-echo-" + strconv.FormatInt(time.Now().UnixNano(), 10), "adapter": "test",
+	})
+	prov := created["item"].(map[string]any)
+	if prov["slug"] == nil || prov["adapter"] != "test" {
+		t.Fatalf("create provider: %+v", created)
+	}
+	patched := patchJSONRaw(t, server.URL+fmt.Sprintf("/admin/providers/%s", prov["id"]), "m7_admin", map[string]any{"status": "maintenance", "rpm_limit": 30})
+	if patched["item"].(map[string]any)["status"] != "maintenance" {
+		t.Fatalf("patch provider: %+v", patched)
+	}
+	cred := postJSONRaw(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-sandbox"})
+	if cred["credential_ref"] == nil {
+		t.Fatalf("rotate credential: %+v", cred)
+	}
+	models := getAuthJSON(t, server.URL+"/admin/models", "m7_admin")["items"].([]any)
+	if len(models) == 0 {
+		t.Fatal("admin models empty")
+	}
+	draft := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
+		"public_id": "tokenhub/ops-draft", "vendor": "tokenhub", "display_name": "Ops Draft", "status": "draft",
+	})
+	if draft["item"].(map[string]any)["status"] != "draft" {
+		t.Fatalf("create model: %+v", draft)
+	}
+	routes := getAuthJSON(t, server.URL+"/admin/routes", "m7_admin")["items"].([]any)
+	if len(routes) == 0 {
+		t.Fatal("admin routes empty")
+	}
+	ch := postJSONRaw(t, server.URL+"/admin/channels", "m7_admin", map[string]any{"code": "ops-lab", "type": "B"})
+	if ch["item"].(map[string]any)["code"] != "ops-lab" {
+		t.Fatalf("create channel: %+v", ch)
+	}
+	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
+	if len(keys) == 0 {
+		t.Fatal("admin api keys empty")
+	}
+
+	setup := postJSONRaw(t, server.URL+"/admin/me/2fa/setup", "m7_admin", map[string]any{})
+	secret, _ := setup["item"].(map[string]any)["secret"].(string)
+	if secret == "" {
+		t.Fatalf("2fa setup: %+v", setup)
+	}
+	code := identity.GenerateTOTP(secret)
+	enabled := postJSONRaw(t, server.URL+"/admin/me/2fa/enable", "m7_admin", map[string]any{"code": code})
+	if enabled["status"] != "enabled" {
+		t.Fatalf("2fa enable: %+v", enabled)
+	}
+	if status := postStatus(t, server.URL+"/admin/refunds", "m7_admin", map[string]any{"request_id": "missing"}); status != http.StatusConflict {
+		t.Fatalf("enrolled 2fa without totp should still 409, got %d", status)
+	}
+	req, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/refunds", bytes.NewReader(mustJSON(map[string]any{"request_id": "missing"})))
+	req.Header.Set("Authorization", "Bearer m7_admin")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusConflict {
+		t.Fatalf("confirm without totp after enroll should be 409, got %d", resp.StatusCode)
+	}
+	req2, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/refunds", bytes.NewReader(mustJSON(map[string]any{"request_id": "missing"})))
+	req2.Header.Set("Authorization", "Bearer m7_admin")
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("X-Tokenhub-Confirm", "1")
+	req2.Header.Set("X-Tokenhub-TOTP", identity.GenerateTOTP(secret))
+	resp2, err := http.DefaultClient.Do(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp2.Body.Close()
+	if resp2.StatusCode == http.StatusConflict {
+		t.Fatalf("confirm+totp should pass confirm gate, got %d", resp2.StatusCode)
 	}
 }
 

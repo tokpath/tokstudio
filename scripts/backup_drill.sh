@@ -20,6 +20,9 @@ if command -v pg_dump >/dev/null && [[ -n "${TOKENHUB_DATABASE_URL:-}" ]]; then
   pg_dump "$TOKENHUB_DATABASE_URL" --schema-only -f "$OUT"
   grep -q schema_migrations "$OUT"
   echo "pg_dump schema-only ok: $OUT"
+  if command -v openssl >/dev/null; then
+    bash "$ROOT/scripts/backup_encrypt.sh"
+  fi
 fi
 
 curl -sf -X POST "$API_URL/admin/ops/backup-drill" \

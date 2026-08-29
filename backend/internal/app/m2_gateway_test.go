@@ -128,6 +128,25 @@ func postJSONRaw(t *testing.T, url, token string, payload map[string]any) map[st
 	return out
 }
 
+func patchJSONRaw(t *testing.T, url, token string, payload map[string]any) map[string]any {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPatch, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	if resp.StatusCode >= 300 {
+		t.Fatalf("PATCH %s %d %v", url, resp.StatusCode, out)
+	}
+	return out
+}
+
 func mustJSON(v any) []byte {
 	body, _ := json.Marshal(v)
 	return body

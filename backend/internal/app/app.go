@@ -241,11 +241,22 @@ func (a *App) currentPrincipal(c *gin.Context) *identity.Principal {
 }
 
 func (a *App) requireConfirm(c *gin.Context) bool {
-	if c.GetHeader("X-Tokenhub-Confirm") == "1" || c.Query("confirm") == "1" {
-		return true
+	if c.GetHeader("X-Tokenhub-Confirm") != "1" && c.Query("confirm") != "1" {
+		httpx.Abort(c, http.StatusConflict, "confirm_required", "敏感操作需要二次确认", false)
+		return false
 	}
-	httpx.Abort(c, http.StatusConflict, "confirm_required", "敏感操作需要二次确认", false)
-	return false
+	principal := a.currentPrincipal(c)
+	if principal != nil && a.Identity.TOTPEnabled(c.Request.Context(), principal.UserID) {
+		code := c.GetHeader("X-Tokenhub-TOTP")
+		if code == "" {
+			code = c.Query("totp")
+		}
+		if err := a.Identity.VerifyTOTP(c.Request.Context(), principal.UserID, code, a.Config.EncryptionKey); err != nil {
+			httpx.Abort(c, http.StatusConflict, "totp_required", "管理员已启用 2FA，需要有效 TOTP", false)
+			return false
+		}
+	}
+	return true
 }
 
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
@@ -270,10 +281,12 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 
 func (a *App) adminMe(c *gin.Context) {
 	principal := a.currentPrincipal(c)
+	totp, _ := a.Identity.TOTPStatus(c.Request.Context(), principal.UserID)
 	httpx.OK(c, gin.H{
 		"user_id":    principal.UserID,
 		"email":      principal.Email,
 		"roles":      principal.Roles,
+		"totp":       totp,
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }

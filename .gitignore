@@ -37,6 +37,9 @@ npm-debug.log*
 /tmp/
 *.rdb
 
+# Encrypted offsite backups
+backups/
+
 # Firecrawl research cache
 .firecrawl/
 

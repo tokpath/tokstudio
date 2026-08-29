@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 
 export function Nav({ brand }: { brand?: Brand }) {
+  const t = useTranslations("nav");
   return (
     <header className="border-b border-slate-800 px-6 py-4">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
@@ -9,12 +13,12 @@ export function Nav({ brand }: { brand?: Brand }) {
           {brand?.name || "TokenHub"}
         </Link>
         <nav className="flex flex-wrap gap-4 text-sm text-slate-300">
-          <Link href="/">公共站</Link>
-          <Link href="/docs">开发者文档</Link>
-          <Link href="/app">用户控制台</Link>
-          <Link href="/channel">渠道控制台</Link>
-          <Link href="/admin">平台管理</Link>
-          <Link href="/login">登录</Link>
+          <Link href="/">{t("public")}</Link>
+          <Link href="/docs">{t("docs")}</Link>
+          <Link href="/app">{t("app")}</Link>
+          <Link href="/channel">{t("channel")}</Link>
+          <Link href="/admin">{t("admin")}</Link>
+          <Link href="/login">{t("login")}</Link>
         </nav>
       </div>
     </header>

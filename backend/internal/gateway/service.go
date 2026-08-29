@@ -102,6 +102,7 @@ func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *S
 		booker:  booker,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
+			"gemini":  GeminiAdapter{},
 			"bifrost": BifrostAdapter{BaseURL: bifrostURL},
 		},
 	}

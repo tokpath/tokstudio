@@ -3,6 +3,9 @@ info:
   title: TokenHub M6 Commission
   version: 0.1.0-m6
 paths:
+  /v1/partner/me:
+    get:
+      summary: Current agent/KOL role and downline scope
   /v1/partner/users:
     get:
       summary: Scoped users for agent/KOL. Emails are masked.

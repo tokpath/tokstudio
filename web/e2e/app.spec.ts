@@ -13,6 +13,14 @@ test("user console shows API Key panel", async ({ page }) => {
   await expect(page.getByRole("button", { name: "复制 curl" })).toBeVisible();
 });
 
+test("partner console shows scoped downline cards", async ({ page }) => {
+  await page.goto("/partner");
+  await expect(page.getByRole("heading", { name: "我的层级" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "范围内用户" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "范围内佣金" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "范围内结算" })).toBeVisible();
+});
+
 test("channel console shows scoped user list", async ({ page }) => {
   await page.goto("/channel");
   await expect(page.getByRole("heading", { name: "本渠道用户" })).toBeVisible();

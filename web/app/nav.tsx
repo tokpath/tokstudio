@@ -17,6 +17,7 @@ export function Nav({ brand }: { brand?: Brand }) {
           <Link href="/docs">{t("docs")}</Link>
           <Link href="/app">{t("app")}</Link>
           <Link href="/channel">{t("channel")}</Link>
+          <Link href="/partner">{t("partner")}</Link>
           <Link href="/admin">{t("admin")}</Link>
           <Link href="/login">{t("login")}</Link>
         </nav>

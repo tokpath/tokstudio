@@ -15,6 +15,7 @@ import (
 )
 
 func (a *App) registerCommissionRoutes(r *gin.Engine) {
+	r.GET("/v1/partner/me", a.requireAnyUser(), a.partnerMe)
 	r.GET("/v1/partner/users", a.requireAnyUser(), a.partnerUsers)
 	r.GET("/v1/partner/commissions", a.requireAnyUser(), a.partnerCommissions)
 	r.GET("/v1/partner/settlements", a.requireAnyUser(), a.partnerSettlements)
@@ -59,6 +60,44 @@ func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, 
 		return "", nil, false
 	}
 	return mem.ChannelOrgID, ids, true
+}
+
+func (a *App) partnerMe(c *gin.Context) {
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return
+	}
+	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") {
+		httpx.OK(c, gin.H{
+			"role_type": "platform", "channel_org_id": "", "scope_role_ids": []string{},
+			"sees_downline": true, "request_id": c.GetString(httpx.ContextRequestID),
+		})
+		return
+	}
+	if p.HasRole("channel_admin") {
+		httpx.OK(c, gin.H{
+			"role_type": "channel_admin", "channel_org_id": p.ChannelOrgID, "scope_role_ids": []string{},
+			"sees_downline": true, "request_id": c.GetString(httpx.ContextRequestID),
+		})
+		return
+	}
+	mem, err := a.Identity.MemberRole(c.Request.Context(), p.UserID)
+	if err != nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
+		return
+	}
+	ids, err := a.Identity.RoleIDsInScope(c.Request.Context(), mem.ID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取推广范围失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{
+		"role_id": mem.ID, "role_type": mem.Type, "parent_role_id": mem.ParentID,
+		"channel_org_id": mem.ChannelOrgID, "scope_role_ids": ids,
+		"sees_downline": mem.Type != identity.AcqKOL2,
+		"request_id":    c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) partnerUsers(c *gin.Context) {

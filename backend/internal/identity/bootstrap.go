@@ -41,6 +41,12 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := upsertBootUser(tx, "agent.b@tokenhub.local", "end_user", adminToken+"-agent", "thagb_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
 			return err
 		}
+		if err := upsertBootUser(tx, "kol1.b@tokenhub.local", "end_user", adminToken+"-kol1", "thkb1_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
+			return err
+		}
+		if err := upsertBootUser(tx, "kol2.b@tokenhub.local", "end_user", adminToken+"-kol2", "thkb2_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
+			return err
+		}
 		// D23：财务/运营/技术/只读审计是叠加角色，各自独立 bootstrap token，便于验收权限隔离。
 		if err := upsertBootUser(tx, "finance@tokenhub.local", "finance_admin", adminToken+"-finance", "thfin_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
 			return err
@@ -54,10 +60,14 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := upsertBootUser(tx, "audit@tokenhub.local", "audit_readonly", adminToken+"-audit", "thaud_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
 			return err
 		}
-		var agentUser userRow
-		if err := tx.Where("email = ?", "agent.b@tokenhub.local").First(&agentUser).Error; err == nil {
-			_ = tx.Where("user_id = ? AND acquisition_role_id = ?", agentUser.ID, AgentBRoleID).
-				FirstOrCreate(&roleMemberRow{UserID: agentUser.ID, AcquisitionRoleID: AgentBRoleID, CreatedAt: time.Now().UTC()}).Error
+		if err := bindAcquisition(tx, "agent.b@tokenhub.local", AgentBRoleID); err != nil {
+			return err
+		}
+		if err := bindAcquisition(tx, "kol1.b@tokenhub.local", KOL1BRoleID); err != nil {
+			return err
+		}
+		if err := bindAcquisition(tx, "kol2.b@tokenhub.local", KOL2BRoleID); err != nil {
+			return err
 		}
 		return upsertBootUser(tx, "user@tokenhub.local", "end_user", userToken, "thusr_", OfficialChannelID, OfficialBrandID, "channel", OfficialChannelID)
 	})
@@ -128,4 +138,13 @@ func seedCatalog(tx *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+func bindAcquisition(tx *gorm.DB, email, roleID string) error {
+	var user userRow
+	if err := tx.Where("email = ?", email).First(&user).Error; err != nil {
+		return err
+	}
+	return tx.Where("user_id = ? AND acquisition_role_id = ?", user.ID, roleID).
+		FirstOrCreate(&roleMemberRow{UserID: user.ID, AcquisitionRoleID: roleID, CreatedAt: time.Now().UTC()}).Error
 }

@@ -102,6 +102,14 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/v1/partner/me"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/partner/users"
+  },
+  {
+    "method": "GET",
     "path": "/admin/users"
   },
   {

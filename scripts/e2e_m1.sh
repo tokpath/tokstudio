@@ -96,9 +96,9 @@ curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$alice\",\"password\":\"password2\"}" | grep -q "$alice"
 
 echo "== four portals render"
-for path in / /docs /app /channel /admin /login; do
+for path in / /docs /app /channel /partner /admin /login; do
   html="$(curl -sf "$WEB_URL$path")"
-  echo "$html" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|平台管理|注册 / 登录"
+  echo "$html" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|分销控制台|平台管理|注册 / 登录"
 done
 oemdocs="$(curl -sf -H "Host: oem.localhost" "$API_URL/v1/public/docs-context")"
 echo "$oemdocs" | grep -q "Aurora OEM"
@@ -113,5 +113,8 @@ echo "$channelhtml" | grep -q "推广链接"
 echo "$channelhtml" | grep -q "本渠道用量"
 echo "$channelhtml" | grep -q "本渠道归因"
 echo "$channelhtml" | grep -q "本渠道结算"
+partnerhtml="$(curl -sf "$WEB_URL/partner")"
+echo "$partnerhtml" | grep -q "我的层级"
+echo "$partnerhtml" | grep -q "范围内用户"
 
 echo "M1 e2e passed"

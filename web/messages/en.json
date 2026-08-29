@@ -4,6 +4,7 @@
     "docs": "Docs",
     "app": "Console",
     "channel": "Channel",
+    "partner": "Partners",
     "admin": "Admin",
     "login": "Sign in"
   },

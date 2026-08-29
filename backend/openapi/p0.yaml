@@ -198,6 +198,18 @@ paths:
       responses:
         "200":
           description: channel attribution buckets
+  /v1/partner/me:
+    get:
+      operationId: getPartnerMe
+      responses:
+        "200":
+          description: partner role and scope
+  /v1/partner/users:
+    get:
+      operationId: listPartnerUsers
+      responses:
+        "200":
+          description: scoped partner users
   /admin/users:
     get:
       operationId: listAdminUsers

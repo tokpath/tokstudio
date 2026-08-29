@@ -71,6 +71,24 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("expected hierarchy splits, got %+v", entries)
 	}
 
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/users", "", nil) != http.StatusForbidden {
+		t.Fatal("unauth partner users must be 403")
+	}
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/me", "m6_user", nil) != http.StatusForbidden {
+		t.Fatal("plain end user is not a partner")
+	}
+	meAgent := getAuthJSON(t, server.URL+"/v1/partner/me", "m6_admin-agent")
+	if meAgent["role_type"] != identity.AcqAgent {
+		t.Fatalf("agent me: %+v", meAgent)
+	}
+	meKOL2 := getAuthJSON(t, server.URL+"/v1/partner/me", "m6_admin-kol2")
+	if meKOL2["role_type"] != identity.AcqKOL2 || meKOL2["sees_downline"] != false {
+		t.Fatalf("kol2 me: %+v", meKOL2)
+	}
+	_ = postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "agent-attr-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": identity.PromoAgentB,
+	})
 	agentUsers := getAuthJSON(t, server.URL+"/v1/partner/users", "m6_admin-agent")["items"].([]any)
 	if len(agentUsers) == 0 {
 		t.Fatal("agent should see descendants")
@@ -79,10 +97,36 @@ func TestM6CommissionDistribution(t *testing.T) {
 	if !strings.Contains(email, "***") {
 		t.Fatalf("agent must see masked email: %s", email)
 	}
+	sawAgent, sawKOL2 := false, false
 	for _, raw := range agentUsers {
 		item := raw.(map[string]any)
 		if item["channel_org_id"] != identity.ResellerChannelID {
 			t.Fatalf("agent leaked other channel: %+v", item)
+		}
+		if item["source_code"] == identity.PromoAgentB {
+			sawAgent = true
+		}
+		if item["source_code"] == identity.PromoKOL2B {
+			sawKOL2 = true
+		}
+	}
+	if !sawAgent || !sawKOL2 {
+		t.Fatalf("agent should see THB-AGENT and THB-KOL2: %+v", agentUsers)
+	}
+	kol2Users := getAuthJSON(t, server.URL+"/v1/partner/users", "m6_admin-kol2")["items"].([]any)
+	for _, raw := range kol2Users {
+		item := raw.(map[string]any)
+		if item["source_code"] == identity.PromoAgentB {
+			t.Fatalf("kol2 must not see agent-attributed users: %+v", item)
+		}
+		if item["channel_org_id"] != identity.ResellerChannelID {
+			t.Fatalf("kol2 leaked other channel: %+v", item)
+		}
+	}
+	kol1Users := getAuthJSON(t, server.URL+"/v1/partner/users", "m6_admin-kol1")["items"].([]any)
+	for _, raw := range kol1Users {
+		if raw.(map[string]any)["source_code"] == identity.PromoAgentB {
+			t.Fatalf("kol1 must not see agent-only users: %+v", raw)
 		}
 	}
 

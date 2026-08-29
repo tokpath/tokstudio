@@ -85,10 +85,30 @@ echo "$comms" | grep -q channel
 echo "$comms" | grep -q frozen
 
 echo "== agent scope is masked and isolated"
+KOL1_TOKEN="${ADMIN_TOKEN}-kol1"
+KOL2_TOKEN="${ADMIN_TOKEN}-kol2"
+curl -sf -H "Authorization: Bearer $AGENT_TOKEN" "$API_URL/v1/partner/me" | grep -q '"role_type":"agent"'
+curl -sf -H "Authorization: Bearer $KOL2_TOKEN" "$API_URL/v1/partner/me" | grep -q '"role_type":"kol_l2"'
+agentEmail="m6-agent-$RANDOM@example.test"
+curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$agentEmail\",\"password\":\"password1\",\"promotion_code\":\"THB-AGENT\"}" >/dev/null
 users="$(curl -sf -H "Authorization: Bearer $AGENT_TOKEN" "$API_URL/v1/partner/users")"
 echo "$users" | grep -q '\*\*\*'
+echo "$users" | grep -q THB-KOL2
+echo "$users" | grep -q THB-AGENT
 if echo "$users" | grep -q "$email"; then
   echo "agent saw raw email" >&2
+  exit 1
+fi
+kol2users="$(curl -sf -H "Authorization: Bearer $KOL2_TOKEN" "$API_URL/v1/partner/users")"
+echo "$kol2users" | grep -q THB-KOL2
+if echo "$kol2users" | grep -q THB-AGENT; then
+  echo "kol2 saw agent-attributed users" >&2
+  exit 1
+fi
+kol1users="$(curl -sf -H "Authorization: Bearer $KOL1_TOKEN" "$API_URL/v1/partner/users")"
+if echo "$kol1users" | grep -q THB-AGENT; then
+  echo "kol1 saw agent-only users" >&2
   exit 1
 fi
 exportcsv="$(curl -sf -H "Authorization: Bearer $AGENT_TOKEN" "$API_URL/v1/partner/export")"

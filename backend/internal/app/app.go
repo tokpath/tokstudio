@@ -62,7 +62,11 @@ func (a *App) Migrate() error {
 }
 
 func (a *App) Bootstrap(ctx context.Context) error {
-	return a.Identity.Bootstrap(ctx, a.Config.BootstrapAdmin, a.Config.BootstrapUser)
+	channelToken := a.Config.BootstrapChannel
+	if channelToken == "" && a.Config.BootstrapAdmin != "" {
+		channelToken = a.Config.BootstrapAdmin + "-b"
+	}
+	return a.Identity.Bootstrap(ctx, a.Config.BootstrapAdmin, a.Config.BootstrapUser, channelToken)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -84,6 +88,7 @@ func (a *App) Router() *gin.Engine {
 	r.GET("/admin/audit-logs", a.requireRoles("platform_admin", "audit_readonly"), a.listAudit)
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
+	a.registerAuthRoutes(r)
 	return r
 }
 
@@ -91,7 +96,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m0",
+		"version":    "0.1.0-m1",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -153,7 +158,7 @@ func (a *App) currentPrincipal(c *gin.Context) *identity.Principal {
 
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		principal, err := a.Identity.Authenticate(c.Request.Context(), c.GetHeader("Authorization"))
+		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "身份校验失败", true)
 			return

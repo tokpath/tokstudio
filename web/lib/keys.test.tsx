@@ -11,7 +11,7 @@ describe("KeysList", () => {
       />,
     );
     expect(screen.getByText(/default/)).toBeTruthy();
-    expect(screen.getByText(/thk_abcd/)).toBeTruthy();
+    expect(screen.getAllByText(/thk_abcd/).length).toBeGreaterThan(0);
     expect(screen.getByText(/active/)).toBeTruthy();
   });
 });

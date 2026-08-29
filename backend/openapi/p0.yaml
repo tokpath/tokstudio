@@ -507,6 +507,18 @@ paths:
       responses:
         "200":
           description: updated quota
+  /admin/providers/{id}/credentials:
+    post:
+      operationId: rotateProviderCredential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: credential ref only, never plaintext
   /admin/providers/{id}/health-check:
     post:
       operationId: healthCheckProvider

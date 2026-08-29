@@ -270,6 +270,10 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "POST",
+    "path": "/admin/providers/{id}/credentials"
+  },
+  {
+    "method": "POST",
     "path": "/admin/providers/{id}/health-check"
   },
   {

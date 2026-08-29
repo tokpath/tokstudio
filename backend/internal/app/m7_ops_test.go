@@ -232,9 +232,15 @@ func TestM7OpsHardening(t *testing.T) {
 	if patched["item"].(map[string]any)["status"] != "maintenance" {
 		t.Fatalf("patch provider: %+v", patched)
 	}
+	if code := postStatus(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-no-confirm"}); code != http.StatusConflict {
+		t.Fatalf("rotate credential without confirm should be 409, got %d", code)
+	}
 	cred := postJSONRaw(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-sandbox"})
 	if cred["credential_ref"] == nil {
 		t.Fatalf("rotate credential: %+v", cred)
+	}
+	if _, leaked := cred["secret"]; leaked {
+		t.Fatalf("rotate must not echo plaintext: %+v", cred)
 	}
 	if code := postStatusConfirm(t, server.URL+"/admin/providers", "m7_admin", map[string]any{
 		"name": "ssrf", "slug": "ssrf-" + strconv.FormatInt(time.Now().UnixNano(), 10), "adapter": "openai", "base_url": "http://169.254.169.254/",

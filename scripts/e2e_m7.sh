@@ -143,6 +143,9 @@ runbookshtml="$(curl -sf "$WEB_URL/admin/runbooks")"
 echo "$runbookshtml" | grep -q "应急手册"
 
 echo "== admin catalog, gemini, 2fa"
+provhtml="$(curl -sf "$WEB_URL/admin/providers")"
+echo "$provhtml" | grep -q "凭据轮换"
+echo "$provhtml" | grep -q "轮换凭据"
 curl_has gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers"
 curl_has google/gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models"
 curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes"
@@ -154,8 +157,24 @@ if [[ "$code" != "409" ]]; then
   exit 1
 fi
 slug="ops-e2e-$RANDOM"
-curl_has "$slug" -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
-  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}"
+PROV_JSON="$(curl -sf -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}")"
+echo "$PROV_JSON" | grep -q "$slug"
+PROV_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$PROV_JSON")"
+code="$(curl -s -o /tmp/m7-cred409.json -w '%{http_code}' -X POST "$API_URL/admin/providers/$PROV_ID/credentials" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"secret":"sk-no-confirm"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 rotating credential without confirm, got $code" >&2
+  exit 1
+fi
+CRED_JSON="$(curl -sf -X POST "$API_URL/admin/providers/$PROV_ID/credentials" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-e2e-rotate-never-echo"}')"
+echo "$CRED_JSON" | grep -q credential_ref
+if echo "$CRED_JSON" | grep -q sk-e2e-rotate-never-echo; then
+  echo "rotate must not echo plaintext secret" >&2
+  exit 1
+fi
+curl_has provider.credential.rotate -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=provider.credential.rotate"
 curl_has prefix -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys"
 setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
 echo "$setup" | grep -q otpauth

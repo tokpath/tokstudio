@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
@@ -17,7 +18,7 @@ const schema = z.object({
   adapter: z.string().min(1),
 });
 
-type Provider = { id: string; name: string; slug: string; adapter: string; health: string; status: string };
+type Provider = { id: string; name: string; slug: string; adapter: string; health: string; status: string; credential_ref?: string };
 
 function ProbeCell({ id }: { id: string }) {
   const queryClient = useQueryClient();
@@ -43,6 +44,45 @@ function ProbeCell({ id }: { id: string }) {
       </Button>
       {result ? <span className="text-xs text-slate-400">{result}</span> : null}
     </div>
+  );
+}
+
+function RotateCredentialForm() {
+  const queryClient = useQueryClient();
+  const [providerID, setProviderID] = useState("");
+  const [secret, setSecret] = useState("");
+  const [message, setMessage] = useState("轮换需要二次确认头。响应和列表只回 credential_ref，不会回显明文。");
+
+  async function rotate() {
+    const res = await fetch(`${apiBase}/admin/providers/${providerID}/credentials`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      body: JSON.stringify({ secret }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setMessage(body.error?.message || "轮换失败");
+      return;
+    }
+    setSecret("");
+    setMessage(`已轮换，credential_ref=${body.credential_ref || ""}`);
+    await queryClient.invalidateQueries();
+  }
+
+  return (
+    <section className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+      <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
+      <p className="mb-3 text-sm text-slate-400">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Input className="w-72" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="轮换 provider id" placeholder="provider id" />
+        <Input className="w-72" type="password" value={secret} onChange={(e) => setSecret(e.target.value)} aria-label="上游凭据" placeholder="upstream secret" autoComplete="new-password" />
+        <Button size="sm" onClick={rotate}>
+          轮换凭据
+        </Button>
+      </div>
+      <p className="text-sm text-slate-300">{message}</p>
+    </section>
   );
 }
 
@@ -88,6 +128,7 @@ export default function AdminProvidersPage() {
           { accessorKey: "adapter", header: "Adapter" },
           { accessorKey: "health", header: "Health" },
           { accessorKey: "status", header: "Status" },
+          { accessorKey: "credential_ref", header: "Cred Ref" },
           {
             id: "probe",
             header: "探测",
@@ -95,6 +136,7 @@ export default function AdminProvidersPage() {
           },
         ]}
       />
+      <RotateCredentialForm />
       <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 p-4" onSubmit={form.handleSubmit(onSubmit)}>
         <p className="text-sm text-slate-400">创建 Provider 需要二次确认头，密钥不会回显。</p>
         <input className="rounded bg-slate-900 px-3 py-2" placeholder="name" {...form.register("name")} />

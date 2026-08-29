@@ -85,7 +85,9 @@ oemdocs="$(curl -sf -H "Host: oem.localhost" "$API_URL/v1/public/docs-context")"
 echo "$oemdocs" | grep -q "Aurora OEM"
 echo "$oemdocs" | grep -q TOKENHUB_API_KEY
 echo "$oemdocs" | grep -q /v1/messages
-curl -sf "$WEB_URL/app" | grep -q "接入示例"
-curl -sf "$WEB_URL/channel" | grep -q "本渠道用户"
+apphtml="$(curl -sf "$WEB_URL/app")"
+echo "$apphtml" | grep -q "接入示例"
+channelhtml="$(curl -sf "$WEB_URL/channel")"
+echo "$channelhtml" | grep -q "本渠道用户"
 
 echo "M1 e2e passed"

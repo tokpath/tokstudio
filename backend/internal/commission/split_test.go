@@ -31,10 +31,10 @@ func TestSplitRespectsCapAndHierarchy(t *testing.T) {
 }
 
 func TestValidatePolicyRejectsOverCap(t *testing.T) {
-	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 1000, ChannelBPS: 1000, CapBPS: 3500, FreezeDays: 7}); err != nil {
+	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 500, ChannelBPS: 500, CapBPS: 3500, FreezeDays: 7}); err != nil {
 		t.Fatalf("valid policy: %v", err)
 	}
-	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 1000, ChannelBPS: 1000, TeamBPS: 500, CapBPS: 3500}); err != nil {
+	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 1000, ChannelBPS: 1000, CapBPS: 3500}); err != nil {
 		t.Fatal("3500 cap equals the sum")
 	}
 	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 2000, ChannelBPS: 2000, CapBPS: 3500}); err != ErrInvalid {

@@ -186,7 +186,14 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	_ = postJSONRaw(t, server.URL+"/admin/ops/canary", "m7_admin", map[string]any{"provider_slug": catalog.BackupProvider, "percent": 0})
 
-	_ = postJSONRaw(t, server.URL+"/admin/audit-probes", "m7_admin", map[string]any{})
+	stats := getAuthJSON(t, server.URL+"/admin/outbox/stats", "m7_admin")["stats"].(map[string]any)
+	if stats["pending"] == nil && stats["published"] == nil && stats["failed"] == nil {
+		t.Fatalf("outbox stats: %+v", stats)
+	}
+	probe := postJSONRaw(t, server.URL+"/admin/audit-probes", "m7_admin", map[string]any{})
+	if probe["item"].(map[string]any)["action"] != "audit.probe" {
+		t.Fatalf("audit probe: %+v", probe)
+	}
 	searched := getAuthJSON(t, server.URL+"/admin/audit-logs?action=audit.probe", "m7_admin")["items"].([]any)
 	if len(searched) == 0 {
 		t.Fatal("audit search by action should find probe")

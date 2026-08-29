@@ -201,6 +201,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/audit-logs"
   },
   {
+    "method": "POST",
+    "path": "/admin/audit-probes"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/outbox/stats"
+  },
+  {
     "method": "GET",
     "path": "/admin/me/2fa"
   },

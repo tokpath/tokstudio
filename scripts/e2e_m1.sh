@@ -196,6 +196,9 @@ echo "$commhtml" | grep -q "佣金重算"
 echo "$commhtml" | grep -q "重算佣金"
 usagehtml="$(curl -sf "$WEB_URL/admin/usage")"
 echo "$usagehtml" | grep -q "回放 usage"
+audithtml="$(curl -sf "$WEB_URL/admin/audit")"
+echo "$audithtml" | grep -q "读取 Outbox"
+echo "$audithtml" | grep -q "写入探测"
 
 echo "== admin can create acquisition role and promo with confirm"
 role409="$(curl -sS -o /tmp/m1_role409.json -w '%{http_code}' -X POST "$API_URL/admin/acquisition-roles" \

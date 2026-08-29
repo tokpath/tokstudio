@@ -414,6 +414,18 @@ paths:
       responses:
         "200":
           description: audit
+  /admin/audit-probes:
+    post:
+      operationId: createAuditProbe
+      responses:
+        "201":
+          description: sandbox audit probe
+  /admin/outbox/stats:
+    get:
+      operationId: getOutboxStats
+      responses:
+        "200":
+          description: pending published failed counts
   /admin/me/2fa:
     get:
       operationId: getAdminTOTP

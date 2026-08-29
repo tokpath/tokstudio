@@ -113,6 +113,21 @@ services:
     depends_on:
       - api
 
+  edge:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - tokenhub_caddy:/data
+    environment:
+      TOKENHUB_EDGE_CNAME: edge.tokenhub.local
+    depends_on:
+      - api
+      - web
+
 volumes:
   tokenhub_pg:
   tokenhub_wal:
+  tokenhub_caddy:

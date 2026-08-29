@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -165,12 +167,37 @@ func TestM7OpsHardening(t *testing.T) {
 	if cred["credential_ref"] == nil {
 		t.Fatalf("rotate credential: %+v", cred)
 	}
+	if code := postStatusConfirm(t, server.URL+"/admin/providers", "m7_admin", map[string]any{
+		"name": "ssrf", "slug": "ssrf-" + strconv.FormatInt(time.Now().UnixNano(), 10), "adapter": "openai", "base_url": "http://169.254.169.254/",
+	}); code != http.StatusBadRequest {
+		t.Fatalf("metadata base url should be 400, got %d", code)
+	}
+	tlsOK, err := http.Get(server.URL + "/v1/public/tls-check?domain=oem.localhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tlsOK.Body.Close()
+	if tlsOK.StatusCode != http.StatusOK {
+		t.Fatalf("oem host should be known for CNAME/TLS, got %d", tlsOK.StatusCode)
+	}
+	tlsBad, err := http.Get(server.URL + "/v1/public/tls-check?domain=evil.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tlsBad.Body.Close()
+	if tlsBad.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown host must not get a cert, got %d", tlsBad.StatusCode)
+	}
+	issued := postJSONRaw(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "m7_admin", map[string]any{})
+	if issued["item"].(map[string]any)["tls_status"] != "issued" {
+		t.Fatalf("issue oem tls: %+v", issued)
+	}
 	models := getAuthJSON(t, server.URL+"/admin/models", "m7_admin")["items"].([]any)
 	if len(models) == 0 {
 		t.Fatal("admin models empty")
 	}
 	draft := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
-		"public_id": "tokenhub/ops-draft", "vendor": "tokenhub", "display_name": "Ops Draft", "status": "draft",
+		"public_id": "tokenhub/ops-draft-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Ops Draft", "status": "draft",
 	})
 	if draft["item"].(map[string]any)["status"] != "draft" {
 		t.Fatalf("create model: %+v", draft)
@@ -179,8 +206,9 @@ func TestM7OpsHardening(t *testing.T) {
 	if len(routes) == 0 {
 		t.Fatal("admin routes empty")
 	}
-	ch := postJSONRaw(t, server.URL+"/admin/channels", "m7_admin", map[string]any{"code": "ops-lab", "type": "B"})
-	if ch["item"].(map[string]any)["code"] != "ops-lab" {
+	chCode := "ops-lab-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	ch := postJSONRaw(t, server.URL+"/admin/channels", "m7_admin", map[string]any{"code": chCode, "type": "B"})
+	if ch["item"].(map[string]any)["code"] != chCode {
 		t.Fatalf("create channel: %+v", ch)
 	}
 	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
@@ -226,6 +254,52 @@ func TestM7OpsHardening(t *testing.T) {
 	if resp2.StatusCode == http.StatusConflict {
 		t.Fatalf("confirm+totp should pass confirm gate, got %d", resp2.StatusCode)
 	}
+
+	createdKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "lifecycle"})
+	life := createdKey["item"].(map[string]any)
+	oldSecret := life["key"].(string)
+	keyID := life["id"].(string)
+	rotated := postJSONRaw(t, server.URL+"/v1/me/api-keys/"+keyID+"/rotate", session, map[string]any{})
+	newSecret := rotated["item"].(map[string]any)["key"].(string)
+	if newSecret == "" || newSecret == oldSecret {
+		t.Fatalf("rotate should return a new secret: %+v", rotated)
+	}
+	if code := postStatus(t, server.URL+"/v1/chat/completions", oldSecret, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "old"}},
+	}); code != http.StatusForbidden {
+		t.Fatalf("rotated old key should be 403, got %d", code)
+	}
+	if chat := postJSONRaw(t, server.URL+"/v1/chat/completions", newSecret, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "new"}},
+	}); chat["request_id"] == nil {
+		t.Fatalf("rotated key should work: %+v", chat)
+	}
+	_ = postJSONRaw(t, server.URL+"/v1/me/api-keys/"+keyID+"/disable", session, map[string]any{})
+	if code := postStatus(t, server.URL+"/v1/chat/completions", newSecret, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "off"}},
+	}); code != http.StatusForbidden {
+		t.Fatalf("disabled key should be 403, got %d", code)
+	}
+	expKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "exp"})
+	expID := expKey["item"].(map[string]any)["id"].(string)
+	expSecret := expKey["item"].(map[string]any)["key"].(string)
+	_ = postJSONRaw(t, server.URL+"/v1/me/api-keys/"+expID+"/expire", session, map[string]any{"expires_at": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339)})
+	if code := postStatus(t, server.URL+"/v1/chat/completions", expSecret, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "exp"}},
+	}); code != http.StatusForbidden {
+		t.Fatalf("expired key should be 403, got %d", code)
+	}
+	reqExp, _ := http.NewRequest(http.MethodGet, server.URL+"/admin/billing/export", nil)
+	reqExp.Header.Set("Authorization", "Bearer m7_admin")
+	respExp, err := http.DefaultClient.Do(reqExp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer respExp.Body.Close()
+	raw, _ := io.ReadAll(respExp.Body)
+	if respExp.StatusCode != http.StatusOK || !strings.Contains(string(raw), "gross_profit") {
+		t.Fatalf("billing export: %d %s", respExp.StatusCode, string(raw))
+	}
 }
 
 func postStatus(t *testing.T, url, token string, payload map[string]any) int {
@@ -233,6 +307,20 @@ func postStatus(t *testing.T, url, token string, payload map[string]any) int {
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+func postStatusConfirm(t *testing.T, url, token string, payload map[string]any) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

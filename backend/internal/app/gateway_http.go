@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,7 +21,12 @@ import (
 func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/me/api-keys", a.requireAnyUser(), a.createAPIKey)
 	r.GET("/v1/me/api-keys", a.requireAnyUser(), a.listAPIKeys)
+	r.POST("/v1/me/api-keys/:id/rotate", a.requireAnyUser(), a.rotateAPIKey)
+	r.POST("/v1/me/api-keys/:id/disable", a.requireAnyUser(), a.disableAPIKey)
+	r.POST("/v1/me/api-keys/:id/expire", a.requireAnyUser(), a.expireAPIKey)
+	r.POST("/v1/me/api-keys/:id/copy", a.requireAnyUser(), a.copyAPIKey)
 	r.GET("/admin/api-keys", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminAPIKeys)
+	r.POST("/admin/api-keys/:id/disable", a.requireRoles("platform_admin", "tech_admin"), a.adminDisableAPIKey)
 	r.GET("/v1/models", a.requireAPIKey(), a.listModels)
 	r.GET("/v1/models/:model", a.requireAPIKey(), a.getModel)
 	r.POST("/v1/chat/completions", a.requireAPIKey(), a.chatCompletions)
@@ -102,7 +108,11 @@ func (a *App) listAPIKeys(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.view", ResourceType: "api_key", ResourceID: "*",
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OKPage(c, items, 20, func(item identity.APIKeyView) string { return item.ID })
 }
 
 func (a *App) listAdminAPIKeys(c *gin.Context) {
@@ -111,7 +121,77 @@ func (a *App) listAdminAPIKeys(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OKPage(c, items, 100, func(item identity.APIKeyView) string { return item.ID })
+}
+
+func (a *App) rotateAPIKey(c *gin.Context) {
+	item, err := a.Identity.RotateAPIKey(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"), a.Config.EncryptionKey)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "API Key 不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.rotate", ResourceType: "api_key", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) disableAPIKey(c *gin.Context) {
+	item, err := a.Identity.DisableAPIKey(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "API Key 不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.disable", ResourceType: "api_key", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) expireAPIKey(c *gin.Context) {
+	var body struct {
+		ExpiresAt string `json:"expires_at"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	when := time.Now().UTC()
+	if body.ExpiresAt != "" {
+		if parsed, err := time.Parse(time.RFC3339, body.ExpiresAt); err == nil {
+			when = parsed
+		}
+	}
+	item, err := a.Identity.ExpireAPIKey(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"), when)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "API Key 不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.expire", ResourceType: "api_key", ResourceID: item.ID,
+		After: map[string]string{"expires_at": when.Format(time.RFC3339)},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) copyAPIKey(c *gin.Context) {
+	keyID, err := a.Identity.ConfirmOwnedKey(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "API Key 不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.copy", ResourceType: "api_key", ResourceID: keyID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"copied": true, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminDisableAPIKey(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	a.disableAPIKey(c)
 }
 
 func (a *App) listModels(c *gin.Context) {
@@ -249,7 +329,7 @@ func (a *App) listProviders(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Provider 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OKPage(c, items, 100, func(item catalog.ProviderView) string { return item.ID })
 }
 
 func (a *App) healthCheckProvider(c *gin.Context) {
@@ -269,7 +349,11 @@ func (a *App) createProvider(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.CreateProvider(c.Request.Context(), body)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建 Provider 失败", false)
+		msg := "创建 Provider 失败"
+		if errors.Is(err, catalog.ErrBlockedURL) {
+			msg = "上游 Base URL 不在白名单或指向私网"
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", msg, false)
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -288,6 +372,10 @@ func (a *App) patchProvider(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.PatchProvider(c.Request.Context(), c.Param("id"), body)
 	if err != nil {
+		if errors.Is(err, catalog.ErrBlockedURL) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "上游 Base URL 不在白名单或指向私网", false)
+			return
+		}
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "Provider 不存在", false)
 		return
 	}
@@ -330,7 +418,7 @@ func (a *App) listAdminModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OKPage(c, items, 100, func(item catalog.ModelView) string { return item.ID })
 }
 
 func (a *App) createAdminModel(c *gin.Context) {
@@ -376,7 +464,7 @@ func (a *App) listAdminRoutes(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取路由失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OKPage(c, items, 100, func(item catalog.RouteView) string { return item.ID })
 }
 
 func (a *App) createAdminRoute(c *gin.Context) {

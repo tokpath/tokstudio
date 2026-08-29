@@ -17,7 +17,10 @@ const sessionCookie = "tokenhub_session"
 
 func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/brand", a.publicBrand)
+	r.GET("/v1/public/tls-check", a.publicTLSCheck)
 	r.GET("/v1/public/docs-context", a.docsContext)
+	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.listBrands)
+	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
 	r.POST("/v1/auth/otp/request", a.requestOTP)
@@ -285,13 +288,51 @@ func (a *App) docsContext(c *gin.Context) {
 	})
 }
 
+func (a *App) publicTLSCheck(c *gin.Context) {
+	domain := c.Query("domain")
+	if domain == "" {
+		domain = c.Query("host")
+	}
+	if !a.Identity.KnownBrandHost(c.Request.Context(), domain) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+func (a *App) listBrands(c *gin.Context) {
+	items, err := a.Identity.ListBrands(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取品牌失败", true)
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item identity.BrandView) string { return item.ID })
+}
+
+func (a *App) issueBrandTLS(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	item, err := a.Identity.IssueBrandTLS(c.Request.Context(), c.Param("id"), a.Config.EdgeCNAME)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "品牌不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "brand.tls.issue", ResourceType: "brand", ResourceID: item.ID,
+		After: map[string]string{"tls_status": item.TLSStatus, "cname_target": item.CNAMETarget},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) listChannels(c *gin.Context) {
 	items, err := a.Identity.ListChannels(c.Request.Context(), *a.currentPrincipal(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OKPage(c, items, 100, func(item identity.ChannelView) string { return item.ID })
 }
 
 func (a *App) createChannel(c *gin.Context) {

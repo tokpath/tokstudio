@@ -117,6 +117,7 @@
 - `POST /v1/me/api-keys`
 - `POST /v1/me/api-keys/{id}/rotate`
 - `POST /v1/me/api-keys/{id}/disable`
+- `POST /v1/me/api-keys/{id}/copy`：复制完整 Key，只写审计不改密文
 
 完整 API Key 只返回给创建者；查看、复制、轮换、禁用、过期均写审计日志。
 
@@ -133,6 +134,11 @@
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
 - `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
+- `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
+- `GET /admin/usage?format=csv`：用量明细导出。
+- `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
+- `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
+- `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态。
 - `POST /admin/commissions/recalc`：按价格快照重算佣金。
 - `POST /admin/price-books`：发布新价格版本，不影响历史账单。
 

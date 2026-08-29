@@ -122,6 +122,32 @@ setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Beare
 echo "$setup" | grep -q otpauth
 # 不在共享管理员上启用 2FA，避免后续脚本被 totp_required 打断
 
+echo "== api key rotate disable expire and billing export"
+life="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"life"}')"
+kid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$life")"
+oldk="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$life")"
+newk="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
+  "$(curl -sf -X POST "$API_URL/v1/me/api-keys/$kid/rotate" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{}')")"
+code="$(curl -s -o /tmp/m7-oldk.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $oldk" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"old"}]}')"
+if [[ "$code" != "403" ]]; then echo "rotated old key should 403, got $code" >&2; exit 1; fi
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $newk" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"new"}]}' | grep -q request_id
+curl -sf -X POST "$API_URL/v1/me/api-keys/$kid/disable" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{}' >/dev/null
+code="$(curl -s -o /tmp/m7-dis.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $newk" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"off"}]}')"
+if [[ "$code" != "403" ]]; then echo "disabled key should 403, got $code" >&2; exit 1; fi
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/billing/export" | grep -q gross_profit
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/usage?format=csv" | grep -q request_id
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys?limit=5" | grep -q next_cursor
+code="$(curl -s -o /tmp/m7-ssrf.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"name\":\"ssrf\",\"slug\":\"ssrf-$RANDOM\",\"adapter\":\"openai\",\"base_url\":\"http://169.254.169.254/\"}")"
+if [[ "$code" != "400" ]]; then echo "metadata url should 400, got $code $(cat /tmp/m7-ssrf.json)" >&2; exit 1; fi
+curl -sf "$API_URL/v1/public/tls-check?domain=oem.localhost" >/dev/null
+code="$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/v1/public/tls-check?domain=evil.example")"
+if [[ "$code" != "404" ]]; then echo "unknown host should 404, got $code" >&2; exit 1; fi
+curl -sf -X POST "$API_URL/admin/brands/brd_oem/tls/issue" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}' | grep -q issued
+
 echo "== loadtest"
 bash "$ROOT/scripts/loadtest_limits.sh"
 

@@ -52,6 +52,7 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	outboxSvc := outbox.New(gdb)
 	auditSvc := audit.New(gdb, outboxSvc)
 	catalogSvc := catalog.New(gdb)
+	catalogSvc.SetURLPolicy(cfg.IsProduction(), cfg.UpstreamURLAllowlist)
 	billingSvc := billing.New(gdb, outboxSvc)
 	plansSvc := plans.New(gdb, outboxSvc)
 	billingSvc.SetCoverer(plansSvc)

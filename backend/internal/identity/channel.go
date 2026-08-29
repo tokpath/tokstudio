@@ -18,6 +18,8 @@ type brandRow struct {
 	PrimaryDomain string    `gorm:"column:primary_domain"`
 	APIDomain     string    `gorm:"column:api_domain"`
 	AdminDomain   string    `gorm:"column:admin_domain"`
+	CNAMETarget   string    `gorm:"column:cname_target"`
+	TLSStatus     string    `gorm:"column:tls_status"`
 	ThemeJSON     []byte    `gorm:"column:theme_json"`
 	CreatedAt     time.Time `gorm:"column:created_at"`
 }
@@ -94,6 +96,46 @@ func (s *Service) resolvePromotion(ctx context.Context, code string) (resolvedPr
 		AcquisitionRoleID: promo.AcquisitionRoleID,
 		SourceCode:        promo.Code,
 	}, nil
+}
+
+func (s *Service) KnownBrandHost(ctx context.Context, host string) bool {
+	host = strings.ToLower(strings.TrimSpace(strings.Split(host, ":")[0]))
+	if host == "" {
+		return false
+	}
+	var n int64
+	_ = s.db.WithContext(ctx).Model(&brandRow{}).
+		Where("primary_domain = ? OR api_domain = ? OR admin_domain = ?", host, host, host).
+		Count(&n).Error
+	return n > 0
+}
+
+func (s *Service) ListBrands(ctx context.Context) ([]BrandView, error) {
+	var rows []brandRow
+	if err := s.db.WithContext(ctx).Order("id").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]BrandView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, *brandView(row))
+	}
+	return out, nil
+}
+
+func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*BrandView, error) {
+	if strings.TrimSpace(cname) == "" {
+		cname = "edge.tokenhub.local"
+	}
+	if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
+		"cname_target": cname, "tls_status": "issued",
+	}).Error; err != nil {
+		return nil, err
+	}
+	var row brandRow
+	if err := s.db.WithContext(ctx).Where("id = ?", brandID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	return brandView(row), nil
 }
 
 func (s *Service) BrandByHost(ctx context.Context, host string) (*BrandView, error) {
@@ -299,6 +341,8 @@ func brandView(row brandRow) *BrandView {
 		PrimaryDomain: row.PrimaryDomain,
 		APIDomain:     row.APIDomain,
 		AdminDomain:   row.AdminDomain,
+		CNAMETarget:   row.CNAMETarget,
+		TLSStatus:     row.TLSStatus,
 		Theme:         theme,
 	}
 	if row.LogoURL != nil {

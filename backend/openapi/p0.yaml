@@ -108,6 +108,73 @@ paths:
       responses:
         "200":
           description: keys without secrets
+  /v1/me/api-keys/{id}/rotate:
+    post:
+      operationId: rotateAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: new secret
+  /v1/me/api-keys/{id}/disable:
+    post:
+      operationId: disableAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: disabled
+  /v1/me/api-keys/{id}/copy:
+    post:
+      operationId: copyAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: copy audited
+  /v1/public/tls-check:
+    get:
+      operationId: publicTLSCheck
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: known oem or platform host
+        "404":
+          description: unknown host
+  /v1/me/api-keys/{id}/expire:
+    post:
+      operationId: expireAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: expired
+  /admin/billing/export:
+    get:
+      operationId: exportBilling
+      responses:
+        "200":
+          description: csv reconciliation export
   /admin/audit-logs:
     get:
       operationId: listAuditLogs

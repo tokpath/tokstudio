@@ -47,7 +47,7 @@ P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_ro
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `api_key` | `id`, `user_id`, `name`, `prefix`, `secret_ciphertext`, `secret_hash`, `expires_at`, `status`, `rpm_limit`, `concurrency_limit` | 完整 Key 可长期查看，操作写审计 |
+| `api_key` | `id`, `user_id`, `name`, `prefix`, `secret_ciphertext`, `secret_hash`, `expires_at`, `last_used_at`, `status`, `rpm_limit`, `concurrency_limit` | 完整 Key 可长期查看；轮换改密文不改主键；禁用/过期后鉴权失败，操作写审计 |
 | `api_key_model_policy` | `api_key_id`, `public_model_id`, `allowed` | Key 级模型白名单 |
 | `product_plan` | `id`, `owner_type`, `owner_id`, `name`, `currency`, `price`, `billing_period`, `status`, `policy_version` | 平台和渠道均可创建 |
 | `plan_item` | `plan_id`, `public_model_id`, `unit_type`, `included_amount`, `overage_price`, `expires_in` | token/video_second/image_count/request_count/usd_credit |

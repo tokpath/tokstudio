@@ -12,28 +12,30 @@ import (
 
 // Config 是进程启动后的只读配置快照。
 type Config struct {
-	Env               string
-	HTTPAddr          string
-	PublicBaseURL     string
-	WebOrigin         string
-	DatabaseURL       string
-	RedisURL          string
-	BootstrapAdmin    string
-	BootstrapUser     string
-	BootstrapChannel  string
-	GoogleClientID    string
-	GoogleRedirect    string
-	BifrostURL        string
-	OTELEndpoint      string
-	OTELServiceName   string
-	LogLevel          string
-	EncryptionKey     string
-	AllowDemoProbes   bool
-	MediaStorePath    string
-	MediaSignKey      string
-	ArkBaseURL        string
-	OpenRouterBaseURL string
-	PaymentSignKey    string
+	Env                  string
+	HTTPAddr             string
+	PublicBaseURL        string
+	WebOrigin            string
+	DatabaseURL          string
+	RedisURL             string
+	BootstrapAdmin       string
+	BootstrapUser        string
+	BootstrapChannel     string
+	GoogleClientID       string
+	GoogleRedirect       string
+	BifrostURL           string
+	OTELEndpoint         string
+	OTELServiceName      string
+	LogLevel             string
+	EncryptionKey        string
+	AllowDemoProbes      bool
+	MediaStorePath       string
+	MediaSignKey         string
+	ArkBaseURL           string
+	OpenRouterBaseURL    string
+	PaymentSignKey       string
+	UpstreamURLAllowlist []string
+	EdgeCNAME            string
 }
 
 // Load 从环境变量读取 TOKENHUB_* 配置。
@@ -57,28 +59,33 @@ func Load() (*Config, error) {
 	loadDotEnv("../.env")
 
 	cfg := &Config{
-		Env:               v.GetString("ENV"),
-		HTTPAddr:          v.GetString("HTTP_ADDR"),
-		PublicBaseURL:     v.GetString("PUBLIC_BASE_URL"),
-		WebOrigin:         v.GetString("WEB_ORIGIN"),
-		DatabaseURL:       v.GetString("DATABASE_URL"),
-		RedisURL:          v.GetString("REDIS_URL"),
-		BootstrapAdmin:    v.GetString("BOOTSTRAP_ADMIN_TOKEN"),
-		BootstrapUser:     v.GetString("BOOTSTRAP_USER_TOKEN"),
-		BootstrapChannel:  v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
-		GoogleClientID:    v.GetString("GOOGLE_CLIENT_ID"),
-		GoogleRedirect:    v.GetString("GOOGLE_REDIRECT_URL"),
-		BifrostURL:        v.GetString("BIFROST_URL"),
-		OTELEndpoint:      v.GetString("OTEL_EXPORTER_OTLP_ENDPOINT"),
-		OTELServiceName:   v.GetString("OTEL_SERVICE_NAME"),
-		LogLevel:          v.GetString("LOG_LEVEL"),
-		EncryptionKey:     v.GetString("ENCRYPTION_KEY"),
-		AllowDemoProbes:   v.GetBool("ALLOW_DEMO_PROBES"),
-		MediaStorePath:    v.GetString("MEDIA_STORE_PATH"),
-		MediaSignKey:      v.GetString("MEDIA_SIGN_KEY"),
-		ArkBaseURL:        v.GetString("ARK_BASE_URL"),
-		OpenRouterBaseURL: v.GetString("OPENROUTER_BASE_URL"),
-		PaymentSignKey:    v.GetString("PAYMENT_SIGN_KEY"),
+		Env:                  v.GetString("ENV"),
+		HTTPAddr:             v.GetString("HTTP_ADDR"),
+		PublicBaseURL:        v.GetString("PUBLIC_BASE_URL"),
+		WebOrigin:            v.GetString("WEB_ORIGIN"),
+		DatabaseURL:          v.GetString("DATABASE_URL"),
+		RedisURL:             v.GetString("REDIS_URL"),
+		BootstrapAdmin:       v.GetString("BOOTSTRAP_ADMIN_TOKEN"),
+		BootstrapUser:        v.GetString("BOOTSTRAP_USER_TOKEN"),
+		BootstrapChannel:     v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
+		GoogleClientID:       v.GetString("GOOGLE_CLIENT_ID"),
+		GoogleRedirect:       v.GetString("GOOGLE_REDIRECT_URL"),
+		BifrostURL:           v.GetString("BIFROST_URL"),
+		OTELEndpoint:         v.GetString("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		OTELServiceName:      v.GetString("OTEL_SERVICE_NAME"),
+		LogLevel:             v.GetString("LOG_LEVEL"),
+		EncryptionKey:        v.GetString("ENCRYPTION_KEY"),
+		AllowDemoProbes:      v.GetBool("ALLOW_DEMO_PROBES"),
+		MediaStorePath:       v.GetString("MEDIA_STORE_PATH"),
+		MediaSignKey:         v.GetString("MEDIA_SIGN_KEY"),
+		ArkBaseURL:           v.GetString("ARK_BASE_URL"),
+		OpenRouterBaseURL:    v.GetString("OPENROUTER_BASE_URL"),
+		PaymentSignKey:       v.GetString("PAYMENT_SIGN_KEY"),
+		UpstreamURLAllowlist: splitCSV(v.GetString("UPSTREAM_URL_ALLOWLIST")),
+		EdgeCNAME:            v.GetString("EDGE_CNAME"),
+	}
+	if cfg.EdgeCNAME == "" {
+		cfg.EdgeCNAME = "edge.tokenhub.local"
 	}
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("TOKENHUB_DATABASE_URL is required")
@@ -107,6 +114,20 @@ func loadDotEnv(path string) {
 			_ = os.Setenv(key, value)
 		}
 	}
+}
+
+func splitCSV(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if item := strings.TrimSpace(part); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 func (c *Config) IsProduction() bool {

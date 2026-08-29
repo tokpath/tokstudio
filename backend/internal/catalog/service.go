@@ -137,10 +137,18 @@ type RouteHint struct {
 }
 
 type Service struct {
-	db *gorm.DB
+	db         *gorm.DB
+	production bool
+	allowHosts []string
 }
 
 func New(db *gorm.DB) *Service { return &Service{db: db} }
+
+// SetURLPolicy 由组装层注入：生产环境禁止私网和不在白名单的上游 Base URL。
+func (s *Service) SetURLPolicy(production bool, allowHosts []string) {
+	s.production = production
+	s.allowHosts = allowHosts
+}
 
 func Migrations() (string, fs.FS) {
 	sub, err := fs.Sub(migrationFS, "migrate")

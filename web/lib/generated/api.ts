@@ -69,6 +69,30 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/api-keys"
   },
   {
+    "method": "POST",
+    "path": "/v1/me/api-keys/{id}/rotate"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/api-keys/{id}/disable"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/api-keys/{id}/copy"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/public/tls-check"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/api-keys/{id}/expire"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/billing/export"
+  },
+  {
     "method": "GET",
     "path": "/admin/audit-logs"
   },

@@ -17,22 +17,22 @@ import (
 var ErrInvalidInput = errors.New("invalid catalog input")
 
 type ProviderInput struct {
-	Name              string `json:"name"`
-	Slug              string `json:"slug"`
-	Kind              string `json:"kind"`
-	Adapter           string `json:"adapter"`
-	BaseURL           string `json:"base_url"`
-	Region            string `json:"region"`
-	Status            string `json:"status"`
-	TestBehavior      string `json:"test_behavior"`
-	Priority          int    `json:"priority"`
-	Weight            int    `json:"weight"`
-	TimeoutMS         int    `json:"timeout_ms"`
-	RetryMax          int    `json:"retry_max"`
-	RPMLimit          int    `json:"rpm_limit"`
-	ConcurrencyLimit  int    `json:"concurrency_limit"`
-	CapabilityTags    string `json:"capability_tags"`
-	CredentialRef     string `json:"credential_ref"`
+	Name             string `json:"name"`
+	Slug             string `json:"slug"`
+	Kind             string `json:"kind"`
+	Adapter          string `json:"adapter"`
+	BaseURL          string `json:"base_url"`
+	Region           string `json:"region"`
+	Status           string `json:"status"`
+	TestBehavior     string `json:"test_behavior"`
+	Priority         int    `json:"priority"`
+	Weight           int    `json:"weight"`
+	TimeoutMS        int    `json:"timeout_ms"`
+	RetryMax         int    `json:"retry_max"`
+	RPMLimit         int    `json:"rpm_limit"`
+	ConcurrencyLimit int    `json:"concurrency_limit"`
+	CapabilityTags   string `json:"capability_tags"`
+	CredentialRef    string `json:"credential_ref"`
 }
 
 type ModelInput struct {
@@ -57,15 +57,18 @@ type RouteCandidateIn struct {
 }
 
 type RouteView struct {
-	ID            string         `json:"id"`
-	PublicModelID string         `json:"public_model_id"`
-	Strategy      string         `json:"strategy"`
-	Status        string         `json:"status"`
+	ID            string           `json:"id"`
+	PublicModelID string           `json:"public_model_id"`
+	Strategy      string           `json:"strategy"`
+	Status        string           `json:"status"`
 	Candidates    []map[string]any `json:"candidates"`
 }
 
 func (s *Service) CreateProvider(ctx context.Context, in ProviderInput) (*ProviderView, error) {
 	in = normalizeProvider(in)
+	if err := ValidateUpstreamURL(in.BaseURL, s.production, s.allowHosts); err != nil {
+		return nil, err
+	}
 	row := providerRow{
 		ID: id.New("prd"), Name: in.Name, Slug: in.Slug, Kind: in.Kind, Adapter: in.Adapter,
 		BaseURL: in.BaseURL, Region: in.Region, Status: in.Status, Health: "available",
@@ -95,6 +98,9 @@ func (s *Service) PatchProvider(ctx context.Context, id string, in ProviderInput
 		updates["adapter"] = in.Adapter
 	}
 	if in.BaseURL != "" {
+		if err := ValidateUpstreamURL(in.BaseURL, s.production, s.allowHosts); err != nil {
+			return nil, err
+		}
 		updates["base_url"] = in.BaseURL
 	}
 	if in.Region != "" {

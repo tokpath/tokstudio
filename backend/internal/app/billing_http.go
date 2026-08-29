@@ -1,8 +1,10 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -27,6 +29,7 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/admin/ledger", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminLedger)
 	r.GET("/admin/usage", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminUsage)
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.billingReport)
+	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
 	r.POST("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.publishPrice)
 	r.POST("/admin/usage/replay", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.replayUsage)
@@ -242,12 +245,34 @@ func (a *App) adminLedger(c *gin.Context) {
 }
 
 func (a *App) adminUsage(c *gin.Context) {
-	items, err := a.Billing.ListUsage(c.Request.Context(), c.Query("user_id"), 50)
+	limit, _ := httpx.Page(c, 50)
+	items, err := a.Billing.ListUsage(c.Request.Context(), c.Query("user_id"), limit)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if c.Query("format") == "csv" {
+		var b strings.Builder
+		b.WriteString("id,request_id,state,customer_amount_minor,public_model_id\n")
+		for _, item := range items {
+			b.WriteString(fmt.Sprintf("%s,%s,%s,%d,%s\n", item.ID, item.RequestID, item.State, item.CustomerMinor, item.PublicModelID))
+		}
+		c.Header("Content-Type", "text/csv")
+		c.String(http.StatusOK, b.String())
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) billingExport(c *gin.Context) {
+	report, err := a.Billing.Report(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "导出失败", true)
+		return
+	}
+	c.Header("Content-Type", "text/csv")
+	c.String(http.StatusOK, "metric,amount_minor\nrevenue,%d\nupstream_cost,%d\ncommission,%d\ngross_profit,%d\npending_reconciliation,%d\n",
+		report.RevenueMinor, report.UpstreamMinor, report.CommissionMinor, report.GrossProfitMinor, report.PendingCount)
 }
 
 func (a *App) billingReport(c *gin.Context) {

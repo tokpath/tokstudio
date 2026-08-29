@@ -1,0 +1,24 @@
+# OEM / 平台域名：客户把 CNAME 指到 edge.tokenhub.local 后，由 Caddy 按需签发 HTTPS。
+# ask 接口只对已登记品牌域名返回 200，避免给任意主机签发证书。
+{
+	on_demand_tls {
+		ask http://api:8080/v1/public/tls-check
+	}
+}
+
+:80 {
+	redir https://{host}{uri} permanent
+}
+
+:443 {
+	tls {
+		on_demand
+	}
+	@api host api.localhost api.oem.localhost
+	handle @api {
+		reverse_proxy api:8080
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

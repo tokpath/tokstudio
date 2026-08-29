@@ -154,6 +154,7 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		Protocol:  protocol,
 		Hint:      hint,
 		ForceFail: c.GetHeader("X-Tokenhub-Force-Fail"),
+		OmitUsage: c.GetHeader("X-Tokenhub-Omit-Usage") == "1",
 		Chat:      chat,
 	})
 	if err != nil {
@@ -162,6 +163,8 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "不支持的参数 logit_bias", false)
 		case errors.Is(err, gateway.ErrModelNotAllowed):
 			httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型未授权", false)
+		case errors.Is(err, gateway.ErrInsufficientBalance):
+			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
 		default:
 			httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "没有可用提供商", true)
 		}

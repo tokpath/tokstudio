@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"io/fs"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
+
+	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 )
@@ -59,11 +62,12 @@ type mappingRow struct {
 func (mappingRow) TableName() string { return "catalog_provider_model_mappings" }
 
 type priceRow struct {
-	ID            string `gorm:"column:id;primaryKey"`
-	PublicModelID string `gorm:"column:public_model_id"`
-	ProviderID    *string `gorm:"column:provider_id"`
-	UnitPrices    []byte `gorm:"column:unit_prices_json"`
-	Status        string `gorm:"column:status"`
+	ID            string    `gorm:"column:id;primaryKey"`
+	PublicModelID string    `gorm:"column:public_model_id"`
+	ProviderID    *string   `gorm:"column:provider_id"`
+	UnitPrices    []byte    `gorm:"column:unit_prices_json"`
+	Status        string    `gorm:"column:status"`
+	EffectiveAt   time.Time `gorm:"column:effective_at"`
 }
 
 func (priceRow) TableName() string { return "catalog_price_versions" }
@@ -94,13 +98,13 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID            string         `json:"id"`
-	Vendor        string         `json:"vendor"`
-	DisplayName   string         `json:"display_name"`
-	Capabilities  map[string]any `json:"capabilities"`
-	SellPrice     map[string]any `json:"sell_price,omitempty"`
-	Providers     []string       `json:"providers"`
-	Status        string         `json:"status"`
+	ID           string         `json:"id"`
+	Vendor       string         `json:"vendor"`
+	DisplayName  string         `json:"display_name"`
+	Capabilities map[string]any `json:"capabilities"`
+	SellPrice    map[string]any `json:"sell_price,omitempty"`
+	Providers    []string       `json:"providers"`
+	Status       string         `json:"status"`
 }
 
 type RouteCandidate struct {
@@ -113,9 +117,9 @@ type RouteCandidate struct {
 }
 
 type RouteHint struct {
-	Only  []string
+	Only   []string
 	Ignore []string
-	Order []string
+	Order  []string
 }
 
 type Service struct {
@@ -134,13 +138,17 @@ func Migrations() (string, fs.FS) {
 
 func (s *Service) Seed(ctx context.Context) error {
 	caps, _ := json.Marshal(map[string]any{
-		"supported_parameters": []string{"stream", "temperature", "max_tokens", "messages", "model", "system", "tools"},
+		"supported_parameters":   []string{"stream", "temperature", "max_tokens", "messages", "model", "system", "tools"},
 		"unsupported_parameters": []string{"logit_bias"},
 	})
 	oemCaps, _ := json.Marshal(map[string]any{
 		"supported_parameters": []string{"stream", "messages", "model"},
 	})
-	price, _ := json.Marshal(map[string]any{"input": "0.000001", "output": "0.000002", "currency": "USD"})
+	price, _ := json.Marshal(map[string]any{
+		"input": "0.000001", "output": "0.000002", "currency": "USD",
+		"upstream_cost_input": "0.0000004", "upstream_cost_output": "0.0000008",
+		"wholesale_input": "0.0000007", "wholesale_output": "0.0000014",
+	})
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		providers := []providerRow{
 			{ID: "prd_echo_primary", Name: "Echo Primary", Slug: PrimaryProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
@@ -277,6 +285,52 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		out = orderBy(out, hint.Order)
 	}
 	return out, nil
+}
+
+// PriceSnapshot 是账务模块允许看到的公开价格视图，不含内部 ORM。
+type PriceSnapshot struct {
+	VersionID string
+	PublicID  string
+	Raw       json.RawMessage
+}
+
+func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSnapshot, error) {
+	var model publicModelRow
+	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
+		return nil, err
+	}
+	var price priceRow
+	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", model.ID, "published").
+		Order("effective_at DESC").First(&price).Error; err != nil {
+		return nil, err
+	}
+	return &PriceSnapshot{VersionID: price.ID, PublicID: model.PublicID, Raw: price.UnitPrices}, nil
+}
+
+func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices map[string]any) (*PriceSnapshot, error) {
+	var model publicModelRow
+	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
+		return nil, err
+	}
+	body, err := json.Marshal(unitPrices)
+	if err != nil {
+		return nil, err
+	}
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&priceRow{}).Where("public_model_id = ? AND status = ?", model.ID, "published").
+			Update("status", "superseded").Error; err != nil {
+			return err
+		}
+		row := priceRow{
+			ID: id.New("prc"), PublicModelID: model.ID, UnitPrices: body,
+			Status: "published", EffectiveAt: time.Now().UTC(),
+		}
+		return tx.Create(&row).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.PriceSnapshot(ctx, publicID)
 }
 
 func (s *Service) MarkHealth(ctx context.Context, providerID, health string) error {

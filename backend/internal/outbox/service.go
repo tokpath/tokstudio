@@ -54,8 +54,13 @@ func Migrations() (string, fs.FS) {
 	return "outbox", sub
 }
 
-// Enqueue 写入一条 pending 事件。账务模块后续应把该调用放进同一业务事务。
+// Enqueue 写入一条 pending 事件。
 func (s *Service) Enqueue(ctx context.Context, eventType, aggregateType, aggregateID string, payload any) (string, error) {
+	return s.EnqueueTx(s.db.WithContext(ctx), eventType, aggregateType, aggregateID, payload)
+}
+
+// EnqueueTx 把事件写进调用方已经打开的事务，保证账务流水和 Outbox 一起提交。
+func (s *Service) EnqueueTx(tx *gorm.DB, eventType, aggregateType, aggregateID string, payload any) (string, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
@@ -70,7 +75,7 @@ func (s *Service) Enqueue(ctx context.Context, eventType, aggregateType, aggrega
 		AvailableAt:   time.Now().UTC(),
 		CreatedAt:     time.Now().UTC(),
 	}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+	if err := tx.Create(&row).Error; err != nil {
 		return "", err
 	}
 	return row.ID, nil

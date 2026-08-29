@@ -119,6 +119,13 @@
 - `GET /v1/topups/{id}`：查询订单；
 - `POST /v1/topups/{id}/refund`：按权限申请退款；
 - `POST /v1/payments/{adapter}/webhook`：支付适配器回调。
+- `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。
+- `POST /admin/topups/{id}/confirm`：财务确认人工充值。
+- `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
+- `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。
+- `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
+- `POST /admin/commissions/recalc`：按价格快照重算佣金。
+- `POST /admin/price-books`：发布新价格版本，不影响历史账单。
 
 支付回调必须验签、记录原始事件、按外部事件 ID 幂等，并在确认 `paid` 后发放余额/权益。
 

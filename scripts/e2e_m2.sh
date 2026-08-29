@@ -11,6 +11,10 @@ session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']
 keyjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e"}')"
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$keyjson")"
 
+echo "== M3 topup so M2 chat still has balance"
+curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -d '{"code":"THE2E"}' >/dev/null
+
 echo "== models list"
 curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models" | grep -q tokenhub/echo-1
 

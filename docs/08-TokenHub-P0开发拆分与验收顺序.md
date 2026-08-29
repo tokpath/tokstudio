@@ -28,6 +28,8 @@
 
 验收：并发请求不双扣；余额不足不调用上游；重复 usage/webhook 幂等；旧价格账单不变；退款和佣金冲正可重算。
 
+M3 实现补充：网关在调用 Adapter 前通过 `billing.Reserve` 预授权；余额不足返回 `402 insufficient_balance` 且 `AdapterCalls` 不增加。缺 usage 时进入 `pending_reconciliation`，不按估算扣款。佣金先按批发价快照挂 `frozen` 流水，完整分销策略仍在 M6。
+
 ### M4 Seedance 视频与媒体任务
 
 范围：火山方舟直连、OpenRouter、视频创建/查询/取消/回调/下载、图像生成/编辑、媒体参数、媒体预授权和单位计费、对象存储和 7 天清理。

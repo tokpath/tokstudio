@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/app"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
@@ -33,12 +36,13 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	defer server.Close()
 
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
-		"email": "gw-" + t.Name() + "@example.test", "password": "password1", "promotion_code": "THA1",
+		"email": "gw-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test", "password": "password1", "promotion_code": "THA1",
 	})
 	session := tokenOf(reg)
 	keyResp := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "e2e"})
 	item := keyResp["item"].(map[string]any)
 	apiKey := item["key"].(string)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})
 
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hi"}},

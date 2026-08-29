@@ -10,10 +10,20 @@ import (
 
 	"gorm.io/gorm"
 
+	"sync/atomic"
+
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
+
+// Booker 是账务模块暴露给网关的预授权接口。网关不得直连 billing 表。
+type Booker interface {
+	Reserve(ctx context.Context, in billing.ReserveInput) (*billing.Reservation, error)
+	Settle(ctx context.Context, in billing.SettleInput) (*billing.Settlement, error)
+	Release(ctx context.Context, requestID string) error
+}
 
 //go:embed migrate/*.sql
 var migrationFS embed.FS
@@ -22,6 +32,7 @@ var (
 	ErrModelNotAllowed     = errors.New("model not allowed")
 	ErrUnsupportedParam    = errors.New("unsupported parameter")
 	ErrProviderUnavailable = errors.New("provider unavailable")
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )
 
 type requestRow struct {
@@ -66,20 +77,27 @@ type AttemptView struct {
 }
 
 type Service struct {
-	db       *gorm.DB
-	catalog  *catalog.Service
-	adapters map[string]Adapter
+	db           *gorm.DB
+	catalog      *catalog.Service
+	booker       Booker
+	adapters     map[string]Adapter
+	adapterCalls int32
 }
 
-func New(db *gorm.DB, cat *catalog.Service, bifrostURL string) *Service {
+func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *Service {
 	return &Service{
 		db:      db,
 		catalog: cat,
+		booker:  booker,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
 			"bifrost": BifrostAdapter{BaseURL: bifrostURL},
 		},
 	}
+}
+
+func (s *Service) AdapterCalls() int32 {
+	return atomic.LoadInt32(&s.adapterCalls)
 }
 
 func Migrations() (string, fs.FS) {
@@ -96,6 +114,7 @@ type ExecuteInput struct {
 	Protocol  string
 	Hint      catalog.RouteHint
 	ForceFail string
+	OmitUsage bool
 	Chat      ChatRequest
 }
 
@@ -118,6 +137,33 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		return nil, ErrProviderUnavailable
 	}
 
+	snapshot, err := s.catalog.PriceSnapshot(ctx, model.ID)
+	if err != nil {
+		return nil, err
+	}
+	quote, err := billing.ParseQuote(snapshot.VersionID, snapshot.Raw)
+	if err != nil {
+		return nil, err
+	}
+	promptHint := 0
+	for _, msg := range in.Chat.Messages {
+		promptHint += (len(msg.Content) + 3) / 4
+	}
+	maxTokens := 256
+	if in.Chat.MaxTokens != nil && *in.Chat.MaxTokens > 0 {
+		maxTokens = *in.Chat.MaxTokens
+	}
+	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
+		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
+		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
+		UnitPrices: snapshot.Raw, ReserveMinor: billing.EstimateReserveMinor(quote, promptHint, maxTokens),
+	}); err != nil {
+		if errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrInsufficientQuota) {
+			return nil, ErrInsufficientBalance
+		}
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	req := requestRow{
 		ID: id.New("grq"), RequestID: in.RequestID, UserID: in.Caller.UserID,
@@ -130,6 +176,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		req.ChannelOrgID = &in.Caller.ChannelOrgID
 	}
 	if err := s.db.WithContext(ctx).Create(&req).Error; err != nil {
+		_ = s.booker.Release(ctx, in.RequestID)
 		return nil, err
 	}
 
@@ -145,6 +192,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			adapter = s.adapters["test"]
 		}
 		start := time.Now()
+		atomic.AddInt32(&s.adapterCalls, 1)
 		result, err := adapter.Chat(ctx, cand.ProviderSlug, behavior, in.Chat)
 		end := time.Now().UTC()
 		latency := int(time.Since(start).Milliseconds())
@@ -185,10 +233,20 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		_ = s.db.WithContext(ctx).Model(&requestRow{}).Where("id = ?", req.ID).Updates(map[string]any{
 			"status": "succeeded", "ended_at": ended, "final_attempt_id": attempt.ID,
 		})
+		usage := result.Body.Usage
+		missing := in.OmitUsage || len(usage) == 0
+		_, _ = s.booker.Settle(ctx, billing.SettleInput{
+			RequestID: in.RequestID, AttemptID: attempt.ID, UserID: in.Caller.UserID,
+			APIKeyID: in.Caller.APIKeyID, ChannelOrgID: in.Caller.ChannelOrgID,
+			PublicModelID: model.ID, ProviderID: cand.ProviderID, UpstreamModelID: cand.UpstreamModelID,
+			Usage: usage, PriceVersionID: snapshot.VersionID, UnitPrices: snapshot.Raw,
+			MissingUsage: missing, IdempotencyKey: "usage:" + in.RequestID,
+		})
 		return out, nil
 	}
 	ended := time.Now().UTC()
 	_ = s.db.WithContext(ctx).Model(&requestRow{}).Where("id = ?", req.ID).Updates(map[string]any{"status": "failed", "ended_at": ended})
+	_ = s.booker.Release(ctx, in.RequestID)
 	return out, ErrProviderUnavailable
 }
 

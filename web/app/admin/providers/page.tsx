@@ -18,7 +18,16 @@ const schema = z.object({
   adapter: z.string().min(1),
 });
 
-type Provider = { id: string; name: string; slug: string; adapter: string; health: string; status: string; credential_ref?: string };
+type Provider = {
+  id: string;
+  name: string;
+  slug: string;
+  adapter: string;
+  health: string;
+  status: string;
+  rpm_limit?: number;
+  credential_ref?: string;
+};
 
 function ProbeCell({ id }: { id: string }) {
   const queryClient = useQueryClient();
@@ -214,6 +223,54 @@ function AccountPoolPanel() {
   );
 }
 
+function PatchProviderForm() {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("改状态和 RPM 都要二次确认。不要改 prd_echo_primary / prd_echo_backup / prd_gemini。");
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const id = String(data.get("provider_id") || "").trim();
+    const rpmRaw = String(data.get("rpm_limit") || "").trim();
+    const payload: Record<string, unknown> = {
+      status: String(data.get("status") || "").trim(),
+    };
+    if (rpmRaw) {
+      payload.rpm_limit = Number(rpmRaw);
+    }
+    const res = await fetch(`${apiBase}/admin/providers/${id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setMessage(body.error?.message || "保存失败");
+      return;
+    }
+    setMessage(`已保存 ${body.item?.id} → ${body.item?.status} / RPM ${body.item?.rpm_limit ?? 0}`);
+    await queryClient.invalidateQueries();
+  }
+
+  return (
+    <form className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={onSubmit}>
+      <h2 className="mb-3 text-xl font-medium">改 Provider 状态</h2>
+      <p className="mb-3 text-sm text-slate-400">maintenance 会从路由候选里拿掉。RPM 写到 Provider 行，不是账号池单条账号。</p>
+      <div className="mb-3 grid max-w-xl gap-2">
+        <Input name="provider_id" aria-label="改状态用 provider id" placeholder="改状态用 provider id" />
+        <Input name="status" aria-label="改状态用状态" placeholder="改状态用状态 maintenance" defaultValue="maintenance" />
+        <Input name="rpm_limit" aria-label="改状态用 RPM" placeholder="改状态用 RPM 30" defaultValue="30" />
+      </div>
+      <Button size="sm" type="submit">
+        保存 Provider
+      </Button>
+      <p className="mt-3 text-sm text-slate-300">{message}</p>
+    </form>
+  );
+}
+
 export default function AdminProvidersPage() {
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { name: "", slug: "", adapter: "test" } });
   async function onSubmit(values: z.infer<typeof schema>) {
@@ -233,6 +290,7 @@ export default function AdminProvidersPage() {
           { accessorKey: "adapter", header: "Adapter" },
           { accessorKey: "health", header: "Health" },
           { accessorKey: "status", header: "Status" },
+          { accessorKey: "rpm_limit", header: "RPM" },
           { accessorKey: "credential_ref", header: "Cred Ref" },
           {
             id: "probe",
@@ -251,6 +309,7 @@ export default function AdminProvidersPage() {
           创建
         </button>
       </form>
+      <PatchProviderForm />
       <AccountPoolPanel />
     </AdminShell>
   );

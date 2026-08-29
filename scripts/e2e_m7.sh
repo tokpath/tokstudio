@@ -163,6 +163,8 @@ echo "$provhtml" | grep -q "凭据轮换"
 echo "$provhtml" | grep -q "轮换凭据"
 echo "$provhtml" | grep -q "账号池"
 echo "$provhtml" | grep -q "读取账号"
+echo "$provhtml" | grep -q "改 Provider 状态"
+echo "$provhtml" | grep -q "保存 Provider"
 modelhtml="$(curl -sf "$WEB_URL/admin/models")"
 echo "$modelhtml" | grep -q "挂载 Provider"
 echo "$modelhtml" | grep -q "弃用模型"
@@ -229,6 +231,14 @@ PROV_JSON="$(curl -sf -X POST "$API_URL/admin/providers" -H "Authorization: Bear
   -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}")"
 echo "$PROV_JSON" | grep -q "$slug"
 PROV_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$PROV_JSON")"
+code="$(curl -s -o /tmp/m7-provpatch409.json -w '%{http_code}' -X PATCH "$API_URL/admin/providers/$PROV_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"status":"maintenance","rpm_limit":30}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 patching provider without confirm, got $code" >&2
+  exit 1
+fi
+curl_has maintenance -X PATCH "$API_URL/admin/providers/$PROV_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"status":"maintenance","rpm_limit":30}'
 code="$(curl -s -o /tmp/m7-cred409.json -w '%{http_code}' -X POST "$API_URL/admin/providers/$PROV_ID/credentials" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"secret":"sk-no-confirm"}')"
 if [[ "$code" != "409" ]]; then

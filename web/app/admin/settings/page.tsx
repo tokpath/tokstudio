@@ -14,6 +14,7 @@ export default function AdminSettingsPage() {
   const [providerID, setProviderID] = useState("prd_echo_primary");
   const [canarySlug, setCanarySlug] = useState("echo-backup");
   const [canaryPercent, setCanaryPercent] = useState("0");
+  const [brandID, setBrandID] = useState("brd_oem");
   const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
 
   async function setup2FA() {
@@ -176,6 +177,72 @@ export default function AdminSettingsPage() {
             }}
           >
             保存灰度
+          </Button>
+        </div>
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">备份演练</h2>
+        <p className="mb-3 text-sm text-slate-400">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
+        <Button
+          size="sm"
+          onClick={async () => {
+            const res = await fetch(`${apiBase}/admin/ops/backup-drill`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: "{}",
+            });
+            const body = await res.json();
+            setMessage(
+              res.ok
+                ? `演练 ${body.item?.status || "ok"}：RPO ${body.item?.rpo_minutes} 分钟 / RTO ${body.item?.rto_minutes} 分钟`
+                : body.error?.message || "演练失败",
+            );
+          }}
+        >
+          备份演练
+        </Button>
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
+        <p className="mb-3 text-sm text-slate-400">沙箱把 tls_status 标成 issued，并写下 CNAME。公网 Let&apos;s Encrypt 仍由边缘节点签发。</p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/brands`, { credentials: "include" });
+              const body = await res.json();
+              if (!res.ok) {
+                setMessage(body.error?.message || "读取品牌失败");
+                return;
+              }
+              const items = body.items || [];
+              const hit = items.find((item: { id?: string }) => item.id === brandID) || items[0];
+              setMessage(hit ? `${hit.id} CNAME=${hit.cname_target || "-"} TLS=${hit.tls_status || "pending"}` : "没有品牌");
+            }}
+          >
+            读取品牌
+          </Button>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setMessage(
+                res.ok
+                  ? `已签发 ${body.item?.id} → ${body.item?.tls_status} / ${body.item?.cname_target}`
+                  : body.error?.message || "签发失败",
+              );
+            }}
+          >
+            签发证书
           </Button>
         </div>
       </section>

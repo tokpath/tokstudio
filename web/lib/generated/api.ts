@@ -277,6 +277,18 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/providers/{id}/health-check"
   },
   {
+    "method": "POST",
+    "path": "/admin/ops/backup-drill"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/brands"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/brands/{id}/tls/issue"
+  },
+  {
     "method": "GET",
     "path": "/admin/ops/canary"
   },

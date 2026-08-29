@@ -531,6 +531,30 @@ paths:
       responses:
         "200":
           description: provider health probe
+  /admin/ops/backup-drill:
+    post:
+      operationId: runBackupDrill
+      responses:
+        "200":
+          description: recorded rpo 15 / rto 60 drill
+  /admin/brands:
+    get:
+      operationId: listAdminBrands
+      responses:
+        "200":
+          description: brands and tls status
+  /admin/brands/{id}/tls/issue:
+    post:
+      operationId: issueBrandTLS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: sandbox tls issued
   /admin/ops/canary:
     get:
       operationId: getAdminCanary

@@ -263,6 +263,9 @@ func TestM7OpsHardening(t *testing.T) {
 	if tlsBad.StatusCode != http.StatusNotFound {
 		t.Fatalf("unknown host must not get a cert, got %d", tlsBad.StatusCode)
 	}
+	if code := postStatus(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "m7_admin", map[string]any{}); code != http.StatusConflict {
+		t.Fatalf("issue tls without confirm should be 409, got %d", code)
+	}
 	issued := postJSONRaw(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "m7_admin", map[string]any{})
 	if issued["item"].(map[string]any)["tls_status"] != "issued" {
 		t.Fatalf("issue oem tls: %+v", issued)

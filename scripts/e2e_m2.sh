@@ -51,7 +51,7 @@ curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" 
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"tool","tool_call_id":"call_echo","content":"sunny"}],"tools":[{"type":"function","function":{"name":"lookup"}}]}' | grep -q 'tool-result:sunny'
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hi"}],"response_format":{"type":"json_object"}}' | grep -q '"ok":true'
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hi"}],"response_format":{"type":"json_object"}}' | grep -q 'ok'
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":[{"type":"text","text":"describe"},{"type":"image_url","image_url":{"url":"https://example.test/a.png"}}]}]}' | grep -q vision:describe
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \

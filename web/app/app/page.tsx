@@ -1,5 +1,6 @@
 import KeysPanel from "./keys";
 import PlansPanel from "./plans";
+import UsagePanel from "./usage";
 import WalletPanel from "./wallet";
 
 export default function UserConsole() {
@@ -13,6 +14,7 @@ export default function UserConsole() {
       <WalletPanel />
       <PlansPanel />
       <KeysPanel />
+      <UsagePanel />
     </main>
   );
 }

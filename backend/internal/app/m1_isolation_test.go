@@ -112,7 +112,7 @@ func TestM1IdentityIsolation(t *testing.T) {
 		t.Fatal("unauth channel attribution must be 403")
 	}
 	attr := getAuthJSON(t, server.URL+"/channel/attribution", "m1_channel_token")
-	foundTHB := false
+	foundAttrTHB := false
 	for _, raw := range attr["items"].([]any) {
 		row := raw.(map[string]any)
 		if row["channel_org_id"] != identity.ResellerChannelID {
@@ -122,10 +122,10 @@ func TestM1IdentityIsolation(t *testing.T) {
 			t.Fatalf("attribution leaked official promo: %+v", row)
 		}
 		if row["source_code"] == "THB1" {
-			foundTHB = true
+			foundAttrTHB = true
 		}
 	}
-	if !foundTHB {
+	if !foundAttrTHB {
 		t.Fatalf("channel B attribution missing THB1: %+v", attr)
 	}
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/channel/settlements", "", nil) != http.StatusForbidden {

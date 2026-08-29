@@ -18,8 +18,12 @@ type Config struct {
 	WebOrigin       string
 	DatabaseURL     string
 	RedisURL        string
-	BootstrapAdmin  string
-	BootstrapUser   string
+	BootstrapAdmin   string
+	BootstrapUser    string
+	BootstrapChannel string
+	GoogleClientID   string
+	GoogleRedirect   string
+	BifrostURL       string
 	OTELEndpoint    string
 	OTELServiceName string
 	LogLevel        string
@@ -54,8 +58,12 @@ func Load() (*Config, error) {
 		WebOrigin:       v.GetString("WEB_ORIGIN"),
 		DatabaseURL:     v.GetString("DATABASE_URL"),
 		RedisURL:        v.GetString("REDIS_URL"),
-		BootstrapAdmin:  v.GetString("BOOTSTRAP_ADMIN_TOKEN"),
-		BootstrapUser:   v.GetString("BOOTSTRAP_USER_TOKEN"),
+		BootstrapAdmin:   v.GetString("BOOTSTRAP_ADMIN_TOKEN"),
+		BootstrapUser:    v.GetString("BOOTSTRAP_USER_TOKEN"),
+		BootstrapChannel: v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
+		GoogleClientID:   v.GetString("GOOGLE_CLIENT_ID"),
+		GoogleRedirect:   v.GetString("GOOGLE_REDIRECT_URL"),
+		BifrostURL:       v.GetString("BIFROST_URL"),
 		OTELEndpoint:    v.GetString("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		OTELServiceName: v.GetString("OTEL_SERVICE_NAME"),
 		LogLevel:        v.GetString("LOG_LEVEL"),

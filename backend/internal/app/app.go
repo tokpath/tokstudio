@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
@@ -29,12 +31,15 @@ type App struct {
 	Identity *identity.Service
 	Audit    *audit.Service
 	Outbox   *outbox.Service
+	Catalog  *catalog.Service
+	Gateway  *gateway.Service
 	Logger   zerolog.Logger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
 	outboxSvc := outbox.New(gdb)
 	auditSvc := audit.New(gdb, outboxSvc)
+	catalogSvc := catalog.New(gdb)
 	return &App{
 		Config:   cfg,
 		DB:       gdb,
@@ -42,6 +47,8 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 		Identity: identity.New(gdb),
 		Audit:    auditSvc,
 		Outbox:   outboxSvc,
+		Catalog:  catalogSvc,
+		Gateway:  gateway.New(gdb, catalogSvc, cfg.BifrostURL),
 		Logger:   logger,
 	}
 }
@@ -50,10 +57,14 @@ func AllMigrations() []db.ModuleMigrations {
 	outboxName, outboxFS := outbox.Migrations()
 	identityName, identityFS := identity.Migrations()
 	auditName, auditFS := audit.Migrations()
+	catalogName, catalogFS := catalog.Migrations()
+	gatewayName, gatewayFS := gateway.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
 		{Module: auditName, FS: auditFS},
+		{Module: catalogName, FS: catalogFS},
+		{Module: gatewayName, FS: gatewayFS},
 	}
 }
 
@@ -62,7 +73,14 @@ func (a *App) Migrate() error {
 }
 
 func (a *App) Bootstrap(ctx context.Context) error {
-	return a.Identity.Bootstrap(ctx, a.Config.BootstrapAdmin, a.Config.BootstrapUser)
+	channelToken := a.Config.BootstrapChannel
+	if channelToken == "" && a.Config.BootstrapAdmin != "" {
+		channelToken = a.Config.BootstrapAdmin + "-b"
+	}
+	if err := a.Identity.Bootstrap(ctx, a.Config.BootstrapAdmin, a.Config.BootstrapUser, channelToken); err != nil {
+		return err
+	}
+	return a.Catalog.Seed(ctx)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -84,6 +102,8 @@ func (a *App) Router() *gin.Engine {
 	r.GET("/admin/audit-logs", a.requireRoles("platform_admin", "audit_readonly"), a.listAudit)
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
+	a.registerAuthRoutes(r)
+	a.registerGatewayRoutes(r)
 	return r
 }
 
@@ -91,7 +111,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m0",
+		"version":    "0.1.0-m2",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -115,7 +135,7 @@ func (a *App) readyz(c *gin.Context) {
 		checks["redis"] = "ok"
 	}
 	applied, err := db.Applied(a.DB)
-	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 {
+	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 {
 		checks["migrations"] = "error"
 		ready = false
 	} else {
@@ -153,7 +173,7 @@ func (a *App) currentPrincipal(c *gin.Context) *identity.Principal {
 
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		principal, err := a.Identity.Authenticate(c.Request.Context(), c.GetHeader("Authorization"))
+		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "身份校验失败", true)
 			return

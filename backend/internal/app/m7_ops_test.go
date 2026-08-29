@@ -232,11 +232,11 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("patch provider without confirm should be 409, got %d", code)
 	}
 	patched := patchJSONRaw(t, server.URL+fmt.Sprintf("/admin/providers/%s", prov["id"]), "m7_admin", map[string]any{"status": "maintenance", "rpm_limit": 30})
-	item := patched["item"].(map[string]any)
-	if item["status"] != "maintenance" {
+	patchedItem := patched["item"].(map[string]any)
+	if patchedItem["status"] != "maintenance" {
 		t.Fatalf("patch provider: %+v", patched)
 	}
-	if rpm, _ := item["rpm_limit"].(float64); rpm != 30 {
+	if rpm, _ := patchedItem["rpm_limit"].(float64); rpm != 30 {
 		t.Fatalf("patch provider rpm: %+v", patched)
 	}
 	if code := postStatus(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-no-confirm"}); code != http.StatusConflict {

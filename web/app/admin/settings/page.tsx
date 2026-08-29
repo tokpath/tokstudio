@@ -16,6 +16,7 @@ export default function AdminSettingsPage() {
   const [canaryPercent, setCanaryPercent] = useState("0");
   const [brandID, setBrandID] = useState("brd_oem");
   const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
+  const [drillMessage, setDrillMessage] = useState("支付/媒体/TLS 演练不强制确认头。TLS 只验沙箱门禁，不是公网 ACME。");
 
   async function setup2FA() {
     await apiClient("POST", "/admin/me/2fa/setup", { method: "POST" });
@@ -203,6 +204,62 @@ export default function AdminSettingsPage() {
           备份演练
         </Button>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">异常演练</h2>
+        <p className="mb-3 text-sm text-slate-400">
+          支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/drills/payment`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setDrillMessage(res.ok ? `支付演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "支付演练失败");
+            }}
+          >
+            支付演练
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/drills/media`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setDrillMessage(res.ok ? `媒体演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "媒体演练失败");
+            }}
+          >
+            媒体演练
+          </Button>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/drills/tls`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setDrillMessage(res.ok ? `TLS 演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "TLS 演练失败");
+            }}
+          >
+            TLS 演练
+          </Button>
+          <p className="text-sm text-slate-300">{drillMessage}</p>
+        </div>
       </section>
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>

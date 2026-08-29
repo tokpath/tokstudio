@@ -144,6 +144,15 @@ echo "$runbookshtml" | grep -q "应急手册"
 settingshtml="$(curl -sf "$WEB_URL/admin/settings")"
 echo "$settingshtml" | grep -q "备份演练"
 echo "$settingshtml" | grep -q "OEM 证书"
+echo "$settingshtml" | grep -q "异常演练"
+echo "$settingshtml" | grep -q "支付演练"
+echo "$settingshtml" | grep -q "TLS 演练"
+routeshtml="$(curl -sf "$WEB_URL/admin/routes")"
+echo "$routeshtml" | grep -q "创建路由"
+echo "$routeshtml" | grep -q "保存策略"
+commhtml="$(curl -sf "$WEB_URL/admin/commission")"
+echo "$commhtml" | grep -q "佣金重算"
+echo "$commhtml" | grep -q "重算佣金"
 
 echo "== admin catalog, gemini, 2fa"
 provhtml="$(curl -sf "$WEB_URL/admin/providers")"
@@ -159,6 +168,34 @@ curl_has google/gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/a
 curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes"
 curl_has gemini -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"google/gemini-flash","messages":[{"role":"user","content":"gemini"}]}'
+code="$(curl -s -o /tmp/m7-recalc409.json -w '%{http_code}' -X POST "$API_URL/admin/commissions/recalc" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"usage_event_id":"usg_missing"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 recalc without confirm, got $code" >&2
+  exit 1
+fi
+ROUTE_MODEL="tokenhub/ops-route-$RANDOM"
+curl -sf -X POST "$API_URL/admin/models" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"public_id\":\"$ROUTE_MODEL\",\"vendor\":\"tokenhub\",\"display_name\":\"Ops Route\",\"status\":\"draft\"}" >/dev/null
+code="$(curl -s -o /tmp/m7-route409.json -w '%{http_code}' -X POST "$API_URL/admin/routes" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"public_model_id\":\"$ROUTE_MODEL\",\"strategy\":\"priority\"}")"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 creating route without confirm, got $code" >&2
+  exit 1
+fi
+ROUTE_JSON="$(curl -sf -X POST "$API_URL/admin/routes" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"public_model_id\":\"$ROUTE_MODEL\",\"strategy\":\"priority\",\"status\":\"active\",\"candidates\":[{\"provider_id\":\"prd_echo_primary\",\"priority\":1,\"weight\":1}]}")"
+ROUTE_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$ROUTE_JSON")"
+code="$(curl -s -o /tmp/m7-routepatch409.json -w '%{http_code}' -X PATCH "$API_URL/admin/routes/$ROUTE_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"strategy":"health"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 patching route without confirm, got $code" >&2
+  exit 1
+fi
+curl_has health -X PATCH "$API_URL/admin/routes/$ROUTE_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"strategy":"health"}'
 code="$(curl -s -o /tmp/m7-prov.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"slug":"no-confirm","name":"x"}')"
 if [[ "$code" != "409" ]]; then
   echo "expected 409 creating provider without confirm, got $code" >&2

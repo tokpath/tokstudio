@@ -146,7 +146,7 @@
 - `GET /admin/media`：管理端媒体任务列表；`?format=csv` 导出且不含 prompt。
 - `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
 - `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态；签发需二次确认，沙箱只标 `issued`。管理页 `/admin/settings`「OEM 证书」可读取并签发。
-- `POST /admin/commissions/recalc`：按价格快照重算佣金。
+- `POST /admin/commissions/recalc`：按价格快照重算佣金；管理页 `/admin/commission`「佣金重算」可操作。
 - `POST /admin/price-books`：发布新价格版本，不影响历史账单。
 
 支付回调必须验签、记录原始事件、按外部事件 ID 幂等，并在确认 `paid` 后发放余额/权益。
@@ -156,14 +156,14 @@
 - Provider：`GET/POST/PATCH /admin/providers`、`POST /admin/providers/{id}/health-check`（不会计费、不强制确认；管理列表 `/admin/providers` 每行可探测）、`POST /admin/providers/{id}/credentials` 凭据轮换（二次确认，响应只回 `credential_ref`，管理页 `/admin/providers` 可轮换）；
 - 上游账号池：`GET/POST /admin/providers/{id}/accounts`、`PATCH /admin/providers/{id}/accounts/{aid}`；列表只回指纹，不回密文；冷却/失效账号不参与路由；管理页 `/admin/providers`「账号池」可读取、添加、冷却、停用；
 - 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射；`POST /admin/providers/{id}/sync` 同步结果进入 `draft`；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`，模型 ID 含斜杠）审核、发布、弃用，不删除历史映射和价格版本；管理页 `/admin/models` 可同步/审核发布、挂载、弃用；
-- 路由：`GET/POST/PATCH /admin/routes`；
+- 路由：`GET/POST/PATCH /admin/routes`；创建和改策略需二次确认；管理页 `/admin/routes` 可创建路由组并改 `priority`/`weight`/`price`/`health`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
 - 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
 - 推广：`GET/POST /admin/acquisition-roles`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；创建角色和推广码需二次确认并写审计；管理页 `/admin/promos` 可建层级和码；
 - 分销只读：`GET /v1/partner/me|users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；代理商看整棵树，1 级 KOL 看自己和 2 级，2 级只看直接引流；
-- 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`POST /admin/commissions/unfreeze`（解冻需确认并写审计）、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；管理页 `/admin/commission` 可手工解冻、生成结算单和人工打款；
+- 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`POST /admin/commissions/recalc`（按价格快照重算需确认）、`POST /admin/commissions/unfreeze`（解冻需确认并写审计）、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；管理页 `/admin/commission` 可重算、手工解冻、生成结算单和人工打款；
 - 渠道额度：`GET /channel/quota`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`；管理页 `/admin/channels` 可读取并调整额度；
 - 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
@@ -172,7 +172,7 @@
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
 - 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
-- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（公网 ACME 仍由边缘节点签发）；健康探测、熔断、灰度、备份演练不强制二次确认（技术值班 e2e 不带头）；管理页 `/admin/settings`「运维开关」可探测、打开/复位熔断、读写灰度，「备份演练」记录 RPO 15 / RTO 60；
+- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（公网 ACME 仍由边缘节点签发）；健康探测、熔断、灰度、备份演练与支付/媒体/TLS 演练不强制二次确认（技术值班 e2e 不带头）；管理页 `/admin/settings`「运维开关」可探测、打开/复位熔断、读写灰度，「备份演练」记录 RPO 15 / RTO 60，「异常演练」可跑支付/媒体/TLS；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 
 所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改、usage 回放必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。健康探测、熔断与灰度设置不要求确认头。

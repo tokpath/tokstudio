@@ -280,6 +280,30 @@ func TestM7OpsHardening(t *testing.T) {
 	if draft["item"].(map[string]any)["status"] != "draft" {
 		t.Fatalf("create model: %+v", draft)
 	}
+	publicID := draft["item"].(map[string]any)["id"].(string)
+	if code := postStatus(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
+		"public_model_id": publicID, "strategy": "priority",
+	}); code != http.StatusConflict {
+		t.Fatalf("create route without confirm should be 409, got %d", code)
+	}
+	createdRoute := postJSONRaw(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
+		"public_model_id": publicID, "strategy": "priority", "status": "active",
+		"candidates": []map[string]any{{"provider_id": "prd_echo_primary", "priority": 1, "weight": 1}},
+	})
+	routeID := createdRoute["item"].(map[string]any)["id"].(string)
+	if !strings.HasPrefix(routeID, "rg_") {
+		t.Fatalf("create route: %+v", createdRoute)
+	}
+	if code := patchStatus(t, server.URL+"/admin/routes/"+routeID, "m7_admin", map[string]any{"strategy": "health"}); code != http.StatusConflict {
+		t.Fatalf("patch route without confirm should be 409, got %d", code)
+	}
+	patchedRoute := patchJSONRaw(t, server.URL+"/admin/routes/"+routeID, "m7_admin", map[string]any{"strategy": "health"})
+	if patchedRoute["item"].(map[string]any)["strategy"] != "health" {
+		t.Fatalf("patch route: %+v", patchedRoute)
+	}
+	if code := postStatus(t, server.URL+"/admin/commissions/recalc", "m7_admin", map[string]any{"usage_event_id": "usg_missing"}); code != http.StatusConflict {
+		t.Fatalf("recalc without confirm should be 409, got %d", code)
+	}
 	routes := getAuthJSON(t, server.URL+"/admin/routes", "m7_admin")["items"].([]any)
 	if len(routes) == 0 {
 		t.Fatal("admin routes empty")
@@ -547,6 +571,19 @@ func TestM7OpsHardening(t *testing.T) {
 func postStatus(t *testing.T, url, token string, payload map[string]any) int {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+func patchStatus(t *testing.T, url, token string, payload map[string]any) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPatch, url, bytes.NewReader(mustJSON(payload)))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)

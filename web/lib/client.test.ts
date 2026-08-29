@@ -40,6 +40,12 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/entitlements/bonus")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/commissions/unfreeze")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/commissions/settle")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/routes")).toBe(true);
+    expect(hasGeneratedPath("PATCH", "/admin/routes/{id}")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/ops/drills/payment")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/ops/drills/media")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/ops/drills/tls")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/commissions/recalc")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/channel-quotas/grant")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/providers/{id}/health-check")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/providers/{id}/credentials")).toBe(true);

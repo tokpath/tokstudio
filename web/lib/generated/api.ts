@@ -89,6 +89,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/routes"
   },
   {
+    "method": "PATCH",
+    "path": "/admin/routes/{id}"
+  },
+  {
     "method": "GET",
     "path": "/admin/channels"
   },
@@ -281,6 +285,18 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/ops/backup-drill"
   },
   {
+    "method": "POST",
+    "path": "/admin/ops/drills/payment"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ops/drills/media"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ops/drills/tls"
+  },
+  {
     "method": "GET",
     "path": "/admin/brands"
   },
@@ -307,6 +323,10 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/usage/replay"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/commissions/recalc"
   },
   {
     "method": "GET",

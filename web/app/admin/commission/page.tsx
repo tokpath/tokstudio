@@ -33,6 +33,8 @@ export default function AdminCommissionPage() {
   const [freeze, setFreeze] = useState("7");
   const [minSettle, setMinSettle] = useState("1000000");
   const [usageEventID, setUsageEventID] = useState("");
+  const [recalcUsageID, setRecalcUsageID] = useState("");
+  const [recalcMessage, setRecalcMessage] = useState("按 usage 上的价格快照冲正旧流水，再挂新冻结额。需要二次确认。");
   const [settlementID, setSettlementID] = useState("");
   const [payoutRef, setPayoutRef] = useState("manual-wire");
   const [message, setMessage] = useState("BPS 是万分比。各档之和不能超过上限。保存、解冻、结算和打款都要二次确认。");
@@ -105,6 +107,39 @@ export default function AdminCommissionPage() {
         </div>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-slate-400">{policyQuery.data.error.message}</p> : null}
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">佣金重算</h2>
+        <p className="mb-3 text-sm text-slate-400">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            className="w-72"
+            value={recalcUsageID}
+            onChange={(e) => setRecalcUsageID(e.target.value)}
+            aria-label="重算用 usage 事件 ID"
+            placeholder="重算用 usage_event_id"
+          />
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/commissions/recalc`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                body: JSON.stringify({ usage_event_id: recalcUsageID }),
+              });
+              const body = await res.json();
+              setRecalcMessage(
+                res.ok
+                  ? `已重算 ${body.item?.id || body.item?.usage_event_id} → ${body.item?.status} / ${body.item?.policy_version}`
+                  : body.error?.message || "重算失败",
+              );
+            }}
+          >
+            重算佣金
+          </Button>
+          <p className="text-sm text-slate-300">{recalcMessage}</p>
+        </div>
       </section>
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <h2 className="mb-3 text-xl font-medium">手工结算</h2>

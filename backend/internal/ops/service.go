@@ -124,6 +124,7 @@ func (s *Service) Seed(ctx context.Context) error {
 		{ID: "rb_backup", AlertKind: AlertBackup, Title: "备份演练", Body: "1. 运行 scripts/backup_drill.sh\n2. 目标 RPO ≤ 15 分钟、RTO ≤ 1 小时\n3. Redis 不是账务事实源，丢失后只重建限流。", CreatedAt: now},
 		{ID: "rb_payment", AlertKind: "payment_chaos", Title: "支付异常演练", Body: "伪造签名必须 401；合法 webhook 按 event_id 幂等。", CreatedAt: now},
 		{ID: "rb_media", AlertKind: "media_chaos", Title: "媒体异常演练", Body: "失败任务必须释放预授权；回调按 event_id 幂等。", CreatedAt: now},
+		{ID: "rb_tls", AlertKind: "tls_chaos", Title: "OEM TLS 门禁演练", Body: "1. GET /v1/public/tls-check?domain=oem.localhost 必须 200\n2. 未知域名必须 404，Caddy 才不会乱签发\n3. POST /admin/ops/drills/tls 或 scripts/tls_drill.sh 记录沙箱签发。公网 ACME 仍由边缘节点连 Let's Encrypt。", CreatedAt: now},
 	}
 	for i := range books {
 		if err := s.db.WithContext(ctx).Where("id = ?", books[i].ID).FirstOrCreate(&books[i]).Error; err != nil {

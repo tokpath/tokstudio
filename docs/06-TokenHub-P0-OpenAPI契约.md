@@ -163,13 +163,13 @@
 - 分销只读：`GET /v1/partner/users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；
 - 佣金：`GET /admin/commissions`、`POST /admin/commissions/unfreeze`、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；
 - 渠道额度：`GET /channel/quota`、`POST /admin/channel-quotas/grant`；
-- 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/commissions`；
+- 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
 - 权益：`POST /admin/entitlements/bonus`；
 - 支付：`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
 - 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
-- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media`；
+- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（公网 ACME 仍由边缘节点签发）；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 
 所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。

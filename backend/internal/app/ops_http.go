@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
@@ -35,6 +36,7 @@ func (a *App) registerOpsRoutes(r *gin.Engine) {
 	r.POST("/admin/ops/circuit/:id", a.requireRoles("platform_admin", "tech_admin"), a.adminCircuit)
 	r.POST("/admin/ops/drills/payment", a.requireRoles("platform_admin", "finance_admin", "tech_admin"), a.adminPaymentDrill)
 	r.POST("/admin/ops/drills/media", a.requireRoles("platform_admin", "tech_admin"), a.adminMediaDrill)
+	r.POST("/admin/ops/drills/tls", a.requireRoles("platform_admin", "tech_admin"), a.adminTLSDrill)
 }
 
 func (a *App) adminMetrics(c *gin.Context) {
@@ -264,6 +266,31 @@ func (a *App) adminMediaDrill(c *gin.Context) {
 	result := ops.DrillResult{Kind: "media", Status: "passed", Passed: true, Detail: "force-fail must release reservation; use X-Tokenhub-Force-Fail"}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "ops.drill.media", ResourceType: "media_drill", ResourceID: "force-fail",
+		After: result, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": result, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminTLSDrill(c *gin.Context) {
+	if !a.Identity.KnownBrandHost(c.Request.Context(), "oem.localhost") {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "OEM 域名未登记，无法演练", true)
+		return
+	}
+	if a.Identity.KnownBrandHost(c.Request.Context(), "evil.example") {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "未知域名不应通过 TLS 门禁", true)
+		return
+	}
+	item, err := a.Identity.IssueBrandTLS(c.Request.Context(), identity.OEMBrandID, a.Config.EdgeCNAME)
+	if err != nil || item.TLSStatus != "issued" {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "OEM 沙箱签发失败", true)
+		return
+	}
+	result := ops.DrillResult{
+		Kind: "tls", Status: "passed", Passed: true,
+		Detail: "tls-check allows oem.localhost, rejects evil.example, sandbox issue=issued (not public ACME)",
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "ops.drill.tls", ResourceType: "tls_drill", ResourceID: identity.OEMBrandID,
 		After: result, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"item": result, "request_id": c.GetString(httpx.ContextRequestID)})

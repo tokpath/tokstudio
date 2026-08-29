@@ -1,6 +1,7 @@
 import ChannelCommissions from "./commissions";
 import ChannelPlans from "./plans";
 import ChannelPromos from "./promos";
+import ChannelSettlements from "./settlements";
 import ChannelUsage from "./usage";
 import ChannelUsers from "./users";
 
@@ -16,6 +17,7 @@ export default function ChannelConsole() {
       <ChannelPlans />
       <ChannelPromos />
       <ChannelUsage />
+      <ChannelSettlements />
       <ChannelCommissions />
     </main>
   );

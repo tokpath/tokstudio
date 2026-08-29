@@ -19,5 +19,6 @@ test("channel console shows scoped user list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "本渠道套餐" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "推广链接" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道用量" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "本渠道结算" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "渠道额度与佣金" })).toBeVisible();
 });

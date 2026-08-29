@@ -49,6 +49,7 @@ if echo "$promos" | grep -q THA1; then
 fi
 curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/plans" | grep -q items
 curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/usage" | grep -q prompt_tokens
+curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/settlements" | grep -q items
 
 echo "== OEM brand by host"
 oem="$(curl -sf "$API_URL/v1/public/brand?host=oem.localhost")"
@@ -101,5 +102,6 @@ echo "$channelhtml" | grep -q "本渠道用户"
 echo "$channelhtml" | grep -q "本渠道套餐"
 echo "$channelhtml" | grep -q "推广链接"
 echo "$channelhtml" | grep -q "本渠道用量"
+echo "$channelhtml" | grep -q "本渠道结算"
 
 echo "M1 e2e passed"

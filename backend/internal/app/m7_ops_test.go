@@ -203,6 +203,9 @@ func TestM7OpsHardening(t *testing.T) {
 	if media := postJSONRaw(t, server.URL+"/admin/ops/drills/media", "m7_admin", map[string]any{}); media["item"].(map[string]any)["passed"] != true {
 		t.Fatalf("media drill: %+v", media)
 	}
+	if tls := postJSONRaw(t, server.URL+"/admin/ops/drills/tls", "m7_admin", map[string]any{}); tls["item"].(map[string]any)["passed"] != true {
+		t.Fatalf("tls drill: %+v", tls)
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/ops/alerts/evaluate", "m7_admin", map[string]any{})
 	if books := getAuthJSON(t, server.URL+"/admin/ops/runbooks", "m7_admin")["items"].([]any); len(books) == 0 {
 		t.Fatal("runbooks missing")

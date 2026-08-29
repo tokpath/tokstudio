@@ -117,7 +117,9 @@ curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?acti
 curl -sf -X POST "$API_URL/admin/ops/backup-drill" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q '"rpo_minutes":15'
 curl -sf -X POST "$API_URL/admin/ops/drills/payment" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q passed
 curl -sf -X POST "$API_URL/admin/ops/drills/media" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q passed
+curl -sf -X POST "$API_URL/admin/ops/drills/tls" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q passed
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/runbooks" | grep -q pending_reconciliation
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/runbooks" | grep -q tls_chaos
 
 echo "== admin catalog, gemini, 2fa"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers" | grep -q gemini-flash

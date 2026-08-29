@@ -22,6 +22,8 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/channel/quota", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelQuota)
 	r.GET("/channel/commissions", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelCommissions)
 	r.GET("/channel/usage", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelUsage)
+	r.GET("/channel/settlements", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelSettlements)
+	r.GET("/admin/settlements", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListSettlements)
 	r.GET("/channel/promotion-codes", a.requireRoles("channel_admin", "platform_admin"), a.channelListPromos)
 	r.POST("/channel/promotion-codes", a.requireRoles("channel_admin", "platform_admin"), a.adminCreatePromo)
 	r.POST("/admin/acquisition-roles", a.requireRoles("platform_admin", "channel_admin"), a.adminCreateRole)
@@ -146,6 +148,34 @@ func (a *App) channelUsage(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"usage": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelSettlements(c *gin.Context) {
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = c.Query("channel_id")
+	}
+	items, err := a.Commission.ListSettlements(c.Request.Context(), channelID, nil)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取结算单失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminListSettlements(c *gin.Context) {
+	items, err := a.Commission.ListSettlements(c.Request.Context(), c.Query("channel_id"), nil)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取结算单失败", true)
+		return
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "settlements.csv", []string{"id", "channel_org_id", "status", "amount_minor"}, items, func(item commission.SettlementView) []string {
+			return []string{item.ID, item.ChannelOrgID, item.Status, strconv.FormatInt(item.AmountMinor, 10)}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item commission.SettlementView) string { return item.ID })
 }
 
 func (a *App) channelListPromos(c *gin.Context) {

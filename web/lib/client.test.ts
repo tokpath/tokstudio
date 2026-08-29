@@ -6,7 +6,10 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/admin/providers")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/models")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/routes")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/me/2fa")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/me/2fa/setup")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/me/2fa/enable")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/me/2fa/disable")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/me/api-keys/{id}/rotate")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/me/api-keys/{id}/copy")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/public/tls-check")).toBe(true);

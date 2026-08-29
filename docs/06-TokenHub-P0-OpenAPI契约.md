@@ -159,7 +159,7 @@
 - 路由：`GET/POST/PATCH /admin/routes`；创建和改策略需二次确认；管理页 `/admin/routes` 可创建路由组并改 `priority`/`weight`/`price`/`health`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；创建和改状态需二次确认；管理页 `/admin/channels` 可创建渠道并改状态（不要停用官方/代理商/OEM 种子渠道）；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
-- 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；
+- 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；管理页 `/admin/settings` 可读取/绑定/启用/关闭；关闭需确认，启用后再关闭还要 TOTP；不要在共享管理员上留下 `enabled`；
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
 - 推广：`GET/POST /admin/acquisition-roles`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；创建角色和推广码需二次确认并写审计；管理页 `/admin/promos` 可建层级和码；
 - 分销只读：`GET /v1/partner/me|users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；代理商看整棵树，1 级 KOL 看自己和 2 级，2 级只看直接引流；

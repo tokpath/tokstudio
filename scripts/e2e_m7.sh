@@ -142,6 +142,10 @@ echo "$alertshtml" | grep -q "评估告警"
 runbookshtml="$(curl -sf "$WEB_URL/admin/runbooks")"
 echo "$runbookshtml" | grep -q "应急手册"
 settingshtml="$(curl -sf "$WEB_URL/admin/settings")"
+echo "$settingshtml" | grep -q "管理员 2FA"
+echo "$settingshtml" | grep -q "读取 2FA"
+echo "$settingshtml" | grep -q "确认启用"
+echo "$settingshtml" | grep -q "关闭 2FA"
 echo "$settingshtml" | grep -q "备份演练"
 echo "$settingshtml" | grep -q "OEM 证书"
 echo "$settingshtml" | grep -q "异常演练"
@@ -254,8 +258,18 @@ if echo "$CRED_JSON" | grep -q sk-e2e-rotate-never-echo; then
 fi
 curl_has provider.credential.rotate -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=provider.credential.rotate"
 curl_has prefix -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys"
+curl_has status -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/me/2fa"
 setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
 echo "$setup" | grep -q otpauth
+code="$(curl -s -o /tmp/m7-2fa409.json -w '%{http_code}' -X POST "$API_URL/admin/me/2fa/disable" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 disabling 2fa without confirm, got $code" >&2
+  exit 1
+fi
+curl_has disabled -X POST "$API_URL/admin/me/2fa/disable" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}'
+curl_has disabled -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/me/2fa"
 # 不在共享管理员上启用 2FA，避免后续脚本被 totp_required 打断
 
 echo "== api key rotate disable expire and billing export"

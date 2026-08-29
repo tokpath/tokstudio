@@ -386,6 +386,38 @@ func TestM7OpsHardening(t *testing.T) {
 	if resp2.StatusCode == http.StatusConflict {
 		t.Fatalf("confirm+totp should pass confirm gate, got %d", resp2.StatusCode)
 	}
+	if code := postStatus(t, server.URL+"/admin/me/2fa/disable", "m7_admin", map[string]any{}); code != http.StatusConflict {
+		t.Fatalf("disable 2fa without confirm should be 409, got %d", code)
+	}
+	reqOff, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/me/2fa/disable", bytes.NewReader(mustJSON(map[string]any{})))
+	reqOff.Header.Set("Authorization", "Bearer m7_admin")
+	reqOff.Header.Set("Content-Type", "application/json")
+	reqOff.Header.Set("X-Tokenhub-Confirm", "1")
+	respOff, err := http.DefaultClient.Do(reqOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = respOff.Body.Close()
+	if respOff.StatusCode != http.StatusConflict {
+		t.Fatalf("disable 2fa without totp after enroll should be 409, got %d", respOff.StatusCode)
+	}
+	reqOff2, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/me/2fa/disable", bytes.NewReader(mustJSON(map[string]any{})))
+	reqOff2.Header.Set("Authorization", "Bearer m7_admin")
+	reqOff2.Header.Set("Content-Type", "application/json")
+	reqOff2.Header.Set("X-Tokenhub-Confirm", "1")
+	reqOff2.Header.Set("X-Tokenhub-TOTP", identity.GenerateTOTP(secret))
+	respOff2, err := http.DefaultClient.Do(reqOff2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer respOff2.Body.Close()
+	if respOff2.StatusCode != http.StatusOK {
+		t.Fatalf("disable 2fa with confirm+totp should pass, got %d", respOff2.StatusCode)
+	}
+	totp := getAuthJSON(t, server.URL+"/admin/me/2fa", "m7_admin")["item"].(map[string]any)
+	if totp["enabled"] == true || totp["status"] != "disabled" {
+		t.Fatalf("2fa should be disabled: %+v", totp)
+	}
 
 	createdKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "lifecycle"})
 	life := createdKey["item"].(map[string]any)

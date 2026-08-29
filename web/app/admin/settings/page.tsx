@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
-import { apiClient } from "@/lib/client";
 
 export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
@@ -17,9 +16,88 @@ export default function AdminSettingsPage() {
   const [brandID, setBrandID] = useState("brd_oem");
   const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
   const [drillMessage, setDrillMessage] = useState("支付/媒体/TLS 演练不强制确认头。TLS 只验沙箱门禁，不是公网 ACME。");
+  const [totpMessage, setTotpMessage] = useState("读取状态不回密文。绑定后用 6 位码确认启用。不要在共享管理员上留下 enabled。");
+  const [totpStatus, setTotpStatus] = useState("disabled");
+  const [totpSecret, setTotpSecret] = useState("");
+  const [totpURL, setTotpURL] = useState("");
+
+  async function load2FA() {
+    const res = await fetch(`${apiBase}/admin/me/2fa`, { credentials: "include" });
+    const body = await res.json();
+    if (!res.ok) {
+      setTotpMessage(body.error?.message || "读取 2FA 失败");
+      return;
+    }
+    setTotpStatus(String(body.item?.status || "disabled"));
+    setTotpMessage(`状态 ${body.item?.status || "disabled"} / enabled=${body.item?.enabled ? "true" : "false"}`);
+  }
 
   async function setup2FA() {
-    await apiClient("POST", "/admin/me/2fa/setup", { method: "POST" });
+    const res = await fetch(`${apiBase}/admin/me/2fa/setup`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setTotpMessage(body.error?.message || "绑定失败");
+      return;
+    }
+    setTotpStatus(String(body.item?.status || "pending"));
+    setTotpSecret(String(body.item?.secret || ""));
+    setTotpURL(String(body.item?.otpauth_url || ""));
+    setTotpMessage(`已绑定 pending，用验证器扫 otpauth 后再点确认启用`);
+  }
+
+  async function enable2FA(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const code = String(data.get("enable_code") || "").trim();
+    const res = await fetch(`${apiBase}/admin/me/2fa/enable`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setTotpMessage(body.error?.message || "启用失败");
+      return;
+    }
+    form.reset();
+    setTotpStatus("enabled");
+    setTotpSecret("");
+    setTotpURL("");
+    setTotpMessage("已启用。共享管理员请立刻关闭，否则后续写操作都会要 TOTP。");
+  }
+
+  async function disable2FA(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const code = String(data.get("disable_code") || "").trim();
+    const headers: Record<string, string> = { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" };
+    if (code) {
+      headers["X-Tokenhub-TOTP"] = code;
+    }
+    const res = await fetch(`${apiBase}/admin/me/2fa/disable`, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: "{}",
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setTotpMessage(body.error?.message || "关闭失败");
+      return;
+    }
+    form.reset();
+    setTotpStatus(String(body.status || "disabled"));
+    setTotpSecret("");
+    setTotpURL("");
+    setTotpMessage("已关闭 2FA。敏感写操作不再要 TOTP。");
   }
   function setLocale(locale: string) {
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
@@ -61,9 +139,6 @@ export default function AdminSettingsPage() {
         <h2 className="mb-3 text-xl font-medium">系统设置</h2>
         <p className="mb-4 text-sm text-slate-400">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
-          <button className="rounded border border-slate-600 px-3 py-2" onClick={setup2FA}>
-            启用 2FA
-          </button>
           <button className="rounded border border-slate-600 px-3 py-2" onClick={() => setLocale("zh")}>
             中文
           </button>
@@ -74,6 +149,36 @@ export default function AdminSettingsPage() {
             日本語
           </button>
         </div>
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">管理员 2FA</h2>
+        <p className="mb-3 text-sm text-slate-400">
+          读取状态不回密文。开始绑定后用验证器扫码，再填 6 位码确认启用。关闭要二次确认；已经 enabled 时还要带 TOTP。不要在共享管理员上留下 enabled。
+        </p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={load2FA}>
+            读取 2FA
+          </Button>
+          <Button size="sm" variant="outline" onClick={setup2FA}>
+            开始绑定
+          </Button>
+        </div>
+        <p className="mb-3 text-sm text-slate-300">当前 {totpStatus}</p>
+        {totpSecret ? <p className="mb-3 break-all text-xs text-slate-400">secret={totpSecret}</p> : null}
+        {totpURL ? <p className="mb-3 break-all text-xs text-slate-400">{totpURL}</p> : null}
+        <form className="mb-3 flex flex-wrap gap-2" onSubmit={enable2FA}>
+          <Input name="enable_code" aria-label="启用用 TOTP" placeholder="启用用 6 位码" />
+          <Button size="sm" type="submit">
+            确认启用
+          </Button>
+        </form>
+        <form className="mb-3 flex flex-wrap gap-2" onSubmit={disable2FA}>
+          <Input name="disable_code" aria-label="关闭用 TOTP" placeholder="关闭用 6 位码（enabled 时必填）" />
+          <Button size="sm" type="submit">
+            关闭 2FA
+          </Button>
+        </form>
+        <p className="text-sm text-slate-300">{totpMessage}</p>
       </section>
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <h2 className="mb-3 text-xl font-medium">告警阈值</h2>

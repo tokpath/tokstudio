@@ -402,12 +402,30 @@ paths:
       responses:
         "200":
           description: audit
+  /admin/me/2fa:
+    get:
+      operationId: getAdminTOTP
+      responses:
+        "200":
+          description: totp status without secret
   /admin/me/2fa/setup:
     post:
       operationId: setupAdminTOTP
       responses:
         "200":
           description: pending totp
+  /admin/me/2fa/enable:
+    post:
+      operationId: enableAdminTOTP
+      responses:
+        "200":
+          description: totp enabled
+  /admin/me/2fa/disable:
+    post:
+      operationId: disableAdminTOTP
+      responses:
+        "200":
+          description: totp disabled
   /admin/billing/report:
     get:
       operationId: getBillingReport

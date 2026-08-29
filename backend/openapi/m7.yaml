@@ -66,9 +66,18 @@ paths:
   /admin/routes:
     get:
       summary: List route groups and candidates
+  /admin/me/2fa:
+    get:
+      summary: Read admin TOTP status without secret
   /admin/me/2fa/setup:
     post:
       summary: Start admin TOTP enrollment
+  /admin/me/2fa/enable:
+    post:
+      summary: Confirm admin TOTP with a 6-digit code
+  /admin/me/2fa/disable:
+    post:
+      summary: Disable admin TOTP; requires confirm and TOTP if already enabled
   /v1/chat/completions:
     post:
       summary: Includes google/gemini-flash via the Gemini sandbox adapter when no Base URL is set

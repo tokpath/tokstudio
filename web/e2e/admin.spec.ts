@@ -56,6 +56,11 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "手工结算" })).toBeVisible();
   await expect(page.getByRole("button", { name: "人工打款" })).toBeVisible();
   await page.goto("/admin/settings");
+  await expect(page.getByRole("heading", { name: "管理员 2FA" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "读取 2FA" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "开始绑定" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "确认启用" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "关闭 2FA" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "运维开关" })).toBeVisible();
   await expect(page.getByRole("button", { name: "健康探测" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "备份演练" })).toBeVisible();

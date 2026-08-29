@@ -197,8 +197,20 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/audit-logs"
   },
   {
+    "method": "GET",
+    "path": "/admin/me/2fa"
+  },
+  {
     "method": "POST",
     "path": "/admin/me/2fa/setup"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/me/2fa/enable"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/me/2fa/disable"
   },
   {
     "method": "GET",

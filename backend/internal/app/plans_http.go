@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.PATCH("/admin/plans/:id", a.requireRoles("platform_admin", "ops_admin"), a.adminPatchPlan)
 	r.POST("/admin/plans/:id/review", a.requireRoles("platform_admin", "ops_admin"), a.adminReviewPlan)
 	r.POST("/admin/entitlements/bonus", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.adminGrantBonus)
+	r.GET("/admin/payments", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPayments)
 	r.POST("/admin/payments/:id/confirm", a.requireRoles("platform_admin", "finance_admin"), a.adminConfirmPayment)
 	r.POST("/admin/payments/:id/refund", a.requireRoles("platform_admin", "finance_admin"), a.adminRefundPayment)
 	r.POST("/admin/subscriptions/:id/force-period-end", a.requireRoles("platform_admin"), a.adminForcePeriodEnd)
@@ -314,6 +316,30 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminListPayments(c *gin.Context) {
+	items, err := a.Payment.ListOrders(c.Request.Context(), c.Query("status"))
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取支付单失败", true)
+		return
+	}
+	if q := strings.TrimSpace(c.Query("q")); q != "" {
+		filtered := items[:0]
+		for _, item := range items {
+			if strings.Contains(item.ID, q) || strings.Contains(item.UserID, q) || strings.Contains(item.Adapter, q) || strings.Contains(item.Status, q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "payments.csv", []string{"id", "user_id", "adapter", "purpose", "status", "amount_minor"}, items, func(item payment.OrderView) []string {
+			return []string{item.ID, item.UserID, item.Adapter, item.Purpose, item.Status, strconv.FormatInt(item.AmountMinor, 10)}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item payment.OrderView) string { return item.ID })
 }
 
 func (a *App) adminConfirmPayment(c *gin.Context) {

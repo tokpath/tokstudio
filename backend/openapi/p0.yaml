@@ -360,3 +360,43 @@ paths:
       responses:
         "200":
           description: chat
+  /admin/plans:
+    get:
+      operationId: listAdminPlans
+      responses:
+        "200":
+          description: plans including pending review
+    post:
+      operationId: createAdminPlan
+      responses:
+        "201":
+          description: created
+  /admin/plans/{id}/review:
+    post:
+      operationId: reviewAdminPlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: approved or rejected
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      responses:
+        "200":
+          description: payment orders
+  /admin/commission-policy:
+    get:
+      operationId: getCommissionPolicy
+      responses:
+        "200":
+          description: active policy
+    patch:
+      operationId: patchCommissionPolicy
+      responses:
+        "200":
+          description: updated policy

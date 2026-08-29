@@ -179,6 +179,9 @@ curl_has kind -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/media?form
 curl_has tokenhub/echo-1 -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models?q=echo"
 curl_has action -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?format=csv"
 curl_has official -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channels?format=csv"
+curl_has pln_echo_month -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans"
+curl_has direct_bps -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commission-policy"
+curl_has adapter -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/payments?format=csv"
 code="$(curl -s -o /tmp/m7-ssrf.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"name\":\"ssrf\",\"slug\":\"ssrf-$RANDOM\",\"adapter\":\"openai\",\"base_url\":\"http://169.254.169.254/\"}")"
 if [[ "$code" != "400" ]]; then echo "metadata url should 400, got $code $(cat /tmp/m7-ssrf.json)" >&2; exit 1; fi

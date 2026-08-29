@@ -30,3 +30,8 @@ paths:
   /admin/channel-quotas/grant:
     post:
       summary: Grant or reclaim channel usd_credit quota
+  /admin/commission-policy:
+    get:
+      summary: Active platform commission policy
+    patch:
+      summary: Update commission BPS and freeze days. Requires X-Tokenhub-Confirm.

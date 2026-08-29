@@ -165,6 +165,17 @@ if [[ "$code" != "402" ]]; then
   exit 1
 fi
 
+echo "== commission policy"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commission-policy" | grep -q direct_bps
+code="$(curl -s -o /tmp/m6-policy.json -w '%{http_code}' -X PATCH "$API_URL/admin/commission-policy" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"direct_bps":1600,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000}')"
+if [[ "$code" != "409" ]]; then echo "policy without confirm should 409, got $code $(cat /tmp/m6-policy.json)" >&2; exit 1; fi
+curl -sf -X PATCH "$API_URL/admin/commission-policy" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"direct_bps":1500,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000,"version":"m6-v1"}' \
+  | grep -q '"direct_bps":1500'
+
 echo "== health"
 curl -sf "$API_URL/healthz" | grep -q 0.1.0-m
 echo "M6 e2e passed"

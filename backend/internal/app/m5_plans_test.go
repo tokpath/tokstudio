@@ -64,6 +64,10 @@ func TestM5PlansPayments(t *testing.T) {
 	if cheapItem["status"] != plans.StatusPendingReview {
 		t.Fatalf("channel low price should enter review: %+v", cheap)
 	}
+	pending := getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin")
+	if !hasPlan(pending, cheapItem["id"].(string)) {
+		t.Fatalf("admin review queue missing cheap plan: %+v", pending)
+	}
 	reviewed := postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{
 		"action": "approve", "reason": "promo",
 	})
@@ -85,6 +89,10 @@ func TestM5PlansPayments(t *testing.T) {
 	checkout := subResp["checkout"].(map[string]any)
 	order := checkout["order"].(map[string]any)
 	orderID := order["id"].(string)
+	pays := getAuthJSON(t, server.URL+"/admin/payments", "m5_admin")
+	if !hasPlan(pays, orderID) {
+		t.Fatalf("admin payments missing checkout order: %+v", pays)
+	}
 	eventID := "evt-m5-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	paid := webhook(t, server.URL, signKey, payment.AdapterStripe, eventID, orderID, "paid")
 	if paid.StatusCode != http.StatusOK {

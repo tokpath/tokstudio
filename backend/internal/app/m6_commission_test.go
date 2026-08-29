@@ -196,4 +196,33 @@ func TestM6CommissionDistribution(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
 		"channel_org_id": identity.ResellerChannelID, "amount_minor": avail - 1,
 	})
+
+	policy := getAuthJSON(t, server.URL+"/admin/commission-policy", "m6_admin")["policy"].(map[string]any)
+	if asInt(policy["direct_bps"]) != commission.DefaultDirect {
+		t.Fatalf("default policy: %+v", policy)
+	}
+	noConfirm, _ := http.NewRequest(http.MethodPatch, server.URL+"/admin/commission-policy", strings.NewReader(`{"direct_bps":1600,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000}`))
+	noConfirm.Header.Set("Authorization", "Bearer m6_admin")
+	noConfirm.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(noConfirm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusConflict {
+		t.Fatalf("policy patch without confirm should 409, got %d", resp.StatusCode)
+	}
+	updated := patchJSONRaw(t, server.URL+"/admin/commission-policy", "m6_admin", map[string]any{
+		"direct_bps": 1600, "override_bps": 500, "channel_bps": 500, "team_bps": 0,
+		"cap_bps": 3500, "freeze_days": 7, "min_settle_minor": 1_000_000, "version": "m6-v1-e2e",
+	})
+	if asInt(updated["policy"].(map[string]any)["direct_bps"]) != 1600 {
+		t.Fatalf("policy patch: %+v", updated)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/commission-policy", "m6_admin", map[string]any{
+		"direct_bps": commission.DefaultDirect, "override_bps": commission.DefaultOver,
+		"channel_bps": commission.DefaultChan, "team_bps": commission.DefaultTeam,
+		"cap_bps": commission.DefaultCap, "freeze_days": commission.FreezeDays,
+		"min_settle_minor": billing.MinorPerUSD, "version": commission.PolicyM6,
+	})
 }

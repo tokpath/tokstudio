@@ -115,11 +115,57 @@ func (s *Service) ActivePolicy(ctx context.Context) (*PolicyView, error) {
 	if err := s.db.WithContext(ctx).Where("status = ?", "active").Order("created_at DESC").First(&row).Error; err != nil {
 		return nil, ErrNotFound
 	}
+	return policyView(row), nil
+}
+
+func policyView(row policyRow) *PolicyView {
 	return &PolicyView{
 		ID: row.ID, Version: row.Version, DirectBPS: row.DirectBPS, OverrideBPS: row.OverrideBPS,
 		ChannelBPS: row.ChannelBPS, TeamBPS: row.TeamBPS, CapBPS: row.CapBPS,
 		FreezeDays: row.FreezeDays, MinSettleMinor: row.MinSettleMinor,
-	}, nil
+	}
+}
+
+func validatePolicy(in PolicyView) error {
+	if in.DirectBPS < 0 || in.OverrideBPS < 0 || in.ChannelBPS < 0 || in.TeamBPS < 0 {
+		return ErrInvalid
+	}
+	if in.CapBPS <= 0 || in.DirectBPS+in.OverrideBPS+in.ChannelBPS+in.TeamBPS > in.CapBPS {
+		return ErrInvalid
+	}
+	if in.FreezeDays < 0 || in.FreezeDays > 90 {
+		return ErrInvalid
+	}
+	if in.MinSettleMinor < 0 {
+		return ErrInvalid
+	}
+	return nil
+}
+
+func (s *Service) UpdatePolicy(ctx context.Context, in PolicyView) (*PolicyView, error) {
+	if err := validatePolicy(in); err != nil {
+		return nil, err
+	}
+	var row policyRow
+	if err := s.db.WithContext(ctx).Where("status = ?", "active").Order("created_at DESC").First(&row).Error; err != nil {
+		return nil, ErrNotFound
+	}
+	row.DirectBPS = in.DirectBPS
+	row.OverrideBPS = in.OverrideBPS
+	row.ChannelBPS = in.ChannelBPS
+	row.TeamBPS = in.TeamBPS
+	row.CapBPS = in.CapBPS
+	if in.FreezeDays > 0 {
+		row.FreezeDays = in.FreezeDays
+	}
+	row.MinSettleMinor = in.MinSettleMinor
+	if in.Version != "" {
+		row.Version = in.Version
+	}
+	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		return nil, err
+	}
+	return policyView(row), nil
 }
 
 func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {

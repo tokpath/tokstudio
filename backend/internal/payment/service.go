@@ -118,6 +118,22 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	return orderView(row), nil
 }
 
+func (s *Service) ListOrders(ctx context.Context, status string) ([]OrderView, error) {
+	var rows []orderRow
+	q := s.db.WithContext(ctx).Order("created_at DESC").Limit(200)
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]OrderView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, *orderView(row))
+	}
+	return out, nil
+}
+
 func (s *Service) GetOrder(ctx context.Context, id, userID string) (*OrderView, error) {
 	var row orderRow
 	q := s.db.WithContext(ctx).Where("id = ?", id)

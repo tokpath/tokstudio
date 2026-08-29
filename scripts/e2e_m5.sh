@@ -80,6 +80,7 @@ cheap="$(curl -sf -X POST "$API_URL/admin/plans" -H "Authorization: Bearer $CHAN
   -d '{"name":"E2E Cheap","price_minor":1000,"items":[{"unit_type":"usd_credit","included_amount":1}]}')"
 echo "$cheap" | grep -q pending_review
 pid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$cheap")"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans?status=pending_review" | grep -q "$pid"
 curl -sf -X POST "$API_URL/admin/plans/$pid/review" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"action":"approve","reason":"e2e"}' | grep -q published
 
@@ -91,6 +92,7 @@ sub="$(curl -sf -X POST "$API_URL/v1/me/subscriptions" -H "Authorization: Bearer
 echo "$sub" | grep -q pending
 oid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['checkout']['order']['id'])" "$sub")"
 sid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['subscription']['id'])" "$sub")"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/payments" | grep -q "$oid"
 evt="evt-e2e-m5-$RANDOM"
 sig="$(python3 -c "import hmac,hashlib,sys; print(hmac.new(sys.argv[1].encode(), (sys.argv[2]+'|'+sys.argv[3]+'|'+sys.argv[4]).encode(), hashlib.sha256).hexdigest())" "$SIGN_KEY" "$evt" "$oid" "paid")"
 curl -sf -X POST "$API_URL/v1/payments/stripe/webhook" -H 'Content-Type: application/json' \

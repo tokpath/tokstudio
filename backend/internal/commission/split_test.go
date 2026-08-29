@@ -29,3 +29,18 @@ func TestSplitRespectsCapAndHierarchy(t *testing.T) {
 		t.Fatalf("no-role should keep M3 10 percent channel: %+v", noRole)
 	}
 }
+
+func TestValidatePolicyRejectsOverCap(t *testing.T) {
+	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 1000, ChannelBPS: 1000, CapBPS: 3500, FreezeDays: 7}); err != nil {
+		t.Fatalf("valid policy: %v", err)
+	}
+	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 1000, ChannelBPS: 1000, TeamBPS: 500, CapBPS: 3500}); err != nil {
+		t.Fatal("3500 cap equals the sum")
+	}
+	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 2000, ChannelBPS: 2000, CapBPS: 3500}); err != ErrInvalid {
+		t.Fatalf("sum over cap should be invalid, got %v", err)
+	}
+	if err := validatePolicy(PolicyView{DirectBPS: -1, CapBPS: 3500}); err != ErrInvalid {
+		t.Fatalf("negative bps should be invalid, got %v", err)
+	}
+}

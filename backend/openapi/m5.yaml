@@ -43,6 +43,9 @@ paths:
   /admin/entitlements/bonus:
     post:
       summary: Grant bonus entitlement
+  /admin/payments:
+    get:
+      summary: Admin payment order list
   /admin/payments/{id}/confirm:
     post:
       summary: Manually confirm a sandbox payment

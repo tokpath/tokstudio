@@ -37,7 +37,8 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.POST("/admin/commissions/unfreeze", a.requireRoles("platform_admin", "finance_admin"), a.adminUnfreeze)
 	r.POST("/admin/commissions/settle", a.requireRoles("platform_admin", "finance_admin"), a.adminSettle)
 	r.POST("/admin/settlements/:id/payout", a.requireRoles("platform_admin", "finance_admin"), a.adminPayout)
-	r.GET("/admin/commission-policy", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.adminPolicy)
+	r.GET("/admin/commission-policy", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPolicy)
+	r.PATCH("/admin/commission-policy", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchPolicy)
 }
 
 func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, ok bool) {
@@ -432,5 +433,28 @@ func (a *App) adminPolicy(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "佣金策略不存在", false)
 		return
 	}
+	httpx.OK(c, gin.H{"policy": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPatchPolicy(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body commission.PolicyView
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金策略字段无效", false)
+		return
+	}
+	before, _ := a.Commission.ActivePolicy(c.Request.Context())
+	item, err := a.Commission.UpdatePolicy(c.Request.Context(), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金策略不合法：各档 BPS 之和不能超过上限", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "commission.policy.update",
+		ResourceType: "commission_policy", ResourceID: item.ID,
+		Before: before, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.OK(c, gin.H{"policy": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }

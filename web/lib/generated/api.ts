@@ -187,6 +187,30 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/v1/chat/completions"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/plans"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/plans"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/plans/{id}/review"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/payments"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/commission-policy"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/commission-policy"
   }
 ];
 

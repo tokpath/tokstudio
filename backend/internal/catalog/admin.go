@@ -288,7 +288,7 @@ func (s *Service) AttachProvider(ctx context.Context, publicID, providerID, upst
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		mapping := mappingRow{
 			ID: id.New("map"), PublicModelID: model.ID, ProviderID: provider.ID,
-			UpstreamModelID: upstream, Status: "active",
+			UpstreamModelID: upstream, Status: "active", SyncState: SyncPublished,
 		}
 		if err := tx.Where("public_model_id = ? AND provider_id = ?", model.ID, provider.ID).FirstOrCreate(&mapping).Error; err != nil {
 			return err

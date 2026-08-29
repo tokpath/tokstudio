@@ -43,9 +43,13 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin"), a.addProviderAccount)
 	r.PATCH("/admin/providers/:id/accounts/:aid", a.requireRoles("platform_admin", "tech_admin"), a.patchProviderAccount)
 	r.POST("/admin/providers/:id/health-check", a.requireRoles("platform_admin", "tech_admin"), a.healthCheckProvider)
+	r.POST("/admin/providers/:id/sync", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.syncProvider)
 	r.GET("/admin/models", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
 	r.POST("/admin/models", a.requireRoles("platform_admin", "ops_admin"), a.createAdminModel)
 	r.PATCH("/admin/models/:id", a.requireRoles("platform_admin", "ops_admin"), a.patchAdminModel)
+	r.POST("/admin/models/review", a.requireRoles("platform_admin", "ops_admin"), a.reviewAdminModel)
+	r.POST("/admin/models/publish", a.requireRoles("platform_admin", "ops_admin"), a.publishAdminModel)
+	r.POST("/admin/models/deprecate", a.requireRoles("platform_admin", "ops_admin"), a.deprecateAdminModel)
 	r.GET("/admin/routes", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
 	r.POST("/admin/routes", a.requireRoles("platform_admin", "tech_admin"), a.createAdminRoute)
 	r.PATCH("/admin/routes/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
@@ -558,7 +562,7 @@ func (a *App) listAdminModels(c *gin.Context) {
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]catalog.ModelView, 0, len(items))
 		for _, item := range items {
-			if strings.Contains(strings.ToLower(item.ID+item.Vendor+item.DisplayName+item.Status), q) {
+			if strings.Contains(strings.ToLower(item.ID+item.Vendor+item.DisplayName+item.Status+item.SyncState), q) {
 				filtered = append(filtered, item)
 			}
 		}
@@ -656,6 +660,98 @@ func (a *App) patchAdminRoute(c *gin.Context) {
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "route.patch", ResourceType: "route", ResourceID: item.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) syncProvider(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	result, err := a.Catalog.SyncProvider(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "同步 Provider 失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.sync", ResourceType: "provider",
+		ResourceID: c.Param("id"), After: map[string]string{"models": strings.Join(syncIDs(result), ",")},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": result, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func syncIDs(result *catalog.SyncResult) []string {
+	if result == nil {
+		return nil
+	}
+	out := make([]string, 0, len(result.Items))
+	for _, item := range result.Items {
+		out = append(out, item.ID)
+	}
+	return out
+}
+
+func (a *App) reviewAdminModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID string `json:"public_id"`
+		Action   string `json:"action"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.ReviewModel(c.Request.Context(), body.PublicID, body.Action)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "审核模型失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.review", ResourceType: "model",
+		ResourceID: item.ID, After: map[string]string{"sync_state": item.SyncState, "action": body.Action},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) publishAdminModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID string `json:"public_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.PublishModel(c.Request.Context(), body.PublicID)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "发布模型失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.publish", ResourceType: "model",
+		ResourceID: item.ID, After: map[string]string{"status": item.Status},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) deprecateAdminModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID string `json:"public_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.DeprecateModel(c.Request.Context(), body.PublicID)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "弃用模型失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.deprecate", ResourceType: "model",
+		ResourceID: item.ID, After: map[string]string{"status": item.Status},
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})

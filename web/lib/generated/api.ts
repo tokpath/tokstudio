@@ -53,6 +53,22 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/models"
   },
   {
+    "method": "POST",
+    "path": "/admin/providers/{id}/sync"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/models/review"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/models/publish"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/models/deprecate"
+  },
+  {
     "method": "PATCH",
     "path": "/admin/models/{id}"
   },

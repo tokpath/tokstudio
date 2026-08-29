@@ -71,6 +71,7 @@ type mappingRow struct {
 	ProviderID      string `gorm:"column:provider_id"`
 	UpstreamModelID string `gorm:"column:upstream_model_id"`
 	Status          string `gorm:"column:status"`
+	SyncState       string `gorm:"column:sync_state"`
 }
 
 func (mappingRow) TableName() string { return "catalog_provider_model_mappings" }
@@ -120,6 +121,7 @@ type ModelView struct {
 	SellPrice    map[string]any `json:"sell_price,omitempty"`
 	Providers    []string       `json:"providers"`
 	Status       string         `json:"status"`
+	SyncState    string         `json:"sync_state,omitempty"`
 }
 
 type RouteCandidate struct {
@@ -584,7 +586,15 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		Joins("JOIN catalog_providers p ON p.id = m.provider_id").
 		Where("m.public_model_id = ? AND m.status = ?", model.ID, "active").
 		Scan(&slugs).Error
-	return &ModelView{ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps, SellPrice: sell, Providers: slugs, Status: model.Status}, nil
+	var mapping mappingRow
+	syncState := ""
+	if err := s.db.WithContext(ctx).Where("public_model_id = ?", model.ID).Order("id").First(&mapping).Error; err == nil {
+		syncState = mapping.SyncState
+	}
+	return &ModelView{
+		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
+		SellPrice: sell, Providers: slugs, Status: model.Status, SyncState: syncState,
+	}, nil
 }
 
 func ignored(list []string, slug string) bool {

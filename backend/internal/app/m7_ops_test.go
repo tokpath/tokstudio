@@ -382,6 +382,54 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("401 should mark account invalid: %+v", listed)
 	}
 
+	synced := postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/sync", "m7_admin-ops", map[string]any{})
+	syncItem := synced["item"].(map[string]any)
+	syncModels := syncItem["items"].([]any)
+	if len(syncModels) == 0 || syncModels[0].(map[string]any)["status"] != catalog.SyncDraft {
+		t.Fatalf("sync should create draft: %+v", synced)
+	}
+	syncPublic := syncModels[0].(map[string]any)["id"].(string)
+	visible := getAuthJSON(t, server.URL+"/v1/models", key)
+	for _, raw := range visible["data"].([]any) {
+		if raw.(map[string]any)["id"] == syncPublic {
+			t.Fatalf("draft model must not be in customer catalog: %+v", visible)
+		}
+	}
+	reviewed := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
+		"public_id": syncPublic, "action": "approve",
+	})
+	if reviewed["item"].(map[string]any)["sync_state"] != catalog.SyncReviewed {
+		t.Fatalf("review: %+v", reviewed)
+	}
+	published := postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{"public_id": syncPublic})
+	if published["item"].(map[string]any)["status"] != catalog.SyncPublished {
+		t.Fatalf("publish: %+v", published)
+	}
+	after := getAuthJSON(t, server.URL+"/v1/models", key)
+	foundSync := false
+	for _, raw := range after["data"].([]any) {
+		if raw.(map[string]any)["id"] == syncPublic {
+			foundSync = true
+		}
+	}
+	if !foundSync {
+		t.Fatalf("published sync model missing from catalog: %+v", after)
+	}
+	deprecated := postJSONRaw(t, server.URL+"/admin/models/deprecate", "m7_admin-ops", map[string]any{"public_id": syncPublic})
+	if deprecated["item"].(map[string]any)["status"] != "deprecated" {
+		t.Fatalf("deprecate: %+v", deprecated)
+	}
+	gone := getAuthJSON(t, server.URL+"/v1/models", key)
+	for _, raw := range gone["data"].([]any) {
+		if raw.(map[string]any)["id"] == syncPublic {
+			t.Fatalf("deprecated model still visible: %+v", gone)
+		}
+	}
+	adminStill := getAuthJSON(t, server.URL+"/admin/models?q=sync-", "m7_admin-ops")
+	if len(adminStill["items"].([]any)) == 0 {
+		t.Fatalf("deprecated model must remain in admin list: %+v", adminStill)
+	}
+
 	idem := "chat-idem-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	firstChat := doChatHeader(t, server.URL+"/v1/chat/completions", key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "idem"}},

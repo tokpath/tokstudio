@@ -34,6 +34,18 @@ paths:
   /admin/models:
     get:
       summary: List public models for admin
+  /admin/providers/{id}/sync:
+    post:
+      summary: Sync provider models and prices into draft
+  /admin/models/review:
+    post:
+      summary: Approve or reject a synced draft model
+  /admin/models/publish:
+    post:
+      summary: Publish a reviewed model into the customer catalog
+  /admin/models/deprecate:
+    post:
+      summary: Deprecate a model without deleting history
   /admin/routes:
     get:
       summary: List route groups and candidates

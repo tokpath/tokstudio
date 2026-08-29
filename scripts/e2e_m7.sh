@@ -195,6 +195,27 @@ curl -sf -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_SLUG" -H "Aut
 code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/providers/$POOL_ID/accounts")"
 if [[ "$code" != "403" ]]; then echo "finance must not list accounts, got $code" >&2; exit 1; fi
 
+echo "== model sync draft review publish"
+SYNC="$(curl -sf -X POST "$API_URL/admin/providers/$POOL_ID/sync" -H "Authorization: Bearer $OPS_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}')"
+echo "$SYNC" | grep -q '"status":"draft"'
+SYNC_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['items'][0]['id'])" "$SYNC")"
+python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
+  "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
+curl -sf -X POST "$API_URL/admin/models/review" -H "Authorization: Bearer $OPS_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"public_id\":\"$SYNC_ID\",\"action\":\"approve\"}" | grep -q reviewed
+curl -sf -X POST "$API_URL/admin/models/publish" -H "Authorization: Bearer $OPS_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"public_id\":\"$SYNC_ID\"}" | grep -q published
+curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models" | grep -q "$SYNC_ID"
+curl -sf -X POST "$API_URL/admin/models/deprecate" -H "Authorization: Bearer $OPS_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"public_id\":\"$SYNC_ID\"}" | grep -q deprecated
+python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
+  "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
+curl -sf -H "Authorization: Bearer $OPS_TOKEN" "$API_URL/admin/models?q=sync-" | grep -q "$SYNC_ID"
+
 echo "== chat idempotency 24h"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -H "Idempotency-Key: e2e-chat-$email" -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"idem"}]}' >/tmp/m7-idem1.json

@@ -102,6 +102,36 @@ paths:
       responses:
         "201":
           description: created
+  /admin/providers/{id}/sync:
+    post:
+      operationId: syncProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: draft models from provider sync
+  /admin/models/review:
+    post:
+      operationId: reviewAdminModel
+      responses:
+        "200":
+          description: reviewed
+  /admin/models/publish:
+    post:
+      operationId: publishAdminModel
+      responses:
+        "200":
+          description: published
+  /admin/models/deprecate:
+    post:
+      operationId: deprecateAdminModel
+      responses:
+        "200":
+          description: deprecated
   /admin/models/{id}:
     patch:
       operationId: patchAdminModel

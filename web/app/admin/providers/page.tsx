@@ -127,8 +127,8 @@ function AccountPoolPanel() {
       setMessage(body.error?.message || "更新失败");
       return;
     }
-    setMessage(`${okText} ${body.item?.fingerprint || accountID} → ${body.item?.status}`);
     await load();
+    setMessage(`${okText} ${body.item?.fingerprint || accountID} → ${body.item?.status}`);
     await queryClient.invalidateQueries();
   }
 

@@ -26,6 +26,8 @@ func (a *App) registerOpsRoutes(r *gin.Engine) {
 	r.GET("/admin/ops/dashboard", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly"), a.adminDashboard)
 	r.GET("/admin/ops/alerts", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.adminAlerts)
 	r.POST("/admin/ops/alerts/evaluate", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.adminEvaluateAlerts)
+	r.GET("/admin/ops/thresholds", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.adminGetThresholds)
+	r.PATCH("/admin/ops/thresholds", a.requireRoles("platform_admin", "ops_admin"), a.adminSetThresholds)
 	r.GET("/admin/ops/runbooks", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.adminRunbooks)
 	r.POST("/admin/ops/backup-drill", a.requireRoles("platform_admin", "tech_admin"), a.adminBackupDrill)
 	r.GET("/admin/ops/canary", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.adminGetCanary)
@@ -109,6 +111,33 @@ func (a *App) adminAlerts(c *gin.Context) {
 		return
 	}
 	httpx.OKPage(c, items, 50, func(item ops.AlertView) string { return item.ID })
+}
+
+func (a *App) adminGetThresholds(c *gin.Context) {
+	item, err := a.Ops.Thresholds(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取告警阈值失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"thresholds": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminSetThresholds(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body ops.Thresholds
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Ops.SetThresholds(c.Request.Context(), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "无法更新告警阈值", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "ops.thresholds.update", ResourceType: "alert_threshold", ResourceID: ops.ThresholdID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"thresholds": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminEvaluateAlerts(c *gin.Context) {

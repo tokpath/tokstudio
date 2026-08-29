@@ -128,6 +128,22 @@ func (s *Service) ListAcquisitionRoles(ctx context.Context, channelID string) ([
 	return out, nil
 }
 
+func (s *Service) ListPromotionCodes(ctx context.Context, channelID string) ([]PromotionView, error) {
+	var rows []promotionRow
+	q := s.db.WithContext(ctx).Order("code")
+	if channelID != "" {
+		q = q.Where("channel_org_id = ?", channelID)
+	}
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]PromotionView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, *promoView(row))
+	}
+	return out, nil
+}
+
 func (s *Service) BindRoleMember(ctx context.Context, userID, roleID string) error {
 	return s.db.WithContext(ctx).Where("user_id = ? AND acquisition_role_id = ?", userID, roleID).
 		FirstOrCreate(&roleMemberRow{UserID: userID, AcquisitionRoleID: roleID, CreatedAt: time.Now().UTC()}).Error

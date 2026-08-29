@@ -176,11 +176,27 @@ type ReportView struct {
 }
 
 type DimMoneyView struct {
-	Dimension    string `json:"dimension"`
-	Key          string `json:"key"`
-	UsageMinor   int64  `json:"usage_minor"`
-	RevenueMinor int64  `json:"revenue_minor"`
-	CostMinor    int64  `json:"cost_minor"`
+	Dimension        string `json:"dimension"`
+	Key              string `json:"key"`
+	UsageMinor       int64  `json:"usage_minor"`
+	RevenueMinor     int64  `json:"revenue_minor"`
+	CostMinor        int64  `json:"cost_minor"`
+	PromptTokens     int64  `json:"prompt_tokens"`
+	CompletionTokens int64  `json:"completion_tokens"`
+	ReasoningTokens  int64  `json:"reasoning_tokens"`
+	VideoSeconds     int64  `json:"video_seconds"`
+	ImageCount       int64  `json:"image_count"`
+	AudioSeconds     int64  `json:"audio_seconds"`
+}
+
+type UsageUnits struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+	ReasoningTokens  int64 `json:"reasoning_tokens"`
+	VideoSeconds     int64 `json:"video_seconds"`
+	ImageCount       int64 `json:"image_count"`
+	AudioSeconds     int64 `json:"audio_seconds"`
+	UsageMinor       int64 `json:"usage_minor,omitempty"`
 }
 
 type RiskView struct {

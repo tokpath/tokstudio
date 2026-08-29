@@ -41,6 +41,14 @@ if echo "$users" | grep -q "$alice"; then
   echo "channel isolation leaked user A" >&2
   exit 1
 fi
+promos="$(curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/promotion-codes")"
+echo "$promos" | grep -q THB1
+if echo "$promos" | grep -q THA1; then
+  echo "channel promo leaked official code" >&2
+  exit 1
+fi
+curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/plans" | grep -q items
+curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/usage" | grep -q prompt_tokens
 
 echo "== OEM brand by host"
 oem="$(curl -sf "$API_URL/v1/public/brand?host=oem.localhost")"
@@ -90,5 +98,8 @@ apphtml="$(curl -sf "$WEB_URL/app")"
 echo "$apphtml" | grep -q "接入示例"
 channelhtml="$(curl -sf "$WEB_URL/channel")"
 echo "$channelhtml" | grep -q "本渠道用户"
+echo "$channelhtml" | grep -q "本渠道套餐"
+echo "$channelhtml" | grep -q "推广链接"
+echo "$channelhtml" | grep -q "本渠道用量"
 
 echo "M1 e2e passed"

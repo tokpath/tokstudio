@@ -5,6 +5,21 @@ import (
 	"time"
 )
 
+func TestClampThresholds(t *testing.T) {
+	got := ClampThresholds(Thresholds{SuccessRateMin: 0, MinRequests: 0, PendingCount: 0})
+	if got.SuccessRateMin != 0.5 || got.MinRequests != 5 || got.PendingCount != 1 {
+		t.Fatalf("defaults: %+v", got)
+	}
+	got = ClampThresholds(Thresholds{SuccessRateMin: 0.8, MinRequests: 10, PendingCount: 3})
+	if got.SuccessRateMin != 0.8 || got.MinRequests != 10 || got.PendingCount != 3 {
+		t.Fatalf("keep: %+v", got)
+	}
+	got = ClampThresholds(Thresholds{SuccessRateMin: 1.5, MinRequests: 20000, PendingCount: 2})
+	if got.SuccessRateMin != 0.5 || got.MinRequests != 10000 || got.PendingCount != 2 {
+		t.Fatalf("clamp: %+v", got)
+	}
+}
+
 func TestClampDays(t *testing.T) {
 	if ClampDays(0) != 7 || ClampDays(120) != 90 || ClampDays(14) != 14 {
 		t.Fatalf("clamp: %d %d %d", ClampDays(0), ClampDays(120), ClampDays(14))

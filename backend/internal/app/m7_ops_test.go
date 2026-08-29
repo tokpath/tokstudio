@@ -106,8 +106,42 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	dash := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)
 	totals := dash["totals"].(map[string]any)
-	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil || totals["latency_p99_ms"] == nil || totals["http_429"] == nil || totals["preauth_failed"] == nil || totals["callback_latency_p95_ms"] == nil {
+	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil || totals["latency_p99_ms"] == nil || totals["http_429"] == nil || totals["preauth_failed"] == nil || totals["callback_latency_p95_ms"] == nil || totals["timeouts"] == nil || totals["error_codes"] == nil || totals["prompt_tokens"] == nil || totals["video_seconds"] == nil {
 		t.Fatalf("totals incomplete: %+v", totals)
+	}
+	if asInt(totals["prompt_tokens"]) < 8 {
+		t.Fatalf("echo chat should record prompt tokens: %+v", totals)
+	}
+	if dash["thresholds"] == nil {
+		t.Fatalf("dashboard missing thresholds: %+v", dash)
+	}
+	thr := getAuthJSON(t, server.URL+"/admin/ops/thresholds", "m7_admin")["thresholds"].(map[string]any)
+	if thr["success_rate_min"] == nil || asInt(thr["min_requests"]) < 1 {
+		t.Fatalf("default thresholds: %+v", thr)
+	}
+	t.Cleanup(func() {
+		_ = patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
+			"success_rate_min": 0.5, "min_requests": 5, "pending_count": 1,
+		})
+	})
+	patched := patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
+		"success_rate_min": 0.8, "min_requests": 10, "pending_count": 2,
+	})["thresholds"].(map[string]any)
+	if asInt(patched["min_requests"]) != 10 {
+		t.Fatalf("patched thresholds: %+v", patched)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "timeout"})
+	_ = postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "timeout-probe"}},
+	})
+	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "ok"})
+	afterTO := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)["totals"].(map[string]any)
+	if asInt(afterTO["timeouts"]) < 1 {
+		t.Fatalf("timeout should be counted: %+v", afterTO)
+	}
+	codes, _ := afterTO["error_codes"].(map[string]any)
+	if asInt(codes["timeout"]) < 1 {
+		t.Fatalf("error_codes should include timeout: %+v", afterTO)
 	}
 	agents, _ := dash["dimensions"].(map[string]any)["agent"].([]any)
 	sawAgent := false

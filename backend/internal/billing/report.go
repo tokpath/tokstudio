@@ -61,17 +61,24 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 		return nil, nil
 	}
 	type row struct {
-		Key     string
-		Usage   int64
-		Revenue int64
-		Cost    int64
+		Key              string
+		Usage            int64
+		Revenue          int64
+		Cost             int64
+		PromptTokens     int64
+		CompletionTokens int64
+		ReasoningTokens  int64
+		VideoSeconds     int64
+		ImageCount       int64
+		AudioSeconds     int64
 	}
 	var rows []row
 	if err := s.db.WithContext(ctx).Raw(`
 		SELECT ` + col + ` AS key,
 			COALESCE(SUM(wholesale_amount_minor),0) AS usage,
 			COALESCE(SUM(customer_amount_minor),0) AS revenue,
-			COALESCE(SUM(upstream_cost_minor),0) AS cost
+			COALESCE(SUM(upstream_cost_minor),0) AS cost,
+			` + usageUnitSums() + `
 		FROM billing_usage_events
 		WHERE state = 'confirmed'
 		GROUP BY ` + col + `
@@ -80,9 +87,55 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 	}
 	out := make([]DimMoneyView, 0, len(rows))
 	for _, item := range rows {
-		out = append(out, DimMoneyView{Dimension: dimension, Key: item.Key, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost})
+		out = append(out, DimMoneyView{
+			Dimension: dimension, Key: item.Key, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost,
+			PromptTokens: item.PromptTokens, CompletionTokens: item.CompletionTokens, ReasoningTokens: item.ReasoningTokens,
+			VideoSeconds: item.VideoSeconds, ImageCount: item.ImageCount, AudioSeconds: item.AudioSeconds,
+		})
 	}
 	return out, nil
+}
+
+func usageUnitSums() string {
+	return `
+		COALESCE(SUM(COALESCE((unit_usage_json->>'prompt_tokens')::bigint, 0)), 0) AS prompt_tokens,
+		COALESCE(SUM(COALESCE((unit_usage_json->>'completion_tokens')::bigint, 0)), 0) AS completion_tokens,
+		COALESCE(SUM(COALESCE((unit_usage_json->>'reasoning_tokens')::bigint, 0)), 0) AS reasoning_tokens,
+		COALESCE(SUM(COALESCE((unit_usage_json->>'video_seconds')::bigint, 0)), 0) AS video_seconds,
+		COALESCE(SUM(COALESCE((unit_usage_json->>'image_count')::bigint, 0)), 0) AS image_count,
+		COALESCE(SUM(COALESCE((unit_usage_json->>'audio_seconds')::bigint, 0)), 0) AS audio_seconds
+	`
+}
+
+func (s *Service) UsageUnits(ctx context.Context) (*UsageUnits, error) {
+	return s.usageUnitsWhere(ctx, "")
+}
+
+func (s *Service) ChannelUsage(ctx context.Context, channelID string) (*UsageUnits, error) {
+	if channelID == "" {
+		return &UsageUnits{}, nil
+	}
+	return s.usageUnitsWhere(ctx, channelID)
+}
+
+func (s *Service) usageUnitsWhere(ctx context.Context, channelID string) (*UsageUnits, error) {
+	view := &UsageUnits{}
+	q := `
+		SELECT
+			COALESCE(SUM(wholesale_amount_minor), 0) AS usage_minor,
+			` + usageUnitSums() + `
+		FROM billing_usage_events
+		WHERE state = 'confirmed'
+	`
+	args := []any{}
+	if channelID != "" {
+		q += ` AND channel_org_id = ?`
+		args = append(args, channelID)
+	}
+	if err := s.db.WithContext(ctx).Raw(q, args...).Scan(view).Error; err != nil {
+		return nil, err
+	}
+	return view, nil
 }
 
 func (s *Service) DailySeries(ctx context.Context, since time.Time) ([]DailyMoney, error) {

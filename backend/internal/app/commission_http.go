@@ -21,8 +21,12 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/v1/partner/export", a.requireAnyUser(), a.partnerExport)
 	r.GET("/channel/quota", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelQuota)
 	r.GET("/channel/commissions", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelCommissions)
+	r.GET("/channel/usage", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelUsage)
+	r.GET("/channel/promotion-codes", a.requireRoles("channel_admin", "platform_admin"), a.channelListPromos)
+	r.POST("/channel/promotion-codes", a.requireRoles("channel_admin", "platform_admin"), a.adminCreatePromo)
 	r.POST("/admin/acquisition-roles", a.requireRoles("platform_admin", "channel_admin"), a.adminCreateRole)
 	r.GET("/admin/acquisition-roles", a.requireRoles("platform_admin", "channel_admin"), a.adminListRoles)
+	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
 	r.GET("/admin/channel-quotas/:channel_id", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetQuota)
@@ -129,6 +133,51 @@ func (a *App) channelQuota(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelUsage(c *gin.Context) {
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = c.Query("channel_id")
+	}
+	item, err := a.Billing.ChannelUsage(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道用量失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"usage": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelListPromos(c *gin.Context) {
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = c.Query("channel_id")
+	}
+	items, err := a.Identity.ListPromotionCodes(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取推广码失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminListPromos(c *gin.Context) {
+	channelID := c.Query("channel_id")
+	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+		channelID = p.ChannelOrgID
+	}
+	items, err := a.Identity.ListPromotionCodes(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取推广码失败", true)
+		return
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "promotion-codes.csv", []string{"id", "code", "channel_org_id", "status"}, items, func(item identity.PromotionView) []string {
+			return []string{item.ID, item.Code, item.ChannelOrgID, item.Status}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item identity.PromotionView) string { return item.ID })
 }
 
 func (a *App) channelCommissions(c *gin.Context) {

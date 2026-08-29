@@ -19,6 +19,7 @@ var migrationFS embed.FS
 type TrafficSource interface {
 	DimStats(ctx context.Context, dimension string) ([]DimStat, error)
 	DailySeries(ctx context.Context, since time.Time) ([]DailyTraffic, error)
+	ErrorBreakdown(ctx context.Context) (map[string]int64, error)
 }
 
 type MoneySource interface {
@@ -164,6 +165,17 @@ func (s *Service) Dashboard(ctx context.Context) (*Dashboard, error) {
 			out.Totals.CallbackP95MS = p95
 		}
 	}
+	if s.traffic != nil {
+		if codes, err := s.traffic.ErrorBreakdown(ctx); err == nil {
+			out.Totals.ErrorCodes = codes
+		}
+	}
+	if out.Totals.ErrorCodes == nil {
+		out.Totals.ErrorCodes = map[string]int64{}
+	}
+	if thr, err := s.Thresholds(ctx); err == nil {
+		out.Thresholds = thr
+	}
 	out.Alerts, _ = s.ListAlerts(ctx, StatusOpen)
 	out.Canary, _ = s.Canary(ctx, CanaryChat)
 	out.LastDrill, _ = s.LastDrill(ctx)
@@ -184,6 +196,12 @@ func mergeMoney(traffic, money []DimStat) []DimStat {
 		cur.RevenueMinor = row.RevenueMinor
 		cur.CostMinor = row.CostMinor
 		cur.MarginMinor = row.RevenueMinor - row.CostMinor
+		cur.PromptTokens = row.PromptTokens
+		cur.CompletionTokens = row.CompletionTokens
+		cur.ReasoningTokens = row.ReasoningTokens
+		cur.VideoSeconds = row.VideoSeconds
+		cur.ImageCount = row.ImageCount
+		cur.AudioSeconds = row.AudioSeconds
 		byKey[row.Key] = cur
 	}
 	out := make([]DimStat, 0, len(byKey))
@@ -232,6 +250,13 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 		cur.CostMinor += row.CostMinor
 		cur.HTTP429 += row.HTTP429
 		cur.HTTP5xx += row.HTTP5xx
+		cur.Timeouts += row.Timeouts
+		cur.PromptTokens += row.PromptTokens
+		cur.CompletionTokens += row.CompletionTokens
+		cur.ReasoningTokens += row.ReasoningTokens
+		cur.VideoSeconds += row.VideoSeconds
+		cur.ImageCount += row.ImageCount
+		cur.AudioSeconds += row.AudioSeconds
 		if row.LatencyP95MS > cur.LatencyP95MS {
 			cur.LatencyP95MS = row.LatencyP95MS
 		}
@@ -255,7 +280,7 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 }
 
 func fillOverview(totals *MoneyView, providers []DimStat) {
-	var req, ok, errs, p50, p95, p99, fallbacks, http429, http5xx int64
+	var req, ok, errs, p50, p95, p99, fallbacks, http429, http5xx, timeouts int64
 	for _, row := range providers {
 		req += row.Requests
 		ok += row.Successes
@@ -263,6 +288,7 @@ func fillOverview(totals *MoneyView, providers []DimStat) {
 		fallbacks += row.Fallbacks
 		http429 += row.HTTP429
 		http5xx += row.HTTP5xx
+		timeouts += row.Timeouts
 		if row.LatencyP95MS > p95 {
 			p95 = row.LatencyP95MS
 		}
@@ -282,6 +308,7 @@ func fillOverview(totals *MoneyView, providers []DimStat) {
 	totals.Fallbacks = fallbacks
 	totals.HTTP429 = http429
 	totals.HTTP5xx = http5xx
+	totals.Timeouts = timeouts
 	totals.UpstreamErrors = errs
 }
 
@@ -343,9 +370,13 @@ func (s *Service) resolveAlert(ctx context.Context, kind string) error {
 }
 
 func (s *Service) EvaluateAlerts(ctx context.Context) ([]AlertView, error) {
+	thr := DefaultThresholds()
+	if item, err := s.Thresholds(ctx); err == nil && item != nil {
+		thr = *item
+	}
 	if s.money != nil {
 		if money, err := s.money.Money(ctx); err == nil && money != nil {
-			if money.PendingCount > 0 {
+			if money.PendingCount >= thr.PendingCount {
 				_ = s.openAlert(ctx, AlertPending, SeverityHigh, "存在待对账预授权，禁止按估算扣款", money)
 			} else {
 				_ = s.resolveAlert(ctx, AlertPending)
@@ -356,9 +387,9 @@ func (s *Service) EvaluateAlerts(ctx context.Context) ([]AlertView, error) {
 		if rows, err := s.traffic.DimStats(ctx, DimProvider); err == nil {
 			low := false
 			for _, row := range rows {
-				if row.Requests >= 5 && row.SuccessRate < 0.5 {
+				if row.Requests >= thr.MinRequests && row.SuccessRate < thr.SuccessRateMin {
 					low = true
-					_ = s.openAlert(ctx, AlertLowSuccess, SeverityMed, "成功率低于 50%："+row.Key, row)
+					_ = s.openAlert(ctx, AlertLowSuccess, SeverityMed, "成功率低于阈值："+row.Key, row)
 				}
 			}
 			if !low {

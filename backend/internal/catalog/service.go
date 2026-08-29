@@ -135,6 +135,7 @@ type RouteCandidate struct {
 	Weight          int
 	CostMinor       int64
 	AccountID       string
+	TimeoutMS       int
 }
 
 type RouteHint struct {
@@ -444,7 +445,7 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 			ProviderID: provider.ID, ProviderSlug: provider.Slug, Adapter: provider.Adapter,
 			UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
 			Priority: cand.Priority, Weight: weight, CostMinor: s.providerCost(ctx, model.ID, provider.ID),
-			AccountID: accountID,
+			AccountID: accountID, TimeoutMS: provider.TimeoutMS,
 		})
 	}
 	applyStrategy(out, group.Strategy)

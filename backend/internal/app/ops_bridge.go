@@ -27,10 +27,14 @@ func (b *trafficBridge) DimStats(ctx context.Context, dimension string) ([]ops.D
 			Dimension: row.Dimension, Key: row.Key, Requests: row.Requests,
 			Successes: row.Successes, Errors: row.Errors, SuccessRate: row.SuccessRate,
 			LatencyP50MS: row.LatencyP50MS, LatencyP95MS: row.LatencyP95MS, LatencyP99MS: row.LatencyP99MS,
-			Fallbacks: row.Fallbacks, HTTP429: row.HTTP429, HTTP5xx: row.HTTP5xx,
+			Fallbacks: row.Fallbacks, HTTP429: row.HTTP429, HTTP5xx: row.HTTP5xx, Timeouts: row.Timeouts,
 		})
 	}
 	return out, nil
+}
+
+func (b *trafficBridge) ErrorBreakdown(ctx context.Context) (map[string]int64, error) {
+	return b.gateway.ErrorBreakdown(ctx)
 }
 
 func (b *trafficBridge) DailySeries(ctx context.Context, since time.Time) ([]ops.DailyTraffic, error) {
@@ -66,6 +70,14 @@ func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
 		view.ChannelSpendMinor = risk.ChannelSpendMinor
 		view.PreauthFailed = risk.PreauthFailed
 	}
+	if units, err := b.billing.UsageUnits(ctx); err == nil && units != nil {
+		view.PromptTokens = units.PromptTokens
+		view.CompletionTokens = units.CompletionTokens
+		view.ReasoningTokens = units.ReasoningTokens
+		view.VideoSeconds = units.VideoSeconds
+		view.ImageCount = units.ImageCount
+		view.AudioSeconds = units.AudioSeconds
+	}
 	return view, nil
 }
 
@@ -79,7 +91,9 @@ func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.Dim
 		out = append(out, ops.DimStat{
 			Dimension: row.Dimension, Key: row.Key, UsageMinor: row.UsageMinor,
 			RevenueMinor: row.RevenueMinor, CostMinor: row.CostMinor,
-			MarginMinor: row.RevenueMinor - row.CostMinor,
+			MarginMinor:  row.RevenueMinor - row.CostMinor,
+			PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens, ReasoningTokens: row.ReasoningTokens,
+			VideoSeconds: row.VideoSeconds, ImageCount: row.ImageCount, AudioSeconds: row.AudioSeconds,
 		})
 	}
 	return out, nil

@@ -67,6 +67,15 @@ echo "$dash" | grep -q latency_p99_ms
 echo "$dash" | grep -q http_429
 echo "$dash" | grep -q preauth_failed
 echo "$dash" | grep -q callback_latency_p95_ms
+echo "$dash" | grep -q timeouts
+echo "$dash" | grep -q error_codes
+echo "$dash" | grep -q prompt_tokens
+echo "$dash" | grep -q video_seconds
+echo "$dash" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['dashboard']['thresholds']['min_requests']>=1"
+curl -sf -X PATCH "$API_URL/admin/ops/thresholds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"success_rate_min":0.8,"min_requests":10,"pending_count":2}' | grep -q '"min_requests":10'
+curl -sf -X PATCH "$API_URL/admin/ops/thresholds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"success_rate_min":0.5,"min_requests":5,"pending_count":1}' >/dev/null
 series="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/series?days=7")"
 echo "$series" | python3 -c "import json,sys,datetime; d=json.load(sys.stdin); items=d['items']; assert len(items)==7; today=datetime.datetime.utcnow().strftime('%Y-%m-%d'); assert any(i['day']==today and i['requests']>0 for i in items)"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/daily?format=csv&days=7" | grep -q gross_profit_minor

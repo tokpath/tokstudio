@@ -65,12 +65,18 @@ type TestAdapter struct{}
 
 func (TestAdapter) Name() string { return "test" }
 
-func (TestAdapter) Chat(_ context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
+func (TestAdapter) Chat(ctx context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
+	if err := ctx.Err(); err != nil {
+		return AdapterResult{HTTPStatus: 408, ErrorClass: "timeout"}, err
+	}
 	if behavior == "429" {
 		return AdapterResult{HTTPStatus: 429, ErrorClass: "rate_limited"}, nil
 	}
 	if behavior == "500" {
 		return AdapterResult{HTTPStatus: 500, ErrorClass: "upstream_error"}, nil
+	}
+	if behavior == "timeout" {
+		return AdapterResult{HTTPStatus: 408, ErrorClass: "timeout"}, context.DeadlineExceeded
 	}
 	last := ChatMessage{}
 	if len(req.Messages) > 0 {

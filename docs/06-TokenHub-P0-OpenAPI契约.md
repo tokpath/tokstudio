@@ -159,15 +159,16 @@
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
 - 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
-- 推广：`GET/POST /admin/acquisition-roles`、`POST /admin/promotion-codes`；
+- 推广：`GET/POST /admin/acquisition-roles`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；
 - 分销只读：`GET /v1/partner/users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；
 - 佣金：`GET /admin/commissions`、`POST /admin/commissions/unfreeze`、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；
 - 渠道额度：`GET /channel/quota`、`POST /admin/channel-quotas/grant`；
+- 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
 - 权益：`POST /admin/entitlements/bonus`；
 - 支付：`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
-- 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET /admin/ops/runbooks`；
+- 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
 - 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media`；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 

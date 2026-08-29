@@ -215,7 +215,17 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
-		result, err := adapter.Chat(ctx, cand.ProviderSlug, behavior, in.Chat)
+		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
+		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, in.Chat)
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
+			if result.HTTPStatus < 400 {
+				result.HTTPStatus = 408
+			}
+			if result.ErrorClass == "" {
+				result.ErrorClass = "timeout"
+			}
+		}
+		cancel()
 		if cand.AccountID != "" {
 			_ = s.catalog.RecordAccountOutcome(ctx, cand.AccountID, result.HTTPStatus)
 		}
@@ -302,6 +312,13 @@ func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]Attempt
 		out = append(out, view)
 	}
 	return out, nil
+}
+
+func candidateTimeout(ms int) time.Duration {
+	if ms <= 0 {
+		ms = 30000
+	}
+	return time.Duration(ms) * time.Millisecond
 }
 
 func ParseHint(only, ignore, order string) catalog.RouteHint {

@@ -80,6 +80,34 @@ func TestM1IdentityIsolation(t *testing.T) {
 			t.Fatalf("channel admin leaked another channel: %+v", row)
 		}
 	}
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/channel/plans", "", nil) != http.StatusForbidden {
+		t.Fatal("unauth channel plans must be 403")
+	}
+	promos := getAuthJSON(t, server.URL+"/channel/promotion-codes", "m1_channel_token")
+	foundTHB := false
+	for _, raw := range promos["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["channel_org_id"] != identity.ResellerChannelID {
+			t.Fatalf("promo leaked another channel: %+v", row)
+		}
+		if row["code"] == "THB1" {
+			foundTHB = true
+		}
+	}
+	if !foundTHB {
+		t.Fatalf("channel B promos missing THB1: %+v", promos)
+	}
+	plans := getAuthJSON(t, server.URL+"/channel/plans", "m1_channel_token")
+	for _, raw := range plans["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["owner_type"] == "channel" && row["owner_id"] != identity.ResellerChannelID {
+			t.Fatalf("channel plans leaked another owner: %+v", row)
+		}
+	}
+	usage := getAuthJSON(t, server.URL+"/channel/usage", "m1_channel_token")
+	if usage["usage"] == nil {
+		t.Fatalf("channel usage missing: %+v", usage)
+	}
 
 	oemBrand := getAuthJSON(t, server.URL+"/v1/public/brand?host=oem.localhost", "")
 	brand, _ := oemBrand["brand"].(map[string]any)

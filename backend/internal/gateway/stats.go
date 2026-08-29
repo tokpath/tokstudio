@@ -26,6 +26,7 @@ type TrafficStat struct {
 	Fallbacks    int64
 	HTTP429      int64
 	HTTP5xx      int64
+	Timeouts     int64
 }
 
 func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat, error) {
@@ -37,6 +38,7 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 		Fallbacks int64
 		HTTP429   int64 `gorm:"column:http429"`
 		HTTP5xx   int64 `gorm:"column:http5xx"`
+		Timeouts  int64 `gorm:"column:timeouts"`
 	}
 	var grouped []row
 	switch dimension {
@@ -48,7 +50,8 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 				COUNT(*) FILTER (WHERE status = 'failed') AS errors,
 				COUNT(*) FILTER (WHERE attempt_no > 1) AS fallbacks,
 				COUNT(*) FILTER (WHERE http_status = 429) AS http429,
-				COUNT(*) FILTER (WHERE http_status >= 500) AS http5xx
+				COUNT(*) FILTER (WHERE http_status >= 500) AS http5xx,
+				COUNT(*) FILTER (WHERE error_code IN ('timeout', 'deadline_exceeded') OR http_status = 408) AS timeouts
 			FROM gateway_attempts GROUP BY provider_id
 		`).Scan(&grouped).Error; err != nil {
 			return nil, err
@@ -59,7 +62,8 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 				COUNT(*) AS requests,
 				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
 				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors,
-				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks,
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND (a.error_code IN ('timeout', 'deadline_exceeded') OR a.http_status = 408))) AS timeouts
 			FROM gateway_requests GROUP BY public_model_id
 		`).Scan(&grouped).Error; err != nil {
 			return nil, err
@@ -70,7 +74,8 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 				COUNT(*) AS requests,
 				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
 				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors,
-				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks,
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND (a.error_code IN ('timeout', 'deadline_exceeded') OR a.http_status = 408))) AS timeouts
 			FROM gateway_requests GROUP BY channel_org_id
 		`).Scan(&grouped).Error; err != nil {
 			return nil, err
@@ -81,7 +86,8 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 				COUNT(*) AS requests,
 				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
 				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors,
-				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks,
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND (a.error_code IN ('timeout', 'deadline_exceeded') OR a.http_status = 408))) AS timeouts
 			FROM gateway_requests GROUP BY user_id
 		`).Scan(&grouped).Error; err != nil {
 			return nil, err
@@ -92,7 +98,8 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 				COUNT(*) AS requests,
 				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
 				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors,
-				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND a.attempt_no > 1)) AS fallbacks,
+				COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM gateway_attempts a WHERE a.request_pk = gateway_requests.id AND (a.error_code IN ('timeout', 'deadline_exceeded') OR a.http_status = 408))) AS timeouts
 			FROM gateway_requests GROUP BY api_key_id
 		`).Scan(&grouped).Error; err != nil {
 			return nil, err
@@ -105,13 +112,34 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 	for _, item := range grouped {
 		stat := TrafficStat{
 			Dimension: dimension, Key: item.Key, Requests: item.Requests, Successes: item.Successes, Errors: item.Errors,
-			Fallbacks: item.Fallbacks, HTTP429: item.HTTP429, HTTP5xx: item.HTTP5xx,
+			Fallbacks: item.Fallbacks, HTTP429: item.HTTP429, HTTP5xx: item.HTTP5xx, Timeouts: item.Timeouts,
 		}
 		if item.Requests > 0 {
 			stat.SuccessRate = float64(item.Successes) / float64(item.Requests)
 		}
 		stat.LatencyP50MS, stat.LatencyP95MS, stat.LatencyP99MS = s.latencies(ctx, dimension, item.Key)
 		out = append(out, stat)
+	}
+	return out, nil
+}
+
+func (s *Service) ErrorBreakdown(ctx context.Context) (map[string]int64, error) {
+	type row struct {
+		Code  string
+		Count int64
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT COALESCE(NULLIF(error_code, ''), 'unknown') AS code, COUNT(*) AS count
+		FROM gateway_attempts
+		WHERE status = 'failed'
+		GROUP BY 1
+	`).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := map[string]int64{}
+	for _, item := range rows {
+		out[item.Code] += item.Count
 	}
 	return out, nil
 }

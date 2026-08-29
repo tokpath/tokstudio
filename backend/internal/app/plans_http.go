@@ -25,6 +25,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.GET("/v1/payments/orders/:id", a.requireUserOrKey(), a.getPaymentOrder)
 	r.POST("/v1/payments/:adapter/webhook", a.paymentWebhook)
 
+	r.GET("/channel/plans", a.requireRoles("channel_admin", "platform_admin", "ops_admin"), a.channelListPlans)
 	r.GET("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin", "audit_readonly"), a.adminListPlans)
 	r.POST("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.adminCreatePlan)
 	r.PATCH("/admin/plans/:id", a.requireRoles("platform_admin", "ops_admin"), a.adminPatchPlan)
@@ -186,6 +187,19 @@ func (a *App) paymentWebhook(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelListPlans(c *gin.Context) {
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = c.Query("channel_id")
+	}
+	items, err := a.Plans.ListPlans(c.Request.Context(), channelID, c.Query("status"), false)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取套餐失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminListPlans(c *gin.Context) {

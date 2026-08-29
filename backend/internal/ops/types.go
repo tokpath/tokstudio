@@ -64,45 +64,60 @@ type DayPoint struct {
 }
 
 type DimStat struct {
-	Dimension    string  `json:"dimension"`
-	Key          string  `json:"key"`
-	Requests     int64   `json:"requests"`
-	Successes    int64   `json:"successes"`
-	Errors       int64   `json:"errors"`
-	SuccessRate  float64 `json:"success_rate"`
-	LatencyP50MS int64   `json:"latency_p50_ms"`
-	LatencyP95MS int64   `json:"latency_p95_ms"`
-	LatencyP99MS int64   `json:"latency_p99_ms"`
-	Fallbacks    int64   `json:"fallbacks"`
-	HTTP429      int64   `json:"http_429"`
-	HTTP5xx      int64   `json:"http_5xx"`
-	UsageMinor   int64   `json:"usage_minor,omitempty"`
-	RevenueMinor int64   `json:"revenue_minor,omitempty"`
-	CostMinor    int64   `json:"cost_minor,omitempty"`
-	MarginMinor  int64   `json:"gross_profit_minor,omitempty"`
+	Dimension        string  `json:"dimension"`
+	Key              string  `json:"key"`
+	Requests         int64   `json:"requests"`
+	Successes        int64   `json:"successes"`
+	Errors           int64   `json:"errors"`
+	SuccessRate      float64 `json:"success_rate"`
+	LatencyP50MS     int64   `json:"latency_p50_ms"`
+	LatencyP95MS     int64   `json:"latency_p95_ms"`
+	LatencyP99MS     int64   `json:"latency_p99_ms"`
+	Fallbacks        int64   `json:"fallbacks"`
+	HTTP429          int64   `json:"http_429"`
+	HTTP5xx          int64   `json:"http_5xx"`
+	Timeouts         int64   `json:"timeouts"`
+	PromptTokens     int64   `json:"prompt_tokens,omitempty"`
+	CompletionTokens int64   `json:"completion_tokens,omitempty"`
+	ReasoningTokens  int64   `json:"reasoning_tokens,omitempty"`
+	VideoSeconds     int64   `json:"video_seconds,omitempty"`
+	ImageCount       int64   `json:"image_count,omitempty"`
+	AudioSeconds     int64   `json:"audio_seconds,omitempty"`
+	UsageMinor       int64   `json:"usage_minor,omitempty"`
+	RevenueMinor     int64   `json:"revenue_minor,omitempty"`
+	CostMinor        int64   `json:"cost_minor,omitempty"`
+	MarginMinor      int64   `json:"gross_profit_minor,omitempty"`
 }
 
 type MoneyView struct {
-	RevenueMinor      int64   `json:"revenue_minor"`
-	UpstreamMinor     int64   `json:"upstream_cost_minor"`
-	WholesaleMinor    int64   `json:"wholesale_minor"`
-	CommissionMinor   int64   `json:"commission_liability_minor"`
-	RefundMinor       int64   `json:"refund_minor"`
-	GrossProfitMinor  int64   `json:"gross_profit_minor"`
-	PendingCount      int64   `json:"pending_reconciliation_count"`
-	SuccessRate       float64 `json:"success_rate"`
-	LatencyP50MS      int64   `json:"latency_p50_ms"`
-	LatencyP95MS      int64   `json:"latency_p95_ms"`
-	LatencyP99MS      int64   `json:"latency_p99_ms"`
-	Fallbacks         int64   `json:"fallbacks"`
-	HTTP429           int64   `json:"http_429"`
-	HTTP5xx           int64   `json:"http_5xx"`
-	UpstreamErrors    int64   `json:"upstream_errors"`
-	LowBalanceWallets int64   `json:"low_balance_wallets"`
-	ReservedMinor     int64   `json:"wallet_reserved_minor"`
-	ChannelSpendMinor int64   `json:"channel_spend_minor"`
-	PreauthFailed     int64   `json:"preauth_failed"`
-	CallbackP95MS     int64   `json:"callback_latency_p95_ms"`
+	RevenueMinor      int64            `json:"revenue_minor"`
+	UpstreamMinor     int64            `json:"upstream_cost_minor"`
+	WholesaleMinor    int64            `json:"wholesale_minor"`
+	CommissionMinor   int64            `json:"commission_liability_minor"`
+	RefundMinor       int64            `json:"refund_minor"`
+	GrossProfitMinor  int64            `json:"gross_profit_minor"`
+	PendingCount      int64            `json:"pending_reconciliation_count"`
+	SuccessRate       float64          `json:"success_rate"`
+	LatencyP50MS      int64            `json:"latency_p50_ms"`
+	LatencyP95MS      int64            `json:"latency_p95_ms"`
+	LatencyP99MS      int64            `json:"latency_p99_ms"`
+	Fallbacks         int64            `json:"fallbacks"`
+	HTTP429           int64            `json:"http_429"`
+	HTTP5xx           int64            `json:"http_5xx"`
+	UpstreamErrors    int64            `json:"upstream_errors"`
+	LowBalanceWallets int64            `json:"low_balance_wallets"`
+	ReservedMinor     int64            `json:"wallet_reserved_minor"`
+	ChannelSpendMinor int64            `json:"channel_spend_minor"`
+	PreauthFailed     int64            `json:"preauth_failed"`
+	CallbackP95MS     int64            `json:"callback_latency_p95_ms"`
+	Timeouts          int64            `json:"timeouts"`
+	ErrorCodes        map[string]int64 `json:"error_codes"`
+	PromptTokens      int64            `json:"prompt_tokens"`
+	CompletionTokens  int64            `json:"completion_tokens"`
+	ReasoningTokens   int64            `json:"reasoning_tokens"`
+	VideoSeconds      int64            `json:"video_seconds"`
+	ImageCount        int64            `json:"image_count"`
+	AudioSeconds      int64            `json:"audio_seconds"`
 }
 
 type Dashboard struct {
@@ -113,6 +128,13 @@ type Dashboard struct {
 	Canary     *CanaryView          `json:"canary,omitempty"`
 	LastDrill  *DrillView           `json:"last_backup_drill,omitempty"`
 	Runbooks   []RunbookView        `json:"runbooks"`
+	Thresholds *Thresholds          `json:"thresholds,omitempty"`
+}
+
+type Thresholds struct {
+	SuccessRateMin float64 `json:"success_rate_min"`
+	MinRequests    int64   `json:"min_requests"`
+	PendingCount   int64   `json:"pending_count"`
 }
 
 type AlertView struct {

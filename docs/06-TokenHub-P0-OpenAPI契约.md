@@ -103,6 +103,7 @@
 
 ## 5. 用户、Key、套餐与余额
 
+- `GET /v1/public/docs-context`：品牌 Base URL、模型白名单、curl/Python/Node/Messages/视频示例（占位 `$TOKENHUB_API_KEY`）以及错误码/限流/回调说明
 - `GET /v1/me`
 - `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
 - `POST /v1/me/password`：校验当前密码后改密

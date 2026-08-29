@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 type DocsContext = {
   brand?: { name: string; api_domain: string };
   models?: string[];
-  examples?: { curl: string; python: string; node: string };
+  examples?: { curl: string; python: string; node: string; messages?: string; video?: string };
+  notes?: { errors?: string; rate_limit?: string; webhook?: string };
 };
 
 export default async function DocsPage() {
@@ -34,6 +35,13 @@ export default async function DocsPage() {
         <h2 className="mb-2 font-medium">Node.js</h2>
         <pre className="overflow-x-auto text-sm text-cyan-100">{docs.examples?.node}</pre>
       </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-2 font-medium">Anthropic Messages</h2>
+        <pre className="overflow-x-auto text-sm text-cyan-100">{docs.examples?.messages}</pre>
+      </section>
+      <p className="text-sm text-slate-400">{docs.notes?.errors}</p>
+      <p className="text-sm text-slate-400">{docs.notes?.rate_limit}</p>
+      <p className="text-sm text-slate-400">{docs.notes?.webhook}</p>
     </main>
   );
 }

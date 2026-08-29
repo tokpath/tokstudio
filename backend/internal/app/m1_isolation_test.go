@@ -86,6 +86,10 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if brand["name"] != "Aurora OEM" {
 		t.Fatalf("oem brand: %+v", oemBrand)
 	}
+	docs := getAuthJSON(t, server.URL+"/v1/public/docs-context?host=oem.localhost", "")
+	if !containsText(docs, "Aurora OEM") || !containsText(docs, "$TOKENHUB_API_KEY") || !containsText(docs, "/v1/messages") {
+		t.Fatalf("oem docs examples: %+v", docs)
+	}
 
 	me := getAuthJSON(t, server.URL+"/v1/me", tokenOf(regA))["user"].(map[string]any)
 	if me["locale"] != "zh" || me["display_name"] != "" {

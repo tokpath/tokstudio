@@ -1,4 +1,5 @@
 import ChannelCommissions from "./commissions";
+import ChannelUsers from "./users";
 
 export default function ChannelConsole() {
   return (
@@ -8,6 +9,7 @@ export default function ChannelConsole() {
       <p className="text-slate-300">
         渠道管理员只能看到自己渠道的用户和推广数据。后端会再校验 scope，前端隐藏菜单不是安全边界。
       </p>
+      <ChannelUsers />
       <ChannelCommissions />
     </main>
   );

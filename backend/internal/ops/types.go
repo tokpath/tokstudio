@@ -72,7 +72,10 @@ type DimStat struct {
 	SuccessRate  float64 `json:"success_rate"`
 	LatencyP50MS int64   `json:"latency_p50_ms"`
 	LatencyP95MS int64   `json:"latency_p95_ms"`
+	LatencyP99MS int64   `json:"latency_p99_ms"`
 	Fallbacks    int64   `json:"fallbacks"`
+	HTTP429      int64   `json:"http_429"`
+	HTTP5xx      int64   `json:"http_5xx"`
 	UsageMinor   int64   `json:"usage_minor,omitempty"`
 	RevenueMinor int64   `json:"revenue_minor,omitempty"`
 	CostMinor    int64   `json:"cost_minor,omitempty"`
@@ -90,6 +93,10 @@ type MoneyView struct {
 	SuccessRate       float64 `json:"success_rate"`
 	LatencyP50MS      int64   `json:"latency_p50_ms"`
 	LatencyP95MS      int64   `json:"latency_p95_ms"`
+	LatencyP99MS      int64   `json:"latency_p99_ms"`
+	Fallbacks         int64   `json:"fallbacks"`
+	HTTP429           int64   `json:"http_429"`
+	HTTP5xx           int64   `json:"http_5xx"`
 	UpstreamErrors    int64   `json:"upstream_errors"`
 	LowBalanceWallets int64   `json:"low_balance_wallets"`
 	ReservedMinor     int64   `json:"wallet_reserved_minor"`

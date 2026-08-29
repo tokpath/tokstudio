@@ -106,7 +106,7 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	dash := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)
 	totals := dash["totals"].(map[string]any)
-	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil {
+	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil || totals["latency_p99_ms"] == nil || totals["http_429"] == nil {
 		t.Fatalf("totals incomplete: %+v", totals)
 	}
 	agents, _ := dash["dimensions"].(map[string]any)["agent"].([]any)

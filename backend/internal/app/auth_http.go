@@ -328,13 +328,10 @@ func (a *App) docsContext(c *gin.Context) {
 		ids = append(ids, model.ID)
 	}
 	httpx.OK(c, gin.H{
-		"brand":  brand,
-		"models": ids,
-		"examples": gin.H{
-			"curl":   "curl -H 'Authorization: Bearer $TOKENHUB_API_KEY' https://" + brand.APIDomain + "/v1/chat/completions -d '{\"model\":\"tokenhub/echo-1\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}'",
-			"python": "from openai import OpenAI\nclient = OpenAI(base_url='https://" + brand.APIDomain + "/v1', api_key='...')\nprint(client.chat.completions.create(model='tokenhub/echo-1', messages=[{'role':'user','content':'hi'}]))",
-			"node":   "const client = new OpenAI({ baseURL: 'https://" + brand.APIDomain + "/v1', apiKey: process.env.TOKENHUB_API_KEY })",
-		},
+		"brand":      brand,
+		"models":     ids,
+		"examples":   docsExamples(brand.APIDomain, firstModel(ids)),
+		"notes":      docsNotes(),
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }

@@ -25,7 +25,8 @@ func (b *trafficBridge) DimStats(ctx context.Context, dimension string) ([]ops.D
 		out = append(out, ops.DimStat{
 			Dimension: row.Dimension, Key: row.Key, Requests: row.Requests,
 			Successes: row.Successes, Errors: row.Errors, SuccessRate: row.SuccessRate,
-			LatencyP50MS: row.LatencyP50MS, LatencyP95MS: row.LatencyP95MS, Fallbacks: row.Fallbacks,
+			LatencyP50MS: row.LatencyP50MS, LatencyP95MS: row.LatencyP95MS, LatencyP99MS: row.LatencyP99MS,
+			Fallbacks: row.Fallbacks, HTTP429: row.HTTP429, HTTP5xx: row.HTTP5xx,
 		})
 	}
 	return out, nil

@@ -219,8 +219,13 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 		cur.UsageMinor += row.UsageMinor
 		cur.RevenueMinor += row.RevenueMinor
 		cur.CostMinor += row.CostMinor
+		cur.HTTP429 += row.HTTP429
+		cur.HTTP5xx += row.HTTP5xx
 		if row.LatencyP95MS > cur.LatencyP95MS {
 			cur.LatencyP95MS = row.LatencyP95MS
+		}
+		if row.LatencyP99MS > cur.LatencyP99MS {
+			cur.LatencyP99MS = row.LatencyP99MS
 		}
 		if cur.LatencyP50MS == 0 || (row.LatencyP50MS > 0 && row.LatencyP50MS < cur.LatencyP50MS) {
 			cur.LatencyP50MS = row.LatencyP50MS
@@ -239,13 +244,19 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 }
 
 func fillOverview(totals *MoneyView, providers []DimStat) {
-	var req, ok, errs, p50, p95 int64
+	var req, ok, errs, p50, p95, p99, fallbacks, http429, http5xx int64
 	for _, row := range providers {
 		req += row.Requests
 		ok += row.Successes
 		errs += row.Errors
+		fallbacks += row.Fallbacks
+		http429 += row.HTTP429
+		http5xx += row.HTTP5xx
 		if row.LatencyP95MS > p95 {
 			p95 = row.LatencyP95MS
+		}
+		if row.LatencyP99MS > p99 {
+			p99 = row.LatencyP99MS
 		}
 		if p50 == 0 || (row.LatencyP50MS > 0 && row.LatencyP50MS < p50) {
 			p50 = row.LatencyP50MS
@@ -256,6 +267,10 @@ func fillOverview(totals *MoneyView, providers []DimStat) {
 	}
 	totals.LatencyP50MS = p50
 	totals.LatencyP95MS = p95
+	totals.LatencyP99MS = p99
+	totals.Fallbacks = fallbacks
+	totals.HTTP429 = http429
+	totals.HTTP5xx = http5xx
 	totals.UpstreamErrors = errs
 }
 

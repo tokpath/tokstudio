@@ -101,6 +101,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/channels"
   },
   {
+    "method": "PATCH",
+    "path": "/admin/channels/{id}"
+  },
+  {
     "method": "GET",
     "path": "/channel/attribution"
   },

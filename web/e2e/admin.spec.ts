@@ -44,6 +44,10 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/channels");
   await expect(page.getByRole("heading", { name: "渠道额度" })).toBeVisible();
   await expect(page.getByRole("button", { name: "调整额度" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "创建渠道" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建渠道" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "改渠道状态" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存渠道" })).toBeVisible();
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "手工结算" })).toBeVisible();
   await expect(page.getByRole("button", { name: "人工打款" })).toBeVisible();

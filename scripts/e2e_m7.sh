@@ -153,6 +153,9 @@ echo "$routeshtml" | grep -q "保存策略"
 commhtml="$(curl -sf "$WEB_URL/admin/commission")"
 echo "$commhtml" | grep -q "佣金重算"
 echo "$commhtml" | grep -q "重算佣金"
+chanhtml="$(curl -sf "$WEB_URL/admin/channels")"
+echo "$chanhtml" | grep -q "创建渠道"
+echo "$chanhtml" | grep -q "保存渠道"
 
 echo "== admin catalog, gemini, 2fa"
 provhtml="$(curl -sf "$WEB_URL/admin/providers")"
@@ -196,6 +199,26 @@ if [[ "$code" != "409" ]]; then
 fi
 curl_has health -X PATCH "$API_URL/admin/routes/$ROUTE_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"strategy":"health"}'
+CH_CODE="ops-ch-$RANDOM"
+code="$(curl -s -o /tmp/m7-ch409.json -w '%{http_code}' -X POST "$API_URL/admin/channels" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"code\":\"$CH_CODE\",\"type\":\"B\"}")"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 creating channel without confirm, got $code" >&2
+  exit 1
+fi
+CH_JSON="$(curl -sf -X POST "$API_URL/admin/channels" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"code\":\"$CH_CODE\",\"type\":\"B\",\"status\":\"active\"}")"
+CH_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$CH_JSON")"
+code="$(curl -s -o /tmp/m7-chpatch409.json -w '%{http_code}' -X PATCH "$API_URL/admin/channels/$CH_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"status":"disabled"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 patching channel without confirm, got $code" >&2
+  exit 1
+fi
+curl_has disabled -X PATCH "$API_URL/admin/channels/$CH_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"status":"disabled"}'
 code="$(curl -s -o /tmp/m7-prov.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"slug":"no-confirm","name":"x"}')"
 if [[ "$code" != "409" ]]; then
   echo "expected 409 creating provider without confirm, got $code" >&2

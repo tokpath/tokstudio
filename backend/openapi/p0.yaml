@@ -204,6 +204,18 @@ paths:
       responses:
         "201":
           description: created
+  /admin/channels/{id}:
+    patch:
+      operationId: patchChannel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated channel status type or brand
   /channel/attribution:
     get:
       operationId: listChannelAttribution

@@ -309,9 +309,20 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatal("admin routes empty")
 	}
 	chCode := "ops-lab-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if code := postStatus(t, server.URL+"/admin/channels", "m7_admin", map[string]any{"code": chCode, "type": "B"}); code != http.StatusConflict {
+		t.Fatalf("create channel without confirm should be 409, got %d", code)
+	}
 	ch := postJSONRaw(t, server.URL+"/admin/channels", "m7_admin", map[string]any{"code": chCode, "type": "B"})
 	if ch["item"].(map[string]any)["code"] != chCode {
 		t.Fatalf("create channel: %+v", ch)
+	}
+	chID := ch["item"].(map[string]any)["id"].(string)
+	if code := patchStatus(t, server.URL+"/admin/channels/"+chID, "m7_admin", map[string]any{"status": "disabled"}); code != http.StatusConflict {
+		t.Fatalf("patch channel without confirm should be 409, got %d", code)
+	}
+	patchedCh := patchJSONRaw(t, server.URL+"/admin/channels/"+chID, "m7_admin", map[string]any{"status": "disabled"})
+	if patchedCh["item"].(map[string]any)["status"] != "disabled" {
+		t.Fatalf("patch channel: %+v", patchedCh)
 	}
 	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
 	if len(keys) == 0 {

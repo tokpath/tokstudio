@@ -339,6 +339,15 @@ GORM 使用约束：钱包、预授权、usage、退款、佣金等账务核心�
 - GORM 业务模型与账务模型分层，账务核心禁止隐式 save、无条件 update 和生产 AutoMigrate；
 - migration 使用版本化脚本，关键约束（唯一幂等键、金额精度、外键、状态枚举）在数据库层落地。
 
+### D37. 微服务演进约束：已确认
+
+- P0 虽采用模块化单体，但按未来服务边界组织代码：identity/access、channel、catalog/routing、gateway、billing/entitlement、payment、media、commission、audit/observability。
+- 每个模块拥有自己的表和 repository；模块之间只能通过 service interface、DTO 或领域事件交互，禁止跨模块直接读写表和共享 ORM model。
+- P0 可共用一个 PostgreSQL 实例，但按模块 schema/表前缀和独立 migration 管理数据所有权；未来拆服务时迁移对应 schema，不改变领域事件和 API 契约。
+- 跨模块流程使用 Outbox + CloudEvents + 幂等消费者；不依赖分布式事务，退款/冲正/佣金等采用补偿事件。
+- 推荐拆分顺序：media worker、payment webhook、usage reconciliation/commission worker、observability，再评估 gateway 和 billing；账务核心最后拆分。
+- 服务间统一 request_id、trace_id、tenant/channel scope 和事件版本；Redis key、配置、密钥和指标命名按服务隔离。
+
 ## 当前讨论位置
 
-D1-D36 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。
+D1-D37 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。

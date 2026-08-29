@@ -58,6 +58,8 @@ P0 推荐先以独立内部服务/Sidecar 方式集成，TokenHub 通过受控�
 
 部署演进目标是“单节点容器 -> Kubernetes + Dapr”：P0 使用 Docker Compose 或等价单节点部署，规模达到明确阈值后再迁移。迁移只替换运行时和服务发现，不改变客户 API、领域事件、账务流水和幂等契约。
 
+为支持未来微服务化，P0 模块化单体必须遵循服务边界：每个模块拥有自己的数据和 migration，禁止跨模块直连表；同步调用使用明确的 service interface，异步流程使用带版本的 CloudEvents。跨模块业务不使用分布式事务，而使用 Outbox、幂等消费者和补偿事件。优先拆分媒体 Worker、支付 webhook、usage 对账/佣金 Worker 和观测服务，账务核心最后拆分。
+
 前端与 TokenHub API 通过 OpenAPI 生成的 TypeScript Client 通信。Next.js 负责多门户渲染，Tailwind CSS + shadcn/ui/Radix UI 负责共享组件和 OEM 主题；Zustand 不承载服务端事实数据，余额/账单/指标等统一由 TanStack Query 管理。Web 认证使用 HttpOnly/Secure Cookie，前端权限判断只用于界面显示，后端 RBAC/scope 才是安全边界。TokenHub 后端使用 Go + Gin，zerolog 记录结构化日志，Viper 管理配置，PostgreSQL 通过 GORM 访问；账务核心通过显式事务、锁和版本化 migration 保证一致性。
 
 ## 4. 必须补齐的集成能力

@@ -138,6 +138,10 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "POST",
+    "path": "/admin/api-keys/{id}/disable"
+  },
+  {
+    "method": "POST",
     "path": "/v1/me/api-keys/{id}/rotate"
   },
   {

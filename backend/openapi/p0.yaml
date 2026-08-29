@@ -282,6 +282,18 @@ paths:
       responses:
         "200":
           description: keys without secrets
+  /admin/api-keys/{id}/disable:
+    post:
+      operationId: adminDisableAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: key disabled, no secret echoed
   /v1/me/api-keys/{id}/rotate:
     post:
       operationId: rotateAPIKey

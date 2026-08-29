@@ -94,6 +94,9 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "读取账号" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "改 Provider 状态" })).toBeVisible();
   await expect(page.getByRole("button", { name: "保存 Provider" })).toBeVisible();
+  await page.goto("/admin/keys");
+  await expect(page.getByRole("heading", { name: "禁用 API Key" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "禁用 Key" })).toBeVisible();
   await page.goto("/admin/models");
   await expect(page.getByRole("heading", { name: "挂载 Provider" })).toBeVisible();
   await expect(page.getByRole("button", { name: "挂载" })).toBeVisible();

@@ -151,6 +151,9 @@ echo "$settingshtml" | grep -q "OEM 证书"
 echo "$settingshtml" | grep -q "异常演练"
 echo "$settingshtml" | grep -q "支付演练"
 echo "$settingshtml" | grep -q "TLS 演练"
+keyshtml="$(curl -sf "$WEB_URL/admin/keys")"
+echo "$keyshtml" | grep -q "禁用 API Key"
+echo "$keyshtml" | grep -q "禁用 Key"
 routeshtml="$(curl -sf "$WEB_URL/admin/routes")"
 echo "$routeshtml" | grep -q "创建路由"
 echo "$routeshtml" | grep -q "保存策略"
@@ -258,6 +261,27 @@ if echo "$CRED_JSON" | grep -q sk-e2e-rotate-never-echo; then
 fi
 curl_has provider.credential.rotate -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=provider.credential.rotate"
 curl_has prefix -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys"
+BAN_JSON="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"admin-disable"}')"
+BAN_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$BAN_JSON")"
+BAN_KEY="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$BAN_JSON")"
+code="$(curl -s -o /tmp/m7-key409.json -w '%{http_code}' -X POST "$API_URL/admin/api-keys/$BAN_ID/disable" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 disabling api key without confirm, got $code" >&2
+  exit 1
+fi
+curl_has disabled -X POST "$API_URL/admin/api-keys/$BAN_ID/disable" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}'
+code="$(curl -s -o /tmp/m7-keyoff.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $BAN_KEY" \
+  -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"admin-off"}]}')"
+if [[ "$code" != "403" ]]; then
+  echo "admin-disabled key should 403, got $code" >&2
+  exit 1
+fi
+if echo "$(cat /tmp/m7-keyoff.json 2>/dev/null)" | grep -q "$BAN_KEY"; then
+  echo "disable response must not echo full key" >&2
+  exit 1
+fi
 curl_has status -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/me/2fa"
 setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
 echo "$setup" | grep -q otpauth

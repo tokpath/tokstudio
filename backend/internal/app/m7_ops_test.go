@@ -444,6 +444,21 @@ func TestM7OpsHardening(t *testing.T) {
 	}); code != http.StatusForbidden {
 		t.Fatalf("disabled key should be 403, got %d", code)
 	}
+	adminBan := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "admin-disable"})
+	adminBanID := adminBan["item"].(map[string]any)["id"].(string)
+	adminBanSecret := adminBan["item"].(map[string]any)["key"].(string)
+	if code := postStatus(t, server.URL+"/admin/api-keys/"+adminBanID+"/disable", "m7_admin", map[string]any{}); code != http.StatusConflict {
+		t.Fatalf("admin disable key without confirm should be 409, got %d", code)
+	}
+	banned := postJSONRaw(t, server.URL+"/admin/api-keys/"+adminBanID+"/disable", "m7_admin", map[string]any{})
+	if banned["item"].(map[string]any)["status"] != "disabled" {
+		t.Fatalf("admin disable key: %+v", banned)
+	}
+	if code := postStatus(t, server.URL+"/v1/chat/completions", adminBanSecret, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "admin-off"}},
+	}); code != http.StatusForbidden {
+		t.Fatalf("admin-disabled key should be 403, got %d", code)
+	}
 	expKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "exp"})
 	expID := expKey["item"].(map[string]any)["id"].(string)
 	expSecret := expKey["item"].(map[string]any)["key"].(string)

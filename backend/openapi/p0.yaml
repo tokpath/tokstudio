@@ -465,3 +465,45 @@ paths:
       responses:
         "200":
           description: incident runbooks
+  /admin/refunds:
+    post:
+      operationId: adminRefund
+      responses:
+        "200":
+          description: refunded charge or topup
+  /admin/entitlements/bonus:
+    post:
+      operationId: grantBonus
+      responses:
+        "201":
+          description: bonus entitlement
+  /admin/commissions/unfreeze:
+    post:
+      operationId: unfreezeCommissions
+      responses:
+        "200":
+          description: unfrozen count
+  /admin/commissions/settle:
+    post:
+      operationId: settleCommissions
+      responses:
+        "200":
+          description: monthly settlements
+  /admin/settlements/{id}/payout:
+    post:
+      operationId: payoutSettlement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: marked paid
+  /admin/channel-quotas/grant:
+    post:
+      operationId: grantChannelQuota
+      responses:
+        "200":
+          description: updated quota

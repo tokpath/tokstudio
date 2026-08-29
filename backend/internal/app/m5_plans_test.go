@@ -75,6 +75,11 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("review approve: %+v", reviewed)
 	}
 
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/entitlements/bonus", "m5_admin", map[string]string{
+		"user_id": userID, "unit_type": plans.UnitUSDCredit,
+	}) != http.StatusConflict {
+		t.Fatal("bonus without confirm must be 409")
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/entitlements/bonus", "m5_admin", map[string]any{
 		"user_id": userID, "unit_type": plans.UnitUSDCredit, "amount": 2 * billing.MinorPerUSD, "expires_in_seconds": 3600,
 	})

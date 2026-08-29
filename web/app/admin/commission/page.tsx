@@ -32,7 +32,10 @@ export default function AdminCommissionPage() {
   const [cap, setCap] = useState("3500");
   const [freeze, setFreeze] = useState("7");
   const [minSettle, setMinSettle] = useState("1000000");
-  const [message, setMessage] = useState("BPS 是万分比。各档之和不能超过上限。保存需要二次确认。");
+  const [usageEventID, setUsageEventID] = useState("");
+  const [settlementID, setSettlementID] = useState("");
+  const [payoutRef, setPayoutRef] = useState("manual-wire");
+  const [message, setMessage] = useState("BPS 是万分比。各档之和不能超过上限。保存、解冻、结算和打款都要二次确认。");
 
   const policyQuery = useQuery({
     queryKey: ["commission-policy"],
@@ -102,6 +105,63 @@ export default function AdminCommissionPage() {
         </div>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-slate-400">{policyQuery.data.error.message}</p> : null}
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">手工结算</h2>
+        <p className="mb-3 text-sm text-slate-400">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Input className="w-64" value={usageEventID} onChange={(e) => setUsageEventID(e.target.value)} aria-label="usage 事件 ID" placeholder="usage_event_id" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/commissions/unfreeze`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                body: JSON.stringify({ usage_event_id: usageEventID }),
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已解冻 ${body.unfrozen} 条` : body.error?.message || "解冻失败");
+            }}
+          >
+            解冻佣金
+          </Button>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/commissions/settle?ignore_minimum=1`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已生成 ${body.items?.length ?? 0} 张结算单` : body.error?.message || "结算失败");
+            }}
+          >
+            生成结算单
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Input className="w-64" value={settlementID} onChange={(e) => setSettlementID(e.target.value)} aria-label="结算单 ID" placeholder="csl_..." />
+          <Input className="w-40" value={payoutRef} onChange={(e) => setPayoutRef(e.target.value)} aria-label="打款凭证" placeholder="reference" />
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/settlements/${settlementID}/payout`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                body: JSON.stringify({ method: "manual", reference: payoutRef }),
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已打款 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "打款失败");
+            }}
+          >
+            人工打款
+          </Button>
+        </div>
       </section>
       <AdminListPanel<Commission>
         path="/admin/commissions"

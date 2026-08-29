@@ -164,6 +164,9 @@ func TestM6CommissionDistribution(t *testing.T) {
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "settle-me"}},
 	})
 	u2 := getAuthJSON(t, server.URL+"/v1/me/usage", s2)["items"].([]any)[0].(map[string]any)["id"].(string)
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]string{"usage_event_id": u2}) != http.StatusConflict {
+		t.Fatal("unfreeze without confirm must be 409")
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]any{"usage_event_id": u2})
 	settled := postJSONRaw(t, server.URL+"/admin/commissions/settle?ignore_minimum=1", "m6_admin", map[string]any{})
 	items, _ := settled["items"].([]any)

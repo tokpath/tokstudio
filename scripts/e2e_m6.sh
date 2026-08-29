@@ -136,7 +136,7 @@ curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $k2" -
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"settle"}]}' >/dev/null
 u2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" \
   "$(curl -sf -H "Authorization: Bearer $s2" "$API_URL/v1/me/usage")")"
-curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"usage_event_id\":\"$u2\"}" >/dev/null
 batch="$(curl -sf -X POST "$API_URL/admin/commissions/settle?ignore_minimum=1" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' -d '{}')"
 echo "$batch" | grep -q amount_minor

@@ -371,6 +371,9 @@ func (a *App) adminCommissions(c *gin.Context) {
 }
 
 func (a *App) adminUnfreeze(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		UsageEventID string `json:"usage_event_id"`
 		Now          bool   `json:"now"`
@@ -384,6 +387,11 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "解冻失败", true)
 		return
 	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "commission.unfreeze", ResourceType: "commission_batch", ResourceID: firstNonEmpty(body.UsageEventID, "due"),
+		After: map[string]any{"unfrozen": n, "usage_event_id": body.UsageEventID},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.OK(c, gin.H{"unfrozen": n, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

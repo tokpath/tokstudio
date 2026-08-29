@@ -163,12 +163,12 @@
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
 - 推广：`GET/POST /admin/acquisition-roles`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；
 - 分销只读：`GET /v1/partner/me|users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；代理商看整棵树，1 级 KOL 看自己和 2 级，2 级只看直接引流；
-- 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`POST /admin/commissions/unfreeze`、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；
-- 渠道额度：`GET /channel/quota`、`POST /admin/channel-quotas/grant`；
+- 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`POST /admin/commissions/unfreeze`（解冻需确认并写审计）、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；管理页 `/admin/commission` 可手工解冻、生成结算单和人工打款；
+- 渠道额度：`GET /channel/quota`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`；管理页 `/admin/channels` 可读取并调整额度；
 - 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
 - 价格：`GET/POST /admin/price-books`（新版本不改历史账单）；
-- 权益：`POST /admin/entitlements/bonus`；
+- 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
 - 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；

@@ -289,6 +289,9 @@ func (a *App) adminReviewPlan(c *gin.Context) {
 }
 
 func (a *App) adminGrantBonus(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		UserID    string `json:"user_id"`
 		UnitType  string `json:"unit_type"`

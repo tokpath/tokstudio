@@ -243,6 +243,30 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/ops/runbooks"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/refunds"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/entitlements/bonus"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/commissions/unfreeze"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/commissions/settle"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/settlements/{id}/payout"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/channel-quotas/grant"
   }
 ];
 

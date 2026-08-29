@@ -225,6 +225,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/v1/chat/completions"
   },
   {
+    "method": "POST",
+    "path": "/admin/subscriptions/{id}/force-period-end"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/subscriptions/process-renewals"
+  },
+  {
     "method": "GET",
     "path": "/admin/plans"
   },

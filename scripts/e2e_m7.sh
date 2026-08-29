@@ -323,6 +323,15 @@ curl_has pln_echo_month -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/
 planhtml="$(curl -sf "$WEB_URL/admin/plans")"
 echo "$planhtml" | grep -q "创建套餐"
 echo "$planhtml" | grep -q "下架套餐"
+echo "$planhtml" | grep -q "续费扫描"
+echo "$planhtml" | grep -q "强制到期"
+curl_has processed -X POST "$API_URL/admin/subscriptions/process-renewals" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}'
+code="$(curl -s -o /tmp/m7-force.json -w '%{http_code}' -X POST "$API_URL/admin/subscriptions/sub_missing/force-period-end" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+if [[ "$code" != "400" ]]; then
+  echo "expected 400 forcing missing subscription, got $code" >&2
+  exit 1
+fi
 PLAN_JSON="$(curl -sf -X POST "$API_URL/admin/plans" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
   -d '{"name":"Ops E2E Plan","owner_type":"platform","price_minor":1000000,"items":[{"unit_type":"usd_credit","included_amount":1000000}]}')"

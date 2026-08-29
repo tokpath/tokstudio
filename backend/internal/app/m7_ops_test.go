@@ -343,6 +343,13 @@ func TestM7OpsHardening(t *testing.T) {
 	if archived["item"].(map[string]any)["status"] != "archived" {
 		t.Fatalf("archive plan: %+v", archived)
 	}
+	if code := postStatus(t, server.URL+"/admin/subscriptions/sub_missing/force-period-end", "m7_admin", map[string]any{}); code != http.StatusBadRequest {
+		t.Fatalf("force period end missing sub should be 400, got %d", code)
+	}
+	renewed := postJSONRaw(t, server.URL+"/admin/subscriptions/process-renewals", "m7_admin", map[string]any{})
+	if _, ok := renewed["processed"]; !ok {
+		t.Fatalf("process renewals: %+v", renewed)
+	}
 	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
 	if len(keys) == 0 {
 		t.Fatal("admin api keys empty")

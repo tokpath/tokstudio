@@ -44,7 +44,7 @@ M4 实现补充：火山方舟 / OpenRouter 适配器已预留，无 Base URL �
 
 验收：套餐发布自动校验和异常审核；权益按最早到期优先扣减；续费失败按重试/宽限期规则处理；支付 webhook 验签幂等；国内/国际支付订单都能发放和冲正权益。
 
-M5 实现补充：`plans` 与 `payment` 模块各自 migration。渠道套餐低于 1 USD 底线、非 token 超额或视频秒数 > 3600 进入 `pending_review`。预授权先按「赠送即将到期 → 套餐即将到期」扣 `usd_credit`，差额才冻现金钱包。Stripe 沙箱可自动续费；支付宝/微信到期进入 `past_due`，不伪造代扣成功。续费失败按到期日、+1/+3/+5 天重试，7 天宽限后 `cancelled`。
+M5 实现补充：`plans` 与 `payment` 模块各自 migration。渠道套餐低于 1 USD 底线、非 token 超额或视频秒数 > 3600 进入 `pending_review`。预授权先按「赠送即将到期 → 套餐即将到期」扣 `usd_credit`，差额才冻现金钱包。Stripe 沙箱可自动续费；支付宝/微信到期进入 `past_due`，不伪造代扣成功。续费失败按到期日、+1/+3/+5 天重试，7 天宽限后 `cancelled`。管理页 `/admin/plans` 可沙箱强制到期并手动续费扫描（生产禁止）。
 
 ### M6 分销、佣金与渠道运营
 

@@ -11,6 +11,8 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/me/2fa/enable")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/me/2fa/disable")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/api-keys/{id}/disable")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/subscriptions/{id}/force-period-end")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/subscriptions/process-renewals")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/me/api-keys/{id}/rotate")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/me/api-keys/{id}/copy")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/public/tls-check")).toBe(true);

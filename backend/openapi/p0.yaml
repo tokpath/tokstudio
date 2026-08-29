@@ -450,6 +450,24 @@ paths:
       responses:
         "200":
           description: chat
+  /admin/subscriptions/{id}/force-period-end:
+    post:
+      operationId: adminForcePeriodEnd
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: sandbox clock moved, forbidden in production
+  /admin/subscriptions/process-renewals:
+    post:
+      operationId: adminProcessRenewals
+      responses:
+        "200":
+          description: sandbox renewal scan, forbidden in production
   /admin/plans:
     get:
       operationId: listAdminPlans

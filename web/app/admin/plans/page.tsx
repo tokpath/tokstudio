@@ -25,6 +25,7 @@ export default function AdminPlansPage() {
   const [reason, setReason] = useState("promo");
   const [message, setMessage] = useState("渠道低价或高风险媒体配额会进入待审核。通过或拒绝都会写审计。");
   const [writeMessage, setWriteMessage] = useState("平台套餐满 1 USD 会直接发布。不要下架 pln_echo_month，那是公共站演示套餐。");
+  const [renewMessage, setRenewMessage] = useState("强制到期和续费扫描只在沙箱可用。不要对还在演示的订阅乱拨时钟。");
   const queryClient = useQueryClient();
   const path = status ? `/admin/plans?status=${encodeURIComponent(status)}` : "/admin/plans";
   const query = useQuery({
@@ -178,6 +179,49 @@ export default function AdminPlansPage() {
         </Button>
       </form>
       <p className="text-sm text-slate-300">{writeMessage}</p>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">续费扫描</h2>
+        <p className="mb-3 text-sm text-slate-400">
+          强制到期把 period_end 拨到过去，再扫描才会走重试/宽限期。生产默认禁止。不强制确认头。
+        </p>
+        <form
+          className="mb-3 flex flex-wrap gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const id = String(new FormData(form).get("subscription_id") || "").trim();
+            const res = await fetch(`${apiBase}/admin/subscriptions/${id}/force-period-end`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: "{}",
+            });
+            const body = await res.json();
+            setRenewMessage(res.ok ? `已拨时钟 ${id}` : body.error?.message || "拨时钟失败");
+          }}
+        >
+          <Input name="subscription_id" aria-label="强制到期用订阅 ID" placeholder="强制到期用订阅 ID" />
+          <Button size="sm" type="submit" variant="outline">
+            强制到期
+          </Button>
+        </form>
+        <Button
+          size="sm"
+          onClick={async () => {
+            const res = await fetch(`${apiBase}/admin/subscriptions/process-renewals`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: "{}",
+            });
+            const body = await res.json();
+            setRenewMessage(res.ok ? `续费扫描 processed=${body.processed ?? 0}` : body.error?.message || "扫描失败");
+          }}
+        >
+          续费扫描
+        </Button>
+        <p className="mt-3 text-sm text-slate-300">{renewMessage}</p>
+      </section>
     </AdminShell>
   );
 }

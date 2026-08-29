@@ -72,8 +72,8 @@ session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']
 curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
   "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e"}')")"
-curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m7"}]}' | grep -q request_id
+curl_has request_id -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m7"}]}'
 curl_has tokenhub/echo-1 -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics?dimension=model"
 dash="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/dashboard")"
 echo "$dash" | grep -q gross_profit_minor
@@ -89,8 +89,8 @@ echo "$dash" | grep -q error_codes
 echo "$dash" | grep -q prompt_tokens
 echo "$dash" | grep -q video_seconds
 echo "$dash" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['dashboard']['thresholds']['min_requests']>=1"
-curl -sf -X PATCH "$API_URL/admin/ops/thresholds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d '{"success_rate_min":0.8,"min_requests":10,"pending_count":2}' | grep -q '"min_requests":10'
+curl_has '"min_requests":10' -X PATCH "$API_URL/admin/ops/thresholds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"success_rate_min":0.8,"min_requests":10,"pending_count":2}'
 curl -sf -X PATCH "$API_URL/admin/ops/thresholds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
   -d '{"success_rate_min":0.5,"min_requests":5,"pending_count":1}' >/dev/null
 series="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/series?days=7")"
@@ -116,15 +116,15 @@ fi
 
 echo "== circuit trip falls back"
 curl -sf -X POST "$API_URL/admin/ops/circuit/prd_echo_primary" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"action":"trip"}' >/dev/null
-curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"fb"}]}' | grep -q echo-backup
+curl_has echo-backup -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"fb"}]}'
 curl -sf -X POST "$API_URL/admin/ops/circuit/prd_echo_primary" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"action":"reset"}' >/dev/null
 
 echo "== canary header"
 curl -sf -X POST "$API_URL/admin/ops/canary" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"provider_slug":"echo-backup","percent":100}' >/dev/null
-curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H "X-Tokenhub-Canary: 1" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"canary"}]}' | grep -q echo-backup
+curl_has echo-backup -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H "X-Tokenhub-Canary: 1" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"canary"}]}'
 curl -sf -X POST "$API_URL/admin/ops/canary" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"provider_slug":"echo-backup","percent":0}' >/dev/null
 
@@ -146,16 +146,16 @@ echo "== admin catalog, gemini, 2fa"
 curl_has gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers"
 curl_has google/gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models"
 curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes"
-curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
-  -d '{"model":"google/gemini-flash","messages":[{"role":"user","content":"gemini"}]}' | grep -q gemini
+curl_has gemini -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"google/gemini-flash","messages":[{"role":"user","content":"gemini"}]}'
 code="$(curl -s -o /tmp/m7-prov.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"slug":"no-confirm","name":"x"}')"
 if [[ "$code" != "409" ]]; then
   echo "expected 409 creating provider without confirm, got $code" >&2
   exit 1
 fi
 slug="ops-e2e-$RANDOM"
-curl -sf -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
-  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}" | grep -q "$slug"
+curl_has "$slug" -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Ops E2E\",\"slug\":\"$slug\",\"adapter\":\"test\"}"
 curl_has prefix -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys"
 setup="$(curl -sf -X POST "$API_URL/admin/me/2fa/setup" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
 echo "$setup" | grep -q otpauth
@@ -170,8 +170,8 @@ newk="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'
 code="$(curl -s -o /tmp/m7-oldk.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $oldk" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"old"}]}')"
 if [[ "$code" != "403" ]]; then echo "rotated old key should 403, got $code" >&2; exit 1; fi
-curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $newk" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"new"}]}' | grep -q request_id
+curl_has request_id -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $newk" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"new"}]}'
 curl -sf -X POST "$API_URL/v1/me/api-keys/$kid/disable" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{}' >/dev/null
 code="$(curl -s -o /tmp/m7-dis.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $newk" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"off"}]}')"
@@ -233,8 +233,8 @@ code="$(curl -s -o /tmp/m7-pool-cool.json -w '%{http_code}' -X POST "$API_URL/v1
 if [[ "$code" != "503" ]]; then echo "cooldown-only pool should 503, got $code $(cat /tmp/m7-pool-cool.json)" >&2; exit 1; fi
 curl -sf -X POST "$API_URL/admin/providers/$POOL_ID/accounts" -H "Authorization: Bearer $TECH_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-hot","label":"hot"}' >/dev/null
-curl -sf -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_SLUG" -H "Authorization: Bearer $key" \
-  -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hot"}]}' | grep -q "$POOL_SLUG"
+curl_has "$POOL_SLUG" -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_SLUG" -H "Authorization: Bearer $key" \
+  -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hot"}]}'
 code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/providers/$POOL_ID/accounts")"
 if [[ "$code" != "403" ]]; then echo "finance must not list accounts, got $code" >&2; exit 1; fi
 
@@ -245,16 +245,16 @@ echo "$SYNC" | grep -q '"status":"draft"'
 SYNC_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['items'][0]['id'])" "$SYNC")"
 python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
   "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
-curl -sf -X POST "$API_URL/admin/models/review" -H "Authorization: Bearer $OPS_TOKEN" \
+curl_has reviewed -X POST "$API_URL/admin/models/review" -H "Authorization: Bearer $OPS_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\",\"action\":\"approve\"}" | grep -q reviewed
-curl -sf -X POST "$API_URL/admin/models/publish" -H "Authorization: Bearer $OPS_TOKEN" \
+  -d "{\"public_id\":\"$SYNC_ID\",\"action\":\"approve\"}"
+curl_has published -X POST "$API_URL/admin/models/publish" -H "Authorization: Bearer $OPS_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\"}" | grep -q published
+  -d "{\"public_id\":\"$SYNC_ID\"}"
 curl_has "$SYNC_ID" -H "Authorization: Bearer $key" "$API_URL/v1/models"
-curl -sf -X POST "$API_URL/admin/models/deprecate" -H "Authorization: Bearer $OPS_TOKEN" \
+curl_has deprecated -X POST "$API_URL/admin/models/deprecate" -H "Authorization: Bearer $OPS_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\"}" | grep -q deprecated
+  -d "{\"public_id\":\"$SYNC_ID\"}"
 python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
   "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
 curl_has "$SYNC_ID" -H "Authorization: Bearer $OPS_TOKEN" "$API_URL/admin/models?q=sync-"
@@ -270,8 +270,8 @@ code="$(curl -s -o /tmp/m7-idem3.json -w '%{http_code}' -X POST "$API_URL/v1/cha
 if [[ "$code" != "409" ]]; then echo "mismatched idempotency should 409, got $code $(cat /tmp/m7-idem3.json)" >&2; exit 1; fi
 
 echo "== session creates media"
-curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
-  -H "Idempotency-Key: e2e-m7-sess" -d '{"model":"bytedance/seedance-1.0","prompt":"console","duration":5}' | grep -q id
+curl_has id -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: e2e-m7-sess" -d '{"model":"bytedance/seedance-1.0","prompt":"console","duration":5}'
 
 echo "== loadtest"
 bash "$ROOT/scripts/loadtest_limits.sh"

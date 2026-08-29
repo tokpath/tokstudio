@@ -42,6 +42,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/users/:id/attribution", a.requireRoles("platform_admin"), a.reattribute)
 	r.GET("/channel/me", a.requireRoles("channel_admin"), a.channelMe)
 	r.GET("/channel/users", a.requireRoles("channel_admin"), a.listUsersChannel)
+	r.GET("/channel/attribution", a.requireRoles("channel_admin", "platform_admin"), a.channelAttribution)
 }
 
 func (a *App) tokenFromRequest(c *gin.Context) string {
@@ -508,6 +509,15 @@ func (a *App) listUsersChannel(c *gin.Context) {
 	items, err := a.Identity.ListUsers(c.Request.Context(), *a.currentPrincipal(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelAttribution(c *gin.Context) {
+	items, err := a.Identity.ListChannelAttribution(c.Request.Context(), *a.currentPrincipal(c))
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取归因失败", true)
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})

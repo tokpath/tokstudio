@@ -38,3 +38,6 @@ paths:
   /channel/users:
     get:
       summary: Channel-scoped user list
+  /channel/attribution:
+    get:
+      summary: Channel-scoped attribution buckets by promotion code

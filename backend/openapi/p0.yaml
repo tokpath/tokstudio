@@ -192,6 +192,12 @@ paths:
       responses:
         "201":
           description: created
+  /channel/attribution:
+    get:
+      operationId: listChannelAttribution
+      responses:
+        "200":
+          description: channel attribution buckets
   /admin/users:
     get:
       operationId: listAdminUsers

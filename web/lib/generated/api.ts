@@ -98,6 +98,10 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/channel/attribution"
+  },
+  {
+    "method": "GET",
     "path": "/admin/users"
   },
   {

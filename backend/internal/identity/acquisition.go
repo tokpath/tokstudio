@@ -59,6 +59,15 @@ type AttributionView struct {
 	SourceCode        string `json:"source_code"`
 }
 
+// ChannelAttributionBucket 是渠道控制台的归因汇总：按推广码和角色点数，不含其他渠道。
+type ChannelAttributionBucket struct {
+	ChannelOrgID      string `json:"channel_org_id"`
+	SourceCode        string `json:"source_code"`
+	AcquisitionRoleID string `json:"acquisition_role_id,omitempty"`
+	RoleType          string `json:"role_type,omitempty"`
+	UserCount         int64  `json:"user_count"`
+}
+
 type PromotionView struct {
 	ID                string `json:"id"`
 	Code              string `json:"code"`
@@ -180,6 +189,58 @@ func (s *Service) GetAttribution(ctx context.Context, userID string) (*Attributi
 		}
 	}
 	return view, nil
+}
+
+func (s *Service) ListChannelAttribution(ctx context.Context, viewer Principal) ([]ChannelAttributionBucket, error) {
+	q := s.db.WithContext(ctx).Model(&attributionRow{})
+	if channelID := viewer.VisibleChannelID(); channelID != "" {
+		q = q.Where("channel_org_id = ?", channelID)
+	}
+	var rows []attributionRow
+	if err := q.Order("source_code").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	roleIDs := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if row.AcquisitionRoleID != nil && *row.AcquisitionRoleID != "" {
+			roleIDs = append(roleIDs, *row.AcquisitionRoleID)
+		}
+	}
+	roleTypes := map[string]string{}
+	if len(roleIDs) > 0 {
+		var roles []acquisitionRow
+		if err := s.db.WithContext(ctx).Where("id IN ?", roleIDs).Find(&roles).Error; err != nil {
+			return nil, err
+		}
+		for _, role := range roles {
+			roleTypes[role.ID] = role.Type
+		}
+	}
+	type key struct{ channel, source, role string }
+	counts := map[key]int64{}
+	order := make([]key, 0)
+	for _, row := range rows {
+		roleID := ""
+		if row.AcquisitionRoleID != nil {
+			roleID = *row.AcquisitionRoleID
+		}
+		k := key{row.ChannelOrgID, row.SourceCode, roleID}
+		if _, seen := counts[k]; !seen {
+			order = append(order, k)
+		}
+		counts[k]++
+	}
+	out := make([]ChannelAttributionBucket, 0, len(order))
+	for _, k := range order {
+		out = append(out, ChannelAttributionBucket{
+			ChannelOrgID:      k.channel,
+			SourceCode:        k.source,
+			AcquisitionRoleID: k.role,
+			RoleType:          roleTypes[k.role],
+			UserCount:         counts[k],
+		})
+	}
+	return out, nil
 }
 
 func (s *Service) MapUserAcquisitionRoles(ctx context.Context, userIDs []string) (map[string]string, error) {

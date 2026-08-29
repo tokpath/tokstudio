@@ -47,9 +47,18 @@ if echo "$promos" | grep -q THA1; then
   echo "channel promo leaked official code" >&2
   exit 1
 fi
-curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/plans" | grep -q items
-curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/usage" | grep -q prompt_tokens
-curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/settlements" | grep -q items
+plans="$(curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/plans")"
+echo "$plans" | grep -q items
+usage="$(curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/usage")"
+echo "$usage" | grep -q prompt_tokens
+settlements="$(curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/settlements")"
+echo "$settlements" | grep -q items
+attr="$(curl -sf -H "Authorization: Bearer $CHANNEL_TOKEN" "$API_URL/channel/attribution")"
+echo "$attr" | grep -q THB1
+if echo "$attr" | grep -q THA1; then
+  echo "channel attribution leaked official code" >&2
+  exit 1
+fi
 
 echo "== OEM brand by host"
 oem="$(curl -sf "$API_URL/v1/public/brand?host=oem.localhost")"
@@ -102,6 +111,7 @@ echo "$channelhtml" | grep -q "本渠道用户"
 echo "$channelhtml" | grep -q "本渠道套餐"
 echo "$channelhtml" | grep -q "推广链接"
 echo "$channelhtml" | grep -q "本渠道用量"
+echo "$channelhtml" | grep -q "本渠道归因"
 echo "$channelhtml" | grep -q "本渠道结算"
 
 echo "M1 e2e passed"

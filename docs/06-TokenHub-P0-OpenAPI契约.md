@@ -163,7 +163,7 @@
 - 分销只读：`GET /v1/partner/users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；
 - 佣金：`GET /admin/commissions`、`POST /admin/commissions/unfreeze`、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；
 - 渠道额度：`GET /channel/quota`、`POST /admin/channel-quotas/grant`；
-- 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/settlements`、`GET /channel/commissions`；
+- 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
 - 权益：`POST /admin/entitlements/bonus`；
 - 支付：`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；

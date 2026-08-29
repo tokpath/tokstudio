@@ -166,6 +166,23 @@ func (s *Service) GetAttribution(ctx context.Context, userID string) (*Attributi
 	return view, nil
 }
 
+func (s *Service) MapUserAcquisitionRoles(ctx context.Context, userIDs []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+	var rows []attributionRow
+	if err := s.db.WithContext(ctx).Where("user_id IN ?", userIDs).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if row.AcquisitionRoleID != nil && *row.AcquisitionRoleID != "" {
+			out[row.UserID] = *row.AcquisitionRoleID
+		}
+	}
+	return out, nil
+}
+
 func (s *Service) RoleIDsInScope(ctx context.Context, roleID string) ([]string, error) {
 	var root acquisitionRow
 	if err := s.db.WithContext(ctx).Where("id = ?", roleID).First(&root).Error; err != nil {

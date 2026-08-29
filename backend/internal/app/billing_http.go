@@ -163,6 +163,9 @@ func (a *App) redeemTopup(c *gin.Context) {
 }
 
 func (a *App) confirmTopup(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	principal := a.currentPrincipal(c)
 	item, err := a.Billing.ConfirmTopup(c.Request.Context(), c.Param("id"), principal.UserID)
 	if err != nil {
@@ -186,6 +189,9 @@ func (a *App) refundTopup(c *gin.Context) {
 }
 
 func (a *App) adminRefund(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		RequestID string `json:"request_id"`
 		TopupID   string `json:"topup_id"`
@@ -254,6 +260,9 @@ func (a *App) billingReport(c *gin.Context) {
 }
 
 func (a *App) recalcCommission(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		UsageEventID string `json:"usage_event_id"`
 	}
@@ -281,6 +290,9 @@ func (a *App) replayUsage(c *gin.Context) {
 }
 
 func (a *App) publishPrice(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "价格无效", false)

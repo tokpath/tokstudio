@@ -196,6 +196,9 @@ func (a *App) adminCreatePromo(c *gin.Context) {
 }
 
 func (a *App) adminGrantQuota(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		ChannelOrgID string `json:"channel_org_id"`
 		AmountMinor  int64  `json:"amount_minor"`
@@ -252,6 +255,9 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 }
 
 func (a *App) adminSettle(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	items, err := a.Commission.CreateMonthlySettlement(c.Request.Context(), time.Now().UTC(), c.Query("ignore_minimum") == "1")
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "生成结算单失败", false)
@@ -265,6 +271,9 @@ func (a *App) adminSettle(c *gin.Context) {
 }
 
 func (a *App) adminPayout(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		Method    string `json:"method"`
 		Reference string `json:"reference"`

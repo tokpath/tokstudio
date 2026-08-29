@@ -75,6 +75,17 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 	return out, nil
 }
 
+func (s *Service) Risk(ctx context.Context) (*RiskView, error) {
+	view := &RiskView{}
+	_ = s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_wallets WHERE available_minor < ?`, MinorPerUSD).Scan(&view.LowBalanceWallets).Error
+	_ = s.db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(reserved_minor),0) FROM billing_wallets`).Scan(&view.ReservedMinor).Error
+	_ = s.db.WithContext(ctx).Raw(`
+		SELECT COALESCE(SUM(wholesale_amount_minor),0) FROM billing_usage_events
+		WHERE state = 'confirmed' AND channel_org_id IS NOT NULL AND channel_org_id <> ''
+	`).Scan(&view.ChannelSpendMinor).Error
+	return view, nil
+}
+
 func (s *Service) ChargeByRequest(ctx context.Context, requestID string) (*Settlement, error) {
 	var charge chargeRow
 	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&charge).Error; err != nil {

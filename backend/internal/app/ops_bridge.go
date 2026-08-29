@@ -6,6 +6,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
 )
 
@@ -38,12 +39,18 @@ func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ops.MoneyView{
+	view := &ops.MoneyView{
 		RevenueMinor: item.RevenueMinor, UpstreamMinor: item.UpstreamMinor,
 		WholesaleMinor: item.WholesaleMinor, CommissionMinor: item.CommissionMinor,
 		RefundMinor: item.RefundMinor, GrossProfitMinor: item.GrossProfitMinor,
 		PendingCount: item.PendingCount,
-	}, nil
+	}
+	if risk, err := b.billing.Risk(ctx); err == nil && risk != nil {
+		view.LowBalanceWallets = risk.LowBalanceWallets
+		view.ReservedMinor = risk.ReservedMinor
+		view.ChannelSpendMinor = risk.ChannelSpendMinor
+	}
+	return view, nil
 }
 
 func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.DimStat, error) {
@@ -68,4 +75,12 @@ type healthBridge struct {
 
 func (b *healthBridge) MarkHealth(ctx context.Context, providerID, health string) error {
 	return b.catalog.MarkHealth(ctx, providerID, health)
+}
+
+type roleBridge struct {
+	identity *identity.Service
+}
+
+func (b *roleBridge) MapUserRoles(ctx context.Context, userIDs []string) (map[string]string, error) {
+	return b.identity.MapUserAcquisitionRoles(ctx, userIDs)
 }

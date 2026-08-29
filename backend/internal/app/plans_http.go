@@ -296,6 +296,9 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 }
 
 func (a *App) adminConfirmPayment(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "确认支付失败", false)
@@ -309,6 +312,9 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 }
 
 func (a *App) adminRefundPayment(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "支付退款失败", false)

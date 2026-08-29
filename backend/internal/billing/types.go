@@ -183,6 +183,12 @@ type DimMoneyView struct {
 	CostMinor    int64  `json:"cost_minor"`
 }
 
+type RiskView struct {
+	LowBalanceWallets int64 `json:"low_balance_wallets"`
+	ReservedMinor     int64 `json:"wallet_reserved_minor"`
+	ChannelSpendMinor int64 `json:"channel_spend_minor"`
+}
+
 type QuotaView struct {
 	OwnerID        string `json:"owner_id"`
 	AvailableMinor int64  `json:"available_minor"`

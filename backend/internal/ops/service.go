@@ -29,6 +29,10 @@ type HealthSink interface {
 	MarkHealth(ctx context.Context, providerID, health string) error
 }
 
+type RoleSource interface {
+	MapUserRoles(ctx context.Context, userIDs []string) (map[string]string, error)
+}
+
 type runbookRow struct {
 	ID        string    `gorm:"column:id;primaryKey"`
 	AlertKind string    `gorm:"column:alert_kind"`
@@ -81,16 +85,18 @@ type Service struct {
 	traffic TrafficSource
 	money   MoneySource
 	health  HealthSink
+	roles   RoleSource
 }
 
 func New(db *gorm.DB, rdb *redis.Client) *Service {
 	return &Service{db: db, redis: rdb}
 }
 
-func (s *Service) SetSources(traffic TrafficSource, money MoneySource, health HealthSink) {
+func (s *Service) SetSources(traffic TrafficSource, money MoneySource, health HealthSink, roles RoleSource) {
 	s.traffic = traffic
 	s.money = money
 	s.health = health
+	s.roles = roles
 }
 
 func Migrations() (string, fs.FS) {
@@ -126,20 +132,25 @@ func (s *Service) Dashboard(ctx context.Context) (*Dashboard, error) {
 			out.Totals = *money
 		}
 	}
-	for _, dim := range []string{DimProvider, DimModel, DimChannel, DimUser, DimAPIKey} {
+	for _, dim := range []string{DimProvider, DimModel, DimChannel, DimUser, DimAPIKey, DimAgent} {
 		stats := []DimStat{}
-		if s.traffic != nil {
-			if rows, err := s.traffic.DimStats(ctx, dim); err == nil {
-				stats = rows
+		if dim == DimAgent {
+			stats = s.agentStats(ctx)
+		} else {
+			if s.traffic != nil {
+				if rows, err := s.traffic.DimStats(ctx, dim); err == nil {
+					stats = rows
+				}
 			}
-		}
-		if s.money != nil {
-			if money, err := s.money.DimMoney(ctx, dim); err == nil {
-				stats = mergeMoney(stats, money)
+			if s.money != nil {
+				if money, err := s.money.DimMoney(ctx, dim); err == nil {
+					stats = mergeMoney(stats, money)
+				}
 			}
 		}
 		out.Dimensions[dim] = stats
 	}
+	fillOverview(&out.Totals, out.Dimensions[DimProvider])
 	out.Alerts, _ = s.ListAlerts(ctx, StatusOpen)
 	out.Canary, _ = s.Canary(ctx, CanaryChat)
 	out.LastDrill, _ = s.LastDrill(ctx)
@@ -167,6 +178,83 @@ func mergeMoney(traffic, money []DimStat) []DimStat {
 		out = append(out, row)
 	}
 	return out
+}
+
+func (s *Service) agentStats(ctx context.Context) []DimStat {
+	var users []DimStat
+	if s.traffic != nil {
+		users, _ = s.traffic.DimStats(ctx, DimUser)
+	}
+	if s.money != nil {
+		if money, err := s.money.DimMoney(ctx, DimUser); err == nil {
+			users = mergeMoney(users, money)
+		}
+	}
+	if s.roles == nil || len(users) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(users))
+	for _, row := range users {
+		ids = append(ids, row.Key)
+	}
+	roles, err := s.roles.MapUserRoles(ctx, ids)
+	if err != nil {
+		return nil
+	}
+	byRole := map[string]DimStat{}
+	for _, row := range users {
+		role := roles[row.Key]
+		if role == "" {
+			continue
+		}
+		cur := byRole[role]
+		cur.Dimension = DimAgent
+		cur.Key = role
+		cur.Requests += row.Requests
+		cur.Successes += row.Successes
+		cur.Errors += row.Errors
+		cur.Fallbacks += row.Fallbacks
+		cur.UsageMinor += row.UsageMinor
+		cur.RevenueMinor += row.RevenueMinor
+		cur.CostMinor += row.CostMinor
+		if row.LatencyP95MS > cur.LatencyP95MS {
+			cur.LatencyP95MS = row.LatencyP95MS
+		}
+		if cur.LatencyP50MS == 0 || (row.LatencyP50MS > 0 && row.LatencyP50MS < cur.LatencyP50MS) {
+			cur.LatencyP50MS = row.LatencyP50MS
+		}
+		byRole[role] = cur
+	}
+	out := make([]DimStat, 0, len(byRole))
+	for _, row := range byRole {
+		if row.Requests > 0 {
+			row.SuccessRate = float64(row.Successes) / float64(row.Requests)
+		}
+		row.MarginMinor = row.RevenueMinor - row.CostMinor
+		out = append(out, row)
+	}
+	return out
+}
+
+func fillOverview(totals *MoneyView, providers []DimStat) {
+	var req, ok, errs, p50, p95 int64
+	for _, row := range providers {
+		req += row.Requests
+		ok += row.Successes
+		errs += row.Errors
+		if row.LatencyP95MS > p95 {
+			p95 = row.LatencyP95MS
+		}
+		if p50 == 0 || (row.LatencyP50MS > 0 && row.LatencyP50MS < p50) {
+			p50 = row.LatencyP50MS
+		}
+	}
+	if req > 0 {
+		totals.SuccessRate = float64(ok) / float64(req)
+	}
+	totals.LatencyP50MS = p50
+	totals.LatencyP95MS = p95
+	totals.UpstreamErrors = errs
 }
 
 func firstNonEmpty(values ...string) string {

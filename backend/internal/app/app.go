@@ -63,7 +63,7 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)
 	opsSvc := ops.New(gdb, rdb)
-	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc})
+	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc})
 	gw.SetBreaker(opsSvc)
 	return &App{
 		Config:     cfg,
@@ -238,6 +238,14 @@ func (a *App) currentPrincipal(c *gin.Context) *identity.Principal {
 	}
 	principal, _ := value.(*identity.Principal)
 	return principal
+}
+
+func (a *App) requireConfirm(c *gin.Context) bool {
+	if c.GetHeader("X-Tokenhub-Confirm") == "1" || c.Query("confirm") == "1" {
+		return true
+	}
+	httpx.Abort(c, http.StatusConflict, "confirm_required", "敏感操作需要二次确认", false)
+	return false
 }
 
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {

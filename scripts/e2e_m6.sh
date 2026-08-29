@@ -100,7 +100,7 @@ fi
 
 echo "== refund reverses commission"
 rid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['request_id'])" "$chat")"
-curl -sf -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"request_id\":\"$rid\"}" >/dev/null
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commissions?usage_event_id=$uid" | grep -q reversed
 
@@ -118,16 +118,16 @@ u2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id
   "$(curl -sf -H "Authorization: Bearer $s2" "$API_URL/v1/me/usage")")"
 curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d "{\"usage_event_id\":\"$u2\"}" >/dev/null
-batch="$(curl -sf -X POST "$API_URL/admin/commissions/settle?ignore_minimum=1" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+batch="$(curl -sf -X POST "$API_URL/admin/commissions/settle?ignore_minimum=1" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' -d '{}')"
 echo "$batch" | grep -q amount_minor
 sid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" "$batch")"
-curl -sf -X POST "$API_URL/admin/settlements/$sid/payout" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/settlements/$sid/payout" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d '{"method":"manual","reference":"e2e-wire"}' | grep -q paid
 
 echo "== channel quota cannot over-issue"
 q="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"
 avail="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q")"
-curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"channel_org_id\":\"chn_reseller_b\",\"amount_minor\":-$avail}" >/dev/null
 email3="m6q-$RANDOM@example.test"
 reg3="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
@@ -138,7 +138,7 @@ k3="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])
   "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $s3" -H 'Content-Type: application/json' -d '{"name":"e2eq"}')")"
 code="$(curl -s -o /tmp/m6-quota.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $k3" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"quota"}]}')"
-curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"channel_org_id\":\"chn_reseller_b\",\"amount_minor\":$avail}" >/dev/null
 if [[ "$code" != "402" ]]; then
   echo "expected 402 when channel quota is empty, got $code $(cat /tmp/m6-quota.json)" >&2

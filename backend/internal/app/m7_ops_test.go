@@ -12,6 +12,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
 
@@ -37,7 +38,7 @@ func TestM7OpsHardening(t *testing.T) {
 
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "ops-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
-		"password": "password1", "promotion_code": "THA1",
+		"password": "password1", "promotion_code": identity.PromoKOL2B,
 	})
 	session := tokenOf(reg)
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})
@@ -62,8 +63,21 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	dash := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)
 	totals := dash["totals"].(map[string]any)
-	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil {
+	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil {
 		t.Fatalf("totals incomplete: %+v", totals)
+	}
+	agents, _ := dash["dimensions"].(map[string]any)["agent"].([]any)
+	sawAgent := false
+	for _, raw := range agents {
+		if raw.(map[string]any)["key"] == identity.KOL2BRoleID {
+			sawAgent = true
+		}
+	}
+	if !sawAgent {
+		t.Fatalf("dashboard missing agent dimension: %+v", dash["dimensions"])
+	}
+	if code := postStatus(t, server.URL+"/admin/refunds", "m7_admin", map[string]any{"request_id": "missing"}); code != http.StatusConflict {
+		t.Fatalf("sensitive refund without confirm should be 409, got %d", code)
 	}
 
 	limited := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "slow", "rpm_limit": 1})["item"].(map[string]any)["key"].(string)

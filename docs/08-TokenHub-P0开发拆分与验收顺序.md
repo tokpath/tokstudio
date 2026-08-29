@@ -60,7 +60,7 @@ M6 实现补充：种子层级 `acr_b_agent` → `acr_b_kol1` → `acr_b_kol2`�
 
 验收：可按 Provider/模型/渠道/代理商/用户/API Key 查看成功率、延迟、错误、usage、成本、收入、毛利、佣金和待对账；关键故障有告警和 runbook；数据库可恢复到最近备份。
 
-M7 实现补充：独立 `ops` 模块。`GET /admin/ops/dashboard` 按维度聚合网关请求和账务金额。API Key `rpm_limit` 走 Redis 滑动计数，超限 429。连续失败打开 Provider 熔断并跳过该候选。审计支持 action/resource/q 检索。`POST /admin/ops/backup-drill` 记录 RPO 15 分钟 / RTO 1 小时演练；`scripts/backup_drill.sh` 可做 schema-only dump。支付伪造签名与媒体 force-fail 有演练入口。`X-Tokenhub-Canary` 或 100% 灰度切到指定 Provider。
+M7 实现补充：独立 `ops` 模块。`GET /admin/ops/dashboard` 按 Provider/模型/渠道/代理商/用户/API Key 聚合网关请求和账务金额，总览含成功率、P50/P95、上游错误、余额风险、渠道消耗、佣金和待对账。API Key `rpm_limit` 走 Redis 滑动计数，超限 429。连续失败打开 Provider 熔断并跳过该候选。审计支持 action/resource/q 检索。`POST /admin/ops/backup-drill` 记录 RPO 15 分钟 / RTO 1 小时演练；`scripts/backup_drill.sh` 可做 schema-only dump。支付伪造签名与媒体 force-fail 有演练入口。`X-Tokenhub-Canary` 或 100% 灰度切到指定 Provider。敏感写操作必须带 `X-Tokenhub-Confirm: 1`。Compose 含 Prometheus 与 Grafana。
 
 ## 2. 依赖关系
 

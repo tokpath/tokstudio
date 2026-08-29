@@ -43,7 +43,7 @@ r2="$(curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $
 python3 -c "import json,sys; a=json.loads(sys.argv[1])['item']; b=json.loads(sys.argv[2])['item']; assert a['charge_id']==b['charge_id'] and a['amount_minor']==b['amount_minor']" "$r1" "$r2"
 
 echo "== publish new price does not rewrite old bill"
-curl -sf -X POST "$API_URL/admin/price-books" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/price-books" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","input":"0.01","output":"0.02","currency":"USD"}' >/dev/null
 usage2="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage")"
 python3 -c "import json,sys; items=json.loads(sys.argv[1])['items']; assert str(items[0]['customer_amount_minor'])==sys.argv[2]" "$usage2" "$amount"
@@ -59,18 +59,18 @@ curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $ADMIN_
 
 echo "== refund and commission reversal"
 bal1="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/balance")"
-curl -sf -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"request_id\":\"$rid\"}" | grep -q reversed
 bal2="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/balance")"
 python3 -c "import json,sys; a=json.loads(sys.argv[1])['balance']['available_minor']; b=json.loads(sys.argv[2])['balance']['available_minor']; assert b>a" "$bal1" "$bal2"
-curl -sf -X POST "$API_URL/admin/commissions/recalc" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/commissions/recalc" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"usage_event_id\":\"$usgid\"}" | grep -q policy_version
 
 echo "== manual topup confirm"
 top="$(curl -sf -X POST "$API_URL/v1/topups" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
   -d '{"amount_minor":1000000,"payment_method":"manual"}')"
 tid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$top")"
-curl -sf -X POST "$API_URL/admin/topups/$tid/confirm" -H "Authorization: Bearer $ADMIN_TOKEN" | grep -q paid
+curl -sf -X POST "$API_URL/admin/topups/$tid/confirm" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' | grep -q paid
 
 echo "== ledger and report"
 curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/ledger" | grep -q topup

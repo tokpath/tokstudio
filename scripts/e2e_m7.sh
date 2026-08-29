@@ -50,7 +50,7 @@ fi
 echo "== register and chat for metrics"
 email="m7-$RANDOM@example.test"
 reg="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$email\",\"password\":\"password1\",\"promotion_code\":\"THA1\"}")"
+  -d "{\"email\":\"$email\",\"password\":\"password1\",\"promotion_code\":\"THB-KOL2\"}")"
 session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg")"
 curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
@@ -58,7 +58,16 @@ key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key']
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m7"}]}' | grep -q request_id
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics?dimension=model" | grep -q tokenhub/echo-1
-curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/dashboard" | grep -q gross_profit_minor
+dash="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/dashboard")"
+echo "$dash" | grep -q gross_profit_minor
+echo "$dash" | grep -q success_rate
+echo "$dash" | grep -q acr_b_kol2
+echo "$dash" | grep -q low_balance_wallets
+code="$(curl -s -o /tmp/m7-confirm.json -w '%{http_code}' -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"request_id":"missing"}')"
+if [[ "$code" != "409" ]]; then
+  echo "expected 409 confirm_required, got $code $(cat /tmp/m7-confirm.json)" >&2
+  exit 1
+fi
 
 echo "== rpm limit 429"
 slow="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \

@@ -134,7 +134,7 @@ curl -sf -X POST "$API_URL/admin/subscriptions/process-renewals" -H "Authorizati
 curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/subscriptions" | grep -q past_due
 
 echo "== refund reverses unused entitlements"
-curl -sf -X POST "$API_URL/admin/payments/$oid/refund" -H "Authorization: Bearer $ADMIN_TOKEN" | grep -q refunded
+curl -sf -X POST "$API_URL/admin/payments/$oid/refund" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' | grep -q refunded
 
 echo "== wechat wallet topup"
 wal="$(curl -sf -X POST "$API_URL/v1/payments/orders" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \

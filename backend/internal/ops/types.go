@@ -54,13 +54,20 @@ type DimStat struct {
 }
 
 type MoneyView struct {
-	RevenueMinor     int64 `json:"revenue_minor"`
-	UpstreamMinor    int64 `json:"upstream_cost_minor"`
-	WholesaleMinor   int64 `json:"wholesale_minor"`
-	CommissionMinor  int64 `json:"commission_liability_minor"`
-	RefundMinor      int64 `json:"refund_minor"`
-	GrossProfitMinor int64 `json:"gross_profit_minor"`
-	PendingCount     int64 `json:"pending_reconciliation_count"`
+	RevenueMinor      int64   `json:"revenue_minor"`
+	UpstreamMinor     int64   `json:"upstream_cost_minor"`
+	WholesaleMinor    int64   `json:"wholesale_minor"`
+	CommissionMinor   int64   `json:"commission_liability_minor"`
+	RefundMinor       int64   `json:"refund_minor"`
+	GrossProfitMinor  int64   `json:"gross_profit_minor"`
+	PendingCount      int64   `json:"pending_reconciliation_count"`
+	SuccessRate       float64 `json:"success_rate"`
+	LatencyP50MS      int64   `json:"latency_p50_ms"`
+	LatencyP95MS      int64   `json:"latency_p95_ms"`
+	UpstreamErrors    int64   `json:"upstream_errors"`
+	LowBalanceWallets int64   `json:"low_balance_wallets"`
+	ReservedMinor     int64   `json:"wallet_reserved_minor"`
+	ChannelSpendMinor int64   `json:"channel_spend_minor"`
 }
 
 type Dashboard struct {

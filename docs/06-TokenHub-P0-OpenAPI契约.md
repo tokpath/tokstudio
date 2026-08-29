@@ -156,4 +156,4 @@
 - 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media`；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 
-所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改必须二次确认并记录 before/after 快照。
+所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。

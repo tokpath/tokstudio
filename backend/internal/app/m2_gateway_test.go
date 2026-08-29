@@ -114,6 +114,7 @@ func postJSONRaw(t *testing.T, url, token string, payload map[string]any) map[st
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
@@ -18,14 +19,14 @@ import (
 func (a *App) registerMediaRoutes(r *gin.Engine) {
 	r.GET("/v1/me/media", a.requireAnyUser(), a.listMyMedia)
 	r.GET("/admin/media", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminMedia)
-	r.POST("/v1/videos", a.requireAPIKey(), a.createVideo)
-	r.GET("/v1/videos/:id", a.requireAPIKey(), a.getVideo)
-	r.GET("/v1/videos/:id/content", a.requireAPIKey(), a.videoContent)
-	r.POST("/v1/videos/:id/cancel", a.requireAPIKey(), a.cancelVideo)
-	r.POST("/v1/images/generations", a.requireAPIKey(), a.createImage)
-	r.POST("/v1/images/edits", a.requireAPIKey(), a.editImage)
-	r.GET("/v1/images/:id", a.requireAPIKey(), a.getVideo)
-	r.GET("/v1/images/:id/content", a.requireAPIKey(), a.videoContent)
+	r.POST("/v1/videos", a.requireUserOrKey(), a.createVideo)
+	r.GET("/v1/videos/:id", a.requireUserOrKey(), a.getVideo)
+	r.GET("/v1/videos/:id/content", a.requireUserOrKey(), a.videoContent)
+	r.POST("/v1/videos/:id/cancel", a.requireUserOrKey(), a.cancelVideo)
+	r.POST("/v1/images/generations", a.requireUserOrKey(), a.createImage)
+	r.POST("/v1/images/edits", a.requireUserOrKey(), a.editImage)
+	r.GET("/v1/images/:id", a.requireUserOrKey(), a.getVideo)
+	r.GET("/v1/images/:id/content", a.requireUserOrKey(), a.videoContent)
 	r.POST("/v1/media/callbacks", a.mediaCallback)
 	r.GET("/v1/media/objects", a.mediaObject)
 }
@@ -93,8 +94,13 @@ func (a *App) createMedia(c *gin.Context, kind string) {
 			body.Model = catalog.SeedanceModelID
 		}
 	}
+	caller := a.mediaCaller(c)
+	if caller == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return
+	}
 	job, err := a.Media.Create(c.Request.Context(), media.CreateInput{
-		Caller:         *a.currentAPIKey(c),
+		Caller:         *caller,
 		RequestID:      c.GetString(httpx.ContextRequestID),
 		IdempotencyKey: c.GetHeader("Idempotency-Key"),
 		Kind:           kind,
@@ -121,8 +127,25 @@ func (a *App) createMedia(c *gin.Context, kind string) {
 	httpx.Accepted(c, job)
 }
 
+func (a *App) mediaCaller(c *gin.Context) *identity.APIKeyPrincipal {
+	if key := a.currentAPIKey(c); key != nil {
+		return key
+	}
+	if p := a.currentPrincipal(c); p != nil {
+		return &identity.APIKeyPrincipal{Principal: *p}
+	}
+	return nil
+}
+
+func (a *App) mediaUserID(c *gin.Context) string {
+	if caller := a.mediaCaller(c); caller != nil {
+		return caller.UserID
+	}
+	return ""
+}
+
 func (a *App) getVideo(c *gin.Context) {
-	job, err := a.Media.Get(c.Request.Context(), c.Param("id"), a.currentAPIKey(c).UserID)
+	job, err := a.Media.Get(c.Request.Context(), c.Param("id"), a.mediaUserID(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "任务不存在", false)
 		return
@@ -131,7 +154,7 @@ func (a *App) getVideo(c *gin.Context) {
 }
 
 func (a *App) videoContent(c *gin.Context) {
-	item, err := a.Media.Content(c.Request.Context(), c.Param("id"), a.currentAPIKey(c).UserID)
+	item, err := a.Media.Content(c.Request.Context(), c.Param("id"), a.mediaUserID(c))
 	if err != nil {
 		if errors.Is(err, media.ErrNotReady) {
 			httpx.Abort(c, http.StatusConflict, "media_job_not_ready", "结果未就绪或已过期", true)
@@ -144,7 +167,7 @@ func (a *App) videoContent(c *gin.Context) {
 }
 
 func (a *App) cancelVideo(c *gin.Context) {
-	job, err := a.Media.Cancel(c.Request.Context(), c.Param("id"), a.currentAPIKey(c).UserID)
+	job, err := a.Media.Cancel(c.Request.Context(), c.Param("id"), a.mediaUserID(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "任务不存在", false)
 		return

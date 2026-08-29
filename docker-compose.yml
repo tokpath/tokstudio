@@ -79,6 +79,7 @@ services:
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
       TOKENHUB_WEB_ORIGIN: http://localhost:3000
       TOKENHUB_LOG_LEVEL: info
+      TOKENHUB_BIFROST_URL: http://bifrost:8081
     ports:
       - "8080:8080"
     depends_on:
@@ -101,6 +102,30 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  bifrost:
+    build:
+      context: ./backend
+    entrypoint: ["/bifrost-sandbox"]
+    environment:
+      TOKENHUB_HTTP_ADDR: :8081
+    ports:
+      - "8081:8081"
+
+  backup:
+    image: postgres:16-alpine
+    environment:
+      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
+      TOKENHUB_BACKUP_KEY: ${TOKENHUB_BACKUP_KEY:-dev-backup-key-change-me}
+      TOKENHUB_BACKUP_OFFSITE_DIR: /backups/offsite
+      TOKENHUB_BACKUP_INTERVAL_SECONDS: "86400"
+    volumes:
+      - ./scripts/backup_loop.sh:/backup_loop.sh:ro
+      - tokenhub_offsite:/backups/offsite
+    entrypoint: ["/bin/sh", "/backup_loop.sh"]
+    depends_on:
+      postgres:
         condition: service_healthy
 
   web:
@@ -131,3 +156,4 @@ volumes:
   tokenhub_pg:
   tokenhub_wal:
   tokenhub_caddy:
+  tokenhub_offsite:

@@ -88,6 +88,13 @@ vid2="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H
   -H 'Idempotency-Key: e2e-vid-1' -d '{"model":"bytedance/seedance-1.0","prompt":"a river","duration":5}')"
 python3 -c "import json,sys; a=json.load(open('/tmp/m4_vid.json')); b=json.loads(sys.argv[1]); assert a['id']==b['id'] and a['upstream_job_id']==b['upstream_job_id']" "$vid2"
 
+echo "== session cookie/token can create a media job without API Key"
+sess="$(curl -sS -o /tmp/m4_sess.json -w '%{http_code}' -X POST "$API_URL/v1/videos" \
+  -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -H 'Idempotency-Key: e2e-sess-vid' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"session river","duration":5}')"
+test "$sess" = "202"
+grep -q completed /tmp/m4_sess.json
+
 echo "== user can list own media jobs without prompt leak in admin csv"
 curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/media" | grep -q "$jid"
 csv="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/media?format=csv")"

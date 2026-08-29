@@ -41,6 +41,19 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := upsertBootUser(tx, "agent.b@tokenhub.local", "end_user", adminToken+"-agent", "thagb_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
 			return err
 		}
+		// D23：财务/运营/技术/只读审计是叠加角色，各自独立 bootstrap token，便于验收权限隔离。
+		if err := upsertBootUser(tx, "finance@tokenhub.local", "finance_admin", adminToken+"-finance", "thfin_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
+			return err
+		}
+		if err := upsertBootUser(tx, "ops@tokenhub.local", "ops_admin", adminToken+"-ops", "thops_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
+			return err
+		}
+		if err := upsertBootUser(tx, "tech@tokenhub.local", "tech_admin", adminToken+"-tech", "thtec_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
+			return err
+		}
+		if err := upsertBootUser(tx, "audit@tokenhub.local", "audit_readonly", adminToken+"-audit", "thaud_", OfficialChannelID, OfficialBrandID, "platform", "*"); err != nil {
+			return err
+		}
 		var agentUser userRow
 		if err := tx.Where("email = ?", "agent.b@tokenhub.local").First(&agentUser).Error; err == nil {
 			_ = tx.Where("user_id = ? AND acquisition_role_id = ?", agentUser.ID, AgentBRoleID).

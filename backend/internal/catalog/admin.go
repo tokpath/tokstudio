@@ -265,6 +265,51 @@ func (s *Service) ListRoutes(ctx context.Context) ([]RouteView, error) {
 	return out, nil
 }
 
+// AttachProvider 把一个 Provider 挂到已有公开模型：写 mapping，并追加到现有路由组。
+func (s *Service) AttachProvider(ctx context.Context, publicID, providerID, upstream string) error {
+	if publicID == "" || providerID == "" {
+		return ErrInvalidInput
+	}
+	if upstream == "" {
+		upstream = publicID
+	}
+	var model publicModelRow
+	if err := s.db.WithContext(ctx).Where("id = ? OR public_id = ?", publicID, publicID).First(&model).Error; err != nil {
+		return err
+	}
+	var provider providerRow
+	if err := s.db.WithContext(ctx).Where("id = ? OR slug = ?", providerID, providerID).First(&provider).Error; err != nil {
+		return err
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		mapping := mappingRow{
+			ID: id.New("map"), PublicModelID: model.ID, ProviderID: provider.ID,
+			UpstreamModelID: upstream, Status: "active",
+		}
+		if err := tx.Where("public_model_id = ? AND provider_id = ?", model.ID, provider.ID).FirstOrCreate(&mapping).Error; err != nil {
+			return err
+		}
+		if mapping.Status != "active" || mapping.UpstreamModelID != upstream {
+			if err := tx.Model(&mappingRow{}).Where("id = ?", mapping.ID).Updates(map[string]any{
+				"status": "active", "upstream_model_id": upstream,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		var group routeGroupRow
+		if err := tx.Where("public_model_id = ? AND status = ?", model.ID, "active").First(&group).Error; err != nil {
+			return nil
+		}
+		var existing candidateRow
+		if err := tx.Where("route_group_id = ? AND provider_id = ?", group.ID, provider.ID).First(&existing).Error; err == nil {
+			return nil
+		}
+		var max struct{ Priority int }
+		_ = tx.Model(&candidateRow{}).Where("route_group_id = ?", group.ID).Select("COALESCE(MAX(priority),0) AS priority").Scan(&max).Error
+		return tx.Create(&candidateRow{RouteGroupID: group.ID, ProviderID: provider.ID, Priority: max.Priority + 1}).Error
+	})
+}
+
 func (s *Service) CreateRoute(ctx context.Context, in RouteInput) (*RouteView, error) {
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("id = ? OR public_id = ?", in.PublicModelID, in.PublicModelID).First(&model).Error; err != nil {

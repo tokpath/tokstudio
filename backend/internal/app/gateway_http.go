@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/redisx"
 )
 
 func (a *App) registerGatewayRoutes(r *gin.Engine) {
@@ -44,6 +46,7 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.GET("/admin/routes", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
 	r.POST("/admin/routes", a.requireRoles("platform_admin", "tech_admin"), a.createAdminRoute)
 	r.PATCH("/admin/routes/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
+	r.POST("/admin/models/attach", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.attachModelProvider)
 }
 
 func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
@@ -247,10 +250,11 @@ func (a *App) responses(c *gin.Context) {
 	if out == nil {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	payload := gin.H{
 		"id": out.Response.ID, "model": out.Response.Model, "usage": out.Response.Usage,
 		"output": out.Response.Choices, "request_id": c.GetString(httpx.ContextRequestID), "provider": out.Response.Provider,
-	})
+	}
+	c.JSON(http.StatusOK, payload)
 }
 
 func (a *App) messages(c *gin.Context) {
@@ -258,12 +262,22 @@ func (a *App) messages(c *gin.Context) {
 }
 
 func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteOutput {
+	rawBody, _ := io.ReadAll(c.Request.Body)
+	if rec := a.replayIdempotency(c, rawBody); rec != nil {
+		return nil
+	}
 	var raw map[string]any
-	if err := c.ShouldBindJSON(&raw); err != nil {
+	if err := json.Unmarshal(rawBody, &raw); err != nil && len(rawBody) > 0 {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return nil
 	}
-	body, _ := json.Marshal(raw)
+	if raw == nil {
+		raw = map[string]any{}
+	}
+	body := rawBody
+	if len(body) == 0 {
+		body, _ = json.Marshal(raw)
+	}
 	var chat gateway.ChatRequest
 	_ = json.Unmarshal(body, &chat)
 	if chat.Model == "" {
@@ -320,15 +334,58 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		return out
 	}
 	if protocol == "anthropic.messages" {
-		c.JSON(http.StatusOK, gin.H{
+		payload := gin.H{
 			"id": out.Response.ID, "type": "message", "role": "assistant", "model": out.Response.Model,
 			"content": []gin.H{{"type": "text", "text": firstContent(out.Response)}},
 			"usage":   out.Response.Usage, "request_id": c.GetString(httpx.ContextRequestID), "provider": out.Response.Provider,
-		})
+		}
+		a.rememberIdempotency(c, rawBody, http.StatusOK, payload)
+		c.JSON(http.StatusOK, payload)
 		return out
 	}
+	a.rememberIdempotency(c, rawBody, http.StatusOK, out.Response)
 	c.JSON(http.StatusOK, out.Response)
 	return out
+}
+
+func (a *App) idempotencyActor(c *gin.Context) string {
+	if key := a.currentAPIKey(c); key != nil && key.APIKeyID != "" {
+		return key.APIKeyID
+	}
+	if p := a.currentPrincipal(c); p != nil {
+		return p.UserID
+	}
+	return "anon"
+}
+
+func (a *App) replayIdempotency(c *gin.Context, rawBody []byte) *redisx.IdemRecord {
+	header := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if header == "" || a.Redis == nil {
+		return nil
+	}
+	rec, err := redisx.RecallIdempotency(c.Request.Context(), a.Redis, a.idempotencyActor(c), header, redisx.HashBody(rawBody))
+	if errors.Is(err, redisx.ErrIdempotencyConflict) {
+		httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "相同幂等键对应不同请求体", false)
+		return &redisx.IdemRecord{}
+	}
+	if err != nil || rec == nil {
+		return nil
+	}
+	c.Data(rec.Status, "application/json", rec.Body)
+	c.Abort()
+	return rec
+}
+
+func (a *App) rememberIdempotency(c *gin.Context, rawBody []byte, status int, payload any) {
+	header := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if header == "" || a.Redis == nil {
+		return
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	_ = redisx.RememberIdempotency(c.Request.Context(), a.Redis, a.idempotencyActor(c), header, redisx.HashBody(rawBody), status, body)
 }
 
 func firstContent(resp gateway.ChatResponse) string {
@@ -552,4 +609,26 @@ func (a *App) patchAdminRoute(c *gin.Context) {
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) attachModelProvider(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID   string `json:"public_id"`
+		ProviderID string `json:"provider_id"`
+		Upstream   string `json:"upstream_model_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if err := a.Catalog.AttachProvider(c.Request.Context(), body.PublicID, body.ProviderID, body.Upstream); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "挂载 Provider 失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.attach", ResourceType: "model", ResourceID: body.PublicID,
+		After: map[string]string{"provider_id": body.ProviderID},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"ok": true, "request_id": c.GetString(httpx.ContextRequestID)})
 }

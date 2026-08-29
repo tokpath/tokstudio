@@ -93,6 +93,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/v1/me/media"
   },
   {
+    "method": "POST",
+    "path": "/v1/videos"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/models/attach"
+  },
+  {
     "method": "GET",
     "path": "/admin/media"
   },

@@ -135,6 +135,17 @@ func TestM4MediaJobs(t *testing.T) {
 	if img["object"] != "image" || img["status"] != "completed" {
 		t.Fatalf("image: %+v", img)
 	}
+
+	fromSession := postAccepted(t, server.URL+"/v1/videos", session, "sess-m4", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "session river",
+	})
+	if fromSession["id"] == nil {
+		t.Fatalf("session should create media: %+v", fromSession)
+	}
+	sessionGot := getAuthJSON(t, server.URL+"/v1/videos/"+fromSession["id"].(string), session)
+	if sessionGot["id"] != fromSession["id"] {
+		t.Fatalf("session get video: %+v", sessionGot)
+	}
 }
 
 func postAccepted(t *testing.T, url, token, idem string, payload map[string]any) map[string]any {

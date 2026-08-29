@@ -16,6 +16,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
@@ -31,6 +32,9 @@ func TestM7OpsHardening(t *testing.T) {
 	cfg.BootstrapAdmin = "m7_admin"
 	cfg.BootstrapUser = "m7_user"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
+	bifrost := httptest.NewServer(gateway.SandboxHandler())
+	defer bifrost.Close()
+	cfg.BifrostURL = bifrost.URL
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
@@ -300,6 +304,77 @@ func TestM7OpsHardening(t *testing.T) {
 	if respExp.StatusCode != http.StatusOK || !strings.Contains(string(raw), "gross_profit") {
 		t.Fatalf("billing export: %d %s", respExp.StatusCode, string(raw))
 	}
+
+	finance := "m7_admin-finance"
+	opsTok := "m7_admin-ops"
+	tech := "m7_admin-tech"
+	audit := "m7_admin-audit"
+	if me := getAuthJSON(t, server.URL+"/admin/me", finance); !hasRole(me, "finance_admin") {
+		t.Fatalf("finance bootstrap: %+v", me)
+	}
+	if getStatus(t, server.URL+"/admin/providers", finance) != http.StatusForbidden {
+		t.Fatal("finance must not list providers")
+	}
+	if getStatus(t, server.URL+"/admin/billing/export", finance) != http.StatusOK {
+		t.Fatal("finance should export billing")
+	}
+	if postStatusConfirm(t, server.URL+"/admin/providers/prd_echo_primary/credentials", finance, map[string]any{"secret": "sk-x"}) != http.StatusForbidden {
+		t.Fatal("finance must not rotate provider credentials")
+	}
+	if postStatusConfirm(t, server.URL+"/admin/refunds", opsTok, map[string]any{"request_id": "missing"}) != http.StatusForbidden {
+		t.Fatal("ops must not refund")
+	}
+	if postStatusConfirm(t, server.URL+"/admin/refunds", tech, map[string]any{"request_id": "missing"}) != http.StatusForbidden {
+		t.Fatal("tech must not refund")
+	}
+	if postStatusConfirm(t, server.URL+"/admin/refunds", audit, map[string]any{"request_id": "missing"}) != http.StatusForbidden {
+		t.Fatal("audit must not write refunds")
+	}
+	if getStatus(t, server.URL+"/admin/audit-logs", audit) != http.StatusOK {
+		t.Fatal("audit should read logs")
+	}
+	if probe := postJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary/health-check", tech, map[string]any{}); probe["health"] == nil {
+		t.Fatalf("tech health-check: %+v", probe)
+	}
+
+	idem := "chat-idem-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	firstChat := doChatHeader(t, server.URL+"/v1/chat/completions", key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "idem"}},
+	}, map[string]string{"Idempotency-Key": idem})
+	secondChat := doChatHeader(t, server.URL+"/v1/chat/completions", key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "idem"}},
+	}, map[string]string{"Idempotency-Key": idem})
+	if firstChat["request_id"] != secondChat["request_id"] {
+		t.Fatalf("idempotent chat should replay: %v vs %v", firstChat["request_id"], secondChat["request_id"])
+	}
+	if code := postStatusHeader(t, server.URL+"/v1/chat/completions", key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "other"}},
+	}, map[string]string{"Idempotency-Key": idem}); code != http.StatusConflict {
+		t.Fatalf("mismatched idempotency body should 409, got %d", code)
+	}
+
+	slug := "bifrost-lab-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	prd := postJSONRaw(t, server.URL+"/admin/providers", tech, map[string]any{
+		"name": "Bifrost Lab", "slug": slug, "adapter": "bifrost",
+	})
+	prdID := prd["item"].(map[string]any)["id"].(string)
+	_ = postJSONRaw(t, server.URL+"/admin/models/attach", tech, map[string]any{
+		"public_id": catalog.EchoModelID, "provider_id": prdID, "upstream_model_id": "echo-upstream",
+	})
+	viaBifrost := postJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+slug, key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "sidecar"}},
+	})
+	content, _ := firstContentOf(viaBifrost)
+	if !strings.Contains(content, "bifrost:sidecar") {
+		t.Fatalf("bifrost sandbox reply: %+v", viaBifrost)
+	}
+
+	fromSession := postAccepted(t, server.URL+"/v1/videos", session, "sess-m7", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "from console",
+	})
+	if fromSession["id"] == nil {
+		t.Fatalf("session media create: %+v", fromSession)
+	}
 }
 
 func postStatus(t *testing.T, url, token string, payload map[string]any) int {
@@ -327,6 +402,55 @@ func postStatusConfirm(t *testing.T, url, token string, payload map[string]any) 
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode
+}
+
+func getStatus(t *testing.T, url, token string) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+func postStatusHeader(t *testing.T, url, token string, payload map[string]any, headers map[string]string) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+func hasRole(me map[string]any, code string) bool {
+	roles, _ := me["roles"].([]any)
+	for _, role := range roles {
+		if role == code {
+			return true
+		}
+	}
+	return false
+}
+
+func firstContentOf(body map[string]any) (string, bool) {
+	choices, _ := body["choices"].([]any)
+	if len(choices) == 0 {
+		return "", false
+	}
+	choice, _ := choices[0].(map[string]any)
+	msg, _ := choice["message"].(map[string]any)
+	text, _ := msg["content"].(string)
+	return text, text != ""
 }
 
 func doChatHeader(t *testing.T, url, token string, payload map[string]any, headers map[string]string) map[string]any {

@@ -1,10 +1,12 @@
 package gateway
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -121,8 +123,32 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if strings.TrimSpace(a.BaseURL) == "" {
 		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("bifrost unavailable")
 	}
-	_ = ctx
-	_ = providerSlug
-	_ = req
-	return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, io.EOF
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return AdapterResult{HTTPStatus: 500, ErrorClass: "upstream_error"}, err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(a.BaseURL, "/")+"/v1/chat/completions", bytes.NewReader(payload))
+	if err != nil {
+		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Tokenhub-Provider", providerSlug)
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		class := "upstream_error"
+		if resp.StatusCode == 429 {
+			class = "rate_limited"
+		}
+		return AdapterResult{HTTPStatus: resp.StatusCode, ErrorClass: class}, fmt.Errorf("bifrost status %d", resp.StatusCode)
+	}
+	var out ChatResponse
+	if err := json.Unmarshal(body, &out); err != nil {
+		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error"}, err
+	}
+	return AdapterResult{HTTPStatus: 200, Body: out}, nil
 }

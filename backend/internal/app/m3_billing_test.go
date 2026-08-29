@@ -15,6 +15,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
 
@@ -50,6 +51,30 @@ func TestM3BillingInvariants(t *testing.T) {
 
 	if postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})["item"] == nil {
 		t.Fatal("redeem failed")
+	}
+	uid := userIDOf(reg)
+	beforeReap := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	reapID := "reap-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{
+		UserID: uid, ChannelOrgID: identity.OfficialChannelID, RequestID: reapID, ReserveMinor: 100000,
+		UnitPrices: []byte(`{}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	held := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	if held == beforeReap {
+		t.Fatal("reserve should reduce available balance")
+	}
+	if err := application.DB.Exec(`UPDATE billing_authorizations SET expires_at = NOW() - INTERVAL '1 minute' WHERE request_id = ?`, reapID).Error; err != nil {
+		t.Fatal(err)
+	}
+	n, err := application.Billing.ReapExpired(ctx)
+	if err != nil || n < 1 {
+		t.Fatalf("reap expired: n=%d err=%v", n, err)
+	}
+	afterReap := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	if afterReap != beforeReap {
+		t.Fatalf("expired reservation should return balance: before=%v after=%v", beforeReap, afterReap)
 	}
 
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{

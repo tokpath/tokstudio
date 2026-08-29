@@ -7,7 +7,7 @@
 - API Base：`https://{api-domain}/v1`
 - 鉴权：`Authorization: Bearer <tokenhub_api_key>`
 - 请求头：`X-Request-ID` 可选；未提供时服务端生成。
-- 写操作：`Idempotency-Key` 必须是客户端生成的稳定值，服务端保存 24 小时以上。
+- 写操作：`Idempotency-Key` 必须是客户端生成的稳定值，服务端保存 24 小时以上。文本网关把该键与请求体哈希写入 Redis（TTL 24h）；相同键不同请求体返回 `409 idempotency_conflict`。
 - 分页：`limit`（默认 20，最大 100）+ `cursor`，返回 `next_cursor`。
 - 错误结构：
 
@@ -138,6 +138,7 @@
 - `GET /admin/usage?format=csv`：用量明细导出。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
 - `GET /v1/me/media`：当前用户媒体任务（kind/status 筛选，不含他人数据）。
+- `POST /v1/videos` 与图像创建接口同时接受用户会话或 API Key，方便控制台直接提交任务。
 - `GET /admin/media`：管理端媒体任务列表；`?format=csv` 导出且不含 prompt。
 - `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
 - `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态。
@@ -149,7 +150,7 @@
 ## 7. 管理后台 API（P0）
 
 - Provider：`GET/POST/PATCH /admin/providers`、`POST /admin/providers/{id}/health-check`、`POST /admin/providers/{id}/credentials` 凭据轮换（不回显明文）；
-- 模型：`GET/POST/PATCH /admin/models`、同步、审核、发布、弃用；
+- 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射、同步、审核、发布、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
 - 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；

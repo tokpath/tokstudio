@@ -175,6 +175,18 @@ paths:
       responses:
         "200":
           description: current user media jobs
+  /v1/videos:
+    post:
+      operationId: createVideo
+      responses:
+        "202":
+          description: session or api key may create a media job
+  /admin/models/attach:
+    post:
+      operationId: attachModelProvider
+      responses:
+        "200":
+          description: provider mapped onto public model
   /admin/media:
     get:
       operationId: listAdminMedia

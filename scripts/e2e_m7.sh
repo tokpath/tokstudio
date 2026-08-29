@@ -153,6 +153,37 @@ code="$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/v1/public/tls-check?dom
 if [[ "$code" != "404" ]]; then echo "unknown host should 404, got $code" >&2; exit 1; fi
 curl -sf -X POST "$API_URL/admin/brands/brd_oem/tls/issue" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}' | grep -q issued
 
+echo "== admin role isolation"
+FINANCE_TOKEN="${ADMIN_TOKEN}-finance"
+OPS_TOKEN="${ADMIN_TOKEN}-ops"
+TECH_TOKEN="${ADMIN_TOKEN}-tech"
+AUDIT_TOKEN="${ADMIN_TOKEN}-audit"
+curl -sf -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/me" | grep -q finance_admin
+curl -sf -H "Authorization: Bearer $TECH_TOKEN" "$API_URL/admin/me" | grep -q tech_admin
+curl -sf -H "Authorization: Bearer $AUDIT_TOKEN" "$API_URL/admin/audit-logs" >/dev/null
+curl -sf -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/billing/export" | grep -q gross_profit
+code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/providers")"
+if [[ "$code" != "403" ]]; then echo "finance must not list providers, got $code" >&2; exit 1; fi
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $AUDIT_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"request_id":"missing"}')"
+if [[ "$code" != "403" ]]; then echo "audit must not refund, got $code" >&2; exit 1; fi
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $OPS_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"request_id":"missing"}')"
+if [[ "$code" != "403" ]]; then echo "ops must not refund, got $code" >&2; exit 1; fi
+curl -sf -X POST "$API_URL/admin/providers/prd_echo_primary/health-check" -H "Authorization: Bearer $TECH_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q health
+
+echo "== chat idempotency 24h"
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: e2e-chat-$email" -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"idem"}]}' >/tmp/m7-idem1.json
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: e2e-chat-$email" -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"idem"}]}' >/tmp/m7-idem2.json
+python3 -c "import json; a=json.load(open('/tmp/m7-idem1.json')); b=json.load(open('/tmp/m7-idem2.json')); assert a.get('request_id')==b.get('request_id')"
+code="$(curl -s -o /tmp/m7-idem3.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: e2e-chat-$email" -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"other"}]}')"
+if [[ "$code" != "409" ]]; then echo "mismatched idempotency should 409, got $code $(cat /tmp/m7-idem3.json)" >&2; exit 1; fi
+
+echo "== session creates media"
+curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: e2e-m7-sess" -d '{"model":"bytedance/seedance-1.0","prompt":"console","duration":5}' | grep -q id
+
 echo "== loadtest"
 bash "$ROOT/scripts/loadtest_limits.sh"
 

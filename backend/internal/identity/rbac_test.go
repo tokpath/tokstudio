@@ -12,3 +12,14 @@ func TestPrincipalHasRole(t *testing.T) {
 		t.Fatal("end user must not pass admin role")
 	}
 }
+
+func TestVisibleChannelID(t *testing.T) {
+	admin := Principal{Roles: []string{"platform_admin"}, ChannelOrgID: "chn_a"}
+	if admin.VisibleChannelID() != "" {
+		t.Fatal("platform admin must see all channels")
+	}
+	channelAdmin := Principal{Roles: []string{"channel_admin"}, ChannelOrgID: "chn_b"}
+	if channelAdmin.VisibleChannelID() != "chn_b" {
+		t.Fatal("channel admin must be scoped")
+	}
+}

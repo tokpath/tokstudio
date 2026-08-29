@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: TokenHub M1 Identity
+  version: 0.1.0-m1
+paths:
+  /v1/auth/register:
+    post:
+      summary: Email password register with immutable promotion attribution
+  /v1/auth/login:
+    post:
+      summary: Password login, sets HttpOnly session cookie
+  /v1/auth/otp/request:
+    post:
+      summary: Send email OTP
+  /v1/auth/otp/verify:
+    post:
+      summary: Login with OTP
+  /v1/auth/google/start:
+    get:
+      summary: Start Google OAuth and stash promotion code
+  /v1/auth/google/callback:
+    post:
+      summary: Finish Google OAuth
+  /v1/me:
+    get:
+      summary: Current user
+  /v1/me/channel/switch:
+    post:
+      summary: Always denied
+  /v1/public/brand:
+    get:
+      summary: Brand theme by host
+  /channel/users:
+    get:
+      summary: Channel-scoped user list

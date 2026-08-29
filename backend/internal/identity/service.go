@@ -18,12 +18,16 @@ import (
 var migrationFS embed.FS
 
 type userRow struct {
-	ID           string    `gorm:"column:id;primaryKey"`
-	Email        string    `gorm:"column:email"`
-	PasswordHash *string   `gorm:"column:password_hash"`
-	Status       string    `gorm:"column:status"`
-	CreatedAt    time.Time `gorm:"column:created_at"`
-	UpdatedAt    time.Time `gorm:"column:updated_at"`
+	ID              string     `gorm:"column:id;primaryKey"`
+	Email           string     `gorm:"column:email"`
+	PasswordHash    *string    `gorm:"column:password_hash"`
+	Status          string     `gorm:"column:status"`
+	ChannelOrgID    *string    `gorm:"column:channel_org_id"`
+	BrandID         *string    `gorm:"column:brand_id"`
+	EmailVerifiedAt *time.Time `gorm:"column:email_verified_at"`
+	GoogleSub       *string    `gorm:"column:google_sub"`
+	CreatedAt       time.Time  `gorm:"column:created_at"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }
 
 func (userRow) TableName() string { return "identity_users" }
@@ -55,26 +59,6 @@ type tokenRow struct {
 
 func (tokenRow) TableName() string { return "identity_access_tokens" }
 
-// Principal 是跨模块可安全传递的身份视图，不是 ORM Model。
-type Principal struct {
-	UserID string
-	Email  string
-	Roles  []string
-}
-
-func (p Principal) HasRole(codes ...string) bool {
-	wanted := map[string]struct{}{}
-	for _, code := range codes {
-		wanted[code] = struct{}{}
-	}
-	for _, role := range p.Roles {
-		if _, ok := wanted[role]; ok {
-			return true
-		}
-	}
-	return false
-}
-
 type Service struct {
 	db *gorm.DB
 }
@@ -91,36 +75,30 @@ func Migrations() (string, fs.FS) {
 	return "identity", sub
 }
 
-// Bootstrap 幂等写入开发管理员和普通用户，并刷新引导 token 哈希。
-func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken string) error {
-	if adminToken == "" || userToken == "" {
-		return nil
-	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := upsertBootUser(tx, "admin@tokenhub.local", "platform_admin", adminToken, "thadm_"); err != nil {
-			return err
-		}
-		return upsertBootUser(tx, "user@tokenhub.local", "end_user", userToken, "thusr_")
-	})
-}
-
-func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix string) error {
+func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, brandID, scopeType, scopeID string) error {
 	now := time.Now().UTC()
 	var user userRow
 	err := tx.Where("email = ?", email).First(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		user = userRow{
-			ID:        id.New("usr"),
-			Email:     email,
-			Status:    "active",
-			CreatedAt: now,
-			UpdatedAt: now,
+			ID:           id.New("usr"),
+			Email:        email,
+			Status:       "active",
+			ChannelOrgID: &channelID,
+			BrandID:      &brandID,
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		}
 		if err := tx.Create(&user).Error; err != nil {
 			return err
 		}
 	} else if err != nil {
 		return err
+	} else {
+		_ = tx.Model(&userRow{}).Where("id = ?", user.ID).Updates(map[string]any{
+			"channel_org_id": channelID,
+			"brand_id":       brandID,
+		}).Error
 	}
 
 	var role roleRow
@@ -134,8 +112,8 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix string) error {
 		if err := tx.Create(&userRoleRow{
 			UserID:    user.ID,
 			RoleID:    role.ID,
-			ScopeType: "platform",
-			ScopeID:   "*",
+			ScopeType: scopeType,
+			ScopeID:   scopeID,
 		}).Error; err != nil {
 			return err
 		}
@@ -183,14 +161,58 @@ func (s *Service) Authenticate(ctx context.Context, bearer string) (*Principal, 
 	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, "active").First(&user).Error; err != nil {
 		return nil, err
 	}
-	var roles []string
-	if err := s.db.WithContext(ctx).
-		Table("identity_user_roles ur").
-		Select("r.code").
-		Joins("JOIN identity_roles r ON r.id = ur.role_id").
-		Where("ur.user_id = ?", user.ID).
-		Scan(&roles).Error; err != nil {
+	principal, err := s.loadPrincipal(ctx, user)
+	if err != nil {
 		return nil, err
 	}
-	return &Principal{UserID: user.ID, Email: user.Email, Roles: roles}, nil
+	return principal, nil
+}
+
+func (s *Service) loadPrincipal(ctx context.Context, user userRow) (*Principal, error) {
+	type roleScope struct {
+		Code      string
+		ScopeType string
+		ScopeID   string
+	}
+	var rows []roleScope
+	if err := s.db.WithContext(ctx).
+		Table("identity_user_roles ur").
+		Select("r.code, ur.scope_type, ur.scope_id").
+		Joins("JOIN identity_roles r ON r.id = ur.role_id").
+		Where("ur.user_id = ?", user.ID).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	roles := make([]string, 0, len(rows))
+	p := principalFromUser(user, nil)
+	for _, row := range rows {
+		roles = append(roles, row.Code)
+		if row.Code == "channel_admin" {
+			p.ScopeType = row.ScopeType
+			p.ScopeID = row.ScopeID
+			if p.ChannelOrgID == "" {
+				p.ChannelOrgID = row.ScopeID
+			}
+		}
+	}
+	p.Roles = roles
+	return p, nil
+}
+
+func principalFromUser(user userRow, roles []string) *Principal {
+	p := &Principal{UserID: user.ID, Email: user.Email, Roles: roles, ScopeType: "platform", ScopeID: "*"}
+	if user.ChannelOrgID != nil {
+		p.ChannelOrgID = *user.ChannelOrgID
+	}
+	if user.BrandID != nil {
+		p.BrandID = *user.BrandID
+	}
+	return p
+}
+
+func deref(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
 }

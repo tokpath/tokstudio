@@ -272,6 +272,15 @@ curl_has tokenhub/echo-1 -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin
 curl_has action -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?format=csv"
 curl_has official -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channels?format=csv"
 curl_has pln_echo_month -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans"
+planhtml="$(curl -sf "$WEB_URL/admin/plans")"
+echo "$planhtml" | grep -q "创建套餐"
+echo "$planhtml" | grep -q "下架套餐"
+PLAN_JSON="$(curl -sf -X POST "$API_URL/admin/plans" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"name":"Ops E2E Plan","owner_type":"platform","price_minor":1000000,"items":[{"unit_type":"usd_credit","included_amount":1000000}]}')"
+PLAN_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$PLAN_JSON")"
+curl_has archived -X PATCH "$API_URL/admin/plans/$PLAN_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"status":"archived"}'
 curl_has tokenhub/echo-1 -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/price-books"
 curl_has direct_bps -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commission-policy"
 curl_has adapter -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/payments?format=csv"

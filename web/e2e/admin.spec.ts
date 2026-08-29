@@ -19,6 +19,10 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/plans");
   await expect(page.getByRole("heading", { name: "套餐审核" })).toBeVisible();
   await expect(page.getByRole("button", { name: "待审核" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "创建套餐" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建套餐" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "下架套餐" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "下架套餐" })).toBeVisible();
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("button", { name: "读取策略" })).toBeVisible();

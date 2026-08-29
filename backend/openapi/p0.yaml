@@ -431,6 +431,18 @@ paths:
       responses:
         "201":
           description: created
+  /admin/plans/{id}:
+    patch:
+      operationId: patchAdminPlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: archived
   /admin/plans/{id}/review:
     post:
       operationId: reviewAdminPlan

@@ -217,6 +217,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/plans"
   },
   {
+    "method": "PATCH",
+    "path": "/admin/plans/{id}"
+  },
+  {
     "method": "POST",
     "path": "/admin/plans/{id}/review"
   },

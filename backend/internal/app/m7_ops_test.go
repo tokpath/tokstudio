@@ -324,6 +324,18 @@ func TestM7OpsHardening(t *testing.T) {
 	if patchedCh["item"].(map[string]any)["status"] != "disabled" {
 		t.Fatalf("patch channel: %+v", patchedCh)
 	}
+	createdPlan := postJSONRaw(t, server.URL+"/admin/plans", "m7_admin", map[string]any{
+		"name": "Ops Lab Plan", "owner_type": "platform", "price_minor": 1_000_000,
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+	})
+	planID, _ := createdPlan["item"].(map[string]any)["id"].(string)
+	if !strings.HasPrefix(planID, "pln_") || createdPlan["item"].(map[string]any)["status"] != "published" {
+		t.Fatalf("create platform plan: %+v", createdPlan)
+	}
+	archived := patchJSONRaw(t, server.URL+"/admin/plans/"+planID, "m7_admin", map[string]any{"status": "archived"})
+	if archived["item"].(map[string]any)["status"] != "archived" {
+		t.Fatalf("archive plan: %+v", archived)
+	}
 	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
 	if len(keys) == 0 {
 		t.Fatal("admin api keys empty")

@@ -24,6 +24,7 @@ export default function AdminPlansPage() {
   const [status, setStatus] = useState("pending_review");
   const [reason, setReason] = useState("promo");
   const [message, setMessage] = useState("渠道低价或高风险媒体配额会进入待审核。通过或拒绝都会写审计。");
+  const [writeMessage, setWriteMessage] = useState("平台套餐满 1 USD 会直接发布。不要下架 pln_echo_month，那是公共站演示套餐。");
   const queryClient = useQueryClient();
   const path = status ? `/admin/plans?status=${encodeURIComponent(status)}` : "/admin/plans";
   const query = useQuery({
@@ -100,6 +101,83 @@ export default function AdminPlansPage() {
         </table>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </section>
+      <form
+        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const data = new FormData(form);
+          const res = await fetch(`${apiBase}/admin/plans`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+            body: JSON.stringify({
+              name: String(data.get("name") || "").trim(),
+              owner_type: String(data.get("owner_type") || "platform").trim() || "platform",
+              price_minor: Number(data.get("price_minor") || 0),
+              items: [
+                {
+                  unit_type: String(data.get("unit_type") || "usd_credit").trim() || "usd_credit",
+                  included_amount: Number(data.get("included_amount") || 0),
+                },
+              ],
+            }),
+          });
+          const body = await res.json();
+          if (!res.ok) {
+            setWriteMessage(body.error?.message || "创建失败");
+            return;
+          }
+          form.reset();
+          setWriteMessage(`已创建 ${body.item?.id} ${body.item?.name} → ${body.item?.status}`);
+          await queryClient.invalidateQueries();
+        }}
+      >
+        <h2 className="mb-3 text-xl font-medium">创建套餐</h2>
+        <p className="mb-3 text-sm text-slate-400">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
+        <div className="mb-3 grid max-w-xl gap-2">
+          <Input name="name" aria-label="创建用套餐名" placeholder="创建用套餐名" />
+          <Input name="owner_type" aria-label="创建用归属" placeholder="创建用归属 platform" defaultValue="platform" />
+          <Input name="price_minor" aria-label="创建用价格" placeholder="创建用价格 1000000" defaultValue="1000000" />
+          <Input name="unit_type" aria-label="创建用权益单位" placeholder="创建用权益单位 usd_credit" defaultValue="usd_credit" />
+          <Input name="included_amount" aria-label="创建用权益数量" placeholder="创建用权益数量" defaultValue="1000000" />
+        </div>
+        <Button size="sm" type="submit">
+          创建套餐
+        </Button>
+      </form>
+      <form
+        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const data = new FormData(form);
+          const id = String(data.get("plan_id") || "").trim();
+          const res = await fetch(`${apiBase}/admin/plans/${id}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+            body: JSON.stringify({ status: "archived" }),
+          });
+          const body = await res.json();
+          if (!res.ok) {
+            setWriteMessage(body.error?.message || "下架失败");
+            return;
+          }
+          setWriteMessage(`已下架 ${body.item?.id} → ${body.item?.status}`);
+          await queryClient.invalidateQueries();
+        }}
+      >
+        <h2 className="mb-3 text-xl font-medium">下架套餐</h2>
+        <p className="mb-3 text-sm text-slate-400">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
+        <div className="mb-3 grid max-w-xl gap-2">
+          <Input name="plan_id" aria-label="下架用套餐 ID" placeholder="下架用套餐 ID" />
+        </div>
+        <Button size="sm" type="submit">
+          下架套餐
+        </Button>
+      </form>
+      <p className="text-sm text-slate-300">{writeMessage}</p>
     </AdminShell>
   );
 }

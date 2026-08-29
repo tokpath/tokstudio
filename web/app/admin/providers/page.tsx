@@ -53,7 +53,8 @@ function RotateCredentialForm() {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const providerID = String(data.get("provider_id") || "").trim();
     const secret = String(data.get("secret") || "");
     const res = await fetch(`${apiBase}/admin/providers/${providerID}/credentials`, {
@@ -67,7 +68,7 @@ function RotateCredentialForm() {
       setMessage(body.error?.message || "轮换失败");
       return;
     }
-    event.currentTarget.reset();
+    form.reset();
     setMessage(`已轮换，credential_ref=${body.credential_ref || ""}`);
     await queryClient.invalidateQueries();
   }

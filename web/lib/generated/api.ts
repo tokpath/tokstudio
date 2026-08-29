@@ -113,6 +113,18 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/users"
   },
   {
+    "method": "POST",
+    "path": "/admin/users/{id}/ban"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/users/{id}/unban"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/users/{id}/attribution"
+  },
+  {
     "method": "GET",
     "path": "/admin/api-keys"
   },
@@ -219,6 +231,18 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/price-books"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ops/alerts"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ops/alerts/evaluate"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ops/runbooks"
   }
 ];
 

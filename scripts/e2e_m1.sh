@@ -138,5 +138,47 @@ echo "$adminhtml" | grep -q "支付"
 planhtml="$(curl -sf "$WEB_URL/admin/plans")"
 echo "$planhtml" | grep -q "套餐审核"
 echo "$planhtml" | grep -q "待审核"
+usershtml="$(curl -sf "$WEB_URL/admin/users")"
+echo "$usershtml" | grep -q "封禁"
+echo "$usershtml" | grep -q "改归因"
+alertshtml="$(curl -sf "$WEB_URL/admin/alerts")"
+echo "$alertshtml" | grep -q "评估告警"
+runbookshtml="$(curl -sf "$WEB_URL/admin/runbooks")"
+echo "$runbookshtml" | grep -q "应急手册"
+
+echo "== admin ban blocks login and api key"
+carol="carol-$RANDOM@example.test"
+reg_c="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$carol\",\"password\":\"password1\",\"promotion_code\":\"THA1\"}")"
+token_c="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg_c")"
+uid_c="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['user']['id'])" "$reg_c")"
+keyjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $token_c" -H 'Content-Type: application/json' -d '{"name":"ban"}')"
+key_c="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$keyjson")"
+noconfirm="$(curl -sS -o /tmp/m1_ban409.json -w '%{http_code}' -X POST "$API_URL/admin/users/$uid_c/ban" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"reason":"abuse"}')"
+test "$noconfirm" = "409"
+curl -sf -X POST "$API_URL/admin/users/$uid_c/ban" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"reason":"abuse"}' | grep -q banned
+banned_login="$(curl -sS -o /tmp/m1_banned.json -w '%{http_code}' -X POST "$API_URL/v1/auth/login" \
+  -H 'Content-Type: application/json' -d "{\"email\":\"$carol\",\"password\":\"password1\"}")"
+test "$banned_login" = "403"
+banned_me="$(curl -sS -o /tmp/m1_banned_me.json -w '%{http_code}' -H "Authorization: Bearer $token_c" "$API_URL/v1/me")"
+test "$banned_me" = "403"
+banned_key="$(curl -sS -o /tmp/m1_banned_key.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $key_c" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"no"}]}')"
+test "$banned_key" = "403"
+audit="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=identity.user.ban")"
+echo "$audit" | grep -q identity.user.ban
+curl -sf -X POST "$API_URL/admin/users/$uid_c/unban" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"reason":"appeal"}' | grep -q active
+curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$carol\",\"password\":\"password1\"}" | grep -q "$carol"
+curl -sf -X POST "$API_URL/admin/users/$uid_c/attribution" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"promotion_code":"THB1","reason":"manual move"}' | grep -q updated
+moved="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/users")"
+echo "$moved" | grep -q "$carol"
+echo "$moved" | grep -q THB1
 
 echo "M1 e2e passed"

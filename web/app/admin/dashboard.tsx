@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
       <h2 className="mb-3 text-xl font-medium">运营看板</h2>
-      <p className="mb-3 text-sm text-slate-400">告警和 runbook 在 /admin/ops/alerts 与 /admin/ops/runbooks。时间序列来自网关与账务接口，不直连业务表。</p>
+      <p className="mb-3 text-sm text-slate-400">告警和应急手册在 /admin/alerts 与 /admin/runbooks。时间序列来自网关与账务接口，不直连业务表。</p>
       <div className="flex flex-wrap gap-3">
         <button className="rounded border border-slate-600 px-4 py-2" onClick={refresh}>
           刷新指标

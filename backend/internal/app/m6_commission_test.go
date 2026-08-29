@@ -225,4 +225,30 @@ func TestM6CommissionDistribution(t *testing.T) {
 		"cap_bps": commission.DefaultCap, "freeze_days": commission.FreezeDays,
 		"min_settle_minor": billing.MinorPerUSD, "version": commission.PolicyM6,
 	})
+
+	regHold := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "hold-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": identity.PromoKOL2B,
+	})
+	holdSession := tokenOf(regHold)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", holdSession, map[string]any{"code": billing.RedeemE2E})
+	holdKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", holdSession, map[string]any{"name": "hold"})["item"].(map[string]any)["key"].(string)
+	_ = postJSONRaw(t, server.URL+"/v1/chat/completions", holdKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hold-me"}},
+	})
+	holdUsage := getAuthJSON(t, server.URL+"/v1/me/usage", holdSession)["items"].([]any)[0].(map[string]any)["id"].(string)
+	holdUser := getAuthJSON(t, server.URL+"/v1/me", holdSession)["user"].(map[string]any)["id"].(string)
+	held, err := application.Commission.HoldUnsettledForUser(ctx, holdUser)
+	if err != nil || held == 0 {
+		t.Fatalf("hold unsettled: n=%d err=%v", held, err)
+	}
+	for _, raw := range getAuthJSON(t, server.URL+"/admin/commissions?usage_event_id="+holdUsage, "m6_admin")["items"].([]any) {
+		if raw.(map[string]any)["status"] != commission.StatusHeld {
+			t.Fatalf("ban should hold commission: %+v", raw)
+		}
+	}
+	released, err := application.Commission.ReleaseHeldForUser(ctx, holdUser)
+	if err != nil || released == 0 {
+		t.Fatalf("release held: n=%d err=%v", released, err)
+	}
 }

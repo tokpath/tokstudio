@@ -31,5 +31,10 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("PATCH", "/admin/commission-policy")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/price-books")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/price-books")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/users/{id}/ban")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/users/{id}/unban")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/users/{id}/attribution")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/ops/alerts")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/ops/runbooks")).toBe(true);
   });
 });

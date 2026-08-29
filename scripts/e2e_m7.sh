@@ -7,6 +7,7 @@ cd "$ROOT"
 
 API_URL="${TOKENHUB_PUBLIC_BASE_URL:-http://127.0.0.1:8080}"
 ADMIN_TOKEN="${TOKENHUB_BOOTSTRAP_ADMIN_TOKEN:-dev_admin_change_me}"
+WEB_URL="${TOKENHUB_WEB_ORIGIN:-http://127.0.0.1:3000}"
 STARTED_API=0
 API_PID=""
 API_LOG="$(mktemp)"
@@ -136,6 +137,10 @@ curl_has passed -X POST "$API_URL/admin/ops/drills/media" -H "Authorization: Bea
 curl_has passed -X POST "$API_URL/admin/ops/drills/tls" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}'
 curl_has pending_reconciliation -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/runbooks"
 curl_has tls_chaos -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/ops/runbooks"
+alertshtml="$(curl -sf "$WEB_URL/admin/alerts")"
+echo "$alertshtml" | grep -q "评估告警"
+runbookshtml="$(curl -sf "$WEB_URL/admin/runbooks")"
+echo "$runbookshtml" | grep -q "应急手册"
 
 echo "== admin catalog, gemini, 2fa"
 curl_has gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers"

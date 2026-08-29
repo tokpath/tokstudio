@@ -158,6 +158,7 @@
 - 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射；`POST /admin/providers/{id}/sync` 同步结果进入 `draft`；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`，模型 ID 含斜杠）审核、发布、弃用，不删除历史映射和价格版本；
 - 路由：`GET/POST/PATCH /admin/routes`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
+- 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
 - 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；
 - 推广：`GET/POST /admin/acquisition-roles`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；

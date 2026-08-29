@@ -19,7 +19,7 @@
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja |
+| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja；`status` 为 `active`/`banned`，封禁后会话与 API Key 失效 |
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
 | `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权 |
 | `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级 |
@@ -71,7 +71,7 @@ P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`�
 | `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费 |
 | `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
-| `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/available/paid/reversed |
+| `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/held/available/paid/reversed；封禁把未结算标 `held` |
 
 P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
 
@@ -150,7 +150,7 @@ P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`o
 
 `frozen -> available -> paid`
 
-任一阶段均可因退款、冲正或风控进入 `reversed`，但不得删除原流水。
+封禁把未结算的 `frozen`/`available` 标成 `held`，解封后再按冻结截止时间回到 `frozen` 或 `available`。任一阶段均可因退款、冲正或风控进入 `reversed`，但不得删除原流水。
 
 ### 4.7 异步事件投递
 

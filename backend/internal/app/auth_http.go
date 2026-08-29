@@ -40,6 +40,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/me/2fa/enable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPEnable)
 	r.POST("/admin/me/2fa/disable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPDisable)
 	r.GET("/admin/users", a.requireRoles("platform_admin"), a.listUsersAdmin)
+	r.POST("/admin/users/:id/ban", a.requireRoles("platform_admin"), a.banUser)
+	r.POST("/admin/users/:id/unban", a.requireRoles("platform_admin"), a.unbanUser)
 	r.POST("/admin/users/:id/attribution", a.requireRoles("platform_admin"), a.reattribute)
 	r.GET("/channel/me", a.requireRoles("channel_admin"), a.channelMe)
 	r.GET("/channel/users", a.requireRoles("channel_admin"), a.listUsersChannel)
@@ -96,6 +98,12 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "显示名过长", false)
 	case errors.Is(err, identity.ErrInvalidLocale):
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "语言只支持 zh、en、ja", false)
+	case errors.Is(err, identity.ErrInvalidReason):
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "必须填写原因", false)
+	case errors.Is(err, identity.ErrSelfAction):
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能对自己执行该操作", false)
+	case errors.Is(err, identity.ErrAdminProtected):
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能封禁平台管理员", false)
 	default:
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "处理失败", true)
 	}
@@ -520,8 +528,8 @@ func (a *App) listUsersAdmin(c *gin.Context) {
 		return
 	}
 	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "users.csv", []string{"id", "email", "status", "channel_org_id"}, items, func(item identity.UserView) []string {
-			return []string{item.ID, item.Email, item.Status, item.ChannelOrgID}
+		httpx.WriteCSV(c, "users.csv", []string{"id", "email", "status", "channel_org_id", "source_code"}, items, func(item identity.UserView) []string {
+			return []string{item.ID, item.Email, item.Status, item.ChannelOrgID, item.SourceCode}
 		})
 		return
 	}
@@ -557,6 +565,9 @@ func (a *App) channelMe(c *gin.Context) {
 }
 
 func (a *App) reattribute(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		PromotionCode string `json:"promotion_code"`
 		Reason        string `json:"reason"`
@@ -576,4 +587,45 @@ func (a *App) reattribute(c *gin.Context) {
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"status": "updated", "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) banUser(c *gin.Context) {
+	a.setUserStatus(c, identity.UserStatusBanned, "identity.user.ban")
+}
+
+func (a *App) unbanUser(c *gin.Context) {
+	a.setUserStatus(c, identity.UserStatusActive, "identity.user.unban")
+}
+
+func (a *App) setUserStatus(c *gin.Context, status, action string) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	principal := a.currentPrincipal(c)
+	item, before, err := a.Identity.AdminSetUserStatus(c.Request.Context(), *principal, c.Param("id"), status, body.Reason)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	if status == identity.UserStatusBanned {
+		if _, err := a.Commission.HoldUnsettledForUser(c.Request.Context(), item.ID); err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "冻结未结算佣金失败", true)
+			return
+		}
+	} else {
+		if _, err := a.Commission.ReleaseHeldForUser(c.Request.Context(), item.ID); err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "恢复未结算佣金失败", true)
+			return
+		}
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: action, ResourceType: "user", ResourceID: item.ID,
+		Before: map[string]string{"status": before}, After: map[string]string{"status": item.Status, "reason": body.Reason},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }

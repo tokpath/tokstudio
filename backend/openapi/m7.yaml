@@ -18,6 +18,12 @@ paths:
   /admin/ops/alerts:
     get:
       summary: Open operational alerts
+  /admin/ops/alerts/evaluate:
+    post:
+      summary: Evaluate dashboard thresholds into ops_alerts
+  /admin/ops/runbooks:
+    get:
+      summary: Runbooks for pending reconciliation, circuit, backup and TLS drills
   /admin/ops/backup-drill:
     post:
       summary: Record a restore drill against RPO 15m / RTO 60m

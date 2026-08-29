@@ -214,6 +214,58 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if tokenOf(login) == "" {
 		t.Fatalf("new password login: %+v", login)
 	}
+
+	userA := login["session"].(map[string]any)["user"].(map[string]any)
+	userAID := userA["id"].(string)
+	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", tokenOf(login), map[string]any{"name": "ban-key"})["item"].(map[string]any)["key"].(string)
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/users/"+userAID+"/ban", "m1_admin_token", map[string]string{"reason": "abuse"}) != http.StatusConflict {
+		t.Fatal("ban without confirm must be 409")
+	}
+	adminID := getAuthJSON(t, server.URL+"/v1/me", "m1_admin_token")["user"].(map[string]any)["id"].(string)
+	selfBan := mustStatusJSONConfirm(t, http.MethodPost, server.URL+"/admin/users/"+adminID+"/ban", "m1_admin_token", map[string]string{"reason": "self"})
+	if selfBan != http.StatusForbidden {
+		t.Fatalf("self ban expected 403, got %d", selfBan)
+	}
+	banned := postJSONRaw(t, server.URL+"/admin/users/"+userAID+"/ban", "m1_admin_token", map[string]any{"reason": "abuse"})
+	if banned["item"].(map[string]any)["status"] != identity.UserStatusBanned {
+		t.Fatalf("ban status: %+v", banned)
+	}
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": emailA, "password": "password2",
+	}) != http.StatusForbidden {
+		t.Fatal("banned user login must fail")
+	}
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/me", tokenOf(login), nil) != http.StatusForbidden {
+		t.Fatal("banned session must be 403")
+	}
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/v1/chat/completions", apiKey, map[string]string{"model": "tokenhub/echo-1"}) != http.StatusForbidden {
+		t.Fatal("banned api key must be 403")
+	}
+	audit := getAuthJSON(t, server.URL+"/admin/audit-logs?action=identity.user.ban", "m1_admin_token")
+	if !containsText(audit, userAID) {
+		t.Fatalf("ban audit missing: %+v", audit)
+	}
+	unbanned := postJSONRaw(t, server.URL+"/admin/users/"+userAID+"/unban", "m1_admin_token", map[string]any{"reason": "appeal"})
+	if unbanned["item"].(map[string]any)["status"] != identity.UserStatusActive {
+		t.Fatalf("unban status: %+v", unbanned)
+	}
+	if tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": emailA, "password": "password2",
+	})) == "" {
+		t.Fatal("unban must restore login")
+	}
+	moved := postJSONRaw(t, server.URL+"/admin/users/"+userAID+"/attribution", "m1_admin_token", map[string]any{
+		"promotion_code": "THB1", "reason": "manual move",
+	})
+	if moved["status"] != "updated" {
+		t.Fatalf("reattribute: %+v", moved)
+	}
+	movedMe := getAuthJSON(t, server.URL+"/v1/me", tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": emailA, "password": "password2",
+	})))["user"].(map[string]any)
+	if movedMe["channel_org_id"] != identity.ResellerChannelID || movedMe["source_code"] != "THB1" {
+		t.Fatalf("reattribute user: %+v", movedMe)
+	}
 }
 
 func postBody(t *testing.T, url, token string, payload map[string]string) map[string]any {
@@ -264,6 +316,23 @@ func mustStatusJSON(t *testing.T, method, url, token string, payload map[string]
 	}
 	req, _ := http.NewRequest(method, url, reader)
 	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+func mustStatusJSONConfirm(t *testing.T, method, url, token string, payload map[string]string) int {
+	t.Helper()
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest(method, url, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}

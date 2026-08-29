@@ -25,6 +25,8 @@
     "usage": "用量/账单",
     "media": "媒体任务",
     "channels": "渠道/代理商",
+    "alerts": "告警",
+    "runbooks": "应急手册",
     "audit": "审计日志",
     "settings": "系统设置",
     "refresh": "刷新"

@@ -216,6 +216,42 @@ paths:
       responses:
         "200":
           description: users
+  /admin/users/{id}/ban:
+    post:
+      operationId: banAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: user banned
+  /admin/users/{id}/unban:
+    post:
+      operationId: unbanAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: user restored
+  /admin/users/{id}/attribution:
+    post:
+      operationId: reattributeAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: attribution changed
   /admin/api-keys:
     get:
       operationId: listAdminAPIKeys
@@ -411,3 +447,21 @@ paths:
       responses:
         "200":
           description: published price
+  /admin/ops/alerts:
+    get:
+      operationId: listAdminAlerts
+      responses:
+        "200":
+          description: operational alerts
+  /admin/ops/alerts/evaluate:
+    post:
+      operationId: evaluateAdminAlerts
+      responses:
+        "200":
+          description: evaluated alerts
+  /admin/ops/runbooks:
+    get:
+      operationId: listAdminRunbooks
+      responses:
+        "200":
+          description: incident runbooks

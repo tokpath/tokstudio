@@ -20,6 +20,8 @@ const links = [
   { href: "/admin/media", key: "media" },
   { href: "/admin/channels", key: "channels" },
   { href: "/admin/commission", key: "commission" },
+  { href: "/admin/alerts", key: "alerts" },
+  { href: "/admin/runbooks", key: "runbooks" },
   { href: "/admin/audit", key: "audit" },
   { href: "/admin/settings", key: "settings" },
 ] as const;

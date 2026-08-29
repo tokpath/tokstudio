@@ -19,6 +19,7 @@ const (
 
 	StatusFrozen    = "frozen"
 	StatusAvailable = "available"
+	StatusHeld      = "held"
 	StatusSettled   = "settled"
 	StatusPaid      = "paid"
 	StatusReversed  = "reversed"

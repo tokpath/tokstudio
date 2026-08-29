@@ -160,7 +160,10 @@ func (s *Service) Authenticate(ctx context.Context, bearer string) (*Principal, 
 		return nil, err
 	}
 	var user userRow
-	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, "active").First(&user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, UserStatusActive).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	principal, err := s.loadPrincipal(ctx, user)

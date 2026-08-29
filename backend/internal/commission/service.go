@@ -313,6 +313,35 @@ func (s *Service) Unfreeze(ctx context.Context, now time.Time) (int, error) {
 	return int(res.RowsAffected), res.Error
 }
 
+// HoldUnsettledForUser 把该用户产生的未结算佣金标成 held，封禁后不再进入结算。
+func (s *Service) HoldUnsettledForUser(ctx context.Context, userID string) (int, error) {
+	if userID == "" {
+		return 0, nil
+	}
+	res := s.db.WithContext(ctx).Model(&entryRow{}).
+		Where("user_id = ? AND status IN ?", userID, []string{StatusFrozen, StatusAvailable}).
+		Updates(map[string]any{"status": StatusHeld})
+	return int(res.RowsAffected), res.Error
+}
+
+// ReleaseHeldForUser 解封后按冻结截止时间把 held 恢复成 frozen 或 available。
+func (s *Service) ReleaseHeldForUser(ctx context.Context, userID string) (int, error) {
+	if userID == "" {
+		return 0, nil
+	}
+	now := time.Now().UTC()
+	avail := s.db.WithContext(ctx).Model(&entryRow{}).
+		Where("user_id = ? AND status = ? AND available_at IS NOT NULL AND available_at <= ?", userID, StatusHeld, now).
+		Updates(map[string]any{"status": StatusAvailable})
+	if avail.Error != nil {
+		return 0, avail.Error
+	}
+	frozen := s.db.WithContext(ctx).Model(&entryRow{}).
+		Where("user_id = ? AND status = ?", userID, StatusHeld).
+		Updates(map[string]any{"status": StatusFrozen})
+	return int(avail.RowsAffected + frozen.RowsAffected), frozen.Error
+}
+
 func (s *Service) ForceAvailableAt(ctx context.Context, usageEventID string, at time.Time) error {
 	return s.db.WithContext(ctx).Model(&entryRow{}).Where("usage_event_id = ?", usageEventID).
 		Update("available_at", at).Error

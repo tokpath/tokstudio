@@ -200,8 +200,8 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 	now := time.Now().UTC()
 	_ = s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Update("last_used_at", now).Error
 	var user userRow
-	if err := s.db.WithContext(ctx).Where("id = ?", row.UserID).First(&user).Error; err != nil {
-		return nil, err
+	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, UserStatusActive).First(&user).Error; err != nil {
+		return nil, nil
 	}
 	principal, err := s.loadPrincipal(ctx, user)
 	if err != nil {

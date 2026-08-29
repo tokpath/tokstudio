@@ -9,6 +9,8 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "支付" })).toBeVisible();
   await expect(page.getByRole("link", { name: "指标" })).toBeVisible();
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "告警" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "应急手册" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
 });
 
@@ -27,4 +29,12 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "发布价格" })).toBeVisible();
   await page.goto("/admin/metrics");
   await expect(page.getByRole("heading", { name: "运营看板" })).toBeVisible();
+  await page.goto("/admin/users");
+  await expect(page.getByRole("heading", { name: "用户/项目" })).toBeVisible();
+  await expect(page.getByLabel("操作原因")).toBeVisible();
+  await page.goto("/admin/alerts");
+  await expect(page.getByRole("heading", { name: "告警" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "评估告警" })).toBeVisible();
+  await page.goto("/admin/runbooks");
+  await expect(page.getByRole("heading", { name: "应急手册" })).toBeVisible();
 });

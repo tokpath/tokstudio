@@ -25,6 +25,8 @@
     "usage": "Usage",
     "media": "Media",
     "channels": "Channels",
+    "alerts": "Alerts",
+    "runbooks": "Runbooks",
     "audit": "Audit",
     "settings": "Settings",
     "refresh": "Refresh"

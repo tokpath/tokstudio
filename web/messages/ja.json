@@ -25,6 +25,8 @@
     "usage": "利用量",
     "media": "メディア",
     "channels": "チャネル",
+    "alerts": "警報",
+    "runbooks": "ランブック",
     "audit": "監査",
     "settings": "設定",
     "refresh": "更新"

@@ -178,6 +178,9 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing authRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
+			if existing.UserID != in.UserID {
+				return ErrConflict
+			}
 			out = &Reservation{ID: existing.ID, RequestID: existing.RequestID, AmountMinor: existing.AmountMinor, Status: existing.Status, Currency: existing.Currency}
 			return nil
 		}
@@ -189,19 +192,20 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 			return err
 		}
 		now := time.Now().UTC()
-		// 原子扣减：WHERE available_minor >= amount，避免只靠行锁+内存加减时并发双扣。
-		res := tx.Model(&walletRow{}).
-			Where("id = ? AND available_minor >= ?", wallet.ID, in.ReserveMinor).
-			Updates(map[string]any{
-				"available_minor": gorm.Expr("available_minor - ?", in.ReserveMinor),
-				"reserved_minor":  gorm.Expr("reserved_minor + ?", in.ReserveMinor),
-				"version":         gorm.Expr("version + 1"),
-				"updated_at":      now,
-			})
-		if res.Error != nil {
-			return res.Error
+		// 用原生 SQL 原子扣减，避免 GORM Updates 在并发下漏掉 WHERE 条件。
+		exec := tx.Exec(
+			`UPDATE billing_wallets
+			 SET available_minor = available_minor - ?,
+			     reserved_minor = reserved_minor + ?,
+			     version = version + 1,
+			     updated_at = ?
+			 WHERE id = ? AND available_minor >= ?`,
+			in.ReserveMinor, in.ReserveMinor, now, wallet.ID, in.ReserveMinor,
+		)
+		if exec.Error != nil {
+			return exec.Error
 		}
-		if res.RowsAffected != 1 {
+		if exec.RowsAffected != 1 {
 			return ErrInsufficientBalance
 		}
 		if err := tx.Where("id = ?", wallet.ID).First(wallet).Error; err != nil {

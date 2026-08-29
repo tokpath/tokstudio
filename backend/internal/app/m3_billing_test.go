@@ -122,12 +122,13 @@ func TestM3BillingInvariants(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	errs := make(chan error, 2)
+	stamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			_, err := application.Billing.Reserve(ctx, billing.ReserveInput{
-				UserID: user2, RequestID: "race-" + t.Name() + "-" + strconv.Itoa(i),
+				UserID: user2, RequestID: "race-" + t.Name() + "-" + stamp + "-" + strconv.Itoa(i),
 				PublicModelID: catalog.EchoModelID, ReserveMinor: 700,
 				UnitPrices: []byte(`{"input":"0.000001","output":"0.000002"}`),
 			})

@@ -352,12 +352,7 @@ func (s *Service) Cancel(ctx context.Context, jobID, userID string) (*JobView, e
 
 func (s *Service) HandleCallback(ctx context.Context, eventID, jobID, sig string, payload []byte, usage map[string]int) error {
 	valid := s.store.CallbackValid(eventID, jobID, sig)
-	row := callbackRow{
-		ID: id.New("cbe"), EventID: eventID, MediaJobID: &jobID,
-		SignatureValid: valid, PayloadJSON: payload, ProcessedAt: time.Now().UTC(),
-	}
-	// 同一 event_id 可重试：先记事件，但未完成的任务仍要走 finish，避免“只记事件、没结算”。
-	if err := s.db.WithContext(ctx).Where("event_id = ?", eventID).FirstOrCreate(&row).Error; err != nil {
+	if err := s.recordCallbackEvent(ctx, eventID, jobID, payload, valid); err != nil {
 		return err
 	}
 	if !valid {
@@ -437,7 +432,7 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 			ContentType: result.ContentType, SizeBytes: int64(len(result.Content)),
 			SHA256: hex.EncodeToString(sum[:]), ExpiresAt: exp, CreatedAt: now,
 		}
-		if err := s.db.WithContext(ctx).Where("media_job_id = ? AND object_key = ?", job.ID, key).FirstOrCreate(&asset).Error; err != nil {
+		if err := s.ensureAsset(ctx, asset); err != nil {
 			return err
 		}
 		body, _ := json.Marshal(usage)
@@ -520,4 +515,40 @@ func (s *Service) view(_ context.Context, job jobRow) *JobView {
 
 func (s *Service) SignCallback(eventID, jobID string) string {
 	return s.store.CallbackSign(eventID, jobID)
+}
+
+// recordCallbackEvent 只按 event_id 查找。不要用 FirstOrCreate 带新主键，GORM 会把 id 拼进 WHERE，旧事件会当成“不存在”再插入。
+func (s *Service) recordCallbackEvent(ctx context.Context, eventID, jobID string, payload []byte, valid bool) error {
+	var existing callbackRow
+	err := s.db.WithContext(ctx).Where("event_id = ?", eventID).First(&existing).Error
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	row := callbackRow{
+		ID: id.New("cbe"), EventID: eventID, MediaJobID: &jobID,
+		SignatureValid: valid, PayloadJSON: payload, ProcessedAt: time.Now().UTC(),
+	}
+	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+		var again callbackRow
+		if s.db.WithContext(ctx).Where("event_id = ?", eventID).First(&again).Error == nil {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *Service) ensureAsset(ctx context.Context, asset assetRow) error {
+	var existing assetRow
+	err := s.db.WithContext(ctx).Where("media_job_id = ? AND object_key = ?", asset.MediaJobID, asset.ObjectKey).First(&existing).Error
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	return s.db.WithContext(ctx).Create(&asset).Error
 }

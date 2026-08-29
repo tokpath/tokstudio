@@ -89,26 +89,128 @@ function RotateCredentialForm() {
   );
 }
 
-function AccountPoolForm() {
-  const form = useForm({
-    defaultValues: { provider_id: "", secret: "", label: "primary" },
-  });
-  async function onSubmit(values: { provider_id: string; secret: string; label: string }) {
-    await apiClient("POST", `/admin/providers/${values.provider_id}/accounts`, {
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
-      body: JSON.stringify({ secret: values.secret, label: values.label, kind: "api_key" }),
-    });
+type Account = { id: string; label: string; fingerprint: string; status: string; kind: string };
+
+function AccountPoolPanel() {
+  const queryClient = useQueryClient();
+  const [providerID, setProviderID] = useState("");
+  const [items, setItems] = useState<Account[]>([]);
+  const [message, setMessage] = useState("列表只显示指纹，不回密文。冷却或停用后不会被路由选中。");
+
+  async function load(id = providerID) {
+    const res = await fetch(`${apiBase}/admin/providers/${id}/accounts`, { credentials: "include" });
+    const body = await res.json();
+    if (!res.ok) {
+      setMessage(body.error?.message || "读取账号失败");
+      setItems([]);
+      return;
+    }
+    const raw = JSON.stringify(body);
+    if (raw.includes("ciphertext") || raw.includes("\"secret\"")) {
+      setMessage("账号列表泄漏了密文，已拒绝展示");
+      setItems([]);
+      return;
+    }
+    setItems(body.items || []);
+    setMessage(`已读取 ${body.items?.length ?? 0} 条，只含指纹`);
   }
+
+  async function patch(accountID: string, payload: Record<string, unknown>, okText: string) {
+    const res = await fetch(`${apiBase}/admin/providers/${providerID}/accounts/${accountID}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setMessage(body.error?.message || "更新失败");
+      return;
+    }
+    setMessage(`${okText} ${body.item?.fingerprint || accountID} → ${body.item?.status}`);
+    await load();
+    await queryClient.invalidateQueries();
+  }
+
+  async function onAdd(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const id = String(data.get("provider_id") || "").trim();
+    const secret = String(data.get("secret") || "");
+    const label = String(data.get("label") || "primary");
+    setProviderID(id);
+    const res = await fetch(`${apiBase}/admin/providers/${id}/accounts`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      body: JSON.stringify({ secret, label, kind: "api_key" }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setMessage(body.error?.message || "添加失败");
+      return;
+    }
+    if (body.item?.secret || body.item?.ciphertext) {
+      setMessage("添加响应泄漏了密文");
+      return;
+    }
+    form.reset();
+    setMessage(`已添加，指纹 ${body.item?.fingerprint || ""}`);
+    await load(id);
+  }
+
   return (
-    <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 p-4" onSubmit={form.handleSubmit(onSubmit)}>
-      <p className="text-sm text-slate-400">上游账号池只保存密文，列表只显示指纹。冷却或失效账号不会被路由选中。</p>
-      <input className="rounded bg-slate-900 px-3 py-2" placeholder="provider id" {...form.register("provider_id")} />
-      <input className="rounded bg-slate-900 px-3 py-2" placeholder="label" {...form.register("label")} />
-      <input className="rounded bg-slate-900 px-3 py-2" placeholder="upstream secret" type="password" {...form.register("secret")} />
-      <button className="rounded border border-slate-600 px-3 py-2" type="submit">
-        添加账号
-      </button>
-    </form>
+    <section className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+      <h2 className="mb-3 text-xl font-medium">账号池</h2>
+      <p className="mb-3 text-sm text-slate-400">列表只显示指纹，不回密文。冷却或停用后不会被路由选中。</p>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Input className="w-72" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="账号池 provider id" placeholder="账号池 provider id" />
+        <Button size="sm" variant="outline" onClick={() => load()}>
+          读取账号
+        </Button>
+      </div>
+      <div className="mb-3 overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-800 text-slate-400">
+              <th className="px-2 py-2 font-medium">Label</th>
+              <th className="px-2 py-2 font-medium">Fingerprint</th>
+              <th className="px-2 py-2 font-medium">Status</th>
+              <th className="px-2 py-2 font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id} className="border-b border-slate-800/80">
+                <td className="px-2 py-2">{item.label}</td>
+                <td className="px-2 py-2">{item.fingerprint}</td>
+                <td className="px-2 py-2">{item.status}</td>
+                <td className="px-2 py-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => patch(item.id, { cooldown_seconds: 120 }, "已冷却")}>
+                      冷却
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => patch(item.id, { status: "disabled" }, "已停用")}>
+                      停用
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <form className="grid max-w-xl gap-2" onSubmit={onAdd}>
+        <Input name="provider_id" aria-label="添加账号 provider id" placeholder="添加账号 provider id" />
+        <Input name="label" aria-label="账号标签" placeholder="label" defaultValue="primary" />
+        <Input type="password" name="secret" aria-label="账号密文" placeholder="账号密文" autoComplete="new-password" />
+        <Button size="sm" type="submit">
+          添加账号
+        </Button>
+      </form>
+      <p className="mt-3 text-sm text-slate-300">{message}</p>
+    </section>
   );
 }
 
@@ -149,7 +251,7 @@ export default function AdminProvidersPage() {
           创建
         </button>
       </form>
-      <AccountPoolForm />
+      <AccountPoolPanel />
     </AdminShell>
   );
 }

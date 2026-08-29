@@ -43,6 +43,9 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/channel-quotas/grant")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/providers/{id}/health-check")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/providers/{id}/credentials")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/providers/{id}/accounts")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/models/attach")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/models/deprecate")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/ops/backup-drill")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/brands")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/brands/{id}/tls/issue")).toBe(true);

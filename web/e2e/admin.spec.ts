@@ -65,4 +65,11 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByText("列表每行可探测")).toBeVisible();
   await expect(page.getByRole("heading", { name: "凭据轮换" })).toBeVisible();
   await expect(page.getByRole("button", { name: "轮换凭据" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "账号池" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "读取账号" })).toBeVisible();
+  await page.goto("/admin/models");
+  await expect(page.getByRole("heading", { name: "挂载 Provider" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "挂载" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "弃用模型" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "弃用模型" })).toBeVisible();
 });

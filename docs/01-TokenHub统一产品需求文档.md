@@ -259,12 +259,12 @@ P0 使用一个 React/Next.js 前端代码库，按域名、品牌、角色和�
 
 ### 9.2 P0 技术栈与部署
 
-- 后端：Go，模块化单体；
-- 数据库：PostgreSQL，作为账务和核心业务事实源；
+- 后端：Go + Gin，模块化单体；日志使用 zerolog，配置使用 Viper；
+- 数据库：PostgreSQL + GORM，作为账务和核心业务事实源。账务核心必须显式事务、锁、幂等约束和定点金额字段，使用版本化 migration，生产环境禁止 AutoMigrate；
 - Redis：限流、并发控制、短期缓存和分布式锁；
 - 异步：PostgreSQL Outbox + Worker，事件采用 Dapr 兼容的 CloudEvents；
 - 对象存储：S3 兼容接口；
-- 前端：React/Next.js，共享用户站、渠道后台和平台后台组件；
+- 前端：Next.js + TypeScript，共享公共站点、用户控制台、渠道控制台和平台管理控制台；Tailwind CSS + shadcn/ui/Radix UI 负责样式和组件，使用 CSS Variables/Design Tokens 支持 OEM 主题；Zustand 只管理客户端交互状态，TanStack Query 管理服务端数据；React Hook Form + Zod 处理表单，TanStack Table 处理后台表格，Apache ECharts 处理运营/运维看板；通过 OpenAPI 生成 TypeScript Client；next-intl 预留中/英/日国际化；Vitest、Testing Library 和 Playwright 覆盖测试。
 - 观测：Prometheus + Grafana、结构化 JSON 日志、OpenTelemetry；
 - P0 使用 Docker Compose 或单节点容器，后续迁移 Kubernetes + Dapr，不改变 API 和领域事件契约。
 

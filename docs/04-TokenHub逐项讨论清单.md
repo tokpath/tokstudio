@@ -251,7 +251,9 @@
 - 管理后台和用户站点使用 React/Next.js 或同等前端栈，共享品牌和权限组件；
 - 监控使用 Prometheus + Grafana，日志使用结构化 JSON，链路使用 OpenTelemetry。
 
-已确认采用“Go 后端 + PostgreSQL + Redis + Outbox Worker（Dapr 兼容、可选 sidecar）+ S3 对象存储 + React/Next.js 前端”的 P0 技术栈；监控使用 Prometheus + Grafana，日志使用结构化 JSON，链路使用 OpenTelemetry。
+已确认采用“Go + Gin 后端、PostgreSQL + GORM、Redis + Outbox Worker（Dapr 兼容、可选 sidecar）+ S3 对象存储 + React/Next.js 前端”的 P0 技术栈；日志使用 zerolog，配置使用 Viper，监控使用 Prometheus + Grafana，链路使用 OpenTelemetry。
+
+GORM 使用约束：钱包、预授权、usage、退款、佣金等账务核心必须显式开启事务、使用行锁/乐观锁、建立唯一幂等索引和定点金额字段；生产环境使用版本化 migration，不使用 `AutoMigrate` 直接改表。
 
 ### D29. 部署演进路线：已确认
 
@@ -318,6 +320,34 @@
 
 已确认将“公共开发者文档 + 用户专属接入示例 + OEM 品牌化文档”纳入 P0。
 
+### D35. 前端技术栈：已确认
+
+- Next.js + TypeScript，共享公共站点、用户控制台、渠道控制台和平台管理控制台代码库。
+- Tailwind CSS + shadcn/ui/Radix UI，使用 CSS Variables 和 Design Tokens 支持 OEM 主题。
+- Zustand 只管理客户端交互状态；TanStack Query 管理余额、账单、Provider、模型和指标等服务端数据。
+- React Hook Form + Zod 处理表单和前端校验；TanStack Table 处理管理后台数据表格；Apache ECharts 处理运营/运维看板。
+- 通过 OpenAPI 生成 TypeScript Client；接口契约变更必须同步生成客户端类型。
+- next-intl 预留中文、英文和日文；Vitest/Testing Library/Playwright 覆盖单元、组件和端到端测试。
+- Web 控制台认证使用 HttpOnly/Secure Cookie，不将登录凭据放入 localStorage；前端隐藏菜单不代替后端 RBAC 和渠道 scope 校验。
+
+### D36. 后端框架与基础库：已确认
+
+- HTTP 框架使用 Gin；
+- 日志使用 zerolog，统一 JSON 字段和 request/attempt trace 字段；
+- 配置使用 Viper，明确环境变量覆盖层级，敏感配置只引用密钥管理系统或加密值；
+- 数据库使用 PostgreSQL + GORM；
+- GORM 业务模型与账务模型分层，账务核心禁止隐式 save、无条件 update 和生产 AutoMigrate；
+- migration 使用版本化脚本，关键约束（唯一幂等键、金额精度、外键、状态枚举）在数据库层落地。
+
+### D37. 微服务演进约束：已确认
+
+- P0 虽采用模块化单体，但按未来服务边界组织代码：identity/access、channel、catalog/routing、gateway、billing/entitlement、payment、media、commission、audit/observability。
+- 每个模块拥有自己的表和 repository；模块之间只能通过 service interface、DTO 或领域事件交互，禁止跨模块直接读写表和共享 ORM model。
+- P0 可共用一个 PostgreSQL 实例，但按模块 schema/表前缀和独立 migration 管理数据所有权；未来拆服务时迁移对应 schema，不改变领域事件和 API 契约。
+- 跨模块流程使用 Outbox + CloudEvents + 幂等消费者；不依赖分布式事务，退款/冲正/佣金等采用补偿事件。
+- 推荐拆分顺序：media worker、payment webhook、usage reconciliation/commission worker、observability，再评估 gateway 和 billing；账务核心最后拆分。
+- 服务间统一 request_id、trace_id、tenant/channel scope 和事件版本；Redis key、配置、密钥和指标命名按服务隔离。
+
 ## 当前讨论位置
 
-D1-D34 已确认。下一步整理最终版本文档并进入 M0 开发准备。
+D1-D37 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。

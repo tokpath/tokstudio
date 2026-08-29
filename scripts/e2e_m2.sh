@@ -3,6 +3,14 @@ set -euo pipefail
 API_URL="${TOKENHUB_PUBLIC_BASE_URL:-http://127.0.0.1:8080}"
 ADMIN_TOKEN="${TOKENHUB_BOOTSTRAP_ADMIN_TOKEN:-dev_admin_change_me}"
 
+reset_route() {
+  curl -sf -X PATCH "$API_URL/admin/providers/prd_echo_primary" -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"health":"available"}' >/dev/null || true
+  curl -sf -X PATCH "$API_URL/admin/routes/rg_echo" -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"strategy":"priority"}' >/dev/null || true
+}
+trap reset_route EXIT
+
 echo "== register and create API key"
 email="m2-$RANDOM@example.test"
 reg="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
@@ -48,5 +56,19 @@ echo "$docs" | grep -q Aurora
 
 echo "== provider health"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers" | grep -q echo-primary
+
+echo "== health and price routing strategies"
+curl -sf -X PATCH "$API_URL/admin/providers/prd_echo_primary" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"health":"degraded"}' >/dev/null
+curl -sf -X PATCH "$API_URL/admin/routes/rg_echo" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"strategy":"health"}' >/dev/null
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"health"}]}' | grep -q echo-backup
+curl -sf -X PATCH "$API_URL/admin/providers/prd_echo_primary" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"health":"available"}' >/dev/null
+curl -sf -X PATCH "$API_URL/admin/routes/rg_echo" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"strategy":"priority"}' >/dev/null
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"priority"}]}' | grep -q echo-primary
 
 echo "M2 e2e passed"

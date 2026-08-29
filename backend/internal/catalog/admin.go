@@ -33,6 +33,7 @@ type ProviderInput struct {
 	ConcurrencyLimit int    `json:"concurrency_limit"`
 	CapabilityTags   string `json:"capability_tags"`
 	CredentialRef    string `json:"credential_ref"`
+	Health           string `json:"health"`
 }
 
 type ModelInput struct {
@@ -135,6 +136,9 @@ func (s *Service) PatchProvider(ctx context.Context, id string, in ProviderInput
 	}
 	if in.CredentialRef != "" {
 		updates["credential_ref"] = in.CredentialRef
+	}
+	if in.Health != "" {
+		updates["health"] = in.Health
 	}
 	if len(updates) > 0 {
 		if err := s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", id).Updates(updates).Error; err != nil {
@@ -254,7 +258,7 @@ func (s *Service) ListRoutes(ctx context.Context) ([]RouteView, error) {
 		_ = s.db.WithContext(ctx).Where("route_group_id = ?", group.ID).Order("priority").Find(&cands).Error
 		items := make([]map[string]any, 0, len(cands))
 		for _, cand := range cands {
-			items = append(items, map[string]any{"provider_id": cand.ProviderID, "priority": cand.Priority})
+			items = append(items, map[string]any{"provider_id": cand.ProviderID, "priority": cand.Priority, "weight": cand.Weight})
 		}
 		publicID := model.PublicID
 		if publicID == "" {
@@ -331,7 +335,11 @@ func (s *Service) CreateRoute(ctx context.Context, in RouteInput) (*RouteView, e
 			if priority == 0 {
 				priority = i + 1
 			}
-			if err := tx.Create(&candidateRow{RouteGroupID: group.ID, ProviderID: cand.ProviderID, Priority: priority}).Error; err != nil {
+			weight := cand.Weight
+			if weight == 0 {
+				weight = 1
+			}
+			if err := tx.Create(&candidateRow{RouteGroupID: group.ID, ProviderID: cand.ProviderID, Priority: priority, Weight: weight}).Error; err != nil {
 				return err
 			}
 		}
@@ -379,7 +387,11 @@ func (s *Service) PatchRoute(ctx context.Context, routeID string, in RouteInput)
 				if priority == 0 {
 					priority = i + 1
 				}
-				if err := tx.Create(&candidateRow{RouteGroupID: routeID, ProviderID: cand.ProviderID, Priority: priority}).Error; err != nil {
+				weight := cand.Weight
+				if weight == 0 {
+					weight = 1
+				}
+				if err := tx.Create(&candidateRow{RouteGroupID: routeID, ProviderID: cand.ProviderID, Priority: priority, Weight: weight}).Error; err != nil {
 					return err
 				}
 			}

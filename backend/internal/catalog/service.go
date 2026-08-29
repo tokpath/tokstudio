@@ -99,6 +99,7 @@ type candidateRow struct {
 	RouteGroupID string `gorm:"column:route_group_id;primaryKey"`
 	ProviderID   string `gorm:"column:provider_id;primaryKey"`
 	Priority     int    `gorm:"column:priority"`
+	Weight       int    `gorm:"column:weight"`
 }
 
 func (candidateRow) TableName() string { return "catalog_route_candidates" }
@@ -128,6 +129,9 @@ type RouteCandidate struct {
 	UpstreamModelID string
 	TestBehavior    string
 	Health          string
+	Priority        int
+	Weight          int
+	CostMinor       int64
 }
 
 type RouteHint struct {
@@ -406,7 +410,7 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		if err := s.db.WithContext(ctx).Where("id = ?", cand.ProviderID).First(&provider).Error; err != nil {
 			continue
 		}
-		if provider.Status != "active" || provider.Health == "unavailable" {
+		if provider.Status != "active" || provider.Health == "unavailable" || provider.Health == "maintenance" {
 			continue
 		}
 		if ignored(hint.Ignore, provider.Slug) {
@@ -419,15 +423,41 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id = ? AND status = ?", model.ID, provider.ID, "active").First(&mapping).Error; err != nil {
 			continue
 		}
+		weight := cand.Weight
+		if weight == 0 {
+			weight = provider.Weight
+		}
+		if weight == 0 {
+			weight = 1
+		}
 		out = append(out, RouteCandidate{
 			ProviderID: provider.ID, ProviderSlug: provider.Slug, Adapter: provider.Adapter,
 			UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
+			Priority: cand.Priority, Weight: weight, CostMinor: s.providerCost(ctx, model.ID, provider.ID),
 		})
 	}
+	applyStrategy(out, group.Strategy)
 	if len(hint.Order) > 0 {
 		out = orderBy(out, hint.Order)
 	}
 	return out, nil
+}
+
+func (s *Service) providerCost(ctx context.Context, modelID, providerID string) int64 {
+	var price priceRow
+	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id = ? AND status = ?", modelID, providerID, "published").
+		Order("effective_at DESC").First(&price).Error; err == nil {
+		return costMinor(price.UnitPrices)
+	}
+	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", modelID, "published").
+		Order("effective_at DESC").First(&price).Error; err == nil {
+		return costMinor(price.UnitPrices)
+	}
+	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", modelID, "published").
+		Order("effective_at DESC").First(&price).Error; err == nil {
+		return costMinor(price.UnitPrices)
+	}
+	return 1 << 62
 }
 
 // PriceSnapshot 是账务模块允许看到的公开价格视图，不含内部 ORM。
@@ -443,8 +473,13 @@ func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSna
 		return nil, err
 	}
 	var price priceRow
-	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", model.ID, "published").
-		Order("effective_at DESC").First(&price).Error; err != nil {
+	err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", model.ID, "published").
+		Order("effective_at DESC").First(&price).Error
+	if err != nil {
+		err = s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", model.ID, "published").
+			Order("effective_at DESC").First(&price).Error
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &PriceSnapshot{VersionID: price.ID, PublicID: model.PublicID, Raw: price.UnitPrices}, nil
@@ -519,8 +554,11 @@ func (s *Service) Probe(ctx context.Context, providerID string) (string, error) 
 		return "", err
 	}
 	health := "available"
-	if provider.TestBehavior == "down" {
+	switch provider.TestBehavior {
+	case "down":
 		health = "unavailable"
+	case "429", "degraded":
+		health = "degraded"
 	}
 	_ = s.MarkHealth(ctx, provider.ID, health)
 	return health, nil

@@ -87,6 +87,50 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		t.Fatalf("unsupported param expected 400, got %d", resp2.StatusCode)
 	}
 	_ = bad
+
+	ctx := context.Background()
+	if err := application.Catalog.MarkHealth(ctx, "prd_echo_primary", "degraded"); err != nil {
+		t.Fatal(err)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "health"})
+	defer func() {
+		_ = application.Catalog.MarkHealth(ctx, "prd_echo_primary", "available")
+		_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "priority"})
+	}()
+	healthy := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "health"}},
+	})
+	if healthy["provider"] != catalog.BackupProvider {
+		t.Fatalf("health strategy should prefer available backup, got %+v", healthy)
+	}
+
+	cheap := []byte(`{"input":"0.0000001","upstream_cost_input":"0.0000001","output":"0.0000002","currency":"USD"}`)
+	priceID := "price_echo_backup_test_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err := application.DB.Exec(
+		`INSERT INTO catalog_price_versions(id, public_model_id, provider_id, unit_prices_json, effective_at, status)
+		 VALUES (?, 'mdl_echo', 'prd_echo_backup', ?, NOW(), 'published')`,
+		priceID, cheap,
+	).Error; err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = application.DB.Exec(`UPDATE catalog_price_versions SET status = 'superseded' WHERE id = ?`, priceID).Error
+	}()
+	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "price"})
+	priced := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "price"}},
+	})
+	if priced["provider"] != catalog.BackupProvider {
+		t.Fatalf("price strategy should prefer cheaper backup, got %+v", priced)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "priority"})
+	_ = application.Catalog.MarkHealth(ctx, "prd_echo_primary", "available")
+	reset := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "priority"}},
+	})
+	if reset["provider"] != catalog.PrimaryProvider {
+		t.Fatalf("priority strategy should return to primary, got %+v", reset)
+	}
 }
 
 func mustApp(t *testing.T, cfg *config.Config) *app.App {

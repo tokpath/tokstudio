@@ -110,6 +110,9 @@ func TestM3BillingInvariants(t *testing.T) {
 		"email": "race-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test", "password": "password1", "promotion_code": "THA1",
 	})
 	user2 := userIDOf(reg2)
+	if _, err := application.Billing.EnsureWallet(ctx, user2); err != nil {
+		t.Fatal(err)
+	}
 	top, err := application.Billing.CreateTopup(ctx, user2, "chn_official_a", 800, "manual")
 	if err != nil {
 		t.Fatal(err)

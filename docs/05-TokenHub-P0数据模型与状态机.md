@@ -74,6 +74,8 @@ P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前
 |---|---|---|
 | `media_job` | `id`, `user_id`, `request_id`, `public_model_id`, `provider_id`, `upstream_job_id`, `status`, `progress`, `callback_url`, `expires_at` | queued/in_progress/completed/failed/cancelled/expired |
 | `media_asset` | `id`, `media_job_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `sha256`, `expires_at` | 受控对象存储，签名 URL 下载 |
+
+P0 落地时媒体实体由 `media` 模块拥有，物理表为 `media_jobs`、`media_assets`、`media_callback_events`。拿到 `upstream_job_id` 后禁止再次 Create；回调按 `event_id` 幂等；结果默认 7 天后清理。
 | `audit_log` | `id`, `actor_user_id`, `action`, `resource_type`, `resource_id`, `before_json`, `after_json`, `ip`, `created_at` | 不可删除，敏感操作二次确认 |
 | `outbox_event` | `id`, `event_type`, `aggregate_type`, `aggregate_id`, `payload_json`, `status`, `attempts`, `available_at`, `published_at` | 可靠投递；可由本地 Worker 或 Dapr Pub/Sub 消费 |
 

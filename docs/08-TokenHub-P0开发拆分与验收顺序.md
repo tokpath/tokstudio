@@ -36,6 +36,8 @@ M3 实现补充：网关在调用 Adapter 前通过 `billing.Reserve` 预授权�
 
 验收：任务拿到上游 ID 后不重复提交；回调可重试且不重复结算；失败/取消释放正确预授权；结果只能通过签名 URL 获取。
 
+M4 实现补充：火山方舟 / OpenRouter 适配器已预留，无 Base URL 时走沙箱 TestAdapter。媒体计费单位为 `video_seconds` / `image_count` / `audio_seconds`，按价格快照结算。`GET /v1/videos/{id}/content` 只返回带过期时间的 HMAC 签名路径。沙箱回调入口为 `POST /v1/media/callbacks`，按 `event_id` 幂等，未完成任务重试时继续结算。
+
 ### M5 套餐、订阅与支付
 
 范围：平台及渠道套餐、token/video_second/image_count 等权益、赠送额度、月度订阅、自动续费、Stripe/支付宝/微信/人工入账/兑换码适配器、退款和对账。

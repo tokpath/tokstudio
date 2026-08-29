@@ -185,18 +185,26 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		if err != nil {
 			return err
 		}
-		if wallet.AvailableMinor < in.ReserveMinor {
-			return ErrInsufficientBalance
-		}
 		if err := s.reserveChannelQuota(tx, in.ChannelOrgID, in.RequestID, in.ReserveMinor); err != nil {
 			return err
 		}
 		now := time.Now().UTC()
-		wallet.AvailableMinor -= in.ReserveMinor
-		wallet.ReservedMinor += in.ReserveMinor
-		wallet.Version++
-		wallet.UpdatedAt = now
-		if err := tx.Save(wallet).Error; err != nil {
+		// 原子扣减：WHERE available_minor >= amount，避免只靠行锁+内存加减时并发双扣。
+		res := tx.Model(&walletRow{}).
+			Where("id = ? AND available_minor >= ?", wallet.ID, in.ReserveMinor).
+			Updates(map[string]any{
+				"available_minor": gorm.Expr("available_minor - ?", in.ReserveMinor),
+				"reserved_minor":  gorm.Expr("reserved_minor + ?", in.ReserveMinor),
+				"version":         gorm.Expr("version + 1"),
+				"updated_at":      now,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			return ErrInsufficientBalance
+		}
+		if err := tx.Where("id = ?", wallet.ID).First(wallet).Error; err != nil {
 			return err
 		}
 		auth := authRow{
@@ -290,7 +298,10 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		}
 		prompt := in.Usage["prompt_tokens"]
 		completion := in.Usage["completion_tokens"]
-		customer := quote.CustomerMinor(prompt, completion)
+		customer := quote.Charge(in.Usage, in.Resolution)
+		if customer == 0 {
+			customer = quote.CustomerMinor(prompt, completion)
+		}
 		if customer > auth.AmountMinor {
 			customer = auth.AmountMinor
 		}
@@ -323,8 +334,8 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			ID: id.New("usg"), RequestID: in.RequestID, UserID: auth.UserID,
 			PublicModelID: in.PublicModelID, UnitUsage: usageJSON, UnitPrices: quote.Raw,
 			PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: customer,
-			UpstreamCostMinor:    quote.CostMinor(prompt, completion),
-			WholesaleAmountMinor: quote.WholesaleMinor(prompt, completion),
+			UpstreamCostMinor:    quote.MediaCost(in.Usage, in.Resolution),
+			WholesaleAmountMinor: quote.Charge(in.Usage, in.Resolution) * 7 / 10,
 			Currency:             CurrencyUSD, State: UsageConfirmed, IdempotencyKey: in.IdempotencyKey,
 			OccurredAt: now,
 		}
@@ -351,7 +362,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if in.AttemptID != "" && in.ProviderID != "" {
 			_ = tx.Where("attempt_id = ?", in.AttemptID).FirstOrCreate(&costRow{
 				ID: id.New("cst"), RequestID: in.RequestID, AttemptID: in.AttemptID, ProviderID: in.ProviderID,
-				AmountMinor: quote.CostMinor(prompt, completion), Currency: CurrencyUSD,
+				AmountMinor: quote.MediaCost(in.Usage, in.Resolution), Currency: CurrencyUSD,
 				UnitUsage: usageJSON, UnitPrices: quote.Raw, CreatedAt: now,
 			}).Error
 		}

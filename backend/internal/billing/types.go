@@ -90,6 +90,7 @@ type SettleInput struct {
 	UnitPrices      json.RawMessage `json:"unit_prices"`
 	MissingUsage    bool            `json:"missing_usage"`
 	IdempotencyKey  string          `json:"idempotency_key"`
+	Resolution      string          `json:"resolution"`
 }
 
 type Settlement struct {

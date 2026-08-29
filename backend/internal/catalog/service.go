@@ -19,10 +19,14 @@ import (
 var migrationFS embed.FS
 
 const (
-	EchoModelID     = "tokenhub/echo-1"
-	OEMModelID      = "tokenhub/oem-demo"
-	PrimaryProvider = "echo-primary"
-	BackupProvider  = "echo-backup"
+	EchoModelID         = "tokenhub/echo-1"
+	OEMModelID          = "tokenhub/oem-demo"
+	SeedanceModelID     = "bytedance/seedance-1.0"
+	ImageModelID        = "tokenhub/image-demo"
+	PrimaryProvider     = "echo-primary"
+	BackupProvider      = "echo-backup"
+	ArkSeedanceProvider = "ark-seedance"
+	OpenRouterProvider  = "openrouter-seedance"
 )
 
 type providerRow struct {
@@ -149,6 +153,14 @@ func (s *Service) Seed(ctx context.Context) error {
 		"upstream_cost_input": "0.0000004", "upstream_cost_output": "0.0000008",
 		"wholesale_input": "0.0000007", "wholesale_output": "0.0000014",
 	})
+	mediaCaps, _ := json.Marshal(map[string]any{
+		"supported_parameters": []string{"prompt", "duration", "resolution", "aspect_ratio", "fps", "generate_audio", "callback_url", "images"},
+		"media":                []string{"video", "image"},
+	})
+	mediaPrice, _ := json.Marshal(map[string]any{
+		"currency": "USD", "video_second": "0.01", "image_count": "0.02", "audio_second": "0.002",
+		"video_second_cost": "0.004", "image_count_cost": "0.008",
+	})
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		providers := []providerRow{
 			{ID: "prd_echo_primary", Name: "Echo Primary", Slug: PrimaryProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
@@ -204,8 +216,75 @@ func (s *Service) Seed(ctx context.Context) error {
 				return err
 			}
 		}
-		return nil
+		return seedMediaCatalog(tx, mediaCaps, mediaPrice)
 	})
+}
+
+func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
+	providers := []providerRow{
+		{ID: "prd_ark", Name: "Volcengine Ark", Slug: ArkSeedanceProvider, Kind: "direct", Adapter: "ark", Status: "active", Health: "available", TestBehavior: "ok"},
+		{ID: "prd_or", Name: "OpenRouter Media", Slug: OpenRouterProvider, Kind: "aggregator", Adapter: "openrouter", Status: "active", Health: "available", TestBehavior: "ok"},
+	}
+	for i := range providers {
+		if err := tx.Where("slug = ?", providers[i].Slug).FirstOrCreate(&providers[i]).Error; err != nil {
+			return err
+		}
+	}
+	models := []publicModelRow{
+		{ID: "mdl_seedance", PublicID: SeedanceModelID, Vendor: "bytedance", DisplayName: "Seedance", Capabilities: caps, Status: "published"},
+		{ID: "mdl_image", PublicID: ImageModelID, Vendor: "tokenhub", DisplayName: "Image Demo", Capabilities: caps, Status: "published"},
+	}
+	for i := range models {
+		if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
+			return err
+		}
+	}
+	mappings := []mappingRow{
+		{ID: "map_sd_ark", PublicModelID: "mdl_seedance", ProviderID: "prd_ark", UpstreamModelID: "seedance-1-0-ark", Status: "active"},
+		{ID: "map_sd_or", PublicModelID: "mdl_seedance", ProviderID: "prd_or", UpstreamModelID: "bytedance/seedance-1.0", Status: "active"},
+		{ID: "map_img_ark", PublicModelID: "mdl_image", ProviderID: "prd_ark", UpstreamModelID: "image-demo-ark", Status: "active"},
+	}
+	for i := range mappings {
+		if err := tx.Where("id = ?", mappings[i].ID).FirstOrCreate(&mappings[i]).Error; err != nil {
+			return err
+		}
+	}
+	if err := tx.Where("id = ?", "price_seedance").FirstOrCreate(&priceRow{ID: "price_seedance", PublicModelID: "mdl_seedance", UnitPrices: price, Status: "published"}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "price_image").FirstOrCreate(&priceRow{ID: "price_image", PublicModelID: "mdl_image", UnitPrices: price, Status: "published"}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "rg_seedance").FirstOrCreate(&routeGroupRow{ID: "rg_seedance", PublicModelID: "mdl_seedance", Strategy: "priority", Status: "active"}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("id = ?", "rg_image").FirstOrCreate(&routeGroupRow{ID: "rg_image", PublicModelID: "mdl_image", Strategy: "priority", Status: "active"}).Error; err != nil {
+		return err
+	}
+	cands := []candidateRow{
+		{RouteGroupID: "rg_seedance", ProviderID: "prd_ark", Priority: 1},
+		{RouteGroupID: "rg_seedance", ProviderID: "prd_or", Priority: 2},
+		{RouteGroupID: "rg_image", ProviderID: "prd_ark", Priority: 1},
+	}
+	for i := range cands {
+		if err := tx.Where("route_group_id = ? AND provider_id = ?", cands[i].RouteGroupID, cands[i].ProviderID).FirstOrCreate(&cands[i]).Error; err != nil {
+			return err
+		}
+	}
+	policies := []channelPolicyRow{
+		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_seedance", Enabled: true},
+		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_seedance", Enabled: true},
+		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_seedance", Enabled: true},
+		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_image", Enabled: true},
+		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_image", Enabled: true},
+		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_image", Enabled: true},
+	}
+	for i := range policies {
+		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", policies[i].ChannelOrgID, policies[i].PublicModelID).FirstOrCreate(&policies[i]).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {

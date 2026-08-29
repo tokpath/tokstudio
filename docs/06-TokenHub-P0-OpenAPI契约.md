@@ -89,13 +89,17 @@
 
 返回短期签名 URL 或媒体流；默认结果保留 7 天。
 
+### `POST /v1/images/generations` 与 `POST /v1/images/edits`
+
+与视频共用媒体任务状态机、预授权和签名下载；返回 `202` 与任务 ID。
+
 ### `POST /v1/videos/{id}/cancel`
 
 请求取消；已提交上游任务只执行可用的上游取消接口，不重复创建任务。
 
-### 回调 `POST {callback_url}`
+### 回调 `POST {callback_url}` 与 `POST /v1/media/callbacks`
 
-服务端使用签名头和事件 ID，支持幂等、指数退避重试；重复事件必须返回 2xx 且不得重复结算。
+上游完成后可回调客户 `callback_url`，沙箱与自建上游使用平台入口 `POST /v1/media/callbacks`。服务端校验 `X-Tokenhub-Signature`（HMAC-SHA256，`event_id|job_id`），按 `event_id` 幂等；重复事件必须返回 2xx 且不得重复结算。未完成的任务在重试时会继续落状态和结算。
 
 ## 5. 用户、Key、套餐与余额
 

@@ -75,6 +75,6 @@ curl -sf -X POST "$API_URL/admin/topups/$tid/confirm" -H "Authorization: Bearer 
 echo "== ledger and report"
 curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/ledger" | grep -q topup
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/billing/report" | grep -q revenue_minor
-curl -sf "$API_URL/healthz" | grep -q 0.1.0-m3
+curl -sf "$API_URL/healthz" | grep -q tokenhub-api
 
 echo "M3 e2e passed"

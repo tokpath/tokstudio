@@ -252,7 +252,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			if streamStarted {
 				break
 			}
-			if result.HTTPStatus == 429 || result.HTTPStatus >= 500 {
+			if result.HTTPStatus == 408 || result.HTTPStatus == 429 || result.HTTPStatus >= 500 || result.ErrorClass == "timeout" {
 				continue
 			}
 			break

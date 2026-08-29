@@ -119,22 +119,23 @@ func TestM7OpsHardening(t *testing.T) {
 	if thr["success_rate_min"] == nil || asInt(thr["min_requests"]) < 1 {
 		t.Fatalf("default thresholds: %+v", thr)
 	}
-	t.Cleanup(func() {
-		_ = patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
-			"success_rate_min": 0.5, "min_requests": 5, "pending_count": 1,
-		})
-	})
-	patched := patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
+	thrPatched := patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
 		"success_rate_min": 0.8, "min_requests": 10, "pending_count": 2,
 	})["thresholds"].(map[string]any)
-	if asInt(patched["min_requests"]) != 10 {
-		t.Fatalf("patched thresholds: %+v", patched)
+	if asInt(thrPatched["min_requests"]) != 10 {
+		t.Fatalf("patched thresholds: %+v", thrPatched)
 	}
+	_ = patchJSONRaw(t, server.URL+"/admin/ops/thresholds", "m7_admin", map[string]any{
+		"success_rate_min": 0.5, "min_requests": 5, "pending_count": 1,
+	})
 	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "timeout"})
-	_ = postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+	timed := postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "timeout-probe"}},
 	})
 	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "ok"})
+	if timed["provider"] != catalog.BackupProvider {
+		t.Fatalf("timeout should fallback: %+v", timed)
+	}
 	afterTO := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)["totals"].(map[string]any)
 	if asInt(afterTO["timeouts"]) < 1 {
 		t.Fatalf("timeout should be counted: %+v", afterTO)

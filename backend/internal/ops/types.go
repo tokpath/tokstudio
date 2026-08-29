@@ -101,6 +101,8 @@ type MoneyView struct {
 	LowBalanceWallets int64   `json:"low_balance_wallets"`
 	ReservedMinor     int64   `json:"wallet_reserved_minor"`
 	ChannelSpendMinor int64   `json:"channel_spend_minor"`
+	PreauthFailed     int64   `json:"preauth_failed"`
+	CallbackP95MS     int64   `json:"callback_latency_p95_ms"`
 }
 
 type Dashboard struct {

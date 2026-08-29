@@ -35,6 +35,10 @@ type RoleSource interface {
 	MapUserRoles(ctx context.Context, userIDs []string) (map[string]string, error)
 }
 
+type LatencySource interface {
+	CallbackP95MS(ctx context.Context) (int64, error)
+}
+
 type runbookRow struct {
 	ID        string    `gorm:"column:id;primaryKey"`
 	AlertKind string    `gorm:"column:alert_kind"`
@@ -88,17 +92,19 @@ type Service struct {
 	money   MoneySource
 	health  HealthSink
 	roles   RoleSource
+	latency LatencySource
 }
 
 func New(db *gorm.DB, rdb *redis.Client) *Service {
 	return &Service{db: db, redis: rdb}
 }
 
-func (s *Service) SetSources(traffic TrafficSource, money MoneySource, health HealthSink, roles RoleSource) {
+func (s *Service) SetSources(traffic TrafficSource, money MoneySource, health HealthSink, roles RoleSource, latency LatencySource) {
 	s.traffic = traffic
 	s.money = money
 	s.health = health
 	s.roles = roles
+	s.latency = latency
 }
 
 func Migrations() (string, fs.FS) {
@@ -153,6 +159,11 @@ func (s *Service) Dashboard(ctx context.Context) (*Dashboard, error) {
 		out.Dimensions[dim] = stats
 	}
 	fillOverview(&out.Totals, out.Dimensions[DimProvider])
+	if s.latency != nil {
+		if p95, err := s.latency.CallbackP95MS(ctx); err == nil {
+			out.Totals.CallbackP95MS = p95
+		}
+	}
 	out.Alerts, _ = s.ListAlerts(ctx, StatusOpen)
 	out.Canary, _ = s.Canary(ctx, CanaryChat)
 	out.LastDrill, _ = s.LastDrill(ctx)

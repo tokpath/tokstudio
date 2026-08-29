@@ -308,7 +308,35 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 	if err != nil && s.coverer != nil {
 		_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
 	}
+	if err != nil {
+		s.notePreauthFailure(ctx, in, err)
+	}
 	return out, err
+}
+
+type preauthFailRow struct {
+	ID        string    `gorm:"column:id;primaryKey"`
+	UserID    string    `gorm:"column:user_id"`
+	RequestID string    `gorm:"column:request_id"`
+	Reason    string    `gorm:"column:reason"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+func (preauthFailRow) TableName() string { return "billing_preauth_failures" }
+
+func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err error) {
+	reason := ""
+	switch {
+	case errors.Is(err, ErrInsufficientBalance):
+		reason = "insufficient_balance"
+	case errors.Is(err, ErrInsufficientQuota):
+		reason = "insufficient_quota"
+	default:
+		return
+	}
+	_ = s.db.WithContext(ctx).Create(&preauthFailRow{
+		ID: id.New("paf"), UserID: in.UserID, RequestID: in.RequestID, Reason: reason, CreatedAt: time.Now().UTC(),
+	}).Error
 }
 
 func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, error) {

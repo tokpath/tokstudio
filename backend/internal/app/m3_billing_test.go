@@ -48,6 +48,10 @@ func TestM3BillingInvariants(t *testing.T) {
 	if application.Gateway.AdapterCalls() != before {
 		t.Fatal("adapter must not be called when balance is insufficient")
 	}
+	risk, err := application.Billing.Risk(ctx)
+	if err != nil || risk == nil || risk.PreauthFailed < 1 {
+		t.Fatalf("402 must record a preauth failure: %+v %v", risk, err)
+	}
 
 	if postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})["item"] == nil {
 		t.Fatal("redeem failed")

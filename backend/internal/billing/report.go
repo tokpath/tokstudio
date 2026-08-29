@@ -120,6 +120,7 @@ func (s *Service) Risk(ctx context.Context) (*RiskView, error) {
 		SELECT COALESCE(SUM(wholesale_amount_minor),0) FROM billing_usage_events
 		WHERE state = 'confirmed' AND channel_org_id IS NOT NULL AND channel_org_id <> ''
 	`).Scan(&view.ChannelSpendMinor).Error
+	_ = s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_preauth_failures`).Scan(&view.PreauthFailed).Error
 	return view, nil
 }
 

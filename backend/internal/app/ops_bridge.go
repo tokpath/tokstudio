@@ -8,6 +8,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/media"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
 )
 
@@ -63,6 +64,7 @@ func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
 		view.LowBalanceWallets = risk.LowBalanceWallets
 		view.ReservedMinor = risk.ReservedMinor
 		view.ChannelSpendMinor = risk.ChannelSpendMinor
+		view.PreauthFailed = risk.PreauthFailed
 	}
 	return view, nil
 }
@@ -111,4 +113,12 @@ type roleBridge struct {
 
 func (b *roleBridge) MapUserRoles(ctx context.Context, userIDs []string) (map[string]string, error) {
 	return b.identity.MapUserAcquisitionRoles(ctx, userIDs)
+}
+
+type latencyBridge struct {
+	media *media.Service
+}
+
+func (b *latencyBridge) CallbackP95MS(ctx context.Context) (int64, error) {
+	return b.media.CallbackLatencyP95MS(ctx)
 }

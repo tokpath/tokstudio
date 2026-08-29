@@ -65,6 +65,8 @@ echo "$dash" | grep -q acr_b_kol2
 echo "$dash" | grep -q low_balance_wallets
 echo "$dash" | grep -q latency_p99_ms
 echo "$dash" | grep -q http_429
+echo "$dash" | grep -q preauth_failed
+echo "$dash" | grep -q callback_latency_p95_ms
 series="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/series?days=7")"
 echo "$series" | python3 -c "import json,sys,datetime; d=json.load(sys.stdin); items=d['items']; assert len(items)==7; today=datetime.datetime.utcnow().strftime('%Y-%m-%d'); assert any(i['day']==today and i['requests']>0 for i in items)"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/daily?format=csv&days=7" | grep -q gross_profit_minor

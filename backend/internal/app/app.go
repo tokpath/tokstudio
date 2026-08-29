@@ -64,7 +64,7 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)
 	opsSvc := ops.New(gdb, rdb)
-	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc})
+	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
 	gw.SetBreaker(opsSvc)
 	return &App{
 		Config:     cfg,

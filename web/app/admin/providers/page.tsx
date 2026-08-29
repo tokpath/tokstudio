@@ -77,8 +77,8 @@ function RotateCredentialForm() {
       <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
       <p className="mb-3 text-sm text-slate-400">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
       <div className="mb-3 flex flex-wrap gap-2">
-        <Input className="w-72" name="provider_id" aria-label="轮换 provider id" placeholder="provider id" />
-        <Input className="w-72" type="password" name="secret" aria-label="上游凭据" placeholder="upstream secret" autoComplete="new-password" />
+        <Input className="w-72" name="provider_id" aria-label="轮换 provider id" placeholder="轮换用 provider id" />
+        <Input className="w-72" type="password" name="secret" aria-label="上游凭据" placeholder="轮换用密文" autoComplete="new-password" />
         <Button size="sm" type="submit">
           轮换凭据
         </Button>

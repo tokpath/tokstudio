@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
@@ -29,19 +30,20 @@ import (
 )
 
 type App struct {
-	Config   *config.Config
-	DB       *gorm.DB
-	Redis    *redis.Client
-	Identity *identity.Service
-	Audit    *audit.Service
-	Outbox   *outbox.Service
-	Catalog  *catalog.Service
-	Billing  *billing.Service
-	Gateway  *gateway.Service
-	Media    *media.Service
-	Plans    *plans.Service
-	Payment  *payment.Service
-	Logger   zerolog.Logger
+	Config     *config.Config
+	DB         *gorm.DB
+	Redis      *redis.Client
+	Identity   *identity.Service
+	Audit      *audit.Service
+	Outbox     *outbox.Service
+	Catalog    *catalog.Service
+	Billing    *billing.Service
+	Gateway    *gateway.Service
+	Media      *media.Service
+	Plans      *plans.Service
+	Payment    *payment.Service
+	Commission *commission.Service
+	Logger     zerolog.Logger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
@@ -54,20 +56,24 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	store := media.NewStore(cfg.MediaStorePath, firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey), cfg.PublicBaseURL)
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
+	idSvc := identity.New(gdb)
+	commSvc := commission.New(gdb, outboxSvc)
+	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	return &App{
-		Config:   cfg,
-		DB:       gdb,
-		Redis:    rdb,
-		Identity: identity.New(gdb),
-		Audit:    auditSvc,
-		Outbox:   outboxSvc,
-		Catalog:  catalogSvc,
-		Billing:  billingSvc,
-		Gateway:  gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL),
-		Media:    mediaSvc,
-		Plans:    plansSvc,
-		Payment:  paySvc,
-		Logger:   logger,
+		Config:     cfg,
+		DB:         gdb,
+		Redis:      rdb,
+		Identity:   idSvc,
+		Audit:      auditSvc,
+		Outbox:     outboxSvc,
+		Catalog:    catalogSvc,
+		Billing:    billingSvc,
+		Gateway:    gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL),
+		Media:      mediaSvc,
+		Plans:      plansSvc,
+		Payment:    paySvc,
+		Commission: commSvc,
+		Logger:     logger,
 	}
 }
 
@@ -90,6 +96,7 @@ func AllMigrations() []db.ModuleMigrations {
 	mediaName, mediaFS := media.Migrations()
 	plansName, plansFS := plans.Migrations()
 	paymentName, paymentFS := payment.Migrations()
+	commissionName, commissionFS := commission.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
@@ -100,6 +107,7 @@ func AllMigrations() []db.ModuleMigrations {
 		{Module: mediaName, FS: mediaFS},
 		{Module: plansName, FS: plansFS},
 		{Module: paymentName, FS: paymentFS},
+		{Module: commissionName, FS: commissionFS},
 	}
 }
 
@@ -121,7 +129,10 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.Billing.Seed(ctx); err != nil {
 		return err
 	}
-	return a.Plans.Seed(ctx)
+	if err := a.Plans.Seed(ctx); err != nil {
+		return err
+	}
+	return a.Commission.Seed(ctx)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -148,6 +159,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerBillingRoutes(r)
 	a.registerMediaRoutes(r)
 	a.registerPlanRoutes(r)
+	a.registerCommissionRoutes(r)
 	return r
 }
 
@@ -155,7 +167,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m5",
+		"version":    "0.1.0-m6",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -179,7 +191,7 @@ func (a *App) readyz(c *gin.Context) {
 		checks["redis"] = "ok"
 	}
 	applied, err := db.Applied(a.DB)
-	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 {
+	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 || len(applied["commission"]) == 0 {
 		checks["migrations"] = "error"
 		ready = false
 	} else {

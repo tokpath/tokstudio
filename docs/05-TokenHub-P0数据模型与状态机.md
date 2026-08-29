@@ -25,6 +25,9 @@
 | `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级 |
 | `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、1/2 级 KOL |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
+| `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
+
+P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。
 | `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json` | OEM 品牌和域名配置 |
 
 ### 2.2 Provider、模型与路由
@@ -69,6 +72,8 @@ P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`�
 | `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
 | `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/available/paid/reversed |
+
+P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
 
 P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
 

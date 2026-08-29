@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: TokenHub M6 Commission
+  version: 0.1.0-m6
+paths:
+  /v1/partner/users:
+    get:
+      summary: Scoped users for agent/KOL. Emails are masked.
+  /v1/partner/commissions:
+    get:
+      summary: Commission entries in the caller's role tree. No prompts.
+  /v1/partner/export:
+    get:
+      summary: CSV of commission amounts only
+  /admin/commissions:
+    get:
+      summary: Platform commission ledger
+  /admin/commissions/unfreeze:
+    post:
+      summary: Move frozen entries to available after 7 days or for sandbox
+  /admin/commissions/settle:
+    post:
+      summary: Monthly settlement batch
+  /admin/settlements/{id}/payout:
+    post:
+      summary: Manual payout
+  /admin/channel-quotas/grant:
+    post:
+      summary: Grant or reclaim channel usd_credit quota

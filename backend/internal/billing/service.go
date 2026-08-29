@@ -21,13 +21,18 @@ var migrationFS embed.FS
 
 // Service 是账务模块的唯一对外入口。网关只能调用 Reserve/Settle/Release。
 type Service struct {
-	db      *gorm.DB
-	outbox  *outbox.Service
-	coverer EntitlementCoverer
+	db           *gorm.DB
+	outbox       *outbox.Service
+	coverer      EntitlementCoverer
+	commissioner Commissioner
 }
 
 func (s *Service) SetCoverer(c EntitlementCoverer) {
 	s.coverer = c
+}
+
+func (s *Service) SetCommissioner(c Commissioner) {
+	s.commissioner = c
 }
 
 // Credit 是支付模块入账现金钱包的公开入口，不暴露内部表。

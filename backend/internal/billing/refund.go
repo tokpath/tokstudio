@@ -96,7 +96,13 @@ func (s *Service) accrueCommission(tx *gorm.DB, usage usageRow) error {
 		Status: CommissionFrozen, IdempotencyKey: key,
 		CreatedAt: time.Now().UTC(), ChannelOrgID: usage.ChannelOrgID,
 	}
-	return tx.Create(&row).Error
+	if err := tx.Create(&row).Error; err != nil {
+		return err
+	}
+	if s.commissioner != nil {
+		_ = s.commissioner.AccrueUsage(context.Background(), usage.ID, usage.RequestID, usage.UserID, stringPtr(usage.ChannelOrgID), usage.WholesaleAmountMinor)
+	}
+	return nil
 }
 
 func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
@@ -120,6 +126,9 @@ func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
 		if err := tx.Save(&rows[i]).Error; err != nil {
 			return err
 		}
+	}
+	if s.commissioner != nil {
+		_ = s.commissioner.ReverseUsage(context.Background(), usageEventID)
 	}
 	return nil
 }

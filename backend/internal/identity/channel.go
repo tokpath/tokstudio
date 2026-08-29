@@ -37,11 +37,11 @@ type channelRow struct {
 func (channelRow) TableName() string { return "identity_channel_orgs" }
 
 type promotionRow struct {
-	ID                string `gorm:"column:id;primaryKey"`
-	Code              string `gorm:"column:code"`
-	ChannelOrgID      string `gorm:"column:channel_org_id"`
+	ID                string  `gorm:"column:id;primaryKey"`
+	Code              string  `gorm:"column:code"`
+	ChannelOrgID      string  `gorm:"column:channel_org_id"`
 	AcquisitionRoleID *string `gorm:"column:acquisition_role_id"`
-	Status            string `gorm:"column:status"`
+	Status            string  `gorm:"column:status"`
 }
 
 func (promotionRow) TableName() string { return "identity_promotion_codes" }

@@ -1,3 +1,5 @@
+import ChannelCommissions from "./commissions";
+
 export default function ChannelConsole() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-12">
@@ -6,6 +8,7 @@ export default function ChannelConsole() {
       <p className="text-slate-300">
         渠道管理员只能看到自己渠道的用户和推广数据。后端会再校验 scope，前端隐藏菜单不是安全边界。
       </p>
+      <ChannelCommissions />
     </main>
   );
 }

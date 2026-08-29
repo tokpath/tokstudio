@@ -32,12 +32,12 @@ type apiKeyPolicyRow struct {
 func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_policies" }
 
 type APIKeyView struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Prefix    string   `json:"prefix"`
-	Secret    string   `json:"key,omitempty"`
-	Status    string   `json:"status"`
-	Allowlist []string `json:"allowlist,omitempty"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Prefix    string    `json:"prefix"`
+	Secret    string    `json:"key,omitempty"`
+	Status    string    `json:"status"`
+	Allowlist []string  `json:"allowlist,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

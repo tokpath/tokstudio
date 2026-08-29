@@ -18,6 +18,12 @@ var (
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
 )
 
+// Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
+type Commissioner interface {
+	AccrueUsage(ctx context.Context, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
+	ReverseUsage(ctx context.Context, usageEventID string) error
+}
+
 // EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
 type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)
@@ -167,6 +173,13 @@ type ReportView struct {
 	RefundMinor      int64 `json:"refund_minor"`
 	GrossProfitMinor int64 `json:"gross_profit_minor"`
 	PendingCount     int64 `json:"pending_reconciliation_count"`
+}
+
+type QuotaView struct {
+	OwnerID        string `json:"owner_id"`
+	AvailableMinor int64  `json:"available_minor"`
+	ReservedMinor  int64  `json:"reserved_minor"`
+	UnitType       string `json:"unit_type"`
 }
 
 type CommissionView struct {

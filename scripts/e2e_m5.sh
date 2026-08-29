@@ -147,7 +147,7 @@ curl -sf -X POST "$API_URL/v1/payments/wechat/webhook" -H 'Content-Type: applica
 curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/balance" | grep -q available
 
 echo "== health"
-curl -sf "$API_URL/healthz" | grep -q 0.1.0-m5
+curl -sf "$API_URL/healthz" | grep -q 0.1.0-m
 curl -sf "$API_URL/readyz" | grep -q ready
 
 echo "M5 e2e passed"

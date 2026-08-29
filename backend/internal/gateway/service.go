@@ -76,12 +76,23 @@ type AttemptView struct {
 	ErrorCode  string `json:"error_code,omitempty"`
 }
 
+// Breaker 由 ops 实现。网关只问是否跳过、并回报成败，不读 ops 表。
+type Breaker interface {
+	RecordAttempt(ctx context.Context, providerID string, success bool)
+	CircuitOpen(ctx context.Context, providerID string) bool
+}
+
 type Service struct {
 	db           *gorm.DB
 	catalog      *catalog.Service
 	booker       Booker
+	breaker      Breaker
 	adapters     map[string]Adapter
 	adapterCalls int32
+}
+
+func (s *Service) SetBreaker(b Breaker) {
+	s.breaker = b
 }
 
 func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *Service {
@@ -109,13 +120,14 @@ func Migrations() (string, fs.FS) {
 }
 
 type ExecuteInput struct {
-	Caller    identity.APIKeyPrincipal
-	RequestID string
-	Protocol  string
-	Hint      catalog.RouteHint
-	ForceFail string
-	OmitUsage bool
-	Chat      ChatRequest
+	Caller     identity.APIKeyPrincipal
+	RequestID  string
+	Protocol   string
+	Hint       catalog.RouteHint
+	ForceFail  string
+	OmitUsage  bool
+	CanarySlug string
+	Chat       ChatRequest
 }
 
 type ExecuteOutput struct {
@@ -131,6 +143,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, ErrModelNotAllowed
+	}
+	if in.CanarySlug != "" {
+		in.Hint.Order = append([]string{in.CanarySlug}, in.Hint.Order...)
 	}
 	cands, err := s.catalog.ResolveRoute(ctx, model.ID, in.Hint)
 	if err != nil || len(cands) == 0 {
@@ -183,6 +198,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	out := &ExecuteOutput{}
 	streamStarted := false
 	for i, cand := range cands {
+		if s.breaker != nil && s.breaker.CircuitOpen(ctx, cand.ProviderID) {
+			continue
+		}
 		behavior := cand.TestBehavior
 		if in.ForceFail != "" && in.ForceFail == cand.ProviderSlug {
 			behavior = "429"
@@ -210,6 +228,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			}
 			attempt.ErrorCode = &code
 			_ = s.db.WithContext(ctx).Create(&attempt).Error
+			if s.breaker != nil {
+				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
+			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
 			if streamStarted {
 				break
@@ -221,6 +242,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		attempt.Status = "succeeded"
 		_ = s.db.WithContext(ctx).Create(&attempt).Error
+		if s.breaker != nil {
+			s.breaker.RecordAttempt(ctx, cand.ProviderID, true)
+		}
 		out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "succeeded", HTTPStatus: 200})
 		result.Body.Provider = cand.ProviderSlug
 		result.Body.RequestID = in.RequestID

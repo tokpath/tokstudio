@@ -1,0 +1,122 @@
+package gateway
+
+import (
+	"context"
+	"sort"
+)
+
+type TrafficStat struct {
+	Dimension    string
+	Key          string
+	Requests     int64
+	Successes    int64
+	Errors       int64
+	SuccessRate  float64
+	LatencyP50MS int64
+	LatencyP95MS int64
+	Fallbacks    int64
+}
+
+func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat, error) {
+	type row struct {
+		Key       string
+		Requests  int64
+		Successes int64
+		Errors    int64
+		Fallbacks int64
+	}
+	var grouped []row
+	switch dimension {
+	case "provider":
+		if err := s.db.WithContext(ctx).Raw(`
+			SELECT provider_id AS key,
+				COUNT(*) AS requests,
+				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+				COUNT(*) FILTER (WHERE status = 'failed') AS errors
+			FROM gateway_attempts GROUP BY provider_id
+		`).Scan(&grouped).Error; err != nil {
+			return nil, err
+		}
+	case "model":
+		if err := s.db.WithContext(ctx).Raw(`
+			SELECT public_model_id AS key,
+				COUNT(*) AS requests,
+				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors
+			FROM gateway_requests GROUP BY public_model_id
+		`).Scan(&grouped).Error; err != nil {
+			return nil, err
+		}
+	case "channel":
+		if err := s.db.WithContext(ctx).Raw(`
+			SELECT COALESCE(channel_org_id, '') AS key,
+				COUNT(*) AS requests,
+				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors
+			FROM gateway_requests GROUP BY channel_org_id
+		`).Scan(&grouped).Error; err != nil {
+			return nil, err
+		}
+	case "user":
+		if err := s.db.WithContext(ctx).Raw(`
+			SELECT user_id AS key,
+				COUNT(*) AS requests,
+				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors
+			FROM gateway_requests GROUP BY user_id
+		`).Scan(&grouped).Error; err != nil {
+			return nil, err
+		}
+	case "api_key":
+		if err := s.db.WithContext(ctx).Raw(`
+			SELECT COALESCE(api_key_id, '') AS key,
+				COUNT(*) AS requests,
+				COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+				COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors
+			FROM gateway_requests GROUP BY api_key_id
+		`).Scan(&grouped).Error; err != nil {
+			return nil, err
+		}
+	default:
+		return nil, nil
+	}
+
+	out := make([]TrafficStat, 0, len(grouped))
+	for _, item := range grouped {
+		stat := TrafficStat{Dimension: dimension, Key: item.Key, Requests: item.Requests, Successes: item.Successes, Errors: item.Errors}
+		if item.Requests > 0 {
+			stat.SuccessRate = float64(item.Successes) / float64(item.Requests)
+		}
+		stat.LatencyP50MS, stat.LatencyP95MS = s.latencies(ctx, dimension, item.Key)
+		out = append(out, stat)
+	}
+	return out, nil
+}
+
+func (s *Service) latencies(ctx context.Context, dimension, key string) (int64, int64) {
+	q := s.db.WithContext(ctx).Model(&attemptRow{}).Select("latency_ms")
+	switch dimension {
+	case "provider":
+		q = q.Where("provider_id = ?", key)
+	case "model":
+		q = q.Where("request_pk IN (SELECT id FROM gateway_requests WHERE public_model_id = ?)", key)
+	case "channel":
+		q = q.Where("request_pk IN (SELECT id FROM gateway_requests WHERE channel_org_id = ?)", key)
+	case "user":
+		q = q.Where("request_pk IN (SELECT id FROM gateway_requests WHERE user_id = ?)", key)
+	case "api_key":
+		q = q.Where("request_pk IN (SELECT id FROM gateway_requests WHERE api_key_id = ?)", key)
+	default:
+		return 0, 0
+	}
+	var values []int
+	if err := q.Limit(500).Scan(&values).Error; err != nil || len(values) == 0 {
+		return 0, 0
+	}
+	sort.Ints(values)
+	p95 := (len(values) * 95) / 100
+	if p95 >= len(values) {
+		p95 = len(values) - 1
+	}
+	return int64(values[len(values)/2]), int64(values[p95])
+}

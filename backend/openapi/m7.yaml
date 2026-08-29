@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: TokenHub M7 Ops
+  version: 0.1.0-m7
+paths:
+  /admin/ops/dashboard:
+    get:
+      summary: Provider/model/channel/user/key metrics plus money totals
+  /admin/metrics:
+    get:
+      summary: One dimension of request success latency and money
+  /admin/ops/alerts:
+    get:
+      summary: Open operational alerts
+  /admin/ops/backup-drill:
+    post:
+      summary: Record a restore drill against RPO 15m / RTO 60m
+  /admin/ops/canary:
+    post:
+      summary: Gray-release chat traffic to a provider slug
+  /admin/ops/circuit/{id}:
+    post:
+      summary: Trip or reset a provider circuit breaker

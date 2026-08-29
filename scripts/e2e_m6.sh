@@ -146,5 +146,5 @@ if [[ "$code" != "402" ]]; then
 fi
 
 echo "== health"
-curl -sf "$API_URL/healthz" | grep -q 0.1.0-m6
+curl -sf "$API_URL/healthz" | grep -q 0.1.0-m
 echo "M6 e2e passed"

@@ -20,6 +20,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
+	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/plans"
@@ -43,6 +44,7 @@ type App struct {
 	Plans      *plans.Service
 	Payment    *payment.Service
 	Commission *commission.Service
+	Ops        *ops.Service
 	Logger     zerolog.Logger
 }
 
@@ -59,6 +61,10 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	idSvc := identity.New(gdb)
 	commSvc := commission.New(gdb, outboxSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
+	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)
+	opsSvc := ops.New(gdb, rdb)
+	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc})
+	gw.SetBreaker(opsSvc)
 	return &App{
 		Config:     cfg,
 		DB:         gdb,
@@ -68,11 +74,12 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 		Outbox:     outboxSvc,
 		Catalog:    catalogSvc,
 		Billing:    billingSvc,
-		Gateway:    gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL),
+		Gateway:    gw,
 		Media:      mediaSvc,
 		Plans:      plansSvc,
 		Payment:    paySvc,
 		Commission: commSvc,
+		Ops:        opsSvc,
 		Logger:     logger,
 	}
 }
@@ -97,6 +104,7 @@ func AllMigrations() []db.ModuleMigrations {
 	plansName, plansFS := plans.Migrations()
 	paymentName, paymentFS := payment.Migrations()
 	commissionName, commissionFS := commission.Migrations()
+	opsName, opsFS := ops.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
@@ -108,6 +116,7 @@ func AllMigrations() []db.ModuleMigrations {
 		{Module: plansName, FS: plansFS},
 		{Module: paymentName, FS: paymentFS},
 		{Module: commissionName, FS: commissionFS},
+		{Module: opsName, FS: opsFS},
 	}
 }
 
@@ -132,7 +141,10 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.Plans.Seed(ctx); err != nil {
 		return err
 	}
-	return a.Commission.Seed(ctx)
+	if err := a.Commission.Seed(ctx); err != nil {
+		return err
+	}
+	return a.Ops.Seed(ctx)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -160,6 +172,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerMediaRoutes(r)
 	a.registerPlanRoutes(r)
 	a.registerCommissionRoutes(r)
+	a.registerOpsRoutes(r)
 	return r
 }
 
@@ -167,7 +180,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m6",
+		"version":    "0.1.0-m7",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -191,7 +204,7 @@ func (a *App) readyz(c *gin.Context) {
 		checks["redis"] = "ok"
 	}
 	applied, err := db.Applied(a.DB)
-	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 || len(applied["commission"]) == 0 {
+	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 || len(applied["commission"]) == 0 || len(applied["ops"]) == 0 {
 		checks["migrations"] = "error"
 		ready = false
 	} else {
@@ -258,7 +271,11 @@ func (a *App) adminMe(c *gin.Context) {
 }
 
 func (a *App) listAudit(c *gin.Context) {
-	entries, err := a.Audit.List(c.Request.Context(), 50)
+	entries, err := a.Audit.Search(c.Request.Context(), audit.SearchQuery{
+		Action: c.Query("action"), ResourceType: c.Query("resource_type"),
+		ResourceID: c.Query("resource_id"), ActorUserID: c.Query("actor_user_id"),
+		RequestID: c.Query("request_id"), Query: c.Query("q"), Limit: 50,
+	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取审计失败", true)
 		return

@@ -34,6 +34,47 @@ func (s *Service) Report(ctx context.Context) (*ReportView, error) {
 	}, nil
 }
 
+func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyView, error) {
+	col := ""
+	switch dimension {
+	case "provider":
+		col = "COALESCE(provider_id, '')"
+	case "model":
+		col = "public_model_id"
+	case "channel":
+		col = "COALESCE(channel_org_id, '')"
+	case "user":
+		col = "user_id"
+	case "api_key":
+		col = "COALESCE(api_key_id, '')"
+	default:
+		return nil, nil
+	}
+	type row struct {
+		Key     string
+		Usage   int64
+		Revenue int64
+		Cost    int64
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT ` + col + ` AS key,
+			COALESCE(SUM(wholesale_amount_minor),0) AS usage,
+			COALESCE(SUM(customer_amount_minor),0) AS revenue,
+			COALESCE(SUM(upstream_cost_minor),0) AS cost
+		FROM billing_usage_events
+		WHERE state = 'confirmed'
+		GROUP BY ` + col + `
+	`).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]DimMoneyView, 0, len(rows))
+	for _, item := range rows {
+		out = append(out, DimMoneyView{Dimension: dimension, Key: item.Key, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost})
+	}
+	return out, nil
+}
+
 func (s *Service) ChargeByRequest(ctx context.Context, requestID string) (*Settlement, error) {
 	var charge chargeRow
 	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&charge).Error; err != nil {

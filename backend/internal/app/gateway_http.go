@@ -12,6 +12,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -50,7 +51,15 @@ func (a *App) requireAPIKey() gin.HandlerFunc {
 			return
 		}
 		c.Set("api_key", principal)
+		if !a.enforceAPIKeyLimits(c, principal.APIKeyID, principal.RPMLimit, principal.ConcurrencyLimit) {
+			return
+		}
 		c.Next()
+		if rel, ok := c.Get("release_conc"); ok {
+			if fn, ok := rel.(func()); ok {
+				fn()
+			}
+		}
 	}
 }
 
@@ -58,12 +67,13 @@ func (a *App) createAPIKey(c *gin.Context) {
 	var body struct {
 		Name      string   `json:"name"`
 		Allowlist []string `json:"allowlist"`
+		RPMLimit  int      `json:"rpm_limit"`
 	}
 	_ = c.ShouldBindJSON(&body)
 	if body.Name == "" {
 		body.Name = "default"
 	}
-	key, err := a.Identity.CreateAPIKey(c.Request.Context(), *a.currentPrincipal(c), body.Name, a.Config.EncryptionKey, body.Allowlist)
+	key, err := a.Identity.CreateAPIKey(c.Request.Context(), *a.currentPrincipal(c), body.Name, a.Config.EncryptionKey, body.Allowlist, body.RPMLimit)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "创建 Key 失败", true)
 		return
@@ -149,13 +159,14 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 	}
 	hint := gateway.ParseHint(c.Query("provider.only"), c.Query("provider.ignore"), c.Query("provider.order"))
 	out, err := a.Gateway.Execute(c.Request.Context(), gateway.ExecuteInput{
-		Caller:    *a.currentAPIKey(c),
-		RequestID: c.GetString(httpx.ContextRequestID),
-		Protocol:  protocol,
-		Hint:      hint,
-		ForceFail: c.GetHeader("X-Tokenhub-Force-Fail"),
-		OmitUsage: c.GetHeader("X-Tokenhub-Omit-Usage") == "1",
-		Chat:      chat,
+		Caller:     *a.currentAPIKey(c),
+		RequestID:  c.GetString(httpx.ContextRequestID),
+		Protocol:   protocol,
+		Hint:       hint,
+		ForceFail:  c.GetHeader("X-Tokenhub-Force-Fail"),
+		OmitUsage:  c.GetHeader("X-Tokenhub-Omit-Usage") == "1",
+		CanarySlug: a.Ops.CanarySlug(c.Request.Context(), c.GetHeader("X-Tokenhub-Canary") == "1"),
+		Chat:       chat,
 	})
 	if err != nil {
 		switch {
@@ -165,6 +176,8 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 			httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型未授权", false)
 		case errors.Is(err, gateway.ErrInsufficientBalance):
 			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
+		case errors.Is(err, ops.ErrRateLimited):
+			httpx.Abort(c, http.StatusTooManyRequests, "rate_limited", "API Key 超过限额", false)
 		default:
 			httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "没有可用提供商", true)
 		}

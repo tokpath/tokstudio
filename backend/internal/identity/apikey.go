@@ -43,11 +43,13 @@ type APIKeyView struct {
 
 type APIKeyPrincipal struct {
 	Principal
-	APIKeyID  string
-	Allowlist []string
+	APIKeyID         string
+	Allowlist        []string
+	RPMLimit         int
+	ConcurrencyLimit int
 }
 
-func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey string, allowlist []string) (*APIKeyView, error) {
+func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey string, allowlist []string, rpm int) (*APIKeyView, error) {
 	raw, err := crypto.RandomToken("thk_")
 	if err != nil {
 		return nil, err
@@ -55,6 +57,9 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	cipher, err := crypto.Seal(encKey, raw)
 	if err != nil {
 		return nil, err
+	}
+	if rpm <= 0 {
+		rpm = 60
 	}
 	row := apiKeyRow{
 		ID:               id.New("key"),
@@ -64,7 +69,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 		SecretHash:       crypto.HashToken(raw),
 		SecretCiphertext: cipher,
 		Status:           "active",
-		RPMLimit:         60,
+		RPMLimit:         rpm,
 		ConcurrencyLimit: 5,
 		CreatedAt:        time.Now().UTC(),
 	}
@@ -112,5 +117,5 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 	for _, policy := range policies {
 		allow = append(allow, policy.PublicModelID)
 	}
-	return &APIKeyPrincipal{Principal: *principal, APIKeyID: row.ID, Allowlist: allow}, nil
+	return &APIKeyPrincipal{Principal: *principal, APIKeyID: row.ID, Allowlist: allow, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit}, nil
 }

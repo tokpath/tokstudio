@@ -175,6 +175,14 @@ type ReportView struct {
 	PendingCount     int64 `json:"pending_reconciliation_count"`
 }
 
+type DimMoneyView struct {
+	Dimension    string `json:"dimension"`
+	Key          string `json:"key"`
+	UsageMinor   int64  `json:"usage_minor"`
+	RevenueMinor int64  `json:"revenue_minor"`
+	CostMinor    int64  `json:"cost_minor"`
+}
+
 type QuotaView struct {
 	OwnerID        string `json:"owner_id"`
 	AvailableMinor int64  `json:"available_minor"`

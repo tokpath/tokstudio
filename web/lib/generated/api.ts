@@ -267,6 +267,30 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/channel-quotas/grant"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/providers/{id}/health-check"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ops/canary"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ops/canary"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/ops/circuit/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/usage"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/usage/replay"
   }
 ];
 

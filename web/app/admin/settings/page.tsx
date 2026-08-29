@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
@@ -9,6 +11,9 @@ export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
   const [minReq, setMinReq] = useState("5");
   const [pending, setPending] = useState("1");
+  const [providerID, setProviderID] = useState("prd_echo_primary");
+  const [canarySlug, setCanarySlug] = useState("echo-backup");
+  const [canaryPercent, setCanaryPercent] = useState("0");
   const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
 
   async function setup2FA() {
@@ -83,6 +88,96 @@ export default function AdminSettingsPage() {
           </button>
         </div>
         <p className="text-sm text-slate-300">{message}</p>
+      </section>
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="mb-3 text-xl font-medium">运维开关</h2>
+        <p className="mb-3 text-sm text-slate-400">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Input className="w-56" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="Provider ID" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/providers/${providerID}/health-check`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `健康=${body.health}` : body.error?.message || "探测失败");
+            }}
+          >
+            健康探测
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/circuit/${providerID}`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "trip" }),
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已打开熔断 ${providerID}` : body.error?.message || "熔断失败");
+            }}
+          >
+            打开熔断
+          </Button>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/circuit/${providerID}`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "reset" }),
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已复位熔断 ${providerID}` : body.error?.message || "复位失败");
+            }}
+          >
+            复位熔断
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Input className="w-40" value={canarySlug} onChange={(e) => setCanarySlug(e.target.value)} aria-label="灰度 Provider slug" />
+          <Input className="w-24" value={canaryPercent} onChange={(e) => setCanaryPercent(e.target.value)} aria-label="灰度百分比" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/canary`, { credentials: "include" });
+              const body = await res.json();
+              if (!res.ok) {
+                setMessage(body.error?.message || "读取灰度失败");
+                return;
+              }
+              setCanarySlug(body.canary?.provider_slug || "");
+              setCanaryPercent(String(body.canary?.percent ?? 0));
+              setMessage(`灰度 ${body.canary?.provider_slug || "-"} ${body.canary?.percent ?? 0}%`);
+            }}
+          >
+            读取灰度
+          </Button>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/ops/canary`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ provider_slug: canarySlug, percent: Number(canaryPercent) }),
+              });
+              const body = await res.json();
+              setMessage(res.ok ? `已设置灰度 ${body.canary?.provider_slug} ${body.canary?.percent}%` : body.error?.message || "设置失败");
+            }}
+          >
+            保存灰度
+          </Button>
+        </div>
       </section>
     </AdminShell>
   );

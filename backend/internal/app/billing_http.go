@@ -303,6 +303,9 @@ func (a *App) recalcCommission(c *gin.Context) {
 }
 
 func (a *App) replayUsage(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body billing.SettleInput
 	if err := c.ShouldBindJSON(&body); err != nil || body.RequestID == "" {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 request_id", false)
@@ -313,6 +316,11 @@ func (a *App) replayUsage(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "usage 回放失败", false)
 		return
 	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.usage.replay", ResourceType: "usage_event",
+		ResourceID: firstNonEmpty(item.UsageEventID, body.RequestID), After: item,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

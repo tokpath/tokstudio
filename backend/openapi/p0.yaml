@@ -507,3 +507,50 @@ paths:
       responses:
         "200":
           description: updated quota
+  /admin/providers/{id}/health-check:
+    post:
+      operationId: healthCheckProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: provider health probe
+  /admin/ops/canary:
+    get:
+      operationId: getAdminCanary
+      responses:
+        "200":
+          description: current canary
+    post:
+      operationId: setAdminCanary
+      responses:
+        "200":
+          description: updated canary
+  /admin/ops/circuit/{id}:
+    post:
+      operationId: tripOrResetCircuit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: circuit updated
+  /admin/usage:
+    get:
+      operationId: listAdminUsage
+      responses:
+        "200":
+          description: usage events
+  /admin/usage/replay:
+    post:
+      operationId: replayAdminUsage
+      responses:
+        "200":
+          description: settled or pending usage

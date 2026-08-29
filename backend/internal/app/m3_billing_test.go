@@ -94,6 +94,11 @@ func TestM3BillingInvariants(t *testing.T) {
 	oldAmount := first["customer_amount_minor"]
 	usageID := first["id"].(string)
 
+	if postStatus(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+	}) != http.StatusConflict {
+		t.Fatal("usage replay without confirm must be 409")
+	}
 	firstReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
 		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
 	})

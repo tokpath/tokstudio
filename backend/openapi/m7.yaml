@@ -28,11 +28,16 @@ paths:
     post:
       summary: Record a restore drill against RPO 15m / RTO 60m
   /admin/ops/canary:
+    get:
+      summary: Current gray-release provider slug and percent
     post:
       summary: Gray-release chat traffic to a provider slug
   /admin/ops/circuit/{id}:
     post:
       summary: Trip or reset a provider circuit breaker
+  /admin/providers/{id}/health-check:
+    post:
+      summary: Probe a provider without billing; tech/platform only, no confirm header
   /admin/providers:
     get:
       summary: List providers including health, adapter and rate-limit fields

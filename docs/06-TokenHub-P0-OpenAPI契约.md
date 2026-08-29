@@ -136,7 +136,7 @@
 - `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。
 - `POST /admin/topups/{id}/confirm`：财务确认人工充值。
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
-- `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。
+- `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
 - `GET /admin/usage?format=csv`：用量明细导出。
@@ -172,7 +172,7 @@
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
 - 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
-- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（公网 ACME 仍由边缘节点签发）；
+- 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（公网 ACME 仍由边缘节点签发）；健康探测、熔断、灰度不强制二次确认（技术值班 e2e 不带头）；管理页 `/admin/settings`「运维开关」可探测、打开/复位熔断、读写灰度；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 
-所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。
+所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改、usage 回放必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。健康探测、熔断与灰度设置不要求确认头。

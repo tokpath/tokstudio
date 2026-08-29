@@ -36,9 +36,15 @@ usgid="${old##* }"
 test "$amount" -gt 0
 
 echo "== replay usage is idempotent"
+noconfirm="$(curl -sS -o /tmp/m3_replay409.json -w '%{http_code}' -X POST "$API_URL/admin/usage/replay" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"request_id\":\"$rid\",\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":4}}")"
+test "$noconfirm" = "409"
 r1="$(curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"request_id\":\"$rid\",\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":4}}")"
 r2="$(curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"request_id\":\"$rid\",\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":4}}")"
 python3 -c "import json,sys; a=json.loads(sys.argv[1])['item']; b=json.loads(sys.argv[2])['item']; assert a['charge_id']==b['charge_id'] and a['amount_minor']==b['amount_minor']" "$r1" "$r2"
 
@@ -55,6 +61,7 @@ omit="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Beare
 orid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['request_id'])" "$omit")"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/billing/report" | grep -q pending_reconciliation_count
 curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"request_id\":\"$orid\",\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":4}}" | grep -q confirmed
 
 echo "== refund and commission reversal"

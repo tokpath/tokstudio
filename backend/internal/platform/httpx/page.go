@@ -61,6 +61,8 @@ func OKPage[T any](c *gin.Context, items []T, defaultLimit int, idFn func(T) str
 	OK(c, gin.H{"items": page, "limit": limit, "next_cursor": next, "request_id": c.GetString(ContextRequestID)})
 }
 
+func WantCSV(c *gin.Context) bool { return c.Query("format") == "csv" }
+
 func WriteCSV[T any](c *gin.Context, filename string, headers []string, items []T, row func(T) []string) {
 	var b strings.Builder
 	b.WriteString(strings.Join(headers, ",") + "\n")

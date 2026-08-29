@@ -62,7 +62,13 @@ func (a *App) adminAlerts(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取告警失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "alerts.csv", []string{"id", "kind", "severity", "status", "message"}, items, func(item ops.AlertView) []string {
+			return []string{item.ID, item.Kind, item.Severity, item.Status, item.Message}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 50, func(item ops.AlertView) string { return item.ID })
 }
 
 func (a *App) adminEvaluateAlerts(c *gin.Context) {
@@ -84,7 +90,13 @@ func (a *App) adminRunbooks(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 runbook 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "runbooks.csv", []string{"id", "alert_kind", "title"}, items, func(item ops.RunbookView) []string {
+			return []string{item.ID, item.AlertKind, item.Title}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 50, func(item ops.RunbookView) string { return item.ID })
 }
 
 func (a *App) adminBackupDrill(c *gin.Context) {

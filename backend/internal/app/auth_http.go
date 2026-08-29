@@ -332,6 +332,21 @@ func (a *App) listChannels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
 		return
 	}
+	if q := strings.ToLower(c.Query("q")); q != "" {
+		filtered := make([]identity.ChannelView, 0, len(items))
+		for _, item := range items {
+			if strings.Contains(strings.ToLower(item.Code+item.ID+item.Type+item.Status), q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "channels.csv", []string{"id", "code", "type", "status", "brand_id"}, items, func(item identity.ChannelView) []string {
+			return []string{item.ID, item.Code, item.Type, item.Status, item.BrandID}
+		})
+		return
+	}
 	httpx.OKPage(c, items, 100, func(item identity.ChannelView) string { return item.ID })
 }
 

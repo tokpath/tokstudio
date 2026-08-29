@@ -121,6 +121,15 @@ func (a *App) listAdminAPIKeys(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
 	}
+	if q := strings.ToLower(c.Query("q")); q != "" {
+		filtered := make([]identity.APIKeyView, 0, len(items))
+		for _, item := range items {
+			if strings.Contains(strings.ToLower(item.ID+item.Name+item.Prefix+item.Status+item.UserID), q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	if status := c.Query("status"); status != "" {
 		filtered := make([]identity.APIKeyView, 0, len(items))
 		for _, item := range items {
@@ -439,6 +448,21 @@ func (a *App) listAdminModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
 		return
 	}
+	if q := strings.ToLower(c.Query("q")); q != "" {
+		filtered := make([]catalog.ModelView, 0, len(items))
+		for _, item := range items {
+			if strings.Contains(strings.ToLower(item.ID+item.Vendor+item.DisplayName+item.Status), q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "models.csv", []string{"id", "vendor", "display_name", "status"}, items, func(item catalog.ModelView) []string {
+			return []string{item.ID, item.Vendor, item.DisplayName, item.Status}
+		})
+		return
+	}
 	httpx.OKPage(c, items, 100, func(item catalog.ModelView) string { return item.ID })
 }
 
@@ -483,6 +507,12 @@ func (a *App) listAdminRoutes(c *gin.Context) {
 	items, err := a.Catalog.ListRoutes(c.Request.Context())
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取路由失败", true)
+		return
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "routes.csv", []string{"id", "public_model_id", "strategy", "status"}, items, func(item catalog.RouteView) []string {
+			return []string{item.ID, item.PublicModelID, item.Strategy, item.Status}
+		})
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item catalog.RouteView) string { return item.ID })

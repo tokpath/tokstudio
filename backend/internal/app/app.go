@@ -302,7 +302,13 @@ func (a *App) listAudit(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取审计失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": entries, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "audit.csv", []string{"id", "action", "resource_type", "resource_id", "actor_user_id"}, entries, func(item audit.Entry) []string {
+			return []string{item.ID, item.Action, item.ResourceType, item.ResourceID, item.ActorUserID}
+		})
+		return
+	}
+	httpx.OKPage(c, entries, 50, func(item audit.Entry) string { return item.ID })
 }
 
 func (a *App) createAuditProbe(c *gin.Context) {

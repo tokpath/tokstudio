@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/commission"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -174,7 +176,13 @@ func (a *App) adminListRoles(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取角色失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "roles.csv", []string{"id", "channel_org_id", "type", "level", "status"}, items, func(item identity.AcquisitionRoleView) []string {
+			return []string{item.ID, item.ChannelOrgID, item.Type, strconv.Itoa(item.Level), item.Status}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item identity.AcquisitionRoleView) string { return item.ID })
 }
 
 func (a *App) adminCreatePromo(c *gin.Context) {
@@ -234,7 +242,13 @@ func (a *App) adminCommissions(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取佣金失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "commissions.csv", []string{"id", "kind", "status", "amount_minor", "channel_org_id"}, items, func(item commission.EntryView) []string {
+			return []string{item.ID, item.Kind, item.Status, strconv.FormatInt(item.AmountMinor, 10), item.ChannelOrgID}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item commission.EntryView) string { return item.ID })
 }
 
 func (a *App) adminUnfreeze(c *gin.Context) {

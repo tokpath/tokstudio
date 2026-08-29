@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -197,7 +198,13 @@ func (a *App) adminListPlans(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取套餐失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "plans.csv", []string{"id", "name", "status", "owner_type", "price_minor"}, items, func(item plans.PlanView) []string {
+			return []string{item.ID, item.Name, item.Status, item.OwnerType, strconv.FormatInt(item.PriceMinor, 10)}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item plans.PlanView) string { return item.ID })
 }
 
 func (a *App) adminCreatePlan(c *gin.Context) {

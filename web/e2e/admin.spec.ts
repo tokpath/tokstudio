@@ -56,4 +56,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/promos");
   await expect(page.getByRole("heading", { name: "推广角色" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建推广码" })).toBeVisible();
+  await page.goto("/admin/providers");
+  await expect(page.getByRole("heading", { name: "提供商" })).toBeVisible();
+  await expect(page.getByText("列表每行可探测")).toBeVisible();
 });

@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
+import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 
 const schema = z.object({
@@ -14,6 +18,33 @@ const schema = z.object({
 });
 
 type Provider = { id: string; name: string; slug: string; adapter: string; health: string; status: string };
+
+function ProbeCell({ id }: { id: string }) {
+  const queryClient = useQueryClient();
+  const [result, setResult] = useState("");
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={async () => {
+          const res = await fetch(`${apiBase}/admin/providers/${id}/health-check`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const body = await res.json();
+          setResult(res.ok ? String(body.health ?? "ok") : body.error?.message || "探测失败");
+          await queryClient.invalidateQueries();
+        }}
+      >
+        探测
+      </Button>
+      {result ? <span className="text-xs text-slate-400">{result}</span> : null}
+    </div>
+  );
+}
 
 function AccountPoolForm() {
   const form = useForm({
@@ -48,6 +79,7 @@ export default function AdminProvidersPage() {
   }
   return (
     <AdminShell>
+      <p className="text-sm text-slate-400">列表每行可探测。探测走上游沙箱、不会计费，也不要二次确认。</p>
       <AdminListPanel<Provider>
         path="/admin/providers"
         title="提供商"
@@ -56,6 +88,11 @@ export default function AdminProvidersPage() {
           { accessorKey: "adapter", header: "Adapter" },
           { accessorKey: "health", header: "Health" },
           { accessorKey: "status", header: "Status" },
+          {
+            id: "probe",
+            header: "探测",
+            cell: ({ row }) => <ProbeCell id={String(row.original.id)} />,
+          },
         ]}
       />
       <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 p-4" onSubmit={form.handleSubmit(onSubmit)}>

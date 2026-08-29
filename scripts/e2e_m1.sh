@@ -79,7 +79,8 @@ curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
 
 echo "== four portals render"
 for path in / /docs /app /channel /admin /login; do
-  curl -sf "$WEB_URL$path" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|平台管理|注册 / 登录"
+  html="$(curl -sf "$WEB_URL$path")"
+  echo "$html" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|平台管理|注册 / 登录"
 done
 oemdocs="$(curl -sf -H "Host: oem.localhost" "$API_URL/v1/public/docs-context")"
 echo "$oemdocs" | grep -q "Aurora OEM"

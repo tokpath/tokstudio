@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,10 @@ import { apiClient } from "@/lib/client";
 type Model = { id: string; vendor: string; display_name: string; status: string; sync_state?: string };
 
 export default function AdminModelsPage() {
+  const queryClient = useQueryClient();
   const form = useForm({ defaultValues: { provider_id: "", public_id: "" } });
   const [message, setMessage] = useState("同步进入 draft，审核发布后客户才看得到。弃用不删历史映射和价格。");
+  const [createMessage, setCreateMessage] = useState("手工创建默认 draft。客户目录要先审核再发布。不要改 tokenhub/echo-1。");
 
   async function attach(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,6 +64,45 @@ export default function AdminModelsPage() {
           { accessorKey: "sync_state", header: "Sync" },
         ]}
       />
+      <form
+        className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const formEl = event.currentTarget;
+          const data = new FormData(formEl);
+          const publicID = String(data.get("public_id") || "").trim();
+          const res = await fetch(`${apiBase}/admin/models`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+            body: JSON.stringify({
+              public_id: publicID,
+              vendor: String(data.get("vendor") || "").trim(),
+              display_name: String(data.get("display_name") || "").trim(),
+              status: String(data.get("status") || "draft").trim() || "draft",
+            }),
+          });
+          const body = await res.json();
+          if (!res.ok) {
+            setCreateMessage(body.error?.message || "创建失败");
+            return;
+          }
+          formEl.reset();
+          setCreateMessage(`已创建 ${body.item?.id} → ${body.item?.status}`);
+          await queryClient.invalidateQueries();
+        }}
+      >
+        <h2 className="text-xl font-medium">创建模型</h2>
+        <p className="text-sm text-slate-400">缺确认会 409。默认 draft，不会立刻出现在客户目录。</p>
+        <Input name="public_id" aria-label="创建用 public id" placeholder="创建用 public id tokenhub/ops-ui" />
+        <Input name="vendor" aria-label="创建用厂商" placeholder="创建用厂商 tokenhub" defaultValue="tokenhub" />
+        <Input name="display_name" aria-label="创建用显示名" placeholder="创建用显示名" />
+        <Input name="status" aria-label="创建用状态" placeholder="创建用状态 draft" defaultValue="draft" />
+        <Button size="sm" type="submit">
+          创建模型
+        </Button>
+        <p className="text-sm text-slate-300">{createMessage}</p>
+      </form>
       <form
         className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 p-4"
         onSubmit={form.handleSubmit(async (values) => {

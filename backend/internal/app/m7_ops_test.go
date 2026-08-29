@@ -288,6 +288,11 @@ func TestM7OpsHardening(t *testing.T) {
 	if len(models) == 0 {
 		t.Fatal("admin models empty")
 	}
+	if code := postStatus(t, server.URL+"/admin/models", "m7_admin", map[string]any{
+		"public_id": "tokenhub/ops-noconfirm", "vendor": "tokenhub",
+	}); code != http.StatusConflict {
+		t.Fatalf("create model without confirm should be 409, got %d", code)
+	}
 	draft := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
 		"public_id": "tokenhub/ops-draft-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Ops Draft", "status": "draft",
 	})

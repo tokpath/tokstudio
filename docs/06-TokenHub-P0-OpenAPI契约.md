@@ -155,7 +155,7 @@
 
 - Provider：`GET/POST/PATCH /admin/providers`、`POST /admin/providers/{id}/health-check`（不会计费、不强制确认；管理列表 `/admin/providers` 每行可探测）、`PATCH /admin/providers/{id}` 改状态/RPM（二次确认；管理页「改 Provider 状态」可写，不要改种子 echo/gemini）、`POST /admin/providers/{id}/credentials` 凭据轮换（二次确认，响应只回 `credential_ref`，管理页 `/admin/providers` 可轮换）；
 - 上游账号池：`GET/POST /admin/providers/{id}/accounts`、`PATCH /admin/providers/{id}/accounts/{aid}`；列表只回指纹，不回密文；冷却/失效账号不参与路由；管理页 `/admin/providers`「账号池」可读取、添加、冷却、停用；
-- 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射；`POST /admin/providers/{id}/sync` 同步结果进入 `draft`；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`，模型 ID 含斜杠）审核、发布、弃用，不删除历史映射和价格版本；管理页 `/admin/models` 可同步/审核发布、挂载、弃用；
+- 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射；`POST /admin/providers/{id}/sync` 同步结果进入 `draft`；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`，模型 ID 含斜杠）审核、发布、弃用，不删除历史映射和价格版本；管理页 `/admin/models` 可手工创建（需确认，默认 `draft`，不要改 `tokenhub/echo-1`）、同步/审核发布、挂载、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；创建和改策略需二次确认；管理页 `/admin/routes` 可创建路由组并改 `priority`/`weight`/`price`/`health`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；创建和改状态需二次确认；管理页 `/admin/channels` 可创建渠道并改状态（不要停用官方/代理商/OEM 种子渠道）；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；

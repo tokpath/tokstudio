@@ -70,11 +70,23 @@ echo "$health"
 echo "$health" | grep -q '"status":"ok"'
 
 echo "== readyz"
-ready="$(curl -sS "$API_URL/readyz" || true)"
+ready_ok=0
+for _ in $(seq 1 20); do
+  ready="$(curl -sS "$API_URL/readyz" || true)"
+  if echo "$ready" | grep -q '"postgres":"ok"' \
+    && echo "$ready" | grep -q '"redis":"ok"' \
+    && echo "$ready" | grep -q '"migrations":"ok"' \
+    && echo "$ready" | grep -q '"outbox_worker":"ok"'; then
+    ready_ok=1
+    break
+  fi
+  sleep 0.5
+done
 echo "$ready"
-echo "$ready" | grep -q '"postgres":"ok"'
-echo "$ready" | grep -q '"redis":"ok"'
-echo "$ready" | grep -q '"migrations":"ok"'
+if [[ "$ready_ok" != "1" ]]; then
+  echo "readyz did not become fully ok" >&2
+  exit 1
+fi
 
 echo "== metrics"
 curl -sf "$API_URL/metrics" | grep -q "go_goroutines"

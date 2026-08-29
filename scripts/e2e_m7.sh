@@ -216,6 +216,9 @@ if [[ "$code" != "400" ]]; then echo "metadata url should 400, got $code $(cat /
 curl -sf "$API_URL/v1/public/tls-check?domain=oem.localhost" >/dev/null
 code="$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/v1/public/tls-check?domain=evil.example")"
 if [[ "$code" != "404" ]]; then echo "unknown host should 404, got $code" >&2; exit 1; fi
+code="$(curl -s -o /tmp/m7-tls409.json -w '%{http_code}' -X POST "$API_URL/admin/brands/brd_oem/tls/issue" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
+if [[ "$code" != "409" ]]; then echo "expected 409 issuing tls without confirm, got $code" >&2; exit 1; fi
 curl_has issued -X POST "$API_URL/admin/brands/brd_oem/tls/issue" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}'
 
 echo "== admin role isolation"

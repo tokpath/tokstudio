@@ -251,7 +251,9 @@
 - 管理后台和用户站点使用 React/Next.js 或同等前端栈，共享品牌和权限组件；
 - 监控使用 Prometheus + Grafana，日志使用结构化 JSON，链路使用 OpenTelemetry。
 
-已确认采用“Go 后端 + PostgreSQL + Redis + Outbox Worker（Dapr 兼容、可选 sidecar）+ S3 对象存储 + React/Next.js 前端”的 P0 技术栈；监控使用 Prometheus + Grafana，日志使用结构化 JSON，链路使用 OpenTelemetry。
+已确认采用“Go + Gin 后端、PostgreSQL + GORM、Redis + Outbox Worker（Dapr 兼容、可选 sidecar）+ S3 对象存储 + React/Next.js 前端”的 P0 技术栈；日志使用 zerolog，配置使用 Viper，监控使用 Prometheus + Grafana，链路使用 OpenTelemetry。
+
+GORM 使用约束：钱包、预授权、usage、退款、佣金等账务核心必须显式开启事务、使用行锁/乐观锁、建立唯一幂等索引和定点金额字段；生产环境使用版本化 migration，不使用 `AutoMigrate` 直接改表。
 
 ### D29. 部署演进路线：已确认
 
@@ -328,6 +330,15 @@
 - next-intl 预留中文、英文和日文；Vitest/Testing Library/Playwright 覆盖单元、组件和端到端测试。
 - Web 控制台认证使用 HttpOnly/Secure Cookie，不将登录凭据放入 localStorage；前端隐藏菜单不代替后端 RBAC 和渠道 scope 校验。
 
+### D36. 后端框架与基础库：已确认
+
+- HTTP 框架使用 Gin；
+- 日志使用 zerolog，统一 JSON 字段和 request/attempt trace 字段；
+- 配置使用 Viper，明确环境变量覆盖层级，敏感配置只引用密钥管理系统或加密值；
+- 数据库使用 PostgreSQL + GORM；
+- GORM 业务模型与账务模型分层，账务核心禁止隐式 save、无条件 update 和生产 AutoMigrate；
+- migration 使用版本化脚本，关键约束（唯一幂等键、金额精度、外键、状态枚举）在数据库层落地。
+
 ## 当前讨论位置
 
-D1-D35 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。
+D1-D36 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。

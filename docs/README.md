@@ -22,6 +22,7 @@ D1-D32 已确认。当前已锁定：
 - 架构：Go + PostgreSQL + Redis + Outbox Worker + S3 + React/Next.js；
 - Bifrost：独立内部服务/Sidecar，TokenHub 保留业务控制面和账务事实源；
 - 演进：单节点容器 -> Kubernetes + Dapr；
+- 前端：Next.js + TypeScript + Tailwind CSS + shadcn/ui/Radix UI + Zustand/TanStack Query + OpenAPI 生成客户端；
 - 可靠性：RPO ≤ 15 分钟、RTO ≤ 1 小时、每日备份 + PITR、季度恢复演练。
 
 ## 文档清理说明

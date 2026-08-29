@@ -318,6 +318,16 @@
 
 已确认将“公共开发者文档 + 用户专属接入示例 + OEM 品牌化文档”纳入 P0。
 
+### D35. 前端技术栈：已确认
+
+- Next.js + TypeScript，共享公共站点、用户控制台、渠道控制台和平台管理控制台代码库。
+- Tailwind CSS + shadcn/ui/Radix UI，使用 CSS Variables 和 Design Tokens 支持 OEM 主题。
+- Zustand 只管理客户端交互状态；TanStack Query 管理余额、账单、Provider、模型和指标等服务端数据。
+- React Hook Form + Zod 处理表单和前端校验；TanStack Table 处理管理后台数据表格；Apache ECharts 处理运营/运维看板。
+- 通过 OpenAPI 生成 TypeScript Client；接口契约变更必须同步生成客户端类型。
+- next-intl 预留中文、英文和日文；Vitest/Testing Library/Playwright 覆盖单元、组件和端到端测试。
+- Web 控制台认证使用 HttpOnly/Secure Cookie，不将登录凭据放入 localStorage；前端隐藏菜单不代替后端 RBAC 和渠道 scope 校验。
+
 ## 当前讨论位置
 
-D1-D34 已确认。下一步整理最终版本文档并进入 M0 开发准备。
+D1-D35 已确认。需求和技术架构基线已冻结，后续只对实现细节和新增范围进行变更评审。

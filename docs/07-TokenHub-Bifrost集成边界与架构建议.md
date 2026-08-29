@@ -58,6 +58,8 @@ P0 推荐先以独立内部服务/Sidecar 方式集成，TokenHub 通过受控�
 
 部署演进目标是“单节点容器 -> Kubernetes + Dapr”：P0 使用 Docker Compose 或等价单节点部署，规模达到明确阈值后再迁移。迁移只替换运行时和服务发现，不改变客户 API、领域事件、账务流水和幂等契约。
 
+前端与 TokenHub API 通过 OpenAPI 生成的 TypeScript Client 通信。Next.js 负责多门户渲染，Tailwind CSS + shadcn/ui/Radix UI 负责共享组件和 OEM 主题；Zustand 不承载服务端事实数据，余额/账单/指标等统一由 TanStack Query 管理。Web 认证使用 HttpOnly/Secure Cookie，前端权限判断只用于界面显示，后端 RBAC/scope 才是安全边界。
+
 ## 4. 必须补齐的集成能力
 
 1. Usage 可靠回传：从 Bifrost 响应、流式最终 chunk 或日志事件提取 Token/媒体 usage；缺失时进入 `pending_reconciliation`。

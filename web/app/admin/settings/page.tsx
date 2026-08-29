@@ -202,6 +202,7 @@ export default function AdminSettingsPage() {
         >
           备份演练
         </Button>
+        <p className="mt-3 text-sm text-slate-300">{message}</p>
       </section>
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
@@ -245,6 +246,7 @@ export default function AdminSettingsPage() {
             签发证书
           </Button>
         </div>
+        <p className="text-sm text-slate-300">{message}</p>
       </section>
     </AdminShell>
   );

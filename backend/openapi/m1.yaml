@@ -35,6 +35,9 @@ paths:
   /v1/public/brand:
     get:
       summary: Brand theme by host
+  /v1/public/models:
+    get:
+      summary: Brand-scoped published models without Provider slugs
   /channel/users:
     get:
       summary: Channel-scoped user list

@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+test("public storefront shows models plans and topup", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "可用模型" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "套餐与订阅" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "充值" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "兑换码充值" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建支付充值" })).toBeVisible();
+});
+
 test("user console shows API Key panel", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByRole("link", { name: "用户控制台" })).toBeVisible();

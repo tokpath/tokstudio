@@ -60,6 +60,16 @@ if echo "$attr" | grep -q THA1; then
   exit 1
 fi
 
+echo "== public models hide providers"
+models="$(curl -sf "$API_URL/v1/public/models")"
+echo "$models" | grep -q tokenhub/echo-1
+if echo "$models" | grep -q echo-primary; then
+  echo "public models leaked provider slug" >&2
+  exit 1
+fi
+oemmodels="$(curl -sf "$API_URL/v1/public/models?host=oem.localhost")"
+echo "$oemmodels" | grep -q tokenhub/oem-demo
+
 echo "== OEM brand by host"
 oem="$(curl -sf "$API_URL/v1/public/brand?host=oem.localhost")"
 echo "$oem" | grep -q "Aurora OEM"
@@ -96,6 +106,10 @@ curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$alice\",\"password\":\"password2\"}" | grep -q "$alice"
 
 echo "== four portals render"
+homehtml="$(curl -sf "$WEB_URL/")"
+echo "$homehtml" | grep -q "可用模型"
+echo "$homehtml" | grep -q "套餐与订阅"
+echo "$homehtml" | grep -q "充值"
 for path in / /docs /app /channel /partner /admin /login; do
   html="$(curl -sf "$WEB_URL$path")"
   echo "$html" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|分销控制台|平台管理|注册 / 登录"

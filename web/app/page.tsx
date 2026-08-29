@@ -2,6 +2,7 @@ import { fetchAPI } from "@/lib/api";
 import type { Brand } from "@/lib/brand";
 import { summarizeReady, type Readyz } from "@/lib/status";
 import { headers } from "next/headers";
+import PublicStorefront from "./storefront";
 
 export default async function PublicHome() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -26,6 +27,15 @@ export default async function PublicHome() {
   } catch {
     plans = [];
   }
+  let models: { id?: string; display_name?: string; vendor?: string }[] = [];
+  try {
+    const data = await fetchAPI<{ items: { id?: string; display_name?: string; vendor?: string }[] }>("/v1/public/models", {
+      host,
+    });
+    models = data.items || [];
+  } catch {
+    models = [];
+  }
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12">
@@ -37,16 +47,7 @@ export default async function PublicHome() {
         面向开发者的多模型 API 中转。用一个 Base URL 和一把 Key 接入模型。注册时绑定的渠道不能自己改，这是为了保证分销归因可审计。
       </p>
       <p className="text-slate-200">{summary}</p>
-      {plans.length > 0 && (
-        <section className="grid gap-4 md:grid-cols-2">
-          {plans.map((plan) => (
-            <article key={plan.id} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-              <h2 className="text-xl font-medium">{plan.name}</h2>
-              <p className="mt-2 text-slate-300">{(plan.price_minor / 1_000_000).toString()} USD / 月</p>
-            </article>
-          ))}
-        </section>
-      )}
+      <PublicStorefront models={models} plans={plans} />
     </main>
   );
 }

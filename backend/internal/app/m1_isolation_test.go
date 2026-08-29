@@ -142,6 +142,37 @@ func TestM1IdentityIsolation(t *testing.T) {
 		}
 	}
 
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/public/models", "", nil) != http.StatusOK {
+		t.Fatal("public models must be readable without auth")
+	}
+	publicModels := getAuthJSON(t, server.URL+"/v1/public/models", "")
+	foundEcho := false
+	for _, raw := range publicModels["items"].([]any) {
+		row := raw.(map[string]any)
+		if _, ok := row["providers"]; ok {
+			t.Fatalf("public models must not leak providers: %+v", row)
+		}
+		if row["id"] == "tokenhub/echo-1" {
+			foundEcho = true
+		}
+	}
+	if !foundEcho {
+		t.Fatalf("official public models missing echo-1: %+v", publicModels)
+	}
+	oemModels := getAuthJSON(t, server.URL+"/v1/public/models?host=oem.localhost", "")
+	foundOEM := false
+	for _, raw := range oemModels["items"].([]any) {
+		row := raw.(map[string]any)
+		if _, ok := row["providers"]; ok {
+			t.Fatalf("oem public models leaked providers: %+v", row)
+		}
+		if row["id"] == "tokenhub/oem-demo" {
+			foundOEM = true
+		}
+	}
+	if !foundOEM {
+		t.Fatalf("oem public models missing oem-demo: %+v", oemModels)
+	}
 	oemBrand := getAuthJSON(t, server.URL+"/v1/public/brand?host=oem.localhost", "")
 	brand, _ := oemBrand["brand"].(map[string]any)
 	if brand["name"] != "Aurora OEM" {

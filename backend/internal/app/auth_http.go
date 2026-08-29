@@ -17,6 +17,7 @@ const sessionCookie = "tokenhub_session"
 
 func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/brand", a.publicBrand)
+	r.GET("/v1/public/models", a.publicModels)
 	r.GET("/v1/public/tls-check", a.publicTLSCheck)
 	r.GET("/v1/public/docs-context", a.docsContext)
 	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.listBrands)
@@ -290,7 +291,7 @@ func (a *App) switchChannel(c *gin.Context) {
 	a.writeAuthError(c, err)
 }
 
-func (a *App) publicBrand(c *gin.Context) {
+func (a *App) requestHost(c *gin.Context) string {
 	host := c.Query("host")
 	if host == "" {
 		host = c.GetHeader("X-Forwarded-Host")
@@ -298,7 +299,11 @@ func (a *App) publicBrand(c *gin.Context) {
 	if host == "" {
 		host = c.Request.Host
 	}
-	brand, err := a.Identity.BrandByHost(c.Request.Context(), host)
+	return host
+}
+
+func (a *App) publicBrand(c *gin.Context) {
+	brand, err := a.Identity.BrandByHost(c.Request.Context(), a.requestHost(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
@@ -306,15 +311,33 @@ func (a *App) publicBrand(c *gin.Context) {
 	httpx.OK(c, gin.H{"brand": brand, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) publicModels(c *gin.Context) {
+	brand, err := a.Identity.BrandByHost(c.Request.Context(), a.requestHost(c))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
+		return
+	}
+	channelID := identity.OfficialChannelID
+	if brand.ID == identity.OEMBrandID {
+		channelID = identity.OEMChannelID
+	}
+	models, err := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
+		return
+	}
+	items := make([]gin.H, 0, len(models))
+	for _, model := range models {
+		items = append(items, gin.H{
+			"id": model.ID, "vendor": model.Vendor, "display_name": model.DisplayName,
+			"capabilities": model.Capabilities,
+		})
+	}
+	httpx.OK(c, gin.H{"items": items, "brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) docsContext(c *gin.Context) {
-	host := c.Query("host")
-	if host == "" {
-		host = c.GetHeader("X-Forwarded-Host")
-	}
-	if host == "" {
-		host = c.Request.Host
-	}
-	brand, err := a.Identity.BrandByHost(c.Request.Context(), host)
+	brand, err := a.Identity.BrandByHost(c.Request.Context(), a.requestHost(c))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return

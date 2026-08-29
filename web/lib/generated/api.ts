@@ -130,6 +130,10 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/v1/public/models"
+  },
+  {
+    "method": "GET",
     "path": "/v1/public/tls-check"
   },
   {

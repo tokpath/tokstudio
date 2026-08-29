@@ -258,6 +258,12 @@ paths:
       responses:
         "200":
           description: copy audited
+  /v1/public/models:
+    get:
+      operationId: listPublicModels
+      responses:
+        "200":
+          description: brand-scoped public model cards without providers
   /v1/public/tls-check:
     get:
       operationId: publicTLSCheck

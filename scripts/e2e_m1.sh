@@ -61,6 +61,22 @@ google="$(curl -sf -X POST "$API_URL/v1/auth/google/callback" -H 'Content-Type: 
   -d "{\"state\":\"$state\",\"code\":\"mock:oem-$RANDOM@example.test\"}")"
 echo "$google" | grep -q chn_oem_c
 
+echo "== user settings profile and password"
+me="$(curl -sf -H "Authorization: Bearer $token_a" "$API_URL/v1/me")"
+echo "$me" | grep -q '"locale":"zh"'
+patched="$(curl -sf -X PATCH "$API_URL/v1/me" -H "Authorization: Bearer $token_a" -H 'Content-Type: application/json' \
+  -d '{"display_name":"Alice E2E","locale":"en"}')"
+echo "$patched" | grep -q 'Alice E2E'
+echo "$patched" | grep -q '"locale":"en"'
+echo "$patched" | grep -q chn_official_a
+curl -sf -X POST "$API_URL/v1/me/password" -H "Authorization: Bearer $token_a" -H 'Content-Type: application/json' \
+  -d '{"current_password":"password1","new_password":"password2"}' | grep -q '"ok":true'
+old="$(curl -sS -o /tmp/m1_oldpw.json -w '%{http_code}' -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$alice\",\"password\":\"password1\"}")"
+test "$old" = "403"
+curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$alice\",\"password\":\"password2\"}" | grep -q "$alice"
+
 echo "== four portals render"
 for path in / /docs /app /channel /admin /login; do
   curl -sf "$WEB_URL$path" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|平台管理|注册 / 登录"

@@ -9,6 +9,12 @@ paths:
   /admin/metrics:
     get:
       summary: One dimension of request success latency and money
+  /admin/metrics/series:
+    get:
+      summary: Daily request and money time series from gateway and billing interfaces
+  /admin/metrics/daily:
+    get:
+      summary: Daily summary JSON or CSV export for a billing period window
   /admin/ops/alerts:
     get:
       summary: Open operational alerts

@@ -28,6 +28,32 @@ paths:
       responses:
         "200":
           description: metrics
+  /admin/metrics/series:
+    get:
+      operationId: getAdminMetricsSeries
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: daily time series
+  /admin/metrics/daily:
+    get:
+      operationId: getAdminMetricsDaily
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: daily summary or csv
   /admin/providers:
     get:
       operationId: listProviders
@@ -239,6 +265,23 @@ paths:
       responses:
         "200":
           description: expired
+  /v1/me:
+    get:
+      operationId: getMe
+      responses:
+        "200":
+          description: current user profile
+    patch:
+      operationId: patchMe
+      responses:
+        "200":
+          description: updated display name and locale
+  /v1/me/password:
+    post:
+      operationId: changeMyPassword
+      responses:
+        "200":
+          description: password changed
   /v1/me/media:
     get:
       operationId: listMyMedia

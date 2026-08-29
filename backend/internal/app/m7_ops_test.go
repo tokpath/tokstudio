@@ -77,6 +77,33 @@ func TestM7OpsHardening(t *testing.T) {
 	if !found {
 		t.Fatalf("dashboard missing echo model: %+v", metrics)
 	}
+	series := getAuthJSON(t, server.URL+"/admin/metrics/series?days=7", "m7_admin")
+	items, _ := series["items"].([]any)
+	if len(items) != 7 {
+		t.Fatalf("series days: %+v", series)
+	}
+	sawToday := false
+	today := time.Now().UTC().Format("2006-01-02")
+	for _, raw := range items {
+		point := raw.(map[string]any)
+		if point["day"] == today && asInt(point["requests"]) > 0 {
+			sawToday = true
+		}
+	}
+	if !sawToday {
+		t.Fatalf("series missing today traffic: %+v", series)
+	}
+	req, _ := http.NewRequest(http.MethodGet, server.URL+"/admin/metrics/daily?format=csv&days=7", nil)
+	req.Header.Set("Authorization", "Bearer m7_admin")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	csvBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(csvBody), "gross_profit_minor") || !strings.Contains(string(csvBody), today) {
+		t.Fatalf("daily csv: %d %s", resp.StatusCode, csvBody)
+	}
 	dash := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)
 	totals := dash["totals"].(map[string]any)
 	if totals["revenue_minor"] == nil || totals["gross_profit_minor"] == nil || totals["success_rate"] == nil || totals["low_balance_wallets"] == nil {

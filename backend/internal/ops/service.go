@@ -18,11 +18,13 @@ var migrationFS embed.FS
 
 type TrafficSource interface {
 	DimStats(ctx context.Context, dimension string) ([]DimStat, error)
+	DailySeries(ctx context.Context, since time.Time) ([]DailyTraffic, error)
 }
 
 type MoneySource interface {
 	Money(ctx context.Context) (*MoneyView, error)
 	DimMoney(ctx context.Context, dimension string) ([]DimStat, error)
+	DailySeries(ctx context.Context, since time.Time) ([]DailyMoney, error)
 }
 
 type HealthSink interface {

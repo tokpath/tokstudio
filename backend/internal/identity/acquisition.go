@@ -244,11 +244,8 @@ func (s *Service) ListScopedUsers(ctx context.Context, viewer Principal, maskEma
 		if maskEmail {
 			email = MaskEmail(email)
 		}
-		view := UserView{
-			ID: row.ID, Email: email, Status: row.Status,
-			ChannelOrgID: deref(row.ChannelOrgID), BrandID: deref(row.BrandID),
-			CreatedAt: row.CreatedAt, SourceCode: attr.SourceCode,
-		}
+		view := viewFromUser(row, nil, attr.SourceCode)
+		view.Email = email
 		out = append(out, view)
 	}
 	return out, nil

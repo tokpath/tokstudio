@@ -3,7 +3,15 @@ package gateway
 import (
 	"context"
 	"sort"
+	"time"
 )
+
+type DailyStat struct {
+	Day       string
+	Requests  int64
+	Successes int64
+	Errors    int64
+}
 
 type TrafficStat struct {
 	Dimension    string
@@ -89,6 +97,33 @@ func (s *Service) DimStats(ctx context.Context, dimension string) ([]TrafficStat
 		}
 		stat.LatencyP50MS, stat.LatencyP95MS = s.latencies(ctx, dimension, item.Key)
 		out = append(out, stat)
+	}
+	return out, nil
+}
+
+func (s *Service) DailySeries(ctx context.Context, since time.Time) ([]DailyStat, error) {
+	type row struct {
+		Day       string
+		Requests  int64
+		Successes int64
+		Errors    int64
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT to_char((started_at AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS day,
+			COUNT(*) AS requests,
+			COUNT(*) FILTER (WHERE status = 'succeeded') AS successes,
+			COUNT(*) FILTER (WHERE status <> 'succeeded') AS errors
+		FROM gateway_requests
+		WHERE started_at >= ?
+		GROUP BY 1
+		ORDER BY 1
+	`, since.UTC()).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]DailyStat, 0, len(rows))
+	for _, item := range rows {
+		out = append(out, DailyStat{Day: item.Day, Requests: item.Requests, Successes: item.Successes, Errors: item.Errors})
 	}
 	return out, nil
 }

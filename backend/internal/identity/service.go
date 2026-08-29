@@ -24,6 +24,8 @@ type userRow struct {
 	Status          string     `gorm:"column:status"`
 	ChannelOrgID    *string    `gorm:"column:channel_org_id"`
 	BrandID         *string    `gorm:"column:brand_id"`
+	DisplayName     string     `gorm:"column:display_name"`
+	Locale          string     `gorm:"column:locale"`
 	EmailVerifiedAt *time.Time `gorm:"column:email_verified_at"`
 	GoogleSub       *string    `gorm:"column:google_sub"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`

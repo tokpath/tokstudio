@@ -86,6 +86,38 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if brand["name"] != "Aurora OEM" {
 		t.Fatalf("oem brand: %+v", oemBrand)
 	}
+
+	me := getAuthJSON(t, server.URL+"/v1/me", tokenOf(regA))["user"].(map[string]any)
+	if me["locale"] != "zh" || me["display_name"] != "" {
+		t.Fatalf("default profile: %+v", me)
+	}
+	updated := patchJSONRaw(t, server.URL+"/v1/me", tokenOf(regA), map[string]any{
+		"display_name": "Alice A", "locale": "en",
+	})["user"].(map[string]any)
+	if updated["display_name"] != "Alice A" || updated["locale"] != "en" {
+		t.Fatalf("updated profile: %+v", updated)
+	}
+	if updated["channel_org_id"] != identity.OfficialChannelID {
+		t.Fatalf("settings must not change channel: %+v", updated)
+	}
+	if code := mustStatusJSON(t, http.MethodPatch, server.URL+"/v1/me", tokenOf(regA), map[string]string{"locale": "fr"}); code != http.StatusBadRequest {
+		t.Fatalf("unsupported locale expected 400, got %d", code)
+	}
+	_ = postJSONRaw(t, server.URL+"/v1/me/password", tokenOf(regA), map[string]any{
+		"current_password": "password1", "new_password": "password2",
+	})
+	emailA := "alice-a+" + suffix + "@example.test"
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": emailA, "password": "password1",
+	}) != http.StatusForbidden {
+		t.Fatal("old password must fail after change")
+	}
+	login := postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": emailA, "password": "password2",
+	})
+	if tokenOf(login) == "" {
+		t.Fatalf("new password login: %+v", login)
+	}
 }
 
 func postBody(t *testing.T, url, token string, payload map[string]string) map[string]any {

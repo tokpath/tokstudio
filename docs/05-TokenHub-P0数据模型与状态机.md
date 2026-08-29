@@ -19,7 +19,7 @@
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id` | 普通用户是唯一终端用户类型；管理员是附加角色 |
+| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja |
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
 | `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权 |
 | `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级 |

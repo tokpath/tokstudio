@@ -63,6 +63,9 @@ echo "$dash" | grep -q gross_profit_minor
 echo "$dash" | grep -q success_rate
 echo "$dash" | grep -q acr_b_kol2
 echo "$dash" | grep -q low_balance_wallets
+series="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/series?days=7")"
+echo "$series" | python3 -c "import json,sys,datetime; d=json.load(sys.stdin); items=d['items']; assert len(items)==7; today=datetime.datetime.utcnow().strftime('%Y-%m-%d'); assert any(i['day']==today and i['requests']>0 for i in items)"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics/daily?format=csv&days=7" | grep -q gross_profit_minor
 code="$(curl -s -o /tmp/m7-confirm.json -w '%{http_code}' -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"request_id":"missing"}')"
 if [[ "$code" != "409" ]]; then
   echo "expected 409 confirm_required, got $code $(cat /tmp/m7-confirm.json)" >&2

@@ -23,6 +23,8 @@ var (
 	ErrChannelImmutable   = errors.New("channel attribution cannot be changed by the user")
 	ErrPromotionInvalid   = errors.New("promotion code is invalid")
 	ErrOTPInvalid         = errors.New("verification code is invalid")
+	ErrInvalidProfile     = errors.New("profile is invalid")
+	ErrInvalidLocale      = errors.New("locale is not supported")
 )
 
 type otpRow struct {
@@ -87,6 +89,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 		Status:       "active",
 		ChannelOrgID: &resolved.ChannelID,
 		BrandID:      &resolved.BrandID,
+		Locale:       DefaultLocale,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -217,15 +220,7 @@ func (s *Service) issueSession(ctx context.Context, user userRow) (*Session, err
 	return &Session{
 		Token:     raw,
 		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-		User: UserView{
-			ID:           user.ID,
-			Email:        user.Email,
-			Status:       user.Status,
-			ChannelOrgID: deref(user.ChannelOrgID),
-			BrandID:      deref(user.BrandID),
-			Roles:        principal.Roles,
-			CreatedAt:    user.CreatedAt,
-		},
+		User:      viewFromUser(user, principal.Roles, ""),
 	}, nil
 }
 

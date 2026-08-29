@@ -22,6 +22,14 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/admin/metrics/series"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/metrics/daily"
+  },
+  {
+    "method": "GET",
     "path": "/admin/providers"
   },
   {
@@ -115,6 +123,18 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/v1/me/api-keys/{id}/expire"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/me"
+  },
+  {
+    "method": "PATCH",
+    "path": "/v1/me"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/password"
   },
   {
     "method": "GET",

@@ -241,19 +241,12 @@ func (s *Service) ListUsers(ctx context.Context, viewer Principal) ([]UserView, 
 	}
 	out := make([]UserView, 0, len(rows))
 	for _, row := range rows {
-		view := UserView{
-			ID:           row.ID,
-			Email:        row.Email,
-			Status:       row.Status,
-			ChannelOrgID: deref(row.ChannelOrgID),
-			BrandID:      deref(row.BrandID),
-			CreatedAt:    row.CreatedAt,
-		}
 		var attr attributionRow
+		source := ""
 		if err := s.db.WithContext(ctx).Where("user_id = ?", row.ID).First(&attr).Error; err == nil {
-			view.SourceCode = attr.SourceCode
+			source = attr.SourceCode
 		}
-		out = append(out, view)
+		out = append(out, viewFromUser(row, nil, source))
 	}
 	return out, nil
 }
@@ -268,16 +261,8 @@ func (s *Service) Me(ctx context.Context, viewer Principal) (*UserView, error) {
 	if err := s.db.WithContext(ctx).Where("user_id = ?", user.ID).First(&attr).Error; err == nil {
 		source = attr.SourceCode
 	}
-	return &UserView{
-		ID:           user.ID,
-		Email:        user.Email,
-		Status:       user.Status,
-		ChannelOrgID: deref(user.ChannelOrgID),
-		BrandID:      deref(user.BrandID),
-		Roles:        viewer.Roles,
-		SourceCode:   source,
-		CreatedAt:    user.CreatedAt,
-	}, nil
+	view := viewFromUser(user, viewer.Roles, source)
+	return &view, nil
 }
 
 func (s *Service) AdminReattribute(ctx context.Context, actor Principal, userID, promotionCode, reason string) error {

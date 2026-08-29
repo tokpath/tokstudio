@@ -1,6 +1,16 @@
 package billing
 
-import "context"
+import (
+	"context"
+	"time"
+)
+
+type DailyMoney struct {
+	Day          string
+	UsageMinor   int64
+	RevenueMinor int64
+	CostMinor    int64
+}
 
 func (s *Service) Report(ctx context.Context) (*ReportView, error) {
 	type sumRow struct {
@@ -71,6 +81,33 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 	out := make([]DimMoneyView, 0, len(rows))
 	for _, item := range rows {
 		out = append(out, DimMoneyView{Dimension: dimension, Key: item.Key, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost})
+	}
+	return out, nil
+}
+
+func (s *Service) DailySeries(ctx context.Context, since time.Time) ([]DailyMoney, error) {
+	type row struct {
+		Day     string
+		Usage   int64
+		Revenue int64
+		Cost    int64
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT to_char((occurred_at AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS day,
+			COALESCE(SUM(wholesale_amount_minor),0) AS usage,
+			COALESCE(SUM(customer_amount_minor),0) AS revenue,
+			COALESCE(SUM(upstream_cost_minor),0) AS cost
+		FROM billing_usage_events
+		WHERE state = 'confirmed' AND occurred_at >= ?
+		GROUP BY 1
+		ORDER BY 1
+	`, since.UTC()).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]DailyMoney, 0, len(rows))
+	for _, item := range rows {
+		out = append(out, DailyMoney{Day: item.Day, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost})
 	}
 	return out, nil
 }

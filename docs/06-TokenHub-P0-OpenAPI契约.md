@@ -104,6 +104,8 @@
 ## 5. 用户、Key、套餐与余额
 
 - `GET /v1/me`
+- `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
+- `POST /v1/me/password`：校验当前密码后改密
 - `GET /v1/me/balance`
 - `GET /v1/me/usage`
 - `GET /v1/me/ledger`
@@ -164,7 +166,7 @@
 - 权益：`POST /admin/entitlements/bonus`；
 - 支付：`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
-- 观测：`GET /admin/metrics`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET /admin/ops/runbooks`；
+- 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET /admin/ops/runbooks`；
 - 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media`；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`。
 

@@ -37,6 +37,32 @@ const (
 	PolicyVersion    = "m7-v1"
 )
 
+type DailyTraffic struct {
+	Day       string `json:"day"`
+	Requests  int64  `json:"requests"`
+	Successes int64  `json:"successes"`
+	Errors    int64  `json:"errors"`
+}
+
+type DailyMoney struct {
+	Day          string `json:"day"`
+	UsageMinor   int64  `json:"usage_minor"`
+	RevenueMinor int64  `json:"revenue_minor"`
+	CostMinor    int64  `json:"cost_minor"`
+}
+
+type DayPoint struct {
+	Day          string  `json:"day"`
+	Requests     int64   `json:"requests"`
+	Successes    int64   `json:"successes"`
+	Errors       int64   `json:"errors"`
+	SuccessRate  float64 `json:"success_rate"`
+	UsageMinor   int64   `json:"usage_minor"`
+	RevenueMinor int64   `json:"revenue_minor"`
+	CostMinor    int64   `json:"cost_minor"`
+	MarginMinor  int64   `json:"gross_profit_minor"`
+}
+
 type DimStat struct {
 	Dimension    string  `json:"dimension"`
 	Key          string  `json:"key"`

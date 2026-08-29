@@ -24,6 +24,11 @@ paths:
   /v1/me:
     get:
       summary: Current user
+    patch:
+      summary: Update display name and locale; channel stays immutable
+  /v1/me/password:
+    post:
+      summary: Change password with the current password
   /v1/me/channel/switch:
     post:
       summary: Always denied

@@ -28,6 +28,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/auth/google/start", a.googleStart)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
+	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
+	r.POST("/v1/me/password", a.requireAnyUser(), a.changePassword)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin"), a.createChannel)
@@ -88,6 +90,10 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "渠道归属不可自行切换", false)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		httpx.Abort(c, http.StatusForbidden, "authentication_error", "账号或密码错误", false)
+	case errors.Is(err, identity.ErrInvalidProfile):
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "显示名过长", false)
+	case errors.Is(err, identity.ErrInvalidLocale):
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "语言只支持 zh、en、ja", false)
 	default:
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "处理失败", true)
 	}
@@ -226,6 +232,51 @@ func (a *App) me(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"user": me, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchMe(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	var body struct {
+		DisplayName *string `json:"display_name"`
+		Locale      *string `json:"locale"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
+		return
+	}
+	me, err := a.Identity.UpdateProfile(c.Request.Context(), *principal, identity.UpdateProfileInput{
+		DisplayName: body.DisplayName, Locale: body.Locale,
+	})
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: "user.profile.update", ResourceType: "user", ResourceID: principal.UserID,
+		After: me, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"user": me, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) changePassword(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	var body struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
+		return
+	}
+	if err := a.Identity.ChangePassword(c.Request.Context(), *principal, body.CurrentPassword, body.NewPassword); err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: "user.password.change", ResourceType: "user", ResourceID: principal.UserID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"ok": true, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) switchChannel(c *gin.Context) {

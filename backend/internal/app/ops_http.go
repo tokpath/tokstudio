@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,6 +21,8 @@ import (
 
 func (a *App) registerOpsRoutes(r *gin.Engine) {
 	r.GET("/admin/metrics", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly"), a.adminMetrics)
+	r.GET("/admin/metrics/series", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly"), a.adminMetricsSeries)
+	r.GET("/admin/metrics/daily", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly"), a.adminMetricsDaily)
 	r.GET("/admin/ops/dashboard", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly"), a.adminDashboard)
 	r.GET("/admin/ops/alerts", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.adminAlerts)
 	r.POST("/admin/ops/alerts/evaluate", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.adminEvaluateAlerts)
@@ -45,6 +48,43 @@ func (a *App) adminMetrics(c *gin.Context) {
 		"totals":     dash.Totals,
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
+}
+
+func (a *App) adminMetricsSeries(c *gin.Context) {
+	a.writeMetricsSeries(c)
+}
+
+func (a *App) adminMetricsDaily(c *gin.Context) {
+	a.writeMetricsSeries(c)
+}
+
+func (a *App) writeMetricsSeries(c *gin.Context) {
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "7"))
+	items, err := a.Ops.Series(c.Request.Context(), days)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取日报失败", true)
+		return
+	}
+	days = ops.ClampDays(days)
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "metrics-daily.csv",
+			[]string{"day", "requests", "successes", "errors", "success_rate", "usage_minor", "revenue_minor", "cost_minor", "gross_profit_minor"},
+			items, func(item ops.DayPoint) []string {
+				return []string{
+					item.Day,
+					strconv.FormatInt(item.Requests, 10),
+					strconv.FormatInt(item.Successes, 10),
+					strconv.FormatInt(item.Errors, 10),
+					fmt.Sprintf("%.4f", item.SuccessRate),
+					strconv.FormatInt(item.UsageMinor, 10),
+					strconv.FormatInt(item.RevenueMinor, 10),
+					strconv.FormatInt(item.CostMinor, 10),
+					strconv.FormatInt(item.MarginMinor, 10),
+				}
+			})
+		return
+	}
+	httpx.OK(c, gin.H{"days": days, "items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminDashboard(c *gin.Context) {

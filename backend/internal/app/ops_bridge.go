@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
@@ -26,6 +27,18 @@ func (b *trafficBridge) DimStats(ctx context.Context, dimension string) ([]ops.D
 			Successes: row.Successes, Errors: row.Errors, SuccessRate: row.SuccessRate,
 			LatencyP50MS: row.LatencyP50MS, LatencyP95MS: row.LatencyP95MS, Fallbacks: row.Fallbacks,
 		})
+	}
+	return out, nil
+}
+
+func (b *trafficBridge) DailySeries(ctx context.Context, since time.Time) ([]ops.DailyTraffic, error) {
+	rows, err := b.gateway.DailySeries(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ops.DailyTraffic, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, ops.DailyTraffic{Day: row.Day, Requests: row.Requests, Successes: row.Successes, Errors: row.Errors})
 	}
 	return out, nil
 }
@@ -64,6 +77,20 @@ func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.Dim
 			Dimension: row.Dimension, Key: row.Key, UsageMinor: row.UsageMinor,
 			RevenueMinor: row.RevenueMinor, CostMinor: row.CostMinor,
 			MarginMinor: row.RevenueMinor - row.CostMinor,
+		})
+	}
+	return out, nil
+}
+
+func (b *moneyBridge) DailySeries(ctx context.Context, since time.Time) ([]ops.DailyMoney, error) {
+	rows, err := b.billing.DailySeries(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ops.DailyMoney, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, ops.DailyMoney{
+			Day: row.Day, UsageMinor: row.UsageMinor, RevenueMinor: row.RevenueMinor, CostMinor: row.CostMinor,
 		})
 	}
 	return out, nil

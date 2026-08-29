@@ -51,6 +51,46 @@ paths:
       responses:
         "200":
           description: updated
+  /admin/providers/{id}/accounts:
+    get:
+      operationId: listProviderAccounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: account pool
+    post:
+      operationId: addProviderAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: account added
+  /admin/providers/{id}/accounts/{aid}:
+    patch:
+      operationId: patchProviderAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: aid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: account updated
   /admin/models:
     get:
       operationId: listAdminModels

@@ -39,6 +39,9 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
 	r.PATCH("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchProvider)
 	r.POST("/admin/providers/:id/credentials", a.requireRoles("platform_admin", "tech_admin"), a.rotateProviderCredential)
+	r.GET("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviderAccounts)
+	r.POST("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin"), a.addProviderAccount)
+	r.PATCH("/admin/providers/:id/accounts/:aid", a.requireRoles("platform_admin", "tech_admin"), a.patchProviderAccount)
 	r.POST("/admin/providers/:id/health-check", a.requireRoles("platform_admin", "tech_admin"), a.healthCheckProvider)
 	r.GET("/admin/models", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
 	r.POST("/admin/models", a.requireRoles("platform_admin", "ops_admin"), a.createAdminModel)
@@ -497,6 +500,53 @@ func (a *App) rotateProviderCredential(c *gin.Context) {
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"credential_ref": ref, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) listProviderAccounts(c *gin.Context) {
+	items, err := a.Catalog.ListAccounts(c.Request.Context(), c.Param("id"), c.Query("q"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "Provider 不存在", false)
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item catalog.AccountView) string { return item.ID })
+}
+
+func (a *App) addProviderAccount(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.AccountInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.AddAccount(c.Request.Context(), c.Param("id"), a.Config.EncryptionKey, body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "添加上游账号失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.account.add", ResourceType: "provider",
+		ResourceID: c.Param("id"), After: map[string]string{"account_id": item.ID, "fingerprint": item.Fingerprint},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchProviderAccount(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.AccountInput
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Catalog.PatchAccount(c.Request.Context(), c.Param("id"), c.Param("aid"), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "账号不存在", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.account.patch", ResourceType: "provider_account",
+		ResourceID: item.ID, After: map[string]string{"status": item.Status},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) listAdminModels(c *gin.Context) {

@@ -213,6 +213,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
 		result, err := adapter.Chat(ctx, cand.ProviderSlug, behavior, in.Chat)
+		if cand.AccountID != "" {
+			_ = s.catalog.RecordAccountOutcome(ctx, cand.AccountID, result.HTTPStatus)
+		}
 		end := time.Now().UTC()
 		latency := int(time.Since(start).Milliseconds())
 		attempt := attemptRow{

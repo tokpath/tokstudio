@@ -170,6 +170,31 @@ code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API_URL/admin/refunds" 
 if [[ "$code" != "403" ]]; then echo "ops must not refund, got $code" >&2; exit 1; fi
 curl -sf -X POST "$API_URL/admin/providers/prd_echo_primary/health-check" -H "Authorization: Bearer $TECH_TOKEN" -H 'Content-Type: application/json' -d '{}' | grep -q health
 
+echo "== provider account pool"
+POOL_SLUG="pool-e2e-$RANDOM"
+POOL_JSON="$(curl -sf -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $TECH_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"name\":\"Pool E2E\",\"slug\":\"$POOL_SLUG\",\"adapter\":\"test\"}")"
+POOL_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$POOL_JSON")"
+curl -sf -X POST "$API_URL/admin/models/attach" -H "Authorization: Bearer $TECH_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"public_id\":\"tokenhub/echo-1\",\"provider_id\":\"$POOL_ID\",\"upstream_model_id\":\"echo-upstream\"}" >/dev/null
+COOL_JSON="$(curl -sf -X POST "$API_URL/admin/providers/$POOL_ID/accounts" -H "Authorization: Bearer $TECH_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-cool","label":"cooling"}')"
+echo "$COOL_JSON" | grep -q fingerprint
+echo "$COOL_JSON" | grep -qv ciphertext
+COOL_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$COOL_JSON")"
+curl -sf -X PATCH "$API_URL/admin/providers/$POOL_ID/accounts/$COOL_ID" -H "Authorization: Bearer $TECH_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"cooldown_seconds":120}' >/dev/null
+code="$(curl -s -o /tmp/m7-pool-cool.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_SLUG" \
+  -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"cool"}]}')"
+if [[ "$code" != "503" ]]; then echo "cooldown-only pool should 503, got $code $(cat /tmp/m7-pool-cool.json)" >&2; exit 1; fi
+curl -sf -X POST "$API_URL/admin/providers/$POOL_ID/accounts" -H "Authorization: Bearer $TECH_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-hot","label":"hot"}' >/dev/null
+curl -sf -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_SLUG" -H "Authorization: Bearer $key" \
+  -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hot"}]}' | grep -q "$POOL_SLUG"
+code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/providers/$POOL_ID/accounts")"
+if [[ "$code" != "403" ]]; then echo "finance must not list accounts, got $code" >&2; exit 1; fi
+
 echo "== chat idempotency 24h"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -H "Idempotency-Key: e2e-chat-$email" -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"idem"}]}' >/tmp/m7-idem1.json

@@ -150,6 +150,7 @@
 ## 7. 管理后台 API（P0）
 
 - Provider：`GET/POST/PATCH /admin/providers`、`POST /admin/providers/{id}/health-check`、`POST /admin/providers/{id}/credentials` 凭据轮换（不回显明文）；
+- 上游账号池：`GET/POST /admin/providers/{id}/accounts`、`PATCH /admin/providers/{id}/accounts/{aid}`；列表只回指纹，不回密文；冷却/失效账号不参与路由；
 - 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射、同步、审核、发布、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；

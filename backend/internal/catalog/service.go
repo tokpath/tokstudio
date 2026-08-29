@@ -132,6 +132,7 @@ type RouteCandidate struct {
 	Priority        int
 	Weight          int
 	CostMinor       int64
+	AccountID       string
 }
 
 type RouteHint struct {
@@ -430,10 +431,15 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		if weight == 0 {
 			weight = 1
 		}
+		accountID, skipAccount := s.pickAccount(ctx, provider.ID, model.PublicID)
+		if skipAccount {
+			continue
+		}
 		out = append(out, RouteCandidate{
 			ProviderID: provider.ID, ProviderSlug: provider.Slug, Adapter: provider.Adapter,
 			UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
 			Priority: cand.Priority, Weight: weight, CostMinor: s.providerCost(ctx, model.ID, provider.ID),
+			AccountID: accountID,
 		})
 	}
 	applyStrategy(out, group.Strategy)

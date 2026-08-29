@@ -337,6 +337,51 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("tech health-check: %+v", probe)
 	}
 
+	poolSlug := "pool-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	pool := postJSONRaw(t, server.URL+"/admin/providers", tech, map[string]any{
+		"name": "Account Pool", "slug": poolSlug, "adapter": "test",
+	})
+	poolID := pool["item"].(map[string]any)["id"].(string)
+	_ = postJSONRaw(t, server.URL+"/admin/models/attach", tech, map[string]any{
+		"public_id": catalog.EchoModelID, "provider_id": poolID, "upstream_model_id": "echo-upstream",
+	})
+	if getStatus(t, server.URL+"/admin/providers/"+poolID+"/accounts", finance) != http.StatusForbidden {
+		t.Fatal("finance must not list provider accounts")
+	}
+	cool := postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/accounts", tech, map[string]any{
+		"secret": "sk-cool", "label": "cooling",
+	})
+	coolItem := cool["item"].(map[string]any)
+	if coolItem["fingerprint"] == nil || coolItem["ciphertext"] != nil {
+		t.Fatalf("account must show fingerprint only: %+v", cool)
+	}
+	coolID := coolItem["id"].(string)
+	_ = patchJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/accounts/"+coolID, tech, map[string]any{
+		"cooldown_seconds": 120,
+	})
+	if code := postStatusHeader(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "cool"}},
+	}, nil); code != http.StatusServiceUnavailable {
+		t.Fatalf("cooldown-only pool should 503, got %d", code)
+	}
+	_ = postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/accounts", tech, map[string]any{
+		"secret": "sk-hot", "label": "hot",
+	})
+	viaPool := postJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hot"}},
+	})
+	if viaPool["provider"] != poolSlug {
+		t.Fatalf("active account should route: %+v", viaPool)
+	}
+	if err := application.Catalog.RecordAccountOutcome(context.Background(), coolID, 401); err != nil {
+		t.Fatal(err)
+	}
+	listed := getAuthJSON(t, server.URL+"/admin/providers/"+poolID+"/accounts?q=cooling", tech)
+	items, _ := listed["items"].([]any)
+	if len(items) != 1 || items[0].(map[string]any)["status"] != catalog.AccountInvalid {
+		t.Fatalf("401 should mark account invalid: %+v", listed)
+	}
+
 	idem := "chat-idem-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	firstChat := doChatHeader(t, server.URL+"/v1/chat/completions", key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "idem"}},

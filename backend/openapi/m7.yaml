@@ -26,6 +26,11 @@ paths:
       summary: List providers including health, adapter and rate-limit fields
     post:
       summary: Create a provider (confirm + optional TOTP)
+  /admin/providers/{id}/accounts:
+    get:
+      summary: List upstream account pool fingerprints for a provider
+    post:
+      summary: Add an encrypted upstream account without rotating others
   /admin/models:
     get:
       summary: List public models for admin

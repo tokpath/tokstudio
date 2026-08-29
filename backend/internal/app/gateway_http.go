@@ -316,7 +316,12 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 	if err != nil {
 		switch {
 		case errors.Is(err, gateway.ErrUnsupportedParam):
-			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "不支持的参数 logit_bias", false)
+			msg := "不支持的参数"
+			var pe gateway.ParamError
+			if errors.As(err, &pe) && pe.Param != "" {
+				msg = "不支持的参数 " + pe.Param
+			}
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", msg, false)
 		case errors.Is(err, gateway.ErrModelNotAllowed):
 			httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型未授权", false)
 		case errors.Is(err, gateway.ErrInsufficientBalance):
@@ -343,7 +348,7 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 	if protocol == "anthropic.messages" {
 		payload := gin.H{
 			"id": out.Response.ID, "type": "message", "role": "assistant", "model": out.Response.Model,
-			"content": []gin.H{{"type": "text", "text": firstContent(out.Response)}},
+			"content": anthropicContent(out.Response),
 			"usage":   out.Response.Usage, "request_id": c.GetString(httpx.ContextRequestID), "provider": out.Response.Provider,
 		}
 		a.rememberIdempotency(c, rawBody, http.StatusOK, payload)
@@ -400,6 +405,25 @@ func firstContent(resp gateway.ChatResponse) string {
 		return ""
 	}
 	return resp.Choices[0].Message.Content
+}
+
+func anthropicContent(resp gateway.ChatResponse) []gin.H {
+	if len(resp.Choices) == 0 {
+		return []gin.H{}
+	}
+	msg := resp.Choices[0].Message
+	out := make([]gin.H, 0, 1+len(msg.ToolCalls))
+	if msg.Content != "" {
+		out = append(out, gin.H{"type": "text", "text": msg.Content})
+	}
+	for _, call := range msg.ToolCalls {
+		var input any
+		if err := json.Unmarshal([]byte(call.Function.Arguments), &input); err != nil {
+			input = call.Function.Arguments
+		}
+		out = append(out, gin.H{"type": "tool_use", "id": call.ID, "name": call.Function.Name, "input": input})
+	}
+	return out
 }
 
 func (a *App) listAttempts(c *gin.Context) {

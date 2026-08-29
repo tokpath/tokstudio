@@ -18,6 +18,9 @@ func TestParseUSDToMinor(t *testing.T) {
 	if q.CustomerMinor(8, 4) != 16 {
 		t.Fatalf("echo usage should be 16 micro, got %d", q.CustomerMinor(8, 4))
 	}
+	if q.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "reasoning_tokens": 3}, "") != 22 {
+		t.Fatalf("reasoning tokens should bill at output price: %d", q.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "reasoning_tokens": 3}, ""))
+	}
 	if EstimateReserveMinor(q, 8, 4) < 16 {
 		t.Fatal("reserve must cover actual usage")
 	}

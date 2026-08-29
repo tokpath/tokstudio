@@ -167,7 +167,7 @@ func Migrations() (string, fs.FS) {
 
 func (s *Service) Seed(ctx context.Context) error {
 	caps, _ := json.Marshal(map[string]any{
-		"supported_parameters":   []string{"stream", "temperature", "max_tokens", "messages", "model", "system", "tools"},
+		"supported_parameters":   []string{"stream", "temperature", "max_tokens", "messages", "model", "system", "tools", "vision", "json", "reasoning", "response_format", "tool_choice"},
 		"unsupported_parameters": []string{"logit_bias"},
 	})
 	oemCaps, _ := json.Marshal(map[string]any{
@@ -204,6 +204,9 @@ func (s *Service) Seed(ctx context.Context) error {
 			if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
 				return err
 			}
+		}
+		if err := tx.Model(&publicModelRow{}).Where("public_id = ?", EchoModelID).Update("capabilities_json", caps).Error; err != nil {
+			return err
 		}
 		mappings := []mappingRow{
 			{ID: "map_echo_p", PublicModelID: "mdl_echo", ProviderID: "prd_echo_primary", UpstreamModelID: "echo-upstream", Status: "active"},

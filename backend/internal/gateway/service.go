@@ -138,12 +138,12 @@ type ExecuteOutput struct {
 }
 
 func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput, error) {
-	if in.Chat.LogitBias != nil && len(in.Chat.LogitBias) > 0 && string(in.Chat.LogitBias) != "null" {
-		return nil, ErrUnsupportedParam
-	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, ErrModelNotAllowed
+	}
+	if err := ValidateChat(in.Chat, model.Capabilities); err != nil {
+		return nil, err
 	}
 	if in.CanarySlug != "" {
 		in.Hint.Order = append([]string{in.CanarySlug}, in.Hint.Order...)
@@ -168,6 +168,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	maxTokens := 256
 	if in.Chat.MaxTokens != nil && *in.Chat.MaxTokens > 0 {
 		maxTokens = *in.Chat.MaxTokens
+	}
+	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
+		maxTokens += 64
 	}
 	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,

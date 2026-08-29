@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,6 +88,69 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		t.Fatalf("unsupported param expected 400, got %d", resp2.StatusCode)
 	}
 	_ = bad
+
+	tools := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model":    catalog.EchoModelID,
+		"messages": []map[string]string{{"role": "user", "content": "lookup weather"}},
+		"tools":    []map[string]any{{"type": "function", "function": map[string]any{"name": "lookup", "parameters": map[string]any{"type": "object"}}}},
+	})
+	choices, _ := tools["choices"].([]any)
+	if len(choices) == 0 {
+		t.Fatalf("tools: %+v", tools)
+	}
+	msg := choices[0].(map[string]any)["message"].(map[string]any)
+	calls, _ := msg["tool_calls"].([]any)
+	if len(calls) == 0 {
+		t.Fatalf("expected tool_calls: %+v", tools)
+	}
+	follow := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID,
+		"messages": []map[string]any{
+			{"role": "user", "content": "lookup weather"},
+			{"role": "tool", "tool_call_id": "call_echo", "content": "sunny"},
+		},
+		"tools": []map[string]any{{"type": "function", "function": map[string]any{"name": "lookup"}}},
+	})
+	if !containsText(follow, "tool-result:sunny") {
+		t.Fatalf("tool result: %+v", follow)
+	}
+	js := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model":           catalog.EchoModelID,
+		"messages":        []map[string]string{{"role": "user", "content": "hi"}},
+		"response_format": map[string]any{"type": "json_schema", "json_schema": map[string]any{"name": "echo", "schema": map[string]any{"type": "object"}}},
+	})
+	jsText, _ := firstContentOf(js)
+	if !strings.Contains(jsText, `"ok"`) {
+		t.Fatalf("json schema: %+v", js)
+	}
+	vision := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID,
+		"messages": []map[string]any{{"role": "user", "content": []map[string]any{
+			{"type": "text", "text": "describe"},
+			{"type": "image_url", "image_url": map[string]string{"url": "https://example.test/a.png"}},
+		}}},
+	})
+	if !containsText(vision, "vision:describe") {
+		t.Fatalf("vision: %+v", vision)
+	}
+	reason := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model":            catalog.EchoModelID,
+		"messages":         []map[string]string{{"role": "user", "content": "think"}},
+		"reasoning_effort": "low",
+	})
+	usage, _ := reason["usage"].(map[string]any)
+	if asInt(usage["reasoning_tokens"]) != 3 {
+		t.Fatalf("reasoning usage: %+v", reason)
+	}
+	anth := postJSONRaw(t, server.URL+"/v1/messages", apiKey, map[string]any{
+		"model":    catalog.EchoModelID,
+		"messages": []map[string]string{{"role": "user", "content": "lookup"}},
+		"tools":    []map[string]any{{"name": "lookup", "input_schema": map[string]any{"type": "object"}}},
+	})
+	blocks, _ := anth["content"].([]any)
+	if len(blocks) == 0 || blocks[0].(map[string]any)["type"] != "tool_use" {
+		t.Fatalf("anthropic tools: %+v", anth)
+	}
 
 	ctx := context.Background()
 	if err := application.Catalog.MarkHealth(ctx, "prd_echo_primary", "degraded"); err != nil {
@@ -194,4 +258,9 @@ func patchJSONRaw(t *testing.T, url, token string, payload map[string]any) map[s
 func mustJSON(v any) []byte {
 	body, _ := json.Marshal(v)
 	return body
+}
+
+func containsText(body map[string]any, want string) bool {
+	raw, _ := json.Marshal(body)
+	return strings.Contains(string(raw), want)
 }

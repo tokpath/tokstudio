@@ -45,6 +45,20 @@ code="$(curl -sS -o /tmp/m2_bad.json -w '%{http_code}' -X POST "$API_URL/v1/chat
   -d '{"model":"tokenhub/echo-1","logit_bias":{"1":1},"messages":[{"role":"user","content":"x"}]}')"
 test "$code" = "400"
 
+echo "== tool calls, json schema, vision, reasoning"
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"lookup"}],"tools":[{"type":"function","function":{"name":"lookup"}}]}' | grep -q tool_calls
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"tool","tool_call_id":"call_echo","content":"sunny"}],"tools":[{"type":"function","function":{"name":"lookup"}}]}' | grep -q 'tool-result:sunny'
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hi"}],"response_format":{"type":"json_object"}}' | grep -q '"ok":true'
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":[{"type":"text","text":"describe"},{"type":"image_url","image_url":{"url":"https://example.test/a.png"}}]}]}' | grep -q vision:describe
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"think"}],"reasoning_effort":"low"}' | grep -q reasoning_tokens
+curl -sf -X POST "$API_URL/v1/messages" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"lookup"}],"tools":[{"name":"lookup"}]}' | grep -q tool_use
+
 echo "== stream"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","stream":true,"messages":[{"role":"user","content":"hi"}]}' | grep -q 'data:'

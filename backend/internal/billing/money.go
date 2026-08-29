@@ -51,8 +51,10 @@ type Quote struct {
 	Raw             json.RawMessage
 	InputSell       int64
 	OutputSell      int64
+	ReasoningSell   int64
 	InputCost       int64
 	OutputCost      int64
+	ReasoningCost   int64
 	InputWholesale  int64
 	OutputWholesale int64
 	VideoSecondSell int64
@@ -110,6 +112,18 @@ func ParseQuote(versionID string, raw []byte) (Quote, error) {
 	if q.OutputWholesale == 0 {
 		q.OutputWholesale = q.OutputSell * 7 / 10
 	}
+	if q.ReasoningSell, err = ParseUSDToMinor(str("reasoning", "reasoning_output")); err != nil {
+		return q, err
+	}
+	if q.ReasoningCost, err = ParseUSDToMinor(str("upstream_cost_reasoning")); err != nil {
+		return q, err
+	}
+	if q.ReasoningSell == 0 {
+		q.ReasoningSell = q.OutputSell
+	}
+	if q.ReasoningCost == 0 {
+		q.ReasoningCost = q.OutputCost
+	}
 	if q.VideoSecondSell, err = ParseUSDToMinor(str("video_second")); err != nil {
 		return q, err
 	}
@@ -162,7 +176,7 @@ func (q Quote) Charge(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := q.CustomerMinor(usage["prompt_tokens"], usage["completion_tokens"])
+	amt := q.CustomerMinor(usage["prompt_tokens"], usage["completion_tokens"]) + int64(usage["reasoning_tokens"])*q.ReasoningSell
 	media := int64(usage["video_seconds"])*q.VideoSecondSell +
 		int64(usage["image_count"])*q.ImageCountSell +
 		int64(usage["audio_seconds"])*q.AudioSecondSell
@@ -174,7 +188,7 @@ func (q Quote) MediaCost(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := q.CostMinor(usage["prompt_tokens"], usage["completion_tokens"])
+	amt := q.CostMinor(usage["prompt_tokens"], usage["completion_tokens"]) + int64(usage["reasoning_tokens"])*q.ReasoningCost
 	media := int64(usage["video_seconds"])*q.VideoSecondCost +
 		int64(usage["image_count"])*q.ImageCountCost
 	amt += media * resolutionFactor(resolution) / 10

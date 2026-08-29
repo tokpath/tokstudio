@@ -12,18 +12,27 @@ import (
 )
 
 type ChatRequest struct {
-	Model       string          `json:"model"`
-	Messages    []ChatMessage   `json:"messages"`
-	Stream      bool            `json:"stream"`
-	Temperature *float64        `json:"temperature"`
-	MaxTokens   *int            `json:"max_tokens"`
-	LogitBias   json.RawMessage `json:"logit_bias"`
-	Extra       map[string]any  `json:"-"`
+	Model           string          `json:"model"`
+	Messages        []ChatMessage   `json:"messages"`
+	Stream          bool            `json:"stream"`
+	Temperature     *float64        `json:"temperature"`
+	MaxTokens       *int            `json:"max_tokens"`
+	LogitBias       json.RawMessage `json:"logit_bias"`
+	Tools           json.RawMessage `json:"tools"`
+	ToolChoice      json.RawMessage `json:"tool_choice"`
+	ResponseFormat  json.RawMessage `json:"response_format"`
+	Reasoning       json.RawMessage `json:"reasoning"`
+	ReasoningEffort string          `json:"reasoning_effort"`
+	Extra           map[string]any  `json:"-"`
 }
 
 type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string        `json:"role"`
+	Content    string        `json:"content"`
+	Name       string        `json:"name,omitempty"`
+	ToolCallID string        `json:"tool_call_id,omitempty"`
+	ToolCalls  []ToolCall    `json:"tool_calls,omitempty"`
+	Parts      []ContentPart `json:"-"`
 }
 
 type ChatResponse struct {
@@ -63,20 +72,42 @@ func (TestAdapter) Chat(_ context.Context, providerSlug, behavior string, req Ch
 	if behavior == "500" {
 		return AdapterResult{HTTPStatus: 500, ErrorClass: "upstream_error"}, nil
 	}
-	text := "echo:"
+	last := ChatMessage{}
 	if len(req.Messages) > 0 {
-		text += req.Messages[len(req.Messages)-1].Content
+		last = req.Messages[len(req.Messages)-1]
+	}
+	text := "echo:" + last.Content
+	usage := map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+	msg := ChatMessage{Role: "assistant", Content: text + " via " + providerSlug}
+	if n := visionCount(req); n > 0 {
+		msg.Content = fmt.Sprintf("vision:%s images=%d via %s", last.Content, n, providerSlug)
+	}
+	if jsonMode(req.ResponseFormat) {
+		payload, _ := json.Marshal(map[string]any{"ok": true, "echo": last.Content})
+		msg.Content = string(payload)
+	}
+	if presentRaw(req.Tools) && last.Role != "tool" && last.Role != "assistant" {
+		msg.Content = ""
+		msg.ToolCalls = []ToolCall{{
+			ID: "call_echo", Type: "function",
+			Function: ToolFunction{Name: firstToolName(req.Tools), Arguments: `{"echo":true}`},
+		}}
+	}
+	if last.Role == "tool" {
+		msg.Content = "tool-result:" + last.Content + " via " + providerSlug
+	}
+	if req.ReasoningEffort != "" || presentRaw(req.Reasoning) {
+		usage["reasoning_tokens"] = 3
+		usage["total_tokens"] = 15
 	}
 	resp := ChatResponse{
-		ID:     fmt.Sprintf("chat_%d", time.Now().UnixNano()),
-		Object: "chat.completion",
-		Model:  req.Model,
-		Usage:  map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12},
+		ID: fmt.Sprintf("chat_%d", time.Now().UnixNano()), Object: "chat.completion",
+		Model: req.Model, Usage: usage,
 	}
 	resp.Choices = append(resp.Choices, struct {
 		Index   int         `json:"index"`
 		Message ChatMessage `json:"message"`
-	}{Index: 0, Message: ChatMessage{Role: "assistant", Content: text + " via " + providerSlug}})
+	}{Index: 0, Message: msg})
 	result := AdapterResult{HTTPStatus: 200, Body: resp}
 	if req.Stream {
 		result.Stream = []string{

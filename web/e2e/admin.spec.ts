@@ -23,7 +23,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "支付", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "确认支付" })).toBeVisible();
   await page.goto("/admin/prices");
-  await expect(page.getByRole("heading", { name: "价格" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "价格", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "发布价格" })).toBeVisible();
   await page.goto("/admin/metrics");
   await expect(page.getByRole("heading", { name: "运营看板" })).toBeVisible();

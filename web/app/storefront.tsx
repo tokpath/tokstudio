@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
+import { loginHref } from "@/lib/login-next";
 
 type PublicModel = { id?: string; display_name?: string; vendor?: string };
 type PublicPlan = { id?: string; name?: string; price_minor?: number };
+
+function unauthorizedMessage(status: number, apiMessage?: string, fallback = "请先登录") {
+  if (status === 401 || status === 403) {
+    return apiMessage || "未登录，请先点「去登录」再回来购买";
+  }
+  return apiMessage || fallback;
+}
 
 export default function PublicStorefront({
   models,
@@ -27,7 +36,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ code }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `兑换成功 ${body.item?.amount_minor ?? 0} micro-USD` : body.error?.message || "请先登录再充值");
+    setMessage(response.ok ? `兑换成功 ${body.item?.amount_minor ?? 0} micro-USD` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
   }
 
   async function topup() {
@@ -38,7 +47,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ amount_minor: 1_000_000, payment_method: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已创建充值单 ${body.item?.id}` : body.error?.message || "请先登录再充值");
+    setMessage(response.ok ? `已创建充值单 ${body.item?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
   }
 
   async function subscribe(planId: string) {
@@ -49,7 +58,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ plan_id: planId, adapter: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已下单 ${body.checkout?.order?.id}` : body.error?.message || "请先登录再订阅");
+    setMessage(response.ok ? `已下单 ${body.checkout?.order?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再订阅"));
   }
 
   return (
@@ -84,13 +93,16 @@ export default function PublicStorefront({
       </section>
       <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <CardTitle className="mb-3 text-xl font-medium">充值</CardTitle>
-        <p className="mb-4 text-sm text-slate-400">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会返回未授权。</p>
+        <p className="mb-4 text-sm text-slate-400">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
         <div className="flex flex-wrap gap-3">
           <Input value={code} onChange={(e) => setCode(e.target.value)} className="max-w-xs" />
           <Button variant="outline" onClick={redeem}>
             兑换码充值
           </Button>
           <Button onClick={topup}>创建支付充值</Button>
+          <Button variant="outline" asChild>
+            <Link href={loginHref("/")}>去登录</Link>
+          </Button>
         </div>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </Card>

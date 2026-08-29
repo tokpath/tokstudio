@@ -10,6 +10,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -31,6 +32,7 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.billingReport)
 	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
+	r.GET("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPrices)
 	r.POST("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.publishPrice)
 	r.POST("/admin/usage/replay", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.replayUsage)
 }
@@ -312,6 +314,30 @@ func (a *App) replayUsage(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminListPrices(c *gin.Context) {
+	items, err := a.Catalog.ListPriceBooks(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取价格失败", true)
+		return
+	}
+	if q := strings.TrimSpace(c.Query("q")); q != "" {
+		filtered := items[:0]
+		for _, item := range items {
+			if strings.Contains(item.PublicID, q) || strings.Contains(item.Status, q) || strings.Contains(item.ID, q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "price-books.csv", []string{"id", "public_id", "status"}, items, func(item catalog.PriceBookView) []string {
+			return []string{item.ID, item.PublicID, item.Status}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item catalog.PriceBookView) string { return item.ID })
 }
 
 func (a *App) publishPrice(c *gin.Context) {

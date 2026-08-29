@@ -166,6 +166,7 @@
 - 渠道额度：`GET /channel/quota`、`POST /admin/channel-quotas/grant`；
 - 渠道运营：`GET /channel/users`、`GET /channel/plans`、`GET /channel/usage`、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
+- 价格：`GET/POST /admin/price-books`（新版本不改历史账单）；
 - 权益：`POST /admin/entitlements/bonus`；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；

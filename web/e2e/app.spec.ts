@@ -7,6 +7,10 @@ test("public storefront shows models plans and topup", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "充值" })).toBeVisible();
   await expect(page.getByRole("button", { name: "兑换码充值" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建支付充值" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "去登录" })).toBeVisible();
+  await page.getByRole("link", { name: "去登录" }).click();
+  await expect(page).toHaveURL(/login\?next=/);
+  await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
 });
 
 test("user console shows API Key panel", async ({ page }) => {

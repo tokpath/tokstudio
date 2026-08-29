@@ -29,5 +29,7 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/admin/payments")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/commission-policy")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/commission-policy")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/price-books")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/price-books")).toBe(true);
   });
 });

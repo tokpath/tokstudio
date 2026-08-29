@@ -107,6 +107,17 @@ func TestM3BillingInvariants(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/price-books", "m3_admin", map[string]any{
 		"model": catalog.EchoModelID, "input": "0.01", "output": "0.02", "currency": "USD",
 	})
+	books := getAuthJSON(t, server.URL+"/admin/price-books", "m3_admin")
+	foundPrice := false
+	for _, raw := range books["items"].([]any) {
+		item, _ := raw.(map[string]any)
+		if item["public_id"] == catalog.EchoModelID && item["status"] == "published" {
+			foundPrice = true
+		}
+	}
+	if !foundPrice {
+		t.Fatalf("admin price books missing published echo: %+v", books)
+	}
 	again := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)[0].(map[string]any)
 	if again["customer_amount_minor"] != oldAmount {
 		t.Fatalf("price change rewrote old bill: %v -> %v", oldAmount, again["customer_amount_minor"])

@@ -497,6 +497,47 @@ func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSna
 	return &PriceSnapshot{VersionID: price.ID, PublicID: model.PublicID, Raw: price.UnitPrices}, nil
 }
 
+type PriceBookView struct {
+	ID          string          `json:"id"`
+	PublicID    string          `json:"public_id"`
+	Status      string          `json:"status"`
+	UnitPrices  json.RawMessage `json:"unit_prices"`
+	EffectiveAt time.Time       `json:"effective_at"`
+}
+
+func (s *Service) ListPriceBooks(ctx context.Context) ([]PriceBookView, error) {
+	var rows []priceRow
+	if err := s.db.WithContext(ctx).Order("effective_at DESC").Limit(200).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(rows))
+	seen := map[string]bool{}
+	for _, row := range rows {
+		if !seen[row.PublicModelID] {
+			seen[row.PublicModelID] = true
+			ids = append(ids, row.PublicModelID)
+		}
+	}
+	names := map[string]string{}
+	if len(ids) > 0 {
+		var models []publicModelRow
+		if err := s.db.WithContext(ctx).Where("id IN ?", ids).Find(&models).Error; err != nil {
+			return nil, err
+		}
+		for _, model := range models {
+			names[model.ID] = model.PublicID
+		}
+	}
+	out := make([]PriceBookView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, PriceBookView{
+			ID: row.ID, PublicID: names[row.PublicModelID], Status: row.Status,
+			UnitPrices: row.UnitPrices, EffectiveAt: row.EffectiveAt,
+		})
+	}
+	return out, nil
+}
+
 func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices map[string]any) (*PriceSnapshot, error) {
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {

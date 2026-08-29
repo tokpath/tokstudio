@@ -37,5 +37,7 @@ paths:
     post:
       summary: Reverse and recreate commission from the usage price snapshot
   /admin/price-books:
+    get:
+      summary: List price versions including superseded snapshots
     post:
       summary: Publish a new price version; historical bills stay on their snapshot

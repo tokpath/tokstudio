@@ -211,6 +211,14 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "PATCH",
     "path": "/admin/commission-policy"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/price-books"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/price-books"
   }
 ];
 

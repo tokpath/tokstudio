@@ -50,6 +50,7 @@ func main() {
 	go worker.Run(ctx)
 	go application.Billing.RunReaper(ctx)
 	go application.Media.Run(ctx)
+	go application.Plans.RunRenewal(ctx, application.Payment.RenewCharger())
 	logger.Info().Msg("worker_running")
 	<-ctx.Done()
 	logger.Info().Msg("worker_stopped")

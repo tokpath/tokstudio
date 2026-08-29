@@ -1,3 +1,4 @@
+import PlansPanel from "./plans";
 import WalletPanel from "./wallet";
 
 export default function UserConsole() {
@@ -9,6 +10,7 @@ export default function UserConsole() {
         这里只展示你自己的余额、套餐、API Key、用量和账单。渠道归属在注册时已经写死，页面上不会提供“切换渠道”入口。
       </p>
       <WalletPanel />
+      <PlansPanel />
     </main>
   );
 }

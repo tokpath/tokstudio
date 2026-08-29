@@ -107,8 +107,11 @@
 - `GET /v1/me/balance`
 - `GET /v1/me/usage`
 - `GET /v1/me/ledger`
-- `GET /v1/me/plans`
+- `GET /v1/plans`：公共站已发布的平台套餐；
+- `GET /v1/me/plans`：当前渠道可见的已发布套餐；
+- `GET /v1/me/entitlements`：赠送与套餐权益账户；
 - `POST /v1/me/subscriptions`
+- `GET /v1/me/subscriptions`
 - `POST /v1/me/subscriptions/{id}/cancel`
 - `GET /v1/me/api-keys`
 - `POST /v1/me/api-keys`
@@ -122,7 +125,9 @@
 - `POST /v1/topups`：创建充值订单；
 - `GET /v1/topups/{id}`：查询订单；
 - `POST /v1/topups/{id}/refund`：按权限申请退款；
-- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。
+- `POST /v1/payments/orders`：创建钱包充值支付单（沙箱适配器）；
+- `GET /v1/payments/orders/{id}`：查询支付单；
+- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。`X-Tokenhub-Payment-Signature` 为 HMAC-SHA256(`event_id|order_id|status`)，按 `external_event_id` 幂等。
 - `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。
 - `POST /admin/topups/{id}/confirm`：财务确认人工充值。
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
@@ -139,7 +144,9 @@
 - 模型：`GET/POST/PATCH /admin/models`、同步、审核、发布、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；
 - 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；
-- 套餐：`GET/POST/PATCH /admin/plans`、审核、发布、下架；
+- 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；
+- 权益：`POST /admin/entitlements/bonus`；
+- 支付：`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
 - 观测：`GET /admin/metrics`、`GET /admin/audit-logs`。
 

@@ -21,8 +21,29 @@ var migrationFS embed.FS
 
 // Service 是账务模块的唯一对外入口。网关只能调用 Reserve/Settle/Release。
 type Service struct {
-	db     *gorm.DB
-	outbox *outbox.Service
+	db      *gorm.DB
+	outbox  *outbox.Service
+	coverer EntitlementCoverer
+}
+
+func (s *Service) SetCoverer(c EntitlementCoverer) {
+	s.coverer = c
+}
+
+// Credit 是支付模块入账现金钱包的公开入口，不暴露内部表。
+func (s *Service) Credit(ctx context.Context, userID, idempotencyKey string, amount int64, memo string) error {
+	if amount <= 0 {
+		return ErrInvalidAmount
+	}
+	if idempotencyKey == "" {
+		return ErrInvalidAmount
+	}
+	if memo == "" {
+		memo = "payment credit"
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return creditWallet(tx, userID, amount, EventTopup, "payment", idempotencyKey, "pay:"+idempotencyKey)
+	})
 }
 
 func New(db *gorm.DB, publisher *outbox.Service) *Service {
@@ -184,36 +205,76 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 			out = &Reservation{ID: existing.ID, RequestID: existing.RequestID, AmountMinor: existing.AmountMinor, Status: existing.Status, Currency: existing.Currency}
 			return nil
 		}
+		walletNeed := in.ReserveMinor
+		var covered int64
+		if s.coverer != nil {
+			avail, err := s.coverer.AvailableUSD(ctx, in.UserID)
+			if err != nil {
+				return err
+			}
+			if avail > 0 {
+				cover := avail
+				if cover > in.ReserveMinor {
+					cover = in.ReserveMinor
+				}
+				took, err := s.coverer.ConsumeUSD(ctx, in.UserID, in.RequestID, cover)
+				if err != nil {
+					return err
+				}
+				covered = took
+				if covered > in.ReserveMinor {
+					covered = in.ReserveMinor
+				}
+				walletNeed = in.ReserveMinor - covered
+			}
+		}
 		wallet, err := lockWallet(tx, in.UserID)
 		if err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
 		if err := s.reserveChannelQuota(tx, in.ChannelOrgID, in.RequestID, in.ReserveMinor); err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
 		now := time.Now().UTC()
-		// 用原生 SQL 原子扣减，避免 GORM Updates 在并发下漏掉 WHERE 条件。
-		exec := tx.Exec(
-			`UPDATE billing_wallets
-			 SET available_minor = available_minor - ?,
-			     reserved_minor = reserved_minor + ?,
-			     version = version + 1,
-			     updated_at = ?
-			 WHERE id = ? AND available_minor >= ?`,
-			in.ReserveMinor, in.ReserveMinor, now, wallet.ID, in.ReserveMinor,
-		)
-		if exec.Error != nil {
-			return exec.Error
-		}
-		if exec.RowsAffected != 1 {
-			return ErrInsufficientBalance
-		}
-		if err := tx.Where("id = ?", wallet.ID).First(wallet).Error; err != nil {
-			return err
+		if walletNeed > 0 {
+			// 用原生 SQL 原子扣减，避免 GORM Updates 在并发下漏掉 WHERE 条件。
+			exec := tx.Exec(
+				`UPDATE billing_wallets
+				 SET available_minor = available_minor - ?,
+				     reserved_minor = reserved_minor + ?,
+				     version = version + 1,
+				     updated_at = ?
+				 WHERE id = ? AND available_minor >= ?`,
+				walletNeed, walletNeed, now, wallet.ID, walletNeed,
+			)
+			if exec.Error != nil {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return exec.Error
+			}
+			if exec.RowsAffected != 1 {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return ErrInsufficientBalance
+			}
+			if err := tx.Where("id = ?", wallet.ID).First(wallet).Error; err != nil {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return err
+			}
 		}
 		auth := authRow{
 			ID: id.New("aut"), WalletID: wallet.ID, UserID: in.UserID, RequestID: in.RequestID,
-			AmountMinor: in.ReserveMinor, Currency: CurrencyUSD, Status: AuthReserved,
+			AmountMinor: in.ReserveMinor, WalletReservedMinor: walletNeed, Currency: CurrencyUSD, Status: AuthReserved,
 			UnitPrices: in.UnitPrices, ExpiresAt: now.Add(15 * time.Minute), CreatedAt: now, UpdatedAt: now,
 		}
 		if in.ChannelOrgID != "" {
@@ -225,7 +286,10 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		if err := tx.Create(&auth).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventAuthorization, -in.ReserveMinor, "authorization", auth.ID, "auth:"+in.RequestID); err != nil {
+		if err := writeLedger(tx, wallet, EventAuthorization, -walletNeed, "authorization", auth.ID, "auth:"+in.RequestID); err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
 		if _, err := s.outbox.EnqueueTx(tx, "billing.authorization.reserved", "authorization", auth.ID, map[string]any{
@@ -236,6 +300,9 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		out = &Reservation{ID: auth.ID, RequestID: in.RequestID, AmountMinor: in.ReserveMinor, Status: AuthReserved, Currency: CurrencyUSD}
 		return nil
 	})
+	if err != nil && s.coverer != nil {
+		_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+	}
 	return out, err
 }
 
@@ -251,6 +318,13 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		var existing chargeRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
 			out = &Settlement{ChargeID: existing.ID, UsageEventID: existing.UsageEventID, AmountMinor: existing.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}
+			var prior authRow
+			if tx.Where("request_id = ?", in.RequestID).First(&prior).Error == nil {
+				keep := entitlementKeep(prior, existing.AmountMinor)
+				if s.coverer != nil {
+					_ = s.coverer.ReverseKeep(ctx, in.RequestID, keep)
+				}
+			}
 			return nil
 		}
 		var auth authRow
@@ -309,24 +383,42 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if customer > auth.AmountMinor {
 			customer = auth.AmountMinor
 		}
+		walletReserved := auth.WalletReservedMinor
+		if walletReserved > auth.AmountMinor {
+			walletReserved = auth.AmountMinor
+		}
+		covered := auth.AmountMinor - walletReserved
+		if covered < 0 {
+			covered = 0
+		}
+		entitlementUsed := customer
+		if entitlementUsed > covered {
+			entitlementUsed = covered
+		}
+		walletUsed := customer - entitlementUsed
+		walletRelease := walletReserved - walletUsed
+		if walletRelease < 0 {
+			walletRelease = 0
+		}
 		wallet, err := lockWalletByID(tx, auth.WalletID)
 		if err != nil {
 			return err
 		}
 		now := time.Now().UTC()
-		release := auth.AmountMinor - customer
-		wallet.ReservedMinor -= auth.AmountMinor
-		wallet.AvailableMinor += release
+		wallet.ReservedMinor -= walletReserved
+		wallet.AvailableMinor += walletRelease
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventUsageDebit, -customer, "request", in.RequestID, in.IdempotencyKey); err != nil {
-			return err
+		if walletUsed > 0 {
+			if err := writeLedger(tx, wallet, EventUsageDebit, -walletUsed, "request", in.RequestID, in.IdempotencyKey); err != nil {
+				return err
+			}
 		}
-		if release > 0 {
-			if err := writeLedger(tx, wallet, EventRelease, release, "authorization", auth.ID, "release:"+in.RequestID); err != nil {
+		if walletRelease > 0 {
+			if err := writeLedger(tx, wallet, EventRelease, walletRelease, "authorization", auth.ID, "release:"+in.RequestID); err != nil {
 				return err
 			}
 		}
@@ -385,9 +477,30 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			return err
 		}
 		out = &Settlement{ChargeID: charge.ID, UsageEventID: row.ID, AmountMinor: customer, State: UsageConfirmed, Currency: CurrencyUSD}
+		if s.coverer != nil {
+			_ = s.coverer.ReverseKeep(ctx, in.RequestID, entitlementUsed)
+		}
 		return nil
 	})
 	return out, err
+}
+
+func entitlementKeep(auth authRow, customer int64) int64 {
+	walletReserved := auth.WalletReservedMinor
+	if walletReserved > auth.AmountMinor {
+		walletReserved = auth.AmountMinor
+	}
+	covered := auth.AmountMinor - walletReserved
+	if covered < 0 {
+		covered = 0
+	}
+	if customer > covered {
+		return covered
+	}
+	if customer < 0 {
+		return 0
+	}
+	return customer
 }
 
 func (s *Service) Release(ctx context.Context, requestID string) error {
@@ -407,22 +520,34 @@ func (s *Service) Release(ctx context.Context, requestID string) error {
 			return err
 		}
 		now := time.Now().UTC()
-		wallet.ReservedMinor -= auth.AmountMinor
-		wallet.AvailableMinor += auth.AmountMinor
+		walletPart := auth.WalletReservedMinor
+		if walletPart > auth.AmountMinor {
+			walletPart = auth.AmountMinor
+		}
+		wallet.ReservedMinor -= walletPart
+		wallet.AvailableMinor += walletPart
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventRelease, auth.AmountMinor, "authorization", auth.ID, "release:"+requestID); err != nil {
-			return err
+		if walletPart > 0 {
+			if err := writeLedger(tx, wallet, EventRelease, walletPart, "authorization", auth.ID, "release:"+requestID); err != nil {
+				return err
+			}
 		}
 		if auth.ChannelOrgID != nil {
 			_ = s.releaseChannelQuota(tx, *auth.ChannelOrgID, requestID, auth.AmountMinor)
 		}
 		auth.Status = AuthReleased
 		auth.UpdatedAt = now
-		return tx.Save(&auth).Error
+		if err := tx.Save(&auth).Error; err != nil {
+			return err
+		}
+		if s.coverer != nil {
+			_ = s.coverer.ReverseByRequest(ctx, requestID)
+		}
+		return nil
 	})
 }
 

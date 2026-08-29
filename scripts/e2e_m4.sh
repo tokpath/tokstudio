@@ -127,7 +127,7 @@ test "$img" = "202"
 grep -q image /tmp/m4_img.json
 
 echo "== health"
-curl -sf "$API_URL/healthz" | grep -q 0.1.0-m4
+curl -sf "$API_URL/healthz" | grep -q 0.1.0-m
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers" | grep -q ark-seedance
 
 echo "M4 e2e passed"

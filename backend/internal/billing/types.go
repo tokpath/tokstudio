@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -16,6 +17,14 @@ var (
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
 )
+
+// EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
+type EntitlementCoverer interface {
+	AvailableUSD(ctx context.Context, userID string) (int64, error)
+	ConsumeUSD(ctx context.Context, userID, requestID string, amount int64) (int64, error)
+	ReverseByRequest(ctx context.Context, requestID string) error
+	ReverseKeep(ctx context.Context, requestID string, keep int64) error
+}
 
 const (
 	CurrencyUSD = "USD"

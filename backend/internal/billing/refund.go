@@ -34,8 +34,19 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		if userID == "" {
 			return ErrNotFound
 		}
-		if err := creditWallet(tx, userID, charge.AmountMinor, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
-			return err
+		walletCredit := charge.AmountMinor
+		if auth.ID != "" {
+			keep := entitlementKeep(auth, charge.AmountMinor)
+			if walletCredit > keep {
+				walletCredit = charge.AmountMinor - keep
+			} else {
+				walletCredit = 0
+			}
+		}
+		if walletCredit > 0 {
+			if err := creditWallet(tx, userID, walletCredit, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
+				return err
+			}
 		}
 		if err := s.reverseCommission(tx, charge.UsageEventID); err != nil {
 			return err
@@ -62,6 +73,9 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		out = &Settlement{ChargeID: charge.ID, UsageEventID: charge.UsageEventID, AmountMinor: charge.AmountMinor, State: ChargeReversed, Currency: CurrencyUSD}
 		return nil
 	})
+	if err == nil && s.coverer != nil {
+		_ = s.coverer.ReverseByRequest(ctx, requestID)
+	}
 	return out, err
 }
 

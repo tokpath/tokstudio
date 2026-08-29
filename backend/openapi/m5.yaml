@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: TokenHub M5 Plans and Payments
+  version: 0.1.0-m5
+paths:
+  /healthz:
+    get:
+      summary: Liveness
+      responses:
+        "200":
+          description: version 0.1.0-m5
+  /v1/plans:
+    get:
+      summary: Public published platform plans
+  /v1/me/plans:
+    get:
+      summary: Published plans visible to the caller's channel
+  /v1/me/subscriptions:
+    get:
+      summary: List my subscriptions
+    post:
+      summary: Create a pending subscription and sandbox checkout
+  /v1/me/subscriptions/{id}/cancel:
+    post:
+      summary: Cancel at period end
+  /v1/me/entitlements:
+    get:
+      summary: List bonus and plan entitlements
+  /v1/payments/orders:
+    post:
+      summary: Create a wallet payment order
+  /v1/payments/{adapter}/webhook:
+    post:
+      summary: Adapter webhook. HMAC of event_id|order_id|status. Idempotent on external_event_id.
+  /admin/plans:
+    get:
+      summary: Admin/channel plan list
+    post:
+      summary: Create a plan. Channel plans below price floor or over media caps enter pending_review.
+  /admin/plans/{id}/review:
+    post:
+      summary: approve or reject a pending channel plan
+  /admin/entitlements/bonus:
+    post:
+      summary: Grant bonus entitlement
+  /admin/payments/{id}/confirm:
+    post:
+      summary: Manually confirm a sandbox payment
+  /admin/payments/{id}/refund:
+    post:
+      summary: Refund and reverse unused entitlements

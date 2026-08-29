@@ -1,4 +1,4 @@
-.PHONY: api worker migrate test e2e-m0 e2e-m1 e2e-m2 e2e-m3 e2e-m4 web tidy
+.PHONY: api worker migrate test e2e-m0 e2e-m1 e2e-m2 e2e-m3 e2e-m4 e2e-m5 web tidy
 
 api:
 	cd backend && go run ./cmd/api
@@ -33,3 +33,6 @@ e2e-m3:
 
 e2e-m4:
 	bash scripts/e2e_m4.sh
+
+e2e-m5:
+	bash scripts/e2e_m5.sh

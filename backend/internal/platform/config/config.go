@@ -33,6 +33,7 @@ type Config struct {
 	MediaSignKey      string
 	ArkBaseURL        string
 	OpenRouterBaseURL string
+	PaymentSignKey    string
 }
 
 // Load 从环境变量读取 TOKENHUB_* 配置。
@@ -77,6 +78,7 @@ func Load() (*Config, error) {
 		MediaSignKey:      v.GetString("MEDIA_SIGN_KEY"),
 		ArkBaseURL:        v.GetString("ARK_BASE_URL"),
 		OpenRouterBaseURL: v.GetString("OPENROUTER_BASE_URL"),
+		PaymentSignKey:    v.GetString("PAYMENT_SIGN_KEY"),
 	}
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("TOKENHUB_DATABASE_URL is required")

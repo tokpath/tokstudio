@@ -52,6 +52,8 @@
 | `entitlement_account` | `id`, `user_id`, `source_type`, `source_id`, `unit_type`, `granted`, `consumed`, `expires_at`, `status` | 套餐和赠送额度独立账户 |
 | `entitlement_ledger` | `id`, `account_id`, `event_type`, `amount`, `request_id`, `occurred_at` | 发放、消费、过期、回收、冲正 |
 
+P0 落地时套餐实体由独立 `plans` 模块拥有，物理表为 `plans_product_plans`、`plans_plan_items`、`plans_subscriptions`、`plans_entitlement_accounts`、`plans_entitlement_ledger`。金额与 `usd_credit` 使用 micro-USD。billing 只能通过 `AvailableUSD` / `ConsumeUSD` / `ReverseKeep` 接口覆盖预授权，禁止直连套餐表。
+
 ### 2.4 钱包、充值、用量与账务
 
 | 表 | 关键字段 | 说明 |
@@ -60,6 +62,8 @@
 | `wallet_ledger` | `id`, `wallet_id`, `event_type`, `amount_minor`, `reference_type`, `reference_id`, `idempotency_key` | 充值、预授权、结算、释放、退款 |
 | `topup_order` | `id`, `user_id`, `channel_org_id`, `amount_minor`, `currency`, `payment_method`, `status`, `provider_trade_id` | pending/paid/failed/expired/refunded/partially_refunded |
 | `payment_event` | `id`, `adapter`, `external_event_id`, `signature_valid`, `payload_json`, `processed_at` | webhook 原文与幂等 |
+
+P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`、`payment_events`。适配器为 `stripe` / `alipay` / `wechat` / `manual`；只有 Stripe 声明自动续费能力。billing 预授权增加 `wallet_reserved_minor`：权益覆盖后钱包只冻结差额。
 | `request` | `id`, `request_id`, `user_id`, `api_key_id`, `channel_org_id`, `public_model_id`, `protocol`, `status`, `started_at`, `ended_at` | 一次客户请求 |
 | `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费 |
 | `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |

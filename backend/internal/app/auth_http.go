@@ -106,7 +106,7 @@ func (a *App) register(c *gin.Context) {
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: session.User.ID, Action: "auth.register", ResourceType: "user", ResourceID: session.User.ID,
 		After: map[string]string{"channel_org_id": session.User.ChannelOrgID, "source_code": body.PromotionCode},
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.Created(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
 }
@@ -333,7 +333,7 @@ func (a *App) reattribute(c *gin.Context) {
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: principal.UserID, Action: "attribution.change", ResourceType: "user", ResourceID: c.Param("id"),
 		After: map[string]string{"promotion_code": body.PromotionCode, "reason": body.Reason},
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"status": "updated", "request_id": c.GetString(httpx.ContextRequestID)})
 }

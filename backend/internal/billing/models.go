@@ -85,20 +85,21 @@ type redeemRow struct {
 func (redeemRow) TableName() string { return "billing_redeem_codes" }
 
 type authRow struct {
-	ID             string    `gorm:"column:id;primaryKey"`
-	WalletID       string    `gorm:"column:wallet_id"`
-	UserID         string    `gorm:"column:user_id"`
-	ChannelOrgID   *string   `gorm:"column:channel_org_id"`
-	RequestID      string    `gorm:"column:request_id"`
-	AmountMinor    int64     `gorm:"column:amount_minor"`
-	SettledMinor   int64     `gorm:"column:settled_minor"`
-	Currency       string    `gorm:"column:currency"`
-	Status         string    `gorm:"column:status"`
-	PriceVersionID *string   `gorm:"column:price_version_id"`
-	UnitPrices     []byte    `gorm:"column:unit_prices_json"`
-	ExpiresAt      time.Time `gorm:"column:expires_at"`
-	CreatedAt      time.Time `gorm:"column:created_at"`
-	UpdatedAt      time.Time `gorm:"column:updated_at"`
+	ID                  string    `gorm:"column:id;primaryKey"`
+	WalletID            string    `gorm:"column:wallet_id"`
+	UserID              string    `gorm:"column:user_id"`
+	ChannelOrgID        *string   `gorm:"column:channel_org_id"`
+	RequestID           string    `gorm:"column:request_id"`
+	AmountMinor         int64     `gorm:"column:amount_minor"`
+	WalletReservedMinor int64     `gorm:"column:wallet_reserved_minor"`
+	SettledMinor        int64     `gorm:"column:settled_minor"`
+	Currency            string    `gorm:"column:currency"`
+	Status              string    `gorm:"column:status"`
+	PriceVersionID      *string   `gorm:"column:price_version_id"`
+	UnitPrices          []byte    `gorm:"column:unit_prices_json"`
+	ExpiresAt           time.Time `gorm:"column:expires_at"`
+	CreatedAt           time.Time `gorm:"column:created_at"`
+	UpdatedAt           time.Time `gorm:"column:updated_at"`
 }
 
 func (authRow) TableName() string { return "billing_authorizations" }

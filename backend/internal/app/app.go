@@ -20,6 +20,8 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
+	"github.com/tokpath/tokstudio/backend/internal/payment"
+	"github.com/tokpath/tokstudio/backend/internal/plans"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -37,6 +39,8 @@ type App struct {
 	Billing  *billing.Service
 	Gateway  *gateway.Service
 	Media    *media.Service
+	Plans    *plans.Service
+	Payment  *payment.Service
 	Logger   zerolog.Logger
 }
 
@@ -45,8 +49,11 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	auditSvc := audit.New(gdb, outboxSvc)
 	catalogSvc := catalog.New(gdb)
 	billingSvc := billing.New(gdb, outboxSvc)
+	plansSvc := plans.New(gdb, outboxSvc)
+	billingSvc.SetCoverer(plansSvc)
 	store := media.NewStore(cfg.MediaStorePath, firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey), cfg.PublicBaseURL)
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
+	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	return &App{
 		Config:   cfg,
 		DB:       gdb,
@@ -58,6 +65,8 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 		Billing:  billingSvc,
 		Gateway:  gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL),
 		Media:    mediaSvc,
+		Plans:    plansSvc,
+		Payment:  paySvc,
 		Logger:   logger,
 	}
 }
@@ -79,6 +88,8 @@ func AllMigrations() []db.ModuleMigrations {
 	gatewayName, gatewayFS := gateway.Migrations()
 	billingName, billingFS := billing.Migrations()
 	mediaName, mediaFS := media.Migrations()
+	plansName, plansFS := plans.Migrations()
+	paymentName, paymentFS := payment.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
@@ -87,6 +98,8 @@ func AllMigrations() []db.ModuleMigrations {
 		{Module: gatewayName, FS: gatewayFS},
 		{Module: billingName, FS: billingFS},
 		{Module: mediaName, FS: mediaFS},
+		{Module: plansName, FS: plansFS},
+		{Module: paymentName, FS: paymentFS},
 	}
 }
 
@@ -105,7 +118,10 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.Catalog.Seed(ctx); err != nil {
 		return err
 	}
-	return a.Billing.Seed(ctx)
+	if err := a.Billing.Seed(ctx); err != nil {
+		return err
+	}
+	return a.Plans.Seed(ctx)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -131,6 +147,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)
 	a.registerMediaRoutes(r)
+	a.registerPlanRoutes(r)
 	return r
 }
 
@@ -138,7 +155,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m4",
+		"version":    "0.1.0-m5",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -162,7 +179,7 @@ func (a *App) readyz(c *gin.Context) {
 		checks["redis"] = "ok"
 	}
 	applied, err := db.Applied(a.DB)
-	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 {
+	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 {
 		checks["migrations"] = "error"
 		ready = false
 	} else {

@@ -97,6 +97,29 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if !foundTHB {
 		t.Fatalf("channel B promos missing THB1: %+v", promos)
 	}
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/acquisition-roles", "m1_admin_token", map[string]string{
+		"channel_org_id": identity.ResellerChannelID, "type": identity.AcqKOL2, "parent_id": identity.KOL1BRoleID,
+	}) != http.StatusConflict {
+		t.Fatal("create acquisition role without confirm must be 409")
+	}
+	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/promotion-codes", "m1_admin_token", map[string]string{
+		"channel_org_id": identity.ResellerChannelID, "code": "THB-NOCONFIRM",
+	}) != http.StatusConflict {
+		t.Fatal("create promotion code without confirm must be 409")
+	}
+	role := postJSONRaw(t, server.URL+"/admin/acquisition-roles", "m1_admin_token", map[string]any{
+		"channel_org_id": identity.ResellerChannelID, "type": identity.AcqKOL2, "parent_id": identity.KOL1BRoleID,
+	})
+	if role["item"].(map[string]any)["type"] != identity.AcqKOL2 {
+		t.Fatalf("create role: %+v", role)
+	}
+	promoCode := "THB-ADM-" + time.Now().UTC().Format("150405000")
+	createdPromo := postJSONRaw(t, server.URL+"/admin/promotion-codes", "m1_admin_token", map[string]any{
+		"channel_org_id": identity.ResellerChannelID, "acquisition_role_id": role["item"].(map[string]any)["id"], "code": promoCode,
+	})
+	if createdPromo["item"].(map[string]any)["code"] != promoCode {
+		t.Fatalf("create promo: %+v", createdPromo)
+	}
 	plans := getAuthJSON(t, server.URL+"/channel/plans", "m1_channel_token")
 	for _, raw := range plans["items"].([]any) {
 		row := raw.(map[string]any)

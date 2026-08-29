@@ -291,6 +291,22 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/usage/replay"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/acquisition-roles"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/acquisition-roles"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/promotion-codes"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/promotion-codes"
   }
 ];
 

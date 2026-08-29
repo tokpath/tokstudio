@@ -9,6 +9,7 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "支付" })).toBeVisible();
   await expect(page.getByRole("link", { name: "指标" })).toBeVisible();
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "推广码" })).toBeVisible();
   await expect(page.getByRole("link", { name: "告警" })).toBeVisible();
   await expect(page.getByRole("link", { name: "应急手册" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
@@ -52,4 +53,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/usage");
   await expect(page.getByRole("heading", { name: "用量回放" })).toBeVisible();
   await expect(page.getByRole("button", { name: "回放 usage" })).toBeVisible();
+  await page.goto("/admin/promos");
+  await expect(page.getByRole("heading", { name: "推广角色" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建推广码" })).toBeVisible();
 });

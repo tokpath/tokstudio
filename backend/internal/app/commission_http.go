@@ -264,6 +264,9 @@ func (a *App) channelCommissions(c *gin.Context) {
 }
 
 func (a *App) adminCreateRole(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		ChannelOrgID string `json:"channel_org_id"`
 		Type         string `json:"type"`
@@ -305,6 +308,9 @@ func (a *App) adminListRoles(c *gin.Context) {
 }
 
 func (a *App) adminCreatePromo(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		ChannelOrgID      string `json:"channel_org_id"`
 		AcquisitionRoleID string `json:"acquisition_role_id"`
@@ -319,6 +325,10 @@ func (a *App) adminCreatePromo(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "无法创建推广码", false)
 		return
 	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "identity.promotion.create", ResourceType: "promotion_code", ResourceID: item.ID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

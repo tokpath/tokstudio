@@ -146,6 +146,9 @@ echo "$billhtml" | grep -q "赠送额度"
 echo "$billhtml" | grep -q "退消费账单"
 chanhtml="$(curl -sf "$WEB_URL/admin/channels")"
 echo "$chanhtml" | grep -q "调整额度"
+promoshtml="$(curl -sf "$WEB_URL/admin/promos")"
+echo "$promoshtml" | grep -q "创建推广角色"
+echo "$promoshtml" | grep -q "创建推广码"
 commhtml="$(curl -sf "$WEB_URL/admin/commission")"
 echo "$commhtml" | grep -q "手工结算"
 echo "$commhtml" | grep -q "人工打款"
@@ -158,6 +161,24 @@ echo "$settingshtml" | grep -q "运维开关"
 echo "$settingshtml" | grep -q "健康探测"
 usagehtml="$(curl -sf "$WEB_URL/admin/usage")"
 echo "$usagehtml" | grep -q "回放 usage"
+
+echo "== admin can create acquisition role and promo with confirm"
+role409="$(curl -sS -o /tmp/m1_role409.json -w '%{http_code}' -X POST "$API_URL/admin/acquisition-roles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"channel_org_id":"chn_reseller_b","type":"kol_l2","parent_id":"acr_b_kol1"}')"
+test "$role409" = "409"
+role="$(curl -sf -X POST "$API_URL/admin/acquisition-roles" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"channel_org_id":"chn_reseller_b","type":"kol_l2","parent_id":"acr_b_kol1"}')"
+role_id="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$role")"
+promo_code="THB-E2E-$RANDOM"
+promo409="$(curl -sS -o /tmp/m1_promo409.json -w '%{http_code}' -X POST "$API_URL/admin/promotion-codes" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"channel_org_id\":\"chn_reseller_b\",\"acquisition_role_id\":\"$role_id\",\"code\":\"$promo_code\"}")"
+test "$promo409" = "409"
+curl -sf -X POST "$API_URL/admin/promotion-codes" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"channel_org_id\":\"chn_reseller_b\",\"acquisition_role_id\":\"$role_id\",\"code\":\"$promo_code\"}" | grep -q "$promo_code"
 
 echo "== admin ban blocks login and api key"
 carol="carol-$RANDOM@example.test"

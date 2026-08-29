@@ -554,3 +554,25 @@ paths:
       responses:
         "200":
           description: settled or pending usage
+  /admin/acquisition-roles:
+    get:
+      operationId: listAcquisitionRoles
+      responses:
+        "200":
+          description: acquisition roles
+    post:
+      operationId: createAcquisitionRole
+      responses:
+        "201":
+          description: created role
+  /admin/promotion-codes:
+    get:
+      operationId: listPromotionCodes
+      responses:
+        "200":
+          description: promotion codes
+    post:
+      operationId: createPromotionCode
+      responses:
+        "201":
+          description: created code

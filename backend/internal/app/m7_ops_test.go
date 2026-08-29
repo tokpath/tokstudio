@@ -93,16 +93,16 @@ func TestM7OpsHardening(t *testing.T) {
 	if !sawToday {
 		t.Fatalf("series missing today traffic: %+v", series)
 	}
-	req, _ := http.NewRequest(http.MethodGet, server.URL+"/admin/metrics/daily?format=csv&days=7", nil)
-	req.Header.Set("Authorization", "Bearer m7_admin")
-	resp, err := http.DefaultClient.Do(req)
+	csvReq, _ := http.NewRequest(http.MethodGet, server.URL+"/admin/metrics/daily?format=csv&days=7", nil)
+	csvReq.Header.Set("Authorization", "Bearer m7_admin")
+	csvResp, err := http.DefaultClient.Do(csvReq)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
-	csvBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK || !strings.Contains(string(csvBody), "gross_profit_minor") || !strings.Contains(string(csvBody), today) {
-		t.Fatalf("daily csv: %d %s", resp.StatusCode, csvBody)
+	csvBody, _ := io.ReadAll(csvResp.Body)
+	_ = csvResp.Body.Close()
+	if csvResp.StatusCode != http.StatusOK || !strings.Contains(string(csvBody), "gross_profit_minor") || !strings.Contains(string(csvBody), today) {
+		t.Fatalf("daily csv: %d %s", csvResp.StatusCode, csvBody)
 	}
 	dash := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)
 	totals := dash["totals"].(map[string]any)
@@ -404,7 +404,7 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatal(err)
 	}
 	listed := getAuthJSON(t, server.URL+"/admin/providers/"+poolID+"/accounts?q=cooling", tech)
-	items, _ := listed["items"].([]any)
+	items, _ = listed["items"].([]any)
 	if len(items) != 1 || items[0].(map[string]any)["status"] != catalog.AccountInvalid {
 		t.Fatalf("401 should mark account invalid: %+v", listed)
 	}

@@ -82,9 +82,14 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, bran
 	var user userRow
 	err := tx.Where("email = ?", email).First(&user).Error
 	if err == gorm.ErrRecordNotFound {
+		pwd, err := HashPassword(BootstrapPassword)
+		if err != nil {
+			return err
+		}
 		user = userRow{
 			ID:           id.New("usr"),
 			Email:        email,
+			PasswordHash: &pwd,
 			Status:       "active",
 			ChannelOrgID: &channelID,
 			BrandID:      &brandID,
@@ -101,6 +106,16 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, bran
 			"channel_org_id": channelID,
 			"brand_id":       brandID,
 		}).Error
+	}
+	if user.PasswordHash == nil {
+		pwd, err := HashPassword(BootstrapPassword)
+		if err != nil {
+			return err
+		}
+		if err := tx.Model(&userRow{}).Where("id = ?", user.ID).Update("password_hash", pwd).Error; err != nil {
+			return err
+		}
+		user.PasswordHash = &pwd
 	}
 
 	var role roleRow

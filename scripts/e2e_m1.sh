@@ -129,6 +129,13 @@ echo "$channelhtml" | grep -q "推广链接"
 echo "$channelhtml" | grep -q "本渠道用量"
 echo "$channelhtml" | grep -q "本渠道归因"
 echo "$channelhtml" | grep -q "本渠道结算"
+echo "== channel admin can login and create a scoped plan"
+curl -sf -X POST "$API_URL/v1/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"channel.b@tokenhub.local","password":"password1"}' | grep -q channel.b@tokenhub.local
+cheap="$(curl -sf -X POST "$API_URL/channel/plans" -H "Authorization: Bearer $CHANNEL_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"M1 Channel Cheap","price_minor":1000,"owner_id":"chn_official_a","items":[{"unit_type":"usd_credit","included_amount":1}]}')"
+echo "$cheap" | grep -q pending_review
+echo "$cheap" | grep -q chn_reseller_b
 partnerhtml="$(curl -sf "$WEB_URL/partner")"
 echo "$partnerhtml" | grep -q "我的层级"
 echo "$partnerhtml" | grep -q "范围内用户"

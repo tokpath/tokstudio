@@ -19,6 +19,7 @@ const (
 	OfficialChannelID     = "chn_official_a"
 	ResellerChannelID     = "chn_reseller_b"
 	OEMChannelID          = "chn_oem_c"
+	BootstrapPassword     = "password1"
 )
 
 func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelToken string) error {

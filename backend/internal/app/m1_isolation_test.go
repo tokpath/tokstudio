@@ -49,6 +49,12 @@ func TestM1IdentityIsolation(t *testing.T) {
 	}
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
+	channelLogin := postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
+		"email": "channel.b@tokenhub.local", "password": identity.BootstrapPassword,
+	})
+	if channelLogin["session"] == nil {
+		t.Fatalf("channel bootstrap should login with password: %+v", channelLogin)
+	}
 
 	suffix := time.Now().UTC().Format("150405.000000")
 	regA := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{

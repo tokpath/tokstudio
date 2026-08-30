@@ -28,7 +28,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const data = query.data?.items ?? [];
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-medium">{title}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -59,9 +59,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
           <table className="min-w-full text-left text-sm">
             <thead>
               {table.getHeaderGroups().map((group) => (
-                <tr key={group.id} className="border-b border-slate-800 text-slate-400">
+                <tr key={group.id} className="border-b border-white/10 text-slate-400">
                   {group.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 font-medium">
+                    <th key={header.id} className="px-3 py-2.5 font-medium">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -70,9 +70,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-slate-800/80">
+                <tr key={row.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-2 text-slate-200">
+                    <td key={cell.id} className="px-3 py-2.5 text-slate-200">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

@@ -24,7 +24,7 @@ export default function ChannelSettlements() {
   }
 
   return (
-    <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道结算</CardTitle>
       <p className="mb-3 text-sm text-slate-400">佣金冻结期满后按月出结算单。这里不含其他渠道，也不含 prompt。</p>
       <Button variant="outline" onClick={refresh}>

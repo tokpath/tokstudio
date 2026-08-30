@@ -16,7 +16,7 @@ export default function AdminPricesPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">价格</h2>
         <p className="mb-3 text-sm text-slate-400">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。</p>
         <form

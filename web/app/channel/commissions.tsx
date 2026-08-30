@@ -40,7 +40,7 @@ export default function ChannelCommissions() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+    <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
       <p className="mb-3 text-sm text-slate-400">
         可用额度 {quota} micro-USD。用户充值时按 1:1 发放服务额度，聊天不再二次扣渠道。佣金由平台承担。

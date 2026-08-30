@@ -135,7 +135,7 @@ export default function AdminSettingsPage() {
   }
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">系统设置</h2>
         <p className="mb-4 text-sm text-slate-400">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
@@ -150,7 +150,7 @@ export default function AdminSettingsPage() {
           </button>
         </div>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">管理员 2FA</h2>
         <p className="mb-3 text-sm text-slate-400">
           读取状态不回密文。开始绑定后用验证器扫码，再填 6 位码确认启用。关闭要二次确认；已经 enabled 时还要带 TOTP。不要在共享管理员上留下 enabled。
@@ -180,13 +180,13 @@ export default function AdminSettingsPage() {
         </form>
         <p className="text-sm text-slate-300">{totpMessage}</p>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">告警阈值</h2>
         <p className="mb-3 text-sm text-slate-400">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <input className="w-28 rounded bg-slate-900 p-2" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
-          <input className="w-28 rounded bg-slate-900 p-2" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
-          <input className="w-28 rounded bg-slate-900 p-2" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
+          <input className="w-28 rounded-lg border border-white/10 bg-black/30 p-2" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
+          <input className="w-28 rounded-lg border border-white/10 bg-black/30 p-2" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
+          <input className="w-28 rounded-lg border border-white/10 bg-black/30 p-2" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
           <button className="rounded border border-slate-600 px-3 py-2" onClick={loadThresholds}>
             读取阈值
           </button>
@@ -196,7 +196,7 @@ export default function AdminSettingsPage() {
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">运维开关</h2>
         <p className="mb-3 text-sm text-slate-400">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
         <div className="mb-3 flex flex-wrap gap-2">
@@ -286,7 +286,7 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">备份演练</h2>
         <p className="mb-3 text-sm text-slate-400">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
         <Button
@@ -310,7 +310,7 @@ export default function AdminSettingsPage() {
         </Button>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">异常演练</h2>
         <p className="mb-3 text-sm text-slate-400">
           支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
@@ -366,7 +366,7 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-slate-300">{drillMessage}</p>
         </div>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
         <p className="mb-3 text-sm text-slate-400">沙箱把 tls_status 标成 issued，并写下 CNAME。公网 Let&apos;s Encrypt 仍由边缘节点签发。</p>
         <div className="mb-3 flex flex-wrap gap-2">

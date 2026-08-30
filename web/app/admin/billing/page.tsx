@@ -34,7 +34,7 @@ export default function AdminBillingPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">余额 / 充值 / 账务</h2>
         <p className="mb-3 text-sm text-slate-400">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
         <div className="mb-3 flex flex-wrap gap-2">

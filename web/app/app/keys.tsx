@@ -34,7 +34,7 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
   return (
     <ul className="space-y-3 text-sm text-slate-200">
       {items.map((item) => (
-        <li key={item.id} className="rounded border border-slate-800 p-3">
+        <li key={item.id} className="rounded-lg border border-white/10 p-3">
           <p>
             {item.name} · {item.prefix} · {item.status}
             {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}

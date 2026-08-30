@@ -76,7 +76,7 @@ export default function AdminRoutesPage() {
           { accessorKey: "status", header: "Status" },
         ]}
       />
-      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={createRoute}>
+      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={createRoute}>
         <h2 className="text-xl font-medium">创建路由</h2>
         <p className="text-sm text-slate-400">给已有公开模型建一个路由组。策略可选 priority / weight / price / health。</p>
         <Input name="public_model_id" aria-label="创建用 public model id" placeholder="创建用 public model id" />
@@ -87,7 +87,7 @@ export default function AdminRoutesPage() {
           创建路由
         </Button>
       </form>
-      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={patchRoute}>
+      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={patchRoute}>
         <h2 className="text-xl font-medium">改路由策略</h2>
         <p className="text-sm text-slate-400">只改策略或状态。不要对 rg_echo 乱改，改完会改变 echo 网关的选路。</p>
         <Input name="route_id" aria-label="改策略用路由 id" placeholder="改策略用路由 id" />

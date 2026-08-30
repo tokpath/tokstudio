@@ -49,7 +49,7 @@ export default function AdminPromosPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">推广角色</h2>
         <p className="mb-3 text-sm text-slate-400">层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。</p>
         <div className="mb-3 flex flex-wrap gap-2">
@@ -62,7 +62,7 @@ export default function AdminPromosPage() {
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">推广码</h2>
         <p className="mb-3 text-sm text-slate-400">把码发给用户，或复制 /login?promo=CODE。服务端按码反查渠道和角色。</p>
         <div className="mb-3 flex flex-wrap gap-2">

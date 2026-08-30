@@ -55,7 +55,7 @@ export default function ChannelPlans() {
   }
 
   return (
-    <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道套餐</CardTitle>
       <p className="mb-3 text-sm text-slate-400">低价或高风险配额会进平台审核。这里只列本渠道 scope。</p>
       <Button variant="outline" onClick={refresh}>

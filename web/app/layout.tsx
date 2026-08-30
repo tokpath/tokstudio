@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { themeStyle, type Brand } from "@/lib/brand";
 import { fetchAPI } from "@/lib/api";
 import { messagesFor, resolveLocale } from "@/lib/i18n";
-import { Nav } from "@/app/nav";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { AppProviders } from "@/app/providers";
+
+const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "TokenHub",
-  description: "TokenHub 多门户",
+  description: "一个 Base URL、一把 Key，接入多模型。面向开发者的可审计 API 中转。",
 };
 
 async function loadBrand(): Promise<Brand | undefined> {
@@ -27,10 +31,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = resolveLocale((await cookies()).get("NEXT_LOCALE")?.value);
   return (
     <html lang={locale === "zh" ? "zh-CN" : locale}>
-      <body className="min-h-screen antialiased" style={themeStyle(brand)}>
+      <body className={`${sans.variable} ${mono.variable} min-h-screen font-sans antialiased`} style={themeStyle(brand)}>
         <AppProviders locale={locale} messages={messagesFor(locale)}>
-          <Nav brand={brand} />
-          {children}
+          <AppChrome brand={brand}>{children}</AppChrome>
         </AppProviders>
       </body>
     </html>

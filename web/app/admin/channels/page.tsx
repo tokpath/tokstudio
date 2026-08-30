@@ -36,7 +36,7 @@ export default function AdminChannelsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">渠道额度</h2>
         <p className="mb-3 text-sm text-slate-400">B/C 渠道可用额度在用户充值时按 1:1 发放。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
         <div className="mb-3 flex flex-wrap gap-2">
@@ -52,7 +52,7 @@ export default function AdminChannelsPage() {
         <p className="text-sm text-slate-300">{message}</p>
       </section>
       <form
-        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           const form = event.currentTarget;
@@ -91,7 +91,7 @@ export default function AdminChannelsPage() {
         </Button>
       </form>
       <form
-        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           const form = event.currentTarget;

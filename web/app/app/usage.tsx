@@ -39,8 +39,8 @@ export default function UsagePanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-      <h2 className="mb-3 text-xl font-medium">用量与账单</h2>
+    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
+      <h2 className="mb-3 text-xl font-medium tracking-tight">用量与账单</h2>
       <p className="mb-4 text-sm text-slate-400">只展示当前登录用户的 usage 和账本，不含其他渠道数据。</p>
       <button className="mb-4 rounded border border-slate-600 px-4 py-2" onClick={refresh}>
         刷新账单

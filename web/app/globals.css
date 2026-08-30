@@ -5,9 +5,64 @@
 :root {
   --brand-primary: #22d3ee;
   --brand-background: #020617;
+  --th-fg: #e8eef7;
+  --th-muted: #93a0b5;
+  --th-faint: #64748b;
+  --th-surface: rgba(15, 23, 42, 0.72);
+  --th-surface-solid: #0b1220;
+  --th-elevated: #111b2e;
+  --th-border: rgba(148, 163, 184, 0.16);
+  --th-border-strong: rgba(148, 163, 184, 0.28);
+  --th-ring: color-mix(in srgb, var(--brand-primary) 45%, transparent);
+  --th-glow: color-mix(in srgb, var(--brand-primary) 22%, transparent);
+  --th-danger: #fb7185;
+  --th-success: #34d399;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--brand-background);
-  color: #e2e8f0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 12% -10%, var(--th-glow), transparent 55%),
+    radial-gradient(900px 480px at 90% 0%, rgba(56, 189, 248, 0.08), transparent 50%),
+    var(--brand-background);
+  color: var(--th-fg);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--th-ring);
+  outline-offset: 2px;
+}
+
+.th-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 78%);
+}
+
+.th-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+.th-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.th-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+}
+
+.th-code {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }

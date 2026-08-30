@@ -281,11 +281,11 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("issue tls without confirm should be 409, got %d", code)
 	}
 	issued := postJSONRaw(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "m7_admin", map[string]any{})
-	item := issued["item"].(map[string]any)
-	if item["tls_status"] != "issued" {
+	tlsItem := issued["item"].(map[string]any)
+	if tlsItem["tls_status"] != "issued" {
 		t.Fatalf("issue oem tls: %+v", issued)
 	}
-	if issuer, _ := item["tls_issuer"].(string); issuer != identity.IssuerSandbox && issuer != "" {
+	if issuer, _ := tlsItem["tls_issuer"].(string); issuer != identity.IssuerSandbox && issuer != "" {
 		t.Fatalf("oem.localhost must stay sandbox issuer, got %q", issuer)
 	}
 	if code := getStatus(t, server.URL+"/.well-known/acme-challenge/missing", ""); code != http.StatusNotFound {

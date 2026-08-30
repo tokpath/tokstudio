@@ -22,6 +22,11 @@ test("user console shows API Key panel", async ({ page }) => {
   await expect(page.getByLabel("并发限额")).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
+  await expect(page.getByLabel("生成模式")).toBeVisible();
+  await expect(page.getByLabel("时长")).toBeVisible();
+  await expect(page.getByLabel("分辨率")).toBeVisible();
+  await expect(page.getByLabel("宽高比")).toBeVisible();
+  await expect(page.getByLabel("帧率")).toBeVisible();
   await expect(page.getByRole("heading", { name: "个人设置" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "接入示例" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建视频任务" })).toBeVisible();

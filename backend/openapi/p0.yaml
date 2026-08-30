@@ -421,9 +421,16 @@ paths:
   /v1/videos:
     post:
       operationId: createVideo
+      description: task_type/mode t2v|i2v|first_frame|first_last_frame|reference|extend|edit plus duration/resolution/aspect_ratio/fps/generate_audio/images/first_frame/last_frame/reference_video/reference_audio/source_job_id
       responses:
         "202":
           description: session or api key may create a media job
+  /v1/videos/{id}/extend:
+    post:
+      operationId: extendVideo
+      responses:
+        "202":
+          description: extend a completed video owned by the caller
   /admin/models/attach:
     post:
       operationId: attachModelProvider

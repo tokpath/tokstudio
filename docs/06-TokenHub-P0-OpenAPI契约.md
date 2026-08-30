@@ -81,9 +81,11 @@
 
 请求支持：文生、图生、首帧/首尾帧、参考图/视频/音频、时长、分辨率、宽高比、帧率、原生音频、编辑/延长（上游声明支持时）、`callback_url` 和客户端幂等键。
 
+字段：`task_type`（或别名 `mode`）为 `t2v`（默认）/`i2v`/`first_frame`/`first_last_frame`/`reference`/`extend`/`edit`；`duration`、`resolution`、`aspect_ratio`、`fps`、`generate_audio`、`images`、`first_frame`、`last_frame`、`reference_video`、`reference_audio`、`source_job_id`。`i2v`/`first_frame` 要图；`first_last_frame` 要首+尾帧；`reference` 至少一种参考；`extend`/`edit` 要本用户已完成视频的 `source_job_id`。查询响应回带这些参数，不含 prompt。
+
 ### `GET /v1/videos/{id}`
 
-返回 `queued`、`in_progress`、`completed`、`failed`、`cancelled`、`expired`、进度、失败原因、usage 摘要和最终 Provider。
+返回 `queued`、`in_progress`、`completed`、`failed`、`cancelled`、`expired`、进度、失败原因、usage 摘要、最终 Provider，以及 `task_type` 与媒体参数。
 
 ### `GET /v1/videos/{id}/content`
 
@@ -91,7 +93,11 @@
 
 ### `POST /v1/images/generations` 与 `POST /v1/images/edits`
 
-与视频共用媒体任务状态机、预授权和签名下载；返回 `202` 与任务 ID。
+与视频共用媒体任务状态机、预授权和签名下载；返回 `202` 与任务 ID。`generations` 默认 `task_type=generate`；`edits` 默认 `edit` 且必须带 `images`。
+
+### `POST /v1/videos/{id}/extend`
+
+对调用方已完成的视频做延长；等价于 `POST /v1/videos` 且 `task_type=extend`、`source_job_id` 取路径中的 id。
 
 ### `POST /v1/videos/{id}/cancel`
 

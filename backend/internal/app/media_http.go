@@ -23,6 +23,7 @@ func (a *App) registerMediaRoutes(r *gin.Engine) {
 	r.GET("/v1/videos/:id", a.requireUserOrKey(), a.getVideo)
 	r.GET("/v1/videos/:id/content", a.requireUserOrKey(), a.videoContent)
 	r.POST("/v1/videos/:id/cancel", a.requireUserOrKey(), a.cancelVideo)
+	r.POST("/v1/videos/:id/extend", a.requireUserOrKey(), a.extendVideo)
 	r.POST("/v1/images/generations", a.requireUserOrKey(), a.createImage)
 	r.POST("/v1/images/edits", a.requireUserOrKey(), a.editImage)
 	r.GET("/v1/images/:id", a.requireUserOrKey(), a.getVideo)
@@ -47,8 +48,8 @@ func (a *App) listAdminMedia(c *gin.Context) {
 		return
 	}
 	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "media.csv", []string{"id", "kind", "status", "model"}, items, func(item media.JobView) []string {
-			return []string{item.ID, item.Kind, item.Status, item.Model}
+		httpx.WriteCSV(c, "media.csv", []string{"id", "kind", "task_type", "status", "model"}, items, func(item media.JobView) []string {
+			return []string{item.ID, item.Kind, item.TaskType, item.Status, item.Model}
 		})
 		return
 	}
@@ -56,32 +57,56 @@ func (a *App) listAdminMedia(c *gin.Context) {
 }
 
 func (a *App) createVideo(c *gin.Context) {
-	a.createMedia(c, media.KindVideo)
+	a.createMedia(c, media.KindVideo, "")
 }
 
 func (a *App) createImage(c *gin.Context) {
-	a.createMedia(c, media.KindImage)
+	a.createMedia(c, media.KindImage, media.TaskGenerate)
 }
 
 func (a *App) editImage(c *gin.Context) {
-	a.createMedia(c, media.KindImage)
+	a.createMedia(c, media.KindImage, media.TaskEdit)
 }
 
-func (a *App) createMedia(c *gin.Context, kind string) {
+func (a *App) extendVideo(c *gin.Context) {
+	a.createMedia(c, media.KindVideo, media.TaskExtend)
+}
+
+func (a *App) createMedia(c *gin.Context, kind, defaultTask string) {
 	var body struct {
-		Model       string   `json:"model"`
-		Prompt      string   `json:"prompt"`
-		Duration    int      `json:"duration"`
-		Resolution  string   `json:"resolution"`
-		AspectRatio string   `json:"aspect_ratio"`
-		FPS         int      `json:"fps"`
-		Audio       bool     `json:"generate_audio"`
-		CallbackURL string   `json:"callback_url"`
-		Images      []string `json:"images"`
+		Model          string   `json:"model"`
+		Prompt         string   `json:"prompt"`
+		Duration       int      `json:"duration"`
+		Resolution     string   `json:"resolution"`
+		AspectRatio    string   `json:"aspect_ratio"`
+		FPS            int      `json:"fps"`
+		Audio          bool     `json:"generate_audio"`
+		CallbackURL    string   `json:"callback_url"`
+		Images         []string `json:"images"`
+		TaskType       string   `json:"task_type"`
+		Mode           string   `json:"mode"`
+		FirstFrame     string   `json:"first_frame"`
+		LastFrame      string   `json:"last_frame"`
+		ReferenceVideo string   `json:"reference_video"`
+		ReferenceAudio string   `json:"reference_audio"`
+		SourceJobID    string   `json:"source_job_id"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil && !errors.Is(err, io.EOF) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
+	}
+	taskType := body.TaskType
+	if taskType == "" {
+		taskType = body.Mode
+	}
+	if taskType == "" {
+		taskType = defaultTask
+	}
+	if defaultTask == media.TaskExtend && body.SourceJobID == "" {
+		body.SourceJobID = c.Param("id")
+	}
+	if body.Prompt == "" && kind == media.KindVideo && (taskType == media.TaskExtend || taskType == media.TaskEdit) {
+		body.Prompt = taskType
 	}
 	if body.Prompt == "" {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 prompt", false)
@@ -121,12 +146,20 @@ func (a *App) createMedia(c *gin.Context, kind string) {
 		Audio:          body.Audio,
 		CallbackURL:    body.CallbackURL,
 		Images:         body.Images,
+		TaskType:       taskType,
+		FirstFrame:     body.FirstFrame,
+		LastFrame:      body.LastFrame,
+		ReferenceVideo: body.ReferenceVideo,
+		ReferenceAudio: body.ReferenceAudio,
+		SourceJobID:    body.SourceJobID,
 		ForceFail:      c.GetHeader("X-Tokenhub-Force-Fail"),
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, billing.ErrInsufficientBalance):
 			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
+		case errors.Is(err, media.ErrInvalidRequest):
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", err.Error(), false)
 		default:
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建媒体任务失败", false)
 		}

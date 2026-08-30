@@ -59,6 +59,13 @@ type jobRow struct {
 	AspectRatio     string     `gorm:"column:aspect_ratio"`
 	FPS             int        `gorm:"column:fps"`
 	GenerateAudio   bool       `gorm:"column:generate_audio"`
+	TaskType        string     `gorm:"column:task_type"`
+	FirstFrame      string     `gorm:"column:first_frame"`
+	LastFrame       string     `gorm:"column:last_frame"`
+	ReferenceVideo  string     `gorm:"column:reference_video"`
+	ReferenceAudio  string     `gorm:"column:reference_audio"`
+	SourceJobID     string     `gorm:"column:source_job_id"`
+	ImagesJSON      []byte     `gorm:"column:images_json"`
 	CallbackURL     string     `gorm:"column:callback_url"`
 	IdempotencyKey  *string    `gorm:"column:idempotency_key"`
 	ErrorCode       *string    `gorm:"column:error_code"`
@@ -110,23 +117,41 @@ type CreateInput struct {
 	Audio          bool
 	CallbackURL    string
 	Images         []string
+	TaskType       string
+	FirstFrame     string
+	LastFrame      string
+	ReferenceVideo string
+	ReferenceAudio string
+	SourceJobID    string
 	ForceFail      string
 }
 
 type JobView struct {
-	ID         string         `json:"id"`
-	Object     string         `json:"object"`
-	Kind       string         `json:"kind,omitempty"`
-	Status     string         `json:"status"`
-	Model      string         `json:"model"`
-	CreatedAt  int64          `json:"created_at"`
-	StatusURL  string         `json:"status_url"`
-	Progress   int            `json:"progress"`
-	Provider   string         `json:"provider,omitempty"`
-	UpstreamID string         `json:"upstream_job_id,omitempty"`
-	Error      string         `json:"error,omitempty"`
-	Usage      map[string]int `json:"usage,omitempty"`
-	ExpiresAt  int64          `json:"expires_at,omitempty"`
+	ID             string         `json:"id"`
+	Object         string         `json:"object"`
+	Kind           string         `json:"kind,omitempty"`
+	TaskType       string         `json:"task_type,omitempty"`
+	Status         string         `json:"status"`
+	Model          string         `json:"model"`
+	CreatedAt      int64          `json:"created_at"`
+	StatusURL      string         `json:"status_url"`
+	Progress       int            `json:"progress"`
+	Provider       string         `json:"provider,omitempty"`
+	UpstreamID     string         `json:"upstream_job_id,omitempty"`
+	Error          string         `json:"error,omitempty"`
+	Usage          map[string]int `json:"usage,omitempty"`
+	ExpiresAt      int64          `json:"expires_at,omitempty"`
+	Duration       int            `json:"duration,omitempty"`
+	Resolution     string         `json:"resolution,omitempty"`
+	AspectRatio    string         `json:"aspect_ratio,omitempty"`
+	FPS            int            `json:"fps,omitempty"`
+	GenerateAudio  bool           `json:"generate_audio,omitempty"`
+	Images         []string       `json:"images,omitempty"`
+	FirstFrame     string         `json:"first_frame,omitempty"`
+	LastFrame      string         `json:"last_frame,omitempty"`
+	ReferenceVideo string         `json:"reference_video,omitempty"`
+	ReferenceAudio string         `json:"reference_audio,omitempty"`
+	SourceJobID    string         `json:"source_job_id,omitempty"`
 }
 
 type ContentView struct {
@@ -181,6 +206,19 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 	if in.Resolution == "" {
 		in.Resolution = "720p"
 	}
+	task, err := NormalizeTaskType(in.Kind, in.TaskType)
+	if err != nil {
+		return nil, err
+	}
+	in.TaskType = task
+	if err := ValidateCreate(in); err != nil {
+		return nil, err
+	}
+	if in.Kind == KindVideo && (in.TaskType == TaskExtend || in.TaskType == TaskEdit) {
+		if err := s.requireSourceJob(ctx, in.Caller.UserID, in.SourceJobID, KindVideo); err != nil {
+			return nil, err
+		}
+	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, err
@@ -221,11 +259,18 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 
 	now := time.Now().UTC()
 	exp := now.Add(AssetRetention)
+	imagesJSON, _ := json.Marshal(in.Images)
+	if len(imagesJSON) == 0 {
+		imagesJSON = []byte("[]")
+	}
 	job := jobRow{
 		ID: id.New("vid"), UserID: in.Caller.UserID, RequestID: in.RequestID,
 		PublicModelID: model.ID, JobKind: in.Kind, Status: StatusQueued, Prompt: in.Prompt,
 		DurationSeconds: in.Duration, Resolution: in.Resolution, AspectRatio: in.AspectRatio,
 		FPS: in.FPS, GenerateAudio: in.Audio, CallbackURL: in.CallbackURL,
+		TaskType: in.TaskType, FirstFrame: in.FirstFrame, LastFrame: in.LastFrame,
+		ReferenceVideo: in.ReferenceVideo, ReferenceAudio: in.ReferenceAudio,
+		SourceJobID: in.SourceJobID, ImagesJSON: imagesJSON,
 		UsageJSON: []byte(`{}`), ExpiresAt: &exp, CreatedAt: now, UpdatedAt: now,
 	}
 	if in.Kind == KindImage {
@@ -266,7 +311,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		result, err := adapter.Create(ctx, SubmitInput{
 			JobID: job.ID, Kind: in.Kind, Model: in.Model, Prompt: in.Prompt,
 			Duration: in.Duration, Resolution: in.Resolution, AspectRatio: in.AspectRatio,
-			FPS: in.FPS, Audio: in.Audio, Images: in.Images,
+			FPS: in.FPS, Audio: in.Audio, Images: adapterImages(in),
+			TaskType: in.TaskType, FirstFrame: in.FirstFrame, LastFrame: in.LastFrame,
+			ReferenceVideo: in.ReferenceVideo, ReferenceAudio: in.ReferenceAudio,
+			SourceJobID: in.SourceJobID,
 		})
 		if err != nil {
 			last = err
@@ -519,10 +567,18 @@ func (s *Service) view(_ context.Context, job jobRow) *JobView {
 	if job.JobKind == KindImage {
 		object = "image"
 	}
+	images := []string{}
+	_ = json.Unmarshal(job.ImagesJSON, &images)
 	view := &JobView{
-		ID: job.ID, Object: object, Kind: job.JobKind, Status: job.Status, Model: job.PublicModelID,
+		ID: job.ID, Object: object, Kind: job.JobKind, TaskType: job.TaskType,
+		Status: job.Status, Model: job.PublicModelID,
 		CreatedAt: job.CreatedAt.Unix(), StatusURL: "/v1/videos/" + job.ID,
 		Progress: job.Progress, Usage: usage,
+		Duration: job.DurationSeconds, Resolution: job.Resolution, AspectRatio: job.AspectRatio,
+		FPS: job.FPS, GenerateAudio: job.GenerateAudio, Images: images,
+		FirstFrame: job.FirstFrame, LastFrame: job.LastFrame,
+		ReferenceVideo: job.ReferenceVideo, ReferenceAudio: job.ReferenceAudio,
+		SourceJobID: job.SourceJobID,
 	}
 	if job.JobKind == KindImage {
 		view.StatusURL = "/v1/images/" + job.ID
@@ -544,6 +600,23 @@ func (s *Service) view(_ context.Context, job jobRow) *JobView {
 
 func (s *Service) SignCallback(eventID, jobID string) string {
 	return s.store.CallbackSign(eventID, jobID)
+}
+
+func (s *Service) requireSourceJob(ctx context.Context, userID, sourceID, wantKind string) error {
+	if sourceID == "" {
+		return Invalid("延长/编辑需要已完成的本用户视频任务 source_job_id")
+	}
+	var src jobRow
+	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", sourceID, userID).First(&src).Error; err != nil {
+		return Invalid("源任务不存在或不属于当前用户")
+	}
+	if src.JobKind != wantKind {
+		return Invalid("源任务类型不匹配")
+	}
+	if src.Status != StatusCompleted {
+		return Invalid("源任务必须已完成才能延长或编辑")
+	}
+	return nil
 }
 
 // recordCallbackEvent 只按 event_id 查找。不要用 FirstOrCreate 带新主键，GORM 会把 id 拼进 WHERE，旧事件会当成“不存在”再插入。

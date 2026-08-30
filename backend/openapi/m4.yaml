@@ -6,21 +6,29 @@ paths:
   /v1/videos:
     post:
       summary: Create a Seedance-class video job after media preauth; 202 Accepted
+      description: >
+        task_type/mode supports t2v (default), i2v, first_frame, first_last_frame,
+        reference, extend, edit. Parameters include duration, resolution, aspect_ratio,
+        fps, generate_audio, images, first_frame, last_frame, reference_video,
+        reference_audio, source_job_id.
   /v1/videos/{id}:
     get:
-      summary: Job status, provider, upstream id, usage
+      summary: Job status, provider, upstream id, usage, task_type and media params
   /v1/videos/{id}/content:
     get:
       summary: Short-lived signed URL; objects expire in 7 days
   /v1/videos/{id}/cancel:
     post:
       summary: Cancel; never resubmits an upstream job that already has an id
+  /v1/videos/{id}/extend:
+    post:
+      summary: Extend a completed video owned by the caller (task_type=extend)
   /v1/images/generations:
     post:
       summary: Image generation via the same media job + billing path
   /v1/images/edits:
     post:
-      summary: Image edit via the same media job + billing path
+      summary: Image edit via the same media job + billing path; requires images
   /v1/media/callbacks:
     post:
       summary: Signed, idempotent provider callback

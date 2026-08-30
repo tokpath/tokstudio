@@ -87,10 +87,10 @@ B/C 额度发放：用户充值入账后按渠道 `issue_ratio_bps`（默认 1:1
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `media_job` | `id`, `user_id`, `request_id`, `public_model_id`, `provider_id`, `upstream_job_id`, `status`, `progress`, `callback_url`, `expires_at` | queued/in_progress/completed/failed/cancelled/expired |
+| `media_job` | `id`, `user_id`, `request_id`, `public_model_id`, `provider_id`, `upstream_job_id`, `task_type`, `duration_seconds`, `resolution`, `aspect_ratio`, `fps`, `generate_audio`, `first_frame`, `last_frame`, `reference_video`, `reference_audio`, `source_job_id`, `images_json`, `status`, `progress`, `callback_url`, `expires_at` | queued/in_progress/completed/failed/cancelled/expired；`task_type` 为 t2v/i2v/first_frame/first_last_frame/reference/extend/edit/generate |
 | `media_asset` | `id`, `media_job_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `sha256`, `expires_at` | 受控对象存储，签名 URL 下载 |
 
-P0 落地时媒体实体由 `media` 模块拥有，物理表为 `media_jobs`、`media_assets`、`media_callback_events`。拿到 `upstream_job_id` 后禁止再次 Create；回调按 `event_id` 幂等；结果默认 7 天后清理。
+P0 落地时媒体实体由 `media` 模块拥有，物理表为 `media_jobs`、`media_assets`、`media_callback_events`。D3.2 用 `0002_d32_task_modes.sql` 补任务模式和参考素材列，禁止 AutoMigrate。拿到 `upstream_job_id` 后禁止再次 Create；回调按 `event_id` 幂等；结果默认 7 天后清理。图生/首帧要图，首尾帧要两帧，参考模式至少一种参考，延长/编辑要本用户已完成视频的 `source_job_id`，图像 edit 要 `images`。独立音频/转写/视频理解/复杂时间线仍是 P1。
 
 P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`ops_backup_drills`、`ops_canary`、`ops_alert_thresholds`。看板数字通过 gateway/billing 公开接口聚合，ops 不直连它们的表。预授权失败由 `billing_preauth_failures` 在事务外落库，供看板统计 `preauth_failed`。限流、熔断与写操作 `Idempotency-Key` 计数只存在 Redis（幂等记录 TTL 24h）。目录管理通过 catalog 公开接口做 Provider/模型/路由 CRUD，不直连表；`AttachProvider` 写 mapping 并追加 route candidate。P0 文本模型含 `tokenhub/echo-1` 与 `google/gemini-flash`（无 Gemini Base URL 时走沙箱适配器）。Bifrost 数据面默认走独立 sidecar，未配置 URL 时该 Adapter 不作为成功候选。过期预授权由 `billing.ReapExpired` 回收。
 | `audit_log` | `id`, `actor_user_id`, `action`, `resource_type`, `resource_id`, `before_json`, `after_json`, `ip`, `created_at` | 不可删除，敏感操作二次确认 |

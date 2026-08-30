@@ -180,8 +180,15 @@ func (s *Service) Seed(ctx context.Context) error {
 		"wholesale_input": "0.0000007", "wholesale_output": "0.0000014",
 	})
 	mediaCaps, _ := json.Marshal(map[string]any{
-		"supported_parameters": []string{"prompt", "duration", "resolution", "aspect_ratio", "fps", "generate_audio", "callback_url", "images"},
-		"media":                []string{"video", "image"},
+		"supported_parameters": []string{
+			"prompt", "duration", "resolution", "aspect_ratio", "fps", "generate_audio",
+			"callback_url", "images", "task_type", "first_frame", "last_frame",
+			"reference_video", "reference_audio", "source_job_id",
+		},
+		"task_types":       []string{"t2v", "i2v", "first_frame", "first_last_frame", "reference", "extend", "edit", "generate"},
+		"media":            []string{"video", "image"},
+		"output_modality":  []string{"video", "image"},
+		"input_modalities": []string{"text", "image", "video", "audio"},
 	})
 	mediaPrice, _ := json.Marshal(map[string]any{
 		"currency": "USD", "video_second": "0.01", "image_count": "0.02", "audio_second": "0.002",
@@ -270,6 +277,9 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
 			return err
 		}
+	}
+	if err := tx.Model(&publicModelRow{}).Where("public_id IN ?", []string{SeedanceModelID, ImageModelID}).Update("capabilities_json", caps).Error; err != nil {
+		return err
 	}
 	mappings := []mappingRow{
 		{ID: "map_sd_ark", PublicModelID: "mdl_seedance", ProviderID: "prd_ark", UpstreamModelID: "seedance-1-0-ark", Status: "active"},

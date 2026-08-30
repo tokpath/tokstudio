@@ -8,16 +8,22 @@ import (
 )
 
 type SubmitInput struct {
-	JobID       string
-	Kind        string
-	Model       string
-	Prompt      string
-	Duration    int
-	Resolution  string
-	AspectRatio string
-	FPS         int
-	Audio       bool
-	Images      []string
+	JobID          string
+	Kind           string
+	Model          string
+	Prompt         string
+	Duration       int
+	Resolution     string
+	AspectRatio    string
+	FPS            int
+	Audio          bool
+	Images         []string
+	TaskType       string
+	FirstFrame     string
+	LastFrame      string
+	ReferenceVideo string
+	ReferenceAudio string
+	SourceJobID    string
 }
 
 type SubmitResult struct {

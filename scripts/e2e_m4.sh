@@ -132,12 +132,46 @@ curl -sf -X POST "$API_URL/v1/media/callbacks" -H "Content-Type: application/jso
 curl -sf -X POST "$API_URL/v1/media/callbacks" -H "Content-Type: application/json" -H "X-Tokenhub-Signature: $sig" -d "$body" | grep -q '"ok":true'
 curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/videos/$cid" | grep -q completed
 
+echo "== D3.2 task modes and params"
+params="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: e2e-params' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"params","duration":8,"resolution":"1080p","aspect_ratio":"9:16","fps":24,"generate_audio":true}')"
+echo "$params" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['task_type']=='t2v' and d['duration']==8 and d['resolution']=='1080p' and d['fps']==24 and d['generate_audio'] is True"
+bad_i2v="$(curl -sS -o /tmp/m4_bad_i2v.json -w '%{http_code}' -X POST "$API_URL/v1/videos" \
+  -H "Authorization: Bearer $key" -H 'Content-Type: application/json' -H 'Idempotency-Key: e2e-bad-i2v' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"need image","task_type":"i2v"}')"
+test "$bad_i2v" = "400"
+i2v="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: e2e-i2v' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"from still","mode":"i2v","images":["https://example.test/frame.png"]}')"
+echo "$i2v" | grep -q '"task_type":"i2v"'
+flf="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: e2e-flf' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"walk","task_type":"first_last_frame","first_frame":"https://example.test/a.png","last_frame":"https://example.test/b.png"}')"
+echo "$flf" | grep -q first_last_frame
+ref="$(curl -sf -X POST "$API_URL/v1/videos" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: e2e-ref' \
+  -d '{"model":"bytedance/seedance-1.0","prompt":"ref","task_type":"reference","reference_audio":"https://example.test/a.wav"}')"
+echo "$ref" | grep -q reference
+ext="$(curl -sf -X POST "$API_URL/v1/videos/$jid/extend" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: e2e-ext' -d '{"prompt":"longer","duration":6}')"
+echo "$ext" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['task_type']=='extend' and d['source_job_id']==sys.argv[1]" "$jid"
+bad_edit="$(curl -sS -o /tmp/m4_bad_edit.json -w '%{http_code}' -X POST "$API_URL/v1/images/edits" \
+  -H "Authorization: Bearer $key" -H 'Content-Type: application/json' -H 'Idempotency-Key: e2e-bad-edit' \
+  -d '{"model":"tokenhub/image-demo","prompt":"edit me"}')"
+test "$bad_edit" = "400"
+
 echo "== image generation"
 img="$(curl -sS -o /tmp/m4_img.json -w '%{http_code}' -X POST "$API_URL/v1/images/generations" \
   -H "Authorization: Bearer $key" -H 'Content-Type: application/json' -H 'Idempotency-Key: e2e-img' \
   -d '{"model":"tokenhub/image-demo","prompt":"logo"}')"
 test "$img" = "202"
 grep -q image /tmp/m4_img.json
+img_edit="$(curl -sS -o /tmp/m4_img_edit.json -w '%{http_code}' -X POST "$API_URL/v1/images/edits" \
+  -H "Authorization: Bearer $key" -H 'Content-Type: application/json' -H 'Idempotency-Key: e2e-img-edit' \
+  -d '{"model":"tokenhub/image-demo","prompt":"make blue","images":["https://example.test/logo.png"]}')"
+test "$img_edit" = "202"
+grep -q '"task_type":"edit"' /tmp/m4_img_edit.json
 
 echo "== health"
 curl -sf "$API_URL/healthz" | grep -q 0.1.0-m

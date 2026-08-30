@@ -146,6 +146,114 @@ func TestM4MediaJobs(t *testing.T) {
 	if sessionGot["id"] != fromSession["id"] {
 		t.Fatalf("session get video: %+v", sessionGot)
 	}
+
+	params := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-params", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "params", "duration": 8, "resolution": "1080p",
+		"aspect_ratio": "9:16", "fps": 24, "generate_audio": true, "task_type": "t2v",
+	})
+	if params["task_type"] != "t2v" || params["duration"] != float64(8) || params["resolution"] != "1080p" ||
+		params["aspect_ratio"] != "9:16" || params["fps"] != float64(24) || params["generate_audio"] != true {
+		t.Fatalf("params echo: %+v", params)
+	}
+
+	badI2V := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-i2v", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "need image", "task_type": "i2v",
+	})
+	if badI2V.status != http.StatusBadRequest {
+		t.Fatalf("i2v without image: %d %+v", badI2V.status, badI2V.body)
+	}
+	i2v := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-i2v", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "from still", "mode": "i2v", "images": []string{"https://example.test/frame.png"},
+	})
+	if i2v["task_type"] != "i2v" {
+		t.Fatalf("i2v: %+v", i2v)
+	}
+
+	badFLF := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-flf", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "flf", "task_type": "first_last_frame", "first_frame": "https://example.test/a.png",
+	})
+	if badFLF.status != http.StatusBadRequest {
+		t.Fatalf("first_last_frame missing last: %d %+v", badFLF.status, badFLF.body)
+	}
+	flf := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-flf", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "walk", "task_type": "first_last_frame",
+		"first_frame": "https://example.test/a.png", "last_frame": "https://example.test/b.png",
+	})
+	if flf["task_type"] != "first_last_frame" || flf["first_frame"] == "" || flf["last_frame"] == "" {
+		t.Fatalf("first_last_frame: %+v", flf)
+	}
+
+	ref := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-ref", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "ref", "task_type": "reference", "reference_audio": "https://example.test/a.wav",
+	})
+	if ref["task_type"] != "reference" || ref["reference_audio"] == "" {
+		t.Fatalf("reference: %+v", ref)
+	}
+
+	badExt := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-ext", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "extend", "task_type": "extend",
+	})
+	if badExt.status != http.StatusBadRequest {
+		t.Fatalf("extend without source: %d %+v", badExt.status, badExt.body)
+	}
+	other := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "media-other-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": "THA1",
+	})
+	otherKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", tokenOf(other), map[string]any{"name": "m4-other"})["item"].(map[string]any)["key"].(string)
+	stolen := postStatus(t, server.URL+"/v1/videos", otherKey, "idem-steal", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "steal", "task_type": "extend", "source_job_id": first["id"],
+	})
+	if stolen.status != http.StatusBadRequest {
+		t.Fatalf("extend other user job: %d %+v", stolen.status, stolen.body)
+	}
+	extended := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-ext", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "longer", "task_type": "extend", "source_job_id": first["id"],
+	})
+	if extended["task_type"] != "extend" || extended["source_job_id"] != first["id"] {
+		t.Fatalf("extend: %+v", extended)
+	}
+	viaRoute := postAccepted(t, server.URL+"/v1/videos/"+first["id"].(string)+"/extend", apiKey, "idem-ext-route", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "via route", "duration": 6,
+	})
+	if viaRoute["task_type"] != "extend" || viaRoute["source_job_id"] != first["id"] {
+		t.Fatalf("extend route: %+v", viaRoute)
+	}
+
+	badEdit := postStatus(t, server.URL+"/v1/images/edits", apiKey, "idem-bad-img-edit", map[string]any{
+		"model": catalog.ImageModelID, "prompt": "edit me",
+	})
+	if badEdit.status != http.StatusBadRequest {
+		t.Fatalf("image edit without images: %d %+v", badEdit.status, badEdit.body)
+	}
+	imgEdit := postAccepted(t, server.URL+"/v1/images/edits", apiKey, "idem-img-edit", map[string]any{
+		"model": catalog.ImageModelID, "prompt": "make blue", "images": []string{"https://example.test/logo.png"},
+	})
+	if imgEdit["object"] != "image" || imgEdit["task_type"] != "edit" {
+		t.Fatalf("image edit: %+v", imgEdit)
+	}
+}
+
+type statusBody struct {
+	status int
+	body   map[string]any
+}
+
+func postStatus(t *testing.T, url, token, idem string, payload map[string]any) statusBody {
+	t.Helper()
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", idem)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	return statusBody{status: resp.StatusCode, body: out}
 }
 
 func postAccepted(t *testing.T, url, token, idem string, payload map[string]any) map[string]any {

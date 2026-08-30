@@ -210,6 +210,10 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "POST",
+    "path": "/v1/videos/{id}/extend"
+  },
+  {
+    "method": "POST",
     "path": "/admin/models/attach"
   },
   {

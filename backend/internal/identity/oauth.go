@@ -95,8 +95,8 @@ func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange
 			return nil, err
 		}
 		_ = s.db.WithContext(ctx).Model(&userRow{}).Where("email = ?", profile.Email).Updates(map[string]any{
-			"google_sub":         profile.Subject,
-			"email_verified_at":  time.Now().UTC(),
+			"google_sub":        profile.Subject,
+			"email_verified_at": time.Now().UTC(),
 		})
 		_ = s.db.WithContext(ctx).Where("id = ?", row.ID).Delete(&oauthStateRow{})
 		return session, nil

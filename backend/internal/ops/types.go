@@ -1,0 +1,177 @@
+package ops
+
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrRateLimited = errors.New("rate limited")
+	ErrNotFound    = errors.New("ops record not found")
+	ErrInvalid     = errors.New("invalid ops request")
+)
+
+const (
+	DimProvider = "provider"
+	DimModel    = "model"
+	DimChannel  = "channel"
+	DimUser     = "user"
+	DimAPIKey   = "api_key"
+	DimAgent    = "agent"
+
+	AlertPending    = "pending_reconciliation"
+	AlertCircuit    = "provider_circuit_open"
+	AlertLowSuccess = "low_success_rate"
+	AlertBackup     = "backup_drill_missing"
+
+	StatusOpen     = "open"
+	StatusResolved = "resolved"
+	SeverityHigh   = "high"
+	SeverityMed    = "medium"
+
+	DefaultRPM       = 60
+	CircuitThreshold = 3
+	RPOMinutes       = 15
+	RTOMinutes       = 60
+	CanaryChat       = "chat"
+	PolicyVersion    = "m7-v1"
+)
+
+type DailyTraffic struct {
+	Day       string `json:"day"`
+	Requests  int64  `json:"requests"`
+	Successes int64  `json:"successes"`
+	Errors    int64  `json:"errors"`
+}
+
+type DailyMoney struct {
+	Day          string `json:"day"`
+	UsageMinor   int64  `json:"usage_minor"`
+	RevenueMinor int64  `json:"revenue_minor"`
+	CostMinor    int64  `json:"cost_minor"`
+}
+
+type DayPoint struct {
+	Day          string  `json:"day"`
+	Requests     int64   `json:"requests"`
+	Successes    int64   `json:"successes"`
+	Errors       int64   `json:"errors"`
+	SuccessRate  float64 `json:"success_rate"`
+	UsageMinor   int64   `json:"usage_minor"`
+	RevenueMinor int64   `json:"revenue_minor"`
+	CostMinor    int64   `json:"cost_minor"`
+	MarginMinor  int64   `json:"gross_profit_minor"`
+}
+
+type DimStat struct {
+	Dimension        string  `json:"dimension"`
+	Key              string  `json:"key"`
+	Requests         int64   `json:"requests"`
+	Successes        int64   `json:"successes"`
+	Errors           int64   `json:"errors"`
+	SuccessRate      float64 `json:"success_rate"`
+	LatencyP50MS     int64   `json:"latency_p50_ms"`
+	LatencyP95MS     int64   `json:"latency_p95_ms"`
+	LatencyP99MS     int64   `json:"latency_p99_ms"`
+	Fallbacks        int64   `json:"fallbacks"`
+	HTTP429          int64   `json:"http_429"`
+	HTTP5xx          int64   `json:"http_5xx"`
+	Timeouts         int64   `json:"timeouts"`
+	PromptTokens     int64   `json:"prompt_tokens,omitempty"`
+	CompletionTokens int64   `json:"completion_tokens,omitempty"`
+	ReasoningTokens  int64   `json:"reasoning_tokens,omitempty"`
+	VideoSeconds     int64   `json:"video_seconds,omitempty"`
+	ImageCount       int64   `json:"image_count,omitempty"`
+	AudioSeconds     int64   `json:"audio_seconds,omitempty"`
+	UsageMinor       int64   `json:"usage_minor,omitempty"`
+	RevenueMinor     int64   `json:"revenue_minor,omitempty"`
+	CostMinor        int64   `json:"cost_minor,omitempty"`
+	MarginMinor      int64   `json:"gross_profit_minor,omitempty"`
+}
+
+type MoneyView struct {
+	RevenueMinor      int64            `json:"revenue_minor"`
+	UpstreamMinor     int64            `json:"upstream_cost_minor"`
+	WholesaleMinor    int64            `json:"wholesale_minor"`
+	CommissionMinor   int64            `json:"commission_liability_minor"`
+	RefundMinor       int64            `json:"refund_minor"`
+	GrossProfitMinor  int64            `json:"gross_profit_minor"`
+	PendingCount      int64            `json:"pending_reconciliation_count"`
+	SuccessRate       float64          `json:"success_rate"`
+	LatencyP50MS      int64            `json:"latency_p50_ms"`
+	LatencyP95MS      int64            `json:"latency_p95_ms"`
+	LatencyP99MS      int64            `json:"latency_p99_ms"`
+	Fallbacks         int64            `json:"fallbacks"`
+	HTTP429           int64            `json:"http_429"`
+	HTTP5xx           int64            `json:"http_5xx"`
+	UpstreamErrors    int64            `json:"upstream_errors"`
+	LowBalanceWallets int64            `json:"low_balance_wallets"`
+	ReservedMinor     int64            `json:"wallet_reserved_minor"`
+	ChannelSpendMinor int64            `json:"channel_spend_minor"`
+	PreauthFailed     int64            `json:"preauth_failed"`
+	CallbackP95MS     int64            `json:"callback_latency_p95_ms"`
+	Timeouts          int64            `json:"timeouts"`
+	ErrorCodes        map[string]int64 `json:"error_codes"`
+	PromptTokens      int64            `json:"prompt_tokens"`
+	CompletionTokens  int64            `json:"completion_tokens"`
+	ReasoningTokens   int64            `json:"reasoning_tokens"`
+	VideoSeconds      int64            `json:"video_seconds"`
+	ImageCount        int64            `json:"image_count"`
+	AudioSeconds      int64            `json:"audio_seconds"`
+}
+
+type Dashboard struct {
+	Version    string               `json:"version"`
+	Totals     MoneyView            `json:"totals"`
+	Dimensions map[string][]DimStat `json:"dimensions"`
+	Alerts     []AlertView          `json:"alerts"`
+	Canary     *CanaryView          `json:"canary,omitempty"`
+	LastDrill  *DrillView           `json:"last_backup_drill,omitempty"`
+	Runbooks   []RunbookView        `json:"runbooks"`
+	Thresholds *Thresholds          `json:"thresholds,omitempty"`
+}
+
+type Thresholds struct {
+	SuccessRateMin float64 `json:"success_rate_min"`
+	MinRequests    int64   `json:"min_requests"`
+	PendingCount   int64   `json:"pending_count"`
+}
+
+type AlertView struct {
+	ID        string    `json:"id"`
+	Kind      string    `json:"kind"`
+	Severity  string    `json:"severity"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type RunbookView struct {
+	ID        string `json:"id"`
+	AlertKind string `json:"alert_kind"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+}
+
+type DrillView struct {
+	ID         string    `json:"id"`
+	Status     string    `json:"status"`
+	RPOMinutes int       `json:"rpo_minutes"`
+	RTOMinutes int       `json:"rto_minutes"`
+	Method     string    `json:"method"`
+	Evidence   string    `json:"evidence"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type CanaryView struct {
+	RouteKey     string `json:"route_key"`
+	ProviderSlug string `json:"provider_slug"`
+	Percent      int    `json:"percent"`
+}
+
+type DrillResult struct {
+	Kind   string `json:"kind"`
+	Status string `json:"status"`
+	Detail string `json:"detail"`
+	Passed bool   `json:"passed"`
+}

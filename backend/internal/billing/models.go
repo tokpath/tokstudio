@@ -56,6 +56,33 @@ type quotaLedgerRow struct {
 
 func (quotaLedgerRow) TableName() string { return "billing_quota_ledger" }
 
+type allocationRow struct {
+	ID            string     `gorm:"column:id;primaryKey"`
+	UserID        string     `gorm:"column:user_id"`
+	ChannelOrgID  string     `gorm:"column:channel_org_id"`
+	SourceType    string     `gorm:"column:source_type"`
+	SourceID      string     `gorm:"column:source_id"`
+	GrantedMinor  int64      `gorm:"column:granted_minor"`
+	ConsumedMinor int64      `gorm:"column:consumed_minor"`
+	Status        string     `gorm:"column:status"`
+	ExpiresAt     *time.Time `gorm:"column:expires_at"`
+	CreatedAt     time.Time  `gorm:"column:created_at"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at"`
+}
+
+func (allocationRow) TableName() string { return "billing_quota_allocations" }
+
+type consumeRow struct {
+	ID             string    `gorm:"column:id;primaryKey"`
+	AllocationID   string    `gorm:"column:allocation_id"`
+	RequestID      string    `gorm:"column:request_id"`
+	AmountMinor    int64     `gorm:"column:amount_minor"`
+	IdempotencyKey string    `gorm:"column:idempotency_key"`
+	CreatedAt      time.Time `gorm:"column:created_at"`
+}
+
+func (consumeRow) TableName() string { return "billing_quota_consumes" }
+
 type topupRow struct {
 	ID              string    `gorm:"column:id;primaryKey"`
 	UserID          string    `gorm:"column:user_id"`
@@ -85,20 +112,21 @@ type redeemRow struct {
 func (redeemRow) TableName() string { return "billing_redeem_codes" }
 
 type authRow struct {
-	ID             string    `gorm:"column:id;primaryKey"`
-	WalletID       string    `gorm:"column:wallet_id"`
-	UserID         string    `gorm:"column:user_id"`
-	ChannelOrgID   *string   `gorm:"column:channel_org_id"`
-	RequestID      string    `gorm:"column:request_id"`
-	AmountMinor    int64     `gorm:"column:amount_minor"`
-	SettledMinor   int64     `gorm:"column:settled_minor"`
-	Currency       string    `gorm:"column:currency"`
-	Status         string    `gorm:"column:status"`
-	PriceVersionID *string   `gorm:"column:price_version_id"`
-	UnitPrices     []byte    `gorm:"column:unit_prices_json"`
-	ExpiresAt      time.Time `gorm:"column:expires_at"`
-	CreatedAt      time.Time `gorm:"column:created_at"`
-	UpdatedAt      time.Time `gorm:"column:updated_at"`
+	ID                  string    `gorm:"column:id;primaryKey"`
+	WalletID            string    `gorm:"column:wallet_id"`
+	UserID              string    `gorm:"column:user_id"`
+	ChannelOrgID        *string   `gorm:"column:channel_org_id"`
+	RequestID           string    `gorm:"column:request_id"`
+	AmountMinor         int64     `gorm:"column:amount_minor"`
+	WalletReservedMinor int64     `gorm:"column:wallet_reserved_minor"`
+	SettledMinor        int64     `gorm:"column:settled_minor"`
+	Currency            string    `gorm:"column:currency"`
+	Status              string    `gorm:"column:status"`
+	PriceVersionID      *string   `gorm:"column:price_version_id"`
+	UnitPrices          []byte    `gorm:"column:unit_prices_json"`
+	ExpiresAt           time.Time `gorm:"column:expires_at"`
+	CreatedAt           time.Time `gorm:"column:created_at"`
+	UpdatedAt           time.Time `gorm:"column:updated_at"`
 }
 
 func (authRow) TableName() string { return "billing_authorizations" }

@@ -21,8 +21,34 @@ var migrationFS embed.FS
 
 // Service 是账务模块的唯一对外入口。网关只能调用 Reserve/Settle/Release。
 type Service struct {
-	db     *gorm.DB
-	outbox *outbox.Service
+	db           *gorm.DB
+	outbox       *outbox.Service
+	coverer      EntitlementCoverer
+	commissioner Commissioner
+}
+
+func (s *Service) SetCoverer(c EntitlementCoverer) {
+	s.coverer = c
+}
+
+func (s *Service) SetCommissioner(c Commissioner) {
+	s.commissioner = c
+}
+
+// Credit 是支付模块入账现金钱包的公开入口，不暴露内部表。
+func (s *Service) Credit(ctx context.Context, userID, idempotencyKey string, amount int64, memo string) error {
+	if amount <= 0 {
+		return ErrInvalidAmount
+	}
+	if idempotencyKey == "" {
+		return ErrInvalidAmount
+	}
+	if memo == "" {
+		memo = "payment credit"
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return creditWallet(tx, userID, amount, EventTopup, "payment", idempotencyKey, "pay:"+idempotencyKey)
+	})
 }
 
 func New(db *gorm.DB, publisher *outbox.Service) *Service {
@@ -101,6 +127,7 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 		if err := s.db.WithContext(ctx).Where("owner_type = ? AND owner_id = ?", "channel", channelOrgID).First(&quota).Error; err == nil {
 			view.ChannelQuota = quota.AvailableMinor
 		}
+		view.AllocationRemaining = allocationRemaining(s.db.WithContext(ctx), userID, channelOrgID)
 	}
 	return view, nil
 }
@@ -178,30 +205,82 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing authRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
+			if existing.UserID != in.UserID {
+				return ErrConflict
+			}
 			out = &Reservation{ID: existing.ID, RequestID: existing.RequestID, AmountMinor: existing.AmountMinor, Status: existing.Status, Currency: existing.Currency}
 			return nil
 		}
+		walletNeed := in.ReserveMinor
+		var covered int64
+		if s.coverer != nil {
+			avail, err := s.coverer.AvailableUSD(ctx, in.UserID)
+			if err != nil {
+				return err
+			}
+			if avail > 0 {
+				cover := avail
+				if cover > in.ReserveMinor {
+					cover = in.ReserveMinor
+				}
+				took, err := s.coverer.ConsumeUSD(ctx, in.UserID, in.RequestID, cover)
+				if err != nil {
+					return err
+				}
+				covered = took
+				if covered > in.ReserveMinor {
+					covered = in.ReserveMinor
+				}
+				walletNeed = in.ReserveMinor - covered
+			}
+		}
 		wallet, err := lockWallet(tx, in.UserID)
 		if err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
-		if wallet.AvailableMinor < in.ReserveMinor {
-			return ErrInsufficientBalance
-		}
-		if err := s.reserveChannelQuota(tx, in.ChannelOrgID, in.RequestID, in.ReserveMinor); err != nil {
+		if err := s.reserveChannelQuota(tx, in.UserID, in.ChannelOrgID, in.RequestID, in.ReserveMinor, walletNeed); err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
 		now := time.Now().UTC()
-		wallet.AvailableMinor -= in.ReserveMinor
-		wallet.ReservedMinor += in.ReserveMinor
-		wallet.Version++
-		wallet.UpdatedAt = now
-		if err := tx.Save(wallet).Error; err != nil {
-			return err
+		if walletNeed > 0 {
+			// 用原生 SQL 原子扣减，避免 GORM Updates 在并发下漏掉 WHERE 条件。
+			exec := tx.Exec(
+				`UPDATE billing_wallets
+				 SET available_minor = available_minor - ?,
+				     reserved_minor = reserved_minor + ?,
+				     version = version + 1,
+				     updated_at = ?
+				 WHERE id = ? AND available_minor >= ?`,
+				walletNeed, walletNeed, now, wallet.ID, walletNeed,
+			)
+			if exec.Error != nil {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return exec.Error
+			}
+			if exec.RowsAffected != 1 {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return ErrInsufficientBalance
+			}
+			if err := tx.Where("id = ?", wallet.ID).First(wallet).Error; err != nil {
+				if s.coverer != nil && covered > 0 {
+					_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+				}
+				return err
+			}
 		}
 		auth := authRow{
 			ID: id.New("aut"), WalletID: wallet.ID, UserID: in.UserID, RequestID: in.RequestID,
-			AmountMinor: in.ReserveMinor, Currency: CurrencyUSD, Status: AuthReserved,
+			AmountMinor: in.ReserveMinor, WalletReservedMinor: walletNeed, Currency: CurrencyUSD, Status: AuthReserved,
 			UnitPrices: in.UnitPrices, ExpiresAt: now.Add(15 * time.Minute), CreatedAt: now, UpdatedAt: now,
 		}
 		if in.ChannelOrgID != "" {
@@ -213,7 +292,10 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		if err := tx.Create(&auth).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventAuthorization, -in.ReserveMinor, "authorization", auth.ID, "auth:"+in.RequestID); err != nil {
+		if err := writeLedger(tx, wallet, EventAuthorization, -walletNeed, "authorization", auth.ID, "auth:"+in.RequestID); err != nil {
+			if s.coverer != nil && covered > 0 {
+				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+			}
 			return err
 		}
 		if _, err := s.outbox.EnqueueTx(tx, "billing.authorization.reserved", "authorization", auth.ID, map[string]any{
@@ -224,7 +306,38 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		out = &Reservation{ID: auth.ID, RequestID: in.RequestID, AmountMinor: in.ReserveMinor, Status: AuthReserved, Currency: CurrencyUSD}
 		return nil
 	})
+	if err != nil && s.coverer != nil {
+		_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
+	}
+	if err != nil {
+		s.notePreauthFailure(ctx, in, err)
+	}
 	return out, err
+}
+
+type preauthFailRow struct {
+	ID        string    `gorm:"column:id;primaryKey"`
+	UserID    string    `gorm:"column:user_id"`
+	RequestID string    `gorm:"column:request_id"`
+	Reason    string    `gorm:"column:reason"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+func (preauthFailRow) TableName() string { return "billing_preauth_failures" }
+
+func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err error) {
+	reason := ""
+	switch {
+	case errors.Is(err, ErrInsufficientBalance):
+		reason = "insufficient_balance"
+	case errors.Is(err, ErrInsufficientQuota):
+		reason = "insufficient_quota"
+	default:
+		return
+	}
+	_ = s.db.WithContext(ctx).Create(&preauthFailRow{
+		ID: id.New("paf"), UserID: in.UserID, RequestID: in.RequestID, Reason: reason, CreatedAt: time.Now().UTC(),
+	}).Error
 }
 
 func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, error) {
@@ -239,6 +352,13 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		var existing chargeRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
 			out = &Settlement{ChargeID: existing.ID, UsageEventID: existing.UsageEventID, AmountMinor: existing.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}
+			var prior authRow
+			if tx.Where("request_id = ?", in.RequestID).First(&prior).Error == nil {
+				keep := entitlementKeep(prior, existing.AmountMinor)
+				if s.coverer != nil {
+					_ = s.coverer.ReverseKeep(ctx, in.RequestID, keep)
+				}
+			}
 			return nil
 		}
 		var auth authRow
@@ -290,32 +410,53 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		}
 		prompt := in.Usage["prompt_tokens"]
 		completion := in.Usage["completion_tokens"]
-		customer := quote.CustomerMinor(prompt, completion)
+		customer := quote.Charge(in.Usage, in.Resolution)
+		if customer == 0 {
+			customer = quote.CustomerMinor(prompt, completion)
+		}
 		if customer > auth.AmountMinor {
 			customer = auth.AmountMinor
+		}
+		walletReserved := auth.WalletReservedMinor
+		if walletReserved > auth.AmountMinor {
+			walletReserved = auth.AmountMinor
+		}
+		covered := auth.AmountMinor - walletReserved
+		if covered < 0 {
+			covered = 0
+		}
+		entitlementUsed := customer
+		if entitlementUsed > covered {
+			entitlementUsed = covered
+		}
+		walletUsed := customer - entitlementUsed
+		walletRelease := walletReserved - walletUsed
+		if walletRelease < 0 {
+			walletRelease = 0
 		}
 		wallet, err := lockWalletByID(tx, auth.WalletID)
 		if err != nil {
 			return err
 		}
 		now := time.Now().UTC()
-		release := auth.AmountMinor - customer
-		wallet.ReservedMinor -= auth.AmountMinor
-		wallet.AvailableMinor += release
+		wallet.ReservedMinor -= walletReserved
+		wallet.AvailableMinor += walletRelease
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventUsageDebit, -customer, "request", in.RequestID, in.IdempotencyKey); err != nil {
-			return err
-		}
-		if release > 0 {
-			if err := writeLedger(tx, wallet, EventRelease, release, "authorization", auth.ID, "release:"+in.RequestID); err != nil {
+		if walletUsed > 0 {
+			if err := writeLedger(tx, wallet, EventUsageDebit, -walletUsed, "request", in.RequestID, in.IdempotencyKey); err != nil {
 				return err
 			}
 		}
-		if err := s.settleChannelQuota(tx, in.ChannelOrgID, in.RequestID, auth.AmountMinor, customer); err != nil {
+		if walletRelease > 0 {
+			if err := writeLedger(tx, wallet, EventRelease, walletRelease, "authorization", auth.ID, "release:"+in.RequestID); err != nil {
+				return err
+			}
+		}
+		if err := s.settleChannelQuota(tx, auth.UserID, firstNonEmpty(in.ChannelOrgID, stringPtr(auth.ChannelOrgID)), in.RequestID, walletUsed); err != nil {
 			return err
 		}
 		usageJSON, _ := json.Marshal(in.Usage)
@@ -323,8 +464,8 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			ID: id.New("usg"), RequestID: in.RequestID, UserID: auth.UserID,
 			PublicModelID: in.PublicModelID, UnitUsage: usageJSON, UnitPrices: quote.Raw,
 			PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: customer,
-			UpstreamCostMinor:    quote.CostMinor(prompt, completion),
-			WholesaleAmountMinor: quote.WholesaleMinor(prompt, completion),
+			UpstreamCostMinor:    quote.MediaCost(in.Usage, in.Resolution),
+			WholesaleAmountMinor: quote.Charge(in.Usage, in.Resolution) * 7 / 10,
 			Currency:             CurrencyUSD, State: UsageConfirmed, IdempotencyKey: in.IdempotencyKey,
 			OccurredAt: now,
 		}
@@ -351,7 +492,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if in.AttemptID != "" && in.ProviderID != "" {
 			_ = tx.Where("attempt_id = ?", in.AttemptID).FirstOrCreate(&costRow{
 				ID: id.New("cst"), RequestID: in.RequestID, AttemptID: in.AttemptID, ProviderID: in.ProviderID,
-				AmountMinor: quote.CostMinor(prompt, completion), Currency: CurrencyUSD,
+				AmountMinor: quote.MediaCost(in.Usage, in.Resolution), Currency: CurrencyUSD,
 				UnitUsage: usageJSON, UnitPrices: quote.Raw, CreatedAt: now,
 			}).Error
 		}
@@ -370,9 +511,30 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			return err
 		}
 		out = &Settlement{ChargeID: charge.ID, UsageEventID: row.ID, AmountMinor: customer, State: UsageConfirmed, Currency: CurrencyUSD}
+		if s.coverer != nil {
+			_ = s.coverer.ReverseKeep(ctx, in.RequestID, entitlementUsed)
+		}
 		return nil
 	})
 	return out, err
+}
+
+func entitlementKeep(auth authRow, customer int64) int64 {
+	walletReserved := auth.WalletReservedMinor
+	if walletReserved > auth.AmountMinor {
+		walletReserved = auth.AmountMinor
+	}
+	covered := auth.AmountMinor - walletReserved
+	if covered < 0 {
+		covered = 0
+	}
+	if customer > covered {
+		return covered
+	}
+	if customer < 0 {
+		return 0
+	}
+	return customer
 }
 
 func (s *Service) Release(ctx context.Context, requestID string) error {
@@ -392,22 +554,34 @@ func (s *Service) Release(ctx context.Context, requestID string) error {
 			return err
 		}
 		now := time.Now().UTC()
-		wallet.ReservedMinor -= auth.AmountMinor
-		wallet.AvailableMinor += auth.AmountMinor
+		walletPart := auth.WalletReservedMinor
+		if walletPart > auth.AmountMinor {
+			walletPart = auth.AmountMinor
+		}
+		wallet.ReservedMinor -= walletPart
+		wallet.AvailableMinor += walletPart
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {
 			return err
 		}
-		if err := writeLedger(tx, wallet, EventRelease, auth.AmountMinor, "authorization", auth.ID, "release:"+requestID); err != nil {
-			return err
+		if walletPart > 0 {
+			if err := writeLedger(tx, wallet, EventRelease, walletPart, "authorization", auth.ID, "release:"+requestID); err != nil {
+				return err
+			}
 		}
 		if auth.ChannelOrgID != nil {
 			_ = s.releaseChannelQuota(tx, *auth.ChannelOrgID, requestID, auth.AmountMinor)
 		}
 		auth.Status = AuthReleased
 		auth.UpdatedAt = now
-		return tx.Save(&auth).Error
+		if err := tx.Save(&auth).Error; err != nil {
+			return err
+		}
+		if s.coverer != nil {
+			_ = s.coverer.ReverseByRequest(ctx, requestID)
+		}
+		return nil
 	})
 }
 

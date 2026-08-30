@@ -37,6 +37,10 @@ func Created(c *gin.Context, body any) {
 	c.JSON(http.StatusCreated, body)
 }
 
+func Accepted(c *gin.Context, body any) {
+	c.JSON(http.StatusAccepted, body)
+}
+
 func stringify(v any) string {
 	if s, ok := v.(string); ok {
 		return s

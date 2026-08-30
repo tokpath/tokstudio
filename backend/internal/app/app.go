@@ -16,9 +16,14 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/media"
+	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
+	"github.com/tokpath/tokstudio/backend/internal/payment"
+	"github.com/tokpath/tokstudio/backend/internal/plans"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -26,35 +31,68 @@ import (
 )
 
 type App struct {
-	Config   *config.Config
-	DB       *gorm.DB
-	Redis    *redis.Client
-	Identity *identity.Service
-	Audit    *audit.Service
-	Outbox   *outbox.Service
-	Catalog  *catalog.Service
-	Billing  *billing.Service
-	Gateway  *gateway.Service
-	Logger   zerolog.Logger
+	Config     *config.Config
+	DB         *gorm.DB
+	Redis      *redis.Client
+	Identity   *identity.Service
+	Audit      *audit.Service
+	Outbox     *outbox.Service
+	Catalog    *catalog.Service
+	Billing    *billing.Service
+	Gateway    *gateway.Service
+	Media      *media.Service
+	Plans      *plans.Service
+	Payment    *payment.Service
+	Commission *commission.Service
+	Ops        *ops.Service
+	Logger     zerolog.Logger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
 	outboxSvc := outbox.New(gdb)
 	auditSvc := audit.New(gdb, outboxSvc)
 	catalogSvc := catalog.New(gdb)
+	catalogSvc.SetURLPolicy(cfg.IsProduction(), cfg.UpstreamURLAllowlist)
 	billingSvc := billing.New(gdb, outboxSvc)
+	plansSvc := plans.New(gdb, outboxSvc)
+	billingSvc.SetCoverer(plansSvc)
+	store := media.NewStore(cfg.MediaStorePath, firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey), cfg.PublicBaseURL)
+	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
+	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
+	idSvc := identity.New(gdb)
+	commSvc := commission.New(gdb, outboxSvc)
+	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
+	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)
+	opsSvc := ops.New(gdb, rdb)
+	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
+	gw.SetBreaker(opsSvc)
+	gw.SetChannelGuard(idSvc)
 	return &App{
-		Config:   cfg,
-		DB:       gdb,
-		Redis:    rdb,
-		Identity: identity.New(gdb),
-		Audit:    auditSvc,
-		Outbox:   outboxSvc,
-		Catalog:  catalogSvc,
-		Billing:  billingSvc,
-		Gateway:  gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL),
-		Logger:   logger,
+		Config:     cfg,
+		DB:         gdb,
+		Redis:      rdb,
+		Identity:   idSvc,
+		Audit:      auditSvc,
+		Outbox:     outboxSvc,
+		Catalog:    catalogSvc,
+		Billing:    billingSvc,
+		Gateway:    gw,
+		Media:      mediaSvc,
+		Plans:      plansSvc,
+		Payment:    paySvc,
+		Commission: commSvc,
+		Ops:        opsSvc,
+		Logger:     logger,
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func AllMigrations() []db.ModuleMigrations {
@@ -64,6 +102,11 @@ func AllMigrations() []db.ModuleMigrations {
 	catalogName, catalogFS := catalog.Migrations()
 	gatewayName, gatewayFS := gateway.Migrations()
 	billingName, billingFS := billing.Migrations()
+	mediaName, mediaFS := media.Migrations()
+	plansName, plansFS := plans.Migrations()
+	paymentName, paymentFS := payment.Migrations()
+	commissionName, commissionFS := commission.Migrations()
+	opsName, opsFS := ops.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
@@ -71,6 +114,11 @@ func AllMigrations() []db.ModuleMigrations {
 		{Module: catalogName, FS: catalogFS},
 		{Module: gatewayName, FS: gatewayFS},
 		{Module: billingName, FS: billingFS},
+		{Module: mediaName, FS: mediaFS},
+		{Module: plansName, FS: plansFS},
+		{Module: paymentName, FS: paymentFS},
+		{Module: commissionName, FS: commissionFS},
+		{Module: opsName, FS: opsFS},
 	}
 }
 
@@ -89,7 +137,16 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.Catalog.Seed(ctx); err != nil {
 		return err
 	}
-	return a.Billing.Seed(ctx)
+	if err := a.Billing.Seed(ctx); err != nil {
+		return err
+	}
+	if err := a.Plans.Seed(ctx); err != nil {
+		return err
+	}
+	if err := a.Commission.Seed(ctx); err != nil {
+		return err
+	}
+	return a.Ops.Seed(ctx)
 }
 
 func (a *App) Router() *gin.Engine {
@@ -114,6 +171,10 @@ func (a *App) Router() *gin.Engine {
 	a.registerAuthRoutes(r)
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)
+	a.registerMediaRoutes(r)
+	a.registerPlanRoutes(r)
+	a.registerCommissionRoutes(r)
+	a.registerOpsRoutes(r)
 	return r
 }
 
@@ -121,7 +182,7 @@ func (a *App) healthz(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"status":     "ok",
 		"service":    "tokenhub-api",
-		"version":    "0.1.0-m3",
+		"version":    "0.1.0-m7",
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -145,7 +206,7 @@ func (a *App) readyz(c *gin.Context) {
 		checks["redis"] = "ok"
 	}
 	applied, err := db.Applied(a.DB)
-	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 {
+	if err != nil || len(applied["outbox"]) == 0 || len(applied["identity"]) == 0 || len(applied["audit"]) == 0 || len(applied["catalog"]) == 0 || len(applied["gateway"]) == 0 || len(applied["billing"]) == 0 || len(applied["media"]) == 0 || len(applied["plans"]) == 0 || len(applied["payment"]) == 0 || len(applied["commission"]) == 0 || len(applied["ops"]) == 0 {
 		checks["migrations"] = "error"
 		ready = false
 	} else {
@@ -181,6 +242,25 @@ func (a *App) currentPrincipal(c *gin.Context) *identity.Principal {
 	return principal
 }
 
+func (a *App) requireConfirm(c *gin.Context) bool {
+	if c.GetHeader("X-Tokenhub-Confirm") != "1" && c.Query("confirm") != "1" {
+		httpx.Abort(c, http.StatusConflict, "confirm_required", "敏感操作需要二次确认", false)
+		return false
+	}
+	principal := a.currentPrincipal(c)
+	if principal != nil && a.Identity.TOTPEnabled(c.Request.Context(), principal.UserID) {
+		code := c.GetHeader("X-Tokenhub-TOTP")
+		if code == "" {
+			code = c.Query("totp")
+		}
+		if err := a.Identity.VerifyTOTP(c.Request.Context(), principal.UserID, code, a.Config.EncryptionKey); err != nil {
+			httpx.Abort(c, http.StatusConflict, "totp_required", "管理员已启用 2FA，需要有效 TOTP", false)
+			return false
+		}
+	}
+	return true
+}
+
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
@@ -203,21 +283,33 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 
 func (a *App) adminMe(c *gin.Context) {
 	principal := a.currentPrincipal(c)
+	totp, _ := a.Identity.TOTPStatus(c.Request.Context(), principal.UserID)
 	httpx.OK(c, gin.H{
 		"user_id":    principal.UserID,
 		"email":      principal.Email,
 		"roles":      principal.Roles,
+		"totp":       totp,
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 
 func (a *App) listAudit(c *gin.Context) {
-	entries, err := a.Audit.List(c.Request.Context(), 50)
+	entries, err := a.Audit.Search(c.Request.Context(), audit.SearchQuery{
+		Action: c.Query("action"), ResourceType: c.Query("resource_type"),
+		ResourceID: c.Query("resource_id"), ActorUserID: c.Query("actor_user_id"),
+		RequestID: c.Query("request_id"), Query: c.Query("q"), Limit: 50,
+	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取审计失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": entries, "request_id": c.GetString(httpx.ContextRequestID)})
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "audit.csv", []string{"id", "action", "resource_type", "resource_id", "actor_user_id"}, entries, func(item audit.Entry) []string {
+			return []string{item.ID, item.Action, item.ResourceType, item.ResourceID, item.ActorUserID}
+		})
+		return
+	}
+	httpx.OKPage(c, entries, 50, func(item audit.Entry) string { return item.ID })
 }
 
 func (a *App) createAuditProbe(c *gin.Context) {

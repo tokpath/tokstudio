@@ -1,0 +1,768 @@
+openapi: 3.0.3
+info:
+  title: TokenHub P0
+  version: 0.1.0-m7
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      responses:
+        "200":
+          description: ok
+  /admin/ops/dashboard:
+    get:
+      operationId: getAdminDashboard
+      responses:
+        "200":
+          description: dashboard
+  /admin/metrics:
+    get:
+      operationId: getAdminMetrics
+      parameters:
+        - name: dimension
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: metrics
+  /admin/metrics/series:
+    get:
+      operationId: getAdminMetricsSeries
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: daily time series
+  /admin/metrics/daily:
+    get:
+      operationId: getAdminMetricsDaily
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: daily summary or csv
+  /admin/providers:
+    get:
+      operationId: listProviders
+      responses:
+        "200":
+          description: providers
+    post:
+      operationId: createProvider
+      responses:
+        "201":
+          description: created
+  /admin/providers/{id}:
+    patch:
+      operationId: patchProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated
+  /admin/providers/{id}/accounts:
+    get:
+      operationId: listProviderAccounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: account pool
+    post:
+      operationId: addProviderAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: account added
+  /admin/providers/{id}/accounts/{aid}:
+    patch:
+      operationId: patchProviderAccount
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: aid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: account updated
+  /admin/models:
+    get:
+      operationId: listAdminModels
+      responses:
+        "200":
+          description: models
+    post:
+      operationId: createAdminModel
+      responses:
+        "201":
+          description: created
+  /admin/providers/{id}/sync:
+    post:
+      operationId: syncProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: draft models from provider sync
+  /admin/models/review:
+    post:
+      operationId: reviewAdminModel
+      responses:
+        "200":
+          description: reviewed
+  /admin/models/publish:
+    post:
+      operationId: publishAdminModel
+      responses:
+        "200":
+          description: published
+  /admin/models/deprecate:
+    post:
+      operationId: deprecateAdminModel
+      responses:
+        "200":
+          description: deprecated
+  /admin/models/{id}:
+    patch:
+      operationId: patchAdminModel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated
+  /admin/routes:
+    get:
+      operationId: listAdminRoutes
+      responses:
+        "200":
+          description: routes
+    post:
+      operationId: createAdminRoute
+      responses:
+        "201":
+          description: created
+  /admin/routes/{id}:
+    patch:
+      operationId: patchAdminRoute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated route strategy or status
+  /admin/channels:
+    get:
+      operationId: listChannels
+      responses:
+        "200":
+          description: channels
+    post:
+      operationId: createChannel
+      responses:
+        "201":
+          description: created
+  /admin/channels/{id}:
+    patch:
+      operationId: patchChannel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated channel status type or brand; disabled freezes new chat and media with 403 channel_disabled
+  /channel/attribution:
+    get:
+      operationId: listChannelAttribution
+      responses:
+        "200":
+          description: channel attribution buckets
+  /channel/plans:
+    get:
+      operationId: listChannelPlans
+      responses:
+        "200":
+          description: scoped channel and platform plans
+    post:
+      operationId: createChannelPlan
+      responses:
+        "201":
+          description: channel plan created or pending review
+  /channel/quota:
+    get:
+      operationId: getChannelQuota
+      responses:
+        "200":
+          description: remaining usd_credit plus issued and consumed allocation totals
+  /channel/allocations:
+    get:
+      operationId: listChannelAllocations
+      responses:
+        "200":
+          description: service quotas issued 1:1 when channel users top up
+  /v1/partner/me:
+    get:
+      operationId: getPartnerMe
+      responses:
+        "200":
+          description: partner role and scope
+  /v1/partner/users:
+    get:
+      operationId: listPartnerUsers
+      responses:
+        "200":
+          description: scoped partner users
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      responses:
+        "200":
+          description: users
+  /admin/users/{id}/ban:
+    post:
+      operationId: banAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: user banned
+  /admin/users/{id}/unban:
+    post:
+      operationId: unbanAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: user restored
+  /admin/users/{id}/attribution:
+    post:
+      operationId: reattributeAdminUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: attribution changed
+  /admin/api-keys:
+    get:
+      operationId: listAdminAPIKeys
+      responses:
+        "200":
+          description: keys without secrets
+  /admin/api-keys/{id}/disable:
+    post:
+      operationId: adminDisableAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: key disabled, no secret echoed
+  /v1/me/api-keys:
+    get:
+      operationId: listMyAPIKeys
+      responses:
+        "200":
+          description: keys with allowlist, rpm_limit and optional secret
+    post:
+      operationId: createAPIKey
+      responses:
+        "201":
+          description: created key with allowlist, rpm_limit and secret
+  /v1/me/api-keys/{id}/rotate:
+    post:
+      operationId: rotateAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: new secret
+  /v1/me/api-keys/{id}/disable:
+    post:
+      operationId: disableAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: disabled
+  /v1/me/api-keys/{id}/copy:
+    post:
+      operationId: copyAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: copy audited
+  /v1/public/models:
+    get:
+      operationId: listPublicModels
+      responses:
+        "200":
+          description: brand-scoped public model cards without providers
+  /v1/public/tls-check:
+    get:
+      operationId: publicTLSCheck
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: known oem or platform host
+        "404":
+          description: unknown host
+  /v1/me/api-keys/{id}/expire:
+    post:
+      operationId: expireAPIKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: expired
+  /v1/me:
+    get:
+      operationId: getMe
+      responses:
+        "200":
+          description: current user profile
+    patch:
+      operationId: patchMe
+      responses:
+        "200":
+          description: updated display name and locale
+  /v1/me/password:
+    post:
+      operationId: changeMyPassword
+      responses:
+        "200":
+          description: password changed
+  /v1/me/media:
+    get:
+      operationId: listMyMedia
+      responses:
+        "200":
+          description: current user media jobs
+  /v1/videos:
+    post:
+      operationId: createVideo
+      responses:
+        "202":
+          description: session or api key may create a media job
+  /admin/models/attach:
+    post:
+      operationId: attachModelProvider
+      responses:
+        "200":
+          description: provider mapped onto public model
+  /admin/media:
+    get:
+      operationId: listAdminMedia
+      responses:
+        "200":
+          description: media jobs without prompts
+  /admin/billing/export:
+    get:
+      operationId: exportBilling
+      responses:
+        "200":
+          description: csv reconciliation export
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      responses:
+        "200":
+          description: audit
+  /admin/audit-probes:
+    post:
+      operationId: createAuditProbe
+      responses:
+        "201":
+          description: sandbox audit probe
+  /admin/outbox/stats:
+    get:
+      operationId: getOutboxStats
+      responses:
+        "200":
+          description: pending published failed counts
+  /admin/me/2fa:
+    get:
+      operationId: getAdminTOTP
+      responses:
+        "200":
+          description: totp status without secret
+  /admin/me/2fa/setup:
+    post:
+      operationId: setupAdminTOTP
+      responses:
+        "200":
+          description: pending totp
+  /admin/me/2fa/enable:
+    post:
+      operationId: enableAdminTOTP
+      responses:
+        "200":
+          description: totp enabled
+  /admin/me/2fa/disable:
+    post:
+      operationId: disableAdminTOTP
+      responses:
+        "200":
+          description: totp disabled
+  /admin/billing/report:
+    get:
+      operationId: getBillingReport
+      responses:
+        "200":
+          description: money
+  /v1/chat/completions:
+    post:
+      operationId: chatCompletions
+      responses:
+        "200":
+          description: chat
+  /admin/subscriptions/{id}/force-period-end:
+    post:
+      operationId: adminForcePeriodEnd
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: sandbox clock moved, forbidden in production
+  /admin/subscriptions/process-renewals:
+    post:
+      operationId: adminProcessRenewals
+      responses:
+        "200":
+          description: sandbox renewal scan, forbidden in production
+  /admin/plans:
+    get:
+      operationId: listAdminPlans
+      responses:
+        "200":
+          description: plans including pending review
+    post:
+      operationId: createAdminPlan
+      responses:
+        "201":
+          description: created
+  /admin/plans/{id}:
+    patch:
+      operationId: patchAdminPlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: archived
+  /admin/plans/{id}/review:
+    post:
+      operationId: reviewAdminPlan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: approved or rejected
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      responses:
+        "200":
+          description: payment orders
+  /admin/commission-policy:
+    get:
+      operationId: getCommissionPolicy
+      responses:
+        "200":
+          description: active policy
+    patch:
+      operationId: patchCommissionPolicy
+      responses:
+        "200":
+          description: updated policy
+  /admin/price-books:
+    get:
+      operationId: listAdminPriceBooks
+      responses:
+        "200":
+          description: price versions
+    post:
+      operationId: publishAdminPriceBook
+      responses:
+        "200":
+          description: published price
+  /admin/ops/alerts:
+    get:
+      operationId: listAdminAlerts
+      responses:
+        "200":
+          description: operational alerts
+  /admin/ops/alerts/evaluate:
+    post:
+      operationId: evaluateAdminAlerts
+      responses:
+        "200":
+          description: evaluated alerts
+  /admin/ops/runbooks:
+    get:
+      operationId: listAdminRunbooks
+      responses:
+        "200":
+          description: incident runbooks
+  /admin/refunds:
+    post:
+      operationId: adminRefund
+      responses:
+        "200":
+          description: refunded charge or topup
+  /admin/entitlements/bonus:
+    post:
+      operationId: grantBonus
+      responses:
+        "201":
+          description: bonus entitlement
+  /admin/commissions/unfreeze:
+    post:
+      operationId: unfreezeCommissions
+      responses:
+        "200":
+          description: unfrozen count
+  /admin/commissions/settle:
+    post:
+      operationId: settleCommissions
+      responses:
+        "200":
+          description: monthly settlements
+  /admin/settlements/{id}/payout:
+    post:
+      operationId: payoutSettlement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: marked paid
+  /admin/channel-quotas/grant:
+    post:
+      operationId: grantChannelQuota
+      responses:
+        "200":
+          description: updated quota
+  /admin/providers/{id}/credentials:
+    post:
+      operationId: rotateProviderCredential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: credential ref only, never plaintext
+  /admin/providers/{id}/health-check:
+    post:
+      operationId: healthCheckProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: provider health probe
+  /admin/ops/backup-drill:
+    post:
+      operationId: runBackupDrill
+      responses:
+        "200":
+          description: recorded rpo 15 / rto 60 drill
+  /admin/ops/drills/payment:
+    post:
+      operationId: runPaymentDrill
+      responses:
+        "200":
+          description: forged signature rejected
+  /admin/ops/drills/media:
+    post:
+      operationId: runMediaDrill
+      responses:
+        "200":
+          description: force-fail must release reservation
+  /admin/ops/drills/tls:
+    post:
+      operationId: runTLSDrill
+      responses:
+        "200":
+          description: sandbox tls gate passed
+  /admin/brands:
+    get:
+      operationId: listAdminBrands
+      responses:
+        "200":
+          description: brands and tls status
+  /admin/brands/{id}/tls/issue:
+    post:
+      operationId: issueBrandTLS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: sandbox tls issued
+  /admin/ops/canary:
+    get:
+      operationId: getAdminCanary
+      responses:
+        "200":
+          description: current canary
+    post:
+      operationId: setAdminCanary
+      responses:
+        "200":
+          description: updated canary
+  /admin/ops/circuit/{id}:
+    post:
+      operationId: tripOrResetCircuit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: circuit updated
+  /admin/usage:
+    get:
+      operationId: listAdminUsage
+      responses:
+        "200":
+          description: usage events
+  /admin/usage/replay:
+    post:
+      operationId: replayAdminUsage
+      responses:
+        "200":
+          description: settled or pending usage
+  /admin/commissions/recalc:
+    post:
+      operationId: recalcCommission
+      responses:
+        "200":
+          description: reversed and recreated from price snapshot
+  /admin/acquisition-roles:
+    get:
+      operationId: listAcquisitionRoles
+      responses:
+        "200":
+          description: acquisition roles
+    post:
+      operationId: createAcquisitionRole
+      responses:
+        "201":
+          description: created role
+  /admin/promotion-codes:
+    get:
+      operationId: listPromotionCodes
+      responses:
+        "200":
+          description: promotion codes
+    post:
+      operationId: createPromotionCode
+      responses:
+        "201":
+          description: created code

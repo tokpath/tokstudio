@@ -61,6 +61,13 @@ func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string)
 		if err := creditWallet(tx, row.UserID, row.AmountMinor, EventTopup, "topup", row.ID, "topup:"+row.ID); err != nil {
 			return err
 		}
+		channelID := ""
+		if row.ChannelOrgID != nil {
+			channelID = *row.ChannelOrgID
+		}
+		if err := issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
+			return err
+		}
 		row.Status = TopupPaid
 		row.UpdatedAt = time.Now().UTC()
 		if err := tx.Save(&row).Error; err != nil {
@@ -105,6 +112,9 @@ func (s *Service) Redeem(ctx context.Context, userID, channelOrgID, code string)
 		if err := creditWallet(tx, userID, redeem.AmountMinor, EventTopup, "topup", row.ID, "redeem:"+row.ID); err != nil {
 			return err
 		}
+		if err := issueAllocation(tx, userID, channelOrgID, "topup", row.ID, redeem.AmountMinor); err != nil {
+			return err
+		}
 		redeem.RedeemedCount++
 		if err := tx.Save(&redeem).Error; err != nil {
 			return err
@@ -135,6 +145,9 @@ func (s *Service) RefundTopup(ctx context.Context, topupID string) (*TopupView, 
 			return ErrTopupNotPending
 		}
 		if err := debitAvailable(tx, row.UserID, row.AmountMinor, EventRefund, "topup", row.ID, "refund-topup:"+row.ID); err != nil {
+			return err
+		}
+		if err := reclaimAllocation(tx, "topup", row.ID); err != nil {
 			return err
 		}
 		row.Status = TopupRefunded

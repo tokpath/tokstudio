@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,15 +51,15 @@ func AccessLog(logger zerolog.Logger) gin.HandlerFunc {
 	}
 }
 
-// CORS 仅允许配置的 Web Origin。
+// CORS 仅允许配置的 Web Origin。本地开发把 localhost 和 127.0.0.1 当成同一台机器。
 func CORS(webOrigin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin != "" && (origin == webOrigin || webOrigin == "*") {
+		if originAllowed(origin, webOrigin) {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Vary", "Origin")
 			c.Header("Access-Control-Allow-Credentials", "true")
-			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, Idempotency-Key")
+			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, Idempotency-Key, X-Tokenhub-Confirm, X-Tokenhub-TOTP")
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		}
 		if c.Request.Method == http.MethodOptions {
@@ -67,4 +68,43 @@ func CORS(webOrigin string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func originAllowed(origin, webOrigin string) bool {
+	if origin == "" || webOrigin == "" {
+		return false
+	}
+	if webOrigin == "*" || origin == webOrigin {
+		return true
+	}
+	return sameLoopbackOrigin(origin, webOrigin)
+}
+
+func sameLoopbackOrigin(origin, webOrigin string) bool {
+	left, err := url.Parse(origin)
+	if err != nil || left.Scheme == "" {
+		return false
+	}
+	right, err := url.Parse(webOrigin)
+	if err != nil || right.Scheme == "" {
+		return false
+	}
+	if left.Scheme != right.Scheme || originPort(left) != originPort(right) {
+		return false
+	}
+	return isLoopbackHost(left.Hostname()) && isLoopbackHost(right.Hostname())
+}
+
+func originPort(u *url.URL) string {
+	if port := u.Port(); port != "" {
+		return port
+	}
+	if u.Scheme == "https" {
+		return "443"
+	}
+	return "80"
+}
+
+func isLoopbackHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1"
 }

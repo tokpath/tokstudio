@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "public": "Public",
+    "docs": "Docs",
+    "app": "Console",
+    "channel": "Channel",
+    "partner": "Partners",
+    "admin": "Admin",
+    "login": "Sign in"
+  },
+  "admin": {
+    "title": "Platform admin",
+    "overview": "Overview",
+    "providers": "Providers",
+    "models": "Models",
+    "routes": "Routes",
+    "keys": "API keys",
+    "users": "Users",
+    "plans": "Plan review",
+    "prices": "Prices",
+    "payments": "Payments",
+    "metrics": "Metrics",
+    "commission": "Commission",
+    "billing": "Wallet",
+    "usage": "Usage",
+    "media": "Media",
+    "channels": "Channels",
+    "promos": "Promos",
+    "alerts": "Alerts",
+    "runbooks": "Runbooks",
+    "audit": "Audit",
+    "settings": "Settings",
+    "refresh": "Refresh"
+  }
+}

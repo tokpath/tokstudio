@@ -15,6 +15,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
 
@@ -47,9 +48,37 @@ func TestM3BillingInvariants(t *testing.T) {
 	if application.Gateway.AdapterCalls() != before {
 		t.Fatal("adapter must not be called when balance is insufficient")
 	}
+	risk, err := application.Billing.Risk(ctx)
+	if err != nil || risk == nil || risk.PreauthFailed < 1 {
+		t.Fatalf("402 must record a preauth failure: %+v %v", risk, err)
+	}
 
 	if postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})["item"] == nil {
 		t.Fatal("redeem failed")
+	}
+	uid := userIDOf(reg)
+	beforeReap := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	reapID := "reap-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{
+		UserID: uid, ChannelOrgID: identity.OfficialChannelID, RequestID: reapID, ReserveMinor: 100000,
+		UnitPrices: []byte(`{}`),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	held := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	if held == beforeReap {
+		t.Fatal("reserve should reduce available balance")
+	}
+	if err := application.DB.Exec(`UPDATE billing_authorizations SET expires_at = NOW() - INTERVAL '1 minute' WHERE request_id = ?`, reapID).Error; err != nil {
+		t.Fatal(err)
+	}
+	n, err := application.Billing.ReapExpired(ctx)
+	if err != nil || n < 1 {
+		t.Fatalf("reap expired: n=%d err=%v", n, err)
+	}
+	afterReap := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
+	if afterReap != beforeReap {
+		t.Fatalf("expired reservation should return balance: before=%v after=%v", beforeReap, afterReap)
 	}
 
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
@@ -65,6 +94,11 @@ func TestM3BillingInvariants(t *testing.T) {
 	oldAmount := first["customer_amount_minor"]
 	usageID := first["id"].(string)
 
+	if postStatus(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+	}) != http.StatusConflict {
+		t.Fatal("usage replay without confirm must be 409")
+	}
 	firstReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
 		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
 	})
@@ -78,6 +112,17 @@ func TestM3BillingInvariants(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/price-books", "m3_admin", map[string]any{
 		"model": catalog.EchoModelID, "input": "0.01", "output": "0.02", "currency": "USD",
 	})
+	books := getAuthJSON(t, server.URL+"/admin/price-books", "m3_admin")
+	foundPrice := false
+	for _, raw := range books["items"].([]any) {
+		item, _ := raw.(map[string]any)
+		if item["public_id"] == catalog.EchoModelID && item["status"] == "published" {
+			foundPrice = true
+		}
+	}
+	if !foundPrice {
+		t.Fatalf("admin price books missing published echo: %+v", books)
+	}
 	again := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)[0].(map[string]any)
 	if again["customer_amount_minor"] != oldAmount {
 		t.Fatalf("price change rewrote old bill: %v -> %v", oldAmount, again["customer_amount_minor"])
@@ -110,6 +155,9 @@ func TestM3BillingInvariants(t *testing.T) {
 		"email": "race-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test", "password": "password1", "promotion_code": "THA1",
 	})
 	user2 := userIDOf(reg2)
+	if _, err := application.Billing.EnsureWallet(ctx, user2); err != nil {
+		t.Fatal(err)
+	}
 	top, err := application.Billing.CreateTopup(ctx, user2, "chn_official_a", 800, "manual")
 	if err != nil {
 		t.Fatal(err)
@@ -119,12 +167,13 @@ func TestM3BillingInvariants(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	errs := make(chan error, 2)
+	stamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			_, err := application.Billing.Reserve(ctx, billing.ReserveInput{
-				UserID: user2, RequestID: "race-" + t.Name() + "-" + strconv.Itoa(i),
+				UserID: user2, RequestID: "race-" + t.Name() + "-" + stamp + "-" + strconv.Itoa(i),
 				PublicModelID: catalog.EchoModelID, ReserveMinor: 700,
 				UnitPrices: []byte(`{"input":"0.000001","output":"0.000002"}`),
 			})

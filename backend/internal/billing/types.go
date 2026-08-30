@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -16,6 +17,20 @@ var (
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
 )
+
+// Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
+type Commissioner interface {
+	AccrueUsage(ctx context.Context, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
+	ReverseUsage(ctx context.Context, usageEventID string) error
+}
+
+// EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
+type EntitlementCoverer interface {
+	AvailableUSD(ctx context.Context, userID string) (int64, error)
+	ConsumeUSD(ctx context.Context, userID, requestID string, amount int64) (int64, error)
+	ReverseByRequest(ctx context.Context, requestID string) error
+	ReverseKeep(ctx context.Context, requestID string, keep int64) error
+}
 
 const (
 	CurrencyUSD = "USD"
@@ -90,6 +105,7 @@ type SettleInput struct {
 	UnitPrices      json.RawMessage `json:"unit_prices"`
 	MissingUsage    bool            `json:"missing_usage"`
 	IdempotencyKey  string          `json:"idempotency_key"`
+	Resolution      string          `json:"resolution"`
 }
 
 type Settlement struct {
@@ -101,13 +117,14 @@ type Settlement struct {
 }
 
 type BalanceView struct {
-	UserID         string `json:"user_id"`
-	Currency       string `json:"currency"`
-	AvailableMinor int64  `json:"available_minor"`
-	ReservedMinor  int64  `json:"reserved_minor"`
-	AvailableUSD   string `json:"available"`
-	ReservedUSD    string `json:"reserved"`
-	ChannelQuota   int64  `json:"channel_quota_minor,omitempty"`
+	UserID              string `json:"user_id"`
+	Currency            string `json:"currency"`
+	AvailableMinor      int64  `json:"available_minor"`
+	ReservedMinor       int64  `json:"reserved_minor"`
+	AvailableUSD        string `json:"available"`
+	ReservedUSD         string `json:"reserved"`
+	ChannelQuota        int64  `json:"channel_quota_minor,omitempty"`
+	AllocationRemaining int64  `json:"allocation_remaining_minor,omitempty"`
 }
 
 type LedgerView struct {
@@ -157,6 +174,60 @@ type ReportView struct {
 	RefundMinor      int64 `json:"refund_minor"`
 	GrossProfitMinor int64 `json:"gross_profit_minor"`
 	PendingCount     int64 `json:"pending_reconciliation_count"`
+}
+
+type DimMoneyView struct {
+	Dimension        string `json:"dimension"`
+	Key              string `json:"key"`
+	UsageMinor       int64  `json:"usage_minor"`
+	RevenueMinor     int64  `json:"revenue_minor"`
+	CostMinor        int64  `json:"cost_minor"`
+	PromptTokens     int64  `json:"prompt_tokens"`
+	CompletionTokens int64  `json:"completion_tokens"`
+	ReasoningTokens  int64  `json:"reasoning_tokens"`
+	VideoSeconds     int64  `json:"video_seconds"`
+	ImageCount       int64  `json:"image_count"`
+	AudioSeconds     int64  `json:"audio_seconds"`
+}
+
+type UsageUnits struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+	ReasoningTokens  int64 `json:"reasoning_tokens"`
+	VideoSeconds     int64 `json:"video_seconds"`
+	ImageCount       int64 `json:"image_count"`
+	AudioSeconds     int64 `json:"audio_seconds"`
+	UsageMinor       int64 `json:"usage_minor,omitempty"`
+}
+
+type RiskView struct {
+	LowBalanceWallets int64 `json:"low_balance_wallets"`
+	ReservedMinor     int64 `json:"wallet_reserved_minor"`
+	ChannelSpendMinor int64 `json:"channel_spend_minor"`
+	PreauthFailed     int64 `json:"preauth_failed"`
+}
+
+type QuotaView struct {
+	OwnerID         string `json:"owner_id"`
+	AvailableMinor  int64  `json:"available_minor"`
+	ReservedMinor   int64  `json:"reserved_minor"`
+	IssuedMinor     int64  `json:"issued_minor,omitempty"`
+	ConsumedMinor   int64  `json:"consumed_minor,omitempty"`
+	AllocationCount int64  `json:"allocation_count,omitempty"`
+	UnitType        string `json:"unit_type"`
+}
+
+type AllocationView struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"user_id"`
+	ChannelOrgID   string    `json:"channel_org_id"`
+	SourceType     string    `json:"source_type"`
+	SourceID       string    `json:"source_id"`
+	GrantedMinor   int64     `json:"granted_minor"`
+	ConsumedMinor  int64     `json:"consumed_minor"`
+	RemainingMinor int64     `json:"remaining_minor"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type CommissionView struct {

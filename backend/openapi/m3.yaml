@@ -29,7 +29,7 @@ paths:
       summary: Reverse a customer charge or paid topup
   /admin/usage/replay:
     post:
-      summary: Idempotent usage settle / pending reconciliation complete
+      summary: Idempotent usage settle / pending reconciliation complete; requires X-Tokenhub-Confirm
   /admin/billing/report:
     get:
       summary: Revenue, upstream cost, commission liability, pending count
@@ -37,5 +37,7 @@ paths:
     post:
       summary: Reverse and recreate commission from the usage price snapshot
   /admin/price-books:
+    get:
+      summary: List price versions including superseded snapshots
     post:
       summary: Publish a new price version; historical bills stay on their snapshot

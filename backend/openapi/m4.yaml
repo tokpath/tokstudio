@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: TokenHub M4 Media
+  version: 0.1.0-m4
+paths:
+  /v1/videos:
+    post:
+      summary: Create a Seedance-class video job after media preauth; 202 Accepted
+  /v1/videos/{id}:
+    get:
+      summary: Job status, provider, upstream id, usage
+  /v1/videos/{id}/content:
+    get:
+      summary: Short-lived signed URL; objects expire in 7 days
+  /v1/videos/{id}/cancel:
+    post:
+      summary: Cancel; never resubmits an upstream job that already has an id
+  /v1/images/generations:
+    post:
+      summary: Image generation via the same media job + billing path
+  /v1/images/edits:
+    post:
+      summary: Image edit via the same media job + billing path
+  /v1/media/callbacks:
+    post:
+      summary: Signed, idempotent provider callback

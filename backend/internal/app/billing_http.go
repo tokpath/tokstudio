@@ -1,13 +1,17 @@
 package app
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -27,7 +31,9 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/admin/ledger", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminLedger)
 	r.GET("/admin/usage", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminUsage)
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.billingReport)
+	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
+	r.GET("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPrices)
 	r.POST("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.publishPrice)
 	r.POST("/admin/usage/replay", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.replayUsage)
 }
@@ -152,6 +158,10 @@ func (a *App) redeemTopup(c *gin.Context) {
 	userID, channelID := a.billingUser(c)
 	item, err := a.Billing.Redeem(c.Request.Context(), userID, channelID, body.Code)
 	if err != nil {
+		if errors.Is(err, billing.ErrInsufficientQuota) {
+			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_quota", "渠道可用额度不足，无法发放服务额度", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "兑换码无效或已用尽", false)
 		return
 	}
@@ -163,9 +173,16 @@ func (a *App) redeemTopup(c *gin.Context) {
 }
 
 func (a *App) confirmTopup(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	principal := a.currentPrincipal(c)
 	item, err := a.Billing.ConfirmTopup(c.Request.Context(), c.Param("id"), principal.UserID)
 	if err != nil {
+		if errors.Is(err, billing.ErrInsufficientQuota) {
+			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_quota", "渠道可用额度不足，无法发放服务额度", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "确认入账失败", false)
 		return
 	}
@@ -186,6 +203,9 @@ func (a *App) refundTopup(c *gin.Context) {
 }
 
 func (a *App) adminRefund(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		RequestID string `json:"request_id"`
 		TopupID   string `json:"topup_id"`
@@ -236,12 +256,34 @@ func (a *App) adminLedger(c *gin.Context) {
 }
 
 func (a *App) adminUsage(c *gin.Context) {
-	items, err := a.Billing.ListUsage(c.Request.Context(), c.Query("user_id"), 50)
+	limit, _ := httpx.Page(c, 50)
+	items, err := a.Billing.ListUsage(c.Request.Context(), c.Query("user_id"), limit)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	if c.Query("format") == "csv" {
+		var b strings.Builder
+		b.WriteString("id,request_id,state,customer_amount_minor,public_model_id\n")
+		for _, item := range items {
+			b.WriteString(fmt.Sprintf("%s,%s,%s,%d,%s\n", item.ID, item.RequestID, item.State, item.CustomerMinor, item.PublicModelID))
+		}
+		c.Header("Content-Type", "text/csv")
+		c.String(http.StatusOK, b.String())
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) billingExport(c *gin.Context) {
+	report, err := a.Billing.Report(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "导出失败", true)
+		return
+	}
+	c.Header("Content-Type", "text/csv")
+	c.String(http.StatusOK, "metric,amount_minor\nrevenue,%d\nupstream_cost,%d\ncommission,%d\ngross_profit,%d\npending_reconciliation,%d\n",
+		report.RevenueMinor, report.UpstreamMinor, report.CommissionMinor, report.GrossProfitMinor, report.PendingCount)
 }
 
 func (a *App) billingReport(c *gin.Context) {
@@ -254,6 +296,9 @@ func (a *App) billingReport(c *gin.Context) {
 }
 
 func (a *App) recalcCommission(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body struct {
 		UsageEventID string `json:"usage_event_id"`
 	}
@@ -267,6 +312,9 @@ func (a *App) recalcCommission(c *gin.Context) {
 }
 
 func (a *App) replayUsage(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body billing.SettleInput
 	if err := c.ShouldBindJSON(&body); err != nil || body.RequestID == "" {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 request_id", false)
@@ -277,10 +325,42 @@ func (a *App) replayUsage(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "usage 回放失败", false)
 		return
 	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.usage.replay", ResourceType: "usage_event",
+		ResourceID: firstNonEmpty(item.UsageEventID, body.RequestID), After: item,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) adminListPrices(c *gin.Context) {
+	items, err := a.Catalog.ListPriceBooks(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取价格失败", true)
+		return
+	}
+	if q := strings.TrimSpace(c.Query("q")); q != "" {
+		filtered := items[:0]
+		for _, item := range items {
+			if strings.Contains(item.PublicID, q) || strings.Contains(item.Status, q) || strings.Contains(item.ID, q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "price-books.csv", []string{"id", "public_id", "status"}, items, func(item catalog.PriceBookView) []string {
+			return []string{item.ID, item.PublicID, item.Status}
+		})
+		return
+	}
+	httpx.OKPage(c, items, 100, func(item catalog.PriceBookView) string { return item.ID })
+}
+
 func (a *App) publishPrice(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
 	var body map[string]any
 	if err := c.ShouldBindJSON(&body); err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "价格无效", false)

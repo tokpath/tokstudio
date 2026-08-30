@@ -41,6 +41,8 @@ func (p Principal) VisibleChannelID() string {
 type UserView struct {
 	ID           string    `json:"id"`
 	Email        string    `json:"email"`
+	DisplayName  string    `json:"display_name"`
+	Locale       string    `json:"locale"`
 	Status       string    `json:"status"`
 	ChannelOrgID string    `json:"channel_org_id,omitempty"`
 	BrandID      string    `json:"brand_id,omitempty"`
@@ -56,6 +58,8 @@ type BrandView struct {
 	PrimaryDomain string         `json:"primary_domain"`
 	APIDomain     string         `json:"api_domain"`
 	AdminDomain   string         `json:"admin_domain"`
+	CNAMETarget   string         `json:"cname_target,omitempty"`
+	TLSStatus     string         `json:"tls_status,omitempty"`
 	Theme         map[string]any `json:"theme"`
 }
 
@@ -74,10 +78,10 @@ type Session struct {
 }
 
 type RegisterInput struct {
-	Email          string
-	Password       string
-	PromotionCode  string
-	OTP            string
+	Email         string
+	Password      string
+	PromotionCode string
+	OTP           string
 }
 
 type LoginInput struct {

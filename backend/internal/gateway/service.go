@@ -33,7 +33,13 @@ var (
 	ErrUnsupportedParam    = errors.New("unsupported parameter")
 	ErrProviderUnavailable = errors.New("provider unavailable")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrChannelDisabled     = errors.New("channel is disabled")
 )
+
+// ChannelGuard 由 identity 实现。网关只问渠道能不能接新消费，不读身份表。
+type ChannelGuard interface {
+	AssertChannelConsumable(ctx context.Context, channelOrgID string) error
+}
 
 type requestRow struct {
 	ID            string     `gorm:"column:id;primaryKey"`
@@ -76,12 +82,28 @@ type AttemptView struct {
 	ErrorCode  string `json:"error_code,omitempty"`
 }
 
+// Breaker 由 ops 实现。网关只问是否跳过、并回报成败，不读 ops 表。
+type Breaker interface {
+	RecordAttempt(ctx context.Context, providerID string, success bool)
+	CircuitOpen(ctx context.Context, providerID string) bool
+}
+
 type Service struct {
 	db           *gorm.DB
 	catalog      *catalog.Service
 	booker       Booker
+	breaker      Breaker
+	channels     ChannelGuard
 	adapters     map[string]Adapter
 	adapterCalls int32
+}
+
+func (s *Service) SetBreaker(b Breaker) {
+	s.breaker = b
+}
+
+func (s *Service) SetChannelGuard(g ChannelGuard) {
+	s.channels = g
 }
 
 func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *Service {
@@ -91,6 +113,7 @@ func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *S
 		booker:  booker,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
+			"gemini":  GeminiAdapter{},
 			"bifrost": BifrostAdapter{BaseURL: bifrostURL},
 		},
 	}
@@ -109,13 +132,14 @@ func Migrations() (string, fs.FS) {
 }
 
 type ExecuteInput struct {
-	Caller    identity.APIKeyPrincipal
-	RequestID string
-	Protocol  string
-	Hint      catalog.RouteHint
-	ForceFail string
-	OmitUsage bool
-	Chat      ChatRequest
+	Caller     identity.APIKeyPrincipal
+	RequestID  string
+	Protocol   string
+	Hint       catalog.RouteHint
+	ForceFail  string
+	OmitUsage  bool
+	CanarySlug string
+	Chat       ChatRequest
 }
 
 type ExecuteOutput struct {
@@ -125,12 +149,23 @@ type ExecuteOutput struct {
 }
 
 func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput, error) {
-	if in.Chat.LogitBias != nil && len(in.Chat.LogitBias) > 0 && string(in.Chat.LogitBias) != "null" {
-		return nil, ErrUnsupportedParam
+	if s.channels != nil {
+		if err := s.channels.AssertChannelConsumable(ctx, in.Caller.ChannelOrgID); err != nil {
+			if errors.Is(err, identity.ErrChannelDisabled) {
+				return nil, ErrChannelDisabled
+			}
+			return nil, err
+		}
 	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, ErrModelNotAllowed
+	}
+	if err := ValidateChat(in.Chat, model.Capabilities); err != nil {
+		return nil, err
+	}
+	if in.CanarySlug != "" {
+		in.Hint.Order = append([]string{in.CanarySlug}, in.Hint.Order...)
 	}
 	cands, err := s.catalog.ResolveRoute(ctx, model.ID, in.Hint)
 	if err != nil || len(cands) == 0 {
@@ -152,6 +187,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	maxTokens := 256
 	if in.Chat.MaxTokens != nil && *in.Chat.MaxTokens > 0 {
 		maxTokens = *in.Chat.MaxTokens
+	}
+	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
+		maxTokens += 64
 	}
 	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
@@ -183,6 +221,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	out := &ExecuteOutput{}
 	streamStarted := false
 	for i, cand := range cands {
+		if s.breaker != nil && s.breaker.CircuitOpen(ctx, cand.ProviderID) {
+			continue
+		}
 		behavior := cand.TestBehavior
 		if in.ForceFail != "" && in.ForceFail == cand.ProviderSlug {
 			behavior = "429"
@@ -193,7 +234,20 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
-		result, err := adapter.Chat(ctx, cand.ProviderSlug, behavior, in.Chat)
+		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
+		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, in.Chat)
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
+			if result.HTTPStatus < 400 {
+				result.HTTPStatus = 408
+			}
+			if result.ErrorClass == "" {
+				result.ErrorClass = "timeout"
+			}
+		}
+		cancel()
+		if cand.AccountID != "" {
+			_ = s.catalog.RecordAccountOutcome(ctx, cand.AccountID, result.HTTPStatus)
+		}
 		end := time.Now().UTC()
 		latency := int(time.Since(start).Milliseconds())
 		attempt := attemptRow{
@@ -210,17 +264,23 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			}
 			attempt.ErrorCode = &code
 			_ = s.db.WithContext(ctx).Create(&attempt).Error
+			if s.breaker != nil {
+				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
+			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
 			if streamStarted {
 				break
 			}
-			if result.HTTPStatus == 429 || result.HTTPStatus >= 500 {
+			if result.HTTPStatus == 408 || result.HTTPStatus == 429 || result.HTTPStatus >= 500 || result.ErrorClass == "timeout" {
 				continue
 			}
 			break
 		}
 		attempt.Status = "succeeded"
 		_ = s.db.WithContext(ctx).Create(&attempt).Error
+		if s.breaker != nil {
+			s.breaker.RecordAttempt(ctx, cand.ProviderID, true)
+		}
 		out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "succeeded", HTTPStatus: 200})
 		result.Body.Provider = cand.ProviderSlug
 		result.Body.RequestID = in.RequestID
@@ -271,6 +331,13 @@ func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]Attempt
 		out = append(out, view)
 	}
 	return out, nil
+}
+
+func candidateTimeout(ms int) time.Duration {
+	if ms <= 0 {
+		ms = 30000
+	}
+	return time.Duration(ms) * time.Millisecond
 }
 
 func ParseHint(only, ignore, order string) catalog.RouteHint {

@@ -15,9 +15,10 @@ export function themeStyle(brand?: Brand): Record<string, string> {
   };
 }
 
-export function portalForPath(pathname: string): "public" | "user" | "channel" | "admin" | "docs" {
+export function portalForPath(pathname: string): "public" | "user" | "channel" | "partner" | "admin" | "docs" {
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/channel")) return "channel";
+  if (pathname.startsWith("/partner")) return "partner";
   if (pathname.startsWith("/app")) return "user";
   if (pathname.startsWith("/docs")) return "docs";
   return "public";

@@ -24,6 +24,8 @@ type userRow struct {
 	Status          string     `gorm:"column:status"`
 	ChannelOrgID    *string    `gorm:"column:channel_org_id"`
 	BrandID         *string    `gorm:"column:brand_id"`
+	DisplayName     string     `gorm:"column:display_name"`
+	Locale          string     `gorm:"column:locale"`
 	EmailVerifiedAt *time.Time `gorm:"column:email_verified_at"`
 	GoogleSub       *string    `gorm:"column:google_sub"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
@@ -80,9 +82,14 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, bran
 	var user userRow
 	err := tx.Where("email = ?", email).First(&user).Error
 	if err == gorm.ErrRecordNotFound {
+		pwd, err := HashPassword(BootstrapPassword)
+		if err != nil {
+			return err
+		}
 		user = userRow{
 			ID:           id.New("usr"),
 			Email:        email,
+			PasswordHash: &pwd,
 			Status:       "active",
 			ChannelOrgID: &channelID,
 			BrandID:      &brandID,
@@ -99,6 +106,16 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, bran
 			"channel_org_id": channelID,
 			"brand_id":       brandID,
 		}).Error
+	}
+	if user.PasswordHash == nil {
+		pwd, err := HashPassword(BootstrapPassword)
+		if err != nil {
+			return err
+		}
+		if err := tx.Model(&userRow{}).Where("id = ?", user.ID).Update("password_hash", pwd).Error; err != nil {
+			return err
+		}
+		user.PasswordHash = &pwd
 	}
 
 	var role roleRow
@@ -158,7 +175,10 @@ func (s *Service) Authenticate(ctx context.Context, bearer string) (*Principal, 
 		return nil, err
 	}
 	var user userRow
-	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, "active").First(&user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, UserStatusActive).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	principal, err := s.loadPrincipal(ctx, user)

@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -18,6 +19,8 @@ type brandRow struct {
 	PrimaryDomain string    `gorm:"column:primary_domain"`
 	APIDomain     string    `gorm:"column:api_domain"`
 	AdminDomain   string    `gorm:"column:admin_domain"`
+	CNAMETarget   string    `gorm:"column:cname_target"`
+	TLSStatus     string    `gorm:"column:tls_status"`
 	ThemeJSON     []byte    `gorm:"column:theme_json"`
 	CreatedAt     time.Time `gorm:"column:created_at"`
 }
@@ -37,11 +40,11 @@ type channelRow struct {
 func (channelRow) TableName() string { return "identity_channel_orgs" }
 
 type promotionRow struct {
-	ID                string `gorm:"column:id;primaryKey"`
-	Code              string `gorm:"column:code"`
-	ChannelOrgID      string `gorm:"column:channel_org_id"`
+	ID                string  `gorm:"column:id;primaryKey"`
+	Code              string  `gorm:"column:code"`
+	ChannelOrgID      string  `gorm:"column:channel_org_id"`
 	AcquisitionRoleID *string `gorm:"column:acquisition_role_id"`
-	Status            string `gorm:"column:status"`
+	Status            string  `gorm:"column:status"`
 }
 
 func (promotionRow) TableName() string { return "identity_promotion_codes" }
@@ -96,6 +99,64 @@ func (s *Service) resolvePromotion(ctx context.Context, code string) (resolvedPr
 	}, nil
 }
 
+// AssertChannelConsumable 在渠道停用后拦住新消费（聊天/媒体），余额和历史仍可查。
+func (s *Service) AssertChannelConsumable(ctx context.Context, channelOrgID string) error {
+	if channelOrgID == "" {
+		return nil
+	}
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelOrgID).First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	if row.Status != "" && row.Status != "active" {
+		return ErrChannelDisabled
+	}
+	return nil
+}
+
+func (s *Service) KnownBrandHost(ctx context.Context, host string) bool {
+	host = strings.ToLower(strings.TrimSpace(strings.Split(host, ":")[0]))
+	if host == "" {
+		return false
+	}
+	var n int64
+	_ = s.db.WithContext(ctx).Model(&brandRow{}).
+		Where("primary_domain = ? OR api_domain = ? OR admin_domain = ?", host, host, host).
+		Count(&n).Error
+	return n > 0
+}
+
+func (s *Service) ListBrands(ctx context.Context) ([]BrandView, error) {
+	var rows []brandRow
+	if err := s.db.WithContext(ctx).Order("id").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]BrandView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, *brandView(row))
+	}
+	return out, nil
+}
+
+func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*BrandView, error) {
+	if strings.TrimSpace(cname) == "" {
+		cname = "edge.tokenhub.local"
+	}
+	if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
+		"cname_target": cname, "tls_status": "issued",
+	}).Error; err != nil {
+		return nil, err
+	}
+	var row brandRow
+	if err := s.db.WithContext(ctx).Where("id = ?", brandID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	return brandView(row), nil
+}
+
 func (s *Service) BrandByHost(ctx context.Context, host string) (*BrandView, error) {
 	host = strings.ToLower(strings.TrimSpace(strings.Split(host, ":")[0]))
 	var row brandRow
@@ -109,6 +170,67 @@ func (s *Service) BrandByHost(ctx context.Context, host string) (*BrandView, err
 		return nil, err
 	}
 	return brandView(row), nil
+}
+
+type ChannelInput struct {
+	Code     string `json:"code"`
+	Type     string `json:"type"`
+	Status   string `json:"status"`
+	BrandID  string `json:"brand_id"`
+	ParentID string `json:"parent_id"`
+}
+
+func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in ChannelInput) (*ChannelView, error) {
+	if !viewer.IsPlatformAdmin() {
+		return nil, ErrChannelImmutable
+	}
+	in.Code = strings.TrimSpace(in.Code)
+	if in.Code == "" || in.Type == "" {
+		return nil, ErrPromotionInvalid
+	}
+	if in.Status == "" {
+		in.Status = "active"
+	}
+	if in.BrandID == "" {
+		in.BrandID = OfficialBrandID
+	}
+	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC()}
+	if in.ParentID != "" {
+		row.ParentID = &in.ParentID
+	}
+	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+		return nil, err
+	}
+	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
+}
+
+func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID string, in ChannelInput) (*ChannelView, error) {
+	if !viewer.IsPlatformAdmin() {
+		return nil, ErrChannelImmutable
+	}
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	updates := map[string]any{}
+	if in.Status != "" {
+		updates["status"] = in.Status
+	}
+	if in.BrandID != "" {
+		updates["brand_id"] = in.BrandID
+	}
+	if in.Type != "" {
+		updates["type"] = in.Type
+	}
+	if len(updates) > 0 {
+		if err := s.db.WithContext(ctx).Model(&channelRow{}).Where("id = ?", channelID).Updates(updates).Error; err != nil {
+			return nil, err
+		}
+	}
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
 }
 
 func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]ChannelView, error) {
@@ -138,19 +260,12 @@ func (s *Service) ListUsers(ctx context.Context, viewer Principal) ([]UserView, 
 	}
 	out := make([]UserView, 0, len(rows))
 	for _, row := range rows {
-		view := UserView{
-			ID:           row.ID,
-			Email:        row.Email,
-			Status:       row.Status,
-			ChannelOrgID: deref(row.ChannelOrgID),
-			BrandID:      deref(row.BrandID),
-			CreatedAt:    row.CreatedAt,
-		}
 		var attr attributionRow
+		source := ""
 		if err := s.db.WithContext(ctx).Where("user_id = ?", row.ID).First(&attr).Error; err == nil {
-			view.SourceCode = attr.SourceCode
+			source = attr.SourceCode
 		}
-		out = append(out, view)
+		out = append(out, viewFromUser(row, nil, source))
 	}
 	return out, nil
 }
@@ -165,16 +280,8 @@ func (s *Service) Me(ctx context.Context, viewer Principal) (*UserView, error) {
 	if err := s.db.WithContext(ctx).Where("user_id = ?", user.ID).First(&attr).Error; err == nil {
 		source = attr.SourceCode
 	}
-	return &UserView{
-		ID:           user.ID,
-		Email:        user.Email,
-		Status:       user.Status,
-		ChannelOrgID: deref(user.ChannelOrgID),
-		BrandID:      deref(user.BrandID),
-		Roles:        viewer.Roles,
-		SourceCode:   source,
-		CreatedAt:    user.CreatedAt,
-	}, nil
+	view := viewFromUser(user, viewer.Roles, source)
+	return &view, nil
 }
 
 func (s *Service) AdminReattribute(ctx context.Context, actor Principal, userID, promotionCode, reason string) error {
@@ -238,6 +345,8 @@ func brandView(row brandRow) *BrandView {
 		PrimaryDomain: row.PrimaryDomain,
 		APIDomain:     row.APIDomain,
 		AdminDomain:   row.AdminDomain,
+		CNAMETarget:   row.CNAMETarget,
+		TLSStatus:     row.TLSStatus,
 		Theme:         theme,
 	}
 	if row.LogoURL != nil {

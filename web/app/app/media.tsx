@@ -4,9 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 
 type Job = { id: string; kind?: string; status: string; model: string };
@@ -55,14 +56,16 @@ export default function MediaPanel() {
     <Card>
       <CardTitle>媒体任务</CardTitle>
       <p className="mb-4 text-sm text-slate-400">结果只能通过签名 URL 下载，列表不含其他用户的任务。登录会话即可创建，不必再贴 API Key。</p>
-      <form className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_auto]" onSubmit={form.handleSubmit(createJob)}>
-        <Input placeholder="prompt" {...form.register("prompt")} />
-        <select className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm" {...form.register("kind")}>
-          <option value="video">视频</option>
-          <option value="image">图像</option>
-        </select>
-        <Button type="submit">创建视频任务</Button>
-      </form>
+      <Form {...form}>
+        <form className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_auto_auto]" onSubmit={form.handleSubmit(createJob)}>
+          <TextField control={form.control} name="prompt" label="prompt" placeholder="prompt" showLabel={false} />
+          <select className="h-10 rounded-lg border border-white/10 bg-black/30 px-3 text-sm" {...form.register("kind")}>
+            <option value="video">视频</option>
+            <option value="image">图像</option>
+          </select>
+          <Button type="submit">创建视频任务</Button>
+        </form>
+      </Form>
       <div className="mb-4 flex flex-wrap gap-3">
         <select className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm" value={kind} onChange={(e) => setKind(e.target.value)}>
           <option value="">全部</option>

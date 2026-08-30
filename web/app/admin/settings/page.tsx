@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
+import { confirmHeaders } from "@/lib/confirm";
 
 export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
@@ -20,6 +22,7 @@ export default function AdminSettingsPage() {
   const [totpStatus, setTotpStatus] = useState("disabled");
   const [totpSecret, setTotpSecret] = useState("");
   const [totpURL, setTotpURL] = useState("");
+  const [totpCode, setTotpCode] = useState("");
 
   async function load2FA() {
     const res = await fetch(`${apiBase}/admin/me/2fa`, { credentials: "include" });
@@ -73,12 +76,8 @@ export default function AdminSettingsPage() {
     setTotpMessage("已启用。共享管理员请立刻关闭，否则后续写操作都会要 TOTP。");
   }
 
-  async function disable2FA(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const code = String(data.get("disable_code") || "").trim();
-    const headers: Record<string, string> = { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" };
+  async function disable2FA(code: string) {
+    const headers: Record<string, string> = { ...confirmHeaders };
     if (code) {
       headers["X-Tokenhub-TOTP"] = code;
     }
@@ -93,7 +92,7 @@ export default function AdminSettingsPage() {
       setTotpMessage(body.error?.message || "关闭失败");
       return;
     }
-    form.reset();
+    setTotpCode("");
     setTotpStatus(String(body.status || "disabled"));
     setTotpSecret("");
     setTotpURL("");
@@ -119,7 +118,7 @@ export default function AdminSettingsPage() {
     const res = await fetch(`${apiBase}/admin/ops/thresholds`, {
       method: "PATCH",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: JSON.stringify({
         success_rate_min: Number(rate),
         min_requests: Number(minReq),
@@ -172,12 +171,18 @@ export default function AdminSettingsPage() {
             确认启用
           </Button>
         </form>
-        <form className="mb-3 flex flex-wrap gap-2" onSubmit={disable2FA}>
-          <Input name="disable_code" aria-label="关闭用 TOTP" placeholder="关闭用 6 位码（enabled 时必填）" />
-          <Button size="sm" type="submit">
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Input
+            name="disable_code"
+            aria-label="关闭用 TOTP"
+            placeholder="关闭用 6 位码（enabled 时必填）"
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value)}
+          />
+          <ConfirmButton size="sm" title="确认关闭 2FA" description="关闭后敏感写操作不再要 TOTP。已经 enabled 时还要带验证码。" onConfirm={() => disable2FA(totpCode.trim())}>
             关闭 2FA
-          </Button>
-        </form>
+          </ConfirmButton>
+        </div>
         <p className="text-sm text-slate-300">{totpMessage}</p>
       </section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
@@ -190,9 +195,9 @@ export default function AdminSettingsPage() {
           <button className="rounded border border-slate-600 px-3 py-2" onClick={loadThresholds}>
             读取阈值
           </button>
-          <button className="rounded border border-slate-600 px-3 py-2" onClick={saveThresholds}>
+          <ConfirmButton size="sm" variant="outline" title="确认保存阈值" description="评估告警时会读取这些阈值。" onConfirm={saveThresholds}>
             保存阈值
-          </button>
+          </ConfirmButton>
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>
@@ -388,13 +393,15 @@ export default function AdminSettingsPage() {
           >
             读取品牌
           </Button>
-          <Button
+          <ConfirmButton
             size="sm"
-            onClick={async () => {
+            title="确认签发证书"
+            description="沙箱只把 tls_status 标成 issued。公网 Let's Encrypt 仍由边缘节点签发。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                headers: confirmHeaders,
                 body: "{}",
               });
               const body = await res.json();
@@ -406,7 +413,7 @@ export default function AdminSettingsPage() {
             }}
           >
             签发证书
-          </Button>
+          </ConfirmButton>
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>

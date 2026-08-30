@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { loginHref } from "@/lib/login-next";
 
@@ -26,15 +30,18 @@ export default function PublicStorefront({
   models: PublicModel[];
   plans: PublicPlan[];
 }) {
-  const [code, setCode] = useState("THE2E");
   const [message, setMessage] = useState("未登录时充值和订阅会提示先登录。金额单位是 micro-USD。");
+  const redeemForm = useForm<{ code: string }>({
+    resolver: zodResolver(z.object({ code: z.string().trim().min(1, "请填写兑换码") })),
+    defaultValues: { code: "THE2E" },
+  });
 
-  async function redeem() {
+  async function redeem(values: { code: string }) {
     const response = await fetch(`${apiBase}/v1/topups/redeem`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code: values.code }),
     });
     const body = await response.json();
     setMessage(response.ok ? `兑换成功 ${body.item?.amount_minor ?? 0} micro-USD` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
@@ -109,16 +116,20 @@ export default function PublicStorefront({
       <Card id="topup" className="p-6 md:p-8">
         <CardTitle className="mb-2 text-2xl font-semibold">充值</CardTitle>
         <p className="mb-5 text-sm text-slate-400">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
-        <div className="flex flex-wrap gap-3">
-          <Input value={code} onChange={(e) => setCode(e.target.value)} className="max-w-xs" />
-          <Button variant="outline" onClick={redeem}>
+        <Form {...redeemForm}>
+        <form className="flex flex-wrap items-end gap-3" onSubmit={redeemForm.handleSubmit(redeem)}>
+          <TextField control={redeemForm.control} name="code" label="兑换码" showLabel={false} className="max-w-xs" />
+          <Button type="submit" variant="outline">
             兑换码充值
           </Button>
-          <Button onClick={topup}>创建支付充值</Button>
+          <Button type="button" onClick={topup}>
+            创建支付充值
+          </Button>
           <Button variant="outline" asChild>
             <Link href={loginHref("/")}>去登录</Link>
           </Button>
-        </div>
+        </form>
+        </Form>
         <p className="mt-4 text-sm text-slate-300">{message}</p>
       </Card>
     </div>

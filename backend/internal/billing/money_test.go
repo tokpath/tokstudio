@@ -2,6 +2,33 @@ package billing
 
 import "testing"
 
+func TestConvertQuota(t *testing.T) {
+	got, err := ConvertQuota(10*MinorPerUSD, DefaultIssueRatioBPS)
+	if err != nil || got != 10*MinorPerUSD {
+		t.Fatalf("default 1:1: %d %v", got, err)
+	}
+	got, err = ConvertQuota(10*MinorPerUSD, 12_000)
+	if err != nil || got != 12*MinorPerUSD {
+		t.Fatalf("1.2x of 10 USD: %d %v", got, err)
+	}
+	got, err = ConvertQuota(10*MinorPerUSD, 5_000)
+	if err != nil || got != 5*MinorPerUSD {
+		t.Fatalf("0.5x of 10 USD: %d %v", got, err)
+	}
+	if _, err := ConvertQuota(10*MinorPerUSD, 0); err != ErrInvalidIssueRatio {
+		t.Fatalf("zero bps should be invalid, got %v", err)
+	}
+	if _, err := ConvertQuota(10*MinorPerUSD, 999); err != ErrInvalidIssueRatio {
+		t.Fatalf("below min bps should be invalid, got %v", err)
+	}
+	if _, err := ConvertQuota(10*MinorPerUSD, 100_001); err != ErrInvalidIssueRatio {
+		t.Fatalf("above max bps should be invalid, got %v", err)
+	}
+	if _, err := ConvertQuota(0, DefaultIssueRatioBPS); err != ErrInvalidAmount {
+		t.Fatalf("zero amount should be invalid, got %v", err)
+	}
+}
+
 func TestParseUSDToMinor(t *testing.T) {
 	got, err := ParseUSDToMinor("0.000001")
 	if err != nil || got != 1 {

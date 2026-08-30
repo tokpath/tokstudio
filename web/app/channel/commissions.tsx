@@ -17,6 +17,7 @@ export default function ChannelCommissions() {
   const [quota, setQuota] = useState<string>("—");
   const [issued, setIssued] = useState<string>("—");
   const [consumed, setConsumed] = useState<string>("—");
+  const [ratioBPS, setRatioBPS] = useState<string>("—");
   const [allocations, setAllocations] = useState<Allocation[]>([]);
 
   async function refresh() {
@@ -35,6 +36,7 @@ export default function ChannelCommissions() {
     setQuota(qBody.quota?.available_minor ?? "—");
     setIssued(qBody.quota?.issued_minor ?? "—");
     setConsumed(qBody.quota?.consumed_minor ?? "—");
+    setRatioBPS(qBody.quota?.issue_ratio_bps ?? "—");
     setAllocations(Array.isArray(aBody.items) ? aBody.items : []);
     setMessage(`佣金流水 ${cBody.items?.length ?? 0} 条，已发放 ${aBody.items?.length ?? 0} 笔`);
   }
@@ -43,10 +45,10 @@ export default function ChannelCommissions() {
     <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
       <p className="mb-3 text-sm text-slate-400">
-        可用额度 {quota} micro-USD。用户充值时按 1:1 发放服务额度，聊天不再二次扣渠道。佣金由平台承担。
+        可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
       </p>
       <p className="mb-3 text-sm text-slate-400">
-        已发放 {issued}，已消费 {consumed}。
+        换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。
       </p>
       <h3 className="mb-2 text-lg font-medium">已发放额度</h3>
       <ul className="mb-3 space-y-1 text-sm text-slate-300">

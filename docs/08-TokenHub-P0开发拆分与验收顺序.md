@@ -52,7 +52,7 @@ M5 实现补充：`plans` 与 `payment` 模块各自 migration。渠道套餐低
 
 验收：每个用户唯一归因；渠道额度不超发；佣金基于实际 usage；代理商只能看授权范围；退款同步冲正佣金；敏感身份脱敏且不暴露 prompt/completion。
 
-M6 实现补充：种子层级 `acr_b_agent` → `acr_b_kol1` → `acr_b_kol2`，推广码 `THB-AGENT` / `THB-KOL1` / `THB-KOL2`。usage 按批发价拆直接佣金/管理奖励/渠道佣金，7 天后 `available`，按月生成结算单，P0 仅人工打款。B/C 用户充值按 1:1 从渠道 `usd_credit` 发放 `quota_allocation`；渠道额度不足时兑换/入账 `402`，预授权仍检查剩余风险帽。佣金由平台承担不扣渠道额度。同一请求不既扣用户钱包又把渠道当第二笔客单。
+M6 实现补充：种子层级 `acr_b_agent` → `acr_b_kol1` → `acr_b_kol2`，推广码 `THB-AGENT` / `THB-KOL1` / `THB-KOL2`。usage 按批发价拆直接佣金/管理奖励/渠道佣金，7 天后 `available`，按月生成结算单，P0 仅人工打款。B/C 用户充值按渠道 `issue_ratio_bps`（默认 `10000` = 1:1，范围 `1000`–`100000`）从渠道 `usd_credit` 发放 `quota_allocation`，渠道 available 扣发放额；B/C 代理商不能改换算比。渠道额度不足时兑换/入账 `402`，预授权仍检查剩余风险帽。佣金由平台承担不扣渠道额度。同一请求不既扣用户钱包又把渠道当第二笔客单。
 
 ### M7 运营、运维与上线加固
 

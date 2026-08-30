@@ -43,6 +43,16 @@ type quotaRow struct {
 
 func (quotaRow) TableName() string { return "billing_quota_accounts" }
 
+type issueRuleRow struct {
+	ID            string    `gorm:"column:id;primaryKey"`
+	ChannelOrgID  string    `gorm:"column:channel_org_id"`
+	IssueRatioBPS int64     `gorm:"column:issue_ratio_bps"`
+	Version       int64     `gorm:"column:version"`
+	UpdatedAt     time.Time `gorm:"column:updated_at"`
+}
+
+func (issueRuleRow) TableName() string { return "billing_quota_issue_rules" }
+
 type quotaLedgerRow struct {
 	ID             string    `gorm:"column:id;primaryKey"`
 	AccountID      string    `gorm:"column:account_id"`

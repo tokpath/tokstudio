@@ -67,6 +67,7 @@ func (s *Service) ChannelQuota(ctx context.Context, channelOrgID string) (*Quota
 	view := &QuotaView{
 		OwnerID: quota.OwnerID, AvailableMinor: quota.AvailableMinor,
 		ReservedMinor: quota.ReservedMinor, UnitType: quota.UnitType,
+		IssueRatioBPS: loadIssueRatioBPS(s.db.WithContext(ctx), channelOrgID),
 	}
 	var sum struct {
 		Issued   int64
@@ -142,8 +143,72 @@ func (s *Service) GrantChannelQuota(ctx context.Context, channelOrgID string, am
 	return s.ChannelQuota(ctx, channelOrgID)
 }
 
-// issueAllocation 在 B/C 用户充值入账后按 1:1 发放服务额度，并从渠道 available 扣减。
-// 官方渠道跳过。同一 source（一笔 topup）只发放一次。
+func loadIssueRatioBPS(db *gorm.DB, channelOrgID string) int64 {
+	if channelOrgID == "" {
+		return DefaultIssueRatioBPS
+	}
+	var row issueRuleRow
+	if err := db.Where("channel_org_id = ?", channelOrgID).First(&row).Error; err != nil {
+		return DefaultIssueRatioBPS
+	}
+	if ValidateIssueRatioBPS(row.IssueRatioBPS) != nil {
+		return DefaultIssueRatioBPS
+	}
+	return row.IssueRatioBPS
+}
+
+func (s *Service) IssueRule(ctx context.Context, channelOrgID string) (*IssueRuleView, error) {
+	if channelOrgID == "" {
+		return nil, ErrNotFound
+	}
+	var row issueRuleRow
+	err := s.db.WithContext(ctx).Where("channel_org_id = ?", channelOrgID).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return &IssueRuleView{ChannelOrgID: channelOrgID, IssueRatioBPS: DefaultIssueRatioBPS}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &IssueRuleView{
+		ChannelOrgID: row.ChannelOrgID, IssueRatioBPS: row.IssueRatioBPS, UpdatedAt: row.UpdatedAt,
+	}, nil
+}
+
+func (s *Service) SetIssueRule(ctx context.Context, channelOrgID string, bps int64) (*IssueRuleView, error) {
+	if channelOrgID == "" {
+		return nil, ErrNotFound
+	}
+	if err := ValidateIssueRatioBPS(bps); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var row issueRuleRow
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("channel_org_id = ?", channelOrgID).First(&row).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			row = issueRuleRow{
+				ID: id.New("qir"), ChannelOrgID: channelOrgID, IssueRatioBPS: bps,
+				UpdatedAt: now,
+			}
+			return tx.Create(&row).Error
+		}
+		if err != nil {
+			return err
+		}
+		row.IssueRatioBPS = bps
+		row.Version++
+		row.UpdatedAt = now
+		return tx.Save(&row).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.IssueRule(ctx, channelOrgID)
+}
+
+// issueAllocation 在 B/C 用户充值入账后按渠道换算比发放服务额度，并从渠道 available 扣减发放额。
+// 无规则时默认 1:1。官方渠道跳过。同一 source（一笔 topup）只发放一次。
 func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID string, amount int64) error {
 	if skipChannelQuota(channelOrgID) || amount <= 0 || userID == "" {
 		return nil
@@ -154,8 +219,12 @@ func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID str
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
+	grant, err := ConvertQuota(amount, loadIssueRatioBPS(tx, channelOrgID))
+	if err != nil {
+		return err
+	}
 	var quota quotaRow
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", channelOrgID, "usd_credit").
 		First(&quota).Error
 	if err != nil {
@@ -164,10 +233,10 @@ func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID str
 		}
 		return err
 	}
-	if quota.AvailableMinor < amount {
+	if quota.AvailableMinor < grant {
 		return ErrInsufficientQuota
 	}
-	quota.AvailableMinor -= amount
+	quota.AvailableMinor -= grant
 	quota.Version++
 	if err := tx.Save(&quota).Error; err != nil {
 		return err
@@ -175,13 +244,13 @@ func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID str
 	now := time.Now().UTC()
 	row := allocationRow{
 		ID: id.New("qal"), UserID: userID, ChannelOrgID: channelOrgID,
-		SourceType: sourceType, SourceID: sourceID, GrantedMinor: amount,
+		SourceType: sourceType, SourceID: sourceID, GrantedMinor: grant,
 		Status: AllocActive, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := tx.Create(&row).Error; err != nil {
 		return err
 	}
-	return writeQuotaLedger(tx, quota.ID, "quota_issue", -amount, sourceType, sourceID, "qissue:"+sourceType+":"+sourceID)
+	return writeQuotaLedger(tx, quota.ID, "quota_issue", -grant, sourceType, sourceID, "qissue:"+sourceType+":"+sourceID)
 }
 
 func checkAllocationRemaining(tx *gorm.DB, userID, channelOrgID string, amount int64) error {

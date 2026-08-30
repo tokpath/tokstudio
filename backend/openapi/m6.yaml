@@ -29,13 +29,21 @@ paths:
       summary: Manual payout
   /channel/quota:
     get:
-      summary: Channel usd_credit remaining plus issued/consumed allocation totals
+      summary: Channel usd_credit remaining plus issued/consumed totals and issue_ratio_bps
   /channel/allocations:
     get:
-      summary: Service quotas issued 1:1 from this channel when users top up
+      summary: Service quotas issued from this channel using the platform issue ratio
   /admin/channel-quotas/grant:
     post:
       summary: Grant or reclaim channel usd_credit quota
+  /admin/channel-quotas/{channel_id}:
+    get:
+      summary: Channel quota including issue_ratio_bps
+  /admin/channel-quotas/{channel_id}/issue-rule:
+    get:
+      summary: Topup-to-quota issue ratio. Default 10000 BPS = 1:1. Channel admin is read-only for own channel.
+    patch:
+      summary: Update issue ratio. Platform/finance only. Requires X-Tokenhub-Confirm.
   /admin/commission-policy:
     get:
       summary: Active platform commission policy

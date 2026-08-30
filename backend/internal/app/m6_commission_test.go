@@ -280,3 +280,124 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("release held: n=%d err=%v", released, err)
 	}
 }
+
+func TestD82QuotaRatio(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
+		t.Skip("integration test requires postgres and redis")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.BootstrapAdmin = "d82_admin"
+	cfg.BootstrapUser = "d82_user"
+	cfg.BootstrapChannel = "d82_channel"
+	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
+	application := mustApp(t, cfg)
+	server := httptest.NewServer(application.Router())
+	defer server.Close()
+
+	created := postJSONRaw(t, server.URL+"/admin/channels", "d82_admin", map[string]any{
+		"code": "d82-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "status": "active",
+	})
+	channelID := created["item"].(map[string]any)["id"].(string)
+	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
+		"channel_org_id": channelID, "amount_minor": 100 * billing.MinorPerUSD,
+	})
+	promo := "THX-D82-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"channel_org_id": channelID, "code": promo,
+	})
+
+	defRule := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_admin")["rule"].(map[string]any)
+	if asInt(defRule["issue_ratio_bps"]) != billing.DefaultIssueRatioBPS {
+		t.Fatalf("missing rule must default to 1:1: %+v", defRule)
+	}
+	quota := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID, "d82_admin")["quota"].(map[string]any)
+	if asInt(quota["issue_ratio_bps"]) != billing.DefaultIssueRatioBPS {
+		t.Fatalf("quota should expose default ratio: %+v", quota)
+	}
+
+	if mustStatusJSON(t, http.MethodPatch, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_admin", map[string]string{}) != http.StatusConflict {
+		t.Fatal("issue-rule patch without confirm must be 409")
+	}
+	if mustStatusJSON(t, http.MethodPatch, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_channel", map[string]string{}) != http.StatusForbidden {
+		t.Fatal("channel admin cannot change issue ratio")
+	}
+	if getStatus(t, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_channel") != http.StatusForbidden {
+		t.Fatal("channel admin cannot read another channel issue rule")
+	}
+	bad := mustStatusBody(t, http.MethodPatch, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_admin", map[string]any{
+		"issue_ratio_bps": 0,
+	})
+	if bad.status != http.StatusConflict && bad.status != http.StatusBadRequest {
+		t.Fatalf("invalid bps should 400/409, got %d %+v", bad.status, bad.body)
+	}
+	// mustStatusBody does not send confirm; 409 is expected first. Confirm + invalid:
+	req, _ := http.NewRequest(http.MethodPatch, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", strings.NewReader(`{"issue_ratio_bps":0}`))
+	req.Header.Set("Authorization", "Bearer d82_admin")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Confirm", "1")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("invalid bps with confirm should 400, got %d", resp.StatusCode)
+	}
+
+	updated := patchJSONRaw(t, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_admin", map[string]any{
+		"issue_ratio_bps": 12_000,
+	})
+	if asInt(updated["rule"].(map[string]any)["issue_ratio_bps"]) != 12_000 {
+		t.Fatalf("patch 1.2x: %+v", updated)
+	}
+
+	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "d82-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": promo,
+	})
+	if channelOf(reg) != channelID {
+		t.Fatalf("d82 user should bind new channel: %+v", reg)
+	}
+	before := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID, "d82_admin")["quota"].(map[string]any)
+	availBefore := asInt(before["available_minor"])
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", tokenOf(reg), map[string]any{"code": billing.RedeemE2E})
+	after := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID, "d82_admin")["quota"].(map[string]any)
+	if asInt(after["available_minor"]) != availBefore-12*billing.MinorPerUSD {
+		t.Fatalf("1.2x redeem should issue 12 USD from channel: before=%d after=%v", availBefore, after)
+	}
+	if asInt(after["issued_minor"]) < 12*billing.MinorPerUSD {
+		t.Fatalf("issued allocation should be 12 USD: %+v", after)
+	}
+	if asInt(after["issue_ratio_bps"]) != 12_000 {
+		t.Fatalf("quota should keep 1.2x ratio: %+v", after)
+	}
+	allocs := getAuthJSON(t, server.URL+"/channel/allocations?channel_id="+channelID, "d82_admin")["items"].([]any)
+	if len(allocs) == 0 || asInt(allocs[0].(map[string]any)["granted_minor"]) != 12*billing.MinorPerUSD {
+		t.Fatalf("allocation granted should be 12 USD: %+v", allocs)
+	}
+
+	oneToOne := postJSONRaw(t, server.URL+"/admin/channels", "d82_admin", map[string]any{
+		"code": "d82-1to1-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "status": "active",
+	})
+	plainID := oneToOne["item"].(map[string]any)["id"].(string)
+	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
+		"channel_org_id": plainID, "amount_minor": 100 * billing.MinorPerUSD,
+	})
+	plainPromo := "THX-D82B-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"channel_org_id": plainID, "code": plainPromo,
+	})
+	plainReg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "d82b-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": plainPromo,
+	})
+	plainBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+plainID, "d82_admin")["quota"].(map[string]any)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", tokenOf(plainReg), map[string]any{"code": billing.RedeemE2E})
+	plainAfter := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+plainID, "d82_admin")["quota"].(map[string]any)
+	if asInt(plainAfter["available_minor"]) != asInt(plainBefore["available_minor"])-10*billing.MinorPerUSD {
+		t.Fatalf("unset rule must stay 1:1: before=%v after=%v", plainBefore, plainAfter)
+	}
+}

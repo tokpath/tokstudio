@@ -33,6 +33,8 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
+	r.GET("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetIssueRule)
+	r.PATCH("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchIssueRule)
 	r.GET("/admin/channel-quotas/:channel_id", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetQuota)
 	r.GET("/admin/commissions", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminCommissions)
 	r.POST("/admin/commissions/unfreeze", a.requireRoles("platform_admin", "finance_admin"), a.adminUnfreeze)
@@ -378,6 +380,58 @@ func (a *App) adminGetQuota(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) canReadChannelQuota(c *gin.Context, channelID string) bool {
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return false
+	}
+	if p.HasRole("channel_admin") && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") && p.ChannelOrgID != channelID {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能查看本渠道额度", false)
+		return false
+	}
+	return true
+}
+
+func (a *App) adminGetIssueRule(c *gin.Context) {
+	channelID := c.Param("channel_id")
+	if !a.canReadChannelQuota(c, channelID) {
+		return
+	}
+	item, err := a.Billing.IssueRule(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "换算规则不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPatchIssueRule(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	channelID := c.Param("channel_id")
+	var body struct {
+		IssueRatioBPS int64 `json:"issue_ratio_bps"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "换算比字段无效", false)
+		return
+	}
+	before, _ := a.Billing.IssueRule(c.Request.Context(), channelID)
+	item, err := a.Billing.SetIssueRule(c.Request.Context(), channelID, body.IssueRatioBPS)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "换算比必须在 1000–100000 BPS（0.1x–10x）", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.quota.issue_rule",
+		ResourceType: "quota_issue_rule", ResourceID: channelID,
+		Before: before, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminCommissions(c *gin.Context) {

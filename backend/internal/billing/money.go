@@ -11,6 +11,40 @@ import (
 // 账务加减只在这个整数上进行，避免 float64 误差。
 const MinorPerUSD int64 = 1_000_000
 
+// 换算比用基点（BPS）：10000 = 1.0，也就是默认 1:1。
+// 平台可按渠道配置，B/C 代理商不能改。合法范围 0.1x～10x。
+const (
+	DefaultIssueRatioBPS int64 = 10_000
+	MinIssueRatioBPS     int64 = 1_000
+	MaxIssueRatioBPS     int64 = 100_000
+)
+
+// ConvertQuota 把用户充值金额换成要发放的服务额度。
+// grant = amount * bps / 10000，只用整数除法，避免浮点。
+func ConvertQuota(amountMinor, bps int64) (int64, error) {
+	if amountMinor <= 0 {
+		return 0, ErrInvalidAmount
+	}
+	if err := ValidateIssueRatioBPS(bps); err != nil {
+		return 0, err
+	}
+	if amountMinor > (1<<63-1)/bps {
+		return 0, ErrInvalidAmount
+	}
+	grant := amountMinor * bps / DefaultIssueRatioBPS
+	if grant <= 0 {
+		return 0, ErrInvalidAmount
+	}
+	return grant, nil
+}
+
+func ValidateIssueRatioBPS(bps int64) error {
+	if bps < MinIssueRatioBPS || bps > MaxIssueRatioBPS {
+		return ErrInvalidIssueRatio
+	}
+	return nil
+}
+
 // ParseUSDToMinor 把十进制美元字符串转成 micro-USD，四舍五入到最近的整数。
 func ParseUSDToMinor(s string) (int64, error) {
 	s = strings.TrimSpace(s)

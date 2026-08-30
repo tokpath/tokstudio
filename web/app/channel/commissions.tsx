@@ -45,7 +45,7 @@ export default function ChannelCommissions() {
     <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
       <p className="mb-3 text-sm text-slate-400">
-        可用额度 {quota} micro-USD。用户充值时按平台换算比发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
+        可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
       </p>
       <p className="mb-3 text-sm text-slate-400">
         换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。

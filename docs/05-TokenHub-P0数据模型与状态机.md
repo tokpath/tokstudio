@@ -28,7 +28,7 @@
 | `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
 
 P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。管理员 TOTP 物理表为 `identity_admin_totp`（密钥密文，`pending`/`enabled`）；未启用前敏感操作只要求二次确认，启用后还要 `X-Tokenhub-TOTP`。
-| `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json` | OEM 品牌和域名配置 |
+| `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
 
 ### 2.2 Provider、模型与路由
 

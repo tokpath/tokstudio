@@ -60,6 +60,7 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
+	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	commSvc := commission.New(gdb, outboxSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)

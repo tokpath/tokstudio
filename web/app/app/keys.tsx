@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 
@@ -50,15 +54,22 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
   );
 }
 
+const createSchema = z.object({
+  name: z.string().trim().min(1, "请填写 Key 名称"),
+  allowlist: z.string(),
+  rpm: z.string(),
+  concurrency: z.string(),
+});
+
 export default function KeysPanel() {
   const [items, setItems] = useState<APIKeyItem[]>([]);
-  const [name, setName] = useState("default");
-  const [allowlist, setAllowlist] = useState("");
-  const [rpm, setRpm] = useState("");
-  const [concurrency, setConcurrency] = useState("");
   const [createMessage, setCreateMessage] = useState("空白名单不限制模型；填了之后，不在名单里的模型会返回 403 model_not_allowed。RPM 默认 60，并发默认 5。");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
+  const form = useForm<z.infer<typeof createSchema>>({
+    resolver: zodResolver(createSchema),
+    defaultValues: { name: "default", allowlist: "", rpm: "", concurrency: "" },
+  });
 
   async function refresh() {
     const response = await fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" });
@@ -71,18 +82,18 @@ export default function KeysPanel() {
     setMessage("API Key 已刷新");
   }
 
-  async function createKey() {
-    const models = parseAllowlist(allowlist);
-    const payload: { name: string; allowlist?: string[]; rpm_limit?: number; concurrency_limit?: number } = { name };
+  async function createKey(values: z.infer<typeof createSchema>) {
+    const models = parseAllowlist(values.allowlist);
+    const payload: { name: string; allowlist?: string[]; rpm_limit?: number; concurrency_limit?: number } = { name: values.name };
     if (models.length > 0) {
       payload.allowlist = models;
     }
-    const rpmLimit = Number(rpm);
-    if (rpm && Number.isFinite(rpmLimit) && rpmLimit > 0) {
+    const rpmLimit = Number(values.rpm);
+    if (values.rpm && Number.isFinite(rpmLimit) && rpmLimit > 0) {
       payload.rpm_limit = rpmLimit;
     }
-    const concLimit = Number(concurrency);
-    if (concurrency && Number.isFinite(concLimit) && concLimit > 0) {
+    const concLimit = Number(values.concurrency);
+    if (values.concurrency && Number.isFinite(concLimit) && concLimit > 0) {
       payload.concurrency_limit = concLimit;
     }
     const response = await fetch(`${apiBase}/v1/me/api-keys`, {
@@ -98,10 +109,8 @@ export default function KeysPanel() {
     }
     const created = body.item || {};
     const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : "不限制";
-    setCreateMessage(`已创建 ${created.id || ""} ${created.name || name} → 白名单 ${listed} / 并发 ${created.concurrency_limit || 5}`);
-    setAllowlist("");
-    setRpm("");
-    setConcurrency("");
+    setCreateMessage(`已创建 ${created.id || ""} ${created.name || values.name} → 白名单 ${listed} / 并发 ${created.concurrency_limit || 5}`);
+    form.reset({ name: "default", allowlist: "", rpm: "", concurrency: "" });
     await refresh();
   }
 
@@ -133,41 +142,22 @@ export default function KeysPanel() {
       <p className="mb-4 text-sm text-slate-400">
         完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。
       </p>
-      <div className="mb-4 grid max-w-xl gap-3">
-        <label className="text-sm text-slate-400" htmlFor="api-key-name">
-          Key 名称
-        </label>
-        <Input id="api-key-name" value={name} aria-label="API Key 名称" placeholder="Key 名称" onChange={(e) => setName(e.target.value)} />
-        <h3 className="text-lg font-medium">模型白名单</h3>
-        <Input
-          id="api-key-allowlist"
-          value={allowlist}
-          aria-label="模型白名单"
-          placeholder="逗号分隔模型，空则不限制"
-          onChange={(e) => setAllowlist(e.target.value)}
-        />
-        <Input
-          id="api-key-rpm"
-          value={rpm}
-          aria-label="RPM 限额"
-          placeholder="可选 RPM，默认 60"
-          onChange={(e) => setRpm(e.target.value)}
-        />
-        <Input
-          id="api-key-concurrency"
-          value={concurrency}
-          aria-label="并发限额"
-          placeholder="可选并发，默认 5"
-          onChange={(e) => setConcurrency(e.target.value)}
-        />
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={createKey}>创建</Button>
-          <Button variant="outline" onClick={refresh}>
-            刷新
-          </Button>
-        </div>
-        <p className="text-sm text-slate-300">{createMessage}</p>
-      </div>
+      <Form {...form}>
+        <form className="mb-4 grid max-w-xl gap-3" onSubmit={form.handleSubmit(createKey)}>
+          <TextField control={form.control} name="name" label="API Key 名称" placeholder="Key 名称" />
+          <h3 className="text-lg font-medium">模型白名单</h3>
+          <TextField control={form.control} name="allowlist" label="模型白名单" placeholder="逗号分隔模型，空则不限制" />
+          <TextField control={form.control} name="rpm" label="RPM 限额" placeholder="可选 RPM，默认 60" />
+          <TextField control={form.control} name="concurrency" label="并发限额" placeholder="可选并发，默认 5" />
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit">创建</Button>
+            <Button type="button" variant="outline" onClick={refresh}>
+              刷新
+            </Button>
+          </div>
+          <p className="text-sm text-slate-300">{createMessage}</p>
+        </form>
+      </Form>
       <KeysList items={items} />
       <ul className="mt-4 space-y-2 text-sm">
         {items.map((item) => (

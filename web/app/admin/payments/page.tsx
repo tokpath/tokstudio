@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
+import { confirmHeaders } from "@/lib/confirm";
 
 type Payment = {
   id: string;
@@ -28,7 +29,7 @@ export default function AdminPaymentsPage() {
     const res = await fetch(`${apiBase}/admin/payments/${orderID}/${action}`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: "{}",
     });
     const body = await res.json();
@@ -42,12 +43,12 @@ export default function AdminPaymentsPage() {
         <p className="mb-3 text-sm text-slate-400">查看沙箱支付单，手工入账或退款。退款会冲正未用完的权益。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={orderID} onChange={(e) => setOrderID(e.target.value)} aria-label="支付单 ID" placeholder="pay_..." />
-          <Button size="sm" onClick={() => act("confirm")}>
+          <ConfirmButton size="sm" title="确认支付入账" description="手工确认后会给用户入账对应权益。" onConfirm={() => act("confirm")}>
             确认支付
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => act("refund")}>
+          </ConfirmButton>
+          <ConfirmButton size="sm" variant="outline" title="确认退款" description="退款会冲正未用完的权益。" onConfirm={() => act("refund")}>
             退款
-          </Button>
+          </ConfirmButton>
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>

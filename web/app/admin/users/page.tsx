@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
+import { confirmHeaders } from "@/lib/confirm";
 
 type User = {
   id: string;
@@ -33,7 +34,7 @@ export default function AdminUsersPage() {
     const res = await fetch(`${apiBase}${path}`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: JSON.stringify(body),
     });
     const payload = await res.json();
@@ -71,23 +72,23 @@ export default function AdminUsersPage() {
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
                     {item.status === "banned" ? (
-                      <Button size="sm" onClick={() => postAction(`/admin/users/${item.id}/unban`, { reason }, `已解封 ${item.email}`)}>
+                      <ConfirmButton size="sm" title="确认解封用户" description={`将解封 ${item.email}，并写入审计。`} onConfirm={() => postAction(`/admin/users/${item.id}/unban`, { reason }, `已解封 ${item.email}`)}>
                         解封
-                      </Button>
+                      </ConfirmButton>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => postAction(`/admin/users/${item.id}/ban`, { reason }, `已封禁 ${item.email}`)}>
+                      <ConfirmButton size="sm" variant="outline" title="确认封禁用户" description={`将封禁 ${item.email}，停用登录和旧 API Key。`} onConfirm={() => postAction(`/admin/users/${item.id}/ban`, { reason }, `已封禁 ${item.email}`)}>
                         封禁
-                      </Button>
+                      </ConfirmButton>
                     )}
-                    <Button
+                    <ConfirmButton
                       size="sm"
                       variant="outline"
-                      onClick={() =>
-                        postAction(`/admin/users/${item.id}/attribution`, { promotion_code: promo, reason }, `已改归因 ${item.email} → ${promo}`)
-                      }
+                      title="确认改归因"
+                      description={`将把 ${item.email} 的归因改成 ${promo}。`}
+                      onConfirm={() => postAction(`/admin/users/${item.id}/attribution`, { promotion_code: promo, reason }, `已改归因 ${item.email} → ${promo}`)}
                     >
                       改归因
-                    </Button>
+                    </ConfirmButton>
                   </div>
                 </td>
               </tr>

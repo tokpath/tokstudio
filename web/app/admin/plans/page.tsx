@@ -2,11 +2,18 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { ConfirmButton } from "@/components/confirm-button";
+import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
+import { confirmHeaders } from "@/lib/confirm";
 
 type Plan = {
   id: string;
@@ -19,6 +26,22 @@ type Plan = {
 };
 
 type ListResponse = { items?: Plan[]; error?: { message?: string } };
+
+const createSchema = z.object({
+  name: z.string().trim().min(1, "请填写套餐名"),
+  owner_type: z.string().trim().min(1, "请填写归属"),
+  price_minor: z.string().trim().min(1, "请填写价格"),
+  unit_type: z.string().trim().min(1, "请填写权益单位"),
+  included_amount: z.string().trim().min(1, "请填写权益数量"),
+});
+
+const archiveSchema = z.object({
+  plan_id: z.string().trim().min(1, "请填写套餐 ID"),
+});
+
+const forceEndSchema = z.object({
+  subscription_id: z.string().trim().min(1, "请填写订阅 ID"),
+});
 
 export default function AdminPlansPage() {
   const [status, setStatus] = useState("pending_review");
@@ -33,12 +56,24 @@ export default function AdminPlansPage() {
     queryFn: () => apiClient<ListResponse>("GET", path),
   });
   const items = query.data?.items ?? [];
+  const createForm = useForm<z.infer<typeof createSchema>>({
+    resolver: zodResolver(createSchema),
+    defaultValues: { name: "", owner_type: "platform", price_minor: "1000000", unit_type: "usd_credit", included_amount: "1000000" },
+  });
+  const archiveForm = useForm<z.infer<typeof archiveSchema>>({
+    resolver: zodResolver(archiveSchema),
+    defaultValues: { plan_id: "" },
+  });
+  const forceEndForm = useForm<z.infer<typeof forceEndSchema>>({
+    resolver: zodResolver(forceEndSchema),
+    defaultValues: { subscription_id: "" },
+  });
 
   async function review(id: string, action: "approve" | "reject") {
     const res = await fetch(`${apiBase}/admin/plans/${id}/review`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: JSON.stringify({ action, reason }),
     });
     const body = await res.json();
@@ -85,12 +120,12 @@ export default function AdminPlansPage() {
                 <td className="px-2 py-2">
                   {item.status === "pending_review" ? (
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => review(item.id, "approve")}>
+                      <ConfirmButton size="sm" title="确认通过套餐" description={`将通过 ${item.name}，并写入审计。`} onConfirm={() => review(item.id, "approve")}>
                         通过
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => review(item.id, "reject")}>
+                      </ConfirmButton>
+                      <ConfirmButton size="sm" variant="outline" title="确认拒绝套餐" description={`将拒绝 ${item.name}，并写入审计。`} onConfirm={() => review(item.id, "reject")}>
                         拒绝
-                      </Button>
+                      </ConfirmButton>
                     </div>
                   ) : (
                     item.id
@@ -102,109 +137,111 @@ export default function AdminPlansPage() {
         </table>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </section>
-      <form
-        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const data = new FormData(form);
-          const res = await fetch(`${apiBase}/admin/plans`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
-            body: JSON.stringify({
-              name: String(data.get("name") || "").trim(),
-              owner_type: String(data.get("owner_type") || "platform").trim() || "platform",
-              price_minor: Number(data.get("price_minor") || 0),
-              items: [
-                {
-                  unit_type: String(data.get("unit_type") || "usd_credit").trim() || "usd_credit",
-                  included_amount: Number(data.get("included_amount") || 0),
-                },
-              ],
-            }),
-          });
-          const body = await res.json();
-          if (!res.ok) {
-            setWriteMessage(body.error?.message || "创建失败");
-            return;
-          }
-          form.reset();
-          setWriteMessage(`已创建 ${body.item?.id} ${body.item?.name} → ${body.item?.status}`);
-          await queryClient.invalidateQueries();
-        }}
-      >
-        <h2 className="mb-3 text-xl font-medium">创建套餐</h2>
-        <p className="mb-3 text-sm text-slate-400">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
-        <div className="mb-3 grid max-w-xl gap-2">
-          <Input name="name" aria-label="创建用套餐名" placeholder="创建用套餐名" />
-          <Input name="owner_type" aria-label="创建用归属" placeholder="创建用归属 platform" defaultValue="platform" />
-          <Input name="price_minor" aria-label="创建用价格" placeholder="创建用价格 1000000" defaultValue="1000000" />
-          <Input name="unit_type" aria-label="创建用权益单位" placeholder="创建用权益单位 usd_credit" defaultValue="usd_credit" />
-          <Input name="included_amount" aria-label="创建用权益数量" placeholder="创建用权益数量" defaultValue="1000000" />
-        </div>
-        <Button size="sm" type="submit">
-          创建套餐
-        </Button>
-      </form>
-      <form
-        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const data = new FormData(form);
-          const id = String(data.get("plan_id") || "").trim();
-          const res = await fetch(`${apiBase}/admin/plans/${id}`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
-            body: JSON.stringify({ status: "archived" }),
-          });
-          const body = await res.json();
-          if (!res.ok) {
-            setWriteMessage(body.error?.message || "下架失败");
-            return;
-          }
-          setWriteMessage(`已下架 ${body.item?.id} → ${body.item?.status}`);
-          await queryClient.invalidateQueries();
-        }}
-      >
-        <h2 className="mb-3 text-xl font-medium">下架套餐</h2>
-        <p className="mb-3 text-sm text-slate-400">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
-        <div className="mb-3 grid max-w-xl gap-2">
-          <Input name="plan_id" aria-label="下架用套餐 ID" placeholder="下架用套餐 ID" />
-        </div>
-        <Button size="sm" type="submit">
-          下架套餐
-        </Button>
-      </form>
+      <Form {...createForm}>
+        <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={(event) => event.preventDefault()}>
+          <h2 className="mb-3 text-xl font-medium">创建套餐</h2>
+          <p className="mb-3 text-sm text-slate-400">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
+          <div className="mb-3 grid max-w-xl gap-2">
+            <TextField control={createForm.control} name="name" label="创建用套餐名" />
+            <TextField control={createForm.control} name="owner_type" label="创建用归属" placeholder="创建用归属 platform" />
+            <TextField control={createForm.control} name="price_minor" label="创建用价格" placeholder="创建用价格 1000000" />
+            <TextField control={createForm.control} name="unit_type" label="创建用权益单位" placeholder="创建用权益单位 usd_credit" />
+            <TextField control={createForm.control} name="included_amount" label="创建用权益数量" />
+          </div>
+          <ConfirmButton
+            size="sm"
+            title="确认创建套餐"
+            description="平台套餐满 1 USD 会直接发布。"
+            validate={() => createForm.trigger()}
+            onConfirm={createForm.handleSubmit(async (values) => {
+              const res = await fetch(`${apiBase}/admin/plans`, {
+                method: "POST",
+                credentials: "include",
+                headers: confirmHeaders,
+                body: JSON.stringify({
+                  name: values.name,
+                  owner_type: values.owner_type || "platform",
+                  price_minor: Number(values.price_minor || 0),
+                  items: [
+                    {
+                      unit_type: values.unit_type || "usd_credit",
+                      included_amount: Number(values.included_amount || 0),
+                    },
+                  ],
+                }),
+              });
+              const body = await res.json();
+              if (!res.ok) {
+                setWriteMessage(body.error?.message || "创建失败");
+                return;
+              }
+              createForm.reset();
+              setWriteMessage(`已创建 ${body.item?.id} ${body.item?.name} → ${body.item?.status}`);
+              await queryClient.invalidateQueries();
+            })}
+          >
+            创建套餐
+          </ConfirmButton>
+        </form>
+      </Form>
+      <Form {...archiveForm}>
+        <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={(event) => event.preventDefault()}>
+          <h2 className="mb-3 text-xl font-medium">下架套餐</h2>
+          <p className="mb-3 text-sm text-slate-400">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
+          <div className="mb-3 grid max-w-xl gap-2">
+            <TextField control={archiveForm.control} name="plan_id" label="下架用套餐 ID" />
+          </div>
+          <ConfirmButton
+            size="sm"
+            title="确认下架套餐"
+            description="不要下架 pln_echo_month。下架后历史订阅仍保留。"
+            validate={() => archiveForm.trigger()}
+            onConfirm={archiveForm.handleSubmit(async (values) => {
+              const res = await fetch(`${apiBase}/admin/plans/${values.plan_id}`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: confirmHeaders,
+                body: JSON.stringify({ status: "archived" }),
+              });
+              const body = await res.json();
+              if (!res.ok) {
+                setWriteMessage(body.error?.message || "下架失败");
+                return;
+              }
+              setWriteMessage(`已下架 ${body.item?.id} → ${body.item?.status}`);
+              await queryClient.invalidateQueries();
+            })}
+          >
+            下架套餐
+          </ConfirmButton>
+        </form>
+      </Form>
       <p className="text-sm text-slate-300">{writeMessage}</p>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">续费扫描</h2>
         <p className="mb-3 text-sm text-slate-400">
           强制到期把 period_end 拨到过去，再扫描才会走重试/宽限期。生产默认禁止。不强制确认头。
         </p>
-        <form
-          className="mb-3 flex flex-wrap gap-2"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const form = event.currentTarget;
-            const id = String(new FormData(form).get("subscription_id") || "").trim();
-            const res = await fetch(`${apiBase}/admin/subscriptions/${id}/force-period-end`, {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: "{}",
-            });
-            const body = await res.json();
-            setRenewMessage(res.ok ? `已拨时钟 ${id}` : body.error?.message || "拨时钟失败");
-          }}
-        >
-          <Input name="subscription_id" aria-label="强制到期用订阅 ID" placeholder="强制到期用订阅 ID" />
-          <Button size="sm" type="submit" variant="outline">
-            强制到期
-          </Button>
-        </form>
+        <Form {...forceEndForm}>
+          <form
+            className="mb-3 flex flex-wrap items-end gap-2"
+            onSubmit={forceEndForm.handleSubmit(async (values) => {
+              const res = await fetch(`${apiBase}/admin/subscriptions/${values.subscription_id}/force-period-end`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              });
+              const body = await res.json();
+              setRenewMessage(res.ok ? `已拨时钟 ${values.subscription_id}` : body.error?.message || "拨时钟失败");
+            })}
+          >
+            <TextField control={forceEndForm.control} name="subscription_id" label="强制到期用订阅 ID" showLabel={false} className="w-72" />
+            <Button size="sm" type="submit" variant="outline">
+              强制到期
+            </Button>
+          </form>
+        </Form>
         <Button
           size="sm"
           onClick={async () => {

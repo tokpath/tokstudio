@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
+import { confirmHeaders } from "@/lib/confirm";
 
 type Alert = { id: string; kind: string; severity: string; status: string; message: string };
 type ListResponse = { items?: Alert[]; error?: { message?: string } };
@@ -23,7 +24,7 @@ export default function AdminAlertsPage() {
     const res = await fetch(`${apiBase}/admin/ops/alerts/evaluate`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
     });
     const body = await res.json();
     setMessage(res.ok ? `已评估 ${body.items?.length ?? 0} 条告警` : body.error?.message || "评估失败");
@@ -35,9 +36,9 @@ export default function AdminAlertsPage() {
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">告警</h2>
         <p className="mb-3 text-sm text-slate-400">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
-        <Button size="sm" onClick={evaluate}>
+        <ConfirmButton size="sm" title="确认评估告警" description="评估会按阈值写入 ops_alerts，并记审计。" onConfirm={evaluate}>
           评估告警
-        </Button>
+        </ConfirmButton>
         {query.data?.error ? <p className="mt-3 text-sm text-slate-400">{query.data.error.message}</p> : null}
         <table className="mt-4 min-w-full text-left text-sm">
           <thead>

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
+import { confirmHeaders } from "@/lib/confirm";
 
 type Policy = {
   id?: string;
@@ -66,7 +68,7 @@ export default function AdminCommissionPage() {
     const res = await fetch(`${apiBase}/admin/commission-policy`, {
       method: "PATCH",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: JSON.stringify({
         direct_bps: Number(direct),
         override_bps: Number(overrideBps),
@@ -101,9 +103,9 @@ export default function AdminCommissionPage() {
           <Button size="sm" variant="outline" onClick={loadPolicy}>
             读取策略
           </Button>
-          <Button size="sm" onClick={savePolicy}>
+          <ConfirmButton size="sm" title="确认保存策略" description="改策略只影响之后的 usage，不改已经入账的明细。" onConfirm={savePolicy}>
             保存策略
-          </Button>
+          </ConfirmButton>
         </div>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-slate-400">{policyQuery.data.error.message}</p> : null}
@@ -119,13 +121,15 @@ export default function AdminCommissionPage() {
             aria-label="重算用 usage 事件 ID"
             placeholder="重算用 usage_event_id"
           />
-          <Button
+          <ConfirmButton
             size="sm"
-            onClick={async () => {
+            title="确认重算佣金"
+            description="用当时价格快照重算，不改历史账单单价。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/commissions/recalc`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                headers: confirmHeaders,
                 body: JSON.stringify({ usage_event_id: recalcUsageID }),
               });
               const body = await res.json();
@@ -137,7 +141,7 @@ export default function AdminCommissionPage() {
             }}
           >
             重算佣金
-          </Button>
+          </ConfirmButton>
           <p className="text-sm text-slate-300">{recalcMessage}</p>
         </div>
       </section>
@@ -146,14 +150,16 @@ export default function AdminCommissionPage() {
         <p className="mb-3 text-sm text-slate-400">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={usageEventID} onChange={(e) => setUsageEventID(e.target.value)} aria-label="usage 事件 ID" placeholder="usage_event_id" />
-          <Button
+          <ConfirmButton
             size="sm"
             variant="outline"
-            onClick={async () => {
+            title="确认解冻佣金"
+            description="按 usage 事件解冻已到期的冻结额。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/commissions/unfreeze`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                headers: confirmHeaders,
                 body: JSON.stringify({ usage_event_id: usageEventID }),
               });
               const body = await res.json();
@@ -161,14 +167,16 @@ export default function AdminCommissionPage() {
             }}
           >
             解冻佣金
-          </Button>
-          <Button
+          </ConfirmButton>
+          <ConfirmButton
             size="sm"
-            onClick={async () => {
+            title="确认生成结算单"
+            description="P0 只做人工结算，自动代付不在范围内。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/commissions/settle?ignore_minimum=1`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                headers: confirmHeaders,
                 body: "{}",
               });
               const body = await res.json();
@@ -176,18 +184,20 @@ export default function AdminCommissionPage() {
             }}
           >
             生成结算单
-          </Button>
+          </ConfirmButton>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input className="w-64" value={settlementID} onChange={(e) => setSettlementID(e.target.value)} aria-label="结算单 ID" placeholder="csl_..." />
           <Input className="w-40" value={payoutRef} onChange={(e) => setPayoutRef(e.target.value)} aria-label="打款凭证" placeholder="reference" />
-          <Button
+          <ConfirmButton
             size="sm"
-            onClick={async () => {
+            title="确认人工打款"
+            description="只记录人工打款凭证，不会自动代付。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/settlements/${settlementID}/payout`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+                headers: confirmHeaders,
                 body: JSON.stringify({ method: "manual", reference: payoutRef }),
               });
               const body = await res.json();
@@ -195,7 +205,7 @@ export default function AdminCommissionPage() {
             }}
           >
             人工打款
-          </Button>
+          </ConfirmButton>
         </div>
       </section>
       <AdminListPanel<Commission>

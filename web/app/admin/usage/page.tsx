@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
+import { confirmHeaders } from "@/lib/confirm";
 
 type Usage = { id: string; request_id: string; state: string; customer_amount?: number };
 
@@ -19,7 +20,7 @@ export default function AdminUsagePage() {
     const res = await fetch(`${apiBase}/admin/usage/replay`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      headers: confirmHeaders,
       body: JSON.stringify({
         request_id: requestID,
         usage: { prompt_tokens: Number(prompt), completion_tokens: Number(completion) },
@@ -38,9 +39,9 @@ export default function AdminUsagePage() {
           <Input className="w-72" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="request_id" placeholder="request_id" />
           <Input className="w-24" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="prompt tokens" />
           <Input className="w-24" value={completion} onChange={(e) => setCompletion(e.target.value)} aria-label="completion tokens" />
-          <Button size="sm" onClick={replay}>
+          <ConfirmButton size="sm" title="确认回放 usage" description="只对 pending_reconciliation 按真实 Token 回放，不会双扣。" onConfirm={replay}>
             回放 usage
-          </Button>
+          </ConfirmButton>
         </div>
         <p className="text-sm text-slate-300">{message}</p>
       </section>

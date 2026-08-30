@@ -3,29 +3,40 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { safeNextPath } from "@/lib/login-next";
 
+const schema = z.object({
+  email: z.string().trim().email("请填写有效邮箱"),
+  password: z.string().min(8, "密码至少 8 位"),
+  promo: z.string().trim(),
+});
+
 function LoginForm() {
   const search = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [promo, setPromo] = useState("");
   const [message, setMessage] = useState("");
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", password: "", promo: "" },
+  });
 
   function goNext() {
     const next = safeNextPath(search.get("next"));
     window.location.href = next || "/app";
   }
 
-  async function register() {
+  async function register(values: z.infer<typeof schema>) {
     const response = await fetch(`${apiBase}/v1/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password, promotion_code: promo }),
+      body: JSON.stringify({ email: values.email, password: values.password, promotion_code: values.promo }),
     });
     const body = await response.json();
     if (response.ok) {
@@ -36,12 +47,12 @@ function LoginForm() {
     setMessage(body.error?.message || "失败");
   }
 
-  async function login() {
+  async function login(values: z.infer<typeof schema>) {
     const response = await fetch(`${apiBase}/v1/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: values.email, password: values.password }),
     });
     const body = await response.json();
     if (response.ok) {
@@ -62,7 +73,7 @@ function LoginForm() {
         <p className="mt-4 max-w-md text-slate-400">
           登录成功后会回到刚才的购买页或用户控制台。推广码决定渠道归属，注册后不能自己改。
         </p>
-        <ul className="mt-8 space-y-3 text-sm text-slate-300">
+        <ul className="mt-8 flex flex-col gap-3 text-sm text-slate-300">
           <li>· 用户控制台管余额、Key、用量和媒体任务</li>
           <li>· 渠道控制台只看本渠道数据和套餐</li>
           <li>· 平台管理看提供商、价格、佣金和审计</li>
@@ -71,24 +82,25 @@ function LoginForm() {
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-glow">
         <h1 className="text-3xl font-semibold tracking-tight">注册 / 登录</h1>
         <p className="mt-2 text-sm text-slate-400">登录成功后会回到刚才的购买页或用户控制台。</p>
-        <div className="mt-6 flex flex-col gap-3">
-          <label className="text-xs text-slate-500">邮箱</label>
-          <Input placeholder="邮箱" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <label className="text-xs text-slate-500">密码</label>
-          <Input placeholder="密码（至少 8 位）" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <label className="text-xs text-slate-500">推广码</label>
-          <Input placeholder="推广码 THA1 / THB1 / THC1" value={promo} onChange={(e) => setPromo(e.target.value)} />
-          <div className="mt-2 flex gap-3">
-            <Button onClick={register}>注册</Button>
-            <Button variant="outline" onClick={login}>
-              登录
-            </Button>
-          </div>
-          <p className="text-sm text-slate-300">{message}</p>
-          <p className="text-xs text-slate-500">
-            还没看过模型目录？先回 <Link href="/" className="underline">公共站</Link>。
-          </p>
-        </div>
+        <Form {...form}>
+          <form className="mt-6 flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
+            <TextField control={form.control} name="email" label="邮箱" />
+            <TextField control={form.control} name="password" label="密码" placeholder="密码（至少 8 位）" type="password" />
+            <TextField control={form.control} name="promo" label="推广码" placeholder="推广码 THA1 / THB1 / THC1" />
+            <div className="mt-2 flex gap-3">
+              <Button type="button" onClick={form.handleSubmit(register)}>
+                注册
+              </Button>
+              <Button type="button" variant="outline" onClick={form.handleSubmit(login)}>
+                登录
+              </Button>
+            </div>
+            <p className="text-sm text-slate-300">{message}</p>
+            <p className="text-xs text-slate-500">
+              还没看过模型目录？先回 <Link href="/" className="underline">公共站</Link>。
+            </p>
+          </form>
+        </Form>
       </section>
     </main>
   );

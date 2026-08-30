@@ -19,20 +19,23 @@
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id` | 普通用户是唯一终端用户类型；管理员是附加角色 |
+| `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja；`status` 为 `active`/`banned`，封禁后会话与 API Key 失效 |
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
 | `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权 |
-| `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级 |
+| `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级；`disabled` 冻结新消费（聊天/媒体 403），余额和历史保留 |
 | `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、1/2 级 KOL |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
-| `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json` | OEM 品牌和域名配置 |
+| `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
+
+P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。管理员 TOTP 物理表为 `identity_admin_totp`（密钥密文，`pending`/`enabled`）；未启用前敏感操作只要求二次确认，启用后还要 `X-Tokenhub-TOTP`。
+| `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
 
 ### 2.2 Provider、模型与路由
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `provider` | `id`, `name`, `kind`, `adapter`, `base_url`, `credential_ref`, `region`, `status`, `health_json` | 上游 Provider，不保存明文密钥 |
-| `provider_credential` | `id`, `provider_id`, `ciphertext`, `key_hash`, `status`, `rotated_at` | 加密密文 + hash 索引，支持轮换 |
+| `provider` | `id`, `name`, `kind`, `adapter`, `base_url`, `credential_ref`, `region`, `status`, `health`, `priority`, `weight`, `timeout_ms`, `retry_max`, `rpm_limit`, `concurrency_limit`, `capability_tags` | 上游 Provider，不保存明文密钥 |
+| `provider_credential` | `id`, `provider_id`, `ciphertext`, `key_hash`, `status`, `kind`, `label`, `model_tags`, `rpm_limit`, `concurrency_limit`, `last_success_at`, `last_error_at`, `last_error_code`, `cooldown_until`, `rotated_at` | 上游账号池：加密密文 + hash 指纹；状态 active/disabled/cooldown/invalid/exhausted/unknown/rotated |
 | `public_model` | `id`, `public_id`, `vendor`, `display_name`, `capabilities_json`, `status` | 客户看到的模型，如 `openai/gpt-5.6` |
 | `provider_model_mapping` | `id`, `public_model_id`, `provider_id`, `upstream_model_id`, `capabilities_json`, `sync_state` | 上游模型映射，自动同步先进入 draft |
 | `price_version` | `id`, `public_model_id`, `provider_id`, `unit_prices_json`, `effective_at`, `status` | 成本、批发价、销售价版本化 |
@@ -44,13 +47,15 @@
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `api_key` | `id`, `user_id`, `name`, `prefix`, `secret_ciphertext`, `secret_hash`, `expires_at`, `status`, `rpm_limit`, `concurrency_limit` | 完整 Key 可长期查看，操作写审计 |
+| `api_key` | `id`, `user_id`, `name`, `prefix`, `secret_ciphertext`, `secret_hash`, `expires_at`, `last_used_at`, `status`, `rpm_limit`, `concurrency_limit` | 完整 Key 可长期查看；轮换改密文不改主键；禁用/过期后鉴权失败，操作写审计 |
 | `api_key_model_policy` | `api_key_id`, `public_model_id`, `allowed` | Key 级模型白名单 |
 | `product_plan` | `id`, `owner_type`, `owner_id`, `name`, `currency`, `price`, `billing_period`, `status`, `policy_version` | 平台和渠道均可创建 |
 | `plan_item` | `plan_id`, `public_model_id`, `unit_type`, `included_amount`, `overage_price`, `expires_in` | token/video_second/image_count/request_count/usd_credit |
 | `subscription` | `id`, `user_id`, `plan_id`, `status`, `current_period_start`, `current_period_end`, `renewal_policy`, `payment_method_ref` | active/past_due/cancelled 等 |
 | `entitlement_account` | `id`, `user_id`, `source_type`, `source_id`, `unit_type`, `granted`, `consumed`, `expires_at`, `status` | 套餐和赠送额度独立账户 |
 | `entitlement_ledger` | `id`, `account_id`, `event_type`, `amount`, `request_id`, `occurred_at` | 发放、消费、过期、回收、冲正 |
+
+P0 落地时套餐实体由独立 `plans` 模块拥有，物理表为 `plans_product_plans`、`plans_plan_items`、`plans_subscriptions`、`plans_entitlement_accounts`、`plans_entitlement_ledger`。金额与 `usd_credit` 使用 micro-USD。billing 只能通过 `AvailableUSD` / `ConsumeUSD` / `ReverseKeep` 接口覆盖预授权，禁止直连套餐表。
 
 ### 2.4 钱包、充值、用量与账务
 
@@ -60,18 +65,34 @@
 | `wallet_ledger` | `id`, `wallet_id`, `event_type`, `amount_minor`, `reference_type`, `reference_id`, `idempotency_key` | 充值、预授权、结算、释放、退款 |
 | `topup_order` | `id`, `user_id`, `channel_org_id`, `amount_minor`, `currency`, `payment_method`, `status`, `provider_trade_id` | pending/paid/failed/expired/refunded/partially_refunded |
 | `payment_event` | `id`, `adapter`, `external_event_id`, `signature_valid`, `payload_json`, `processed_at` | webhook 原文与幂等 |
+
+P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`、`payment_events`。适配器为 `stripe` / `alipay` / `wechat` / `manual`；只有 Stripe 声明自动续费能力。billing 预授权增加 `wallet_reserved_minor`：权益覆盖后钱包只冻结差额。
 | `request` | `id`, `request_id`, `user_id`, `api_key_id`, `channel_org_id`, `public_model_id`, `protocol`, `status`, `started_at`, `ended_at` | 一次客户请求 |
 | `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费 |
 | `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
-| `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/available/paid/reversed |
+| `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/held/available/paid/reversed；封禁把未结算标 `held` |
+
+P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
+
+P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`、`billing_quota_allocations`、`billing_quota_issue_rules`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
+
+| 表 | 关键字段 | 说明 |
+|---|---|---|
+| `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按渠道配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；B/C 代理商不能改 |
+
+B/C 额度发放：用户充值入账后按渠道 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从渠道 `billing_quota_accounts.available_minor` 扣减发放额（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。代理商实际充值、平台授予额度、用户充值、用户额度、终端消费、渠道批发成本和佣金基数分别记账。
 
 ### 2.5 媒体任务与审计
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `media_job` | `id`, `user_id`, `request_id`, `public_model_id`, `provider_id`, `upstream_job_id`, `status`, `progress`, `callback_url`, `expires_at` | queued/in_progress/completed/failed/cancelled/expired |
+| `media_job` | `id`, `user_id`, `request_id`, `public_model_id`, `provider_id`, `upstream_job_id`, `task_type`, `duration_seconds`, `resolution`, `aspect_ratio`, `fps`, `generate_audio`, `first_frame`, `last_frame`, `reference_video`, `reference_audio`, `source_job_id`, `images_json`, `status`, `progress`, `callback_url`, `expires_at` | queued/in_progress/completed/failed/cancelled/expired；`task_type` 为 t2v/i2v/first_frame/first_last_frame/reference/extend/edit/generate |
 | `media_asset` | `id`, `media_job_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `sha256`, `expires_at` | 受控对象存储，签名 URL 下载 |
+
+P0 落地时媒体实体由 `media` 模块拥有，物理表为 `media_jobs`、`media_assets`、`media_callback_events`。D3.2 用 `0002_d32_task_modes.sql` 补任务模式和参考素材列，禁止 AutoMigrate。拿到 `upstream_job_id` 后禁止再次 Create；回调按 `event_id` 幂等；结果默认 7 天后清理。图生/首帧要图，首尾帧要两帧，参考模式至少一种参考，延长/编辑要本用户已完成视频的 `source_job_id`，图像 edit 要 `images`。独立音频/转写/视频理解/复杂时间线仍是 P1。
+
+P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`ops_backup_drills`、`ops_canary`、`ops_alert_thresholds`。看板数字通过 gateway/billing 公开接口聚合，ops 不直连它们的表。预授权失败由 `billing_preauth_failures` 在事务外落库，供看板统计 `preauth_failed`。限流、熔断与写操作 `Idempotency-Key` 计数只存在 Redis（幂等记录 TTL 24h）。目录管理通过 catalog 公开接口做 Provider/模型/路由 CRUD，不直连表；`AttachProvider` 写 mapping 并追加 route candidate。P0 文本模型含 `tokenhub/echo-1` 与 `google/gemini-flash`（无 Gemini Base URL 时走沙箱适配器）。Bifrost 数据面默认走独立 sidecar，未配置 URL 时该 Adapter 不作为成功候选。过期预授权由 `billing.ReapExpired` 回收。
 | `audit_log` | `id`, `actor_user_id`, `action`, `resource_type`, `resource_id`, `before_json`, `after_json`, `ip`, `created_at` | 不可删除，敏感操作二次确认 |
 | `outbox_event` | `id`, `event_type`, `aggregate_type`, `aggregate_id`, `payload_json`, `status`, `attempts`, `available_at`, `published_at` | 可靠投递；可由本地 Worker 或 Dapr Pub/Sub 消费 |
 
@@ -80,7 +101,7 @@
 1. `available_minor + reserved_minor` 不得为负；预授权、释放和结算必须在同一账务事务中完成。
 2. 同一 `idempotency_key` 在同一业务域只能成功一次。
 3. `usage_event` 的客户金额按价格快照计算，价格变更不影响历史账单。
-4. B/C 用户消费只扣自己的权益/钱包；渠道额度用于风险上限和分配校验，不对同一请求重复扣款。
+4. B/C 用户消费只扣自己的权益/钱包和已发放 allocation；渠道额度在充值发放时扣减，请求时只做剩余风险帽检查，不对同一请求再扣渠道。
 5. 佣金基于已确认 usage 和渠道批发价产生，退款或人工冲正必须生成反向流水。
 6. 媒体任务拿到 `upstream_job_id` 后禁止自动重复提交；未知状态进入待确认。
 7. 跨模块一致性通过 Outbox 事件和补偿流水实现，不使用跨服务分布式事务；每个事件必须有版本和幂等消费记录。
@@ -135,7 +156,7 @@
 
 `frozen -> available -> paid`
 
-任一阶段均可因退款、冲正或风控进入 `reversed`，但不得删除原流水。
+封禁把未结算的 `frozen`/`available` 标成 `held`，解封后再按冻结截止时间回到 `frozen` 或 `available`。任一阶段均可因退款、冲正或风控进入 `reversed`，但不得删除原流水。
 
 ### 4.7 异步事件投递
 

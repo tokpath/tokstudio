@@ -31,10 +31,16 @@ go.work.sum
 node_modules/
 web/.next/
 web/out/
+web/test-results/
+web/playwright-report/
 npm-debug.log*
 
 # Local e2e leftovers
 /tmp/
+*.rdb
+
+# Encrypted offsite backups
+backups/
 
 # Firecrawl research cache
 .firecrawl/
@@ -45,3 +51,5 @@ npm-debug.log*
 # Editor/IDE
 # .idea/
 # .vscode/
+
+.feishu-sdlc/

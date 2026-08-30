@@ -89,7 +89,9 @@ if [[ "$ready_ok" != "1" ]]; then
 fi
 
 echo "== metrics"
-curl -sf "$API_URL/metrics" | grep -q "go_goroutines"
+# 先存再 grep：Prometheus 文本很长，curl|grep -q 会 SIGPIPE（pipefail 退出码 23）
+metrics="$(curl -sf "$API_URL/metrics")"
+echo "$metrics" | grep -q "go_goroutines"
 
 echo "== unauthenticated admin is 403"
 code="$(curl -sS -o /tmp/tokenhub_unauth.json -w "%{http_code}" "$API_URL/admin/audit-logs")"

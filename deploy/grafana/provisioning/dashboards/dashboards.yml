@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: TokenHub
+    orgId: 1
+    folder: TokenHub
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

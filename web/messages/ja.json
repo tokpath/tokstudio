@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "public": "公開サイト",
+    "docs": "ドキュメント",
+    "app": "ユーザー",
+    "channel": "チャネル",
+    "partner": "代理",
+    "admin": "管理",
+    "login": "ログイン"
+  },
+  "admin": {
+    "title": "プラットフォーム管理",
+    "overview": "概要",
+    "providers": "プロバイダ",
+    "models": "モデル",
+    "routes": "ルート",
+    "keys": "APIキー",
+    "users": "ユーザー",
+    "plans": "プラン審査",
+    "prices": "価格",
+    "payments": "支払い",
+    "metrics": "指標",
+    "commission": "手数料",
+    "billing": "ウォレット",
+    "usage": "利用量",
+    "media": "メディア",
+    "channels": "チャネル",
+    "promos": "プロモ",
+    "alerts": "警報",
+    "runbooks": "ランブック",
+    "audit": "監査",
+    "settings": "設定",
+    "refresh": "更新"
+  }
+}

@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info:
+  title: TokenHub M1 Identity
+  version: 0.1.0-m1
+paths:
+  /v1/auth/register:
+    post:
+      summary: Email password register with immutable promotion attribution
+  /v1/auth/login:
+    post:
+      summary: Password login, sets HttpOnly session cookie
+  /v1/auth/otp/request:
+    post:
+      summary: Send email OTP
+  /v1/auth/otp/verify:
+    post:
+      summary: Login with OTP
+  /v1/auth/google/start:
+    get:
+      summary: Start Google OAuth and stash promotion code
+  /v1/auth/google/callback:
+    post:
+      summary: Finish Google OAuth
+  /v1/me:
+    get:
+      summary: Current user
+    patch:
+      summary: Update display name and locale; channel stays immutable
+  /v1/me/password:
+    post:
+      summary: Change password with the current password
+  /v1/me/channel/switch:
+    post:
+      summary: Always denied
+  /v1/public/brand:
+    get:
+      summary: Brand theme by host
+  /v1/public/models:
+    get:
+      summary: Brand-scoped published models without Provider slugs
+  /channel/users:
+    get:
+      summary: Channel-scoped user list
+  /channel/attribution:
+    get:
+      summary: Channel-scoped attribution buckets by promotion code
+  /admin/users/{id}/ban:
+    post:
+      summary: Ban a user, reject login and API keys, hold unsettled commission
+  /admin/users/{id}/unban:
+    post:
+      summary: Restore an active user and release held commission
+  /admin/users/{id}/attribution:
+    post:
+      summary: Platform admin changes unique attribution with reason and confirm

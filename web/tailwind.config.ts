@@ -1,46 +1,41 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
   content: ["./app/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      colors: {
-        canvas: "var(--canvas)",
-        "canvas-raised": "var(--canvas-raised)",
-        ink: "var(--ink)",
-        "ink-secondary": "var(--ink-secondary)",
-        "ink-mute": "var(--ink-mute)",
-        hairline: "var(--hairline)",
-        brand: "var(--brand)",
-        "brand-press": "var(--brand-press)",
-        "brand-soft": "var(--brand-soft)",
-        "brand-emphasis": "var(--brand-emphasis)",
-        "on-brand": "var(--on-brand)",
-        success: "var(--success)",
-        hold: "var(--hold)",
-        danger: "var(--danger)",
-        degraded: "var(--degraded)",
-        code: "var(--code)",
-        "code-ink": "var(--code-ink)",
-        "code-hairline": "var(--code-hairline)",
-        scrim: "var(--scrim)",
-      },
-      borderRadius: {
-        stamp: "6px",
-        control: "4px",
-      },
       fontFamily: {
-        sans: [
-          "var(--font-sans)",
-          "PingFang SC",
-          "Hiragino Sans",
-          "Noto Sans SC",
-          "Noto Sans JP",
-          "system-ui",
-          "sans-serif",
-        ],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      colors: {
+        th: {
+          fg: "var(--th-fg)",
+          muted: "var(--th-muted)",
+          faint: "var(--th-faint)",
+          surface: "var(--th-surface-solid)",
+          elevated: "var(--th-elevated)",
+          border: "var(--th-border)",
+          primary: "var(--brand-primary)",
+        },
+      },
+      boxShadow: {
+        glow: "0 0 0 1px var(--th-border), 0 18px 50px -24px rgba(0,0,0,0.7)",
+        "glow-brand": "0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent), 0 16px 40px -20px var(--th-glow)",
+      },
+      keyframes: {
+        "th-enter": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "th-marquee": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+      },
+      animation: {
+        "th-enter": "th-enter 420ms ease-out both",
+        "th-marquee": "th-marquee 28s linear infinite",
       },
     },
   },

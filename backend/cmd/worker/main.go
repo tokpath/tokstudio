@@ -48,6 +48,10 @@ func main() {
 
 	worker := outbox.NewWorker(gdb, rdb, logger)
 	go worker.Run(ctx)
+	go application.Billing.RunReaper(ctx)
+	go application.Media.Run(ctx)
+	go application.Plans.RunRenewal(ctx, application.Payment.RenewCharger())
+	go application.Commission.RunUnfreeze(ctx)
 	logger.Info().Msg("worker_running")
 	<-ctx.Done()
 	logger.Info().Msg("worker_stopped")

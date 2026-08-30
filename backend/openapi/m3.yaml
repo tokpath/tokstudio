@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: TokenHub M3 Billing
+  version: 0.1.0-m3
+paths:
+  /v1/me/balance:
+    get:
+      summary: Wallet available and reserved balances in micro-USD
+  /v1/me/ledger:
+    get:
+      summary: Immutable wallet ledger
+  /v1/me/usage:
+    get:
+      summary: Usage events with price snapshots
+  /v1/topups:
+    post:
+      summary: Create a manual topup order (pending until finance confirms)
+  /v1/topups/redeem:
+    post:
+      summary: Redeem a sandbox credit code such as THE2E
+  /v1/chat/completions:
+    post:
+      summary: Pre-authorize then call upstream; 402 if balance is insufficient
+  /admin/topups/{id}/confirm:
+    post:
+      summary: Finance confirms a manual topup and credits the wallet
+  /admin/refunds:
+    post:
+      summary: Reverse a customer charge or paid topup
+  /admin/usage/replay:
+    post:
+      summary: Idempotent usage settle / pending reconciliation complete; requires X-Tokenhub-Confirm
+  /admin/billing/report:
+    get:
+      summary: Revenue, upstream cost, commission liability, pending count
+  /admin/commissions/recalc:
+    post:
+      summary: Reverse and recreate commission from the usage price snapshot
+  /admin/price-books:
+    get:
+      summary: List price versions including superseded snapshots
+    post:
+      summary: Publish a new price version; historical bills stay on their snapshot

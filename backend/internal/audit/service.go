@@ -118,12 +118,43 @@ func (s *Service) Record(ctx context.Context, in RecordInput) (*Entry, error) {
 	return &entry, nil
 }
 
-func (s *Service) List(ctx context.Context, limit int) ([]Entry, error) {
+type SearchQuery struct {
+	Action       string
+	ResourceType string
+	ResourceID   string
+	ActorUserID  string
+	RequestID    string
+	Query        string
+	Limit        int
+}
+
+func (s *Service) Search(ctx context.Context, q SearchQuery) ([]Entry, error) {
+	limit := q.Limit
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
+	dbq := s.db.WithContext(ctx).Model(&logRow{}).Order("created_at DESC").Limit(limit)
+	if q.Action != "" {
+		dbq = dbq.Where("action = ?", q.Action)
+	}
+	if q.ResourceType != "" {
+		dbq = dbq.Where("resource_type = ?", q.ResourceType)
+	}
+	if q.ResourceID != "" {
+		dbq = dbq.Where("resource_id = ?", q.ResourceID)
+	}
+	if q.ActorUserID != "" {
+		dbq = dbq.Where("actor_user_id = ?", q.ActorUserID)
+	}
+	if q.RequestID != "" {
+		dbq = dbq.Where("request_id = ?", q.RequestID)
+	}
+	if q.Query != "" {
+		like := "%" + q.Query + "%"
+		dbq = dbq.Where("action ILIKE ? OR resource_type ILIKE ? OR COALESCE(resource_id,'') ILIKE ?", like, like, like)
+	}
 	var rows []logRow
-	if err := s.db.WithContext(ctx).Order("created_at DESC").Limit(limit).Find(&rows).Error; err != nil {
+	if err := dbq.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]Entry, 0, len(rows))
@@ -131,6 +162,10 @@ func (s *Service) List(ctx context.Context, limit int) ([]Entry, error) {
 		out = append(out, toEntry(row))
 	}
 	return out, nil
+}
+
+func (s *Service) List(ctx context.Context, limit int) ([]Entry, error) {
+	return s.Search(ctx, SearchQuery{Limit: limit})
 }
 
 func toEntry(row logRow) Entry {

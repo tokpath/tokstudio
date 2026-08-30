@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: TokenHub M7 Ops
+  version: 0.1.0-m7
+paths:
+  /admin/ops/dashboard:
+    get:
+      summary: Provider/model/channel/user/key metrics plus money totals
+  /admin/metrics:
+    get:
+      summary: One dimension of request success latency and money
+  /admin/metrics/series:
+    get:
+      summary: Daily request and money time series from gateway and billing interfaces
+  /admin/metrics/daily:
+    get:
+      summary: Daily summary JSON or CSV export for a billing period window
+  /admin/ops/alerts:
+    get:
+      summary: Open operational alerts
+  /admin/ops/alerts/evaluate:
+    post:
+      summary: Evaluate dashboard thresholds into ops_alerts
+  /admin/ops/runbooks:
+    get:
+      summary: Runbooks for pending reconciliation, circuit, backup and TLS drills
+  /admin/ops/backup-drill:
+    post:
+      summary: Record a restore drill against RPO 15m / RTO 60m
+  /admin/ops/canary:
+    get:
+      summary: Current gray-release provider slug and percent
+    post:
+      summary: Gray-release chat traffic to a provider slug
+  /admin/ops/circuit/{id}:
+    post:
+      summary: Trip or reset a provider circuit breaker
+  /admin/providers/{id}/health-check:
+    post:
+      summary: Probe a provider without billing; tech/platform only, no confirm header
+  /admin/providers:
+    get:
+      summary: List providers including health, adapter and rate-limit fields
+    post:
+      summary: Create a provider (confirm + optional TOTP)
+  /admin/providers/{id}/accounts:
+    get:
+      summary: List upstream account pool fingerprints for a provider
+    post:
+      summary: Add an encrypted upstream account without rotating others
+  /admin/models:
+    get:
+      summary: List public models for admin
+  /admin/providers/{id}/sync:
+    post:
+      summary: Sync provider models and prices into draft
+  /admin/models/review:
+    post:
+      summary: Approve or reject a synced draft model
+  /admin/models/publish:
+    post:
+      summary: Publish a reviewed model into the customer catalog
+  /admin/models/deprecate:
+    post:
+      summary: Deprecate a model without deleting history
+  /admin/routes:
+    get:
+      summary: List route groups and candidates
+  /admin/me/2fa:
+    get:
+      summary: Read admin TOTP status without secret
+  /admin/me/2fa/setup:
+    post:
+      summary: Start admin TOTP enrollment
+  /admin/me/2fa/enable:
+    post:
+      summary: Confirm admin TOTP with a 6-digit code
+  /admin/me/2fa/disable:
+    post:
+      summary: Disable admin TOTP; requires confirm and TOTP if already enabled
+  /v1/chat/completions:
+    post:
+      summary: Includes google/gemini-flash via the Gemini sandbox adapter when no Base URL is set

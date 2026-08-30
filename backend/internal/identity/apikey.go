@@ -35,17 +35,18 @@ type apiKeyPolicyRow struct {
 func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_policies" }
 
 type APIKeyView struct {
-	ID         string     `json:"id"`
-	UserID     string     `json:"user_id,omitempty"`
-	Name       string     `json:"name"`
-	Prefix     string     `json:"prefix"`
-	Secret     string     `json:"key,omitempty"`
-	Status     string     `json:"status"`
-	RPMLimit   int        `json:"rpm_limit,omitempty"`
-	Allowlist  []string   `json:"allowlist,omitempty"`
-	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
-	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID               string     `json:"id"`
+	UserID           string     `json:"user_id,omitempty"`
+	Name             string     `json:"name"`
+	Prefix           string     `json:"prefix"`
+	Secret           string     `json:"key,omitempty"`
+	Status           string     `json:"status"`
+	RPMLimit         int        `json:"rpm_limit,omitempty"`
+	ConcurrencyLimit int        `json:"concurrency_limit,omitempty"`
+	Allowlist        []string   `json:"allowlist,omitempty"`
+	ExpiresAt        *time.Time `json:"expires_at,omitempty"`
+	LastUsedAt       *time.Time `json:"last_used_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error) {
@@ -69,7 +70,7 @@ type APIKeyPrincipal struct {
 	ConcurrencyLimit int
 }
 
-func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey string, allowlist []string, rpm int) (*APIKeyView, error) {
+func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey string, allowlist []string, rpm, concurrency int) (*APIKeyView, error) {
 	raw, err := crypto.RandomToken("thk_")
 	if err != nil {
 		return nil, err
@@ -81,6 +82,9 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	if rpm <= 0 {
 		rpm = 60
 	}
+	if concurrency <= 0 {
+		concurrency = 5
+	}
 	allowlist = normalizeAllowlist(allowlist)
 	row := apiKeyRow{
 		ID:               id.New("key"),
@@ -91,7 +95,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 		SecretCiphertext: cipher,
 		Status:           "active",
 		RPMLimit:         rpm,
-		ConcurrencyLimit: 5,
+		ConcurrencyLimit: concurrency,
 		CreatedAt:        time.Now().UTC(),
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -100,7 +104,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	for _, model := range allowlist {
 		_ = s.db.WithContext(ctx).Create(&apiKeyPolicyRow{APIKeyID: row.ID, PublicModelID: model, Allowed: true}).Error
 	}
-	return &APIKeyView{ID: row.ID, Name: row.Name, Prefix: row.Prefix, Secret: raw, Status: row.Status, RPMLimit: row.RPMLimit, Allowlist: allowlist, CreatedAt: row.CreatedAt}, nil
+	return &APIKeyView{ID: row.ID, Name: row.Name, Prefix: row.Prefix, Secret: raw, Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit, Allowlist: allowlist, CreatedAt: row.CreatedAt}, nil
 }
 
 func (s *Service) ListAPIKeys(ctx context.Context, user Principal, encKey string) ([]APIKeyView, error) {
@@ -226,7 +230,8 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 func viewFromRow(row apiKeyRow, secret string) APIKeyView {
 	return APIKeyView{
 		ID: row.ID, UserID: row.UserID, Name: row.Name, Prefix: row.Prefix, Secret: secret,
-		Status: row.Status, RPMLimit: row.RPMLimit, ExpiresAt: row.ExpiresAt, LastUsedAt: row.LastUsedAt, CreatedAt: row.CreatedAt,
+		Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit,
+		ExpiresAt: row.ExpiresAt, LastUsedAt: row.LastUsedAt, CreatedAt: row.CreatedAt,
 	}
 }
 

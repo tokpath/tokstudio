@@ -92,15 +92,16 @@ func (a *App) requireAPIKey() gin.HandlerFunc {
 
 func (a *App) createAPIKey(c *gin.Context) {
 	var body struct {
-		Name      string   `json:"name"`
-		Allowlist []string `json:"allowlist"`
-		RPMLimit  int      `json:"rpm_limit"`
+		Name             string   `json:"name"`
+		Allowlist        []string `json:"allowlist"`
+		RPMLimit         int      `json:"rpm_limit"`
+		ConcurrencyLimit int      `json:"concurrency_limit"`
 	}
 	_ = c.ShouldBindJSON(&body)
 	if body.Name == "" {
 		body.Name = "default"
 	}
-	key, err := a.Identity.CreateAPIKey(c.Request.Context(), *a.currentPrincipal(c), body.Name, a.Config.EncryptionKey, body.Allowlist, body.RPMLimit)
+	key, err := a.Identity.CreateAPIKey(c.Request.Context(), *a.currentPrincipal(c), body.Name, a.Config.EncryptionKey, body.Allowlist, body.RPMLimit, body.ConcurrencyLimit)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "创建 Key 失败", true)
 		return

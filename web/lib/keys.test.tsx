@@ -26,6 +26,7 @@ describe("KeysList", () => {
             prefix: "thk_gem1",
             status: "active",
             rpm_limit: 30,
+            concurrency_limit: 1,
             allowlist: ["google/gemini-flash"],
           },
         ]}
@@ -33,6 +34,7 @@ describe("KeysList", () => {
     );
     expect(screen.getByText(/模型白名单：google\/gemini-flash/)).toBeTruthy();
     expect(screen.getByText(/RPM 30/)).toBeTruthy();
+    expect(screen.getByText(/并发 1/)).toBeTruthy();
   });
 
   it("parses comma-separated allowlists", () => {

@@ -14,6 +14,7 @@ export type APIKeyItem = {
   key?: string;
   status: string;
   rpm_limit?: number;
+  concurrency_limit?: number;
   allowlist?: string[];
   expires_at?: string | null;
   last_used_at?: string | null;
@@ -37,6 +38,7 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
           <p>
             {item.name} · {item.prefix} · {item.status}
             {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}
+            {item.concurrency_limit ? ` · 并发 ${item.concurrency_limit}` : ""}
           </p>
           <p className="text-slate-400">
             模型白名单：{item.allowlist?.length ? item.allowlist.join(", ") : "不限制"}
@@ -53,7 +55,8 @@ export default function KeysPanel() {
   const [name, setName] = useState("default");
   const [allowlist, setAllowlist] = useState("");
   const [rpm, setRpm] = useState("");
-  const [createMessage, setCreateMessage] = useState("空白名单不限制模型；填了之后，不在名单里的模型会返回 403 model_not_allowed。");
+  const [concurrency, setConcurrency] = useState("");
+  const [createMessage, setCreateMessage] = useState("空白名单不限制模型；填了之后，不在名单里的模型会返回 403 model_not_allowed。RPM 默认 60，并发默认 5。");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
 
@@ -70,13 +73,17 @@ export default function KeysPanel() {
 
   async function createKey() {
     const models = parseAllowlist(allowlist);
-    const payload: { name: string; allowlist?: string[]; rpm_limit?: number } = { name };
+    const payload: { name: string; allowlist?: string[]; rpm_limit?: number; concurrency_limit?: number } = { name };
     if (models.length > 0) {
       payload.allowlist = models;
     }
     const rpmLimit = Number(rpm);
     if (rpm && Number.isFinite(rpmLimit) && rpmLimit > 0) {
       payload.rpm_limit = rpmLimit;
+    }
+    const concLimit = Number(concurrency);
+    if (concurrency && Number.isFinite(concLimit) && concLimit > 0) {
+      payload.concurrency_limit = concLimit;
     }
     const response = await fetch(`${apiBase}/v1/me/api-keys`, {
       method: "POST",
@@ -91,9 +98,10 @@ export default function KeysPanel() {
     }
     const created = body.item || {};
     const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : "不限制";
-    setCreateMessage(`已创建 ${created.id || ""} ${created.name || name} → 白名单 ${listed}`);
+    setCreateMessage(`已创建 ${created.id || ""} ${created.name || name} → 白名单 ${listed} / 并发 ${created.concurrency_limit || 5}`);
     setAllowlist("");
     setRpm("");
+    setConcurrency("");
     await refresh();
   }
 
@@ -144,6 +152,13 @@ export default function KeysPanel() {
           aria-label="RPM 限额"
           placeholder="可选 RPM，默认 60"
           onChange={(e) => setRpm(e.target.value)}
+        />
+        <Input
+          id="api-key-concurrency"
+          value={concurrency}
+          aria-label="并发限额"
+          placeholder="可选并发，默认 5"
+          onChange={(e) => setConcurrency(e.target.value)}
         />
         <div className="flex flex-wrap gap-3">
           <Button onClick={createKey}>创建</Button>

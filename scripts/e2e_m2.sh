@@ -81,6 +81,22 @@ allowed="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['k
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $allowed" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"allow"}]}' | grep -q echo-primary
 
+echo "== API Key concurrency limit"
+concjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -d '{"name":"one-slot","concurrency_limit":1}')"
+echo "$concjson" | grep -q '"concurrency_limit":1'
+cid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$concjson")"
+ckey="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$concjson")"
+redis-cli INCR "tokenhub:conc:$cid" >/dev/null
+busy="$(curl -sS -o /tmp/m2_conc.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $ckey" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"busy"}]}')"
+test "$busy" = "429"
+grep -q rate_limited /tmp/m2_conc.json
+redis-cli DECR "tokenhub:conc:$cid" >/dev/null
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $ckey" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"free"}]}' | grep -q echo-primary
+
 echo "== OEM docs whitelist"
 docs="$(curl -sf -H 'Host: oem.localhost' "$API_URL/v1/public/docs-context")"
 echo "$docs" | grep -q tokenhub/oem-demo

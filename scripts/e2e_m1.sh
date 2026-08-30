@@ -122,6 +122,7 @@ echo "$oemdocs" | grep -q /v1/messages
 apphtml="$(curl -sf "$WEB_URL/app")"
 echo "$apphtml" | grep -q "接入示例"
 echo "$apphtml" | grep -q "模型白名单"
+echo "$apphtml" | grep -q "并发限额"
 channelhtml="$(curl -sf "$WEB_URL/channel")"
 echo "$channelhtml" | grep -q "本渠道用户"
 echo "$channelhtml" | grep -q "本渠道套餐"

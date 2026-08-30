@@ -247,6 +247,37 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	if okChat["provider"] != catalog.PrimaryProvider {
 		t.Fatalf("echo-only key should chat: %+v", okChat)
 	}
+
+	oneSlot := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{
+		"name": "one-slot", "concurrency_limit": 1,
+	})
+	slotItem := oneSlot["item"].(map[string]any)
+	if conc, _ := slotItem["concurrency_limit"].(float64); conc != 1 {
+		t.Fatalf("create should echo concurrency_limit: %+v", oneSlot)
+	}
+	slotKey := slotItem["key"].(string)
+	slotID := slotItem["id"].(string)
+	if err := application.Redis.Incr(ctx, "tokenhub:conc:"+slotID).Err(); err != nil {
+		t.Fatal(err)
+	}
+	blocked := mustStatusBody(t, http.MethodPost, server.URL+"/v1/chat/completions", slotKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "busy"}},
+	})
+	if blocked.status != http.StatusTooManyRequests {
+		t.Fatalf("occupied concurrency slot should 429, got %d %+v", blocked.status, blocked.body)
+	}
+	if errObj, _ := blocked.body["error"].(map[string]any); errObj["code"] != "rate_limited" {
+		t.Fatalf("expected rate_limited, got %+v", blocked.body)
+	}
+	if err := application.Redis.Decr(ctx, "tokenhub:conc:"+slotID).Err(); err != nil {
+		t.Fatal(err)
+	}
+	free := postJSONRaw(t, server.URL+"/v1/chat/completions", slotKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "free"}},
+	})
+	if free["provider"] != catalog.PrimaryProvider {
+		t.Fatalf("released slot should chat: %+v", free)
+	}
 }
 
 func mustApp(t *testing.T, cfg *config.Config) *app.App {

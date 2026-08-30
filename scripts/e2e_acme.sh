@@ -11,12 +11,18 @@ ADMIN_TOKEN="${TOKENHUB_BOOTSTRAP_ADMIN_TOKEN:-dev_admin_change_me}"
 PEBBLE_DIR="${TOKENHUB_ACME_DIRECTORY:-https://127.0.0.1:14000/dir}"
 STARTED_API=0
 STARTED_PEBBLE=0
+STARTED_PEBBLE_BIN=0
 API_PID=""
+PEBBLE_PID=""
 API_LOG="$(mktemp)"
+PEBBLE_LOG="$(mktemp)"
 
 cleanup() {
   if [[ "$STARTED_API" == "1" && -n "$API_PID" ]]; then
     kill "$API_PID" 2>/dev/null || true
+  fi
+  if [[ "$STARTED_PEBBLE_BIN" == "1" && -n "$PEBBLE_PID" ]]; then
+    kill "$PEBBLE_PID" 2>/dev/null || true
   fi
   if [[ "$STARTED_PEBBLE" == "1" ]]; then
     docker rm -f tokenhub-pebble-e2e >/dev/null 2>&1 || true
@@ -54,21 +60,36 @@ if [[ -z "${TOKENHUB_DATABASE_URL:-}" || -z "${TOKENHUB_REDIS_URL:-}" ]]; then
 fi
 
 if ! curl -skf "$PEBBLE_DIR" >/dev/null 2>&1; then
-  if ! command -v docker >/dev/null; then
-    echo "pebble directory $PEBBLE_DIR is down and docker is missing" >&2
+  echo "starting pebble for ACME e2e"
+  if command -v docker >/dev/null; then
+    docker rm -f tokenhub-pebble-e2e >/dev/null 2>&1 || true
+    docker run -d --name tokenhub-pebble-e2e \
+      -p 14000:14000 -p 15000:15000 \
+      -e PEBBLE_VA_ALWAYS_VALID=1 \
+      -e PEBBLE_VA_NOSLEEP=1 \
+      -e PEBBLE_WFE_NONCEREJECT=0 \
+      ghcr.io/letsencrypt/pebble:2.6.0 \
+      -config /test/config/pebble-config.json >/dev/null
+    STARTED_PEBBLE=1
+  else
+    PEBBLE_SRC="${PEBBLE_SRC:-/tmp/tokenhub-pebble}"
+    if [[ ! -f "$PEBBLE_SRC/test/config/pebble-config.json" ]]; then
+      rm -rf "$PEBBLE_SRC"
+      git clone --depth 1 --branch v2.6.0 https://github.com/letsencrypt/pebble.git "$PEBBLE_SRC"
+    fi
+    (
+      cd "$PEBBLE_SRC"
+      PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_VA_NOSLEEP=1 PEBBLE_WFE_NONCEREJECT=0 \
+        go run ./cmd/pebble -config ./test/config/pebble-config.json
+    ) >"$PEBBLE_LOG" 2>&1 &
+    PEBBLE_PID=$!
+    STARTED_PEBBLE_BIN=1
+  fi
+  if ! wait_http "$PEBBLE_DIR" insecure; then
+    echo "pebble failed to start; log:" >&2
+    tail -n 80 "$PEBBLE_LOG" >&2
     exit 1
   fi
-  echo "starting pebble for ACME e2e"
-  docker rm -f tokenhub-pebble-e2e >/dev/null 2>&1 || true
-  docker run -d --name tokenhub-pebble-e2e \
-    -p 14000:14000 -p 15000:15000 \
-    -e PEBBLE_VA_ALWAYS_VALID=1 \
-    -e PEBBLE_VA_NOSLEEP=1 \
-    -e PEBBLE_WFE_NONCEREJECT=0 \
-    ghcr.io/letsencrypt/pebble:2.8.0 \
-    -config /test/config/pebble-config.json >/dev/null
-  STARTED_PEBBLE=1
-  wait_http "$PEBBLE_DIR" insecure
 fi
 
 if ! curl -sf "$API_URL/healthz" >/dev/null 2>&1; then

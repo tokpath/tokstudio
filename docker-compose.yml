@@ -139,7 +139,7 @@ services:
       - api
 
   pebble:
-    image: ghcr.io/letsencrypt/pebble:2.8.0
+    image: ghcr.io/letsencrypt/pebble:2.6.0
     command: ["-config", "/test/config/pebble-config.json"]
     environment:
       PEBBLE_VA_ALWAYS_VALID: "1"

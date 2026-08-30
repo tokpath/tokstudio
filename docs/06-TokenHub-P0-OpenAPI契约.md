@@ -157,7 +157,7 @@
 - 上游账号池：`GET/POST /admin/providers/{id}/accounts`、`PATCH /admin/providers/{id}/accounts/{aid}`；列表只回指纹，不回密文；冷却/失效账号不参与路由；管理页 `/admin/providers`「账号池」可读取、添加、冷却、停用；
 - 模型：`GET/POST/PATCH /admin/models`、`POST /admin/models/attach` 挂载 Provider 映射；`POST /admin/providers/{id}/sync` 同步结果进入 `draft`；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`，模型 ID 含斜杠）审核、发布、弃用，不删除历史映射和价格版本；管理页 `/admin/models` 可手工创建（需确认，默认 `draft`，不要改 `tokenhub/echo-1`）、同步/审核发布、挂载、弃用；
 - 路由：`GET/POST/PATCH /admin/routes`；创建和改策略需二次确认；管理页 `/admin/routes` 可创建路由组并改 `priority`/`weight`/`price`/`health`；
-- 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；创建和改状态需二次确认；管理页 `/admin/channels` 可创建渠道并改状态（不要停用官方/代理商/OEM 种子渠道）；`disabled` 后聊天/媒体返回 `403 channel_disabled`，`GET /v1/me/balance` 与 usage 仍可读；
+- 渠道/代理：`GET/POST/PATCH /admin/channels`、归因、额度和佣金策略；创建和改状态需二次确认；管理页 `/admin/channels` 可创建渠道并改状态（不要停用官方/代理商/OEM 种子渠道）；新建渠道会复制官方已启用模型白名单；`disabled` 后聊天/媒体返回 `403 channel_disabled`，`GET /v1/me/balance` 与 usage 仍可读；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
 - 管理员 2FA：`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；管理页 `/admin/settings` 可读取/绑定/启用/关闭；关闭需确认，启用后再关闭还要 TOTP；不要在共享管理员上留下 `enabled`；
 - API Key 摘要：`GET /admin/api-keys`（只有 prefix，无完整密钥）；`POST /admin/api-keys/{id}/disable` 管理员禁用（二次确认，平台/技术可禁任意用户 Key）；管理页 `/admin/keys` 可禁用，响应不回密文；

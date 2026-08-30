@@ -126,15 +126,20 @@ export default function KeysPanel() {
         完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。
       </p>
       <div className="mb-4 grid max-w-xl gap-3">
+        <label className="text-sm text-slate-400" htmlFor="api-key-name">
+          Key 名称
+        </label>
+        <Input id="api-key-name" value={name} aria-label="API Key 名称" placeholder="Key 名称" onChange={(e) => setName(e.target.value)} />
         <h3 className="text-lg font-medium">模型白名单</h3>
-        <Input value={name} aria-label="API Key 名称" onChange={(e) => setName(e.target.value)} />
         <Input
+          id="api-key-allowlist"
           value={allowlist}
           aria-label="模型白名单"
           placeholder="逗号分隔模型，空则不限制"
           onChange={(e) => setAllowlist(e.target.value)}
         />
         <Input
+          id="api-key-rpm"
           value={rpm}
           aria-label="RPM 限额"
           placeholder="可选 RPM，默认 60"

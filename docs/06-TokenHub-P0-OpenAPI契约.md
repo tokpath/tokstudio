@@ -117,8 +117,8 @@
 - `POST /v1/me/subscriptions`
 - `GET /v1/me/subscriptions`
 - `POST /v1/me/subscriptions/{id}/cancel`
-- `GET /v1/me/api-keys`
-- `POST /v1/me/api-keys`
+- `GET /v1/me/api-keys`：列表回带 `allowlist` 与 `rpm_limit`；完整 Key 仅创建者可见。
+- `POST /v1/me/api-keys`：接受 `name`、`allowlist`、`rpm_limit`。空白名单不限制模型；非空时聊天或列模型不在名单内返回 `403 model_not_allowed`。
 - `POST /v1/me/api-keys/{id}/rotate`
 - `POST /v1/me/api-keys/{id}/disable`
 - `POST /v1/me/api-keys/{id}/copy`：复制完整 Key，只写审计不改密文

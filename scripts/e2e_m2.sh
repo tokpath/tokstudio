@@ -63,6 +63,24 @@ echo "== stream"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","stream":true,"messages":[{"role":"user","content":"hi"}]}' | grep -q 'data:'
 
+echo "== API Key model allowlist"
+limitedjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -d '{"name":"gemini-only","allowlist":["google/gemini-flash"]}')"
+echo "$limitedjson" | grep -q google/gemini-flash
+limited="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$limitedjson")"
+listed="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/api-keys")"
+echo "$listed" | grep -q google/gemini-flash
+deny="$(curl -sS -o /tmp/m2_deny.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $limited" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"deny"}]}')"
+test "$deny" = "403"
+grep -q model_not_allowed /tmp/m2_deny.json
+allowedjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
+  -d '{"name":"echo-only","allowlist":["tokenhub/echo-1"]}')"
+allowed="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$allowedjson")"
+curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $allowed" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"allow"}]}' | grep -q echo-primary
+
 echo "== OEM docs whitelist"
 docs="$(curl -sf -H 'Host: oem.localhost' "$API_URL/v1/public/docs-context")"
 echo "$docs" | grep -q tokenhub/oem-demo

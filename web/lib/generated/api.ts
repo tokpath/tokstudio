@@ -149,6 +149,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/api-keys/{id}/disable"
   },
   {
+    "method": "GET",
+    "path": "/v1/me/api-keys"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/api-keys"
+  },
+  {
     "method": "POST",
     "path": "/v1/me/api-keys/{id}/rotate"
   },

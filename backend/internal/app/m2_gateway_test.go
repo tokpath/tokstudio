@@ -195,6 +195,58 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	if reset["provider"] != catalog.PrimaryProvider {
 		t.Fatalf("priority strategy should return to primary, got %+v", reset)
 	}
+
+	limited := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{
+		"name": "gemini-only", "allowlist": []string{catalog.GeminiModelID},
+	})
+	limitedItem := limited["item"].(map[string]any)
+	limitedKey := limitedItem["key"].(string)
+	if allow, _ := limitedItem["allowlist"].([]any); len(allow) != 1 || allow[0] != catalog.GeminiModelID {
+		t.Fatalf("create should echo allowlist: %+v", limited)
+	}
+	listed := getAuthJSON(t, server.URL+"/v1/me/api-keys", session)
+	foundLimited := false
+	for _, raw := range listed["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["id"] != limitedItem["id"] {
+			continue
+		}
+		foundLimited = true
+		allow, _ := row["allowlist"].([]any)
+		if len(allow) != 1 || allow[0] != catalog.GeminiModelID {
+			t.Fatalf("list missing allowlist: %+v", row)
+		}
+	}
+	if !foundLimited {
+		t.Fatalf("created limited key missing from list: %+v", listed)
+	}
+	denied := mustStatusBody(t, http.MethodPost, server.URL+"/v1/chat/completions", limitedKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "deny"}},
+	})
+	if denied.status != http.StatusForbidden {
+		t.Fatalf("echo should be model_not_allowed, got %d %+v", denied.status, denied.body)
+	}
+	if errObj, _ := denied.body["error"].(map[string]any); errObj["code"] != "model_not_allowed" {
+		t.Fatalf("expected model_not_allowed, got %+v", denied.body)
+	}
+	models := getAuthJSON(t, server.URL+"/v1/models", limitedKey)
+	data, _ := models["data"].([]any)
+	for _, raw := range data {
+		row, _ := raw.(map[string]any)
+		if row["id"] == catalog.EchoModelID {
+			t.Fatalf("limited key should not list echo: %+v", models)
+		}
+	}
+	allowed := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{
+		"name": "echo-only", "allowlist": []string{catalog.EchoModelID}, "rpm_limit": 30,
+	})
+	echoKey := allowed["item"].(map[string]any)["key"].(string)
+	okChat := postJSONRaw(t, server.URL+"/v1/chat/completions", echoKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "allow"}},
+	})
+	if okChat["provider"] != catalog.PrimaryProvider {
+		t.Fatalf("echo-only key should chat: %+v", okChat)
+	}
 }
 
 func mustApp(t *testing.T, cfg *config.Config) *app.App {
@@ -263,4 +315,24 @@ func mustJSON(v any) []byte {
 func containsText(body map[string]any, want string) bool {
 	raw, _ := json.Marshal(body)
 	return strings.Contains(string(raw), want)
+}
+
+type statusBody struct {
+	status int
+	body   map[string]any
+}
+
+func mustStatusBody(t *testing.T, method, url, token string, payload map[string]any) statusBody {
+	t.Helper()
+	req, _ := http.NewRequest(method, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	return statusBody{status: resp.StatusCode, body: out}
 }

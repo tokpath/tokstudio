@@ -14,9 +14,17 @@ export type APIKeyItem = {
   key?: string;
   status: string;
   rpm_limit?: number;
+  allowlist?: string[];
   expires_at?: string | null;
   last_used_at?: string | null;
 };
+
+export function parseAllowlist(raw: string): string[] {
+  return raw
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export function KeysList({ items }: { items: APIKeyItem[] }) {
   if (items.length === 0) {
@@ -28,6 +36,10 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
         <li key={item.id} className="rounded border border-slate-800 p-3">
           <p>
             {item.name} · {item.prefix} · {item.status}
+            {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}
+          </p>
+          <p className="text-slate-400">
+            模型白名单：{item.allowlist?.length ? item.allowlist.join(", ") : "不限制"}
           </p>
           {item.key ? <p className="break-all text-slate-400">{item.key}</p> : null}
         </li>
@@ -39,6 +51,9 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
 export default function KeysPanel() {
   const [items, setItems] = useState<APIKeyItem[]>([]);
   const [name, setName] = useState("default");
+  const [allowlist, setAllowlist] = useState("");
+  const [rpm, setRpm] = useState("");
+  const [createMessage, setCreateMessage] = useState("空白名单不限制模型；填了之后，不在名单里的模型会返回 403 model_not_allowed。");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
 
@@ -54,17 +69,32 @@ export default function KeysPanel() {
   }
 
   async function createKey() {
+    const models = parseAllowlist(allowlist);
+    const payload: { name: string; allowlist?: string[]; rpm_limit?: number } = { name };
+    if (models.length > 0) {
+      payload.allowlist = models;
+    }
+    const rpmLimit = Number(rpm);
+    if (rpm && Number.isFinite(rpmLimit) && rpmLimit > 0) {
+      payload.rpm_limit = rpmLimit;
+    }
     const response = await fetch(`${apiBase}/v1/me/api-keys`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(payload),
     });
     const body = await response.json();
-    setMessage(response.ok ? "已创建 API Key，请复制保存" : body.error?.message || "创建失败");
-    if (response.ok) {
-      await refresh();
+    if (!response.ok) {
+      setCreateMessage(body.error?.message || "创建失败");
+      return;
     }
+    const created = body.item || {};
+    const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : "不限制";
+    setCreateMessage(`已创建 ${created.id || ""} ${created.name || name} → 白名单 ${listed}`);
+    setAllowlist("");
+    setRpm("");
+    await refresh();
   }
 
   async function act(id: string, action: "rotate" | "disable" | "expire" | "copy") {
@@ -95,12 +125,28 @@ export default function KeysPanel() {
       <p className="mb-4 text-sm text-slate-400">
         完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。
       </p>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <Input value={name} onChange={(e) => setName(e.target.value)} />
-        <Button onClick={createKey}>创建</Button>
-        <Button variant="outline" onClick={refresh}>
-          刷新
-        </Button>
+      <div className="mb-4 grid max-w-xl gap-3">
+        <h3 className="text-lg font-medium">模型白名单</h3>
+        <Input value={name} aria-label="API Key 名称" onChange={(e) => setName(e.target.value)} />
+        <Input
+          value={allowlist}
+          aria-label="模型白名单"
+          placeholder="逗号分隔模型，空则不限制"
+          onChange={(e) => setAllowlist(e.target.value)}
+        />
+        <Input
+          value={rpm}
+          aria-label="RPM 限额"
+          placeholder="可选 RPM，默认 60"
+          onChange={(e) => setRpm(e.target.value)}
+        />
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={createKey}>创建</Button>
+          <Button variant="outline" onClick={refresh}>
+            刷新
+          </Button>
+        </div>
+        <p className="text-sm text-slate-300">{createMessage}</p>
       </div>
       <KeysList items={items} />
       <ul className="mt-4 space-y-2 text-sm">

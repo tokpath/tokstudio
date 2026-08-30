@@ -305,6 +305,17 @@ paths:
       responses:
         "200":
           description: key disabled, no secret echoed
+  /v1/me/api-keys:
+    get:
+      operationId: listMyAPIKeys
+      responses:
+        "200":
+          description: keys with allowlist, rpm_limit and optional secret
+    post:
+      operationId: createAPIKey
+      responses:
+        "201":
+          description: created key with allowlist, rpm_limit and secret
   /v1/me/api-keys/{id}/rotate:
     post:
       operationId: rotateAPIKey

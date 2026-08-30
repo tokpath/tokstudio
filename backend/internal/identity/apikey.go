@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
@@ -56,6 +57,7 @@ func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error)
 	for _, row := range rows {
 		out = append(out, viewFromRow(row, ""))
 	}
+	s.attachAllowlists(ctx, out)
 	return out, nil
 }
 
@@ -79,6 +81,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	if rpm <= 0 {
 		rpm = 60
 	}
+	allowlist = normalizeAllowlist(allowlist)
 	row := apiKeyRow{
 		ID:               id.New("key"),
 		UserID:           user.UserID,
@@ -97,7 +100,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	for _, model := range allowlist {
 		_ = s.db.WithContext(ctx).Create(&apiKeyPolicyRow{APIKeyID: row.ID, PublicModelID: model, Allowed: true}).Error
 	}
-	return &APIKeyView{ID: row.ID, Name: row.Name, Prefix: row.Prefix, Secret: raw, Status: row.Status, Allowlist: allowlist, CreatedAt: row.CreatedAt}, nil
+	return &APIKeyView{ID: row.ID, Name: row.Name, Prefix: row.Prefix, Secret: raw, Status: row.Status, RPMLimit: row.RPMLimit, Allowlist: allowlist, CreatedAt: row.CreatedAt}, nil
 }
 
 func (s *Service) ListAPIKeys(ctx context.Context, user Principal, encKey string) ([]APIKeyView, error) {
@@ -110,6 +113,7 @@ func (s *Service) ListAPIKeys(ctx context.Context, user Principal, encKey string
 		secret, _ := crypto.Open(encKey, row.SecretCiphertext)
 		out = append(out, viewFromRow(row, secret))
 	}
+	s.attachAllowlists(ctx, out)
 	return out, nil
 }
 
@@ -154,6 +158,7 @@ func (s *Service) RotateAPIKey(ctx context.Context, user Principal, keyID, encKe
 	view := viewFromRow(*row, raw)
 	view.Prefix = raw[:8]
 	view.Status = "active"
+	view = s.withAllowlist(ctx, view)
 	return &view, nil
 }
 
@@ -167,6 +172,7 @@ func (s *Service) DisableAPIKey(ctx context.Context, user Principal, keyID strin
 	}
 	view := viewFromRow(*row, "")
 	view.Status = "disabled"
+	view = s.withAllowlist(ctx, view)
 	return &view, nil
 }
 
@@ -183,6 +189,7 @@ func (s *Service) ExpireAPIKey(ctx context.Context, user Principal, keyID string
 	}
 	view := viewFromRow(*row, "")
 	view.ExpiresAt = &when
+	view = s.withAllowlist(ctx, view)
 	return &view, nil
 }
 
@@ -221,4 +228,54 @@ func viewFromRow(row apiKeyRow, secret string) APIKeyView {
 		ID: row.ID, UserID: row.UserID, Name: row.Name, Prefix: row.Prefix, Secret: secret,
 		Status: row.Status, RPMLimit: row.RPMLimit, ExpiresAt: row.ExpiresAt, LastUsedAt: row.LastUsedAt, CreatedAt: row.CreatedAt,
 	}
+}
+
+func normalizeAllowlist(in []string) []string {
+	out := make([]string, 0, len(in))
+	seen := map[string]struct{}{}
+	for _, model := range in {
+		model = strings.TrimSpace(model)
+		if model == "" {
+			continue
+		}
+		if _, ok := seen[model]; ok {
+			continue
+		}
+		seen[model] = struct{}{}
+		out = append(out, model)
+	}
+	return out
+}
+
+func (s *Service) loadAllowlists(ctx context.Context, keyIDs []string) map[string][]string {
+	out := map[string][]string{}
+	if len(keyIDs) == 0 {
+		return out
+	}
+	var policies []apiKeyPolicyRow
+	if err := s.db.WithContext(ctx).Where("api_key_id IN ? AND allowed = true", keyIDs).Order("public_model_id ASC").Find(&policies).Error; err != nil {
+		return out
+	}
+	for _, policy := range policies {
+		out[policy.APIKeyID] = append(out[policy.APIKeyID], policy.PublicModelID)
+	}
+	return out
+}
+
+func (s *Service) attachAllowlists(ctx context.Context, views []APIKeyView) {
+	ids := make([]string, 0, len(views))
+	for _, view := range views {
+		ids = append(ids, view.ID)
+	}
+	lists := s.loadAllowlists(ctx, ids)
+	for i := range views {
+		views[i].Allowlist = lists[views[i].ID]
+	}
+}
+
+func (s *Service) withAllowlist(ctx context.Context, view APIKeyView) APIKeyView {
+	if list := s.loadAllowlists(ctx, []string{view.ID})[view.ID]; len(list) > 0 {
+		view.Allowlist = list
+	}
+	return view
 }

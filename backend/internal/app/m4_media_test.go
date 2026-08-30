@@ -156,7 +156,7 @@ func TestM4MediaJobs(t *testing.T) {
 		t.Fatalf("params echo: %+v", params)
 	}
 
-	badI2V := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-i2v", map[string]any{
+	badI2V := mustStatusBody(t, http.MethodPost, server.URL+"/v1/videos", apiKey, map[string]any{
 		"model": catalog.SeedanceModelID, "prompt": "need image", "task_type": "i2v",
 	})
 	if badI2V.status != http.StatusBadRequest {
@@ -169,7 +169,7 @@ func TestM4MediaJobs(t *testing.T) {
 		t.Fatalf("i2v: %+v", i2v)
 	}
 
-	badFLF := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-flf", map[string]any{
+	badFLF := mustStatusBody(t, http.MethodPost, server.URL+"/v1/videos", apiKey, map[string]any{
 		"model": catalog.SeedanceModelID, "prompt": "flf", "task_type": "first_last_frame", "first_frame": "https://example.test/a.png",
 	})
 	if badFLF.status != http.StatusBadRequest {
@@ -190,7 +190,7 @@ func TestM4MediaJobs(t *testing.T) {
 		t.Fatalf("reference: %+v", ref)
 	}
 
-	badExt := postStatus(t, server.URL+"/v1/videos", apiKey, "idem-bad-ext", map[string]any{
+	badExt := mustStatusBody(t, http.MethodPost, server.URL+"/v1/videos", apiKey, map[string]any{
 		"model": catalog.SeedanceModelID, "prompt": "extend", "task_type": "extend",
 	})
 	if badExt.status != http.StatusBadRequest {
@@ -201,7 +201,7 @@ func TestM4MediaJobs(t *testing.T) {
 		"password": "password1", "promotion_code": "THA1",
 	})
 	otherKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", tokenOf(other), map[string]any{"name": "m4-other"})["item"].(map[string]any)["key"].(string)
-	stolen := postStatus(t, server.URL+"/v1/videos", otherKey, "idem-steal", map[string]any{
+	stolen := mustStatusBody(t, http.MethodPost, server.URL+"/v1/videos", otherKey, map[string]any{
 		"model": catalog.SeedanceModelID, "prompt": "steal", "task_type": "extend", "source_job_id": first["id"],
 	})
 	if stolen.status != http.StatusBadRequest {
@@ -220,7 +220,7 @@ func TestM4MediaJobs(t *testing.T) {
 		t.Fatalf("extend route: %+v", viaRoute)
 	}
 
-	badEdit := postStatus(t, server.URL+"/v1/images/edits", apiKey, "idem-bad-img-edit", map[string]any{
+	badEdit := mustStatusBody(t, http.MethodPost, server.URL+"/v1/images/edits", apiKey, map[string]any{
 		"model": catalog.ImageModelID, "prompt": "edit me",
 	})
 	if badEdit.status != http.StatusBadRequest {
@@ -232,28 +232,6 @@ func TestM4MediaJobs(t *testing.T) {
 	if imgEdit["object"] != "image" || imgEdit["task_type"] != "edit" {
 		t.Fatalf("image edit: %+v", imgEdit)
 	}
-}
-
-type statusBody struct {
-	status int
-	body   map[string]any
-}
-
-func postStatus(t *testing.T, url, token, idem string, payload map[string]any) statusBody {
-	t.Helper()
-	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", idem)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	var out map[string]any
-	_ = json.NewDecoder(resp.Body).Decode(&out)
-	return statusBody{status: resp.StatusCode, body: out}
 }
 
 func postAccepted(t *testing.T, url, token, idem string, payload map[string]any) map[string]any {

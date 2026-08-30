@@ -8,23 +8,35 @@ const variants: Record<Variant, string> = {
   ghost: "bg-transparent text-ink-secondary hover:text-ink",
 };
 
+const baseClass =
+  "inline-flex min-h-10 items-center justify-center rounded-stamp px-4 text-sm font-medium no-underline max-sm:min-h-11";
+
 export function Button({
   href,
   variant = "secondary",
   children,
   className = "",
+  type = "button",
+  onClick,
 }: {
-  href: string;
+  href?: string;
   variant?: Variant;
   children: ReactNode;
   className?: string;
+  type?: "button" | "submit";
+  onClick?: () => void;
 }) {
+  const classNameAll = `${baseClass} ${variants[variant]} ${className}`;
+  if (href) {
+    return (
+      <a href={href} className={classNameAll}>
+        {children}
+      </a>
+    );
+  }
   return (
-    <a
-      href={href}
-      className={`inline-flex min-h-10 items-center justify-center rounded-stamp px-4 text-sm font-medium no-underline max-sm:min-h-11 ${variants[variant]} ${className}`}
-    >
+    <button type={type} onClick={onClick} className={classNameAll}>
       {children}
-    </a>
+    </button>
   );
 }

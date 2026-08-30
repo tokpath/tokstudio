@@ -16,8 +16,11 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TokenHub · 控制面状态",
-  description: "一个 Key，可解释路由，账能复算。TokenHub 控制面健康与就绪回单。",
+  title: {
+    default: "TokenHub · 清算台",
+    template: "%s · TokenHub",
+  },
+  description: "一个 Key，可解释路由，账能复算。纸/碳双主题的公共站与三个控制台。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

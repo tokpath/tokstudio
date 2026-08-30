@@ -1,7 +1,7 @@
 import { CodeBlock } from "@/components/code-block";
 import { Eyebrow } from "@/components/eyebrow";
 import { LedgerSection } from "@/components/ledger-section";
-import { SiteHeader } from "@/components/site-header";
+import { PublicShell } from "@/components/public-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { formatHealthCurl, listHealthFields } from "@/lib/health";
 import {
@@ -35,16 +35,15 @@ export default async function HomePage() {
   const curl = formatHealthCurl(apiBase);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 py-16">
+    <PublicShell>
+      <div className="flex flex-col gap-8">
         <section className="flex max-w-3xl flex-col gap-4">
           <Eyebrow className="text-brand-emphasis">Status</Eyebrow>
           <h1 className="text-[40px] font-semibold leading-tight text-ink">
             一个 Key，可解释路由，账能复算。
           </h1>
           <p className="text-base text-ink-secondary">
-            这是 M0 公共状态页。探活写成回单，状态带字；示例 curl 只用品牌 Base URL，不内嵌 Key。
+            公共状态页写成回单：探活带字，示例 curl 只用品牌 Base URL，不内嵌 Key。价目在模型与定价页。
           </p>
         </section>
 
@@ -92,12 +91,7 @@ export default async function HomePage() {
             <CodeBlock>{JSON.stringify(ready, null, 2)}</CodeBlock>
           </div>
         </section>
-      </main>
-      <footer className="border-t border-hairline">
-        <p className="mx-auto max-w-[1120px] px-6 py-8 text-[13px] text-ink-mute">
-          TokenHub Clearing · 纸/碳双主题 · M1 将按域名拆成公共站、用户台、渠道台和管理台
-        </p>
-      </footer>
-    </div>
+      </div>
+    </PublicShell>
   );
 }

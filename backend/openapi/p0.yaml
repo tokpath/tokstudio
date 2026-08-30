@@ -238,13 +238,13 @@ paths:
       operationId: getChannelQuota
       responses:
         "200":
-          description: remaining usd_credit plus issued and consumed allocation totals
+          description: remaining usd_credit plus issued/consumed totals and issue_ratio_bps
   /channel/allocations:
     get:
       operationId: listChannelAllocations
       responses:
         "200":
-          description: service quotas issued 1:1 when channel users top up
+          description: service quotas issued from this channel using the platform issue ratio
   /v1/partner/me:
     get:
       operationId: getPartnerMe
@@ -637,6 +637,41 @@ paths:
       responses:
         "200":
           description: updated quota
+  /admin/channel-quotas/{channel_id}:
+    get:
+      operationId: getAdminChannelQuota
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: channel quota including issue_ratio_bps
+  /admin/channel-quotas/{channel_id}/issue-rule:
+    get:
+      operationId: getChannelQuotaIssueRule
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: topup-to-quota issue ratio; default 10000 BPS = 1:1
+    patch:
+      operationId: patchChannelQuotaIssueRule
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated issue ratio; platform/finance only, requires confirm
   /admin/providers/{id}/credentials:
     post:
       operationId: rotateProviderCredential

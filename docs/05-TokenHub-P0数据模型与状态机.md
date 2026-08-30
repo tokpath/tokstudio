@@ -75,9 +75,13 @@ P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`�
 
 P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
 
-P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`、`billing_quota_allocations`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
+P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`、`billing_quota_allocations`、`billing_quota_issue_rules`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
 
-B/C 额度发放：用户充值入账后按 1:1 写入 `billing_quota_allocations`，并从渠道 `billing_quota_accounts.available_minor` 扣减（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。
+| 表 | 关键字段 | 说明 |
+|---|---|---|
+| `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按渠道配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；B/C 代理商不能改 |
+
+B/C 额度发放：用户充值入账后按渠道 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从渠道 `billing_quota_accounts.available_minor` 扣减发放额（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。代理商实际充值、平台授予额度、用户充值、用户额度、终端消费、渠道批发成本和佣金基数分别记账。
 
 ### 2.5 媒体任务与审计
 

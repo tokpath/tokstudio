@@ -13,6 +13,7 @@ var (
 	ErrNotFound            = errors.New("billing record not found")
 	ErrConflict            = errors.New("idempotency conflict")
 	ErrInvalidAmount       = errors.New("invalid amount")
+	ErrInvalidIssueRatio   = errors.New("invalid issue ratio")
 	ErrRedeemUnavailable   = errors.New("redeem code unavailable")
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
@@ -214,7 +215,15 @@ type QuotaView struct {
 	IssuedMinor     int64  `json:"issued_minor,omitempty"`
 	ConsumedMinor   int64  `json:"consumed_minor,omitempty"`
 	AllocationCount int64  `json:"allocation_count,omitempty"`
+	IssueRatioBPS   int64  `json:"issue_ratio_bps"`
 	UnitType        string `json:"unit_type"`
+}
+
+// IssueRuleView 是渠道“充值金额 -> 服务额度”换算比。10000 BPS = 1:1。
+type IssueRuleView struct {
+	ChannelOrgID  string    `json:"channel_org_id"`
+	IssueRatioBPS int64     `json:"issue_ratio_bps"`
+	UpdatedAt     time.Time `json:"updated_at,omitempty"`
 }
 
 type AllocationView struct {

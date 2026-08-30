@@ -337,6 +337,18 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/channel-quotas/grant"
   },
   {
+    "method": "GET",
+    "path": "/admin/channel-quotas/{channel_id}"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/channel-quotas/{channel_id}/issue-rule"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/channel-quotas/{channel_id}/issue-rule"
+  },
+  {
     "method": "POST",
     "path": "/admin/providers/{id}/credentials"
   },

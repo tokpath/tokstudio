@@ -192,6 +192,54 @@ curl -sf -X PATCH "$API_URL/admin/commission-policy" -H "Authorization: Bearer $
   -d '{"direct_bps":1500,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000,"version":"m6-v1"}' \
   | grep -q '"direct_bps":1500'
 
+echo "== D8.2 configurable issue ratio"
+CHANNEL_TOKEN="${TOKENHUB_BOOTSTRAP_CHANNEL_TOKEN:-dev_admin_change_me-b}"
+stamp="$(date +%s%N)"
+ch="$(curl -sf -X POST "$API_URL/admin/channels" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d "{\"code\":\"d82-$stamp\",\"type\":\"B\",\"status\":\"active\"}")"
+chid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$ch")"
+curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d "{\"channel_org_id\":\"$chid\",\"amount_minor\":100000000}" >/dev/null
+rule0="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/$chid/issue-rule")"
+bps0="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['rule']['issue_ratio_bps'])" "$rule0")"
+if [[ "$bps0" != "10000" ]]; then
+  echo "default issue ratio must be 10000, got $rule0" >&2
+  exit 1
+fi
+code="$(curl -s -o /tmp/d82-noconfirm.json -w '%{http_code}' -X PATCH "$API_URL/admin/channel-quotas/$chid/issue-rule" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"issue_ratio_bps":12000}')"
+if [[ "$code" != "409" ]]; then
+  echo "issue-rule without confirm should 409, got $code $(cat /tmp/d82-noconfirm.json)" >&2
+  exit 1
+fi
+code="$(curl -s -o /tmp/d82-channel.json -w '%{http_code}' -X PATCH "$API_URL/admin/channel-quotas/$chid/issue-rule" \
+  -H "Authorization: Bearer $CHANNEL_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d '{"issue_ratio_bps":12000}')"
+if [[ "$code" != "403" ]]; then
+  echo "channel admin cannot patch issue-rule, got $code $(cat /tmp/d82-channel.json)" >&2
+  exit 1
+fi
+curl -sf -X PATCH "$API_URL/admin/channel-quotas/$chid/issue-rule" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d '{"issue_ratio_bps":12000}' | grep -q '"issue_ratio_bps":12000'
+promo="THX-D82-$stamp"
+curl -sf -X POST "$API_URL/admin/promotion-codes" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d "{\"channel_org_id\":\"$chid\",\"code\":\"$promo\"}" >/dev/null
+email4="d82-$RANDOM@example.test"
+reg4="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$email4\",\"password\":\"password1\",\"promotion_code\":\"$promo\"}")"
+s4="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg4")"
+q3="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/$chid")"
+avail3="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q3")"
+curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $s4" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
+q4="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/$chid")"
+avail4="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q4")"
+if [[ "$((avail3 - avail4))" -ne 12000000 ]]; then
+  echo "1.2x redeem should deduct 12 USD: before=$avail3 after=$avail4 $q4" >&2
+  exit 1
+fi
+
 echo "== health"
 curl -sf "$API_URL/healthz" | grep -q 0.1.0-m
 echo "M6 e2e passed"

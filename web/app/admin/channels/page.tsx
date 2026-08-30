@@ -14,13 +14,31 @@ export default function AdminChannelsPage() {
   const queryClient = useQueryClient();
   const [channelID, setChannelID] = useState("chn_reseller_b");
   const [amount, setAmount] = useState("1000000");
+  const [ratioBPS, setRatioBPS] = useState("10000");
   const [message, setMessage] = useState("渠道额度按 micro-USD。发放和扣减都要二次确认。");
   const [channelMessage, setChannelMessage] = useState("创建和改状态都要二次确认。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。");
 
   async function loadQuota() {
     const res = await fetch(`${apiBase}/admin/channel-quotas/${channelID}`, { credentials: "include" });
     const body = await res.json();
-    setMessage(res.ok ? `可用额度 ${body.quota?.available_minor}` : body.error?.message || "读取额度失败");
+    if (!res.ok) {
+      setMessage(body.error?.message || "读取额度失败");
+      return;
+    }
+    const bps = body.quota?.issue_ratio_bps ?? 10000;
+    setRatioBPS(String(bps));
+    setMessage(`可用额度 ${body.quota?.available_minor}，换算比 ${bps} BPS`);
+  }
+
+  async function saveRatio() {
+    const res = await fetch(`${apiBase}/admin/channel-quotas/${channelID}/issue-rule`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-Tokenhub-Confirm": "1" },
+      body: JSON.stringify({ issue_ratio_bps: Number(ratioBPS) }),
+    });
+    const body = await res.json();
+    setMessage(res.ok ? `已保存换算比 ${body.rule?.issue_ratio_bps} BPS` : body.error?.message || "保存换算比失败");
   }
 
   async function grant() {
@@ -38,7 +56,7 @@ export default function AdminChannelsPage() {
     <AdminShell>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">渠道额度</h2>
-        <p className="mb-3 text-sm text-slate-400">B/C 渠道可用额度在用户充值时按 1:1 发放。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
+        <p className="mb-3 text-sm text-slate-400">B/C 渠道可用额度在用户充值时按平台换算比发放，默认 1:1。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={channelID} onChange={(e) => setChannelID(e.target.value)} aria-label="渠道 ID" placeholder="chn_..." />
           <Input className="w-40" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="额度 micro-USD" placeholder="amount_minor" />
@@ -47,6 +65,14 @@ export default function AdminChannelsPage() {
           </Button>
           <Button size="sm" onClick={grant}>
             调整额度
+          </Button>
+        </div>
+        <h3 className="mb-2 mt-4 text-lg font-medium">换算比</h3>
+        <p className="mb-3 text-sm text-slate-400">10000 BPS = 1:1。只有平台/财务能改，B/C 代理商不能改。合法范围 1000–100000（0.1x–10x）。</p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Input className="w-40" value={ratioBPS} onChange={(e) => setRatioBPS(e.target.value)} aria-label="换算比 BPS" placeholder="10000" />
+          <Button size="sm" onClick={saveRatio}>
+            保存换算比
           </Button>
         </div>
         <p className="text-sm text-slate-300">{message}</p>

@@ -306,16 +306,20 @@ export function isPortalId(value: string): value is PortalId {
   return value === "user" || value === "channel" || value === "admin";
 }
 
-export function findPortalItem(portal: PortalId, slug: string[] | undefined): NavItem | undefined {
-  const href = slug?.length ? `${PORTALS[portal].base}/${slug.join("/")}` : PORTALS[portal].base;
+export function findPortalItem(portal: PortalId, section?: string): NavItem | undefined {
+  const href = section ? `${PORTALS[portal].base}/${section}` : PORTALS[portal].base;
   return PORTALS[portal].items.find((item) => item.href === href);
 }
 
-export function listConsoleParams(): { portal: string; slug?: string[] }[] {
+export function listPortalParams(): { portal: string }[] {
+  return PORTAL_IDS.map((portal) => ({ portal }));
+}
+
+export function listConsoleSectionParams(): { portal: string; section: string }[] {
   return PORTAL_IDS.flatMap((portal) =>
-    PORTALS[portal].items.map((item) => {
+    PORTALS[portal].items.flatMap((item) => {
       const rest = item.href.slice(PORTALS[portal].base.length).replace(/^\//, "");
-      return rest ? { portal, slug: rest.split("/") } : { portal };
+      return rest ? [{ portal, section: rest }] : [];
     }),
   );
 }

@@ -1,37 +1,35 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ConsolePage } from "@/components/console-page";
-import { findPortalItem, isPortalId, listConsoleParams, PORTALS } from "@/lib/nav";
+import { findPortalItem, isPortalId, listConsoleSectionParams, PORTALS } from "@/lib/nav";
 
 export function generateStaticParams() {
-  return listConsoleParams();
+  return listConsoleSectionParams();
 }
-
-export const dynamicParams = false;
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ portal: string; slug?: string[] }>;
+  params: Promise<{ portal: string; section: string }>;
 }): Promise<Metadata> {
-  const { portal, slug } = await params;
+  const { portal, section } = await params;
   if (!isPortalId(portal)) {
     return { title: "控制台" };
   }
-  const item = findPortalItem(portal, slug);
+  const item = findPortalItem(portal, section);
   return { title: item ? `${item.title} · ${PORTALS[portal].name}` : PORTALS[portal].name };
 }
 
-export default async function ConsoleRoutePage({
+export default async function ConsoleSectionPage({
   params,
 }: {
-  params: Promise<{ portal: string; slug?: string[] }>;
+  params: Promise<{ portal: string; section: string }>;
 }) {
-  const { portal, slug } = await params;
+  const { portal, section } = await params;
   if (!isPortalId(portal)) {
     notFound();
   }
-  const item = findPortalItem(portal, slug);
+  const item = findPortalItem(portal, section);
   if (!item) {
     notFound();
   }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PORTALS, PUBLIC_NAV, findPortalItem, listConsoleParams } from "./nav";
+import {
+  PORTALS,
+  PUBLIC_NAV,
+  findPortalItem,
+  listConsoleSectionParams,
+  listPortalParams,
+} from "./nav";
 
 describe("DESIGN.md portal menus", () => {
   it("keeps the public nav as status/docs/models/pricing", () => {
@@ -50,13 +56,20 @@ describe("DESIGN.md portal menus", () => {
   });
 
   it("resolves every generated console route", () => {
-    const params = listConsoleParams();
-    expect(params).toHaveLength(
+    const landings = listPortalParams();
+    const sections = listConsoleSectionParams();
+    expect(landings).toHaveLength(3);
+    expect(landings.length + sections.length).toBe(
       PORTALS.user.items.length + PORTALS.channel.items.length + PORTALS.admin.items.length,
     );
-    for (const entry of params) {
-      const item = findPortalItem(entry.portal as "user" | "channel" | "admin", entry.slug);
-      expect(item, `${entry.portal} ${entry.slug?.join("/") ?? ""}`).toBeDefined();
+    for (const entry of landings) {
+      expect(findPortalItem(entry.portal as "user" | "channel" | "admin")).toBeDefined();
+    }
+    for (const entry of sections) {
+      expect(
+        findPortalItem(entry.portal as "user" | "channel" | "admin", entry.section),
+        `${entry.portal}/${entry.section}`,
+      ).toBeDefined();
     }
   });
 
@@ -67,7 +80,7 @@ describe("DESIGN.md portal menus", () => {
   });
 
   it("does not resolve unknown console slugs", () => {
-    expect(findPortalItem("user", ["cart"])).toBeUndefined();
-    expect(findPortalItem("admin", ["providers", "secret"])).toBeUndefined();
+    expect(findPortalItem("user", "cart")).toBeUndefined();
+    expect(findPortalItem("admin", "providers/secret")).toBeUndefined();
   });
 });

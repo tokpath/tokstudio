@@ -83,7 +83,7 @@ function RotateCredentialForm() {
   }
 
   return (
-    <form className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={onSubmit}>
+    <form className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={onSubmit}>
       <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
       <p className="mb-3 text-sm text-slate-400">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
       <div className="mb-3 flex flex-wrap gap-2">
@@ -170,7 +170,7 @@ function AccountPoolPanel() {
   }
 
   return (
-    <section className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+    <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4">
       <h2 className="mb-3 text-xl font-medium">账号池</h2>
       <p className="mb-3 text-sm text-slate-400">列表只显示指纹，不回密文。冷却或停用后不会被路由选中。</p>
       <div className="mb-3 flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ function AccountPoolPanel() {
       <div className="mb-3 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400">
+            <tr className="border-b border-white/10 text-slate-400">
               <th className="px-2 py-2 font-medium">Label</th>
               <th className="px-2 py-2 font-medium">Fingerprint</th>
               <th className="px-2 py-2 font-medium">Status</th>
@@ -191,7 +191,7 @@ function AccountPoolPanel() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-800/80">
+              <tr key={item.id} className="border-b border-white/10/80">
                 <td className="px-2 py-2">{item.label}</td>
                 <td className="px-2 py-2">{item.fingerprint}</td>
                 <td className="px-2 py-2">{item.status}</td>
@@ -255,7 +255,7 @@ function PatchProviderForm() {
   }
 
   return (
-    <form className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={onSubmit}>
+    <form className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={onSubmit}>
       <h2 className="mb-3 text-xl font-medium">改 Provider 状态</h2>
       <p className="mb-3 text-sm text-slate-400">maintenance 会从路由候选里拿掉。RPM 写到 Provider 行，不是账号池单条账号。</p>
       <div className="mb-3 grid max-w-xl gap-2">
@@ -302,9 +302,9 @@ export default function AdminProvidersPage() {
       <RotateCredentialForm />
       <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 p-4" onSubmit={form.handleSubmit(onSubmit)}>
         <p className="text-sm text-slate-400">创建 Provider 需要二次确认头，密钥不会回显。</p>
-        <input className="rounded bg-slate-900 px-3 py-2" placeholder="name" {...form.register("name")} />
-        <input className="rounded bg-slate-900 px-3 py-2" placeholder="slug" {...form.register("slug")} />
-        <input className="rounded bg-slate-900 px-3 py-2" placeholder="adapter" {...form.register("adapter")} />
+        <input className="rounded-lg border border-white/10 bg-black/30 px-3 py-2" placeholder="name" {...form.register("name")} />
+        <input className="rounded-lg border border-white/10 bg-black/30 px-3 py-2" placeholder="slug" {...form.register("slug")} />
+        <input className="rounded-lg border border-white/10 bg-black/30 px-3 py-2" placeholder="adapter" {...form.register("adapter")} />
         <button className="rounded border border-slate-600 px-3 py-2" type="submit">
           创建
         </button>

@@ -45,14 +45,16 @@ export default function PartnerConsole() {
   }
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-12">
-      <p className="text-sm uppercase tracking-[0.2em] text-slate-400">分销控制台</p>
-      <h1 className="text-3xl font-semibold">我的推广范围</h1>
-      <p className="text-slate-300">
-        这里按代理商 / 1 级 KOL / 2 级 KOL 分层。后端再校验角色树，前端隐藏不是安全边界。看不到 prompt，也不能改佣金比例。
-      </p>
-      <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <CardTitle className="mb-3 text-xl font-medium">我的层级</CardTitle>
+    <main className="mx-auto flex max-w-5xl flex-col gap-6">
+      <header>
+        <p className="text-sm uppercase tracking-[0.2em] text-slate-400">分销控制台</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">我的推广范围</h1>
+        <p className="mt-2 max-w-2xl text-slate-300">
+          这里按代理商 / 1 级 KOL / 2 级 KOL 分层。后端再校验角色树，前端隐藏不是安全边界。看不到 prompt，也不能改佣金比例。
+        </p>
+      </header>
+      <Card id="scope">
+        <CardTitle>我的层级</CardTitle>
         <p className="mb-3 text-sm text-slate-400">
           当前 {me.role_type || "未登录"} · 渠道 {me.channel_org_id || "—"} ·{" "}
           {me.sees_downline ? "可看下级汇总" : "只看直接引流"}
@@ -62,31 +64,31 @@ export default function PartnerConsole() {
         </Button>
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </Card>
-      <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <CardTitle className="mb-3 text-xl font-medium">范围内用户</CardTitle>
+      <Card id="users">
+        <CardTitle>范围内用户</CardTitle>
         <ul className="space-y-2 text-sm text-slate-200">
           {users.map((item) => (
-            <li key={`${item.email}-${item.source_code}`}>
+            <li key={`${item.email}-${item.source_code}`} className="rounded-lg border border-white/5 bg-black/20 px-3 py-2">
               {item.email} · {item.source_code || "—"} · {item.status}
             </li>
           ))}
         </ul>
       </Card>
-      <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <CardTitle className="mb-3 text-xl font-medium">范围内佣金</CardTitle>
+      <Card id="commissions">
+        <CardTitle>范围内佣金</CardTitle>
         <ul className="space-y-2 text-sm text-slate-200">
           {comms.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="rounded-lg border border-white/5 bg-black/20 px-3 py-2">
               {item.kind} · {item.status} · {item.amount_minor ?? 0} micro-USD
             </li>
           ))}
         </ul>
       </Card>
-      <Card className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <CardTitle className="mb-3 text-xl font-medium">范围内结算</CardTitle>
+      <Card id="settlements">
+        <CardTitle>范围内结算</CardTitle>
         <ul className="space-y-2 text-sm text-slate-200">
           {settlements.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="rounded-lg border border-white/5 bg-black/20 px-3 py-2">
               {item.id} · {item.status} · {item.amount_minor ?? 0} micro-USD
             </li>
           ))}

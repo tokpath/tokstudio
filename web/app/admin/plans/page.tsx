@@ -48,7 +48,7 @@ export default function AdminPlansPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">套餐审核</h2>
         <p className="mb-3 text-sm text-slate-400">低于 1 USD、超额权益或高风险视频秒数的渠道套餐会停在 pending_review。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@ export default function AdminPlansPage() {
         {query.data?.error ? <p className="text-sm text-slate-400">{query.data.error.message}</p> : null}
         <table className="min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400">
+            <tr className="border-b border-white/10 text-slate-400">
               <th className="px-2 py-2">名称</th>
               <th className="px-2 py-2">归属</th>
               <th className="px-2 py-2">价格</th>
@@ -74,7 +74,7 @@ export default function AdminPlansPage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-800/80">
+              <tr key={item.id} className="border-b border-white/10/80">
                 <td className="px-2 py-2 text-slate-200">{item.name}</td>
                 <td className="px-2 py-2 text-slate-300">
                   {item.owner_type} / {item.owner_id}
@@ -103,7 +103,7 @@ export default function AdminPlansPage() {
         <p className="mt-3 text-sm text-slate-300">{message}</p>
       </section>
       <form
-        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           const form = event.currentTarget;
@@ -148,7 +148,7 @@ export default function AdminPlansPage() {
         </Button>
       </form>
       <form
-        className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+        className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6"
         onSubmit={async (event) => {
           event.preventDefault();
           const form = event.currentTarget;
@@ -179,7 +179,7 @@ export default function AdminPlansPage() {
         </Button>
       </form>
       <p className="text-sm text-slate-300">{writeMessage}</p>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">续费扫描</h2>
         <p className="mb-3 text-sm text-slate-400">
           强制到期把 period_end 拨到过去，再扫描才会走重试/宽限期。生产默认禁止。不强制确认头。

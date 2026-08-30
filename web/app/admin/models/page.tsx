@@ -65,7 +65,7 @@ export default function AdminModelsPage() {
         ]}
       />
       <form
-        className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4"
+        className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4"
         onSubmit={async (event) => {
           event.preventDefault();
           const formEl = event.currentTarget;
@@ -125,13 +125,13 @@ export default function AdminModelsPage() {
         })}
       >
         <p className="text-sm text-slate-400">同步结果先进入 draft，审核通过后再发布到客户目录。</p>
-        <input className="rounded bg-slate-900 px-3 py-2" placeholder="provider id 同步" {...form.register("provider_id")} />
-        <input className="rounded bg-slate-900 px-3 py-2" placeholder="public model id 审核并发布" {...form.register("public_id")} />
+        <input className="rounded-lg border border-white/10 bg-black/30 px-3 py-2" placeholder="provider id 同步" {...form.register("provider_id")} />
+        <input className="rounded-lg border border-white/10 bg-black/30 px-3 py-2" placeholder="public model id 审核并发布" {...form.register("public_id")} />
         <button className="rounded border border-slate-600 px-3 py-2" type="submit">
           同步 / 审核发布
         </button>
       </form>
-      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={attach}>
+      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={attach}>
         <h2 className="text-xl font-medium">挂载 Provider</h2>
         <p className="text-sm text-slate-400">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
         <Input name="public_id" aria-label="挂载 public id" placeholder="public_id" />
@@ -141,7 +141,7 @@ export default function AdminModelsPage() {
           挂载
         </Button>
       </form>
-      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4" onSubmit={deprecate}>
+      <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={deprecate}>
         <h2 className="text-xl font-medium">弃用模型</h2>
         <p className="text-sm text-slate-400">只改状态，不删除历史映射和价格版本。</p>
         <Input name="public_id" aria-label="弃用 public id" placeholder="public_id" />

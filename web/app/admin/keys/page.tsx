@@ -37,7 +37,7 @@ export default function AdminKeysPage() {
 
   return (
     <AdminShell>
-      <form className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6" onSubmit={onDisable}>
+      <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={onDisable}>
         <h2 className="mb-3 text-xl font-medium">禁用 API Key</h2>
         <p className="mb-3 text-sm text-slate-400">平台管理员和技术值班可以禁任意用户的 Key。禁用后网关立刻 403，不会回显密文。</p>
         <div className="mb-3 grid max-w-xl gap-2">

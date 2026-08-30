@@ -32,7 +32,7 @@ export default function AdminAlertsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">告警</h2>
         <p className="mb-3 text-sm text-slate-400">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
         <Button size="sm" onClick={evaluate}>
@@ -41,7 +41,7 @@ export default function AdminAlertsPage() {
         {query.data?.error ? <p className="mt-3 text-sm text-slate-400">{query.data.error.message}</p> : null}
         <table className="mt-4 min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400">
+            <tr className="border-b border-white/10 text-slate-400">
               <th className="px-2 py-2">类型</th>
               <th className="px-2 py-2">级别</th>
               <th className="px-2 py-2">状态</th>
@@ -50,7 +50,7 @@ export default function AdminAlertsPage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-800/80">
+              <tr key={item.id} className="border-b border-white/10/80">
                 <td className="px-2 py-2 text-slate-200">{item.kind}</td>
                 <td className="px-2 py-2 text-slate-300">{item.severity}</td>
                 <td className="px-2 py-2 text-slate-300">{item.status}</td>

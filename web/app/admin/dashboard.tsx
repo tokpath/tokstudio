@@ -106,20 +106,28 @@ export default function AdminDashboard() {
   }, [seriesQuery.data]);
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-      <h2 className="mb-3 text-xl font-medium">运营看板</h2>
-      <p className="mb-3 text-sm text-slate-400">告警和应急手册在 /admin/alerts 与 /admin/runbooks。时间序列来自网关与账务接口，不直连业务表。</p>
+    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
+      <h2 className="mb-2 text-xl font-medium tracking-tight">运营看板</h2>
+      <p className="mb-4 text-sm text-slate-400">告警和应急手册在 /admin/alerts 与 /admin/runbooks。时间序列来自网关与账务接口，不直连业务表。</p>
       <div className="flex flex-wrap gap-3">
-        <button className="rounded border border-slate-600 px-4 py-2" onClick={refresh}>
+        <button className="rounded-lg border border-white/15 px-4 py-2 text-sm hover:bg-white/5" onClick={refresh}>
           刷新指标
         </button>
-        <button className="rounded border border-slate-600 px-4 py-2" onClick={exportDaily}>
+        <button className="rounded-lg border border-white/15 px-4 py-2 text-sm hover:bg-white/5" onClick={exportDaily}>
           导出日报 CSV
         </button>
       </div>
       <p className="mt-3 text-sm text-slate-300">{message}</p>
-      <div ref={chartRef} className="mt-4 h-72 w-full" data-testid="ops-echarts" />
-      <div ref={seriesRef} className="mt-4 h-72 w-full" data-testid="ops-daily-chart" />
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-slate-500">模型请求</p>
+          <div ref={chartRef} className="h-72 w-full" data-testid="ops-echarts" />
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-slate-500">近 7 日</p>
+          <div ref={seriesRef} className="h-72 w-full" data-testid="ops-daily-chart" />
+        </div>
+      </div>
     </section>
   );
 }

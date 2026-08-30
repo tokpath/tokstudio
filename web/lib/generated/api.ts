@@ -118,6 +118,14 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/channel/quota"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/allocations"
+  },
+  {
+    "method": "GET",
     "path": "/v1/partner/me"
   },
   {

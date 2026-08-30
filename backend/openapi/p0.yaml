@@ -233,6 +233,18 @@ paths:
       responses:
         "201":
           description: channel plan created or pending review
+  /channel/quota:
+    get:
+      operationId: getChannelQuota
+      responses:
+        "200":
+          description: remaining usd_credit plus issued and consumed allocation totals
+  /channel/allocations:
+    get:
+      operationId: listChannelAllocations
+      responses:
+        "200":
+          description: service quotas issued 1:1 when channel users top up
   /v1/partner/me:
     get:
       operationId: getPartnerMe

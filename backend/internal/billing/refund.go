@@ -51,6 +51,9 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		if err := s.reverseCommission(tx, charge.UsageEventID); err != nil {
 			return err
 		}
+		if err := reverseAllocationConsumes(tx, requestID); err != nil {
+			return err
+		}
 		var usage usageRow
 		if err := tx.Where("id = ?", charge.UsageEventID).First(&usage).Error; err == nil {
 			usage.State = UsageVoided

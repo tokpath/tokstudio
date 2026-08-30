@@ -27,6 +27,12 @@ paths:
   /admin/settlements/{id}/payout:
     post:
       summary: Manual payout
+  /channel/quota:
+    get:
+      summary: Channel usd_credit remaining plus issued/consumed allocation totals
+  /channel/allocations:
+    get:
+      summary: Service quotas issued 1:1 from this channel when users top up
   /admin/channel-quotas/grant:
     post:
       summary: Grant or reclaim channel usd_credit quota

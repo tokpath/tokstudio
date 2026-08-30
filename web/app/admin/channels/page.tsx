@@ -38,7 +38,7 @@ export default function AdminChannelsPage() {
     <AdminShell>
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <h2 className="mb-3 text-xl font-medium">渠道额度</h2>
-        <p className="mb-3 text-sm text-slate-400">B/C 渠道累计消耗不能超过额度。正数发放，负数扣减。额度不足时预授权失败。</p>
+        <p className="mb-3 text-sm text-slate-400">B/C 渠道可用额度在用户充值时按 1:1 发放。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={channelID} onChange={(e) => setChannelID(e.target.value)} aria-label="渠道 ID" placeholder="chn_..." />
           <Input className="w-40" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="额度 micro-USD" placeholder="amount_minor" />

@@ -127,6 +127,7 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 		if err := s.db.WithContext(ctx).Where("owner_type = ? AND owner_id = ?", "channel", channelOrgID).First(&quota).Error; err == nil {
 			view.ChannelQuota = quota.AvailableMinor
 		}
+		view.AllocationRemaining = allocationRemaining(s.db.WithContext(ctx), userID, channelOrgID)
 	}
 	return view, nil
 }
@@ -240,7 +241,7 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 			}
 			return err
 		}
-		if err := s.reserveChannelQuota(tx, in.ChannelOrgID, in.RequestID, in.ReserveMinor); err != nil {
+		if err := s.reserveChannelQuota(tx, in.UserID, in.ChannelOrgID, in.RequestID, in.ReserveMinor, walletNeed); err != nil {
 			if s.coverer != nil && covered > 0 {
 				_ = s.coverer.ReverseByRequest(ctx, in.RequestID)
 			}
@@ -455,7 +456,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 				return err
 			}
 		}
-		if err := s.settleChannelQuota(tx, in.ChannelOrgID, in.RequestID, auth.AmountMinor, customer); err != nil {
+		if err := s.settleChannelQuota(tx, auth.UserID, firstNonEmpty(in.ChannelOrgID, stringPtr(auth.ChannelOrgID)), in.RequestID, walletUsed); err != nil {
 			return err
 		}
 		usageJSON, _ := json.Marshal(in.Usage)

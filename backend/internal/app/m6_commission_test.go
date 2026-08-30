@@ -47,11 +47,28 @@ func TestM6CommissionDistribution(t *testing.T) {
 	if channelOf(reg) != identity.ResellerChannelID {
 		t.Fatalf("kol2 should bind reseller: %+v", reg)
 	}
+	quotaBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
+	availBefore := asInt(quotaBefore["available_minor"])
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})
+	quotaIssued := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
+	if asInt(quotaIssued["available_minor"]) != availBefore-10*billing.MinorPerUSD {
+		t.Fatalf("redeem should issue 1:1 from channel available: before=%d after=%v", availBefore, quotaIssued)
+	}
+	if asInt(quotaIssued["issued_minor"]) < 10*billing.MinorPerUSD {
+		t.Fatalf("quota should record issued allocation: %+v", quotaIssued)
+	}
 	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "m6"})["item"].(map[string]any)["key"].(string)
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "kol2-usage"}},
 	})
+	quotaAfterChat := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
+	if asInt(quotaAfterChat["available_minor"]) != asInt(quotaIssued["available_minor"]) {
+		t.Fatalf("chat must not deduct channel available again: issued=%v after=%v", quotaIssued, quotaAfterChat)
+	}
+	allocs := getAuthJSON(t, server.URL+"/channel/allocations?channel_id="+identity.ResellerChannelID, "m6_admin")["items"].([]any)
+	if len(allocs) == 0 {
+		t.Fatal("channel allocations should list the issued grant")
+	}
 	usage := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)
 	if len(usage) == 0 {
 		t.Fatalf("usage missing: %+v", chat)
@@ -195,6 +212,14 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatal("channel quota should block over-issue")
 	} else if err != billing.ErrInsufficientQuota {
 		t.Fatalf("expected insufficient quota, got %v", err)
+	}
+	regBlocked := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "quota-block-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": identity.PromoKOL2B,
+	})
+	blocked := mustStatusBody(t, http.MethodPost, server.URL+"/v1/topups/redeem", tokenOf(regBlocked), map[string]any{"code": billing.RedeemE2E})
+	if blocked.status != http.StatusPaymentRequired {
+		t.Fatalf("empty channel quota should reject redeem with 402, got %d %+v", blocked.status, blocked.body)
 	}
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
 		"channel_org_id": identity.ResellerChannelID, "amount_minor": avail - 1,

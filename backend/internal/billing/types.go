@@ -117,13 +117,14 @@ type Settlement struct {
 }
 
 type BalanceView struct {
-	UserID         string `json:"user_id"`
-	Currency       string `json:"currency"`
-	AvailableMinor int64  `json:"available_minor"`
-	ReservedMinor  int64  `json:"reserved_minor"`
-	AvailableUSD   string `json:"available"`
-	ReservedUSD    string `json:"reserved"`
-	ChannelQuota   int64  `json:"channel_quota_minor,omitempty"`
+	UserID              string `json:"user_id"`
+	Currency            string `json:"currency"`
+	AvailableMinor      int64  `json:"available_minor"`
+	ReservedMinor       int64  `json:"reserved_minor"`
+	AvailableUSD        string `json:"available"`
+	ReservedUSD         string `json:"reserved"`
+	ChannelQuota        int64  `json:"channel_quota_minor,omitempty"`
+	AllocationRemaining int64  `json:"allocation_remaining_minor,omitempty"`
 }
 
 type LedgerView struct {
@@ -207,10 +208,26 @@ type RiskView struct {
 }
 
 type QuotaView struct {
-	OwnerID        string `json:"owner_id"`
-	AvailableMinor int64  `json:"available_minor"`
-	ReservedMinor  int64  `json:"reserved_minor"`
-	UnitType       string `json:"unit_type"`
+	OwnerID         string `json:"owner_id"`
+	AvailableMinor  int64  `json:"available_minor"`
+	ReservedMinor   int64  `json:"reserved_minor"`
+	IssuedMinor     int64  `json:"issued_minor,omitempty"`
+	ConsumedMinor   int64  `json:"consumed_minor,omitempty"`
+	AllocationCount int64  `json:"allocation_count,omitempty"`
+	UnitType        string `json:"unit_type"`
+}
+
+type AllocationView struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"user_id"`
+	ChannelOrgID   string    `json:"channel_org_id"`
+	SourceType     string    `json:"source_type"`
+	SourceID       string    `json:"source_id"`
+	GrantedMinor   int64     `json:"granted_minor"`
+	ConsumedMinor  int64     `json:"consumed_minor"`
+	RemainingMinor int64     `json:"remaining_minor"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type CommissionView struct {

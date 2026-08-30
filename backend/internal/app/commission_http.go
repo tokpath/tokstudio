@@ -21,6 +21,7 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/v1/partner/settlements", a.requireAnyUser(), a.partnerSettlements)
 	r.GET("/v1/partner/export", a.requireAnyUser(), a.partnerExport)
 	r.GET("/channel/quota", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelQuota)
+	r.GET("/channel/allocations", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelAllocations)
 	r.GET("/channel/commissions", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelCommissions)
 	r.GET("/channel/usage", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelUsage)
 	r.GET("/channel/settlements", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelSettlements)
@@ -175,6 +176,20 @@ func (a *App) channelQuota(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelAllocations(c *gin.Context) {
+	channelID := a.currentPrincipal(c).ChannelOrgID
+	if a.currentPrincipal(c).IsPlatformAdmin() && c.Query("channel_id") != "" {
+		channelID = c.Query("channel_id")
+	}
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	items, err := a.Billing.ListAllocations(c.Request.Context(), channelID, limit)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取额度发放失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) channelUsage(c *gin.Context) {

@@ -75,7 +75,9 @@ P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`�
 
 P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
 
-P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
+P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`、`billing_quota_allocations`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
+
+B/C 额度发放：用户充值入账后按 1:1 写入 `billing_quota_allocations`，并从渠道 `billing_quota_accounts.available_minor` 扣减（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。
 
 ### 2.5 媒体任务与审计
 
@@ -95,7 +97,7 @@ P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`o
 1. `available_minor + reserved_minor` 不得为负；预授权、释放和结算必须在同一账务事务中完成。
 2. 同一 `idempotency_key` 在同一业务域只能成功一次。
 3. `usage_event` 的客户金额按价格快照计算，价格变更不影响历史账单。
-4. B/C 用户消费只扣自己的权益/钱包；渠道额度用于风险上限和分配校验，不对同一请求重复扣款。
+4. B/C 用户消费只扣自己的权益/钱包和已发放 allocation；渠道额度在充值发放时扣减，请求时只做剩余风险帽检查，不对同一请求再扣渠道。
 5. 佣金基于已确认 usage 和渠道批发价产生，退款或人工冲正必须生成反向流水。
 6. 媒体任务拿到 `upstream_job_id` 后禁止自动重复提交；未知状态进入待确认。
 7. 跨模块一致性通过 Outbox 事件和补偿流水实现，不使用跨服务分布式事务；每个事件必须有版本和幂等消费记录。

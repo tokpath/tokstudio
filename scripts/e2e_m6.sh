@@ -68,7 +68,20 @@ reg="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: applicatio
   -d "{\"email\":\"$email\",\"password\":\"password1\",\"promotion_code\":\"THB-KOL2\"}")"
 echo "$reg" | grep -q chn_reseller_b
 session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg")"
+q0="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"
+avail0="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q0")"
 curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
+q1="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"
+avail1="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q1")"
+issued="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota'].get('issued_minor',0))" "$q1")"
+if [[ "$((avail0 - avail1))" -ne 10000000 ]]; then
+  echo "redeem should deduct 10 USD from channel available: before=$avail0 after=$avail1" >&2
+  exit 1
+fi
+if [[ "$issued" -lt 10000000 ]]; then
+  echo "quota should record issued allocation: $q1" >&2
+  exit 1
+fi
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
   "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e"}')")"
 
@@ -76,6 +89,13 @@ echo "== usage accrues frozen hierarchy"
 chat="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m6"}]}')"
 echo "$chat" | grep -q request_id
+q2="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"
+avail2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q2")"
+if [[ "$avail2" -ne "$avail1" ]]; then
+  echo "chat must not deduct channel available again: after_redeem=$avail1 after_chat=$avail2" >&2
+  exit 1
+fi
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/channel/allocations?channel_id=chn_reseller_b" | grep -q granted_minor
 usage="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage")"
 uid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" "$usage")"
 comms="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commissions?usage_event_id=$uid")"
@@ -153,15 +173,11 @@ email3="m6q-$RANDOM@example.test"
 reg3="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$email3\",\"password\":\"password1\",\"promotion_code\":\"THB-KOL2\"}")"
 s3="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg3")"
-curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $s3" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
-k3="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
-  "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $s3" -H 'Content-Type: application/json' -d '{"name":"e2eq"}')")"
-code="$(curl -s -o /tmp/m6-quota.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $k3" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"quota"}]}')"
+code="$(curl -s -o /tmp/m6-quota.json -w '%{http_code}' -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $s3" -H 'Content-Type: application/json' -d '{"code":"THE2E"}')"
 curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
   -d "{\"channel_org_id\":\"chn_reseller_b\",\"amount_minor\":$avail}" >/dev/null
 if [[ "$code" != "402" ]]; then
-  echo "expected 402 when channel quota is empty, got $code $(cat /tmp/m6-quota.json)" >&2
+  echo "expected 402 when redeeming against empty channel quota, got $code $(cat /tmp/m6-quota.json)" >&2
   exit 1
 fi
 

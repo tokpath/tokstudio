@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -157,6 +158,10 @@ func (a *App) redeemTopup(c *gin.Context) {
 	userID, channelID := a.billingUser(c)
 	item, err := a.Billing.Redeem(c.Request.Context(), userID, channelID, body.Code)
 	if err != nil {
+		if errors.Is(err, billing.ErrInsufficientQuota) {
+			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_quota", "渠道可用额度不足，无法发放服务额度", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "兑换码无效或已用尽", false)
 		return
 	}
@@ -174,6 +179,10 @@ func (a *App) confirmTopup(c *gin.Context) {
 	principal := a.currentPrincipal(c)
 	item, err := a.Billing.ConfirmTopup(c.Request.Context(), c.Param("id"), principal.UserID)
 	if err != nil {
+		if errors.Is(err, billing.ErrInsufficientQuota) {
+			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_quota", "渠道可用额度不足，无法发放服务额度", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "确认入账失败", false)
 		return
 	}

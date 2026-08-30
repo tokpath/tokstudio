@@ -1,6 +1,6 @@
 {
   "name": "TokenHub",
-  "install": "cp -n .env.example .env || true; (cd backend && go mod download); (cd web && npm install)",
+  "install": "[ -f .env ] || cp .env.example .env; (cd backend && go mod download); (cd web && npm install)",
   "start": "sudo pg_ctlcluster 16 main start 2>/dev/null || true; sudo redis-server --daemonize yes 2>/dev/null || true; until pg_isready -h 127.0.0.1 -U tokenhub -d tokenhub >/dev/null 2>&1; do sleep 1; done; (cd backend && go run ./cmd/migrate)",
   "terminals": [
     {

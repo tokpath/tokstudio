@@ -373,7 +373,7 @@ export default function AdminSettingsPage() {
       </section>
       <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
         <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
-        <p className="mb-3 text-sm text-slate-400">沙箱把 tls_status 标成 issued，并写下 CNAME。公网 Let&apos;s Encrypt 仍由边缘节点签发。</p>
+        <p className="mb-3 text-sm text-slate-400">.localhost / 空目录走沙箱 issued。配置 ACME 目录后，公网形态域名走 RFC 8555。公网 Let&apos;s Encrypt 仍要真实 DNS 与边缘节点，本页不假装已对公网签发。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />
           <Button
@@ -388,7 +388,7 @@ export default function AdminSettingsPage() {
               }
               const items = body.items || [];
               const hit = items.find((item: { id?: string }) => item.id === brandID) || items[0];
-              setMessage(hit ? `${hit.id} CNAME=${hit.cname_target || "-"} TLS=${hit.tls_status || "pending"}` : "没有品牌");
+              setMessage(hit ? `${hit.id} CNAME=${hit.cname_target || "-"} TLS=${hit.tls_status || "pending"} issuer=${hit.tls_issuer || "sandbox"}` : "没有品牌");
             }}
           >
             读取品牌
@@ -396,7 +396,7 @@ export default function AdminSettingsPage() {
           <ConfirmButton
             size="sm"
             title="确认签发证书"
-            description="沙箱只把 tls_status 标成 issued。公网 Let's Encrypt 仍由边缘节点签发。"
+            description="沙箱域名只标 issued。已配置 ACME 目录的公网形态域名会走 RFC 8555。公网 Let's Encrypt 仍由边缘节点对真实 DNS 签发。"
             onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
                 method: "POST",
@@ -407,7 +407,7 @@ export default function AdminSettingsPage() {
               const body = await res.json();
               setMessage(
                 res.ok
-                  ? `已签发 ${body.item?.id} → ${body.item?.tls_status} / ${body.item?.cname_target}`
+                  ? `已签发 ${body.item?.id} → ${body.item?.tls_status} / ${body.item?.cname_target} / ${body.item?.tls_issuer || "sandbox"}`
                   : body.error?.message || "签发失败",
               );
             }}

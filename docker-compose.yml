@@ -138,6 +138,17 @@ services:
     depends_on:
       - api
 
+  pebble:
+    image: ghcr.io/letsencrypt/pebble:2.6.0
+    command: ["-config", "/test/config/pebble-config.json"]
+    environment:
+      PEBBLE_VA_ALWAYS_VALID: "1"
+      PEBBLE_VA_NOSLEEP: "1"
+      PEBBLE_WFE_NONCEREJECT: "0"
+    ports:
+      - "14000:14000"
+      - "15000:15000"
+
   edge:
     image: caddy:2.8-alpine
     ports:
@@ -148,9 +159,11 @@ services:
       - tokenhub_caddy:/data
     environment:
       TOKENHUB_EDGE_CNAME: edge.tokenhub.local
+      TOKENHUB_ACME_EMAIL: ops@tokenhub.local
     depends_on:
       - api
       - web
+      - pebble
 
 volumes:
   tokenhub_pg:

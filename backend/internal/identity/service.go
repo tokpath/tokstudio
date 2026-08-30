@@ -62,11 +62,23 @@ type tokenRow struct {
 func (tokenRow) TableName() string { return "identity_access_tokens" }
 
 type Service struct {
-	db *gorm.DB
+	db   *gorm.DB
+	acme *ACME
 }
 
 func New(db *gorm.DB) *Service {
 	return &Service{db: db}
+}
+
+func (s *Service) SetACME(client *ACME) {
+	s.acme = client
+}
+
+func (s *Service) LookupACMEChallenge(token string) string {
+	if s == nil || s.acme == nil {
+		return ""
+	}
+	return s.acme.LookupChallenge(token)
 }
 
 func Migrations() (string, fs.FS) {

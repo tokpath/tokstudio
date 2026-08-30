@@ -60,6 +60,9 @@ type BrandView struct {
 	AdminDomain   string         `json:"admin_domain"`
 	CNAMETarget   string         `json:"cname_target,omitempty"`
 	TLSStatus     string         `json:"tls_status,omitempty"`
+	TLSIssuer     string         `json:"tls_issuer,omitempty"`
+	TLSDirectory  string         `json:"tls_directory,omitempty"`
+	TLSExpiresAt  int64          `json:"tls_expires_at,omitempty"`
 	Theme         map[string]any `json:"theme"`
 }
 

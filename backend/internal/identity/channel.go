@@ -13,16 +13,19 @@ import (
 )
 
 type brandRow struct {
-	ID            string    `gorm:"column:id;primaryKey"`
-	Name          string    `gorm:"column:name"`
-	LogoURL       *string   `gorm:"column:logo_url"`
-	PrimaryDomain string    `gorm:"column:primary_domain"`
-	APIDomain     string    `gorm:"column:api_domain"`
-	AdminDomain   string    `gorm:"column:admin_domain"`
-	CNAMETarget   string    `gorm:"column:cname_target"`
-	TLSStatus     string    `gorm:"column:tls_status"`
-	ThemeJSON     []byte    `gorm:"column:theme_json"`
-	CreatedAt     time.Time `gorm:"column:created_at"`
+	ID            string     `gorm:"column:id;primaryKey"`
+	Name          string     `gorm:"column:name"`
+	LogoURL       *string    `gorm:"column:logo_url"`
+	PrimaryDomain string     `gorm:"column:primary_domain"`
+	APIDomain     string     `gorm:"column:api_domain"`
+	AdminDomain   string     `gorm:"column:admin_domain"`
+	CNAMETarget   string     `gorm:"column:cname_target"`
+	TLSStatus     string     `gorm:"column:tls_status"`
+	TLSIssuer     string     `gorm:"column:tls_issuer"`
+	TLSDirectory  string     `gorm:"column:tls_directory"`
+	TLSExpiresAt  *time.Time `gorm:"column:tls_expires_at"`
+	ThemeJSON     []byte     `gorm:"column:theme_json"`
+	CreatedAt     time.Time  `gorm:"column:created_at"`
 }
 
 func (brandRow) TableName() string { return "identity_brands" }
@@ -145,12 +148,35 @@ func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*Br
 	if strings.TrimSpace(cname) == "" {
 		cname = "edge.tokenhub.local"
 	}
-	if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
-		"cname_target": cname, "tls_status": "issued",
-	}).Error; err != nil {
+	var row brandRow
+	if err := s.db.WithContext(ctx).Where("id = ?", brandID).First(&row).Error; err != nil {
 		return nil, err
 	}
-	var row brandRow
+	issuer := IssuerSandbox
+	directory := ""
+	var expires *time.Time
+	if s.acme.Enabled() && (s.acme.Force || UsePublicACME(row.PrimaryDomain)) {
+		result, err := s.acme.Issue(ctx, row.PrimaryDomain)
+		if err != nil {
+			_ = s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
+				"cname_target": cname, "tls_status": "failed", "tls_issuer": IssuerACME,
+				"tls_directory": s.acme.Directory,
+			}).Error
+			return nil, err
+		}
+		issuer = result.Issuer
+		directory = result.Directory
+		expires = result.ExpiresAt
+	}
+	updates := map[string]any{
+		"cname_target": cname, "tls_status": "issued", "tls_issuer": issuer, "tls_directory": directory,
+	}
+	if expires != nil {
+		updates["tls_expires_at"] = *expires
+	}
+	if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(updates).Error; err != nil {
+		return nil, err
+	}
 	if err := s.db.WithContext(ctx).Where("id = ?", brandID).First(&row).Error; err != nil {
 		return nil, err
 	}
@@ -347,7 +373,12 @@ func brandView(row brandRow) *BrandView {
 		AdminDomain:   row.AdminDomain,
 		CNAMETarget:   row.CNAMETarget,
 		TLSStatus:     row.TLSStatus,
+		TLSIssuer:     row.TLSIssuer,
+		TLSDirectory:  row.TLSDirectory,
 		Theme:         theme,
+	}
+	if row.TLSExpiresAt != nil {
+		view.TLSExpiresAt = row.TLSExpiresAt.Unix()
 	}
 	if row.LogoURL != nil {
 		view.LogoURL = *row.LogoURL

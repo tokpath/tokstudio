@@ -19,6 +19,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/brand", a.publicBrand)
 	r.GET("/v1/public/models", a.publicModels)
 	r.GET("/v1/public/tls-check", a.publicTLSCheck)
+	r.GET("/.well-known/acme-challenge/:token", a.acmeHTTP01)
 	r.GET("/v1/public/docs-context", a.docsContext)
 	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.listBrands)
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
@@ -368,6 +369,15 @@ func (a *App) docsContext(c *gin.Context) {
 	})
 }
 
+func (a *App) acmeHTTP01(c *gin.Context) {
+	body := a.Identity.LookupACMEChallenge(c.Param("token"))
+	if body == "" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.String(http.StatusOK, body)
+}
+
 func (a *App) publicTLSCheck(c *gin.Context) {
 	domain := c.Query("domain")
 	if domain == "" {
@@ -395,6 +405,10 @@ func (a *App) issueBrandTLS(c *gin.Context) {
 	}
 	item, err := a.Identity.IssueBrandTLS(c.Request.Context(), c.Param("id"), a.Config.EdgeCNAME)
 	if err != nil {
+		if errors.Is(err, identity.ErrACMEFailed) {
+			httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "ACME 签发失败："+err.Error(), true)
+			return
+		}
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "品牌不存在", false)
 		return
 	}

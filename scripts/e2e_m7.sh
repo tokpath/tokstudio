@@ -379,7 +379,12 @@ if [[ "$code" != "404" ]]; then echo "unknown host should 404, got $code" >&2; e
 code="$(curl -s -o /tmp/m7-tls409.json -w '%{http_code}' -X POST "$API_URL/admin/brands/brd_oem/tls/issue" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}')"
 if [[ "$code" != "409" ]]; then echo "expected 409 issuing tls without confirm, got $code" >&2; exit 1; fi
-curl_has issued -X POST "$API_URL/admin/brands/brd_oem/tls/issue" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}'
+tls_body="$(curl -sf -X POST "$API_URL/admin/brands/brd_oem/tls/issue" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}')"
+echo "$tls_body" | grep -q '"tls_status":"issued"'
+if echo "$tls_body" | grep -q '"tls_issuer":"acme"'; then
+  echo "oem.localhost must stay sandbox issuer in e2e_m7 (not ACME)" >&2
+  exit 1
+fi
 
 echo "== admin role isolation"
 FINANCE_TOKEN="${ADMIN_TOKEN}-finance"

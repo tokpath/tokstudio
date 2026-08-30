@@ -281,8 +281,15 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("issue tls without confirm should be 409, got %d", code)
 	}
 	issued := postJSONRaw(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "m7_admin", map[string]any{})
-	if issued["item"].(map[string]any)["tls_status"] != "issued" {
+	tlsItem := issued["item"].(map[string]any)
+	if tlsItem["tls_status"] != "issued" {
 		t.Fatalf("issue oem tls: %+v", issued)
+	}
+	if issuer, _ := tlsItem["tls_issuer"].(string); issuer != identity.IssuerSandbox && issuer != "" {
+		t.Fatalf("oem.localhost must stay sandbox issuer, got %q", issuer)
+	}
+	if code := getStatus(t, server.URL+"/.well-known/acme-challenge/missing", ""); code != http.StatusNotFound {
+		t.Fatalf("unknown ACME token should 404, got %d", code)
 	}
 	models := getAuthJSON(t, server.URL+"/admin/models", "m7_admin")["items"].([]any)
 	if len(models) == 0 {
@@ -797,6 +804,54 @@ func hasRole(me map[string]any, code string) bool {
 		}
 	}
 	return false
+}
+
+func TestACMELocalhostStaysSandbox(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
+		t.Skip("integration test requires postgres and redis")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.BootstrapAdmin = "acme_sandbox_admin"
+	cfg.BootstrapUser = "acme_sandbox_user"
+	cfg.ACMEDirectory = "https://127.0.0.1:1/dir"
+	cfg.ACMEInsecureSkipVerify = true
+	cfg.ACMEForce = false
+	application := mustApp(t, cfg)
+	server := httptest.NewServer(application.Router())
+	defer server.Close()
+	issued := postJSONRaw(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "acme_sandbox_admin", map[string]any{})
+	item := issued["item"].(map[string]any)
+	if item["tls_status"] != "issued" {
+		t.Fatalf("sandbox issue: %+v", issued)
+	}
+	if issuer, _ := item["tls_issuer"].(string); issuer != identity.IssuerSandbox && issuer != "" {
+		t.Fatalf("directory set must not ACME .localhost without FORCE, got %q", issuer)
+	}
+}
+
+func TestACMEIssueFailsBadDirectory(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
+		t.Skip("integration test requires postgres and redis")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.BootstrapAdmin = "acme_fail_admin"
+	cfg.BootstrapUser = "acme_fail_user"
+	cfg.ACMEDirectory = "https://127.0.0.1:1/dir"
+	cfg.ACMEInsecureSkipVerify = true
+	cfg.ACMEForce = true
+	application := mustApp(t, cfg)
+	server := httptest.NewServer(application.Router())
+	defer server.Close()
+	code := postStatusConfirm(t, server.URL+"/admin/brands/"+identity.OEMBrandID+"/tls/issue", "acme_fail_admin", map[string]any{})
+	if code != http.StatusBadGateway {
+		t.Fatalf("forced ACME against a dead directory should 502, got %d", code)
+	}
 }
 
 func firstContentOf(body map[string]any) (string, bool) {

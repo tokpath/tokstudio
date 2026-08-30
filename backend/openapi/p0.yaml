@@ -744,7 +744,9 @@ paths:
             type: string
       responses:
         "200":
-          description: sandbox tls issued
+          description: tls issued (sandbox for .localhost; RFC 8555 ACME when directory + public hostname)
+        "502":
+          description: ACME directory issuance failed
   /admin/ops/canary:
     get:
       operationId: getAdminCanary

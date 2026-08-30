@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # OEM TLS 门禁演练：已知域名放行、未知域名拒绝、沙箱标记 issued。
 # 这不是公网 Let's Encrypt 真签发；Caddy on-demand 仍以 tls-check 为门禁。
+# 真 ACME 协议用 scripts/e2e_acme.sh + Pebble。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

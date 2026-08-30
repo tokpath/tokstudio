@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CodeBlock } from "@/components/code-block";
+import { DocsLanguageToggle } from "@/components/docs-language-toggle";
 import { Eyebrow } from "@/components/eyebrow";
 import { PublicShell } from "@/components/public-shell";
 
@@ -21,6 +22,9 @@ export default function DocsPage() {
     <PublicShell>
       <div className="flex flex-col gap-10 lg:flex-row">
         <nav className="w-full shrink-0 text-sm text-ink-secondary lg:w-48" aria-label="文档目录">
+          <div className="mb-4">
+            <DocsLanguageToggle />
+          </div>
           <Eyebrow className="mb-3 text-ink-mute">Docs</Eyebrow>
           <ul className="flex flex-row gap-3 overflow-x-auto lg:flex-col lg:gap-2">
             {sections.map((section) => (

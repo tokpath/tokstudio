@@ -181,7 +181,7 @@ echo "$modelhtml" | grep -q "挂载 Provider"
 echo "$modelhtml" | grep -q "弃用模型"
 curl_has gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers"
 curl_has google/gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models"
-curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes"
+curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes?format=csv"
 curl_has gemini -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
   -d '{"model":"google/gemini-flash","messages":[{"role":"user","content":"gemini"}]}'
 code="$(curl -s -o /tmp/m7-recalc409.json -w '%{http_code}' -X POST "$API_URL/admin/commissions/recalc" \

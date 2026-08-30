@@ -63,11 +63,11 @@ export default function MediaPanel() {
   const [items, setItems] = useState<Job[]>([]);
   const [kind, setKind] = useState("");
   const [message, setMessage] = useState("登录后可查看自己的视频和图像任务。");
-  const form = useForm({
+  const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
       prompt: "a river at dusk",
-      kind: "video" as const,
+      kind: "video",
       task_type: "t2v",
       duration: 5,
       resolution: "720p",

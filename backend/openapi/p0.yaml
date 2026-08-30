@@ -215,7 +215,7 @@ paths:
             type: string
       responses:
         "200":
-          description: updated channel status type or brand
+          description: updated channel status type or brand; disabled freezes new chat and media with 403 channel_disabled
   /channel/attribution:
     get:
       operationId: listChannelAttribution

@@ -33,7 +33,13 @@ var (
 	ErrUnsupportedParam    = errors.New("unsupported parameter")
 	ErrProviderUnavailable = errors.New("provider unavailable")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrChannelDisabled     = errors.New("channel is disabled")
 )
+
+// ChannelGuard 由 identity 实现。网关只问渠道能不能接新消费，不读身份表。
+type ChannelGuard interface {
+	AssertChannelConsumable(ctx context.Context, channelOrgID string) error
+}
 
 type requestRow struct {
 	ID            string     `gorm:"column:id;primaryKey"`
@@ -87,12 +93,17 @@ type Service struct {
 	catalog      *catalog.Service
 	booker       Booker
 	breaker      Breaker
+	channels     ChannelGuard
 	adapters     map[string]Adapter
 	adapterCalls int32
 }
 
 func (s *Service) SetBreaker(b Breaker) {
 	s.breaker = b
+}
+
+func (s *Service) SetChannelGuard(g ChannelGuard) {
+	s.channels = g
 }
 
 func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *Service {
@@ -171,6 +182,14 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	}
 	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
 		maxTokens += 64
+	}
+	if s.channels != nil {
+		if err := s.channels.AssertChannelConsumable(ctx, in.Caller.ChannelOrgID); err != nil {
+			if errors.Is(err, identity.ErrChannelDisabled) {
+				return nil, ErrChannelDisabled
+			}
+			return nil, err
+		}
 	}
 	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,

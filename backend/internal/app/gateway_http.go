@@ -327,6 +327,8 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 			httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型未授权", false)
 		case errors.Is(err, gateway.ErrInsufficientBalance):
 			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
+		case errors.Is(err, gateway.ErrChannelDisabled), errors.Is(err, identity.ErrChannelDisabled):
+			httpx.Abort(c, http.StatusForbidden, "channel_disabled", "渠道已停用，已冻结新消费", false)
 		case errors.Is(err, ops.ErrRateLimited):
 			httpx.Abort(c, http.StatusTooManyRequests, "rate_limited", "API Key 超过限额", false)
 		default:

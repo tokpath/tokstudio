@@ -224,6 +224,22 @@ CH_JSON="$(curl -sf -X POST "$API_URL/admin/channels" -H "Authorization: Bearer 
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"code\":\"$CH_CODE\",\"type\":\"B\",\"status\":\"active\"}")"
 CH_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$CH_JSON")"
+curl -sf -X POST "$API_URL/admin/channel-quotas/grant" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"channel_org_id\":\"$CH_ID\",\"amount_minor\":100000000}" >/dev/null
+PROMO="THX-FZ-$RANDOM"
+curl -sf -X POST "$API_URL/admin/promotion-codes" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"channel_org_id\":\"$CH_ID\",\"code\":\"$PROMO\"}" >/dev/null
+fzemail="fz-$RANDOM@example.test"
+fzreg="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$fzemail\",\"password\":\"password1\",\"promotion_code\":\"$PROMO\"}")"
+fzsession="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$fzreg")"
+curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $fzsession" -H 'Content-Type: application/json' -d '{"code":"THE2E"}' >/dev/null
+fzkey="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
+  "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $fzsession" -H 'Content-Type: application/json' -d '{"name":"freeze"}')")"
+curl_has request_id -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $fzkey" -H 'Content-Type: application/json' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"before-disable"}]}'
 code="$(curl -s -o /tmp/m7-chpatch409.json -w '%{http_code}' -X PATCH "$API_URL/admin/channels/$CH_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"status":"disabled"}')"
 if [[ "$code" != "409" ]]; then
@@ -232,6 +248,15 @@ if [[ "$code" != "409" ]]; then
 fi
 curl_has disabled -X PATCH "$API_URL/admin/channels/$CH_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"status":"disabled"}'
+code="$(curl -s -o /tmp/m7-frozen.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $fzkey" \
+  -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"after-disable"}]}')"
+if [[ "$code" != "403" ]]; then
+  echo "disabled channel should freeze chat with 403, got $code $(cat /tmp/m7-frozen.json)" >&2
+  exit 1
+fi
+grep -q channel_disabled /tmp/m7-frozen.json
+curl_has available_minor -H "Authorization: Bearer $fzsession" "$API_URL/v1/me/balance"
+curl_has request_id -H "Authorization: Bearer $fzsession" "$API_URL/v1/me/usage"
 code="$(curl -s -o /tmp/m7-prov.json -w '%{http_code}' -X POST "$API_URL/admin/providers" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"slug":"no-confirm","name":"x"}')"
 if [[ "$code" != "409" ]]; then
   echo "expected 409 creating provider without confirm, got $code" >&2

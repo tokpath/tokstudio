@@ -55,6 +55,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "创建渠道" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "改渠道状态" })).toBeVisible();
   await expect(page.getByRole("button", { name: "保存渠道" })).toBeVisible();
+  await expect(page.getByText("停用后冻结新消费")).toBeVisible();
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "手工结算" })).toBeVisible();
   await expect(page.getByRole("button", { name: "人工打款" })).toBeVisible();

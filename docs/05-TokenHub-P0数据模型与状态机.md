@@ -22,7 +22,7 @@
 | `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja；`status` 为 `active`/`banned`，封禁后会话与 API Key 失效 |
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
 | `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权 |
-| `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级 |
+| `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级；`disabled` 冻结新消费（聊天/媒体 403），余额和历史保留 |
 | `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、1/2 级 KOL |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
 | `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |

@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -96,6 +97,24 @@ func (s *Service) resolvePromotion(ctx context.Context, code string) (resolvedPr
 		AcquisitionRoleID: promo.AcquisitionRoleID,
 		SourceCode:        promo.Code,
 	}, nil
+}
+
+// AssertChannelConsumable 在渠道停用后拦住新消费（聊天/媒体），余额和历史仍可查。
+func (s *Service) AssertChannelConsumable(ctx context.Context, channelOrgID string) error {
+	if channelOrgID == "" {
+		return nil
+	}
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelOrgID).First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	if row.Status != "" && row.Status != "active" {
+		return ErrChannelDisabled
+	}
+	return nil
 }
 
 func (s *Service) KnownBrandHost(ctx context.Context, host string) bool {

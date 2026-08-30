@@ -99,6 +99,14 @@ func (a *App) createMedia(c *gin.Context, kind string) {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 		return
 	}
+	if err := a.Identity.AssertChannelConsumable(c.Request.Context(), caller.ChannelOrgID); err != nil {
+		if errors.Is(err, identity.ErrChannelDisabled) {
+			httpx.Abort(c, http.StatusForbidden, "channel_disabled", "渠道已停用，已冻结新消费", false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道状态失败", true)
+		return
+	}
 	job, err := a.Media.Create(c.Request.Context(), media.CreateInput{
 		Caller:         *caller,
 		RequestID:      c.GetString(httpx.ContextRequestID),

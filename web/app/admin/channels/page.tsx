@@ -117,7 +117,7 @@ export default function AdminChannelsPage() {
         }}
       >
         <h2 className="mb-3 text-xl font-medium">改渠道状态</h2>
-        <p className="mb-3 text-sm text-slate-400">只改状态、类型或品牌。停用不会删历史用户和佣金。</p>
+        <p className="mb-3 text-sm text-slate-400">只改状态、类型或品牌。停用后冻结新消费（聊天/媒体 403），余额和历史仍保留。不要停用官方/代理商/OEM 种子渠道。</p>
         <div className="mb-3 grid max-w-xl gap-2">
           <Input name="channel_id" aria-label="改状态用渠道 ID" placeholder="改状态用渠道 ID" />
           <Input name="status" aria-label="改状态用状态" placeholder="改状态用状态 disabled" />

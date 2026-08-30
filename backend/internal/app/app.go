@@ -66,6 +66,7 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	opsSvc := ops.New(gdb, rdb)
 	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
 	gw.SetBreaker(opsSvc)
+	gw.SetChannelGuard(idSvc)
 	return &App{
 		Config:     cfg,
 		DB:         gdb,

@@ -662,6 +662,63 @@ func TestM7OpsHardening(t *testing.T) {
 	if fromSession["id"] == nil {
 		t.Fatalf("session media create: %+v", fromSession)
 	}
+
+	frozenCode := "freeze-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	frozenCh := postJSONRaw(t, server.URL+"/admin/channels", "m7_admin", map[string]any{
+		"code": frozenCode, "type": "B", "status": "active",
+	})
+	frozenID := frozenCh["item"].(map[string]any)["id"].(string)
+	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m7_admin", map[string]any{
+		"channel_org_id": frozenID, "amount_minor": 100 * billing.MinorPerUSD,
+	})
+	promo := "THX-FZ-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "m7_admin", map[string]any{
+		"channel_org_id": frozenID, "code": promo,
+	})
+	frozenReg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "freeze-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": promo,
+	})
+	if channelOf(frozenReg) != frozenID {
+		t.Fatalf("freeze user should bind new channel: %+v", frozenReg)
+	}
+	frozenSession := tokenOf(frozenReg)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", frozenSession, map[string]any{"code": billing.RedeemE2E})
+	frozenKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", frozenSession, map[string]any{"name": "freeze"})["item"].(map[string]any)["key"].(string)
+	if chat := postJSONRaw(t, server.URL+"/v1/chat/completions", frozenKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "before-disable"}},
+	}); chat["request_id"] == nil {
+		t.Fatalf("active channel should still chat: %+v", chat)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/channels/"+frozenID, "m7_admin", map[string]any{"status": "disabled"})
+	blocked := mustStatusBody(t, http.MethodPost, server.URL+"/v1/chat/completions", frozenKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "after-disable"}},
+	})
+	if blocked.status != http.StatusForbidden {
+		t.Fatalf("disabled channel chat should 403, got %d %+v", blocked.status, blocked.body)
+	}
+	errBody, _ := blocked.body["error"].(map[string]any)
+	if errBody["code"] != "channel_disabled" {
+		t.Fatalf("disabled channel error: %+v", blocked.body)
+	}
+	if getAuthJSON(t, server.URL+"/v1/me/balance", frozenSession)["balance"] == nil {
+		t.Fatal("disabled channel must keep readable balance")
+	}
+	if len(getAuthJSON(t, server.URL+"/v1/me/usage", frozenSession)["items"].([]any)) == 0 {
+		t.Fatal("disabled channel must keep usage history")
+	}
+	mediaBlocked := mustStatusBody(t, http.MethodPost, server.URL+"/v1/videos", frozenSession, map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "frozen",
+	})
+	if mediaBlocked.status != http.StatusForbidden {
+		t.Fatalf("disabled channel media should 403, got %d %+v", mediaBlocked.status, mediaBlocked.body)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/channels/"+frozenID, "m7_admin", map[string]any{"status": "active"})
+	if chat := postJSONRaw(t, server.URL+"/v1/chat/completions", frozenKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "reenabled"}},
+	}); chat["request_id"] == nil {
+		t.Fatalf("re-enabled channel should chat: %+v", chat)
+	}
 }
 
 func postStatus(t *testing.T, url, token string, payload map[string]any) int {

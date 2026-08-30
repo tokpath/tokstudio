@@ -21,6 +21,7 @@ var (
 	ErrEmailTaken         = errors.New("email already registered")
 	ErrWeakPassword       = errors.New("password too short")
 	ErrChannelImmutable   = errors.New("channel attribution cannot be changed by the user")
+	ErrChannelDisabled    = errors.New("channel is disabled")
 	ErrPromotionInvalid   = errors.New("promotion code is invalid")
 	ErrOTPInvalid         = errors.New("verification code is invalid")
 	ErrInvalidProfile     = errors.New("profile is invalid")

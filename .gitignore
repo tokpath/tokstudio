@@ -51,3 +51,5 @@ backups/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+.feishu-sdlc/

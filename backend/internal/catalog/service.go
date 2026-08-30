@@ -362,6 +362,26 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 	return nil
 }
 
+// GrantDefaultModels 给新渠道复制官方已启用的模型白名单，用户才能聊天/做媒体。
+func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) error {
+	if channelOrgID == "" || channelOrgID == identity.OfficialChannelID {
+		return nil
+	}
+	var src []channelPolicyRow
+	if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND enabled = true", identity.OfficialChannelID).Find(&src).Error; err != nil {
+		return err
+	}
+	for _, policy := range src {
+		row := channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: policy.PublicModelID, Enabled: true}
+		if err := s.db.WithContext(ctx).
+			Where("channel_org_id = ? AND public_model_id = ?", row.ChannelOrgID, row.PublicModelID).
+			FirstOrCreate(&row).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {
 	var models []publicModelRow
 	q := s.db.WithContext(ctx).Table("catalog_public_models m").

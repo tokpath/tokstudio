@@ -441,6 +441,10 @@ func (a *App) createChannel(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
+	if err := a.Catalog.GrantDefaultModels(c.Request.Context(), item.ID); err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道默认模型失败", true)
+		return
+	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.create", ResourceType: "channel", ResourceID: item.ID,
 		After: map[string]string{"code": item.Code, "type": item.Type},

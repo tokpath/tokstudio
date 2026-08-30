@@ -149,6 +149,14 @@ type ExecuteOutput struct {
 }
 
 func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput, error) {
+	if s.channels != nil {
+		if err := s.channels.AssertChannelConsumable(ctx, in.Caller.ChannelOrgID); err != nil {
+			if errors.Is(err, identity.ErrChannelDisabled) {
+				return nil, ErrChannelDisabled
+			}
+			return nil, err
+		}
+	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, ErrModelNotAllowed
@@ -182,14 +190,6 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	}
 	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
 		maxTokens += 64
-	}
-	if s.channels != nil {
-		if err := s.channels.AssertChannelConsumable(ctx, in.Caller.ChannelOrgID); err != nil {
-			if errors.Is(err, identity.ErrChannelDisabled) {
-				return nil, ErrChannelDisabled
-			}
-			return nil, err
-		}
 	}
 	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,

@@ -27,6 +27,16 @@ go.work.sum
 # env file
 .env
 
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+npm-debug.log*
+
+# Local e2e leftovers
+/tmp/
+*.rdb
+
 # Firecrawl research cache
 .firecrawl/
 

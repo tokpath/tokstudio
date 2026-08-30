@@ -1,0 +1,70 @@
+openapi: 3.1.0
+info:
+  title: TokenHub M0 Control Plane
+  version: 0.1.0-m0
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Liveness
+      responses:
+        "200":
+          description: Process is up
+  /readyz:
+    get:
+      summary: Readiness including postgres, redis and migrations
+      responses:
+        "200":
+          description: Ready
+        "503":
+          description: Not ready
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        "200":
+          description: Metrics text
+  /admin/me:
+    get:
+      summary: Current admin principal
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Principal
+        "403":
+          description: Unauthorized
+  /admin/audit-logs:
+    get:
+      summary: List audit logs
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Audit entries
+        "403":
+          description: Unauthorized
+  /admin/audit-probes:
+    post:
+      summary: Write a development audit probe
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Created
+        "403":
+          description: Unauthorized
+  /admin/outbox/stats:
+    get:
+      summary: Outbox delivery counters
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Stats
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

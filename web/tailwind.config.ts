@@ -23,6 +23,8 @@ const config: Config = {
         degraded: "var(--degraded)",
         code: "var(--code)",
         "code-ink": "var(--code-ink)",
+        "code-hairline": "var(--code-hairline)",
+        scrim: "var(--scrim)",
       },
       borderRadius: {
         stamp: "6px",

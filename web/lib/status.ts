@@ -35,10 +35,15 @@ export function summarizeReady(body: Readyz): string {
     : "服务还在启动，请稍后再看。";
 }
 
+export function isOperationalValue(value: string | undefined): boolean {
+  return value === "ok" || value === "stale" || value === "error" || value === "unreachable" || value === "unknown";
+}
+
 export function classifyCheck(value: string | undefined): CheckState {
   if (value === "ok") return "ok";
   if (value === "stale") return "stale";
-  if (value === "error") return "error";
+  if (value === "error" || value === "unreachable") return "error";
+  if (value === "unknown") return "unknown";
   return "unknown";
 }
 

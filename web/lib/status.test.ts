@@ -4,6 +4,7 @@ import {
   badgeForReady,
   classifyCheck,
   formatControlReceipt,
+  isOperationalValue,
   listChecks,
   summarizeReady,
 } from "./status";
@@ -23,6 +24,7 @@ describe("classifyCheck", () => {
     expect(classifyCheck("ok")).toBe("ok");
     expect(classifyCheck("stale")).toBe("stale");
     expect(classifyCheck("error")).toBe("error");
+    expect(classifyCheck("unreachable")).toBe("error");
     expect(classifyCheck(undefined)).toBe("unknown");
   });
 });
@@ -63,6 +65,13 @@ describe("formatControlReceipt", () => {
     expect(line).toContain("postgres:ok");
     expect(line).toContain("READY");
     expect(line).toContain("req_1");
+  });
+});
+
+describe("isOperationalValue", () => {
+  it("does not treat version strings as hold states", () => {
+    expect(isOperationalValue("0.1.0-m0")).toBe(false);
+    expect(isOperationalValue("ok")).toBe(true);
   });
 });
 

@@ -9,11 +9,5 @@ const toneClass: Record<StatusBadgeData["tone"], string> = {
 
 /** 状态必须带字，不能只靠色点。 */
 export function StatusBadge({ badge }: { badge: StatusBadgeData }) {
-  return (
-    <span
-      className={`font-mono text-[11px] font-medium uppercase tracking-[0.08em] ${toneClass[badge.tone]}`}
-    >
-      {badge.word}
-    </span>
-  );
+  return <span className={`th-eyebrow ${toneClass[badge.tone]}`}>{badge.word}</span>;
 }

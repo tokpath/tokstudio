@@ -33,7 +33,7 @@ export function ThemeToggle() {
             key={value}
             type="button"
             onClick={() => setTheme(value)}
-            className={`min-h-9 rounded-control px-2.5 text-xs font-medium transition-colors ${
+            className={`min-h-11 rounded-control px-2.5 text-xs font-medium sm:min-h-10 ${
               active ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute hover:text-ink"
             }`}
             aria-pressed={active}

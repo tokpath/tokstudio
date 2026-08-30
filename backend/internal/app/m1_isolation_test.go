@@ -120,6 +120,14 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if createdPromo["item"].(map[string]any)["code"] != promoCode {
 		t.Fatalf("create promo: %+v", createdPromo)
 	}
+	created := postJSONRaw(t, server.URL+"/channel/plans", "m1_channel_token", map[string]any{
+		"name": "Channel Console Cheap", "price_minor": 1000, "owner_id": identity.OfficialChannelID,
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
+	})
+	createdItem := created["item"].(map[string]any)
+	if createdItem["status"] != "pending_review" || createdItem["owner_id"] != identity.ResellerChannelID {
+		t.Fatalf("channel create plan should stay on reseller and enter review: %+v", created)
+	}
 	plans := getAuthJSON(t, server.URL+"/channel/plans", "m1_channel_token")
 	for _, raw := range plans["items"].([]any) {
 		row := raw.(map[string]any)

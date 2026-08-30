@@ -30,6 +30,8 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/admin/metrics/series")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/metrics/daily")).toBe(true);
     expect(hasGeneratedPath("GET", "/channel/attribution")).toBe(true);
+    expect(hasGeneratedPath("GET", "/channel/plans")).toBe(true);
+    expect(hasGeneratedPath("POST", "/channel/plans")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/partner/me")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/partner/users")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/plans")).toBe(true);

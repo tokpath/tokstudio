@@ -15,6 +15,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/app"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/plans"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
@@ -56,13 +57,13 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("public plans missing seed: %+v", publicPlans)
 	}
 
-	cheap := postJSONRaw(t, server.URL+"/admin/plans", "m5_channel", map[string]any{
-		"name": "Too Cheap", "price_minor": 1000, "owner_type": "channel",
+	cheap := postJSONRaw(t, server.URL+"/channel/plans", "m5_channel", map[string]any{
+		"name": "Too Cheap", "price_minor": 1000, "owner_type": "platform", "owner_id": identity.OfficialChannelID,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
 	})
 	cheapItem := cheap["item"].(map[string]any)
-	if cheapItem["status"] != plans.StatusPendingReview {
-		t.Fatalf("channel low price should enter review: %+v", cheap)
+	if cheapItem["status"] != plans.StatusPendingReview || cheapItem["owner_type"] != plans.OwnerChannel || cheapItem["owner_id"] != identity.ResellerChannelID {
+		t.Fatalf("channel low price should enter review for reseller: %+v", cheap)
 	}
 	pending := getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin")
 	if !hasPlan(pending, cheapItem["id"].(string)) {

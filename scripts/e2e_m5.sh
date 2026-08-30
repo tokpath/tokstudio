@@ -76,9 +76,10 @@ session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']
 uid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['user']['id'])" "$reg")"
 
 echo "== channel cheap plan enters review"
-cheap="$(curl -sf -X POST "$API_URL/admin/plans" -H "Authorization: Bearer $CHANNEL_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"name":"E2E Cheap","price_minor":1000,"items":[{"unit_type":"usd_credit","included_amount":1}]}')"
+cheap="$(curl -sf -X POST "$API_URL/channel/plans" -H "Authorization: Bearer $CHANNEL_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"E2E Cheap","price_minor":1000,"owner_id":"chn_official_a","items":[{"unit_type":"usd_credit","included_amount":1}]}')"
 echo "$cheap" | grep -q pending_review
+echo "$cheap" | grep -q chn_reseller_b
 pid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$cheap")"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans?status=pending_review" | grep -q "$pid"
 curl -sf -X POST "$API_URL/admin/plans/$pid/review" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \

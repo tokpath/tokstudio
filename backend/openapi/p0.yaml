@@ -222,6 +222,17 @@ paths:
       responses:
         "200":
           description: channel attribution buckets
+  /channel/plans:
+    get:
+      operationId: listChannelPlans
+      responses:
+        "200":
+          description: scoped channel and platform plans
+    post:
+      operationId: createChannelPlan
+      responses:
+        "201":
+          description: channel plan created or pending review
   /v1/partner/me:
     get:
       operationId: getPartnerMe

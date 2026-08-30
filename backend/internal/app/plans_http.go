@@ -27,6 +27,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.POST("/v1/payments/:adapter/webhook", a.paymentWebhook)
 
 	r.GET("/channel/plans", a.requireRoles("channel_admin", "platform_admin", "ops_admin"), a.channelListPlans)
+	r.POST("/channel/plans", a.requireRoles("channel_admin"), a.adminCreatePlan)
 	r.GET("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin", "audit_readonly"), a.adminListPlans)
 	r.POST("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.adminCreatePlan)
 	r.PATCH("/admin/plans/:id", a.requireRoles("platform_admin", "ops_admin"), a.adminPatchPlan)

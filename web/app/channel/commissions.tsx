@@ -42,16 +42,16 @@ export default function ChannelCommissions() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
-      <p className="mb-3 text-sm text-slate-400">
+      <p className="mb-3 text-sm text-ink-secondary">
         可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
       </p>
-      <p className="mb-3 text-sm text-slate-400">
+      <p className="mb-3 text-sm text-ink-secondary">
         换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。
       </p>
       <h3 className="mb-2 text-lg font-medium">已发放额度</h3>
-      <ul className="mb-3 space-y-1 text-sm text-slate-300">
+      <ul className="mb-3 space-y-1 text-sm text-ink-secondary">
         {allocations.length === 0 ? (
           <li>还没有发放记录。点刷新后可看到下属用户充值对应的额度。</li>
         ) : (
@@ -62,10 +62,10 @@ export default function ChannelCommissions() {
           ))
         )}
       </ul>
-      <button className="rounded border border-slate-600 px-4 py-2" onClick={refresh}>
+      <button className="rounded border border-hairline px-4 py-2" onClick={refresh}>
         刷新
       </button>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );
 }

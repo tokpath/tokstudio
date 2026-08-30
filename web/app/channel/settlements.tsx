@@ -24,20 +24,20 @@ export default function ChannelSettlements() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道结算</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">佣金冻结期满后按月出结算单。这里不含其他渠道，也不含 prompt。</p>
+      <p className="mb-3 text-sm text-ink-secondary">佣金冻结期满后按月出结算单。这里不含其他渠道，也不含 prompt。</p>
       <Button variant="outline" onClick={refresh}>
         刷新结算
       </Button>
-      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+      <ul className="mt-3 space-y-2 text-sm text-ink">
         {items.map((item) => (
           <li key={item.id}>
             {item.id} · {item.status} · {item.amount_minor ?? 0} micro-USD
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

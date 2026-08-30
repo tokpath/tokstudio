@@ -8,10 +8,16 @@ export type Brand = {
   theme?: Record<string, string>;
 };
 
+/** OEM 只能换章的颜色。纸/碳表面不走 theme_json。 */
 export function themeStyle(brand?: Brand): Record<string, string> {
+  const primary = brand?.theme?.brand || brand?.theme?.primary || "#2150D6";
+  const press = brand?.theme?.brand_press || brand?.theme?.brandPress || "#183CA8";
+  const emphasis = brand?.theme?.brand_emphasis || brand?.theme?.brandEmphasis || primary;
   return {
-    "--brand-primary": brand?.theme?.primary || "#22d3ee",
-    "--brand-background": brand?.theme?.background || "#020617",
+    "--brand": primary,
+    "--brand-primary": primary,
+    "--brand-press": press,
+    "--brand-emphasis": emphasis,
   };
 }
 

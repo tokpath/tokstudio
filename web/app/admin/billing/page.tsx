@@ -35,9 +35,9 @@ export default function AdminBillingPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">余额 / 充值 / 账务</h2>
-        <p className="mb-3 text-sm text-slate-400">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
+        <p className="mb-3 text-sm text-ink-secondary">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="账单 request_id" placeholder="request_id" />
           <ConfirmButton size="sm" variant="outline" title="确认退消费账单" description="会冲正对应佣金，并写入审计。" onConfirm={() => post("/admin/refunds", { request_id: requestID }, `已退账单 ${requestID}`)}>
@@ -67,8 +67,8 @@ export default function AdminBillingPage() {
             赠送额度
           </ConfirmButton>
         </div>
-        <p className="text-sm text-slate-300">{message}</p>
-        <pre className="mt-3 overflow-x-auto text-sm text-slate-200">{JSON.stringify(report, null, 2) || query.data?.error?.message}</pre>
+        <p className="text-sm text-ink-secondary">{message}</p>
+        <pre className="mt-3 overflow-x-auto text-sm text-ink">{JSON.stringify(report, null, 2) || query.data?.error?.message}</pre>
       </section>
     </AdminShell>
   );

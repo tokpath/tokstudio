@@ -29,17 +29,17 @@ export default function ChannelUsage() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道用量</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">Token 和媒体秒数按账务 usage 汇总，不是估算。</p>
+      <p className="mb-3 text-sm text-ink-secondary">Token 和媒体秒数按账务 usage 汇总，不是估算。</p>
       <Button variant="outline" onClick={refresh}>
         刷新用量
       </Button>
-      <p className="mt-3 text-sm text-slate-200">
+      <p className="mt-3 text-sm text-ink">
         批发 {usage.usage_minor ?? 0} micro-USD · prompt {usage.prompt_tokens ?? 0} · completion {usage.completion_tokens ?? 0} · 视频{" "}
         {usage.video_seconds ?? 0} 秒 · 图片 {usage.image_count ?? 0}
       </p>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

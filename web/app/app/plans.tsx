@@ -52,22 +52,22 @@ export default function PlansPanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
+    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">套餐与权益</h2>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-ink-secondary">
         扣减顺序：即将过期的赠送 → 当期套餐 → 现金钱包。金额单位是 micro-USD。
       </p>
-      <button className="mb-4 rounded border border-slate-600 px-4 py-2" onClick={refresh}>
+      <button className="mb-4 rounded border border-hairline px-4 py-2" onClick={refresh}>
         刷新套餐
       </button>
-      <ul className="space-y-3 text-sm text-slate-200">
+      <ul className="space-y-3 text-sm text-ink">
         {plans.map((plan) => (
           <li key={plan.id} className="flex items-center justify-between gap-3">
             <span>
               {plan.name} · {(plan.price_minor / 1_000_000).toString()} USD
             </span>
             <button
-              className="rounded px-3 py-1 text-slate-950"
+              className="rounded px-3 py-1 text-on-brand"
               style={{ background: "var(--brand-primary)" }}
               onClick={() => subscribe(plan.id)}
             >
@@ -76,10 +76,10 @@ export default function PlansPanel() {
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-sm text-slate-400">
+      <p className="mt-4 text-sm text-ink-secondary">
         有效权益 {ents.filter((item) => item.status === "active").length} 条
       </p>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );
 }

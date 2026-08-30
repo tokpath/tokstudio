@@ -2,57 +2,77 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
-import { portalLinks } from "@/lib/nav";
+import { PUBLIC_NAV } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandMark } from "@/components/brand-mark";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
-  const t = useTranslations("nav");
   const pathname = usePathname();
+  const name = brand?.name || "TokenHub";
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#020617]/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight" style={{ color: "var(--brand-primary)" }}>
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--brand-primary)_16%,transparent)] text-sm">
-            {(brand?.name || "T").slice(0, 1)}
-          </span>
-          {brand?.name || "TokenHub"}
+    <header className="sticky top-0 z-40 border-b border-hairline bg-canvas">
+      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-4 px-6">
+        <Link href="/" className="flex items-center gap-2 text-ink no-underline">
+          {brand?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-stamp object-contain" />
+          ) : (
+            <BrandMark />
+          )}
+          <span className="text-2xl font-semibold">{name}</span>
         </Link>
-        <nav className="hidden items-center gap-1 text-sm text-slate-300 lg:flex">
-          {portalLinks.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        <nav className="hidden flex-1 items-center gap-1 md:flex" aria-label="公共站">
+          {PUBLIC_NAV.map((item) => {
+            const active = item.href === "/" ? pathname === "/" : pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-full px-3 py-1.5 transition-colors hover:bg-white/5 hover:text-white ${active ? "bg-white/8 text-white" : ""}`}
+                className={`rounded-control px-3 py-1.5 text-sm no-underline ${
+                  active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
+                }`}
               >
-                {t(item.key)}
+                {item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             onClick={onCommand}
-            className="hidden h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-slate-400 md:inline-flex"
+            className="hidden h-10 items-center gap-2 rounded-control border border-hairline px-3 text-[13px] text-ink-mute md:inline-flex"
           >
-            搜索
-            <kbd className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            跳转
+            <kbd className="font-mono text-[11px]">⌘K</kbd>
           </button>
-          <Button asChild size="sm">
-            <Link href="/login">注册</Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/login">登录</Link>
+          </Button>
+          <Button asChild size="sm" className="hidden sm:inline-flex">
+            <Link href="/login">开始使用</Link>
           </Button>
         </div>
       </div>
-      <nav className="flex flex-wrap gap-2 border-t border-white/5 px-4 py-2 text-xs text-slate-400 lg:hidden">
-        {portalLinks.map((item) => (
-          <Link key={item.href} href={item.href} className="rounded-full border border-white/10 px-2.5 py-1">
-            {t(item.key)}
-          </Link>
-        ))}
+      <nav className="flex gap-1 overflow-x-auto border-t border-hairline px-6 py-2 md:hidden" aria-label="公共站移动导航">
+        {PUBLIC_NAV.map((item) => {
+          const active = item.href === "/" ? pathname === "/" : pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`shrink-0 rounded-control px-3 py-1.5 text-sm no-underline ${
+                active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
     </header>
   );

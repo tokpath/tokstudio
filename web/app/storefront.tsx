@@ -74,28 +74,28 @@ export default function PublicStorefront({
       <section id="models">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Model catalog</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Model catalog</p>
             <h2 className="mt-1 text-3xl font-semibold tracking-tight">可用模型</h2>
-            <p className="mt-2 text-sm text-slate-400">按当前域名的品牌和渠道白名单展示，不含 Provider 路由。</p>
+            <p className="mt-2 text-sm text-ink-secondary">按当前域名的品牌和渠道白名单展示，不含 Provider 路由。</p>
           </div>
           <Badge>{models.length} 个模型</Badge>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {models.map((model) => (
-            <Card key={model.id} className="group p-5 transition hover:-translate-y-0.5 hover:border-white/20">
+            <Card key={model.id} className="p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <Badge tone="brand">{model.vendor || "model"}</Badge>
-                <span className="th-code text-[11px] text-slate-500">{model.id}</span>
+                <span className="th-code text-[11px] text-ink-mute">{model.id}</span>
               </div>
               <CardTitle className="mb-1 text-lg font-medium">{model.display_name || model.id}</CardTitle>
-              <p className="text-sm text-slate-400">OpenAI / Anthropic 兼容入口可直接调用。</p>
+              <p className="text-sm text-ink-secondary">OpenAI / Anthropic 兼容入口可直接调用。</p>
             </Card>
           ))}
         </div>
       </section>
       <section id="plans">
         <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Pricing</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Pricing</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">套餐与订阅</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -104,7 +104,7 @@ export default function PublicStorefront({
               <CardTitle className="text-lg font-medium">{plan.name}</CardTitle>
               <p className="mt-2 text-3xl font-semibold">
                 {((plan.price_minor ?? 0) / 1_000_000).toString()}
-                <span className="ml-1 text-sm font-normal text-slate-400">USD / 月</span>
+                <span className="ml-1 text-sm font-normal text-ink-secondary">USD / 月</span>
               </p>
               <Button className="mt-5" onClick={() => subscribe(plan.id || "")}>
                 订阅
@@ -115,7 +115,7 @@ export default function PublicStorefront({
       </section>
       <Card id="topup" className="p-6 md:p-8">
         <CardTitle className="mb-2 text-2xl font-semibold">充值</CardTitle>
-        <p className="mb-5 text-sm text-slate-400">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
+        <p className="mb-5 text-sm text-ink-secondary">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
         <Form {...redeemForm}>
         <form className="flex flex-wrap items-end gap-3" onSubmit={redeemForm.handleSubmit(redeem)}>
           <TextField control={redeemForm.control} name="code" label="兑换码" showLabel={false} className="max-w-xs" />
@@ -130,7 +130,7 @@ export default function PublicStorefront({
           </Button>
         </form>
         </Form>
-        <p className="mt-4 text-sm text-slate-300">{message}</p>
+        <p className="mt-4 text-sm text-ink-secondary">{message}</p>
       </Card>
     </div>
   );

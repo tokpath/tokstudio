@@ -30,9 +30,9 @@ export default function AdminKeysPage() {
   return (
     <AdminShell>
       <Form {...form}>
-        <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={(event) => event.preventDefault()}>
+        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">禁用 API Key</h2>
-          <p className="mb-3 text-sm text-slate-400">平台管理员和技术值班可以禁任意用户的 Key。禁用后网关立刻 403，不会回显密文。</p>
+          <p className="mb-3 text-sm text-ink-secondary">平台管理员和技术值班可以禁任意用户的 Key。禁用后网关立刻 403，不会回显密文。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={form.control} name="key_id" label="禁用用 API Key ID" />
           </div>
@@ -60,7 +60,7 @@ export default function AdminKeysPage() {
           >
             禁用 Key
           </ConfirmButton>
-          <p className="mt-3 text-sm text-slate-300">{message}</p>
+          <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         </form>
       </Form>
       <AdminListPanel<Key>

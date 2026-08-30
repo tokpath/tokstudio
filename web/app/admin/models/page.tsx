@@ -73,9 +73,9 @@ export default function AdminModelsPage() {
         ]}
       />
       <Form {...createForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">创建模型</h2>
-          <p className="text-sm text-slate-400">缺确认会 409。默认 draft，不会立刻出现在客户目录。</p>
+          <p className="text-sm text-ink-secondary">缺确认会 409。默认 draft，不会立刻出现在客户目录。</p>
           <TextField control={createForm.control} name="public_id" label="创建用 public id" placeholder="创建用 public id tokenhub/ops-ui" />
           <TextField control={createForm.control} name="vendor" label="创建用厂商" placeholder="创建用厂商 tokenhub" />
           <TextField control={createForm.control} name="display_name" label="创建用显示名" />
@@ -104,12 +104,12 @@ export default function AdminModelsPage() {
           >
             创建模型
           </ConfirmButton>
-          <p className="text-sm text-slate-300">{createMessage}</p>
+          <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
       <Form {...syncForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
-          <p className="text-sm text-slate-400">同步结果先进入 draft，审核通过后再发布到客户目录。</p>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+          <p className="text-sm text-ink-secondary">同步结果先进入 draft，审核通过后再发布到客户目录。</p>
           <TextField control={syncForm.control} name="provider_id" label="provider id 同步" placeholder="provider id 同步" />
           <TextField control={syncForm.control} name="public_id" label="public model id 审核并发布" placeholder="public model id 审核并发布" />
           <ConfirmButton
@@ -143,9 +143,9 @@ export default function AdminModelsPage() {
         </form>
       </Form>
       <Form {...attachForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">挂载 Provider</h2>
-          <p className="text-sm text-slate-400">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
+          <p className="text-sm text-ink-secondary">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
           <TextField control={attachForm.control} name="public_id" label="挂载 public id" placeholder="public_id" />
           <TextField control={attachForm.control} name="provider_id" label="挂载 provider id" placeholder="provider_id" />
           <TextField control={attachForm.control} name="upstream_model_id" label="upstream model id" placeholder="upstream_model_id" />
@@ -170,9 +170,9 @@ export default function AdminModelsPage() {
         </form>
       </Form>
       <Form {...deprecateForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">弃用模型</h2>
-          <p className="text-sm text-slate-400">只改状态，不删除历史映射和价格版本。</p>
+          <p className="text-sm text-ink-secondary">只改状态，不删除历史映射和价格版本。</p>
           <TextField control={deprecateForm.control} name="public_id" label="弃用 public id" placeholder="public_id" />
           <ConfirmButton
             size="sm"
@@ -194,7 +194,7 @@ export default function AdminModelsPage() {
           </ConfirmButton>
         </form>
       </Form>
-      <p className="text-sm text-slate-300">{message}</p>
+      <p className="text-sm text-ink-secondary">{message}</p>
     </AdminShell>
   );
 }

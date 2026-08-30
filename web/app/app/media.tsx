@@ -138,7 +138,7 @@ export default function MediaPanel() {
   return (
     <Card>
       <CardTitle>媒体任务</CardTitle>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-ink-secondary">
         支持文生、图生、首帧/首尾帧、参考素材和延长/编辑。结果只能通过签名 URL 下载，列表不含其他用户的任务。登录会话即可创建，不必再贴 API Key。
       </p>
       <Form {...form}>
@@ -153,7 +153,7 @@ export default function MediaPanel() {
                   <FormLabel>媒体类型</FormLabel>
                   <FormControl>
                     <select
-                      className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm"
+                      className="h-10 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm"
                       aria-label="媒体类型"
                       {...field}
                       onChange={(event) => {
@@ -175,7 +175,7 @@ export default function MediaPanel() {
                 <FormItem>
                   <FormLabel>生成模式</FormLabel>
                   <FormControl>
-                    <select className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm" aria-label="生成模式" {...field}>
+                    <select className="h-10 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm" aria-label="生成模式" {...field}>
                       {modes.map((mode) => (
                         <option key={mode.value} value={mode.value}>
                           {mode.label}
@@ -219,7 +219,7 @@ export default function MediaPanel() {
         </form>
       </Form>
       <div className="mb-4 flex flex-wrap gap-3">
-        <select className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm" value={kind} onChange={(e) => setKind(e.target.value)}>
+        <select className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm" value={kind} onChange={(e) => setKind(e.target.value)}>
           <option value="">全部</option>
           <option value="video">视频</option>
           <option value="image">图像</option>
@@ -228,14 +228,14 @@ export default function MediaPanel() {
           刷新任务
         </Button>
       </div>
-      <ul className="space-y-2 text-sm text-slate-200">
+      <ul className="space-y-2 text-sm text-ink">
         {items.map((item) => (
           <li key={item.id}>
             {item.kind || item.status} · {item.task_type || "t2v"} · {item.resolution || ""} · {item.duration || ""}s · {item.model} · {item.status} · {item.id}
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

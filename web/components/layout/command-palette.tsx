@@ -59,9 +59,9 @@ export function CommandPalette({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-slate-950/70 px-4 pt-[12vh] backdrop-blur-sm" onClick={() => onOpenChange(false)}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-scrim px-4 pt-[12vh]" onClick={() => onOpenChange(false)}>
       <div
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-glow"
+        className="w-full max-w-xl overflow-hidden rounded-stamp border border-hairline bg-canvas-raised"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-label="快速跳转"
@@ -71,26 +71,26 @@ export function CommandPalette({
           value={q}
           onChange={(event) => setQ(event.target.value)}
           placeholder="搜索页面、模型、账单、渠道…"
-          className="h-12 w-full border-b border-white/10 bg-transparent px-4 text-sm text-slate-100 placeholder:text-slate-500"
+          className="h-12 w-full border-b border-hairline bg-transparent px-4 text-sm text-ink placeholder:text-ink-mute"
         />
         <ul className="th-scrollbar max-h-80 overflow-auto p-2">
           {filtered.slice(0, 16).map((item) => (
             <li key={`${item.group}-${item.href}`}>
               <button
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                className="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-brand-soft"
                 onClick={() => {
                   onOpenChange(false);
                   router.push(item.href);
                 }}
               >
                 <span>{item.label}</span>
-                <span className="text-xs text-slate-500">{item.group}</span>
+                <span className="text-xs text-ink-mute">{item.group}</span>
               </button>
             </li>
           ))}
-          {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-slate-500">没有匹配的入口</li> : null}
+          {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-ink-mute">没有匹配的入口</li> : null}
         </ul>
-        <p className="border-t border-white/10 px-4 py-2 text-xs text-slate-500">Enter 跳转 · Esc 关闭 · ⌘K / Ctrl+K 打开</p>
+        <p className="border-t border-hairline px-4 py-2 text-xs text-ink-mute">Enter 跳转 · Esc 关闭 · ⌘K / Ctrl+K 打开</p>
       </div>
     </div>
   );

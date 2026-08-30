@@ -10,24 +10,31 @@ export const portalLinks = [
   { href: "/login", key: "login" as const },
 ];
 
+export const PUBLIC_NAV = [
+  { href: "/", label: "状态" },
+  { href: "/docs", label: "文档" },
+  { href: "/#models", label: "模型" },
+  { href: "/#plans", label: "定价" },
+] as const;
+
 export const userSections: NavItem[] = [
-  { href: "#wallet", label: "现金钱包" },
-  { href: "#plans", label: "套餐与权益" },
+  { href: "#wallet", label: "余额/充值" },
+  { href: "#plans", label: "套餐" },
   { href: "#keys", label: "API Key" },
-  { href: "#examples", label: "接入示例" },
-  { href: "#usage", label: "用量与账单" },
+  { href: "#examples", label: "文档" },
+  { href: "#usage", label: "用量/账单" },
   { href: "#media", label: "媒体任务" },
-  { href: "#settings", label: "个人设置" },
+  { href: "#settings", label: "设置" },
 ];
 
 export const channelSections: NavItem[] = [
   { href: "#users", label: "本渠道用户" },
-  { href: "#plans", label: "本渠道套餐" },
-  { href: "#promos", label: "推广链接" },
-  { href: "#attribution", label: "本渠道归因" },
-  { href: "#usage", label: "本渠道用量" },
-  { href: "#settlements", label: "本渠道结算" },
-  { href: "#commissions", label: "渠道额度与佣金" },
+  { href: "#plans", label: "套餐" },
+  { href: "#promos", label: "推广" },
+  { href: "#attribution", label: "额度" },
+  { href: "#usage", label: "用量" },
+  { href: "#settlements", label: "结算" },
+  { href: "#commissions", label: "佣金/结算" },
 ];
 
 export const partnerSections: NavItem[] = [

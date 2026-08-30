@@ -54,9 +54,9 @@ export default function SettingsPanel() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">个人设置</CardTitle>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-ink-secondary">
         邮箱 {user?.email ?? "—"}，渠道 {user?.channel_org_id ?? "—" }。页面上没有切换渠道的入口。
       </p>
       <Form {...profileForm}>
@@ -81,11 +81,11 @@ export default function SettingsPanel() {
           })}
         >
           <TextField control={profileForm.control} name="display_name" label="显示名" showLabel={false} />
-          <label className="flex flex-col gap-1 text-xs text-slate-500">
+          <label className="flex flex-col gap-1 text-xs text-ink-mute">
             界面语言
             <select
               aria-label="界面语言"
-              className="h-10 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-slate-100"
+              className="h-10 rounded-lg border border-hairline bg-canvas px-3 text-sm text-ink"
               {...profileForm.register("locale")}
             >
               <option value="zh">中文</option>
@@ -123,7 +123,7 @@ export default function SettingsPanel() {
           </Button>
         </form>
       </Form>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

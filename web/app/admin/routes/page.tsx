@@ -53,9 +53,9 @@ export default function AdminRoutesPage() {
         ]}
       />
       <Form {...createForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">创建路由</h2>
-          <p className="text-sm text-slate-400">给已有公开模型建一个路由组。策略可选 priority / weight / price / health。</p>
+          <p className="text-sm text-ink-secondary">给已有公开模型建一个路由组。策略可选 priority / weight / price / health。</p>
           <TextField control={createForm.control} name="public_model_id" label="创建用 public model id" />
           <TextField control={createForm.control} name="strategy" label="创建用策略" placeholder="创建用策略 priority" />
           <TextField control={createForm.control} name="status" label="创建用状态" placeholder="创建用状态 active" />
@@ -95,9 +95,9 @@ export default function AdminRoutesPage() {
         </form>
       </Form>
       <Form {...patchForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">改路由策略</h2>
-          <p className="text-sm text-slate-400">只改策略或状态。不要对 rg_echo 乱改，改完会改变 echo 网关的选路。</p>
+          <p className="text-sm text-ink-secondary">只改策略或状态。不要对 rg_echo 乱改，改完会改变 echo 网关的选路。</p>
           <TextField control={patchForm.control} name="route_id" label="改策略用路由 id" />
           <TextField control={patchForm.control} name="strategy" label="改策略用策略" placeholder="改策略用策略 health" />
           <TextField control={patchForm.control} name="status" label="改策略用状态" placeholder="改策略用状态 active" />
@@ -126,7 +126,7 @@ export default function AdminRoutesPage() {
           </ConfirmButton>
         </form>
       </Form>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </AdminShell>
   );
 }

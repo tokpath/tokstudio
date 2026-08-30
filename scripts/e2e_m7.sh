@@ -323,7 +323,7 @@ curl_has kind -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/media?form
 curl_has tokenhub/echo-1 -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models?q=echo"
 curl_has action -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?format=csv"
 curl_has official -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channels?format=csv"
-curl_has pln_echo_month -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans"
+curl_has pln_echo_month -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/plans?format=csv"
 planhtml="$(curl -sf "$WEB_URL/admin/plans")"
 echo "$planhtml" | grep -q "创建套餐"
 echo "$planhtml" | grep -q "下架套餐"

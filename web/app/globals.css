@@ -20,6 +20,8 @@ html.light {
   --hold: #b45309;
   --danger: #c23b22;
   --degraded: #9a6700;
+  --code: #1f1d1a;
+  --code-ink: #edeae4;
 }
 
 html.dark {
@@ -38,6 +40,8 @@ html.dark {
   --hold: #b45309;
   --danger: #c23b22;
   --degraded: #9a6700;
+  --code: #1f1d1a;
+  --code-ink: #edeae4;
 }
 
 body {

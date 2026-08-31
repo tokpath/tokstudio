@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { themeStyle, type Brand } from "@/lib/brand";
 import { fetchAPI } from "@/lib/api";
@@ -8,7 +8,7 @@ import { messagesFor, resolveLocale } from "@/lib/i18n";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { AppProviders } from "@/app/providers";
 
-const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {

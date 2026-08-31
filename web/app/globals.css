@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TokenHub Clearing：纸是 Light，碳是 Dark。旧 --th-* 只做兼容别名。 */
+/* TokenHub Clearing alpha.2：纸是 Light，碳是 Dark。公共站学 Ofox 的留白，不学橙色。旧 --th-* 只做兼容别名。 */
 :root,
 html.light {
   --canvas: #f4f1ea;
@@ -111,5 +111,5 @@ body {
 
 .th-scrollbar::-webkit-scrollbar-thumb {
   background: var(--hairline);
-  border-radius: 4px;
+  border-radius: 8px;
 }

@@ -69,12 +69,12 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-16">
-      <section className="w-full rounded-stamp border border-hairline bg-canvas-raised p-8">
-        <p className="th-eyebrow text-brand-emphasis">AUTH</p>
-        <h1 className="mt-2 text-2xl font-semibold">{mode === "login" ? "登录" : "注册"}</h1>
-        <p className="mt-2 text-sm text-ink-secondary">
-          对齐 ofox 控制台登录结构：邮箱密码为主，Google 为次按钮。推广码只在注册时写入归属。
+    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-20">
+      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
+        <p className="th-eyebrow text-brand-emphasis">Sign in</p>
+        <h1 className="mt-3 text-[40px] font-semibold leading-tight">注册 / 登录</h1>
+        <p className="mt-3 text-base leading-relaxed text-ink-secondary">
+          推广码在注册成功时由服务端固化，不能当作可改归属。没有渐变英雄。
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -122,7 +122,8 @@ function LoginForm() {
               )}
             </p>
             <p className="text-[12px] text-ink-mute">
-              继续即表示你了解 <Link href="/terms">服务条款</Link> 与 <Link href="/privacy">隐私政策</Link>。
+              继续即表示你了解 <Link href="/terms">服务条款</Link> 与 <Link href="/privacy">隐私政策</Link>。还没看过价目？先回{" "}
+              <Link href="/">公共站</Link>。
             </p>
           </form>
         </Form>

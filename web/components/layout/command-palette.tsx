@@ -79,7 +79,7 @@ export function CommandPalette({
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-scrim px-4 pt-[12vh]" onClick={() => onOpenChange(false)}>
       <div
-        className="w-full max-w-xl overflow-hidden rounded-stamp border border-hairline bg-canvas-raised"
+        className="w-full max-w-xl overflow-hidden rounded-card border border-hairline bg-canvas-raised"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-label="快速跳转"

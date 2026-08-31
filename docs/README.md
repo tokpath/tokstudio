@@ -14,7 +14,7 @@
 10. [开发进度](09-开发进度.md)：每个里程碑的实现清单、端到端验证记录和 PR。产品文档以 `release/v0.1.0` 为权威来源。
 11. [飞书产品需求目录](10-飞书产品需求目录.md)：模块与需求点清单、状态口径和飞书落地约定。
 12. 飞书知识库 [技术栈](https://hcn928rez9ty.feishu.cn/wiki/KF6pw8QXqiQfSYkWiovcRWulnnt)：P0 锁定栈、Bifrost 边界、证书与生产补齐；与需求目录分开维护。
-13. [DESIGN.md](../DESIGN.md)：TokenHub Clearing 视觉宪法（`alpha.1`）。结构对齐 Stitch / awesome-design-md，内容只覆盖本产品的四个入口、账本、路由回单、OEM `theme_json` 和 ECharts。原则锁定，组件待真页面压测后升 1.0。
+13. [DESIGN.md](../DESIGN.md)：TokenHub Clearing 视觉宪法（`alpha.2`）。结构对齐 Stitch / awesome-design-md；公共站版式手艺参考 Ofox 的留白与信息节奏，不搬橙色或促销墙。内容覆盖四个入口、账本、路由回单、OEM `theme_json` 和 ECharts。隐喻与 OEM 契约锁定，组件待真页面压测后升 1.0。
 
 ## 决策状态
 

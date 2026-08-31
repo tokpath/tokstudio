@@ -9,7 +9,7 @@ export function CatalogFrame({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-stamp border border-hairline bg-canvas-raised">
+    <section className="overflow-hidden rounded-card border border-hairline bg-canvas-raised">
       <div className="overflow-x-auto">
         <div
           className="hidden min-w-[640px] border-b border-hairline px-4 py-3 md:grid"

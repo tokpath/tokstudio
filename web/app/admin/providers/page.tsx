@@ -15,6 +15,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 const schema = z.object({
   name: z.string().trim().min(1, "请填写名称"),
@@ -87,8 +88,8 @@ function RotateCredentialForm() {
 
   return (
     <Form {...form}>
-      <form className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-        <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
+      <form className="mt-4 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+        <AdminH2 k="rotateCreds" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
         <div className="mb-3 flex flex-wrap items-end gap-2">
           <TextField control={form.control} name="provider_id" label="轮换 provider id" placeholder="轮换用 provider id" showLabel={false} className="w-72" />
@@ -172,8 +173,8 @@ function AccountPoolPanel() {
   }
 
   return (
-    <section className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4">
-      <h2 className="mb-3 text-xl font-medium">账号池</h2>
+    <section className="mt-4 rounded-card border border-hairline bg-canvas-raised  p-4">
+      <AdminH2 k="accountPool" className="mb-3 text-xl font-medium" />
       <p className="mb-3 text-sm text-ink-secondary">列表只显示指纹，不回密文。冷却或停用后不会被路由选中。</p>
       <div className="mb-3 flex flex-wrap gap-2">
         <Input className="w-72" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="账号池 provider id" placeholder="账号池 provider id" />
@@ -263,8 +264,8 @@ function PatchProviderForm() {
 
   return (
     <Form {...form}>
-      <form className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-        <h2 className="mb-3 text-xl font-medium">改 Provider 状态</h2>
+      <form className="mt-4 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+        <AdminH2 k="editProvider" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">maintenance 会从路由候选里拿掉。RPM 写到 Provider 行，不是账号池单条账号。</p>
         <div className="mb-3 grid max-w-xl gap-2">
           <TextField control={form.control} name="provider_id" label="改状态用 provider id" />
@@ -333,7 +334,7 @@ export default function AdminProvidersPage() {
       />
       <RotateCredentialForm />
       <Form {...form}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <p className="text-sm text-ink-secondary">创建 Provider 需要二次确认头，密钥不会回显。</p>
           <TextField control={form.control} name="name" label="name" />
           <TextField control={form.control} name="slug" label="slug" />

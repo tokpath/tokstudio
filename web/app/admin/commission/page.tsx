@@ -10,6 +10,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Policy = {
   id?: string;
@@ -85,8 +86,8 @@ export default function AdminCommissionPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">佣金策略</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="commission" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">
           直接 / 管理奖励 / 渠道 / 团队分成与冻结天数。改策略只影响之后的 usage，不改已经入账的明细。
         </p>
@@ -110,8 +111,8 @@ export default function AdminCommissionPage() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-ink-secondary">{policyQuery.data.error.message}</p> : null}
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">佣金重算</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="recalc" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
         <div className="flex flex-wrap items-center gap-2">
           <Input
@@ -145,8 +146,8 @@ export default function AdminCommissionPage() {
           <p className="text-sm text-ink-secondary">{recalcMessage}</p>
         </div>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">手工结算</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="manualSettle" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={usageEventID} onChange={(e) => setUsageEventID(e.target.value)} aria-label="usage 事件 ID" placeholder="usage_event_id" />

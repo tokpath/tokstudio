@@ -101,7 +101,7 @@ export default function AdminModelEditPage() {
           返回模型列表
         </Link>
       </p>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-xl font-medium">编辑属性</h2>
         <p className="mt-1 text-sm text-ink-secondary">
           {publicId || "缺少 public id"} · {model?.status || query.data?.error?.message || "需要平台管理员登录后才能加载。"}
@@ -153,7 +153,7 @@ export default function AdminModelEditPage() {
           </form>
         </Form>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-xl font-medium">定价</h2>
         <p className="mt-1 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded。空字段不会写入。</p>
         <Form {...priceForm}>
@@ -195,7 +195,7 @@ export default function AdminModelEditPage() {
           </form>
         </Form>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-xl font-medium">上架</h2>
         <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"}。不要改 tokenhub/echo-1。</p>
         <div className="mt-4 flex flex-wrap gap-2">

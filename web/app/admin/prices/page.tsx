@@ -11,6 +11,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type PriceBook = { id: string; public_id: string; status: string };
 
@@ -29,8 +30,8 @@ export default function AdminPricesPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">价格</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="prices" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。单个模型也可以在模型编辑页改价。</p>
         <Form {...form}>
           <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>

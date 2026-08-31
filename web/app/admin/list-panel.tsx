@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslations } from "next-intl";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 
@@ -19,6 +20,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   title: string;
   columns: ColumnDef<T, unknown>[];
 }) {
+  const tc = useTranslations("common");
   const [q, setQ] = useState("");
   const href = q ? `${path}${path.includes("?") ? "&" : "?"}q=${encodeURIComponent(q)}` : path;
   const query = useQuery({
@@ -28,11 +30,11 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const data = query.data?.items ?? [];
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-medium">{title}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Input placeholder="筛选" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input placeholder={tc("filter")} value={q} onChange={(e) => setQ(e.target.value)} />
         <Button
           size="sm"
           variant="outline"
@@ -48,20 +50,20 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             URL.revokeObjectURL(url);
           }}
         >
-          导出 CSV
+          {tc("exportCsv")}
         </Button>
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="text-sm text-ink-secondary">{query.data?.error?.message || "需要平台管理员登录后才能加载。"}</p>
+        <p className="text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
               {table.getHeaderGroups().map((group) => (
-                <tr key={group.id} className="border-b border-hairline text-ink-secondary">
+                <tr key={group.id} className="border-b border-hairline">
                   {group.headers.map((header) => (
-                    <th key={header.id} className="px-3 py-2.5 font-medium">
+                    <th key={header.id} className="th-eyebrow px-3 py-2.5 text-ink-mute">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -70,7 +72,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-hairline hover:bg-canvas-raised">
+                <tr key={row.id} className="border-b border-hairline hover:bg-brand-soft/40">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2.5 text-ink">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AdminShell } from "../shell";
 import { apiClient } from "@/lib/client";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Runbook = { id: string; alert_kind: string; title: string; body: string };
 type ListResponse = { items?: Runbook[]; error?: { message?: string } };
@@ -16,8 +17,8 @@ export default function AdminRunbooksPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">应急手册</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="runbooks" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">每种关键告警对应一份处置步骤。对账、熔断、备份和 TLS 演练都有手册。</p>
         {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <div className="grid gap-3">

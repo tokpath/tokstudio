@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { PublicPageHero, StatStrip } from "@/components/public-section";
 import { formatMoney, inferKind, loadCatalog } from "@/lib/catalog";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function BestValuePage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -13,15 +13,7 @@ export default async function BestValuePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="BEST VALUE"
-        title="性价比模型"
-        description="按公开输入单价从低到高。对齐 ofox 折扣/性价比表的完整密度。"
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/models"
-        secondaryLabel="全部模型"
-      />
+      <I18nPublicHero id="bestValue" primaryHref="/login" secondaryHref="/models" />
       <StatStrip
         items={[
           { label: "在表模型", value: String(ranked.length) },

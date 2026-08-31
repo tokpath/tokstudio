@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiBase } from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 function micro(n: unknown) {
   const v = Number(n);
@@ -10,6 +11,7 @@ function micro(n: unknown) {
 }
 
 export function ChannelHero() {
+  const t = useTranslations("channelHero");
   const [quota, setQuota] = useState("—");
   const [consumed, setConsumed] = useState("—");
   const [frozen, setFrozen] = useState("—");
@@ -51,14 +53,14 @@ export function ChannelHero() {
   }, []);
 
   const cards = [
-    { t: "可用额度", d: "本渠道还能发放的服务额度", v: quota },
-    { t: "已消费", d: "下属用户已经打出去的账", v: consumed },
-    { t: "佣金冻结", d: "HOLD 中尚未到期", v: frozen },
-    { t: "可结算", d: "结算单未打款金额", v: settleable },
+    { t: t("quota"), d: t("quotaHint"), v: quota },
+    { t: t("consumed"), d: t("consumedHint"), v: consumed },
+    { t: t("frozen"), d: t("frozenHint"), v: frozen },
+    { t: t("settleable"), d: t("settleableHint"), v: settleable },
   ];
 
   return (
-    <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label="渠道总览">
+    <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
       {cards.map((card) => (
         <div key={card.t} className="rounded-card border border-hairline bg-canvas-raised p-4">
           <p className="th-eyebrow text-ink-mute">{card.t}</p>

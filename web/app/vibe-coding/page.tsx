@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicPageHero, PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function VibeCodingPage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -17,15 +18,7 @@ export default async function VibeCodingPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
-      <PublicPageHero
-        eyebrow="VIBE CODING"
-        title="编程工具，只需换一个 URL"
-        description="对齐 ofox Vibe Coding：Codex / Claude Code 配置片段落在碳面代码块。"
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/models"
-        secondaryLabel="探索模型"
-      />
+      <I18nPublicHero id="vibeCoding" primaryHref="/login" secondaryHref="/models" />
 
       <StatStrip
         items={[

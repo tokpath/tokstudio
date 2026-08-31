@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHeroClient } from "@/components/i18n-page-hero-client";
 
 const PAGES: Record<string, { title: string; body: string; href: string }> = {
   "best-llm-for-coding": { title: "编程该用哪个模型", body: "优先 tools / reasoning，再看输入单价。", href: "/models?kind=text" },
@@ -33,14 +34,11 @@ export default function ModelFinderSlugPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="MODEL FINDER"
-        title={title}
-        description={`对齐 ofox /model-finder/${params.slug} 落地页。推荐链到本站价目与接入，不伪造跑分。`}
+      <I18nPublicHeroClient
+        id="modelFinder"
         primaryHref={href}
-        primaryLabel="打开对应目录"
         secondaryHref="/model-finder"
-        secondaryLabel="全部场景"
+        title={title}
       />
       <PublicSection eyebrow="WHY" title="怎么选">
         <p className="text-sm text-ink-secondary">{body}</p>

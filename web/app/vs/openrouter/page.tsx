@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const rows = [
   ["公开价目", "已发布价目 + curl", "常见"],
@@ -13,15 +14,7 @@ const rows = [
 export default function VsOpenRouterPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="COMPARE"
-        title="TokenHub vs 通用聚合网关"
-        description="对齐 ofox「vs OpenRouter」对照页结构；用清算台能力说话，不做橙色营销条。"
-        primaryHref="/enterprise"
-        primaryLabel="企业能力"
-        secondaryHref="/models"
-        secondaryLabel="看价目"
-      />
+      <I18nPublicHero id="vsOpenrouter" primaryHref="/enterprise" secondaryHref="/models" />
       <PublicSection eyebrow="TABLE" title="对照">
         <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
           <table className="min-w-full text-left text-sm">

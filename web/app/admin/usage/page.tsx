@@ -7,6 +7,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Usage = { id: string; request_id: string; state: string; customer_amount?: number };
 
@@ -33,7 +34,7 @@ export default function AdminUsagePage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">用量回放</h2>
+        <AdminH2 k="usage" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">对 pending_reconciliation 按 request_id 补真实 Token。重复回放幂等，不会双扣。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="request_id" placeholder="request_id" />

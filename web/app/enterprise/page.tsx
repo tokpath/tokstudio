@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const capabilities = [
   { title: "用量与额度", body: "团队用量可见，渠道额度可管。" },
@@ -14,15 +15,7 @@ const capabilities = [
 export default function EnterprisePage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
-      <PublicPageHero
-        eyebrow="ENTERPRISE"
-        title="企业级 API，团队可控，用量透明"
-        description="对齐 ofox 企业页的能力网格与对比叙事；皮肤是清算台所：纸面、细线、钴蓝章。"
-        primaryHref="/login"
-        primaryLabel="免费开始"
-        secondaryHref="/trust"
-        secondaryLabel="信任中心"
-      />
+      <I18nPublicHero id="enterprise" primaryHref="/login" secondaryHref="/trust" />
 
       <PublicSection eyebrow="CAPABILITIES" title="不止省钱这一件事">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
@@ -99,7 +100,11 @@ export default function AdminSettingsPage() {
     setTotpMessage("已关闭 2FA。敏感写操作不再要 TOTP。");
   }
   function setLocale(locale: string) {
-    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
+    if (locale === "auto") {
+      document.cookie = "NEXT_LOCALE=; path=/; max-age=0";
+    } else {
+      document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
+    }
     window.location.reload();
   }
   async function loadThresholds() {
@@ -135,9 +140,12 @@ export default function AdminSettingsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">系统设置</h2>
+        <AdminH2 k="settings" className="mb-3 text-xl font-medium" />
         <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setLocale("auto")}>
+            自动
+          </Button>
           <Button type="button" variant="outline" onClick={() => setLocale("zh")}>
             中文
           </Button>
@@ -150,7 +158,7 @@ export default function AdminSettingsPage() {
         </div>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">管理员 2FA</h2>
+        <AdminH2 k="twofa" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">
           读取状态不回密文。开始绑定后用验证器扫码，再填 6 位码确认启用。关闭要二次确认；已经 enabled 时还要带 TOTP。不要在共享管理员上留下 enabled。
         </p>
@@ -186,7 +194,7 @@ export default function AdminSettingsPage() {
         <p className="text-sm text-ink-secondary">{totpMessage}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">告警阈值</h2>
+        <AdminH2 k="thresholds" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
@@ -202,7 +210,7 @@ export default function AdminSettingsPage() {
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">运维开关</h2>
+        <AdminH2 k="ops" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="Provider ID" />
@@ -292,7 +300,7 @@ export default function AdminSettingsPage() {
         </div>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">备份演练</h2>
+        <AdminH2 k="backup" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
         <Button
           size="sm"
@@ -316,7 +324,7 @@ export default function AdminSettingsPage() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">异常演练</h2>
+        <AdminH2 k="drill" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">
           支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
         </p>
@@ -372,7 +380,7 @@ export default function AdminSettingsPage() {
         </div>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
+        <AdminH2 k="oem" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配置 ACME 目录后，公网形态域名走 RFC 8555。公网 Let&apos;s Encrypt 仍要真实 DNS 与边缘节点，本页不假装已对公网签发。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />

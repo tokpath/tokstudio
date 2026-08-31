@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const TOOLS = [
   { name: "Claude Code", hint: "ANTHROPIC_BASE_URL" },
@@ -33,15 +34,7 @@ const CAPS = [
 export default function DesktopPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="DESKTOP"
-        title="本机编程工具，一个账户接入"
-        description="结构对齐 ofox Desktop：检测本机工具、独立 Key、一份账单。安装包尚未随本仓库发布，当前走 Web 改 base URL，不假装能下载。"
-        primaryHref="/vibe-coding"
-        primaryLabel="看接入片段"
-        secondaryHref="/login"
-        secondaryLabel="登录控制台"
-      />
+      <I18nPublicHero id="desktop" primaryHref="/vibe-coding" secondaryHref="/login" />
 
       <StatStrip
         items={[

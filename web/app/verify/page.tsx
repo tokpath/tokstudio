@@ -1,17 +1,10 @@
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default function VerifyPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="VERIFY"
-        title="模型验真"
-        description="对齐 ofox 验真页意图：证明请求打到声明的模型。实现上依赖路由回单与上游映射审计。"
-        primaryHref="/app"
-        primaryLabel="用户台看回单"
-        secondaryHref="/docs"
-        secondaryLabel="文档"
-      />
+      <I18nPublicHero id="verify" primaryHref="/app" secondaryHref="/docs" />
       <PublicSection eyebrow="METHOD" title="怎么验">
         <ul className="space-y-3 text-sm text-ink-secondary">
           <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">

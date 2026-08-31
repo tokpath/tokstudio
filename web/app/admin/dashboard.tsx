@@ -6,6 +6,8 @@ import { apiBase } from "@/lib/api";
 import { dailyChartOption, requestChartOption } from "@/lib/charts";
 import { dashboardHero, formatDashboard } from "@/lib/dashboard";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
+import { AdminH2 } from "@/components/admin-h2";
 
 type DashboardBody = {
   dashboard?: {
@@ -22,6 +24,8 @@ type SeriesBody = {
 };
 
 export default function AdminDashboard() {
+  const t = useTranslations("admin");
+  const tu = useTranslations("adminUi");
   const [message, setMessage] = useState("按 Provider / 模型 / 渠道 / 用户 / API Key 看成功率、延迟、收入和毛利。");
   const chartRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<HTMLDivElement>(null);
@@ -108,17 +112,17 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label="管理总览">
+      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={tu("adminOverview")}>
         {hero.map((card) => (
-          <div key={card.t} className="rounded-card border border-hairline bg-canvas-raised p-4">
-            <p className="th-eyebrow text-ink-mute">{card.t}</p>
+          <div key={card.key} className="rounded-card border border-hairline bg-canvas-raised p-4">
+            <p className="th-eyebrow text-ink-mute">{t(card.key)}</p>
             <p className="mt-2 font-mono text-[28px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
-            <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{t(card.hintKey)}</p>
           </div>
         ))}
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="mb-2 text-xl font-medium tracking-tight">运营看板</h2>
+        <AdminH2 k="opsBoard" className="mb-2 text-xl font-medium tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">
           告警和应急手册在 /admin/alerts 与 /admin/runbooks。时间序列来自网关与账务接口，不直连业务表。
         </p>

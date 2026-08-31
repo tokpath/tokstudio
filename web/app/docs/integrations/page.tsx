@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const tools = [
   { id: "claude-code", title: "Claude Code", hint: "ANTHROPIC_BASE_URL", env: "export ANTHROPIC_BASE_URL=\"https://{{base}}\"\nexport ANTHROPIC_API_KEY=\"sk-...xxxx\"" },
@@ -26,15 +27,7 @@ export default async function IntegrationsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="INTEGRATIONS"
-        title="常用工具接入"
-        description="对齐 ofox 集成目录。每个工具只改 base URL / Key，代码块落在碳面。"
-        primaryHref="/quickstart"
-        primaryLabel="3 分钟上手"
-        secondaryHref="/vibe-coding"
-        secondaryLabel="Vibe Coding"
-      />
+      <I18nPublicHero id="docsIntegrations" primaryHref="/quickstart" secondaryHref="/vibe-coding" />
       <PublicSection eyebrow="TOOLS" title="选择你的工具">
         <div className="flex flex-col gap-8">
           {tools.map((tool) => (

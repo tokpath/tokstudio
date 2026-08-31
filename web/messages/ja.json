@@ -8,6 +8,164 @@
     "admin": "管理",
     "login": "ログイン"
   },
+  "chrome": {
+    "jump": "ジャンプ",
+    "docs": "ドキュメント",
+    "login": "ログイン",
+    "register": "登録",
+    "publicNav": "公開サイト",
+    "mobileNav": "公開サイト（モバイル）",
+    "palette": "クイックジャンプ",
+    "palettePlaceholder": "ページ、モデル、請求、チャネルを検索…",
+    "paletteEmpty": "一致する入口がありません",
+    "paletteHint": "Enter で移動 · Esc で閉じる · ⌘K / Ctrl+K",
+    "groupPortal": "ポータル",
+    "groupPublic": "公開",
+    "groupUser": "ユーザー",
+    "groupChannel": "チャネル",
+    "groupPartner": "代理",
+    "groupAdmin": "管理",
+    "footerTagline": "公開済みの価格表と、署名されたスタンプ。紙/カーボンの二テーマ。四つの入口、一つの文法。",
+    "footerCopy": "Clearing · OEM はスタンプとロゴだけ差し替え",
+    "footerApp": "ユーザー台",
+    "footerChannel": "チャネル台",
+    "footerAdmin": "管理台",
+    "locale": "言語",
+    "localeAuto": "自動",
+    "localeZh": "中文",
+    "localeEn": "English",
+    "localeJa": "日本語",
+    "metaDescription": "1 つの Key。説明可能なルーティング。再計算できる台帳。"
+  },
+  "mega": {
+    "models": "モデル",
+    "docs": "ドキュメント",
+    "resources": "リソース",
+    "enterprise": "エンタープライズ",
+    "browse": "閲覧",
+    "tools": "ツール",
+    "hot": "人気",
+    "start": "開始",
+    "integrate": "連携",
+    "reference": "参考",
+    "product": "製品",
+    "trust": "信頼",
+    "content": "コンテンツ",
+    "allModels": "すべてのモデル",
+    "allModelsHint": "価格表",
+    "textModels": "テキスト / コード",
+    "textModelsHint": "Chat · Agent",
+    "imageModels": "画像モデル",
+    "imageModelsHint": "生成と編集",
+    "videoModels": "動画モデル",
+    "videoModelsHint": "非同期ジョブ",
+    "finder": "モデルファインダー",
+    "finderHint": "用途から選ぶ",
+    "bestValue": "コスパモデル",
+    "bestValueHint": "安い順",
+    "leaderboard": "利用ランキング",
+    "leaderboardHint": "シェア",
+    "compare": "モデル比較",
+    "compareHint": "並び価格",
+    "verify": "モデル検証",
+    "verifyHint": "ルーティング回単",
+    "quickstart": "クイックスタート",
+    "quickstartHint": "3 分",
+    "devDocs": "開発者ドキュメント",
+    "devDocsHint": "curl / SDK",
+    "vibe": "Vibe Coding",
+    "vibeHint": "コーディングツール",
+    "claudeCodeHint": "BASE_URL",
+    "codexHint": "config.toml",
+    "openaiSdk": "OpenAI SDK",
+    "openaiSdkHint": "互換 API",
+    "cline": "Cline / OpenCode",
+    "clineHint": "カスタムエンドポイント",
+    "errors": "エラーと制限",
+    "errorsHint": "402 / 429",
+    "changelog": "更新履歴",
+    "changelogHint": "バージョン",
+    "desktop": "Desktop",
+    "enterpriseSvc": "エンタープライズ",
+    "promo": "パートナー",
+    "awesome": "エコシステム",
+    "pricing": "料金",
+    "trustCenter": "トラストセンター",
+    "subprocessors": "再処理者",
+    "privacy": "プライバシー",
+    "terms": "利用規約",
+    "blog": "ブログ",
+    "appsBoard": "アプリランキング",
+    "labsBoard": "ラボランキング",
+    "vsOr": "vs OpenRouter"
+  },
+  "footer": {
+    "product": "製品",
+    "tools": "ツール",
+    "resources": "リソース",
+    "models": "モデル",
+    "quickstart": "クイックスタート",
+    "desktop": "Desktop",
+    "vibe": "Vibe Coding",
+    "enterprise": "エンタープライズ",
+    "promo": "パートナー",
+    "awesome": "エコシステム",
+    "leaderboard": "ランキング",
+    "finder": "ファインダー",
+    "bestValue": "コスパ",
+    "verify": "検証",
+    "vsOr": "vs OpenRouter",
+    "docs": "ドキュメント",
+    "blog": "ブログ",
+    "trust": "トラスト",
+    "subprocessors": "再処理者",
+    "terms": "利用規約",
+    "privacy": "プライバシー"
+  },
+  "userNav": {
+    "start": "開始",
+    "ledger": "台帳",
+    "people": "ユーザー",
+    "more": "その他",
+    "overview": "概要",
+    "playground": "試用",
+    "keys": "API Key",
+    "catalog": "カタログ",
+    "wallet": "残高/入金",
+    "plans": "プラン",
+    "usage": "利用量/請求",
+    "activity": "リクエスト明細",
+    "media": "メディア",
+    "referral": "紹介",
+    "docs": "ドキュメント",
+    "settings": "設定",
+    "account": "アカウント",
+    "team": "チーム",
+    "members": "メンバー",
+    "billing": "請求プロフィール",
+    "quotas": "クォータ",
+    "apps": "接続済みアプリ",
+    "webhooks": "Webhook"
+  },
+  "channelNav": {
+    "channel": "このチャネル",
+    "ledger": "台帳",
+    "overview": "概要",
+    "users": "チャネルユーザー",
+    "plans": "プラン",
+    "promos": "プロモ",
+    "attribution": "枠",
+    "usage": "利用量",
+    "settlements": "精算",
+    "commissions": "手数料/精算"
+  },
+  "partnerNav": {
+    "scope": "範囲",
+    "hierarchy": "自分の階層",
+    "users": "範囲内ユーザー",
+    "commissions": "範囲内手数料",
+    "settlements": "範囲内精算"
+  },
   "admin": {
     "title": "プラットフォーム管理",
     "overview": "概要",
@@ -30,6 +188,555 @@
     "runbooks": "ランブック",
     "audit": "監査",
     "settings": "設定",
-    "refresh": "更新"
+    "refresh": "更新",
+    "groupOverview": "概要",
+    "groupCatalog": "カタログとゲートウェイ",
+    "groupBilling": "課金",
+    "groupDistribution": "流通",
+    "groupOps": "運用",
+    "heroPending": "未照合",
+    "heroPendingHint": "pending_reconciliation",
+    "heroProfit": "粗利",
+    "heroProfitHint": "顧客売上 − 上流コスト",
+    "heroCommission": "手数料負債",
+    "heroCommissionHint": "未精算の流通",
+    "heroHealth": "Provider 健全性",
+    "heroHealthOk": "開いているサーキットなし",
+    "heroHealthBad": "遮断または低成功率"
+  },
+  "login": {
+    "eyebrow": "Sign in",
+    "title": "登録 / ログイン",
+    "lead": "GitHub / Google が上、メールが下。独立した GitHub OAuth は未接続。パスワード忘れはメール OTP。プロモコードは登録時に固定。",
+    "github": "GitHub で続ける",
+    "google": "Google で続ける",
+    "or": "または",
+    "email": "メール",
+    "password": "パスワード",
+    "otp": "メール認証コード",
+    "otpPlaceholder": "任意 · メール OTP",
+    "sendOtp": "コードを送る",
+    "promo": "プロモコード",
+    "submitLogin": "ログイン",
+    "submitRegister": "登録",
+    "otpLogin": "コードでログイン",
+    "forgot": "パスワードを忘れましたか？コードを送り、「コードでログイン」を押してください。独立した再設定 API はありません。",
+    "noAccount": "アカウントがない？",
+    "hasAccount": "アカウントがある？",
+    "goRegister": "登録",
+    "goLogin": "ログイン",
+    "terms": "続行すると",
+    "and": "と",
+    "privacy": "プライバシーポリシー",
+    "backHome": "価格を先に見る？",
+    "public": "公開サイト",
+    "githubMissing": "GitHub ログインは独立 OAuth 未接続です。メール、OTP、または Google を使ってください。",
+    "googleEmail": "Google メール（開発モック）",
+    "continueGoogle": "Google で続ける",
+    "passwordPh": "パスワード（8 文字以上）",
+    "fallback": "ログイン / 登録",
+    "termsLink": "利用規約"
+  },
+  "home": {
+    "holdBanner": "Seedance 2.5 の公開価格 · 720p は $0.24/秒から",
+    "viewPrice": "価格を見る →",
+    "h1a": "一つの Key、",
+    "h1b": "説明可能なルーティング",
+    "h1c": "、再計算できる台帳。",
+    "lead": "公開済み価格のみ。サンプルはブランド Base URL。チャネル紐付けは登録時に固定。",
+    "statModels": "利用可能なモデル",
+    "statModelsHint": "このホストの許可リスト",
+    "ctaKey": "API Key を取得",
+    "ctaModels": "モデルを見る",
+    "pageTitle": "ホーム",
+    "ctaStart": "はじめる",
+    "ctaPrice": "価格を見る",
+    "ctaDocs": "ドキュメント",
+    "statPrice": "公開価格",
+    "statPriceHint": "最低入力単価",
+    "statSite": "サイト",
+    "statSiteHint": "OEM はスタンプとロゴだけ"
+  },
+  "storefront": {
+    "modelsEyebrow": "Price book",
+    "modelsTitle": "利用可能なモデル",
+    "modelsLead": "このホストのブランドとチャネル許可リスト。未到着の単価は作りません。",
+    "modelCount": "{count} モデル",
+    "compat": "OpenAI / Anthropic 互換エンドポイントで呼べます。",
+    "plansEyebrow": "Plans",
+    "plansTitle": "プランと購読",
+    "perMonth": "USD / 月",
+    "subscribe": "購読",
+    "topupEyebrow": "Top up",
+    "topupTitle": "チャージ",
+    "topupLead": "コードを使うか、1 USD の Stripe サンドボックス入金を作成。未ログインなら先にログイン。",
+    "redeem": "コードでチャージ",
+    "pay": "支払い入金を作成",
+    "goLogin": "ログインへ",
+    "guestHint": "未ログインのチャージと購読はログインを求めます。単位は micro-USD。",
+    "redeemCode": "交換コード"
+  },
+  "overview": {
+    "eyebrow": "ユーザーコンソール",
+    "title": "マイアカウント",
+    "lead": "残高、プラン、API Key、利用量、請求、設定。チャネル紐付けは登録時に固定で、切替入口はありません。",
+    "available": "利用可能残高",
+    "availableHint": "現金ウォレットで使える枠",
+    "reserved": "事前承認の拘束",
+    "reservedHint": "HOLD 中で未決済",
+    "keys": "API Key",
+    "keysHint": "マスク済み接頭辞。ローテは監査に書く",
+    "receipt": "ルーティング回単",
+    "receiptHint": "直近の attempt を説明できる",
+    "createKey": "API Key を作成",
+    "topup": "残高を足す",
+    "footnote": "HOLD は先に枠をロックし、決済後に現金から引きます。宣伝ウォールはありません。",
+    "region": "概要"
+  },
+  "compareUi": {
+    "left": "左",
+    "right": "右",
+    "dimension": "項目",
+    "id": "モデル ID",
+    "vendor": "ベンダー",
+    "kind": "モーダル",
+    "context": "コンテキスト",
+    "input": "入力 / 主価格",
+    "output": "出力 / 副価格",
+    "caps": "能力",
+    "status": "状態",
+    "table": "並び価格"
+  },
+  "common": {
+    "refresh": "更新",
+    "filter": "絞り込み",
+    "exportCsv": "CSV を書き出す"
+  },
+  "public": {
+    "compare": {
+      "eyebrow": "COMPARE",
+      "title": "モデル比較",
+      "description": "公開済みの二モデルを選び、ID・価格・コンテキスト・能力を並べます。無い価格は作りません。",
+      "primary": "価格表を開く",
+      "secondary": "コスパ"
+    },
+    "desktop": {
+      "eyebrow": "DESKTOP",
+      "title": "手元のコーディングツールを一つの口座で",
+      "description": "ofox Desktop と同じ意図。インストーラはこのリポジトリに含まれません。Web で base URL を変えてください。偽のダウンロードはありません。",
+      "primary": "接続断片を見る",
+      "secondary": "コンソールへ"
+    },
+    "models": {
+      "eyebrow": "MODELS",
+      "title": "モデルカタログ",
+      "description": "検索、モーダル絞り込み、リストと表。",
+      "primary": "クイックスタート",
+      "secondary": "ドキュメント"
+    },
+    "quickstart": {
+      "eyebrow": "QUICKSTART",
+      "title": "クイックスタート",
+      "description": "登録 → サンプルをコピー → 構築。約 3 分。",
+      "primary": "API Key を取得",
+      "secondary": "モデルを見る"
+    },
+    "docs": {
+      "eyebrow": "DOCS",
+      "title": "開発者ドキュメント",
+      "description": "プロトコルとサンプル。本文は約 720px。コードはカーボン面。",
+      "primary": "クイックスタート",
+      "secondary": "連携"
+    },
+    "docsIntegrations": {
+      "eyebrow": "INTEGRATIONS",
+      "title": "連携",
+      "description": "各ツールは base URL / Key だけ変えます。",
+      "primary": "ドキュメント",
+      "secondary": "Vibe Coding"
+    },
+    "docsDevelop": {
+      "eyebrow": "DEVELOP",
+      "title": "開発ガイド",
+      "description": "エラーコード、制限、安全境界。",
+      "primary": "ドキュメント",
+      "secondary": "クイックスタート"
+    },
+    "docsChangelog": {
+      "eyebrow": "CHANGELOG",
+      "title": "更新履歴",
+      "description": "本製品に入った変更だけを記録します。",
+      "primary": "ドキュメント",
+      "secondary": "公開サイト"
+    },
+    "enterprise": {
+      "eyebrow": "ENTERPRISE",
+      "title": "エンタープライズ",
+      "description": "能力グリッドと比較。紙、細線、コバルトブルー。",
+      "primary": "はじめる",
+      "secondary": "トラスト"
+    },
+    "trust": {
+      "eyebrow": "TRUST",
+      "title": "トラストセンター",
+      "description": "保持、暗号化、Key、可用性。清算所の言い方。",
+      "primary": "プライバシー",
+      "secondary": "再処理者"
+    },
+    "trustSubprocessors": {
+      "eyebrow": "SUBPROCESSORS",
+      "title": "再処理者",
+      "description": "インフラ、決済、条件付きの上流。",
+      "primary": "トラスト",
+      "secondary": "プライバシー"
+    },
+    "bestValue": {
+      "eyebrow": "BEST VALUE",
+      "title": "コスパモデル",
+      "description": "公開入力単価の安い順。",
+      "primary": "すべてのモデル",
+      "secondary": "比較"
+    },
+    "modelFinder": {
+      "eyebrow": "FINDER",
+      "title": "モデルファインダー",
+      "description": "ログイン不要の質問。結果は価格表へ。偽スコアなし。",
+      "primary": "開始",
+      "secondary": "価格"
+    },
+    "vibeCoding": {
+      "eyebrow": "VIBE CODING",
+      "title": "コーディングツールは URL を一つ変えるだけ",
+      "description": "Codex / Claude Code の断片はカーボン面。",
+      "primary": "API Key を取得",
+      "secondary": "モデルを見る"
+    },
+    "video": {
+      "eyebrow": "VIDEO",
+      "title": "動画モデル",
+      "description": "非同期ジョブは同じ台帳。公開価格。宣伝ウォールなし。",
+      "primary": "すべてのモデル",
+      "secondary": "クイックスタート"
+    },
+    "image": {
+      "eyebrow": "IMAGE",
+      "title": "画像モデル",
+      "description": "生成と編集は同じ Key。",
+      "primary": "すべてのモデル",
+      "secondary": "クイックスタート"
+    },
+    "leaderboardsModels": {
+      "eyebrow": "LEADERBOARDS",
+      "title": "モデルランキング",
+      "description": "公開スナップショットのシェア。",
+      "primary": "アプリ",
+      "secondary": "ラボ"
+    },
+    "leaderboardsApps": {
+      "eyebrow": "APPS",
+      "title": "アプリランキング",
+      "description": "SDK と CLI のシェア。",
+      "primary": "モデル",
+      "secondary": "ドキュメント"
+    },
+    "leaderboardsLabs": {
+      "eyebrow": "LABS",
+      "title": "ラボランキング",
+      "description": "ベンダー集計のトークンシェア。",
+      "primary": "モデル",
+      "secondary": "価格"
+    },
+    "vsOpenrouter": {
+      "eyebrow": "COMPARE",
+      "title": "汎用ゲートウェイとの比較",
+      "description": "清算所の能力で話す。オレンジの宣伝バーなし。",
+      "primary": "価格",
+      "secondary": "エンタープライズ"
+    },
+    "promo": {
+      "eyebrow": "PARTNER",
+      "title": "パートナー",
+      "description": "プロモコードとチャネル精算。登録時に固定。",
+      "primary": "ログイン",
+      "secondary": "チャネル台"
+    },
+    "promoAugust": {
+      "eyebrow": "PROMO",
+      "title": "チャージ特典",
+      "description": "コードは台帳に入る。グラデのカプセルにしない。",
+      "primary": "チャージへ",
+      "secondary": "プラン"
+    },
+    "verify": {
+      "eyebrow": "VERIFY",
+      "title": "モデル検証",
+      "description": "宣言したモデルに届いたことを回単で示す。",
+      "primary": "明細",
+      "secondary": "ドキュメント"
+    },
+    "awesome": {
+      "eyebrow": "ECOSYSTEM",
+      "title": "エコシステム",
+      "description": "接続済みアプリ。紙の細線。",
+      "primary": "Vibe Coding",
+      "secondary": "ドキュメント"
+    },
+    "pricing": {
+      "eyebrow": "PRICING",
+      "title": "料金",
+      "description": "表示価格が実支払。数字は公開価格表。",
+      "primary": "価格表を開く",
+      "secondary": "コスパ"
+    },
+    "blog": {
+      "eyebrow": "BLOG",
+      "title": "ブログ",
+      "description": "公開スナップショットの記事。",
+      "primary": "まずドキュメント",
+      "secondary": "クイックスタート"
+    },
+    "terms": {
+      "eyebrow": "LEGAL",
+      "title": "利用規約",
+      "description": "プレースホルダ。法務の確定文で置き換えてください。",
+      "primary": "プライバシー",
+      "secondary": "公開サイト"
+    },
+    "privacy": {
+      "eyebrow": "PRIVACY",
+      "title": "プライバシーポリシー",
+      "description": "同期 API は業務本文を残しません。台帳とルーティングメタデータは保持します。",
+      "primary": "トラスト",
+      "secondary": "利用規約"
+    },
+    "article": {
+      "eyebrow": "ARTICLE",
+      "title": "ブログ",
+      "description": "公開スナップショットの記事。全文は出典リンクにあります。",
+      "primary": "一覧へ戻る",
+      "secondary": "ドキュメント"
+    }
+  },
+  "console": {
+    "playground": {
+      "eyebrow": "PLAYGROUND",
+      "title": "試用",
+      "description": "モデルを選び、一条送る。同じゲートウェイと HOLD。失敗は回単。"
+    },
+    "keys": {
+      "eyebrow": "API KEYS",
+      "title": "API Key",
+      "description": "完全な Key は長く見られます。ローテ、コピー、無効、期限切れは監査に書きます。",
+      "docsCta": "接続例"
+    },
+    "catalog": {
+      "eyebrow": "CATALOG",
+      "title": "カタログ",
+      "description": "コンソールの価格表。呼べる公開モデルだけ。"
+    },
+    "wallet": {
+      "eyebrow": "WALLET",
+      "title": "残高/入金",
+      "description": "利用可能残高はすぐ使えます。HOLD は未決済。コードと支払いは同じ台帳。"
+    },
+    "plans": {
+      "eyebrow": "PLANS",
+      "title": "プラン",
+      "description": "購読と権利。引き落とし順：付与 → プラン → 現金。"
+    },
+    "usage": {
+      "eyebrow": "USAGE",
+      "title": "利用量と請求",
+      "description": "台帳の集計。prompt 本文なし。"
+    },
+    "activity": {
+      "eyebrow": "ACTIVITY",
+      "title": "リクエスト明細",
+      "description": "ルーティング回単。各 attempt を説明できます。"
+    },
+    "media": {
+      "eyebrow": "MEDIA",
+      "title": "メディアジョブ",
+      "description": "動画/画像の非同期。失敗した HOLD は必ず解放。"
+    },
+    "referral": {
+      "eyebrow": "REFERRAL",
+      "title": "紹介",
+      "description": "ログイン後に自分のコード。未ログインは空の台帳。"
+    },
+    "docs": {
+      "eyebrow": "DOCS",
+      "title": "接続ドキュメント",
+      "description": "コンソールのサンプル。Key はプレースホルダ。"
+    },
+    "settings": {
+      "eyebrow": "ACCOUNT",
+      "title": "アカウント",
+      "description": "表示名、UI 言語、パスワード。チャネル紐付けは自分で変えられません。"
+    },
+    "team": {
+      "eyebrow": "TEAM",
+      "title": "チーム",
+      "description": "ログイン後にチーム名と請求主体。"
+    },
+    "members": {
+      "eyebrow": "MEMBERS",
+      "title": "メンバー",
+      "description": "招待と役割。未ログインは空。"
+    },
+    "billing": {
+      "eyebrow": "BILLING",
+      "title": "請求プロフィール",
+      "description": "宛名と税号。空の台帳に個人情報を先書きしません。"
+    },
+    "quotas": {
+      "eyebrow": "QUOTAS",
+      "title": "クォータ",
+      "description": "プランも付与も無いときは空。"
+    },
+    "apps": {
+      "eyebrow": "APPS",
+      "title": "接続済みアプリ",
+      "description": "第三者クライアントはまだ認可を取っていません。"
+    },
+    "webhooks": {
+      "eyebrow": "WEBHOOKS",
+      "title": "Webhook",
+      "description": "コールバック URL は未設定。"
+    },
+    "channelUsers": {
+      "eyebrow": "USERS",
+      "title": "チャネルユーザー",
+      "description": "メールはマスクされることがあります。帰属は登録時に固定。"
+    },
+    "channelPlans": {
+      "eyebrow": "PLANS",
+      "title": "プラン",
+      "description": "低価格や高リスク枠は審査へ。所有者はこのチャネル。"
+    },
+    "channelPromos": {
+      "eyebrow": "PROMOS",
+      "title": "プロモ",
+      "description": "コードはこのチャネル専用。登録時に固定。"
+    },
+    "channelAttribution": {
+      "eyebrow": "ATTRIBUTION",
+      "title": "枠",
+      "description": "プロモコードと階層で集計。他人の帰属は変えられません。"
+    },
+    "channelUsage": {
+      "eyebrow": "USAGE",
+      "title": "利用量",
+      "description": "トークンとメディア秒は課金 usage。prompt 本文なし。"
+    },
+    "channelSettlements": {
+      "eyebrow": "SETTLEMENTS",
+      "title": "精算",
+      "description": "手数料の凍結解除後に月次。P0 出金は財務の手作業。"
+    },
+    "channelCommissions": {
+      "eyebrow": "COMMISSION",
+      "title": "手数料 / 精算",
+      "description": "利用可能枠と付与記録。チャットはチャネルを二度引きしません。"
+    },
+    "partnerUsers": {
+      "eyebrow": "USERS",
+      "title": "範囲内ユーザー",
+      "description": "メールはマスク。2 級は直接紹介だけ。"
+    },
+    "partnerCommissions": {
+      "eyebrow": "COMMISSION",
+      "title": "範囲内手数料",
+      "description": "凍結後に精算可能。料率は変えられません。"
+    },
+    "partnerSettlements": {
+      "eyebrow": "SETTLEMENTS",
+      "title": "範囲内精算",
+      "description": "プラットフォーム財務の入金後に出ます。"
+    },
+    "channelHome": {
+      "eyebrow": "CHANNEL",
+      "title": "このチャネル",
+      "description": "チャネル管理者は自分のユーザー、プラン、プロモ、帰属、使用量だけ見ます。API が scope を再確認します。"
+    },
+    "partnerHome": {
+      "eyebrow": "PARTNER",
+      "title": "紹介範囲",
+      "description": "代理 / 1 級 / 2 級。API がツリーを確認します。プロンプトは見えず、料率も変えられません。"
+    }
+  },
+  "docsUi": {
+    "badge": "ドキュメント",
+    "title": "{name} ドキュメント",
+    "lead": "本文は約 720px。コードはカーボン面。例はブランド Base URL。Key はプレースホルダ。",
+    "models": "モデル：{list}",
+    "nav": "目次"
+  },
+  "modelDetail": {
+    "home": "ホーム",
+    "models": "モデル",
+    "back": "カタログに戻る",
+    "crumb": "Breadcrumb"
+  },
+  "channelHero": {
+    "region": "チャネル概要",
+    "quota": "利用可能枠",
+    "quotaHint": "まだ付与できるサービス枠",
+    "consumed": "消費済み",
+    "consumedHint": "下流ユーザーへすでに出た請求",
+    "frozen": "凍結手数料",
+    "frozenHint": "満期前の HOLD",
+    "settleable": "精算可能",
+    "settleableHint": "未払いの精算額"
+  },
+  "partnerBoard": {
+    "hierarchy": "自分の階層",
+    "users": "範囲内ユーザー",
+    "commissions": "範囲内手数料",
+    "settlements": "範囲内精算",
+    "refresh": "範囲を更新",
+    "emptyUsers": "ユーザーはまだありません"
+  },
+  "adminUi": {
+    "opsBoard": "運用ボード",
+    "settings": "システム設定",
+    "twofa": "管理者 2FA",
+    "thresholds": "アラート閾値",
+    "ops": "運用スイッチ",
+    "backup": "バックアップ訓練",
+    "drill": "障害訓練",
+    "oem": "OEM 証明書",
+    "users": "ユーザー / プロジェクト",
+    "usage": "使用量再生",
+    "runbooks": "ランブック",
+    "createRoute": "ルート作成",
+    "editRoute": "ルート方針を変更",
+    "createModel": "モデル作成",
+    "mountProvider": "Provider を接続",
+    "deprecateModel": "モデルを非推奨",
+    "rotateCreds": "資格情報のローテ",
+    "accountPool": "アカウントプール",
+    "editProvider": "Provider 状態を変更",
+    "promoRoles": "プロモ役割",
+    "promos": "プロモコード",
+    "prices": "価格",
+    "disableKey": "API Key を無効化",
+    "planReview": "プラン審査",
+    "createPlan": "プラン作成",
+    "archivePlan": "プランを停止",
+    "renewScan": "更新スキャン",
+    "commission": "手数料方針",
+    "recalc": "手数料再計算",
+    "manualSettle": "手動精算",
+    "payments": "支払い",
+    "channelQuota": "チャネル枠",
+    "createChannel": "チャネル作成",
+    "editChannel": "チャネル状態を変更",
+    "audit": "Outbox とプローブ",
+    "billing": "残高 / チャージ / 台帳",
+    "alerts": "アラート",
+    "media": "メディアジョブ",
+    "metrics": "指標",
+    "adminOverview": "管理概要"
   }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 type Balance = {
   available?: string;
@@ -18,6 +19,7 @@ function money(value?: string) {
 }
 
 export function OverviewHero() {
+  const t = useTranslations("overview");
   const [balance, setBalance] = useState<Balance | null>(null);
   const [keyCount, setKeyCount] = useState<number | null>(null);
   const [lastReceipt, setLastReceipt] = useState("—");
@@ -55,23 +57,23 @@ export function OverviewHero() {
   }, []);
 
   const cards = [
-    { t: "可用余额", d: "现金钱包可调用额度", v: money(balance?.available), href: "/app/wallet" },
-    { t: "预授权占用", d: "HOLD 中的请求尚未结算", v: money(balance?.reserved), href: "/app/wallet" },
-    { t: "API Key", d: "掩码前缀，轮换写审计", v: keyCount == null ? "—" : String(keyCount), href: "/app/keys" },
-    { t: "路由回单", d: "最近一次 attempt 可解释", v: lastReceipt, href: "/app/activity" },
+    { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet" },
+    { t: t("reserved"), d: t("reservedHint"), v: money(balance?.reserved), href: "/app/wallet" },
+    { t: t("keys"), d: t("keysHint"), v: keyCount == null ? "—" : String(keyCount), href: "/app/keys" },
+    { t: t("receipt"), d: t("receiptHint"), v: lastReceipt, href: "/app/activity" },
   ];
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href="/app/keys">创建 API Key</Link>
+          <Link href="/app/keys">{t("createKey")}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/app/wallet">充值余额</Link>
+          <Link href="/app/wallet">{t("topup")}</Link>
         </Button>
       </div>
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label="总览">
+      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
           <Link
             key={card.t}
@@ -81,7 +83,7 @@ export function OverviewHero() {
             <p className="th-eyebrow text-ink-mute">{card.t}</p>
             <p
               className={`mt-2 font-mono font-medium tracking-tight text-ink ${
-                card.t === "路由回单" ? "text-sm leading-snug" : "text-[28px] leading-none tabular-nums"
+                card.t === t("receipt") ? "text-sm leading-snug" : "text-[28px] leading-none tabular-nums"
               }`}
             >
               {card.v}
@@ -90,7 +92,7 @@ export function OverviewHero() {
           </Link>
         ))}
       </section>
-      <p className="text-sm text-ink-mute">预授权占用会先锁住额度，结算后才从现金钱包扣。这里不放促销墙。</p>
+      <p className="text-sm text-ink-mute">{t("footnote")}</p>
     </div>
   );
 }

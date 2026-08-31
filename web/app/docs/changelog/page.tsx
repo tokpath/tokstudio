@@ -1,4 +1,5 @@
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const items = [
   { date: "2026-08", title: "公开站按 DESIGN.md 对齐 ofox 页面密度", detail: "模型目录、价目、排行与接入页。" },
@@ -9,13 +10,7 @@ const items = [
 export default function ChangelogPage() {
   return (
     <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="CHANGELOG"
-        title="更新日志"
-        description="对齐 ofox changelog 入口。只记录本产品已落地的变化。"
-        primaryHref="/docs"
-        primaryLabel="文档"
-      />
+      <I18nPublicHero id="docsChangelog" primaryHref="/docs" />
       <PublicSection eyebrow="LOG" title="近期">
         <ol className="space-y-3">
           {items.map((item) => (

@@ -1,4 +1,4 @@
-export type NavItem = { href: string; label: string; hint?: string };
+export type NavItem = { href: string; key: string; hint?: string };
 
 export const portalLinks = [
   { href: "/", key: "public" as const },
@@ -12,62 +12,62 @@ export const portalLinks = [
 
 /** 顶栏主链（兼容旧引用）；真实下拉见 `mega-nav.ts`。 */
 export const PUBLIC_NAV = [
-  { href: "/models", label: "模型" },
-  { href: "/docs", label: "文档" },
-  { href: "/enterprise", label: "企业" },
+  { href: "/models", key: "models" },
+  { href: "/docs", key: "docs" },
+  { href: "/enterprise", key: "enterprise" },
 ] as const;
 
 export const PUBLIC_NAV_MORE = [
-  { href: "/quickstart", label: "快速开始" },
-  { href: "/best-value", label: "性价比" },
-  { href: "/model-finder", label: "推荐器" },
-  { href: "/vibe-coding", label: "Vibe Coding" },
-  { href: "/trust", label: "信任中心" },
+  { href: "/quickstart", key: "quickstart" },
+  { href: "/best-value", key: "bestValue" },
+  { href: "/model-finder", key: "finder" },
+  { href: "/vibe-coding", key: "vibe" },
+  { href: "/trust", key: "trustCenter" },
 ] as const;
 
 /** 用户台侧栏分组：ofox 登录后 IA + DESIGN.md 账本入口。 */
-export const userNavGroups: { title: string; items: NavItem[] }[] = [
+export const userNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {
-    title: "开始",
+    titleKey: "start",
     items: [
-      { href: "/app", label: "总览" },
-      { href: "/app/playground", label: "快速试用" },
-      { href: "/app/keys", label: "API Key" },
-      { href: "/app/catalog", label: "模型广场" },
+      { href: "/app", key: "overview" },
+      { href: "/app/playground", key: "playground" },
+      { href: "/app/keys", key: "keys" },
+      { href: "/app/catalog", key: "catalog" },
     ],
   },
   {
-    title: "账本",
+    titleKey: "ledger",
     items: [
-      { href: "/app/wallet", label: "余额/充值" },
-      { href: "/app/plans", label: "套餐" },
-      { href: "/app/usage", label: "用量/账单" },
-      { href: "/app/activity", label: "请求明细" },
-      { href: "/app/media", label: "媒体任务" },
+      { href: "/app/wallet", key: "wallet" },
+      { href: "/app/plans", key: "plans" },
+      { href: "/app/usage", key: "usage" },
+      { href: "/app/activity", key: "activity" },
+      { href: "/app/media", key: "media" },
     ],
   },
   {
-    title: "用户",
-    items: [{ href: "/app/referral", label: "推荐计划" }],
+    titleKey: "people",
+    items: [{ href: "/app/referral", key: "referral" }],
   },
   {
-    title: "更多",
+    titleKey: "more",
     items: [
-      { href: "/app/docs", label: "文档" },
-      { href: "/app/settings", label: "设置" },
+      { href: "/app/docs", key: "docs" },
+      { href: "/app/settings", key: "settings" },
     ],
   },
 ];
 
 /** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。 */
 export const userSettingsNav: NavItem[] = [
-  { href: "/app/settings", label: "账户" },
-  { href: "/app/settings/team", label: "团队" },
-  { href: "/app/settings/members", label: "成员" },
-  { href: "/app/settings/billing", label: "开票资料" },
-  { href: "/app/settings/quotas", label: "用量配额" },
-  { href: "/app/settings/apps", label: "已连接应用" },
-  { href: "/app/settings/webhooks", label: "Webhook" },
+  { href: "/app/settings", key: "account" },
+  { href: "/app/settings/team", key: "team" },
+  { href: "/app/settings/members", key: "members" },
+  { href: "/app/settings/billing", key: "billing" },
+  { href: "/app/settings/quotas", key: "quotas" },
+  { href: "/app/settings/apps", key: "apps" },
+  { href: "/app/settings/webhooks", key: "webhooks" },
 ];
 
 export const userSections: NavItem[] = userNavGroups.flatMap((group) => group.items);
@@ -80,42 +80,42 @@ export function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function consoleItemHref(item: NavItem, hashPrefix: string) {
+export function consoleItemHref(item: { href: string }, hashPrefix: string) {
   if (item.href.startsWith("/")) {
     return item.href;
   }
   return `${hashPrefix}${item.href}`;
 }
 
-export const channelNavGroups: { title: string; items: NavItem[] }[] = [
+export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {
-    title: "本渠道",
+    titleKey: "channel",
     items: [
-      { href: "/channel", label: "总览" },
-      { href: "/channel/users", label: "本渠道用户" },
-      { href: "/channel/plans", label: "套餐" },
-      { href: "/channel/promos", label: "推广" },
+      { href: "/channel", key: "overview" },
+      { href: "/channel/users", key: "users" },
+      { href: "/channel/plans", key: "plans" },
+      { href: "/channel/promos", key: "promos" },
     ],
   },
   {
-    title: "账本",
+    titleKey: "ledger",
     items: [
-      { href: "/channel/attribution", label: "额度" },
-      { href: "/channel/usage", label: "用量" },
-      { href: "/channel/settlements", label: "结算" },
-      { href: "/channel/commissions", label: "佣金/结算" },
+      { href: "/channel/attribution", key: "attribution" },
+      { href: "/channel/usage", key: "usage" },
+      { href: "/channel/settlements", key: "settlements" },
+      { href: "/channel/commissions", key: "commissions" },
     ],
   },
 ];
 
-export const partnerNavGroups: { title: string; items: NavItem[] }[] = [
+export const partnerNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {
-    title: "范围",
+    titleKey: "scope",
     items: [
-      { href: "/partner", label: "我的层级" },
-      { href: "/partner/users", label: "范围内用户" },
-      { href: "/partner/commissions", label: "范围内佣金" },
-      { href: "/partner/settlements", label: "范围内结算" },
+      { href: "/partner", key: "hierarchy" },
+      { href: "/partner/users", key: "users" },
+      { href: "/partner/commissions", key: "commissions" },
+      { href: "/partner/settlements", key: "settlements" },
     ],
   },
 ];
@@ -124,13 +124,13 @@ export const channelSections: NavItem[] = channelNavGroups.flatMap((group) => gr
 
 export const partnerSections: NavItem[] = partnerNavGroups.flatMap((group) => group.items);
 
-export const adminGroups: { title: string; items: { href: string; key: string }[] }[] = [
+export const adminGroups: { titleKey: string; items: { href: string; key: string }[] }[] = [
   {
-    title: "总览",
+    titleKey: "groupOverview",
     items: [{ href: "/admin", key: "overview" }],
   },
   {
-    title: "目录与网关",
+    titleKey: "groupCatalog",
     items: [
       { href: "/admin/providers", key: "providers" },
       { href: "/admin/models", key: "models" },
@@ -139,7 +139,7 @@ export const adminGroups: { title: string; items: { href: string; key: string }[
     ],
   },
   {
-    title: "账务",
+    titleKey: "groupBilling",
     items: [
       { href: "/admin/plans", key: "plans" },
       { href: "/admin/prices", key: "prices" },
@@ -149,7 +149,7 @@ export const adminGroups: { title: string; items: { href: string; key: string }[
     ],
   },
   {
-    title: "分销",
+    titleKey: "groupDistribution",
     items: [
       { href: "/admin/channels", key: "channels" },
       { href: "/admin/promos", key: "promos" },
@@ -157,7 +157,7 @@ export const adminGroups: { title: string; items: { href: string; key: string }[
     ],
   },
   {
-    title: "运营",
+    titleKey: "groupOps",
     items: [
       { href: "/admin/metrics", key: "metrics" },
       { href: "/admin/media", key: "media" },

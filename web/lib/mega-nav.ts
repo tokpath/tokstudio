@@ -1,12 +1,12 @@
-/** 公共站顶栏下拉：对齐 ofox「模型 / 文档 / 资源」信息架构。 */
+/** 公共站顶栏下拉：对齐 ofox「模型 / 文档 / 资源」信息架构。文案走 messages.mega。 */
 
-export type MegaLink = { href: string; label: string; hint?: string };
+export type MegaLink = { href: string; labelKey?: string; hintKey?: string; literal?: string };
 
-export type MegaColumn = { title: string; links: MegaLink[] };
+export type MegaColumn = { titleKey: string; links: MegaLink[] };
 
 export type MegaMenu = {
   id: string;
-  label: string;
+  labelKey: string;
   href?: string;
   columns: MegaColumn[];
 };
@@ -14,105 +14,105 @@ export type MegaMenu = {
 export const MEGA_MENUS: MegaMenu[] = [
   {
     id: "models",
-    label: "模型",
+    labelKey: "models",
     href: "/models",
     columns: [
       {
-        title: "浏览",
+        titleKey: "browse",
         links: [
-          { href: "/models", label: "全部模型", hint: "价目表" },
-          { href: "/models?kind=text", label: "文本 / 编程", hint: "Chat · Agent" },
-          { href: "/image", label: "图像模型", hint: "生成与编辑" },
-          { href: "/video", label: "视频模型", hint: "异步任务" },
+          { href: "/models", labelKey: "allModels", hintKey: "allModelsHint" },
+          { href: "/models?kind=text", labelKey: "textModels", hintKey: "textModelsHint" },
+          { href: "/image", labelKey: "imageModels", hintKey: "imageModelsHint" },
+          { href: "/video", labelKey: "videoModels", hintKey: "videoModelsHint" },
         ],
       },
       {
-        title: "工具",
+        titleKey: "tools",
         links: [
-          { href: "/model-finder", label: "模型推荐器", hint: "按场景选" },
-          { href: "/best-value", label: "性价比模型", hint: "低价排序" },
-          { href: "/leaderboards/models", label: "使用排行榜", hint: "份额" },
-          { href: "/compare", label: "模型对比", hint: "并排价目" },
-          { href: "/verify", label: "模型验真", hint: "路由回单" },
+          { href: "/model-finder", labelKey: "finder", hintKey: "finderHint" },
+          { href: "/best-value", labelKey: "bestValue", hintKey: "bestValueHint" },
+          { href: "/leaderboards/models", labelKey: "leaderboard", hintKey: "leaderboardHint" },
+          { href: "/compare", labelKey: "compare", hintKey: "compareHint" },
+          { href: "/verify", labelKey: "verify", hintKey: "verifyHint" },
         ],
       },
       {
-        title: "热门",
+        titleKey: "hot",
         links: [
-          { href: "/models/openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
-          { href: "/models/anthropic/claude-fable-5", label: "Claude Fable 5" },
-          { href: "/models/google/gemini-3.7-flash", label: "Gemini 3.7 Flash" },
-          { href: "/models/bytedance/seedance-2.5", label: "Seedance 2.5" },
+          { href: "/models/openai/gpt-5.6-sol", literal: "GPT-5.6 Sol" },
+          { href: "/models/anthropic/claude-fable-5", literal: "Claude Fable 5" },
+          { href: "/models/google/gemini-3.7-flash", literal: "Gemini 3.7 Flash" },
+          { href: "/models/bytedance/seedance-2.5", literal: "Seedance 2.5" },
         ],
       },
     ],
   },
   {
     id: "docs",
-    label: "文档",
+    labelKey: "docs",
     href: "/docs",
     columns: [
       {
-        title: "开始",
+        titleKey: "start",
         links: [
-          { href: "/quickstart", label: "快速开始", hint: "3 分钟" },
-          { href: "/docs", label: "开发者文档", hint: "curl / SDK" },
-          { href: "/vibe-coding", label: "Vibe Coding", hint: "编程工具" },
+          { href: "/quickstart", labelKey: "quickstart", hintKey: "quickstartHint" },
+          { href: "/docs", labelKey: "devDocs", hintKey: "devDocsHint" },
+          { href: "/vibe-coding", labelKey: "vibe", hintKey: "vibeHint" },
         ],
       },
       {
-        title: "集成",
+        titleKey: "integrate",
         links: [
-          { href: "/vibe-coding", label: "Claude Code", hint: "BASE_URL" },
-          { href: "/vibe-coding", label: "Codex", hint: "config.toml" },
-          { href: "/docs", label: "OpenAI SDK", hint: "兼容协议" },
-          { href: "/docs/integrations", label: "Cline / OpenCode", hint: "自定义端点" },
+          { href: "/vibe-coding", literal: "Claude Code", hintKey: "claudeCodeHint" },
+          { href: "/vibe-coding", literal: "Codex", hintKey: "codexHint" },
+          { href: "/docs", labelKey: "openaiSdk", hintKey: "openaiSdkHint" },
+          { href: "/docs/integrations", labelKey: "cline", hintKey: "clineHint" },
         ],
       },
       {
-        title: "参考",
+        titleKey: "reference",
         links: [
-          { href: "/docs/develop", label: "错误与限流", hint: "402 / 429" },
-          { href: "/docs/changelog", label: "更新日志", hint: "版本" },
+          { href: "/docs/develop", labelKey: "errors", hintKey: "errorsHint" },
+          { href: "/docs/changelog", labelKey: "changelog", hintKey: "changelogHint" },
         ],
       },
     ],
   },
   {
     id: "resources",
-    label: "资源",
+    labelKey: "resources",
     columns: [
       {
-        title: "产品",
+        titleKey: "product",
         links: [
-          { href: "/desktop", label: "Desktop" },
-          { href: "/enterprise", label: "企业服务" },
-          { href: "/promo", label: "合作推广" },
-          { href: "/awesome-ofox", label: "生态应用" },
-          { href: "/pricing", label: "定价" },
+          { href: "/desktop", labelKey: "desktop" },
+          { href: "/enterprise", labelKey: "enterpriseSvc" },
+          { href: "/promo", labelKey: "promo" },
+          { href: "/awesome-ofox", labelKey: "awesome" },
+          { href: "/pricing", labelKey: "pricing" },
         ],
       },
       {
-        title: "信任",
+        titleKey: "trust",
         links: [
-          { href: "/trust", label: "信任中心" },
-          { href: "/trust/subprocessors", label: "第三方服务商" },
-          { href: "/privacy", label: "隐私政策" },
-          { href: "/terms", label: "服务条款" },
+          { href: "/trust", labelKey: "trustCenter" },
+          { href: "/trust/subprocessors", labelKey: "subprocessors" },
+          { href: "/privacy", labelKey: "privacy" },
+          { href: "/terms", labelKey: "terms" },
         ],
       },
       {
-        title: "内容",
+        titleKey: "content",
         links: [
-          { href: "/blog", label: "博客" },
-          { href: "/leaderboards/apps", label: "应用排行" },
-          { href: "/leaderboards/labs", label: "厂商排行" },
-          { href: "/compare", label: "模型对比" },
-          { href: "/vs/openrouter", label: "对比 OpenRouter" },
+          { href: "/blog", labelKey: "blog" },
+          { href: "/leaderboards/apps", labelKey: "appsBoard" },
+          { href: "/leaderboards/labs", labelKey: "labsBoard" },
+          { href: "/compare", labelKey: "compare" },
+          { href: "/vs/openrouter", labelKey: "vsOr" },
         ],
       },
     ],
   },
 ];
 
-export const TOP_LINKS = [{ href: "/enterprise", label: "企业" }] as const;
+export const TOP_LINKS = [{ href: "/enterprise", labelKey: "enterprise" }] as const;

@@ -13,6 +13,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Model = { id: string; vendor: string; display_name: string; status: string; sync_state?: string };
 
@@ -74,7 +75,7 @@ export default function AdminModelsPage() {
       />
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="text-xl font-medium">创建模型</h2>
+          <AdminH2 k="createModel" className="text-xl font-medium" />
           <p className="text-sm text-ink-secondary">缺确认会 409。默认 draft，不会立刻出现在客户目录。</p>
           <TextField control={createForm.control} name="public_id" label="创建用 public id" placeholder="创建用 public id tokenhub/ops-ui" />
           <TextField control={createForm.control} name="vendor" label="创建用厂商" placeholder="创建用厂商 tokenhub" />
@@ -144,7 +145,7 @@ export default function AdminModelsPage() {
       </Form>
       <Form {...attachForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="text-xl font-medium">挂载 Provider</h2>
+          <AdminH2 k="mountProvider" className="text-xl font-medium" />
           <p className="text-sm text-ink-secondary">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
           <TextField control={attachForm.control} name="public_id" label="挂载 public id" placeholder="public_id" />
           <TextField control={attachForm.control} name="provider_id" label="挂载 provider id" placeholder="provider_id" />
@@ -171,7 +172,7 @@ export default function AdminModelsPage() {
       </Form>
       <Form {...deprecateForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="text-xl font-medium">弃用模型</h2>
+          <AdminH2 k="deprecateModel" className="text-xl font-medium" />
           <p className="text-sm text-ink-secondary">只改状态，不删除历史映射和价格版本。</p>
           <TextField control={deprecateForm.control} name="public_id" label="弃用 public id" placeholder="public_id" />
           <ConfirmButton

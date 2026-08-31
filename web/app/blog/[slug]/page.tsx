@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { loadSite } from "@/lib/site-content";
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -14,12 +14,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-20">
-      <PublicPageHero
-        eyebrow="ARTICLE"
-        title={post.title}
-        description={post.summary || "公开站快照文章。完整原文在来源链接。"}
+      <I18nPublicHero
+        id="article"
         primaryHref="/blog"
-        primaryLabel="返回列表"
+        secondaryHref="/docs"
+        title={post.title}
+        description={post.summary || undefined}
       />
       <article className="space-y-4 text-sm leading-relaxed text-ink-secondary">
         <p>{post.summary}</p>

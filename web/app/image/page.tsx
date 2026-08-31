@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { PublicPageHero } from "@/components/public-section";
 import { Button } from "@/components/ui/button";
 import { inferKind, loadCatalog, priceForModel } from "@/lib/catalog";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function ImagePage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -10,15 +10,7 @@ export default async function ImagePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="IMAGE"
-        title="图像模型"
-        description={`${models.length} 个图像模型。价目驱动，不堆摄影英雄区。`}
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/models"
-        secondaryLabel="全部模型"
-      />
+      <I18nPublicHero id="image" primaryHref="/login" secondaryHref="/models" />
       <ul className="grid gap-3 md:grid-cols-2">
         {models.map((m) => (
           <li key={m.id}>

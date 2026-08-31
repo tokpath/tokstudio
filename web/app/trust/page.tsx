@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default function TrustPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
-      <PublicPageHero
-        eyebrow="TRUST CENTER"
-        title="可以放心构建的安全基础"
-        description="对齐 ofox 信任中心：留存边界、加密、Key、可用性。文案按 TokenHub 清算台口径。"
-        primaryHref="/docs"
-        primaryLabel="安全相关文档"
-        secondaryHref="/trust/subprocessors"
-        secondaryLabel="第三方服务商"
-      />
+      <I18nPublicHero id="trust" primaryHref="/docs" secondaryHref="/trust/subprocessors" />
 
       <PublicSection eyebrow="SUMMARY" title="四点摘要">
         <div className="grid gap-3 md:grid-cols-2">

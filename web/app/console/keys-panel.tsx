@@ -123,20 +123,22 @@ export function KeysList({
               <tr key={item.id} className="border-t border-hairline hover:bg-brand-soft/40">
                 <td className="px-4 py-3 text-ink">{item.name}</td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <code className="th-code break-all text-[13px] text-ink">
+                  <div className="flex min-w-[14rem] max-w-md flex-col gap-2">
+                    <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
                       {maskAPIKey(item.prefix, item.key, isRevealed)}
                     </code>
-                    {onCopy ? (
-                      <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
-                        {tc("copy")}
-                      </Button>
-                    ) : null}
-                    {onToggleReveal ? (
-                      <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
-                        {isRevealed ? t("hide") : t("reveal")}
-                      </Button>
-                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {onCopy ? (
+                        <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
+                          {tc("copy")}
+                        </Button>
+                      ) : null}
+                      {onToggleReveal ? (
+                        <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
+                          {isRevealed ? t("hide") : t("reveal")}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -319,6 +321,9 @@ export default function KeysPanel() {
     }
     await writeClipboard(value);
     setMessage(t("copiedAudit"));
+    if (createOpen) {
+      setCreateMessage(t("copiedAudit"));
+    }
   }
 
   async function act(id: string, action: "rotate" | "disable" | "expire") {
@@ -376,7 +381,9 @@ export default function KeysPanel() {
                 <DialogDescription>{t("createdLead")}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-2 rounded-control border border-hairline bg-canvas px-3 py-3">
-                <code className="th-code break-all text-sm text-ink">{createdKey.key || maskAPIKey(createdKey.prefix)}</code>
+                <code className="th-code block overflow-x-auto whitespace-nowrap text-sm text-ink">
+                  {createdKey.key || maskAPIKey(createdKey.prefix)}
+                </code>
                 <Button
                   type="button"
                   variant="outline"

@@ -25,7 +25,7 @@ export function portalForPath(pathname: string): "public" | "user" | "channel" |
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/channel")) return "channel";
   if (pathname.startsWith("/partner")) return "partner";
-  if (pathname.startsWith("/app")) return "user";
+  if (pathname.startsWith("/app") || pathname.startsWith("/console")) return "user";
   if (pathname.startsWith("/docs")) return "docs";
   return "public";
 }

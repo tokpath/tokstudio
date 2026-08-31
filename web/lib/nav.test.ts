@@ -7,6 +7,7 @@ describe("isConsolePath", () => {
     expect(isConsolePath("/docs")).toBe(false);
     expect(isConsolePath("/login")).toBe(false);
     expect(isConsolePath("/app")).toBe(true);
+    expect(isConsolePath("/console")).toBe(true);
     expect(isConsolePath("/channel/users")).toBe(true);
     expect(isConsolePath("/partner")).toBe(true);
     expect(isConsolePath("/admin/plans")).toBe(true);

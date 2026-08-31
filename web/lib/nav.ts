@@ -171,5 +171,11 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
 ];
 
 export function isConsolePath(pathname: string) {
-  return pathname.startsWith("/app") || pathname.startsWith("/channel") || pathname.startsWith("/partner") || pathname.startsWith("/admin");
+  return (
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/console") ||
+    pathname.startsWith("/channel") ||
+    pathname.startsWith("/partner") ||
+    pathname.startsWith("/admin")
+  );
 }

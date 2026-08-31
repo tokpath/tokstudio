@@ -70,7 +70,7 @@ export function ConsoleShell({
   const tp = useTranslations("partnerNav");
   const tc = useTranslations("chrome");
   const isAdmin = pathname.startsWith("/admin");
-  const isUser = pathname.startsWith("/app");
+  const isUser = pathname.startsWith("/app") || pathname.startsWith("/console");
   const isChannel = pathname.startsWith("/channel");
   const isPartner = pathname.startsWith("/partner");
   const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";

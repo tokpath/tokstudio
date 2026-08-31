@@ -17,9 +17,13 @@ test("user console shows API Key panel", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByRole("link", { name: "用户控制台" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建 API Key" })).toBeVisible();
+  await page.getByRole("button", { name: "创建 API Key" }).click();
+  await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "模型白名单" })).toBeVisible();
   await expect(page.getByLabel("模型白名单")).toBeVisible();
   await expect(page.getByLabel("并发限额")).toBeVisible();
+  await page.getByRole("button", { name: "取消" }).click();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
   await expect(page.getByLabel("生成模式")).toBeVisible();

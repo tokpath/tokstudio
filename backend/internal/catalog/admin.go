@@ -14,7 +14,15 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
 
-var ErrInvalidInput = errors.New("invalid catalog input")
+var (
+	ErrInvalidInput = errors.New("invalid catalog input")
+	ErrUnknownModel = errors.New("model not in platform catalog")
+)
+
+type ChannelModelGrant struct {
+	PublicID string `json:"public_id"`
+	Enabled  bool   `json:"enabled"`
+}
 
 type ProviderInput struct {
 	Name             string `json:"name"`

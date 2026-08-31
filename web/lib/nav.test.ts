@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { channelSections, consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
+import { adminNavActive } from "./tenants";
 
 describe("isConsolePath", () => {
   it("treats app channel partner and admin as consoles", () => {
@@ -11,6 +12,14 @@ describe("isConsolePath", () => {
     expect(isConsolePath("/channel/users")).toBe(true);
     expect(isConsolePath("/partner")).toBe(true);
     expect(isConsolePath("/admin/plans")).toBe(true);
+  });
+});
+
+describe("adminNavActive", () => {
+  it("keeps overview exact and channels nested", () => {
+    expect(adminNavActive("/admin", "/admin")).toBe(true);
+    expect(adminNavActive("/admin/channels", "/admin")).toBe(false);
+    expect(adminNavActive("/admin/partners/acr_b_agent", "/admin/channels")).toBe(true);
   });
 });
 
@@ -29,6 +38,7 @@ describe("user console nav", () => {
 
   it("uses real routes for channel console too", () => {
     expect(channelSections.some((item) => item.href === "/channel/users")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/models")).toBe(true);
     expect(channelSections.some((item) => item.href.startsWith("#"))).toBe(false);
     expect(isNavActive("/channel", "/channel")).toBe(true);
     expect(isNavActive("/channel/users", "/channel")).toBe(false);

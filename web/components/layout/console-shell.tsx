@@ -11,6 +11,7 @@ import {
   partnerNavGroups,
   userNavGroups,
 } from "@/lib/nav";
+import { adminNavActive } from "@/lib/tenants";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandMark } from "@/components/brand-mark";
@@ -111,7 +112,7 @@ export function ConsoleShell({
                   <p className="th-eyebrow mb-2 px-3 text-ink-mute">{ta(group.titleKey)}</p>
                   <ul className="flex flex-col gap-1">
                     {group.items.map((item) => {
-                      const active = pathname === item.href;
+                      const active = adminNavActive(pathname, item.href);
                       return (
                         <li key={item.href}>
                           <Link

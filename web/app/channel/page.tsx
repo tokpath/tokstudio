@@ -1,5 +1,6 @@
 import ChannelAttribution from "./attribution-panel";
 import ChannelCommissions from "./commissions-panel";
+import ChannelModels from "./models";
 import ChannelPlans from "./plans-panel";
 import ChannelPromos from "./promos-panel";
 import ChannelSettlements from "./settlements-panel";
@@ -15,6 +16,9 @@ export default function ChannelConsole() {
       <ChannelHero />
       <div id="users">
         <ChannelUsers />
+      </div>
+      <div id="models">
+        <ChannelModels />
       </div>
       <div id="plans">
         <ChannelPlans />

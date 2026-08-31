@@ -152,6 +152,7 @@
     "ledger": "Ledger",
     "overview": "Overview",
     "users": "Channel users",
+    "models": "Channel models",
     "plans": "Plans",
     "promos": "Promos",
     "attribution": "Quota",
@@ -182,7 +183,7 @@
     "billing": "Wallet",
     "usage": "Usage",
     "media": "Media",
-    "channels": "Channels",
+    "channels": "Channel tenants",
     "promos": "Promos",
     "alerts": "Alerts",
     "runbooks": "Runbooks",
@@ -709,6 +710,11 @@
       "title": "Channel users",
       "description": "Emails may be masked. Attribution is locked at signup."
     },
+    "channelModels": {
+      "eyebrow": "MODELS",
+      "title": "Channel models",
+      "description": "Only platform-entitled catalog models. Tenants cannot add providers or models."
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "Plans",
@@ -757,7 +763,7 @@
     "channelHome": {
       "eyebrow": "CHANNEL",
       "title": "This channel",
-      "description": "Channel admins only see their own users, plans, promos, attribution, and usage. The API still checks scope."
+      "description": "Channel admins only see their own users, plans, promos, attribution, and usage. Models come from the platform catalog; tenants cannot add providers or models. The API still checks scope."
     },
     "partnerHome": {
       "eyebrow": "PARTNER",

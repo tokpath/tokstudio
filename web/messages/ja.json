@@ -152,6 +152,7 @@
     "ledger": "台帳",
     "overview": "概要",
     "users": "チャネルユーザー",
+    "models": "チャネルモデル",
     "plans": "プラン",
     "promos": "プロモ",
     "attribution": "枠",
@@ -182,7 +183,7 @@
     "billing": "ウォレット",
     "usage": "利用量",
     "media": "メディア",
-    "channels": "チャネル",
+    "channels": "チャネルテナント",
     "promos": "プロモ",
     "alerts": "警報",
     "runbooks": "ランブック",
@@ -709,6 +710,11 @@
       "title": "チャネルユーザー",
       "description": "メールはマスクされることがあります。帰属は登録時に固定。"
     },
+    "channelModels": {
+      "eyebrow": "MODELS",
+      "title": "チャネルモデル",
+      "description": "プラットフォームが許可した目録のみ。テナントはプロバイダやモデルを追加できません。"
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "プラン",
@@ -757,7 +763,7 @@
     "channelHome": {
       "eyebrow": "CHANNEL",
       "title": "このチャネル",
-      "description": "チャネル管理者は自分のユーザー、プラン、プロモ、帰属、使用量だけ見ます。API が scope を再確認します。"
+      "description": "チャネル管理者は自分のユーザー、プラン、プロモ、帰属、使用量だけ見ます。モデルはプラットフォーム目録からのみ。テナントはプロバイダやモデルを追加できません。API が scope を再確認します。"
     },
     "partnerHome": {
       "eyebrow": "PARTNER",

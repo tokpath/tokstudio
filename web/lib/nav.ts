@@ -93,6 +93,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
     items: [
       { href: "/channel", key: "overview" },
       { href: "/channel/users", key: "users" },
+      { href: "/channel/models", key: "models" },
       { href: "/channel/plans", key: "plans" },
       { href: "/channel/promos", key: "promos" },
     ],

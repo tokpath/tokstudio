@@ -37,7 +37,11 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin"), a.createChannel)
+	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin"), a.getChannel)
+	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.getChannelModels)
+	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin"), a.patchChannelModels)
 	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin"), a.patchChannel)
+	r.GET("/channel/models", a.requireRoles("channel_admin"), a.channelModels)
 	r.GET("/admin/me/2fa", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPStatus)
 	r.POST("/admin/me/2fa/setup", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPSetup)
 	r.POST("/admin/me/2fa/enable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPEnable)
@@ -95,6 +99,8 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "验证码无效", false)
 	case errors.Is(err, identity.ErrChannelImmutable):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "渠道归属不可自行切换", false)
+	case errors.Is(err, identity.ErrNotFound):
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "记录不存在", false)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		httpx.Abort(c, http.StatusForbidden, "authentication_error", "账号或密码错误", false)
 	case errors.Is(err, identity.ErrInvalidProfile):
@@ -452,6 +458,76 @@ func (a *App) listChannels(c *gin.Context) {
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item identity.ChannelView) string { return item.ID })
+}
+
+func (a *App) getChannel(c *gin.Context) {
+	item, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) getChannelModels(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	if _, err := a.Identity.GetChannel(c.Request.Context(), *principal, c.Param("id")); err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	includeCatalog := principal.HasRole("platform_admin", "ops_admin")
+	items, err := a.Catalog.ListChannelModels(c.Request.Context(), c.Param("id"), includeCatalog)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelModels(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	items, err := a.Catalog.ListChannelModels(c.Request.Context(), principal.ChannelOrgID, false)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchChannelModels(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	if _, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id")); err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	var body struct {
+		Items []catalog.ChannelModelGrant `json:"items"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if err := a.Catalog.SetChannelModels(c.Request.Context(), c.Param("id"), body.Items); err != nil {
+		switch {
+		case errors.Is(err, catalog.ErrUnknownModel):
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能授权平台目录中已有的模型，租户不能自建提供商或模型", false)
+		case errors.Is(err, catalog.ErrInvalidInput):
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "模型授权无效", false)
+		default:
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道模型失败", true)
+		}
+		return
+	}
+	items, err := a.Catalog.ListChannelModels(c.Request.Context(), c.Param("id"), true)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.models.patch", ResourceType: "channel", ResourceID: c.Param("id"),
+		After: map[string]any{"count": len(body.Items)},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) createChannel(c *gin.Context) {

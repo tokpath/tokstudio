@@ -105,8 +105,24 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/channels"
   },
   {
+    "method": "GET",
+    "path": "/admin/channels/{id}"
+  },
+  {
     "method": "PATCH",
     "path": "/admin/channels/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/channels/{id}/models"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/channels/{id}/models"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/models"
   },
   {
     "method": "GET",
@@ -239,6 +255,10 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/outbox/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/me"
   },
   {
     "method": "GET",
@@ -419,6 +439,14 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/acquisition-roles"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/acquisition-roles/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/acquisition-roles/{id}"
   },
   {
     "method": "GET",

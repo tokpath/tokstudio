@@ -152,6 +152,7 @@
     "ledger": "账本",
     "overview": "总览",
     "users": "本渠道用户",
+    "models": "本渠道模型",
     "plans": "套餐",
     "promos": "推广",
     "attribution": "额度",
@@ -182,7 +183,7 @@
     "billing": "余额/充值",
     "usage": "用量/账单",
     "media": "媒体任务",
-    "channels": "渠道/代理商",
+    "channels": "渠道租户",
     "promos": "推广码",
     "alerts": "告警",
     "runbooks": "应急手册",
@@ -709,6 +710,11 @@
       "title": "本渠道用户",
       "description": "邮箱可能已脱敏。归因在注册时写死，这里不含其他渠道。"
     },
+    "channelModels": {
+      "eyebrow": "MODELS",
+      "title": "本渠道模型",
+      "description": "只能使用平台已授权的目录。不能自己添加提供商和模型。"
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "套餐",
@@ -757,7 +763,7 @@
     "channelHome": {
       "eyebrow": "CHANNEL",
       "title": "本渠道数据",
-      "description": "渠道管理员只能看到自己渠道的用户、套餐、推广链接、归因和用量。后端会再校验 scope，前端隐藏菜单不是安全边界。"
+      "description": "渠道管理员只能看到自己渠道的用户、套餐、推广链接、归因和用量。模型资源只能使用平台已授权的目录，不能自己添加提供商和模型。后端会再校验 scope，前端隐藏菜单不是安全边界。"
     },
     "partnerHome": {
       "eyebrow": "PARTNER",

@@ -62,7 +62,10 @@ export default function AdminModelsPage() {
 
   return (
     <AdminShell>
-      <p className="text-sm text-ink-secondary">列表和编辑都走后端 catalog，不是 mock。点「编辑」改属性、定价和上架。不要改 tokenhub/echo-1。</p>
+      <p className="text-sm text-ink-secondary">
+        提供商和公开模型只在平台目录维护。租户不能自己添加提供商或模型，只能由平台把已有目录授权给渠道白名单。列表和编辑都走后端
+        catalog，不是 mock。点「编辑」改属性、定价和上架。不要改 tokenhub/echo-1。
+      </p>
       <AdminListPanel<AdminModel>
         path="/admin/models"
         title="模型"

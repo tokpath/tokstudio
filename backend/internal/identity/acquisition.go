@@ -121,11 +121,16 @@ func (s *Service) CreatePromotionCode(ctx context.Context, channelID, roleID, co
 	return promoView(row), nil
 }
 
-func (s *Service) ListAcquisitionRoles(ctx context.Context, channelID string) ([]AcquisitionRoleView, error) {
+func (s *Service) ListAcquisitionRoles(ctx context.Context, channelID, listType string) ([]AcquisitionRoleView, error) {
 	var rows []acquisitionRow
 	q := s.db.WithContext(ctx).Order("level, created_at")
 	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
+	}
+	if types := AcqTypeFilter(listType); len(types) == 1 {
+		q = q.Where("type = ?", types[0])
+	} else if len(types) > 1 {
+		q = q.Where("type IN ?", types)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -135,6 +140,35 @@ func (s *Service) ListAcquisitionRoles(ctx context.Context, channelID string) ([
 		out = append(out, *acqView(row))
 	}
 	return out, nil
+}
+
+func (s *Service) GetAcquisitionRole(ctx context.Context, viewer Principal, roleID string) (*AcquisitionRoleView, error) {
+	var row acquisitionRow
+	if err := s.db.WithContext(ctx).Where("id = ?", roleID).First(&row).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	if scoped := viewer.VisibleChannelID(); scoped != "" && scoped != row.ChannelOrgID {
+		return nil, ErrChannelImmutable
+	}
+	return acqView(row), nil
+}
+
+func (s *Service) PatchAcquisitionRole(ctx context.Context, viewer Principal, roleID, status string) (*AcquisitionRoleView, error) {
+	item, err := s.GetAcquisitionRole(ctx, viewer, roleID)
+	if err != nil {
+		return nil, err
+	}
+	status = strings.TrimSpace(status)
+	if status == "" {
+		return item, nil
+	}
+	if status != "active" && status != "disabled" {
+		return nil, ErrPromotionInvalid
+	}
+	if err := s.db.WithContext(ctx).Model(&acquisitionRow{}).Where("id = ?", roleID).Update("status", status).Error; err != nil {
+		return nil, err
+	}
+	return s.GetAcquisitionRole(ctx, viewer, roleID)
 }
 
 func (s *Service) ListPromotionCodes(ctx context.Context, channelID string) ([]PromotionView, error) {
@@ -342,6 +376,18 @@ func MaskEmail(email string) string {
 
 func validAcqType(t string) bool {
 	return t == AcqAgent || t == AcqKOL1 || t == AcqKOL2
+}
+
+// AcqTypeFilter 把列表类型收成 SQL type 条件。空表示不过滤；kol 覆盖 1 级和 2 级。
+func AcqTypeFilter(listType string) []string {
+	switch strings.TrimSpace(listType) {
+	case "":
+		return nil
+	case "kol":
+		return []string{AcqKOL1, AcqKOL2}
+	default:
+		return []string{listType}
+	}
 }
 
 func acqLevel(t string) int {

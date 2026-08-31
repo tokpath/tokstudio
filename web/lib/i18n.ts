@@ -71,7 +71,7 @@ export function htmlLang(locale: Locale) {
 }
 
 export function translate(locale: string | null | undefined, key: string): string {
-  const messages = messagesFor(locale) as Record<string, Record<string, string>>;
+  const messages = messagesFor(locale) as unknown as Record<string, Record<string, string>>;
   const [group, name] = key.split(".");
   return messages[group]?.[name] || key;
 }

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { formatMoney, inferKind, loadCatalog } from "@/lib/catalog";
+import { StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function BestValuePage() {

@@ -574,7 +574,7 @@ TokenHub 是面向开发者和渠道商的**多模型 API 中转与分销清算�
 
 **字标**：站点名用 `{typography.title}` 墨色，不要发光。平台默认写 TokenHub；OEM 用 `display_name`。
 
-**标记**：可选 20–24px 几何章（10px 圆角的钴方，或一条分叉折线表示路由）。不要霓虹、不要抽象大脑、不要狐狸。Favicon 同标记。
+**标记**：可选 20–24px 几何章。章本身用 **6px** 圆角——小尺寸上套 10px 会变成圆点，就不再是方章。按钮仍用 `{rounded.stamp}` 10px，卡片 12px。或一条分叉折线表示路由。不要霓虹、不要抽象大脑、不要狐狸。Favicon 同标记。
 
 **动效**：120–180ms，ease-out。主题切换关闭过渡（已用 `disableTransitionOnChange`）。对话框：淡入 + 上移 4px。Toast：自下而上 8px。表行不要闪。`vendor-strip` 平移必须可暂停（`prefers-reduced-motion` 时静止）。不要视差、不要页面级渐变扫光。
 

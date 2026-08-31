@@ -18,7 +18,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
         <Link href="/" className="flex items-center gap-2 text-ink no-underline">
           {brand?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-stamp object-contain" />
+            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-[6px] object-contain" />
           ) : (
             <BrandMark />
           )}

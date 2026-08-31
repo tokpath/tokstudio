@@ -1,8 +1,8 @@
-/** 10px 钴方：DESIGN.md 允许的几何章，不是发光 AI 标，也不是狐狸。 */
+/** 6px 钴方：小标记不能套按钮的 10px，否则会变成圆点。 */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-block size-5 shrink-0 rounded-stamp bg-brand ${className}`}
+      className={`inline-block size-6 shrink-0 rounded-[6px] bg-brand ${className}`}
       aria-hidden
     />
   );

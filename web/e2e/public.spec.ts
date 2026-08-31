@@ -43,8 +43,11 @@ test("public ofox replica pages render headings", async ({ page }) => {
 test("user console main flow shows DESIGN.md hero cards", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByRole("heading", { name: "我的账户" })).toBeVisible();
-  await expect(page.getByText("可用余额")).toBeVisible();
-  await expect(page.getByText("预授权占用")).toBeVisible();
+  const overview = page.getByLabel("总览");
+  await expect(overview.getByText("可用余额")).toBeVisible();
+  await expect(overview.getByText("预授权占用")).toBeVisible();
+  await expect(overview.getByText("API Key")).toBeVisible();
+  await expect(overview.getByText("路由回单")).toBeVisible();
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
 });

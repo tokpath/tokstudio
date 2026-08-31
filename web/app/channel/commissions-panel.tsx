@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { LedgerTable } from "@/components/console/ledger-table";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
 type Allocation = {
@@ -42,7 +44,7 @@ export default function ChannelCommissions() {
   }
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
       <p className="mb-3 text-sm text-ink-secondary">
         可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
@@ -51,20 +53,24 @@ export default function ChannelCommissions() {
         换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。
       </p>
       <h3 className="mb-2 text-lg font-medium">已发放额度</h3>
-      <ul className="mb-3 space-y-1 text-sm text-ink-secondary">
-        {allocations.length === 0 ? (
-          <li>还没有发放记录。点刷新后可看到下属用户充值对应的额度。</li>
-        ) : (
-          allocations.map((item) => (
-            <li key={item.id}>
-              {item.user_id}：发放 {item.granted_minor} / 已用 {item.consumed_minor} / 剩余 {item.remaining_minor}（{item.status}）
-            </li>
-          ))
-        )}
-      </ul>
-      <button className="rounded border border-hairline px-4 py-2" onClick={refresh}>
+      <LedgerTable
+        columns={["用户", "发放", "已用", "剩余", "状态"]}
+        emptyTitle="暂无发放记录"
+        emptyDetail="点刷新后可看到下属用户充值对应的额度。"
+        rows={allocations.map((item) => ({
+          key: item.id || item.user_id || "alloc",
+          cells: [
+            item.user_id || "—",
+            String(item.granted_minor ?? 0),
+            String(item.consumed_minor ?? 0),
+            String(item.remaining_minor ?? 0),
+            item.status || "—",
+          ],
+        }))}
+      />
+      <Button type="button" variant="outline" onClick={refresh}>
         刷新
-      </button>
+      </Button>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );

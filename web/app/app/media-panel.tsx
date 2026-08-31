@@ -153,7 +153,7 @@ export default function MediaPanel() {
                   <FormLabel>媒体类型</FormLabel>
                   <FormControl>
                     <select
-                      className="h-10 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm"
+                      className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
                       aria-label="媒体类型"
                       {...field}
                       onChange={(event) => {
@@ -175,7 +175,7 @@ export default function MediaPanel() {
                 <FormItem>
                   <FormLabel>生成模式</FormLabel>
                   <FormControl>
-                    <select className="h-10 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm" aria-label="生成模式" {...field}>
+                    <select className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm" aria-label="生成模式" {...field}>
                       {modes.map((mode) => (
                         <option key={mode.value} value={mode.value}>
                           {mode.label}

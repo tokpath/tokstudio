@@ -16,7 +16,7 @@ export default function AdminRunbooksPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">应急手册</h2>
         <p className="mb-3 text-sm text-ink-secondary">每种关键告警对应一份处置步骤。对账、熔断、备份和 TLS 演练都有手册。</p>
         {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}

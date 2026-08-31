@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { apiBase } from "@/lib/api";
@@ -24,19 +25,21 @@ export default function ChannelUsers() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道用户</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">归因在注册时写死。这里只列本渠道 scope，不含其他渠道或平台成本。</p>
       <Button variant="outline" onClick={refresh}>
         刷新用户
       </Button>
-      <ul className="mt-3 space-y-2 text-sm text-ink">
-        {items.map((item) => (
-          <li key={item.id}>
-            {item.email} · {item.status} · {item.source_code || "—"}
-          </li>
-        ))}
-      </ul>
+      <LedgerTable
+        columns={["邮箱", "状态", "推广码"]}
+        emptyTitle="暂无本渠道用户"
+        emptyDetail="登录渠道管理员后刷新。邮箱可能已脱敏，不含其他渠道。"
+        rows={items.map((item) => ({
+          key: item.id || `${item.email}-${item.source_code}`,
+          cells: [item.email || "—", item.status || "—", item.source_code || "—"],
+        }))}
+      />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

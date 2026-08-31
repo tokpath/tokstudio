@@ -134,22 +134,22 @@ export default function AdminSettingsPage() {
   }
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">系统设置</h2>
         <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("zh")}>
+          <Button type="button" variant="outline" onClick={() => setLocale("zh")}>
             中文
-          </button>
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("en")}>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setLocale("en")}>
             English
-          </button>
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("ja")}>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setLocale("ja")}>
             日本語
-          </button>
+          </Button>
         </div>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">管理员 2FA</h2>
         <p className="mb-3 text-sm text-ink-secondary">
           读取状态不回密文。开始绑定后用验证器扫码，再填 6 位码确认启用。关闭要二次确认；已经 enabled 时还要带 TOTP。不要在共享管理员上留下 enabled。
@@ -185,23 +185,23 @@ export default function AdminSettingsPage() {
         </div>
         <p className="text-sm text-ink-secondary">{totpMessage}</p>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">告警阈值</h2>
         <p className="mb-3 text-sm text-ink-secondary">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
-          <button className="rounded border border-hairline px-3 py-2" onClick={loadThresholds}>
+          <Input className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
+          <Input className="w-28" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
+          <Input className="w-28" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
+          <Button type="button" variant="outline" onClick={loadThresholds}>
             读取阈值
-          </button>
+          </Button>
           <ConfirmButton size="sm" variant="outline" title="确认保存阈值" description="评估告警时会读取这些阈值。" onConfirm={saveThresholds}>
             保存阈值
           </ConfirmButton>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">运维开关</h2>
         <p className="mb-3 text-sm text-ink-secondary">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
         <div className="mb-3 flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">备份演练</h2>
         <p className="mb-3 text-sm text-ink-secondary">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
         <Button
@@ -315,7 +315,7 @@ export default function AdminSettingsPage() {
         </Button>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">异常演练</h2>
         <p className="mb-3 text-sm text-ink-secondary">
           支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
@@ -371,7 +371,7 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-ink-secondary">{drillMessage}</p>
         </div>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">OEM 证书</h2>
         <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配置 ACME 目录后，公网形态域名走 RFC 8555。公网 Let&apos;s Encrypt 仍要真实 DNS 与边缘节点，本页不假装已对公网签发。</p>
         <div className="mb-3 flex flex-wrap gap-2">

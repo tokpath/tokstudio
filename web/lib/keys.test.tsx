@@ -37,6 +37,11 @@ describe("KeysList", () => {
     expect(screen.getByText(/并发 1/)).toBeTruthy();
   });
 
+  it("renders an empty ledger when there are no keys", () => {
+    render(<KeysList items={[]} />);
+    expect(screen.getByText("暂无 API Keys")).toBeTruthy();
+  });
+
   it("parses comma-separated allowlists", () => {
     expect(parseAllowlist(" tokenhub/echo-1 , google/gemini-flash，tokenhub/echo-1 ")).toEqual([
       "tokenhub/echo-1",

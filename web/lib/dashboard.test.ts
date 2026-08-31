@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDashboard } from "./dashboard";
+import { dashboardHero, formatDashboard } from "./dashboard";
 
 describe("formatDashboard", () => {
   it("summarizes revenue margin and pending", () => {
@@ -9,5 +9,16 @@ describe("formatDashboard", () => {
         alerts: [{ kind: "pending_reconciliation" }],
       }),
     ).toContain("待对账 1");
+  });
+
+  it("exposes DESIGN.md admin hero stats", () => {
+    const cards = dashboardHero({
+      totals: { pending_reconciliation_count: 2, gross_profit_minor: 4_000_000, commission_liability_minor: 500_000 },
+      alerts: [{ kind: "provider_circuit_open" }],
+    });
+    expect(cards.map((c) => c.t)).toEqual(["待对账", "毛利", "佣金负债", "Provider 健康"]);
+    expect(cards[0].v).toBe("2");
+    expect(cards[1].v).toBe("$4.00");
+    expect(cards[3].v).toBe("DEGRADED");
   });
 });

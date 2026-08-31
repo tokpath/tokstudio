@@ -52,7 +52,7 @@ export function ModelPlayground({
         : sampleCurl;
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="th-eyebrow text-ink-mute">PLAYGROUND</p>

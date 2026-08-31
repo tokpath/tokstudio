@@ -29,7 +29,7 @@ export default function AdminPricesPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">价格</h2>
         <p className="mb-3 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。</p>
         <Form {...form}>

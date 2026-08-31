@@ -53,7 +53,7 @@ export default function AdminRoutesPage() {
         ]}
       />
       <Form {...createForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">创建路由</h2>
           <p className="text-sm text-ink-secondary">给已有公开模型建一个路由组。策略可选 priority / weight / price / health。</p>
           <TextField control={createForm.control} name="public_model_id" label="创建用 public model id" />
@@ -95,7 +95,7 @@ export default function AdminRoutesPage() {
         </form>
       </Form>
       <Form {...patchForm}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <h2 className="text-xl font-medium">改路由策略</h2>
           <p className="text-sm text-ink-secondary">只改策略或状态。不要对 rg_echo 乱改，改完会改变 echo 网关的选路。</p>
           <TextField control={patchForm.control} name="route_id" label="改策略用路由 id" />

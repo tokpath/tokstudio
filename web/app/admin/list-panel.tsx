@@ -28,7 +28,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const data = query.data?.items ?? [];
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-medium">{title}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -59,9 +59,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
           <table className="min-w-full text-left text-sm">
             <thead>
               {table.getHeaderGroups().map((group) => (
-                <tr key={group.id} className="border-b border-hairline text-ink-secondary">
+                <tr key={group.id} className="border-b border-hairline">
                   {group.headers.map((header) => (
-                    <th key={header.id} className="px-3 py-2.5 font-medium">
+                    <th key={header.id} className="th-eyebrow px-3 py-2.5 text-ink-mute">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -70,7 +70,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-hairline hover:bg-canvas-raised">
+                <tr key={row.id} className="border-b border-hairline hover:bg-brand-soft/40">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2.5 text-ink">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

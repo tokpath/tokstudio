@@ -21,6 +21,7 @@ describe("ofox public page map", () => {
       "/leaderboards/apps",
       "/leaderboards/labs",
       "/awesome-ofox",
+      "/compare",
       "/pricing",
       "/blog",
       "/login",

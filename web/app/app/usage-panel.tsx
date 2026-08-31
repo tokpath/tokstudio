@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
 type UsageRow = {
@@ -42,9 +43,9 @@ export default function UsagePanel() {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">用量与账单</h2>
       <p className="mb-4 text-sm text-ink-secondary">只展示当前登录用户的 usage 和账本，不含其他渠道数据。</p>
-      <button className="mb-4 rounded border border-hairline px-4 py-2" onClick={refresh}>
+      <Button type="button" variant="outline" className="mb-4" onClick={refresh}>
         刷新账单
-      </button>
+      </Button>
       <p className="text-sm text-ink-secondary">
         usage {usage.length} 条，流水 {ledger.length} 条。{message}
       </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { apiBase } from "@/lib/api";
@@ -28,19 +29,21 @@ export default function ChannelAttribution() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道归因</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">按推广码和代理层级点数。渠道不能改别人的归属。</p>
       <Button variant="outline" onClick={refresh}>
         刷新归因
       </Button>
-      <ul className="mt-3 space-y-2 text-sm text-ink">
-        {items.map((item) => (
-          <li key={`${item.source_code}-${item.role_type}`}>
-            {item.source_code || "—"} · {item.role_type || "无层级"} · {item.user_count ?? 0} 人
-          </li>
-        ))}
-      </ul>
+      <LedgerTable
+        columns={["推广码", "层级", "人数"]}
+        emptyTitle="暂无归因"
+        emptyDetail="归因在注册时写死。这里只汇总本渠道推广码。"
+        rows={items.map((item) => ({
+          key: `${item.source_code}-${item.role_type}`,
+          cells: [item.source_code || "—", item.role_type || "无层级", String(item.user_count ?? 0)],
+        }))}
+      />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

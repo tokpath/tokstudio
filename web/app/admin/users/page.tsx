@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">用户/项目</h2>
         <p className="mb-3 text-sm text-ink-secondary">封禁、解封和人工改归因都要二次确认，并写入审计。平台管理员不能封自己。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">

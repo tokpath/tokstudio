@@ -72,10 +72,10 @@ export const userSettingsNav: NavItem[] = [
 
 export const userSections: NavItem[] = userNavGroups.flatMap((group) => group.items);
 
-/** 控制台侧栏当前项：总览只精确匹配，避免 /app 点亮所有子页。 */
+/** 控制台侧栏当前项：门户根路径只精确匹配，避免点亮所有子页。 */
 export function isNavActive(pathname: string, href: string) {
-  if (href === "/app") {
-    return pathname === "/app" || pathname === "/app/";
+  if (href === "/app" || href === "/channel" || href === "/partner" || href === "/admin") {
+    return pathname === href || pathname === `${href}/`;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -87,22 +87,42 @@ export function consoleItemHref(item: NavItem, hashPrefix: string) {
   return `${hashPrefix}${item.href}`;
 }
 
-export const channelSections: NavItem[] = [
-  { href: "#users", label: "本渠道用户" },
-  { href: "#plans", label: "套餐" },
-  { href: "#promos", label: "推广" },
-  { href: "#attribution", label: "额度" },
-  { href: "#usage", label: "用量" },
-  { href: "#settlements", label: "结算" },
-  { href: "#commissions", label: "佣金/结算" },
+export const channelNavGroups: { title: string; items: NavItem[] }[] = [
+  {
+    title: "本渠道",
+    items: [
+      { href: "/channel", label: "总览" },
+      { href: "/channel/users", label: "本渠道用户" },
+      { href: "/channel/plans", label: "套餐" },
+      { href: "/channel/promos", label: "推广" },
+    ],
+  },
+  {
+    title: "账本",
+    items: [
+      { href: "/channel/attribution", label: "额度" },
+      { href: "/channel/usage", label: "用量" },
+      { href: "/channel/settlements", label: "结算" },
+      { href: "/channel/commissions", label: "佣金/结算" },
+    ],
+  },
 ];
 
-export const partnerSections: NavItem[] = [
-  { href: "#scope", label: "我的层级" },
-  { href: "#users", label: "范围内用户" },
-  { href: "#commissions", label: "范围内佣金" },
-  { href: "#settlements", label: "范围内结算" },
+export const partnerNavGroups: { title: string; items: NavItem[] }[] = [
+  {
+    title: "范围",
+    items: [
+      { href: "/partner", label: "我的层级" },
+      { href: "/partner/users", label: "范围内用户" },
+      { href: "/partner/commissions", label: "范围内佣金" },
+      { href: "/partner/settlements", label: "范围内结算" },
+    ],
+  },
 ];
+
+export const channelSections: NavItem[] = channelNavGroups.flatMap((group) => group.items);
+
+export const partnerSections: NavItem[] = partnerNavGroups.flatMap((group) => group.items);
 
 export const adminGroups: { title: string; items: { href: string; key: string }[] }[] = [
   {

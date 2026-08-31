@@ -15,7 +15,7 @@ export default function AdminAuditPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">Outbox 与探测</h2>
         <p className="mb-3 text-sm text-ink-secondary">
           pending 太高说明 worker 没跟上。探测用来确认审计链路还能写，不会计费，也不要二次确认。

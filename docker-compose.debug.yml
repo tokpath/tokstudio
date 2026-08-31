@@ -1,0 +1,44 @@
+# 把内部服务端口映射到宿主机，给 make api / make web / Grafana 用。
+# 产品流量仍应走 Caddy（宿主机 9080/9443），不要把这些端口暴露到公网。
+#
+#   docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  otel-collector:
+    ports:
+      - "4318:4318"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3001:3000"
+
+  api:
+    ports:
+      - "8080:8080"
+    environment:
+      TOKENHUB_PUBLIC_BASE_URL: http://localhost:8080
+      TOKENHUB_WEB_ORIGIN: http://localhost:3000
+
+  bifrost:
+    ports:
+      - "8081:8081"
+
+  web:
+    ports:
+      - "3000:3000"
+
+  pebble:
+    ports:
+      - "14000:14000"
+      - "15000:15000"

@@ -2,26 +2,64 @@
 # ask 接口只对已登记品牌域名返回 200，避免给任意主机签发证书。
 # 默认走 Let's Encrypt；本地可用 TOKENHUB_ACME_CA 指到 compose 里的 Pebble（自签 CA，仅演练）。
 # 公网生产域名 + 真实 LE 仍要 DNS 指向边缘节点，本仓库不把「已对公网签发」标完成。
+#
+# 浏览器与控制台走同一主机：页面 → web:3000；接口 → /api/*（去掉前缀后到 api:8080）。
+# /admin、/channel 是 Next.js 页面，不能整段转给 Go，所以浏览器 API 必须带 /api 前缀。
+# SDK / API Key 走 api.localhost、api.oem.localhost，路径保持 OpenAI 兼容的 /v1。
 {
 	email {$TOKENHUB_ACME_EMAIL:ops@tokenhub.local}
+	auto_https disable_redirects
 	on_demand_tls {
 		ask http://api:8080/v1/public/tls-check
 	}
 }
 
+(app) {
+	@apihost host api.localhost api.oem.localhost
+	handle @apihost {
+		reverse_proxy api:8080
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+		}
+	}
+
+	handle /v1/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+		}
+	}
+	handle /healthz {
+		reverse_proxy api:8080
+	}
+	handle /readyz {
+		reverse_proxy api:8080
+	}
+	handle /.well-known/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			header_up Host {host}
+		}
+	}
+}
+
+# 容器内仍听 80/443；compose 默认映射到宿主机 9080/9443，避开特权端口。
+# .localhost 本地演练走 HTTP，避免 on-demand 去撞公网 Let's Encrypt。
+# 真实公网主机仍 HTTP → HTTPS。
 :80 {
-	redir https://{host}{uri} permanent
+	@public not host localhost 127.0.0.1 ::1 *.localhost
+	redir @public https://{host}{uri} permanent
+	import app
 }
 
 :443 {
 	tls {
 		on_demand
 	}
-	@api host api.localhost api.oem.localhost
-	handle @api {
-		reverse_proxy api:8080
-	}
-	handle {
-		reverse_proxy web:3000
-	}
+	import app
 }

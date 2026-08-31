@@ -13,10 +13,20 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- API：http://localhost:8080/healthz
-- 就绪：http://localhost:8080/readyz
-- 指标：http://localhost:8080/metrics
-- Web：http://localhost:3000
+默认只对外映射 Caddy（`edge`）。80/443 经常被占用或需要 root，所以宿主机用 **9080 / 9443**（可用 `TOKENHUB_EDGE_HTTP_PORT`、`TOKENHUB_EDGE_HTTPS_PORT` 改）：
+
+- Web：http://localhost:9080
+- API 探活：http://localhost:9080/healthz
+- 就绪：http://localhost:9080/readyz
+- 浏览器接口（同源）：http://localhost:9080/api/v1/...
+- SDK / API Key：http://api.localhost:9080/v1/...（`api.oem.localhost` 同理）
+- HTTPS 演练：https://localhost:9443
+
+Postgres、Redis、API `:8080`、Web `:3000`、Grafana、Prometheus、Bifrost、Pebble 都留在 compose 内网。本机 `make api` 需要这些端口时：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+```
 
 没有 Docker 时，先启动 PostgreSQL/Redis，再执行：
 
@@ -28,6 +38,8 @@ make api
 make worker
 make web
 ```
+
+`make web` 在 http://localhost:3000。浏览器请求 `/api/*` 由 Next.js rewrite 转到本机 API（`TOKENHUB_API_INTERNAL_URL`，默认 `http://127.0.0.1:8080`）。
 
 ## 验收
 

@@ -316,12 +316,12 @@ func TestM7OpsHardening(t *testing.T) {
 	}); code != http.StatusConflict {
 		t.Fatalf("patch model without confirm should be 409, got %d", code)
 	}
-	patched := patchJSONRaw(t, server.URL+"/admin/models/"+publicID, "m7_admin", map[string]any{
+	modelPatched := patchJSONRaw(t, server.URL+"/admin/models/"+publicID, "m7_admin", map[string]any{
 		"display_name": "Ops Draft Edited",
 		"capabilities": map[string]any{"supported_parameters": []string{"stream", "tools"}},
 	})
-	if patched["item"].(map[string]any)["display_name"] != "Ops Draft Edited" {
-		t.Fatalf("patch model: %+v", patched)
+	if modelPatched["item"].(map[string]any)["display_name"] != "Ops Draft Edited" {
+		t.Fatalf("patch model: %+v", modelPatched)
 	}
 	priced := postJSONRaw(t, server.URL+"/admin/price-books", "m7_admin", map[string]any{
 		"model": publicID, "input": "0.000003", "output": "0.000006", "currency": "USD",

@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
 import { PublicSection, StatStrip } from "@/components/public-section";
+import PublicStorefront from "./storefront";
+import { fetchAPI } from "@/lib/api";
 import {
-  LEADERBOARD_DEMO,
   MEDIA_WALL,
   VENDOR_MARQUEE,
   formatMoney,
@@ -14,12 +15,21 @@ import {
   priceForModel,
   type CatalogModel,
 } from "@/lib/catalog";
+import { loadSite } from "@/lib/site-content";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export default async function PublicHome() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const models = await loadCatalog(host);
+  const site = await loadSite(host);
+  let plans: { id: string; name: string; price_minor: number }[] = [];
+  try {
+    const data = await fetchAPI<{ items: { id: string; name: string; price_minor: number }[] }>("/v1/plans");
+    plans = data.items || [];
+  } catch {
+    plans = [];
+  }
   const text = models.filter((m) => inferKind(m) === "text");
   const image = models.filter((m) => inferKind(m) === "image");
   const video = models.filter((m) => inferKind(m) === "video");
@@ -237,7 +247,7 @@ export default async function PublicHome() {
         <PublicSection
           eyebrow="LEADERBOARD"
           title="大家都在用什么？"
-          description="结构对齐 ofox 用量榜。下列为演示份额数字，接入真实汇总后替换。"
+          description={site.leaderboards?.note || "结构对齐 ofox 用量榜。份额来自公开站快照，接入真实汇总后替换。"}
           action={
             <Button asChild variant="outline" size="sm">
               <Link href="/leaderboards/models">完整榜单</Link>
@@ -245,9 +255,9 @@ export default async function PublicHome() {
           }
         >
           <ol className="divide-y divide-hairline rounded-stamp border border-hairline bg-canvas-raised">
-            {LEADERBOARD_DEMO.map((row) => (
+            {(site.leaderboards?.models || []).map((row) => (
               <li key={row.rank}>
-                <Link href={row.href} className="flex items-center gap-4 px-4 py-3 no-underline hover:bg-brand-soft/30">
+                <Link href={row.id ? `/models/${row.id}` : "/models"} className="flex items-center gap-4 px-4 py-3 no-underline hover:bg-brand-soft/30">
                   <span className="font-mono text-sm text-ink-mute">{row.rank}</span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] text-ink-mute">{row.vendor}</p>
@@ -325,6 +335,9 @@ export default async function PublicHome() {
             </Button>
           </div>
         </section>
+
+        {/* D33 公共站账本入口：套餐 / 充值，结构保留给未登录购买 */}
+        <PublicStorefront models={models.slice(0, 6)} plans={plans} />
       </div>
     </main>
   );

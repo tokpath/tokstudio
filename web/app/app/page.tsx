@@ -16,6 +16,23 @@ export default function UserConsole() {
           这里只展示你自己的余额、套餐、API Key、用量、账单和个人设置。渠道归属在注册时已经写死，页面上不会提供“切换渠道”入口。
         </p>
       </header>
+      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label="总览">
+        {[
+          { t: "可用余额", d: "现金钱包可调用额度", href: "#wallet" },
+          { t: "预授权占用", d: "HOLD 中的请求尚未结算", href: "#wallet" },
+          { t: "API Key", d: "掩码前缀，轮换写审计", href: "#keys" },
+          { t: "路由回单", d: "最近一次 attempt 可解释", href: "#usage" },
+        ].map((card) => (
+          <a
+            key={card.t}
+            href={card.href}
+            className="rounded-stamp border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40"
+          >
+            <p className="th-eyebrow text-ink-mute">{card.t}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
+          </a>
+        ))}
+      </section>
       <div id="wallet">
         <WalletPanel />
       </div>

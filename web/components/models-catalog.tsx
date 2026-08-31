@@ -40,9 +40,17 @@ function CopyId({ id }: { id: string }) {
   );
 }
 
-export function ModelsCatalog({ models }: { models: CatalogModel[] }) {
+export function ModelsCatalog({
+  models,
+  initialKind = "all",
+}: {
+  models: CatalogModel[];
+  initialKind?: string;
+}) {
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
+    FILTERS.some((f) => f.id === initialKind) ? (initialKind as (typeof FILTERS)[number]["id"]) : "all",
+  );
   const [view, setView] = useState<"list" | "table">("list");
 
   const filtered = useMemo(() => {

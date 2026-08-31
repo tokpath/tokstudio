@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AdminShell } from "../../shell";
 import { AdminListPanel } from "../../list-panel";
 import { ChannelQuotaPanel } from "../quota-panel";
+import { ChannelModelsPanel } from "../models-panel";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
@@ -20,9 +21,7 @@ import { CHANNEL_TYPES, STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
 type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; status: string };
-type ChannelModel = { public_id: string; display_name: string; vendor: string; status: string; enabled: boolean };
 type ItemResponse = { item?: Channel; error?: { message?: string } };
-type ModelsResponse = { items?: ChannelModel[]; error?: { message?: string } };
 
 const patchSchema = z.object({
   status: z.string().trim().min(1, "请选择状态"),
@@ -43,10 +42,6 @@ export default function AdminChannelDetailPage() {
   const query = useQuery({
     queryKey: ["/admin/channels", id],
     queryFn: () => apiClient<ItemResponse>("GET", `/admin/channels/${id}`),
-  });
-  const modelsQuery = useQuery({
-    queryKey: ["/admin/channels", id, "models"],
-    queryFn: () => apiClient<ModelsResponse>("GET", `/admin/channels/${id}/models`),
   });
   const item = query.data?.item;
   const form = useForm<z.infer<typeof patchSchema>>({
@@ -196,28 +191,7 @@ export default function AdminChannelDetailPage() {
         )}
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
-        <h3 className="mb-3 text-lg font-medium">平台模型白名单</h3>
-        <p className="mb-3 text-sm text-ink-secondary">
-          租户不能自己添加提供商和模型。这里只展示平台已启用并授权给该渠道的目录，不含上游凭据。要改模型请到平台「模型」页。
-        </p>
-        {modelsQuery.data?.error ? (
-          <p className="text-sm text-ink-secondary">{modelsQuery.data.error.message}</p>
-        ) : (
-          <ul className="grid gap-2 text-sm">
-            {(modelsQuery.data?.items ?? []).map((model) => (
-              <li key={model.public_id} className="flex flex-wrap justify-between gap-2 border-b border-hairline py-2">
-                <span>
-                  {model.display_name} <span className="font-mono text-ink-secondary">{model.public_id}</span>
-                </span>
-                <span className="text-ink-secondary">
-                  {model.vendor} · {model.status} · {model.enabled ? "已授权" : "未授权"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <ChannelModelsPanel channelID={id} />
       <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
       <AdminListPanel<Role>
         path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=agent`}

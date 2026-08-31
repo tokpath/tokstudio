@@ -113,6 +113,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/channels/{id}/models"
   },
   {
+    "method": "PATCH",
+    "path": "/admin/channels/{id}/models"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/models"
+  },
+  {
     "method": "GET",
     "path": "/channel/attribution"
   },
@@ -243,6 +251,10 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/outbox/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/me"
   },
   {
     "method": "GET",

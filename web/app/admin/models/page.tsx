@@ -61,6 +61,9 @@ export default function AdminModelsPage() {
 
   return (
     <AdminShell>
+      <p className="text-sm text-ink-secondary">
+        提供商和公开模型只在平台目录维护。租户不能自己添加提供商或模型，只能由平台把已有目录授权给渠道白名单。
+      </p>
       <AdminListPanel<Model>
         path="/admin/models"
         title="模型"

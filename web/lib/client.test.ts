@@ -6,6 +6,7 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/admin/providers")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/models")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/routes")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/me")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/me/2fa")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/me/2fa/setup")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/me/2fa/enable")).toBe(true);
@@ -84,7 +85,9 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/ops/circuit/{id}")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/usage")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/usage/replay")).toBe(true);
-    expect(hasGeneratedPath("GET", "/admin/acquisition-roles")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/channels/{id}/models")).toBe(true);
+    expect(hasGeneratedPath("PATCH", "/admin/channels/{id}/models")).toBe(true);
+    expect(hasGeneratedPath("GET", "/channel/models")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/acquisition-roles")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/acquisition-roles/{id}")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/acquisition-roles/{id}")).toBe(true);

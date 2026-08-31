@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"strings"
 	"time"
@@ -401,8 +402,8 @@ func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) e
 	return nil
 }
 
-// ListChannelModels 只返回平台目录里已经授权给该租户的模型，不含提供商凭据。
-func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string) ([]ChannelModelView, error) {
+// ListChannelModels 返回该租户的模型授权。includeCatalog 时带上平台目录里尚未授权的模型，供平台勾选；租户视角只看已有白名单。不含提供商凭据。
+func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, includeCatalog bool) ([]ChannelModelView, error) {
 	if channelOrgID == "" {
 		return []ChannelModelView{}, nil
 	}
@@ -414,13 +415,18 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string) ([
 		Enabled     bool   `gorm:"column:enabled"`
 	}
 	var rows []row
-	err := s.db.WithContext(ctx).Table("catalog_channel_model_policies p").
-		Select("m.public_id, m.display_name, m.vendor, m.status, p.enabled").
-		Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
-		Where("p.channel_org_id = ?", channelOrgID).
-		Order("m.public_id").
-		Find(&rows).Error
-	if err != nil {
+	q := s.db.WithContext(ctx)
+	if includeCatalog {
+		q = q.Table("catalog_public_models m").
+			Select("m.public_id, m.display_name, m.vendor, m.status, COALESCE(p.enabled, false) AS enabled").
+			Joins("LEFT JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.channel_org_id = ?", channelOrgID)
+	} else {
+		q = q.Table("catalog_channel_model_policies p").
+			Select("m.public_id, m.display_name, m.vendor, m.status, p.enabled").
+			Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
+			Where("p.channel_org_id = ?", channelOrgID)
+	}
+	if err := q.Order("m.public_id").Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]ChannelModelView, 0, len(rows))
@@ -430,6 +436,43 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string) ([
 		})
 	}
 	return out, nil
+}
+
+// SetChannelModels 只授权平台目录里已有的公开模型。不会创建提供商或新模型。
+func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, grants []ChannelModelGrant) error {
+	if channelOrgID == "" || len(grants) == 0 {
+		return ErrInvalidInput
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, grant := range grants {
+			publicID := strings.TrimSpace(grant.PublicID)
+			if publicID == "" {
+				return ErrInvalidInput
+			}
+			var model publicModelRow
+			if err := tx.Where("public_id = ?", publicID).First(&model).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrUnknownModel
+				}
+				return err
+			}
+			var existing channelPolicyRow
+			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled}).Error; err != nil {
+					return err
+				}
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := tx.Model(&existing).Update("enabled", grant.Enabled).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {

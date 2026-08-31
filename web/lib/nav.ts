@@ -29,6 +29,7 @@ export const userSections: NavItem[] = [
 
 export const channelSections: NavItem[] = [
   { href: "#users", label: "本渠道用户" },
+  { href: "#models", label: "本渠道模型" },
   { href: "#plans", label: "套餐" },
   { href: "#promos", label: "推广" },
   { href: "#attribution", label: "额度" },

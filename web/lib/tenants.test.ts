@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminNavActive,
+  canGrantTenantModels,
   channelHref,
   channelTypeLabel,
   channelUsesQuota,
@@ -21,6 +22,10 @@ describe("tenant list helpers", () => {
     expect(isKOLType("kol_l2")).toBe(true);
     expect(channelUsesQuota("A")).toBe(false);
     expect(channelUsesQuota("B")).toBe(true);
+    expect(canGrantTenantModels(["platform_admin"])).toBe(true);
+    expect(canGrantTenantModels(["ops_admin"])).toBe(true);
+    expect(canGrantTenantModels(["channel_admin"])).toBe(false);
+    expect(canGrantTenantModels(undefined)).toBe(false);
   });
 
   it("builds detail hrefs and highlights nested admin nav", () => {

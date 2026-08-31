@@ -313,7 +313,9 @@ export default function AdminProvidersPage() {
 
   return (
     <AdminShell>
-      <p className="text-sm text-ink-secondary">列表每行可探测。探测走上游沙箱、不会计费，也不要二次确认。</p>
+      <p className="text-sm text-ink-secondary">
+        提供商只由平台接入。租户不能自带上游 Key，也不能在渠道里新建提供商。列表每行可探测；探测走上游沙箱、不会计费，也不要二次确认。
+      </p>
       <AdminListPanel<Provider>
         path="/admin/providers"
         title="提供商"

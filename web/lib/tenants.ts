@@ -41,6 +41,10 @@ export function partnerHref(id: string): string {
   return `/admin/partners/${encodeURIComponent(id)}`;
 }
 
+export function canGrantTenantModels(roles: string[] | undefined): boolean {
+  return Boolean(roles?.some((role) => role === "platform_admin" || role === "ops_admin"));
+}
+
 export function adminNavActive(pathname: string, href: string): boolean {
   if (href === "/admin") {
     return pathname === "/admin";

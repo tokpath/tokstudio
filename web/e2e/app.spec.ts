@@ -45,6 +45,8 @@ test("partner console shows scoped downline cards", async ({ page }) => {
 test("channel console shows scoped user list", async ({ page }) => {
   await page.goto("/channel");
   await expect(page.getByRole("heading", { name: "本渠道用户" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "本渠道模型" })).toBeVisible();
+  await expect(page.getByText("不能自己添加提供商和模型")).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道套餐" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "创建渠道套餐" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建渠道套餐" })).toBeVisible();

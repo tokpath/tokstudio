@@ -239,6 +239,23 @@ paths:
       responses:
         "200":
           description: platform catalog models entitled to this tenant; tenants cannot add providers or models
+    patch:
+      operationId: patchChannelModels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: entitle or revoke existing platform catalog models for this tenant; unknown public_id is rejected; tenants cannot create providers or models
+  /channel/models:
+    get:
+      operationId: listOwnChannelModels
+      responses:
+        "200":
+          description: models already entitled to the current tenant; channel admins cannot add providers or models
   /channel/attribution:
     get:
       operationId: listChannelAttribution
@@ -490,6 +507,12 @@ paths:
       responses:
         "200":
           description: pending published failed counts
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      responses:
+        "200":
+          description: current admin identity and roles
   /admin/me/2fa:
     get:
       operationId: getAdminTOTP

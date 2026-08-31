@@ -70,6 +70,7 @@
 - 复杂 CRM、工单、合同、发票系统。
 - 多推广来源拆分归因。
 - 渠道商（B/C/OEM 代理）自带上游 Provider Key（渠道 BYOK）。上游凭据只由平台管理员维护；账号池不是渠道能力。
+- 租户自建提供商或公开模型。所有租户的模型资源只能从平台目录授权。
 
 ## 3. 用户与角色
 
@@ -135,7 +136,7 @@ P0 首发媒体上游为火山方舟直连和 OpenRouter。聚合提供商必须
 
 映射记录包含：public model、model vendor、routing provider、upstream model、协议适配器、参数能力、成本价来源、可用区域、排序、最大并发和状态。一个公开模型可以映射多个路由 Provider；一个 Provider 也可暴露多个模型。`openai/gpt-5.6` 这类公开模型 ID 表示模型厂商和模型，不等同于实际承载请求的路由 Provider。
 
-模型授权链路为：`routing_provider -> provider_model -> platform_enabled_model -> channel_entitlement -> api_key_model_allowlist`。Provider 下可以发现很多上游模型，但只有平台启用的模型才进入平台目录；渠道再从平台目录中选择允许销售/展示的模型；用户 API Key 可进一步收窄范围。Provider-model 映射本身也必须支持停用、价格版本、能力和健康状态。客户目录同时展示模型厂商和可用 Provider 状态，默认由平台自动路由。
+模型授权链路为：`routing_provider -> provider_model -> platform_enabled_model -> channel_entitlement -> api_key_model_allowlist`。Provider 下可以发现很多上游模型，但只有平台启用的模型才进入平台目录；平台再从该目录授权给租户白名单。租户（含 B/C/OEM 渠道、代理商和 KOL）不能自己添加提供商或模型，也不能引入目录外的模型。用户 API Key 可进一步收窄范围。Provider-model 映射本身也必须支持停用、价格版本、能力和健康状态。客户目录同时展示模型厂商和可用 Provider 状态，默认由平台自动路由。
 
 ### 5.4 媒体模型能力
 

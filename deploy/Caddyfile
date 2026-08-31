@@ -48,8 +48,9 @@
 	}
 }
 
+# 容器内仍听 80/443；compose 默认映射到宿主机 9080/9443，避开特权端口。
 # .localhost 本地演练走 HTTP，避免 on-demand 去撞公网 Let's Encrypt。
-# 真实公网主机仍 80 → 443。
+# 真实公网主机仍 HTTP → HTTPS。
 :80 {
 	@public not host localhost 127.0.0.1 ::1 *.localhost
 	redir @public https://{host}{uri} permanent

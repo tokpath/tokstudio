@@ -1,4 +1,5 @@
-# 默认只把 Caddy（edge）的 80/443 映射到宿主机。
+# 默认只把 Caddy（edge）映射到宿主机。80/443 是特权端口，本机常被占用或无权绑定，
+# 所以宿主机用 9080（HTTP）/ 9443（HTTPS）；容器内仍听 80/443。
 # 浏览器走同源入口：页面在 / ，接口在 /api/*（Caddy 去掉前缀后交给 api）。
 # SDK / API Key 仍用独立主机 api.localhost、api.oem.localhost（路径保持 /v1）。
 # 本机 make api / Grafana 需要宿主机端口时：
@@ -66,14 +67,14 @@ services:
     environment:
       TOKENHUB_ENV: development
       TOKENHUB_HTTP_ADDR: :8080
-      TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-http://localhost}
+      TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-http://localhost:9080}
       TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
       TOKENHUB_REDIS_URL: redis://redis:6379/0
       TOKENHUB_BOOTSTRAP_ADMIN_TOKEN: ${TOKENHUB_BOOTSTRAP_ADMIN_TOKEN:-dev_admin_change_me}
       TOKENHUB_BOOTSTRAP_USER_TOKEN: ${TOKENHUB_BOOTSTRAP_USER_TOKEN:-dev_user_change_me}
       TOKENHUB_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
-      TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost}
+      TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
       TOKENHUB_LOG_LEVEL: info
       TOKENHUB_BIFROST_URL: http://bifrost:8081
     depends_on:
@@ -139,8 +140,8 @@ services:
   edge:
     image: caddy:2.8-alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - "${TOKENHUB_EDGE_HTTP_PORT:-9080}:80"
+      - "${TOKENHUB_EDGE_HTTPS_PORT:-9443}:443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - tokenhub_caddy:/data

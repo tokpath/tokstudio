@@ -13,13 +13,14 @@ cp .env.example .env
 docker compose up --build
 ```
 
-默认只对外映射 Caddy（`edge`）的 **80 / 443**。浏览器打开同一个入口即可：
+默认只对外映射 Caddy（`edge`）。80/443 经常被占用或需要 root，所以宿主机用 **9080 / 9443**（可用 `TOKENHUB_EDGE_HTTP_PORT`、`TOKENHUB_EDGE_HTTPS_PORT` 改）：
 
-- Web：http://localhost
-- API 探活：http://localhost/healthz
-- 就绪：http://localhost/readyz
-- 浏览器接口（同源）：http://localhost/api/v1/...
-- SDK / API Key：http://api.localhost/v1/...（`api.oem.localhost` 同理）
+- Web：http://localhost:9080
+- API 探活：http://localhost:9080/healthz
+- 就绪：http://localhost:9080/readyz
+- 浏览器接口（同源）：http://localhost:9080/api/v1/...
+- SDK / API Key：http://api.localhost:9080/v1/...（`api.oem.localhost` 同理）
+- HTTPS 演练：https://localhost:9443
 
 Postgres、Redis、API `:8080`、Web `:3000`、Grafana、Prometheus、Bifrost、Pebble 都留在 compose 内网。本机 `make api` 需要这些端口时：
 

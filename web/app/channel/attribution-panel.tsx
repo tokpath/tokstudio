@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -13,35 +14,36 @@ type Bucket = {
 };
 
 export default function ChannelAttribution() {
+  const t = useTranslations("channelUi");
   const [items, setItems] = useState<Bucket[]>([]);
-  const [message, setMessage] = useState("归因在注册时写死。这里只汇总本渠道推广码，不含其他渠道。");
+  const [message, setMessage] = useState(t("attrHint"));
 
   async function refresh() {
     const response = await fetch(`${apiBase}/channel/attribution`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
-      setMessage(body.error?.message || "未登录渠道管理员");
+      setMessage(body.error?.message || t("needAdmin"));
       return;
     }
     const next = (body.items || []) as Bucket[];
     setItems(next);
-    setMessage(`本渠道归因 ${next.length} 组`);
+    setMessage(t("attrCount", { n: next.length }));
   }
 
   return (
     <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
-      <CardTitle className="mb-3 text-xl font-medium">本渠道归因</CardTitle>
-      <p className="mb-3 text-sm text-ink-secondary">按推广码和代理层级点数。渠道不能改别人的归属。</p>
+      <CardTitle className="mb-3 text-xl font-medium">{t("attrTitle")}</CardTitle>
+      <p className="mb-3 text-sm text-ink-secondary">{t("attrLead")}</p>
       <Button variant="outline" onClick={refresh}>
-        刷新归因
+        {t("refreshAttr")}
       </Button>
       <LedgerTable
-        columns={["推广码", "层级", "人数"]}
-        emptyTitle="暂无归因"
-        emptyDetail="归因在注册时写死。这里只汇总本渠道推广码。"
+        columns={[t("colPromo"), t("colLevel"), t("colPeople")]}
+        emptyTitle={t("emptyAttr")}
+        emptyDetail={t("emptyAttrDetail")}
         rows={items.map((item) => ({
           key: `${item.source_code}-${item.role_type}`,
-          cells: [item.source_code || "—", item.role_type || "无层级", String(item.user_count ?? 0)],
+          cells: [item.source_code || "—", item.role_type || t("noLevel"), String(item.user_count ?? 0)],
         }))}
       />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>

@@ -25,7 +25,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
   const [users, setUsers] = useState<PartnerUser[]>([]);
   const [comms, setComms] = useState<Commission[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [message, setMessage] = useState("代理商看整棵树，1 级 KOL 看自己和 2 级，2 级只看直接引流。邮箱已脱敏。");
+  const [message, setMessage] = useState(t("hint"));
 
   async function refresh() {
     const [meRes, userRes, commRes, setRes] = await Promise.all([
@@ -36,7 +36,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
     ]);
     const meBody = await meRes.json();
     if (!meRes.ok) {
-      setMessage(meBody.error?.message || "不是推广主体");
+      setMessage(meBody.error?.message || t("notPartner"));
       return;
     }
     setMe(meBody as PartnerMe);
@@ -46,7 +46,14 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
     setUsers((userBody.items || []) as PartnerUser[]);
     setComms((commBody.items || []) as Commission[]);
     setSettlements((setBody.items || []) as Settlement[]);
-    setMessage(`层级 ${meBody.role_type || "—"} · 用户 ${userBody.items?.length ?? 0} · 佣金 ${commBody.items?.length ?? 0} · 结算 ${setBody.items?.length ?? 0}`);
+    setMessage(
+      t("summary", {
+        role: meBody.role_type || "—",
+        users: userBody.items?.length ?? 0,
+        comms: commBody.items?.length ?? 0,
+        settlements: setBody.items?.length ?? 0,
+      }),
+    );
   }
 
   const show = (id: PartnerSection) => section === "all" || section === id;
@@ -62,8 +69,11 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
         <Card id="scope">
           <CardTitle>{t("hierarchy")}</CardTitle>
           <p className="mb-3 text-sm text-ink-secondary">
-            当前 {me.role_type || "未登录"} · 渠道 {me.channel_org_id || "—"} ·{" "}
-            {me.sees_downline ? "可看下级汇总" : "只看直接引流"}
+            {t("currentLine", {
+              role: me.role_type || t("notLoggedIn"),
+              channel: me.channel_org_id || "—",
+              scope: me.sees_downline ? t("seesDownline") : t("seesDirect"),
+            })}
           </p>
           <Button variant="outline" onClick={() => void refresh()}>
             {t("refresh")}
@@ -75,9 +85,9 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
         <Card id="users">
           <CardTitle>{t("users")}</CardTitle>
           <LedgerTable
-            columns={["邮箱", "推广码", "状态"]}
+            columns={[t("colEmail"), t("colCode"), t("colStatus")]}
             emptyTitle={t("emptyUsers")}
-            emptyDetail="登录推广主体后刷新，邮箱已脱敏。"
+            emptyDetail={t("emptyUsersDetail")}
             rows={users.map((item) => ({
               key: `${item.email}-${item.source_code}`,
               cells: [item.email || "—", item.source_code || "—", item.status || "—"],
@@ -89,9 +99,9 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
         <Card id="commissions">
           <CardTitle>{t("commissions")}</CardTitle>
           <LedgerTable
-            columns={["类型", "状态", "金额"]}
-            emptyTitle="暂无佣金"
-            emptyDetail="冻结期满前不会出现可结算金额。"
+            columns={[t("colKind"), t("colStatus"), t("colAmount")]}
+            emptyTitle={t("emptyComms")}
+            emptyDetail={t("emptyCommsDetail")}
             rows={comms.map((item) => ({
               key: item.id || `${item.kind}-${item.status}`,
               cells: [item.kind || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
@@ -103,9 +113,9 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
         <Card id="settlements">
           <CardTitle>{t("settlements")}</CardTitle>
           <LedgerTable
-            columns={["结算单", "状态", "金额"]}
-            emptyTitle="暂无结算单"
-            emptyDetail="平台财务打款后才会出现在这里。"
+            columns={[t("colSettle"), t("colStatus"), t("colAmount")]}
+            emptyTitle={t("emptySettle")}
+            emptyDetail={t("emptySettleDetail")}
             rows={settlements.map((item) => ({
               key: item.id || "settlement",
               cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],

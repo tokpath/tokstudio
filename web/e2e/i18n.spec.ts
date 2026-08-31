@@ -35,6 +35,25 @@ test("Japanese Accept-Language keeps pathnames unchanged", async ({ browser }) =
   await context.close();
 });
 
+test("English public pages keep the same URLs and translate body copy", async ({ browser }) => {
+  const context = await browser.newContext({
+    locale: "en-US",
+    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
+  });
+  const page = await context.newPage();
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Why TokenHub" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start reconciling" })).toBeVisible();
+
+  await page.goto("/models");
+  await expect(page).toHaveURL(/\/models$/);
+  await expect(page.getByLabel("Search models")).toBeVisible();
+
+  await context.close();
+});
+
 test("language switch cookie overrides Accept-Language without changing the URL", async ({ browser }) => {
   const context = await browser.newContext({
     locale: "en-US",

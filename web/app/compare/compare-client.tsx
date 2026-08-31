@@ -18,6 +18,9 @@ function pickDefault(models: CatalogModel[], index: number) {
 
 export function ModelCompare({ models }: { models: CatalogModel[] }) {
   const t = useTranslations("compareUi");
+  const tCaps = useTranslations("caps");
+  const tCat = useTranslations("catalog");
+  const units = { perSec: tCat("perSec"), perImage: tCat("perImage") };
   const [leftId, setLeftId] = useState(() => pickDefault(models, 0));
   const [rightId, setRightId] = useState(() => pickDefault(models, 1));
   const left = useMemo(() => models.find((m) => m.id === leftId), [models, leftId]);
@@ -28,9 +31,18 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
     { label: t("vendor"), take: (m) => m?.vendor || "—" },
     { label: t("kind"), take: (m) => (m ? inferKind(m) : "—") },
     { label: t("context"), take: (m) => formatContext(m?.context_length) },
-    { label: t("input"), take: (m) => (m ? priceForModel(m).primary : "—") },
-    { label: t("output"), take: (m) => (m ? priceForModel(m).secondary : "—") },
-    { label: t("caps"), take: (m) => capabilityLabels(m?.capabilities).join(" · ") || "—" },
+    { label: t("input"), take: (m) => (m ? priceForModel(m, units).primary : "—") },
+    {
+      label: t("output"),
+      take: (m) => {
+        if (!m) return "—";
+        const kind = inferKind(m);
+        if (kind === "video") return tCat("kindVideo");
+        if (kind === "image") return tCat("kindImage");
+        return priceForModel(m, units).secondary;
+      },
+    },
+    { label: t("caps"), take: (m) => capabilityLabels(m?.capabilities).map((k) => tCaps(k as "vision")).join(" · ") || "—" },
     { label: t("status"), take: (m) => (m?.status || "available").toUpperCase() },
   ];
 
@@ -40,7 +52,7 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
           {t("left")}
           <select
-            aria-label="对比左侧模型"
+            aria-label={t("leftAria")}
             className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink"
             value={leftId}
             onChange={(e) => setLeftId(e.target.value)}
@@ -55,7 +67,7 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
           {t("right")}
           <select
-            aria-label="对比右侧模型"
+            aria-label={t("rightAria")}
             className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink"
             value={rightId}
             onChange={(e) => setRightId(e.target.value)}

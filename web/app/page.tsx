@@ -24,6 +24,9 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 export default async function PublicHome() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const t = await getTranslations("home");
+  const tc = await getTranslations("common");
+  const tCat = await getTranslations("catalog");
+  const priceUnits = { perSec: tCat("perSec"), perImage: tCat("perImage") };
   const models = await loadCatalog(host);
   const site = await loadSite(host);
   let plans: { id: string; name: string; price_minor: number }[] = [];
@@ -96,18 +99,16 @@ export default async function PublicHome() {
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <CategoryLink href="/models?kind=text" title="编程模型" detail="推理、重构与 Agent。" count={text.length} />
-              <CategoryLink href="/image" title="图像模型" detail="生成、编辑与视觉创作。" count={image.length} />
-              <CategoryLink href="/video" title="视频模型" detail="文生视频与音视频。" count={video.length} />
+              <CategoryLink href="/models?kind=text" title={t("catCode")} detail={t("catCodeDetail")} countLabel={tc("countItems", { count: text.length })} />
+              <CategoryLink href="/image" title={t("catImage")} detail={t("catImageDetail")} countLabel={tc("countItems", { count: image.length })} />
+              <CategoryLink href="/video" title={t("catVideo")} detail={t("catVideoDetail")} countLabel={tc("countItems", { count: video.length })} />
             </div>
           </div>
 
           <aside className="rounded-card border border-hairline bg-canvas-raised p-5">
             <p className="th-eyebrow text-hold">FEATURED</p>
             <h2 className="mt-2 text-lg font-semibold">Seedance 2.5</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-              单段最长 30 秒，自带同步音频。720p $0.24/秒起 · 1080p $0.48/秒。
-            </p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{t("featuredBody")}</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://ofox.ai/landing-assets/gc-wall/seedance-2-5-c-v1.webp"
@@ -115,12 +116,12 @@ export default async function PublicHome() {
               className="mt-4 aspect-[4/3] w-full rounded-control border border-hairline object-cover"
             />
             <Button asChild className="mt-4 w-full">
-              <Link href="/models/bytedance/seedance-2.5">看这条价目</Link>
+              <Link href="/models/bytedance/seedance-2.5">{t("featuredCta")}</Link>
             </Button>
           </aside>
         </section>
 
-        <section className="overflow-hidden border-y border-hairline py-6" aria-label="已发布厂商">
+        <section className="overflow-hidden border-y border-hairline py-6" aria-label={t("vendorsAria")}>
           <p className="th-eyebrow text-ink-mute">Published vendors</p>
           <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-ink-secondary">
             {VENDOR_MARQUEE.map((v) => (
@@ -131,8 +132,8 @@ export default async function PublicHome() {
 
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">接入示例</h2>
-            <p className="text-sm text-ink-secondary">完整 Key 不会写进示例。右侧是一张 EXAMPLE 回单，不是实时账。</p>
+            <h2 className="text-lg font-semibold">{t("sampleTitle")}</h2>
+            <p className="text-sm text-ink-secondary">{t("sampleLead")}</p>
             <CodeBlock>{`curl ${apiBase}/v1/models \\\n  -H "Authorization: Bearer sk-...xxxx"`}</CodeBlock>
           </div>
           <RoutingReceipt
@@ -142,21 +143,21 @@ export default async function PublicHome() {
               "attempt 1 → echo-primary → 429 rate_limited",
               "attempt 2 → echo-backup → 200",
             ]}
-            footnote="客户只收一笔"
+            footnote={t("sampleFoot")}
           />
         </section>
 
         <PublicSection
           eyebrow="IMAGE & VIDEO"
-          title="不止于文本模型，视频图像同样出色"
-          description="Seedance 系列、GPT Image、Seedream、Wan。结构对齐 ofox 媒体墙；皮肤是纸面细线。"
+          title={t("mediaTitle")}
+          description={t("mediaLead")}
           action={
             <div className="flex gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link href="/image">浏览图像</Link>
+                <Link href="/image">{t("browseImage")}</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href="/video">浏览视频</Link>
+                <Link href="/video">{t("browseVideo")}</Link>
               </Button>
             </div>
           }
@@ -181,12 +182,12 @@ export default async function PublicHome() {
 
         <PublicSection
           eyebrow="MULTIMODAL API"
-          title="文本、图像、视频，一个 Key 搞定"
-          description="只需换端点和模型 ID。图像与视频有公开价目可查。"
+          title={t("multiTitle")}
+          description={t("multiLead")}
         >
           <div className="rounded-card border border-hairline bg-canvas-raised p-4">
             <div className="mb-3 flex gap-2">
-              {["视频", "图像", "文本"].map((tab, i) => (
+              {[t("tabVideo"), t("tabImage"), t("tabText")].map((tab, i) => (
                 <span
                   key={tab}
                   className={`rounded-control px-3 py-1.5 text-sm ${i === 0 ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
@@ -204,11 +205,11 @@ export default async function PublicHome() {
                   className="rounded-control border border-hairline px-3 py-2 text-sm no-underline hover:bg-brand-soft/40"
                 >
                   <p className="font-medium text-ink">{m.display_name}</p>
-                  <p className="font-mono text-[12px] text-brand-emphasis">{priceForModel(m).primary} 起</p>
+                  <p className="font-mono text-[12px] text-brand-emphasis">{tc("fromPrice", { price: priceForModel(m, priceUnits).primary })}</p>
                 </Link>
               ))}
               <Link href="/video" className="rounded-control border border-dashed border-hairline px-3 py-2 text-sm text-ink-secondary no-underline">
-                全部视频模型 →
+                {t("allVideo")}
               </Link>
             </div>
           </div>
@@ -216,11 +217,11 @@ export default async function PublicHome() {
 
         <PublicSection
           eyebrow="PRICE BOOK"
-          title={cheapest ? `前沿大模型，低至 ${formatMoney(cheapest.sell_price?.input)}` : "已发布价目"}
-          description="实时价格，所见即所付。金额等宽，不含上游成本。"
+          title={cheapest ? t("priceTitleCheap", { price: formatMoney(cheapest.sell_price?.input) }) : t("priceTitle")}
+          description={t("priceLead")}
           action={
             <Button asChild variant="outline" size="sm">
-              <Link href="/models">查看全部模型</Link>
+              <Link href="/models">{t("allModels")}</Link>
             </Button>
           }
         >
@@ -236,29 +237,29 @@ export default async function PublicHome() {
                   <p className="mt-1 font-mono text-[12px] text-ink-mute">{m.id}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="font-mono text-[13px] tabular-nums text-brand-emphasis">入 {formatMoney(m.sell_price?.input)}</p>
-                  <p className="font-mono text-[12px] tabular-nums text-ink-mute">出 {formatMoney(m.sell_price?.output)}</p>
+                  <p className="font-mono text-[13px] tabular-nums text-brand-emphasis">{tc("inPrice", { price: formatMoney(m.sell_price?.input) })}</p>
+                  <p className="font-mono text-[12px] tabular-nums text-ink-mute">{tc("outPrice", { price: formatMoney(m.sell_price?.output) })}</p>
                 </div>
               </Link>
             ))}
           </div>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link href="/best-value">性价比模型</Link>
+              <Link href="/best-value">{t("bestValue")}</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/models">查看全部模型</Link>
+              <Link href="/models">{t("allModels")}</Link>
             </Button>
           </div>
         </PublicSection>
 
         <PublicSection
           eyebrow="LEADERBOARD"
-          title="大家都在用什么？"
-          description={site.leaderboards?.note || "结构对齐 ofox 用量榜。份额来自公开站快照，接入真实汇总后替换。"}
+          title={t("boardTitle")}
+          description={site.leaderboards?.note || t("boardLead")}
           action={
             <Button asChild variant="outline" size="sm">
-              <Link href="/leaderboards/models">完整榜单</Link>
+              <Link href="/leaderboards/models">{t("boardCta")}</Link>
             </Button>
           }
         >
@@ -279,14 +280,14 @@ export default async function PublicHome() {
           </ol>
         </PublicSection>
 
-        <PublicSection eyebrow="TOOLS" title="常用工具，只需换一个 URL" description="不用迁移 SDK。在现有配置里改 base URL。">
+        <PublicSection eyebrow="TOOLS" title={t("toolsTitle")} description={t("toolsLead")}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { href: "/quickstart", title: "3 分钟快速上手", meta: "curl / Python / Node" },
+              { href: "/quickstart", title: t("toolQs"), meta: "curl / Python / Node" },
               { href: "/vibe-coding", title: "Claude Code", meta: "ANTHROPIC_BASE_URL" },
               { href: "/vibe-coding", title: "Codex", meta: "~/.codex/config.toml" },
-              { href: "/docs", title: "OpenCode", meta: "内置服务商" },
-              { href: "/docs", title: "Cline", meta: "自定义 OpenAI 端点" },
+              { href: "/docs", title: t("toolOpencode"), meta: t("toolOpencodeMeta") },
+              { href: "/docs", title: t("toolCline"), meta: t("toolClineMeta") },
               { href: "/docs", title: "Python · Node · cURL", meta: "base_url" },
             ].map((item) => (
               <Link
@@ -301,23 +302,23 @@ export default async function PublicHome() {
           </div>
         </PublicSection>
 
-        <PublicSection eyebrow="WHY" title="为什么选 TokenHub" description="只说做得到的——每一条都能在产品里核对。">
+        <PublicSection eyebrow="WHY" title={t("whyTitle")} description={t("whyLead")}>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { t: "平台费 0%", d: "标价即实付，公开价目可查。", href: "/models" },
-              { t: "可解释路由", d: "每次 attempt 留得住，客户只收一笔。", href: "/verify" },
-              { t: "账能复算", d: "客户收费、上游成本、佣金分三条账。", href: "/enterprise" },
-              { t: "透明公开", d: "价格与用量结构公开可见。", href: "/leaderboards/models" },
-              { t: "只路由，不存储", d: "同步 API 不落业务正文。", href: "/trust" },
-              { t: "企业 / OEM", d: "团队管控、渠道额度、OEM 换章。", href: "/enterprise" },
+              { k: "why0t", d: "why0d", href: "/models" },
+              { k: "why1t", d: "why1d", href: "/verify" },
+              { k: "why2t", d: "why2d", href: "/enterprise" },
+              { k: "why3t", d: "why3d", href: "/leaderboards/models" },
+              { k: "why4t", d: "why4d", href: "/trust" },
+              { k: "why5t", d: "why5d", href: "/enterprise" },
             ].map((card) => (
               <Link
-                key={card.t}
+                key={card.k}
                 href={card.href}
                 className="rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
               >
-                <p className="text-lg font-semibold text-ink">{card.t}</p>
-                <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
+                <p className="text-lg font-semibold text-ink">{t(card.k)}</p>
+                <p className="mt-2 text-sm text-ink-secondary">{t(card.d)}</p>
               </Link>
             ))}
           </div>
@@ -327,14 +328,14 @@ export default async function PublicHome() {
         <PublicStorefront models={models.slice(0, 12)} plans={plans} />
 
         <section className="flex max-w-2xl flex-col gap-4 py-8">
-          <h2 className="text-3xl font-semibold tracking-tight">开始对账</h2>
-          <p className="text-base leading-relaxed text-ink-secondary">改一个 Base URL 就能跑。价目已发布，每次 attempt 留得住。</p>
+          <h2 className="text-3xl font-semibold tracking-tight">{t("ctaTitle")}</h2>
+          <p className="text-base leading-relaxed text-ink-secondary">{t("ctaLead")}</p>
           <div className="flex flex-wrap gap-3">
             <Button asChild>
-              <Link href="/login">开始使用</Link>
+              <Link href="/login">{t("ctaStart")}</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/models">看价目</Link>
+              <Link href="/models">{t("ctaPrice")}</Link>
             </Button>
           </div>
         </section>
@@ -347,16 +348,16 @@ function CategoryLink({
   href,
   title,
   detail,
-  count,
+  countLabel,
 }: {
   href: string;
   title: string;
   detail: string;
-  count: number;
+  countLabel: string;
 }) {
   return (
     <Link href={href} className="rounded-card border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40">
-      <p className="th-eyebrow text-ink-mute">{count} 个</p>
+      <p className="th-eyebrow text-ink-mute">{countLabel}</p>
       <p className="mt-1 font-semibold text-ink">{title}</p>
       <p className="mt-1 text-[13px] text-ink-secondary">{detail}</p>
     </Link>

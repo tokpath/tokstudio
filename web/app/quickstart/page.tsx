@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
@@ -7,6 +8,8 @@ import { PublicSection, StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function QuickstartPage() {
+  const t = await getTranslations("quickstartUi");
+  const th = await getTranslations("home");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   let base = "api.tokenhub.local";
   let model = "openai/gpt-5.6-sol";
@@ -30,30 +33,30 @@ export default async function QuickstartPage() {
 
       <StatStrip
         items={[
-          { label: "步骤", value: "3", hint: "注册 → 复制 → 调用" },
-          { label: "协议", value: "OpenAI 兼容", hint: "另有 Messages" },
-          { label: "Base URL", value: base, hint: "当前品牌域名" },
+          { label: t("statSteps"), value: "3", hint: t("statStepsHint") },
+          { label: t("statProto"), value: t("statProtoValue"), hint: t("statProtoHint") },
+          { label: "Base URL", value: base, hint: t("statBaseHint") },
         ]}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {[
-          { n: "1", t: "获取 API Key", d: "注册并一键生成 Key。完整密钥默认掩码。", href: "/login", cta: "去注册 / 登录" },
-          { n: "2", t: "接入代码", d: "复制示例，3 分钟完成接入。Key 用占位。", href: "#code", cta: "看示例" },
-          { n: "3", t: "开始构建", d: "看价目、看用量、看路由回单。", href: "/app", cta: "打开用户台" },
+          { n: "1", tk: "s1t", dk: "s1d", ck: "s1c", href: "/login" },
+          { n: "2", tk: "s2t", dk: "s2d", ck: "s2c", href: "#code" },
+          { n: "3", tk: "s3t", dk: "s3d", ck: "s3c", href: "/app" },
         ].map((s) => (
           <div key={s.n} className="rounded-card border border-hairline bg-canvas-raised p-5">
             <p className="th-eyebrow text-brand-emphasis">STEP {s.n}</p>
-            <h3 className="mt-2 text-lg font-semibold">{s.t}</h3>
-            <p className="mt-2 text-sm text-ink-secondary">{s.d}</p>
+            <h3 className="mt-2 text-lg font-semibold">{t(s.tk)}</h3>
+            <p className="mt-2 text-sm text-ink-secondary">{t(s.dk)}</p>
             <Button asChild variant="outline" size="sm" className="mt-4">
-              <Link href={s.href}>{s.cta}</Link>
+              <Link href={s.href}>{t(s.ck)}</Link>
             </Button>
           </div>
         ))}
       </div>
 
-      <PublicSection id="code" eyebrow="STEP 2" title="接入代码" description="OpenAI 兼容。换 base URL 与 model id 即可。">
+      <PublicSection id="code" eyebrow="STEP 2" title={t("codeTitle")} description={t("codeLead")}>
         <div className="flex flex-col gap-6">
           <div>
             <p className="mb-2 text-sm font-medium">cURL</p>
@@ -70,13 +73,13 @@ export default async function QuickstartPage() {
         </div>
       </PublicSection>
 
-      <PublicSection eyebrow="NEXT" title="接下来">
+      <PublicSection eyebrow="NEXT" title={t("nextTitle")}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { href: "/models", label: "模型目录" },
-            { href: "/vibe-coding", label: "编程工具接入" },
-            { href: "/docs", label: "完整文档" },
-            { href: "/enterprise", label: "企业能力" },
+            { href: "/models", label: t("nextModels") },
+            { href: "/vibe-coding", label: t("nextVibe") },
+            { href: "/docs", label: t("nextDocs") },
+            { href: "/enterprise", label: t("nextEnt") },
           ].map((item) => (
             <Link
               key={item.href}
@@ -90,14 +93,14 @@ export default async function QuickstartPage() {
       </PublicSection>
 
       <section className="rounded-card border border-hairline bg-canvas-raised px-6 py-10 text-center">
-        <h2 className="text-2xl font-semibold">准备好构建你的下一个 AI Agent 了吗？</h2>
-        <p className="mt-2 text-sm text-ink-secondary">3 分钟接入，立即开始</p>
+        <h2 className="text-2xl font-semibold">{t("readyTitle")}</h2>
+        <p className="mt-2 text-sm text-ink-secondary">{t("readyLead")}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild>
-            <Link href="/login">获取 API Key</Link>
+            <Link href="/login">{th("ctaKey")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/models">探索模型</Link>
+            <Link href="/models">{th("ctaModels")}</Link>
           </Button>
         </div>
       </section>

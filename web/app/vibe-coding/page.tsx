@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
@@ -7,6 +8,7 @@ import { PublicSection, StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function VibeCodingPage() {
+  const t = await getTranslations("vibeUi");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   let base = "api.tokenhub.local";
   try {
@@ -22,9 +24,9 @@ export default async function VibeCodingPage() {
 
       <StatStrip
         items={[
-          { label: "协议", value: "原生兼容", hint: "OpenAI / Anthropic" },
-          { label: "改动", value: "base URL", hint: "不动 SDK" },
-          { label: "下一步", value: "用户台", hint: "建 Key 看用量" },
+          { label: t("statProto"), value: t("statProtoValue"), hint: "OpenAI / Anthropic" },
+          { label: t("statChange"), value: "base URL", hint: t("statChangeHint") },
+          { label: t("statNext"), value: t("statNextValue"), hint: t("statNextHint") },
         ]}
       />
 
@@ -32,16 +34,16 @@ export default async function VibeCodingPage() {
         <CodeBlock>{`model_provider = "tokenhub"\n\n[model_providers.tokenhub]\nname = "TokenHub"\nbase_url = "https://${base}/v1"\nenv_key = "TOKENHUB_API_KEY"`}</CodeBlock>
       </PublicSection>
 
-      <PublicSection eyebrow="CLAUDE CODE" title="环境变量">
+      <PublicSection eyebrow="CLAUDE CODE" title={t("envTitle")}>
         <CodeBlock>{`export ANTHROPIC_BASE_URL="https://${base}"\nexport ANTHROPIC_API_KEY="sk-...xxxx"`}</CodeBlock>
       </PublicSection>
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>
-          <Link href="/quickstart">快速开始</Link>
+          <Link href="/quickstart">{t("qs")}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/docs">文档</Link>
+          <Link href="/docs">{t("docs")}</Link>
         </Button>
       </div>
     </main>

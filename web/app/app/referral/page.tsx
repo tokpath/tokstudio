@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Input } from "@/components/ui/input";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 
 export default function ReferralPage() {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   const [copied, setCopied] = useState(false);
   const code = "TH-REF";
 
@@ -14,10 +17,10 @@ export default function ReferralPage() {
     <div className="flex flex-col gap-6">
       <I18nConsoleHeader id="referral" />
       <section className="rounded-card border border-hairline bg-canvas-raised p-5">
-        <h2 className="text-lg font-semibold">推荐码</h2>
-        <p className="mt-2 text-sm text-ink-secondary">登录后会显示你自己的推广码。未登录时只展示占位，不会写入别人的邮箱或团队名。</p>
+        <h2 className="text-lg font-semibold">{t("refTitle")}</h2>
+        <p className="mt-2 text-sm text-ink-secondary">{t("refLead")}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Input readOnly value={code} aria-label="推荐码" className="max-w-xs font-mono" />
+          <Input readOnly value={code} aria-label={t("refAria")} className="max-w-xs font-mono" />
           <Button
             type="button"
             variant="outline"
@@ -26,11 +29,11 @@ export default function ReferralPage() {
               setCopied(true);
             }}
           >
-            {copied ? "已复制" : "复制"}
+            {copied ? tc("copied") : tc("copy")}
           </Button>
         </div>
       </section>
-      <EmptyLedger title="暂无推荐记录" detail="还没有通过你的码完成注册的用户。账本空着，不编造人数。" />
+      <EmptyLedger title={t("refEmpty")} detail={t("refEmptyDetail")} />
     </div>
   );
 }

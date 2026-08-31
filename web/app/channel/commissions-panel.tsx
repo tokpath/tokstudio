@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
@@ -15,7 +16,9 @@ type Allocation = {
 };
 
 export default function ChannelCommissions() {
-  const [message, setMessage] = useState("渠道管理员可看本渠道佣金和额度，看不到 prompt。");
+  const t = useTranslations("channelUi");
+  const tc = useTranslations("common");
+  const [message, setMessage] = useState(t("commHint"));
   const [quota, setQuota] = useState<string>("—");
   const [issued, setIssued] = useState<string>("—");
   const [consumed, setConsumed] = useState<string>("—");
@@ -32,7 +35,7 @@ export default function ChannelCommissions() {
     const cBody = await c.json();
     const aBody = await a.json();
     if (!q.ok && !c.ok) {
-      setMessage(qBody.error?.message || "未登录渠道管理员");
+      setMessage(qBody.error?.message || t("needAdmin"));
       return;
     }
     setQuota(qBody.quota?.available_minor ?? "—");
@@ -40,23 +43,19 @@ export default function ChannelCommissions() {
     setConsumed(qBody.quota?.consumed_minor ?? "—");
     setRatioBPS(qBody.quota?.issue_ratio_bps ?? "—");
     setAllocations(Array.isArray(aBody.items) ? aBody.items : []);
-    setMessage(`佣金流水 ${cBody.items?.length ?? 0} 条，已发放 ${aBody.items?.length ?? 0} 笔`);
+    setMessage(t("commCount", { comm: cBody.items?.length ?? 0, issued: aBody.items?.length ?? 0 }));
   }
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-      <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
-      <p className="mb-3 text-sm text-ink-secondary">
-        可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
-      </p>
-      <p className="mb-3 text-sm text-ink-secondary">
-        换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。
-      </p>
-      <h3 className="mb-2 text-lg font-medium">已发放额度</h3>
+      <h2 className="mb-3 text-xl font-medium">{t("commTitle")}</h2>
+      <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota })}</p>
+      <p className="mb-3 text-sm text-ink-secondary">{t("commMeta", { ratio: ratioBPS, issued, consumed })}</p>
+      <h3 className="mb-2 text-lg font-medium">{t("issuedTitle")}</h3>
       <LedgerTable
-        columns={["用户", "发放", "已用", "剩余", "状态"]}
-        emptyTitle="暂无发放记录"
-        emptyDetail="点刷新后可看到下属用户充值对应的额度。"
+        columns={[t("colUser"), t("colGranted"), t("colUsed"), t("colLeft"), t("colStatus")]}
+        emptyTitle={t("emptyIssued")}
+        emptyDetail={t("emptyIssuedDetail")}
         rows={allocations.map((item) => ({
           key: item.id || item.user_id || "alloc",
           cells: [
@@ -69,7 +68,7 @@ export default function ChannelCommissions() {
         }))}
       />
       <Button type="button" variant="outline" onClick={refresh}>
-        刷新
+        {tc("refresh")}
       </Button>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>

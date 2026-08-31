@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { apiBase } from "@/lib/api";
 import { dailyChartOption, requestChartOption } from "@/lib/charts";
-import { dashboardHero, formatDashboard } from "@/lib/dashboard";
+import { dashboardHero, dashboardSummaryParams } from "@/lib/dashboard";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { AdminH2 } from "@/components/admin-h2";
@@ -26,7 +26,8 @@ type SeriesBody = {
 export default function AdminDashboard() {
   const t = useTranslations("admin");
   const tu = useTranslations("adminUi");
-  const [message, setMessage] = useState("按 Provider / 模型 / 渠道 / 用户 / API Key 看成功率、延迟、收入和毛利。");
+  const td = useTranslations("dashboard");
+  const [message, setMessage] = useState(td("lead"));
   const chartRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<HTMLDivElement>(null);
   const query = useQuery({
@@ -48,16 +49,16 @@ export default function AdminDashboard() {
     const [result, series] = await Promise.all([query.refetch(), seriesQuery.refetch()]);
     const body = result.data;
     if (!body?.dashboard) {
-      setMessage(body?.error?.message || series.data?.error?.message || "未登录平台管理员");
+      setMessage(body?.error?.message || series.data?.error?.message || td("needAdmin"));
       return;
     }
-    setMessage(formatDashboard(body.dashboard));
+    setMessage(td("summary", dashboardSummaryParams(body.dashboard)));
   }
 
   async function exportDaily() {
     const res = await fetch(`${apiBase}/admin/metrics/daily?format=csv&days=7`, { credentials: "include" });
     if (!res.ok) {
-      setMessage("导出失败，请先登录平台管理员");
+      setMessage(td("exportFail"));
       return;
     }
     const blob = await res.blob();
@@ -67,7 +68,7 @@ export default function AdminDashboard() {
     link.download = "metrics-daily.csv";
     link.click();
     URL.revokeObjectURL(url);
-    setMessage("已导出近 7 日报汇总 CSV");
+    setMessage(td("exported"));
   }
 
   useEffect(() => {
@@ -123,25 +124,23 @@ export default function AdminDashboard() {
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <AdminH2 k="opsBoard" className="mb-2 text-xl font-medium tracking-tight" />
-        <p className="mb-4 text-sm text-ink-secondary">
-          告警和应急手册在 /admin/alerts 与 /admin/runbooks。时间序列来自网关与账务接口，不直连业务表。
-        </p>
+        <p className="mb-4 text-sm text-ink-secondary">{td("opsLead")}</p>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={() => void refresh()}>
-            刷新指标
+            {td("refreshMetrics")}
           </Button>
           <Button type="button" variant="outline" onClick={() => void exportDaily()}>
-            导出日报 CSV
+            {td("exportDaily")}
           </Button>
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-card border border-hairline bg-canvas p-3">
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">模型请求</p>
+            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">{td("modelReqs")}</p>
             <div ref={chartRef} className="h-72 w-full" data-testid="ops-echarts" />
           </div>
           <div className="rounded-card border border-hairline bg-canvas p-3">
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">近 7 日</p>
+            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">{td("last7d")}</p>
             <div ref={seriesRef} className="h-72 w-full" data-testid="ops-daily-chart" />
           </div>
         </div>

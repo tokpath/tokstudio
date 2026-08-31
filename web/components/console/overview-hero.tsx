@@ -46,7 +46,7 @@ export function OverviewHero() {
         const items = Array.isArray(body.items) ? body.items : [];
         const last = items[0] as { public_model_id?: string; state?: string; request_id?: string } | undefined;
         if (last) {
-          setLastReceipt([last.public_model_id, last.state, last.request_id].filter(Boolean).join(" · ") || "有回单");
+          setLastReceipt([last.public_model_id, last.state, last.request_id].filter(Boolean).join(" · ") || t("hasReceipt"));
         }
       }
     }

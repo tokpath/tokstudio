@@ -1,17 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
+import { getTranslations } from "next-intl/server";
 
-export default function MembersSettingsPage() {
+export default async function MembersSettingsPage() {
+  const t = await getTranslations("settingsEmpty");
   return (
     <div className="flex flex-col gap-6">
       <I18nConsoleHeader id="members" />
       <EmptyLedger
-        title="暂无其他成员"
-        detail="目前只有你自己。邀请发送后会出现在这张表里。"
+        title={t("membersTitle")}
+        detail={t("membersDetail")}
         action={
           <Button type="button" variant="outline" disabled>
-            邀请成员（登录后）
+            {t("invite")}
           </Button>
         }
       />

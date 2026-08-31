@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
 import { loadSite } from "@/lib/site-content";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function AwesomePage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -11,15 +12,7 @@ export default async function AwesomePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="WORKS WITH"
-        title="用公开价目做点有趣的事"
-        description="对齐 ofox Works with 墙：展示已接入的应用。皮肤是纸面细线，不堆营销渐变。"
-        primaryHref="/login"
-        primaryLabel="开始接入"
-        secondaryHref="/vibe-coding"
-        secondaryLabel="编程工具"
-      />
+      <I18nPublicHero id="awesome" primaryHref="/login" secondaryHref="/vibe-coding" />
       <PublicSection eyebrow="APPS" title={`${apps.length} 个应用`}>
         <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {apps.map((app) => (

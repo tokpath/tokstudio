@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default function PromoPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="AFFILIATE"
-        title="合作推广"
-        description="对齐 ofox 合作页：介绍推广码与渠道结算入口。注册时推广码由服务端固化，不能自助改归属。"
-        primaryHref="/login"
-        primaryLabel="注册并填写推广码"
-        secondaryHref="/channel"
-        secondaryLabel="渠道台"
-      />
+      <I18nPublicHero id="promo" primaryHref="/login" secondaryHref="/channel" />
       <PublicSection eyebrow="HOW" title="怎么合作">
         <ol className="list-decimal space-y-3 pl-5 text-sm text-ink-secondary">
           <li>渠道发放推广码；用户注册时写入归属。</li>

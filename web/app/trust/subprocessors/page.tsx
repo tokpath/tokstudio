@@ -1,4 +1,4 @@
-import { PublicPageHero } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const rows = [
   { name: "PostgreSQL", role: "主库与账本", region: "按部署" },
@@ -10,13 +10,7 @@ const rows = [
 export default function SubprocessorsPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="SUBPROCESSORS"
-        title="第三方服务商"
-        description="基础设施、支付与条件性模型上游。对齐 ofox 子处理商列表结构。"
-        primaryHref="/trust"
-        primaryLabel="返回信任中心"
-      />
+      <I18nPublicHero id="trustSubprocessors" primaryHref="/trust" />
       <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-hairline">

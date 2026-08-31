@@ -24,10 +24,10 @@ export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: Da
   const alerts = dashboard.alerts || [];
   const circuit = alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
   return [
-    { t: "待对账", d: "pending_reconciliation", v: String(totals.pending_reconciliation_count ?? "—") },
-    { t: "毛利", d: "客户收入 − 上游成本", v: micro(totals.gross_profit_minor) },
-    { t: "佣金负债", d: "尚未结算的分销", v: micro(totals.commission_liability_minor) },
-    { t: "Provider 健康", d: circuit ? "有熔断或低成功率" : "无未关闭熔断", v: circuit ? "DEGRADED" : "READY" },
+    { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—") },
+    { key: "heroProfit", hintKey: "heroProfitHint", v: micro(totals.gross_profit_minor) },
+    { key: "heroCommission", hintKey: "heroCommissionHint", v: micro(totals.commission_liability_minor) },
+    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : "heroHealthOk", v: circuit ? "DEGRADED" : "READY" },
   ];
 }
 

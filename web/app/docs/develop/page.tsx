@@ -1,17 +1,10 @@
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default function DocsDevelopPage() {
   return (
     <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="GUIDES"
-        title="开发指南"
-        description="对齐 ofox /docs/develop：错误码、限流、安全边界。正文约 720px。"
-        primaryHref="/docs"
-        primaryLabel="协议示例"
-        secondaryHref="/trust"
-        secondaryLabel="信任中心"
-      />
+      <I18nPublicHero id="docsDevelop" primaryHref="/docs" secondaryHref="/trust" />
       <PublicSection eyebrow="ERRORS" title="产品文案，不要只画红框">
         <ul className="space-y-3 text-sm text-ink-secondary">
           <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">

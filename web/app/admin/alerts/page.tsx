@@ -7,6 +7,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Alert = { id: string; kind: string; severity: string; status: string; message: string };
 type ListResponse = { items?: Alert[]; error?: { message?: string } };
@@ -34,7 +35,7 @@ export default function AdminAlertsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">告警</h2>
+        <AdminH2 k="alerts" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
         <ConfirmButton size="sm" title="确认评估告警" description="评估会按阈值写入 ops_alerts，并记审计。" onConfirm={evaluate}>
           评估告警

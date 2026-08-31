@@ -1,10 +1,10 @@
-import { ConsolePageHeader } from "@/components/console/page-header";
 import { PartnerBoard } from "../partner-board";
+import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 
 export default function PartnerUsersPage() {
   return (
     <div className="flex flex-col gap-6">
-      <ConsolePageHeader eyebrow="USERS" title="范围内用户" description="邮箱已脱敏。2 级只看直接引流。" />
+      <I18nConsoleHeader id="partnerUsers" />
       <PartnerBoard section="users" />
     </div>
   );

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { userSettingsNav } from "@/lib/nav";
 
 export function SettingsSubnav() {
   const pathname = usePathname();
+  const t = useTranslations("userNav");
   return (
-    <nav aria-label="设置" className="flex flex-wrap gap-1 border-b border-hairline pb-3">
+    <nav aria-label={t("settings")} className="flex flex-wrap gap-1 border-b border-hairline pb-3">
       {userSettingsNav.map((item) => {
         const active = pathname === item.href;
         return (
@@ -18,7 +20,7 @@ export function SettingsSubnav() {
               active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:bg-canvas-raised hover:text-ink"
             }`}
           >
-            {item.label}
+            {t(item.key)}
           </Link>
         );
       })}

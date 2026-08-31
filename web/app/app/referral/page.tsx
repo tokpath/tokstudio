@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ConsolePageHeader } from "@/components/console/page-header";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Input } from "@/components/ui/input";
+import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 
 export default function ReferralPage() {
   const [copied, setCopied] = useState(false);
@@ -12,11 +12,7 @@ export default function ReferralPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ConsolePageHeader
-        eyebrow="REFERRAL"
-        title="推荐计划"
-        description="把兑换码发给下线用户。归因在注册时写死，推荐人不在页面上改渠道。"
-      />
+      <I18nConsoleHeader id="referral" />
       <section className="rounded-card border border-hairline bg-canvas-raised p-5">
         <h2 className="text-lg font-semibold">推荐码</h2>
         <p className="mt-2 text-sm text-ink-secondary">登录后会显示你自己的推广码。未登录时只展示占位，不会写入别人的邮箱或团队名。</p>

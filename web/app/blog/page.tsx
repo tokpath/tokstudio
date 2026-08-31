@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { PublicPageHero } from "@/components/public-section";
 import { loadSite } from "@/lib/site-content";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function BlogPage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -10,15 +10,7 @@ export default async function BlogPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="BLOG"
-        title="博客"
-        description="对齐 ofox 博客列表。文章来自公开站快照，由服务端返回。"
-        primaryHref="/docs"
-        primaryLabel="先看文档"
-        secondaryHref="/quickstart"
-        secondaryLabel="快速开始"
-      />
+      <I18nPublicHero id="blog" primaryHref="/docs" secondaryHref="/quickstart" />
       <ul className="flex flex-col gap-3">
         {posts.map((post) => (
           <li key={post.href}>

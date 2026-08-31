@@ -1,26 +1,29 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 import { FOOTER_GROUPS } from "@/lib/public-site";
 
 export function SiteFooter({ brand }: { brand?: Brand }) {
   const name = brand?.name || "TokenHub";
+  const t = useTranslations("footer");
+  const tc = useTranslations("chrome");
   return (
     <footer className="border-t border-hairline bg-canvas">
       <div className="mx-auto grid max-w-[1200px] gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="text-lg font-semibold text-ink">{name}</p>
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-mute">
-            一张已发布的价目单，外加一枚签核章。纸/碳双主题，四个入口共用同一套语法。
-          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-mute">{tc("footerTagline")}</p>
         </div>
         {FOOTER_GROUPS.map((group) => (
-          <div key={group.title}>
-            <p className="th-eyebrow text-ink-mute">{group.title}</p>
+          <div key={group.titleKey}>
+            <p className="th-eyebrow text-ink-mute">{t(group.titleKey)}</p>
             <ul className="mt-4 flex flex-col gap-2 text-[13px] text-ink-secondary">
               {group.links.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="no-underline hover:text-ink">
-                    {link.label}
+                    {t(link.labelKey)}
                   </Link>
                 </li>
               ))}
@@ -31,13 +34,13 @@ export function SiteFooter({ brand }: { brand?: Brand }) {
       <div className="border-t border-hairline">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-6 py-6 text-[13px] text-ink-mute sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {name} Clearing · OEM 只换章和 Logo
+            © {new Date().getFullYear()} {name} {tc("footerCopy")}
           </p>
           <p className="flex flex-wrap gap-3">
-            <Link href="/app">用户台</Link>
-            <Link href="/channel">渠道台</Link>
-            <Link href="/admin">管理台</Link>
-            <Link href="/login">登录</Link>
+            <Link href="/app">{tc("footerApp")}</Link>
+            <Link href="/channel">{tc("footerChannel")}</Link>
+            <Link href="/admin">{tc("footerAdmin")}</Link>
+            <Link href="/login">{tc("login")}</Link>
           </p>
         </div>
       </div>

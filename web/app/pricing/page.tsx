@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default function PricingPage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
-      <PublicPageHero
-        eyebrow="PRICING"
-        title="按量付费，没有平台费"
-        description="对齐 ofox 定价页：牌价即实付。具体数字以已发布价目为准。"
-        primaryHref="/models"
-        primaryLabel="打开价目"
-        secondaryHref="/best-value"
-        secondaryLabel="性价比排序"
-      />
+      <I18nPublicHero id="pricing" primaryHref="/models" secondaryHref="/best-value" />
       <StatStrip
         items={[
           { label: "平台费", value: "0%", hint: "不抽成标价" },

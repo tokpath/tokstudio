@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicPageHero, PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function QuickstartPage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -25,15 +26,7 @@ export default async function QuickstartPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
-      <PublicPageHero
-        eyebrow="QUICKSTART"
-        title="3 步接入你的 Agent"
-        description="从 0 到生产环境，3 分钟搞定。结构对齐 ofox 快速开始：注册 → 复制示例 → 开始构建。"
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/docs"
-        secondaryLabel="完整文档"
-      />
+      <I18nPublicHero id="quickstart" primaryHref="/login" secondaryHref="/docs" />
 
       <StatStrip
         items={[

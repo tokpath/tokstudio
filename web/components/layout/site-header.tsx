@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 import { MEGA_MENUS, TOP_LINKS } from "@/lib/mega-nav";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandMark } from "@/components/brand-mark";
+import { LocaleSwitch } from "@/components/locale-switch";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
   const pathname = usePathname();
+  const t = useTranslations("mega");
+  const tc = useTranslations("chrome");
   const name = brand?.name || "TokenHub";
   const [openId, setOpenId] = useState<string | null>(null);
   const rootRef = useRef<HTMLElement>(null);
@@ -34,10 +38,14 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
     setOpenId(null);
   }, [pathname]);
 
+  function linkLabel(link: { labelKey?: string; literal?: string }) {
+    return link.literal || (link.labelKey ? t(link.labelKey) : "");
+  }
+
   const mobileLinks = [
     ...MEGA_MENUS.flatMap((m) => m.columns.flatMap((c) => c.links)),
     ...TOP_LINKS,
-  ].filter((item, i, arr) => arr.findIndex((x) => x.href === item.href && x.label === item.label) === i);
+  ].filter((item, i, arr) => arr.findIndex((x) => x.href === item.href && linkLabel(x) === linkLabel(item)) === i);
 
   return (
     <header ref={rootRef} className="sticky top-0 z-40 border-b border-hairline bg-canvas">
@@ -52,7 +60,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
           <span className="text-2xl font-semibold">{name}</span>
         </Link>
 
-        <nav className="relative hidden flex-1 items-center gap-0.5 md:flex" aria-label="公共站">
+        <nav className="relative hidden flex-1 items-center gap-0.5 md:flex" aria-label={tc("publicNav")}>
           {MEGA_MENUS.map((menu) => {
             const open = openId === menu.id;
             const active =
@@ -70,7 +78,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
                     open || active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
                   }`}
                 >
-                  {menu.label}
+                  {t(menu.labelKey)}
                   <span className="text-[10px] opacity-70">▾</span>
                 </button>
               </div>
@@ -86,7 +94,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
                   active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
@@ -99,18 +107,18 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
               {MEGA_MENUS.filter((m) => m.id === openId).map((menu) => (
                 <div key={menu.id} className="grid gap-6 sm:grid-cols-3">
                   {menu.columns.map((col) => (
-                    <div key={col.title}>
-                      <p className="th-eyebrow text-ink-mute">{col.title}</p>
+                    <div key={col.titleKey}>
+                      <p className="th-eyebrow text-ink-mute">{t(col.titleKey)}</p>
                       <ul className="mt-3 flex flex-col gap-1">
                         {col.links.map((link) => (
-                          <li key={`${col.title}-${link.href}-${link.label}`}>
+                          <li key={`${col.titleKey}-${link.href}-${link.labelKey || link.literal}`}>
                             <Link
                               href={link.href}
                               className="block rounded-control px-2 py-1.5 no-underline hover:bg-brand-soft/60"
                               onClick={() => setOpenId(null)}
                             >
-                              <span className="text-sm text-ink">{link.label}</span>
-                              {link.hint ? <span className="mt-0.5 block text-[12px] text-ink-mute">{link.hint}</span> : null}
+                              <span className="text-sm text-ink">{linkLabel(link)}</span>
+                              {link.hintKey ? <span className="mt-0.5 block text-[12px] text-ink-mute">{t(link.hintKey)}</span> : null}
                             </Link>
                           </li>
                         ))}
@@ -124,36 +132,37 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <LocaleSwitch />
           <ThemeToggle />
           <button
             type="button"
             onClick={onCommand}
             className="hidden h-10 items-center gap-2 rounded-control border border-hairline px-3 text-[13px] text-ink-mute md:inline-flex"
           >
-            跳转
+            {tc("jump")}
             <kbd className="font-mono text-[11px]">⌘K</kbd>
           </button>
           <Button asChild variant="ghost" size="sm">
-            <Link href="/login">登录</Link>
+            <Link href="/login">{tc("login")}</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/login">注册</Link>
+            <Link href="/login">{tc("register")}</Link>
           </Button>
         </div>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto border-t border-hairline px-6 py-2 md:hidden" aria-label="公共站移动导航">
+      <nav className="flex gap-1 overflow-x-auto border-t border-hairline px-6 py-2 md:hidden" aria-label={tc("mobileNav")}>
         {mobileLinks.slice(0, 12).map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
-              key={`${item.href}-${item.label}`}
+              key={`${item.href}-${linkLabel(item)}`}
               href={item.href}
               className={`shrink-0 rounded-control px-3 py-1.5 text-sm no-underline ${
                 active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary"
               }`}
             >
-              {item.label}
+              {linkLabel(item)}
             </Link>
           );
         })}

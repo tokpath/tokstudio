@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { PublicPageHero } from "@/components/public-section";
 import { Button } from "@/components/ui/button";
 import { inferKind, loadCatalog, priceForModel } from "@/lib/catalog";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function VideoPage() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -10,15 +10,7 @@ export default async function VideoPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <PublicPageHero
-        eyebrow="VIDEO"
-        title="视频模型"
-        description={`${models.length} 个视频模型。统一异步任务入口，价目按秒。`}
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/models"
-        secondaryLabel="全部模型"
-      />
+      <I18nPublicHero id="video" primaryHref="/login" secondaryHref="/models" />
       <ul className="grid gap-3 md:grid-cols-2">
         {models.map((m) => (
           <li key={m.id}>

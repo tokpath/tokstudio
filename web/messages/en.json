@@ -8,6 +8,164 @@
     "admin": "Admin",
     "login": "Sign in"
   },
+  "chrome": {
+    "jump": "Jump",
+    "docs": "Docs",
+    "login": "Sign in",
+    "register": "Sign up",
+    "publicNav": "Public site",
+    "mobileNav": "Public mobile nav",
+    "palette": "Jump to",
+    "palettePlaceholder": "Search pages, models, bills, channels…",
+    "paletteEmpty": "No matching entry",
+    "paletteHint": "Enter to go · Esc to close · ⌘K / Ctrl+K",
+    "groupPortal": "Portals",
+    "groupPublic": "Public",
+    "groupUser": "User",
+    "groupChannel": "Channel",
+    "groupPartner": "Partner",
+    "groupAdmin": "Admin",
+    "footerTagline": "A published price book plus a signed stamp. Paper/carbon themes. Four doors, one grammar.",
+    "footerCopy": "Clearing · OEM swaps stamp and logo only",
+    "footerApp": "Console",
+    "footerChannel": "Channel",
+    "footerAdmin": "Admin",
+    "locale": "Language",
+    "localeAuto": "Auto",
+    "localeZh": "中文",
+    "localeEn": "English",
+    "localeJa": "日本語",
+    "metaDescription": "One key. Explainable routing. A ledger you can recompute."
+  },
+  "mega": {
+    "models": "Models",
+    "docs": "Docs",
+    "resources": "Resources",
+    "enterprise": "Enterprise",
+    "browse": "Browse",
+    "tools": "Tools",
+    "hot": "Popular",
+    "start": "Start",
+    "integrate": "Integrate",
+    "reference": "Reference",
+    "product": "Product",
+    "trust": "Trust",
+    "content": "Content",
+    "allModels": "All models",
+    "allModelsHint": "Price book",
+    "textModels": "Text / code",
+    "textModelsHint": "Chat · Agent",
+    "imageModels": "Image models",
+    "imageModelsHint": "Generate & edit",
+    "videoModels": "Video models",
+    "videoModelsHint": "Async jobs",
+    "finder": "Model finder",
+    "finderHint": "By scenario",
+    "bestValue": "Best value",
+    "bestValueHint": "Lowest first",
+    "leaderboard": "Usage leaderboard",
+    "leaderboardHint": "Share",
+    "compare": "Compare models",
+    "compareHint": "Side by side",
+    "verify": "Verify routing",
+    "verifyHint": "Receipts",
+    "quickstart": "Quickstart",
+    "quickstartHint": "3 minutes",
+    "devDocs": "Developer docs",
+    "devDocsHint": "curl / SDK",
+    "vibe": "Vibe Coding",
+    "vibeHint": "Coding tools",
+    "claudeCodeHint": "BASE_URL",
+    "codexHint": "config.toml",
+    "openaiSdk": "OpenAI SDK",
+    "openaiSdkHint": "Compatible API",
+    "cline": "Cline / OpenCode",
+    "clineHint": "Custom endpoint",
+    "errors": "Errors & limits",
+    "errorsHint": "402 / 429",
+    "changelog": "Changelog",
+    "changelogHint": "Releases",
+    "desktop": "Desktop",
+    "enterpriseSvc": "Enterprise",
+    "promo": "Partners",
+    "awesome": "Ecosystem",
+    "pricing": "Pricing",
+    "trustCenter": "Trust center",
+    "subprocessors": "Subprocessors",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "blog": "Blog",
+    "appsBoard": "App leaderboard",
+    "labsBoard": "Lab leaderboard",
+    "vsOr": "vs OpenRouter"
+  },
+  "footer": {
+    "product": "Product",
+    "tools": "Tools",
+    "resources": "Resources",
+    "models": "Models",
+    "quickstart": "Quickstart",
+    "desktop": "Desktop",
+    "vibe": "Vibe Coding",
+    "enterprise": "Enterprise",
+    "promo": "Partners",
+    "awesome": "Ecosystem",
+    "leaderboard": "Leaderboard",
+    "finder": "Model finder",
+    "bestValue": "Best value",
+    "verify": "Verify",
+    "vsOr": "vs OpenRouter",
+    "docs": "Docs",
+    "blog": "Blog",
+    "trust": "Trust",
+    "subprocessors": "Subprocessors",
+    "terms": "Terms",
+    "privacy": "Privacy"
+  },
+  "userNav": {
+    "start": "Start",
+    "ledger": "Ledger",
+    "people": "User",
+    "more": "More",
+    "overview": "Overview",
+    "playground": "Playground",
+    "keys": "API Key",
+    "catalog": "Catalog",
+    "wallet": "Wallet",
+    "plans": "Plans",
+    "usage": "Usage",
+    "activity": "Activity",
+    "media": "Media",
+    "referral": "Referral",
+    "docs": "Docs",
+    "settings": "Settings",
+    "account": "Account",
+    "team": "Team",
+    "members": "Members",
+    "billing": "Billing profile",
+    "quotas": "Quotas",
+    "apps": "Connected apps",
+    "webhooks": "Webhook"
+  },
+  "channelNav": {
+    "channel": "This channel",
+    "ledger": "Ledger",
+    "overview": "Overview",
+    "users": "Channel users",
+    "plans": "Plans",
+    "promos": "Promos",
+    "attribution": "Quota",
+    "usage": "Usage",
+    "settlements": "Settlements",
+    "commissions": "Commissions"
+  },
+  "partnerNav": {
+    "scope": "Scope",
+    "hierarchy": "My tier",
+    "users": "Users in scope",
+    "commissions": "Commissions in scope",
+    "settlements": "Settlements in scope"
+  },
   "admin": {
     "title": "Platform admin",
     "overview": "Overview",
@@ -30,6 +188,555 @@
     "runbooks": "Runbooks",
     "audit": "Audit",
     "settings": "Settings",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "groupOverview": "Overview",
+    "groupCatalog": "Catalog & gateway",
+    "groupBilling": "Billing",
+    "groupDistribution": "Distribution",
+    "groupOps": "Operations",
+    "heroPending": "Pending recon",
+    "heroPendingHint": "pending_reconciliation",
+    "heroProfit": "Gross profit",
+    "heroProfitHint": "Customer revenue − upstream cost",
+    "heroCommission": "Commission liability",
+    "heroCommissionHint": "Unsettled distribution",
+    "heroHealth": "Provider health",
+    "heroHealthOk": "No open circuit breakers",
+    "heroHealthBad": "Open breaker or low success rate"
+  },
+  "login": {
+    "eyebrow": "Sign in",
+    "title": "Sign up / Sign in",
+    "lead": "GitHub / Google on top, email below. Standalone GitHub OAuth is not wired yet. Forgot password uses email OTP — there is no separate reset page. Promo codes are locked at registration.",
+    "github": "Continue with GitHub",
+    "google": "Continue with Google",
+    "or": "or",
+    "email": "Email",
+    "password": "Password",
+    "otp": "Email code",
+    "otpPlaceholder": "Optional · email OTP",
+    "sendOtp": "Send code",
+    "promo": "Promo code",
+    "submitLogin": "Sign in",
+    "submitRegister": "Sign up",
+    "otpLogin": "Sign in with code",
+    "forgot": "Forgot password? Send a code, then use “Sign in with code”. No separate reset API.",
+    "noAccount": "No account?",
+    "hasAccount": "Have an account?",
+    "goRegister": "Sign up",
+    "goLogin": "Sign in",
+    "terms": "By continuing you agree to the",
+    "and": "and",
+    "privacy": "Privacy Policy",
+    "backHome": "Want prices first? Back to the",
+    "public": "public site",
+    "githubMissing": "GitHub login is not wired as a standalone OAuth app. Use email, OTP, or Google.",
+    "googleEmail": "Google email (dev mock)",
+    "continueGoogle": "Continue with Google",
+    "passwordPh": "Password (8+ characters)",
+    "fallback": "Sign in / Sign up",
+    "termsLink": "Terms"
+  },
+  "home": {
+    "holdBanner": "Seedance 2.5 list price is public · 720p from $0.24/s",
+    "viewPrice": "See price →",
+    "h1a": "One key, ",
+    "h1b": "explainable routing",
+    "h1c": ", a ledger you can recompute.",
+    "lead": "Published prices only. Samples use the brand base URL. Channel binding is locked at signup.",
+    "statModels": "Models",
+    "statModelsHint": "Current host allowlist",
+    "ctaKey": "Get API Key",
+    "ctaModels": "Browse models",
+    "pageTitle": "Home",
+    "ctaStart": "Get started",
+    "ctaPrice": "See prices",
+    "ctaDocs": "Docs",
+    "statPrice": "List price",
+    "statPriceHint": "Lowest input price",
+    "statSite": "Site",
+    "statSiteHint": "OEM swaps stamp and logo only"
+  },
+  "storefront": {
+    "modelsEyebrow": "Price book",
+    "modelsTitle": "Available models",
+    "modelsLead": "Shown by brand and channel allowlist for this host. No invented prices.",
+    "modelCount": "{count} models",
+    "compat": "Call via OpenAI / Anthropic compatible endpoints.",
+    "plansEyebrow": "Plans",
+    "plansTitle": "Plans & subscriptions",
+    "perMonth": "USD / month",
+    "subscribe": "Subscribe",
+    "topupEyebrow": "Top up",
+    "topupTitle": "Top up",
+    "topupLead": "Redeem a code or create a 1 USD Stripe sandbox top-up. Sign in first if needed.",
+    "redeem": "Redeem code",
+    "pay": "Create payment top-up",
+    "goLogin": "Sign in",
+    "guestHint": "Top-ups and subscriptions ask you to sign in first. Amounts are micro-USD.",
+    "redeemCode": "Redeem code"
+  },
+  "overview": {
+    "eyebrow": "User console",
+    "title": "My account",
+    "lead": "Your balance, plans, API keys, usage, bills, and settings. Channel binding is locked at registration — there is no switcher.",
+    "available": "Available",
+    "availableHint": "Cash wallet you can spend",
+    "reserved": "Authorization hold",
+    "reservedHint": "In-flight HOLD not yet settled",
+    "keys": "API Key",
+    "keysHint": "Masked prefix; rotate writes audit",
+    "receipt": "Routing receipt",
+    "receiptHint": "Last attempt is explainable",
+    "createKey": "Create API Key",
+    "topup": "Add balance",
+    "footnote": "Holds lock quota first; settlement then debits cash. No promo wall here.",
+    "region": "Overview"
+  },
+  "compareUi": {
+    "left": "Left",
+    "right": "Right",
+    "dimension": "Field",
+    "id": "Model ID",
+    "vendor": "Vendor",
+    "kind": "Modality",
+    "context": "Context",
+    "input": "Input / primary",
+    "output": "Output / secondary",
+    "caps": "Capabilities",
+    "status": "Status",
+    "table": "Side-by-side prices"
+  },
+  "common": {
+    "refresh": "Refresh",
+    "filter": "Filter",
+    "exportCsv": "Export CSV"
+  },
+  "public": {
+    "compare": {
+      "eyebrow": "COMPARE",
+      "title": "Compare models",
+      "description": "Pick two published models and compare id, price, context, and capabilities. No invented prices, no orange promo bar.",
+      "primary": "Open price book",
+      "secondary": "Best value"
+    },
+    "desktop": {
+      "eyebrow": "DESKTOP",
+      "title": "Local coding tools, one account",
+      "description": "Same intent as ofox Desktop: local tools, independent keys, one ledger. No installer ships with this repo — change the base URL on the web. No fake download.",
+      "primary": "See snippets",
+      "secondary": "Open console"
+    },
+    "models": {
+      "eyebrow": "MODELS",
+      "title": "Model catalog",
+      "description": "Search, filter by modality, list and table. Price-book density, TokenHub clearing skin.",
+      "primary": "Quickstart",
+      "secondary": "Docs"
+    },
+    "quickstart": {
+      "eyebrow": "QUICKSTART",
+      "title": "Quickstart",
+      "description": "Zero to production in about three minutes: sign up → copy a sample → ship.",
+      "primary": "Get API Key",
+      "secondary": "Browse models"
+    },
+    "docs": {
+      "eyebrow": "DOCS",
+      "title": "Developer docs",
+      "description": "Protocols and samples. Body column ~720px. Code sits on carbon.",
+      "primary": "Quickstart",
+      "secondary": "Integrations"
+    },
+    "docsIntegrations": {
+      "eyebrow": "INTEGRATIONS",
+      "title": "Integrations",
+      "description": "Each tool only changes base URL / key. Snippets sit on carbon.",
+      "primary": "Docs",
+      "secondary": "Vibe Coding"
+    },
+    "docsDevelop": {
+      "eyebrow": "DEVELOP",
+      "title": "Develop",
+      "description": "Error codes, rate limits, safety boundaries. Body ~720px.",
+      "primary": "Docs",
+      "secondary": "Quickstart"
+    },
+    "docsChangelog": {
+      "eyebrow": "CHANGELOG",
+      "title": "Changelog",
+      "description": "Only changes that have landed in this product.",
+      "primary": "Docs",
+      "secondary": "Public site"
+    },
+    "enterprise": {
+      "eyebrow": "ENTERPRISE",
+      "title": "Enterprise",
+      "description": "Capability grid and comparison narrative. Paper, hairlines, cobalt stamp.",
+      "primary": "Get started",
+      "secondary": "Trust"
+    },
+    "trust": {
+      "eyebrow": "TRUST",
+      "title": "Trust center",
+      "description": "Retention, encryption, keys, availability — in clearing-house language.",
+      "primary": "Privacy",
+      "secondary": "Subprocessors"
+    },
+    "trustSubprocessors": {
+      "eyebrow": "SUBPROCESSORS",
+      "title": "Subprocessors",
+      "description": "Infrastructure, payments, and conditional model upstreams.",
+      "primary": "Trust",
+      "secondary": "Privacy"
+    },
+    "bestValue": {
+      "eyebrow": "BEST VALUE",
+      "title": "Best-value models",
+      "description": "Published input prices, low to high. Full table density.",
+      "primary": "All models",
+      "secondary": "Compare"
+    },
+    "modelFinder": {
+      "eyebrow": "FINDER",
+      "title": "Model finder",
+      "description": "No-login questionnaire. Results link to the price book. No fake scores.",
+      "primary": "Start",
+      "secondary": "Prices"
+    },
+    "vibeCoding": {
+      "eyebrow": "VIBE CODING",
+      "title": "Coding tools, one URL change",
+      "description": "Codex / Claude Code snippets on carbon.",
+      "primary": "Get API Key",
+      "secondary": "Browse models"
+    },
+    "video": {
+      "eyebrow": "VIDEO",
+      "title": "Video models",
+      "description": "Async video jobs on the same ledger. Public prices, no promo wall.",
+      "primary": "All models",
+      "secondary": "Quickstart"
+    },
+    "image": {
+      "eyebrow": "IMAGE",
+      "title": "Image models",
+      "description": "Generate and edit with the same key. Paper and hairlines.",
+      "primary": "All models",
+      "secondary": "Quickstart"
+    },
+    "leaderboardsModels": {
+      "eyebrow": "LEADERBOARDS",
+      "title": "Model leaderboard",
+      "description": "Share from the public snapshot until live aggregates land.",
+      "primary": "Apps",
+      "secondary": "Labs"
+    },
+    "leaderboardsApps": {
+      "eyebrow": "APPS",
+      "title": "App leaderboard",
+      "description": "SDK and CLI share from the public snapshot.",
+      "primary": "Models",
+      "secondary": "Docs"
+    },
+    "leaderboardsLabs": {
+      "eyebrow": "LABS",
+      "title": "Lab leaderboard",
+      "description": "Token share aggregated by vendor.",
+      "primary": "Models",
+      "secondary": "Prices"
+    },
+    "vsOpenrouter": {
+      "eyebrow": "COMPARE",
+      "title": "Versus a generic gateway",
+      "description": "Clearing-house capabilities, no orange marketing bar.",
+      "primary": "Prices",
+      "secondary": "Enterprise"
+    },
+    "promo": {
+      "eyebrow": "PARTNER",
+      "title": "Partner program",
+      "description": "Promo codes and channel settlement. Codes lock at registration.",
+      "primary": "Sign in",
+      "secondary": "Channel console"
+    },
+    "promoAugust": {
+      "eyebrow": "PROMO",
+      "title": "Top-up offer",
+      "description": "Redeem codes post to the ledger. Not a gradient pill.",
+      "primary": "Top up",
+      "secondary": "Plans"
+    },
+    "verify": {
+      "eyebrow": "VERIFY",
+      "title": "Verify the model",
+      "description": "Prove the request hit the declared model via routing receipts.",
+      "primary": "Activity",
+      "secondary": "Docs"
+    },
+    "awesome": {
+      "eyebrow": "ECOSYSTEM",
+      "title": "Works with",
+      "description": "Apps already wired. Paper hairlines, no marketing gradient.",
+      "primary": "Vibe Coding",
+      "secondary": "Docs"
+    },
+    "pricing": {
+      "eyebrow": "PRICING",
+      "title": "Pricing",
+      "description": "List price is what you pay. Numbers come from the published book.",
+      "primary": "Open price book",
+      "secondary": "Best value"
+    },
+    "blog": {
+      "eyebrow": "BLOG",
+      "title": "Blog",
+      "description": "Posts from the public snapshot.",
+      "primary": "Docs first",
+      "secondary": "Quickstart"
+    },
+    "terms": {
+      "eyebrow": "LEGAL",
+      "title": "Terms of service",
+      "description": "Placeholder legal page. Counsel must replace this copy.",
+      "primary": "Privacy",
+      "secondary": "Public site"
+    },
+    "privacy": {
+      "eyebrow": "PRIVACY",
+      "title": "Privacy policy",
+      "description": "Sync APIs do not persist business payloads. Ledger and routing metadata are retained.",
+      "primary": "Trust",
+      "secondary": "Terms"
+    },
+    "article": {
+      "eyebrow": "ARTICLE",
+      "title": "Blog",
+      "description": "Public snapshot post. Full text lives at the source link.",
+      "primary": "Back to list",
+      "secondary": "Docs"
+    }
+  },
+  "console": {
+    "playground": {
+      "eyebrow": "PLAYGROUND",
+      "title": "Playground",
+      "description": "Pick a model, send one message. Same gateway and holds. Failures show a receipt."
+    },
+    "keys": {
+      "eyebrow": "API KEYS",
+      "title": "API Key",
+      "description": "Full keys stay visible. Rotate, copy, disable, and expire write audit. Empty allowlist means no model filter.",
+      "docsCta": "Examples"
+    },
+    "catalog": {
+      "eyebrow": "CATALOG",
+      "title": "Catalog",
+      "description": "Console price book. Only published models you can call."
+    },
+    "wallet": {
+      "eyebrow": "WALLET",
+      "title": "Wallet",
+      "description": "Available balance can be spent. HOLD is in-flight. Codes and payments share one ledger."
+    },
+    "plans": {
+      "eyebrow": "PLANS",
+      "title": "Plans",
+      "description": "Subscriptions and entitlements. Debit order: grants → plans → cash."
+    },
+    "usage": {
+      "eyebrow": "USAGE",
+      "title": "Usage & bills",
+      "description": "Ledger totals. No prompt bodies."
+    },
+    "activity": {
+      "eyebrow": "ACTIVITY",
+      "title": "Activity",
+      "description": "Routing receipts. Each attempt is explainable."
+    },
+    "media": {
+      "eyebrow": "MEDIA",
+      "title": "Media jobs",
+      "description": "Async video/image jobs. Failed holds must release."
+    },
+    "referral": {
+      "eyebrow": "REFERRAL",
+      "title": "Referral",
+      "description": "Your promo code after sign-in. Empty placeholder when signed out."
+    },
+    "docs": {
+      "eyebrow": "DOCS",
+      "title": "Integration docs",
+      "description": "Console samples. Keys are placeholders. No platform cost in the snippet."
+    },
+    "settings": {
+      "eyebrow": "ACCOUNT",
+      "title": "Account",
+      "description": "Display name, UI language, and password. You cannot change channel binding."
+    },
+    "team": {
+      "eyebrow": "TEAM",
+      "title": "Team",
+      "description": "Team name and billing entity after sign-in."
+    },
+    "members": {
+      "eyebrow": "MEMBERS",
+      "title": "Members",
+      "description": "Invites and roles. Empty ledger when signed out."
+    },
+    "billing": {
+      "eyebrow": "BILLING",
+      "title": "Billing profile",
+      "description": "Legal name and tax id. Empty ledger never prefills personal data."
+    },
+    "quotas": {
+      "eyebrow": "QUOTAS",
+      "title": "Quotas",
+      "description": "Empty when you have no plan or grant."
+    },
+    "apps": {
+      "eyebrow": "APPS",
+      "title": "Connected apps",
+      "description": "No third-party client has taken your grant yet."
+    },
+    "webhooks": {
+      "eyebrow": "WEBHOOKS",
+      "title": "Webhook",
+      "description": "No callback URL configured."
+    },
+    "channelUsers": {
+      "eyebrow": "USERS",
+      "title": "Channel users",
+      "description": "Emails may be masked. Attribution is locked at signup."
+    },
+    "channelPlans": {
+      "eyebrow": "PLANS",
+      "title": "Plans",
+      "description": "Low price or high-risk quota goes to review. Owner is this channel."
+    },
+    "channelPromos": {
+      "eyebrow": "PROMOS",
+      "title": "Promos",
+      "description": "Codes belong to this channel. Locked at registration."
+    },
+    "channelAttribution": {
+      "eyebrow": "ATTRIBUTION",
+      "title": "Quota",
+      "description": "Counted by promo code and partner tier. You cannot reassign others."
+    },
+    "channelUsage": {
+      "eyebrow": "USAGE",
+      "title": "Usage",
+      "description": "Tokens and media seconds from billing usage. No prompt bodies."
+    },
+    "channelSettlements": {
+      "eyebrow": "SETTLEMENTS",
+      "title": "Settlements",
+      "description": "Monthly after commission unfreeze. P0 payouts are manual finance."
+    },
+    "channelCommissions": {
+      "eyebrow": "COMMISSION",
+      "title": "Commissions",
+      "description": "Available quota and grants. Chat does not debit the channel again."
+    },
+    "partnerUsers": {
+      "eyebrow": "USERS",
+      "title": "Users in scope",
+      "description": "Emails masked. Tier-2 only sees direct referrals."
+    },
+    "partnerCommissions": {
+      "eyebrow": "COMMISSION",
+      "title": "Commissions in scope",
+      "description": "Settleable after the freeze. You cannot change the rate."
+    },
+    "partnerSettlements": {
+      "eyebrow": "SETTLEMENTS",
+      "title": "Settlements in scope",
+      "description": "Appear after platform finance pays."
+    },
+    "channelHome": {
+      "eyebrow": "CHANNEL",
+      "title": "This channel",
+      "description": "Channel admins only see their own users, plans, promos, attribution, and usage. The API still checks scope."
+    },
+    "partnerHome": {
+      "eyebrow": "PARTNER",
+      "title": "Your partner scope",
+      "description": "Agent / tier-1 / tier-2. The API checks the tree. No prompts, no rate edits."
+    }
+  },
+  "docsUi": {
+    "badge": "Docs",
+    "title": "{name} docs",
+    "lead": "About 720px of body copy. Code sits on carbon. Examples use this brand Base URL; keys are placeholders.",
+    "models": "Models: {list}",
+    "nav": "Docs contents"
+  },
+  "modelDetail": {
+    "home": "Home",
+    "models": "Models",
+    "back": "Back to catalog",
+    "crumb": "Breadcrumb"
+  },
+  "channelHero": {
+    "region": "Channel overview",
+    "quota": "Available quota",
+    "quotaHint": "Service quota this channel can still grant",
+    "consumed": "Consumed",
+    "consumedHint": "Already billed to downstream users",
+    "frozen": "Frozen commission",
+    "frozenHint": "HOLD that has not matured",
+    "settleable": "Settleable",
+    "settleableHint": "Unpaid settlement amount"
+  },
+  "partnerBoard": {
+    "hierarchy": "My tier",
+    "users": "Users in scope",
+    "commissions": "Commissions in scope",
+    "settlements": "Settlements in scope",
+    "refresh": "Refresh scope",
+    "emptyUsers": "No users yet"
+  },
+  "adminUi": {
+    "opsBoard": "Ops board",
+    "settings": "System settings",
+    "twofa": "Admin 2FA",
+    "thresholds": "Alert thresholds",
+    "ops": "Ops switches",
+    "backup": "Backup drill",
+    "drill": "Failure drill",
+    "oem": "OEM certs",
+    "users": "Users / projects",
+    "usage": "Usage replay",
+    "runbooks": "Runbooks",
+    "createRoute": "Create route",
+    "editRoute": "Edit route policy",
+    "createModel": "Create model",
+    "mountProvider": "Attach provider",
+    "deprecateModel": "Deprecate model",
+    "rotateCreds": "Rotate credentials",
+    "accountPool": "Account pool",
+    "editProvider": "Edit provider status",
+    "promoRoles": "Promo roles",
+    "promos": "Promo codes",
+    "prices": "Prices",
+    "disableKey": "Disable API key",
+    "planReview": "Plan review",
+    "createPlan": "Create plan",
+    "archivePlan": "Archive plan",
+    "renewScan": "Renewal scan",
+    "commission": "Commission policy",
+    "recalc": "Recalculate commission",
+    "manualSettle": "Manual settlement",
+    "payments": "Payments",
+    "channelQuota": "Channel quota",
+    "createChannel": "Create channel",
+    "editChannel": "Edit channel status",
+    "audit": "Outbox and probes",
+    "billing": "Balance / top-ups / ledger",
+    "alerts": "Alerts",
+    "media": "Media jobs",
+    "metrics": "Metrics",
+    "adminOverview": "Admin overview"
   }
 }

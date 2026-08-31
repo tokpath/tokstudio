@@ -7,6 +7,7 @@ import { RoutingReceipt } from "@/components/routing-receipt";
 import { PublicSection, StatStrip } from "@/components/public-section";
 import PublicStorefront from "./storefront";
 import { fetchAPI } from "@/lib/api";
+import { getTranslations } from "next-intl/server";
 import {
   MEDIA_WALL,
   VENDOR_MARQUEE,
@@ -22,6 +23,7 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export default async function PublicHome() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
+  const t = await getTranslations("home");
   const models = await loadCatalog(host);
   const site = await loadSite(host);
   let plans: { id: string; name: string; price_minor: number }[] = [];
@@ -57,10 +59,10 @@ export default async function PublicHome() {
         <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-6 py-2 text-[13px]">
           <p className="text-ink-secondary">
             <span className="th-eyebrow text-hold">HOLD</span>
-            <span className="ml-3">Seedance 2.5 公开价目可查 · 720p $0.24/秒起</span>
+            <span className="ml-3">{t("holdBanner")}</span>
           </p>
           <Link href="/models/bytedance/seedance-2.5" className="shrink-0 text-brand-emphasis no-underline">
-            查看价目 →
+            {t("viewPrice")}
           </Link>
         </div>
       </div>
@@ -70,27 +72,27 @@ export default async function PublicHome() {
           <div className="flex flex-col gap-6">
             <Badge tone="brand">Status</Badge>
             <h1 className="text-[36px] font-semibold leading-[1.08] sm:text-[56px]">
-              一个 Key，<span className="text-brand-emphasis">可解释路由</span>，账能复算。
+              {t("h1a")}
+              <span className="text-brand-emphasis">{t("h1b")}</span>
+              {t("h1c")}
             </h1>
-            <p className="max-w-xl text-base leading-relaxed text-ink-secondary">
-              公布已发布价目。示例只用品牌 Base URL。注册时绑定的渠道不能自己改。
-            </p>
+            <p className="max-w-xl text-base leading-relaxed text-ink-secondary">{t("lead")}</p>
             <StatStrip
               items={[
-                { label: "可用模型", value: String(models.length || "—"), hint: "按当前域名白名单" },
-                { label: "公开价目", value: cheapest ? formatMoney(cheapest.sell_price?.input) : "—", hint: "最低输入单价" },
-                { label: "站点", value: host, hint: "OEM 只换章和 Logo" },
+                { label: t("statModels"), value: String(models.length || "—"), hint: t("statModelsHint") },
+                { label: t("statPrice"), value: cheapest ? formatMoney(cheapest.sell_price?.input) : "—", hint: t("statPriceHint") },
+                { label: t("statSite"), value: host, hint: t("statSiteHint") },
               ]}
             />
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link href="/login">开始使用</Link>
+                <Link href="/login">{t("ctaStart")}</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/models">看价目</Link>
+                <Link href="/models">{t("ctaPrice")}</Link>
               </Button>
               <Button asChild variant="ghost">
-                <Link href="/docs">文档</Link>
+                <Link href="/docs">{t("ctaDocs")}</Link>
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">

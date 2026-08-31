@@ -13,6 +13,7 @@ import {
   loadCatalog,
   priceForModel,
 } from "@/lib/catalog";
+import { getTranslations } from "next-intl/server";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -33,16 +34,18 @@ export default async function ModelDetailPage({
   const price = priceForModel(model);
   const relatedVendor = models.filter((m) => m.id !== model.id && m.vendor === model.vendor).slice(0, 4);
   const relatedKind = models.filter((m) => m.id !== model.id && inferKind(m) === kind).slice(0, 4);
+  const t = await getTranslations("modelDetail");
+  const th = await getTranslations("home");
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
-      <nav className="text-[13px] text-ink-mute" aria-label="Breadcrumb">
+      <nav className="text-[13px] text-ink-mute" aria-label={t("crumb")}>
         <Link href="/" className="no-underline hover:text-ink">
-          首页
+          {t("home")}
         </Link>
         {" / "}
         <Link href="/models" className="no-underline hover:text-ink">
-          模型
+          {t("models")}
         </Link>
         {" / "}
         <Link href={`/models?vendor=${model.vendor}`} className="no-underline hover:text-ink">
@@ -73,13 +76,13 @@ export default async function ModelDetailPage({
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button asChild variant="outline">
-            <Link href="/models">返回目录</Link>
+            <Link href="/models">{t("back")}</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href={`/models?kind=${kind}`}>同类型</Link>
           </Button>
           <Button asChild>
-            <Link href="/login">开始使用</Link>
+            <Link href="/login">{th("ctaStart")}</Link>
           </Button>
         </div>
       </header>

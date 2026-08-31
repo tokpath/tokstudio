@@ -34,7 +34,7 @@ describe("user console nav", () => {
   });
 
   it("keeps hash prefixes only when href is a hash", () => {
-    expect(consoleItemHref({ href: "/app/wallet", label: "余额/充值" }, "/app")).toBe("/app/wallet");
-    expect(consoleItemHref({ href: "#users", label: "本渠道用户" }, "/channel")).toBe("/channel#users");
+    expect(consoleItemHref({ href: "/app/wallet", key: "wallet" }, "/app")).toBe("/app/wallet");
+    expect(consoleItemHref({ href: "#users", key: "users" }, "/channel")).toBe("/channel#users");
   });
 });

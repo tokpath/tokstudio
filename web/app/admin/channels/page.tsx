@@ -14,6 +14,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string };
 
@@ -84,7 +85,7 @@ export default function AdminChannelsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">渠道额度</h2>
+        <AdminH2 k="channelQuota" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">B/C 渠道可用额度在用户充值时按平台换算比发放，默认 1:1。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={channelID} onChange={(e) => setChannelID(e.target.value)} aria-label="渠道 ID" placeholder="chn_..." />
@@ -108,7 +109,7 @@ export default function AdminChannelsPage() {
       </section>
       <Form {...createForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="mb-3 text-xl font-medium">创建渠道</h2>
+          <AdminH2 k="createChannel" className="mb-3 text-xl font-medium" />
           <p className="mb-3 text-sm text-ink-secondary">code 要唯一。类型 A/B/C。品牌默认官方站。创建后用户仍只能靠推广码归因，不能自助改渠道。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={createForm.control} name="code" label="创建用渠道 code" />
@@ -144,7 +145,7 @@ export default function AdminChannelsPage() {
       </Form>
       <Form {...patchForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="mb-3 text-xl font-medium">改渠道状态</h2>
+          <AdminH2 k="editChannel" className="mb-3 text-xl font-medium" />
           <p className="mb-3 text-sm text-ink-secondary">只改状态、类型或品牌。停用后冻结新消费（聊天/媒体 403），余额和历史仍保留。不要停用官方/代理商/OEM 种子渠道。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={patchForm.control} name="channel_id" label="改状态用渠道 ID" />

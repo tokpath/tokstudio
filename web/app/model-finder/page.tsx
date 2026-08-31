@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PublicPageHero, PublicSection } from "@/components/public-section";
+import { PublicSection } from "@/components/public-section";
+import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const SCENES = [
   { id: "coding", label: "编程", hint: "推理与工具调用优先" },
@@ -41,15 +42,7 @@ export default function ModelFinderPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
-      <PublicPageHero
-        eyebrow="MODEL FINDER"
-        title="你该用哪个模型？"
-        description="免登录问卷结构对齐 ofox 模型推荐器。推荐结果链到价目与接入页，不伪造排行分数。"
-        primaryHref="/login"
-        primaryLabel="获取 API Key"
-        secondaryHref="/models"
-        secondaryLabel="直接看目录"
-      />
+      <I18nPublicHero id="modelFinder" primaryHref="/login" secondaryHref="/models" />
 
       <PublicSection eyebrow="SCENE" title="你要做什么？">
         <div className="flex flex-wrap gap-2">

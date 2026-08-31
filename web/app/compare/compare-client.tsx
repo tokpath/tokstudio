@@ -8,6 +8,7 @@ import {
   priceForModel,
   type CatalogModel,
 } from "@/lib/catalog";
+import { useTranslations } from "next-intl";
 
 function pickDefault(models: CatalogModel[], index: number) {
   const text = models.filter((m) => inferKind(m) === "text");
@@ -16,27 +17,28 @@ function pickDefault(models: CatalogModel[], index: number) {
 }
 
 export function ModelCompare({ models }: { models: CatalogModel[] }) {
+  const t = useTranslations("compareUi");
   const [leftId, setLeftId] = useState(() => pickDefault(models, 0));
   const [rightId, setRightId] = useState(() => pickDefault(models, 1));
   const left = useMemo(() => models.find((m) => m.id === leftId), [models, leftId]);
   const right = useMemo(() => models.find((m) => m.id === rightId), [models, rightId]);
 
   const rows: { label: string; take: (m?: CatalogModel) => string }[] = [
-    { label: "模型 ID", take: (m) => m?.id || "—" },
-    { label: "厂商", take: (m) => m?.vendor || "—" },
-    { label: "模态", take: (m) => (m ? inferKind(m) : "—") },
-    { label: "上下文", take: (m) => formatContext(m?.context_length) },
-    { label: "输入 / 主价", take: (m) => (m ? priceForModel(m).primary : "—") },
-    { label: "输出 / 次价", take: (m) => (m ? priceForModel(m).secondary : "—") },
-    { label: "能力", take: (m) => capabilityLabels(m?.capabilities).join(" · ") || "—" },
-    { label: "状态", take: (m) => (m?.status || "available").toUpperCase() },
+    { label: t("id"), take: (m) => m?.id || "—" },
+    { label: t("vendor"), take: (m) => m?.vendor || "—" },
+    { label: t("kind"), take: (m) => (m ? inferKind(m) : "—") },
+    { label: t("context"), take: (m) => formatContext(m?.context_length) },
+    { label: t("input"), take: (m) => (m ? priceForModel(m).primary : "—") },
+    { label: t("output"), take: (m) => (m ? priceForModel(m).secondary : "—") },
+    { label: t("caps"), take: (m) => capabilityLabels(m?.capabilities).join(" · ") || "—" },
+    { label: t("status"), take: (m) => (m?.status || "available").toUpperCase() },
   ];
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
-          左侧
+          {t("left")}
           <select
             aria-label="对比左侧模型"
             className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink"
@@ -51,7 +53,7 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
-          右侧
+          {t("right")}
           <select
             aria-label="对比右侧模型"
             className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink"
@@ -70,7 +72,7 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-hairline">
             <tr>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">维度</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("dimension")}</th>
               <th className="px-4 py-3 font-semibold">{left?.display_name || "—"}</th>
               <th className="px-4 py-3 font-semibold">{right?.display_name || "—"}</th>
             </tr>

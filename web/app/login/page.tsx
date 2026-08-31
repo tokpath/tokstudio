@@ -148,12 +148,12 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-16">
-      <section className="w-full rounded-stamp border border-hairline bg-canvas-raised p-8">
-        <p className="th-eyebrow text-brand-emphasis">AUTH</p>
-        <h1 className="mt-2 text-2xl font-semibold">注册 / 登录</h1>
-        <p className="mt-2 text-sm text-ink-secondary">
-          对齐 ofox 控制台登录：Google 为次按钮，邮箱密码为主，验证码可走邮件 OTP。推广码只在注册时写入归属。
+    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-20">
+      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
+        <p className="th-eyebrow text-brand-emphasis">Sign in</p>
+        <h1 className="mt-3 text-[40px] font-semibold leading-tight">注册 / 登录</h1>
+        <p className="mt-3 text-base leading-relaxed text-ink-secondary">
+          Google 为次按钮，邮箱密码为主，验证码走邮件 OTP。推广码只在注册时由服务端固化归属，不能事后改。
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -165,13 +165,13 @@ function LoginForm() {
           </Button>
         </div>
         {googleState ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-stamp border border-hairline bg-canvas p-3">
+          <div className="mt-3 flex flex-col gap-2 rounded-card border border-hairline bg-canvas p-3">
             <label className="text-[13px] text-ink-secondary" htmlFor="google-email">
               Google 邮箱（开发 mock）
             </label>
             <input
               id="google-email"
-              className="rounded-stamp border border-hairline bg-canvas-raised px-3 py-2 text-sm"
+              className="rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm"
               value={googleEmail}
               onChange={(event) => setGoogleEmail(event.target.value)}
               placeholder="you@gmail.com"
@@ -235,7 +235,8 @@ function LoginForm() {
               )}
             </p>
             <p className="text-[12px] text-ink-mute">
-              继续即表示你了解 <Link href="/terms">服务条款</Link> 与 <Link href="/privacy">隐私政策</Link>。
+              继续即表示你了解 <Link href="/terms">服务条款</Link> 与 <Link href="/privacy">隐私政策</Link>。还没看过价目？先回{" "}
+              <Link href="/">公共站</Link>。
             </p>
           </form>
         </Form>
@@ -246,7 +247,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-12 text-ink-secondary">登录 / 注册</main>}>
+    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-20 text-ink-secondary">登录 / 注册</main>}>
       <LoginForm />
     </Suspense>
   );

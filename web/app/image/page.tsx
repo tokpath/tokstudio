@@ -9,7 +9,7 @@ export default async function ImagePage() {
   const models = (await loadCatalog(host)).filter((m) => inferKind(m) === "image");
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="IMAGE"
         title="图像模型"
@@ -24,7 +24,7 @@ export default async function ImagePage() {
           <li key={m.id}>
             <Link
               href={`/models/${m.id}`}
-              className="block rounded-stamp border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
+              className="block rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
             >
               <p className="font-semibold text-ink">{m.display_name}</p>
               <p className="mt-1 font-mono text-[12px] text-ink-mute">{m.id}</p>

@@ -26,7 +26,7 @@ export default async function DocsPage() {
     docs = {};
   }
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-16 lg:flex-row">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20 lg:flex-row">
       <nav className="w-full shrink-0 text-sm text-ink-secondary lg:w-48" aria-label="文档目录">
         <p className="th-eyebrow mb-3 text-ink-mute">Docs</p>
         <ul className="flex flex-row gap-3 overflow-x-auto lg:flex-col lg:gap-2">

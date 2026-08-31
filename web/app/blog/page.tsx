@@ -9,7 +9,7 @@ export default async function BlogPage() {
   const posts = site.blog || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="BLOG"
         title="博客"
@@ -24,7 +24,7 @@ export default async function BlogPage() {
           <li key={post.href}>
             <Link
               href={post.href}
-              className="block rounded-stamp border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
+              className="block rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
             >
               <p className="th-eyebrow text-ink-mute">{post.date || "LOG"}</p>
               <h2 className="mt-2 text-lg font-semibold text-ink">{post.title}</h2>

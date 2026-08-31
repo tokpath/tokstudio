@@ -113,11 +113,11 @@ export function ModelsCatalog({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-stamp border border-hairline bg-canvas-raised">
+        <div className="rounded-card border border-hairline bg-canvas-raised">
           <EmptyState title="没有匹配的模型" detail="换个关键词，或清掉筛选再试。" />
         </div>
       ) : view === "table" ? (
-        <div className="overflow-x-auto rounded-stamp border border-hairline bg-canvas-raised">
+        <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
           <table className="min-w-[960px] w-full text-left text-sm">
             <thead className="border-b border-hairline">
               <tr>
@@ -160,7 +160,7 @@ export function ModelsCatalog({
               <li key={m.id}>
                 <Link
                   href={`/models/${m.id}`}
-                  className="block rounded-stamp border border-hairline bg-canvas-raised p-4 no-underline transition-colors hover:bg-brand-soft/30"
+                  className="block rounded-card border border-hairline bg-canvas-raised p-4 no-underline transition-colors hover:bg-brand-soft/30"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">

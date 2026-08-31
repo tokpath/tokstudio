@@ -35,7 +35,7 @@ export default async function ModelDetailPage({
   const relatedKind = models.filter((m) => m.id !== model.id && inferKind(m) === kind).slice(0, 4);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <nav className="text-[13px] text-ink-mute" aria-label="Breadcrumb">
         <Link href="/" className="no-underline hover:text-ink">
           首页
@@ -92,7 +92,7 @@ export default async function ModelDetailPage({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+        <div className="rounded-card border border-hairline bg-canvas-raised p-5">
           <p className="th-eyebrow text-ink-mute">PROVIDER · SELL PRICE</p>
           <h2 className="mt-2 text-lg font-semibold">公开卖价</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -103,7 +103,7 @@ export default async function ModelDetailPage({
           </div>
           <p className="mt-4 text-[13px] text-ink-mute">不展示上游成本。客户账只看卖价。</p>
         </div>
-        <div className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+        <div className="rounded-card border border-hairline bg-canvas-raised p-5">
           <p className="th-eyebrow text-ink-mute">ROUTING RECEIPT</p>
           <h2 className="mt-2 text-lg font-semibold">可解释路径（示意）</h2>
           <p className="mt-4 font-mono text-[13px] leading-relaxed text-ink">
@@ -142,7 +142,7 @@ export default async function ModelDetailPage({
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">常见问题</h2>
-        <div className="divide-y divide-hairline rounded-stamp border border-hairline bg-canvas-raised">
+        <div className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
           {[
             {
               q: `在 TokenHub 上使用 ${model.display_name} 需要多少钱？`,
@@ -179,7 +179,7 @@ export default async function ModelDetailPage({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-4">
+    <div className="rounded-card border border-hairline bg-canvas-raised px-4 py-4">
       <p className="th-eyebrow text-ink-mute">{label}</p>
       <p className="mt-2 font-mono text-lg font-medium tabular-nums">{value}</p>
     </div>
@@ -205,7 +205,7 @@ function Related({
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <ul className="divide-y divide-hairline rounded-stamp border border-hairline bg-canvas-raised">
+      <ul className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
         {items.map((item) => (
           <li key={item.id}>
             <Link href={`/models/${item.id}`} className="flex justify-between gap-3 px-4 py-3 text-sm no-underline hover:bg-brand-soft/40">

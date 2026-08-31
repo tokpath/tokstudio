@@ -9,7 +9,7 @@ export default async function LabsLeaderboardPage() {
   const rows = site.leaderboards?.labs || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="LEADERBOARD · LABS"
         title="实验室 / 厂商用量排行"

@@ -14,7 +14,7 @@ export default async function ModelsPage({
   const initialKind = query.kind || query.output || "all";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-20">
       <PublicPageHero
         eyebrow="MODEL CATALOG"
         title="模型目录"

@@ -32,7 +32,7 @@ export default function ModelFinderSlugPage() {
   const href = spec?.href || "/model-finder";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-12 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <PublicPageHero
         eyebrow="MODEL FINDER"
         title={title}

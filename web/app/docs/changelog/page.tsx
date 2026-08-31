@@ -8,7 +8,7 @@ const items = [
 
 export default function ChangelogPage() {
   return (
-    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="CHANGELOG"
         title="更新日志"
@@ -19,7 +19,7 @@ export default function ChangelogPage() {
       <PublicSection eyebrow="LOG" title="近期">
         <ol className="space-y-3">
           {items.map((item) => (
-            <li key={item.title} className="rounded-stamp border border-hairline bg-canvas-raised p-4">
+            <li key={item.title} className="rounded-card border border-hairline bg-canvas-raised p-4">
               <p className="th-eyebrow text-ink-mute">{item.date}</p>
               <p className="mt-1 font-semibold">{item.title}</p>
               <p className="mt-1 text-sm text-ink-secondary">{item.detail}</p>

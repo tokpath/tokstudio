@@ -16,7 +16,7 @@ export function LedgerSection({
   emptyDetail: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-stamp border border-hairline bg-canvas-raised">
+    <section className="overflow-hidden rounded-card border border-hairline bg-canvas-raised">
       <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
         <h2 className="text-lg font-semibold">{title}</h2>
         <Eyebrow>{eyebrow}</Eyebrow>

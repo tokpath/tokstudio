@@ -4,7 +4,7 @@ import { PublicPageHero, PublicSection, StatStrip } from "@/components/public-se
 
 export default function PricingPage() {
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-14 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <PublicPageHero
         eyebrow="PRICING"
         title="按量付费，没有平台费"
@@ -28,7 +28,7 @@ export default function PricingPage() {
             { t: "图像", d: "按张或输出图像单价。" },
             { t: "视频", d: "按秒，分辨率出现在模型详情。" },
           ].map((item) => (
-            <div key={item.t} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+            <div key={item.t} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <p className="font-semibold">{item.t}</p>
               <p className="mt-2 text-sm text-ink-secondary">{item.d}</p>
             </div>

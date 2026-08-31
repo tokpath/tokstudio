@@ -24,7 +24,7 @@ export default async function QuickstartPage() {
   const node = `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://${base}/v1",\n  apiKey: "sk-...xxxx",\n});\n\nconst r = await client.chat.completions.create({\n  model: "${model}",\n  messages: [{ role: "user", content: "ping" }],\n});\nconsole.log(r.choices[0].message.content);`;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-14 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <PublicPageHero
         eyebrow="QUICKSTART"
         title="3 步接入你的 Agent"
@@ -49,7 +49,7 @@ export default async function QuickstartPage() {
           { n: "2", t: "接入代码", d: "复制示例，3 分钟完成接入。Key 用占位。", href: "#code", cta: "看示例" },
           { n: "3", t: "开始构建", d: "看价目、看用量、看路由回单。", href: "/app", cta: "打开用户台" },
         ].map((s) => (
-          <div key={s.n} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+          <div key={s.n} className="rounded-card border border-hairline bg-canvas-raised p-5">
             <p className="th-eyebrow text-brand-emphasis">STEP {s.n}</p>
             <h3 className="mt-2 text-lg font-semibold">{s.t}</h3>
             <p className="mt-2 text-sm text-ink-secondary">{s.d}</p>
@@ -88,7 +88,7 @@ export default async function QuickstartPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-3 text-sm no-underline hover:bg-brand-soft/40"
+              className="rounded-card border border-hairline bg-canvas-raised px-4 py-3 text-sm no-underline hover:bg-brand-soft/40"
             >
               {item.label}
             </Link>
@@ -96,7 +96,7 @@ export default async function QuickstartPage() {
         </div>
       </PublicSection>
 
-      <section className="rounded-stamp border border-hairline bg-canvas-raised px-6 py-10 text-center">
+      <section className="rounded-card border border-hairline bg-canvas-raised px-6 py-10 text-center">
         <h2 className="text-2xl font-semibold">准备好构建你的下一个 AI Agent 了吗？</h2>
         <p className="mt-2 text-sm text-ink-secondary">3 分钟接入，立即开始</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">

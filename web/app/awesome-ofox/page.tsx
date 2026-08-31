@@ -10,7 +10,7 @@ export default async function AwesomePage() {
   const apps = site.apps || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-12 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <PublicPageHero
         eyebrow="WORKS WITH"
         title="用公开价目做点有趣的事"
@@ -23,7 +23,7 @@ export default async function AwesomePage() {
       <PublicSection eyebrow="APPS" title={`${apps.length} 个应用`}>
         <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {apps.map((app) => (
-            <li key={app.slug} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+            <li key={app.slug} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="brand">{app.kind}</Badge>
                 {app.oss ? <span className="th-eyebrow text-success">OSS</span> : null}

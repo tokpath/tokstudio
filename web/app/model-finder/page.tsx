@@ -40,7 +40,7 @@ export default function ModelFinderPage() {
   const recs = useMemo(() => REC[scene], [scene]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-12 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <PublicPageHero
         eyebrow="MODEL FINDER"
         title="你该用哪个模型？"
@@ -72,7 +72,7 @@ export default function ModelFinderPage() {
       <PublicSection eyebrow="RESULT" title="推荐入口">
         <ul className="space-y-3">
           {recs.map((r) => (
-            <li key={r.href + r.title} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+            <li key={r.href + r.title} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <p className="font-semibold">{r.title}</p>
               <p className="mt-1 text-sm text-ink-secondary">{r.why}</p>
               <Button asChild variant="outline" size="sm" className="mt-3">

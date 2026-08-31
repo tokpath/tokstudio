@@ -12,7 +12,7 @@ export default async function BestValuePage() {
     .slice(0, 40);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="BEST VALUE"
         title="性价比模型"
@@ -29,7 +29,7 @@ export default async function BestValuePage() {
           { label: "排序", value: "input ↑", hint: "公开卖价" },
         ]}
       />
-      <div className="overflow-x-auto rounded-stamp border border-hairline bg-canvas-raised">
+      <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
         <table className="min-w-[880px] w-full text-left text-sm">
           <thead className="border-b border-hairline">
             <tr>

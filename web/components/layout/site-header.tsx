@@ -41,11 +41,11 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
 
   return (
     <header ref={rootRef} className="sticky top-0 z-40 border-b border-hairline bg-canvas">
-      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-3 px-6">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-6">
         <Link href="/" className="flex items-center gap-2 text-ink no-underline">
           {brand?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-stamp object-contain" />
+            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-[6px] object-contain" />
           ) : (
             <BrandMark />
           )}
@@ -93,7 +93,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
 
           {openId ? (
             <div
-              className="absolute left-0 top-full z-50 mt-1 w-[min(720px,calc(100vw-3rem))] rounded-stamp border border-hairline bg-canvas-raised p-4 shadow-[0_1px_2px_rgba(20,20,20,0.06)]"
+              className="absolute left-0 top-full z-50 mt-1 w-[min(720px,calc(100vw-3rem))] rounded-card border border-hairline bg-canvas-raised p-4 shadow-[0_1px_2px_rgba(20,20,20,0.06)]"
               onMouseLeave={() => setOpenId(null)}
             >
               {MEGA_MENUS.filter((m) => m.id === openId).map((menu) => (
@@ -133,7 +133,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             跳转
             <kbd className="font-mono text-[11px]">⌘K</kbd>
           </button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="ghost" size="sm">
             <Link href="/login">登录</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">

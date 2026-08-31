@@ -2,7 +2,7 @@ import { PublicPageHero } from "@/components/public-section";
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-20">
       <PublicPageHero
         eyebrow="PRIVACY"
         title="隐私政策"

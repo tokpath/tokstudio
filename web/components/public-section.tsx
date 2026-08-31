@@ -74,12 +74,12 @@ export function StatStrip({
   items: { label: string; value: string; hint?: string }[];
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="flex flex-wrap gap-x-10 gap-y-6">
       {items.map((item) => (
-        <div key={item.label} className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-4">
+        <div key={item.label}>
           <p className="th-eyebrow text-ink-mute">{item.label}</p>
-          <p className="mt-2 font-mono text-xl font-medium tabular-nums">{item.value}</p>
-          {item.hint ? <p className="mt-1 text-[13px] text-ink-mute">{item.hint}</p> : null}
+          <p className="mt-2 font-mono text-[32px] font-medium leading-none tabular-nums">{item.value}</p>
+          {item.hint ? <p className="mt-2 max-w-[16rem] text-[13px] text-ink-mute">{item.hint}</p> : null}
         </div>
       ))}
     </div>

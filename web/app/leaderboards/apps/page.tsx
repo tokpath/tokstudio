@@ -9,7 +9,7 @@ export default async function AppsLeaderboardPage() {
   const rows = site.leaderboards?.apps || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="LEADERBOARD · APPS"
         title="应用 / 工具用量排行"

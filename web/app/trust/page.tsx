@@ -4,7 +4,7 @@ import { PublicPageHero, PublicSection } from "@/components/public-section";
 
 export default function TrustPage() {
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-14 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <PublicPageHero
         eyebrow="TRUST CENTER"
         title="可以放心构建的安全基础"
@@ -23,7 +23,7 @@ export default function TrustPage() {
             { t: "API Key 保护", d: "完整 Key 默认掩码，轮换与禁用走审计。" },
             { t: "控制面可见", d: "公共站与管理台都能看就绪态字标。" },
           ].map((item) => (
-            <div key={item.t} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+            <div key={item.t} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <p className="font-semibold">{item.t}</p>
               <p className="mt-2 text-sm text-ink-secondary">{item.d}</p>
             </div>
@@ -33,13 +33,13 @@ export default function TrustPage() {
 
       <PublicSection eyebrow="RETENTION" title="会保存什么">
         <ul className="space-y-3 text-sm text-ink-secondary">
-          <li className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-3">
+          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
             <strong className="text-ink">标准模型 API：</strong>不持久化 prompt/completion 正文；保留计费与路由回单字段。
           </li>
-          <li className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-3">
+          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
             <strong className="text-ink">媒体异步任务：</strong>任务状态与必要交付物短时保留，到期清理。
           </li>
-          <li className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-3">
+          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
             <strong className="text-ink">账本：</strong>客户收费、上游成本、佣金分列，不可改写已结算行。
           </li>
         </ul>

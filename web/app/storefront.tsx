@@ -70,13 +70,13 @@ export default function PublicStorefront({
   }
 
   return (
-    <div className="flex flex-col gap-14">
+    <div className="flex flex-col gap-24">
       <section id="models">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Model catalog</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">可用模型</h2>
-            <p className="mt-2 text-sm text-ink-secondary">按当前域名的品牌和渠道白名单展示，不含 Provider 路由。</p>
+            <p className="th-eyebrow text-ink-mute">Price book</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight">可用模型</h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-secondary">按当前域名的品牌和渠道白名单展示，不含 Provider 路由。单价未到之前不发明价格。</p>
           </div>
           <Badge>{models.length} 个模型</Badge>
         </div>
@@ -94,9 +94,9 @@ export default function PublicStorefront({
         </div>
       </section>
       <section id="plans">
-        <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Pricing</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">套餐与订阅</h2>
+        <div className="mb-8">
+          <p className="th-eyebrow text-ink-mute">Plans</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">套餐与订阅</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {plans.map((plan) => (
@@ -113,8 +113,9 @@ export default function PublicStorefront({
           ))}
         </div>
       </section>
-      <Card id="topup" className="p-6 md:p-8">
-        <CardTitle className="mb-2 text-2xl font-semibold">充值</CardTitle>
+      <Card id="topup" className="p-8 md:p-10">
+        <p className="th-eyebrow text-ink-mute">Top up</p>
+        <CardTitle className="mb-2 mt-2 text-2xl font-semibold">充值</CardTitle>
         <p className="mb-5 text-sm text-ink-secondary">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
         <Form {...redeemForm}>
         <form className="flex flex-wrap items-end gap-3" onSubmit={redeemForm.handleSubmit(redeem)}>

@@ -16,7 +16,7 @@ export default async function VibeCodingPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-14 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <PublicPageHero
         eyebrow="VIBE CODING"
         title="编程工具，只需换一个 URL"

@@ -9,7 +9,7 @@ export default async function ModelsLeaderboardPage() {
   const rows = site.leaderboards?.models || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-10 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
       <PublicPageHero
         eyebrow="LEADERBOARD · MODELS"
         title="模型用量排行"

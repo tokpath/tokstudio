@@ -39,7 +39,7 @@ export default function UsagePanel() {
   }
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">用量与账单</h2>
       <p className="mb-4 text-sm text-ink-secondary">只展示当前登录用户的 usage 和账本，不含其他渠道数据。</p>
       <button className="mb-4 rounded border border-hairline px-4 py-2" onClick={refresh}>

@@ -9,7 +9,7 @@ export function LeaderboardTable({
   hrefOf?: (row: LeaderboardRow) => string;
 }) {
   return (
-    <ol className="divide-y divide-hairline rounded-stamp border border-hairline bg-canvas-raised">
+    <ol className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
       {rows.map((row) => {
         const href = hrefOf ? hrefOf(row) : row.id ? `/models/${row.id}` : "/models";
         return (

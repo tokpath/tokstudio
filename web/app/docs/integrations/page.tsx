@@ -25,7 +25,7 @@ export default async function IntegrationsPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-12 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <PublicPageHero
         eyebrow="INTEGRATIONS"
         title="常用工具接入"

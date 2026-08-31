@@ -26,7 +26,7 @@ export default function UserConsole() {
           <a
             key={card.t}
             href={card.href}
-            className="rounded-stamp border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40"
+            className="rounded-card border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40"
           >
             <p className="th-eyebrow text-ink-mute">{card.t}</p>
             <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>

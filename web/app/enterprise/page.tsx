@@ -13,7 +13,7 @@ const capabilities = [
 
 export default function EnterprisePage() {
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-14 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <PublicPageHero
         eyebrow="ENTERPRISE"
         title="企业级 API，团队可控，用量透明"
@@ -27,7 +27,7 @@ export default function EnterprisePage() {
       <PublicSection eyebrow="CAPABILITIES" title="不止省钱这一件事">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((item) => (
-            <div key={item.title} className="rounded-stamp border border-hairline bg-canvas-raised p-5">
+            <div key={item.title} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <p className="text-lg font-semibold">{item.title}</p>
               <p className="mt-2 text-sm text-ink-secondary">{item.body}</p>
             </div>
@@ -36,7 +36,7 @@ export default function EnterprisePage() {
       </PublicSection>
 
       <PublicSection eyebrow="COMPARE" title="对照一张表" description="数字与承诺以你们实际上线为准；这里先把结构摆齐。">
-        <div className="overflow-x-auto rounded-stamp border border-hairline bg-canvas-raised">
+        <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-hairline">
               <tr>
@@ -63,7 +63,7 @@ export default function EnterprisePage() {
         </div>
       </PublicSection>
 
-      <section className="rounded-stamp border border-hairline bg-canvas-raised px-6 py-10">
+      <section className="rounded-card border border-hairline bg-canvas-raised px-6 py-10">
         <h2 className="text-2xl font-semibold">准备好扩展基础设施了吗？</h2>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>

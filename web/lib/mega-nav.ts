@@ -65,14 +65,14 @@ export const MEGA_MENUS: MegaMenu[] = [
           { href: "/vibe-coding", label: "Claude Code", hint: "BASE_URL" },
           { href: "/vibe-coding", label: "Codex", hint: "config.toml" },
           { href: "/docs", label: "OpenAI SDK", hint: "兼容协议" },
-          { href: "/docs", label: "Cline / OpenCode", hint: "自定义端点" },
+          { href: "/docs/integrations", label: "Cline / OpenCode", hint: "自定义端点" },
         ],
       },
       {
         title: "参考",
         links: [
-          { href: "/docs", label: "错误与限流", hint: "402 / 429" },
-          { href: "/trust", label: "安全与数据", hint: "留存边界" },
+          { href: "/docs/develop", label: "错误与限流", hint: "402 / 429" },
+          { href: "/docs/changelog", label: "更新日志", hint: "版本" },
         ],
       },
     ],
@@ -87,7 +87,8 @@ export const MEGA_MENUS: MegaMenu[] = [
           { href: "/desktop", label: "Desktop" },
           { href: "/enterprise", label: "企业服务" },
           { href: "/promo", label: "合作推广" },
-          { href: "/vs/openrouter", label: "对比 OpenRouter" },
+          { href: "/awesome-ofox", label: "生态应用" },
+          { href: "/pricing", label: "定价" },
         ],
       },
       {
@@ -104,7 +105,8 @@ export const MEGA_MENUS: MegaMenu[] = [
         links: [
           { href: "/blog", label: "博客" },
           { href: "/leaderboards/apps", label: "应用排行" },
-          { href: "/model-finder", label: "模型推荐器" },
+          { href: "/leaderboards/labs", label: "厂商排行" },
+          { href: "/vs/openrouter", label: "对比 OpenRouter" },
         ],
       },
     ],

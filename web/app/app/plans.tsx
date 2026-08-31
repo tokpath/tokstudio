@@ -52,7 +52,7 @@ export default function PlansPanel() {
   }
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">套餐与权益</h2>
       <p className="mb-4 text-sm text-ink-secondary">
         扣减顺序：即将过期的赠送 → 当期套餐 → 现金钱包。金额单位是 micro-USD。

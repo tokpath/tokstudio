@@ -41,7 +41,7 @@ export default function WalletPanel() {
   }
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">现金钱包</h2>
       <p className="mb-4 text-sm text-ink-secondary">
         可用 {balance?.available ?? "—"} USD，预授权占用 {balance?.reserved ?? "0"} USD。

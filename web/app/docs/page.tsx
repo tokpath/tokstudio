@@ -41,7 +41,7 @@ export default async function DocsPage() {
       </nav>
       <article className="flex max-w-[720px] flex-col gap-10">
         <div>
-          <Badge tone="brand">Documentation</Badge>
+          <Badge tone="brand">开发者文档</Badge>
           <h1 className="mt-4 text-[40px] font-semibold leading-tight">{docs.brand?.name || "TokenHub"} 接入文档</h1>
           <p className="mt-3 text-base text-ink-secondary">
             正文栏约 720px。代码落在碳面上。示例带当前品牌 Base URL；Key 用占位，不写平台成本。

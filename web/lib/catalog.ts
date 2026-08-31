@@ -29,9 +29,10 @@ export async function loadCatalog(host: string): Promise<CatalogModel[]> {
         capabilities: m.capabilities,
         sell_price: m.sell_price,
         status: m.status || "available",
-        kind: inferKind(m),
+        kind: m.kind || inferKind(m),
         description: m.description,
         context_length: m.context_length,
+        max_completion_tokens: m.max_completion_tokens,
       }));
     }
   } catch {

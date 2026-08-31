@@ -1,0 +1,42 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { Button } from "@/components/ui/button";
+import { PublicPageHero } from "@/components/public-section";
+import { loadSite } from "@/lib/site-content";
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const host = (await headers()).get("x-tokenhub-host") || "localhost";
+  const site = await loadSite(host);
+  const post = (site.blog || []).find((p) => p.href === `/blog/${slug}` || p.href.endsWith(`/${slug}`));
+  if (!post) notFound();
+
+  return (
+    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-20">
+      <PublicPageHero
+        eyebrow="ARTICLE"
+        title={post.title}
+        description={post.summary || "公开站快照文章。完整原文在来源链接。"}
+        primaryHref="/blog"
+        primaryLabel="返回列表"
+      />
+      <article className="space-y-4 text-sm leading-relaxed text-ink-secondary">
+        <p>{post.summary}</p>
+        <p>本文结构对齐 ofox 博客详情：标题、摘要、返回列表。计费与路由细节以本站文档和价目为准。</p>
+      </article>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href="/docs">文档</Link>
+        </Button>
+        {post.source ? (
+          <Button asChild variant="ghost">
+            <a href={post.source} rel="noreferrer">
+              来源
+            </a>
+          </Button>
+        ) : null}
+      </div>
+    </main>
+  );
+}

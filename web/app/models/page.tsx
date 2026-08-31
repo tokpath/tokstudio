@@ -3,12 +3,18 @@ import { ModelsCatalog } from "@/components/models-catalog";
 import { PublicPageHero } from "@/components/public-section";
 import { loadCatalog } from "@/lib/catalog";
 
-export default async function ModelsPage() {
+export default async function ModelsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string; output?: string; q?: string }>;
+}) {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const models = await loadCatalog(host);
+  const query = await searchParams;
+  const initialKind = query.kind || query.output || "all";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-20">
       <PublicPageHero
         eyebrow="MODEL CATALOG"
         title="模型目录"
@@ -18,7 +24,7 @@ export default async function ModelsPage() {
         secondaryHref="/quickstart"
         secondaryLabel="快速开始"
       />
-      <ModelsCatalog models={models} />
+      <ModelsCatalog models={models} initialKind={initialKind} />
     </main>
   );
 }

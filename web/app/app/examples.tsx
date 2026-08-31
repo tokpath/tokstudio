@@ -40,7 +40,7 @@ export default function ExamplesPanel() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">接入示例</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">
         覆盖 Chat、Anthropic Messages 和视频任务。完整 Key 只在「API Key」面板复制，不会出现在这段文档里。

@@ -4,7 +4,7 @@ import { PublicPageHero, PublicSection } from "@/components/public-section";
 
 export default function PromoPage() {
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-12 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <PublicPageHero
         eyebrow="AFFILIATE"
         title="合作推广"

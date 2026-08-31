@@ -227,7 +227,20 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return nil, err
 	}
-	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
+	view := channelViewFrom(row)
+	return &view, nil
+}
+
+func (s *Service) GetChannel(ctx context.Context, viewer Principal, channelID string) (*ChannelView, error) {
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	if scoped := viewer.VisibleChannelID(); scoped != "" && scoped != row.ID {
+		return nil, ErrChannelImmutable
+	}
+	view := channelViewFrom(row)
+	return &view, nil
 }
 
 func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID string, in ChannelInput) (*ChannelView, error) {
@@ -236,7 +249,7 @@ func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID 
 	}
 	var row channelRow
 	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
-		return nil, err
+		return nil, mapNotFound(err)
 	}
 	updates := map[string]any{}
 	if in.Status != "" {
@@ -254,9 +267,10 @@ func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID 
 		}
 	}
 	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
-		return nil, err
+		return nil, mapNotFound(err)
 	}
-	return &ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}, nil
+	view := channelViewFrom(row)
+	return &view, nil
 }
 
 func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]ChannelView, error) {
@@ -270,9 +284,17 @@ func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]Channel
 	}
 	out := make([]ChannelView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID})
+		out = append(out, channelViewFrom(row))
 	}
 	return out, nil
+}
+
+func channelViewFrom(row channelRow) ChannelView {
+	view := ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}
+	if row.ParentID != nil {
+		view.ParentID = *row.ParentID
+	}
+	return view
 }
 
 func (s *Service) ListUsers(ctx context.Context, viewer Principal) ([]UserView, error) {

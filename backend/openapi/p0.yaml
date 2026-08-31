@@ -205,6 +205,17 @@ paths:
         "201":
           description: created
   /admin/channels/{id}:
+    get:
+      operationId: getChannel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: one channel tenant
     patch:
       operationId: patchChannel
       parameters:
@@ -216,6 +227,18 @@ paths:
       responses:
         "200":
           description: updated channel status type or brand; disabled freezes new chat and media with 403 channel_disabled
+  /admin/channels/{id}/models:
+    get:
+      operationId: listChannelModels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: platform catalog models entitled to this tenant; tenants cannot add providers or models
   /channel/attribution:
     get:
       operationId: listChannelAttribution
@@ -793,12 +816,35 @@ paths:
       operationId: listAcquisitionRoles
       responses:
         "200":
-          description: acquisition roles
+          description: acquisition roles; type=agent|kol|kol_l1|kol_l2 filters list
     post:
       operationId: createAcquisitionRole
       responses:
         "201":
           description: created role
+  /admin/acquisition-roles/{id}:
+    get:
+      operationId: getAcquisitionRole
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: one agent or KOL role
+    patch:
+      operationId: patchAcquisitionRole
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: updated role status
   /admin/promotion-codes:
     get:
       operationId: listPromotionCodes

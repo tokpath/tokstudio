@@ -124,6 +124,15 @@ type ModelView struct {
 	SyncState    string         `json:"sync_state,omitempty"`
 }
 
+// ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
+type ChannelModelView struct {
+	PublicID    string `json:"public_id"`
+	DisplayName string `json:"display_name"`
+	Vendor      string `json:"vendor"`
+	Status      string `json:"status"`
+	Enabled     bool   `json:"enabled"`
+}
+
 type RouteCandidate struct {
 	ProviderID      string
 	ProviderSlug    string
@@ -390,6 +399,37 @@ func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) e
 		}
 	}
 	return nil
+}
+
+// ListChannelModels 只返回平台目录里已经授权给该租户的模型，不含提供商凭据。
+func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string) ([]ChannelModelView, error) {
+	if channelOrgID == "" {
+		return []ChannelModelView{}, nil
+	}
+	type row struct {
+		PublicID    string `gorm:"column:public_id"`
+		DisplayName string `gorm:"column:display_name"`
+		Vendor      string `gorm:"column:vendor"`
+		Status      string `gorm:"column:status"`
+		Enabled     bool   `gorm:"column:enabled"`
+	}
+	var rows []row
+	err := s.db.WithContext(ctx).Table("catalog_channel_model_policies p").
+		Select("m.public_id, m.display_name, m.vendor, m.status, p.enabled").
+		Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
+		Where("p.channel_org_id = ?", channelOrgID).
+		Order("m.public_id").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ChannelModelView, 0, len(rows))
+	for _, item := range rows {
+		out = append(out, ChannelModelView{
+			PublicID: item.PublicID, DisplayName: item.DisplayName, Vendor: item.Vendor, Status: item.Status, Enabled: item.Enabled,
+		})
+	}
+	return out, nil
 }
 
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {

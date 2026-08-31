@@ -61,6 +61,8 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/ops/drills/tls")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/commissions/recalc")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/channels")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/channels/{id}")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/channels/{id}/models")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/channels/{id}")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/plans")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/plans/{id}")).toBe(true);
@@ -84,6 +86,8 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/usage/replay")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/acquisition-roles")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/acquisition-roles")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/acquisition-roles/{id}")).toBe(true);
+    expect(hasGeneratedPath("PATCH", "/admin/acquisition-roles/{id}")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/promotion-codes")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/promotion-codes")).toBe(true);
   });

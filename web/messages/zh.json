@@ -24,7 +24,7 @@
     "billing": "余额/充值",
     "usage": "用量/账单",
     "media": "媒体任务",
-    "channels": "渠道/代理商",
+    "channels": "渠道租户",
     "promos": "推广码",
     "alerts": "告警",
     "runbooks": "应急手册",

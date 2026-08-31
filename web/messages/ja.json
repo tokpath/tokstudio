@@ -24,7 +24,7 @@
     "billing": "ウォレット",
     "usage": "利用量",
     "media": "メディア",
-    "channels": "チャネル",
+    "channels": "チャネルテナント",
     "promos": "プロモ",
     "alerts": "警報",
     "runbooks": "ランブック",

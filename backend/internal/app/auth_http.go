@@ -35,6 +35,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin"), a.createChannel)
+	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin"), a.getChannel)
+	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "channel_admin"), a.getChannelModels)
 	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin"), a.patchChannel)
 	r.GET("/admin/me/2fa", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPStatus)
 	r.POST("/admin/me/2fa/setup", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPSetup)
@@ -93,6 +95,8 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "验证码无效", false)
 	case errors.Is(err, identity.ErrChannelImmutable):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "渠道归属不可自行切换", false)
+	case errors.Is(err, identity.ErrNotFound):
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "记录不存在", false)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		httpx.Abort(c, http.StatusForbidden, "authentication_error", "账号或密码错误", false)
 	case errors.Is(err, identity.ErrInvalidProfile):
@@ -442,6 +446,28 @@ func (a *App) listChannels(c *gin.Context) {
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item identity.ChannelView) string { return item.ID })
+}
+
+func (a *App) getChannel(c *gin.Context) {
+	item, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) getChannelModels(c *gin.Context) {
+	if _, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id")); err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	items, err := a.Catalog.ListChannelModels(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) createChannel(c *gin.Context) {

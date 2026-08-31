@@ -120,6 +120,65 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if role["item"].(map[string]any)["type"] != identity.AcqKOL2 {
 		t.Fatalf("create role: %+v", role)
 	}
+	roleID := role["item"].(map[string]any)["id"].(string)
+	gotRole := getAuthJSON(t, server.URL+"/admin/acquisition-roles/"+roleID, "m1_admin_token")
+	if gotRole["item"].(map[string]any)["id"] != roleID {
+		t.Fatalf("get role: %+v", gotRole)
+	}
+	if mustStatusJSON(t, http.MethodPatch, server.URL+"/admin/acquisition-roles/"+roleID, "m1_admin_token", map[string]string{
+		"status": "disabled",
+	}) != http.StatusConflict {
+		t.Fatal("patch acquisition role without confirm must be 409")
+	}
+	patchedRole := patchJSONRaw(t, server.URL+"/admin/acquisition-roles/"+roleID, "m1_admin_token", map[string]any{"status": "disabled"})
+	if patchedRole["item"].(map[string]any)["status"] != "disabled" {
+		t.Fatalf("patch role: %+v", patchedRole)
+	}
+	_ = patchJSONRaw(t, server.URL+"/admin/acquisition-roles/"+roleID, "m1_admin_token", map[string]any{"status": "active"})
+	agents := getAuthJSON(t, server.URL+"/admin/acquisition-roles?type=agent", "m1_admin_token")
+	for _, raw := range agents["items"].([]any) {
+		if raw.(map[string]any)["type"] != identity.AcqAgent {
+			t.Fatalf("type=agent leaked: %+v", raw)
+		}
+	}
+	kols := getAuthJSON(t, server.URL+"/admin/acquisition-roles?type=kol", "m1_admin_token")
+	for _, raw := range kols["items"].([]any) {
+		typ := raw.(map[string]any)["type"]
+		if typ != identity.AcqKOL1 && typ != identity.AcqKOL2 {
+			t.Fatalf("type=kol leaked: %+v", raw)
+		}
+	}
+	ch := getAuthJSON(t, server.URL+"/admin/channels/"+identity.ResellerChannelID, "m1_admin_token")
+	if ch["item"].(map[string]any)["code"] != identity.ResellerChannelCode {
+		t.Fatalf("get channel: %+v", ch)
+	}
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/admin/channels/chn_missing", "m1_admin_token", nil) != http.StatusNotFound {
+		t.Fatal("missing channel must be 404")
+	}
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/admin/channels/"+identity.OfficialChannelID, "m1_channel_token", nil) != http.StatusForbidden {
+		t.Fatal("channel admin must not read another tenant")
+	}
+	own := getAuthJSON(t, server.URL+"/admin/channels/"+identity.ResellerChannelID, "m1_channel_token")
+	if own["item"].(map[string]any)["id"] != identity.ResellerChannelID {
+		t.Fatalf("channel admin own tenant: %+v", own)
+	}
+	models := getAuthJSON(t, server.URL+"/admin/channels/"+identity.ResellerChannelID+"/models", "m1_admin_token")
+	if models["items"] == nil {
+		t.Fatalf("channel models missing: %+v", models)
+	}
+	foundTenantEcho := false
+	for _, raw := range models["items"].([]any) {
+		row := raw.(map[string]any)
+		if _, ok := row["credential_ref"]; ok {
+			t.Fatalf("tenant models must not leak provider credentials: %+v", row)
+		}
+		if row["public_id"] == "tokenhub/echo-1" {
+			foundTenantEcho = true
+		}
+	}
+	if !foundTenantEcho {
+		t.Fatalf("reseller tenant should inherit platform echo model: %+v", models)
+	}
 	promoCode := "THB-ADM-" + time.Now().UTC().Format("150405000")
 	createdPromo := postJSONRaw(t, server.URL+"/admin/promotion-codes", "m1_admin_token", map[string]any{
 		"channel_org_id": identity.ResellerChannelID, "acquisition_role_id": role["item"].(map[string]any)["id"], "code": promoCode,

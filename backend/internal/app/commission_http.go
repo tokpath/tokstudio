@@ -30,6 +30,8 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.POST("/channel/promotion-codes", a.requireRoles("channel_admin", "platform_admin"), a.adminCreatePromo)
 	r.POST("/admin/acquisition-roles", a.requireRoles("platform_admin", "channel_admin"), a.adminCreateRole)
 	r.GET("/admin/acquisition-roles", a.requireRoles("platform_admin", "channel_admin"), a.adminListRoles)
+	r.GET("/admin/acquisition-roles/:id", a.requireRoles("platform_admin", "channel_admin"), a.adminGetRole)
+	r.PATCH("/admin/acquisition-roles/:id", a.requireRoles("platform_admin", "channel_admin"), a.adminPatchRole)
 	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
@@ -310,18 +312,57 @@ func (a *App) adminListRoles(c *gin.Context) {
 	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
 		channelID = p.ChannelOrgID
 	}
-	items, err := a.Identity.ListAcquisitionRoles(c.Request.Context(), channelID)
+	items, err := a.Identity.ListAcquisitionRoles(c.Request.Context(), channelID, c.Query("type"))
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取角色失败", true)
 		return
 	}
+	if q := strings.ToLower(c.Query("q")); q != "" {
+		filtered := make([]identity.AcquisitionRoleView, 0, len(items))
+		for _, item := range items {
+			hay := strings.ToLower(item.ID + item.Type + item.ChannelOrgID + item.Status + item.ParentID)
+			if strings.Contains(hay, q) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "roles.csv", []string{"id", "channel_org_id", "type", "level", "status"}, items, func(item identity.AcquisitionRoleView) []string {
-			return []string{item.ID, item.ChannelOrgID, item.Type, strconv.Itoa(item.Level), item.Status}
+		httpx.WriteCSV(c, "roles.csv", []string{"id", "channel_org_id", "type", "level", "status", "parent_id"}, items, func(item identity.AcquisitionRoleView) []string {
+			return []string{item.ID, item.ChannelOrgID, item.Type, strconv.Itoa(item.Level), item.Status, item.ParentID}
 		})
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item identity.AcquisitionRoleView) string { return item.ID })
+}
+
+func (a *App) adminGetRole(c *gin.Context) {
+	item, err := a.Identity.GetAcquisitionRole(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPatchRole(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		Status string `json:"status"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	item, err := a.Identity.PatchAcquisitionRole(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"), body.Status)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "identity.acquisition.patch", ResourceType: "acquisition_role", ResourceID: item.ID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminCreatePromo(c *gin.Context) {

@@ -26,7 +26,15 @@ var (
 	ErrOTPInvalid         = errors.New("verification code is invalid")
 	ErrInvalidProfile     = errors.New("profile is invalid")
 	ErrInvalidLocale      = errors.New("locale is not supported")
+	ErrNotFound           = errors.New("record not found")
 )
+
+func mapNotFound(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotFound
+	}
+	return err
+}
 
 type otpRow struct {
 	ID         string     `gorm:"column:id;primaryKey"`

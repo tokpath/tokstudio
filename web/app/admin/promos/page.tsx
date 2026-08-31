@@ -43,7 +43,7 @@ export default function AdminPromosPage() {
       <Form {...roleForm}>
         <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">推广角色</h2>
-          <p className="mb-3 text-sm text-ink-secondary">层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。</p>
+          <p className="mb-3 text-sm text-ink-secondary">层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。主体列表在「渠道租户」分栏管理。</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <TextField control={roleForm.control} name="channel_id" label="渠道 ID" showLabel={false} className="w-48" />
             <TextField control={roleForm.control} name="role_type" label="角色类型" showLabel={false} className="w-28" />

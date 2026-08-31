@@ -33,7 +33,7 @@ export function parseAllowlist(raw: string): string[] {
 
 export function KeysList({ items }: { items: APIKeyItem[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-ink-secondary">还没有 API Key。</p>;
+    return <p className="text-sm text-ink-secondary">暂无 API Keys</p>;
   }
   return (
     <ul className="space-y-3 text-sm text-ink">

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { KeysList, parseAllowlist } from "../app/app/keys";
+import { KeysList, parseAllowlist } from "../app/app/keys-panel";
 
 describe("KeysList", () => {
   it("renders API Key prefix and status for the user console", () => {

@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adminGroups, channelSections, partnerSections, portalLinks, userSections, PUBLIC_NAV, PUBLIC_NAV_MORE } from "@/lib/nav";
+import {
+  adminGroups,
+  channelSections,
+  consoleItemHref,
+  partnerSections,
+  portalLinks,
+  userSections,
+  userSettingsNav,
+  PUBLIC_NAV,
+  PUBLIC_NAV_MORE,
+} from "@/lib/nav";
 import { PUBLIC_PAGE_SPECS } from "@/lib/public-site";
 
 type Item = { href: string; label: string; group: string };
@@ -31,9 +41,13 @@ export function CommandPalette({
       label: item.label,
       group: "公共站",
     }));
-    const user = userSections.map((item) => ({ href: `/app${item.href}`, label: item.label, group: "用户" }));
-    const channel = channelSections.map((item) => ({ href: `/channel${item.href}`, label: item.label, group: "渠道" }));
-    const partner = partnerSections.map((item) => ({ href: `/partner${item.href}`, label: item.label, group: "分销" }));
+    const user = [...userSections, ...userSettingsNav].map((item) => ({
+      href: consoleItemHref(item, "/app"),
+      label: item.label,
+      group: "用户",
+    }));
+    const channel = channelSections.map((item) => ({ href: consoleItemHref(item, "/channel"), label: item.label, group: "渠道" }));
+    const partner = partnerSections.map((item) => ({ href: consoleItemHref(item, "/partner"), label: item.label, group: "分销" }));
     const admin = adminGroups.flatMap((group) =>
       group.items.map((item) => ({ href: item.href, label: labels[item.key] || item.key, group: "管理" })),
     );

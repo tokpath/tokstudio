@@ -29,9 +29,9 @@ export default function AdminPricesPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">价格</h2>
-        <p className="mb-3 text-sm text-slate-400">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。</p>
+        <p className="mb-3 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。</p>
         <Form {...form}>
           <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="model" label="模型 ID" placeholder="public model id" showLabel={false} className="w-56" />
@@ -57,7 +57,7 @@ export default function AdminPricesPage() {
             </ConfirmButton>
           </form>
         </Form>
-        <p className="text-sm text-slate-300">{message}</p>
+        <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<PriceBook>
         path="/admin/price-books"

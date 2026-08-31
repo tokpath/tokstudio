@@ -44,17 +44,17 @@ export default function AdminUsersPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">用户/项目</h2>
-        <p className="mb-3 text-sm text-slate-400">封禁、解封和人工改归因都要二次确认，并写入审计。平台管理员不能封自己。</p>
+        <p className="mb-3 text-sm text-ink-secondary">封禁、解封和人工改归因都要二次确认，并写入审计。平台管理员不能封自己。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Input className="w-40" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="操作原因" placeholder="操作原因" />
           <Input className="w-32" value={promo} onChange={(e) => setPromo(e.target.value)} aria-label="推广码" placeholder="推广码" />
         </div>
-        {query.data?.error ? <p className="text-sm text-slate-400">{query.data.error.message}</p> : null}
+        {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <table className="min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-slate-400">
+            <tr className="border-b border-hairline text-ink-secondary">
               <th className="px-2 py-2">Email</th>
               <th className="px-2 py-2">渠道</th>
               <th className="px-2 py-2">归因</th>
@@ -64,11 +64,11 @@ export default function AdminUsersPage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-white/10/80">
-                <td className="px-2 py-2 text-slate-200">{item.email}</td>
-                <td className="px-2 py-2 text-slate-300">{item.channel_org_id}</td>
-                <td className="px-2 py-2 text-slate-300">{item.source_code || "-"}</td>
-                <td className="px-2 py-2 text-slate-300">{item.status}</td>
+              <tr key={item.id} className="border-b border-hairline/80">
+                <td className="px-2 py-2 text-ink">{item.email}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.channel_org_id}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.source_code || "-"}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.status}</td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
                     {item.status === "banned" ? (
@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-sm text-slate-300">{message}</p>
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
     </AdminShell>
   );

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
 import { useState } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export function AppProviders({
   locale,
@@ -15,8 +16,10 @@ export function AppProviders({
 }) {
   const [queryClient] = useState(() => new QueryClient());
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </NextIntlClientProvider>
+    <ThemeProvider>
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </NextIntlClientProvider>
+    </ThemeProvider>
   );
 }

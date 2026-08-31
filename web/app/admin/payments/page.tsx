@@ -38,9 +38,9 @@ export default function AdminPaymentsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">支付</h2>
-        <p className="mb-3 text-sm text-slate-400">查看沙箱支付单，手工入账或退款。退款会冲正未用完的权益。</p>
+        <p className="mb-3 text-sm text-ink-secondary">查看沙箱支付单，手工入账或退款。退款会冲正未用完的权益。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={orderID} onChange={(e) => setOrderID(e.target.value)} aria-label="支付单 ID" placeholder="pay_..." />
           <ConfirmButton size="sm" title="确认支付入账" description="手工确认后会给用户入账对应权益。" onConfirm={() => act("confirm")}>
@@ -50,7 +50,7 @@ export default function AdminPaymentsPage() {
             退款
           </ConfirmButton>
         </div>
-        <p className="text-sm text-slate-300">{message}</p>
+        <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<Payment>
         path="/admin/payments"

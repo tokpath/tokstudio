@@ -33,16 +33,16 @@ export default function AdminAlertsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">告警</h2>
-        <p className="mb-3 text-sm text-slate-400">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
+        <p className="mb-3 text-sm text-ink-secondary">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
         <ConfirmButton size="sm" title="确认评估告警" description="评估会按阈值写入 ops_alerts，并记审计。" onConfirm={evaluate}>
           评估告警
         </ConfirmButton>
-        {query.data?.error ? <p className="mt-3 text-sm text-slate-400">{query.data.error.message}</p> : null}
+        {query.data?.error ? <p className="mt-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <table className="mt-4 min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-slate-400">
+            <tr className="border-b border-hairline text-ink-secondary">
               <th className="px-2 py-2">类型</th>
               <th className="px-2 py-2">级别</th>
               <th className="px-2 py-2">状态</th>
@@ -51,16 +51,16 @@ export default function AdminAlertsPage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-white/10/80">
-                <td className="px-2 py-2 text-slate-200">{item.kind}</td>
-                <td className="px-2 py-2 text-slate-300">{item.severity}</td>
-                <td className="px-2 py-2 text-slate-300">{item.status}</td>
-                <td className="px-2 py-2 text-slate-400">{item.message}</td>
+              <tr key={item.id} className="border-b border-hairline/80">
+                <td className="px-2 py-2 text-ink">{item.kind}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.severity}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.status}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.message}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-sm text-slate-300">{message}</p>
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
     </AdminShell>
   );

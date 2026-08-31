@@ -33,21 +33,21 @@ export function parseAllowlist(raw: string): string[] {
 
 export function KeysList({ items }: { items: APIKeyItem[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-slate-400">还没有 API Key。</p>;
+    return <p className="text-sm text-ink-secondary">还没有 API Key。</p>;
   }
   return (
-    <ul className="space-y-3 text-sm text-slate-200">
+    <ul className="space-y-3 text-sm text-ink">
       {items.map((item) => (
-        <li key={item.id} className="rounded-lg border border-white/10 p-3">
+        <li key={item.id} className="rounded-lg border border-hairline p-3">
           <p>
             {item.name} · {item.prefix} · {item.status}
             {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}
             {item.concurrency_limit ? ` · 并发 ${item.concurrency_limit}` : ""}
           </p>
-          <p className="text-slate-400">
+          <p className="text-ink-secondary">
             模型白名单：{item.allowlist?.length ? item.allowlist.join(", ") : "不限制"}
           </p>
-          {item.key ? <p className="break-all text-slate-400">{item.key}</p> : null}
+          {item.key ? <p className="break-all text-ink-secondary">{item.key}</p> : null}
         </li>
       ))}
     </ul>
@@ -139,7 +139,7 @@ export default function KeysPanel() {
   return (
     <Card>
       <CardTitle>API Key</CardTitle>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-ink-secondary">
         完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。
       </p>
       <Form {...form}>
@@ -155,7 +155,7 @@ export default function KeysPanel() {
               刷新
             </Button>
           </div>
-          <p className="text-sm text-slate-300">{createMessage}</p>
+          <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
       <KeysList items={items} />
@@ -177,7 +177,7 @@ export default function KeysPanel() {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

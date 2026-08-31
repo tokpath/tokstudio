@@ -83,9 +83,9 @@ export default function AdminPlansPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">套餐审核</h2>
-        <p className="mb-3 text-sm text-slate-400">低于 1 USD、超额权益或高风险视频秒数的渠道套餐会停在 pending_review。</p>
+        <p className="mb-3 text-sm text-ink-secondary">低于 1 USD、超额权益或高风险视频秒数的渠道套餐会停在 pending_review。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Button size="sm" variant={status === "pending_review" ? "default" : "outline"} onClick={() => setStatus("pending_review")}>
             待审核
@@ -95,10 +95,10 @@ export default function AdminPlansPage() {
           </Button>
           <Input className="w-48" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="审核原因" placeholder="审核原因" />
         </div>
-        {query.data?.error ? <p className="text-sm text-slate-400">{query.data.error.message}</p> : null}
+        {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <table className="min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-slate-400">
+            <tr className="border-b border-hairline text-ink-secondary">
               <th className="px-2 py-2">名称</th>
               <th className="px-2 py-2">归属</th>
               <th className="px-2 py-2">价格</th>
@@ -109,14 +109,14 @@ export default function AdminPlansPage() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-white/10/80">
-                <td className="px-2 py-2 text-slate-200">{item.name}</td>
-                <td className="px-2 py-2 text-slate-300">
+              <tr key={item.id} className="border-b border-hairline/80">
+                <td className="px-2 py-2 text-ink">{item.name}</td>
+                <td className="px-2 py-2 text-ink-secondary">
                   {item.owner_type} / {item.owner_id}
                 </td>
-                <td className="px-2 py-2 text-slate-300">{item.price_minor}</td>
-                <td className="px-2 py-2 text-slate-300">{item.status}</td>
-                <td className="px-2 py-2 text-slate-400">{item.review_reason || "-"}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.price_minor}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.status}</td>
+                <td className="px-2 py-2 text-ink-secondary">{item.review_reason || "-"}</td>
                 <td className="px-2 py-2">
                   {item.status === "pending_review" ? (
                     <div className="flex flex-wrap gap-2">
@@ -135,12 +135,12 @@ export default function AdminPlansPage() {
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-sm text-slate-300">{message}</p>
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <Form {...createForm}>
-        <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={(event) => event.preventDefault()}>
+        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">创建套餐</h2>
-          <p className="mb-3 text-sm text-slate-400">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
+          <p className="mb-3 text-sm text-ink-secondary">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={createForm.control} name="name" label="创建用套餐名" />
             <TextField control={createForm.control} name="owner_type" label="创建用归属" placeholder="创建用归属 platform" />
@@ -185,9 +185,9 @@ export default function AdminPlansPage() {
         </form>
       </Form>
       <Form {...archiveForm}>
-        <form className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6" onSubmit={(event) => event.preventDefault()}>
+        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">下架套餐</h2>
-          <p className="mb-3 text-sm text-slate-400">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
+          <p className="mb-3 text-sm text-ink-secondary">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={archiveForm.control} name="plan_id" label="下架用套餐 ID" />
           </div>
@@ -216,10 +216,10 @@ export default function AdminPlansPage() {
           </ConfirmButton>
         </form>
       </Form>
-      <p className="text-sm text-slate-300">{writeMessage}</p>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <p className="text-sm text-ink-secondary">{writeMessage}</p>
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">续费扫描</h2>
-        <p className="mb-3 text-sm text-slate-400">
+        <p className="mb-3 text-sm text-ink-secondary">
           强制到期把 period_end 拨到过去，再扫描才会走重试/宽限期。生产默认禁止。不强制确认头。
         </p>
         <Form {...forceEndForm}>
@@ -257,7 +257,7 @@ export default function AdminPlansPage() {
         >
           续费扫描
         </Button>
-        <p className="mt-3 text-sm text-slate-300">{renewMessage}</p>
+        <p className="mt-3 text-sm text-ink-secondary">{renewMessage}</p>
       </section>
     </AdminShell>
   );

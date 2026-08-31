@@ -40,9 +40,9 @@ export default function ExamplesPanel() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">接入示例</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">
+      <p className="mb-3 text-sm text-ink-secondary">
         覆盖 Chat、Anthropic Messages 和视频任务。完整 Key 只在「API Key」面板复制，不会出现在这段文档里。
       </p>
       <div className="mb-3 flex flex-wrap gap-3">
@@ -59,11 +59,11 @@ export default function ExamplesPanel() {
           复制 Node.js
         </Button>
       </div>
-      <pre className="overflow-x-auto rounded bg-slate-950 p-3 text-xs text-cyan-100">{docs.examples?.curl || "点击刷新示例"}</pre>
-      <p className="mt-3 text-sm text-slate-400">{docs.notes?.errors}</p>
-      <p className="mt-1 text-sm text-slate-400">{docs.notes?.rate_limit}</p>
-      <p className="mt-1 text-sm text-slate-400">{docs.notes?.webhook}</p>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <pre className="overflow-x-auto rounded bg-canvas p-3 text-xs text-code-ink">{docs.examples?.curl || "点击刷新示例"}</pre>
+      <p className="mt-3 text-sm text-ink-secondary">{docs.notes?.errors}</p>
+      <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.rate_limit}</p>
+      <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.webhook}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

@@ -41,9 +41,9 @@ export default function ChannelPromos() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">推广链接</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">把推广码发给用户，或复制带 promo 参数的登录链接。</p>
+      <p className="mb-3 text-sm text-ink-secondary">把推广码发给用户，或复制带 promo 参数的登录链接。</p>
       <Form {...form}>
         <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>
           <TextField control={form.control} name="code" label="新推广码" placeholder="新推广码 THB-SALE" showLabel={false} className="max-w-xs" />
@@ -76,14 +76,14 @@ export default function ChannelPromos() {
           </Button>
         </form>
       </Form>
-      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+      <ul className="mt-3 space-y-2 text-sm text-ink">
         {items.map((item) => (
           <li key={item.id}>
             {item.code} · {item.status} · {origin}/login?promo={item.code}
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

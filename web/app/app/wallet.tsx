@@ -41,21 +41,21 @@ export default function WalletPanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
+    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
       <h2 className="mb-3 text-xl font-medium tracking-tight">现金钱包</h2>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-ink-secondary">
         可用 {balance?.available ?? "—"} USD，预授权占用 {balance?.reserved ?? "0"} USD。
       </p>
       <div className="flex flex-wrap gap-3">
-        <button className="rounded border border-slate-600 px-4 py-2" onClick={refresh}>
+        <button className="rounded border border-hairline px-4 py-2" onClick={refresh}>
           刷新余额
         </button>
-        <input className="rounded bg-slate-950 px-3 py-2" value={code} onChange={(e) => setCode(e.target.value)} />
-        <button className="rounded px-4 py-2 text-slate-950" style={{ background: "var(--brand-primary)" }} onClick={redeem}>
+        <input className="rounded bg-canvas px-3 py-2" value={code} onChange={(e) => setCode(e.target.value)} />
+        <button className="rounded px-4 py-2 text-on-brand" style={{ background: "var(--brand-primary)" }} onClick={redeem}>
           兑换
         </button>
       </div>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );
 }

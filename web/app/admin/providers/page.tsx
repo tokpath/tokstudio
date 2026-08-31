@@ -72,7 +72,7 @@ function ProbeCell({ id }: { id: string }) {
       >
         探测
       </Button>
-      {result ? <span className="text-xs text-slate-400">{result}</span> : null}
+      {result ? <span className="text-xs text-ink-secondary">{result}</span> : null}
     </div>
   );
 }
@@ -87,9 +87,9 @@ function RotateCredentialForm() {
 
   return (
     <Form {...form}>
-      <form className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+      <form className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
         <h2 className="mb-3 text-xl font-medium">凭据轮换</h2>
-        <p className="mb-3 text-sm text-slate-400">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
+        <p className="mb-3 text-sm text-ink-secondary">旧密文立即标记 rotated。不要对生产主 Provider 随便试，先建一次性提供商。</p>
         <div className="mb-3 flex flex-wrap items-end gap-2">
           <TextField control={form.control} name="provider_id" label="轮换 provider id" placeholder="轮换用 provider id" showLabel={false} className="w-72" />
           <TextField control={form.control} name="secret" label="上游凭据" placeholder="轮换用密文" type="password" autoComplete="new-password" showLabel={false} className="w-72" />
@@ -118,7 +118,7 @@ function RotateCredentialForm() {
             轮换凭据
           </ConfirmButton>
         </div>
-        <p className="text-sm text-slate-300">{message}</p>
+        <p className="text-sm text-ink-secondary">{message}</p>
       </form>
     </Form>
   );
@@ -172,9 +172,9 @@ function AccountPoolPanel() {
   }
 
   return (
-    <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4">
+    <section className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4">
       <h2 className="mb-3 text-xl font-medium">账号池</h2>
-      <p className="mb-3 text-sm text-slate-400">列表只显示指纹，不回密文。冷却或停用后不会被路由选中。</p>
+      <p className="mb-3 text-sm text-ink-secondary">列表只显示指纹，不回密文。冷却或停用后不会被路由选中。</p>
       <div className="mb-3 flex flex-wrap gap-2">
         <Input className="w-72" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="账号池 provider id" placeholder="账号池 provider id" />
         <Button size="sm" variant="outline" onClick={() => load()}>
@@ -184,7 +184,7 @@ function AccountPoolPanel() {
       <div className="mb-3 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-slate-400">
+            <tr className="border-b border-hairline text-ink-secondary">
               <th className="px-2 py-2 font-medium">Label</th>
               <th className="px-2 py-2 font-medium">Fingerprint</th>
               <th className="px-2 py-2 font-medium">Status</th>
@@ -193,7 +193,7 @@ function AccountPoolPanel() {
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-white/10/80">
+              <tr key={item.id} className="border-b border-hairline/80">
                 <td className="px-2 py-2">{item.label}</td>
                 <td className="px-2 py-2">{item.fingerprint}</td>
                 <td className="px-2 py-2">{item.status}</td>
@@ -248,7 +248,7 @@ function AccountPoolPanel() {
           </ConfirmButton>
         </form>
       </Form>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );
 }
@@ -263,9 +263,9 @@ function PatchProviderForm() {
 
   return (
     <Form {...form}>
-      <form className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
+      <form className="mt-4 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
         <h2 className="mb-3 text-xl font-medium">改 Provider 状态</h2>
-        <p className="mb-3 text-sm text-slate-400">maintenance 会从路由候选里拿掉。RPM 写到 Provider 行，不是账号池单条账号。</p>
+        <p className="mb-3 text-sm text-ink-secondary">maintenance 会从路由候选里拿掉。RPM 写到 Provider 行，不是账号池单条账号。</p>
         <div className="mb-3 grid max-w-xl gap-2">
           <TextField control={form.control} name="provider_id" label="改状态用 provider id" />
           <TextField control={form.control} name="status" label="改状态用状态" placeholder="改状态用状态 maintenance" />
@@ -298,7 +298,7 @@ function PatchProviderForm() {
         >
           保存 Provider
         </ConfirmButton>
-        <p className="mt-3 text-sm text-slate-300">{message}</p>
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </form>
     </Form>
   );
@@ -313,7 +313,7 @@ export default function AdminProvidersPage() {
 
   return (
     <AdminShell>
-      <p className="text-sm text-slate-400">列表每行可探测。探测走上游沙箱、不会计费，也不要二次确认。</p>
+      <p className="text-sm text-ink-secondary">列表每行可探测。探测走上游沙箱、不会计费，也不要二次确认。</p>
       <AdminListPanel<Provider>
         path="/admin/providers"
         title="提供商"
@@ -333,8 +333,8 @@ export default function AdminProvidersPage() {
       />
       <RotateCredentialForm />
       <Form {...form}>
-        <form className="mt-4 grid max-w-xl gap-2 rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-4" onSubmit={(event) => event.preventDefault()}>
-          <p className="text-sm text-slate-400">创建 Provider 需要二次确认头，密钥不会回显。</p>
+        <form className="mt-4 grid max-w-xl gap-2 rounded-stamp border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
+          <p className="text-sm text-ink-secondary">创建 Provider 需要二次确认头，密钥不会回显。</p>
           <TextField control={form.control} name="name" label="name" />
           <TextField control={form.control} name="slug" label="slug" />
           <TextField control={form.control} name="adapter" label="adapter" />
@@ -355,7 +355,7 @@ export default function AdminProvidersPage() {
           >
             创建
           </ConfirmButton>
-          <p className="text-sm text-slate-300">{createMessage}</p>
+          <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
       <PatchProviderForm />

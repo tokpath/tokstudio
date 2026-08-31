@@ -32,9 +32,9 @@ export default function AdminUsagePage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">用量回放</h2>
-        <p className="mb-3 text-sm text-slate-400">对 pending_reconciliation 按 request_id 补真实 Token。重复回放幂等，不会双扣。</p>
+        <p className="mb-3 text-sm text-ink-secondary">对 pending_reconciliation 按 request_id 补真实 Token。重复回放幂等，不会双扣。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="request_id" placeholder="request_id" />
           <Input className="w-24" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="prompt tokens" />
@@ -43,7 +43,7 @@ export default function AdminUsagePage() {
             回放 usage
           </ConfirmButton>
         </div>
-        <p className="text-sm text-slate-300">{message}</p>
+        <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<Usage>
         path="/admin/usage"

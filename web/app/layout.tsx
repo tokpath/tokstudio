@@ -13,7 +13,7 @@ const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "TokenHub",
-  description: "一个 Base URL、一把 Key，接入多模型。面向开发者的可审计 API 中转。",
+  description: "一个 Key，可解释路由，账能复算。",
 };
 
 async function loadBrand(): Promise<Brand | undefined> {
@@ -30,8 +30,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const brand = await loadBrand();
   const locale = resolveLocale((await cookies()).get("NEXT_LOCALE")?.value);
   return (
-    <html lang={locale === "zh" ? "zh-CN" : locale}>
-      <body className={`${sans.variable} ${mono.variable} min-h-screen font-sans antialiased`} style={themeStyle(brand)}>
+    <html lang={locale === "zh" ? "zh-CN" : locale} suppressHydrationWarning>
+      <body className={`${sans.variable} ${mono.variable} min-h-screen bg-canvas font-sans text-ink antialiased`} style={themeStyle(brand)}>
         <AppProviders locale={locale} messages={messagesFor(locale)}>
           <AppChrome brand={brand}>{children}</AppChrome>
         </AppProviders>

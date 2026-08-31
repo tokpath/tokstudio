@@ -85,9 +85,9 @@ export default function AdminCommissionPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">佣金策略</h2>
-        <p className="mb-3 text-sm text-slate-400">
+        <p className="mb-3 text-sm text-ink-secondary">
           直接 / 管理奖励 / 渠道 / 团队分成与冻结天数。改策略只影响之后的 usage，不改已经入账的明细。
         </p>
         <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-4">
@@ -107,12 +107,12 @@ export default function AdminCommissionPage() {
             保存策略
           </ConfirmButton>
         </div>
-        <p className="mt-3 text-sm text-slate-300">{message}</p>
-        {policyQuery.data?.error ? <p className="mt-2 text-sm text-slate-400">{policyQuery.data.error.message}</p> : null}
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+        {policyQuery.data?.error ? <p className="mt-2 text-sm text-ink-secondary">{policyQuery.data.error.message}</p> : null}
       </section>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">佣金重算</h2>
-        <p className="mb-3 text-sm text-slate-400">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
+        <p className="mb-3 text-sm text-ink-secondary">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
         <div className="flex flex-wrap items-center gap-2">
           <Input
             className="w-72"
@@ -142,12 +142,12 @@ export default function AdminCommissionPage() {
           >
             重算佣金
           </ConfirmButton>
-          <p className="text-sm text-slate-300">{recalcMessage}</p>
+          <p className="text-sm text-ink-secondary">{recalcMessage}</p>
         </div>
       </section>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">手工结算</h2>
-        <p className="mb-3 text-sm text-slate-400">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
+        <p className="mb-3 text-sm text-ink-secondary">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={usageEventID} onChange={(e) => setUsageEventID(e.target.value)} aria-label="usage 事件 ID" placeholder="usage_event_id" />
           <ConfirmButton

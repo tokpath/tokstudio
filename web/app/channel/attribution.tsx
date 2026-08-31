@@ -28,20 +28,20 @@ export default function ChannelAttribution() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道归因</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">按推广码和代理层级点数。渠道不能改别人的归属。</p>
+      <p className="mb-3 text-sm text-ink-secondary">按推广码和代理层级点数。渠道不能改别人的归属。</p>
       <Button variant="outline" onClick={refresh}>
         刷新归因
       </Button>
-      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+      <ul className="mt-3 space-y-2 text-sm text-ink">
         {items.map((item) => (
           <li key={`${item.source_code}-${item.role_type}`}>
             {item.source_code || "—"} · {item.role_type || "无层级"} · {item.user_count ?? 0} 人
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

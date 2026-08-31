@@ -4,20 +4,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
-import { adminGroups, channelSections, partnerSections, portalLinks, userSections } from "@/lib/nav";
+import { adminGroups, channelSections, partnerSections, userSections } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandMark } from "@/components/brand-mark";
 
 function SectionLinks({ items, pathname }: { items: { href: string; label: string }[]; pathname: string }) {
   return (
-    <ul className="space-y-1">
-      {items.map((item) => (
-        <li key={item.href}>
-          <a href={item.href} className="block rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
-            {item.label}
-          </a>
-        </li>
-      ))}
-      {pathname ? null : null}
+    <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+      {items.map((item) => {
+        const active = pathname.includes(item.href.replace("#", "")) || false;
+        return (
+          <li key={item.href}>
+            <a
+              href={item.href}
+              className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
+                active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
+              }`}
+            >
+              {item.label}
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -38,66 +47,53 @@ export function ConsoleShell({
   const isUser = pathname.startsWith("/app");
   const isChannel = pathname.startsWith("/channel");
   const isPartner = pathname.startsWith("/partner");
+  const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";
+  const portalKey = isAdmin ? "admin" : isChannel ? "channel" : isPartner ? "partner" : "app";
+  const title = t(portalKey);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="th-scrollbar border-b border-white/10 bg-[#07111f]/90 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="flex items-center justify-between px-4 py-4">
-          <Link href="/" className="text-base font-semibold" style={{ color: "var(--brand-primary)" }}>
-            {brand?.name || "TokenHub"}
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
+        <div className="flex h-14 items-center gap-4 px-6">
+          <Link href={portalHref} className="flex items-center gap-2 text-ink no-underline">
+            <BrandMark />
+            <span className="text-lg font-semibold">{title}</span>
           </Link>
-          <button type="button" onClick={onCommand} className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-slate-400">
-            ⌘K
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={onCommand}>
+              跳转
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/docs">文档</Link>
+            </Button>
+          </div>
         </div>
-        <div className="px-3 pb-6">
-          <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">门户</p>
-          <ul className="mb-5 space-y-1">
-            {portalLinks.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`block rounded-lg px-3 py-1.5 text-sm ${active ? "bg-white/8 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
-                  >
-                    {t(item.key)}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          {isUser ? (
-            <>
-              <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">本页</p>
-              <SectionLinks items={userSections} pathname={pathname} />
-            </>
-          ) : null}
-          {isChannel ? (
-            <>
-              <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">本页</p>
-              <SectionLinks items={channelSections} pathname={pathname} />
-            </>
-          ) : null}
-          {isPartner ? (
-            <>
-              <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">本页</p>
-              <SectionLinks items={partnerSections} pathname={pathname} />
-            </>
-          ) : null}
+      </header>
+      <div className="flex flex-1 flex-col md:flex-row">
+        <nav
+          className="th-scrollbar border-b border-hairline px-3 py-2 md:w-60 md:border-b-0 md:border-r md:py-6"
+          aria-label={title}
+        >
+          {isUser ? <SectionLinks items={userSections} pathname={pathname} /> : null}
+          {isChannel ? <SectionLinks items={channelSections} pathname={pathname} /> : null}
+          {isPartner ? <SectionLinks items={partnerSections} pathname={pathname} /> : null}
           {isAdmin
             ? adminGroups.map((group) => (
                 <div key={group.title} className="mb-4">
-                  <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">{group.title}</p>
-                  <ul className="space-y-1">
+                  <p className="th-eyebrow mb-2 px-3 text-ink-mute">{group.title}</p>
+                  <ul className="flex flex-col gap-1">
                     {group.items.map((item) => {
                       const active = pathname === item.href;
                       return (
                         <li key={item.href}>
                           <Link
                             href={item.href}
-                            className={`block rounded-lg px-3 py-1.5 text-sm ${active ? "bg-white/8 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
+                            className={`relative block rounded-control px-3 py-2 text-sm no-underline ${
+                              active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
+                            }`}
                           >
+                            {active ? <span className="absolute inset-y-2 left-0 hidden w-0.5 bg-brand md:block" /> : null}
                             {ta(item.key)}
                           </Link>
                         </li>
@@ -107,23 +103,8 @@ export function ConsoleShell({
                 </div>
               ))
             : null}
-        </div>
-      </aside>
-      <div className="min-w-0">
-        <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/10 bg-[#020617]/70 px-4 py-3 backdrop-blur-xl md:px-6">
-          <p className="text-sm text-slate-400">
-            {isAdmin ? "平台管理控制台" : isChannel ? "渠道控制台" : isPartner ? "分销控制台" : "用户控制台"}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onCommand}>
-              快速跳转
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/docs">文档</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="px-4 py-8 md:px-8">{children}</div>
+        </nav>
+        <main className="min-w-0 flex-1 px-6 py-8">{children}</main>
       </div>
     </div>
   );

@@ -64,40 +64,29 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-2">
-      <div className="hidden lg:block">
-        <p className="text-sm uppercase tracking-[0.2em]" style={{ color: "var(--brand-primary)" }}>
-          开始使用
+    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-16">
+      <section className="w-full rounded-stamp border border-hairline bg-canvas-raised p-8">
+        <p className="th-eyebrow text-brand-emphasis">Sign in</p>
+        <h1 className="mt-2 text-2xl font-semibold">注册 / 登录</h1>
+        <p className="mt-2 text-sm text-ink-secondary">
+          推广码在注册成功时由服务端固化，不能当作可改归属。没有渐变英雄。
         </p>
-        <h2 className="mt-3 text-4xl font-semibold tracking-tight">一把 Key，接进控制台</h2>
-        <p className="mt-4 max-w-md text-slate-400">
-          登录成功后会回到刚才的购买页或用户控制台。推广码决定渠道归属，注册后不能自己改。
-        </p>
-        <ul className="mt-8 flex flex-col gap-3 text-sm text-slate-300">
-          <li>· 用户控制台管余额、Key、用量和媒体任务</li>
-          <li>· 渠道控制台只看本渠道数据和套餐</li>
-          <li>· 平台管理看提供商、价格、佣金和审计</li>
-        </ul>
-      </div>
-      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-glow">
-        <h1 className="text-3xl font-semibold tracking-tight">注册 / 登录</h1>
-        <p className="mt-2 text-sm text-slate-400">登录成功后会回到刚才的购买页或用户控制台。</p>
         <Form {...form}>
           <form className="mt-6 flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="email" label="邮箱" />
             <TextField control={form.control} name="password" label="密码" placeholder="密码（至少 8 位）" type="password" />
             <TextField control={form.control} name="promo" label="推广码" placeholder="推广码 THA1 / THB1 / THC1" />
             <div className="mt-2 flex gap-3">
-              <Button type="button" onClick={form.handleSubmit(register)}>
-                注册
-              </Button>
-              <Button type="button" variant="outline" onClick={form.handleSubmit(login)}>
+              <Button type="button" onClick={form.handleSubmit(login)}>
                 登录
               </Button>
+              <Button type="button" variant="outline" onClick={form.handleSubmit(register)}>
+                注册
+              </Button>
             </div>
-            <p className="text-sm text-slate-300">{message}</p>
-            <p className="text-xs text-slate-500">
-              还没看过模型目录？先回 <Link href="/" className="underline">公共站</Link>。
+            <p className="text-sm text-hold">{message}</p>
+            <p className="text-xs text-ink-mute">
+              还没看过价目？先回 <Link href="/">公共站</Link>。
             </p>
           </form>
         </Form>
@@ -108,7 +97,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-12 text-slate-300">注册 / 登录</main>}>
+    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-12 text-ink-secondary">登录 / 注册</main>}>
       <LoginForm />
     </Suspense>
   );

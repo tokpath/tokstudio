@@ -28,7 +28,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const data = query.data?.items ?? [];
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-glow">
+    <section className="rounded-stamp border border-hairline bg-canvas-raised p-6 ">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-medium">{title}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -53,13 +53,13 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="text-sm text-slate-400">{query.data?.error?.message || "需要平台管理员登录后才能加载。"}</p>
+        <p className="text-sm text-ink-secondary">{query.data?.error?.message || "需要平台管理员登录后才能加载。"}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
               {table.getHeaderGroups().map((group) => (
-                <tr key={group.id} className="border-b border-white/10 text-slate-400">
+                <tr key={group.id} className="border-b border-hairline text-ink-secondary">
                   {group.headers.map((header) => (
                     <th key={header.id} className="px-3 py-2.5 font-medium">
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -70,9 +70,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-white/5 hover:bg-white/[0.03]">
+                <tr key={row.id} className="border-b border-hairline hover:bg-canvas-raised">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2.5 text-slate-200">
+                    <td key={cell.id} className="px-3 py-2.5 text-ink">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

@@ -41,9 +41,9 @@ export default function ChannelPlans() {
   }
 
   return (
-    <Card className="rounded-2xl border border-white/10 bg-white/[0.035] shadow-glow p-6">
+    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
       <CardTitle className="mb-3 text-xl font-medium">本渠道套餐</CardTitle>
-      <p className="mb-3 text-sm text-slate-400">低价或高风险配额会进平台审核。这里只列本渠道 scope。</p>
+      <p className="mb-3 text-sm text-ink-secondary">低价或高风险配额会进平台审核。这里只列本渠道 scope。</p>
       <Button variant="outline" onClick={refresh}>
         刷新套餐
       </Button>
@@ -84,17 +84,17 @@ export default function ChannelPlans() {
           <Button size="sm" type="submit">
             创建渠道套餐
           </Button>
-          <p className="text-sm text-slate-300">{createMessage}</p>
+          <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
-      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+      <ul className="mt-3 space-y-2 text-sm text-ink">
         {items.map((item) => (
           <li key={item.id}>
             {item.name} · {item.status} · {item.owner_type} · {item.price_minor ?? 0} micro-USD
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-slate-300">{message}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );
 }

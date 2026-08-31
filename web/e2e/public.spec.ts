@@ -110,7 +110,7 @@ test("admin overview shows DESIGN.md hero stats", async ({ page }) => {
 test("desktop landing lists tools without a fake installer", async ({ page }) => {
   await page.goto("/desktop");
   await expect(page.getByRole("heading", { name: "本机编程工具，一个账户接入" })).toBeVisible();
-  await expect(page.getByText("Claude Code")).toBeVisible();
+  await expect(page.getByText("Claude Code", { exact: true })).toBeVisible();
   await expect(page.getByText("未发布")).toBeVisible();
   await expect(page.getByRole("link", { name: "看接入片段" })).toBeVisible();
 });

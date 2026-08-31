@@ -1,0 +1,24 @@
+{
+  "name": "TokenHub",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "bash scripts/cloud-install.sh",
+  "start": "bash scripts/cloud-start.sh",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "set -a; source .env; set +a; cd backend && go run ./cmd/api"
+    },
+    {
+      "name": "worker",
+      "command": "set -a; source .env; set +a; cd backend && go run ./cmd/worker"
+    },
+    {
+      "name": "web",
+      "command": "set -a; source .env; set +a; cd web && npm run dev"
+    }
+  ],
+  "ports": [3000, 8080]
+}

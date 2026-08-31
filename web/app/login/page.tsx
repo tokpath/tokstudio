@@ -153,15 +153,15 @@ function LoginForm() {
         <p className="th-eyebrow text-brand-emphasis">Sign in</p>
         <h1 className="mt-3 text-[40px] font-semibold leading-tight">注册 / 登录</h1>
         <p className="mt-3 text-base leading-relaxed text-ink-secondary">
-          Google 为次按钮，邮箱密码为主，验证码走邮件 OTP。推广码只在注册时由服务端固化归属，不能事后改。
+          结构对齐 ofox：GitHub / Google 在上，邮箱密码在下。GitHub 独立 OAuth 尚未接入。忘记密码请用邮件 OTP，没有单独找回页。推广码只在注册时由服务端固化归属。
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
-          <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
-            使用 Google 登录
-          </Button>
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
             使用 GitHub 登录
+          </Button>
+          <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
+            使用 Google 登录
           </Button>
         </div>
         {googleState ? (
@@ -212,9 +212,12 @@ function LoginForm() {
               {mode === "login" ? "登录" : "注册"}
             </Button>
             {mode === "login" ? (
-              <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
-                用验证码登录
-              </Button>
+              <>
+                <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
+                  用验证码登录
+                </Button>
+                <p className="text-[12px] text-ink-mute">忘记密码？发送验证码后点「用验证码登录」。没有独立找回密码接口。</p>
+              </>
             ) : null}
             <p className="text-sm text-hold">{message}</p>
             <p className="text-sm text-ink-secondary">

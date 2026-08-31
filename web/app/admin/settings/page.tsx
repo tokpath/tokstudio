@@ -138,15 +138,15 @@ export default function AdminSettingsPage() {
         <h2 className="mb-3 text-xl font-medium">系统设置</h2>
         <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("zh")}>
+          <Button type="button" variant="outline" onClick={() => setLocale("zh")}>
             中文
-          </button>
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("en")}>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setLocale("en")}>
             English
-          </button>
-          <button className="rounded border border-hairline px-3 py-2" onClick={() => setLocale("ja")}>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setLocale("ja")}>
             日本語
-          </button>
+          </Button>
         </div>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
@@ -189,12 +189,12 @@ export default function AdminSettingsPage() {
         <h2 className="mb-3 text-xl font-medium">告警阈值</h2>
         <p className="mb-3 text-sm text-ink-secondary">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
-          <input className="w-28 rounded-lg border border-hairline bg-canvas p-2" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
-          <button className="rounded border border-hairline px-3 py-2" onClick={loadThresholds}>
+          <Input className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
+          <Input className="w-28" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
+          <Input className="w-28" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
+          <Button type="button" variant="outline" onClick={loadThresholds}>
             读取阈值
-          </button>
+          </Button>
           <ConfirmButton size="sm" variant="outline" title="确认保存阈值" description="评估告警时会读取这些阈值。" onConfirm={saveThresholds}>
             保存阈值
           </ConfirmButton>

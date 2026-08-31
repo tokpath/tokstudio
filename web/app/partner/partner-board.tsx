@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 
 type PartnerMe = {
@@ -72,49 +72,43 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
       {show("users") ? (
         <Card id="users">
           <CardTitle>范围内用户</CardTitle>
-          {users.length === 0 ? (
-            <EmptyLedger title="暂无用户" detail="登录推广主体后刷新，邮箱已脱敏。" />
-          ) : (
-            <ul className="space-y-2 text-sm text-ink">
-              {users.map((item) => (
-                <li key={`${item.email}-${item.source_code}`} className="rounded-card border border-hairline bg-canvas px-3 py-2">
-                  {item.email} · {item.source_code || "—"} · {item.status}
-                </li>
-              ))}
-            </ul>
-          )}
+          <LedgerTable
+            columns={["邮箱", "推广码", "状态"]}
+            emptyTitle="暂无用户"
+            emptyDetail="登录推广主体后刷新，邮箱已脱敏。"
+            rows={users.map((item) => ({
+              key: `${item.email}-${item.source_code}`,
+              cells: [item.email || "—", item.source_code || "—", item.status || "—"],
+            }))}
+          />
         </Card>
       ) : null}
       {show("commissions") ? (
         <Card id="commissions">
           <CardTitle>范围内佣金</CardTitle>
-          {comms.length === 0 ? (
-            <EmptyLedger title="暂无佣金" detail="冻结期满前不会出现可结算金额。" />
-          ) : (
-            <ul className="space-y-2 text-sm text-ink">
-              {comms.map((item) => (
-                <li key={item.id} className="rounded-card border border-hairline bg-canvas px-3 py-2">
-                  {item.kind} · {item.status} · {item.amount_minor ?? 0} micro-USD
-                </li>
-              ))}
-            </ul>
-          )}
+          <LedgerTable
+            columns={["类型", "状态", "金额"]}
+            emptyTitle="暂无佣金"
+            emptyDetail="冻结期满前不会出现可结算金额。"
+            rows={comms.map((item) => ({
+              key: item.id || `${item.kind}-${item.status}`,
+              cells: [item.kind || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+            }))}
+          />
         </Card>
       ) : null}
       {show("settlements") ? (
         <Card id="settlements">
           <CardTitle>范围内结算</CardTitle>
-          {settlements.length === 0 ? (
-            <EmptyLedger title="暂无结算单" detail="平台财务打款后才会出现在这里。" />
-          ) : (
-            <ul className="space-y-2 text-sm text-ink">
-              {settlements.map((item) => (
-                <li key={item.id} className="rounded-card border border-hairline bg-canvas px-3 py-2">
-                  {item.id} · {item.status} · {item.amount_minor ?? 0} micro-USD
-                </li>
-              ))}
-            </ul>
-          )}
+          <LedgerTable
+            columns={["结算单", "状态", "金额"]}
+            emptyTitle="暂无结算单"
+            emptyDetail="平台财务打款后才会出现在这里。"
+            rows={settlements.map((item) => ({
+              key: item.id || "settlement",
+              cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+            }))}
+          />
         </Card>
       ) : null}
     </div>

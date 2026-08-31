@@ -107,6 +107,20 @@ test("admin overview shows DESIGN.md hero stats", async ({ page }) => {
   await expect(overview.getByText("Provider 健康")).toBeVisible();
 });
 
+test("desktop landing lists tools without a fake installer", async ({ page }) => {
+  await page.goto("/desktop");
+  await expect(page.getByRole("heading", { name: "本机编程工具，一个账户接入" })).toBeVisible();
+  await expect(page.getByText("Claude Code")).toBeVisible();
+  await expect(page.getByText("未发布")).toBeVisible();
+  await expect(page.getByRole("link", { name: "看接入片段" })).toBeVisible();
+});
+
+test("channel users page shows empty ledger table", async ({ page }) => {
+  await page.goto("/channel/users");
+  await expect(page.locator("h1")).toHaveText("本渠道用户");
+  await expect(page.getByText("暂无本渠道用户")).toBeVisible();
+});
+
 test("user console sidebar groups match ofox IA", async ({ page }) => {
   await page.goto("/app");
   const nav = page.getByRole("navigation", { name: "用户控制台" });

@@ -85,7 +85,7 @@ export default function SettingsPanel() {
             界面语言
             <select
               aria-label="界面语言"
-              className="h-10 rounded-lg border border-hairline bg-canvas px-3 text-sm text-ink"
+              className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm text-ink"
               {...profileForm.register("locale")}
             >
               <option value="zh">中文</option>

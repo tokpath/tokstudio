@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -76,13 +77,15 @@ export default function ChannelPromos() {
           </Button>
         </form>
       </Form>
-      <ul className="mt-3 space-y-2 text-sm text-ink">
-        {items.map((item) => (
-          <li key={item.id}>
-            {item.code} · {item.status} · {origin}/login?promo={item.code}
-          </li>
-        ))}
-      </ul>
+      <LedgerTable
+        columns={["推广码", "状态", "登录链接"]}
+        emptyTitle="暂无推广码"
+        emptyDetail="创建后把带 promo 参数的登录链接发给用户。归因在注册时写死。"
+        rows={items.map((item) => ({
+          key: item.id || item.code || "promo",
+          cells: [item.code || "—", item.status || "—", `${origin}/login?promo=${item.code}`],
+        }))}
+      />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

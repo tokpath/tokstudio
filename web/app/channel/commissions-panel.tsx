@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
@@ -52,17 +53,21 @@ export default function ChannelCommissions() {
         换算比 {ratioBPS} BPS。已发放 {issued}，已消费 {consumed}。
       </p>
       <h3 className="mb-2 text-lg font-medium">已发放额度</h3>
-      <ul className="mb-3 space-y-1 text-sm text-ink-secondary">
-        {allocations.length === 0 ? (
-          <li>还没有发放记录。点刷新后可看到下属用户充值对应的额度。</li>
-        ) : (
-          allocations.map((item) => (
-            <li key={item.id}>
-              {item.user_id}：发放 {item.granted_minor} / 已用 {item.consumed_minor} / 剩余 {item.remaining_minor}（{item.status}）
-            </li>
-          ))
-        )}
-      </ul>
+      <LedgerTable
+        columns={["用户", "发放", "已用", "剩余", "状态"]}
+        emptyTitle="暂无发放记录"
+        emptyDetail="点刷新后可看到下属用户充值对应的额度。"
+        rows={allocations.map((item) => ({
+          key: item.id || item.user_id || "alloc",
+          cells: [
+            item.user_id || "—",
+            String(item.granted_minor ?? 0),
+            String(item.consumed_minor ?? 0),
+            String(item.remaining_minor ?? 0),
+            item.status || "—",
+          ],
+        }))}
+      />
       <Button type="button" variant="outline" onClick={refresh}>
         刷新
       </Button>

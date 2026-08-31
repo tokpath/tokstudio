@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -87,13 +88,15 @@ export default function ChannelPlans() {
           <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
-      <ul className="mt-3 space-y-2 text-sm text-ink">
-        {items.map((item) => (
-          <li key={item.id}>
-            {item.name} · {item.status} · {item.owner_type} · {item.price_minor ?? 0} micro-USD
-          </li>
-        ))}
-      </ul>
+      <LedgerTable
+        columns={["套餐", "状态", "归属", "价格"]}
+        emptyTitle="暂无可见套餐"
+        emptyDetail="登录渠道管理员后刷新。只列本渠道 scope 和平台套餐。"
+        rows={items.map((item) => ({
+          key: item.id || item.name || "plan",
+          cells: [item.name || "—", item.status || "—", item.owner_type || "—", `${item.price_minor ?? 0} micro-USD`],
+        }))}
+      />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

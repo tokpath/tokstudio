@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -33,12 +34,12 @@ export function parseAllowlist(raw: string): string[] {
 
 export function KeysList({ items }: { items: APIKeyItem[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-ink-secondary">暂无 API Keys</p>;
+    return <EmptyLedger title="暂无 API Keys" detail="创建一把 Key 后会出现在这里。空白名单不限制模型。" />;
   }
   return (
     <ul className="space-y-3 text-sm text-ink">
       {items.map((item) => (
-        <li key={item.id} className="rounded-lg border border-hairline p-3">
+        <li key={item.id} className="rounded-card border border-hairline bg-canvas p-3">
           <p>
             {item.name} · {item.prefix} · {item.status}
             {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}

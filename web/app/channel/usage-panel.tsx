@@ -35,10 +35,20 @@ export default function ChannelUsage() {
       <Button variant="outline" onClick={refresh}>
         刷新用量
       </Button>
-      <p className="mt-3 text-sm text-ink">
-        批发 {usage.usage_minor ?? 0} micro-USD · prompt {usage.prompt_tokens ?? 0} · completion {usage.completion_tokens ?? 0} · 视频{" "}
-        {usage.video_seconds ?? 0} 秒 · 图片 {usage.image_count ?? 0}
-      </p>
+      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="本渠道用量">
+        {[
+          { t: "批发", v: String(usage.usage_minor ?? 0), d: "micro-USD" },
+          { t: "Prompt", v: String(usage.prompt_tokens ?? 0), d: "tokens" },
+          { t: "Completion", v: String(usage.completion_tokens ?? 0), d: "tokens" },
+          { t: "媒体", v: `${usage.video_seconds ?? 0}s / ${usage.image_count ?? 0}`, d: "视频秒 · 图片张" },
+        ].map((card) => (
+          <div key={card.t} className="rounded-card border border-hairline bg-canvas p-4">
+            <p className="th-eyebrow text-ink-mute">{card.t}</p>
+            <p className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
+          </div>
+        ))}
+      </section>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

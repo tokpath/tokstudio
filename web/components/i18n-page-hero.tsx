@@ -1,10 +1,12 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ConsolePageHeader } from "@/components/console/page-header";
 import { PublicPageHero } from "@/components/public-section";
 
 /** 公共站页头走 messages.public.<id>。URL 留在调用方，不写进 JSON。 */
-export async function I18nPublicHero({
+export function I18nPublicHero({
   id,
   primaryHref,
   secondaryHref,
@@ -17,7 +19,7 @@ export async function I18nPublicHero({
   title?: string;
   description?: string;
 }) {
-  const t = await getTranslations(`public.${id}`);
+  const t = useTranslations(`public.${id}`);
   return (
     <PublicPageHero
       eyebrow={t("eyebrow")}
@@ -32,7 +34,7 @@ export async function I18nPublicHero({
 }
 
 /** 控制台页头走 messages.console.<id>。 */
-export async function I18nConsoleHeader({ id, actions }: { id: string; actions?: ReactNode }) {
-  const t = await getTranslations(`console.${id}`);
+export function I18nConsoleHeader({ id, actions }: { id: string; actions?: ReactNode }) {
+  const t = useTranslations(`console.${id}`);
   return <ConsolePageHeader eyebrow={t("eyebrow")} title={t("title")} description={t("description")} actions={actions} />;
 }

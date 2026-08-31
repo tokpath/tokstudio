@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("English Accept-Language uses the same URLs without a locale prefix", async ({ browser }) => {
   const context = await browser.newContext({
+    locale: "en-US",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   });
   const page = await context.newPage();
@@ -23,6 +24,7 @@ test("English Accept-Language uses the same URLs without a locale prefix", async
 
 test("Japanese Accept-Language keeps pathnames unchanged", async ({ browser }) => {
   const context = await browser.newContext({
+    locale: "ja-JP",
     extraHTTPHeaders: { "Accept-Language": "ja-JP,ja;q=0.9" },
   });
   const page = await context.newPage();
@@ -35,9 +37,10 @@ test("Japanese Accept-Language keeps pathnames unchanged", async ({ browser }) =
 
 test("NEXT_LOCALE cookie overrides Accept-Language", async ({ browser }) => {
   const context = await browser.newContext({
+    locale: "en-US",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   });
-  await context.addCookies([{ name: "NEXT_LOCALE", value: "ja", domain: "127.0.0.1", path: "/" }]);
+  await context.addCookies([{ name: "NEXT_LOCALE", value: "ja", url: "http://127.0.0.1:3000/" }]);
   const page = await context.newPage();
   await page.goto("/compare");
   await expect(page).toHaveURL(/\/compare$/);

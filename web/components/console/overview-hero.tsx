@@ -20,7 +20,7 @@ function money(value?: string) {
 export function OverviewHero() {
   const [balance, setBalance] = useState<Balance | null>(null);
   const [keyCount, setKeyCount] = useState<number | null>(null);
-  const [lastReceipt, setLastReceipt] = useState("尚无路由回单");
+  const [lastReceipt, setLastReceipt] = useState("—");
 
   useEffect(() => {
     let cancelled = false;

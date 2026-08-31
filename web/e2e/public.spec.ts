@@ -20,6 +20,7 @@ const publicPaths = [
   "/leaderboards/apps",
   "/leaderboards/labs",
   "/vs/openrouter",
+  "/compare",
   "/promo",
   "/promo/august",
   "/desktop",
@@ -79,6 +80,31 @@ test("authenticated ofox replica pages render headings", async ({ page }) => {
     expect(response?.ok(), path).toBeTruthy();
     await expect(page.locator("h1"), path).toBeVisible();
   }
+});
+
+test("channel and partner consoles use grouped real routes", async ({ page }) => {
+  await page.goto("/channel");
+  const channelNav = page.getByRole("navigation", { name: "渠道控制台" });
+  await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "本渠道用户" })).toBeVisible();
+  await channelNav.getByRole("link", { name: "本渠道用户" }).click();
+  await expect(page).toHaveURL(/\/channel\/users/);
+  await expect(page.locator("h1")).toHaveText("本渠道用户");
+
+  await page.goto("/partner");
+  const partnerNav = page.getByRole("navigation", { name: "分销控制台" });
+  await expect(partnerNav.getByRole("link", { name: "我的层级" })).toBeVisible();
+  await partnerNav.getByRole("link", { name: "范围内佣金" }).click();
+  await expect(page).toHaveURL(/\/partner\/commissions/);
+});
+
+test("admin overview shows DESIGN.md hero stats", async ({ page }) => {
+  await page.goto("/admin");
+  const overview = page.getByLabel("管理总览");
+  await expect(overview.getByText("待对账")).toBeVisible();
+  await expect(overview.getByText("毛利")).toBeVisible();
+  await expect(overview.getByText("佣金负债")).toBeVisible();
+  await expect(overview.getByText("Provider 健康")).toBeVisible();
 });
 
 test("user console sidebar groups match ofox IA", async ({ page }) => {

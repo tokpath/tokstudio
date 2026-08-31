@@ -1,15 +1,39 @@
+export type DashboardTotals = {
+  revenue_minor?: number;
+  gross_profit_minor?: number;
+  commission_liability_minor?: number;
+  pending_reconciliation_count?: number;
+  success_rate?: number;
+  low_balance_wallets?: number;
+  timeouts?: number;
+  prompt_tokens?: number;
+  video_seconds?: number;
+  upstream_errors?: number;
+};
+
+export type DashboardAlert = { kind?: string };
+
+function micro(n?: number) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return `$${(n / 1_000_000).toFixed(2)}`;
+}
+
+/** DESIGN.md 管理台英雄：待对账、毛利、佣金负债、Provider 健康。不是营销大英雄区。 */
+export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: DashboardAlert[] }) {
+  const totals = dashboard.totals || {};
+  const alerts = dashboard.alerts || [];
+  const circuit = alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
+  return [
+    { t: "待对账", d: "pending_reconciliation", v: String(totals.pending_reconciliation_count ?? "—") },
+    { t: "毛利", d: "客户收入 − 上游成本", v: micro(totals.gross_profit_minor) },
+    { t: "佣金负债", d: "尚未结算的分销", v: micro(totals.commission_liability_minor) },
+    { t: "Provider 健康", d: circuit ? "有熔断或低成功率" : "无未关闭熔断", v: circuit ? "DEGRADED" : "READY" },
+  ];
+}
+
 export function formatDashboard(dashboard: {
-  totals?: {
-    revenue_minor?: number;
-    gross_profit_minor?: number;
-    pending_reconciliation_count?: number;
-    success_rate?: number;
-    low_balance_wallets?: number;
-    timeouts?: number;
-    prompt_tokens?: number;
-    video_seconds?: number;
-  };
-  alerts?: { kind?: string }[];
+  totals?: DashboardTotals;
+  alerts?: DashboardAlert[];
 }): string {
   const revenue = dashboard.totals?.revenue_minor ?? 0;
   const profit = dashboard.totals?.gross_profit_minor ?? 0;

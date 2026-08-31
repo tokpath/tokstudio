@@ -41,7 +41,7 @@ export default function AdminPromosPage() {
   return (
     <AdminShell>
       <Form {...roleForm}>
-        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
+        <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">推广角色</h2>
           <p className="mb-3 text-sm text-ink-secondary">层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">
@@ -79,7 +79,7 @@ export default function AdminPromosPage() {
         </form>
       </Form>
       <Form {...promoForm}>
-        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
+        <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <h2 className="mb-3 text-xl font-medium">推广码</h2>
           <p className="mb-3 text-sm text-ink-secondary">把码发给用户，或复制 /login?promo=CODE。服务端按码反查渠道和角色。</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">

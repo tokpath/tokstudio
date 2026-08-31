@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
 type Allocation = {
@@ -42,7 +43,7 @@ export default function ChannelCommissions() {
   }
 
   return (
-    <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <h2 className="mb-3 text-xl font-medium">渠道额度与佣金</h2>
       <p className="mb-3 text-sm text-ink-secondary">
         可用额度 {quota} micro-USD。用户充值时按平台配置的发放比例发放服务额度（只读，默认 1:1），聊天不再二次扣渠道。佣金由平台承担。
@@ -62,9 +63,9 @@ export default function ChannelCommissions() {
           ))
         )}
       </ul>
-      <button className="rounded border border-hairline px-4 py-2" onClick={refresh}>
+      <Button type="button" variant="outline" onClick={refresh}>
         刷新
-      </button>
+      </Button>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );

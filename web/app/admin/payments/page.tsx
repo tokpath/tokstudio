@@ -38,7 +38,7 @@ export default function AdminPaymentsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">支付</h2>
         <p className="mb-3 text-sm text-ink-secondary">查看沙箱支付单，手工入账或退款。退款会冲正未用完的权益。</p>
         <div className="mb-3 flex flex-wrap gap-2">

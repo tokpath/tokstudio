@@ -33,7 +33,7 @@ export default function AdminAlertsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">告警</h2>
         <p className="mb-3 text-sm text-ink-secondary">阈值在系统设置里改。评估会写审计 ops.alerts.evaluate。</p>
         <ConfirmButton size="sm" title="确认评估告警" description="评估会按阈值写入 ops_alerts，并记审计。" onConfirm={evaluate}>

@@ -6,43 +6,25 @@ import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 import {
   adminGroups,
-  channelSections,
-  consoleItemHref,
+  channelNavGroups,
   isNavActive,
-  partnerSections,
+  partnerNavGroups,
   userNavGroups,
 } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandMark } from "@/components/brand-mark";
 
-function HashSectionLinks({ items, pathname, prefix }: { items: { href: string; label: string }[]; pathname: string; prefix: string }) {
-  return (
-    <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-      {items.map((item) => {
-        const href = consoleItemHref(item, prefix);
-        const active = pathname.includes(item.href.replace("#", "")) || false;
-        return (
-          <li key={item.href}>
-            <a
-              href={href}
-              className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
-                active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
-              }`}
-            >
-              {item.label}
-            </a>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function UserNav({ pathname }: { pathname: string }) {
+function GroupedNav({
+  groups,
+  pathname,
+}: {
+  groups: { title: string; items: { href: string; label: string }[] }[];
+  pathname: string;
+}) {
   return (
     <div className="flex gap-4 overflow-x-auto md:flex-col md:overflow-visible md:gap-0">
-      {userNavGroups.map((group) => (
+      {groups.map((group) => (
         <div key={group.title} className="mb-4 shrink-0">
           <p className="th-eyebrow mb-2 px-3 text-ink-mute">{group.title}</p>
           <ul className="flex gap-1 md:flex-col">
@@ -112,9 +94,9 @@ export function ConsoleShell({
           className="th-scrollbar border-b border-hairline px-3 py-2 md:w-60 md:border-b-0 md:border-r md:py-6"
           aria-label={title}
         >
-          {isUser ? <UserNav pathname={pathname} /> : null}
-          {isChannel ? <HashSectionLinks items={channelSections} pathname={pathname} prefix="/channel" /> : null}
-          {isPartner ? <HashSectionLinks items={partnerSections} pathname={pathname} prefix="/partner" /> : null}
+          {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} /> : null}
+          {isChannel ? <GroupedNav groups={channelNavGroups} pathname={pathname} /> : null}
+          {isPartner ? <GroupedNav groups={partnerNavGroups} pathname={pathname} /> : null}
           {isAdmin
             ? adminGroups.map((group) => (
                 <div key={group.title} className="mb-4">

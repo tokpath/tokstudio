@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
+import { channelSections, consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
 
 describe("isConsolePath", () => {
   it("treats app channel partner and admin as consoles", () => {
@@ -26,7 +26,14 @@ describe("user console nav", () => {
     expect(isNavActive("/app/settings/team", "/app/settings")).toBe(true);
   });
 
-  it("keeps hash prefixes for channel-style items", () => {
+  it("uses real routes for channel console too", () => {
+    expect(channelSections.some((item) => item.href === "/channel/users")).toBe(true);
+    expect(channelSections.some((item) => item.href.startsWith("#"))).toBe(false);
+    expect(isNavActive("/channel", "/channel")).toBe(true);
+    expect(isNavActive("/channel/users", "/channel")).toBe(false);
+  });
+
+  it("keeps hash prefixes only when href is a hash", () => {
     expect(consoleItemHref({ href: "/app/wallet", label: "余额/充值" }, "/app")).toBe("/app/wallet");
     expect(consoleItemHref({ href: "#users", label: "本渠道用户" }, "/channel")).toBe("/channel#users");
   });

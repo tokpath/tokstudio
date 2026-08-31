@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
 type Plan = {
@@ -57,22 +58,18 @@ export default function PlansPanel() {
       <p className="mb-4 text-sm text-ink-secondary">
         扣减顺序：即将过期的赠送 → 当期套餐 → 现金钱包。金额单位是 micro-USD。
       </p>
-      <button className="mb-4 rounded border border-hairline px-4 py-2" onClick={refresh}>
+      <Button type="button" variant="outline" className="mb-4" onClick={refresh}>
         刷新套餐
-      </button>
+      </Button>
       <ul className="space-y-3 text-sm text-ink">
         {plans.map((plan) => (
           <li key={plan.id} className="flex items-center justify-between gap-3">
             <span>
               {plan.name} · {(plan.price_minor / 1_000_000).toString()} USD
             </span>
-            <button
-              className="rounded px-3 py-1 text-on-brand"
-              style={{ background: "var(--brand-primary)" }}
-              onClick={() => subscribe(plan.id)}
-            >
+            <Button type="button" size="sm" onClick={() => subscribe(plan.id)}>
               订阅
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

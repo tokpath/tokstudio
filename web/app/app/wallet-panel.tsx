@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
 
 type Balance = {
@@ -47,13 +49,13 @@ export default function WalletPanel() {
         可用 {balance?.available ?? "—"} USD，预授权占用 {balance?.reserved ?? "0"} USD。
       </p>
       <div className="flex flex-wrap gap-3">
-        <button className="rounded border border-hairline px-4 py-2" onClick={refresh}>
+        <Button type="button" variant="outline" onClick={refresh}>
           刷新余额
-        </button>
-        <input className="rounded bg-canvas px-3 py-2" value={code} onChange={(e) => setCode(e.target.value)} />
-        <button className="rounded px-4 py-2 text-on-brand" style={{ background: "var(--brand-primary)" }} onClick={redeem}>
+        </Button>
+        <Input aria-label="兑换码" className="max-w-xs" value={code} onChange={(e) => setCode(e.target.value)} />
+        <Button type="button" onClick={redeem}>
           兑换
-        </button>
+        </Button>
       </div>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>

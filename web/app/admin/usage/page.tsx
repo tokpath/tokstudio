@@ -32,7 +32,7 @@ export default function AdminUsagePage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <h2 className="mb-3 text-xl font-medium">用量回放</h2>
         <p className="mb-3 text-sm text-ink-secondary">对 pending_reconciliation 按 request_id 补真实 Token。重复回放幂等，不会双扣。</p>
         <div className="mb-3 flex flex-wrap gap-2">

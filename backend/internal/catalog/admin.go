@@ -194,6 +194,14 @@ func (s *Service) ListAdminModels(ctx context.Context) ([]ModelView, error) {
 	return out, nil
 }
 
+func (s *Service) GetAdminModel(ctx context.Context, publicID string) (*ModelView, error) {
+	model, err := s.loadModel(ctx, publicID)
+	if err != nil {
+		return nil, err
+	}
+	return s.modelView(ctx, *model)
+}
+
 func (s *Service) CreateModel(ctx context.Context, in ModelInput) (*ModelView, error) {
 	if in.PublicID == "" || in.Vendor == "" {
 		return nil, ErrInvalidInput

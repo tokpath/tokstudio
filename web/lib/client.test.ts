@@ -5,6 +5,8 @@ describe("generated OpenAPI client", () => {
   it("includes P0 admin catalog and 2FA paths", () => {
     expect(hasGeneratedPath("GET", "/admin/providers")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/models")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/models/{id}")).toBe(true);
+    expect(hasGeneratedPath("PATCH", "/admin/models/{id}")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/routes")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/me/2fa")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/me/2fa/setup")).toBe(true);

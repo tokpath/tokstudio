@@ -114,4 +114,10 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "挂载" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "弃用模型" })).toBeVisible();
   await expect(page.getByRole("button", { name: "弃用模型" })).toBeVisible();
+  await page.goto("/admin/models/tokenhub/echo-1");
+  await expect(page.getByRole("heading", { name: "编辑属性" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存属性" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "定价" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "发布价格" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "上架" })).toBeVisible();
 });

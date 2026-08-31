@@ -254,7 +254,7 @@ Provider 管理字段至少包括：名称、类型、协议适配器、API 基�
 
 ### 9.1 Bifrost 集成边界
 
-P0 采用“TokenHub 控制面 + Bifrost 数据面”：TokenHub 负责认证、渠道/模型权限、预授权、套餐权益、限流和最终账务；Bifrost 优先负责协议适配、Provider 路由、重试、熔断、流式透传和基础指标。TokenHub 通过受控内部 API 调用 Bifrost，透传 `request_id`、`attempt_id` 及用户/渠道/模型 metadata；Bifrost 的日志不能作为账务唯一事实源。Bifrost 未覆盖的 Seedance 异步生命周期能力由 TokenHub Media Worker 直连 Provider Adapter，并保持统一的客户 API 和账务结果。
+P0 采用“TokenHub 控制面 + Bifrost 数据面”：TokenHub 负责认证、渠道/模型权限、预授权、套餐权益、限流和最终账务；Bifrost 优先负责协议适配、Provider 连接、重试、熔断、流式透传和基础指标。TokenHub 在 API 进程内嵌入 Bifrost Go SDK 调用数据面，透传 `request_id`、`attempt_id` 及用户/渠道/模型 metadata；Bifrost 的日志不能作为账务唯一事实源。Bifrost 未覆盖的 Seedance 异步生命周期能力由 TokenHub Media Worker 直连 Provider Adapter，并保持统一的客户 API 和账务结果。
 
 ### 9.1.1 界面与门户
 

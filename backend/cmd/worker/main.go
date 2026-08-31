@@ -41,7 +41,8 @@ func main() {
 		logger.Fatal().Err(err).Msg("redis_open_failed")
 	}
 
-	application := app.New(cfg, gdb, rdb, logger)
+	application := app.NewWorker(cfg, gdb, rdb, logger)
+	defer application.Close()
 	if err := application.Migrate(); err != nil {
 		logger.Fatal().Err(err).Msg("migrate_failed")
 	}

@@ -16,7 +16,6 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
-	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
@@ -32,9 +31,6 @@ func TestM7OpsHardening(t *testing.T) {
 	cfg.BootstrapAdmin = "m7_admin"
 	cfg.BootstrapUser = "m7_user"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
-	bifrost := httptest.NewServer(gateway.SandboxHandler())
-	defer bifrost.Close()
-	cfg.BifrostURL = bifrost.URL
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
@@ -660,7 +656,7 @@ func TestM7OpsHardening(t *testing.T) {
 	})
 	content, _ := firstContentOf(viaBifrost)
 	if !strings.Contains(content, "bifrost:sidecar") {
-		t.Fatalf("bifrost sandbox reply: %+v", viaBifrost)
+		t.Fatalf("bifrost embed sandbox reply: %+v", viaBifrost)
 	}
 
 	fromSession := postAccepted(t, server.URL+"/v1/videos", session, "sess-m7", map[string]any{

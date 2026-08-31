@@ -47,6 +47,7 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if err := application.Bootstrap(context.Background()); err != nil {
 		t.Fatal(err)
 	}
+	defer application.Close()
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 	channelLogin := postBody(t, server.URL+"/v1/auth/login", "", map[string]string{

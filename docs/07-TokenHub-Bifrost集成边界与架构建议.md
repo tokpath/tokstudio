@@ -52,7 +52,7 @@ P0 采用“TokenHub 控制面 + Bifrost 数据面”的边界：
 
 TokenHub 在调用 Bifrost 前完成余额和权益预授权；Bifrost 返回或回调 usage 后，TokenHub 完成客户结算、成本入账和佣金流水。每次调用必须透传 `request_id`、`attempt_id`、用户/渠道/模型等不可变 metadata，确保 Bifrost 日志可以回关联账务。
 
-P0 推荐先以独立内部服务/Sidecar 方式集成，TokenHub 通过受控内部 API 调用 Bifrost；同时定义 `GatewayAdapter` 接口，未来若后端采用 Go 且需要降低网络跳转，再评估嵌入 Bifrost SDK。账务不能依赖 Bifrost 的日志存储作为唯一事实源。
+P0 采用嵌入 Bifrost Go SDK：TokenHub API 进程内 `bifrost.Init`，通过 `GatewayAdapter` 调用 `ChatCompletionRequest`，不再起独立 sidecar。默认 `TOKENHUB_BIFROST_SANDBOX=true`，用 LLM plugin 短路回声，本地和 CI 不依赖真实 Provider Key；设为 `false` 并配置 `TOKENHUB_OPENAI_API_KEY` 等后才会打上游。账务不能依赖 Bifrost 的日志存储作为唯一事实源。
 
 异步任务基础设施采用与 Dapr 兼容的事件边界：P0 默认使用 PostgreSQL Outbox + Worker，事件使用 CloudEvents envelope；如果部署环境已运行 Dapr，可将投递器替换为 Dapr Pub/Sub，未来拆分媒体、支付、对账和佣金服务时复用 Service Invocation、State 和 Secrets 抽象。P0 不把 Dapr Workflow 作为强依赖，避免在业务状态机尚未稳定时引入额外编排复杂度。
 

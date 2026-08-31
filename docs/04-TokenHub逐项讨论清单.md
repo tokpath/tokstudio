@@ -232,11 +232,11 @@
 
 ### D27. Bifrost 集成部署方式：已确认
 
-推荐 P0 采用“TokenHub 控制面 + Bifrost 数据面”的独立内部服务/Sidecar 方式：TokenHub 负责认证、渠道、权限、预授权和最终账务，Bifrost 负责协议适配、Provider 路由、重试、流式透传和基础指标；通过内部 API 传递 `request_id`、`attempt_id` 和业务 metadata。
+推荐 P0 采用“TokenHub 控制面 + Bifrost 数据面”，并把 Bifrost 以 Go SDK 嵌入 API 进程：TokenHub 负责认证、渠道、权限、预授权和最终账务，Bifrost 负责协议适配、Provider 连接、重试、流式透传和基础指标。默认 sandbox plugin 回声；live 模式才使用真实 Provider Key。
 
-同时保留 `GatewayAdapter` 接口，未来若后端采用 Go 且需要降低网络跳转，再评估嵌入 Bifrost SDK。Seedance 等 Bifrost 未覆盖的媒体生命周期能力由 TokenHub Media Worker 直连 Provider Adapter，不能让 Bifrost 成为账务唯一事实源。
+`GatewayAdapter` 仍是唯一调用入口。Seedance 等 Bifrost 未覆盖的媒体生命周期能力由 TokenHub Media Worker 直连 Provider Adapter，不能让 Bifrost 成为账务唯一事实源。
 
-已确认采用“P0 独立 Bifrost 内部服务/Sidecar，TokenHub 通过适配器调用；未覆盖能力由 TokenHub 自己补齐”的部署边界。
+已确认采用“P0 嵌入 Bifrost SDK；未覆盖能力由 TokenHub 自己补齐”的部署边界。
 
 ### D28. 技术栈与异步任务基础设施：已确认
 

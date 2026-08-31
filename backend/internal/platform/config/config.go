@@ -23,7 +23,11 @@ type Config struct {
 	BootstrapChannel       string
 	GoogleClientID         string
 	GoogleRedirect         string
-	BifrostURL             string
+	BifrostSandbox         bool
+	OpenAIAPIKey           string
+	AnthropicAPIKey        string
+	GeminiAPIKey           string
+	OpenRouterAPIKey       string
 	OTELEndpoint           string
 	OTELServiceName        string
 	LogLevel               string
@@ -73,7 +77,11 @@ func Load() (*Config, error) {
 		BootstrapChannel:       v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
-		BifrostURL:             v.GetString("BIFROST_URL"),
+		BifrostSandbox:         resolveBifrostSandbox(v),
+		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
+		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
+		GeminiAPIKey:           v.GetString("GEMINI_API_KEY"),
+		OpenRouterAPIKey:       v.GetString("OPENROUTER_API_KEY"),
 		OTELEndpoint:           v.GetString("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		OTELServiceName:        v.GetString("OTEL_SERVICE_NAME"),
 		LogLevel:               v.GetString("LOG_LEVEL"),
@@ -140,6 +148,13 @@ func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production")
 }
 
+func resolveBifrostSandbox(v *viper.Viper) bool {
+	if v.IsSet("BIFROST_SANDBOX") {
+		return v.GetBool("BIFROST_SANDBOX")
+	}
+	return !strings.EqualFold(v.GetString("ENV"), "production")
+}
+
 // RedactedMap 返回可安全写入日志的配置摘要，绝不包含密钥原文。
 func (c *Config) RedactedMap() map[string]any {
 	return map[string]any{
@@ -155,6 +170,8 @@ func (c *Config) RedactedMap() map[string]any {
 		"bootstrap_admin_set": c.BootstrapAdmin != "",
 		"bootstrap_user_set":  c.BootstrapUser != "",
 		"encryption_key_set":  c.EncryptionKey != "",
+		"bifrost_sandbox":     c.BifrostSandbox,
+		"openai_key_set":      c.OpenAIAPIKey != "",
 		"acme_directory_set":  c.ACMEDirectory != "",
 		"acme_force":          c.ACMEForce,
 	}

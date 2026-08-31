@@ -294,9 +294,11 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	if err := application.Migrate(); err != nil {
 		t.Fatal(err)
 	}
-	if err := application.Bootstrap(context.Background()); err != nil {
+	ctx := context.Background()
+	if err := application.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(application.Close)
 	return application
 }
 

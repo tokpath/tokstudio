@@ -39,20 +39,20 @@ services:
       retries: 20
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.115.0
+    image: otel/opentelemetry-collector-contrib:0.159.0
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro
 
   prometheus:
-    image: prom/prometheus:v2.55.1
+    image: prom/prometheus:v3
     volumes:
       - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - api
 
   grafana:
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:13.1.4
     environment:
       GF_SECURITY_ADMIN_PASSWORD: tokenhub
       GF_AUTH_ANONYMOUS_ENABLED: "true"
@@ -76,7 +76,7 @@ services:
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
       TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_BIFROST_URL: http://bifrost:8081
+      TOKENHUB_BIFROST_SANDBOX: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,13 +98,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  bifrost:
-    build:
-      context: ./backend
-    entrypoint: ["/bifrost-sandbox"]
-    environment:
-      TOKENHUB_HTTP_ADDR: :8081
 
   backup:
     image: postgres:16-alpine

@@ -45,6 +45,7 @@ func TestM0Foundation(t *testing.T) {
 	if err := application.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}
+	defer application.Close()
 
 	server := httptest.NewServer(application.Router())
 	defer server.Close()

@@ -49,6 +49,15 @@ type App struct {
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
+	return newApp(cfg, gdb, rdb, logger, true)
+}
+
+// NewWorker 只组装后台任务依赖，不初始化 Bifrost 数据面。
+func NewWorker(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
+	return newApp(cfg, gdb, rdb, logger, false)
+}
+
+func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger, withGateway bool) *App {
 	outboxSvc := outbox.New(gdb)
 	auditSvc := audit.New(gdb, outboxSvc)
 	catalogSvc := catalog.New(gdb)
@@ -63,7 +72,22 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	commSvc := commission.New(gdb, outboxSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
-	gw := gateway.New(gdb, catalogSvc, billingSvc, cfg.BifrostURL)
+	var rt *gateway.Runtime
+	if withGateway {
+		var err error
+		rt, err = gateway.Start(context.Background(), gateway.Settings{
+			Sandbox:          cfg.BifrostSandbox,
+			LogLevel:         cfg.LogLevel,
+			OpenAIAPIKey:     cfg.OpenAIAPIKey,
+			AnthropicAPIKey:  cfg.AnthropicAPIKey,
+			GeminiAPIKey:     cfg.GeminiAPIKey,
+			OpenRouterAPIKey: cfg.OpenRouterAPIKey,
+		})
+		if err != nil {
+			logger.Error().Err(err).Msg("bifrost_embed_init_failed")
+		}
+	}
+	gw := gateway.New(gdb, catalogSvc, billingSvc, rt)
 	opsSvc := ops.New(gdb, rdb)
 	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
 	gw.SetBreaker(opsSvc)
@@ -84,6 +108,15 @@ func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Log
 		Commission: commSvc,
 		Ops:        opsSvc,
 		Logger:     logger,
+	}
+}
+
+func (a *App) Close() {
+	if a == nil {
+		return
+	}
+	if a.Gateway != nil {
+		a.Gateway.Close()
 	}
 }
 

@@ -1,12 +1,9 @@
 package gateway
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -124,16 +121,6 @@ func (TestAdapter) Chat(ctx context.Context, providerSlug, behavior string, req 
 	return result, nil
 }
 
-// BifrostAdapter 走受控内部 HTTP。未配置时网关不会选用它。
-type BifrostAdapter struct {
-	BaseURL string
-	Client  interface {
-		Do(req any) error
-	}
-}
-
-func (a BifrostAdapter) Name() string { return "bifrost" }
-
 // GeminiAdapter 在未配置真实 Base URL 时走沙箱回声，保证 P0 可验证 Google Gemini 目录与路由。
 type GeminiAdapter struct {
 	BaseURL string
@@ -154,38 +141,4 @@ func (a GeminiAdapter) Chat(ctx context.Context, providerSlug, behavior string, 
 		return result, nil
 	}
 	return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini upstream not configured")
-}
-
-func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req ChatRequest) (AdapterResult, error) {
-	if strings.TrimSpace(a.BaseURL) == "" {
-		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("bifrost unavailable")
-	}
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return AdapterResult{HTTPStatus: 500, ErrorClass: "upstream_error"}, err
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(a.BaseURL, "/")+"/v1/chat/completions", bytes.NewReader(payload))
-	if err != nil {
-		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Tokenhub-Provider", providerSlug)
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, err
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 400 {
-		class := "upstream_error"
-		if resp.StatusCode == 429 {
-			class = "rate_limited"
-		}
-		return AdapterResult{HTTPStatus: resp.StatusCode, ErrorClass: class}, fmt.Errorf("bifrost status %d", resp.StatusCode)
-	}
-	var out ChatResponse
-	if err := json.Unmarshal(body, &out); err != nil {
-		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error"}, err
-	}
-	return AdapterResult{HTTPStatus: 200, Body: out}, nil
 }

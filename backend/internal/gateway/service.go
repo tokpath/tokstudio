@@ -96,6 +96,7 @@ type Service struct {
 	channels     ChannelGuard
 	adapters     map[string]Adapter
 	adapterCalls int32
+	runtime      *Runtime
 }
 
 func (s *Service) SetBreaker(b Breaker) {
@@ -106,17 +107,25 @@ func (s *Service) SetChannelGuard(g ChannelGuard) {
 	s.channels = g
 }
 
-func New(db *gorm.DB, cat *catalog.Service, booker Booker, bifrostURL string) *Service {
+func New(db *gorm.DB, cat *catalog.Service, booker Booker, rt *Runtime) *Service {
 	return &Service{
 		db:      db,
 		catalog: cat,
 		booker:  booker,
+		runtime: rt,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
 			"gemini":  GeminiAdapter{},
-			"bifrost": BifrostAdapter{BaseURL: bifrostURL},
+			"bifrost": BifrostAdapter{Runtime: rt},
 		},
 	}
+}
+
+func (s *Service) Close() {
+	if s == nil {
+		return
+	}
+	s.runtime.Close()
 }
 
 func (s *Service) AdapterCalls() int32 {
@@ -234,8 +243,13 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
+		callReq := in.Chat
+		if cand.Adapter == "bifrost" && cand.UpstreamModelID != "" {
+			callReq.Model = cand.UpstreamModelID
+		}
 		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
-		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, in.Chat)
+		callCtx = ContextWithRequestID(callCtx, in.RequestID)
+		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, callReq)
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			if result.HTTPStatus < 400 {
 				result.HTTPStatus = 408
@@ -284,6 +298,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "succeeded", HTTPStatus: 200})
 		result.Body.Provider = cand.ProviderSlug
 		result.Body.RequestID = in.RequestID
+		result.Body.Model = in.Chat.Model
 		out.Response = result.Body
 		out.Stream = result.Stream
 		if in.Chat.Stream {

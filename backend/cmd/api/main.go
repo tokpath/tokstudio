@@ -43,6 +43,7 @@ func main() {
 	}
 
 	application := app.New(cfg, gdb, rdb, logger)
+	defer application.Close()
 	if err := application.Migrate(); err != nil {
 		logger.Fatal().Err(err).Msg("migrate_failed")
 	}

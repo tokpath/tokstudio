@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,8 +14,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
-
-type Model = { id: string; vendor: string; display_name: string; status: string; sync_state?: string };
+import { type AdminModel, formatSellPrice, modelEditHref } from "@/lib/catalog";
 
 const createSchema = z.object({
   public_id: z.string().trim().min(1, "请填写 public id"),
@@ -61,7 +61,8 @@ export default function AdminModelsPage() {
 
   return (
     <AdminShell>
-      <AdminListPanel<Model>
+      <p className="text-sm text-ink-secondary">列表和编辑都走后端 catalog，不是 mock。点「编辑」改属性、定价和上架。不要改 tokenhub/echo-1。</p>
+      <AdminListPanel<AdminModel>
         path="/admin/models"
         title="模型"
         columns={[
@@ -70,6 +71,20 @@ export default function AdminModelsPage() {
           { accessorKey: "display_name", header: "Name" },
           { accessorKey: "status", header: "Status" },
           { accessorKey: "sync_state", header: "Sync" },
+          {
+            id: "sell_price",
+            header: "Sell",
+            cell: ({ row }) => formatSellPrice(row.original.sell_price),
+          },
+          {
+            id: "edit",
+            header: "操作",
+            cell: ({ row }) => (
+              <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(row.original.id)}>
+                编辑
+              </Link>
+            ),
+          },
         ]}
       />
       <Form {...createForm}>

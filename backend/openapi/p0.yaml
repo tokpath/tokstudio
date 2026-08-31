@@ -159,6 +159,17 @@ paths:
         "200":
           description: deprecated
   /admin/models/{id}:
+    get:
+      operationId: getAdminModel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: model
     patch:
       operationId: patchAdminModel
       parameters:

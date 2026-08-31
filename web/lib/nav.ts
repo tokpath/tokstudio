@@ -25,15 +25,67 @@ export const PUBLIC_NAV_MORE = [
   { href: "/trust", label: "信任中心" },
 ] as const;
 
-export const userSections: NavItem[] = [
-  { href: "#wallet", label: "余额/充值" },
-  { href: "#plans", label: "套餐" },
-  { href: "#keys", label: "API Key" },
-  { href: "#examples", label: "文档" },
-  { href: "#usage", label: "用量/账单" },
-  { href: "#media", label: "媒体任务" },
-  { href: "#settings", label: "设置" },
+/** 用户台侧栏分组：ofox 登录后 IA + DESIGN.md 账本入口。 */
+export const userNavGroups: { title: string; items: NavItem[] }[] = [
+  {
+    title: "开始",
+    items: [
+      { href: "/app", label: "总览" },
+      { href: "/app/playground", label: "快速试用" },
+      { href: "/app/keys", label: "API Key" },
+      { href: "/app/catalog", label: "模型广场" },
+    ],
+  },
+  {
+    title: "账本",
+    items: [
+      { href: "/app/wallet", label: "余额/充值" },
+      { href: "/app/plans", label: "套餐" },
+      { href: "/app/usage", label: "用量/账单" },
+      { href: "/app/activity", label: "请求明细" },
+      { href: "/app/media", label: "媒体任务" },
+    ],
+  },
+  {
+    title: "用户",
+    items: [{ href: "/app/referral", label: "推荐计划" }],
+  },
+  {
+    title: "更多",
+    items: [
+      { href: "/app/docs", label: "文档" },
+      { href: "/app/settings", label: "设置" },
+    ],
+  },
 ];
+
+/** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。 */
+export const userSettingsNav: NavItem[] = [
+  { href: "/app/settings", label: "账户" },
+  { href: "/app/settings/team", label: "团队" },
+  { href: "/app/settings/members", label: "成员" },
+  { href: "/app/settings/billing", label: "开票资料" },
+  { href: "/app/settings/quotas", label: "用量配额" },
+  { href: "/app/settings/apps", label: "已连接应用" },
+  { href: "/app/settings/webhooks", label: "Webhook" },
+];
+
+export const userSections: NavItem[] = userNavGroups.flatMap((group) => group.items);
+
+/** 控制台侧栏当前项：总览只精确匹配，避免 /app 点亮所有子页。 */
+export function isNavActive(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === "/app" || pathname === "/app/";
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function consoleItemHref(item: NavItem, hashPrefix: string) {
+  if (item.href.startsWith("/")) {
+    return item.href;
+  }
+  return `${hashPrefix}${item.href}`;
+}
 
 export const channelSections: NavItem[] = [
   { href: "#users", label: "本渠道用户" },

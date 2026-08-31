@@ -4,20 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
-import { adminGroups, channelSections, partnerSections, userSections } from "@/lib/nav";
+import {
+  adminGroups,
+  channelSections,
+  consoleItemHref,
+  isNavActive,
+  partnerSections,
+  userNavGroups,
+} from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandMark } from "@/components/brand-mark";
 
-function SectionLinks({ items, pathname }: { items: { href: string; label: string }[]; pathname: string }) {
+function HashSectionLinks({ items, pathname, prefix }: { items: { href: string; label: string }[]; pathname: string; prefix: string }) {
   return (
     <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
       {items.map((item) => {
+        const href = consoleItemHref(item, prefix);
         const active = pathname.includes(item.href.replace("#", "")) || false;
         return (
           <li key={item.href}>
             <a
-              href={item.href}
+              href={href}
               className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
                 active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
               }`}
@@ -31,8 +39,37 @@ function SectionLinks({ items, pathname }: { items: { href: string; label: strin
   );
 }
 
+function UserNav({ pathname }: { pathname: string }) {
+  return (
+    <div className="flex gap-4 overflow-x-auto md:flex-col md:overflow-visible md:gap-0">
+      {userNavGroups.map((group) => (
+        <div key={group.title} className="mb-4 shrink-0">
+          <p className="th-eyebrow mb-2 px-3 text-ink-mute">{group.title}</p>
+          <ul className="flex gap-1 md:flex-col">
+            {group.items.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
+                      active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
+                    }`}
+                  >
+                    {active ? <span className="absolute inset-y-2 left-0 hidden w-0.5 bg-brand md:block" /> : null}
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ConsoleShell({
-  brand,
   children,
   onCommand,
 }: {
@@ -75,9 +112,9 @@ export function ConsoleShell({
           className="th-scrollbar border-b border-hairline px-3 py-2 md:w-60 md:border-b-0 md:border-r md:py-6"
           aria-label={title}
         >
-          {isUser ? <SectionLinks items={userSections} pathname={pathname} /> : null}
-          {isChannel ? <SectionLinks items={channelSections} pathname={pathname} /> : null}
-          {isPartner ? <SectionLinks items={partnerSections} pathname={pathname} /> : null}
+          {isUser ? <UserNav pathname={pathname} /> : null}
+          {isChannel ? <HashSectionLinks items={channelSections} pathname={pathname} prefix="/channel" /> : null}
+          {isPartner ? <HashSectionLinks items={partnerSections} pathname={pathname} prefix="/partner" /> : null}
           {isAdmin
             ? adminGroups.map((group) => (
                 <div key={group.title} className="mb-4">

@@ -25,9 +25,19 @@ describe("ofox public page map", () => {
       "/blog",
       "/login",
       "/app",
+      "/app/playground",
+      "/app/keys",
+      "/app/catalog",
+      "/app/usage",
+      "/app/activity",
+      "/app/wallet",
+      "/app/referral",
+      "/app/settings",
+      "/app/settings/webhooks",
     ]) {
       expect(hrefs).toContain(required);
     }
     expect(PUBLIC_PAGE_SPECS.filter((p) => p.auth).map((p) => p.href)).toContain("/app");
+    expect(PUBLIC_PAGE_SPECS.filter((p) => p.auth).map((p) => p.href)).toContain("/app/keys");
   });
 });

@@ -51,3 +51,46 @@ test("user console main flow shows DESIGN.md hero cards", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
 });
+
+const consolePaths = [
+  "/app",
+  "/app/playground",
+  "/app/keys",
+  "/app/catalog",
+  "/app/usage",
+  "/app/activity",
+  "/app/wallet",
+  "/app/plans",
+  "/app/media",
+  "/app/referral",
+  "/app/docs",
+  "/app/settings",
+  "/app/settings/team",
+  "/app/settings/members",
+  "/app/settings/billing",
+  "/app/settings/quotas",
+  "/app/settings/apps",
+  "/app/settings/webhooks",
+];
+
+test("authenticated ofox replica pages render headings", async ({ page }) => {
+  for (const path of consolePaths) {
+    const response = await page.goto(path);
+    expect(response?.ok(), path).toBeTruthy();
+    await expect(page.locator("h1"), path).toBeVisible();
+  }
+});
+
+test("user console sidebar groups match ofox IA", async ({ page }) => {
+  await page.goto("/app");
+  const nav = page.getByRole("navigation", { name: "用户控制台" });
+  await expect(nav.getByRole("link", { name: "总览" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "快速试用" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "API Key" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "模型广场" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "请求明细" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "推荐计划" })).toBeVisible();
+  await nav.getByRole("link", { name: "快速试用" }).click();
+  await expect(page).toHaveURL(/\/app\/playground/);
+  await expect(page.getByRole("heading", { name: "快速试用" })).toBeVisible();
+});

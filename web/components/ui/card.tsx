@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <section className={cn("rounded-stamp border border-hairline bg-canvas-raised p-6", className)} {...props} />;
+  return <section className={cn("rounded-card border border-hairline bg-canvas-raised p-6", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {

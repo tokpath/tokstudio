@@ -7,6 +7,7 @@ import PublicStorefront from "./storefront";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
+import { RoutingReceipt } from "@/components/routing-receipt";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -43,16 +44,24 @@ export default async function PublicHome() {
   } catch {
     models = [];
   }
+  const vendors = [...new Set(models.map((model) => model.vendor).filter((vendor): vendor is string => Boolean(vendor)))];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-col gap-16 px-6 py-16">
-      <section className="flex max-w-3xl flex-col gap-4">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-24 px-6 py-20">
+      <section className="flex max-w-3xl flex-col gap-6">
         <Badge tone="brand">Status</Badge>
-        <h1 className="text-[40px] font-semibold leading-tight">一个 Key，可解释路由，账能复算。</h1>
-        <p className="text-base text-ink-secondary">
+        <h1 className="text-[36px] font-semibold leading-[1.08] sm:text-[56px]">
+          一个 Key，<span className="text-brand-emphasis">可解释路由</span>，账能复算。
+        </h1>
+        <p className="max-w-xl text-base leading-relaxed text-ink-secondary">
           {brandName} 公布已发布价目，示例只用品牌 Base URL。注册时绑定的渠道不能自己改。
         </p>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-x-10 gap-y-6 pt-2">
+          <Stat label="可用模型" value={String(models.length || "—")} hint="按当前域名白名单" />
+          <Stat label="控制面" value={readyOk ? "READY" : "HOLD"} hint={summary} />
+          <Stat label="站点" value={host} hint="OEM 只换章和 Logo" />
+        </div>
+        <div className="flex flex-wrap gap-3 pt-2">
           <Button asChild>
             <Link href="/login">开始使用</Link>
           </Button>
@@ -65,29 +74,58 @@ export default async function PublicHome() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <Stat label="可用模型" value={String(models.length || "—")} hint="按当前域名白名单" />
-        <Stat label="控制面" value={readyOk ? "READY" : "HOLD"} hint={summary} />
-        <Stat label="站点" value={host} hint="OEM 只换章和 Logo" />
-      </section>
+      {vendors.length > 0 ? (
+        <section className="border-y border-hairline py-6" aria-label="已发布厂商">
+          <p className="th-eyebrow text-ink-mute">Published vendors</p>
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm text-ink-secondary">
+            {vendors.map((vendor) => (
+              <span key={vendor}>{vendor}</span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="flex max-w-3xl flex-col gap-3">
-        <h2 className="text-lg font-semibold">接入示例</h2>
-        <p className="text-sm text-ink-secondary">完整 Key 不会写进示例。</p>
-        <CodeBlock>{`curl ${apiBase}/v1/models \\\n  -H "Authorization: Bearer sk-...xxxx"`}</CodeBlock>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">接入示例</h2>
+          <p className="text-sm text-ink-secondary">完整 Key 不会写进示例。右侧是一张 EXAMPLE 回单，不是实时账。</p>
+          <CodeBlock>{`curl ${apiBase}/v1/models \\\n  -H "Authorization: Bearer sk-...xxxx"`}</CodeBlock>
+        </div>
+        <RoutingReceipt
+          eyebrow="EXAMPLE · ATTEMPT"
+          lines={[
+            "public_model tokenhub/echo-1",
+            "attempt 1 → echo-primary → 429 rate_limited",
+            "attempt 2 → echo-backup → 200",
+          ]}
+          footnote="客户只收一笔"
+        />
       </section>
 
       <PublicStorefront models={models} plans={plans} />
+
+      <section className="flex max-w-2xl flex-col gap-4 py-8">
+        <h2 className="text-3xl font-semibold tracking-tight">开始对账</h2>
+        <p className="text-base leading-relaxed text-ink-secondary">改一个 Base URL 就能跑。价目已发布，每次 attempt 留得住。</p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/login">开始使用</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/docs">看文档</Link>
+          </Button>
+        </div>
+      </section>
     </main>
   );
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-stamp border border-hairline bg-canvas-raised px-4 py-4">
+    <div>
       <p className="th-eyebrow text-ink-mute">{label}</p>
-      <p className="mt-2 font-mono text-xl font-medium tabular-nums">{value}</p>
-      <p className="mt-1 text-[13px] text-ink-mute">{hint}</p>
+      <p className="mt-2 font-mono text-[32px] font-medium leading-none tabular-nums tracking-tight">{value}</p>
+      <p className="mt-2 max-w-[16rem] text-[13px] text-ink-mute">{hint}</p>
     </div>
   );
 }

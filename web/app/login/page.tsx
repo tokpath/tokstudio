@@ -64,11 +64,11 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-16">
-      <section className="w-full rounded-stamp border border-hairline bg-canvas-raised p-8">
+    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-20">
+      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
         <p className="th-eyebrow text-brand-emphasis">Sign in</p>
-        <h1 className="mt-2 text-2xl font-semibold">注册 / 登录</h1>
-        <p className="mt-2 text-sm text-ink-secondary">
+        <h1 className="mt-3 text-[40px] font-semibold leading-tight">注册 / 登录</h1>
+        <p className="mt-3 text-base leading-relaxed text-ink-secondary">
           推广码在注册成功时由服务端固化，不能当作可改归属。没有渐变英雄。
         </p>
         <Form {...form}>

@@ -9,7 +9,7 @@ const variants: Record<Variant, string> = {
 };
 
 const baseClass =
-  "inline-flex min-h-10 items-center justify-center rounded-stamp px-4 text-sm font-medium no-underline max-sm:min-h-11";
+  "inline-flex min-h-10 items-center justify-center rounded-stamp px-5 text-sm font-medium no-underline max-sm:min-h-11";
 
 export function Button({
   href,

@@ -14,7 +14,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-canvas">
-      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-4 px-6">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-6">
         <Link href="/" className="flex items-center gap-2 text-ink no-underline">
           {brand?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -50,7 +50,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             跳转
             <kbd className="font-mono text-[11px]">⌘K</kbd>
           </button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="ghost" size="sm">
             <Link href="/login">登录</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">

@@ -54,23 +54,23 @@ export default async function DocsPage() {
         </div>
         <section id="curl" className="scroll-mt-24 flex flex-col gap-3">
           <h2 className="text-lg font-semibold">curl</h2>
-          <CodeBlock>{docs.examples?.curl || "curl 示例接通后出现。Key 用 sk-...xxxx。"}</CodeBlock>
+          <CodeBlock>{docs.examples?.curl || t("curlPh")}</CodeBlock>
         </section>
         <section id="python" className="scroll-mt-24 flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Python</h2>
-          <CodeBlock>{docs.examples?.python || "Python 示例接通后出现。"}</CodeBlock>
+          <CodeBlock>{docs.examples?.python || t("pythonPh")}</CodeBlock>
         </section>
         <section id="node" className="scroll-mt-24 flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Node.js</h2>
-          <CodeBlock>{docs.examples?.node || "Node 示例接通后出现。"}</CodeBlock>
+          <CodeBlock>{docs.examples?.node || t("nodePh")}</CodeBlock>
         </section>
         <section id="messages" className="scroll-mt-24 flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Anthropic Messages</h2>
-          <CodeBlock>{docs.examples?.messages || "Messages 示例接通后出现。"}</CodeBlock>
+          <CodeBlock>{docs.examples?.messages || t("messagesPh")}</CodeBlock>
         </section>
         {docs.examples?.video ? (
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">视频任务</h2>
+            <h2 className="text-lg font-semibold">{t("videoTitle")}</h2>
             <CodeBlock>{docs.examples.video}</CodeBlock>
           </section>
         ) : null}

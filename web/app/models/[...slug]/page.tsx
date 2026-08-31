@@ -31,11 +31,15 @@ export default async function ModelDetailPage({
 
   const kind = inferKind(model);
   const caps = capabilityLabels(model.capabilities);
-  const price = priceForModel(model);
   const relatedVendor = models.filter((m) => m.id !== model.id && m.vendor === model.vendor).slice(0, 4);
   const relatedKind = models.filter((m) => m.id !== model.id && inferKind(m) === kind).slice(0, 4);
   const t = await getTranslations("modelDetail");
   const th = await getTranslations("home");
+  const tCaps = await getTranslations("caps");
+  const tCat = await getTranslations("catalog");
+  const priceUnits = { perSec: tCat("perSec"), perImage: tCat("perImage") };
+  const price = priceForModel(model, priceUnits);
+  const capText = caps.map((c) => tCaps(c as "vision"));
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
@@ -67,7 +71,7 @@ export default async function ModelDetailPage({
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-secondary">{model.description}</p>
           ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
-            {caps.map((c) => (
+            {capText.map((c) => (
               <span key={c} className="rounded-control border border-hairline px-2 py-1 text-[12px] text-ink-secondary">
                 {c}
               </span>
@@ -79,7 +83,7 @@ export default async function ModelDetailPage({
             <Link href="/models">{t("back")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href={`/models?kind=${kind}`}>同类型</Link>
+            <Link href={`/models?kind=${kind}`}>{t("sameKind")}</Link>
           </Button>
           <Button asChild>
             <Link href="/login">{th("ctaStart")}</Link>
@@ -88,34 +92,34 @@ export default async function ModelDetailPage({
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="上下文" value={formatContext(model.context_length)} />
-        <Stat label="最大输出" value={formatContext(model.max_completion_tokens)} />
-        <Stat label={kind === "video" ? "视频单价" : kind === "image" ? "图像单价" : "输入"} value={price.primary} />
-        <Stat label={kind === "text" ? "输出" : "厂商"} value={kind === "text" ? formatMoney(model.sell_price?.output) : model.vendor} />
+        <Stat label={t("context")} value={formatContext(model.context_length)} />
+        <Stat label={t("maxOut")} value={formatContext(model.max_completion_tokens)} />
+        <Stat label={kind === "video" ? t("videoPrice") : kind === "image" ? t("imagePrice") : t("input")} value={price.primary} />
+        <Stat label={kind === "text" ? t("output") : t("vendor")} value={kind === "text" ? formatMoney(model.sell_price?.output) : model.vendor} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-card border border-hairline bg-canvas-raised p-5">
           <p className="th-eyebrow text-ink-mute">PROVIDER · SELL PRICE</p>
-          <h2 className="mt-2 text-lg font-semibold">公开卖价</h2>
+          <h2 className="mt-2 text-lg font-semibold">{t("sellTitle")}</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <PriceCell label="输入 /M" value={formatMoney(model.sell_price?.input)} />
-            <PriceCell label="输出 /M" value={formatMoney(model.sell_price?.output)} />
-            <PriceCell label="媒体 /秒" value={formatMoney(model.sell_price?.media, "/秒")} />
-            <PriceCell label="图像" value={formatMoney(model.sell_price?.image, "/张")} />
+            <PriceCell label={t("inM")} value={formatMoney(model.sell_price?.input)} />
+            <PriceCell label={t("outM")} value={formatMoney(model.sell_price?.output)} />
+            <PriceCell label={t("mediaSec")} value={formatMoney(model.sell_price?.media, tCat("perSec"))} />
+            <PriceCell label={t("image")} value={formatMoney(model.sell_price?.image, tCat("perImage"))} />
           </div>
-          <p className="mt-4 text-[13px] text-ink-mute">不展示上游成本。客户账只看卖价。</p>
+          <p className="mt-4 text-[13px] text-ink-mute">{t("sellNote")}</p>
         </div>
         <div className="rounded-card border border-hairline bg-canvas-raised p-5">
           <p className="th-eyebrow text-ink-mute">ROUTING RECEIPT</p>
-          <h2 className="mt-2 text-lg font-semibold">可解释路径（示意）</h2>
+          <h2 className="mt-2 text-lg font-semibold">{t("routeTitle")}</h2>
           <p className="mt-4 font-mono text-[13px] leading-relaxed text-ink">
             {model.id}
             <br />→ published sell_price
             <br />→ attempt 1 provider whitelist
             <br />→ customer ledger one charge
           </p>
-          <p className="mt-3 text-[13px] text-ink-secondary">真实 attempt 在登录后的用户台查看；此处不伪造 Playground 对话。</p>
+          <p className="mt-3 text-[13px] text-ink-secondary">{t("routeNote")}</p>
         </div>
       </section>
 
@@ -133,7 +137,7 @@ export default async function ModelDetailPage({
       />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">代码示例（固定）</h2>
+        <h2 className="text-lg font-semibold">{t("codeTitle")}</h2>
         <CodeBlock>
           {kind === "video"
             ? `curl ${apiBase}/v1/videos \\\n  -H "Authorization: Bearer sk-...xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model.id}","prompt":"A quiet street at dusk"}'`
@@ -144,24 +148,24 @@ export default async function ModelDetailPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">常见问题</h2>
+        <h2 className="text-lg font-semibold">{t("faqTitle")}</h2>
         <div className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
           {[
             {
-              q: `在 TokenHub 上使用 ${model.display_name} 需要多少钱？`,
-              a: `公开卖价：输入 ${formatMoney(model.sell_price?.input)}，输出 ${formatMoney(model.sell_price?.output)}。以价目页实时数字为准。`,
+              q: t("faq0q", { name: model.display_name }),
+              a: t("faq0a", { input: formatMoney(model.sell_price?.input), output: formatMoney(model.sell_price?.output) }),
             },
             {
-              q: `${model.display_name} 的上下文窗口是多少？`,
-              a: `上下文 ${formatContext(model.context_length)}，最大输出 ${formatContext(model.max_completion_tokens)}。`,
+              q: t("faq1q", { name: model.display_name }),
+              a: t("faq1a", { context: formatContext(model.context_length), maxOut: formatContext(model.max_completion_tokens) }),
             },
             {
-              q: `如何调用 ${model.display_name}？`,
-              a: `注册拿 Key，把 base URL 换成品牌 API 域名，model 字段填 ${model.id}。`,
+              q: t("faq2q", { name: model.display_name }),
+              a: t("faq2a", { id: model.id }),
             },
             {
-              q: `支持哪些能力？`,
-              a: caps.length ? caps.join("、") : "以目录能力标签为准。",
+              q: t("faq3q"),
+              a: capText.length ? capText.join(" · ") : t("faq3a"),
             },
           ].map((item) => (
             <details key={item.q} className="group px-4 py-3">
@@ -173,9 +177,9 @@ export default async function ModelDetailPage({
       </section>
 
       {relatedVendor.length ? (
-        <Related title={`更多 ${model.vendor} 模型`} items={relatedVendor} />
+        <Related title={t("moreVendor", { vendor: model.vendor })} items={relatedVendor} />
       ) : null}
-      {relatedKind.length ? <Related title="类似模型" items={relatedKind} /> : null}
+      {relatedKind.length ? <Related title={t("similar")} items={relatedKind} /> : null}
     </main>
   );
 }

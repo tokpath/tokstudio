@@ -1,10 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { formatMoney, inferKind, loadCatalog } from "@/lib/catalog";
 import { StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function BestValuePage() {
+  const t = await getTranslations("bestValueUi");
+  const tc = await getTranslations("catalog");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const models = await loadCatalog(host);
   const ranked = [...models]
@@ -17,16 +20,16 @@ export default async function BestValuePage() {
       <I18nPublicHero id="bestValue" primaryHref="/login" secondaryHref="/models" />
       <StatStrip
         items={[
-          { label: "在表模型", value: String(ranked.length) },
-          { label: "最低输入", value: ranked[0] ? formatMoney(ranked[0].sell_price?.input) : "—" },
-          { label: "排序", value: "input ↑", hint: "公开卖价" },
+          { label: t("statInTable"), value: String(ranked.length) },
+          { label: t("statLowest"), value: ranked[0] ? formatMoney(ranked[0].sell_price?.input) : "—" },
+          { label: t("statSort"), value: "input ↑", hint: t("statSortHint") },
         ]}
       />
       <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
         <table className="min-w-[880px] w-full text-left text-sm">
           <thead className="border-b border-hairline">
             <tr>
-              {["#", "模型", "厂商", "输入", "输出", "状态"].map((h) => (
+              {["#", tc("colModel"), tc("colVendor"), tc("colInput"), tc("colOutput"), tc("colStatus")].map((h) => (
                 <th key={h} className="th-eyebrow px-4 py-3 text-ink-mute">
                   {h}
                 </th>

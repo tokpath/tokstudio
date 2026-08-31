@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
@@ -19,9 +20,11 @@ type LedgerRow = {
 };
 
 export default function UsagePanel() {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   const [usage, setUsage] = useState<UsageRow[]>([]);
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
-  const [message, setMessage] = useState("登录后可查看自己的用量和账单流水。");
+  const [message, setMessage] = useState(t("usageHint"));
 
   async function refresh() {
     const [usageRes, ledgerRes] = await Promise.all([
@@ -31,24 +34,22 @@ export default function UsagePanel() {
     const usageBody = await usageRes.json();
     const ledgerBody = await ledgerRes.json();
     if (!usageRes.ok) {
-      setMessage(usageBody.error?.message || "未登录");
+      setMessage(usageBody.error?.message || tc("notLoggedIn"));
       return;
     }
     setUsage(usageBody.items || []);
     setLedger(ledgerBody.items || []);
-    setMessage("用量与账单已刷新");
+    setMessage(t("usageDone"));
   }
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
-      <h2 className="mb-3 text-xl font-medium tracking-tight">用量与账单</h2>
-      <p className="mb-4 text-sm text-ink-secondary">只展示当前登录用户的 usage 和账本，不含其他渠道数据。</p>
+      <h2 className="mb-3 text-xl font-medium tracking-tight">{t("usageTitle")}</h2>
+      <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
       <Button type="button" variant="outline" className="mb-4" onClick={refresh}>
-        刷新账单
+        {t("usageRefresh")}
       </Button>
-      <p className="text-sm text-ink-secondary">
-        usage {usage.length} 条，流水 {ledger.length} 条。{message}
-      </p>
+      <p className="text-sm text-ink-secondary">{t("usageCount", { usage: usage.length, ledger: ledger.length, message })}</p>
     </section>
   );
 }

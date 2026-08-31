@@ -17,13 +17,6 @@ import { useTranslations } from "next-intl";
 type PublicModel = { id?: string; display_name?: string; vendor?: string };
 type PublicPlan = { id?: string; name?: string; price_minor?: number };
 
-function unauthorizedMessage(status: number, apiMessage?: string, fallback = "请先登录") {
-  if (status === 401 || status === 403) {
-    return apiMessage || "未登录，请先点「去登录」再回来购买";
-  }
-  return apiMessage || fallback;
-}
-
 export default function PublicStorefront({
   models,
   plans,
@@ -34,9 +27,16 @@ export default function PublicStorefront({
   const t = useTranslations("storefront");
   const [message, setMessage] = useState("");
   const redeemForm = useForm<{ code: string }>({
-    resolver: zodResolver(z.object({ code: z.string().trim().min(1, "请填写兑换码") })),
+    resolver: zodResolver(z.object({ code: z.string().trim().min(1, t("needCode")) })),
     defaultValues: { code: "THE2E" },
   });
+
+  function unauthorizedMessage(status: number, apiMessage?: string, fallback = t("loginFirst")) {
+    if (status === 401 || status === 403) {
+      return apiMessage || t("loginToBuy");
+    }
+    return apiMessage || fallback;
+  }
 
   async function redeem(values: { code: string }) {
     const response = await fetch(`${apiBase}/v1/topups/redeem`, {
@@ -46,7 +46,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ code: values.code }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `兑换成功 ${body.item?.amount_minor ?? 0} micro-USD` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
+    setMessage(response.ok ? t("redeemOk", { amount: body.item?.amount_minor ?? 0 }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
   }
 
   async function topup() {
@@ -57,7 +57,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ amount_minor: 1_000_000, payment_method: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已创建充值单 ${body.item?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
+    setMessage(response.ok ? t("topupOk", { id: body.item?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
   }
 
   async function subscribe(planId: string) {
@@ -68,7 +68,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ plan_id: planId, adapter: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已下单 ${body.checkout?.order?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再订阅"));
+    setMessage(response.ok ? t("ordered", { id: body.checkout?.order?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToSubscribe")));
   }
 
   return (

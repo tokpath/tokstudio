@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
@@ -33,8 +34,10 @@ export function parseAllowlist(raw: string): string[] {
 }
 
 export function KeysList({ items }: { items: APIKeyItem[] }) {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   if (items.length === 0) {
-    return <EmptyLedger title="暂无 API Keys" detail="创建一把 Key 后会出现在这里。空白名单不限制模型。" />;
+    return <EmptyLedger title={t("emptyKeys")} detail={t("emptyKeysDetail")} />;
   }
   return (
     <ul className="space-y-3 text-sm text-ink">
@@ -43,10 +46,10 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
           <p>
             {item.name} · {item.prefix} · {item.status}
             {item.rpm_limit ? ` · RPM ${item.rpm_limit}` : ""}
-            {item.concurrency_limit ? ` · 并发 ${item.concurrency_limit}` : ""}
+            {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
           </p>
           <p className="text-ink-secondary">
-            模型白名单：{item.allowlist?.length ? item.allowlist.join(", ") : "不限制"}
+            {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
           </p>
           {item.key ? <p className="break-all text-ink-secondary">{item.key}</p> : null}
         </li>
@@ -55,18 +58,23 @@ export function KeysList({ items }: { items: APIKeyItem[] }) {
   );
 }
 
-const createSchema = z.object({
-  name: z.string().trim().min(1, "请填写 Key 名称"),
-  allowlist: z.string(),
-  rpm: z.string(),
-  concurrency: z.string(),
-});
-
 export default function KeysPanel() {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   const [items, setItems] = useState<APIKeyItem[]>([]);
-  const [createMessage, setCreateMessage] = useState("空白名单不限制模型；填了之后，不在名单里的模型会返回 403 model_not_allowed。RPM 默认 60，并发默认 5。");
+  const [createMessage, setCreateMessage] = useState(t("createHint"));
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
+  const createSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(1, t("nameRequired")),
+        allowlist: z.string(),
+        rpm: z.string(),
+        concurrency: z.string(),
+      }),
+    [t],
+  );
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { name: "default", allowlist: "", rpm: "", concurrency: "" },
@@ -76,11 +84,11 @@ export default function KeysPanel() {
     const response = await fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
-      setMessage(body.error?.message || "未登录");
+      setMessage(body.error?.message || tc("notLoggedIn"));
       return;
     }
     setItems(body.items || []);
-    setMessage("API Key 已刷新");
+    setMessage(t("refreshed"));
   }
 
   async function createKey(values: z.infer<typeof createSchema>) {
@@ -105,12 +113,12 @@ export default function KeysPanel() {
     });
     const body = await response.json();
     if (!response.ok) {
-      setCreateMessage(body.error?.message || "创建失败");
+      setCreateMessage(body.error?.message || tc("createFailed"));
       return;
     }
     const created = body.item || {};
-    const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : "不限制";
-    setCreateMessage(`已创建 ${created.id || ""} ${created.name || values.name} → 白名单 ${listed} / 并发 ${created.concurrency_limit || 5}`);
+    const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : tc("unlimited");
+    setCreateMessage(t("created", { id: created.id || "", name: created.name || values.name, list: listed, n: created.concurrency_limit || 5 }));
     form.reset({ name: "default", allowlist: "", rpm: "", concurrency: "" });
     await refresh();
   }
@@ -124,7 +132,7 @@ export default function KeysPanel() {
     });
     const body = await response.json();
     if (!response.ok) {
-      setMessage(body.error?.message || "操作失败");
+      setMessage(body.error?.message || t("actFail"));
       return;
     }
     if (action === "copy" && typeof navigator !== "undefined") {
@@ -133,27 +141,25 @@ export default function KeysPanel() {
         await navigator.clipboard.writeText(secret);
       }
     }
-    setMessage(action === "copy" ? "已复制并写入审计" : `已${action}`);
+    setMessage(action === "copy" ? t("copiedAudit") : t("acted", { action }));
     await refresh();
   }
 
   return (
     <Card>
-      <CardTitle>API Key</CardTitle>
-      <p className="mb-4 text-sm text-ink-secondary">
-        完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。
-      </p>
+      <CardTitle>{t("keysTitle")}</CardTitle>
+      <p className="mb-4 text-sm text-ink-secondary">{t("keysLead")}</p>
       <Form {...form}>
         <form className="mb-4 grid max-w-xl gap-3" onSubmit={form.handleSubmit(createKey)}>
-          <TextField control={form.control} name="name" label="API Key 名称" placeholder="Key 名称" />
-          <h3 className="text-lg font-medium">模型白名单</h3>
-          <TextField control={form.control} name="allowlist" label="模型白名单" placeholder="逗号分隔模型，空则不限制" />
-          <TextField control={form.control} name="rpm" label="RPM 限额" placeholder="可选 RPM，默认 60" />
-          <TextField control={form.control} name="concurrency" label="并发限额" placeholder="可选并发，默认 5" />
+          <TextField control={form.control} name="name" label={t("nameLabel")} placeholder={t("namePh")} />
+          <h3 className="text-lg font-medium">{t("allowTitle")}</h3>
+          <TextField control={form.control} name="allowlist" label={t("allowTitle")} placeholder={t("allowPh")} />
+          <TextField control={form.control} name="rpm" label={t("rpm")} placeholder={t("rpmPh")} />
+          <TextField control={form.control} name="concurrency" label={t("conc")} placeholder={t("concPh")} />
           <div className="flex flex-wrap gap-3">
-            <Button type="submit">创建</Button>
+            <Button type="submit">{tc("create")}</Button>
             <Button type="button" variant="outline" onClick={refresh}>
-              刷新
+              {tc("refresh")}
             </Button>
           </div>
           <p className="text-sm text-ink-secondary">{createMessage}</p>
@@ -164,16 +170,16 @@ export default function KeysPanel() {
         {items.map((item) => (
           <li key={`${item.id}-actions`} className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => act(item.id, "copy")}>
-              复制
+              {tc("copy")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => act(item.id, "rotate")}>
-              轮换
+              {t("rotate")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => act(item.id, "disable")}>
-              禁用
+              {t("disable")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => act(item.id, "expire")}>
-              过期
+              {t("expire")}
             </Button>
           </li>
         ))}

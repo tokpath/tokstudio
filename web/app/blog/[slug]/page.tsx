@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { loadSite } from "@/lib/site-content";
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getTranslations("blogUi");
   const { slug } = await params;
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const site = await loadSite(host);
@@ -23,17 +25,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       />
       <article className="space-y-4 text-sm leading-relaxed text-ink-secondary">
         <p>{post.summary}</p>
-        <p>本文结构对齐 ofox 博客详情：标题、摘要、返回列表。计费与路由细节以本站文档和价目为准。</p>
+        <p>{t("note")}</p>
       </article>
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href="/docs">文档</Link>
-        </Button>
-        {post.source ? (
-          <Button asChild variant="ghost">
-            <a href={post.source} rel="noreferrer">
-              来源
-            </a>
+            <Link href="/docs">{t("docs")}</Link>
+          </Button>
+          {post.source ? (
+            <Button asChild variant="ghost">
+              <a href={post.source} rel="noreferrer">
+                {t("source")}
+              </a>
           </Button>
         ) : null}
       </div>

@@ -1,17 +1,19 @@
+import { getTranslations } from "next-intl/server";
 import { PublicSection } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
-const items = [
-  { date: "2026-08", title: "公开站按 DESIGN.md 对齐 ofox 页面密度", detail: "模型目录、价目、排行与接入页。" },
-  { date: "2026-08", title: "ofox 目录入库", detail: "爬取公开模型 dump 到 catalog，经 /v1/public/models 返回。" },
-  { date: "2026-08", title: "四个入口补齐", detail: "公共站 / 用户台 / 渠道台 / 管理台共用纸碳 token。" },
-];
+export default async function ChangelogPage() {
+  const t = await getTranslations("docsUi");
+  const items = [0, 1, 2].map((i) => ({
+    date: "2026-08",
+    title: t(`c${i}t`),
+    detail: t(`c${i}d`),
+  }));
 
-export default function ChangelogPage() {
   return (
     <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-20">
       <I18nPublicHero id="docsChangelog" primaryHref="/docs" />
-      <PublicSection eyebrow="LOG" title="近期">
+      <PublicSection eyebrow="LOG" title={t("logTitle")}>
         <ol className="space-y-3">
           {items.map((item) => (
             <li key={item.title} className="rounded-card border border-hairline bg-canvas-raised p-4">

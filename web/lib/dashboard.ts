@@ -31,10 +31,10 @@ export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: Da
   ];
 }
 
-export function formatDashboard(dashboard: {
+export function dashboardSummaryParams(dashboard: {
   totals?: DashboardTotals;
   alerts?: DashboardAlert[];
-}): string {
+}) {
   const revenue = dashboard.totals?.revenue_minor ?? 0;
   const profit = dashboard.totals?.gross_profit_minor ?? 0;
   const pending = dashboard.totals?.pending_reconciliation_count ?? 0;
@@ -44,5 +44,15 @@ export function formatDashboard(dashboard: {
   const tokens = dashboard.totals?.prompt_tokens ?? 0;
   const video = dashboard.totals?.video_seconds ?? 0;
   const alerts = dashboard.alerts?.length ?? 0;
-  return `成功率 ${(rate * 100).toFixed(0)}%，收入 ${revenue} micro-USD，毛利 ${profit}，待对账 ${pending}，低余额钱包 ${risk}，超时 ${timeouts}，prompt ${tokens}，视频 ${video} 秒，未关闭告警 ${alerts}`;
+  return {
+    rate: (rate * 100).toFixed(0),
+    revenue,
+    profit,
+    pending,
+    risk,
+    timeouts,
+    tokens,
+    video,
+    alerts,
+  };
 }

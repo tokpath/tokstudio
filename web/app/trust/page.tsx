@@ -1,53 +1,47 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { PublicSection } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
-export default function TrustPage() {
+export default async function TrustPage() {
+  const t = await getTranslations("trustUi");
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <I18nPublicHero id="trust" primaryHref="/docs" secondaryHref="/trust/subprocessors" />
 
-      <PublicSection eyebrow="SUMMARY" title="四点摘要">
+      <PublicSection eyebrow="SUMMARY" title={t("sumTitle")}>
         <div className="grid gap-3 md:grid-cols-2">
-          {[
-            { t: "同步 API 不落业务正文", d: "网关只做转发与计费所需元数据。" },
-            { t: "传输加密", d: "客户到平台、平台到上游使用 TLS。" },
-            { t: "API Key 保护", d: "完整 Key 默认掩码，轮换与禁用走审计。" },
-            { t: "控制面可见", d: "公共站与管理台都能看就绪态字标。" },
-          ].map((item) => (
-            <div key={item.t} className="rounded-card border border-hairline bg-canvas-raised p-5">
-              <p className="font-semibold">{item.t}</p>
-              <p className="mt-2 text-sm text-ink-secondary">{item.d}</p>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-card border border-hairline bg-canvas-raised p-5">
+              <p className="font-semibold">{t(`s${i}t`)}</p>
+              <p className="mt-2 text-sm text-ink-secondary">{t(`s${i}d`)}</p>
             </div>
           ))}
         </div>
       </PublicSection>
 
-      <PublicSection eyebrow="RETENTION" title="会保存什么">
+      <PublicSection eyebrow="RETENTION" title={t("retTitle")}>
         <ul className="space-y-3 text-sm text-ink-secondary">
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <strong className="text-ink">标准模型 API：</strong>不持久化 prompt/completion 正文；保留计费与路由回单字段。
-          </li>
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <strong className="text-ink">媒体异步任务：</strong>任务状态与必要交付物短时保留，到期清理。
-          </li>
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <strong className="text-ink">账本：</strong>客户收费、上游成本、佣金分列，不可改写已结算行。
-          </li>
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
+              <strong className="text-ink">{t(`r${i}t`)}</strong>
+              {t(`r${i}d`)}
+            </li>
+          ))}
         </ul>
       </PublicSection>
 
-      <PublicSection eyebrow="LINKS" title="信任与合规资料">
+      <PublicSection eyebrow="LINKS" title={t("linksTitle")}>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link href="/privacy">隐私政策</Link>
+            <Link href="/privacy">{t("privacy")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/terms">服务条款</Link>
+            <Link href="/terms">{t("terms")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/trust/subprocessors">子处理商</Link>
+            <Link href="/trust/subprocessors">{t("subs")}</Link>
           </Button>
         </div>
       </PublicSection>

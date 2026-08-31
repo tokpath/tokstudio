@@ -52,14 +52,15 @@ export function inferKind(m: Partial<CatalogModel>): string {
   return "text";
 }
 
-export function formatMoney(raw: unknown, unit: "/M" | "/秒" | "/张" | "" = "/M") {
+export type PriceUnits = { perSec?: string; perImage?: string };
+
+export function formatMoney(raw: unknown, unit = "/M") {
   if (raw == null || raw === "") return "—";
   const n = Number(raw);
   if (!Number.isFinite(n)) return String(raw);
   if (n === 0) return "$0";
   // ofox / OpenRouter 风格：prompt 常为 per-token
   if (unit === "/M" && n > 0 && n < 0.01) return `$${(n * 1_000_000).toFixed(n * 1_000_000 < 1 ? 3 : 2)}${unit}`;
-  if (unit === "/秒" || unit === "/张") return `$${n}${unit}`;
   return `$${n}${unit}`;
 }
 
@@ -75,14 +76,14 @@ export function capabilityLabels(caps?: Record<string, unknown>) {
     ? (caps?.supported_parameters as string[])
     : [];
   const map: Record<string, string> = {
-    vision: "视觉",
-    tools: "函数",
-    tool_choice: "函数",
-    reasoning: "推理",
-    stream: "流式",
-    response_format: "JSON",
-    structured_outputs: "结构化",
-    temperature: "温度",
+    vision: "vision",
+    tools: "tools",
+    tool_choice: "tools",
+    reasoning: "reasoning",
+    stream: "stream",
+    response_format: "json",
+    structured_outputs: "structured",
+    temperature: "temperature",
   };
   const labels: string[] = [];
   for (const p of supported) {
@@ -92,18 +93,21 @@ export function capabilityLabels(caps?: Record<string, unknown>) {
   return labels.slice(0, 7);
 }
 
-export function priceForModel(m: CatalogModel) {
+export function priceForModel(m: CatalogModel, units: PriceUnits = {}) {
   const kind = inferKind(m);
+  const perSec = units.perSec ?? "/s";
+  const perImage = units.perImage ?? "/img";
   if (kind === "video") {
-    return { primary: formatMoney(m.sell_price?.media ?? m.sell_price?.output, "/秒"), secondary: "视频" };
+    return { primary: formatMoney(m.sell_price?.media ?? m.sell_price?.output, perSec), secondary: kind, kind };
   }
   if (kind === "image") {
     const img = m.sell_price?.image ?? m.sell_price?.output ?? m.sell_price?.input;
-    return { primary: formatMoney(img, Number(img) > 0 && Number(img) < 0.01 ? "/M" : "/张"), secondary: "图像" };
+    return { primary: formatMoney(img, Number(img) > 0 && Number(img) < 0.01 ? "/M" : perImage), secondary: kind, kind };
   }
   return {
     primary: formatMoney(m.sell_price?.input, "/M"),
     secondary: formatMoney(m.sell_price?.output, "/M"),
+    kind,
   };
 }
 

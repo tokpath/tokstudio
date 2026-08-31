@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,15 +13,18 @@ import { apiBase } from "@/lib/api";
 import { safeNextPath } from "@/lib/login-next";
 import { useTranslations } from "next-intl";
 
-const schema = z.object({
-  email: z.string().trim().email("请填写有效邮箱"),
-  password: z.string().min(8, "密码至少 8 位"),
-  promo: z.string().trim(),
-  otp: z.string().trim(),
-});
-
 function LoginForm() {
   const t = useTranslations("login");
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z.string().trim().email(t("emailInvalid")),
+        password: z.string().min(8, t("passMin")),
+        promo: z.string().trim(),
+        otp: z.string().trim(),
+      }),
+    [t],
+  );
   const search = useSearchParams();
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -46,11 +49,11 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
-      setMessage(`已注册，渠道 ${body.session?.user?.channel_org_id}`);
+      setMessage(t("registered", { channel: body.session?.user?.channel_org_id || "—" }));
       goNext();
       return;
     }
-    setMessage(body.error?.message || "失败");
+    setMessage(body.error?.message || t("fail"));
   }
 
   async function login(values: z.infer<typeof schema>) {
@@ -62,37 +65,37 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
-      setMessage(`欢迎 ${body.session?.user?.email}`);
+      setMessage(t("welcome", { email: body.session?.user?.email || "" }));
       goNext();
       return;
     }
-    setMessage(body.error?.message || "失败");
+    setMessage(body.error?.message || t("fail"));
   }
 
   async function googleStart() {
     const response = await fetch(`${apiBase}/v1/auth/google/start`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
-      setMessage(body.error?.message || "Google 登录不可用");
+      setMessage(body.error?.message || t("googleUnavailable"));
       return;
     }
     if (body.mock) {
       setGoogleState(body.state || "");
       setGoogleEmail(form.getValues("email"));
-      setMessage("开发环境：填写 Google 邮箱后继续（无需真实 OAuth）");
+      setMessage(t("googleDevHint"));
       return;
     }
     if (body.auth_url) {
       window.location.href = body.auth_url;
       return;
     }
-    setMessage("Google 登录未返回跳转地址");
+    setMessage(t("googleNoRedirect"));
   }
 
   async function googleFinish() {
     const email = googleEmail.trim();
     if (!googleState || !email.includes("@")) {
-      setMessage("请填写 Google 邮箱");
+      setMessage(t("googleNeedEmail"));
       return;
     }
     const response = await fetch(`${apiBase}/v1/auth/google/callback`, {
@@ -103,11 +106,11 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
-      setMessage(`欢迎 ${body.session?.user?.email}`);
+      setMessage(t("welcome", { email: body.session?.user?.email || "" }));
       goNext();
       return;
     }
-    setMessage(body.error?.message || "Google 登录失败");
+    setMessage(body.error?.message || t("googleFail"));
   }
 
   function githubStart() {
@@ -126,9 +129,9 @@ function LoginForm() {
     setMessage(
       response.ok
         ? body.dev_code
-          ? `验证码已发送（开发回显 ${body.dev_code}）`
-          : "验证码已发送"
-        : body.error?.message || "发送失败",
+          ? t("otpSentDev", { code: body.dev_code })
+          : t("otpSent")
+        : body.error?.message || t("otpSendFail"),
     );
   }
 
@@ -142,11 +145,11 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
-      setMessage(`欢迎 ${body.session?.user?.email}`);
+      setMessage(t("welcome", { email: body.session?.user?.email || "" }));
       goNext();
       return;
     }
-    setMessage(body.error?.message || "验证码无效");
+    setMessage(body.error?.message || t("otpInvalid"));
   }
 
   return (
@@ -202,7 +205,7 @@ function LoginForm() {
               </div>
             ) : null}
             {mode === "register" ? (
-              <TextField control={form.control} name="promo" label={t("promo")} placeholder="可选 · THA1 / THB1 / THC1" />
+              <TextField control={form.control} name="promo" label={t("promo")} placeholder={t("promoPh")} />
             ) : null}
             <Button
               type="button"
@@ -238,8 +241,8 @@ function LoginForm() {
               )}
             </p>
             <p className="text-[12px] text-ink-mute">
-              {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>。{t("backHome")}{" "}
-              <Link href="/">{t("public")}</Link>。
+              {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>. {t("backHome")}{" "}
+              <Link href="/">{t("public")}</Link>.
             </p>
           </form>
         </Form>

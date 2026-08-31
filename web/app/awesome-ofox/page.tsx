@@ -1,11 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { PublicSection } from "@/components/public-section";
 import { loadSite } from "@/lib/site-content";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function AwesomePage() {
+  const t = await getTranslations("awesomeUi");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const site = await loadSite(host);
   const apps = site.apps || [];
@@ -13,7 +15,7 @@ export default async function AwesomePage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
       <I18nPublicHero id="awesome" primaryHref="/login" secondaryHref="/vibe-coding" />
-      <PublicSection eyebrow="APPS" title={`${apps.length} 个应用`}>
+      <PublicSection eyebrow="APPS" title={t("appsTitle", { count: apps.length })}>
         <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {apps.map((app) => (
             <li key={app.slug} className="rounded-card border border-hairline bg-canvas-raised p-5">
@@ -29,7 +31,7 @@ export default async function AwesomePage() {
         </ul>
       </PublicSection>
       <p className="text-sm text-ink-mute">
-        想列出你的工具？先走 <Link href="/docs">文档</Link> 换 base URL。
+        {t("cta")} <Link href="/docs">{t("docs")}</Link> {t("cta2")}
       </p>
     </main>
   );

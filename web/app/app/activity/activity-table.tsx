@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
@@ -14,32 +15,36 @@ type UsageRow = {
 };
 
 export function ActivityTable() {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
   const [rows, setRows] = useState<UsageRow[] | null>(null);
-  const [message, setMessage] = useState("登录后可查看请求明细。");
+  const [message, setMessage] = useState(t("actHint"));
 
   async function refresh() {
     const response = await fetch(`${apiBase}/v1/me/usage`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
       setRows([]);
-      setMessage(body.error?.message || "未登录");
+      setMessage(body.error?.message || tc("notLoggedIn"));
       return;
     }
     setRows(body.items || []);
-    setMessage("请求明细已刷新");
+    setMessage(t("actDone"));
   }
 
   useEffect(() => {
     void refresh();
+    // 首次进入拉一次明细；refresh 闭包读当前文案即可。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!rows || rows.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
-          刷新
+          {tc("refresh")}
         </Button>
-        <EmptyLedger title="暂无数据" detail={message} />
+        <EmptyLedger title={t("actEmpty")} detail={message} />
       </div>
     );
   }
@@ -49,10 +54,10 @@ export function ActivityTable() {
       <table className="w-full text-left text-sm">
         <thead className="bg-canvas-raised text-ink-mute">
           <tr>
-            <th className="px-4 py-3 font-medium">模型</th>
-            <th className="px-4 py-3 font-medium">状态</th>
-            <th className="px-4 py-3 font-medium">请求 ID</th>
-            <th className="px-4 py-3 font-medium">金额</th>
+            <th className="px-4 py-3 font-medium">{t("colModel")}</th>
+            <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+            <th className="px-4 py-3 font-medium">{t("colReq")}</th>
+            <th className="px-4 py-3 font-medium">{t("colAmount")}</th>
           </tr>
         </thead>
         <tbody>

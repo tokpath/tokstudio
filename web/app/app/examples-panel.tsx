@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { apiBase } from "@/lib/api";
@@ -13,8 +14,9 @@ type DocsContext = {
 };
 
 export default function ExamplesPanel() {
+  const t = useTranslations("user");
   const [docs, setDocs] = useState<DocsContext>({});
-  const [message, setMessage] = useState("示例会带上当前品牌的 Base URL 和模型白名单，不会写入完整 API Key。");
+  const [message, setMessage] = useState(t("examplesHint"));
 
   async function refresh() {
     const host = typeof window !== "undefined" ? window.location.host : "localhost";
@@ -23,43 +25,41 @@ export default function ExamplesPanel() {
     });
     const body = (await response.json()) as DocsContext & { error?: { message?: string } };
     if (!response.ok) {
-      setMessage(body.error?.message || "文档上下文加载失败");
+      setMessage(body.error?.message || t("examplesFail"));
       return;
     }
     setDocs(body);
-    setMessage(`Base URL https://${body.brand?.api_domain || "localhost"} ，模型 ${(body.models || []).join("、") || "无"}`);
+    setMessage(t("examplesMeta", { host: body.brand?.api_domain || "localhost", models: (body.models || []).join("、") || t("examplesNone") }));
   }
 
   async function copy(label: string, text?: string) {
     if (!text) {
-      setMessage("请先刷新接入示例");
+      setMessage(t("examplesNeedRefresh"));
       return;
     }
     await navigator.clipboard.writeText(text);
-    setMessage(`已复制 ${label}，请自行替换 $TOKENHUB_API_KEY`);
+    setMessage(t("examplesCopied", { label }));
   }
 
   return (
     <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
-      <CardTitle className="mb-3 text-xl font-medium">接入示例</CardTitle>
-      <p className="mb-3 text-sm text-ink-secondary">
-        覆盖 Chat、Anthropic Messages 和视频任务。完整 Key 只在「API Key」面板复制，不会出现在这段文档里。
-      </p>
+      <CardTitle className="mb-3 text-xl font-medium">{t("examplesTitle")}</CardTitle>
+      <p className="mb-3 text-sm text-ink-secondary">{t("examplesLead")}</p>
       <div className="mb-3 flex flex-wrap gap-3">
         <Button variant="outline" onClick={refresh}>
-          刷新示例
+          {t("refreshExamples")}
         </Button>
         <Button variant="outline" onClick={() => copy("curl", docs.examples?.curl)}>
-          复制 curl
+          {t("copyCurl")}
         </Button>
         <Button variant="outline" onClick={() => copy("Python", docs.examples?.python)}>
-          复制 Python
+          {t("copyPython")}
         </Button>
         <Button variant="outline" onClick={() => copy("Node.js", docs.examples?.node)}>
-          复制 Node.js
+          {t("copyNode")}
         </Button>
       </div>
-      <pre className="overflow-x-auto rounded bg-canvas p-3 text-xs text-code-ink">{docs.examples?.curl || "点击刷新示例"}</pre>
+      <pre className="overflow-x-auto rounded bg-canvas p-3 text-xs text-code-ink">{docs.examples?.curl || t("clickRefresh")}</pre>
       <p className="mt-3 text-sm text-ink-secondary">{docs.notes?.errors}</p>
       <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.rate_limit}</p>
       <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.webhook}</p>

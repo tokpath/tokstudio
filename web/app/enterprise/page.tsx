@@ -1,23 +1,20 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { PublicSection } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
-const capabilities = [
-  { title: "用量与额度", body: "团队用量可见，渠道额度可管。" },
-  { title: "一个 Key", body: "白名单模型共用余额与账本。" },
-  { title: "可解释路由", body: "attempt 回单留给财务和值班。" },
-  { title: "OEM 换章", body: "域名、Logo、主色可换，语义色不动。" },
-  { title: "佣金上限", body: "平台管住底价与佣金天花板。" },
-  { title: "审计", body: "高风险操作二次确认并留痕。" },
-];
+export default async function EnterprisePage() {
+  const t = await getTranslations("enterpriseUi");
+  const th = await getTranslations("home");
+  const capabilities = [0, 1, 2, 3, 4, 5].map((i) => ({ title: t(`c${i}t`), body: t(`c${i}d`) }));
+  const rows = [0, 1, 2, 3].map((i) => [t(`r${i}k`), t(`r${i}a`), t(`r${i}b`)]);
 
-export default function EnterprisePage() {
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
       <I18nPublicHero id="enterprise" primaryHref="/login" secondaryHref="/trust" />
 
-      <PublicSection eyebrow="CAPABILITIES" title="不止省钱这一件事">
+      <PublicSection eyebrow="CAPABILITIES" title={t("capsTitle")}>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((item) => (
             <div key={item.title} className="rounded-card border border-hairline bg-canvas-raised p-5">
@@ -28,23 +25,18 @@ export default function EnterprisePage() {
         </div>
       </PublicSection>
 
-      <PublicSection eyebrow="COMPARE" title="对照一张表" description="数字与承诺以你们实际上线为准；这里先把结构摆齐。">
+      <PublicSection eyebrow="COMPARE" title={t("tableTitle")} description={t("tableLead")}>
         <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-hairline">
               <tr>
-                <th className="th-eyebrow px-4 py-3 text-ink-mute">项</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colItem")}</th>
                 <th className="th-eyebrow px-4 py-3 text-ink-mute">TokenHub</th>
-                <th className="th-eyebrow px-4 py-3 text-ink-mute">通用聚合网关</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPeer")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
-              {[
-                ["公开价目", "已发布价目单", "视平台而定"],
-                ["路由回单", "attempt 可解释", "常不可见"],
-                ["渠道 / OEM", "额度与佣金上限", "弱或无"],
-                ["主题", "纸/碳三档", "多锁深色"],
-              ].map(([k, a, b]) => (
+              {rows.map(([k, a, b]) => (
                 <tr key={k}>
                   <td className="px-4 py-3 text-ink">{k}</td>
                   <td className="px-4 py-3 text-ink-secondary">{a}</td>
@@ -57,13 +49,13 @@ export default function EnterprisePage() {
       </PublicSection>
 
       <section className="rounded-card border border-hairline bg-canvas-raised px-6 py-10">
-        <h2 className="text-2xl font-semibold">准备好扩展基础设施了吗？</h2>
+        <h2 className="text-2xl font-semibold">{t("readyTitle")}</h2>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/login">开始使用</Link>
+            <Link href="/login">{th("ctaStart")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/vs/openrouter">看完整对比</Link>
+            <Link href="/vs/openrouter">{t("fullCompare")}</Link>
           </Button>
         </div>
       </section>

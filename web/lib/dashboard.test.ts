@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dashboardHero, formatDashboard } from "./dashboard";
+import { dashboardHero, dashboardSummaryParams } from "./dashboard";
 
-describe("formatDashboard", () => {
+describe("dashboardSummaryParams", () => {
   it("summarizes revenue margin and pending", () => {
     expect(
-      formatDashboard({
+      dashboardSummaryParams({
         totals: { revenue_minor: 10, gross_profit_minor: 4, pending_reconciliation_count: 1, success_rate: 1, low_balance_wallets: 2 },
         alerts: [{ kind: "pending_reconciliation" }],
       }),
-    ).toContain("待对账 1");
+    ).toMatchObject({ pending: 1, revenue: 10, profit: 4, rate: "100", risk: 2, alerts: 1 });
   });
 
   it("exposes DESIGN.md admin hero stats", () => {

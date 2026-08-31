@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
@@ -14,28 +15,22 @@ import {
   type CatalogModel,
 } from "@/lib/catalog";
 
-const FILTERS = [
-  { id: "all", label: "全部" },
-  { id: "text", label: "文本" },
-  { id: "image", label: "图像" },
-  { id: "video", label: "视频" },
-  { id: "embedding", label: "向量" },
-  { id: "audio", label: "转写" },
-] as const;
+const FILTER_IDS = ["all", "text", "image", "video", "embedding", "audio"] as const;
 
 function CopyId({ id }: { id: string }) {
+  const t = useTranslations("catalog");
   return (
     <button
       type="button"
       className="rounded-control border border-hairline px-1.5 py-0.5 font-mono text-[11px] text-ink-mute hover:text-ink"
-      title="复制模型 ID"
+      title={t("copyId")}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         void navigator.clipboard.writeText(id);
       }}
     >
-      复制
+      {t("copy")}
     </button>
   );
 }
@@ -47,9 +42,13 @@ export function ModelsCatalog({
   models: CatalogModel[];
   initialKind?: string;
 }) {
+  const t = useTranslations("catalog");
+  const tCaps = useTranslations("caps");
+  const tCommon = useTranslations("common");
+  const units = { perSec: t("perSec"), perImage: t("perImage") };
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
-    FILTERS.some((f) => f.id === initialKind) ? (initialKind as (typeof FILTERS)[number]["id"]) : "all",
+  const [filter, setFilter] = useState<(typeof FILTER_IDS)[number]>(
+    FILTER_IDS.some((id) => id === initialKind) ? (initialKind as (typeof FILTER_IDS)[number]) : "all",
   );
   const [view, setView] = useState<"list" | "table">("list");
 
@@ -64,49 +63,55 @@ export function ModelsCatalog({
     });
   }, [models, q, filter]);
 
+  function capText(caps?: Record<string, unknown>) {
+    return capabilityLabels(caps)
+      .map((key) => tCaps(key as "vision"))
+      .join(" · ");
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索模型…"
+          placeholder={t("search")}
           className="lg:max-w-md"
-          aria-label="搜索模型"
+          aria-label={t("searchAria")}
         />
         <div className="flex flex-wrap items-center gap-2">
-          {FILTERS.map((f) => {
-            const count = f.id === "all" ? models.length : models.filter((m) => inferKind(m) === f.id).length;
-            if (f.id !== "all" && count === 0) return null;
-            const active = filter === f.id;
+          {FILTER_IDS.map((id) => {
+            const count = id === "all" ? models.length : models.filter((m) => inferKind(m) === id).length;
+            if (id !== "all" && count === 0) return null;
+            const active = filter === id;
             return (
               <button
-                key={f.id}
+                key={id}
                 type="button"
-                onClick={() => setFilter(f.id)}
+                onClick={() => setFilter(id)}
                 className={`rounded-control px-3 py-1.5 text-sm ${
                   active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
                 }`}
               >
-                {f.label} {count}
+                {t(id)} {count}
               </button>
             );
           })}
-          <Badge>{filtered.length} 个模型</Badge>
+          <Badge>{t("count", { count: filtered.length })}</Badge>
           <div className="ml-auto flex gap-1">
             <button
               type="button"
               onClick={() => setView("list")}
               className={`rounded-control px-2 py-1 text-[12px] ${view === "list" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
             >
-              列表
+              {t("list")}
             </button>
             <button
               type="button"
               onClick={() => setView("table")}
               className={`rounded-control px-2 py-1 text-[12px] ${view === "table" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
             >
-              表格
+              {t("table")}
             </button>
           </div>
         </div>
@@ -114,23 +119,24 @@ export function ModelsCatalog({
 
       {filtered.length === 0 ? (
         <div className="rounded-card border border-hairline bg-canvas-raised">
-          <EmptyState title="没有匹配的模型" detail="换个关键词，或清掉筛选再试。" />
+          <EmptyState title={t("emptyTitle")} detail={t("emptyDetail")} />
         </div>
       ) : view === "table" ? (
         <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
           <table className="min-w-[960px] w-full text-left text-sm">
             <thead className="border-b border-hairline">
               <tr>
-                {["模型", "厂商", "上下文", "输入", "输出", "能力"].map((h) => (
+                {(["colModel", "colVendor", "colContext", "colInput", "colOutput", "colCaps"] as const).map((h) => (
                   <th key={h} className="th-eyebrow px-4 py-3 text-ink-mute">
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
               {filtered.map((m) => {
-                const price = priceForModel(m);
+                const kind = inferKind(m);
+                const price = priceForModel(m, units);
                 return (
                   <tr key={m.id} className="hover:bg-brand-soft/40">
                     <td className="px-4 py-3">
@@ -142,8 +148,10 @@ export function ModelsCatalog({
                     <td className="px-4 py-3 text-ink-secondary">{m.vendor}</td>
                     <td className="px-4 py-3 font-mono tabular-nums">{formatContext(m.context_length)}</td>
                     <td className="px-4 py-3 font-mono tabular-nums text-brand-emphasis">{price.primary}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{price.secondary}</td>
-                    <td className="px-4 py-3 text-[12px] text-ink-mute">{capabilityLabels(m.capabilities).join(" · ") || "—"}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">
+                      {kind === "video" ? t("kindVideo") : kind === "image" ? t("kindImage") : price.secondary}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-ink-mute">{capText(m.capabilities) || "—"}</td>
                   </tr>
                 );
               })}
@@ -155,7 +163,7 @@ export function ModelsCatalog({
           {filtered.map((m) => {
             const kind = inferKind(m);
             const caps = capabilityLabels(m.capabilities);
-            const price = priceForModel(m);
+            const price = priceForModel(m, units);
             return (
               <li key={m.id}>
                 <Link
@@ -178,27 +186,33 @@ export function ModelsCatalog({
                     <div className="text-right">
                       <p className="font-mono text-sm font-medium tabular-nums text-brand-emphasis">{price.primary}</p>
                       <p className="font-mono text-[12px] tabular-nums text-ink-mute">
-                        {kind === "text" ? `出 ${price.secondary}` : price.secondary}
+                        {kind === "text"
+                          ? tCommon("outPrice", { price: price.secondary })
+                          : kind === "video"
+                            ? t("kindVideo")
+                            : kind === "image"
+                              ? t("kindImage")
+                              : price.secondary}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-ink-secondary">
                     <span>
-                      上下文 <span className="font-mono tabular-nums text-ink">{formatContext(m.context_length)}</span>
+                      {t("context")} <span className="font-mono tabular-nums text-ink">{formatContext(m.context_length)}</span>
                     </span>
                     {m.max_completion_tokens ? (
                       <span>
-                        最大输出 <span className="font-mono tabular-nums text-ink">{formatContext(m.max_completion_tokens)}</span>
+                        {t("maxOut")} <span className="font-mono tabular-nums text-ink">{formatContext(m.max_completion_tokens)}</span>
                       </span>
                     ) : null}
                     {kind === "text" ? (
                       <>
                         <span>
-                          输入 <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.input)}</span>
+                          {t("input")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.input)}</span>
                         </span>
                         <span>
-                          输出 <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.output)}</span>
+                          {t("output")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.output)}</span>
                         </span>
                       </>
                     ) : null}
@@ -212,7 +226,7 @@ export function ModelsCatalog({
                     {caps.length ? (
                       caps.map((c) => (
                         <span key={c} className="rounded-control border border-hairline px-2 py-0.5 text-[11px] text-ink-secondary">
-                          {c}
+                          {tCaps(c as "vision")}
                         </span>
                       ))
                     ) : (

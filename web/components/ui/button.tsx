@@ -16,8 +16,8 @@ const buttonVariants = cva(
         link: "text-brand-emphasis underline-offset-4 hover:underline",
       },
       size: {
-        default: "min-h-10 px-4 py-2",
-        sm: "min-h-10 px-3 text-sm",
+        default: "min-h-10 px-5 py-2.5",
+        sm: "min-h-10 px-4 text-sm",
         lg: "min-h-11 px-8",
         icon: "size-10",
       },

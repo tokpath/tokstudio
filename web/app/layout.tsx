@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { themeStyle, type Brand } from "@/lib/brand";
 import { fetchAPI } from "@/lib/api";
-import { messagesFor, resolveLocale } from "@/lib/i18n";
+import { htmlLang, messagesForRequest, resolveRequestLocale } from "@/lib/i18n";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { AppProviders } from "@/app/providers";
 
-const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
-export const metadata: Metadata = {
-  title: "TokenHub",
-  description: "一个 Key，可解释路由，账能复算。",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
+  const accept = (await headers()).get("accept-language");
+  const messages = messagesForRequest(cookie, accept) as { chrome?: { metaDescription?: string } };
+  return {
+    title: "TokenHub",
+    description: messages.chrome?.metaDescription || "一个 Key，可解释路由，账能复算。",
+  };
+}
 
 async function loadBrand(): Promise<Brand | undefined> {
   try {
@@ -28,11 +33,13 @@ async function loadBrand(): Promise<Brand | undefined> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const brand = await loadBrand();
-  const locale = resolveLocale((await cookies()).get("NEXT_LOCALE")?.value);
+  const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
+  const accept = (await headers()).get("accept-language");
+  const locale = resolveRequestLocale(cookie, accept);
   return (
-    <html lang={locale === "zh" ? "zh-CN" : locale} suppressHydrationWarning>
+    <html lang={htmlLang(locale)} suppressHydrationWarning>
       <body className={`${sans.variable} ${mono.variable} min-h-screen bg-canvas font-sans text-ink antialiased`} style={themeStyle(brand)}>
-        <AppProviders locale={locale} messages={messagesFor(locale)}>
+        <AppProviders locale={locale} messages={messagesForRequest(cookie, accept)}>
           <AppChrome brand={brand}>{children}</AppChrome>
         </AppProviders>
       </body>

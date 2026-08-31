@@ -39,6 +39,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27"
+          cache-dependency-path: backend/go.sum
+      - name: download modules
+        run: |
+          # proxy.golang.org 偶发 HTTP/2 INTERNAL_ERROR；先下全模块再测，避免编译期再打网。
+          n=0
+          until go mod download; do
+            n=$((n + 1))
+            if [ "$n" -ge 4 ]; then
+              exit 1
+            fi
+            sleep $((n * 4))
+          done
       - name: test
         env:
           TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@localhost:5432/tokenhub?sslmode=disable

@@ -14,6 +14,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Plan = {
   id: string;
@@ -83,8 +84,8 @@ export default function AdminPlansPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">套餐审核</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="planReview" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">低于 1 USD、超额权益或高风险视频秒数的渠道套餐会停在 pending_review。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Button size="sm" variant={status === "pending_review" ? "default" : "outline"} onClick={() => setStatus("pending_review")}>
@@ -138,8 +139,8 @@ export default function AdminPlansPage() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <Form {...createForm}>
-        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="mb-3 text-xl font-medium">创建套餐</h2>
+        <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
+          <AdminH2 k="createPlan" className="mb-3 text-xl font-medium" />
           <p className="mb-3 text-sm text-ink-secondary">价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={createForm.control} name="name" label="创建用套餐名" />
@@ -185,8 +186,8 @@ export default function AdminPlansPage() {
         </form>
       </Form>
       <Form {...archiveForm}>
-        <form className="rounded-stamp border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <h2 className="mb-3 text-xl font-medium">下架套餐</h2>
+        <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
+          <AdminH2 k="archivePlan" className="mb-3 text-xl font-medium" />
           <p className="mb-3 text-sm text-ink-secondary">只改成 archived，不删历史订阅。不要下架 pln_echo_month。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={archiveForm.control} name="plan_id" label="下架用套餐 ID" />
@@ -217,8 +218,8 @@ export default function AdminPlansPage() {
         </form>
       </Form>
       <p className="text-sm text-ink-secondary">{writeMessage}</p>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">续费扫描</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="renewScan" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">
           强制到期把 period_end 拨到过去，再扫描才会走重试/宽限期。生产默认禁止。不强制确认头。
         </p>

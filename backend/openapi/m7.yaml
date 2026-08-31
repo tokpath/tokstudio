@@ -51,6 +51,11 @@ paths:
   /admin/models:
     get:
       summary: List public models for admin
+  /admin/models/{id}:
+    get:
+      summary: Get one admin model including capabilities and sell price
+    patch:
+      summary: Update display name, vendor, capabilities or status
   /admin/providers/{id}/sync:
     post:
       summary: Sync provider models and prices into draft

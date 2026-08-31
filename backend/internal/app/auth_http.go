@@ -19,6 +19,7 @@ const sessionCookie = "tokenhub_session"
 func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/brand", a.publicBrand)
 	r.GET("/v1/public/models", a.publicModels)
+	r.GET("/v1/public/site", a.publicSite)
 	r.GET("/v1/public/tls-check", a.publicTLSCheck)
 	r.GET("/.well-known/acme-challenge/:token", a.acmeHTTP01)
 	r.GET("/v1/public/docs-context", a.docsContext)
@@ -344,12 +345,20 @@ func (a *App) publicModels(c *gin.Context) {
 	}
 	items := make([]gin.H, 0, len(models))
 	for _, model := range models {
+		// 公开价目只给 sell_price（客户侧），不含上游成本。
 		items = append(items, gin.H{
 			"id": model.ID, "vendor": model.Vendor, "display_name": model.DisplayName,
-			"capabilities": model.Capabilities,
+			"capabilities": model.Capabilities, "sell_price": model.SellPrice,
+			"status":      catalog.PublicModelStatus(model.Status),
+			"description": model.Description, "kind": model.Kind,
+			"context_length": model.ContextLength, "max_completion_tokens": model.MaxCompletionTokens,
 		})
 	}
 	httpx.OK(c, gin.H{"items": items, "brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) publicSite(c *gin.Context) {
+	httpx.OK(c, gin.H{"site": catalog.PublicSiteContent(), "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) docsContext(c *gin.Context) {

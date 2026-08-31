@@ -1,0 +1,11 @@
+# 构建上下文不要带本机缓存：.next 是 next dev / 旧 build 的产物，
+# 打进 Linux 镜像会让 next build 复用错误编译结果（例如 / 被编成用户台）。
+node_modules
+.next
+out
+coverage
+playwright-report
+test-results
+*.log
+.DS_Store
+npm-debug.log*

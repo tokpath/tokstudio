@@ -77,6 +77,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/models/deprecate"
   },
   {
+    "method": "GET",
+    "path": "/admin/models/{id}"
+  },
+  {
     "method": "PATCH",
     "path": "/admin/models/{id}"
   },

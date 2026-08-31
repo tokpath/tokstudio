@@ -115,14 +115,18 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID           string         `json:"id"`
-	Vendor       string         `json:"vendor"`
-	DisplayName  string         `json:"display_name"`
-	Capabilities map[string]any `json:"capabilities"`
-	SellPrice    map[string]any `json:"sell_price,omitempty"`
-	Providers    []string       `json:"providers"`
-	Status       string         `json:"status"`
-	SyncState    string         `json:"sync_state,omitempty"`
+	ID                  string         `json:"id"`
+	Vendor              string         `json:"vendor"`
+	DisplayName         string         `json:"display_name"`
+	Capabilities        map[string]any `json:"capabilities"`
+	SellPrice           map[string]any `json:"sell_price,omitempty"`
+	Providers           []string       `json:"providers"`
+	Status              string         `json:"status"`
+	SyncState           string         `json:"sync_state,omitempty"`
+	Description         string         `json:"description,omitempty"`
+	Kind                string         `json:"kind,omitempty"`
+	ContextLength       int            `json:"context_length,omitempty"`
+	MaxCompletionTokens int            `json:"max_completion_tokens,omitempty"`
 }
 
 // ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
@@ -204,7 +208,7 @@ func (s *Service) Seed(ctx context.Context) error {
 		"currency": "USD", "video_second": "0.01", "image_count": "0.02", "audio_second": "0.002",
 		"video_second_cost": "0.004", "image_count_cost": "0.008",
 	})
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		providers := []providerRow{
 			{ID: "prd_echo_primary", Name: "Echo Primary", Slug: PrimaryProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
 			{ID: "prd_echo_backup", Name: "Echo Backup", Slug: BackupProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
@@ -265,8 +269,14 @@ func (s *Service) Seed(ctx context.Context) error {
 		if err := seedMediaCatalog(tx, mediaCaps, mediaPrice); err != nil {
 			return err
 		}
-		return seedGeminiCatalog(tx, caps, price)
-	})
+		if err := seedGeminiCatalog(tx, caps, price); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return s.ImportOfoxSnapshot(ctx)
 }
 
 func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
@@ -749,9 +759,11 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 	if err := s.db.WithContext(ctx).Where("public_model_id = ?", model.ID).Order("id").First(&mapping).Error; err == nil {
 		syncState = mapping.SyncState
 	}
+	desc, kind, ctxLen, maxTok := extraFromCaps(caps)
 	return &ModelView{
 		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
-		SellPrice: sell, Providers: slugs, Status: model.Status, SyncState: syncState,
+		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, SyncState: syncState,
+		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}, nil
 }
 

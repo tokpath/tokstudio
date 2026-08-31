@@ -183,6 +183,28 @@ modelhtml="$(curl -sf "$WEB_URL/admin/models")"
 echo "$modelhtml" | grep -q "创建模型"
 echo "$modelhtml" | grep -q "挂载 Provider"
 echo "$modelhtml" | grep -q "弃用模型"
+edithtml="$(curl -sf "$WEB_URL/admin/models/tokenhub/echo-1")"
+echo "$edithtml" | grep -q "编辑属性"
+echo "$edithtml" | grep -q "保存属性"
+echo "$edithtml" | grep -q "定价"
+curl_has '"id":"tokenhub/echo-1"' -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models/tokenhub/echo-1"
+EDIT_ID="tokenhub/ops-edit-$RANDOM"
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API_URL/admin/models" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -d "{\"public_id\":\"$EDIT_ID\",\"vendor\":\"tokenhub\",\"display_name\":\"Ops Edit\"}")"
+if [[ "$code" != "409" ]]; then echo "expected 409 creating model without confirm, got $code" >&2; exit 1; fi
+EDIT_JSON="$(curl -sf -X POST "$API_URL/admin/models" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -H 'X-Tokenhub-Confirm: 1' -d "{\"public_id\":\"$EDIT_ID\",\"vendor\":\"tokenhub\",\"display_name\":\"Ops Edit\",\"status\":\"draft\"}")"
+echo "$EDIT_JSON" | grep -q '"status":"draft"'
+code="$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API_URL/admin/models/$EDIT_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"display_name":"Ops Edit Patched"}')"
+if [[ "$code" != "409" ]]; then echo "expected 409 patching model without confirm, got $code" >&2; exit 1; fi
+curl_has 'Ops Edit Patched' -X PATCH "$API_URL/admin/models/$EDIT_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d '{"display_name":"Ops Edit Patched","capabilities":{"supported_parameters":["stream","tools"]}}'
+curl_has '"input":"0.000003"' -X POST "$API_URL/admin/price-books" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
+  -d "{\"model\":\"$EDIT_ID\",\"input\":\"0.000003\",\"output\":\"0.000006\",\"currency\":\"USD\"}"
+curl_has '"input":"0.000003"' -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models/$EDIT_ID"
 curl_has gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/providers"
 curl_has google/gemini-flash -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/models"
 curl_has rg_gemini -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/routes?format=csv"

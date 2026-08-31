@@ -8,6 +8,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 export default function AdminBillingPage() {
   const [requestID, setRequestID] = useState("");
@@ -35,8 +36,8 @@ export default function AdminBillingPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">余额 / 充值 / 账务</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="billing" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="账单 request_id" placeholder="request_id" />

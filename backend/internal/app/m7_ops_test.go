@@ -303,6 +303,37 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("create model: %+v", draft)
 	}
 	publicID := draft["item"].(map[string]any)["id"].(string)
+	got := getAuthJSON(t, server.URL+"/admin/models/"+publicID, "m7_admin")
+	if item, _ := got["item"].(map[string]any); item == nil || item["id"] != publicID {
+		t.Fatalf("get admin model: %+v", got)
+	}
+	echo := getAuthJSON(t, server.URL+"/admin/models/"+catalog.EchoModelID, "m7_admin")
+	if item, _ := echo["item"].(map[string]any); item == nil || item["id"] != catalog.EchoModelID {
+		t.Fatalf("get echo model by public id with slash: %+v", echo)
+	}
+	if code := patchStatus(t, server.URL+"/admin/models/"+publicID, "m7_admin", map[string]any{
+		"display_name": "Ops Draft Edited",
+	}); code != http.StatusConflict {
+		t.Fatalf("patch model without confirm should be 409, got %d", code)
+	}
+	modelPatched := patchJSONRaw(t, server.URL+"/admin/models/"+publicID, "m7_admin", map[string]any{
+		"display_name": "Ops Draft Edited",
+		"capabilities": map[string]any{"supported_parameters": []string{"stream", "tools"}},
+	})
+	if modelPatched["item"].(map[string]any)["display_name"] != "Ops Draft Edited" {
+		t.Fatalf("patch model: %+v", modelPatched)
+	}
+	priced := postJSONRaw(t, server.URL+"/admin/price-books", "m7_admin", map[string]any{
+		"model": publicID, "input": "0.000003", "output": "0.000006", "currency": "USD",
+	})
+	if priced["price"] == nil {
+		t.Fatalf("publish price on draft model: %+v", priced)
+	}
+	afterPrice := getAuthJSON(t, server.URL+"/admin/models/"+publicID, "m7_admin")
+	sell, _ := afterPrice["item"].(map[string]any)["sell_price"].(map[string]any)
+	if fmt.Sprint(sell["input"]) != "0.000003" {
+		t.Fatalf("sell price after publish: %+v", afterPrice)
+	}
 	if code := postStatus(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
 		"public_model_id": publicID, "strategy": "priority",
 	}); code != http.StatusConflict {

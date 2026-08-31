@@ -31,7 +31,7 @@ export default function AdminChannelsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="mb-2 text-xl font-medium">渠道租户</h2>
         <p className="text-sm text-ink-secondary">
           渠道组织是多租户边界（A 官方 / B 批发 / C OEM）。代理商和 KOL 是租户内推广角色，字段不同，不是同类主体。

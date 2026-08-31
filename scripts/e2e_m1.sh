@@ -111,9 +111,10 @@ echo "$homehtml" | grep -q "可用模型"
 echo "$homehtml" | grep -q "套餐与订阅"
 echo "$homehtml" | grep -q "充值"
 echo "$homehtml" | grep -q "去登录"
+echo "$homehtml" | grep -q "开始使用"
 for path in / /docs /app /channel /partner /admin /login; do
   html="$(curl -sf "$WEB_URL$path")"
-  echo "$html" | grep -Eq "公共站点|开发者文档|用户控制台|渠道控制台|分销控制台|平台管理|注册 / 登录"
+  echo "$html" | grep -Eq "公共站|开发者文档|用户控制台|渠道控制台|分销控制台|平台管理|注册 / 登录"
 done
 oemdocs="$(curl -sf -H "Host: oem.localhost" "$API_URL/v1/public/docs-context")"
 echo "$oemdocs" | grep -q "Aurora OEM"

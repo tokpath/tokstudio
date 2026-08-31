@@ -48,8 +48,9 @@ const config: Config = {
         },
       },
       borderRadius: {
-        stamp: "6px",
-        control: "4px",
+        stamp: "10px",
+        card: "12px",
+        control: "8px",
       },
     },
   },

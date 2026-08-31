@@ -10,11 +10,19 @@ export const portalLinks = [
   { href: "/login", key: "login" as const },
 ];
 
+/** 顶栏主链（兼容旧引用）；真实下拉见 `mega-nav.ts`。 */
 export const PUBLIC_NAV = [
-  { href: "/", label: "状态" },
+  { href: "/models", label: "模型" },
   { href: "/docs", label: "文档" },
-  { href: "/#models", label: "模型" },
-  { href: "/#plans", label: "定价" },
+  { href: "/enterprise", label: "企业" },
+] as const;
+
+export const PUBLIC_NAV_MORE = [
+  { href: "/quickstart", label: "快速开始" },
+  { href: "/best-value", label: "性价比" },
+  { href: "/model-finder", label: "推荐器" },
+  { href: "/vibe-coding", label: "Vibe Coding" },
+  { href: "/trust", label: "信任中心" },
 ] as const;
 
 export const userSections: NavItem[] = [

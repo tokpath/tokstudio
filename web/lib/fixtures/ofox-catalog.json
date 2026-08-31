@@ -1,0 +1,3766 @@
+[
+  {
+    "id": "alibaba/happyhorse-1.0",
+    "vendor": "alibaba",
+    "display_name": "HappyHorse 1.0",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.13"
+    },
+    "status": "available",
+    "description": "阿里通义 HappyHorse（快马）1.0 视频生成模型，主打高度还原的动态画面生成，精准理解文本语义，输出流畅自然、主体稳定的高质量视频。支持文生视频（带同步音频、运镜景别指令）、图生视频（最多 9 张参考图）、视频编辑，集成唇形同步能力。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1782259200
+  },
+  {
+    "id": "alibaba/happyhorse-1.1",
+    "vendor": "alibaba",
+    "display_name": "HappyHorse 1.1",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.13"
+    },
+    "status": "available",
+    "description": "阿里通义 HappyHorse（快马）1.1 视频生成模型，在 1.0 基础上进一步提升画面还原度与主体一致性。支持文生视频、多图参考图生视频、视频风格化编辑，8 步去噪实现清晰输出，端到端提速约 1.2 倍，内置专用唇形同步。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1782259200
+  },
+  {
+    "id": "alibaba/wan-2.6",
+    "vendor": "alibaba",
+    "display_name": "Wan 2.6",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.1"
+    },
+    "status": "available",
+    "description": "阿里通义万相 2.6 视频生成模型，面向专业影视级制作全面升级。首创角色扮演能力，可用人物或任意物体作为主角生成单人表演或多人协作，具备多镜头叙事、智能调度、多人对话稳定、时长更长、指令遵循更强、音画同步等特性。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1774569600
+  },
+  {
+    "id": "alibaba/wan-2.7",
+    "vendor": "alibaba",
+    "display_name": "Wan 2.7",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.1"
+    },
+    "status": "available",
+    "description": "阿里通义万相 2.7 视频生成模型，在 2.6 基础上增强图生视频能力，支持首帧生视频、首尾帧生视频、视频续写三大任务，画面连贯性与指令遵循优先于 2.6 及更早版本。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1776124800
+  },
+  {
+    "id": "anthropic/claude-fable-5",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Fable 5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00001",
+      "output": "0.00005"
+    },
+    "status": "available",
+    "description": "Anthropic Claude Fable 5 - Mythos-class, long-horizon agentic autonomy",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1780963200
+  },
+  {
+    "id": "anthropic/claude-haiku-4.5",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Haiku 4.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000001",
+      "output": "0.000005"
+    },
+    "status": "available",
+    "description": "Anthropic's fastest and most cost-effective model optimized for near-instant responsiveness. Features extended thinking capabilities and excels at coding tasks.",
+    "context_length": 200000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1760486400
+  },
+  {
+    "id": "anthropic/claude-opus-4.6",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Opus 4.6",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000025"
+    },
+    "status": "available",
+    "description": "Opus 4.6 is Anthropic’s strongest model for coding and long-running professional tasks. It is built for agents that operate across entire workflows rather than single prompts, making it especially effective for large codebases, complex refactors, and multi-step debugging that unfolds over time. The model shows deeper c",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1770249600
+  },
+  {
+    "id": "anthropic/claude-opus-4.7",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Opus 4.7",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000025"
+    },
+    "status": "available",
+    "description": "Opus 4.7 is the next generation of Anthropic's Opus family, built for long-running, asynchronous agents. Building on the coding and agentic strengths of Opus 4.6, it delivers stronger performance on complex, multi-step tasks and more reliable agentic execution across extended workflows. It is especially effective for a",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1776297600
+  },
+  {
+    "id": "anthropic/claude-opus-4.8",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Opus 4.8",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000025"
+    },
+    "status": "available",
+    "description": "Claude Opus 4.8 is Anthropic's most capable generally available model in the Opus family. It supports text, image, and file inputs with text output, with reasoning support and a 1M-token context window. It is suited for highly autonomous agents, long-horizon agentic work, knowledge work, and memory-driven tasks where c",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1779926400
+  },
+  {
+    "id": "anthropic/claude-opus-5",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Opus 5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000025"
+    },
+    "status": "available",
+    "description": "Claude Opus 5 is Anthropic's flagship model for demanding reasoning, coding, and long-horizon agentic work. It supports text, image, and file inputs with text output, with reasoning support and a 1M-token context window. It is particularly strong at end-to-end software tasks - implementing features, code review and bug",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1784937600
+  },
+  {
+    "id": "anthropic/claude-sonnet-4.6",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Sonnet 4.6",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000003",
+      "output": "0.000015"
+    },
+    "status": "available",
+    "description": "Sonnet 4.6 is Anthropic's most capable Sonnet-class model yet, with frontier performance across coding, agents, and professional work. It excels at iterative development, complex codebase navigation, end-to-end project management with memory, polished document creation, and confident computer use for web QA and workflo",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1771286400
+  },
+  {
+    "id": "anthropic/claude-sonnet-5",
+    "vendor": "anthropic",
+    "display_name": "Anthropic: Claude Sonnet 5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.00001"
+    },
+    "status": "available",
+    "description": "Anthropic Claude Sonnet 5 — 2026-07-01 发布的 Sonnet 系旗舰, 1M 上下文, 支持 adaptive thinking / vision / prompt caching / tools。走标准 Bedrock Converse。",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1782864000
+  },
+  {
+    "id": "bailian/qwen-flash",
+    "vendor": "bailian",
+    "display_name": "Qwen Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000022",
+      "output": "0.00000022"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen Flash via Dashscope. Ultra-fast inference for latency-sensitive tasks. Lowest cost option in the Qwen family.",
+    "context_length": 1000000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1753660800
+  },
+  {
+    "id": "bailian/qwen-image-3.0",
+    "vendor": "bailian",
+    "display_name": "Qwen-Image 3.0",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Qwen-Image-3.0 是阿里巴巴 2026 年 8 月正式发布的生图模型, 支持文生图与参考图输入, 可精准渲染小至 10px 的文字与细节, 在图文一致性、复杂结构与画面质感上较前代全面提升。",
+    "context_length": 100000,
+    "max_completion_tokens": 100000,
+    "kind": "image",
+    "created": 1785888000
+  },
+  {
+    "id": "bailian/qwen-image-3.0-pro",
+    "vendor": "bailian",
+    "display_name": "Qwen-Image 3.0 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Qwen-Image-3.0-Pro 是阿里巴巴 2026 年 8 月正式发布的生图旗舰模型 (Qwen-Image 3.0 系列高端档), 支持文生图与参考图输入, 可精准渲染小至 10px 的文字与细节, 在图文一致性、复杂结构、文字渲染与画面质感上全面领先。",
+    "context_length": 100000,
+    "max_completion_tokens": 100000,
+    "kind": "image",
+    "created": 1785888000
+  },
+  {
+    "id": "bailian/qwen-max",
+    "vendor": "bailian",
+    "display_name": "Qwen Max",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000035",
+      "output": "0.00000138"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen Max via Dashscope. High-performance model for complex tasks requiring sophisticated reasoning and generation.",
+    "context_length": 32000,
+    "max_completion_tokens": 8000,
+    "kind": "text",
+    "created": 1737763200
+  },
+  {
+    "id": "bailian/qwen-plus",
+    "vendor": "bailian",
+    "display_name": "Qwen Plus",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000012",
+      "output": "0.00000029"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen Plus via Dashscope. Balanced performance and cost for general tasks. Strong Chinese and English bilingual capabilities.",
+    "context_length": 1000000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1764547200
+  },
+  {
+    "id": "bailian/qwen-turbo",
+    "vendor": "bailian",
+    "display_name": "Qwen Turbo",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000005",
+      "output": "0.00000009"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen Turbo via Dashscope. Fast and cost-effective for simple tasks requiring quick responses. Optimized for Chinese language understanding.",
+    "context_length": 128000,
+    "max_completion_tokens": 16000,
+    "kind": "text",
+    "created": 1752537600
+  },
+  {
+    "id": "bailian/qwen-vl-max",
+    "vendor": "bailian",
+    "display_name": "Qwen VL Max",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000023",
+      "output": "0.00000058"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen VL Max via Dashscope. Top-tier vision-language model for multimodal tasks including image understanding and visual reasoning.",
+    "context_length": 128000,
+    "max_completion_tokens": 8000,
+    "kind": "text",
+    "created": 1755043200
+  },
+  {
+    "id": "bailian/qwen3-coder-flash",
+    "vendor": "bailian",
+    "display_name": "Qwen3 Coder Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000005",
+      "output": "0.0000025"
+    },
+    "status": "available",
+    "description": "基于Qwen3的代码生成模型，继承Qwen3-Coder-Plus的coding agent能力，支持多轮工具交互，重点优化仓库级别理解能力并增加工具调用稳定性。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1754352000
+  },
+  {
+    "id": "bailian/qwen3-coder-next",
+    "vendor": "bailian",
+    "display_name": "Qwen3 Coder Next",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000002",
+      "output": "0.0000015"
+    },
+    "status": "available",
+    "description": "Qwen3系列新一代代码生成模型，效果接近Qwen3-Coder-Plus兼具更优性能。模型重点优化仓库级别理解、支持多轮工具交互、提升对于agentic coding类工具的适配能力。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771459200
+  },
+  {
+    "id": "bailian/qwen3-coder-plus",
+    "vendor": "bailian",
+    "display_name": "Qwen3 Coder Plus",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000018",
+      "output": "0.000009"
+    },
+    "status": "available",
+    "description": "基于Qwen3的代码生成模型，具有强大的Coding Agent能力，擅长工具调用和环境交互，能够实现自主编程、代码能力卓越的同时兼具通用能力。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1758585600
+  },
+  {
+    "id": "bailian/qwen3-max",
+    "vendor": "bailian",
+    "display_name": "Qwen3 Max",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000036",
+      "output": "0.00000143"
+    },
+    "status": "available",
+    "description": "Alibaba Qwen3 Max via Dashscope. Latest flagship model with strong reasoning, long context, and enhanced coding capabilities.",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1769126400
+  },
+  {
+    "id": "bailian/qwen3.5-122b-a10b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.5 122B A10B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000029",
+      "output": "0.00000229"
+    },
+    "status": "available",
+    "description": "Qwen3.5系列122B-A10B原生视觉语言模型，基于混合架构设计，融合了线性注意力机制与稀疏混合专家模型，实现了更高的推理效率。该模型的综合表现仅次于Qwen3.5-397B-A17B，文本能力显著优于Qwen3-235B-2507，视觉能力优于Qwen3-VL-235B。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771804800
+  },
+  {
+    "id": "bailian/qwen3.5-27b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.5 27B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000029",
+      "output": "0.00000205"
+    },
+    "status": "available",
+    "description": "Qwen3.5系列27B原生视觉语言Dense模型，融合了线性注意力机制；响应速度快，兼具推理速度和性能。该模型的综合能力接近于Qwen3.5-122B-A10B。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771804800
+  },
+  {
+    "id": "bailian/qwen3.5-35b-a3b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.5 35B A3B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000029",
+      "output": "0.00000183"
+    },
+    "status": "available",
+    "description": "Qwen3.5系列35B-A3B原生视觉语言模型，基于混合架构设计，融合了线性注意力机制与稀疏混合专家模型，实现了更高的推理效率。该模型的综合表现接近于Qwen3.5-27B。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771804800
+  },
+  {
+    "id": "bailian/qwen3.5-397b-a17b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.5 397B A17B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000055",
+      "output": "0.0000035"
+    },
+    "status": "available",
+    "description": "Qwen3.5系列397B-A17B原生视觉语言模型，基于混合架构设计，融合了线性注意力机制与稀疏混合专家模型，实现了更高的推理效率。在语言理解、逻辑推理、代码生成、智能体任务、图像理解、视频理解、图形用户界面（GUI）等多种任务中，均展现出与当前顶尖前沿模型相媲美的卓越性能。具备强大的代码生成与智能体能力，对于各类智能体场景具有良好的泛化性。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771804800
+  },
+  {
+    "id": "bailian/qwen3.5-flash",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.5 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000001",
+      "output": "0.0000004"
+    },
+    "status": "available",
+    "description": "Qwen3.5原生视觉语言系列Flash模型，基于混合架构设计，融合了线性注意力机制与稀疏混合专家模型，实现了更高的推理效率。模型效果在纯文本与多模态方面相较3系列均实现飞跃式进步；响应速度快，兼具推理速度和性能。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771804800
+  },
+  {
+    "id": "bailian/qwen3.5-plus",
+    "vendor": "bailian",
+    "display_name": "Qwen3.5 Plus",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000004",
+      "output": "0.0000024"
+    },
+    "status": "available",
+    "description": "Qwen3.5原生视觉语言系列Plus模型，基于混合架构设计，融合了线性注意力机制与稀疏混合专家模型，实现了更高的推理效率。在多项任务评测中，3.5系列均展现出与当前顶尖前沿模型相媲美的卓越性能，模型效果在纯文本与多模态方面相较3系列均实现飞跃式进步。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1771200000
+  },
+  {
+    "id": "bailian/qwen3.6-27b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.6 27B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000006",
+      "output": "0.0000036"
+    },
+    "status": "available",
+    "description": "Qwen3.6系列27B原生视觉语言Dense模型，模型效果相较3.5-27B重点提升了Agentic coding能力、模型STEM与推理能力进一步增强；视觉模态方面在空间智能、物体定位与检测能力上显著增强，视频理解、文档OCR及视觉Agent能力稳步提升。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1776816000
+  },
+  {
+    "id": "bailian/qwen3.6-flash",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.6 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000025",
+      "output": "0.0000015"
+    },
+    "status": "available",
+    "description": "Qwen3.6原生视觉语言系列Flash模型，模型效果相较3.5-Flash显著提升。本模型重点提升agentic coding能力（在多项代码智能体基准上大幅超越前代）、数学推理和代码推理能力；视觉方面在空间智能能力上显著增强，物体定位与目标检测提升尤为突出。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1776297600
+  },
+  {
+    "id": "bailian/qwen3.6-max-preview",
+    "vendor": "bailian",
+    "display_name": "Qwen3.6 Max Preview",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000012"
+    },
+    "status": "available",
+    "description": "Qwen3.6系列中规模最大、综合能力最强的Max模型Preview版本，当前开放纯文本模型能力供体验。相较于此前发布的Qwen3-Max和Qwen3.6-Plus，本模型在vibe coding能力上进一步提升、coding agent执行更加高效、前端编程开发能力显著提升；长尾知识能力进一步升级。",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1776643200
+  },
+  {
+    "id": "bailian/qwen3.6-plus",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.6 Plus",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000005",
+      "output": "0.000003"
+    },
+    "status": "available",
+    "description": "Qwen3.6原生视觉语言系列Plus模型，展现出与当前顶尖前沿模型相媲美的卓越性能，模型效果相较3.5系列显著提升。模型在Agentic coding、前端编程、Vibe coding等代码能力、多模态万物识别、OCR、物体定位等能力上显著增强。",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1775088000
+  },
+  {
+    "id": "bailian/qwen3.7-max",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.7 Max",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000025",
+      "output": "0.0000075"
+    },
+    "status": "available",
+    "description": "阿里云百炼 Qwen3.7 系列 Max 模型, 1M context, 支持深度推理 (reasoning_content), 强编码与长程自治执行能力. 通过 DashScope OpenAI-compatible 端点提供.",
+    "context_length": 1064000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1779321600
+  },
+  {
+    "id": "bailian/qwen3.7-plus",
+    "vendor": "bailian",
+    "display_name": "Qwen3.7 Plus",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000004",
+      "output": "0.0000016"
+    },
+    "status": "available",
+    "description": "阿里云百炼 Qwen3.7 系列 Plus 模型, 1M context, 支持深度推理 (reasoning), 性价比均衡定位 (input $0.4/output $1.6). 通过 DashScope OpenAI-compatible + Anthropic + Responses 三协议接入 ofox china 池.",
+    "context_length": 1064000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1780272000
+  },
+  {
+    "id": "bailian/qwen3.8-27b",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.8 27B",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000045",
+      "output": "0.0000032"
+    },
+    "status": "available",
+    "description": "阿里云百炼 Qwen3.8 系列 27B 原生视觉语言 Dense 模型, 1M context, 支持图像/视频理解与深度推理 (reasoning_content, 可按请求开关), 相比 3.6-27B 重点提升文本与视觉模态下的编程与办公场景能力. 通过 DashScope OpenAI-compatible 端点提供.",
+    "context_length": 1131072,
+    "max_completion_tokens": 131072,
+    "kind": "text",
+    "created": 1787097600
+  },
+  {
+    "id": "bailian/qwen3.8-flash",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.8 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000015",
+      "output": "0.00000047"
+    },
+    "status": "available",
+    "description": "阿里云百炼 Qwen3.8 系列 Flash 轻量高速原生多模态模型, 1M context, 支持图像/视频理解与深度推理 (reasoning_content, 可按请求开关), 面向高并发低成本场景, 兼顾编程与办公任务. 通过 DashScope OpenAI-compatible 端点提供.",
+    "context_length": 1131072,
+    "max_completion_tokens": 131072,
+    "kind": "text",
+    "created": 1787616000
+  },
+  {
+    "id": "bailian/qwen3.8-max",
+    "vendor": "bailian",
+    "display_name": "Qwen: Qwen3.8 Max",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000006"
+    },
+    "status": "available",
+    "description": "阿里云百炼 Qwen3.8 系列 Max 旗舰模型, 1M context, 支持深度推理 (reasoning_content) 与更长思维链, 强编码与长程自治执行能力. 通过 DashScope OpenAI-compatible 端点提供.",
+    "context_length": 1131072,
+    "max_completion_tokens": 131072,
+    "kind": "text",
+    "created": 1785715200
+  },
+  {
+    "id": "bailian/text-embedding-v4",
+    "vendor": "bailian",
+    "display_name": "Qwen Text Embedding V4",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000072",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Alibaba Text Embedding V4 via Dashscope. Latest embedding model with improved accuracy, 1024 dimensions, and 8K context support.",
+    "context_length": 8192,
+    "max_completion_tokens": 0,
+    "kind": "embedding",
+    "created": 1735689600
+  },
+  {
+    "id": "bytedance/seedance-2.0",
+    "vendor": "bytedance",
+    "display_name": "Seedance 2.0",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.07"
+    },
+    "status": "available",
+    "description": "字节豆包新一代多模态创作视频模型，支持文本、图片、视频、音频四种模态混合输入（最多 9 图 + 3 视频 + 3 音频）。4-15 秒可控时长、480p/720p/1080p 三档分辨率、6 种宽高比 + 自适应，默认输出带同步音频，支持多语言提示词。擅长多人竞技运动、多镜头叙事等复杂场景。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1776124800
+  },
+  {
+    "id": "bytedance/seedance-2.0-fast",
+    "vendor": "bytedance",
+    "display_name": "Seedance 2.0 Fast",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.06"
+    },
+    "status": "available",
+    "description": "Seedance 2.0 极速版，在标准版多模态视频生成能力基础上优化推理速度，适合对生成时延敏感的批量创作场景。支持文生视频、图生视频、多模态参考输入，480p/720p/1080p 分辨率，默认带同步音频。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1776124800
+  },
+  {
+    "id": "bytedance/seedance-2.0-mini",
+    "vendor": "bytedance",
+    "display_name": "Seedance 2.0 Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.04"
+    },
+    "status": "available",
+    "description": "Seedance 2.0 轻量版，面向低成本快速视频生成，在保证画面质量的前提下进一步降低单位成本。支持文生视频与图生视频，适合预览、验证与大规模低成本生成。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1781481600
+  },
+  {
+    "id": "bytedance/seedance-2.5",
+    "vendor": "bytedance",
+    "display_name": "Seedance 2.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "size",
+        "generate_audio",
+        "seed",
+        "frame_images",
+        "input_references"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0",
+      "media": "0.11"
+    },
+    "status": "available",
+    "description": "字节豆包新一代多模态创作视频模型，单段最长 30 秒。支持文本、图片、视频、音频混合输入（最多 30 图 + 10 视频 + 10 音频共 50 个参考素材）。4-30 秒任意整数时长、480p/720p 分辨率、6 种宽高比 + 自适应，默认输出带同步音频，支持多语言提示词。指令遵循、多镜头叙事与长时序一致性全面升级。",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "video",
+    "created": 1786060800
+  },
+  {
+    "id": "deepseek/deepseek-v3.2",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V3.2",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000029",
+      "output": "0.00000043"
+    },
+    "status": "available",
+    "description": "DeepSeek's latest model building upon instruction following and coding abilities. Pre-trained on 15 trillion tokens with excellent cost-performance ratio.",
+    "context_length": 128000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1764547200
+  },
+  {
+    "id": "deepseek/deepseek-v4-flash-0423",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V4 Flash 0423",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000044",
+      "output": "0.00000132"
+    },
+    "status": "available",
+    "description": "DeepSeek V4 Flash is an efficiency-optimized Mixture-of-Experts model from DeepSeek with 284B total parameters and 13B activated parameters, supporting a 1M-token context window. It is designed for fast inference and high-throughput workloads, while maintaining strong reasoning and coding performance.",
+    "context_length": 1000000,
+    "max_completion_tokens": 384000,
+    "kind": "text",
+    "created": 1776902400
+  },
+  {
+    "id": "deepseek/deepseek-v4-flash-0731",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V4 Flash 0731",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000044",
+      "output": "0.00000132"
+    },
+    "status": "available",
+    "description": "DeepSeek V4 Flash is an efficiency-optimized Mixture-of-Experts model from DeepSeek with 284B total parameters and 13B activated parameters, supporting a 1M-token context window. It is designed for fast inference and high-throughput workloads, while maintaining strong reasoning and coding performance.",
+    "context_length": 1000000,
+    "max_completion_tokens": 384000,
+    "kind": "text",
+    "created": 1785456000
+  },
+  {
+    "id": "deepseek/deepseek-v4-flash-vision-exp",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V4 Flash Vision Exp",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000044",
+      "output": "0.00000132"
+    },
+    "status": "available",
+    "description": "DeepSeek V4 Flash Vision Exp is an experimental multimodal variant of DeepSeek V4 Flash, adding image understanding on top of the 1M-token context Mixture-of-Experts architecture. Images are tokenized by size and billed together with text tokens.",
+    "context_length": 1000000,
+    "max_completion_tokens": 384000,
+    "kind": "text",
+    "created": 1787270400
+  },
+  {
+    "id": "deepseek/deepseek-v4-pro-0423",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V4 Pro 0423",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000132",
+      "output": "0.00000396"
+    },
+    "status": "available",
+    "description": "DeepSeek V4 Pro is a large-scale Mixture-of-Experts model from DeepSeek with 1.6T total parameters and 49B activated parameters, supporting a 1M-token context window. It is designed for advanced reasoning, coding, and long-horizon agent workflows, with strong performance across knowledge, math, and software engineering",
+    "context_length": 1000000,
+    "max_completion_tokens": 384000,
+    "kind": "text",
+    "created": 1776902400
+  },
+  {
+    "id": "deepseek/deepseek-v4-pro-0813",
+    "vendor": "deepseek",
+    "display_name": "DeepSeek V4 Pro 0813",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000132",
+      "output": "0.00000396"
+    },
+    "status": "available",
+    "description": "DeepSeek V4 Pro (0813) is the official release of DeepSeek's flagship Mixture-of-Experts model with 1.6T total parameters and 49B activated parameters, supporting a 1M-token context window. This version greatly enhances agent capabilities — tool use, code execution, and long-horizon multi-step workflows — alongside str",
+    "context_length": 1000000,
+    "max_completion_tokens": 384000,
+    "kind": "text",
+    "created": 1786579200
+  },
+  {
+    "id": "google/gemini-2.5-flash",
+    "vendor": "google",
+    "display_name": "Google: Gemini 2.5 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000025"
+    },
+    "status": "available",
+    "description": "Fast and cost-effective Gemini 2.5 with 1M context. Features toggleable reasoning capabilities and full multimodal support at significantly lower cost than Pro.",
+    "context_length": 1048576,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1750118400
+  },
+  {
+    "id": "google/gemini-2.5-flash-image",
+    "vendor": "google",
+    "display_name": "Google: Nano Banana (Gemini 2.5 Flash Image)",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000025",
+      "image": "0.00003"
+    },
+    "status": "available",
+    "description": "Gemini 2.5 Flash Image, a.k.a. \"Nano Banana,\" is now generally available. It is a state of the art image generation model with contextual understanding. It is capable of image generation, edits, and multi-turn conversations. ",
+    "context_length": 32000,
+    "max_completion_tokens": 32000,
+    "kind": "image",
+    "created": 1759363200
+  },
+  {
+    "id": "google/gemini-2.5-flash-lite",
+    "vendor": "google",
+    "display_name": "Google: Gemini 2.5 Flash Lite",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000001",
+      "output": "0.0000004"
+    },
+    "status": "available",
+    "description": "Gemini 2.5 Flash-Lite is a lightweight reasoning model in the Gemini 2.5 family, optimized for ultra-low latency and cost efficiency. It offers improved throughput, faster token generation, and better performance across common benchmarks compared to earlier Flash models. By default, [thinking] (i.e. multi-pass reasonin",
+    "context_length": 1048576,
+    "max_completion_tokens": 65535,
+    "kind": "text",
+    "created": 1753142400
+  },
+  {
+    "id": "google/gemini-2.5-pro",
+    "vendor": "google",
+    "display_name": "Google: Gemini 2.5 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.00001"
+    },
+    "status": "available",
+    "description": "Google's flagship Gemini model with 1M context, thinking/reasoning capabilities, and full multimodal support (text, image, video, audio). Excels at complex analysis and creative tasks.",
+    "context_length": 1048576,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1750118400
+  },
+  {
+    "id": "google/gemini-3-flash-preview",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3 Flash Preview",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000005",
+      "output": "0.000003"
+    },
+    "status": "available",
+    "description": "Gemini 3 Flash Preview is a high speed, high value thinking model designed for agentic workflows, multi turn chat, and coding assistance. It delivers near Pro level reasoning and tool use performance with substantially lower latency than larger Gemini variants, making it well suited for interactive development, long ru",
+    "context_length": 1048576,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1765929600
+  },
+  {
+    "id": "google/gemini-3-pro-image",
+    "vendor": "google",
+    "display_name": "Google: Nano Banana Pro (Gemini 3 Pro Image)",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000012",
+      "image": "0.00012"
+    },
+    "status": "available",
+    "description": "Nano Banana Pro is Google's most advanced image-generation and editing model, built on Gemini 3 Pro. GA release of gemini-3-pro-image-preview. It generates context-rich graphics from infographics and diagrams to cinematic composites, with 2K/4K output, multi-image blending, identity preservation, and localized edits.",
+    "context_length": 66000,
+    "max_completion_tokens": 32000,
+    "kind": "image",
+    "created": 1781740800
+  },
+  {
+    "id": "google/gemini-3.1-flash-image",
+    "vendor": "google",
+    "display_name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000005",
+      "output": "0.000003",
+      "image": "0.00006"
+    },
+    "status": "available",
+    "description": "Gemini 3.1 Flash Image, a.k.a. \"Nano Banana 2,\" is Google's state of the art image generation and editing model, delivering Pro-level visual quality at Flash speed. GA release of gemini-3.1-flash-image-preview, combining advanced contextual understanding with fast, cost-efficient inference.",
+    "context_length": 131000,
+    "max_completion_tokens": 64000,
+    "kind": "image",
+    "created": 1781740800
+  },
+  {
+    "id": "google/gemini-3.1-flash-lite",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.1 Flash Lite",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000025",
+      "output": "0.0000015"
+    },
+    "status": "available",
+    "description": "Gemini 3.1 Flash Lite (GA) is Google's high-efficiency multimodal model optimized for low-latency, high-volume workloads. GA version of the preview model. Supports full thinking levels (minimal, low, medium, high) for cost/performance trade-offs. Priced at half the cost of Gemini 3 Flash. Released May 7, 2026.",
+    "context_length": 1000000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1778112000
+  },
+  {
+    "id": "google/gemini-3.1-flash-lite-image",
+    "vendor": "google",
+    "display_name": "Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000025",
+      "output": "0.0000015",
+      "image": "0.00003"
+    },
+    "status": "available",
+    "description": "Gemini 3.1 Flash Lite Image is Google's most cost-efficient image generation and editing model, supporting text-to-image, image editing, and multi-image composition. Outputs generated at 1K resolution across 14 aspect ratios, at the lowest price point in the Nano Banana family.",
+    "context_length": 66000,
+    "max_completion_tokens": 64000,
+    "kind": "image",
+    "created": 1782777600
+  },
+  {
+    "id": "google/gemini-3.1-pro-preview",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.1 Pro Preview",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000012"
+    },
+    "status": "available",
+    "description": "Gemini 3.1 Pro is the next generation in the Gemini series of models, a suite of highly-capable, natively multimodal, reasoning models. Gemini 3 Pro is now Google’s most advanced model for complex tasks, and can comprehend vast datasets, challenging problems from different information sources, including text, audio, im",
+    "context_length": 1048576,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1771459200
+  },
+  {
+    "id": "google/gemini-3.5-flash",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.5 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000015",
+      "output": "0.000009"
+    },
+    "status": "available",
+    "description": "Gemini 3.5 Flash is Google's efficient multimodal model delivering near-Pro level coding and reasoning at Flash-tier cost and speed. Optimized for coding tasks and parallel agent execution with configurable thinking levels. Released May 20, 2026.",
+    "context_length": 1000000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1779235200
+  },
+  {
+    "id": "google/gemini-3.5-flash-lite",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.5 Flash Lite",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000025"
+    },
+    "status": "available",
+    "description": "Gemini 3.5 Flash-Lite is Google's high-throughput, low-latency multimodal model with upgraded agentic capabilities, suited for subagents executing focused tasks within complex multi-agent workflows, agentic search, and document processing. All input modalities (text/image/video/audio) unified at $0.30/1M; batch tier at",
+    "context_length": 1000000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1784592000
+  },
+  {
+    "id": "google/gemini-3.6-flash",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.6 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000015",
+      "output": "0.0000075"
+    },
+    "status": "available",
+    "description": "Gemini 3.6 Flash is Google's token-efficient workhorse model: 17% fewer output tokens than 3.5 Flash, fewer reasoning steps and tool calls in multi-step agentic workflows, and higher-precision code edits with reduced execution loops. All input modalities (text/image/video/audio) unified at $1.50/1M; batch tier at 50% d",
+    "context_length": 1000000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1784592000
+  },
+  {
+    "id": "google/gemini-3.7-flash",
+    "vendor": "google",
+    "display_name": "Google: Gemini 3.7 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000015",
+      "output": "0.0000075"
+    },
+    "status": "available",
+    "description": "Gemini 3.7 Flash is Google's multimodal workhorse model for fast agentic workflows, coding, and complex multi-step reasoning, improving on 3.6 Flash in agentic benchmarks (GPQA Diamond ~94%, TAU-Bench ~80%). All input modalities (text/image/video/audio) unified pricing; batch tier at 50% discount. Thinking model with c",
+    "context_length": 1000000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1786579200
+  },
+  {
+    "id": "microsoft/mai-image-2.5",
+    "vendor": "microsoft",
+    "display_name": "Microsoft: MAI Image 2.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000047",
+      "image": "0.000047"
+    },
+    "status": "available",
+    "description": "MAI-Image-2.5 is Microsoft's image generation and editing model. It excels at precise, surgical edits with consistency - targeted object edits, layout adaptation, text updates and artifact cleanup - while preserving visual consistency across iterations. Supports text-to-image generation and image-to-image editing with ",
+    "context_length": 4100,
+    "max_completion_tokens": 1000,
+    "kind": "image",
+    "created": 1780358400
+  },
+  {
+    "id": "microsoft/mai-image-2.5-flash",
+    "vendor": "microsoft",
+    "display_name": "Microsoft: MAI Image 2.5 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000026",
+      "image": "0.000026"
+    },
+    "status": "available",
+    "description": "MAI-Image-2.5-Flash is the low-latency variant of Microsoft's MAI image family, optimized for fast, high-volume image generation and editing. Produces diverse, coherent images across creative and design scenarios with median generation times several times faster than comparable models. Supports text-to-image generation",
+    "context_length": 4100,
+    "max_completion_tokens": 1000,
+    "kind": "image",
+    "created": 1780358400
+  },
+  {
+    "id": "microsoft/mai-image-2.5-pro",
+    "vendor": "microsoft",
+    "display_name": "Microsoft: MAI Image 2.5 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.000106",
+      "image": "0.000106"
+    },
+    "status": "available",
+    "description": "MAI-Image-2.5-Pro is the flagship of Microsoft's MAI image family, designed for complex compositions with strong object and character consistency, accurate material properties and coherent spatial reasoning. Best suited for photorealistic scenes, rich documentary-style imagery and demanding creative work. Supports text",
+    "context_length": 4100,
+    "max_completion_tokens": 1000,
+    "kind": "image",
+    "created": 1781827200
+  },
+  {
+    "id": "minimax/m2-her",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2 Her",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000012"
+    },
+    "status": "available",
+    "description": "",
+    "context_length": 200000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1769126400
+  },
+  {
+    "id": "minimax/minimax-m2",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000012"
+    },
+    "status": "available",
+    "description": "MiniMax-M2 is a compact, high-efficiency large language model optimized for end-to-end coding and agentic workflows. With 10 billion activated parameters (230 billion total), it delivers near-frontier intelligence across general reasoning, tool use, and multi-step task execution while maintaining low latency and deploy",
+    "context_length": 204800,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1761177600
+  },
+  {
+    "id": "minimax/minimax-m2.1",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.1",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000012"
+    },
+    "status": "available",
+    "description": "MiniMax-M2.1 is a lightweight, state-of-the-art large language model optimized for coding, agentic workflows, and modern application development. With only 10 billion activated parameters, it delivers a major jump in real-world capability while maintaining exceptional latency, scalability, and cost efficiency.",
+    "context_length": 204800,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1766448000
+  },
+  {
+    "id": "minimax/minimax-m2.1-lightning",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.1 Lightning",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000024"
+    },
+    "status": "available",
+    "description": "MiniMax-M2.1 is a lightweight, state-of-the-art large language model optimized for coding, agentic workflows, and modern application development. With only 10 billion activated parameters, it delivers a major jump in real-world capability while maintaining exceptional latency, scalability, and cost efficiency.",
+    "context_length": 204800,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1766448000
+  },
+  {
+    "id": "minimax/minimax-m2.5",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.5",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000012"
+    },
+    "status": "available",
+    "description": "MiniMax-M2.5 is a SOTA large language model designed for real-world productivity. Trained in a diverse range of complex real-world digital working environments, M2.5 builds upon the coding expertise of M2.1 to extend into general office work, reaching fluency in generating and operating Word, Excel, and Powerpoint file",
+    "context_length": 200000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1770854400
+  },
+  {
+    "id": "minimax/minimax-m2.5-lightning",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.5 Lightning",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000024"
+    },
+    "status": "available",
+    "description": "MiniMax-M2.5 is a SOTA large language model designed for real-world productivity. Trained in a diverse range of complex real-world digital working environments, M2.5 builds upon the coding expertise of M2.1 to extend into general office work, reaching fluency in generating and operating Word, Excel, and Powerpoint file",
+    "context_length": 200000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1770854400
+  },
+  {
+    "id": "minimax/minimax-m2.7",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.7",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000003",
+      "output": "0.0000012"
+    },
+    "status": "available",
+    "description": "M2.7 delivers outstanding performance in real-world software engineering, including end-to-end complete project delivery, log analysis and bug triaging, code security, machine learning, and more. On the benchmark SWE-Pro, M2.7 scores 56.22%, nearly matching the level of Opus. This capability also extends to end-to-end ",
+    "context_length": 200000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1773792000
+  },
+  {
+    "id": "minimax/minimax-m2.7-highspeed",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M2.7 Highspeed",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000006",
+      "output": "0.0000024"
+    },
+    "status": "available",
+    "description": "M2.7 highspeed: Same performance, faster, more agile",
+    "context_length": 200000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1773792000
+  },
+  {
+    "id": "minimax/minimax-m3",
+    "vendor": "minimax",
+    "display_name": "MiniMax: MiniMax M3",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000006",
+      "output": "0.0000024"
+    },
+    "status": "available",
+    "description": "MiniMax-M3 是 MiniMax 官方渠道 (api.minimaxi.com) 旗舰推理模型, 1M context, 内嵌 thinking (<think> 标签), 支持 prompt caching 与 tool calling. 通过 OpenAI-compatible + Anthropic 双协议接入 ofox china 池.",
+    "context_length": 1131000,
+    "max_completion_tokens": 131000,
+    "kind": "text",
+    "created": 1780272000
+  },
+  {
+    "id": "moonshotai/kimi-k2.5",
+    "vendor": "moonshotai",
+    "display_name": "MoonshotAI: Kimi K2.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000006",
+      "output": "0.000003"
+    },
+    "status": "available",
+    "description": "Kimi K2.5 is Moonshot AI''s native multimodal model, delivering state-of-the-art visual coding capability and a self-directed agent swarm paradigm. Built on Kimi K2 with continued pretraining over approximately 15T mixed visual and text tokens, it delivers strong performance in general reasoning, visual coding, and age",
+    "context_length": 262144,
+    "max_completion_tokens": 262144,
+    "kind": "text",
+    "created": 1769472000
+  },
+  {
+    "id": "moonshotai/kimi-k2.6",
+    "vendor": "moonshotai",
+    "display_name": "MoonshotAI: Kimi K2.6",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000095",
+      "output": "0.000004"
+    },
+    "status": "available",
+    "description": "Kimi K2.6 是 Kimi 最新最智能的模型，Kimi K2.6 的通用 Agent、代码、视觉理解等综合能力得到全面提升，其中在博士级难度的完整版人类最后的考试（Humanity’s Last Exam）、在考察模型真实软件工程能力的 SWE-Bench Pro、评估 Agent 深度检索能力的 DeepSearchQA 等基准测试中均取得行业领先的成绩，同时支持文本、图片与视频输入，思考与非思考模式，对话与 Agent 任务。",
+    "context_length": 262144,
+    "max_completion_tokens": 262144,
+    "kind": "text",
+    "created": 1776729600
+  },
+  {
+    "id": "moonshotai/kimi-k2.7-code",
+    "vendor": "moonshotai",
+    "display_name": "MoonshotAI: Kimi K2.7 Code",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000095",
+      "output": "0.000004"
+    },
+    "status": "available",
+    "description": "Kimi K2.7 Code 是 Moonshot 官方 (api.moonshot.cn) 强编程推理模型, 内嵌 thinking。OpenAI 协议直用; Anthropic 协议需 thinking:type=enabled (bifrost 转换待修, 见 issue 2026-06-24)。",
+    "context_length": 262144,
+    "max_completion_tokens": 262144,
+    "kind": "text",
+    "created": 1781222400
+  },
+  {
+    "id": "moonshotai/kimi-k2.7-code-highspeed",
+    "vendor": "moonshotai",
+    "display_name": "MoonshotAI: Kimi K2.7 Code Highspeed",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000019",
+      "output": "0.000008"
+    },
+    "status": "available",
+    "description": "Kimi K2.7 Code 高速档, 同模型加速推理。OpenAI 协议直用; Anthropic 协议同 code (bifrost thinking 待修)。",
+    "context_length": 262144,
+    "max_completion_tokens": 262144,
+    "kind": "text",
+    "created": 1781222400
+  },
+  {
+    "id": "moonshotai/kimi-k3",
+    "vendor": "moonshotai",
+    "display_name": "MoonshotAI: Kimi K3",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000003",
+      "output": "0.000015"
+    },
+    "status": "available",
+    "description": "Kimi K3 是 Moonshot 官方 (api.moonshot.cn) 2026-07-16 发布的旗舰模型 (2.8T MoE), 1M token 上下文, 内嵌 thinking (reasoning_content), 支持视觉输入。OpenAI 协议直用; Anthropic 协议不强制 thinking 参数, 经 bifrost 转换正常 (与 K2.7 不同)。",
+    "context_length": 1048576,
+    "max_completion_tokens": 1048576,
+    "kind": "text",
+    "created": 1784160000
+  },
+  {
+    "id": "openai/gpt-4.1",
+    "vendor": "openai",
+    "display_name": "GPT-4.1",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000008"
+    },
+    "status": "available",
+    "description": "OpenAI's flagship large language model optimized for advanced instruction following, real-world software engineering, and long-context reasoning. Features 1M context window for complex document analysis and code generation.",
+    "context_length": 1047576,
+    "max_completion_tokens": 32768,
+    "kind": "text",
+    "created": 1744588800
+  },
+  {
+    "id": "openai/gpt-4.1-mini",
+    "vendor": "openai",
+    "display_name": "GPT-4.1 Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000004",
+      "output": "0.0000016"
+    },
+    "status": "available",
+    "description": "Mid-sized GPT-4.1 variant with GPT-4o performance at lower latency and cost. Features 1M context window, supports structured outputs and vision understanding at reduced pricing.",
+    "context_length": 1047576,
+    "max_completion_tokens": 32768,
+    "kind": "text",
+    "created": 1744588800
+  },
+  {
+    "id": "openai/gpt-4o",
+    "vendor": "openai",
+    "display_name": "GPT-4o",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000025",
+      "output": "0.00001"
+    },
+    "status": "available",
+    "description": "OpenAI's flagship multimodal model supporting text and image inputs with text outputs. Maintains GPT-4 Turbo intelligence at 2x speed and 50% lower cost. Optimized for complex reasoning, coding, and visual understanding tasks.",
+    "context_length": 128000,
+    "max_completion_tokens": 16384,
+    "kind": "text",
+    "created": 1715558400
+  },
+  {
+    "id": "openai/gpt-4o-mini",
+    "vendor": "openai",
+    "display_name": "GPT-4o Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000015",
+      "output": "0.0000006"
+    },
+    "status": "available",
+    "description": "OpenAI's advanced small model, 60% cheaper than GPT-3.5 Turbo while scoring 82% on MMLU. Optimized for cost-effective tasks requiring strong language understanding and generation capabilities.",
+    "context_length": 128000,
+    "max_completion_tokens": 16384,
+    "kind": "text",
+    "created": 1721260800
+  },
+  {
+    "id": "openai/gpt-4o-mini-transcribe",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT 4o Mini Transcribe",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.000005"
+    },
+    "status": "available",
+    "description": "GPT-4o Mini Transcribe is OpenAI's smaller, cost-efficient speech-to-text model built on GPT-4o Mini audio capabilities. It's priced per token (input and output), making it suitable for high-volume transcription workflows that benefit from token-level billing transparency at a lower cost point.",
+    "context_length": 128000,
+    "max_completion_tokens": 128000,
+    "kind": "audio",
+    "created": 1765756800
+  },
+  {
+    "id": "openai/gpt-4o-transcribe-diarize",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT 4o Transcribe Diarize",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000025",
+      "output": "0.00001"
+    },
+    "status": "available",
+    "description": "GPT-4o Transcribe is OpenAI's high-quality speech-to-text model built on GPT-4o audio capabilities. It's priced per token (input and output), making it suitable for workflows that benefit from token-level billing transparency.",
+    "context_length": 128000,
+    "max_completion_tokens": 128000,
+    "kind": "audio",
+    "created": 1760486400
+  },
+  {
+    "id": "openai/gpt-5",
+    "vendor": "openai",
+    "display_name": "GPT-5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.00001",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "OpenAI's next-generation flagship model with 256K context window and advanced multimodal capabilities. Features enhanced reasoning, agentic workflows, and state-of-the-art performance across all benchmarks.",
+    "context_length": 256000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1754524800
+  },
+  {
+    "id": "openai/gpt-5-mini",
+    "vendor": "openai",
+    "display_name": "GPT-5 Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000025",
+      "output": "0.000002",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "Cost-effective GPT-5 variant with 256K context. Balanced performance for everyday tasks while maintaining strong reasoning and vision capabilities at reduced cost.",
+    "context_length": 256000,
+    "max_completion_tokens": 32768,
+    "kind": "text",
+    "created": 1754524800
+  },
+  {
+    "id": "openai/gpt-5-nano",
+    "vendor": "openai",
+    "display_name": "GPT-5 Nano",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000005",
+      "output": "0.0000004",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "Ultra-efficient GPT-5 variant optimized for maximum throughput at minimal cost. Features 128K context and low-latency design for high-volume automation tasks.",
+    "context_length": 128000,
+    "max_completion_tokens": 16384,
+    "kind": "text",
+    "created": 1754524800
+  },
+  {
+    "id": "openai/gpt-5.1",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.1",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.00001",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "OpenAI's enhanced GPT-5.1 model with improved reasoning and multimodal capabilities. Features 256K context with better instruction following and coding performance.",
+    "context_length": 256000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1762992000
+  },
+  {
+    "id": "openai/gpt-5.1-codex-max",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.1 Codex Max",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.00001"
+    },
+    "status": "available",
+    "description": "GPT-5.1-Codex-Max is OpenAI’s latest agentic coding model, designed for long-running, high-context software development tasks. It is based on an updated version of the 5.1 reasoning stack and trained on agentic workflows spanning software engineering, mathematics, and research.",
+    "context_length": 256000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1764806400
+  },
+  {
+    "id": "openai/gpt-5.1-codex-mini",
+    "vendor": "openai",
+    "display_name": "GPT-5.1 Codex Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000025",
+      "output": "0.000002"
+    },
+    "status": "available",
+    "description": "GPT-5.1-Codex-Mini is a smaller and faster version of GPT-5.1-Codex",
+    "context_length": 256000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1762992000
+  },
+  {
+    "id": "openai/gpt-5.2",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.2",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000175",
+      "output": "0.000014",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "OpenAI's latest GPT-5.2 model with 512K context window. Most advanced capabilities including enhanced reasoning, full multimodal support, and web search integration.",
+    "context_length": 512000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1765411200
+  },
+  {
+    "id": "openai/gpt-5.2-codex",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.2 Codex",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000175",
+      "output": "0.000014"
+    },
+    "status": "available",
+    "description": "GPT-5.2-Codex is an upgraded version of GPT-5.1-Codex optimized for software engineering and coding workflows. It is designed for both interactive development sessions and long, independent execution of complex engineering tasks. The model supports building projects from scratch, feature development, debugging, large-s",
+    "context_length": 512000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1768348800
+  },
+  {
+    "id": "openai/gpt-5.3-codex",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.3 Codex",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000175",
+      "output": "0.000014"
+    },
+    "status": "available",
+    "description": "GPT-5.3-Codex is OpenAI’s most advanced agentic coding model, combining the frontier software engineering performance of GPT-5.2-Codex with the broader reasoning and professional knowledge capabilities of GPT-5.2. It achieves state-of-the-art results on SWE-Bench Pro and strong performance on Terminal-Bench 2.0 and OSW",
+    "context_length": 512000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1771977600
+  },
+  {
+    "id": "openai/gpt-5.4",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.4",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000025",
+      "output": "0.000015",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.4 is OpenAI’s latest frontier model, unifying the Codex and GPT lines into a single system. It features a 1M+ token context window (922K input, 128K output) with support for text and image inputs, enabling high-context reasoning, coding, and multimodal analysis within the same workflow.The model delivers improved",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1772668800
+  },
+  {
+    "id": "openai/gpt-5.4-mini",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.4 Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000075",
+      "output": "0.0000045",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.4 mini brings the core capabilities of GPT-5.4 to a faster, more efficient model optimized for high-throughput workloads. It supports text and image inputs with strong performance across reasoning, coding, and tool use, while reducing latency and cost for large-scale deployments.",
+    "context_length": 400000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1773705600
+  },
+  {
+    "id": "openai/gpt-5.4-nano",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.4 Nano",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000002",
+      "output": "0.00000125",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.4 nano is the most lightweight and cost-efficient variant of the GPT-5.4 family, optimized for speed-critical and high-volume tasks. It supports text and image inputs and is designed for low-latency use cases such as classification, data extraction, ranking, and sub-agent execution.",
+    "context_length": 400000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1773705600
+  },
+  {
+    "id": "openai/gpt-5.4-pro",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.4 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00003",
+      "output": "0.00018",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.4 Pro is OpenAI's most advanced model, building on GPT-5.4's unified architecture with enhanced reasoning capabilities for complex, high-stakes tasks. It features a 1M+ token context window (922K input, 128K output) with support for text and image inputs. Optimized for step-by-step reasoning, instruction followin",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1772668800
+  },
+  {
+    "id": "openai/gpt-5.5",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.00003",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.5 is OpenAI’s frontier model designed for complex professional workloads, building on GPT-5.4 with stronger reasoning, higher reliability, and improved token efficiency on hard tasks. It features a 1M+ token context window (922K input, 128K output) with support for text and image inputs, enabling large-scale reas",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1776988800
+  },
+  {
+    "id": "openai/gpt-5.6-luna",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.6 Luna",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000001",
+      "output": "0.000006",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.6 Luna is a fast, cost-efficient model in OpenAI's GPT-5.6 series. It is suited for high-volume, latency-sensitive tasks such as chat, classification, and lightweight agentic workflows, providing capable reasoning for its price tier.",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1783555200
+  },
+  {
+    "id": "openai/gpt-5.6-sol",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.6 Sol",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.00003",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.6 Sol is the flagship model in OpenAI's GPT-5.6 series. It is suited for complex reasoning, coding, and agentic workflows, and is particularly strong at command-line and multi-step coding tasks and long-horizon problem solving.",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1783555200
+  },
+  {
+    "id": "openai/gpt-5.6-terra",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT-5.6 Terra",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000025",
+      "output": "0.000015",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT-5.6 Terra is a balanced model in OpenAI's GPT-5.6 series, positioned between the flagship Sol tier and the cost-efficient Luna tier. It is suited for everyday coding, reasoning, and agentic tasks where capability and cost need to be balanced, offering strong performance at roughly half the cost of Sol.",
+    "context_length": 1050000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1783555200
+  },
+  {
+    "id": "openai/gpt-image-1.5",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT Image 1.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.00001",
+      "image": "0.000032"
+    },
+    "status": "available",
+    "description": "GPT Image 1.5 is our latest image generation model, with better instruction following and adherence to prompts.",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "image",
+    "created": 1765843200
+  },
+  {
+    "id": "openai/gpt-image-2",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT Image 2",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000005",
+      "output": "0.00003",
+      "image": "0.00003"
+    },
+    "status": "available",
+    "description": "GPT-image-2 is OpenAI's latest cutting-edge image generation model. Key value adds include better performance, quality, editing controls, and face preservation.\r\nThe model supports high input_fidelity and adding/removing one aspect of the image while retaining others. This model includes improvements in aspect ratio, r",
+    "context_length": 0,
+    "max_completion_tokens": 0,
+    "kind": "image",
+    "created": 1776729600
+  },
+  {
+    "id": "openai/gpt-transcribe",
+    "vendor": "openai",
+    "display_name": "OpenAI: GPT Transcribe",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "GPT Transcribe is OpenAI's speech-to-text model released alongside gpt-live-transcribe. It delivers lower word error rates than the GPT-4o transcription family across multilingual benchmarks and is billed by audio duration, making costs predictable for transcription workloads.",
+    "context_length": 128000,
+    "max_completion_tokens": 128000,
+    "kind": "audio",
+    "created": 1785196800
+  },
+  {
+    "id": "openai/text-embedding-3-large",
+    "vendor": "openai",
+    "display_name": "OpenAI: Text Embedding 3 Large",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000013",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "text-embedding-3-large is OpenAI's most capable embedding model for both english and non-english tasks. Embeddings are a numerical representation of text that can be used to measure the relatedness between two pieces of text. Embeddings are useful for search, clustering, recommendations, anomaly detection, and classifi",
+    "context_length": 8200,
+    "max_completion_tokens": 8200,
+    "kind": "embedding",
+    "created": 1761782400
+  },
+  {
+    "id": "openai/text-embedding-3-small",
+    "vendor": "openai",
+    "display_name": "OpenAI: Text Embedding 3 Small",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000002",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "text-embedding-3-small is OpenAI's improved, more performant version of the ada embedding model. Embeddings are a numerical representation of text that can be used to measure the relatedness between two pieces of text. Embeddings are useful for search, clustering, recommendations, anomaly detection, and classification ",
+    "context_length": 8200,
+    "max_completion_tokens": 8200,
+    "kind": "embedding",
+    "created": 1761782400
+  },
+  {
+    "id": "volcengine/doubao-seed-1-6",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 1.6",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000012",
+      "output": "0.00000029"
+    },
+    "status": "available",
+    "description": "ByteDance Doubao Seed 1.6 via Volcengine. Latest generation model with 128K context, enhanced reasoning, and improved capabilities.",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1760486400
+  },
+  {
+    "id": "volcengine/doubao-seed-1-6-flash",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 1.6 Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000003",
+      "output": "0.00000022"
+    },
+    "status": "available",
+    "description": "ByteDance Doubao Seed 1.6 Flash via Volcengine. Fast inference variant optimized for high throughput and low latency applications.",
+    "context_length": 256000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1756339200
+  },
+  {
+    "id": "volcengine/doubao-seed-1-6-vision",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 1.6 Vision",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000012",
+      "output": "0.00000115"
+    },
+    "status": "available",
+    "description": "ByteDance Doubao Seed 1.6 Vision via Volcengine. Multimodal model with strong image understanding and visual reasoning capabilities.",
+    "context_length": 256000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1755216000
+  },
+  {
+    "id": "volcengine/doubao-seed-1-8",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 1.8",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000012",
+      "output": "0.00000029"
+    },
+    "status": "available",
+    "description": "ByteDance Doubao Seed 1.8 via Volcengine. Next generation model with improved reasoning, enhanced capabilities, and better performance.",
+    "context_length": 256000,
+    "max_completion_tokens": 64000,
+    "kind": "text",
+    "created": 1766880000
+  },
+  {
+    "id": "volcengine/doubao-seed-2.0-code",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.0 Code",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000067",
+      "output": "0.00000336"
+    },
+    "status": "available",
+    "description": "Doubao-Seed-2.0-Code 面向企业级编程需求优化，在 Seed 2.0 优秀的 Agent、VLM 能力基础上，特别增强了代码能力，不仅前端能力表现出众，也对企业常见的多语言编码需求做了特别优化，适合接入各种 AI 编程工具使用。",
+    "context_length": 256000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1771027200
+  },
+  {
+    "id": "volcengine/doubao-seed-2.0-lite",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.0 Lite",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000013",
+      "output": "0.00000076"
+    },
+    "status": "available",
+    "description": "Doubao-Seed-2.0-lite 是面向高频企业场景兼顾性能与成本的均衡型模型，综合能力超越上一代Doubao-Seed-1.8。胜任非结构化信息处理、内容创作、搜索推荐、数据分析等生产型工作，支持长上下文、多源信息融合、多步指令执行与高保真结构化输出。在保障稳定效果的同时显著优化成本。",
+    "context_length": 256000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1771027200
+  },
+  {
+    "id": "volcengine/doubao-seed-2.0-mini",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.0 Mini",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000006",
+      "output": "0.00000056"
+    },
+    "status": "available",
+    "description": "Doubao-Seed-2.0-mini 面向低时延、高并发与成本敏感场景，强调快速响应与灵活推理部署。模型效果与Doubao-Seed-1.6相当。支持256k上下文、4档思考长度和多模态理解，适合成本和速度优先的轻量级任务。",
+    "context_length": 256000,
+    "max_completion_tokens": 32000,
+    "kind": "text",
+    "created": 1771027200
+  },
+  {
+    "id": "volcengine/doubao-seed-2.0-pro",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.0 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000067",
+      "output": "0.00000336"
+    },
+    "status": "available",
+    "description": "Doubao-Seed-2.0-pro是旗舰级全能通用模型，面向 Agent 时代的复杂推理与长链路任务执行场景。强调多模态理解、长上下文推理、结构化生成与工具增强执行。复杂指令与多约束执行能力突出，可稳定应对多步复杂规划、复杂图文推理、视频内容理解与高难度分析等场景。",
+    "context_length": 256000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1771027200
+  },
+  {
+    "id": "volcengine/doubao-seed-2.1-pro",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.1 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000884",
+      "output": "0.00000442"
+    },
+    "status": "available",
+    "description": "火山引擎豆包 Seed 2.1 Pro 旗舰推理模型, 内嵌 thinking。OpenAI + Anthropic 双协议。ARK 真实 id doubao-seed-2-1-pro-260628。",
+    "context_length": 256000,
+    "max_completion_tokens": 256000,
+    "kind": "text",
+    "created": 1782172800
+  },
+  {
+    "id": "volcengine/doubao-seed-2.1-turbo",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed 2.1 Turbo",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000442",
+      "output": "0.000002212"
+    },
+    "status": "available",
+    "description": "火山引擎豆包 Seed 2.1 Turbo 高速推理模型, 内嵌 thinking。OpenAI + Anthropic 双协议。ARK 真实 id doubao-seed-2-1-turbo-260628。",
+    "context_length": 256000,
+    "max_completion_tokens": 256000,
+    "kind": "text",
+    "created": 1782172800
+  },
+  {
+    "id": "volcengine/doubao-seed-character",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed Character",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000177",
+      "output": "0.000000884"
+    },
+    "status": "available",
+    "description": "火山引擎豆包 Seed Character 角色对话模型。仅 OpenAI 协议 (Anthropic messages_api 火山侧未授权, 见 issue 2026-06-24)。ARK 真实 id doubao-seed-character-260628。",
+    "context_length": 256000,
+    "max_completion_tokens": 256000,
+    "kind": "text",
+    "created": 1782172800
+  },
+  {
+    "id": "volcengine/doubao-seed-evolving",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seed Evolving",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000884",
+      "output": "0.00000442"
+    },
+    "status": "available",
+    "description": "火山引擎豆包 Seed Evolving 快速迭代推理模型 (latest-version 滚动更新), 内嵌 thinking。OpenAI + Anthropic + Responses 三端点。ARK id doubao-seed-evolving 解析为 -latest-version。",
+    "context_length": 256000,
+    "max_completion_tokens": 256000,
+    "kind": "text",
+    "created": 1782172800
+  },
+  {
+    "id": "volcengine/doubao-seedream-4.5",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seedream 4.5",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Seedream 4.5 是字节跳动最新推出的图像多模态模型，整合了文生图、图生图、组图输出等能力，融合常识和推理能力。相比前代4.0模型生成效果大幅提升，具备更好的编辑一致性和多图融合效果，能更精准的控制画面细节，小字、小人脸生成更自然，图片排版、色彩更和谐，美感提升",
+    "context_length": 100000,
+    "max_completion_tokens": 100000,
+    "kind": "image",
+    "created": 1764288000
+  },
+  {
+    "id": "volcengine/doubao-seedream-5.0-lite",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seedream 5.0 Lite",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Doubao-Seedream-5.0-lite是字节跳动发布的最新图像创作模型。该模型首次搭载联网检索功能，能融合实时网络信息，提升生图时效性。同时，模型的聪明度进一步升级，能够精准解析复杂指令和视觉内容。此外，模型在世界知识广度、参考一致性及专业场景生成质量上均有增强，可更好地满足企业级视觉创作需求。",
+    "context_length": 100000,
+    "max_completion_tokens": 100000,
+    "kind": "image",
+    "created": 1769558400
+  },
+  {
+    "id": "volcengine/doubao-seedream-5.0-pro",
+    "vendor": "volcengine",
+    "display_name": "Doubao Seedream 5.0 Pro",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0",
+      "output": "0"
+    },
+    "status": "available",
+    "description": "Doubao-Seedream-5.0-pro是字节跳动2026年7月发布的图像创作旗舰模型。相比前代在图文匹配、结构合理性、文字渲染与画面美感等基础能力上全面提升，具备四大突破：复杂信息可视化、交互式精准编辑（点选/圈选/草图渲染/图层分离/多图融合）、真实影像与人像质感、原生多语种（十余种语言）输入生成。支持文生图、图生图、参考图一致性编辑，面向企业级专业视觉创作。",
+    "context_length": 100000,
+    "max_completion_tokens": 100000,
+    "kind": "image",
+    "created": 1783468800
+  },
+  {
+    "id": "x-ai/grok-4.1-fast",
+    "vendor": "x-ai",
+    "display_name": "xAI: Grok 4.1 Fast",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000002",
+      "output": "0.0000005"
+    },
+    "status": "available",
+    "description": "xAI Grok 4.1 Fast - latest version with improved tool calling and 2M context. Best agentic performance from xAI without explicit reasoning.",
+    "context_length": 2000000,
+    "max_completion_tokens": 30000,
+    "kind": "text",
+    "created": 1763510400
+  },
+  {
+    "id": "x-ai/grok-4.20",
+    "vendor": "x-ai",
+    "display_name": "xAI: Grok 4.20",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000004",
+      "output": "0.000012"
+    },
+    "status": "available",
+    "description": "Grok 4.20 is xAI's newest flagship model with industry-leading speed and agentic tool calling capabilities. It combines the lowest hallucination rate on the market with strict prompt adherance, delivering consistently precise and truthful responses.",
+    "context_length": 2000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1774915200
+  },
+  {
+    "id": "x-ai/grok-4.3",
+    "vendor": "x-ai",
+    "display_name": "xAI: Grok 4.3",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000125",
+      "output": "0.0000025"
+    },
+    "status": "available",
+    "description": "Grok 4.3 is a reasoning model from xAI. It accepts text and image inputs with text output, and is suited for agentic workflows, instruction-following tasks, and applications requiring high factual...",
+    "context_length": 1000000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1777507200
+  },
+  {
+    "id": "x-ai/grok-4.5",
+    "vendor": "x-ai",
+    "display_name": "xAI: Grok 4.5",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000006"
+    },
+    "status": "available",
+    "description": "Grok 4.5 is xAI's frontier model with strong performance on coding, knowledge work, and STEM. 500K context, reasoning model, prompt caching supported. OpenAI-compatible protocol. Released July 8, 2026.",
+    "context_length": 500000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1783468800
+  },
+  {
+    "id": "x-ai/grok-4.6",
+    "vendor": "x-ai",
+    "display_name": "xAI: Grok 4.6",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000002",
+      "output": "0.000006"
+    },
+    "status": "available",
+    "description": "Grok 4.6 is xAI's most intelligent and fastest model, with frontier performance on coding, knowledge work, and STEM. 500K context, reasoning model, prompt caching supported. OpenAI-compatible protocol. Released August 12, 2026.",
+    "context_length": 500000,
+    "max_completion_tokens": 65536,
+    "kind": "text",
+    "created": 1786492800
+  },
+  {
+    "id": "z-ai/glm-4.6",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-4.6",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000004",
+      "output": "0.0000019"
+    },
+    "status": "available",
+    "description": "Zhipu GLM-4.6 with 128K context and strong instruction following. Excellent balance of performance and cost for Chinese language tasks.",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1759190400
+  },
+  {
+    "id": "z-ai/glm-4.7",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM 4.7",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000004",
+      "output": "0.000002"
+    },
+    "status": "available",
+    "description": "Zhipu GLM-4.7 - latest flagship model with advanced reasoning, 128K context, and web search capabilities. Best-in-class Chinese language understanding.",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1766448000
+  },
+  {
+    "id": "z-ai/glm-4.7-flashx",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-4.7 FlashX",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000000072",
+      "output": "0.00000043"
+    },
+    "status": "available",
+    "description": "As a 30B-class SOTA model, GLM-4.7-Flash offers a new option that balances performance and efficiency. It is further optimized for agentic coding use cases, strengthening coding capabilities, long-horizon task planning, and tool collaboration, and has achieved leading performance among open-source models of the same si",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1768780800
+  },
+  {
+    "id": "z-ai/glm-5",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-5",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.000001",
+      "output": "0.0000032"
+    },
+    "status": "available",
+    "description": "GLM-5 is Z.ai’s flagship open-source foundation model engineered for complex systems design and long-horizon agent workflows. Built for expert developers, it delivers production-grade performance on large-scale programming tasks, rivaling leading closed-source models. With advanced agentic planning, deep backend reason",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1770768000
+  },
+  {
+    "id": "z-ai/glm-5-turbo",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-5-Turbo",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000012",
+      "output": "0.000004"
+    },
+    "status": "available",
+    "description": "GLM-5-Turbo is a foundation model deeply optimized for the OpenClaw scenario. It has been specifically optimized for the core requirements of OpenClaw tasks since the training phase, enhancing key capabilities such as tool invocation, command following, timed and persistent tasks, and long-chain execution.",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1773619200
+  },
+  {
+    "id": "z-ai/glm-5.1",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM 5.1",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000014",
+      "output": "0.0000044"
+    },
+    "status": "available",
+    "description": "",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1774569600
+  },
+  {
+    "id": "z-ai/glm-5.2",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-5.2",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000014",
+      "output": "0.0000044"
+    },
+    "status": "available",
+    "description": "GLM-5.2 是 z.ai 国际站 (api.z.ai) 旗舰推理模型, MoE 架构 open-weights, 1M context, 内嵌 thinking (reasoning_content), 支持 prompt caching / tool calling / web search. 强编码与长程自治执行. 通过 OpenAI-compatible + Anthropic 双协议接入 (无 responses 端点).",
+    "context_length": 1048576,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1781568000
+  },
+  {
+    "id": "z-ai/glm-5.3",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-5.3",
+    "capabilities": {
+      "supported_parameters": [
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000014",
+      "output": "0.0000044"
+    },
+    "status": "available",
+    "description": "GLM-5.3 是 z.ai 国际站 (api.z.ai) 旗舰推理模型, 在 GLM-5.2 基础上提升编码能力与性能/token 效率平衡, 面向复杂软件工程与长程 agent 任务. 1M context, 常驻 thinking (不可关闭, 支持 low/high/max 三档 reasoning effort), 支持 prompt caching / tool calling / web search. 通过 OpenAI-compatible + Anthropic 双协议接入 (无 responses 端点).",
+    "context_length": 1048576,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1787097600
+  },
+  {
+    "id": "z-ai/glm-5.3-flash",
+    "vendor": "z-ai",
+    "display_name": "Z.ai: GLM-5.3-Flash",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.00000015",
+      "output": "0.0000005"
+    },
+    "status": "available",
+    "description": "GLM-5.3-Flash 是 z.ai 国际站 (api.z.ai) 轻量高速模型, 原生多模态输入 (图片/视频), 面向高效编码与长程 agent 任务. 1M context, 常驻 thinking (不可关闭, 支持 low/high/max 三档 reasoning effort), 支持 prompt caching / tool calling / web search. 通过 OpenAI-compatible + Anthropic 双协议接入 (无 responses 端点).",
+    "context_length": 1048576,
+    "max_completion_tokens": 131072,
+    "kind": "text",
+    "created": 1787702400
+  },
+  {
+    "id": "z-ai/glm-5v-turbo",
+    "vendor": "z-ai",
+    "display_name": "GLM-5V-Turbo",
+    "capabilities": {
+      "supported_parameters": [
+        "vision",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "stop",
+        "tools",
+        "tool_choice",
+        "response_format",
+        "reasoning"
+      ]
+    },
+    "sell_price": {
+      "input": "0.0000012",
+      "output": "0.000004"
+    },
+    "status": "available",
+    "description": "GLM-5V-Turbo is Z.AI’s first multimodal coding foundation model, built for vision-based coding tasks. It can natively process multimodal inputs such as images, video, and text, while also excelling at long-horizon planning, complex coding, and action execution. ",
+    "context_length": 200000,
+    "max_completion_tokens": 128000,
+    "kind": "text",
+    "created": 1775001600
+  }
+]

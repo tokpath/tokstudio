@@ -21,6 +21,7 @@ const schema = z.object({
 function LoginForm() {
   const search = useSearchParams();
   const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "", promo: "" },
@@ -63,30 +64,65 @@ function LoginForm() {
     setMessage(body.error?.message || "失败");
   }
 
+  async function googleStart() {
+    window.location.href = `${apiBase}/v1/auth/google/start`;
+  }
+
   return (
     <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-16">
       <section className="w-full rounded-stamp border border-hairline bg-canvas-raised p-8">
-        <p className="th-eyebrow text-brand-emphasis">Sign in</p>
-        <h1 className="mt-2 text-2xl font-semibold">注册 / 登录</h1>
+        <p className="th-eyebrow text-brand-emphasis">AUTH</p>
+        <h1 className="mt-2 text-2xl font-semibold">{mode === "login" ? "登录" : "注册"}</h1>
         <p className="mt-2 text-sm text-ink-secondary">
-          推广码在注册成功时由服务端固化，不能当作可改归属。没有渐变英雄。
+          对齐 ofox 控制台登录结构：邮箱密码为主，Google 为次按钮。推广码只在注册时写入归属。
         </p>
+
+        <div className="mt-6 flex flex-col gap-2">
+          <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
+            使用 Google 登录
+          </Button>
+        </div>
+
+        <div className="my-6 flex items-center gap-3 text-[13px] text-ink-mute">
+          <span className="h-px flex-1 bg-hairline" />
+          或
+          <span className="h-px flex-1 bg-hairline" />
+        </div>
+
         <Form {...form}>
-          <form className="mt-6 flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={form.control} name="email" label="邮箱" />
-            <TextField control={form.control} name="password" label="密码" placeholder="密码（至少 8 位）" type="password" />
-            <TextField control={form.control} name="promo" label="推广码" placeholder="推广码 THA1 / THB1 / THC1" />
-            <div className="mt-2 flex gap-3">
-              <Button type="button" onClick={form.handleSubmit(login)}>
-                登录
-              </Button>
-              <Button type="button" variant="outline" onClick={form.handleSubmit(register)}>
-                注册
-              </Button>
-            </div>
+          <form className="flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
+            <TextField control={form.control} name="email" label="邮箱" placeholder="m@example.com" />
+            <TextField control={form.control} name="password" label="密码" placeholder="请输入密码（至少 8 位）" type="password" />
+            {mode === "register" ? (
+              <TextField control={form.control} name="promo" label="推广码" placeholder="可选 · THA1 / THB1 / THC1" />
+            ) : null}
+            <Button
+              type="button"
+              className="mt-2 w-full"
+              onClick={form.handleSubmit(mode === "login" ? login : register)}
+            >
+              {mode === "login" ? "登录" : "注册"}
+            </Button>
             <p className="text-sm text-hold">{message}</p>
-            <p className="text-xs text-ink-mute">
-              还没看过价目？先回 <Link href="/">公共站</Link>。
+            <p className="text-sm text-ink-secondary">
+              {mode === "login" ? (
+                <>
+                  还没有账户？{" "}
+                  <button type="button" className="text-brand-emphasis" onClick={() => setMode("register")}>
+                    注册
+                  </button>
+                </>
+              ) : (
+                <>
+                  已有账户？{" "}
+                  <button type="button" className="text-brand-emphasis" onClick={() => setMode("login")}>
+                    登录
+                  </button>
+                </>
+              )}
+            </p>
+            <p className="text-[12px] text-ink-mute">
+              继续即表示你了解 <Link href="/terms">服务条款</Link> 与 <Link href="/privacy">隐私政策</Link>。
             </p>
           </form>
         </Form>

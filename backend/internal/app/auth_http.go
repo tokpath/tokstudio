@@ -337,9 +337,10 @@ func (a *App) publicModels(c *gin.Context) {
 	}
 	items := make([]gin.H, 0, len(models))
 	for _, model := range models {
+		// 公开价目只给 sell_price（客户侧），不含上游成本。
 		items = append(items, gin.H{
 			"id": model.ID, "vendor": model.Vendor, "display_name": model.DisplayName,
-			"capabilities": model.Capabilities,
+			"capabilities": model.Capabilities, "sell_price": model.SellPrice, "status": model.Status,
 		})
 	}
 	httpx.OK(c, gin.H{"items": items, "brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID)})

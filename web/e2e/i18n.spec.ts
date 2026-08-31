@@ -35,15 +35,17 @@ test("Japanese Accept-Language keeps pathnames unchanged", async ({ browser }) =
   await context.close();
 });
 
-test("NEXT_LOCALE cookie overrides Accept-Language", async ({ browser }) => {
+test("language switch cookie overrides Accept-Language without changing the URL", async ({ browser }) => {
   const context = await browser.newContext({
     locale: "en-US",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   });
-  await context.addCookies([{ name: "NEXT_LOCALE", value: "ja", url: "http://127.0.0.1:3000/" }]);
   const page = await context.newPage();
   await page.goto("/compare");
+  await expect(page.getByRole("heading", { name: "Compare models" })).toBeVisible();
+  await page.getByLabel("Language").selectOption("ja");
   await expect(page).toHaveURL(/\/compare$/);
+  await expect(page).not.toHaveURL(/\/ja\//);
   await expect(page.getByRole("heading", { name: "モデル比較" })).toBeVisible();
   await context.close();
 });

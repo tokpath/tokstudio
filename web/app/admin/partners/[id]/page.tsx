@@ -58,7 +58,7 @@ export default function AdminPartnerDetailPage() {
           <Link href="/admin/channels" className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-2 text-xl font-medium">{isKOLType(item?.type || "") ? "KOL 详情" : "代理商详情"}</h2>
+          <h2 className="mt-3 text-lg font-semibold tracking-tight">{isKOLType(item?.type || "") ? "KOL 详情" : "代理商详情"}</h2>
           <p className="mt-1 text-sm text-ink-secondary">
             {title} · {item?.id || id}
           </p>

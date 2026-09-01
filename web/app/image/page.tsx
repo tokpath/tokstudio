@@ -6,6 +6,7 @@ import { loadCatalog, priceForModel } from "@/lib/catalog";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { Image as ImageIcon } from "lucide-react";
+import { PublicMain } from "@/components/public-section";
 
 export default async function ImagePage() {
   const t = await getTranslations("imageUi");
@@ -15,9 +16,9 @@ export default async function ImagePage() {
   const priceUnits = { perSec: tCat("perSec"), perImage: tCat("perImage") };
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="image" primaryHref="/login" secondaryHref="/models" />
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="grid gap-4 md:grid-cols-2">
         {models.map((m) => (
           <li key={m.id}>
             <Link
@@ -38,6 +39,6 @@ export default async function ImagePage() {
       <Button asChild variant="outline" className="w-fit">
         <Link href="/docs">{t("docs")}</Link>
       </Button>
-    </main>
+    </PublicMain>
   );
 }

@@ -48,7 +48,7 @@ export function ModelCompare({ models }: { models: CatalogModel[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
           {t("left")}
           <select

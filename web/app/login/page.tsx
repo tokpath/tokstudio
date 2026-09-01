@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 
 function LoginForm() {
   const t = useTranslations("login");
+  const th = useTranslations("home");
   const schema = useMemo(
     () =>
       z.object({
@@ -155,12 +156,21 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-6 py-20">
-      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
+    <main className="mx-auto grid min-h-[calc(100vh-8rem)] w-full max-w-[1120px] items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_26rem] lg:gap-20 lg:py-20">
+      <section className="hidden max-w-xl lg:block">
         <p className="th-eyebrow text-brand-emphasis">{t("eyebrow")}</p>
-        <h1 className="mt-3 text-[40px] font-semibold leading-tight">{t("title")}</h1>
+        <p className="th-display mt-5">
+          {th("h1a")}
+          <span className="text-brand-emphasis">{th("h1b")}</span>
+          {th("h1c")}
+        </p>
+        <p className="mt-6 text-base leading-relaxed text-ink-secondary">{th("lead")}</p>
+      </section>
+      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
+        <p className="th-eyebrow text-brand-emphasis lg:hidden">{t("eyebrow")}</p>
+        <h1 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">{t("title")}</h1>
 
-        <div className="mt-6 flex flex-col gap-2">
+        <div className="mt-8 flex flex-col gap-3">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
             <GitHubMark />
             {t("github")}
@@ -190,14 +200,14 @@ function LoginForm() {
           </div>
         ) : null}
 
-        <div className="my-6 flex items-center gap-3 text-[13px] text-ink-mute">
+        <div className="my-7 flex items-center gap-3 text-[13px] text-ink-mute">
           <span className="h-px flex-1 bg-hairline" />
           {t("or")}
           <span className="h-px flex-1 bg-hairline" />
         </div>
 
         <Form {...form}>
-          <form className="flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
+          <form className="flex flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "login" ? (
@@ -213,7 +223,7 @@ function LoginForm() {
             ) : null}
             <Button
               type="button"
-              className="mt-2 w-full"
+              className="mt-1 w-full"
               onClick={form.handleSubmit(mode === "login" ? login : register)}
             >
               {mode === "login" ? (
@@ -233,7 +243,7 @@ function LoginForm() {
                 <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
                   {t("otpLogin")}
                 </Button>
-                <p className="text-[12px] text-ink-mute">{t("forgot")}</p>
+                <p className="text-[13px] leading-relaxed text-ink-mute">{t("forgot")}</p>
               </>
             ) : null}
             <p className="text-sm text-hold">{message}</p>
@@ -254,7 +264,7 @@ function LoginForm() {
                 </>
               )}
             </p>
-            <p className="text-[12px] text-ink-mute">
+            <p className="text-[13px] leading-relaxed text-ink-mute">
               {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>. {t("backHome")}{" "}
               <Link href="/">{t("public")}</Link>.
             </p>

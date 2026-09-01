@@ -61,7 +61,7 @@ export default function AdminChannelDetailPage() {
           <Link href="/admin/channels" className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-2 text-xl font-medium">渠道详情</h2>
+          <h2 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h2>
           <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">

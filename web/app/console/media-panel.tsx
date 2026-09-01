@@ -150,7 +150,7 @@ export default function MediaPanel() {
       <Form {...form}>
         <form className="mb-4 space-y-3" onSubmit={form.handleSubmit(createJob)}>
           <TextField control={form.control} name="prompt" label="prompt" placeholder="prompt" showLabel={false} />
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <FormField
               control={form.control}
               name="kind"

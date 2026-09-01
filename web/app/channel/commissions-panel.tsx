@@ -48,7 +48,7 @@ export default function ChannelCommissions() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-      <h2 className="mb-3 text-xl font-medium">{t("commTitle")}</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("commTitle")}</h2>
       <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota })}</p>
       <p className="mb-3 text-sm text-ink-secondary">{t("commMeta", { ratio: ratioBPS, issued, consumed })}</p>
       <h3 className="mb-2 text-lg font-medium">{t("issuedTitle")}</h3>

@@ -44,7 +44,7 @@ export default function UsagePanel() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
-      <h2 className="mb-3 text-xl font-medium tracking-tight">{t("usageTitle")}</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
       <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
       <Button type="button" variant="outline" className="mb-4" onClick={refresh}>
         {t("usageRefresh")}

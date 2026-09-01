@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { loadSite } from "@/lib/site-content";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
@@ -15,10 +15,10 @@ export default async function AwesomePage() {
   const apps = site.apps || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="awesome" primaryHref="/login" secondaryHref="/vibe-coding" />
       <PublicSection eyebrow="APPS" title={t("appsTitle", { count: apps.length })}>
-        <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {apps.map((app) => (
             <li key={app.slug} className="rounded-card border border-hairline bg-canvas-raised p-5">
               <div className="flex items-start justify-between gap-3">
@@ -38,6 +38,6 @@ export default async function AwesomePage() {
       <p className="text-sm text-ink-mute">
         {t("cta")} <Link href="/docs">{t("docs")}</Link> {t("cta2")}
       </p>
-    </main>
+    </PublicMain>
   );
 }

@@ -41,7 +41,7 @@ export default function AdminPaymentsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="payments" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="payments" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">跨渠道订单检索与退款审计。商户配置在各渠道台 /channel/payments，这里不是全站支付设置。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={orderID} onChange={(e) => setOrderID(e.target.value)} aria-label="支付单 ID" placeholder="pay_..." />

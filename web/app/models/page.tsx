@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { ModelsCatalog } from "@/components/models-catalog";
 import { loadCatalogPage, parseCatalogSearchParams } from "@/lib/catalog";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { PublicMain } from "@/components/public-section";
 
 export default async function ModelsPage({
   searchParams,
@@ -13,9 +14,9 @@ export default async function ModelsPage({
   const page = await loadCatalogPage(host, query);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="models" primaryHref="/login" secondaryHref="/quickstart" />
       <ModelsCatalog models={page.items} facets={page.facets} query={query} basePath="/models" />
-    </main>
+    </PublicMain>
   );
 }

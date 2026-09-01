@@ -32,12 +32,12 @@ export default function ChannelUsage() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("usageTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("usageLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshUsage")}
       </Button>
-      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
+      <section className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[
           { t: t("wholesale"), v: String(usage.usage_minor ?? 0), d: "micro-USD" },
           { t: "Prompt", v: String(usage.prompt_tokens ?? 0), d: "tokens" },

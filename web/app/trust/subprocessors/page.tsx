@@ -1,12 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { PublicMain } from "@/components/public-section";
 
 export default async function SubprocessorsPage() {
   const t = await getTranslations("trustUi");
   const rows = [0, 1, 2, 3].map((i) => ({ name: t(`n${i}`), role: t(`r${i}`), region: t(`g${i}`) }));
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="trustSubprocessors" primaryHref="/trust" />
       <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
         <table className="min-w-full text-left text-sm">
@@ -28,6 +29,6 @@ export default async function SubprocessorsPage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </PublicMain>
   );
 }

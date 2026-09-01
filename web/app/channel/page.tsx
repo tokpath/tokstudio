@@ -11,7 +11,7 @@ import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 
 export default function ChannelConsole() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <I18nConsoleHeader id="channelHome" />
       <ChannelHero />
       <div id="users">

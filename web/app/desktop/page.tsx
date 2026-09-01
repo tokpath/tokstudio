@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { DESKTOP_CAP_ICONS, iconForTool } from "@/lib/page-icons";
@@ -20,7 +20,7 @@ export default async function DesktopPage() {
   const caps = [0, 1, 2, 3].map((i) => ({ t: t(`cap${i}t`), d: t(`cap${i}d`) }));
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="desktop" primaryHref="/vibe-coding" secondaryHref="/login" />
 
       <StatStrip
@@ -32,7 +32,7 @@ export default async function DesktopPage() {
       />
 
       <PublicSection eyebrow="TOOLS" title={t("toolsTitle")} description={t("toolsLead")}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool) => (
             <FeatureCard key={tool.name} icon={iconForTool(tool.name)} title={tool.name} meta={tool.hint} />
           ))}
@@ -40,7 +40,7 @@ export default async function DesktopPage() {
       </PublicSection>
 
       <PublicSection eyebrow="CAPABILITY" title={t("capsTitle")}>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {caps.map((cap, i) => (
             <FeatureCard key={cap.t} icon={DESKTOP_CAP_ICONS[i]} title={cap.t} description={cap.d} />
           ))}
@@ -58,6 +58,6 @@ export default async function DesktopPage() {
           </Button>
         </div>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

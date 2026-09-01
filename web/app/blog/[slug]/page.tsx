@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { loadSite } from "@/lib/site-content";
+import { PublicMain } from "@/components/public-section";
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getTranslations("blogUi");
@@ -15,7 +16,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-20">
+    <PublicMain width="prose">
       <I18nPublicHero
         id="article"
         primaryHref="/blog"
@@ -39,6 +40,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </Button>
         ) : null}
       </div>
-    </main>
+    </PublicMain>
   );
 }

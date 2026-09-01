@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { iconForTool } from "@/lib/page-icons";
@@ -30,7 +30,7 @@ export default async function IntegrationsPage() {
   ];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="docsIntegrations" primaryHref="/quickstart" secondaryHref="/vibe-coding" />
       <PublicSection eyebrow="TOOLS" title={t("toolsTitle")}>
         <div className="flex flex-col gap-8">
@@ -49,6 +49,6 @@ export default async function IntegrationsPage() {
       <Button asChild variant="outline" className="w-fit">
         <Link href="/docs">{t("fullDocs")}</Link>
       </Button>
-    </main>
+    </PublicMain>
   );
 }

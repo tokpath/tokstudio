@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { ENTERPRISE_CAP_ICONS } from "@/lib/page-icons";
@@ -13,11 +13,11 @@ export default async function EnterprisePage() {
   const rows = [0, 1, 2, 3].map((i) => [t(`r${i}k`), t(`r${i}a`), t(`r${i}b`)]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="enterprise" primaryHref="/login" secondaryHref="/trust" />
 
       <PublicSection eyebrow="CAPABILITIES" title={t("capsTitle")}>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((item, i) => (
             <FeatureCard key={item.title} icon={ENTERPRISE_CAP_ICONS[i]} title={item.title} description={item.body} />
           ))}
@@ -58,6 +58,6 @@ export default async function EnterprisePage() {
           </Button>
         </div>
       </section>
-    </main>
+    </PublicMain>
   );
 }

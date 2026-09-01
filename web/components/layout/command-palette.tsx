@@ -207,7 +207,7 @@ export function CommandPalette({
             return (
               <li key={`${item.group}-${item.href}`}>
                 <button
-                  className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-brand-soft"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm text-ink transition-colors duration-150 hover:bg-brand-soft"
                   onClick={() => {
                     onOpenChange(false);
                     router.push(item.href);

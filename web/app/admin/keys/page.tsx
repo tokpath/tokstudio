@@ -32,7 +32,7 @@ export default function AdminKeysPage() {
     <AdminShell>
       <Form {...form}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="disableKey" className="mb-3 text-xl font-medium" />
+          <AdminH2 k="disableKey" className="mb-4 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">平台管理员和技术值班可以禁任意用户的 Key。禁用后网关立刻 403，不会回显密文。</p>
           <div className="mb-3 grid max-w-xl gap-2">
             <TextField control={form.control} name="key_id" label="禁用用 API Key ID" />

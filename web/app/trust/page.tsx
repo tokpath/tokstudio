@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
@@ -10,11 +10,11 @@ import { TRUST_RETENTION_ICONS, TRUST_SUMMARY_ICONS } from "@/lib/page-icons";
 export default async function TrustPage() {
   const t = await getTranslations("trustUi");
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="trust" primaryHref="/docs" secondaryHref="/trust/subprocessors" />
 
       <PublicSection eyebrow="SUMMARY" title={t("sumTitle")}>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <FeatureCard key={i} icon={TRUST_SUMMARY_ICONS[i]} title={t(`s${i}t`)} description={t(`s${i}d`)} />
           ))}
@@ -48,6 +48,6 @@ export default async function TrustPage() {
           </Button>
         </div>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

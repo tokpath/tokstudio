@@ -32,7 +32,7 @@ export default function ChannelAttribution() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("attrTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("attrTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("attrLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshAttr")}

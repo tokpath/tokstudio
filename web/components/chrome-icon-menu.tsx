@@ -66,7 +66,7 @@ export function ChromeIconMenu({
           id={menuId}
           role="menu"
           aria-label={label}
-          className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-card border border-hairline bg-canvas-raised p-1 shadow-[0_8px_24px_rgba(20,20,20,0.08)]"
+          className="absolute right-0 top-full z-50 mt-1.5 min-w-[11rem] rounded-card border border-hairline bg-canvas-raised p-1.5 shadow-[0_1px_2px_rgba(20,20,20,0.06)]"
         >
           {options.map((option) => {
             const active = option.value === value;
@@ -77,7 +77,7 @@ export function ChromeIconMenu({
                 role="menuitemradio"
                 aria-checked={active}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-left text-sm",
+                  "flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-left text-sm transition-colors duration-150",
                   active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas",
                 )}
                 onClick={() => {

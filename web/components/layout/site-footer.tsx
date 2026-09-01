@@ -11,18 +11,18 @@ export function SiteFooter({ brand }: { brand?: Brand }) {
   const tc = useTranslations("chrome");
   return (
     <footer className="border-t border-hairline bg-canvas">
-      <div className="mx-auto grid max-w-[1200px] gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-[1200px] gap-12 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="text-lg font-semibold text-ink">{name}</p>
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-mute">{tc("footerTagline")}</p>
+          <p className="text-lg font-semibold tracking-tight text-ink">{name}</p>
+          <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-ink-mute">{tc("footerTagline")}</p>
         </div>
         {FOOTER_GROUPS.map((group) => (
           <div key={group.titleKey}>
             <p className="th-eyebrow text-ink-mute">{t(group.titleKey)}</p>
-            <ul className="mt-4 flex flex-col gap-2 text-[13px] text-ink-secondary">
+            <ul className="mt-4 flex flex-col gap-2.5 text-[13px] text-ink-secondary">
               {group.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="no-underline hover:text-ink">
+                  <Link href={link.href} className="no-underline transition-colors duration-150 hover:text-ink">
                     {t(link.labelKey)}
                   </Link>
                 </li>
@@ -32,15 +32,15 @@ export function SiteFooter({ brand }: { brand?: Brand }) {
         ))}
       </div>
       <div className="border-t border-hairline">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-6 py-6 text-[13px] text-ink-mute sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-6 py-5 text-[13px] text-ink-mute sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} {name} {tc("footerCopy")}
           </p>
-          <p className="flex flex-wrap gap-3">
-            <Link href="/app">{tc("footerApp")}</Link>
-            <Link href="/channel">{tc("footerChannel")}</Link>
-            <Link href="/admin">{tc("footerAdmin")}</Link>
-            <Link href="/login">{tc("login")}</Link>
+          <p className="flex flex-wrap gap-x-4 gap-y-2">
+            <Link href="/app" className="transition-colors duration-150 hover:text-ink">{tc("footerApp")}</Link>
+            <Link href="/channel" className="transition-colors duration-150 hover:text-ink">{tc("footerChannel")}</Link>
+            <Link href="/admin" className="transition-colors duration-150 hover:text-ink">{tc("footerAdmin")}</Link>
+            <Link href="/login" className="transition-colors duration-150 hover:text-ink">{tc("login")}</Link>
           </p>
         </div>
       </div>

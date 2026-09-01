@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { iconForHref, QUICKSTART_STEP_ICONS } from "@/lib/page-icons";
@@ -31,7 +31,7 @@ export default async function QuickstartPage() {
   const node = `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://${base}/v1",\n  apiKey: "sk-...xxxx",\n});\n\nconst r = await client.chat.completions.create({\n  model: "${model}",\n  messages: [{ role: "user", content: "ping" }],\n});\nconsole.log(r.choices[0].message.content);`;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="quickstart" primaryHref="/login" secondaryHref="/docs" />
 
       <StatStrip
@@ -80,7 +80,7 @@ export default async function QuickstartPage() {
       </PublicSection>
 
       <PublicSection eyebrow="NEXT" title={t("nextTitle")}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { href: "/models", label: t("nextModels") },
             { href: "/vibe-coding", label: t("nextVibe") },
@@ -107,6 +107,6 @@ export default async function QuickstartPage() {
           </Button>
         </div>
       </section>
-    </main>
+    </PublicMain>
   );
 }

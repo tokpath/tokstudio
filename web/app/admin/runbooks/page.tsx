@@ -18,7 +18,7 @@ export default function AdminRunbooksPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="runbooks" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="runbooks" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">每种关键告警对应一份处置步骤。对账、熔断、备份和 TLS 演练都有手册。</p>
         {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <div className="grid gap-3">

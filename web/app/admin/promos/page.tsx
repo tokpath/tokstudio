@@ -43,7 +43,7 @@ export default function AdminPromosPage() {
     <AdminShell>
       <Form {...roleForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="promoRoles" className="mb-3 text-xl font-medium" />
+          <AdminH2 k="promoRoles" className="mb-4 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">
             层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。主体列表在「渠道租户」分栏管理。
           </p>
@@ -83,7 +83,7 @@ export default function AdminPromosPage() {
       </Form>
       <Form {...promoForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="promos" className="mb-3 text-xl font-medium" />
+          <AdminH2 k="promos" className="mb-4 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">把码发给用户，或复制 /login?promo=CODE。服务端按码反查渠道和角色。</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <TextField control={promoForm.control} name="role_id" label="推广角色 ID" showLabel={false} className="w-48" />

@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { formatMoney, loadCatalog } from "@/lib/catalog";
-import { StatStrip } from "@/components/public-section";
+import { StatStrip, PublicMain } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function BestValuePage() {
@@ -16,7 +16,7 @@ export default async function BestValuePage() {
     .slice(0, 40);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="bestValue" primaryHref="/login" secondaryHref="/models" />
       <StatStrip
         items={[
@@ -55,6 +55,6 @@ export default async function BestValuePage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </PublicMain>
   );
 }

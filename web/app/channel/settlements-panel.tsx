@@ -28,7 +28,7 @@ export default function ChannelSettlements() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("settleTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("settleTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("settleLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshSettle")}

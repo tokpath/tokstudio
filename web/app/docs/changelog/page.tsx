@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { CHANGELOG_ICONS } from "@/lib/page-icons";
@@ -14,10 +14,10 @@ export default async function ChangelogPage() {
   }));
 
   return (
-    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-10 px-6 py-20">
+    <PublicMain width="prose">
       <I18nPublicHero id="docsChangelog" primaryHref="/docs" />
       <PublicSection eyebrow="LOG" title={t("logTitle")}>
-        <ol className="grid gap-3">
+        <ol className="grid gap-4">
           {items.map((item) => (
             <li key={item.title}>
               <FeatureCard icon={item.icon} title={item.title} description={item.detail} meta={item.date} />
@@ -25,6 +25,6 @@ export default async function ChangelogPage() {
           ))}
         </ol>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

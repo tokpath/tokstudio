@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 export default async function VsOpenRouterPage() {
@@ -10,7 +10,7 @@ export default async function VsOpenRouterPage() {
   const rows = [0, 1, 2, 3, 4].map((i) => [t(`r${i}k`), t(`r${i}a`), t(`r${i}b`)]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="vsOpenrouter" primaryHref="/enterprise" secondaryHref="/models" />
       <PublicSection eyebrow="TABLE" title={t("tableTitle")}>
         <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
@@ -37,6 +37,6 @@ export default async function VsOpenRouterPage() {
       <Button asChild>
         <Link href="/login">{th("ctaStart")}</Link>
       </Button>
-    </main>
+    </PublicMain>
   );
 }

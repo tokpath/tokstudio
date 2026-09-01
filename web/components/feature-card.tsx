@@ -22,14 +22,14 @@ export function FeatureCard({
   const inner = (
     <>
       <IconStamp icon={icon} />
-      <p className="mt-3 font-semibold text-ink">{title}</p>
+      <p className="mt-4 text-lg font-semibold leading-snug text-ink">{title}</p>
       {description ? <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{description}</p> : null}
-      {meta ? <p className="mt-1 font-mono text-[12px] text-ink-mute">{meta}</p> : null}
+      {meta ? <p className="mt-2 font-mono text-[12px] leading-relaxed text-ink-mute">{meta}</p> : null}
     </>
   );
   const cls = cn(
-    "rounded-card border border-hairline bg-canvas-raised p-5",
-    href && "block no-underline transition-colors hover:bg-brand-soft/30",
+    "rounded-card border border-hairline bg-canvas-raised p-6",
+    href && "block no-underline transition-colors duration-150 ease-out hover:bg-brand-soft/30",
     className,
   );
   if (href) {
@@ -65,18 +65,18 @@ export function MetricCard({
         <IconStamp icon={icon} size="sm" />
       </div>
       <p
-        className={`mt-2 font-mono font-medium tracking-tight text-ink ${
+        className={`mt-3 font-mono font-medium tracking-tight text-ink ${
           compact ? "text-sm leading-snug" : "text-[28px] leading-none tabular-nums"
         }`}
       >
         {value}
       </p>
-      {hint ? <p className="mt-2 text-sm text-ink-secondary">{hint}</p> : null}
+      {hint ? <p className="mt-3 text-[13px] leading-relaxed text-ink-secondary">{hint}</p> : null}
     </>
   );
   const cls = cn(
-    "rounded-card border border-hairline bg-canvas-raised p-4",
-    href && "block no-underline hover:bg-brand-soft/40",
+    "rounded-card border border-hairline bg-canvas-raised p-5",
+    href && "block no-underline transition-colors duration-150 ease-out hover:bg-brand-soft/40",
   );
   if (href) {
     return (

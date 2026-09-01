@@ -1,0 +1,9 @@
+# 追加到 token 机器上 /root/workspace/nova/Caddyfile。
+# www.tokpath.com 保持原样；这个站点只处理 test.tokpath.com，反代到 TokenHub。
+test.tokpath.com {
+	encode zstd gzip
+	reverse_proxy tokstudio-edge:80 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}

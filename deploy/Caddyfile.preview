@@ -1,0 +1,44 @@
+# token 机器上 TokenHub 自己的 Caddy：只在容器内提供 HTTP。
+# 公网 HTTPS 由 gashub 的 Caddy 为 test.tokpath.com 终止，再反代进来。
+{
+	email {$TOKENHUB_ACME_EMAIL:ops@tokenhub.local}
+	auto_https off
+}
+
+(app) {
+	@apihost host api.localhost api.oem.localhost
+	handle @apihost {
+		reverse_proxy api:8080
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+		}
+	}
+
+	handle /v1/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+		}
+	}
+	handle /healthz {
+		reverse_proxy api:8080
+	}
+	handle /readyz {
+		reverse_proxy api:8080
+	}
+	handle /.well-known/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			header_up Host {host}
+		}
+	}
+}
+
+:80 {
+	import app
+}

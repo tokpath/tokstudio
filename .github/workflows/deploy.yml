@@ -1,0 +1,42 @@
+# 只有合入 release/v0.1.0（push 到该分支）且 CI 全绿，才会更新 https://test.tokpath.com。
+# PR、cursor/**、main、手动 Run workflow 都不会部署。
+# 需要仓库 Secret：TOKEN_DEPLOY_SSH_KEY。
+name: deploy-token
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+    branches: [release/v0.1.0]
+
+concurrency:
+  group: deploy-token
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'release/v0.1.0' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH to token and deploy
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: 47.237.102.13
+          username: root
+          key: ${{ secrets.TOKEN_DEPLOY_SSH_KEY }}
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+            ROOT=/root/workspace/tokstudio
+            BRANCH=release/v0.1.0
+            if [ ! -d "$ROOT/.git" ]; then
+              git clone --branch "$BRANCH" git@github.com:tokpath/tokstudio.git "$ROOT"
+            fi
+            cd "$ROOT"
+            git fetch origin
+            git checkout "$BRANCH"
+            git pull --ff-only origin "$BRANCH"
+            bash scripts/deploy_token.sh

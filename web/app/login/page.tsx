@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { safeNextPath } from "@/lib/login-next";
+import { GitFork, KeyRound, LogIn, Mail, Shield, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 function LoginForm() {
@@ -160,9 +161,11 @@ function LoginForm() {
 
         <div className="mt-6 flex flex-col gap-2">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
+            <GitFork />
             {t("github")}
           </Button>
           <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
+            <Mail />
             {t("google")}
           </Button>
         </div>
@@ -193,11 +196,11 @@ function LoginForm() {
 
         <Form {...form}>
           <form className="flex flex-col gap-3" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" />
-            <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" />
+            <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
+            <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "login" ? (
               <div className="flex flex-wrap items-end gap-2">
-                <TextField control={form.control} name="otp" label={t("otp")} placeholder={t("otpPlaceholder")} className="flex-1" />
+                <TextField control={form.control} name="otp" label={t("otp")} placeholder={t("otpPlaceholder")} className="flex-1" icon={Shield} />
                 <Button type="button" variant="ghost" onClick={requestOtp}>
                   {t("sendOtp")}
                 </Button>
@@ -211,7 +214,17 @@ function LoginForm() {
               className="mt-2 w-full"
               onClick={form.handleSubmit(mode === "login" ? login : register)}
             >
-              {mode === "login" ? t("submitLogin") : t("submitRegister")}
+              {mode === "login" ? (
+                <>
+                  <LogIn />
+                  {t("submitLogin")}
+                </>
+              ) : (
+                <>
+                  <UserPlus />
+                  {t("submitRegister")}
+                </>
+              )}
             </Button>
             {mode === "login" ? (
               <>

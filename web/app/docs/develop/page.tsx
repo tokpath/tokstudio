@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { PublicSection } from "@/components/public-section";
+import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { DOCS_ERROR_ICONS } from "@/lib/page-icons";
 
 export default async function DocsDevelopPage() {
   const t = await getTranslations("docsUi");
@@ -9,15 +11,18 @@ export default async function DocsDevelopPage() {
       <I18nPublicHero id="docsDevelop" primaryHref="/docs" secondaryHref="/trust" />
       <PublicSection eyebrow="ERRORS" title={t("errTitle")}>
         <ul className="space-y-3 text-sm text-ink-secondary">
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <span className="font-mono text-danger">402</span> {t("e402")}
-          </li>
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <span className="font-mono text-hold">429</span> {t("e429")}
-          </li>
-          <li className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-            <span className="font-mono text-danger">403</span> {t("e403")}
-          </li>
+          {[
+            { code: "402", key: "e402" as const, tone: "text-danger" },
+            { code: "429", key: "e429" as const, tone: "text-hold" },
+            { code: "403", key: "e403" as const, tone: "text-danger" },
+          ].map((item, i) => (
+            <li key={item.code} className="flex items-start gap-3 rounded-card border border-hairline bg-canvas-raised px-4 py-3">
+              <IconStamp icon={DOCS_ERROR_ICONS[i]} size="sm" className="mt-0.5" />
+              <span>
+                <span className={`font-mono ${item.tone}`}>{item.code}</span> {t(item.key)}
+              </span>
+            </li>
+          ))}
         </ul>
       </PublicSection>
       <PublicSection eyebrow="SECURITY" title={t("secTitle")}>

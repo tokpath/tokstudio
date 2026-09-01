@@ -1,8 +1,10 @@
 import { fetchAPI } from "@/lib/api";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
+import { FileCode, MessageSquareText, Terminal, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "@/components/code-block";
+import { IconStamp } from "@/components/icon-stamp";
 
 type DocsContext = {
   brand?: { name: string; api_domain: string };
@@ -35,7 +37,8 @@ export default async function DocsPage() {
         <ul className="flex flex-row gap-3 overflow-x-auto lg:flex-col lg:gap-2">
           {sections.map((section) => (
             <li key={section.id}>
-              <a href={`#${section.id}`} className="whitespace-nowrap no-underline hover:text-ink">
+              <a href={`#${section.id}`} className="inline-flex items-center gap-1.5 whitespace-nowrap no-underline hover:text-ink">
+                <FileCode className="size-3.5" strokeWidth={1.75} aria-hidden />
                 {section.label}
               </a>
             </li>
@@ -53,24 +56,39 @@ export default async function DocsPage() {
           <p className="mt-2 text-sm text-ink">{t("models", { list: (docs.models || []).join("、") || "—" })}</p>
         </div>
         <section id="curl" className="scroll-mt-24 flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">curl</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <IconStamp icon={Terminal} size="sm" />
+            curl
+          </h2>
           <CodeBlock>{docs.examples?.curl || t("curlPh")}</CodeBlock>
         </section>
         <section id="python" className="scroll-mt-24 flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Python</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <IconStamp icon={FileCode} size="sm" />
+            Python
+          </h2>
           <CodeBlock>{docs.examples?.python || t("pythonPh")}</CodeBlock>
         </section>
         <section id="node" className="scroll-mt-24 flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Node.js</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <IconStamp icon={FileCode} size="sm" />
+            Node.js
+          </h2>
           <CodeBlock>{docs.examples?.node || t("nodePh")}</CodeBlock>
         </section>
         <section id="messages" className="scroll-mt-24 flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Anthropic Messages</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <IconStamp icon={MessageSquareText} size="sm" />
+            Anthropic Messages
+          </h2>
           <CodeBlock>{docs.examples?.messages || t("messagesPh")}</CodeBlock>
         </section>
         {docs.examples?.video ? (
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">{t("videoTitle")}</h2>
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <IconStamp icon={Video} size="sm" />
+              {t("videoTitle")}
+            </h2>
             <CodeBlock>{docs.examples.video}</CodeBlock>
           </section>
         ) : null}

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconStamp } from "@/components/icon-stamp";
 
 /** 公共站区块壳：纸面、眉题、标题、说明。 */
 export function PublicSection({
@@ -40,6 +42,7 @@ export function PublicPageHero({
   primaryLabel,
   secondaryHref,
   secondaryLabel,
+  icon,
 }: {
   eyebrow: string;
   title: string;
@@ -48,10 +51,14 @@ export function PublicPageHero({
   primaryLabel: string;
   secondaryHref?: string;
   secondaryLabel?: string;
+  icon?: LucideIcon;
 }) {
   return (
     <section className="flex max-w-3xl flex-col gap-4">
-      <p className="th-eyebrow text-brand-emphasis">{eyebrow}</p>
+      <div className="flex items-center gap-3">
+        {icon ? <IconStamp icon={icon} /> : null}
+        <p className="th-eyebrow text-brand-emphasis">{eyebrow}</p>
+      </div>
       <h1 className="text-[40px] font-semibold leading-tight tracking-tight">{title}</h1>
       <p className="text-base text-ink-secondary">{description}</p>
       <div className="flex flex-wrap gap-3">
@@ -71,15 +78,18 @@ export function PublicPageHero({
 export function StatStrip({
   items,
 }: {
-  items: { label: string; value: string; hint?: string }[];
+  items: { label: string; value: string; hint?: string; icon?: LucideIcon }[];
 }) {
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-6">
       {items.map((item) => (
-        <div key={item.label}>
-          <p className="th-eyebrow text-ink-mute">{item.label}</p>
-          <p className="mt-2 font-mono text-[32px] font-medium leading-none tabular-nums">{item.value}</p>
-          {item.hint ? <p className="mt-2 max-w-[16rem] text-[13px] text-ink-mute">{item.hint}</p> : null}
+        <div key={item.label} className="flex items-start gap-3">
+          {item.icon ? <IconStamp icon={item.icon} size="sm" className="mt-0.5" /> : null}
+          <div>
+            <p className="th-eyebrow text-ink-mute">{item.label}</p>
+            <p className="mt-2 font-mono text-[32px] font-medium leading-none tabular-nums">{item.value}</p>
+            {item.hint ? <p className="mt-2 max-w-[16rem] text-[13px] text-ink-mute">{item.hint}</p> : null}
+          </div>
         </div>
       ))}
     </div>

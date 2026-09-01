@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ConsolePageHeader } from "@/components/console/page-header";
 import { PublicPageHero } from "@/components/public-section";
+import { iconForPublicPage } from "@/lib/page-icons";
 
 /** 公共站页头走 messages.public.<id>。URL 留在调用方，不写进 JSON。 */
 export function I18nPublicHero({
@@ -22,6 +23,7 @@ export function I18nPublicHero({
   const t = useTranslations(`public.${id}`);
   return (
     <PublicPageHero
+      icon={iconForPublicPage(id)}
       eyebrow={t("eyebrow")}
       title={title ?? t("title")}
       description={description ?? t("description")}

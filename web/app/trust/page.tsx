@@ -2,7 +2,10 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { PublicSection } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
+import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { TRUST_RETENTION_ICONS, TRUST_SUMMARY_ICONS } from "@/lib/page-icons";
 
 export default async function TrustPage() {
   const t = await getTranslations("trustUi");
@@ -13,10 +16,7 @@ export default async function TrustPage() {
       <PublicSection eyebrow="SUMMARY" title={t("sumTitle")}>
         <div className="grid gap-3 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="rounded-card border border-hairline bg-canvas-raised p-5">
-              <p className="font-semibold">{t(`s${i}t`)}</p>
-              <p className="mt-2 text-sm text-ink-secondary">{t(`s${i}d`)}</p>
-            </div>
+            <FeatureCard key={i} icon={TRUST_SUMMARY_ICONS[i]} title={t(`s${i}t`)} description={t(`s${i}d`)} />
           ))}
         </div>
       </PublicSection>
@@ -24,9 +24,12 @@ export default async function TrustPage() {
       <PublicSection eyebrow="RETENTION" title={t("retTitle")}>
         <ul className="space-y-3 text-sm text-ink-secondary">
           {[0, 1, 2].map((i) => (
-            <li key={i} className="rounded-card border border-hairline bg-canvas-raised px-4 py-3">
-              <strong className="text-ink">{t(`r${i}t`)}</strong>
-              {t(`r${i}d`)}
+            <li key={i} className="flex items-start gap-3 rounded-card border border-hairline bg-canvas-raised px-4 py-3">
+              <IconStamp icon={TRUST_RETENTION_ICONS[i]} size="sm" className="mt-0.5" />
+              <span>
+                <strong className="text-ink">{t(`r${i}t`)}</strong>
+                {t(`r${i}d`)}
+              </span>
             </li>
           ))}
         </ul>

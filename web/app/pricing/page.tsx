@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CircleDollarSign, FileText, KeyRound, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicSection, StatStrip } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { PRICING_KIND_ICONS } from "@/lib/page-icons";
 
 export default async function PricingPage() {
   const t = await getTranslations("pricingUi");
@@ -12,23 +15,23 @@ export default async function PricingPage() {
       <I18nPublicHero id="pricing" primaryHref="/models" secondaryHref="/best-value" />
       <StatStrip
         items={[
-          { label: t("statFee"), value: "0%", hint: t("statFeeHint") },
-          { label: t("statBill"), value: t("statBillValue"), hint: t("statBillHint") },
-          { label: t("statSettle"), value: t("statSettleValue"), hint: t("statSettleHint") },
+          { label: t("statFee"), value: "0%", hint: t("statFeeHint"), icon: CircleDollarSign },
+          { label: t("statBill"), value: t("statBillValue"), hint: t("statBillHint"), icon: Scale },
+          { label: t("statSettle"), value: t("statSettleValue"), hint: t("statSettleHint"), icon: FileText },
         ]}
       />
       <PublicSection eyebrow="HOW" title={t("howTitle")}>
         <div className="grid gap-3 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-card border border-hairline bg-canvas-raised p-5">
-              <p className="font-semibold">{t(`t${i}`)}</p>
-              <p className="mt-2 text-sm text-ink-secondary">{t(`d${i}`)}</p>
-            </div>
+            <FeatureCard key={i} icon={PRICING_KIND_ICONS[i]} title={t(`t${i}`)} description={t(`d${i}`)} />
           ))}
         </div>
       </PublicSection>
       <Button asChild>
-        <Link href="/login">{th("ctaKey")}</Link>
+        <Link href="/login">
+          <KeyRound />
+          {th("ctaKey")}
+        </Link>
       </Button>
     </main>
   );

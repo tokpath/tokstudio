@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { AlertTriangle } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -66,7 +67,10 @@ export function ConfirmButton({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle className="inline-flex items-center gap-2">
+              <AlertTriangle className="size-4 text-hold" strokeWidth={1.75} aria-hidden />
+              {title}
+            </DialogTitle>
             {description ? <DialogDescription>{description}</DialogDescription> : null}
           </DialogHeader>
           <DialogFooter>

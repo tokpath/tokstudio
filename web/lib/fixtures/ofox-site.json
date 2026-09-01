@@ -109,12 +109,12 @@
       }
     ],
     "window": "13 weeks ending Jun 28, 2026",
-    "note": "Anonymized, aggregated usage from ofox public leaderboard."
+    "note": "匿名汇总的公开用量份额。"
   },
   "apps": [
     {
-      "slug": "ofox-chat",
-      "name": "Ofox Chat",
+      "slug": "studio-chat",
+      "name": "Studio Chat",
       "kind": "对话",
       "oss": false,
       "summary": "官方对话产品。一处切换主流模型，路由与故障转移内置。",

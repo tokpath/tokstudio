@@ -22,7 +22,7 @@ export function LedgerTable({
         <thead>
           <tr className="border-b border-hairline">
             {columns.map((col) => (
-              <th key={col} className="th-eyebrow px-3 py-2.5 text-ink-mute">
+              <th key={col} className="th-eyebrow px-4 py-3 text-ink-mute">
                 {col}
               </th>
             ))}
@@ -32,7 +32,7 @@ export function LedgerTable({
           {rows.map((row) => (
             <tr key={row.key} className="border-b border-hairline hover:bg-brand-soft/40">
               {row.cells.map((cell, i) => (
-                <td key={`${row.key}-${i}`} className="px-3 py-2.5 font-mono text-[13px] text-ink">
+                <td key={`${row.key}-${i}`} className="px-4 py-3 font-mono text-[13px] text-ink">
                   {cell}
                 </td>
               ))}

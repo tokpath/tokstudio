@@ -148,7 +148,7 @@ export function ModelsCatalog({
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`inline-flex items-center gap-1 rounded-control px-2 py-1 text-[12px] ${view === "list" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
+              className={`inline-flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-[12px] ${view === "list" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute hover:text-ink"}`}
             >
               <LayoutList className="size-3.5" strokeWidth={1.75} aria-hidden />
               {t("list")}
@@ -156,7 +156,7 @@ export function ModelsCatalog({
             <button
               type="button"
               onClick={() => setView("table")}
-              className={`inline-flex items-center gap-1 rounded-control px-2 py-1 text-[12px] ${view === "table" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
+              className={`inline-flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-[12px] ${view === "table" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute hover:text-ink"}`}
             >
               <Table2 className="size-3.5" strokeWidth={1.75} aria-hidden />
               {t("table")}

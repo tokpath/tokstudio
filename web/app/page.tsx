@@ -60,6 +60,8 @@ export default async function PublicHome() {
   const cheapest = [...text]
     .filter((m) => Number(m.sell_price?.input) > 0)
     .sort((a, b) => Number(a.sell_price?.input) - Number(b.sell_price?.input))[0];
+  const featured = models.find((m) => m.id === "bytedance/seedance-2.5");
+  const featuredPrice = featured ? priceForModel(featured, priceUnits) : null;
 
   return (
     <main className="flex w-full flex-col">
@@ -110,12 +112,16 @@ export default async function PublicHome() {
           <aside className="rounded-card border border-hairline bg-canvas-raised p-6">
             <p className="th-eyebrow text-hold">FEATURED</p>
             <h2 className="mt-3 text-lg font-semibold leading-snug">Seedance 2.5</h2>
+            <p className="mt-1 font-mono text-[12px] text-ink-mute">bytedance/seedance-2.5</p>
+            <p className="mt-5 font-mono text-[32px] font-medium leading-none tabular-nums tracking-tight">
+              {featuredPrice?.primary ?? "—"}
+            </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-secondary">{t("featuredBody")}</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://ofox.ai/landing-assets/gc-wall/seedance-2-5-c-v1.webp"
               alt=""
-              className="mt-5 aspect-[4/3] w-full rounded-control border border-hairline object-cover"
+              className="mt-5 aspect-[2/1] w-full rounded-control border border-hairline object-cover"
             />
             <Button asChild variant="outline" className="mt-5 w-full">
               <Link href="/models/bytedance/seedance-2.5">{t("featuredCta")}</Link>
@@ -123,9 +129,9 @@ export default async function PublicHome() {
           </aside>
         </section>
 
-        <section className="overflow-hidden border-y border-hairline py-8" aria-label={t("vendorsAria")}>
+        <section className="overflow-hidden border-y border-hairline py-10" aria-label={t("vendorsAria")}>
           <p className="th-eyebrow text-ink-mute">Published vendors</p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 text-sm text-ink-secondary">
+          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 text-sm tracking-wide text-ink-secondary">
             {VENDOR_MARQUEE.map((v) => (
               <span key={v}>{v}</span>
             ))}
@@ -170,7 +176,7 @@ export default async function PublicHome() {
             </div>
           }
         >
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {MEDIA_WALL.map((item) => (
               <Link
                 key={item.id + item.src}
@@ -178,8 +184,8 @@ export default async function PublicHome() {
                 className="group overflow-hidden rounded-card border border-hairline bg-canvas-raised no-underline"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.src} alt="" className="aspect-[4/3] w-full object-cover" />
-                <div className="px-4 py-3">
+                <img src={item.src} alt="" className="aspect-[4/3] w-full object-cover transition-opacity duration-150 group-hover:opacity-90" />
+                <div className="px-4 py-3.5">
                   <p className="th-eyebrow text-ink-mute">{item.kind}</p>
                   <p className="mt-1.5 text-sm font-medium text-ink group-hover:text-brand-emphasis">{item.name}</p>
                 </div>
@@ -193,8 +199,8 @@ export default async function PublicHome() {
           title={t("multiTitle")}
           description={t("multiLead")}
         >
-          <div className="rounded-card border border-hairline bg-canvas-raised p-4">
-            <div className="mb-4 flex gap-2">
+          <div className="rounded-card border border-hairline bg-canvas-raised p-6">
+            <div className="mb-5 flex flex-wrap gap-2">
               {[t("tabVideo"), t("tabImage"), t("tabText")].map((tab, i) => (
                 <span
                   key={tab}
@@ -205,18 +211,18 @@ export default async function PublicHome() {
               ))}
             </div>
             <CodeBlock>{`curl ${apiBase}/v1/videos \\\n  -H "Authorization: Bearer sk-...xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"bytedance/seedance-2.5","prompt":"A quiet street at dusk"}'`}</CodeBlock>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {featuredVideo.map((m) => (
                 <Link
                   key={m.id}
                   href={`/models/${m.id}`}
-                  className="rounded-control border border-hairline px-3 py-2 text-sm no-underline hover:bg-brand-soft/40"
+                  className="rounded-control border border-hairline px-3.5 py-2.5 text-sm no-underline transition-colors duration-150 hover:bg-brand-soft/40"
                 >
                   <p className="font-medium text-ink">{m.display_name}</p>
-                  <p className="font-mono text-[12px] text-brand-emphasis">{tc("fromPrice", { price: priceForModel(m, priceUnits).primary })}</p>
+                  <p className="mt-1 font-mono text-[12px] text-brand-emphasis">{tc("fromPrice", { price: priceForModel(m, priceUnits).primary })}</p>
                 </Link>
               ))}
-              <Link href="/video" className="rounded-control border border-dashed border-hairline px-3 py-2 text-sm text-ink-secondary no-underline">
+              <Link href="/video" className="rounded-control border border-dashed border-hairline px-3.5 py-2.5 text-sm text-ink-secondary no-underline">
                 {t("allVideo")}
               </Link>
             </div>
@@ -228,9 +234,14 @@ export default async function PublicHome() {
           title={cheapest ? t("priceTitleCheap", { price: formatMoney(cheapest.sell_price?.input) }) : t("priceTitle")}
           description={t("priceLead")}
           action={
-            <Button asChild variant="outline" size="sm">
-              <Link href="/models">{t("allModels")}</Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/models">{t("allModels")}</Link>
+              </Button>
+              <Link href="/best-value" className="text-sm text-ink-secondary no-underline transition-colors duration-150 hover:text-ink">
+                {t("bestValue")}
+              </Link>
+            </div>
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -250,14 +261,6 @@ export default async function PublicHome() {
                 </div>
               </Link>
             ))}
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/best-value">{t("bestValue")}</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/models">{t("allModels")}</Link>
-            </Button>
           </div>
         </PublicSection>
 
@@ -333,7 +336,7 @@ export default async function PublicHome() {
         {/* D33 公共站账本入口：套餐 / 充值，结构保留给未登录购买 */}
         <PublicStorefront models={models.slice(0, 12)} plans={plans} />
 
-        <section className="flex max-w-2xl flex-col py-4">
+        <section className="flex max-w-2xl flex-col py-16">
           <h2 className="th-display-sm">{t("ctaTitle")}</h2>
           <p className="mt-5 text-base leading-relaxed text-ink-secondary">{t("ctaLead")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -367,7 +370,7 @@ function CategoryLink({
   icon: LucideIcon;
 }) {
   return (
-    <Link href={href} className="rounded-card border border-hairline bg-canvas-raised p-5 no-underline transition-colors duration-150 hover:bg-brand-soft/40">
+    <Link href={href} className="rounded-card border border-hairline bg-canvas-raised p-6 no-underline transition-colors duration-150 hover:bg-brand-soft/40">
       <div className="flex items-start justify-between gap-3">
         <p className="th-eyebrow text-ink-mute">{countLabel}</p>
         <IconStamp icon={Icon} size="sm" />

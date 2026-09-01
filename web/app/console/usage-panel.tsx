@@ -22,7 +22,7 @@ type LedgerRow = {
   amount_minor?: number;
 };
 
-const selectClass = "h-9 min-w-[12rem] rounded-md border border-hairline bg-canvas px-3 text-sm";
+const selectClass = "h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
 
 export default function UsagePanel() {
   const t = useTranslations("user");
@@ -77,8 +77,8 @@ export default function UsagePanel() {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
       <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className="mb-5 flex flex-wrap items-end gap-4">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-ink-mute">{t("filterApiKey")}</span>
           <select
             className={selectClass}
@@ -98,7 +98,7 @@ export default function UsagePanel() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-ink-mute">{t("filterModel")}</span>
           <select
             className={selectClass}
@@ -122,7 +122,7 @@ export default function UsagePanel() {
           {t("usageRefresh")}
         </Button>
       </div>
-      <section className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
+      <section className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[
           { k: t("statRequests"), v: String(summary.requests) },
           { k: t("statPrompt"), v: String(summary.prompt) },
@@ -140,28 +140,28 @@ export default function UsagePanel() {
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-ink-mute">
             <tr>
-              <th className="px-3 py-2 font-medium">{t("colApiKey")}</th>
-              <th className="px-3 py-2 font-medium">{t("statRequests")}</th>
-              <th className="px-3 py-2 font-medium">{t("colPrompt")}</th>
-              <th className="px-3 py-2 font-medium">{t("colCompletion")}</th>
-              <th className="px-3 py-2 font-medium">{t("colAmount")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("statRequests")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
             </tr>
           </thead>
           <tbody>
             {byKey.length === 0 ? (
               <tr>
-                <td className="px-3 py-3 text-ink-secondary" colSpan={5}>
+                <td className="px-4 py-3.5 text-ink-secondary" colSpan={5}>
                   {t("usageEmpty")}
                 </td>
               </tr>
             ) : (
               byKey.map((row) => (
                 <tr key={row.api_key_id || "none"} className="border-t border-hairline">
-                  <td className="px-3 py-2 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.requests}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.prompt}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.completion}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.amount}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.requests}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.prompt}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.completion}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.amount}</td>
                 </tr>
               ))
             )}
@@ -172,19 +172,19 @@ export default function UsagePanel() {
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-ink-mute">
             <tr>
-              <th className="px-3 py-2 font-medium">{t("colTime")}</th>
-              <th className="px-3 py-2 font-medium">{t("colApiKey")}</th>
-              <th className="px-3 py-2 font-medium">{t("colModel")}</th>
-              <th className="px-3 py-2 font-medium">{t("colPrompt")}</th>
-              <th className="px-3 py-2 font-medium">{t("colCompletion")}</th>
-              <th className="px-3 py-2 font-medium">{t("colAmount")}</th>
-              <th className="px-3 py-2 font-medium">{t("colStatus")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colTime")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colModel")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colStatus")}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td className="px-3 py-3 text-ink-secondary" colSpan={7}>
+                <td className="px-4 py-3.5 text-ink-secondary" colSpan={7}>
                   {t("usageEmptyDetail")}
                 </td>
               </tr>
@@ -193,13 +193,13 @@ export default function UsagePanel() {
                 const tokens = usageTokens(row);
                 return (
                   <tr key={row.id} className="border-t border-hairline">
-                    <td className="px-3 py-2 text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{row.public_model_id || "—"}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{tokens.prompt}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{tokens.completion}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
-                    <td className="px-3 py-2">{row.state || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.prompt}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.completion}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
+                    <td className="px-4 py-3">{row.state || "—"}</td>
                   </tr>
                 );
               })

@@ -93,7 +93,7 @@ export default async function DocsPage() {
             <CodeBlock>{docs.examples.video}</CodeBlock>
           </section>
         ) : null}
-        <div className="space-y-2 text-sm text-ink-secondary">
+        <div className="space-y-3 text-sm leading-relaxed text-ink-secondary">
           <p>{docs.notes?.errors}</p>
           <p>{docs.notes?.rate_limit}</p>
           <p>{docs.notes?.webhook}</p>

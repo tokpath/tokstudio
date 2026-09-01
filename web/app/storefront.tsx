@@ -86,14 +86,14 @@ export default function PublicStorefront({
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {models.map((model) => (
-            <Card key={model.id} className="p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
+            <Card key={model.id} className="p-6">
+              <div className="mb-4 flex items-center justify-between gap-2">
                 <Badge tone="brand">{model.vendor || "model"}</Badge>
                 <IconStamp icon={Boxes} size="sm" />
               </div>
-              <CardTitle className="mb-1 text-lg font-medium">{model.display_name || model.id}</CardTitle>
-              <p className="th-code mb-2 text-[11px] text-ink-mute">{model.id}</p>
-              <p className="text-sm text-ink-secondary">{t("compat")}</p>
+              <CardTitle className="mb-1 text-lg font-semibold">{model.display_name || model.id}</CardTitle>
+              <p className="th-code mb-3 text-[12px] text-ink-mute">{model.id}</p>
+              <p className="text-sm leading-relaxed text-ink-secondary">{t("compat")}</p>
             </Card>
           ))}
         </div>
@@ -107,14 +107,14 @@ export default function PublicStorefront({
           {plans.map((plan) => (
             <Card key={plan.id} className="p-6">
               <div className="flex items-start justify-between gap-3">
-                <CardTitle className="text-lg font-medium">{plan.name}</CardTitle>
+                <CardTitle className="text-lg font-semibold">{plan.name}</CardTitle>
                 <IconStamp icon={CreditCard} size="sm" />
               </div>
-              <p className="mt-2 text-3xl font-semibold">
+              <p className="mt-4 font-mono text-3xl font-medium tabular-nums tracking-tight">
                 {((plan.price_minor ?? 0) / 1_000_000).toString()}
-                <span className="ml-1 text-sm font-normal text-ink-secondary">{t("perMonth")}</span>
+                <span className="ml-1.5 font-sans text-sm font-normal text-ink-secondary">{t("perMonth")}</span>
               </p>
-              <Button className="mt-5" onClick={() => subscribe(plan.id || "")}>
+              <Button className="mt-6" onClick={() => subscribe(plan.id || "")}>
                 {t("subscribe")}
               </Button>
             </Card>
@@ -126,23 +126,23 @@ export default function PublicStorefront({
           <p className="th-eyebrow text-ink-mute">{t("topupEyebrow")}</p>
           <IconStamp icon={Ticket} size="sm" />
         </div>
-        <CardTitle className="mb-2 mt-2 text-2xl font-semibold">{t("topupTitle")}</CardTitle>
-        <p className="mb-5 text-sm text-ink-secondary">{t("topupLead")}</p>
+        <CardTitle className="mb-3 mt-3 text-2xl font-semibold">{t("topupTitle")}</CardTitle>
+        <p className="mb-6 max-w-xl text-sm leading-relaxed text-ink-secondary">{t("topupLead")}</p>
         <Form {...redeemForm}>
         <form className="flex flex-wrap items-end gap-3" onSubmit={redeemForm.handleSubmit(redeem)}>
           <TextField control={redeemForm.control} name="code" label={t("redeemCode")} showLabel={false} className="max-w-xs" icon={Ticket} />
-          <Button type="submit" variant="outline">
-            {t("redeem")}
-          </Button>
           <Button type="button" onClick={topup}>
             {t("pay")}
+          </Button>
+          <Button type="submit" variant="outline">
+            {t("redeem")}
           </Button>
           <Button variant="outline" asChild>
             <Link href={loginHref("/")}>{t("goLogin")}</Link>
           </Button>
         </form>
         </Form>
-        <p className="mt-4 text-sm text-ink-secondary">{message || t("guestHint")}</p>
+        <p className="mt-5 text-sm leading-relaxed text-ink-secondary">{message || t("guestHint")}</p>
       </Card>
     </div>
   );

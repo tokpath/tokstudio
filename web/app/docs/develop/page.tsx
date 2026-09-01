@@ -16,7 +16,7 @@ export default async function DocsDevelopPage() {
             { code: "429", key: "e429" as const, tone: "text-hold" },
             { code: "403", key: "e403" as const, tone: "text-danger" },
           ].map((item, i) => (
-            <li key={item.code} className="flex items-start gap-3 rounded-card border border-hairline bg-canvas-raised px-4 py-3">
+            <li key={item.code} className="flex items-start gap-3.5 rounded-card border border-hairline bg-canvas-raised px-5 py-4">
               <IconStamp icon={DOCS_ERROR_ICONS[i]} size="sm" className="mt-0.5" />
               <span>
                 <span className={`font-mono ${item.tone}`}>{item.code}</span> {t(item.key)}

@@ -173,7 +173,7 @@ export default async function ModelDetailPage({
               a: capText.length ? capText.join(" · ") : t("faq3a"),
             },
           ].map((item) => (
-            <details key={item.q} className="group px-4 py-3">
+            <details key={item.q} className="group px-5 py-4">
               <summary className="cursor-pointer list-none font-medium text-ink">{item.q}</summary>
               <p className="mt-2 text-sm text-ink-secondary">{item.a}</p>
             </details>
@@ -220,7 +220,7 @@ function Related({
       <ul className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
         {items.map((item) => (
           <li key={item.id}>
-            <Link href={`/models/${item.id}`} className="flex justify-between gap-3 px-4 py-3 text-sm no-underline hover:bg-brand-soft/40">
+            <Link href={`/models/${item.id}`} className="flex justify-between gap-4 px-5 py-3.5 text-sm no-underline hover:bg-brand-soft/40">
               <span className="font-medium">{item.display_name}</span>
               <span className="font-mono text-ink-mute">
                 {formatMoney(item.sell_price?.input)} / {formatMoney(item.sell_price?.output)}

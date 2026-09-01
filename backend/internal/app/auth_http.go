@@ -334,9 +334,10 @@ func (a *App) publicModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
 	}
-	channelID := identity.OfficialChannelID
-	if brand.ID == identity.OEMBrandID {
-		channelID = identity.OEMChannelID
+	channelID, err := a.Identity.ChannelIDByBrand(c.Request.Context(), brand.ID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
+		return
 	}
 	models, err := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
 	if err != nil {
@@ -367,9 +368,10 @@ func (a *App) docsContext(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
 	}
-	channelID := identity.OfficialChannelID
-	if brand.ID == identity.OEMBrandID {
-		channelID = identity.OEMChannelID
+	channelID, err := a.Identity.ChannelIDByBrand(c.Request.Context(), brand.ID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
+		return
 	}
 	models, _ := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
 	ids := make([]string, 0, len(models))

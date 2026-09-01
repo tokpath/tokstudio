@@ -16,6 +16,8 @@ type brandRow struct {
 	ID            string     `gorm:"column:id;primaryKey"`
 	Name          string     `gorm:"column:name"`
 	LogoURL       *string    `gorm:"column:logo_url"`
+	LogoDarkURL   *string    `gorm:"column:logo_dark_url"`
+	FaviconURL    *string    `gorm:"column:favicon_url"`
 	PrimaryDomain string     `gorm:"column:primary_domain"`
 	APIDomain     string     `gorm:"column:api_domain"`
 	AdminDomain   string     `gorm:"column:admin_domain"`
@@ -404,6 +406,12 @@ func brandView(row brandRow) *BrandView {
 	}
 	if row.LogoURL != nil {
 		view.LogoURL = *row.LogoURL
+	}
+	if row.LogoDarkURL != nil {
+		view.LogoDarkURL = *row.LogoDarkURL
+	}
+	if row.FaviconURL != nil {
+		view.FaviconURL = *row.FaviconURL
 	}
 	return view
 }

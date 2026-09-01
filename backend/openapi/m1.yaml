@@ -35,6 +35,28 @@ paths:
   /v1/public/brand:
     get:
       summary: Brand theme by host
+  /v1/public/brand-assets/{id}:
+    get:
+      summary: Public brand asset bytes without signed URL
+  /admin/brands:
+    post:
+      summary: Create OEM brand with name domains and theme
+  /admin/brands/{id}:
+    get:
+      summary: Read one brand
+    patch:
+      summary: Update brand name theme or domains
+  /admin/brands/{id}/assets:
+    post:
+      summary: Upload logo favicon or og image with size gates
+  /channel/brand:
+    get:
+      summary: Current channel brand
+    patch:
+      summary: OEM channel updates name and theme
+  /channel/brand/assets:
+    post:
+      summary: OEM channel uploads brand assets
   /v1/public/models:
     get:
       summary: Brand-scoped published models without Provider slugs

@@ -14,6 +14,7 @@ import { AdminShell } from "../../shell";
 import { AdminListPanel } from "../../list-panel";
 import { ChannelQuotaPanel } from "../quota-panel";
 import { ChannelModelsPanel } from "../models-panel";
+import { ChannelPaymentReadiness } from "../payment-readiness";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
@@ -193,6 +194,7 @@ export default function AdminChannelDetailPage() {
       </section>
       <ChannelModelsPanel channelID={id} />
       <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
+      <ChannelPaymentReadiness channelID={id} />
       <AdminListPanel<Role>
         path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=agent`}
         title="本租户代理商"

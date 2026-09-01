@@ -66,6 +66,7 @@ describe("user console nav", () => {
 
   it("uses real routes for channel console too", () => {
     expect(channelSections.some((item) => item.href === "/channel/users")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/payments")).toBe(true);
     expect(channelSections.some((item) => item.href === "/channel/models")).toBe(true);
     expect(channelSections.some((item) => item.href.startsWith("#"))).toBe(false);
     expect(isNavActive("/channel", "/channel")).toBe(true);

@@ -43,6 +43,8 @@ export type AdminModel = {
   display_name: string;
   status: string;
   sync_state?: string;
+  created_by_user_id?: string;
+  reviewed_by_user_id?: string;
   capabilities?: Record<string, unknown>;
   sell_price?: Record<string, unknown>;
   providers?: string[];

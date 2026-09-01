@@ -580,18 +580,10 @@ func (a *App) listAdminModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
 		return
 	}
-	if q := strings.ToLower(c.Query("q")); q != "" {
-		filtered := make([]catalog.ModelView, 0, len(items))
-		for _, item := range items {
-			if strings.Contains(strings.ToLower(item.ID+item.Vendor+item.DisplayName+item.Status+item.SyncState), q) {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
+	items = catalog.FilterAdminModels(items, c.Query("status"), c.Query("sync_state"), c.Query("q"))
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "models.csv", []string{"id", "vendor", "display_name", "status"}, items, func(item catalog.ModelView) []string {
-			return []string{item.ID, item.Vendor, item.DisplayName, item.Status}
+		httpx.WriteCSV(c, "models.csv", []string{"id", "vendor", "display_name", "status", "sync_state"}, items, func(item catalog.ModelView) []string {
+			return []string{item.ID, item.Vendor, item.DisplayName, item.Status, item.SyncState}
 		})
 		return
 	}
@@ -604,9 +596,9 @@ func (a *App) createAdminModel(c *gin.Context) {
 	}
 	var body catalog.ModelInput
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.CreateModel(c.Request.Context(), body)
+	item, err := a.Catalog.CreateModel(c.Request.Context(), body, a.currentPrincipal(c).UserID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建模型失败", false)
+		a.abortCatalogModelWrite(c, err, "创建模型失败", "创建模型失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -623,7 +615,7 @@ func catalogPublicID(c *gin.Context) string {
 func (a *App) getAdminModel(c *gin.Context) {
 	item, err := a.Catalog.GetAdminModel(c.Request.Context(), catalogPublicID(c))
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
+		a.abortCatalogModelWrite(c, err, "模型不存在", "读取模型失败")
 		return
 	}
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
@@ -637,7 +629,7 @@ func (a *App) patchAdminModel(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.PatchModel(c.Request.Context(), catalogPublicID(c), body)
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
+		a.abortCatalogModelWrite(c, err, "模型不存在", "保存模型失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -703,7 +695,7 @@ func (a *App) syncProvider(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	result, err := a.Catalog.SyncProvider(c.Request.Context(), c.Param("id"))
+	result, err := a.Catalog.SyncProvider(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID)
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "同步 Provider 失败", false)
 		return
@@ -736,9 +728,9 @@ func (a *App) reviewAdminModel(c *gin.Context) {
 		Action   string `json:"action"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.ReviewModel(c.Request.Context(), body.PublicID, body.Action)
+	item, err := a.Catalog.ReviewModel(c.Request.Context(), body.PublicID, body.Action, a.currentPrincipal(c).UserID)
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "审核模型失败", false)
+		a.abortCatalogModelWrite(c, err, "模型不存在", "审核模型失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -757,9 +749,9 @@ func (a *App) publishAdminModel(c *gin.Context) {
 		PublicID string `json:"public_id"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.PublishModel(c.Request.Context(), body.PublicID)
+	item, err := a.Catalog.PublishModel(c.Request.Context(), body.PublicID, a.currentPrincipal(c).UserID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "发布模型失败", false)
+		a.abortCatalogModelWrite(c, err, "模型不存在", "发布模型失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -780,7 +772,7 @@ func (a *App) deprecateAdminModel(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.DeprecateModel(c.Request.Context(), body.PublicID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "弃用模型失败", false)
+		a.abortCatalogModelWrite(c, err, "模型不存在", "弃用模型失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -811,4 +803,21 @@ func (a *App) attachModelProvider(c *gin.Context) {
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"ok": true, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) abortCatalogModelWrite(c *gin.Context, err error, notFoundMsg, fallbackMsg string) {
+	switch {
+	case errors.Is(err, catalog.ErrSameActor):
+		httpx.Abort(c, http.StatusConflict, "permission_denied", "创建人不能审核或发布该模型", false)
+	case errors.Is(err, catalog.ErrNotReviewed):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "模型尚未审核通过", false)
+	case errors.Is(err, catalog.ErrRejected):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "已拒绝的模型不能发布", false)
+	case errors.Is(err, catalog.ErrUnknownModel):
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", notFoundMsg, false)
+	case errors.Is(err, catalog.ErrInvalidInput):
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
+	default:
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
+	}
 }

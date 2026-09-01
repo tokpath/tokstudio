@@ -53,7 +53,7 @@ export default function AdminModelEditPage() {
   const queryClient = useQueryClient();
   const [attrMessage, setAttrMessage] = useState("属性和定价都写到 catalog，不是前端 mock。不要改 tokenhub/echo-1。");
   const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
-  const [lifeMessage, setLifeMessage] = useState("draft 要先审核再发布。弃用不删历史映射和价格。");
+  const [lifeMessage, setLifeMessage] = useState("draft 要先换人审核，再单独发布。创建人不能审核或发布。弃用不删历史映射和价格。");
   const query = useQuery({
     queryKey: ["/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
@@ -197,17 +197,50 @@ export default function AdminModelEditPage() {
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-xl font-medium">上架</h2>
-        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"}。不要改 tokenhub/echo-1。</p>
+        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。不要改 tokenhub/echo-1。</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ConfirmButton
             size="sm"
-            title="确认审核并发布"
-            description="审核通过后再发布到客户目录。"
+            title="确认通过模型"
+            description="只标记审核通过，不会发布到客户目录。创建人不能审核自己建的模型。"
             onConfirm={async () => {
-              await apiClient("POST", "/admin/models/review", {
+              const res = await fetch(`${apiBase}/admin/models/review`, {
+                method: "POST",
+                credentials: "include",
                 headers: confirmHeaders,
                 body: JSON.stringify({ public_id: publicId, action: "approve" }),
               });
+              const body = await res.json();
+              setLifeMessage(res.ok ? `已通过 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "审核失败");
+              await reload();
+            }}
+          >
+            通过
+          </ConfirmButton>
+          <ConfirmButton
+            size="sm"
+            variant="outline"
+            title="确认拒绝模型"
+            description="拒绝后不能发布，需要重新通过。"
+            onConfirm={async () => {
+              const res = await fetch(`${apiBase}/admin/models/review`, {
+                method: "POST",
+                credentials: "include",
+                headers: confirmHeaders,
+                body: JSON.stringify({ public_id: publicId, action: "reject" }),
+              });
+              const body = await res.json();
+              setLifeMessage(res.ok ? `已拒绝 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "拒绝失败");
+              await reload();
+            }}
+          >
+            拒绝
+          </ConfirmButton>
+          <ConfirmButton
+            size="sm"
+            title="确认发布模型"
+            description="必须先审核通过。创建人不能发布自己建的模型。"
+            onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/models/publish`, {
                 method: "POST",
                 credentials: "include",
@@ -219,7 +252,7 @@ export default function AdminModelEditPage() {
               await reload();
             }}
           >
-            审核并发布
+            发布
           </ConfirmButton>
           <ConfirmButton
             size="sm"

@@ -894,6 +894,7 @@
     "createRoute": "Create route",
     "editRoute": "Edit route policy",
     "createModel": "Create model",
+    "modelReview": "Model review",
     "mountProvider": "Attach provider",
     "deprecateModel": "Deprecate model",
     "rotateCreds": "Rotate credentials",

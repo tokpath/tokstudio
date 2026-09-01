@@ -50,21 +50,21 @@ paths:
       summary: Add an encrypted upstream account without rotating others
   /admin/models:
     get:
-      summary: List public models for admin
+      summary: List public models for admin; filter with status and sync_state
   /admin/models/{id}:
     get:
       summary: Get one admin model including capabilities and sell price
     patch:
-      summary: Update display name, vendor, capabilities or status
+      summary: Update display name, vendor or capabilities; cannot publish via PATCH
   /admin/providers/{id}/sync:
     post:
-      summary: Sync provider models and prices into draft
+      summary: Sync provider models and prices into draft without reviewing
   /admin/models/review:
     post:
-      summary: Approve or reject a synced draft model
+      summary: Approve or reject a draft; creator cannot review their own model
   /admin/models/publish:
     post:
-      summary: Publish a reviewed model into the customer catalog
+      summary: Publish a reviewed model into the customer catalog; creator cannot publish
   /admin/models/deprecate:
     post:
       summary: Deprecate a model without deleting history

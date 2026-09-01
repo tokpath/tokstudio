@@ -894,6 +894,7 @@
     "createRoute": "ルート作成",
     "editRoute": "ルート方針を変更",
     "createModel": "モデル作成",
+    "modelReview": "モデル審査",
     "mountProvider": "Provider を接続",
     "deprecateModel": "モデルを非推奨",
     "rotateCreds": "資格情報のローテ",

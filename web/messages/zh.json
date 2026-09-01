@@ -425,7 +425,7 @@
     "desktop": {
       "eyebrow": "DESKTOP",
       "title": "本机编程工具，一个账户接入",
-      "description": "在本机编程工具里换上本站 Base URL 和 Key，账单走同一本账。安装包尚未发布。",
+      "description": "在本机编程工具里换上本站 Base URL 和 Key，账单走同一本账。当前没有安装包。",
       "primary": "看接入片段",
       "secondary": "登录控制台"
     },

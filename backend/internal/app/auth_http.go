@@ -344,6 +344,20 @@ func (a *App) publicModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
 		return
 	}
+	page := catalog.ApplyPublicFilters(models, catalog.ModelListQuery{
+		Vendor: c.Query("vendor"),
+		Kind:   c.Query("kind"),
+		Q:      c.Query("q"),
+		ID:     c.Query("id"),
+		Limit:  catalog.ParseLimit(c.Query("limit")),
+	})
+	httpx.OK(c, gin.H{
+		"items": publicModelCards(page.Items), "total": page.Total, "facets": page.Facets,
+		"brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID),
+	})
+}
+
+func publicModelCards(models []catalog.ModelView) []gin.H {
 	items := make([]gin.H, 0, len(models))
 	for _, model := range models {
 		// 公开价目只给 sell_price（客户侧），不含上游成本。
@@ -355,7 +369,7 @@ func (a *App) publicModels(c *gin.Context) {
 			"context_length": model.ContextLength, "max_completion_tokens": model.MaxCompletionTokens,
 		})
 	}
-	httpx.OK(c, gin.H{"items": items, "brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID)})
+	return items
 }
 
 func (a *App) publicSite(c *gin.Context) {

@@ -760,11 +760,13 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		syncState = mapping.SyncState
 	}
 	desc, kind, ctxLen, maxTok := extraFromCaps(caps)
-	return &ModelView{
+	view := &ModelView{
 		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
 		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, SyncState: syncState,
 		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
-	}, nil
+	}
+	view.Kind = InferKind(*view)
+	return view, nil
 }
 
 func ignored(list []string, slug string) bool {

@@ -110,7 +110,7 @@
 ## 5. 用户、Key、套餐与余额
 
 - `GET /v1/public/docs-context`：品牌 Base URL、模型白名单、curl/Python/Node/Messages/视频示例（占位 `$TOKENHUB_API_KEY`）以及错误码/限流/回调说明
-- `GET /v1/public/models`：按域名品牌列出已发布模型卡片（id/vendor/display_name/capabilities），不含 Provider 路由；
+- `GET /v1/public/models`：按域名品牌列出已发布模型卡片（id/vendor/display_name/capabilities/kind），不含 Provider 路由。查询参数 `vendor`、`kind`、`q`、`id`、`limit` 在服务端筛选；响应带 `total` 与 `facets.kinds` / `facets.vendors`（类型分面不含当前 kind，厂商分面不含当前 vendor）。前端目录不得再维护一份本地模型快照。
 - `GET /v1/me`
 - `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
 - `POST /v1/me/password`：校验当前密码后改密

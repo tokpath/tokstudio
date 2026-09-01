@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCapabilities,
+  catalogHref,
   extraCapabilitiesJSON,
   formatSellPrice,
   modelEditHref,
+  parseCatalogSearchParams,
   parseSupportedParameters,
+  publicModelsPath,
   supportedParametersText,
 } from "./catalog";
 
@@ -29,5 +32,23 @@ describe("admin model catalog helpers", () => {
       output_modality: "video",
       supported_parameters: ["stream", "tools"],
     });
+  });
+});
+
+describe("public catalog query strings", () => {
+  it("maps page search params onto the public models API path", () => {
+    expect(parseCatalogSearchParams({ vendor: "z-ai", output: "text", q: " glm " })).toEqual({
+      vendor: "z-ai",
+      kind: "text",
+      q: "glm",
+    });
+    expect(publicModelsPath({ vendor: "z-ai", kind: "text", q: "glm" })).toBe(
+      "/v1/public/models?vendor=z-ai&kind=text&q=glm",
+    );
+    expect(publicModelsPath({ id: "z-ai/glm-5.3-flash" })).toBe(
+      "/v1/public/models?id=z-ai%2Fglm-5.3-flash",
+    );
+    expect(catalogHref("/models", { vendor: "z-ai", kind: "all" })).toBe("/models?vendor=z-ai");
+    expect(catalogHref("/app/catalog", {})).toBe("/app/catalog");
   });
 });

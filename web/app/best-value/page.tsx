@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { formatMoney, inferKind, loadCatalog } from "@/lib/catalog";
+import { formatMoney, loadCatalog } from "@/lib/catalog";
 import { StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
@@ -9,9 +9,9 @@ export default async function BestValuePage() {
   const t = await getTranslations("bestValueUi");
   const tc = await getTranslations("catalog");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
-  const models = await loadCatalog(host);
+  const models = await loadCatalog(host, { kind: "text" });
   const ranked = [...models]
-    .filter((m) => inferKind(m) === "text" && Number(m.sell_price?.input) > 0)
+    .filter((m) => Number(m.sell_price?.input) > 0)
     .sort((a, b) => Number(a.sell_price?.input) - Number(b.sell_price?.input))
     .slice(0, 40);
 

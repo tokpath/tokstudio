@@ -949,6 +949,8 @@
     "copy": "Copy",
     "emptyTitle": "No matching models",
     "emptyDetail": "Try another keyword, or clear the filter.",
+    "allVendors": "All vendors",
+    "vendorsAria": "Filter by vendor",
     "colModel": "Model",
     "colVendor": "Vendor",
     "colContext": "Context",

@@ -949,6 +949,8 @@
     "copy": "コピー",
     "emptyTitle": "一致するモデルがありません",
     "emptyDetail": "キーワードを変えるか、絞り込みを外してください。",
+    "allVendors": "すべてのベンダー",
+    "vendorsAria": "ベンダーで絞り込む",
     "colModel": "モデル",
     "colVendor": "ベンダー",
     "colContext": "コンテキスト",

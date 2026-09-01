@@ -164,10 +164,6 @@ func (s *Service) Search(ctx context.Context, q SearchQuery) ([]Entry, error) {
 	return out, nil
 }
 
-func (s *Service) List(ctx context.Context, limit int) ([]Entry, error) {
-	return s.Search(ctx, SearchQuery{Limit: limit})
-}
-
 func toEntry(row logRow) Entry {
 	entry := Entry{
 		ID:           row.ID,

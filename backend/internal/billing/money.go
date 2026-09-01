@@ -190,10 +190,6 @@ func (q Quote) CostMinor(prompt, completion int) int64 {
 	return int64(prompt)*q.InputCost + int64(completion)*q.OutputCost
 }
 
-func (q Quote) WholesaleMinor(prompt, completion int) int64 {
-	return int64(prompt)*q.InputWholesale + int64(completion)*q.OutputWholesale
-}
-
 func resolutionFactor(resolution string) int64 {
 	switch strings.ToLower(strings.TrimSpace(resolution)) {
 	case "1080p", "1080", "1920x1080":

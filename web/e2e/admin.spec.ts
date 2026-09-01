@@ -144,5 +144,5 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "上架" })).toBeVisible();
   await expect(page.getByRole("button", { name: "拒绝" })).toBeVisible();
   await expect(page.getByRole("button", { name: "通过" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "发布" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "发布", exact: true })).toBeVisible();
 });

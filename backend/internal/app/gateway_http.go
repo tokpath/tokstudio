@@ -46,7 +46,8 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/admin/providers/:id/sync", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.syncProvider)
 	r.GET("/admin/models", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
 	r.POST("/admin/models", a.requireRoles("platform_admin", "ops_admin"), a.createAdminModel)
-	r.PATCH("/admin/models/:id", a.requireRoles("platform_admin", "ops_admin"), a.patchAdminModel)
+	r.GET("/admin/models/*id", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.getAdminModel)
+	r.PATCH("/admin/models/*id", a.requireRoles("platform_admin", "ops_admin"), a.patchAdminModel)
 	r.POST("/admin/models/review", a.requireRoles("platform_admin", "ops_admin"), a.reviewAdminModel)
 	r.POST("/admin/models/publish", a.requireRoles("platform_admin", "ops_admin"), a.publishAdminModel)
 	r.POST("/admin/models/deprecate", a.requireRoles("platform_admin", "ops_admin"), a.deprecateAdminModel)
@@ -403,13 +404,6 @@ func (a *App) rememberIdempotency(c *gin.Context, rawBody []byte, status int, pa
 	_ = redisx.RememberIdempotency(c.Request.Context(), a.Redis, a.idempotencyActor(c), header, redisx.HashBody(rawBody), status, body)
 }
 
-func firstContent(resp gateway.ChatResponse) string {
-	if len(resp.Choices) == 0 {
-		return ""
-	}
-	return resp.Choices[0].Message.Content
-}
-
 func anthropicContent(resp gateway.ChatResponse) []gin.H {
 	if len(resp.Choices) == 0 {
 		return []gin.H{}
@@ -622,13 +616,26 @@ func (a *App) createAdminModel(c *gin.Context) {
 	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func catalogPublicID(c *gin.Context) string {
+	return strings.TrimPrefix(c.Param("id"), "/")
+}
+
+func (a *App) getAdminModel(c *gin.Context) {
+	item, err := a.Catalog.GetAdminModel(c.Request.Context(), catalogPublicID(c))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) patchAdminModel(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
 	var body catalog.ModelInput
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.PatchModel(c.Request.Context(), c.Param("id"), body)
+	item, err := a.Catalog.PatchModel(c.Request.Context(), catalogPublicID(c), body)
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
 		return

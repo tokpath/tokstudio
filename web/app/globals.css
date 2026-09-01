@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TokenHub Clearing：纸是 Light，碳是 Dark。旧 --th-* 只做兼容别名。 */
+/* TokenHub Clearing alpha.2：纸是 Light，碳是 Dark。公共站学 Ofox 的留白，不学橙色。 */
 :root,
 html.light {
   --canvas: #f4f1ea;
@@ -25,18 +25,6 @@ html.light {
   --code-ink: #edeae4;
   --code-hairline: #2a2723;
   --scrim: rgba(20, 20, 20, 0.4);
-  --th-fg: var(--ink);
-  --th-muted: var(--ink-secondary);
-  --th-faint: var(--ink-mute);
-  --th-surface: var(--canvas-raised);
-  --th-surface-solid: var(--canvas-raised);
-  --th-elevated: var(--canvas-raised);
-  --th-border: var(--hairline);
-  --th-border-strong: var(--hairline);
-  --th-ring: var(--brand-emphasis);
-  --th-glow: transparent;
-  --th-danger: var(--danger);
-  --th-success: var(--success);
   color-scheme: light;
 }
 
@@ -61,18 +49,6 @@ html.dark {
   --code-ink: #edeae4;
   --code-hairline: #2a2723;
   --scrim: rgba(20, 20, 20, 0.64);
-  --th-fg: var(--ink);
-  --th-muted: var(--ink-secondary);
-  --th-faint: var(--ink-mute);
-  --th-surface: var(--canvas-raised);
-  --th-surface-solid: var(--canvas-raised);
-  --th-elevated: var(--canvas-raised);
-  --th-border: var(--hairline);
-  --th-border-strong: var(--hairline);
-  --th-ring: var(--brand-emphasis);
-  --th-glow: transparent;
-  --th-danger: var(--danger);
-  --th-success: var(--success);
   color-scheme: dark;
 }
 
@@ -111,5 +87,5 @@ body {
 
 .th-scrollbar::-webkit-scrollbar-thumb {
   background: var(--hairline);
-  border-radius: 4px;
+  border-radius: 8px;
 }

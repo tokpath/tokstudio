@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Audit = { id: string; action: string; resource_type: string; resource_id: string };
 
@@ -15,8 +16,8 @@ export default function AdminAuditPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">Outbox 与探测</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="audit" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">
           pending 太高说明 worker 没跟上。探测用来确认审计链路还能写，不会计费，也不要二次确认。
         </p>

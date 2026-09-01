@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,14 +24,17 @@ export type ConfirmButtonProps = Omit<ButtonProps, "onClick" | "type"> & {
 export function ConfirmButton({
   title,
   description,
-  confirmLabel = "确认",
-  cancelLabel = "取消",
+  confirmLabel,
+  cancelLabel,
   validate,
   onConfirm,
   children,
   disabled,
   ...buttonProps
 }: ConfirmButtonProps) {
+  const t = useTranslations("common");
+  const confirmText = confirmLabel ?? t("confirm");
+  const cancelText = cancelLabel ?? t("cancel");
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -67,10 +71,10 @@ export function ConfirmButton({
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>
-              {cancelLabel}
+              {cancelText}
             </Button>
             <Button type="button" disabled={pending} onClick={handleConfirm}>
-              {confirmLabel}
+              {confirmText}
             </Button>
           </DialogFooter>
         </DialogContent>

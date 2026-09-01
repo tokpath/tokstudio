@@ -26,15 +26,7 @@ func New(level string, w io.Writer) zerolog.Logger {
 	if err != nil {
 		lvl = zerolog.InfoLevel
 	}
-	logger := zerolog.New(w).Level(lvl).With().Timestamp().Str("service", "tokenhub").Logger()
-	return logger.Hook(redactHook{})
-}
-
-type redactHook struct{}
-
-func (redactHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
-	// Hook 无法改写已经写入的字段值，敏感字段应通过 SafeField 写入。
-	_ = e
+	return zerolog.New(w).Level(lvl).With().Timestamp().Str("service", "tokenhub").Logger()
 }
 
 // SafeField 把可能敏感的键写成 [REDACTED]。

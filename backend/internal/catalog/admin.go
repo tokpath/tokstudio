@@ -14,7 +14,15 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
 
-var ErrInvalidInput = errors.New("invalid catalog input")
+var (
+	ErrInvalidInput = errors.New("invalid catalog input")
+	ErrUnknownModel = errors.New("model not in platform catalog")
+)
+
+type ChannelModelGrant struct {
+	PublicID string `json:"public_id"`
+	Enabled  bool   `json:"enabled"`
+}
 
 type ProviderInput struct {
 	Name             string `json:"name"`
@@ -192,6 +200,14 @@ func (s *Service) ListAdminModels(ctx context.Context) ([]ModelView, error) {
 		out = append(out, *view)
 	}
 	return out, nil
+}
+
+func (s *Service) GetAdminModel(ctx context.Context, publicID string) (*ModelView, error) {
+	model, err := s.loadModel(ctx, publicID)
+	if err != nil {
+		return nil, err
+	}
+	return s.modelView(ctx, *model)
 }
 
 func (s *Service) CreateModel(ctx context.Context, in ModelInput) (*ModelView, error) {

@@ -7,6 +7,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { AdminH2 } from "@/components/admin-h2";
 
 type Payment = {
   id: string;
@@ -38,8 +39,8 @@ export default function AdminPaymentsPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
-        <h2 className="mb-3 text-xl font-medium">支付</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <AdminH2 k="payments" className="mb-3 text-xl font-medium" />
         <p className="mb-3 text-sm text-ink-secondary">查看沙箱支付单，手工入账或退款。退款会冲正未用完的权益。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={orderID} onChange={(e) => setOrderID(e.target.value)} aria-label="支付单 ID" placeholder="pay_..." />

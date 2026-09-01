@@ -1,0 +1,185 @@
+{
+  "source": "https://ofox.ai",
+  "fetched": "2026-08-31",
+  "leaderboards": {
+    "models": [
+      {
+        "rank": "01",
+        "vendor": "Anthropic",
+        "name": "Claude Sonnet 4.6",
+        "id": "anthropic/claude-sonnet-4.6",
+        "share": "31.6%",
+        "delta": "-23.6 pp"
+      },
+      {
+        "rank": "02",
+        "vendor": "Anthropic",
+        "name": "Claude Opus 4.7",
+        "id": "anthropic/claude-opus-4.7",
+        "share": "15.9%",
+        "delta": "+7.3 pp"
+      },
+      {
+        "rank": "03",
+        "vendor": "Anthropic",
+        "name": "Claude Opus 4.6",
+        "id": "anthropic/claude-opus-4.6",
+        "share": "6.6%",
+        "delta": "-11.9 pp"
+      },
+      {
+        "rank": "04",
+        "vendor": "OpenAI",
+        "name": "GPT 5.5",
+        "id": "openai/gpt-5.5",
+        "share": "5.6%",
+        "delta": "+10.2 pp"
+      },
+      {
+        "rank": "05",
+        "vendor": "DeepSeek",
+        "name": "DeepSeek V4 Flash",
+        "id": "deepseek/deepseek-v4-flash",
+        "share": "5.3%",
+        "delta": "+3.9 pp"
+      }
+    ],
+    "apps": [
+      {
+        "rank": "01",
+        "name": "Claude Code",
+        "share": "49.1%",
+        "delta": "-11.5 pp"
+      },
+      {
+        "rank": "02",
+        "name": "OpenAI SDK",
+        "share": "15.8%",
+        "delta": "-2.0 pp"
+      },
+      {
+        "rank": "03",
+        "name": "Anthropic SDK",
+        "share": "14.9%",
+        "delta": "+4.4 pp"
+      },
+      {
+        "rank": "04",
+        "name": "Codex CLI",
+        "share": "4.0%",
+        "delta": "+6.4 pp"
+      },
+      {
+        "rank": "05",
+        "name": "Go HTTP client",
+        "share": "2.3%",
+        "delta": "+0.8 pp"
+      }
+    ],
+    "labs": [
+      {
+        "rank": "01",
+        "name": "Anthropic",
+        "share": "54.1%",
+        "delta": "-28.2 pp"
+      },
+      {
+        "rank": "02",
+        "name": "OpenAI",
+        "share": "12.0%",
+        "delta": "+8.0 pp"
+      },
+      {
+        "rank": "03",
+        "name": "DeepSeek",
+        "share": "8.4%",
+        "delta": "+3.0 pp"
+      },
+      {
+        "rank": "04",
+        "name": "Google",
+        "share": "6.1%",
+        "delta": "+1.2 pp"
+      },
+      {
+        "rank": "05",
+        "name": "Moonshot",
+        "share": "4.2%",
+        "delta": "+0.9 pp"
+      }
+    ],
+    "window": "13 weeks ending Jun 28, 2026",
+    "note": "Anonymized, aggregated usage from ofox public leaderboard."
+  },
+  "apps": [
+    {
+      "slug": "ofox-chat",
+      "name": "Ofox Chat",
+      "kind": "对话",
+      "oss": false,
+      "summary": "官方对话产品。一处切换主流模型，路由与故障转移内置。",
+      "date": "2026-06-25"
+    },
+    {
+      "slug": "skills-hub",
+      "name": "Skills Hub",
+      "kind": "编程",
+      "oss": true,
+      "summary": "跨 AI 编程助手统一技能管理桌面端。",
+      "date": "2026-07-09"
+    },
+    {
+      "slug": "tab-ai",
+      "name": "Tab AI",
+      "kind": "效率",
+      "oss": true,
+      "summary": "AI 驱动的 Chrome 新标签页管理器。",
+      "date": "2026-07-09"
+    }
+  ],
+    "blog": [
+      {
+        "title": "Codex 报错速查：15 个症状对应的修复",
+        "href": "/blog/codex-errors-fixes-index-2026",
+        "source": "https://ofox.ai/zh/blog/codex-errors-fixes-index-2026/",
+        "date": "2026-08",
+        "summary": "把 Codex 常见报错映射到已验证的修复步骤。"
+      },
+      {
+        "title": "五家 LLM API 报错码对照：400 到 529",
+        "href": "/blog/llm-api-error-codes-reference-2026",
+        "source": "https://ofox.ai/zh/blog/llm-api-error-codes-reference-2026/",
+        "date": "2026-08",
+        "summary": "跨供应商对照 400–529，便于网关与客户端统一处理。"
+      },
+      {
+        "title": "LLM API 价格：牌价没写的 6 项成本",
+        "href": "/blog/llm-api-pricing-hidden-costs-index-2026",
+        "source": "https://ofox.ai/zh/blog/llm-api-pricing-hidden-costs-index-2026/",
+        "date": "2026-08",
+        "summary": "缓存、重试、搜索与媒体附加费不在牌价第一行。"
+      },
+      {
+        "title": "Claude Code 接入指南",
+        "href": "/blog/claude-code-ofoxai-configuration-guide-2026",
+        "source": "https://ofox.ai/zh/blog/claude-code-ofoxai-configuration-guide-2026/",
+        "date": "2026-08",
+        "summary": "只改 BASE_URL 与 Key，即可在 Claude Code 里跑公开价目模型。"
+      },
+      {
+        "title": "Codex CLI 配置",
+        "href": "/blog/codex-cli-api-configuration-guide-2026",
+        "source": "https://ofox.ai/zh/blog/codex-cli-api-configuration-guide-2026/",
+        "date": "2026-08",
+        "summary": "~/.codex/config.toml 自定义 provider 与 base_url。"
+      },
+      {
+        "title": "Seedance 2.5 提示词与成本",
+        "href": "/blog/how-to-use-seedance-2-5-prompts-timestamps-cost-2026",
+        "source": "https://ofox.ai/zh/blog/how-to-use-seedance-2-5-prompts-timestamps-cost-2026/",
+        "date": "2026-08",
+        "summary": "按秒计价的视频模型：时长、分辨率与音频如何进账单。"
+      }
+    ],
+  "discounts": {}
+}

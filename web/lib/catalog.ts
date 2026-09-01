@@ -1,0 +1,207 @@
+import fixture from "@/lib/fixtures/ofox-catalog.json";
+import { fetchAPI } from "@/lib/api";
+
+export type CatalogModel = {
+  id: string;
+  vendor: string;
+  display_name: string;
+  capabilities?: Record<string, unknown>;
+  sell_price?: Record<string, unknown>;
+  status?: string;
+  description?: string;
+  context_length?: number;
+  max_completion_tokens?: number;
+  kind?: "text" | "image" | "video" | "embedding" | "audio" | string;
+  created?: number;
+};
+
+export type AdminModel = {
+  id: string;
+  vendor: string;
+  display_name: string;
+  status: string;
+  sync_state?: string;
+  capabilities?: Record<string, unknown>;
+  sell_price?: Record<string, unknown>;
+  providers?: string[];
+};
+
+const FALLBACK = fixture as CatalogModel[];
+
+/** API 有白名单时优先用；否则用 ofox 公开目录快照，保证复刻页有完整密度。 */
+export async function loadCatalog(host: string): Promise<CatalogModel[]> {
+  try {
+    const data = await fetchAPI<{ items: CatalogModel[] }>("/v1/public/models", { host });
+    if (data.items?.length) {
+      return data.items.map((m) => ({
+        id: m.id || "unknown",
+        vendor: m.vendor || "unknown",
+        display_name: m.display_name || m.id || "unknown",
+        capabilities: m.capabilities,
+        sell_price: m.sell_price,
+        status: m.status || "available",
+        kind: m.kind || inferKind(m),
+        description: m.description,
+        context_length: m.context_length,
+        max_completion_tokens: m.max_completion_tokens,
+      }));
+    }
+  } catch {
+    /* fall through */
+  }
+  return FALLBACK;
+}
+
+export function inferKind(m: Partial<CatalogModel>): string {
+  if (m.kind) return m.kind;
+  const id = (m.id || "").toLowerCase();
+  const name = (m.display_name || "").toLowerCase();
+  if (/(seedance|wan-|happyhorse|video)/.test(id + name)) return "video";
+  if (/(image|seedream|flux|banana|dall)/.test(id + name)) return "image";
+  if (/embed/.test(id)) return "embedding";
+  if (/transcri|whisper|audio/.test(id)) return "audio";
+  return "text";
+}
+
+export type PriceUnits = { perSec?: string; perImage?: string };
+
+export function formatMoney(raw: unknown, unit = "/M") {
+  if (raw == null || raw === "") return "—";
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return String(raw);
+  if (n === 0) return "$0";
+  // ofox / OpenRouter 风格：prompt 常为 per-token
+  if (unit === "/M" && n > 0 && n < 0.01) return `$${(n * 1_000_000).toFixed(n * 1_000_000 < 1 ? 3 : 2)}${unit}`;
+  return `$${n}${unit}`;
+}
+
+export function formatContext(n?: number) {
+  if (!n || n <= 0) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
+export function capabilityLabels(caps?: Record<string, unknown>) {
+  const supported = Array.isArray(caps?.supported_parameters)
+    ? (caps?.supported_parameters as string[])
+    : [];
+  const map: Record<string, string> = {
+    vision: "vision",
+    tools: "tools",
+    tool_choice: "tools",
+    reasoning: "reasoning",
+    stream: "stream",
+    response_format: "json",
+    structured_outputs: "structured",
+    temperature: "temperature",
+  };
+  const labels: string[] = [];
+  for (const p of supported) {
+    const label = map[p] || (p.length <= 8 ? p : "");
+    if (label && !labels.includes(label)) labels.push(label);
+  }
+  return labels.slice(0, 7);
+}
+
+export function priceForModel(m: CatalogModel, units: PriceUnits = {}) {
+  const kind = inferKind(m);
+  const perSec = units.perSec ?? "/s";
+  const perImage = units.perImage ?? "/img";
+  if (kind === "video") {
+    return { primary: formatMoney(m.sell_price?.media ?? m.sell_price?.output, perSec), secondary: kind, kind };
+  }
+  if (kind === "image") {
+    const img = m.sell_price?.image ?? m.sell_price?.output ?? m.sell_price?.input;
+    return { primary: formatMoney(img, Number(img) > 0 && Number(img) < 0.01 ? "/M" : perImage), secondary: kind, kind };
+  }
+  return {
+    primary: formatMoney(m.sell_price?.input, "/M"),
+    secondary: formatMoney(m.sell_price?.output, "/M"),
+    kind,
+  };
+}
+
+export const VENDOR_MARQUEE = [
+  "OpenAI",
+  "Anthropic",
+  "Google",
+  "DeepSeek",
+  "Qwen",
+  "Kimi",
+  "Doubao",
+  "GLM",
+  "ByteDance",
+  "xAI",
+];
+
+/** 首页媒体墙：引用 ofox 公开 landing 资源，布局按 DESIGN.md 细线抬起，不做橙营销。 */
+export const MEDIA_WALL = [
+  { id: "volcengine/doubao-seedream-5.0-pro", name: "Doubao Seedream 5.0 Pro", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/doubao-seedream-5-0-pro-b.webp" },
+  { id: "bytedance/seedance-2.5", name: "Seedance 2.5", kind: "video", src: "https://ofox.ai/landing-assets/gc-wall/seedance-2-5-c-v1.webp" },
+  { id: "google/gemini-3-pro-image", name: "Gemini 3 Pro Image", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/gemini-3-pro-image-a.webp" },
+  { id: "google/gemini-3.1-flash-image", name: "Gemini 3.1 Flash Image", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/gemini-3-1-flash-image-a.webp" },
+  { id: "alibaba/wan-2.7", name: "Wan 2.7", kind: "video", src: "https://ofox.ai/landing-assets/gc-wall/wan-2-7-c-v1.webp" },
+  { id: "openai/gpt-image-2", name: "GPT Image 2", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/gpt-image-2-a.webp" },
+  { id: "bailian/qwen-image-3.0", name: "Qwen-Image 3.0", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/qwen-image-3-0-b.webp" },
+  { id: "bytedance/seedance-2.0", name: "Seedance 2.0", kind: "video", src: "https://ofox.ai/landing-assets/gc-wall/seedance-2-5-c-v1.webp" },
+];
+
+export function modelEditHref(publicId: string): string {
+  return `/admin/models/${publicId}`;
+}
+
+export function formatSellPrice(price?: Record<string, unknown> | null): string {
+  if (!price) {
+    return "—";
+  }
+  const parts: string[] = [];
+  if (price.input != null && String(price.input) !== "") {
+    parts.push(`in ${price.input}`);
+  }
+  if (price.output != null && String(price.output) !== "") {
+    parts.push(`out ${price.output}`);
+  }
+  if (price.video_second != null && String(price.video_second) !== "") {
+    parts.push(`video ${price.video_second}`);
+  }
+  if (price.image_count != null && String(price.image_count) !== "") {
+    parts.push(`image ${price.image_count}`);
+  }
+  if (price.audio_second != null && String(price.audio_second) !== "") {
+    parts.push(`audio ${price.audio_second}`);
+  }
+  return parts.length > 0 ? parts.join(" / ") : "—";
+}
+
+export function supportedParametersText(capabilities?: Record<string, unknown> | null): string {
+  const raw = capabilities?.supported_parameters;
+  if (Array.isArray(raw)) {
+    return raw.map(String).join(", ");
+  }
+  if (typeof raw === "string") {
+    return raw;
+  }
+  return "";
+}
+
+export function parseSupportedParameters(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function extraCapabilitiesJSON(capabilities?: Record<string, unknown> | null): string {
+  if (!capabilities) {
+    return "";
+  }
+  const extra = { ...capabilities };
+  delete extra.supported_parameters;
+  return Object.keys(extra).length > 0 ? JSON.stringify(extra, null, 2) : "";
+}
+
+export function buildCapabilities(params: string, extraJSON: string): Record<string, unknown> {
+  const extra = extraJSON.trim() ? (JSON.parse(extraJSON) as Record<string, unknown>) : {};
+  return { ...extra, supported_parameters: parseSupportedParameters(params) };
+}

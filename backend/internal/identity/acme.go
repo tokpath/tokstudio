@@ -8,7 +8,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
 	"errors"
 	"net"
 	"net/http"
@@ -205,8 +204,4 @@ func wrapACME(err error) error {
 
 func InvalidACME(msg string) error {
 	return errors.Join(ErrACMEFailed, errors.New(msg))
-}
-
-func EncodeCertPEM(der []byte) []byte {
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
 }

@@ -40,7 +40,6 @@ export default function WalletPanel() {
   const [code, setCode] = useState("THE2E");
   const [message, setMessage] = useState(t("walletHint"));
   const [methods, setMethods] = useState<Method[]>([]);
-  const [emptyReason, setEmptyReason] = useState("");
   const [help, setHelp] = useState("");
   const [chips, setChips] = useState<number[]>([100, 300, 500, 1000]);
   const [amount, setAmount] = useState(100);
@@ -67,7 +66,6 @@ export default function WalletPanel() {
     const item = body.item || {};
     const list: Method[] = item.methods || [];
     setMethods(list);
-    setEmptyReason(item.empty_reason || "");
     setHelp(item.help_text || "");
     const amounts: number[] = item.settings?.quick_amounts || [100, 300, 500, 1000];
     setChips(amounts);
@@ -184,7 +182,6 @@ export default function WalletPanel() {
           </Button>
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
-        {emptyReason ? <p className="mt-1 text-xs text-ink-mute">{emptyReason}</p> : null}
       </section>
       <aside className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24">
         <p className="th-eyebrow mb-3 text-ink-mute">LEDGER</p>

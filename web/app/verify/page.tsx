@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { VERIFY_ICONS } from "@/lib/page-icons";
@@ -7,7 +7,7 @@ import { VERIFY_ICONS } from "@/lib/page-icons";
 export default async function VerifyPage() {
   const t = await getTranslations("verifyUi");
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="verify" primaryHref="/app" secondaryHref="/docs" />
       <PublicSection eyebrow="METHOD" title={t("howTitle")}>
         <ul className="space-y-3 text-sm text-ink-secondary">
@@ -19,6 +19,6 @@ export default async function VerifyPage() {
           ))}
         </ul>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

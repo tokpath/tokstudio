@@ -37,7 +37,7 @@ export default function AdminBillingPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="billing" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="billing" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-64" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="账单 request_id" placeholder="request_id" />

@@ -43,7 +43,7 @@ export default function ChannelPromos() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("promosTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("promosTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("promosLead")}</p>
       <Form {...form}>
         <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>

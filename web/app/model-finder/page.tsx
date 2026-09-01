@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 
 const SCENE_IDS = ["coding", "agent", "rag", "vision", "cheap", "fast"] as const;
@@ -54,7 +54,7 @@ export default function ModelFinderPage() {
   }, [scene, t]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="modelFinder" primaryHref="/login" secondaryHref="/models" />
 
       <PublicSection eyebrow="SCENE" title={t("sceneTitle")}>
@@ -88,6 +88,6 @@ export default function ModelFinderPage() {
           ))}
         </ul>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

@@ -117,7 +117,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={tu("adminOverview")}>
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={tu("adminOverview")}>
         {hero.map((card) => (
           <MetricCard
             key={card.key}
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
         ))}
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <AdminH2 k="opsBoard" className="mb-2 text-xl font-medium tracking-tight" />
+        <AdminH2 k="opsBoard" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">{td("opsLead")}</p>
         <div className="flex flex-wrap gap-3">
           <label className="flex items-center gap-2 text-sm">

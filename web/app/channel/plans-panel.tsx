@@ -49,7 +49,7 @@ export default function ChannelPlans() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("plansTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("plansLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshPlans")}

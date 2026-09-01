@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { loadSite } from "@/lib/site-content";
 import { getTranslations } from "next-intl/server";
@@ -12,11 +12,11 @@ export default async function AppsLeaderboardPage() {
   const rows = site.leaderboards?.apps || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="leaderboardsApps" primaryHref="/vibe-coding" secondaryHref="/leaderboards/models" />
       <PublicSection eyebrow="TOOLS" title={t("appsTitle")}>
         <LeaderboardTable rows={rows} hrefOf={() => "/vibe-coding"} />
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

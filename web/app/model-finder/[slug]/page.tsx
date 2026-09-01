@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { I18nPublicHeroClient } from "@/components/i18n-page-hero-client";
 
 const HREFS: Record<string, string> = {
@@ -45,7 +45,7 @@ export default function ModelFinderSlugPage() {
   const href = spec?.href || "/model-finder";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHeroClient id="modelFinder" primaryHref={href} secondaryHref="/model-finder" title={title} />
       <PublicSection eyebrow="WHY" title={tf("whyTitle")}>
         <p className="text-sm text-ink-secondary">{body}</p>
@@ -53,6 +53,6 @@ export default function ModelFinderSlugPage() {
           <Link href={href}>{tc("continue")}</Link>
         </Button>
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

@@ -43,7 +43,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-medium">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         <div className="flex flex-wrap items-center gap-2">
           {actions}
           <Input placeholder={tc("filter")} value={q} onChange={(e) => setQ(e.target.value)} />

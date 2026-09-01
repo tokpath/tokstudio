@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { loadCatalog } from "@/lib/catalog";
 import { ModelCompare } from "./compare-client";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
@@ -11,11 +11,11 @@ export default async function ComparePage() {
   const t = await getTranslations("compareUi");
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-12 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="compare" primaryHref="/models" secondaryHref="/best-value" />
       <PublicSection eyebrow="TABLE" title={t("table")}>
         <ModelCompare models={models} />
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

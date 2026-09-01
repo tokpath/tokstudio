@@ -56,6 +56,35 @@ body {
   min-height: 100vh;
   background: var(--canvas);
   color: var(--ink);
+  line-height: 1.5;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+.th-display {
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.th-display-sm {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 640px) {
+  .th-display {
+    font-size: 56px;
+  }
+
+  .th-display-sm {
+    font-size: 40px;
+  }
 }
 
 ::selection {

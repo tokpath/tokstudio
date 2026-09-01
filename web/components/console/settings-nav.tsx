@@ -10,7 +10,7 @@ export function SettingsSubnav() {
   const pathname = usePathname();
   const t = useTranslations("userNav");
   return (
-    <nav aria-label={t("settings")} className="flex flex-wrap gap-1 border-b border-hairline pb-3">
+    <nav aria-label={t("settings")} className="flex flex-wrap gap-1 border-b border-hairline pb-4">
       {userSettingsNav.map((item) => {
         const active = pathname === item.href;
         const Icon = iconForHref(item.href);
@@ -18,7 +18,7 @@ export function SettingsSubnav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`inline-flex items-center gap-1.5 rounded-stamp px-3 py-2 text-sm no-underline ${
+            className={`inline-flex items-center gap-1.5 rounded-stamp px-3 py-2 text-sm no-underline transition-colors duration-150 ${
               active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:bg-canvas-raised hover:text-ink"
             }`}
           >

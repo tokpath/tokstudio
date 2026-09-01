@@ -65,7 +65,7 @@ export default function SettingsPanel() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("settingsTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("settingsTitle")}</CardTitle>
       <p className="mb-4 text-sm text-ink-secondary">
         {t("settingsMeta", { email: user?.email ?? "—", channel: user?.channel_org_id ?? "—" })}
       </p>

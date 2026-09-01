@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CircleDollarSign, FileText, KeyRound, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip, PublicMain } from "@/components/public-section";
 import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { PRICING_KIND_ICONS } from "@/lib/page-icons";
@@ -11,7 +11,7 @@ export default async function PricingPage() {
   const t = await getTranslations("pricingUi");
   const th = await getTranslations("home");
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="pricing" primaryHref="/models" secondaryHref="/best-value" />
       <StatStrip
         items={[
@@ -21,7 +21,7 @@ export default async function PricingPage() {
         ]}
       />
       <PublicSection eyebrow="HOW" title={t("howTitle")}>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <FeatureCard key={i} icon={PRICING_KIND_ICONS[i]} title={t(`t${i}`)} description={t(`d${i}`)} />
           ))}
@@ -33,6 +33,6 @@ export default async function PricingPage() {
           {th("ctaKey")}
         </Link>
       </Button>
-    </main>
+    </PublicMain>
   );
 }

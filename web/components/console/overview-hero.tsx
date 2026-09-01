@@ -66,8 +66,8 @@ export function OverviewHero() {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap gap-3">
         <Button asChild>
           <Link href="/app/keys">
             <KeyRound />
@@ -81,7 +81,7 @@ export function OverviewHero() {
           </Link>
         </Button>
       </div>
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
           <MetricCard
             key={card.t}
@@ -94,7 +94,7 @@ export function OverviewHero() {
           />
         ))}
       </section>
-      <p className="text-sm text-ink-mute">{t("footnote")}</p>
+      <p className="text-[13px] leading-relaxed text-ink-mute">{t("footnote")}</p>
     </div>
   );
 }

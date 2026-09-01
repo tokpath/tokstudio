@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 export function AdminH2({
   k,
-  className = "mb-3 text-xl font-medium",
+  className = "mb-4 text-lg font-semibold tracking-tight",
 }: {
   k: string;
   className?: string;

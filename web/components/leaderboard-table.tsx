@@ -15,7 +15,7 @@ export function LeaderboardTable({
         const href = hrefOf ? hrefOf(row) : row.id ? `/models/${row.id}` : "/models";
         return (
           <li key={row.rank + row.name}>
-            <Link href={href} className="flex items-center gap-4 px-4 py-3 no-underline hover:bg-brand-soft/30">
+            <Link href={href} className="flex items-center gap-4 px-5 py-3.5 no-underline transition-colors duration-150 hover:bg-brand-soft/30">
               <span className="inline-flex w-8 items-center justify-center font-mono text-sm text-ink-mute">
                 {row.rank === "1" ? <Trophy className="size-4 text-hold" strokeWidth={1.75} aria-hidden /> : row.rank}
               </span>

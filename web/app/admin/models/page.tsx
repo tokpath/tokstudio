@@ -101,7 +101,7 @@ export default function AdminModelsPage() {
         catalog，不是 mock。点「编辑」改属性、定价和上架。不要改 tokenhub/echo-1。
       </p>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <AdminH2 k="modelReview" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="modelReview" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
           同步和手工创建先进待审核。通过后才能发布到客户目录。创建人和审核人必须是不同账号。
         </p>
@@ -199,7 +199,7 @@ export default function AdminModelsPage() {
       />
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="createModel" className="text-xl font-medium" />
+          <AdminH2 k="createModel" className="text-lg font-semibold tracking-tight" />
           <p className="text-sm text-ink-secondary">缺确认会 409。永远创建为 draft，不会立刻出现在客户目录。</p>
           <TextField control={createForm.control} name="public_id" label="创建用 public id" placeholder="创建用 public id tokenhub/ops-ui" />
           <TextField control={createForm.control} name="vendor" label="创建用厂商" placeholder="创建用厂商 tokenhub" />
@@ -260,7 +260,7 @@ export default function AdminModelsPage() {
       </Form>
       <Form {...attachForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="mountProvider" className="text-xl font-medium" />
+          <AdminH2 k="mountProvider" className="text-lg font-semibold tracking-tight" />
           <p className="text-sm text-ink-secondary">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
           <TextField control={attachForm.control} name="public_id" label="挂载 public id" placeholder="public_id" />
           <TextField control={attachForm.control} name="provider_id" label="挂载 provider id" placeholder="provider_id" />
@@ -287,7 +287,7 @@ export default function AdminModelsPage() {
       </Form>
       <Form {...deprecateForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="deprecateModel" className="text-xl font-medium" />
+          <AdminH2 k="deprecateModel" className="text-lg font-semibold tracking-tight" />
           <p className="text-sm text-ink-secondary">只改状态，不删除历史映射和价格版本。</p>
           <TextField control={deprecateForm.control} name="public_id" label="弃用 public id" placeholder="public_id" />
           <ConfirmButton

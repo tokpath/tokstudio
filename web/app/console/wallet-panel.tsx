@@ -132,7 +132,7 @@ export default function WalletPanel() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="mb-3 text-xl font-medium tracking-tight">{t("walletTitle")}</h2>
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("walletTitle")}</h2>
         <p className="mb-4 text-sm text-ink-secondary">
           {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "0" })}
         </p>

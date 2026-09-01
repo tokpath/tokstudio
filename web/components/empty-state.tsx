@@ -12,10 +12,10 @@ export function EmptyState({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="flex flex-col items-start gap-2 px-12 py-12">
+    <div className="flex flex-col items-start px-12 py-12">
       <IconStamp icon={icon} />
-      <p className="mt-2 text-sm text-ink">{title}</p>
-      <p className="text-sm text-ink-mute">{detail}</p>
+      <p className="mt-4 text-sm font-medium text-ink">{title}</p>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-mute">{detail}</p>
     </div>
   );
 }

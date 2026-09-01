@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { PublicSection } from "@/components/public-section";
+import { PublicSection, PublicMain } from "@/components/public-section";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { loadSite } from "@/lib/site-content";
 import { getTranslations } from "next-intl/server";
@@ -12,11 +12,11 @@ export default async function LabsLeaderboardPage() {
   const rows = site.leaderboards?.labs || [];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="leaderboardsLabs" primaryHref="/models" secondaryHref="/leaderboards/models" />
       <PublicSection eyebrow="VENDORS" title={t("labsTitle")}>
         <LeaderboardTable rows={rows} hrefOf={(row) => `/models?q=${encodeURIComponent(row.name)}`} />
       </PublicSection>
-    </main>
+    </PublicMain>
   );
 }

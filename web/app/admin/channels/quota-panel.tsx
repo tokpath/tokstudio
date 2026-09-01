@@ -49,7 +49,7 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
 
   return (
     <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
-      <h2 className="mb-3 text-xl font-medium">渠道额度</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight">渠道额度</h2>
       {channelUsesQuota(channelType) ? (
         <>
           <p className="mb-3 text-sm text-ink-secondary">B/C 渠道可用额度在用户充值时按平台换算比发放，默认 1:1。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>

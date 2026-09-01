@@ -43,7 +43,7 @@ export default function ExamplesPanel() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("examplesTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("examplesTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("examplesLead")}</p>
       <div className="mb-3 flex flex-wrap gap-3">
         <Button variant="outline" onClick={refresh}>

@@ -75,7 +75,7 @@ export default function UsagePanel() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="mb-3 text-xl font-medium tracking-tight">{t("usageTitle")}</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
       <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">

@@ -14,6 +14,7 @@ import {
   priceForModel,
 } from "@/lib/catalog";
 import { getTranslations } from "next-intl/server";
+import { PublicMain } from "@/components/public-section";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -46,7 +47,7 @@ export default async function ModelDetailPage({
   const capText = caps.map((c) => tCaps(c as "vision"));
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20">
+    <PublicMain>
       <nav className="text-[13px] text-ink-mute" aria-label={t("crumb")}>
         <Link href="/" className="no-underline hover:text-ink">
           {t("home")}
@@ -69,12 +70,12 @@ export default async function ModelDetailPage({
             <Badge tone="brand">{kind}</Badge>
             <span className="th-eyebrow text-success">{(model.status || "available").toUpperCase()}</span>
           </div>
-          <h1 className="mt-3 text-[40px] font-semibold leading-tight">{model.display_name}</h1>
-          <p className="mt-2 font-mono text-[13px] text-ink-mute">{model.id}</p>
+          <h1 className="th-display-sm mt-4">{model.display_name}</h1>
+          <p className="mt-3 font-mono text-[13px] text-ink-mute">{model.id}</p>
           {model.description ? (
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-secondary">{model.description}</p>
+            <p className="mt-5 max-w-3xl text-base leading-relaxed text-ink-secondary">{model.description}</p>
           ) : null}
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2">
             {capText.map((c) => (
               <span key={c} className="rounded-control border border-hairline px-2 py-1 text-[12px] text-ink-secondary">
                 {c}
@@ -82,7 +83,7 @@ export default async function ModelDetailPage({
             ))}
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-3">
           <Button asChild variant="outline">
             <Link href="/models">{t("back")}</Link>
           </Button>
@@ -95,7 +96,7 @@ export default async function ModelDetailPage({
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={t("context")} value={formatContext(model.context_length)} />
         <Stat label={t("maxOut")} value={formatContext(model.max_completion_tokens)} />
         <Stat label={kind === "video" ? t("videoPrice") : kind === "image" ? t("imagePrice") : t("input")} value={price.primary} />
@@ -103,9 +104,9 @@ export default async function ModelDetailPage({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-card border border-hairline bg-canvas-raised p-5">
+        <div className="rounded-card border border-hairline bg-canvas-raised p-6">
           <p className="th-eyebrow text-ink-mute">PROVIDER · SELL PRICE</p>
-          <h2 className="mt-2 text-lg font-semibold">{t("sellTitle")}</h2>
+          <h2 className="mt-3 text-lg font-semibold">{t("sellTitle")}</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <PriceCell label={t("inM")} value={formatMoney(model.sell_price?.input)} />
             <PriceCell label={t("outM")} value={formatMoney(model.sell_price?.output)} />
@@ -114,9 +115,9 @@ export default async function ModelDetailPage({
           </div>
           <p className="mt-4 text-[13px] text-ink-mute">{t("sellNote")}</p>
         </div>
-        <div className="rounded-card border border-hairline bg-canvas-raised p-5">
+        <div className="rounded-card border border-hairline bg-canvas-raised p-6">
           <p className="th-eyebrow text-ink-mute">ROUTING RECEIPT</p>
-          <h2 className="mt-2 text-lg font-semibold">{t("routeTitle")}</h2>
+          <h2 className="mt-3 text-lg font-semibold">{t("routeTitle")}</h2>
           <p className="mt-4 font-mono text-[13px] leading-relaxed text-ink">
             {model.id}
             <br />→ published sell_price
@@ -184,15 +185,15 @@ export default async function ModelDetailPage({
         <Related title={t("moreVendor", { vendor: model.vendor })} items={relatedVendor} />
       ) : null}
       {relatedKind.length ? <Related title={t("similar")} items={relatedKind} /> : null}
-    </main>
+    </PublicMain>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-card border border-hairline bg-canvas-raised px-4 py-4">
+    <div>
       <p className="th-eyebrow text-ink-mute">{label}</p>
-      <p className="mt-2 font-mono text-lg font-medium tabular-nums">{value}</p>
+      <p className="mt-3 font-mono text-lg font-medium tabular-nums">{value}</p>
     </div>
   );
 }

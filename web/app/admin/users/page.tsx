@@ -46,7 +46,7 @@ export default function AdminUsersPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="users" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="users" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">封禁、解封和人工改归因都要二次确认，并写入审计。平台管理员不能封自己。</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Input className="w-40" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="操作原因" placeholder="操作原因" />

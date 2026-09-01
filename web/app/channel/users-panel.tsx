@@ -28,7 +28,7 @@ export default function ChannelUsers() {
 
   return (
     <Card>
-      <CardTitle className="mb-3 text-xl font-medium">{t("usersTitle")}</CardTitle>
+      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("usersTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("usersLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshUsers")}

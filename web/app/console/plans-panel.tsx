@@ -57,7 +57,7 @@ export default function PlansPanel() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6 ">
-      <h2 className="mb-3 text-xl font-medium tracking-tight">{t("plansTitle")}</h2>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("plansTitle")}</h2>
       <p className="mb-4 text-sm text-ink-secondary">{t("plansLead")}</p>
       <Button type="button" variant="outline" className="mb-4" onClick={refresh}>
         {t("refreshPlans")}

@@ -20,7 +20,7 @@ export default function AdminBrandsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <AdminH2 k="oemBrand" className="mb-3 text-xl font-medium" />
+        <AdminH2 k="oemBrand" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">创建 C 渠道品牌，再上传 Logo。Logo ≤128KiB，短边 64–1024px。</p>
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
           <Input placeholder="站点名" value={name} onChange={(e) => setName(e.target.value)} />

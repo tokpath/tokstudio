@@ -62,7 +62,7 @@ export function ChannelHero() {
   ];
 
   return (
-    <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
+    <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
           <MetricCard key={card.t} icon={card.icon} label={card.t} value={card.v} hint={card.d} />
         ))}

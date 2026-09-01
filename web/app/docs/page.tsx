@@ -5,6 +5,7 @@ import { FileCode, MessageSquareText, Terminal, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "@/components/code-block";
 import { IconStamp } from "@/components/icon-stamp";
+import { PublicMain } from "@/components/public-section";
 
 type DocsContext = {
   brand?: { name: string; api_domain: string };
@@ -31,7 +32,7 @@ export default async function DocsPage() {
   const t = await getTranslations("docsUi");
   const tPublic = await getTranslations("public.docs");
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-6 py-20 lg:flex-row">
+    <PublicMain className="lg:flex-row lg:gap-16">
       <nav className="w-full shrink-0 text-sm text-ink-secondary lg:w-48" aria-label={t("nav")}>
         <p className="th-eyebrow mb-3 text-ink-mute">{tPublic("eyebrow")}</p>
         <ul className="flex flex-row gap-3 overflow-x-auto lg:flex-col lg:gap-2">
@@ -48,12 +49,12 @@ export default async function DocsPage() {
       <article className="flex max-w-[720px] flex-col gap-10">
         <div>
           <Badge tone="brand">{t("badge")}</Badge>
-          <h1 className="mt-4 text-[40px] font-semibold leading-tight">
+          <h1 className="th-display-sm mt-4">
             {t("title", { name: docs.brand?.name || "TokenHub" })}
           </h1>
-          <p className="mt-3 text-base text-ink-secondary">{t("lead")}</p>
-          <p className="mt-4 font-mono text-[13px] text-ink-mute">Base URL · {docs.brand?.api_domain || "api.tokenhub.local"}</p>
-          <p className="mt-2 text-sm text-ink">{t("models", { list: (docs.models || []).join("、") || "—" })}</p>
+          <p className="mt-5 text-base leading-relaxed text-ink-secondary">{t("lead")}</p>
+          <p className="mt-5 font-mono text-[13px] text-ink-mute">Base URL · {docs.brand?.api_domain || "api.tokenhub.local"}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink">{t("models", { list: (docs.models || []).join("、") || "—" })}</p>
         </div>
         <section id="curl" className="scroll-mt-24 flex flex-col gap-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
@@ -98,6 +99,6 @@ export default async function DocsPage() {
           <p>{docs.notes?.webhook}</p>
         </div>
       </article>
-    </main>
+    </PublicMain>
   );
 }

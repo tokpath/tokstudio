@@ -79,8 +79,8 @@ export default function PublicStorefront({
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="th-eyebrow text-ink-mute">{t("modelsEyebrow")}</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t("modelsTitle")}</h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-secondary">{t("modelsLead")}</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight">{t("modelsTitle")}</h2>
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-secondary">{t("modelsLead")}</p>
           </div>
           <Badge>{t("modelCount", { count: models.length })}</Badge>
         </div>
@@ -101,7 +101,7 @@ export default function PublicStorefront({
       <section id="plans">
         <div className="mb-8">
           <p className="th-eyebrow text-ink-mute">{t("plansEyebrow")}</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t("plansTitle")}</h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight">{t("plansTitle")}</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {plans.map((plan) => (

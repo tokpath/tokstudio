@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
-import { PublicSection, StatStrip } from "@/components/public-section";
+import { PublicSection, StatStrip, PublicMain } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { Globe, Sparkles, Terminal } from "lucide-react";
 
@@ -20,7 +20,7 @@ export default async function VibeCodingPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-14 px-6 py-20">
+    <PublicMain>
       <I18nPublicHero id="vibeCoding" primaryHref="/login" secondaryHref="/models" />
 
       <StatStrip
@@ -47,6 +47,6 @@ export default async function VibeCodingPage() {
           <Link href="/docs">{t("docs")}</Link>
         </Button>
       </div>
-    </main>
+    </PublicMain>
   );
 }

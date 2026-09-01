@@ -112,9 +112,9 @@ export function ModelsCatalog({
       : [];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative lg:max-w-md lg:flex-1">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="relative max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" strokeWidth={1.75} aria-hidden />
           <Input
             value={q}
@@ -134,8 +134,8 @@ export function ModelsCatalog({
               <Link
                 key={id}
                 href={hrefOf({ kind: id === "all" ? undefined : id })}
-                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm no-underline ${
-                  active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
+                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm no-underline transition-colors duration-150 ${
+                  active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary hover:bg-canvas-raised hover:text-ink"
                 }`}
               >
                 <KindIcon className="size-3.5" strokeWidth={1.75} aria-hidden />
@@ -168,8 +168,8 @@ export function ModelsCatalog({
       <div className="flex flex-wrap items-center gap-2" aria-label={t("vendorsAria")}>
         <Link
           href={hrefOf({ vendor: undefined })}
-          className={`rounded-control px-3 py-1.5 text-sm no-underline ${
-            !query.vendor ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
+          className={`rounded-control px-3 py-1.5 text-sm no-underline transition-colors duration-150 ${
+            !query.vendor ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary hover:bg-canvas-raised hover:text-ink"
           }`}
         >
           {t("allVendors")}
@@ -180,8 +180,8 @@ export function ModelsCatalog({
             <Link
               key={item.id}
               href={hrefOf({ vendor: active ? undefined : item.id })}
-              className={`rounded-control px-3 py-1.5 text-sm no-underline ${
-                active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
+              className={`rounded-control px-3 py-1.5 text-sm no-underline transition-colors duration-150 ${
+                active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary hover:bg-canvas-raised hover:text-ink"
               }`}
             >
               {item.id} {item.count}
@@ -242,7 +242,7 @@ export function ModelsCatalog({
               <li key={m.id}>
                 <Link
                   href={`/models/${m.id}`}
-                  className="block rounded-card border border-hairline bg-canvas-raised p-4 no-underline transition-colors hover:bg-brand-soft/30"
+                  className="block rounded-card border border-hairline bg-canvas-raised px-5 py-4 no-underline transition-colors duration-150 hover:bg-brand-soft/30"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">

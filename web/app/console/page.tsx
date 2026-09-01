@@ -6,17 +6,14 @@ import SettingsPanel from "./settings-panel";
 import UsagePanel from "./usage-panel";
 import WalletPanel from "./wallet-panel";
 import { OverviewHero } from "@/components/console/overview-hero";
+import { ConsolePageHeader } from "@/components/console/page-header";
 import { getTranslations } from "next-intl/server";
 
 export default async function UserConsole() {
   const t = await getTranslations("overview");
   return (
-    <div className="flex flex-col gap-6">
-      <header className="mb-2">
-        <p className="text-sm uppercase tracking-[0.2em] text-ink-secondary">{t("eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="mt-2 max-w-2xl text-ink-secondary">{t("lead")}</p>
-      </header>
+    <div className="flex flex-col gap-8">
+      <ConsolePageHeader eyebrow={t("eyebrow")} title={t("title")} description={t("lead")} />
       <OverviewHero />
       <div id="wallet">
         <WalletPanel />

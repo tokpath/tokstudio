@@ -62,8 +62,9 @@ type tokenRow struct {
 func (tokenRow) TableName() string { return "identity_access_tokens" }
 
 type Service struct {
-	db   *gorm.DB
-	acme *ACME
+	db    *gorm.DB
+	acme  *ACME
+	store ObjectStore
 }
 
 func New(db *gorm.DB) *Service {

@@ -155,6 +155,7 @@
     "models": "本渠道模型",
     "plans": "套餐",
     "promos": "推广",
+    "brand": "品牌",
     "attribution": "额度",
     "usage": "用量",
     "settlements": "结算",
@@ -184,6 +185,7 @@
     "usage": "用量/账单",
     "media": "媒体任务",
     "channels": "渠道租户",
+    "brands": "OEM 品牌",
     "promos": "推广码",
     "alerts": "告警",
     "runbooks": "应急手册",
@@ -715,6 +717,11 @@
       "title": "本渠道模型",
       "description": "只能使用平台已授权的目录。不能自己添加提供商和模型。"
     },
+    "channelBrand": {
+      "eyebrow": "BRAND",
+      "title": "本渠道品牌",
+      "description": "C 渠道可改站点名、章颜色，并上传 Logo。文件体积和像素有硬上限，不合格会直接拒绝。"
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "套餐",
@@ -881,6 +888,7 @@
     "backup": "备份演练",
     "drill": "异常演练",
     "oem": "OEM 证书",
+    "oemBrand": "OEM 品牌",
     "users": "用户/项目",
     "usage": "用量回放",
     "runbooks": "应急手册",

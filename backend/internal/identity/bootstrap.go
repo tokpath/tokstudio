@@ -39,6 +39,9 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := upsertBootUser(tx, "channel.b@tokenhub.local", "channel_admin", channelToken, "thchb_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
 			return err
 		}
+		if err := upsertBootUser(tx, "channel.c@tokenhub.local", "channel_admin", adminToken+"-c", "thchc_", OEMChannelID, OEMBrandID, "channel", OEMChannelID); err != nil {
+			return err
+		}
 		if err := upsertBootUser(tx, "agent.b@tokenhub.local", "end_user", adminToken+"-agent", "thagb_", ResellerChannelID, OfficialBrandID, "channel", ResellerChannelID); err != nil {
 			return err
 		}
@@ -76,10 +79,14 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 
 func seedCatalog(tx *gorm.DB) error {
 	officialTheme, _ := json.Marshal(map[string]string{
-		"primary": "#22d3ee", "background": "#020617", "name": "TokenHub",
+		"brand": DefaultBrand, "brand_press": DefaultBrandPress, "brand_soft": DefaultBrandSoft,
+		"brand_soft_dark": DefaultBrandSoftDark, "brand_emphasis": DefaultBrandEmphasis,
+		"brand_emphasis_dark": DefaultBrandEmphasisDk, "on_brand": DefaultOnBrand, "default_theme": "system",
 	})
 	oemTheme, _ := json.Marshal(map[string]string{
-		"primary": "#f59e0b", "background": "#111827", "name": "Aurora OEM",
+		"brand": "#92400E", "brand_press": "#7C2D12", "brand_soft": "#F3D9C8",
+		"brand_soft_dark": "#3F2A1E", "brand_emphasis": "#92400E",
+		"brand_emphasis_dark": "#F0B27A", "on_brand": DefaultOnBrand, "default_theme": "system",
 	})
 	now := time.Now().UTC()
 	brands := []brandRow{

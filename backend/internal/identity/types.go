@@ -55,6 +55,8 @@ type BrandView struct {
 	ID            string         `json:"id"`
 	Name          string         `json:"name"`
 	LogoURL       string         `json:"logo_url,omitempty"`
+	LogoDarkURL   string         `json:"logo_dark_url,omitempty"`
+	FaviconURL    string         `json:"favicon_url,omitempty"`
 	PrimaryDomain string         `json:"primary_domain"`
 	APIDomain     string         `json:"api_domain"`
 	AdminDomain   string         `json:"admin_domain"`

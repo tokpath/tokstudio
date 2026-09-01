@@ -8,7 +8,7 @@ import type { Brand } from "@/lib/brand";
 import { MEGA_MENUS, TOP_LINKS } from "@/lib/mega-nav";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BrandMark } from "@/components/brand-mark";
+import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
@@ -51,12 +51,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
     <header ref={rootRef} className="sticky top-0 z-40 border-b border-hairline bg-canvas">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-6">
         <Link href="/" className="flex items-center gap-2 text-ink no-underline">
-          {brand?.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logo_url} alt="" className="h-6 w-6 rounded-[6px] object-contain" />
-          ) : (
-            <BrandMark />
-          )}
+          <BrandLogo brand={brand} />
           <span className="text-2xl font-semibold">{name}</span>
         </Link>
 

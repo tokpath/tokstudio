@@ -155,6 +155,7 @@
     "models": "Channel models",
     "plans": "Plans",
     "promos": "Promos",
+    "brand": "Brand",
     "attribution": "Quota",
     "usage": "Usage",
     "settlements": "Settlements",
@@ -184,6 +185,7 @@
     "usage": "Usage",
     "media": "Media",
     "channels": "Channel tenants",
+    "brands": "OEM brands",
     "promos": "Promos",
     "alerts": "Alerts",
     "runbooks": "Runbooks",
@@ -715,6 +717,11 @@
       "title": "Channel models",
       "description": "Only platform-entitled catalog models. Tenants cannot add providers or models."
     },
+    "channelBrand": {
+      "eyebrow": "BRAND",
+      "title": "Channel brand",
+      "description": "Type C can change the site name, stamp color, and upload a logo. File size and pixels are hard limits."
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "Plans",
@@ -881,6 +888,7 @@
     "backup": "Backup drill",
     "drill": "Failure drill",
     "oem": "OEM certs",
+    "oemBrand": "OEM brands",
     "users": "Users / projects",
     "usage": "Usage replay",
     "runbooks": "Runbooks",

@@ -13,7 +13,8 @@ import {
 import { adminNavActive } from "@/lib/tenants";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BrandMark } from "@/components/brand-mark";
+import type { Brand } from "@/lib/brand";
+import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 
 function GroupedNav({
@@ -55,9 +56,11 @@ function GroupedNav({
 }
 
 export function ConsoleShell({
+  brand,
   children,
   onCommand,
 }: {
+  brand?: Brand;
   children: React.ReactNode;
   onCommand: () => void;
 }) {
@@ -81,8 +84,8 @@ export function ConsoleShell({
       <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
         <div className="flex h-14 items-center gap-4 px-6">
           <Link href={portalHref} className="flex items-center gap-2 text-ink no-underline">
-            <BrandMark />
-            <span className="text-lg font-semibold">{title}</span>
+            <BrandLogo brand={brand} />
+            <span className="text-lg font-semibold">{brand?.name || title}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <LocaleSwitch />

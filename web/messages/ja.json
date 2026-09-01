@@ -155,6 +155,7 @@
     "models": "チャネルモデル",
     "plans": "プラン",
     "promos": "プロモ",
+    "brand": "ブランド",
     "attribution": "枠",
     "usage": "利用量",
     "settlements": "精算",
@@ -184,6 +185,7 @@
     "usage": "利用量",
     "media": "メディア",
     "channels": "チャネルテナント",
+    "brands": "OEMブランド",
     "promos": "プロモ",
     "alerts": "警報",
     "runbooks": "ランブック",
@@ -715,6 +717,11 @@
       "title": "チャネルモデル",
       "description": "プラットフォームが許可した目録のみ。テナントはプロバイダやモデルを追加できません。"
     },
+    "channelBrand": {
+      "eyebrow": "BRAND",
+      "title": "チャネルブランド",
+      "description": "C チャネルはサイト名、章の色、Logo を変更できます。ファイルサイズと画素は上限があります。"
+    },
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "プラン",
@@ -881,6 +888,7 @@
     "backup": "バックアップ訓練",
     "drill": "障害訓練",
     "oem": "OEM 証明書",
+    "oemBrand": "OEMブランド",
     "users": "ユーザー / プロジェクト",
     "usage": "使用量再生",
     "runbooks": "ランブック",

@@ -33,11 +33,20 @@ docker compose -f docker-compose.yml -f docker-compose.debug.yml up
 ```bash
 export $(grep -v '^#' .env | xargs)
 make migrate
+make catalog-seed
 make api
 # 另一个终端
 make worker
 make web
 ```
+
+`make catalog-seed` 把嵌入的 ofox 公开目录快照写入 PostgreSQL。预置模型直接是**已审核并已发布**（`status=published`、`sync_state=published`），只授权官方和分销渠道，不进 OEM 白名单。命令幂等，会先跑 migration。Docker 里可以用：
+
+```bash
+docker compose --profile seed run --rm catalog-seed
+```
+
+API 启动时的 `Seed()` 仍会调用同一导入，方便开发环境；生产或空库也可以只跑这条独立命令，不必先起 API。
 
 `make web` 在 http://localhost:3000。浏览器请求 `/api/*` 由 Next.js rewrite 转到本机 API（`TOKENHUB_API_INTERNAL_URL`，默认 `http://127.0.0.1:8080`）。
 

@@ -1,4 +1,4 @@
-.PHONY: api worker migrate test e2e-m0 e2e-m1 e2e-m2 e2e-m3 e2e-m4 e2e-m5 e2e-m6 e2e-m7 web tidy
+.PHONY: api worker migrate catalog-seed test e2e-m0 e2e-m1 e2e-m2 e2e-m3 e2e-m4 e2e-m5 e2e-m6 e2e-m7 web tidy
 
 api:
 	cd backend && go run ./cmd/api
@@ -8,6 +8,9 @@ worker:
 
 migrate:
 	cd backend && go run ./cmd/migrate
+
+catalog-seed:
+	cd backend && go run ./cmd/catalog-seed
 
 test:
 	cd backend && go test ./...

@@ -281,7 +281,8 @@ func (s *Service) Seed(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-	return s.ImportOfoxSnapshot(ctx)
+	_, err := s.ImportOfoxSnapshot(ctx)
+	return err
 }
 
 func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {

@@ -27,7 +27,7 @@ export default function ChannelSettlements() {
   }
 
   return (
-    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">{t("settleTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("settleLead")}</p>
       <Button variant="outline" onClick={refresh}>

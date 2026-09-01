@@ -135,14 +135,6 @@ export const VENDOR_MARQUEE = [
   "xAI",
 ];
 
-export const LEADERBOARD_DEMO = [
-  { rank: "01", vendor: "Anthropic", name: "Claude Sonnet 4.6", share: "31.6%", delta: "-23.6 pp", href: "/models" },
-  { rank: "02", vendor: "Anthropic", name: "Claude Opus 4.7", share: "15.9%", delta: "+7.3 pp", href: "/models" },
-  { rank: "03", vendor: "Anthropic", name: "Claude Opus 4.6", share: "6.6%", delta: "-11.9 pp", href: "/models" },
-  { rank: "04", vendor: "OpenAI", name: "GPT 5.5", share: "5.6%", delta: "+10.2 pp", href: "/models" },
-  { rank: "05", vendor: "DeepSeek", name: "DeepSeek V4 Flash", share: "5.3%", delta: "+3.9 pp", href: "/models" },
-];
-
 /** 首页媒体墙：引用 ofox 公开 landing 资源，布局按 DESIGN.md 细线抬起，不做橙营销。 */
 export const MEDIA_WALL = [
   { id: "volcengine/doubao-seedream-5.0-pro", name: "Doubao Seedream 5.0 Pro", kind: "image", src: "https://ofox.ai/landing-assets/gc-wall/doubao-seedream-5-0-pro-b.webp" },

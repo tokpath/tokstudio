@@ -1,8 +1,6 @@
 import { apiBase } from "@/lib/api";
 import { generatedFetch, generatedOperations, type HttpMethod } from "@/lib/generated/api";
 
-export { generatedOperations };
-
 export function hasGeneratedPath(method: HttpMethod, path: string): boolean {
   return generatedOperations.some((item) => item.method === method && item.path === path);
 }

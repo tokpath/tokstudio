@@ -24,7 +24,7 @@ export default function ChannelModels() {
   }
 
   return (
-    <Card className="rounded-card border border-hairline bg-canvas-raised p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">本渠道模型</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">
         所有租户的模型资源都只能从平台目录出发。渠道不能自建提供商或模型，也不能引入目录外的模型。

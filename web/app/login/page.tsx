@@ -166,9 +166,9 @@ function LoginForm() {
         </p>
         <p className="mt-6 text-base leading-relaxed text-ink-secondary">{th("lead")}</p>
       </section>
-      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
+      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8 sm:p-10">
         <p className="th-eyebrow text-brand-emphasis lg:hidden">{t("eyebrow")}</p>
-        <h1 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">{t("title")}</h1>
+        <h1 className="th-display-sm mt-3">{t("title")}</h1>
 
         <div className="mt-8 flex flex-col gap-3">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
@@ -181,13 +181,13 @@ function LoginForm() {
           </Button>
         </div>
         {googleState ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-card border border-hairline bg-canvas p-3">
+          <div className="mt-4 flex flex-col gap-3 rounded-card border border-hairline bg-canvas p-4">
             <label className="text-[13px] text-ink-secondary" htmlFor="google-email">
               {t("googleEmail")}
             </label>
             <input
               id="google-email"
-              className="rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm"
+              className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
               value={googleEmail}
               onChange={(event) => setGoogleEmail(event.target.value)}
               placeholder="you@gmail.com"
@@ -211,11 +211,15 @@ function LoginForm() {
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "login" ? (
-              <div className="flex flex-wrap items-end gap-2">
-                <TextField control={form.control} name="otp" label={t("otp")} placeholder={t("otpPlaceholder")} className="flex-1" icon={Shield} />
-                <Button type="button" variant="ghost" onClick={requestOtp}>
+              <div>
+                <TextField control={form.control} name="otp" label={t("otp")} placeholder={t("otpPlaceholder")} icon={Shield} />
+                <button
+                  type="button"
+                  className="mt-2 text-[13px] text-brand-emphasis hover:underline"
+                  onClick={requestOtp}
+                >
                   {t("sendOtp")}
-                </Button>
+                </button>
               </div>
             ) : null}
             {mode === "register" ? (
@@ -239,37 +243,37 @@ function LoginForm() {
               )}
             </Button>
             {mode === "login" ? (
-              <>
-                <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
-                  {t("otpLogin")}
-                </Button>
-                <p className="text-[13px] leading-relaxed text-ink-mute">{t("forgot")}</p>
-              </>
+              <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
+                {t("otpLogin")}
+              </Button>
             ) : null}
-            <p className="text-sm text-hold">{message}</p>
-            <p className="text-sm text-ink-secondary">
+            {message ? <p className="text-sm leading-relaxed text-hold">{message}</p> : null}
+            <p className="pt-1 text-sm text-ink-secondary">
               {mode === "login" ? (
                 <>
                   {t("noAccount")}{" "}
-                  <button type="button" className="text-brand-emphasis" onClick={() => setMode("register")}>
+                  <button type="button" className="text-brand-emphasis hover:underline" onClick={() => setMode("register")}>
                     {t("goRegister")}
                   </button>
                 </>
               ) : (
                 <>
                   {t("hasAccount")}{" "}
-                  <button type="button" className="text-brand-emphasis" onClick={() => setMode("login")}>
+                  <button type="button" className="text-brand-emphasis hover:underline" onClick={() => setMode("login")}>
                     {t("goLogin")}
                   </button>
                 </>
               )}
             </p>
-            <p className="text-[13px] leading-relaxed text-ink-mute">
-              {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>. {t("backHome")}{" "}
-              <Link href="/">{t("public")}</Link>.
-            </p>
           </form>
         </Form>
+        <div className="mt-8 border-t border-hairline pt-5">
+          {mode === "login" ? <p className="text-[13px] leading-relaxed text-ink-mute">{t("forgot")}</p> : null}
+          <p className={`text-[13px] leading-relaxed text-ink-mute ${mode === "login" ? "mt-3" : ""}`}>
+            {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>. {t("backHome")}{" "}
+            <Link href="/">{t("public")}</Link>.
+          </p>
+        </div>
       </section>
     </main>
   );

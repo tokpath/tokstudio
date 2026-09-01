@@ -144,13 +144,14 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
           <button
             type="button"
             onClick={onCommand}
-            className="hidden h-10 items-center gap-2 rounded-control border border-hairline px-3 text-[13px] text-ink-mute transition-colors duration-150 hover:bg-canvas-raised hover:text-ink md:inline-flex"
+            className="hidden h-10 items-center gap-2 rounded-control border border-hairline px-3 text-[13px] text-ink-mute transition-colors duration-150 hover:bg-canvas-raised hover:text-ink lg:inline-flex"
           >
             <Search className="size-3.5" strokeWidth={1.75} aria-hidden />
-            {tc("jump")}
-            <kbd className="font-mono text-[11px]">⌘K</kbd>
+            <span>{tc("jump")}</span>
+            <kbd className="rounded-control bg-canvas px-1.5 py-0.5 font-mono text-[11px] text-ink-mute">⌘K</kbd>
           </button>
-          <div className="ml-2 hidden items-center gap-2 sm:flex">
+          <span className="mx-1 hidden h-5 w-px bg-hairline sm:block" aria-hidden />
+          <div className="hidden items-center gap-2 sm:flex">
             <Button asChild variant="ghost" size="sm">
               <Link href="/login">
                 {tc("login")}

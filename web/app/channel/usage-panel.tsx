@@ -40,7 +40,7 @@ export default function ChannelUsage() {
   return (
     <Card>
       <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</CardTitle>
-      <p className="mb-3 text-sm text-ink-secondary">{t("usageLead")}</p>
+      <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
       <Button variant="outline" onClick={refresh}>
         {t("refreshUsage")}
       </Button>
@@ -63,26 +63,26 @@ export default function ChannelUsage() {
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-ink-mute">
             <tr>
-              <th className="px-3 py-2 font-medium">{t("colApiKey")}</th>
-              <th className="px-3 py-2 font-medium">{t("colPrompt")}</th>
-              <th className="px-3 py-2 font-medium">{t("colCompletion")}</th>
-              <th className="px-3 py-2 font-medium">{t("colAmount")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
+              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
             </tr>
           </thead>
           <tbody>
             {byKey.length === 0 ? (
               <tr>
-                <td className="px-3 py-3 text-ink-secondary" colSpan={4}>
+                <td className="px-4 py-3.5 text-ink-secondary" colSpan={4}>
                   {message}
                 </td>
               </tr>
             ) : (
               byKey.map((row) => (
                 <tr key={row.api_key_id || "none"} className="border-t border-hairline">
-                  <td className="px-3 py-2 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.prompt}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.completion}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums">{row.amount}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.prompt}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.completion}</td>
+                  <td className="px-4 py-3 font-mono tabular-nums">{row.amount}</td>
                 </tr>
               ))
             )}
@@ -94,11 +94,11 @@ export default function ChannelUsage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-canvas text-ink-mute">
               <tr>
-                <th className="px-3 py-2 font-medium">{t("colApiKey")}</th>
-                <th className="px-3 py-2 font-medium">{t("colModel")}</th>
-                <th className="px-3 py-2 font-medium">{t("colPrompt")}</th>
-                <th className="px-3 py-2 font-medium">{t("colCompletion")}</th>
-                <th className="px-3 py-2 font-medium">{t("colAmount")}</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colModel")}</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
+                <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
               </tr>
             </thead>
             <tbody>
@@ -106,11 +106,11 @@ export default function ChannelUsage() {
                 const tokens = usageTokens(row);
                 return (
                   <tr key={row.id} className="border-t border-hairline">
-                    <td className="px-3 py-2 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{row.public_model_id || "—"}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{tokens.prompt}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{tokens.completion}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.prompt}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.completion}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
                   </tr>
                 );
               })}

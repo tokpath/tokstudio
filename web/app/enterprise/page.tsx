@@ -47,8 +47,8 @@ export default async function EnterprisePage() {
         </div>
       </PublicSection>
 
-      <section className="rounded-card border border-hairline bg-canvas-raised px-6 py-10">
-        <h2 className="text-2xl font-semibold">{t("readyTitle")}</h2>
+      <section className="rounded-card border border-hairline bg-canvas-raised px-8 py-12">
+        <h2 className="text-2xl font-semibold tracking-tight">{t("readyTitle")}</h2>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
             <Link href="/login">{th("ctaStart")}</Link>

@@ -24,7 +24,7 @@ export default async function VideoPage() {
           <li key={m.id}>
             <Link
               href={`/models/${m.id}`}
-              className="block rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
+              className="block rounded-card border border-hairline bg-canvas-raised p-6 no-underline transition-colors duration-150 hover:bg-brand-soft/30"
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="font-semibold text-ink">{m.display_name}</p>

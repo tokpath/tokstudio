@@ -222,7 +222,7 @@ export function CommandPalette({
           })}
           {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-ink-mute">{tChrome("paletteEmpty")}</li> : null}
         </ul>
-        <p className="border-t border-hairline px-4 py-2 text-xs text-ink-mute">{tChrome("paletteHint")}</p>
+        <p className="border-t border-hairline px-4 py-3 text-[13px] text-ink-mute">{tChrome("paletteHint")}</p>
       </div>
     </div>
   );

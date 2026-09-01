@@ -24,7 +24,7 @@ export default async function TrustPage() {
       <PublicSection eyebrow="RETENTION" title={t("retTitle")}>
         <ul className="space-y-3 text-sm text-ink-secondary">
           {[0, 1, 2].map((i) => (
-            <li key={i} className="flex items-start gap-3 rounded-card border border-hairline bg-canvas-raised px-4 py-3">
+            <li key={i} className="flex items-start gap-3.5 rounded-card border border-hairline bg-canvas-raised px-5 py-4">
               <IconStamp icon={TRUST_RETENTION_ICONS[i]} size="sm" className="mt-0.5" />
               <span>
                 <strong className="text-ink">{t(`r${i}t`)}</strong>

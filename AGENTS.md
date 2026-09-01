@@ -15,3 +15,11 @@
 5. 确认工作区干净、已经站在最新基线之上，再开始改文件
 
 本机 `release/v0.1.0` 可能落后远程一到数小时，**不要只信本地分支名**，以 `origin/release/v0.1.0` 为准。
+
+## 合并 PR
+
+合入一律用 **Squash Merge**。不要用 merge commit，也不要用 rebase merge。
+
+1. 无冲突：`gh pr merge <编号> --squash --delete-branch`。合入成功后必须删掉原 PR 分支（`--delete-branch` 会删远程；本地还在就 `git branch -d <分支>`）。
+2. 有冲突：先在 PR 分支上同步基线、解决冲突并推送，再 squash merge。冲突未解决时不要合，也不要删分支。
+3. 不要 force push 踢开冲突，也不要跳过冲突解决。

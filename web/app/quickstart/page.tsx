@@ -5,7 +5,10 @@ import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
 import { PublicSection, StatStrip } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { iconForHref, QUICKSTART_STEP_ICONS } from "@/lib/page-icons";
+import { FileCode, Globe, KeyRound, Sparkles } from "lucide-react";
 
 export default async function QuickstartPage() {
   const t = await getTranslations("quickstartUi");
@@ -33,20 +36,23 @@ export default async function QuickstartPage() {
 
       <StatStrip
         items={[
-          { label: t("statSteps"), value: "3", hint: t("statStepsHint") },
-          { label: t("statProto"), value: t("statProtoValue"), hint: t("statProtoHint") },
-          { label: "Base URL", value: base, hint: t("statBaseHint") },
+          { label: t("statSteps"), value: "3", hint: t("statStepsHint"), icon: Sparkles },
+          { label: t("statProto"), value: t("statProtoValue"), hint: t("statProtoHint"), icon: FileCode },
+          { label: "Base URL", value: base, hint: t("statBaseHint"), icon: Globe },
         ]}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {[
-          { n: "1", tk: "s1t", dk: "s1d", ck: "s1c", href: "/login" },
-          { n: "2", tk: "s2t", dk: "s2d", ck: "s2c", href: "#code" },
-          { n: "3", tk: "s3t", dk: "s3d", ck: "s3c", href: "/app" },
+          { n: "1", tk: "s1t", dk: "s1d", ck: "s1c", href: "/login", icon: QUICKSTART_STEP_ICONS[0] },
+          { n: "2", tk: "s2t", dk: "s2d", ck: "s2c", href: "#code", icon: QUICKSTART_STEP_ICONS[1] },
+          { n: "3", tk: "s3t", dk: "s3d", ck: "s3c", href: "/app", icon: QUICKSTART_STEP_ICONS[2] },
         ].map((s) => (
           <div key={s.n} className="rounded-card border border-hairline bg-canvas-raised p-5">
-            <p className="th-eyebrow text-brand-emphasis">STEP {s.n}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="th-eyebrow text-brand-emphasis">STEP {s.n}</p>
+              <s.icon className="size-4 text-brand-emphasis" strokeWidth={1.75} aria-hidden />
+            </div>
             <h3 className="mt-2 text-lg font-semibold">{t(s.tk)}</h3>
             <p className="mt-2 text-sm text-ink-secondary">{t(s.dk)}</p>
             <Button asChild variant="outline" size="sm" className="mt-4">
@@ -81,13 +87,7 @@ export default async function QuickstartPage() {
             { href: "/docs", label: t("nextDocs") },
             { href: "/enterprise", label: t("nextEnt") },
           ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-card border border-hairline bg-canvas-raised px-4 py-3 text-sm no-underline hover:bg-brand-soft/40"
-            >
-              {item.label}
-            </Link>
+            <FeatureCard key={item.href} href={item.href} icon={iconForHref(item.href)} title={item.label} className="p-4" />
           ))}
         </div>
       </PublicSection>
@@ -97,7 +97,10 @@ export default async function QuickstartPage() {
         <p className="mt-2 text-sm text-ink-secondary">{t("readyLead")}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild>
-            <Link href="/login">{th("ctaKey")}</Link>
+            <Link href="/login">
+              <KeyRound />
+              {th("ctaKey")}
+            </Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/models">{th("ctaModels")}</Link>

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { ArrowRight, BookOpen, Boxes, CircleDollarSign, Globe, Image, LogIn, Search, Sparkles, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
 import { RoutingReceipt } from "@/components/routing-receipt";
 import { PublicSection, StatStrip } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
+import { IconStamp } from "@/components/icon-stamp";
 import PublicStorefront from "./storefront";
 import { fetchAPI } from "@/lib/api";
 import { getTranslations } from "next-intl/server";
@@ -18,6 +21,8 @@ import {
   type CatalogModel,
 } from "@/lib/catalog";
 import { loadSite } from "@/lib/site-content";
+import { iconForHref, iconForTool, WHY_ICONS } from "@/lib/page-icons";
+import type { LucideIcon } from "lucide-react";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -82,26 +87,35 @@ export default async function PublicHome() {
             <p className="max-w-xl text-base leading-relaxed text-ink-secondary">{t("lead")}</p>
             <StatStrip
               items={[
-                { label: t("statModels"), value: String(models.length || "—"), hint: t("statModelsHint") },
-                { label: t("statPrice"), value: cheapest ? formatMoney(cheapest.sell_price?.input) : "—", hint: t("statPriceHint") },
-                { label: t("statSite"), value: host, hint: t("statSiteHint") },
+                { label: t("statModels"), value: String(models.length || "—"), hint: t("statModelsHint"), icon: Boxes },
+                { label: t("statPrice"), value: cheapest ? formatMoney(cheapest.sell_price?.input) : "—", hint: t("statPriceHint"), icon: CircleDollarSign },
+                { label: t("statSite"), value: host, hint: t("statSiteHint"), icon: Globe },
               ]}
             />
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link href="/login">{t("ctaStart")}</Link>
+                <Link href="/login">
+                  <LogIn />
+                  {t("ctaStart")}
+                </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/models">{t("ctaPrice")}</Link>
+                <Link href="/models">
+                  <Search />
+                  {t("ctaPrice")}
+                </Link>
               </Button>
               <Button asChild variant="ghost">
-                <Link href="/docs">{t("ctaDocs")}</Link>
+                <Link href="/docs">
+                  <BookOpen />
+                  {t("ctaDocs")}
+                </Link>
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <CategoryLink href="/models?kind=text" title={t("catCode")} detail={t("catCodeDetail")} countLabel={tc("countItems", { count: text.length })} />
-              <CategoryLink href="/image" title={t("catImage")} detail={t("catImageDetail")} countLabel={tc("countItems", { count: image.length })} />
-              <CategoryLink href="/video" title={t("catVideo")} detail={t("catVideoDetail")} countLabel={tc("countItems", { count: video.length })} />
+              <CategoryLink href="/models?kind=text" title={t("catCode")} detail={t("catCodeDetail")} countLabel={tc("countItems", { count: text.length })} icon={iconForHref("/models?kind=text")} />
+              <CategoryLink href="/image" title={t("catImage")} detail={t("catImageDetail")} countLabel={tc("countItems", { count: image.length })} icon={Image} />
+              <CategoryLink href="/video" title={t("catVideo")} detail={t("catVideoDetail")} countLabel={tc("countItems", { count: video.length })} icon={Video} />
             </div>
           </div>
 
@@ -283,21 +297,20 @@ export default async function PublicHome() {
         <PublicSection eyebrow="TOOLS" title={t("toolsTitle")} description={t("toolsLead")}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { href: "/quickstart", title: t("toolQs"), meta: "curl / Python / Node" },
-              { href: "/vibe-coding", title: "Claude Code", meta: "ANTHROPIC_BASE_URL" },
-              { href: "/vibe-coding", title: "Codex", meta: "~/.codex/config.toml" },
-              { href: "/docs", title: t("toolOpencode"), meta: t("toolOpencodeMeta") },
-              { href: "/docs", title: t("toolCline"), meta: t("toolClineMeta") },
-              { href: "/docs", title: "Python · Node · cURL", meta: "base_url" },
+              { href: "/quickstart", title: t("toolQs"), meta: "curl / Python / Node", icon: Sparkles },
+              { href: "/vibe-coding", title: "Claude Code", meta: "ANTHROPIC_BASE_URL", icon: iconForTool("Claude Code") },
+              { href: "/vibe-coding", title: "Codex", meta: "~/.codex/config.toml", icon: iconForTool("Codex") },
+              { href: "/docs", title: t("toolOpencode"), meta: t("toolOpencodeMeta"), icon: iconForTool("OpenCode") },
+              { href: "/docs", title: t("toolCline"), meta: t("toolClineMeta"), icon: iconForTool("Cline") },
+              { href: "/docs", title: "Python · Node · cURL", meta: "base_url", icon: iconForTool("Python · Node · cURL") },
             ].map((item) => (
-              <Link
+              <FeatureCard
                 key={item.title}
                 href={item.href}
-                className="rounded-card border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/30"
-              >
-                <p className="font-medium text-ink">{item.title}</p>
-                <p className="mt-1 font-mono text-[12px] text-ink-mute">{item.meta}</p>
-              </Link>
+                icon={item.icon}
+                title={item.title}
+                meta={item.meta}
+              />
             ))}
           </div>
         </PublicSection>
@@ -311,15 +324,14 @@ export default async function PublicHome() {
               { k: "why3t", d: "why3d", href: "/leaderboards/models" },
               { k: "why4t", d: "why4d", href: "/trust" },
               { k: "why5t", d: "why5d", href: "/enterprise" },
-            ].map((card) => (
-              <Link
+            ].map((card, i) => (
+              <FeatureCard
                 key={card.k}
                 href={card.href}
-                className="rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
-              >
-                <p className="text-lg font-semibold text-ink">{t(card.k)}</p>
-                <p className="mt-2 text-sm text-ink-secondary">{t(card.d)}</p>
-              </Link>
+                icon={WHY_ICONS[i]}
+                title={t(card.k)}
+                description={t(card.d)}
+              />
             ))}
           </div>
         </PublicSection>
@@ -332,10 +344,16 @@ export default async function PublicHome() {
           <p className="text-base leading-relaxed text-ink-secondary">{t("ctaLead")}</p>
           <div className="flex flex-wrap gap-3">
             <Button asChild>
-              <Link href="/login">{t("ctaStart")}</Link>
+              <Link href="/login">
+                <LogIn />
+                {t("ctaStart")}
+              </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/models">{t("ctaPrice")}</Link>
+              <Link href="/models">
+                <ArrowRight />
+                {t("ctaPrice")}
+              </Link>
             </Button>
           </div>
         </section>
@@ -349,16 +367,21 @@ function CategoryLink({
   title,
   detail,
   countLabel,
+  icon: Icon,
 }: {
   href: string;
   title: string;
   detail: string;
   countLabel: string;
+  icon: LucideIcon;
 }) {
   return (
     <Link href={href} className="rounded-card border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40">
-      <p className="th-eyebrow text-ink-mute">{countLabel}</p>
-      <p className="mt-1 font-semibold text-ink">{title}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="th-eyebrow text-ink-mute">{countLabel}</p>
+        <IconStamp icon={Icon} size="sm" />
+      </div>
+      <p className="mt-2 font-semibold text-ink">{title}</p>
       <p className="mt-1 text-[13px] text-ink-secondary">{detail}</p>
     </Link>
   );

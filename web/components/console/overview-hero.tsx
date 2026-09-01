@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { KeyRound, Lock, Receipt, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MetricCard } from "@/components/feature-card";
 import { apiBase } from "@/lib/api";
 import { useTranslations } from "next-intl";
 
@@ -57,39 +59,39 @@ export function OverviewHero() {
   }, []);
 
   const cards = [
-    { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet" },
-    { t: t("reserved"), d: t("reservedHint"), v: money(balance?.reserved), href: "/app/wallet" },
-    { t: t("keys"), d: t("keysHint"), v: keyCount == null ? "—" : String(keyCount), href: "/app/keys" },
-    { t: t("receipt"), d: t("receiptHint"), v: lastReceipt, href: "/app/activity" },
+    { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet", icon: Wallet, compact: false },
+    { t: t("reserved"), d: t("reservedHint"), v: money(balance?.reserved), href: "/app/wallet", icon: Lock, compact: false },
+    { t: t("keys"), d: t("keysHint"), v: keyCount == null ? "—" : String(keyCount), href: "/app/keys", icon: KeyRound, compact: false },
+    { t: t("receipt"), d: t("receiptHint"), v: lastReceipt, href: "/app/activity", icon: Receipt, compact: true },
   ];
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href="/app/keys">{t("createKey")}</Link>
+          <Link href="/app/keys">
+            <KeyRound />
+            {t("createKey")}
+          </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/app/wallet">{t("topup")}</Link>
+          <Link href="/app/wallet">
+            <Wallet />
+            {t("topup")}
+          </Link>
         </Button>
       </div>
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
-          <Link
+          <MetricCard
             key={card.t}
             href={card.href}
-            className="rounded-card border border-hairline bg-canvas-raised p-4 no-underline hover:bg-brand-soft/40"
-          >
-            <p className="th-eyebrow text-ink-mute">{card.t}</p>
-            <p
-              className={`mt-2 font-mono font-medium tracking-tight text-ink ${
-                card.t === t("receipt") ? "text-sm leading-snug" : "text-[28px] leading-none tabular-nums"
-              }`}
-            >
-              {card.v}
-            </p>
-            <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
-          </Link>
+            icon={card.icon}
+            label={card.t}
+            value={card.v}
+            hint={card.d}
+            compact={card.compact}
+          />
         ))}
       </section>
       <p className="text-sm text-ink-mute">{t("footnote")}</p>

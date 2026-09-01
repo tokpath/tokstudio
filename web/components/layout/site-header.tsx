@@ -6,10 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 import { MEGA_MENUS, TOP_LINKS } from "@/lib/mega-nav";
+import { ChevronDown, LogIn, Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
+import { iconForHref, iconForMegaLink, iconForMegaMenu } from "@/lib/page-icons";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
   const pathname = usePathname();
@@ -61,6 +63,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             const active =
               (menu.href && (pathname === menu.href || pathname.startsWith(`${menu.href}/`))) ||
               menu.columns.some((col) => col.links.some((l) => pathname === l.href || pathname.startsWith(`${l.href}/`)));
+            const MenuIcon = iconForMegaMenu(menu.id);
             return (
               <div key={menu.id} className="relative">
                 <button
@@ -69,26 +72,33 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
                   aria-haspopup="true"
                   onClick={() => setOpenId(open ? null : menu.id)}
                   onMouseEnter={() => setOpenId(menu.id)}
-                  className={`inline-flex items-center gap-1 rounded-control px-3 py-1.5 text-sm ${
+                  className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm ${
                     open || active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
                   }`}
                 >
+                  <MenuIcon className="size-3.5" strokeWidth={1.75} aria-hidden />
                   {t(menu.labelKey)}
-                  <span className="text-[10px] opacity-70">▾</span>
+                  <ChevronDown
+                    className={`size-3.5 opacity-70 transition-transform ${open ? "rotate-180" : ""}`}
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
                 </button>
               </div>
             );
           })}
           {TOP_LINKS.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = iconForHref(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-control px-3 py-1.5 text-sm no-underline ${
+                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm no-underline ${
                   active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
                 }`}
               >
+                <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
                 {t(item.labelKey)}
               </Link>
             );
@@ -105,18 +115,24 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
                     <div key={col.titleKey}>
                       <p className="th-eyebrow text-ink-mute">{t(col.titleKey)}</p>
                       <ul className="mt-3 flex flex-col gap-1">
-                        {col.links.map((link) => (
-                          <li key={`${col.titleKey}-${link.href}-${link.labelKey || link.literal}`}>
-                            <Link
-                              href={link.href}
-                              className="block rounded-control px-2 py-1.5 no-underline hover:bg-brand-soft/60"
-                              onClick={() => setOpenId(null)}
-                            >
-                              <span className="text-sm text-ink">{linkLabel(link)}</span>
-                              {link.hintKey ? <span className="mt-0.5 block text-[12px] text-ink-mute">{t(link.hintKey)}</span> : null}
-                            </Link>
-                          </li>
-                        ))}
+                        {col.links.map((link) => {
+                          const Icon = iconForMegaLink(link);
+                          return (
+                            <li key={`${col.titleKey}-${link.href}-${link.labelKey || link.literal}`}>
+                              <Link
+                                href={link.href}
+                                className="flex items-start gap-2 rounded-control px-2 py-1.5 no-underline hover:bg-brand-soft/60"
+                                onClick={() => setOpenId(null)}
+                              >
+                                <Icon className="mt-0.5 size-4 shrink-0 text-brand-emphasis" strokeWidth={1.75} aria-hidden />
+                                <span>
+                                  <span className="block text-sm text-ink">{linkLabel(link)}</span>
+                                  {link.hintKey ? <span className="mt-0.5 block text-[12px] text-ink-mute">{t(link.hintKey)}</span> : null}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   ))}
@@ -134,14 +150,21 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             onClick={onCommand}
             className="hidden h-10 items-center gap-2 rounded-control border border-hairline px-3 text-[13px] text-ink-mute md:inline-flex"
           >
+            <Search className="size-3.5" strokeWidth={1.75} aria-hidden />
             {tc("jump")}
             <kbd className="font-mono text-[11px]">⌘K</kbd>
           </button>
           <Button asChild variant="ghost" size="sm">
-            <Link href="/login">{tc("login")}</Link>
+            <Link href="/login">
+              <LogIn />
+              {tc("login")}
+            </Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/login">{tc("register")}</Link>
+            <Link href="/login">
+              <UserPlus />
+              {tc("register")}
+            </Link>
           </Button>
         </div>
       </div>

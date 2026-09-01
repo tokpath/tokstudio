@@ -5,9 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { apiBase } from "@/lib/api";
 import { dailyChartOption, requestChartOption } from "@/lib/charts";
 import { dashboardHero, dashboardSummaryParams } from "@/lib/dashboard";
+import { Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { AdminH2 } from "@/components/admin-h2";
+import { MetricCard } from "@/components/feature-card";
+import { DASHBOARD_HERO_ICONS } from "@/lib/page-icons";
 
 type DashboardBody = {
   dashboard?: {
@@ -115,11 +118,13 @@ export default function AdminDashboard() {
     <div className="flex flex-col gap-5">
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={tu("adminOverview")}>
         {hero.map((card) => (
-          <div key={card.key} className="rounded-card border border-hairline bg-canvas-raised p-4">
-            <p className="th-eyebrow text-ink-mute">{t(card.key)}</p>
-            <p className="mt-2 font-mono text-[28px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
-            <p className="mt-2 text-sm text-ink-secondary">{t(card.hintKey)}</p>
-          </div>
+          <MetricCard
+            key={card.key}
+            icon={DASHBOARD_HERO_ICONS[card.key] ?? DASHBOARD_HERO_ICONS.heroPending}
+            label={t(card.key)}
+            value={card.v}
+            hint={t(card.hintKey)}
+          />
         ))}
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
@@ -127,9 +132,11 @@ export default function AdminDashboard() {
         <p className="mb-4 text-sm text-ink-secondary">{td("opsLead")}</p>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={() => void refresh()}>
+            <RefreshCw />
             {td("refreshMetrics")}
           </Button>
           <Button type="button" variant="outline" onClick={() => void exportDaily()}>
+            <Download />
             {td("exportDaily")}
           </Button>
         </div>

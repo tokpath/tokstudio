@@ -71,7 +71,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByText("租户不能自己添加提供商和模型")).toBeVisible();
   await expect(page.getByRole("button", { name: "从平台目录授权" })).toBeVisible();
   await expect(page.getByRole("link", { name: "模型" }).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "渠道额度" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收款就绪" })).toBeVisible();
   await expect(page.getByText("停用后冻结新消费")).toBeVisible();
   await page.getByRole("button", { name: "编辑" }).click();
   await expect(page.getByRole("button", { name: "保存渠道" })).toBeVisible();

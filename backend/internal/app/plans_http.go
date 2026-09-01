@@ -3,7 +3,6 @@ package app
 import (
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -94,7 +93,7 @@ func (a *App) createMySubscription(c *gin.Context) {
 		return
 	}
 	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
-		UserID: userID, Adapter: body.Adapter, Purpose: payment.PurposeSubscription,
+		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: payment.PurposeSubscription,
 		ReferenceType: payment.PurposeSubscription, ReferenceID: sub.ID,
 		AmountMinor: plan.PriceMinor, Currency: plan.Currency,
 	})
@@ -109,7 +108,7 @@ func (a *App) createMySubscription(c *gin.Context) {
 	})
 	httpx.Created(c, gin.H{
 		"subscription": sub,
-		"checkout":     a.Payment.Checkout(order, a.Config.PublicBaseURL),
+		"checkout":     a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL),
 		"request_id":   c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -138,9 +137,11 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 	var body struct {
 		Adapter     string `json:"adapter"`
 		AmountMinor int64  `json:"amount_minor"`
+		PayMajor    int64  `json:"pay_major"`
 		Purpose     string `json:"purpose"`
+		Currency    string `json:"currency"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.AmountMinor <= 0 {
+	if err := c.ShouldBindJSON(&body); err != nil || (body.AmountMinor <= 0 && body.PayMajor <= 0) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "充值金额无效", false)
 		return
 	}
@@ -150,15 +151,15 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 	if body.Purpose == "" {
 		body.Purpose = payment.PurposeWallet
 	}
-	userID, _ := a.billingUser(c)
+	userID, channelID := a.billingUser(c)
 	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
-		UserID: userID, Adapter: body.Adapter, Purpose: body.Purpose, AmountMinor: body.AmountMinor,
+		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: body.Purpose,
+		AmountMinor: body.AmountMinor, PayMajor: body.PayMajor, Currency: body.Currency,
 	})
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建支付单失败", false)
+	if a.abortPaymentErr(c, err) {
 		return
 	}
-	httpx.Created(c, gin.H{"checkout": a.Payment.Checkout(order, a.Config.PublicBaseURL), "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Created(c, gin.H{"checkout": a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL), "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) getPaymentOrder(c *gin.Context) {
@@ -180,7 +181,7 @@ func (a *App) paymentWebhook(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "回调体无效", false)
 		return
 	}
-	item, err := a.Payment.HandleWebhook(c.Request.Context(), c.Param("adapter"), c.GetHeader("X-Tokenhub-Payment-Signature"), body)
+	item, err := a.Payment.HandleWebhook(c.Request.Context(), c.Param("adapter"), c.Request.Header, body)
 	if err != nil {
 		status := http.StatusBadRequest
 		if err == payment.ErrInvalidSignature {
@@ -323,23 +324,16 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 }
 
 func (a *App) adminListPayments(c *gin.Context) {
-	items, err := a.Payment.ListOrders(c.Request.Context(), c.Query("status"))
+	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
+		Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: c.Query("q"),
+	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取支付单失败", true)
 		return
 	}
-	if q := strings.TrimSpace(c.Query("q")); q != "" {
-		filtered := items[:0]
-		for _, item := range items {
-			if strings.Contains(item.ID, q) || strings.Contains(item.UserID, q) || strings.Contains(item.Adapter, q) || strings.Contains(item.Status, q) {
-				filtered = append(filtered, item)
-			}
-		}
-		items = filtered
-	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "payments.csv", []string{"id", "user_id", "adapter", "purpose", "status", "amount_minor"}, items, func(item payment.OrderView) []string {
-			return []string{item.ID, item.UserID, item.Adapter, item.Purpose, item.Status, strconv.FormatInt(item.AmountMinor, 10)}
+		httpx.WriteCSV(c, "payments.csv", []string{"id", "user_id", "channel_org_id", "adapter", "purpose", "status", "amount_minor"}, items, func(item payment.OrderView) []string {
+			return []string{item.ID, item.UserID, item.ChannelOrgID, item.Adapter, item.Purpose, item.Status, strconv.FormatInt(item.AmountMinor, 10)}
 		})
 		return
 	}

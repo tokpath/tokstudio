@@ -154,12 +154,19 @@
     "users": "Channel users",
     "models": "Channel models",
     "plans": "Plans",
+    "payments": "Payments",
     "promos": "Promos",
     "brand": "Brand",
     "attribution": "Quota",
     "usage": "Usage",
     "settlements": "Settlements",
     "commissions": "Commissions"
+  },
+  "channelPayments": {
+    "nav": "Payments subnav",
+    "lanes": "Lanes",
+    "rules": "Rules",
+    "orders": "Orders"
   },
   "partnerNav": {
     "scope": "Scope",
@@ -725,6 +732,21 @@
       "eyebrow": "PLANS",
       "title": "Plans",
       "description": "Low price or high-risk quota goes to review. Owner is this channel."
+    },
+    "channelPayments": {
+      "eyebrow": "PAYMENTS",
+      "title": "Collections",
+      "description": "Each channel has its own Alipay / WeChat / Stripe merchant. New local methods appear here as plugins."
+    },
+    "channelPaymentRules": {
+      "eyebrow": "RULES",
+      "title": "Payment rules",
+      "description": "Quick amounts, timeout, and help copy. FX and quota BPS are read-only."
+    },
+    "channelPaymentOrders": {
+      "eyebrow": "ORDERS",
+      "title": "Channel orders",
+      "description": "Orders for this channel only. Refunds need confirmation."
     },
     "channelPromos": {
       "eyebrow": "PROMOS",

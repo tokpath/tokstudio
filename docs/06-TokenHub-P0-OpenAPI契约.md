@@ -136,9 +136,13 @@
 - `POST /v1/topups`：创建充值订单；
 - `GET /v1/topups/{id}`：查询订单；
 - `POST /v1/topups/{id}/refund`：按权限申请退款；
-- `POST /v1/payments/orders`：创建钱包充值支付单（沙箱适配器）；
+- `POST /v1/payments/orders`：创建钱包充值支付单。`channel_org_id` 由登录用户归属写入；可传 `pay_major` 由服务端按插件币种报价。
+- `GET /v1/payments/checkout`：按用户 `channel_org_id` 返回已开通通道。空列表不要写成「支付功能未启用」。
+- `GET /v1/payments/quote`：应付 / 手续费 / 钱包入账 / 发放额度。BPS 只读。
 - `GET /v1/payments/orders/{id}`：查询支付单；
-- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。`X-Tokenhub-Payment-Signature` 为 HMAC-SHA256(`event_id|order_id|status`)，按 `external_event_id` 幂等。
+- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。插件 `ParseWebhook` 验签；沙箱 HMAC 为 `event_id|order_id|status`，按 `external_event_id` 幂等。
+- 渠道收款：`GET /channel/payments/overview|adapters|instances|settings|orders`；`POST /channel/payments/instances`；`PATCH /channel/payments/instances/{id}`（改凭证需确认）；`POST .../test`、`POST .../go-live`（确认）。通道卡来自支付插件注册表，新增本地支付只需注册 Adapter。
+- 平台：`GET /admin/channels/{id}/payments` 就绪灯（无密钥）；`POST .../disable` 紧急停用；`GET/PATCH /admin/payment-adapters` 插件总开关。
 - `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。
 - `POST /admin/topups/{id}/confirm`：财务确认人工充值。
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。

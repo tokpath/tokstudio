@@ -101,6 +101,12 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   const channelNav = page.getByRole("navigation", { name: "渠道控制台" });
   await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "本渠道用户" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
+  await channelNav.getByRole("link", { name: "收款" }).click();
+  await expect(page).toHaveURL(/\/channel\/payments/);
+  await expect(page.locator("h1")).toHaveText("收款");
+  await expect(page.getByRole("navigation", { name: "收款子导航" })).toBeVisible();
+  await page.goto("/channel");
   await channelNav.getByRole("link", { name: "本渠道用户" }).click();
   await expect(page).toHaveURL(/\/channel\/users/);
   await expect(page.locator("h1")).toHaveText("本渠道用户");

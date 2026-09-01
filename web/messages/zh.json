@@ -154,12 +154,19 @@
     "users": "本渠道用户",
     "models": "本渠道模型",
     "plans": "套餐",
+    "payments": "收款",
     "promos": "推广",
     "brand": "品牌",
     "attribution": "额度",
     "usage": "用量",
     "settlements": "结算",
     "commissions": "佣金/结算"
+  },
+  "channelPayments": {
+    "nav": "收款子导航",
+    "lanes": "通道",
+    "rules": "规则",
+    "orders": "订单"
   },
   "partnerNav": {
     "scope": "范围",
@@ -725,6 +732,21 @@
       "eyebrow": "PLANS",
       "title": "套餐",
       "description": "低价或高风险配额会进平台审核。归属会被后端写成当前渠道。"
+    },
+    "channelPayments": {
+      "eyebrow": "PAYMENTS",
+      "title": "收款",
+      "description": "每个渠道自己的支付宝 / 微信 / Stripe 商户。平台只提供能力；后续本地支付会作为新插件出现在这里。"
+    },
+    "channelPaymentRules": {
+      "eyebrow": "RULES",
+      "title": "收款规则",
+      "description": "快捷金额、超时和帮助文案。汇率与额度 BPS 只读。"
+    },
+    "channelPaymentOrders": {
+      "eyebrow": "ORDERS",
+      "title": "本渠道订单",
+      "description": "只看本渠道支付单。退款需二次确认。"
     },
     "channelPromos": {
       "eyebrow": "PROMOS",

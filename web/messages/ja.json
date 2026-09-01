@@ -154,12 +154,19 @@
     "users": "チャネルユーザー",
     "models": "チャネルモデル",
     "plans": "プラン",
+    "payments": "決済",
     "promos": "プロモ",
     "brand": "ブランド",
     "attribution": "枠",
     "usage": "利用量",
     "settlements": "精算",
     "commissions": "手数料/精算"
+  },
+  "channelPayments": {
+    "nav": "決済サブナビ",
+    "lanes": "チャネル",
+    "rules": "ルール",
+    "orders": "注文"
   },
   "partnerNav": {
     "scope": "範囲",
@@ -725,6 +732,21 @@
       "eyebrow": "PLANS",
       "title": "プラン",
       "description": "低価格や高リスク枠は審査へ。所有者はこのチャネル。"
+    },
+    "channelPayments": {
+      "eyebrow": "PAYMENTS",
+      "title": "決済",
+      "description": "チャネルごとの支付宝 / 微信 / Stripe 加盟店。後続の現地決済はプラグインとしてここに出ます。"
+    },
+    "channelPaymentRules": {
+      "eyebrow": "RULES",
+      "title": "決済ルール",
+      "description": "クイック金額、タイムアウト、ヘルプ。為替と BPS は読み取り専用。"
+    },
+    "channelPaymentOrders": {
+      "eyebrow": "ORDERS",
+      "title": "チャネル注文",
+      "description": "このチャネルの支払いのみ。返金は確認が必要です。"
     },
     "channelPromos": {
       "eyebrow": "PROMOS",

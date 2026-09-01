@@ -209,6 +209,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerBillingRoutes(r)
 	a.registerMediaRoutes(r)
 	a.registerPlanRoutes(r)
+	a.registerPaymentChannelRoutes(r)
 	a.registerCommissionRoutes(r)
 	a.registerOpsRoutes(r)
 	return r

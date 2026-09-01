@@ -138,6 +138,82 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/brand/assets"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/payments/overview"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/payments/adapters"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/payments/instances"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/payments/instances"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/payments/instances/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/payments/instances/{id}/test"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/payments/instances/{id}/go-live"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/payments/settings"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/payments/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/payments/orders"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/payments/checkout"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/payments/quote"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/channels/{id}/payments"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/channels/{id}/payments/disable"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/payment-adapters"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/payment-adapters/{adapter}"
+  },
+  {
+    "method": "GET",
     "path": "/channel/quota"
   },
   {
@@ -419,22 +495,6 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/brands/{id}/assets"
-  },
-  {
-    "method": "GET",
-    "path": "/v1/public/brand-assets/{id}"
-  },
-  {
-    "method": "GET",
-    "path": "/channel/brand"
-  },
-  {
-    "method": "PATCH",
-    "path": "/channel/brand"
-  },
-  {
-    "method": "POST",
-    "path": "/channel/brand/assets"
   },
   {
     "method": "POST",

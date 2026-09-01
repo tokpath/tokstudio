@@ -129,6 +129,3 @@ func (s *Service) PingRedis(ctx context.Context) error {
 	return s.redis.Ping(ctx).Err()
 }
 
-func RedisNil(err error) bool {
-	return err == redis.Nil
-}

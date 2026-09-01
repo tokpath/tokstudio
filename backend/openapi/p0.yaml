@@ -298,6 +298,136 @@ paths:
       responses:
         "201":
           description: channel plan created or pending review
+  /channel/payments/overview:
+    get:
+      operationId: getChannelPaymentOverview
+      responses:
+        "200":
+          description: pluggable payment lanes for this channel
+  /channel/payments/adapters:
+    get:
+      operationId: listChannelPaymentAdapters
+      responses:
+        "200":
+          description: registered payment plugins
+  /channel/payments/instances:
+    get:
+      operationId: listChannelPaymentInstances
+      responses:
+        "200":
+          description: merchant instances without secrets
+    post:
+      operationId: createChannelPaymentInstance
+      responses:
+        "201":
+          description: instance created
+  /channel/payments/instances/{id}:
+    patch:
+      operationId: patchChannelPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: instance updated
+  /channel/payments/instances/{id}/test:
+    post:
+      operationId: testChannelPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: connectivity tested
+  /channel/payments/instances/{id}/go-live:
+    post:
+      operationId: goLiveChannelPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: instance live
+  /channel/payments/settings:
+    get:
+      operationId: getChannelPaymentSettings
+      responses:
+        "200":
+          description: checkout rules
+    patch:
+      operationId: patchChannelPaymentSettings
+      responses:
+        "200":
+          description: rules saved
+  /channel/payments/orders:
+    get:
+      operationId: listChannelPaymentOrders
+      responses:
+        "200":
+          description: orders for this channel
+  /v1/payments/checkout:
+    get:
+      operationId: getUserPaymentCheckout
+      responses:
+        "200":
+          description: methods resolved from the caller's channel
+  /v1/payments/quote:
+    get:
+      operationId: quoteUserPayment
+      responses:
+        "200":
+          description: dual currency quote using read-only BPS
+  /admin/channels/{id}/payments:
+    get:
+      operationId: getAdminChannelPayments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: readiness lights without secrets
+  /admin/channels/{id}/payments/disable:
+    post:
+      operationId: disableAdminChannelPayments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: emergency disable
+  /admin/payment-adapters:
+    get:
+      operationId: listAdminPaymentAdapters
+      responses:
+        "200":
+          description: plugin catalog and kill switches
+  /admin/payment-adapters/{adapter}:
+    patch:
+      operationId: patchAdminPaymentAdapter
+      parameters:
+        - name: adapter
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: adapter flag updated
   /channel/quota:
     get:
       operationId: getChannelQuota

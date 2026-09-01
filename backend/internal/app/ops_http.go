@@ -249,7 +249,7 @@ func (a *App) adminPaymentDrill(c *gin.Context) {
 	signKey := firstNonEmpty(a.Config.PaymentSignKey, a.Config.EncryptionKey)
 	eventID := "evt-drill-" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 	bad := paymentSign(signKey+"-wrong", eventID, "ord-missing", "paid")
-	_, err := a.Payment.HandleWebhook(c.Request.Context(), payment.AdapterStripe, bad, []byte(`{"event_id":"`+eventID+`","order_id":"ord-missing","status":"paid"}`))
+	_, err := a.Payment.HandleWebhook(c.Request.Context(), payment.AdapterStripe, http.Header{"X-Tokenhub-Payment-Signature": []string{bad}}, []byte(`{"event_id":"`+eventID+`","order_id":"ord-missing","status":"paid"}`))
 	if !errors.Is(err, payment.ErrInvalidSignature) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "伪造签名未被拒绝", true)
 		return

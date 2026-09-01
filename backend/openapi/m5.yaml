@@ -29,6 +29,18 @@ paths:
   /v1/payments/orders:
     post:
       summary: Create a wallet payment order
+  /v1/payments/checkout:
+    get:
+      summary: Checkout methods for the caller's channel
+  /v1/payments/quote:
+    get:
+      summary: Dual-currency quote
+  /channel/payments/overview:
+    get:
+      summary: Channel payment lanes from the plugin registry
+  /admin/channels/{id}/payments:
+    get:
+      summary: Channel payment readiness lights
   /v1/payments/{adapter}/webhook:
     post:
       summary: Adapter webhook. HMAC of event_id|order_id|status. Idempotent on external_event_id.

@@ -16,6 +16,7 @@ describe("adminNavKeys", () => {
       "billing",
       "usage",
       "channels",
+      "brands",
       "promos",
       "commission",
       "metrics",

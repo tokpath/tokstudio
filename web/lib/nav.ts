@@ -96,6 +96,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
       { href: "/channel/models", key: "models" },
       { href: "/channel/plans", key: "plans" },
       { href: "/channel/promos", key: "promos" },
+      { href: "/channel/brand", key: "brand" },
     ],
   },
   {
@@ -153,6 +154,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
     titleKey: "groupDistribution",
     items: [
       { href: "/admin/channels", key: "channels" },
+      { href: "/admin/brands", key: "brands" },
       { href: "/admin/promos", key: "promos" },
       { href: "/admin/commission", key: "commission" },
     ],

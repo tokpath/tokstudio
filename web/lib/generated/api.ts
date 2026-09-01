@@ -406,6 +406,38 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "POST",
+    "path": "/admin/brands"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/brands/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/brands/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/brands/{id}/assets"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/public/brand-assets/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/brand/assets"
+  },
+  {
+    "method": "POST",
     "path": "/admin/brands/{id}/tls/issue"
   },
   {

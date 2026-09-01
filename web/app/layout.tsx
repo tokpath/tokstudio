@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import { themeStyle, type Brand } from "@/lib/brand";
+import { publicAssetURL, themeStyle, type Brand } from "@/lib/brand";
 import { fetchAPI } from "@/lib/api";
 import { htmlLang, messagesForRequest, resolveRequestLocale } from "@/lib/i18n";
 import { AppChrome } from "@/components/layout/app-chrome";
@@ -15,9 +15,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
   const accept = (await headers()).get("accept-language");
   const messages = messagesForRequest(cookie, accept) as { chrome?: { metaDescription?: string } };
+  const brand = await loadBrand();
+  const icon = publicAssetURL(brand?.favicon_url || brand?.logo_url);
   return {
-    title: "TokenHub",
+    title: brand?.name || "TokenHub",
     description: messages.chrome?.metaDescription || "一个 Key，可解释路由，账能复算。",
+    icons: icon ? { icon } : undefined,
   };
 }
 

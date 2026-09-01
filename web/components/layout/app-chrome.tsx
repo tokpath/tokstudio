@@ -20,7 +20,7 @@ export function AppChrome({ brand, children }: { brand?: Brand; children: React.
   if (isConsolePath(pathname)) {
     return (
       <>
-        <ConsoleShell onCommand={() => setCommandOpen(true)}>
+        <ConsoleShell brand={brand} onCommand={() => setCommandOpen(true)}>
           {children}
         </ConsoleShell>
         {palette}

@@ -404,13 +404,6 @@ func (a *App) rememberIdempotency(c *gin.Context, rawBody []byte, status int, pa
 	_ = redisx.RememberIdempotency(c.Request.Context(), a.Redis, a.idempotencyActor(c), header, redisx.HashBody(rawBody), status, body)
 }
 
-func firstContent(resp gateway.ChatResponse) string {
-	if len(resp.Choices) == 0 {
-		return ""
-	}
-	return resp.Choices[0].Message.Content
-}
-
 func anthropicContent(resp gateway.ChatResponse) []gin.H {
 	if len(resp.Choices) == 0 {
 		return []gin.H{}

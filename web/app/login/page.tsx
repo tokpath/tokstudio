@@ -157,7 +157,6 @@ function LoginForm() {
       <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8">
         <p className="th-eyebrow text-brand-emphasis">{t("eyebrow")}</p>
         <h1 className="mt-3 text-[40px] font-semibold leading-tight">{t("title")}</h1>
-        <p className="mt-3 text-base leading-relaxed text-ink-secondary">{t("lead")}</p>
 
         <div className="mt-6 flex flex-col gap-2">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>

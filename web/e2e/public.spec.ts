@@ -33,6 +33,13 @@ const publicPaths = [
   "/login",
 ];
 
+test("login page has no ofox copy", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/ofox/i);
+  await expect(page.getByText("结构对齐")).toHaveCount(0);
+});
+
 test("public ofox replica pages render headings", async ({ page }) => {
   for (const path of publicPaths) {
     const response = await page.goto(path);

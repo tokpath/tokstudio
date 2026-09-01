@@ -1862,7 +1862,7 @@
       "output": "0.0000016"
     },
     "status": "available",
-    "description": "阿里云百炼 Qwen3.7 系列 Plus 模型, 1M context, 支持深度推理 (reasoning), 性价比均衡定位 (input $0.4/output $1.6). 通过 DashScope OpenAI-compatible + Anthropic + Responses 三协议接入 ofox china 池.",
+    "description": "阿里云百炼 Qwen3.7 系列 Plus 模型, 1M context, 支持深度推理 (reasoning), 性价比均衡定位 (input $0.4/output $1.6). 通过 DashScope OpenAI-compatible + Anthropic + Responses 三协议接入。",
     "context_length": 1064000,
     "max_completion_tokens": 64000,
     "kind": "text",
@@ -1905,7 +1905,7 @@
       "output": "0.0000024"
     },
     "status": "available",
-    "description": "MiniMax-M3 是 MiniMax 官方渠道 (api.minimaxi.com) 旗舰推理模型, 1M context, 内嵌 thinking (<think> 标签), 支持 prompt caching 与 tool calling. 通过 OpenAI-compatible + Anthropic 双协议接入 ofox china 池.",
+    "description": "MiniMax-M3 是 MiniMax 官方渠道 (api.minimaxi.com) 旗舰推理模型, 1M context, 内嵌 thinking (<think> 标签), 支持 prompt caching 与 tool calling. 通过 OpenAI-compatible + Anthropic 双协议接入。",
     "context_length": 1131000,
     "max_completion_tokens": 131000,
     "kind": "text",

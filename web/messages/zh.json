@@ -25,8 +25,8 @@
     "groupChannel": "渠道",
     "groupPartner": "分销",
     "groupAdmin": "管理",
-    "footerTagline": "一张已发布的价目单，外加一枚签核章。纸/碳双主题，四个入口共用同一套语法。",
-    "footerCopy": "Clearing · OEM 只换章和 Logo",
+    "footerTagline": "多模型 API 中转。价格公开，账可复算。",
+    "footerCopy": "TokenHub",
     "footerApp": "用户台",
     "footerChannel": "渠道台",
     "footerAdmin": "管理台",
@@ -210,7 +210,6 @@
   "login": {
     "eyebrow": "Sign in",
     "title": "注册 / 登录",
-    "lead": "结构对齐 ofox：GitHub / Google 在上，邮箱密码在下。GitHub 独立 OAuth 尚未接入。忘记密码请用邮件 OTP，没有单独找回页。推广码只在注册时由服务端固化归属。",
     "github": "使用 GitHub 登录",
     "google": "使用 Google 登录",
     "or": "或",
@@ -287,7 +286,7 @@
     "sampleLead": "完整 Key 不会写进示例。右侧是一张 EXAMPLE 回单，不是实时账。",
     "sampleFoot": "客户只收一笔",
     "mediaTitle": "不止于文本模型，视频图像同样出色",
-    "mediaLead": "Seedance 系列、GPT Image、Seedream、Wan。结构对齐 ofox 媒体墙；皮肤是纸面细线。",
+    "mediaLead": "Seedance、GPT Image、Seedream、Wan 等图像与视频模型。",
     "browseImage": "浏览图像",
     "browseVideo": "浏览视频",
     "multiTitle": "文本、图像、视频，一个 Key 搞定",
@@ -302,7 +301,7 @@
     "allModels": "查看全部模型",
     "bestValue": "性价比模型",
     "boardTitle": "大家都在用什么？",
-    "boardLead": "结构对齐 ofox 用量榜。份额来自公开站快照，接入真实汇总后替换。",
+    "boardLead": "按公开用量份额排列。接入真实汇总后会更新。",
     "boardCta": "完整榜单",
     "toolsTitle": "常用工具，只需换一个 URL",
     "toolsLead": "不用迁移 SDK。在现有配置里改 base URL。",
@@ -419,98 +418,98 @@
     "compare": {
       "eyebrow": "COMPARE",
       "title": "模型对比",
-      "description": "对齐 ofox 对照页：选两个已发布模型，并排看价目、上下文和能力。不发明没有的价格，不做橙色营销条。",
+      "description": "选两个已发布模型，并排看价格、上下文和能力。",
       "primary": "打开价目",
       "secondary": "性价比"
     },
     "desktop": {
       "eyebrow": "DESKTOP",
       "title": "本机编程工具，一个账户接入",
-      "description": "结构对齐 ofox Desktop：检测本机工具、独立 Key、一份账单。安装包尚未随本仓库发布，当前走 Web 改 base URL，不假装能下载。",
+      "description": "在本机编程工具里换上本站 Base URL 和 Key，账单走同一本账。安装包尚未发布。",
       "primary": "看接入片段",
       "secondary": "登录控制台"
     },
     "models": {
       "eyebrow": "MODELS",
       "title": "模型目录",
-      "description": "搜索 / 模态筛选 / 列表与表格。对齐 ofox 模型广场密度，皮肤走 DESIGN.md 价目行。",
+      "description": "搜索、按类型筛选，查看已发布模型和价格。",
       "primary": "快速开始",
       "secondary": "文档"
     },
     "quickstart": {
       "eyebrow": "QUICKSTART",
       "title": "快速开始",
-      "description": "从 0 到生产环境，3 分钟搞定。结构对齐 ofox 快速开始：注册 → 复制示例 → 开始构建。",
+      "description": "注册、复制示例、开始调用。大约三分钟。",
       "primary": "获取 API Key",
       "secondary": "探索模型"
     },
     "docs": {
       "eyebrow": "DOCS",
       "title": "开发者文档",
-      "description": "协议与示例。正文栏约 720px。代码落在碳面上。",
+      "description": "协议、示例和错误说明。",
       "primary": "快速开始",
       "secondary": "集成"
     },
     "docsIntegrations": {
       "eyebrow": "INTEGRATIONS",
       "title": "集成",
-      "description": "对齐 ofox 集成目录。每个工具只改 base URL / Key，代码块落在碳面。",
+      "description": "每个工具只改 Base URL 和 API Key。",
       "primary": "文档",
       "secondary": "Vibe Coding"
     },
     "docsDevelop": {
       "eyebrow": "DEVELOP",
       "title": "开发指南",
-      "description": "对齐 ofox /docs/develop：错误码、限流、安全边界。正文约 720px。",
+      "description": "错误码、限流和安全边界。",
       "primary": "文档",
       "secondary": "快速开始"
     },
     "docsChangelog": {
       "eyebrow": "CHANGELOG",
       "title": "更新日志",
-      "description": "对齐 ofox changelog 入口。只记录本产品已落地的变化。",
+      "description": "只记录本产品已经上线的变化。",
       "primary": "文档",
       "secondary": "公共站"
     },
     "enterprise": {
       "eyebrow": "ENTERPRISE",
       "title": "企业服务",
-      "description": "对齐 ofox 企业页的能力网格与对比叙事；皮肤是清算台所：纸面、细线、钴蓝章。",
+      "description": "团队接入、额度控制和可审计账单。",
       "primary": "联系接入",
       "secondary": "信任中心"
     },
     "trust": {
       "eyebrow": "TRUST",
       "title": "信任中心",
-      "description": "对齐 ofox 信任中心：留存边界、加密、Key、可用性。文案按 TokenHub 清算台口径。",
+      "description": "说明数据留存、加密、API Key 和可用性。",
       "primary": "隐私政策",
       "secondary": "子处理商"
     },
     "trustSubprocessors": {
       "eyebrow": "SUBPROCESSORS",
       "title": "第三方服务商",
-      "description": "基础设施、支付与条件性模型上游。对齐 ofox 子处理商列表结构。",
+      "description": "基础设施、支付和模型上游服务商。",
       "primary": "信任中心",
       "secondary": "隐私政策"
     },
     "bestValue": {
       "eyebrow": "BEST VALUE",
       "title": "性价比模型",
-      "description": "按公开输入单价从低到高。对齐 ofox 折扣/性价比表的完整密度。",
+      "description": "按公开输入单价从低到高排列。",
       "primary": "全部模型",
       "secondary": "对比"
     },
     "modelFinder": {
       "eyebrow": "FINDER",
       "title": "模型推荐器",
-      "description": "免登录问卷结构对齐 ofox 模型推荐器。推荐结果链到价目与接入页，不伪造排行分数。",
+      "description": "按使用场景推荐模型，结果链到价格和接入页。",
       "primary": "开始推荐",
       "secondary": "价目"
     },
     "vibeCoding": {
       "eyebrow": "VIBE CODING",
       "title": "编程工具，只需换一个 URL",
-      "description": "对齐 ofox Vibe Coding：Codex / Claude Code 配置片段落在碳面代码块。",
+      "description": "Codex、Claude Code 等工具的接入配置。",
       "primary": "获取 API Key",
       "secondary": "探索模型"
     },
@@ -531,84 +530,84 @@
     "leaderboardsModels": {
       "eyebrow": "LEADERBOARDS",
       "title": "模型排行",
-      "description": "结构对齐 ofox 用量榜。份额来自公开站快照，接入真实汇总后替换。",
+      "description": "按公开用量份额排列模型。",
       "primary": "应用排行",
       "secondary": "厂商排行"
     },
     "leaderboardsApps": {
       "eyebrow": "APPS",
       "title": "应用排行",
-      "description": "对齐 ofox 应用榜。SDK 与 CLI 份额来自公开快照。",
+      "description": "按 SDK 与 CLI 用量份额排列。",
       "primary": "模型排行",
       "secondary": "文档"
     },
     "leaderboardsLabs": {
       "eyebrow": "LABS",
       "title": "厂商排行",
-      "description": "对齐 ofox labs 榜：按供应商聚合的 token 份额。",
+      "description": "按供应商聚合的用量份额。",
       "primary": "模型排行",
       "secondary": "价目"
     },
     "vsOpenrouter": {
       "eyebrow": "COMPARE",
       "title": "对比聚合网关",
-      "description": "对齐 ofox「vs OpenRouter」对照页结构；用清算台能力说话，不做橙色营销条。",
+      "description": "对照统一入口、可解释路由和可复算账单。",
       "primary": "价目",
       "secondary": "企业"
     },
     "promo": {
       "eyebrow": "PARTNER",
       "title": "合作推广",
-      "description": "对齐 ofox 合作页：介绍推广码与渠道结算入口。注册时推广码由服务端固化，不能自助改归属。",
+      "description": "用推广码发展用户，渠道内结算佣金。归属在注册时绑定。",
       "primary": "登录注册",
       "secondary": "渠道台"
     },
     "promoAugust": {
       "eyebrow": "PROMO",
       "title": "充值优惠",
-      "description": "对齐 ofox 月度充值条：兑换码入账走账本，不做成渐变胶囊。",
+      "description": "用兑换码充值，入账记入账本。",
       "primary": "去充值",
       "secondary": "套餐"
     },
     "verify": {
       "eyebrow": "VERIFY",
       "title": "模型验真",
-      "description": "对齐 ofox 验真页意图：证明请求打到声明的模型。实现上依赖路由回单与上游映射审计。",
+      "description": "核对请求是否打到声明的模型。",
       "primary": "请求明细",
       "secondary": "文档"
     },
     "awesome": {
       "eyebrow": "ECOSYSTEM",
       "title": "生态应用",
-      "description": "对齐 ofox Works with 墙：展示已接入的应用。皮肤是纸面细线，不堆营销渐变。",
+      "description": "已接入本站的应用和工具。",
       "primary": "Vibe Coding",
       "secondary": "文档"
     },
     "pricing": {
       "eyebrow": "PRICING",
       "title": "定价",
-      "description": "对齐 ofox 定价页：牌价即实付。具体数字以已发布价目为准。",
+      "description": "牌价即实付，数字以已发布价格为准。",
       "primary": "打开价目",
       "secondary": "性价比"
     },
     "blog": {
       "eyebrow": "BLOG",
       "title": "博客",
-      "description": "对齐 ofox 博客列表。文章来自公开站快照，由服务端返回。",
+      "description": "产品与接入相关文章。",
       "primary": "先看文档",
       "secondary": "快速开始"
     },
     "terms": {
       "eyebrow": "LEGAL",
       "title": "服务条款",
-      "description": "占位条款页，结构对齐 ofox 法律页。正式法务文案需由法务审定后替换。",
+      "description": "服务条款占位稿，正式文本需法务审定。",
       "primary": "隐私政策",
       "secondary": "公共站"
     },
     "privacy": {
       "eyebrow": "PRIVACY",
       "title": "隐私政策",
-      "description": "对齐 ofox 隐私页入口。细则与信任中心一致：同步 API 不落业务正文，账本与路由元数据保留。",
+      "description": "同步请求不长期保存业务正文；账本与路由元数据会保留。",
       "primary": "信任中心",
       "secondary": "服务条款"
     },
@@ -781,7 +780,7 @@
   "docsUi": {
     "badge": "开发者文档",
     "title": "{name} 接入文档",
-    "lead": "正文栏约 720px。代码落在碳面上。示例带当前品牌 Base URL；Key 用占位，不写平台成本。",
+    "lead": "示例使用当前品牌的 Base URL。请用你自己的 API Key 替换占位符。",
     "models": "可用模型：{list}",
     "nav": "文档目录",
     "curlPh": "curl 示例接通后出现。Key 用 sk-...xxxx。",
@@ -801,10 +800,10 @@
     "secTitle": "数据怎么走",
     "secBody": "同步 API 不落业务正文。媒体任务按生命周期短时保留。完整 Key 默认掩码。",
     "logTitle": "近期",
-    "c0t": "公开站按 DESIGN.md 对齐 ofox 页面密度",
+    "c0t": "公开站模型目录与接入页",
     "c0d": "模型目录、价目、排行与接入页。",
-    "c1t": "ofox 目录入库",
-    "c1d": "爬取公开模型 dump 到 catalog，经 /v1/public/models 返回。",
+    "c1t": "模型目录入库",
+    "c1d": "公开模型进入目录，经 /v1/public/models 返回。",
     "c2t": "四个入口补齐",
     "c2d": "公共站 / 用户台 / 渠道台 / 管理台共用纸碳 token。"
   },
@@ -1258,7 +1257,7 @@
     "p2": "子处理商列表见信任中心。你可通过账户设置管理基础资料（以产品实际能力为准）。"
   },
   "blogUi": {
-    "note": "本文结构对齐 ofox 博客详情：标题、摘要、返回列表。计费与路由细节以本站文档和价目为准。",
+    "note": "计费与路由以本站文档和价格为准。",
     "docs": "文档",
     "source": "来源"
   },

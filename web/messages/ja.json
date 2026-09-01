@@ -25,8 +25,8 @@
     "groupChannel": "チャネル",
     "groupPartner": "代理",
     "groupAdmin": "管理",
-    "footerTagline": "公開済みの価格表と、署名されたスタンプ。紙/カーボンの二テーマ。四つの入口、一つの文法。",
-    "footerCopy": "Clearing · OEM はスタンプとロゴだけ差し替え",
+    "footerTagline": "マルチモデル API 中継。価格は公開、帳票は再計算できます。",
+    "footerCopy": "TokenHub",
     "footerApp": "ユーザー台",
     "footerChannel": "チャネル台",
     "footerAdmin": "管理台",
@@ -210,7 +210,6 @@
   "login": {
     "eyebrow": "Sign in",
     "title": "登録 / ログイン",
-    "lead": "GitHub / Google が上、メールが下。独立した GitHub OAuth は未接続。パスワード忘れはメール OTP。プロモコードは登録時に固定。",
     "github": "GitHub で続ける",
     "google": "Google で続ける",
     "or": "または",
@@ -426,7 +425,7 @@
     "desktop": {
       "eyebrow": "DESKTOP",
       "title": "手元のコーディングツールを一つの口座で",
-      "description": "ofox Desktop と同じ意図。インストーラはこのリポジトリに含まれません。Web で base URL を変えてください。偽のダウンロードはありません。",
+      "description": "手元のツールで Base URL と Key を差し替え、請求は同じ口座にまとまります。インストーラはまだありません。",
       "primary": "接続断片を見る",
       "secondary": "コンソールへ"
     },
@@ -447,7 +446,7 @@
     "docs": {
       "eyebrow": "DOCS",
       "title": "開発者ドキュメント",
-      "description": "プロトコルとサンプル。本文は約 720px。コードはカーボン面。",
+      "description": "プロトコル、サンプル、エラーの説明。",
       "primary": "クイックスタート",
       "secondary": "連携"
     },
@@ -781,7 +780,7 @@
   "docsUi": {
     "badge": "ドキュメント",
     "title": "{name} ドキュメント",
-    "lead": "本文は約 720px。コードはカーボン面。例はブランド Base URL。Key はプレースホルダ。",
+    "lead": "サンプルは現在のブランドの Base URL を使います。プレースホルダを自分の API Key に替えてください。",
     "models": "モデル：{list}",
     "nav": "目次",
     "curlPh": "接続後に curl サンプルが出ます。Key は sk-...xxxx。",
@@ -801,9 +800,9 @@
     "secTitle": "データはどう流れるか",
     "secBody": "同期 API は業務本文を残さない。メディアジョブはライフサイクルで短期間。完全な Key はマスク。",
     "logTitle": "最近",
-    "c0t": "公開サイトを DESIGN.md で ofox 密度に揃えた",
+    "c0t": "公開カタログと接続ページ",
     "c0d": "カタログ、価格、ランキング、接続頁。",
-    "c1t": "ofox カタログを取り込み",
+    "c1t": "モデルカタログを取り込み",
     "c1d": "公開モデル dump を catalog へ。/v1/public/models で返す。",
     "c2t": "四つの入口を揃えた",
     "c2d": "公開 / ユーザー / チャネル / 管理が紙カーボン token を共有。"
@@ -1258,7 +1257,7 @@
     "p2": "サブプロセッサは信頼センター。基本資料はアカウント設定（製品の実能力に従う）。"
   },
   "blogUi": {
-    "note": "記事構造は ofox ブログ詳細：タイトル、要約、一覧へ戻る。課金とルーティングは本サイトのドキュメントと価格に従う。",
+    "note": "課金とルーティングは本サイトのドキュメントと価格に従います。",
     "docs": "ドキュメント",
     "source": "出典"
   },

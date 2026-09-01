@@ -25,8 +25,8 @@
     "groupChannel": "Channel",
     "groupPartner": "Partner",
     "groupAdmin": "Admin",
-    "footerTagline": "A published price book plus a signed stamp. Paper/carbon themes. Four doors, one grammar.",
-    "footerCopy": "Clearing · OEM swaps stamp and logo only",
+    "footerTagline": "A multi-model API gateway. Prices are public. The ledger can be recomputed.",
+    "footerCopy": "TokenHub",
     "footerApp": "Console",
     "footerChannel": "Channel",
     "footerAdmin": "Admin",
@@ -210,7 +210,6 @@
   "login": {
     "eyebrow": "Sign in",
     "title": "Sign up / Sign in",
-    "lead": "GitHub / Google on top, email below. Standalone GitHub OAuth is not wired yet. Forgot password uses email OTP — there is no separate reset page. Promo codes are locked at registration.",
     "github": "Continue with GitHub",
     "google": "Continue with Google",
     "or": "or",
@@ -287,7 +286,7 @@
     "sampleLead": "Full keys never appear in samples. The receipt on the right is EXAMPLE, not live billing.",
     "sampleFoot": "Customer is charged once",
     "mediaTitle": "Not just text — image and video too",
-    "mediaLead": "Seedance, GPT Image, Seedream, Wan. Same media-wall structure, paper hairlines.",
+    "mediaLead": "Seedance, GPT Image, Seedream, Wan, and other image and video models.",
     "browseImage": "Browse images",
     "browseVideo": "Browse video",
     "multiTitle": "Text, image, video — one key",
@@ -426,7 +425,7 @@
     "desktop": {
       "eyebrow": "DESKTOP",
       "title": "Local coding tools, one account",
-      "description": "Same intent as ofox Desktop: local tools, independent keys, one ledger. No installer ships with this repo — change the base URL on the web. No fake download.",
+      "description": "Use this account in local coding tools. Change the base URL on the web — no installer ships yet.",
       "primary": "See snippets",
       "secondary": "Open console"
     },
@@ -447,7 +446,7 @@
     "docs": {
       "eyebrow": "DOCS",
       "title": "Developer docs",
-      "description": "Protocols and samples. Body column ~720px. Code sits on carbon.",
+      "description": "Protocols, samples, and error notes.",
       "primary": "Quickstart",
       "secondary": "Integrations"
     },
@@ -461,7 +460,7 @@
     "docsDevelop": {
       "eyebrow": "DEVELOP",
       "title": "Develop",
-      "description": "Error codes, rate limits, safety boundaries. Body ~720px.",
+      "description": "Error codes, rate limits, and safety boundaries.",
       "primary": "Docs",
       "secondary": "Quickstart"
     },
@@ -781,7 +780,7 @@
   "docsUi": {
     "badge": "Docs",
     "title": "{name} docs",
-    "lead": "About 720px of body copy. Code sits on carbon. Examples use this brand Base URL; keys are placeholders.",
+    "lead": "Samples use this brand's Base URL. Replace the placeholder with your API Key.",
     "models": "Models: {list}",
     "nav": "Docs contents",
     "curlPh": "The curl sample appears after docs-context connects. Use sk-...xxxx.",
@@ -801,9 +800,9 @@
     "secTitle": "How data moves",
     "secBody": "Sync APIs do not store business payloads. Media jobs stay briefly by lifecycle. Full keys stay masked.",
     "logTitle": "Recent",
-    "c0t": "Public site density aligned to ofox under DESIGN.md",
+    "c0t": "Public catalog and docs pages",
     "c0d": "Catalog, prices, leaderboards, and integration pages.",
-    "c1t": "ofox catalog ingested",
+    "c1t": "Model catalog ingested",
     "c1d": "Public model dump into catalog, served at /v1/public/models.",
     "c2t": "Four portals complete",
     "c2d": "Public / user / channel / admin share paper-carbon tokens."
@@ -1258,7 +1257,7 @@
     "p2": "Subprocessors are listed in Trust. Manage basic profile data in account settings (as the product actually supports)."
   },
   "blogUi": {
-    "note": "Article layout matches ofox blog detail: title, summary, back to list. Billing and routing follow this site's docs and prices.",
+    "note": "Billing and routing follow this site's docs and prices.",
     "docs": "Docs",
     "source": "Source"
   },

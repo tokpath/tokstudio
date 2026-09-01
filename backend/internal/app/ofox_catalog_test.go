@@ -2,6 +2,8 @@ package app_test
 
 import (
 	"context"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
@@ -10,7 +12,6 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/logx"
 	"github.com/tokpath/tokstudio/backend/internal/platform/redisx"
-	"net/http/httptest"
 )
 
 func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
@@ -76,5 +77,33 @@ func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
 	payload, _ := site["site"].(map[string]any)
 	if payload["leaderboards"] == nil || payload["blog"] == nil {
 		t.Fatalf("public site snapshot missing: %+v", site)
+	}
+
+	filtered := getAuthJSON(t, server.URL+"/v1/public/models?vendor=z-ai&kind=text", "")
+	filteredItems, _ := filtered["items"].([]any)
+	if len(filteredItems) == 0 {
+		t.Fatalf("vendor=z-ai&kind=text returned no items: %+v", filtered)
+	}
+	for _, raw := range filteredItems {
+		row := raw.(map[string]any)
+		if row["vendor"] != "z-ai" {
+			t.Fatalf("vendor filter leaked %v", row["vendor"])
+		}
+		if row["kind"] != "text" {
+			t.Fatalf("kind filter leaked %v for %v", row["kind"], row["id"])
+		}
+	}
+	facets, _ := filtered["facets"].(map[string]any)
+	if facets["kinds"] == nil || facets["vendors"] == nil {
+		t.Fatalf("filtered catalog missing facets: %+v", filtered)
+	}
+	if n, _ := filtered["total"].(float64); int(n) != len(filteredItems) {
+		t.Fatalf("total=%v items=%d", filtered["total"], len(filteredItems))
+	}
+
+	one := getAuthJSON(t, server.URL+"/v1/public/models?id="+url.QueryEscape(ofoxID), "")
+	oneItems, _ := one["items"].([]any)
+	if len(oneItems) != 1 || oneItems[0].(map[string]any)["id"] != ofoxID {
+		t.Fatalf("id filter: %+v", one)
 	}
 }

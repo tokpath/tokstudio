@@ -1,4 +1,3 @@
-import fixture from "@/lib/fixtures/ofox-catalog.json";
 import { fetchAPI } from "@/lib/api";
 
 export type CatalogModel = {
@@ -15,6 +14,29 @@ export type CatalogModel = {
   created?: number;
 };
 
+export type CatalogQuery = {
+  vendor?: string;
+  kind?: string;
+  q?: string;
+  id?: string;
+  limit?: number;
+};
+
+export type FacetCount = { id: string; count: number };
+
+export type CatalogFacets = {
+  kinds: FacetCount[];
+  vendors: FacetCount[];
+};
+
+export type CatalogPage = {
+  items: CatalogModel[];
+  total: number;
+  facets: CatalogFacets;
+};
+
+const EMPTY_PAGE: CatalogPage = { items: [], total: 0, facets: { kinds: [], vendors: [] } };
+
 export type AdminModel = {
   id: string;
   vendor: string;
@@ -26,30 +48,93 @@ export type AdminModel = {
   providers?: string[];
 };
 
-const FALLBACK = fixture as CatalogModel[];
+export function publicModelsPath(query: CatalogQuery = {}): string {
+  const params = catalogSearchParams(query, { includeId: true, includeLimit: true });
+  const qs = params.toString();
+  return qs ? `/v1/public/models?${qs}` : "/v1/public/models";
+}
 
-/** API 有白名单时优先用；否则用 ofox 公开目录快照，保证复刻页有完整密度。 */
-export async function loadCatalog(host: string): Promise<CatalogModel[]> {
-  try {
-    const data = await fetchAPI<{ items: CatalogModel[] }>("/v1/public/models", { host });
-    if (data.items?.length) {
-      return data.items.map((m) => ({
-        id: m.id || "unknown",
-        vendor: m.vendor || "unknown",
-        display_name: m.display_name || m.id || "unknown",
-        capabilities: m.capabilities,
-        sell_price: m.sell_price,
-        status: m.status || "available",
-        kind: m.kind || inferKind(m),
-        description: m.description,
-        context_length: m.context_length,
-        max_completion_tokens: m.max_completion_tokens,
-      }));
-    }
-  } catch {
-    /* fall through */
+export function catalogHref(basePath: string, query: CatalogQuery = {}): string {
+  const qs = catalogSearchParams(query).toString();
+  return qs ? `${basePath}?${qs}` : basePath;
+}
+
+export function parseCatalogSearchParams(query: {
+  kind?: string;
+  output?: string;
+  vendor?: string;
+  q?: string;
+}): CatalogQuery {
+  const kind = (query.kind || query.output || "").trim();
+  return {
+    vendor: query.vendor?.trim() || undefined,
+    kind: kind && kind !== "all" ? kind : undefined,
+    q: query.q?.trim() || undefined,
+  };
+}
+
+function catalogSearchParams(
+  query: CatalogQuery,
+  opts: { includeId?: boolean; includeLimit?: boolean } = {},
+): URLSearchParams {
+  const params = new URLSearchParams();
+  if (query.vendor?.trim()) {
+    params.set("vendor", query.vendor.trim());
   }
-  return FALLBACK;
+  const kind = query.kind?.trim();
+  if (kind && kind !== "all") {
+    params.set("kind", kind);
+  }
+  if (query.q?.trim()) {
+    params.set("q", query.q.trim());
+  }
+  if (opts.includeId && query.id?.trim()) {
+    params.set("id", query.id.trim());
+  }
+  if (opts.includeLimit && query.limit && query.limit > 0) {
+    params.set("limit", String(query.limit));
+  }
+  return params;
+}
+
+function normalizeCatalogModel(m: CatalogModel): CatalogModel {
+  return {
+    id: m.id || "unknown",
+    vendor: m.vendor || "unknown",
+    display_name: m.display_name || m.id || "unknown",
+    capabilities: m.capabilities,
+    sell_price: m.sell_price,
+    status: m.status || "available",
+    kind: m.kind || inferKind(m),
+    description: m.description,
+    context_length: m.context_length,
+    max_completion_tokens: m.max_completion_tokens,
+  };
+}
+
+/** 只读后端公开目录。失败或空列表就空着，不再用本地 ofox 快照顶上。 */
+export async function loadCatalogPage(host: string, query: CatalogQuery = {}): Promise<CatalogPage> {
+  try {
+    const data = await fetchAPI<{ items?: CatalogModel[]; total?: number; facets?: CatalogFacets }>(
+      publicModelsPath(query),
+      { host },
+    );
+    const items = Array.isArray(data.items) ? data.items.map(normalizeCatalogModel) : [];
+    return {
+      items,
+      total: typeof data.total === "number" ? data.total : items.length,
+      facets: {
+        kinds: Array.isArray(data.facets?.kinds) ? data.facets.kinds : [],
+        vendors: Array.isArray(data.facets?.vendors) ? data.facets.vendors : [],
+      },
+    };
+  } catch {
+    return EMPTY_PAGE;
+  }
+}
+
+export async function loadCatalog(host: string, query: CatalogQuery = {}): Promise<CatalogModel[]> {
+  return (await loadCatalogPage(host, query)).items;
 }
 
 export function inferKind(m: Partial<CatalogModel>): string {

@@ -25,14 +25,18 @@ export default async function ModelDetailPage({
   const { slug } = await params;
   const id = decodeURIComponent(slug.join("/"));
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
-  const models = await loadCatalog(host);
-  const model = models.find((m) => m.id === id);
+  const found = await loadCatalog(host, { id });
+  const model = found[0];
   if (!model) notFound();
 
   const kind = inferKind(model);
   const caps = capabilityLabels(model.capabilities);
-  const relatedVendor = models.filter((m) => m.id !== model.id && m.vendor === model.vendor).slice(0, 4);
-  const relatedKind = models.filter((m) => m.id !== model.id && inferKind(m) === kind).slice(0, 4);
+  const [relatedVendorRaw, relatedKindRaw] = await Promise.all([
+    loadCatalog(host, { vendor: model.vendor, limit: 8 }),
+    loadCatalog(host, { kind, limit: 8 }),
+  ]);
+  const relatedVendor = relatedVendorRaw.filter((m) => m.id !== model.id).slice(0, 4);
+  const relatedKind = relatedKindRaw.filter((m) => m.id !== model.id).slice(0, 4);
   const t = await getTranslations("modelDetail");
   const th = await getTranslations("home");
   const tCaps = await getTranslations("caps");

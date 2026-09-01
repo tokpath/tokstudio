@@ -418,9 +418,34 @@ paths:
   /v1/public/models:
     get:
       operationId: listPublicModels
+      parameters:
+        - name: vendor
+          in: query
+          schema:
+            type: string
+          description: filter by vendor slug, e.g. z-ai
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [text, image, video, embedding, audio]
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: search id, display_name, vendor, description
+        - name: id
+          in: query
+          schema:
+            type: string
+          description: exact public model id
+        - name: limit
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
-          description: brand-scoped public model cards without providers
+          description: brand-scoped public model cards without providers; includes items, total, and kind/vendor facets
   /v1/public/tls-check:
     get:
       operationId: publicTLSCheck

@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
-import { inferKind, loadCatalog, priceForModel } from "@/lib/catalog";
+import { loadCatalog, priceForModel } from "@/lib/catalog";
 import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
 import { Image as ImageIcon } from "lucide-react";
@@ -11,7 +11,7 @@ export default async function ImagePage() {
   const t = await getTranslations("imageUi");
   const tCat = await getTranslations("catalog");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
-  const models = (await loadCatalog(host)).filter((m) => inferKind(m) === "image");
+  const models = await loadCatalog(host, { kind: "image" });
   const priceUnits = { perSec: tCat("perSec"), perImage: tCat("perImage") };
 
   return (

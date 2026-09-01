@@ -60,6 +60,27 @@ paths:
   /v1/public/models:
     get:
       summary: Brand-scoped published models without Provider slugs
+      parameters:
+        - name: vendor
+          in: query
+          schema:
+            type: string
+        - name: kind
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
   /channel/users:
     get:
       summary: Channel-scoped user list

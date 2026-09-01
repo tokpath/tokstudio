@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, LayoutList, Search, Table2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +11,14 @@ import { EmptyState } from "@/components/empty-state";
 import { iconForKind } from "@/lib/page-icons";
 import {
   capabilityLabels,
+  catalogHref,
   formatContext,
   formatMoney,
   inferKind,
   priceForModel,
+  type CatalogFacets,
   type CatalogModel,
+  type CatalogQuery,
 } from "@/lib/catalog";
 
 const FILTER_IDS = ["all", "text", "image", "video", "embedding", "audio"] as const;
@@ -40,37 +44,72 @@ function CopyId({ id }: { id: string }) {
 
 export function ModelsCatalog({
   models,
-  initialKind = "all",
+  facets,
+  query,
+  basePath = "/models",
 }: {
   models: CatalogModel[];
-  initialKind?: string;
+  facets: CatalogFacets;
+  query: CatalogQuery;
+  basePath?: string;
 }) {
   const t = useTranslations("catalog");
   const tCaps = useTranslations("caps");
   const tCommon = useTranslations("common");
+  const router = useRouter();
   const units = { perSec: t("perSec"), perImage: t("perImage") };
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTER_IDS)[number]>(
-    FILTER_IDS.some((id) => id === initialKind) ? (initialKind as (typeof FILTER_IDS)[number]) : "all",
-  );
+  const activeKind = query.kind || "all";
+  const [q, setQ] = useState(query.q || "");
   const [view, setView] = useState<"list" | "table">("list");
+
+  useEffect(() => {
+    setQ(query.q || "");
+  }, [query.q]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const next = q.trim() || undefined;
+      const current = query.q || undefined;
+      if (next === current) {
+        return;
+      }
+      router.replace(catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: next }), { scroll: false });
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [q, basePath, query.kind, query.vendor, query.q, router]);
+
+  const hrefOf = (patch: CatalogQuery) =>
+    catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined, ...patch });
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    if (!needle) {
+      return models;
+    }
     return models.filter((m) => {
-      const kind = inferKind(m);
-      if (filter !== "all" && kind !== filter) return false;
-      if (!needle) return true;
       const hay = `${m.id} ${m.display_name} ${m.vendor} ${m.description || ""}`.toLowerCase();
       return hay.includes(needle);
     });
-  }, [models, q, filter]);
+  }, [models, q]);
+
+  function kindCount(id: string) {
+    if (id === "all") {
+      return facets.kinds.reduce((sum, item) => sum + item.count, 0);
+    }
+    return facets.kinds.find((item) => item.id === id)?.count ?? 0;
+  }
 
   function capText(caps?: Record<string, unknown>) {
     return capabilityLabels(caps)
       .map((key) => tCaps(key as "vision"))
       .join(" · ");
   }
+
+  const vendors = facets.vendors;
+  const vendorMissing =
+    query.vendor && !vendors.some((item) => item.id === query.vendor)
+      ? [{ id: query.vendor, count: filtered.length }]
+      : [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -87,22 +126,21 @@ export function ModelsCatalog({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {FILTER_IDS.map((id) => {
-            const count = id === "all" ? models.length : models.filter((m) => inferKind(m) === id).length;
-            if (id !== "all" && count === 0) return null;
-            const active = filter === id;
+            const count = kindCount(id);
+            if (id !== "all" && count === 0 && activeKind !== id) return null;
+            const active = activeKind === id;
             const KindIcon = iconForKind(id);
             return (
-              <button
+              <Link
                 key={id}
-                type="button"
-                onClick={() => setFilter(id)}
-                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm ${
+                href={hrefOf({ kind: id === "all" ? undefined : id })}
+                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm no-underline ${
                   active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
                 }`}
               >
                 <KindIcon className="size-3.5" strokeWidth={1.75} aria-hidden />
                 {t(id)} {count}
-              </button>
+              </Link>
             );
           })}
           <Badge>{t("count", { count: filtered.length })}</Badge>
@@ -125,6 +163,31 @@ export function ModelsCatalog({
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2" aria-label={t("vendorsAria")}>
+        <Link
+          href={hrefOf({ vendor: undefined })}
+          className={`rounded-control px-3 py-1.5 text-sm no-underline ${
+            !query.vendor ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
+          }`}
+        >
+          {t("allVendors")}
+        </Link>
+        {[...vendorMissing, ...vendors].map((item) => {
+          const active = query.vendor === item.id;
+          return (
+            <Link
+              key={item.id}
+              href={hrefOf({ vendor: active ? undefined : item.id })}
+              className={`rounded-control px-3 py-1.5 text-sm no-underline ${
+                active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
+              }`}
+            >
+              {item.id} {item.count}
+            </Link>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (

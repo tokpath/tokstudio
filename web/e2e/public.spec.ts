@@ -33,6 +33,13 @@ const publicPaths = [
   "/login",
 ];
 
+test("model catalog vendor query stays on the models path", async ({ page }) => {
+  await page.goto("/models?vendor=z-ai");
+  await expect(page).toHaveURL(/\/models\?vendor=z-ai/);
+  await expect(page.getByLabel("按厂商筛选")).toBeVisible();
+  await expect(page.getByRole("link", { name: "全部厂商" })).toBeVisible();
+});
+
 test("login page has no ofox copy", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();

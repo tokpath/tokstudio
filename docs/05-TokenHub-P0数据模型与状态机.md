@@ -37,7 +37,7 @@ P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_ro
 |---|---|---|
 | `provider` | `id`, `name`, `kind`, `adapter`, `base_url`, `credential_ref`, `region`, `status`, `health`, `priority`, `weight`, `timeout_ms`, `retry_max`, `rpm_limit`, `concurrency_limit`, `capability_tags` | 上游 Provider，不保存明文密钥 |
 | `provider_credential` | `id`, `provider_id`, `ciphertext`, `key_hash`, `status`, `kind`, `label`, `model_tags`, `rpm_limit`, `concurrency_limit`, `last_success_at`, `last_error_at`, `last_error_code`, `cooldown_until`, `rotated_at` | 上游账号池：加密密文 + hash 指纹；状态 active/disabled/cooldown/invalid/exhausted/unknown/rotated |
-| `public_model` | `id`, `public_id`, `vendor`, `display_name`, `capabilities_json`, `status`, `sync_state`, `created_by_user_id`, `reviewed_by_user_id` | 客户看到的模型，如 `openai/gpt-5.6`；手工创建/同步为 `draft`，审核通过为 `reviewed`，拒绝为 `rejected`，发布后 `status=published` 且 `sync_state=published`。创建人不能审核或发布自己建的模型 |
+| `public_model` | `id`, `public_id`, `vendor`, `display_name`, `capabilities_json`, `status`, `sync_state`, `created_by_user_id`, `reviewed_by_user_id` | 客户看到的模型，如 `openai/gpt-5.6`；手工创建/同步为 `draft`，审核通过为 `reviewed`，拒绝为 `rejected`，发布后 `status=published` 且 `sync_state=published`。创建人不能审核或发布自己建的模型。ofox 公开目录快照由独立命令 `cmd/catalog-seed` 预置为已审核已发布（`created_by`/`reviewed_by` 为空，系统目录不做创建人互斥） |
 | `provider_model_mapping` | `id`, `public_model_id`, `provider_id`, `upstream_model_id`, `capabilities_json`, `sync_state` | 上游模型映射，自动同步先进入 draft |
 | `price_version` | `id`, `public_model_id`, `provider_id`, `unit_prices_json`, `effective_at`, `status` | 成本、批发价、销售价版本化 |
 | `route_group` | `id`, `public_model_id`, `strategy`, `fallback_policy`, `status` | 固定优先级/权重/价格/健康优先 |

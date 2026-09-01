@@ -90,26 +90,69 @@ func PublicSiteContent() map[string]any {
 	}
 }
 
-// ImportOfoxSnapshot 把 ofox 公开目录 dump 进 catalog 表，官方/渠道可见，OEM 白名单不变。
-func (s *Service) ImportOfoxSnapshot(ctx context.Context) error {
+// OfoxImportResult 是一次 ofox 快照预置的计数，给独立 CLI 打印。
+type OfoxImportResult struct {
+	Total      int
+	Imported   int
+	Deprecated int
+	Skipped    int
+}
+
+func ofoxSkipReason(publicID string) string {
+	if strings.TrimSpace(publicID) == "" {
+		return "empty_id"
+	}
+	if strings.HasPrefix(publicID, "tokenhub/") {
+		return "tokenhub_seed"
+	}
+	return ""
+}
+
+// ofoxPresetStatus 把爬取快照写成当前审核规则下的「已发布」。
+// 快照里的 available 等非 deprecated 状态一律视为已审核通过并上架。
+func ofoxPresetStatus(snapshotStatus string) string {
+	if snapshotStatus == "deprecated" {
+		return "deprecated"
+	}
+	return "published"
+}
+
+// ImportOfoxSnapshot 把 ofox 公开目录 dump 进 catalog 表。
+// 预置模型直接是已审核并已发布（status=published 或 deprecated，sync_state=published），
+// 创建人/审核人为空（系统目录，不做创建人互斥）。官方/分销可见，OEM 白名单不变。
+func (s *Service) ImportOfoxSnapshot(ctx context.Context) (*OfoxImportResult, error) {
 	items, err := loadOfoxSnapshots()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	result := &OfoxImportResult{Total: len(items)}
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for i := range items {
-			if err := upsertOfoxModel(tx, items[i]); err != nil {
+			status, skipped, err := upsertOfoxModel(tx, items[i])
+			if err != nil {
 				return err
+			}
+			if skipped {
+				result.Skipped++
+				continue
+			}
+			result.Imported++
+			if status == "deprecated" {
+				result.Deprecated++
 			}
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) error {
+func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) (status string, skipped bool, err error) {
 	publicID := strings.TrimSpace(item.ID)
-	if publicID == "" || strings.HasPrefix(publicID, "tokenhub/") {
-		return nil
+	if ofoxSkipReason(publicID) != "" {
+		return "", true, nil
 	}
 	caps := item.Capabilities
 	if caps == nil {
@@ -131,25 +174,23 @@ func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) error {
 		caps["created"] = item.Created
 	}
 	capsJSON, _ := json.Marshal(caps)
-	status := "published"
-	if item.Status == "deprecated" {
-		status = "deprecated"
-	}
-	syncState := SyncPublished
-	if status == "deprecated" {
-		syncState = SyncPublished
-	}
+	status = ofoxPresetStatus(item.Status)
 	model := publicModelRow{
 		ID: ofoxStableID("mdl", publicID), PublicID: publicID,
-		Vendor:       firstNonEmpty(item.Vendor, vendorFromID(publicID)),
-		DisplayName:  firstNonEmpty(item.DisplayName, publicID),
-		Capabilities: capsJSON, Status: status, SyncState: syncState,
+		Vendor:           firstNonEmpty(item.Vendor, vendorFromID(publicID)),
+		DisplayName:      firstNonEmpty(item.DisplayName, publicID),
+		Capabilities:     capsJSON,
+		Status:           status,
+		SyncState:        SyncPublished,
+		CreatedByUserID:  "",
+		ReviewedByUserID: "",
 	}
-	if err := tx.Where("public_id = ?", publicID).Assign(map[string]any{
+	if err = tx.Where("public_id = ?", publicID).Assign(map[string]any{
 		"vendor": model.Vendor, "display_name": model.DisplayName,
 		"capabilities_json": model.Capabilities, "status": model.Status, "sync_state": model.SyncState,
+		"created_by_user_id": "", "reviewed_by_user_id": "",
 	}).FirstOrCreate(&model).Error; err != nil {
-		return err
+		return "", false, err
 	}
 
 	sell := map[string]any{}
@@ -169,16 +210,16 @@ func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) error {
 		Columns:   []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"unit_prices_json", "status", "public_model_id"}),
 	}).Create(&price).Error; err != nil {
-		return err
+		return "", false, err
 	}
 
 	for _, channelID := range []string{identity.OfficialChannelID, identity.ResellerChannelID} {
-		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, model.ID).
+		if err = tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, model.ID).
 			FirstOrCreate(&channelPolicyRow{ChannelOrgID: channelID, PublicModelID: model.ID, Enabled: true}).Error; err != nil {
-			return err
+			return "", false, err
 		}
 	}
-	return nil
+	return status, false, nil
 }
 
 func vendorFromID(publicID string) string {

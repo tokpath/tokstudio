@@ -83,6 +83,19 @@ services:
       redis:
         condition: service_healthy
 
+  catalog-seed:
+    build:
+      context: ./backend
+    entrypoint: ["/catalog-seed"]
+    profiles: ["seed"]
+    environment:
+      TOKENHUB_ENV: development
+      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
+      TOKENHUB_LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   worker:
     build:
       context: ./backend

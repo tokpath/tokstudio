@@ -894,6 +894,7 @@
     "createRoute": "创建路由",
     "editRoute": "改路由策略",
     "createModel": "创建模型",
+    "modelReview": "模型审核",
     "mountProvider": "挂载 Provider",
     "deprecateModel": "弃用模型",
     "rotateCreds": "凭据轮换",

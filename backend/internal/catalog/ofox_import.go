@@ -135,15 +135,19 @@ func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) error {
 	if item.Status == "deprecated" {
 		status = "deprecated"
 	}
+	syncState := SyncPublished
+	if status == "deprecated" {
+		syncState = SyncPublished
+	}
 	model := publicModelRow{
 		ID: ofoxStableID("mdl", publicID), PublicID: publicID,
 		Vendor:       firstNonEmpty(item.Vendor, vendorFromID(publicID)),
 		DisplayName:  firstNonEmpty(item.DisplayName, publicID),
-		Capabilities: capsJSON, Status: status,
+		Capabilities: capsJSON, Status: status, SyncState: syncState,
 	}
 	if err := tx.Where("public_id = ?", publicID).Assign(map[string]any{
 		"vendor": model.Vendor, "display_name": model.DisplayName,
-		"capabilities_json": model.Capabilities, "status": model.Status,
+		"capabilities_json": model.Capabilities, "status": model.Status, "sync_state": model.SyncState,
 	}).FirstOrCreate(&model).Error; err != nil {
 		return err
 	}

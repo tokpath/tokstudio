@@ -17,6 +17,9 @@ import (
 var (
 	ErrInvalidInput = errors.New("invalid catalog input")
 	ErrUnknownModel = errors.New("model not in platform catalog")
+	ErrNotReviewed  = errors.New("model not reviewed")
+	ErrRejected     = errors.New("model rejected")
+	ErrSameActor    = errors.New("creator cannot review or publish")
 )
 
 type ChannelModelGrant struct {
@@ -210,12 +213,9 @@ func (s *Service) GetAdminModel(ctx context.Context, publicID string) (*ModelVie
 	return s.modelView(ctx, *model)
 }
 
-func (s *Service) CreateModel(ctx context.Context, in ModelInput) (*ModelView, error) {
+func (s *Service) CreateModel(ctx context.Context, in ModelInput, actorUserID string) (*ModelView, error) {
 	if in.PublicID == "" || in.Vendor == "" {
 		return nil, ErrInvalidInput
-	}
-	if in.Status == "" {
-		in.Status = "draft"
 	}
 	if in.DisplayName == "" {
 		in.DisplayName = in.PublicID
@@ -224,7 +224,10 @@ func (s *Service) CreateModel(ctx context.Context, in ModelInput) (*ModelView, e
 	if in.Capabilities == nil {
 		caps = []byte(`{}`)
 	}
-	row := publicModelRow{ID: id.New("mdl"), PublicID: in.PublicID, Vendor: in.Vendor, DisplayName: in.DisplayName, Capabilities: caps, Status: in.Status}
+	row := publicModelRow{
+		ID: id.New("mdl"), PublicID: in.PublicID, Vendor: in.Vendor, DisplayName: in.DisplayName,
+		Capabilities: caps, Status: SyncDraft, SyncState: SyncDraft, CreatedByUserID: strings.TrimSpace(actorUserID),
+	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return nil, err
 	}
@@ -242,9 +245,6 @@ func (s *Service) PatchModel(ctx context.Context, publicID string, in ModelInput
 	}
 	if in.Vendor != "" {
 		updates["vendor"] = in.Vendor
-	}
-	if in.Status != "" {
-		updates["status"] = in.Status
 	}
 	if in.Capabilities != nil {
 		body, _ := json.Marshal(in.Capabilities)

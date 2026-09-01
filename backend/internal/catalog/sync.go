@@ -3,8 +3,11 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
@@ -51,14 +54,14 @@ func sandboxDiscovery(provider providerRow) []DiscoveredModel {
 	}}
 }
 
-func (s *Service) SyncProvider(ctx context.Context, providerID string) (*SyncResult, error) {
+func (s *Service) SyncProvider(ctx context.Context, providerID, actorUserID string) (*SyncResult, error) {
 	var provider providerRow
 	if err := s.db.WithContext(ctx).Where("id = ? OR slug = ?", providerID, providerID).First(&provider).Error; err != nil {
 		return nil, err
 	}
 	out := &SyncResult{ProviderID: provider.ID}
 	for _, found := range sandboxDiscovery(provider) {
-		view, err := s.upsertDraft(ctx, provider, found)
+		view, err := s.upsertDraft(ctx, provider, found, actorUserID)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +70,7 @@ func (s *Service) SyncProvider(ctx context.Context, providerID string) (*SyncRes
 	return out, nil
 }
 
-func (s *Service) upsertDraft(ctx context.Context, provider providerRow, found DiscoveredModel) (*ModelView, error) {
+func (s *Service) upsertDraft(ctx context.Context, provider providerRow, found DiscoveredModel, actorUserID string) (*ModelView, error) {
 	caps, _ := json.Marshal(found.Capabilities)
 	prices, _ := json.Marshal(found.UnitPrices)
 	var model publicModelRow
@@ -76,29 +79,46 @@ func (s *Service) upsertDraft(ctx context.Context, provider providerRow, found D
 		model = publicModelRow{
 			ID: id.New("mdl"), PublicID: found.PublicID, Vendor: found.Vendor,
 			DisplayName: found.DisplayName, Capabilities: caps, Status: SyncDraft,
+			SyncState: SyncDraft, CreatedByUserID: strings.TrimSpace(actorUserID),
 		}
 		if err := s.db.WithContext(ctx).Create(&model).Error; err != nil {
 			return nil, err
 		}
 	} else if model.Status != "published" && model.Status != "deprecated" {
-		_ = s.db.WithContext(ctx).Model(&publicModelRow{}).Where("id = ?", model.ID).Updates(map[string]any{
-			"display_name": found.DisplayName, "vendor": found.Vendor, "capabilities_json": caps, "status": SyncDraft,
-		}).Error
+		updates := map[string]any{
+			"display_name": found.DisplayName, "vendor": found.Vendor, "capabilities_json": caps,
+			"status": SyncDraft, "sync_state": SyncDraft,
+		}
+		if strings.TrimSpace(model.CreatedByUserID) == "" && strings.TrimSpace(actorUserID) != "" {
+			updates["created_by_user_id"] = actorUserID
+			model.CreatedByUserID = actorUserID
+		}
+		_ = s.db.WithContext(ctx).Model(&publicModelRow{}).Where("id = ?", model.ID).Updates(updates).Error
 		model.Status = SyncDraft
+		model.SyncState = SyncDraft
 	}
 
+	live := model.Status == SyncPublished || model.Status == "deprecated"
+	mappingState := SyncDraft
+	if live {
+		mappingState = EffectiveSyncState(model.Status, model.SyncState)
+	}
 	var mapping mappingRow
 	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id = ?", model.ID, provider.ID).First(&mapping).Error; err != nil {
 		mapping = mappingRow{
 			ID: id.New("map"), PublicModelID: model.ID, ProviderID: provider.ID,
-			UpstreamModelID: found.UpstreamID, Status: "active", SyncState: SyncDraft,
+			UpstreamModelID: found.UpstreamID, Status: "active", SyncState: mappingState,
 		}
 		if err := s.db.WithContext(ctx).Create(&mapping).Error; err != nil {
 			return nil, err
 		}
-	} else {
+	} else if !live {
 		_ = s.db.WithContext(ctx).Model(&mappingRow{}).Where("id = ?", mapping.ID).Updates(map[string]any{
 			"upstream_model_id": found.UpstreamID, "sync_state": SyncDraft,
+		}).Error
+	} else {
+		_ = s.db.WithContext(ctx).Model(&mappingRow{}).Where("id = ?", mapping.ID).Updates(map[string]any{
+			"upstream_model_id": found.UpstreamID,
 		}).Error
 	}
 
@@ -112,30 +132,57 @@ func (s *Service) upsertDraft(ctx context.Context, provider providerRow, found D
 	return s.modelView(ctx, model)
 }
 
-func (s *Service) ReviewModel(ctx context.Context, publicID, action string) (*ModelView, error) {
+func (s *Service) ReviewModel(ctx context.Context, publicID, action, actorUserID string) (*ModelView, error) {
 	model, err := s.loadModel(ctx, publicID)
 	if err != nil {
 		return nil, err
 	}
+	if creatorIsActor(model.CreatedByUserID, actorUserID) {
+		return nil, ErrSameActor
+	}
+	if model.Status == SyncPublished {
+		return nil, ErrInvalidInput
+	}
 	state := SyncReviewed
 	if strings.EqualFold(strings.TrimSpace(action), "reject") {
 		state = SyncRejected
+	} else if !strings.EqualFold(strings.TrimSpace(action), "approve") {
+		return nil, ErrInvalidInput
+	}
+	if err := s.db.WithContext(ctx).Model(&publicModelRow{}).Where("id = ?", model.ID).
+		Updates(map[string]any{"sync_state": state, "reviewed_by_user_id": strings.TrimSpace(actorUserID)}).Error; err != nil {
+		return nil, err
 	}
 	if err := s.db.WithContext(ctx).Model(&mappingRow{}).Where("public_model_id = ?", model.ID).
 		Update("sync_state", state).Error; err != nil {
 		return nil, err
 	}
+	model.SyncState = state
+	model.ReviewedByUserID = strings.TrimSpace(actorUserID)
 	return s.modelView(ctx, *model)
 }
 
-func (s *Service) PublishModel(ctx context.Context, publicID string) (*ModelView, error) {
+func (s *Service) PublishModel(ctx context.Context, publicID, actorUserID string) (*ModelView, error) {
 	model, err := s.loadModel(ctx, publicID)
 	if err != nil {
 		return nil, err
 	}
+	if model.Status == SyncPublished {
+		return s.modelView(ctx, *model)
+	}
+	if creatorIsActor(model.CreatedByUserID, actorUserID) {
+		return nil, ErrSameActor
+	}
+	state := EffectiveSyncState(model.Status, model.SyncState)
+	if state == SyncRejected {
+		return nil, ErrRejected
+	}
+	if state != SyncReviewed {
+		return nil, ErrNotReviewed
+	}
 	now := time.Now().UTC()
 	if err := s.db.WithContext(ctx).Model(&publicModelRow{}).Where("id = ?", model.ID).
-		Update("status", SyncPublished).Error; err != nil {
+		Updates(map[string]any{"status": SyncPublished, "sync_state": SyncPublished}).Error; err != nil {
 		return nil, err
 	}
 	if err := s.db.WithContext(ctx).Model(&mappingRow{}).Where("public_model_id = ?", model.ID).
@@ -177,6 +224,7 @@ func (s *Service) PublishModel(ctx context.Context, publicID string) (*ModelView
 			FirstOrCreate(&channelPolicyRow{ChannelOrgID: channelID, PublicModelID: model.ID, Enabled: true}).Error
 	}
 	model.Status = SyncPublished
+	model.SyncState = SyncPublished
 	return s.modelView(ctx, *model)
 }
 
@@ -203,6 +251,9 @@ func (s *Service) DeprecateModel(ctx context.Context, publicID string) (*ModelVi
 func (s *Service) loadModel(ctx context.Context, publicID string) (*publicModelRow, error) {
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("id = ? OR public_id = ?", publicID, publicID).First(&model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUnknownModel
+		}
 		return nil, err
 	}
 	return &model, nil

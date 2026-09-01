@@ -297,10 +297,10 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("create model without confirm should be 409, got %d", code)
 	}
 	draft := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
-		"public_id": "tokenhub/ops-draft-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Ops Draft", "status": "draft",
+		"public_id": "tokenhub/ops-draft-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Ops Draft", "status": "published",
 	})
-	if draft["item"].(map[string]any)["status"] != "draft" {
-		t.Fatalf("create model: %+v", draft)
+	if item := draft["item"].(map[string]any); item["status"] != catalog.SyncDraft || item["sync_state"] != catalog.SyncDraft {
+		t.Fatalf("create model must stay draft: %+v", draft)
 	}
 	publicID := draft["item"].(map[string]any)["id"].(string)
 	got := getAuthJSON(t, server.URL+"/admin/models/"+publicID, "m7_admin")
@@ -610,7 +610,56 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("401 should mark account invalid: %+v", listed)
 	}
 
-	synced := postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/sync", "m7_admin-ops", map[string]any{})
+	own := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
+		"public_id": "tokenhub/review-own-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Own Draft",
+	})
+	ownID := own["item"].(map[string]any)["id"].(string)
+	if code := postStatusConfirm(t, server.URL+"/admin/models/review", "m7_admin", map[string]any{
+		"public_id": ownID, "action": "approve",
+	}); code != http.StatusConflict {
+		t.Fatalf("creator must not review own model, got %d", code)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{
+		"public_id": ownID,
+	}); code != http.StatusConflict {
+		t.Fatalf("publish without review should 409, got %d", code)
+	}
+	pending := getAuthJSON(t, server.URL+"/admin/models?sync_state=draft&q="+ownID, "m7_admin-ops")
+	if len(pending["items"].([]any)) == 0 {
+		t.Fatalf("draft queue missing model: %+v", pending)
+	}
+	rej := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
+		"public_id": "tokenhub/review-rej-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Reject Me",
+	})
+	rejID := rej["item"].(map[string]any)["id"].(string)
+	rejected := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
+		"public_id": rejID, "action": "reject",
+	})
+	if rejected["item"].(map[string]any)["sync_state"] != catalog.SyncRejected {
+		t.Fatalf("reject: %+v", rejected)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{
+		"public_id": rejID,
+	}); code != http.StatusConflict {
+		t.Fatalf("rejected model must not publish, got %d", code)
+	}
+	approvedOwn := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
+		"public_id": ownID, "action": "approve",
+	})
+	if approvedOwn["item"].(map[string]any)["sync_state"] != catalog.SyncReviewed {
+		t.Fatalf("ops review of admin draft: %+v", approvedOwn)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin", map[string]any{
+		"public_id": ownID,
+	}); code != http.StatusConflict {
+		t.Fatalf("creator must not publish own model, got %d", code)
+	}
+	publishedOwn := postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{"public_id": ownID})
+	if publishedOwn["item"].(map[string]any)["status"] != catalog.SyncPublished {
+		t.Fatalf("ops publish after review: %+v", publishedOwn)
+	}
+
+	synced := postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/sync", tech, map[string]any{})
 	syncItem := synced["item"].(map[string]any)
 	syncModels := syncItem["items"].([]any)
 	if len(syncModels) == 0 || syncModels[0].(map[string]any)["status"] != catalog.SyncDraft {
@@ -622,6 +671,11 @@ func TestM7OpsHardening(t *testing.T) {
 		if raw.(map[string]any)["id"] == syncPublic {
 			t.Fatalf("draft model must not be in customer catalog: %+v", visible)
 		}
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/models/review", tech, map[string]any{
+		"public_id": syncPublic, "action": "approve",
+	}); code != http.StatusForbidden {
+		t.Fatalf("tech must not review models, got %d", code)
 	}
 	reviewed := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
 		"public_id": syncPublic, "action": "approve",

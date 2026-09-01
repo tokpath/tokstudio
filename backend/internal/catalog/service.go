@@ -56,12 +56,15 @@ type providerRow struct {
 func (providerRow) TableName() string { return "catalog_providers" }
 
 type publicModelRow struct {
-	ID           string `gorm:"column:id;primaryKey"`
-	PublicID     string `gorm:"column:public_id"`
-	Vendor       string `gorm:"column:vendor"`
-	DisplayName  string `gorm:"column:display_name"`
-	Capabilities []byte `gorm:"column:capabilities_json"`
-	Status       string `gorm:"column:status"`
+	ID               string `gorm:"column:id;primaryKey"`
+	PublicID         string `gorm:"column:public_id"`
+	Vendor           string `gorm:"column:vendor"`
+	DisplayName      string `gorm:"column:display_name"`
+	Capabilities     []byte `gorm:"column:capabilities_json"`
+	Status           string `gorm:"column:status"`
+	SyncState        string `gorm:"column:sync_state"`
+	CreatedByUserID  string `gorm:"column:created_by_user_id"`
+	ReviewedByUserID string `gorm:"column:reviewed_by_user_id"`
 }
 
 func (publicModelRow) TableName() string { return "catalog_public_models" }
@@ -123,6 +126,8 @@ type ModelView struct {
 	Providers           []string       `json:"providers"`
 	Status              string         `json:"status"`
 	SyncState           string         `json:"sync_state,omitempty"`
+	CreatedByUserID     string         `json:"created_by_user_id,omitempty"`
+	ReviewedByUserID    string         `json:"reviewed_by_user_id,omitempty"`
 	Description         string         `json:"description,omitempty"`
 	Kind                string         `json:"kind,omitempty"`
 	ContextLength       int            `json:"context_length,omitempty"`
@@ -219,8 +224,8 @@ func (s *Service) Seed(ctx context.Context) error {
 			}
 		}
 		models := []publicModelRow{
-			{ID: "mdl_echo", PublicID: EchoModelID, Vendor: "tokenhub", DisplayName: "Echo", Capabilities: caps, Status: "published"},
-			{ID: "mdl_oem", PublicID: OEMModelID, Vendor: "tokenhub", DisplayName: "OEM Demo", Capabilities: oemCaps, Status: "published"},
+			{ID: "mdl_echo", PublicID: EchoModelID, Vendor: "tokenhub", DisplayName: "Echo", Capabilities: caps, Status: "published", SyncState: SyncPublished},
+			{ID: "mdl_oem", PublicID: OEMModelID, Vendor: "tokenhub", DisplayName: "OEM Demo", Capabilities: oemCaps, Status: "published", SyncState: SyncPublished},
 		}
 		for i := range models {
 			if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
@@ -231,9 +236,9 @@ func (s *Service) Seed(ctx context.Context) error {
 			return err
 		}
 		mappings := []mappingRow{
-			{ID: "map_echo_p", PublicModelID: "mdl_echo", ProviderID: "prd_echo_primary", UpstreamModelID: "echo-upstream", Status: "active"},
-			{ID: "map_echo_b", PublicModelID: "mdl_echo", ProviderID: "prd_echo_backup", UpstreamModelID: "echo-upstream", Status: "active"},
-			{ID: "map_oem_p", PublicModelID: "mdl_oem", ProviderID: "prd_echo_primary", UpstreamModelID: "oem-upstream", Status: "active"},
+			{ID: "map_echo_p", PublicModelID: "mdl_echo", ProviderID: "prd_echo_primary", UpstreamModelID: "echo-upstream", Status: "active", SyncState: SyncPublished},
+			{ID: "map_echo_b", PublicModelID: "mdl_echo", ProviderID: "prd_echo_backup", UpstreamModelID: "echo-upstream", Status: "active", SyncState: SyncPublished},
+			{ID: "map_oem_p", PublicModelID: "mdl_oem", ProviderID: "prd_echo_primary", UpstreamModelID: "oem-upstream", Status: "active", SyncState: SyncPublished},
 		}
 		for i := range mappings {
 			if err := tx.Where("id = ?", mappings[i].ID).FirstOrCreate(&mappings[i]).Error; err != nil {
@@ -290,8 +295,8 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		}
 	}
 	models := []publicModelRow{
-		{ID: "mdl_seedance", PublicID: SeedanceModelID, Vendor: "bytedance", DisplayName: "Seedance", Capabilities: caps, Status: "published"},
-		{ID: "mdl_image", PublicID: ImageModelID, Vendor: "tokenhub", DisplayName: "Image Demo", Capabilities: caps, Status: "published"},
+		{ID: "mdl_seedance", PublicID: SeedanceModelID, Vendor: "bytedance", DisplayName: "Seedance", Capabilities: caps, Status: "published", SyncState: SyncPublished},
+		{ID: "mdl_image", PublicID: ImageModelID, Vendor: "tokenhub", DisplayName: "Image Demo", Capabilities: caps, Status: "published", SyncState: SyncPublished},
 	}
 	for i := range models {
 		if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
@@ -302,9 +307,9 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		return err
 	}
 	mappings := []mappingRow{
-		{ID: "map_sd_ark", PublicModelID: "mdl_seedance", ProviderID: "prd_ark", UpstreamModelID: "seedance-1-0-ark", Status: "active"},
-		{ID: "map_sd_or", PublicModelID: "mdl_seedance", ProviderID: "prd_or", UpstreamModelID: "bytedance/seedance-1.0", Status: "active"},
-		{ID: "map_img_ark", PublicModelID: "mdl_image", ProviderID: "prd_ark", UpstreamModelID: "image-demo-ark", Status: "active"},
+		{ID: "map_sd_ark", PublicModelID: "mdl_seedance", ProviderID: "prd_ark", UpstreamModelID: "seedance-1-0-ark", Status: "active", SyncState: SyncPublished},
+		{ID: "map_sd_or", PublicModelID: "mdl_seedance", ProviderID: "prd_or", UpstreamModelID: "bytedance/seedance-1.0", Status: "active", SyncState: SyncPublished},
+		{ID: "map_img_ark", PublicModelID: "mdl_image", ProviderID: "prd_ark", UpstreamModelID: "image-demo-ark", Status: "active", SyncState: SyncPublished},
 	}
 	for i := range mappings {
 		if err := tx.Where("id = ?", mappings[i].ID).FirstOrCreate(&mappings[i]).Error; err != nil {
@@ -359,13 +364,13 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 	}
 	if err := tx.Where("public_id = ?", GeminiModelID).FirstOrCreate(&publicModelRow{
 		ID: "mdl_gemini", PublicID: GeminiModelID, Vendor: "google", DisplayName: "Gemini Flash",
-		Capabilities: caps, Status: "published",
+		Capabilities: caps, Status: "published", SyncState: SyncPublished,
 	}).Error; err != nil {
 		return err
 	}
 	if err := tx.Where("id = ?", "map_gemini").FirstOrCreate(&mappingRow{
 		ID: "map_gemini", PublicModelID: "mdl_gemini", ProviderID: "prd_gemini",
-		UpstreamModelID: "gemini-2.0-flash", Status: "active",
+		UpstreamModelID: "gemini-2.0-flash", Status: "active", SyncState: SyncPublished,
 	}).Error; err != nil {
 		return err
 	}
@@ -755,14 +760,16 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		Where("m.public_model_id = ? AND m.status = ?", model.ID, "active").
 		Scan(&slugs).Error
 	var mapping mappingRow
-	syncState := ""
+	mappingState := ""
 	if err := s.db.WithContext(ctx).Where("public_model_id = ?", model.ID).Order("id").First(&mapping).Error; err == nil {
-		syncState = mapping.SyncState
+		mappingState = mapping.SyncState
 	}
+	syncState := EffectiveSyncState(model.Status, firstNonEmpty(mappingState, model.SyncState))
 	desc, kind, ctxLen, maxTok := extraFromCaps(caps)
 	view := &ModelView{
 		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
 		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, SyncState: syncState,
+		CreatedByUserID: model.CreatedByUserID, ReviewedByUserID: model.ReviewedByUserID,
 		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}
 	view.Kind = InferKind(*view)

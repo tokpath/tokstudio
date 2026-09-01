@@ -120,14 +120,28 @@ paths:
   /admin/models:
     get:
       operationId: listAdminModels
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: sync_state
+          in: query
+          schema:
+            type: string
+            enum: [draft, reviewed, rejected, published]
+        - name: q
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: models
+          description: models; filter with status and sync_state before pagination
     post:
       operationId: createAdminModel
       responses:
         "201":
-          description: created
+          description: created as draft
   /admin/providers/{id}/sync:
     post:
       operationId: syncProvider

@@ -54,7 +54,7 @@ export default function SettingsPanel() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">个人设置</CardTitle>
       <p className="mb-4 text-sm text-ink-secondary">
         邮箱 {user?.email ?? "—"}，渠道 {user?.channel_org_id ?? "—" }。页面上没有切换渠道的入口。

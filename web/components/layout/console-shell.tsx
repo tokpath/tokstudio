@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { Brand } from "@/lib/brand";
 import { adminGroups, channelSections, partnerSections, userSections } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -32,11 +31,9 @@ function SectionLinks({ items, pathname }: { items: { href: string; label: strin
 }
 
 export function ConsoleShell({
-  brand,
   children,
   onCommand,
 }: {
-  brand?: Brand;
   children: React.ReactNode;
   onCommand: () => void;
 }) {

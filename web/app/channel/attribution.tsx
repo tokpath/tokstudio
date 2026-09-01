@@ -28,7 +28,7 @@ export default function ChannelAttribution() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">本渠道归因</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">按推广码和代理层级点数。渠道不能改别人的归属。</p>
       <Button variant="outline" onClick={refresh}>

@@ -24,7 +24,7 @@ export default function ChannelUsers() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">本渠道用户</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">归因在注册时写死。这里只列本渠道 scope，不含其他渠道或平台成本。</p>
       <Button variant="outline" onClick={refresh}>

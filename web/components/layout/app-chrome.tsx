@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
-import { isConsolePath, portalLinks } from "@/lib/nav";
+import { adminNavKeys, isConsolePath, portalLinks } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
 import { ConsoleShell } from "./console-shell";
 import { SiteFooter } from "./site-footer";
@@ -20,28 +20,7 @@ export function AppChrome({ brand, children }: { brand?: Brand; children: React.
     for (const item of portalLinks) {
       next[item.key] = t(item.key);
     }
-    for (const key of [
-      "overview",
-      "providers",
-      "models",
-      "routes",
-      "keys",
-      "users",
-      "plans",
-      "prices",
-      "payments",
-      "metrics",
-      "commission",
-      "billing",
-      "usage",
-      "media",
-      "channels",
-      "promos",
-      "alerts",
-      "runbooks",
-      "audit",
-      "settings",
-    ]) {
+    for (const key of adminNavKeys) {
       next[key] = ta(key);
     }
     return next;
@@ -52,7 +31,7 @@ export function AppChrome({ brand, children }: { brand?: Brand; children: React.
   if (isConsolePath(pathname)) {
     return (
       <>
-        <ConsoleShell brand={brand} onCommand={() => setCommandOpen(true)}>
+        <ConsoleShell onCommand={() => setCommandOpen(true)}>
           {children}
         </ConsoleShell>
         {palette}

@@ -1,5 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { isConsolePath } from "./nav";
+import { adminNavKeys, isConsolePath } from "./nav";
+
+describe("adminNavKeys", () => {
+  it("covers every admin palette label key", () => {
+    expect(adminNavKeys).toEqual([
+      "overview",
+      "providers",
+      "models",
+      "routes",
+      "keys",
+      "plans",
+      "prices",
+      "payments",
+      "billing",
+      "usage",
+      "channels",
+      "promos",
+      "commission",
+      "metrics",
+      "media",
+      "users",
+      "alerts",
+      "runbooks",
+      "audit",
+      "settings",
+    ]);
+  });
+});
 
 describe("isConsolePath", () => {
   it("treats app channel partner and admin as consoles", () => {

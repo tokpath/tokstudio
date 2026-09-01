@@ -29,7 +29,7 @@ export default function ChannelUsage() {
   }
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">本渠道用量</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">Token 和媒体秒数按账务 usage 汇总，不是估算。</p>
       <Button variant="outline" onClick={refresh}>

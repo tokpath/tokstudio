@@ -90,6 +90,8 @@ export const adminGroups: { title: string; items: { href: string; key: string }[
   },
 ];
 
+export const adminNavKeys = adminGroups.flatMap((group) => group.items.map((item) => item.key));
+
 export function isConsolePath(pathname: string) {
   return pathname.startsWith("/app") || pathname.startsWith("/channel") || pathname.startsWith("/partner") || pathname.startsWith("/admin");
 }

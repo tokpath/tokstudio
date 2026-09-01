@@ -41,7 +41,7 @@ export default function ChannelPromos() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   return (
-    <Card className="rounded-stamp border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">推广链接</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">把推广码发给用户，或复制带 promo 参数的登录链接。</p>
       <Form {...form}>

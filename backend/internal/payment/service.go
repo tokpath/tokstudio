@@ -3,8 +3,8 @@ package payment
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"io/fs"
+	"net/http"
 	"strings"
 	"time"
 
@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
 	"github.com/tokpath/tokstudio/backend/internal/plans"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
@@ -23,11 +24,13 @@ var migrationFS embed.FS
 type orderRow struct {
 	ID              string    `gorm:"column:id;primaryKey"`
 	UserID          string    `gorm:"column:user_id"`
+	ChannelOrgID    string    `gorm:"column:channel_org_id"`
 	Adapter         string    `gorm:"column:adapter"`
 	Purpose         string    `gorm:"column:purpose"`
 	ReferenceType   *string   `gorm:"column:reference_type"`
 	ReferenceID     *string   `gorm:"column:reference_id"`
 	AmountMinor     int64     `gorm:"column:amount_minor"`
+	CreditMinor     int64     `gorm:"column:credit_minor"`
 	Currency        string    `gorm:"column:currency"`
 	Status          string    `gorm:"column:status"`
 	ProviderTradeID *string   `gorm:"column:provider_trade_id"`
@@ -55,11 +58,21 @@ type Service struct {
 	plans   *plans.Service
 	billing *billing.Service
 	signKey string
+	reg     *Registry
 }
 
 func New(db *gorm.DB, publisher *outbox.Service, plansSvc *plans.Service, billingSvc *billing.Service, signKey string) *Service {
-	return &Service{db: db, outbox: publisher, plans: plansSvc, billing: billingSvc, signKey: signKey}
+	return NewWithRegistry(db, publisher, plansSvc, billingSvc, signKey, DefaultRegistry())
 }
+
+func NewWithRegistry(db *gorm.DB, publisher *outbox.Service, plansSvc *plans.Service, billingSvc *billing.Service, signKey string, reg *Registry) *Service {
+	if reg == nil {
+		reg = DefaultRegistry()
+	}
+	return &Service{db: db, outbox: publisher, plans: plansSvc, billing: billingSvc, signKey: signKey, reg: reg}
+}
+
+func (s *Service) Registry() *Registry { return s.reg }
 
 func Migrations() (string, fs.FS) {
 	sub, err := fs.Sub(migrationFS, "migrate")
@@ -72,17 +85,41 @@ func Migrations() (string, fs.FS) {
 func (s *Service) SignKey() string { return s.signKey }
 
 func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderView, error) {
-	if !ValidAdapter(in.Adapter) {
+	if s.reg == nil || !s.reg.Has(in.Adapter) {
 		return nil, ErrInvalidAdapter
 	}
-	if in.AmountMinor <= 0 || in.UserID == "" {
+	if in.UserID == "" {
 		return nil, ErrInvalidAmount
 	}
 	if in.Purpose == "" {
 		in.Purpose = PurposeWallet
 	}
+	if in.ChannelOrgID == "" {
+		in.ChannelOrgID = identity.OfficialChannelID
+	}
+	if in.Purpose != PurposeRenewal {
+		if err := s.methodAllowed(ctx, in.ChannelOrgID, in.Adapter); err != nil {
+			return nil, err
+		}
+	}
+	credit := in.AmountMinor
+	if in.PayMajor > 0 {
+		quote, err := s.QuoteForChannel(ctx, in.ChannelOrgID, in.Adapter, in.PayMajor)
+		if err != nil {
+			return nil, err
+		}
+		in.AmountMinor = quote.PayMinor
+		in.Currency = quote.PayCurrency
+		credit = quote.WalletMinor
+	}
+	if in.AmountMinor <= 0 {
+		return nil, ErrInvalidAmount
+	}
 	if in.Currency == "" {
-		in.Currency = "USD"
+		in.Currency = PayCurrency(in.Adapter)
+	}
+	if credit <= 0 {
+		credit = in.AmountMinor
 	}
 	if in.ReferenceType == PurposeSubscription && in.ReferenceID != "" {
 		var existing orderRow
@@ -93,8 +130,9 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	}
 	now := time.Now().UTC()
 	row := orderRow{
-		ID: id.New("pay"), UserID: in.UserID, Adapter: strings.ToLower(in.Adapter),
-		Purpose: in.Purpose, AmountMinor: in.AmountMinor, Currency: in.Currency,
+		ID: id.New("pay"), UserID: in.UserID, ChannelOrgID: in.ChannelOrgID,
+		Adapter: strings.ToLower(in.Adapter), Purpose: in.Purpose,
+		AmountMinor: in.AmountMinor, CreditMinor: credit, Currency: in.Currency,
 		Status: StatusPending, CreatedAt: now, UpdatedAt: now,
 	}
 	if in.ReferenceType != "" {
@@ -104,7 +142,7 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 		row.ReferenceID = &in.ReferenceID
 	}
 	if in.Purpose == PurposeWallet && s.billing != nil {
-		top, err := s.billing.CreateTopup(ctx, in.UserID, "", in.AmountMinor, in.Adapter)
+		top, err := s.billing.CreateTopup(ctx, in.UserID, in.ChannelOrgID, credit, in.Adapter)
 		if err != nil {
 			return nil, err
 		}
@@ -118,18 +156,32 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	return orderView(row), nil
 }
 
-func (s *Service) ListOrders(ctx context.Context, status string) ([]OrderView, error) {
+func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderView, error) {
 	var rows []orderRow
 	q := s.db.WithContext(ctx).Order("created_at DESC").Limit(200)
-	if status != "" {
-		q = q.Where("status = ?", status)
+	if f.Status != "" {
+		q = q.Where("status = ?", f.Status)
+	}
+	if f.ChannelOrgID != "" {
+		q = q.Where("channel_org_id = ?", f.ChannelOrgID)
+	}
+	if f.Adapter != "" {
+		q = q.Where("adapter = ?", f.Adapter)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]OrderView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, *orderView(row))
+		view := orderView(row)
+		if f.Query != "" {
+			qstr := strings.ToLower(f.Query)
+			blob := strings.ToLower(view.ID + " " + view.UserID + " " + view.Adapter + " " + view.Status + " " + view.ChannelOrgID)
+			if !strings.Contains(blob, qstr) {
+				continue
+			}
+		}
+		out = append(out, *view)
 	}
 	return out, nil
 }
@@ -146,36 +198,67 @@ func (s *Service) GetOrder(ctx context.Context, id, userID string) (*OrderView, 
 	return orderView(row), nil
 }
 
-func (s *Service) Checkout(order *OrderView, publicBase string) *CheckoutView {
-	base := strings.TrimRight(publicBase, "/")
-	return &CheckoutView{
-		Order:      order,
-		Adapter:    order.Adapter,
-		Sandbox:    true,
-		WebhookURL: base + "/v1/payments/" + order.Adapter + "/webhook",
-		AutoRenew:  SupportsAutoRenew(order.Adapter),
+func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase string) *CheckoutView {
+	if ctx == nil {
+		ctx = context.Background()
 	}
+	base := strings.TrimRight(publicBase, "/")
+	view := &CheckoutView{
+		Order: order, Adapter: order.Adapter, Sandbox: true,
+		WebhookURL: WebhookURL(base, order.Adapter),
+		AutoRenew:  SupportsAutoRenew(order.Adapter),
+		Mode:       CheckoutSandbox,
+	}
+	plugin, ok := s.plugin(order.Adapter)
+	if !ok {
+		return view
+	}
+	spec := plugin.Spec()
+	view.AutoRenew = spec.AutoRenew
+	view.Mode = spec.CheckoutMode
+	in := CheckoutRequest{Order: order, PublicBase: base, SignKey: s.signKey, Mode: ModeSandbox}
+	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
+		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
+		in.Mode = inst.Mode
+	}
+	sess, err := plugin.CreateCheckout(ctx, in)
+	if err == nil && sess != nil {
+		view.Sandbox = sess.Sandbox
+		view.WebhookURL = sess.WebhookURL
+		view.AutoRenew = sess.AutoRenew
+		view.Mode = sess.Mode
+		view.QRCode = sess.QRCode
+		view.RedirectURL = sess.RedirectURL
+		view.ClientSecret = sess.ClientSecret
+		view.PublishableKey = sess.PublishableKey
+		view.Payload = sess.Payload
+		view.Session = sess
+	}
+	return view
 }
 
-func (s *Service) HandleWebhook(ctx context.Context, adapter, signature string, body []byte) (*EventView, error) {
-	if !ValidAdapter(adapter) {
+func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers http.Header, body []byte) (*EventView, error) {
+	plugin, ok := s.plugin(adapter)
+	if !ok {
 		return nil, ErrInvalidAdapter
 	}
-	var payload map[string]any
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, ErrInvalidEvent
+	if headers == nil {
+		headers = http.Header{}
 	}
-	eventID := asString(payload["event_id"])
-	orderID := asString(payload["order_id"])
-	status := asString(payload["status"])
-	tradeID := asString(payload["trade_id"])
-	if eventID == "" || status == "" {
-		return nil, ErrInvalidEvent
+	parsed, err := plugin.ParseWebhook(ctx, WebhookRequest{
+		Adapter: adapter, Headers: headers, Body: body, SignKey: s.signKey,
+	})
+	if err != nil {
+		return nil, err
 	}
-	valid := VerifyWebhook(s.signKey, eventID, orderID, status, signature)
+	eventID := parsed.ExternalEventID
+	orderID := parsed.OrderID
+	status := parsed.Status
+	tradeID := parsed.TradeID
+	valid := parsed.SignatureValid
 	now := time.Now().UTC()
 	view := &EventView{Adapter: adapter, ExternalEventID: eventID, OrderID: orderID, SignatureValid: valid}
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing eventRow
 		if err := tx.Where("external_event_id = ?", eventID).First(&existing).Error; err == nil {
 			view.ID = existing.ID
@@ -238,7 +321,7 @@ func (s *Service) ConfirmManual(ctx context.Context, orderID string) (*OrderView
 	if err := s.db.WithContext(ctx).Where("id = ?", orderID).First(&row).Error; err != nil {
 		return nil, ErrNotFound
 	}
-	if row.Adapter != AdapterManual && row.Adapter != AdapterStripe && row.Adapter != AdapterAlipay && row.Adapter != AdapterWechat {
+	if s.reg == nil || !s.reg.Has(row.Adapter) {
 		return nil, ErrInvalidAdapter
 	}
 	if err := s.markPaid(ctx, orderID, "manual:"+orderID); err != nil {
@@ -277,6 +360,7 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 	if err != nil {
 		return err
 	}
+	s.touchLastPaid(ctx, row.ChannelOrgID, row.Adapter)
 	return s.fulfill(ctx, row)
 }
 
@@ -341,7 +425,8 @@ func (s *Service) RenewCharger() func(subID, adapter, methodRef string) error {
 }
 
 func (s *Service) ChargeRenewal(ctx context.Context, subID, adapter, methodRef string) error {
-	if !SupportsAutoRenew(adapter) {
+	plugin, ok := s.plugin(adapter)
+	if !ok || !plugin.Spec().AutoRenew {
 		return ErrNoAutoRenew
 	}
 	if strings.Contains(strings.ToLower(methodRef), "fail") {
@@ -359,18 +444,25 @@ func (s *Service) ChargeRenewal(ctx context.Context, subID, adapter, methodRef s
 	refType := PurposeSubscription
 	row := orderRow{
 		ID: id.New("pay"), UserID: sub.UserID, Adapter: adapter, Purpose: PurposeRenewal,
-		ReferenceType: &refType, ReferenceID: &subID, AmountMinor: plan.PriceMinor, Currency: plan.Currency,
-		Status: StatusPaid, CreatedAt: now, UpdatedAt: now,
+		ReferenceType: &refType, ReferenceID: &subID, AmountMinor: plan.PriceMinor, CreditMinor: plan.PriceMinor,
+		Currency: plan.Currency, Status: StatusPaid, CreatedAt: now, UpdatedAt: now,
 	}
 	trade := "sandbox-renew:" + subID
 	row.ProviderTradeID = &trade
 	return s.db.WithContext(ctx).Create(&row).Error
 }
 
+func (s *Service) plugin(id string) (Adapter, bool) {
+	if s.reg == nil {
+		return DefaultRegistry().Get(id)
+	}
+	return s.reg.Get(id)
+}
+
 func orderView(row orderRow) *OrderView {
 	view := &OrderView{
-		ID: row.ID, UserID: row.UserID, Adapter: row.Adapter, Purpose: row.Purpose,
-		AmountMinor: row.AmountMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
+		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
+		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
 	}
 	if row.ReferenceType != nil {
 		view.ReferenceType = *row.ReferenceType

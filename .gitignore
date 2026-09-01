@@ -49,6 +49,8 @@ backups/
 .DS_Store
 
 # Editor/IDE
+*.swp
+*.swo
 # .idea/
 # .vscode/
 

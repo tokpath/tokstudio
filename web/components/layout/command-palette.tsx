@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Search } from "lucide-react";
 import {
   adminGroups,
   channelSections,
@@ -15,6 +16,7 @@ import {
   PUBLIC_NAV_MORE,
 } from "@/lib/nav";
 import { PUBLIC_PAGE_SPECS } from "@/lib/public-site";
+import { iconForHref } from "@/lib/page-icons";
 
 type Item = { href: string; label: string; group: string };
 
@@ -189,28 +191,35 @@ export function CommandPalette({
         role="dialog"
         aria-label={tChrome("palette")}
       >
-        <input
-          autoFocus
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
-          placeholder={tChrome("palettePlaceholder")}
-          className="h-12 w-full border-b border-hairline bg-transparent px-4 text-sm text-ink placeholder:text-ink-mute"
-        />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" strokeWidth={1.75} aria-hidden />
+          <input
+            autoFocus
+            value={q}
+            onChange={(event) => setQ(event.target.value)}
+            placeholder={tChrome("palettePlaceholder")}
+            className="h-12 w-full border-b border-hairline bg-transparent pl-10 pr-4 text-sm text-ink placeholder:text-ink-mute"
+          />
+        </div>
         <ul className="th-scrollbar max-h-80 overflow-auto p-2">
-          {filtered.slice(0, 16).map((item) => (
-            <li key={`${item.group}-${item.href}`}>
-              <button
-                className="flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-brand-soft"
-                onClick={() => {
-                  onOpenChange(false);
-                  router.push(item.href);
-                }}
-              >
-                <span>{item.label}</span>
-                <span className="text-xs text-ink-mute">{item.group}</span>
-              </button>
-            </li>
-          ))}
+          {filtered.slice(0, 16).map((item) => {
+            const Icon = iconForHref(item.href);
+            return (
+              <li key={`${item.group}-${item.href}`}>
+                <button
+                  className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-brand-soft"
+                  onClick={() => {
+                    onOpenChange(false);
+                    router.push(item.href);
+                  }}
+                >
+                  <Icon className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
+                  <span className="min-w-0 flex-1">{item.label}</span>
+                  <span className="text-xs text-ink-mute">{item.group}</span>
+                </button>
+              </li>
+            );
+          })}
           {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-ink-mute">{tChrome("paletteEmpty")}</li> : null}
         </ul>
         <p className="border-t border-hairline px-4 py-2 text-xs text-ink-mute">{tChrome("paletteHint")}</p>

@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Copy, LayoutList, Search, Table2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
+import { iconForKind } from "@/lib/page-icons";
 import {
   capabilityLabels,
   catalogHref,
@@ -26,7 +28,7 @@ function CopyId({ id }: { id: string }) {
   return (
     <button
       type="button"
-      className="rounded-control border border-hairline px-1.5 py-0.5 font-mono text-[11px] text-ink-mute hover:text-ink"
+      className="inline-flex items-center gap-1 rounded-control border border-hairline px-1.5 py-0.5 font-mono text-[11px] text-ink-mute hover:text-ink"
       title={t("copyId")}
       onClick={(e) => {
         e.preventDefault();
@@ -35,6 +37,7 @@ function CopyId({ id }: { id: string }) {
       }}
     >
       {t("copy")}
+      <Copy className="size-3" strokeWidth={1.75} aria-hidden />
     </button>
   );
 }
@@ -111,26 +114,31 @@ export function ModelsCatalog({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t("search")}
-          className="lg:max-w-md"
-          aria-label={t("searchAria")}
-        />
+        <div className="relative lg:max-w-md lg:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" strokeWidth={1.75} aria-hidden />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("search")}
+            className="pl-9"
+            aria-label={t("searchAria")}
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {FILTER_IDS.map((id) => {
             const count = kindCount(id);
             if (id !== "all" && count === 0 && activeKind !== id) return null;
             const active = activeKind === id;
+            const KindIcon = iconForKind(id);
             return (
               <Link
                 key={id}
                 href={hrefOf({ kind: id === "all" ? undefined : id })}
-                className={`rounded-control px-3 py-1.5 text-sm no-underline ${
+                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm no-underline ${
                   active ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-secondary"
                 }`}
               >
+                <KindIcon className="size-3.5" strokeWidth={1.75} aria-hidden />
                 {t(id)} {count}
               </Link>
             );
@@ -140,15 +148,17 @@ export function ModelsCatalog({
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`rounded-control px-2 py-1 text-[12px] ${view === "list" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
+              className={`inline-flex items-center gap-1 rounded-control px-2 py-1 text-[12px] ${view === "list" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
             >
+              <LayoutList className="size-3.5" strokeWidth={1.75} aria-hidden />
               {t("list")}
             </button>
             <button
               type="button"
               onClick={() => setView("table")}
-              className={`rounded-control px-2 py-1 text-[12px] ${view === "table" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
+              className={`inline-flex items-center gap-1 rounded-control px-2 py-1 text-[12px] ${view === "table" ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"}`}
             >
+              <Table2 className="size-3.5" strokeWidth={1.75} aria-hidden />
               {t("table")}
             </button>
           </div>
@@ -225,6 +235,7 @@ export function ModelsCatalog({
         <ul className="flex flex-col gap-3">
           {filtered.map((m) => {
             const kind = inferKind(m);
+            const KindIcon = iconForKind(kind);
             const caps = capabilityLabels(m.capabilities);
             const price = priceForModel(m, units);
             return (
@@ -236,7 +247,10 @@ export function ModelsCatalog({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="th-eyebrow text-ink-mute">{kind}</span>
+                        <span className="inline-flex items-center gap-1 th-eyebrow text-ink-mute">
+                          <KindIcon className="size-3" strokeWidth={1.75} aria-hidden />
+                          {kind}
+                        </span>
                         <h3 className="text-base font-semibold text-ink">{m.display_name}</h3>
                         <span className="th-eyebrow text-success">{(m.status || "available").toUpperCase()}</span>
                       </div>

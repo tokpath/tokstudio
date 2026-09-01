@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { PublicSection } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { ENTERPRISE_CAP_ICONS } from "@/lib/page-icons";
 
 export default async function EnterprisePage() {
   const t = await getTranslations("enterpriseUi");
@@ -16,11 +18,8 @@ export default async function EnterprisePage() {
 
       <PublicSection eyebrow="CAPABILITIES" title={t("capsTitle")}>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {capabilities.map((item) => (
-            <div key={item.title} className="rounded-card border border-hairline bg-canvas-raised p-5">
-              <p className="text-lg font-semibold">{item.title}</p>
-              <p className="mt-2 text-sm text-ink-secondary">{item.body}</p>
-            </div>
+          {capabilities.map((item, i) => (
+            <FeatureCard key={item.title} icon={ENTERPRISE_CAP_ICONS[i]} title={item.title} description={item.body} />
           ))}
         </div>
       </PublicSection>

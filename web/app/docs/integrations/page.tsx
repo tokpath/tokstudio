@@ -5,7 +5,9 @@ import { fetchAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
 import { PublicSection } from "@/components/public-section";
+import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { iconForTool } from "@/lib/page-icons";
 
 export default async function IntegrationsPage() {
   const t = await getTranslations("docsUi");
@@ -34,7 +36,10 @@ export default async function IntegrationsPage() {
         <div className="flex flex-col gap-8">
           {tools.map((tool) => (
             <section key={tool.id} id={tool.id} className="scroll-mt-24">
-              <h3 className="text-lg font-semibold">{tool.title}</h3>
+              <h3 className="flex items-center gap-2 text-lg font-semibold">
+                <IconStamp icon={iconForTool(tool.title)} size="sm" />
+                {tool.title}
+              </h3>
               <p className="mb-3 font-mono text-[12px] text-ink-mute">{tool.hint}</p>
               <CodeBlock>{tool.env.replaceAll("{{base}}", base)}</CodeBlock>
             </section>

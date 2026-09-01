@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Trophy } from "lucide-react";
 import type { LeaderboardRow } from "@/lib/site-content";
 
 export function LeaderboardTable({
@@ -15,7 +16,9 @@ export function LeaderboardTable({
         return (
           <li key={row.rank + row.name}>
             <Link href={href} className="flex items-center gap-4 px-4 py-3 no-underline hover:bg-brand-soft/30">
-              <span className="w-8 font-mono text-sm text-ink-mute">{row.rank}</span>
+              <span className="inline-flex w-8 items-center justify-center font-mono text-sm text-ink-mute">
+                {row.rank === "1" ? <Trophy className="size-4 text-hold" strokeWidth={1.75} aria-hidden /> : row.rank}
+              </span>
               <div className="min-w-0 flex-1">
                 {row.vendor ? <p className="text-[12px] text-ink-mute">{row.vendor}</p> : null}
                 <p className="font-medium text-ink">{row.name}</p>

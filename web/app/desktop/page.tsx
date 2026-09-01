@@ -2,7 +2,10 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { PublicSection, StatStrip } from "@/components/public-section";
+import { FeatureCard } from "@/components/feature-card";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { DESKTOP_CAP_ICONS, iconForTool } from "@/lib/page-icons";
+import { Monitor, Receipt, Wallet } from "lucide-react";
 
 export default async function DesktopPage() {
   const t = await getTranslations("desktopUi");
@@ -22,30 +25,24 @@ export default async function DesktopPage() {
 
       <StatStrip
         items={[
-          { label: t("statInstall"), value: t("statInstallValue"), hint: t("statInstallHint") },
-          { label: t("statPath"), value: "Web", hint: t("statPathHint") },
-          { label: t("statBill"), value: t("statBillValue"), hint: t("statBillHint") },
+          { label: t("statInstall"), value: t("statInstallValue"), hint: t("statInstallHint"), icon: Monitor },
+          { label: t("statPath"), value: "Web", hint: t("statPathHint"), icon: Wallet },
+          { label: t("statBill"), value: t("statBillValue"), hint: t("statBillHint"), icon: Receipt },
         ]}
       />
 
       <PublicSection eyebrow="TOOLS" title={t("toolsTitle")} description={t("toolsLead")}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool) => (
-            <div key={tool.name} className="rounded-card border border-hairline bg-canvas-raised p-4">
-              <p className="font-medium text-ink">{tool.name}</p>
-              <p className="mt-1 font-mono text-[13px] text-ink-mute">{tool.hint}</p>
-            </div>
+            <FeatureCard key={tool.name} icon={iconForTool(tool.name)} title={tool.name} meta={tool.hint} />
           ))}
         </div>
       </PublicSection>
 
       <PublicSection eyebrow="CAPABILITY" title={t("capsTitle")}>
         <div className="grid gap-3 md:grid-cols-2">
-          {caps.map((cap) => (
-            <div key={cap.t} className="rounded-card border border-hairline bg-canvas-raised p-5">
-              <h3 className="text-lg font-semibold">{cap.t}</h3>
-              <p className="mt-2 text-sm text-ink-secondary">{cap.d}</p>
-            </div>
+          {caps.map((cap, i) => (
+            <FeatureCard key={cap.t} icon={DESKTOP_CAP_ICONS[i]} title={cap.t} description={cap.d} />
           ))}
         </div>
       </PublicSection>

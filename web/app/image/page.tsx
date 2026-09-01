@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { loadCatalog, priceForModel } from "@/lib/catalog";
+import { IconStamp } from "@/components/icon-stamp";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { Image as ImageIcon } from "lucide-react";
 
 export default async function ImagePage() {
   const t = await getTranslations("imageUi");
@@ -22,7 +24,10 @@ export default async function ImagePage() {
               href={`/models/${m.id}`}
               className="block rounded-card border border-hairline bg-canvas-raised p-5 no-underline hover:bg-brand-soft/30"
             >
-              <p className="font-semibold text-ink">{m.display_name}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold text-ink">{m.display_name}</p>
+                <IconStamp icon={ImageIcon} size="sm" />
+              </div>
               <p className="mt-1 font-mono text-[12px] text-ink-mute">{m.id}</p>
               <p className="mt-3 font-mono text-sm tabular-nums text-brand-emphasis">{priceForModel(m, priceUnits).primary}</p>
               {m.description ? <p className="mt-2 line-clamp-2 text-[13px] text-ink-secondary">{m.description}</p> : null}

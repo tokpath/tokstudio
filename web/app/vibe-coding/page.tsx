@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/code-block";
 import { PublicSection, StatStrip } from "@/components/public-section";
 import { I18nPublicHero } from "@/components/i18n-page-hero";
+import { Globe, Sparkles, Terminal } from "lucide-react";
 
 export default async function VibeCodingPage() {
   const t = await getTranslations("vibeUi");
@@ -24,9 +25,9 @@ export default async function VibeCodingPage() {
 
       <StatStrip
         items={[
-          { label: t("statProto"), value: t("statProtoValue"), hint: "OpenAI / Anthropic" },
-          { label: t("statChange"), value: "base URL", hint: t("statChangeHint") },
-          { label: t("statNext"), value: t("statNextValue"), hint: t("statNextHint") },
+          { label: t("statProto"), value: t("statProtoValue"), hint: "OpenAI / Anthropic", icon: Sparkles },
+          { label: t("statChange"), value: "base URL", hint: t("statChangeHint"), icon: Globe },
+          { label: t("statNext"), value: t("statNextValue"), hint: t("statNextHint"), icon: Terminal },
         ]}
       />
 

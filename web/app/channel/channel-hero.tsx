@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { apiBase } from "@/lib/api";
 import { useTranslations } from "next-intl";
+import { MetricCard } from "@/components/feature-card";
+import { CHANNEL_HERO_ICONS } from "@/lib/page-icons";
 
 function micro(n: unknown) {
   const v = Number(n);
@@ -53,21 +55,17 @@ export function ChannelHero() {
   }, []);
 
   const cards = [
-    { t: t("quota"), d: t("quotaHint"), v: quota },
-    { t: t("consumed"), d: t("consumedHint"), v: consumed },
-    { t: t("frozen"), d: t("frozenHint"), v: frozen },
-    { t: t("settleable"), d: t("settleableHint"), v: settleable },
+    { t: t("quota"), d: t("quotaHint"), v: quota, icon: CHANNEL_HERO_ICONS[0] },
+    { t: t("consumed"), d: t("consumedHint"), v: consumed, icon: CHANNEL_HERO_ICONS[1] },
+    { t: t("frozen"), d: t("frozenHint"), v: frozen, icon: CHANNEL_HERO_ICONS[2] },
+    { t: t("settleable"), d: t("settleableHint"), v: settleable, icon: CHANNEL_HERO_ICONS[3] },
   ];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
-      {cards.map((card) => (
-        <div key={card.t} className="rounded-card border border-hairline bg-canvas-raised p-4">
-          <p className="th-eyebrow text-ink-mute">{card.t}</p>
-          <p className="mt-2 font-mono text-[28px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
-          <p className="mt-2 text-sm text-ink-secondary">{card.d}</p>
-        </div>
-      ))}
+        {cards.map((card) => (
+          <MetricCard key={card.t} icon={card.icon} label={card.t} value={card.v} hint={card.d} />
+        ))}
     </section>
   );
 }

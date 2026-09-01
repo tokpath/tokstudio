@@ -11,11 +11,13 @@ import {
   userNavGroups,
 } from "@/lib/nav";
 import { adminNavActive } from "@/lib/tenants";
+import { BookOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
+import { iconForHref } from "@/lib/page-icons";
 
 function GroupedNav({
   groups,
@@ -34,15 +36,17 @@ function GroupedNav({
           <ul className="flex gap-1 md:flex-col">
             {group.items.map((item) => {
               const active = isNavActive(pathname, item.href);
+              const Icon = iconForHref(item.href);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
+                    className={`relative flex shrink-0 items-center gap-2 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
                       active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
                     }`}
                   >
                     {active ? <span className="absolute inset-y-2 left-0 hidden w-0.5 bg-brand md:block" /> : null}
+                    <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
                     {t(item.key)}
                   </Link>
                 </li>
@@ -91,10 +95,14 @@ export function ConsoleShell({
             <LocaleSwitch />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={onCommand}>
+              <Search />
               {tc("jump")}
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href="/docs">{tc("docs")}</Link>
+              <Link href="/docs">
+                <BookOpen />
+                {tc("docs")}
+              </Link>
             </Button>
           </div>
         </div>
@@ -114,15 +122,17 @@ export function ConsoleShell({
                   <ul className="flex flex-col gap-1">
                     {group.items.map((item) => {
                       const active = adminNavActive(pathname, item.href);
+                      const Icon = iconForHref(item.href);
                       return (
                         <li key={item.href}>
                           <Link
                             href={item.href}
-                            className={`relative block rounded-control px-3 py-2 text-sm no-underline ${
+                            className={`relative flex items-center gap-2 rounded-control px-3 py-2 text-sm no-underline ${
                               active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
                             }`}
                           >
                             {active ? <span className="absolute inset-y-2 left-0 hidden w-0.5 bg-brand md:block" /> : null}
+                            <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
                             {ta(item.key)}
                           </Link>
                         </li>

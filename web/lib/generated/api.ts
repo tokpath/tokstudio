@@ -138,6 +138,18 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/brand"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/brand/assets"
+  },
+  {
+    "method": "GET",
     "path": "/channel/payments/overview"
   },
   {
@@ -467,6 +479,22 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/brands"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/brands"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/brands/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/brands/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/brands/{id}/assets"
   },
   {
     "method": "POST",

@@ -298,6 +298,23 @@ paths:
       responses:
         "201":
           description: channel plan created or pending review
+  /channel/brand:
+    get:
+      operationId: getChannelBrand
+      responses:
+        "200":
+          description: current channel brand
+    patch:
+      operationId: patchChannelBrand
+      responses:
+        "200":
+          description: brand updated
+  /channel/brand/assets:
+    post:
+      operationId: uploadChannelBrandAsset
+      responses:
+        "201":
+          description: asset stored
   /channel/payments/overview:
     get:
       operationId: getChannelPaymentOverview
@@ -959,6 +976,46 @@ paths:
       responses:
         "200":
           description: brands and tls status
+    post:
+      operationId: createAdminBrand
+      responses:
+        "201":
+          description: brand created
+  /admin/brands/{id}:
+    get:
+      operationId: getAdminBrand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: brand
+    patch:
+      operationId: patchAdminBrand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: brand updated
+  /admin/brands/{id}/assets:
+    post:
+      operationId: uploadAdminBrandAsset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: asset stored
   /admin/brands/{id}/tls/issue:
     post:
       operationId: issueBrandTLS

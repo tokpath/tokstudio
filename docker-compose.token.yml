@@ -1,0 +1,22 @@
+# token 机器 overlay：
+# - 宿主机 80/443 仍由 gashub Caddy（www.tokpath.com）占用
+# - TokenHub 自己的 edge 只在 compose 内网听 80，并加入 gashub 网络
+# - 公网入口是 https://test.tokpath.com，由 gashub Caddy 反代到 tokstudio-edge
+services:
+  edge:
+    container_name: tokstudio-edge
+    networks:
+      - default
+      - gashub
+    volumes:
+      - ./deploy/Caddyfile.preview:/etc/caddy/Caddyfile:ro
+
+  api:
+    environment:
+      TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}
+      TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://test.tokpath.com}
+
+networks:
+  gashub:
+    external: true
+    name: gashub_gashub

@@ -214,6 +214,21 @@ func (q Quote) Charge(usage map[string]int, resolution string) int64 {
 	return amt
 }
 
+// WholesaleCharge 用价格快照里的批发价，而不是客户价打七折。
+func (q Quote) WholesaleCharge(usage map[string]int, resolution string) int64 {
+	if usage == nil {
+		usage = map[string]int{}
+	}
+	amt := int64(usage["prompt_tokens"])*q.InputWholesale +
+		int64(usage["completion_tokens"])*q.OutputWholesale +
+		int64(usage["reasoning_tokens"])*q.OutputWholesale
+	media := int64(usage["video_seconds"])*q.VideoSecondSell +
+		int64(usage["image_count"])*q.ImageCountSell +
+		int64(usage["audio_seconds"])*q.AudioSecondSell
+	amt += media * 7 / 10 * resolutionFactor(resolution) / 10
+	return amt
+}
+
 func (q Quote) MediaCost(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}

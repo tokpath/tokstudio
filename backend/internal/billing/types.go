@@ -141,19 +141,34 @@ type LedgerView struct {
 }
 
 type UsageView struct {
-	ID             string          `json:"id"`
-	RequestID      string          `json:"request_id"`
-	AttemptID      string          `json:"attempt_id,omitempty"`
-	PublicModelID  string          `json:"public_model_id"`
-	ProviderID     string          `json:"provider_id,omitempty"`
-	UnitUsage      json.RawMessage `json:"unit_usage"`
-	UnitPrices     json.RawMessage `json:"unit_prices"`
-	PriceVersionID string          `json:"price_version_id,omitempty"`
-	CustomerMinor  int64           `json:"customer_amount_minor"`
-	UpstreamMinor  int64           `json:"upstream_cost_minor"`
-	WholesaleMinor int64           `json:"wholesale_amount_minor"`
-	State          string          `json:"state"`
-	OccurredAt     time.Time       `json:"occurred_at"`
+	ID               string          `json:"id"`
+	RequestID        string          `json:"request_id"`
+	AttemptID        string          `json:"attempt_id,omitempty"`
+	UserID           string          `json:"user_id,omitempty"`
+	APIKeyID         string          `json:"api_key_id,omitempty"`
+	ChannelOrgID     string          `json:"channel_org_id,omitempty"`
+	PublicModelID    string          `json:"public_model_id"`
+	ProviderID       string          `json:"provider_id,omitempty"`
+	PromptTokens     int64           `json:"prompt_tokens"`
+	CompletionTokens int64           `json:"completion_tokens"`
+	ReasoningTokens  int64           `json:"reasoning_tokens,omitempty"`
+	UnitUsage        json.RawMessage `json:"unit_usage"`
+	UnitPrices       json.RawMessage `json:"unit_prices"`
+	PriceVersionID   string          `json:"price_version_id,omitempty"`
+	CustomerMinor    int64           `json:"customer_amount_minor"`
+	UpstreamMinor    int64           `json:"upstream_cost_minor"`
+	WholesaleMinor   int64           `json:"wholesale_amount_minor"`
+	State            string          `json:"state"`
+	OccurredAt       time.Time       `json:"occurred_at"`
+}
+
+// QueryUsageInput 按渠道→用户→API Key，再交叉模型过滤账本。空字段表示不过滤。
+type QueryUsageInput struct {
+	UserID        string
+	APIKeyID      string
+	ChannelOrgID  string
+	PublicModelID string
+	Limit         int
 }
 
 type TopupView struct {
@@ -180,6 +195,7 @@ type ReportView struct {
 type DimMoneyView struct {
 	Dimension        string `json:"dimension"`
 	Key              string `json:"key"`
+	Requests         int64  `json:"requests"`
 	UsageMinor       int64  `json:"usage_minor"`
 	RevenueMinor     int64  `json:"revenue_minor"`
 	CostMinor        int64  `json:"cost_minor"`

@@ -16,7 +16,7 @@ type DashboardBody = {
   dashboard?: {
     totals?: Record<string, number>;
     alerts?: { kind?: string }[];
-    dimensions?: { model?: { key: string; requests?: number; revenue_minor?: number; success_rate?: number }[] };
+    dimensions?: Record<string, { key: string; requests?: number; revenue_minor?: number; success_rate?: number }[]>;
   };
   error?: { message?: string };
 };
@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const tu = useTranslations("adminUi");
   const td = useTranslations("dashboard");
   const [message, setMessage] = useState(td("lead"));
+  const [dimension, setDimension] = useState("model");
   const chartRef = useRef<HTMLDivElement>(null);
   const seriesRef = useRef<HTMLDivElement>(null);
   const query = useQuery({
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    const items = query.data?.dashboard?.dimensions?.model ?? [];
+    const items = query.data?.dashboard?.dimensions?.[dimension] ?? [];
     if (!chartRef.current || items.length === 0) {
       return;
     }
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
     return () => {
       disposed = true;
     };
-  }, [query.data]);
+  }, [query.data, dimension]);
 
   useEffect(() => {
     const items = seriesQuery.data?.items ?? [];
@@ -131,6 +132,21 @@ export default function AdminDashboard() {
         <AdminH2 k="opsBoard" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">{td("opsLead")}</p>
         <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-ink-mute">{td("dimLabel")}</span>
+            <select
+              className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
+              aria-label={td("dimLabel")}
+              value={dimension}
+              onChange={(e) => setDimension(e.target.value)}
+            >
+              <option value="model">{td("dimModel")}</option>
+              <option value="api_key">{td("dimApiKey")}</option>
+              <option value="channel">{td("dimChannel")}</option>
+              <option value="user">{td("dimUser")}</option>
+              <option value="provider">{td("dimProvider")}</option>
+            </select>
+          </label>
           <Button type="button" variant="outline" onClick={() => void refresh()}>
             <RefreshCw />
             {td("refreshMetrics")}
@@ -143,7 +159,15 @@ export default function AdminDashboard() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-card border border-hairline bg-canvas p-3">
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">{td("modelReqs")}</p>
+            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">
+              {{
+                model: td("dimModel"),
+                api_key: td("dimApiKey"),
+                channel: td("dimChannel"),
+                user: td("dimUser"),
+                provider: td("dimProvider"),
+              }[dimension] || td("dimLabel")}
+            </p>
             <div ref={chartRef} className="h-72 w-full" data-testid="ops-echarts" />
           </div>
           <div className="rounded-card border border-hairline bg-canvas p-3">

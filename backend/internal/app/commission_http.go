@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
@@ -206,7 +207,18 @@ func (a *App) channelUsage(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道用量失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"usage": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", "", channelID)
+	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", "", channelID)
+	items, _ := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
+		ChannelOrgID:  channelID,
+		APIKeyID:      c.Query("api_key_id"),
+		PublicModelID: c.Query("public_model_id"),
+		Limit:         50,
+	})
+	httpx.OK(c, gin.H{
+		"usage": item, "keys": keys, "models": models, "items": items,
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) channelSettlements(c *gin.Context) {

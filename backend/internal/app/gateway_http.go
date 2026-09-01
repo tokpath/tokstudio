@@ -306,14 +306,15 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 	}
 	hint := gateway.ParseHint(c.Query("provider.only"), c.Query("provider.ignore"), c.Query("provider.order"))
 	out, err := a.Gateway.Execute(c.Request.Context(), gateway.ExecuteInput{
-		Caller:     *a.currentAPIKey(c),
-		RequestID:  c.GetString(httpx.ContextRequestID),
-		Protocol:   protocol,
-		Hint:       hint,
-		ForceFail:  c.GetHeader("X-Tokenhub-Force-Fail"),
-		OmitUsage:  c.GetHeader("X-Tokenhub-Omit-Usage") == "1",
-		CanarySlug: a.Ops.CanarySlug(c.Request.Context(), c.GetHeader("X-Tokenhub-Canary") == "1"),
-		Chat:       chat,
+		Caller:      *a.currentAPIKey(c),
+		RequestID:   c.GetString(httpx.ContextRequestID),
+		Protocol:    protocol,
+		Hint:        hint,
+		ForceFail:   c.GetHeader("X-Tokenhub-Force-Fail"),
+		OmitUsage:   c.GetHeader("X-Tokenhub-Omit-Usage") == "1",
+		SandboxMode: c.GetHeader("X-Tokenhub-Sandbox-Mode"),
+		CanarySlug:  a.Ops.CanarySlug(c.Request.Context(), c.GetHeader("X-Tokenhub-Canary") == "1"),
+		Chat:        chat,
 	})
 	if err != nil {
 		switch {

@@ -16,18 +16,49 @@ type ctxKey string
 const (
 	bifrostProviderSlugKey ctxKey = "tokenhub.provider_slug"
 	ctxRequestIDKey        ctxKey = "tokenhub.request_id"
+	ctxAPIKeyIDKey         ctxKey = "tokenhub.api_key_id"
+	ctxUserIDKey           ctxKey = "tokenhub.user_id"
+	ctxChannelIDKey        ctxKey = "tokenhub.channel_org_id"
+	ctxPublicModelKey      ctxKey = "tokenhub.public_model_id"
 )
 
 // ContextWithRequestID 把账务 request_id 放进 context，供 Bifrost metadata 透传。
 func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
-	if strings.TrimSpace(requestID) == "" {
-		return ctx
+	return ContextWithMeta(ctx, map[string]string{"request_id": requestID})
+}
+
+// ContextWithMeta 把 request / API Key / 用户 / 渠道写进 context，Bifrost 只读 metadata。
+func ContextWithMeta(ctx context.Context, meta map[string]string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	return context.WithValue(ctx, ctxRequestIDKey, requestID)
+	for key, value := range meta {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		switch key {
+		case "request_id":
+			ctx = context.WithValue(ctx, ctxRequestIDKey, value)
+		case "api_key_id":
+			ctx = context.WithValue(ctx, ctxAPIKeyIDKey, value)
+		case "user_id":
+			ctx = context.WithValue(ctx, ctxUserIDKey, value)
+		case "channel_org_id":
+			ctx = context.WithValue(ctx, ctxChannelIDKey, value)
+		case "public_model_id":
+			ctx = context.WithValue(ctx, ctxPublicModelKey, value)
+		}
+	}
+	return ctx
 }
 
 func requestIDFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(ctxRequestIDKey).(string)
+	return v
+}
+
+func contextString(ctx context.Context, key ctxKey) string {
+	v, _ := ctx.Value(key).(string)
 	return v
 }
 
@@ -271,6 +302,18 @@ func toBifrostParams(ctx context.Context, req ChatRequest, providerSlug string) 
 	}
 	if requestID := requestIDFromContext(ctx); requestID != "" {
 		meta["request_id"] = requestID
+	}
+	if v := contextString(ctx, ctxAPIKeyIDKey); v != "" {
+		meta["api_key_id"] = v
+	}
+	if v := contextString(ctx, ctxUserIDKey); v != "" {
+		meta["user_id"] = v
+	}
+	if v := contextString(ctx, ctxChannelIDKey); v != "" {
+		meta["channel_org_id"] = v
+	}
+	if v := contextString(ctx, ctxPublicModelKey); v != "" {
+		meta["public_model_id"] = v
 	}
 	params := &schemas.ChatParameters{
 		Temperature:         req.Temperature,

@@ -203,6 +203,9 @@ func mergeMoney(traffic, money []DimStat) []DimStat {
 		cur.VideoSeconds = row.VideoSeconds
 		cur.ImageCount = row.ImageCount
 		cur.AudioSeconds = row.AudioSeconds
+		if cur.Requests == 0 && row.Requests > 0 {
+			cur.Requests = row.Requests
+		}
 		byKey[row.Key] = cur
 	}
 	out := make([]DimStat, 0, len(byKey))

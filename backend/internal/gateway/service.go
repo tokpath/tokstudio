@@ -141,14 +141,15 @@ func Migrations() (string, fs.FS) {
 }
 
 type ExecuteInput struct {
-	Caller     identity.APIKeyPrincipal
-	RequestID  string
-	Protocol   string
-	Hint       catalog.RouteHint
-	ForceFail  string
-	OmitUsage  bool
-	CanarySlug string
-	Chat       ChatRequest
+	Caller      identity.APIKeyPrincipal
+	RequestID   string
+	Protocol    string
+	Hint        catalog.RouteHint
+	ForceFail   string
+	OmitUsage   bool
+	SandboxMode string
+	CanarySlug  string
+	Chat        ChatRequest
 }
 
 type ExecuteOutput struct {
@@ -248,7 +249,13 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			callReq.Model = cand.UpstreamModelID
 		}
 		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
-		callCtx = ContextWithRequestID(callCtx, in.RequestID)
+		callCtx = ContextWithMeta(callCtx, map[string]string{
+			"request_id":      in.RequestID,
+			"api_key_id":      in.Caller.APIKeyID,
+			"user_id":         in.Caller.UserID,
+			"channel_org_id":  in.Caller.ChannelOrgID,
+			"public_model_id": model.ID,
+		})
 		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, callReq)
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			if result.HTTPStatus < 400 {
@@ -309,7 +316,15 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			"status": "succeeded", "ended_at": ended, "final_attempt_id": attempt.ID,
 		})
 		usage := result.Body.Usage
-		missing := in.OmitUsage || len(usage) == 0
+		mode := NormalizeSandboxMode(in.SandboxMode, in.OmitUsage)
+		if mode == SandboxOmit {
+			usage = map[string]int{}
+		} else {
+			usage = ApplySandboxUsage(in.SandboxMode, in.Chat, completionText(result.Body), usage)
+		}
+		result.Body.Usage = usage
+		out.Response.Usage = usage
+		missing := mode == SandboxOmit || len(usage) == 0
 		_, _ = s.booker.Settle(ctx, billing.SettleInput{
 			RequestID: in.RequestID, AttemptID: attempt.ID, UserID: in.Caller.UserID,
 			APIKeyID: in.Caller.APIKeyID, ChannelOrgID: in.Caller.ChannelOrgID,

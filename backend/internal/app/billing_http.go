@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -107,16 +106,32 @@ func (a *App) getLedger(c *gin.Context) {
 
 func (a *App) getUsage(c *gin.Context) {
 	userID, _ := a.billingUser(c)
+	in := billing.QueryUsageInput{
+		UserID:        userID,
+		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
+		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
+	}
 	if a.currentPrincipal(c) != nil && a.currentPrincipal(c).HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly") && c.Query("all") == "1" {
-		userID = ""
+		in.UserID = ""
+		in.ChannelOrgID = strings.TrimSpace(c.Query("channel_id"))
+	}
+	if k := a.currentAPIKey(c); k != nil {
+		in.UserID = k.UserID
+		in.APIKeyID = k.APIKeyID
 	}
 	limit, _ := strconv.Atoi(c.Query("limit"))
-	items, err := a.Billing.ListUsage(c.Request.Context(), userID, limit)
+	in.Limit = limit
+	items, err := a.Billing.QueryUsage(c.Request.Context(), in)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", in.UserID, in.ChannelOrgID)
+	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", in.UserID, in.ChannelOrgID)
+	httpx.OK(c, gin.H{
+		"items": items, "keys": keys, "models": models,
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) createTopup(c *gin.Context) {
@@ -257,19 +272,28 @@ func (a *App) adminLedger(c *gin.Context) {
 
 func (a *App) adminUsage(c *gin.Context) {
 	limit, _ := httpx.Page(c, 50)
-	items, err := a.Billing.ListUsage(c.Request.Context(), c.Query("user_id"), limit)
+	items, err := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
+		UserID:        c.Query("user_id"),
+		APIKeyID:      c.Query("api_key_id"),
+		ChannelOrgID:  c.Query("channel_id"),
+		PublicModelID: c.Query("public_model_id"),
+		Limit:         limit,
+	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
 		return
 	}
-	if c.Query("format") == "csv" {
-		var b strings.Builder
-		b.WriteString("id,request_id,state,customer_amount_minor,public_model_id\n")
-		for _, item := range items {
-			b.WriteString(fmt.Sprintf("%s,%s,%s,%d,%s\n", item.ID, item.RequestID, item.State, item.CustomerMinor, item.PublicModelID))
-		}
-		c.Header("Content-Type", "text/csv")
-		c.String(http.StatusOK, b.String())
+	if httpx.WantCSV(c) {
+		httpx.WriteCSV(c, "usage.csv",
+			[]string{"id", "request_id", "user_id", "api_key_id", "public_model_id", "provider_id", "prompt_tokens", "completion_tokens", "reasoning_tokens", "customer_amount_minor", "wholesale_amount_minor", "state", "occurred_at"},
+			items, func(item billing.UsageView) []string {
+				return []string{
+					item.ID, item.RequestID, item.UserID, item.APIKeyID, item.PublicModelID, item.ProviderID,
+					strconv.FormatInt(item.PromptTokens, 10), strconv.FormatInt(item.CompletionTokens, 10),
+					strconv.FormatInt(item.ReasoningTokens, 10), strconv.FormatInt(item.CustomerMinor, 10),
+					strconv.FormatInt(item.WholesaleMinor, 10), item.State, item.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"),
+				}
+			})
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})

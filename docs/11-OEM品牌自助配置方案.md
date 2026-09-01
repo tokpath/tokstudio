@@ -1,6 +1,6 @@
 # OEM 品牌自助配置方案（待审批）
 
-状态：**方案待审批，未开工实现。**  
+状态：**已批 E 并实现。** Logo ≤128 KiB，短边最多 1024 px。  
 关联：D12（`docs/04`）、`brand` 表（`docs/05`）、`DESIGN.md` §2.4 / §7 / §9、飞书目录「四类入口与 OEM 品牌配置」。
 
 本文回答两个问题：
@@ -31,7 +31,7 @@
 
 「租户」在本产品里**不是**每个开发者账号，而是 **OEM 渠道（类型 C）绑定的一条 `brand` 记录**。B 分销商继续用平台品牌。终端用户只继承所属渠道的品牌。
 
-请在文末「审批选项」勾选后再开工。默认按 **A**（含上传 + 尺寸硬约定）。
+审批：**E**。Logo / `logo_dark` 文件体积 **≤ 128 KiB**，短边最多 **1024 px**；其余 kind 仍按下表。
 
 ---
 
@@ -184,8 +184,8 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 
 | kind | 用途 | 允许格式 | 文件体积 | 像素（栅格） | 宽高比 | 页面展示 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `logo` | 顶栏 / 侧栏标记 | `image/png`、`image/webp`、`image/svg+xml` | **≤ 256 KiB** | 短边 **64–512 px**；推荐 **256×256** | **1:1 到 4:1**（宽/高） | 高 **24px**，宽随比例、上限 96px；`object-contain`；圆角 6px |
-| `logo_dark` | 可选。碳面（深色）下若浅底 Logo 看不清才传 | 同 `logo` | **≤ 256 KiB** | 同 `logo` | 同 `logo` | 同 `logo`；仅 `html.dark` 替换 |
+| `logo` | 顶栏 / 侧栏标记 | `image/png`、`image/webp`、`image/svg+xml` | **≤ 128 KiB** | 短边 **64–1024 px**；推荐 **256×256** | **1:1 到 4:1**（宽/高） | 高 **24px**，宽随比例、上限 96px；`object-contain`；圆角 6px |
+| `logo_dark` | 可选。碳面（深色）下若浅底 Logo 看不清才传 | 同 `logo` | **≤ 128 KiB** | 同 `logo` | 同 `logo` | 同 `logo`；仅 `html.dark` 替换 |
 | `favicon` | 浏览器标签、收藏夹 | `image/png`、`image/x-icon`、`image/vnd.microsoft.icon` | **≤ 64 KiB** | **恰好 32×32 或 48×48**（ICO 须含 32×32） | **必须 1:1** | 浏览器默认 16–32px，平台不另画 |
 | `og_image` | 可选。链接预览（飞书/iMessage 拉卡片） | `image/png`、`image/jpeg`、`image/webp` | **≤ 512 KiB** | **恰好 1200×630** | **1200:630** | 不进顶栏 |
 
@@ -195,7 +195,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 2. **扩展名必须和 MIME 一致。** `logo.png` 却声称 `image/svg+xml` → `400 asset_type`。以**解码后的真实格式**为准，不信客户端报的 type。
 3. **JPEG 不能当 `logo` / `favicon`。** 有损、无透明，顶栏纸/碳面上会露出脏边。
 4. **GIF / APNG / 视频不做。** 标记不能闪。
-5. **SVG 额外规则：** 禁止 `<script>`、事件属性（`onclick` 等）、外部实体、`foreignObject`、外部 `xlink:href` / `href`。没有 `viewBox` 或 viewBox 宽高比超出该 kind 的比例 → 拒绝。SVG **不按像素短边检查**（矢量没有 px），但仍受 256 KiB 限制。
+5. **SVG 额外规则：** 禁止 `<script>`、事件属性（`onclick` 等）、外部实体、`foreignObject`、外部 `xlink:href` / `href`。没有 `viewBox` 或 viewBox 宽高比超出该 kind 的比例 → 拒绝。SVG **不按像素短边检查**（矢量没有 px），但仍受该 kind 的 KiB 上限（Logo 128 KiB）。
 6. **不自动缩放、不自动裁切。** 超了请 OEM 自己改好再传。服务端不是修图工具。
 7. **每个品牌每个 kind 只保留「当前生效」一份。** 新上传成功后，旧对象删掉（或标记 superseded），避免对象存储堆积。历史以审计 `before_json` 为准，不提供资源回收站。
 8. **每个品牌每小时最多上传 20 次。** 防刷。超了 `429 rate_limited`。
@@ -318,7 +318,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 1. **`themeStyle()` 对齐契约。** 写出 `--brand`、`--brand-press`、`--brand-soft`、`--brand-emphasis`、`--on-brand`；深色模式用 `brand_*_dark`。丢掉对 `background` 的幻想。
 2. **`<html>` 上设 favicon 和 `<title>`。** 用 `brand.name`，不要写死 TokenHub。
 3. **顶栏 Logo。** 公共站已有；控制台侧栏/顶栏 presently 只用 `BrandMark` 色块，改为：有 `logo_url` 就画图（高 24px），深色优先 `logo_dark`。没有资源时退回钴方标记。
-4. **上传控件。** 渠道台 `/channel/brand` 与管理台品牌页：每个 kind 一块「选择文件 / 看预览 / 看当前体积与像素」。控件旁写死数字，例如「Logo：PNG/WebP/SVG，≤256KiB，短边 64–512px，宽高比 1:1～4:1，页上高 24px」。选文件后**先在浏览器做一遍同样的检查**，不通过不发请求；服务端再查一次。
+4. **上传控件。** 渠道台 `/channel/brand` 与管理台品牌页：每个 kind 一块「选择文件 / 看预览 / 看当前体积与像素」。控件旁写死数字，例如「Logo：PNG/WebP/SVG，≤128KiB，短边 64–1024px，宽高比 1:1～4:1，页上高 24px」。选文件后**先在浏览器做一遍同样的检查**，不通过不发请求；服务端再查一次。
 5. **不做裁切器、不做在线压缩。** 不合格就告诉差多少（「现在 800×200，宽高比 4.0 已到上限；请改成不超过 4:1」）。
 6. **平台管理**还可创建品牌、改域名、看对比度失败原因。
 7. **B 渠道**品牌页只读：「使用平台品牌」。
@@ -345,8 +345,8 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 - C 渠道管理员可 PATCH 自己的品牌并上传 `logo`；B 渠道 403；其它渠道的管理员改不到这条品牌。
 - `theme_json` 含 `paper` / `success` / 非法 hex → 400。
 - 白字叠在浅黄主色上对比度不够 → 400。
-- **体积：** 257 KiB 的 PNG 当 `logo` → `400 asset_too_large`；65 KiB 当 `favicon` → 同样拒绝。
-- **像素：** 32×32 PNG 当 `logo`（短边小于 64）→ `400 asset_dimension`；800×100（比 8:1）→ 拒绝；33×33 当 `favicon` → 拒绝；1200×629 当 `og_image` → 拒绝。
+- **体积：** 129 KiB 的文件当 `logo` → `400 asset_too_large`；65 KiB 当 `favicon` → 同样拒绝。
+- **像素：** 32×32 PNG 当 `logo`（短边小于 64）→ `400 asset_dimension`；1025 px 短边 → 拒绝；800×100（比 8:1）→ 拒绝；33×33 当 `favicon` → 拒绝；1200×629 当 `og_image` → 拒绝。
 - **类型：** JPEG 当 `logo` → `400 asset_type`；带 `<script>` 的 SVG → `400 asset_svg`。
 - 上传成功后 `GET /v1/public/brand-assets/{id}` 匿名 200，`Content-Type` 正确，无签名参数。
 - 同一 kind 二次上传后旧 id 404，品牌 `logo_url` 指向新 id。
@@ -391,4 +391,4 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 | **F** | 暂缓 | 不能支撑真实 OEM 签约 |
 | **G** | 一期仍允许渠道手填外链（上传同时保留输入框） | 不推荐；和外链拉取/SSRF 搅在一起 |
 
-默认按 **A + 切片 1→6** 开工。你批 A（或 A 但改 E 的数字 / B）后，再开实现 PR。
+已批 **E**：按 A 的范围实现，尺寸用 §5.4（Logo ≤128 KiB、短边 ≤1024 px）。

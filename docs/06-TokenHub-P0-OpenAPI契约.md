@@ -152,6 +152,7 @@
 - `GET /admin/media`：管理端媒体任务列表；`?format=csv` 导出且不含 prompt。
 - `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
 - `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态（`tls_issuer`/`tls_directory`/`tls_expires_at`）；签发需二次确认。空目录或 `.localhost` 只标沙箱 `issued`。配置 `TOKENHUB_ACME_DIRECTORY` 后，公网形态域名走 RFC 8555（本地用 Pebble）；失败 `502 provider_unavailable`。`GET /.well-known/acme-challenge/{token}` 承接 HTTP-01。公网 Let's Encrypt 仍要真实 DNS 与边缘节点。管理页 `/admin/settings`「OEM 证书」可读取并签发。
+- `POST /admin/brands`、`GET/PATCH /admin/brands/{id}`、`POST /admin/brands/{id}/assets`：创建/改品牌、上传 Logo 等资源。`GET/PATCH /channel/brand`、`POST /channel/brand/assets`：C 渠道自助换皮；B 渠道 `403 brand_not_customizable`。`GET /v1/public/brand-assets/{id}`：公开读当前资源，无签名、不过期。Logo ≤128KiB，短边 64–1024px；Favicon ≤64KiB 且 32/48 方图；超限 `400 asset_*`。管理页 `/admin/brands`，渠道页 `/channel/brand`。
 - `POST /admin/commissions/recalc`：按价格快照重算佣金；管理页 `/admin/commission`「佣金重算」可操作。
 - `POST /admin/price-books`：发布新价格版本，不影响历史账单。
 

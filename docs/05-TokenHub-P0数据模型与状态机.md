@@ -28,7 +28,8 @@
 | `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
 
 P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。管理员 TOTP 物理表为 `identity_admin_totp`（密钥密文，`pending`/`enabled`）；未启用前敏感操作只要求二次确认，启用后还要 `X-Tokenhub-TOTP`。
-| `brand` | `id`, `name`, `logo_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
+| `brand` | `id`, `name`, `logo_url`, `logo_dark_url`, `favicon_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
+| `identity_brand_assets` | `id`, `brand_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `width_px`, `height_px`, `sha256`, `status` | 品牌公开资源；`kind` 为 `logo` / `logo_dark` / `favicon` / `og_image`。Logo ≤128KiB、短边 64–1024px。不走媒体 7 天签名 URL |
 
 ### 2.2 Provider、模型与路由
 

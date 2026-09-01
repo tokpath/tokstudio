@@ -61,6 +61,7 @@
 - 流式响应开始后不切 Provider；
 - fallback 只在未向客户端返回正文前执行；
 - 客户只产生一个最终扣费事件，但每次上游 attempt 都记录成本和错误。
+- 沙箱头 `X-Tokenhub-Sandbox-Mode`：`fixed`（默认 8/4/12）、`content`（按 prompt/回复字符数，prompt 下限 8、completion 下限 4）、`reasoning`（content + `reasoning_tokens=3`）、`omit`（空 usage，进待对账）。`X-Tokenhub-Omit-Usage: 1` 等同 `omit`。Bifrost metadata 透传 `request_id` / `api_key_id` / `user_id` / `channel_org_id`。
 
 ## 4. 视频/图像异步任务
 
@@ -115,7 +116,7 @@
 - `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
 - `POST /v1/me/password`：校验当前密码后改密
 - `GET /v1/me/balance`
-- `GET /v1/me/usage`
+- `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。
 - `GET /v1/me/ledger`
 - `GET /v1/plans`：公共站已发布的平台套餐；
 - `GET /v1/me/plans`：当前渠道可见的已发布套餐；
@@ -149,7 +150,7 @@
 - `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
-- `GET /admin/usage?format=csv`：用量明细导出。
+- `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
 - `GET /v1/me/media`：当前用户媒体任务（kind/status 筛选，不含他人数据）。
 - `POST /v1/videos` 与图像创建接口同时接受用户会话或 API Key，方便控制台直接提交任务。
@@ -176,13 +177,13 @@
 - 分销只读：`GET /v1/partner/me|users|commissions|settlements|export`（按角色树过滤，邮箱脱敏，不含 prompt）；代理商看整棵树，1 级 KOL 看自己和 2 级，2 级只看直接引流；
 - 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`POST /admin/commissions/recalc`（按价格快照重算需确认）、`POST /admin/commissions/unfreeze`（解冻需确认并写审计）、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；管理页 `/admin/commission` 可重算、手工解冻、生成结算单和人工打款；
 - 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），B/C 代理商不能改；B/C 兑换或确认入账时按换算比发放，渠道额度不足返回 `402 insufficient_quota`；管理页渠道租户详情可读取并调整额度和换算比；渠道页「已发放额度」列出下属发放，并只读展示换算比；
-- 渠道运营：`GET /channel/users`、`GET/POST /channel/plans`（渠道自建套餐，归属强制为本渠道；低于 1 USD 进 `pending_review`；渠道控制台「创建渠道套餐」）、`GET /channel/usage`、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
+- 渠道运营：`GET /channel/users`、`GET/POST /channel/plans`（渠道自建套餐，归属强制为本渠道；低于 1 USD 进 `pending_review`；渠道控制台「创建渠道套餐」）、`GET /channel/usage`（合计 + `keys`/`models`/`items`，可按 `api_key_id` 筛，不含 prompt）、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；管理页 `/admin/plans` 可审核、创建平台套餐，并用 `PATCH` 把套餐标成 `archived`（不要下架 `pln_echo_month`）；`POST /admin/subscriptions/{id}/force-period-end` 与 `POST /admin/subscriptions/process-renewals` 只在沙箱拨时钟/扫续费（生产禁止；管理页「续费扫描」）；
 - 价格：`GET/POST /admin/price-books`（新版本不改历史账单）；
 - 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
-- 观测：`GET /admin/metrics`、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
+- 观测：`GET /admin/metrics`（`dimension=provider|model|channel|user|api_key`）、`GET /admin/metrics/series`、`GET /admin/metrics/daily?format=csv`、`GET /admin/ops/dashboard`（`dimensions` 含 model / api_key / channel / user / provider / agent）、`GET /admin/ops/alerts`、`POST /admin/ops/alerts/evaluate`、`GET/PATCH /admin/ops/thresholds`、`GET /admin/ops/runbooks`；看板 totals 含错误码分布、超时、Token/媒体用量、预授权失败和回调 P95；
 - 加固：`POST /admin/ops/backup-drill`、`GET/POST /admin/ops/canary`、`POST /admin/ops/circuit/{id}`、`POST /admin/ops/drills/payment|media|tls`；TLS 演练验证已知 OEM 域名 200、未知域名 404、沙箱 `issued`（`.localhost` 不走 ACME）；`scripts/e2e_acme.sh` 对 Pebble 做 RFC 8555 真签发；公网 Let's Encrypt 仍由边缘节点对真实 DNS 签发，本仓库不把「已对公网签发」标完成；健康探测、熔断、灰度、备份演练与支付/媒体/TLS 演练不强制二次确认（技术值班 e2e 不带头）；管理页 `/admin/settings`「运维开关」可探测、打开/复位熔断、读写灰度，「备份演练」记录 RPO 15 / RTO 60，「异常演练」可跑支付/媒体/TLS；
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`；`GET /admin/outbox/stats` 读 `pending`/`published`/`failed`；`POST /admin/audit-probes` 沙箱写 `audit.probe`（生产 403，不强制确认）；管理页 `/admin/audit` 可读取 Outbox 并写入探测。
 

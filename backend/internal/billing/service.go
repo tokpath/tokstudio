@@ -157,13 +157,29 @@ func (s *Service) ListLedger(ctx context.Context, userID string, limit int) ([]L
 }
 
 func (s *Service) ListUsage(ctx context.Context, userID string, limit int) ([]UsageView, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
+	return s.QueryUsage(ctx, QueryUsageInput{UserID: userID, Limit: limit})
+}
+
+func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageView, error) {
+	if in.Limit <= 0 {
+		in.Limit = 20
+	}
+	if in.Limit > 200 {
+		in.Limit = 200
 	}
 	var rows []usageRow
-	q := s.db.WithContext(ctx).Order("occurred_at DESC").Limit(limit)
-	if userID != "" {
-		q = q.Where("user_id = ?", userID)
+	q := s.db.WithContext(ctx).Order("occurred_at DESC").Limit(in.Limit)
+	if in.UserID != "" {
+		q = q.Where("user_id = ?", in.UserID)
+	}
+	if in.APIKeyID != "" {
+		q = q.Where("api_key_id = ?", in.APIKeyID)
+	}
+	if in.ChannelOrgID != "" {
+		q = q.Where("channel_org_id = ?", in.ChannelOrgID)
+	}
+	if in.PublicModelID != "" {
+		q = q.Where("public_model_id = ?", in.PublicModelID)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -174,14 +190,22 @@ func (s *Service) ListUsage(ctx context.Context, userID string, limit int) ([]Us
 func usageViews(rows []usageRow) []UsageView {
 	out := make([]UsageView, 0, len(rows))
 	for _, row := range rows {
+		prompt, completion, reasoning := ParseUnitUsage(row.UnitUsage)
 		view := UsageView{
-			ID: row.ID, RequestID: row.RequestID, PublicModelID: row.PublicModelID,
+			ID: row.ID, RequestID: row.RequestID, UserID: row.UserID, PublicModelID: row.PublicModelID,
+			PromptTokens: prompt, CompletionTokens: completion, ReasoningTokens: reasoning,
 			UnitUsage: row.UnitUsage, UnitPrices: row.UnitPrices,
 			CustomerMinor: row.CustomerAmountMinor, UpstreamMinor: row.UpstreamCostMinor,
 			WholesaleMinor: row.WholesaleAmountMinor, State: row.State, OccurredAt: row.OccurredAt,
 		}
 		if row.AttemptID != nil {
 			view.AttemptID = *row.AttemptID
+		}
+		if row.APIKeyID != nil {
+			view.APIKeyID = *row.APIKeyID
+		}
+		if row.ChannelOrgID != nil {
+			view.ChannelOrgID = *row.ChannelOrgID
 		}
 		if row.ProviderID != nil {
 			view.ProviderID = *row.ProviderID
@@ -465,7 +489,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			PublicModelID: in.PublicModelID, UnitUsage: usageJSON, UnitPrices: quote.Raw,
 			PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: customer,
 			UpstreamCostMinor:    quote.MediaCost(in.Usage, in.Resolution),
-			WholesaleAmountMinor: quote.Charge(in.Usage, in.Resolution) * 7 / 10,
+			WholesaleAmountMinor: quote.WholesaleCharge(in.Usage, in.Resolution),
 			Currency:             CurrencyUSD, State: UsageConfirmed, IdempotencyKey: in.IdempotencyKey,
 			OccurredAt: now,
 		}

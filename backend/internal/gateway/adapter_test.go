@@ -45,3 +45,18 @@ func TestBifrostParamsCarriesRequestID(t *testing.T) {
 		t.Fatalf("metadata: %+v", params)
 	}
 }
+
+func TestBifrostParamsCarriesCallerMeta(t *testing.T) {
+	ctx := ContextWithMeta(context.Background(), map[string]string{
+		"request_id": "req_abc", "api_key_id": "key_1", "user_id": "usr_1",
+		"channel_org_id": "chn_official_a", "public_model_id": "tokenhub/echo-1",
+	})
+	params := toBifrostParams(ctx, ChatRequest{}, "lab")
+	if params == nil || params.Metadata == nil {
+		t.Fatal("missing metadata")
+	}
+	meta := *params.Metadata
+	if meta["api_key_id"] != "key_1" || meta["user_id"] != "usr_1" || meta["channel_org_id"] != "chn_official_a" {
+		t.Fatalf("caller metadata: %+v", meta)
+	}
+}

@@ -45,6 +45,10 @@ func (s *Service) Report(ctx context.Context) (*ReportView, error) {
 }
 
 func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyView, error) {
+	return s.DimMoneyScoped(ctx, dimension, "", "")
+}
+
+func (s *Service) DimMoneyScoped(ctx context.Context, dimension, userID, channelID string) ([]DimMoneyView, error) {
 	col := ""
 	switch dimension {
 	case "provider":
@@ -62,6 +66,7 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 	}
 	type row struct {
 		Key              string
+		Requests         int64
 		Usage            int64
 		Revenue          int64
 		Cost             int64
@@ -72,23 +77,35 @@ func (s *Service) DimMoney(ctx context.Context, dimension string) ([]DimMoneyVie
 		ImageCount       int64
 		AudioSeconds     int64
 	}
+	where := "WHERE state = 'confirmed'"
+	args := []any{}
+	if userID != "" {
+		where += " AND user_id = ?"
+		args = append(args, userID)
+	}
+	if channelID != "" {
+		where += " AND channel_org_id = ?"
+		args = append(args, channelID)
+	}
 	var rows []row
 	if err := s.db.WithContext(ctx).Raw(`
-		SELECT ` + col + ` AS key,
+		SELECT `+col+` AS key,
+			COUNT(*) AS requests,
 			COALESCE(SUM(wholesale_amount_minor),0) AS usage,
 			COALESCE(SUM(customer_amount_minor),0) AS revenue,
 			COALESCE(SUM(upstream_cost_minor),0) AS cost,
-			` + usageUnitSums() + `
+			`+usageUnitSums()+`
 		FROM billing_usage_events
-		WHERE state = 'confirmed'
-		GROUP BY ` + col + `
-	`).Scan(&rows).Error; err != nil {
+		`+where+`
+		GROUP BY `+col+`
+	`, args...).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]DimMoneyView, 0, len(rows))
 	for _, item := range rows {
 		out = append(out, DimMoneyView{
-			Dimension: dimension, Key: item.Key, UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost,
+			Dimension: dimension, Key: item.Key, Requests: item.Requests,
+			UsageMinor: item.Usage, RevenueMinor: item.Revenue, CostMinor: item.Cost,
 			PromptTokens: item.PromptTokens, CompletionTokens: item.CompletionTokens, ReasoningTokens: item.ReasoningTokens,
 			VideoSeconds: item.VideoSeconds, ImageCount: item.ImageCount, AudioSeconds: item.AudioSeconds,
 		})

@@ -9,12 +9,24 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 
-type Usage = { id: string; request_id: string; state: string; customer_amount?: number };
+type Usage = {
+  id: string;
+  request_id: string;
+  user_id?: string;
+  api_key_id?: string;
+  public_model_id?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  customer_amount_minor?: number;
+  state: string;
+};
 
 export default function AdminUsagePage() {
   const [requestID, setRequestID] = useState("");
   const [prompt, setPrompt] = useState("8");
   const [completion, setCompletion] = useState("4");
+  const [apiKeyID, setApiKeyID] = useState("");
+  const [userID, setUserID] = useState("");
   const [message, setMessage] = useState("待对账必须按真实 usage 回放，禁止按估算扣款。");
 
   async function replay() {
@@ -30,6 +42,11 @@ export default function AdminUsagePage() {
     const body = await res.json();
     setMessage(res.ok ? `已回放 ${body.item?.usage_event_id || requestID} → ${body.item?.state}` : body.error?.message || "回放失败");
   }
+
+  const qs = new URLSearchParams();
+  if (apiKeyID.trim()) qs.set("api_key_id", apiKeyID.trim());
+  if (userID.trim()) qs.set("user_id", userID.trim());
+  const listPath = qs.toString() ? `/admin/usage?${qs.toString()}` : "/admin/usage";
 
   return (
     <AdminShell>
@@ -47,12 +64,35 @@ export default function AdminUsagePage() {
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<Usage>
-        path="/admin/usage"
+        path={listPath}
         title="用量 / 账单"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Input
+              className="w-44"
+              value={apiKeyID}
+              onChange={(e) => setApiKeyID(e.target.value)}
+              aria-label="按 API Key 筛选"
+              placeholder="api_key_id"
+            />
+            <Input
+              className="w-40"
+              value={userID}
+              onChange={(e) => setUserID(e.target.value)}
+              aria-label="按用户筛选"
+              placeholder="user_id"
+            />
+          </div>
+        }
         columns={[
-          { accessorKey: "request_id", header: "Request" },
+          { accessorKey: "occurred_at", header: "时间" },
+          { accessorKey: "api_key_id", header: "API Key" },
+          { accessorKey: "public_model_id", header: "模型" },
+          { accessorKey: "prompt_tokens", header: "输入" },
+          { accessorKey: "completion_tokens", header: "输出" },
+          { accessorKey: "customer_amount_minor", header: "金额" },
           { accessorKey: "state", header: "State" },
-          { accessorKey: "id", header: "ID" },
+          { accessorKey: "request_id", header: "Request" },
         ]}
       />
     </AdminShell>

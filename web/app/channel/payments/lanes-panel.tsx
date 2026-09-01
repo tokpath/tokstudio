@@ -238,7 +238,7 @@ export function PaymentLanesPanel() {
               </Button>
             ) : null}
             {step === 1 ? (
-              <ConfirmButton title="保存凭证" description="密钥加密存储，列表不会回显。" onConfirm={() => saveCredentials()}>
+              <ConfirmButton title="保存凭证" description="密钥加密存储，列表不会回显。" onConfirm={async () => { await saveCredentials(); }}>
                 保存凭证
               </ConfirmButton>
             ) : null}

@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { safeNextPath } from "@/lib/login-next";
-import { GitFork, KeyRound, LogIn, Mail, Shield, UserPlus } from "lucide-react";
+import { KeyRound, LogIn, Mail, Shield, UserPlus } from "lucide-react";
+import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
 import { useTranslations } from "next-intl";
 
 function LoginForm() {
@@ -161,11 +162,11 @@ function LoginForm() {
 
         <div className="mt-6 flex flex-col gap-2">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
-            <GitFork />
+            <GitHubMark />
             {t("github")}
           </Button>
           <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
-            <Mail />
+            <GoogleMark />
             {t("google")}
           </Button>
         </div>
@@ -183,6 +184,7 @@ function LoginForm() {
               type="email"
             />
             <Button type="button" variant="outline" onClick={googleFinish}>
+              <GoogleMark />
               {t("continueGoogle")}
             </Button>
           </div>

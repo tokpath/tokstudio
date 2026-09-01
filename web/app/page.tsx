@@ -64,7 +64,7 @@ export default async function PublicHome() {
   return (
     <main className="flex w-full flex-col">
       <div className="border-b border-hairline bg-canvas-raised">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 py-2.5 text-[13px]">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 py-3 text-[13px]">
           <p className="text-ink-secondary">
             <span className="th-eyebrow text-hold">HOLD</span>
             <span className="ml-3 leading-relaxed">{t("holdBanner")}</span>
@@ -105,11 +105,6 @@ export default async function PublicHome() {
                 {t("ctaDocs")}
               </Link>
             </div>
-            <div className="mt-12 grid gap-4 sm:grid-cols-3">
-              <CategoryLink href="/models?kind=text" title={t("catCode")} detail={t("catCodeDetail")} countLabel={tc("countItems", { count: text.length })} icon={iconForHref("/models?kind=text")} />
-              <CategoryLink href="/image" title={t("catImage")} detail={t("catImageDetail")} countLabel={tc("countItems", { count: image.length })} icon={Image} />
-              <CategoryLink href="/video" title={t("catVideo")} detail={t("catVideoDetail")} countLabel={tc("countItems", { count: video.length })} icon={Video} />
-            </div>
           </div>
 
           <aside className="rounded-card border border-hairline bg-canvas-raised p-6">
@@ -136,6 +131,12 @@ export default async function PublicHome() {
             ))}
           </div>
         </section>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CategoryLink href="/models?kind=text" title={t("catCode")} detail={t("catCodeDetail")} countLabel={tc("countItems", { count: text.length })} icon={iconForHref("/models?kind=text")} />
+          <CategoryLink href="/image" title={t("catImage")} detail={t("catImageDetail")} countLabel={tc("countItems", { count: image.length })} icon={Image} />
+          <CategoryLink href="/video" title={t("catVideo")} detail={t("catVideoDetail")} countLabel={tc("countItems", { count: video.length })} icon={Video} />
+        </div>
 
         <section className="grid gap-6 lg:grid-cols-2 lg:gap-10">
           <div className="flex flex-col gap-4">

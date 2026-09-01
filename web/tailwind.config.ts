@@ -37,15 +37,6 @@ const config: Config = {
         "code-ink": "var(--code-ink)",
         "code-hairline": "var(--code-hairline)",
         scrim: "var(--scrim)",
-        th: {
-          fg: "var(--th-fg)",
-          muted: "var(--th-muted)",
-          faint: "var(--th-faint)",
-          surface: "var(--th-surface-solid)",
-          elevated: "var(--th-elevated)",
-          border: "var(--th-border)",
-          primary: "var(--brand-primary)",
-        },
       },
       borderRadius: {
         stamp: "10px",

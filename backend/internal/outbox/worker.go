@@ -116,18 +116,3 @@ func (w *Worker) publishOne(ctx context.Context, row eventRow) error {
 		}).Error
 	})
 }
-
-// RecentPublished 供验收脚本确认 Worker 已投递。
-func RecentPublished(ctx context.Context, client *redis.Client, count int64) ([]string, error) {
-	items, err := client.XRevRangeN(ctx, redisPublishedStream, "+", "-", count).Result()
-	if err != nil {
-		return nil, err
-	}
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if value, ok := item.Values["cloudevent"].(string); ok {
-			out = append(out, value)
-		}
-	}
-	return out, nil
-}

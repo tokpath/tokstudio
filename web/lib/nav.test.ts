@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { channelSections, consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
+import { adminNavKeys, channelSections, consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
 import { adminNavActive } from "./tenants";
+
+describe("adminNavKeys", () => {
+  it("covers every admin palette label key", () => {
+    expect(adminNavKeys).toEqual([
+      "overview",
+      "providers",
+      "models",
+      "routes",
+      "keys",
+      "plans",
+      "prices",
+      "payments",
+      "billing",
+      "usage",
+      "channels",
+      "promos",
+      "commission",
+      "metrics",
+      "media",
+      "users",
+      "alerts",
+      "runbooks",
+      "audit",
+      "settings",
+    ]);
+  });
+});
 
 describe("isConsolePath", () => {
   it("treats app channel partner and admin as consoles", () => {

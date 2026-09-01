@@ -30,10 +30,6 @@ services:
       TOKENHUB_PUBLIC_BASE_URL: http://localhost:8080
       TOKENHUB_WEB_ORIGIN: http://localhost:3000
 
-  bifrost:
-    ports:
-      - "8081:8081"
-
   web:
     ports:
       - "3000:3000"

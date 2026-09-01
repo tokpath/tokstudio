@@ -42,7 +42,7 @@ export default function ChannelPromos() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   return (
-    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">{t("promosTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("promosLead")}</p>
       <Form {...form}>

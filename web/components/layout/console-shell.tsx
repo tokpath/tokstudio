@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { Brand } from "@/lib/brand";
 import {
   adminGroups,
   channelNavGroups,
@@ -59,7 +58,6 @@ export function ConsoleShell({
   children,
   onCommand,
 }: {
-  brand?: Brand;
   children: React.ReactNode;
   onCommand: () => void;
 }) {

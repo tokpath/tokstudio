@@ -171,6 +171,8 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
   },
 ];
 
+export const adminNavKeys = adminGroups.flatMap((group) => group.items.map((item) => item.key));
+
 export function isConsolePath(pathname: string) {
   return (
     pathname.startsWith("/app") ||

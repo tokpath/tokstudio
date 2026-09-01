@@ -42,7 +42,7 @@ export default function ExamplesPanel() {
   }
 
   return (
-    <Card className="rounded-card border border-hairline bg-canvas-raised  p-6">
+    <Card>
       <CardTitle className="mb-3 text-xl font-medium">{t("examplesTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("examplesLead")}</p>
       <div className="mb-3 flex flex-wrap gap-3">

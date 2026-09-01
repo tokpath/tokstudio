@@ -92,6 +92,7 @@ func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.Dim
 			Dimension: row.Dimension, Key: row.Key, UsageMinor: row.UsageMinor,
 			RevenueMinor: row.RevenueMinor, CostMinor: row.CostMinor,
 			MarginMinor:  row.RevenueMinor - row.CostMinor,
+			Requests:     row.Requests,
 			PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens, ReasoningTokens: row.ReasoningTokens,
 			VideoSeconds: row.VideoSeconds, ImageCount: row.ImageCount, AudioSeconds: row.AudioSeconds,
 		})

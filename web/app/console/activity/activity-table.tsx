@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
+import { formatUsageTime, shortKeyRef, usageTokens } from "@/lib/usage";
 
 type UsageRow = {
   id: string;
@@ -12,6 +13,10 @@ type UsageRow = {
   state?: string;
   customer_amount_minor?: number;
   public_model_id?: string;
+  api_key_id?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  occurred_at?: string;
 };
 
 export function ActivityTable() {
@@ -54,21 +59,32 @@ export function ActivityTable() {
       <table className="w-full text-left text-sm">
         <thead className="bg-canvas-raised text-ink-mute">
           <tr>
+            <th className="px-4 py-3 font-medium">{t("colTime")}</th>
+            <th className="px-4 py-3 font-medium">{t("colApiKey")}</th>
             <th className="px-4 py-3 font-medium">{t("colModel")}</th>
+            <th className="px-4 py-3 font-medium">{t("colPrompt")}</th>
+            <th className="px-4 py-3 font-medium">{t("colCompletion")}</th>
             <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
             <th className="px-4 py-3 font-medium">{t("colReq")}</th>
             <th className="px-4 py-3 font-medium">{t("colAmount")}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-t border-hairline">
-              <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
-              <td className="px-4 py-3">{row.state || "—"}</td>
-              <td className="px-4 py-3 font-mono text-xs text-ink-mute">{row.request_id || row.id}</td>
-              <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const tokens = usageTokens(row);
+            return (
+              <tr key={row.id} className="border-t border-hairline">
+                <td className="px-4 py-3 text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</td>
+                <td className="px-4 py-3 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
+                <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
+                <td className="px-4 py-3 font-mono tabular-nums">{tokens.prompt}</td>
+                <td className="px-4 py-3 font-mono tabular-nums">{tokens.completion}</td>
+                <td className="px-4 py-3">{row.state || "—"}</td>
+                <td className="px-4 py-3 font-mono text-xs text-ink-mute">{row.request_id || row.id}</td>
+                <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

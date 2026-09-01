@@ -10,6 +10,7 @@ reg="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: applicatio
 session="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['session']['token'])" "$reg")"
 keyjson="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e"}')"
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$keyjson")"
+keyid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$keyjson")"
 
 echo "== empty wallet returns 402 and no attempts"
 code="$(curl -sS -o /tmp/m3_empty.json -w '%{http_code}' -X POST "$API_URL/v1/chat/completions" \
@@ -30,6 +31,7 @@ echo "$chat" | grep -q echo-primary
 rid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['request_id'])" "$chat")"
 usage="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage")"
 echo "$usage" | grep -q "$rid"
+python3 -c "import json,sys; items=json.loads(sys.argv[1])['items']; assert items[0]['api_key_id']==sys.argv[2] and int(items[0]['prompt_tokens'])>=8" "$usage" "$keyid"
 old="$(python3 -c "import json,sys; items=json.loads(sys.argv[1])['items']; print(items[0]['customer_amount_minor'], items[0]['id'])" "$usage")"
 amount="${old%% *}"
 usgid="${old##* }"
@@ -53,6 +55,23 @@ curl -sf -X POST "$API_URL/admin/price-books" -H "Authorization: Bearer $ADMIN_T
   -d '{"model":"tokenhub/echo-1","input":"0.01","output":"0.02","currency":"USD"}' >/dev/null
 usage2="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage")"
 python3 -c "import json,sys; items=json.loads(sys.argv[1])['items']; assert str(items[0]['customer_amount_minor'])==sys.argv[2]" "$usage2" "$amount"
+
+echo "== two API keys and content sandbox tokens are reconcilable"
+key2json="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e-beta"}')"
+key2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" "$key2json")"
+key2id="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$key2json")"
+long="$(python3 -c "print('tokenhub'*5)")"
+chat_long="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Sandbox-Mode: content' \
+  -d "{\"model\":\"tokenhub/echo-1\",\"messages\":[{\"role\":\"user\",\"content\":\"$long\"}]}")"
+chat_short="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key2" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Sandbox-Mode: content' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hi"}]}')"
+python3 -c "import json,sys; u=json.loads(sys.argv[1])['usage']; assert u['prompt_tokens']==40" "$chat_long"
+python3 -c "import json,sys; u=json.loads(sys.argv[1])['usage']; assert u['prompt_tokens']==8" "$chat_short"
+filtered="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage?api_key_id=$key2id")"
+python3 -c "import json,sys; items=json.loads(sys.argv[1])['items']; assert items and all(i.get('api_key_id')==sys.argv[2] for i in items)" "$filtered" "$key2id"
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/metrics?dimension=api_key" | grep -q api_key
 
 echo "== missing usage goes pending and does not guess-debit"
 omit="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" \

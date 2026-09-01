@@ -48,6 +48,16 @@ func TestParseUSDToMinor(t *testing.T) {
 	if q.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "reasoning_tokens": 3}, "") != 22 {
 		t.Fatalf("reasoning tokens should bill at output price: %d", q.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "reasoning_tokens": 3}, ""))
 	}
+	custom, err := ParseQuote("price_wholesale", []byte(`{"input":"0.000001","output":"0.000002","wholesale_input":"0.000003","wholesale_output":"0.000004"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if custom.WholesaleCharge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, "") != 40 {
+		t.Fatalf("wholesale snapshot should beat customer*0.7: %d", custom.WholesaleCharge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, ""))
+	}
+	if custom.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, "")*7/10 == custom.WholesaleCharge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, "") {
+		t.Fatal("wholesale snapshot must not collapse to a 70% haircut")
+	}
 	if EstimateReserveMinor(q, 8, 4) < 16 {
 		t.Fatal("reserve must cover actual usage")
 	}

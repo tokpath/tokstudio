@@ -1,12 +1,20 @@
 "use client";
 
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { ChromeIconMenu } from "@/components/chrome-icon-menu";
 import { THEME_PREFERENCES, type ThemePreference } from "@/lib/theme";
 
+const THEME_ICONS = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+} as const;
+
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const t = useTranslations("theme");
 
@@ -14,30 +22,23 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  const current = (mounted ? theme : "system") as string;
-  const labels: Record<ThemePreference, string> = {
-    light: t("light"),
-    dark: t("dark"),
-    system: t("system"),
-  };
+  const preference = (mounted && theme ? theme : "system") as ThemePreference;
+  const TriggerIcon = mounted && resolvedTheme === "dark" ? Moon : Sun;
 
   return (
-    <div className="inline-flex rounded-control border border-hairline bg-canvas-raised p-0.5" role="group" aria-label={t("label")}>
-      {THEME_PREFERENCES.map((item) => {
-        const active = current === item;
-        return (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setTheme(item)}
-            className={`min-h-10 rounded-control px-2.5 text-[13px] max-sm:min-h-11 ${
-              active ? "bg-brand-soft text-brand-emphasis" : "text-ink-mute"
-            }`}
-          >
-            {labels[item]}
-          </button>
-        );
+    <ChromeIconMenu
+      label={t("label")}
+      value={preference}
+      icon={<TriggerIcon className="size-[18px]" strokeWidth={1.75} />}
+      options={THEME_PREFERENCES.map((item) => {
+        const Icon = THEME_ICONS[item];
+        return {
+          value: item,
+          label: t(item),
+          icon: <Icon strokeWidth={1.75} />,
+        };
       })}
-    </div>
+      onChange={setTheme}
+    />
   );
 }

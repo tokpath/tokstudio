@@ -62,7 +62,8 @@ test("language switch cookie overrides Accept-Language without changing the URL"
   const page = await context.newPage();
   await page.goto("/compare");
   await expect(page.getByRole("heading", { name: "Compare models" })).toBeVisible();
-  await page.getByLabel("Language").selectOption("ja");
+  await page.getByRole("button", { name: "Language" }).click();
+  await page.getByRole("menuitemradio", { name: "日本語" }).click();
   await expect(page).toHaveURL(/\/compare$/);
   await expect(page).not.toHaveURL(/\/ja\//);
   await expect(page.getByRole("heading", { name: "モデル比較" })).toBeVisible();

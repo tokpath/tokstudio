@@ -1,7 +1,9 @@
 "use client";
 
+import { Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ChromeIconMenu } from "@/components/chrome-icon-menu";
 
 const COOKIE = "NEXT_LOCALE";
 
@@ -36,19 +38,17 @@ export function LocaleSwitch() {
   }
 
   return (
-    <label className="inline-flex items-center gap-1 text-[13px] text-ink-mute">
-      <span className="sr-only">{t("locale")}</span>
-      <select
-        aria-label={t("locale")}
-        className="h-10 rounded-control border border-hairline bg-canvas px-2 text-sm text-ink"
-        value={value}
-        onChange={(event) => choose(event.target.value)}
-      >
-        <option value="auto">{t("localeAuto")}</option>
-        <option value="zh">{t("localeZh")}</option>
-        <option value="en">{t("localeEn")}</option>
-        <option value="ja">{t("localeJa")}</option>
-      </select>
-    </label>
+    <ChromeIconMenu
+      label={t("locale")}
+      value={value}
+      icon={<Globe className="size-[18px]" strokeWidth={1.75} />}
+      options={[
+        { value: "auto", label: t("localeAuto") },
+        { value: "zh", label: t("localeZh") },
+        { value: "en", label: t("localeEn") },
+        { value: "ja", label: t("localeJa") },
+      ]}
+      onChange={choose}
+    />
   );
 }

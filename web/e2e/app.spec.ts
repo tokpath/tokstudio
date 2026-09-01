@@ -17,9 +17,13 @@ test("user console shows API Key panel", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByRole("link", { name: "用户控制台" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "创建 API Key" })).toBeVisible();
+  await page.getByRole("button", { name: "创建 API Key" }).click();
+  await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "模型白名单" })).toBeVisible();
   await expect(page.getByLabel("模型白名单")).toBeVisible();
   await expect(page.getByLabel("并发限额")).toBeVisible();
+  await page.getByRole("button", { name: "取消" }).click();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
   await expect(page.getByLabel("生成模式")).toBeVisible();
@@ -45,6 +49,8 @@ test("partner console shows scoped downline cards", async ({ page }) => {
 test("channel console shows scoped user list", async ({ page }) => {
   await page.goto("/channel");
   await expect(page.getByRole("heading", { name: "本渠道用户" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "本渠道模型" })).toBeVisible();
+  await expect(page.getByText("本渠道只能使用平台已授权的模型，不能自己添加提供商和模型。")).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道套餐" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "创建渠道套餐" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建渠道套餐" })).toBeVisible();

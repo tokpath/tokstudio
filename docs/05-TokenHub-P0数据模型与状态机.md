@@ -41,7 +41,7 @@ P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_ro
 | `price_version` | `id`, `public_model_id`, `provider_id`, `unit_prices_json`, `effective_at`, `status` | 成本、批发价、销售价版本化 |
 | `route_group` | `id`, `public_model_id`, `strategy`, `fallback_policy`, `status` | 固定优先级/权重/价格/健康优先 |
 | `route_candidate` | `route_group_id`, `provider_id`, `priority`, `weight`, `constraints_json` | provider.only/provider.ignore 等约束 |
-| `channel_model_policy` | `channel_org_id`, `public_model_id`, `enabled`, `sell_price_override` | 渠道可见模型和销售价覆盖 |
+| `channel_model_policy` | `channel_org_id`, `public_model_id`, `enabled`, `sell_price_override` | 平台从目录授权给租户的可见模型；租户不能自建提供商或模型 |
 
 ### 2.3 API Key、套餐与权益
 

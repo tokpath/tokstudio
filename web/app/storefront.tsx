@@ -12,16 +12,10 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { loginHref } from "@/lib/login-next";
+import { useTranslations } from "next-intl";
 
 type PublicModel = { id?: string; display_name?: string; vendor?: string };
 type PublicPlan = { id?: string; name?: string; price_minor?: number };
-
-function unauthorizedMessage(status: number, apiMessage?: string, fallback = "请先登录") {
-  if (status === 401 || status === 403) {
-    return apiMessage || "未登录，请先点「去登录」再回来购买";
-  }
-  return apiMessage || fallback;
-}
 
 export default function PublicStorefront({
   models,
@@ -30,11 +24,19 @@ export default function PublicStorefront({
   models: PublicModel[];
   plans: PublicPlan[];
 }) {
-  const [message, setMessage] = useState("未登录时充值和订阅会提示先登录。金额单位是 micro-USD。");
+  const t = useTranslations("storefront");
+  const [message, setMessage] = useState("");
   const redeemForm = useForm<{ code: string }>({
-    resolver: zodResolver(z.object({ code: z.string().trim().min(1, "请填写兑换码") })),
+    resolver: zodResolver(z.object({ code: z.string().trim().min(1, t("needCode")) })),
     defaultValues: { code: "THE2E" },
   });
+
+  function unauthorizedMessage(status: number, apiMessage?: string, fallback = t("loginFirst")) {
+    if (status === 401 || status === 403) {
+      return apiMessage || t("loginToBuy");
+    }
+    return apiMessage || fallback;
+  }
 
   async function redeem(values: { code: string }) {
     const response = await fetch(`${apiBase}/v1/topups/redeem`, {
@@ -44,7 +46,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ code: values.code }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `兑换成功 ${body.item?.amount_minor ?? 0} micro-USD` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
+    setMessage(response.ok ? t("redeemOk", { amount: body.item?.amount_minor ?? 0 }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
   }
 
   async function topup() {
@@ -55,7 +57,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ amount_minor: 1_000_000, payment_method: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已创建充值单 ${body.item?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再充值"));
+    setMessage(response.ok ? t("topupOk", { id: body.item?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
   }
 
   async function subscribe(planId: string) {
@@ -66,19 +68,19 @@ export default function PublicStorefront({
       body: JSON.stringify({ plan_id: planId, adapter: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? `已下单 ${body.checkout?.order?.id}` : unauthorizedMessage(response.status, body.error?.message, "请先登录再订阅"));
+    setMessage(response.ok ? t("ordered", { id: body.checkout?.order?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToSubscribe")));
   }
 
   return (
-    <div className="flex flex-col gap-14">
+    <div className="flex flex-col gap-24">
       <section id="models">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Model catalog</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">可用模型</h2>
-            <p className="mt-2 text-sm text-ink-secondary">按当前域名的品牌和渠道白名单展示，不含 Provider 路由。</p>
+            <p className="th-eyebrow text-ink-mute">{t("modelsEyebrow")}</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t("modelsTitle")}</h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-secondary">{t("modelsLead")}</p>
           </div>
-          <Badge>{models.length} 个模型</Badge>
+          <Badge>{t("modelCount", { count: models.length })}</Badge>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {models.map((model) => (
@@ -88,15 +90,15 @@ export default function PublicStorefront({
                 <span className="th-code text-[11px] text-ink-mute">{model.id}</span>
               </div>
               <CardTitle className="mb-1 text-lg font-medium">{model.display_name || model.id}</CardTitle>
-              <p className="text-sm text-ink-secondary">OpenAI / Anthropic 兼容入口可直接调用。</p>
+              <p className="text-sm text-ink-secondary">{t("compat")}</p>
             </Card>
           ))}
         </div>
       </section>
       <section id="plans">
-        <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-mute">Pricing</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">套餐与订阅</h2>
+        <div className="mb-8">
+          <p className="th-eyebrow text-ink-mute">{t("plansEyebrow")}</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t("plansTitle")}</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {plans.map((plan) => (
@@ -104,33 +106,34 @@ export default function PublicStorefront({
               <CardTitle className="text-lg font-medium">{plan.name}</CardTitle>
               <p className="mt-2 text-3xl font-semibold">
                 {((plan.price_minor ?? 0) / 1_000_000).toString()}
-                <span className="ml-1 text-sm font-normal text-ink-secondary">USD / 月</span>
+                <span className="ml-1 text-sm font-normal text-ink-secondary">{t("perMonth")}</span>
               </p>
               <Button className="mt-5" onClick={() => subscribe(plan.id || "")}>
-                订阅
+                {t("subscribe")}
               </Button>
             </Card>
           ))}
         </div>
       </section>
-      <Card id="topup" className="p-6 md:p-8">
-        <CardTitle className="mb-2 text-2xl font-semibold">充值</CardTitle>
-        <p className="mb-5 text-sm text-ink-secondary">兑换码或创建 1 USD 的 Stripe 沙箱充值单。未登录会引导去登录，回来后继续购买。</p>
+      <Card id="topup" className="p-8 md:p-10">
+        <p className="th-eyebrow text-ink-mute">{t("topupEyebrow")}</p>
+        <CardTitle className="mb-2 mt-2 text-2xl font-semibold">{t("topupTitle")}</CardTitle>
+        <p className="mb-5 text-sm text-ink-secondary">{t("topupLead")}</p>
         <Form {...redeemForm}>
         <form className="flex flex-wrap items-end gap-3" onSubmit={redeemForm.handleSubmit(redeem)}>
-          <TextField control={redeemForm.control} name="code" label="兑换码" showLabel={false} className="max-w-xs" />
+          <TextField control={redeemForm.control} name="code" label={t("redeemCode")} showLabel={false} className="max-w-xs" />
           <Button type="submit" variant="outline">
-            兑换码充值
+            {t("redeem")}
           </Button>
           <Button type="button" onClick={topup}>
-            创建支付充值
+            {t("pay")}
           </Button>
           <Button variant="outline" asChild>
-            <Link href={loginHref("/")}>去登录</Link>
+            <Link href={loginHref("/")}>{t("goLogin")}</Link>
           </Button>
         </form>
         </Form>
-        <p className="mt-4 text-sm text-ink-secondary">{message}</p>
+        <p className="mt-4 text-sm text-ink-secondary">{message || t("guestHint")}</p>
       </Card>
     </div>
   );

@@ -5,6 +5,7 @@ describe("portalForPath", () => {
   it("maps the four portals plus docs", () => {
     expect(portalForPath("/")).toBe("public");
     expect(portalForPath("/app")).toBe("user");
+    expect(portalForPath("/console")).toBe("user");
     expect(portalForPath("/channel/users")).toBe("channel");
     expect(portalForPath("/partner")).toBe("partner");
     expect(portalForPath("/admin")).toBe("admin");

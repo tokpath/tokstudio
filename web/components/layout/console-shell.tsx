@@ -3,30 +3,54 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { adminGroups, channelSections, partnerSections, userSections } from "@/lib/nav";
+import {
+  adminGroups,
+  channelNavGroups,
+  isNavActive,
+  partnerNavGroups,
+  userNavGroups,
+} from "@/lib/nav";
+import { adminNavActive } from "@/lib/tenants";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandMark } from "@/components/brand-mark";
+import { LocaleSwitch } from "@/components/locale-switch";
 
-function SectionLinks({ items, pathname }: { items: { href: string; label: string }[]; pathname: string }) {
+function GroupedNav({
+  groups,
+  pathname,
+  t,
+}: {
+  groups: { titleKey: string; items: { href: string; key: string }[] }[];
+  pathname: string;
+  t: (key: string) => string;
+}) {
   return (
-    <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-      {items.map((item) => {
-        const active = pathname.includes(item.href.replace("#", "")) || false;
-        return (
-          <li key={item.href}>
-            <a
-              href={item.href}
-              className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
-                active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
-              }`}
-            >
-              {item.label}
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex gap-4 overflow-x-auto md:flex-col md:overflow-visible md:gap-0">
+      {groups.map((group) => (
+        <div key={group.titleKey} className="mb-4 shrink-0">
+          <p className="th-eyebrow mb-2 px-3 text-ink-mute">{t(group.titleKey)}</p>
+          <ul className="flex gap-1 md:flex-col">
+            {group.items.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`relative block shrink-0 rounded-control px-3 py-2 text-sm no-underline md:w-full ${
+                      active ? "bg-brand-soft text-brand-emphasis" : "text-ink hover:bg-canvas-raised"
+                    }`}
+                  >
+                    {active ? <span className="absolute inset-y-2 left-0 hidden w-0.5 bg-brand md:block" /> : null}
+                    {t(item.key)}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -40,8 +64,12 @@ export function ConsoleShell({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const ta = useTranslations("admin");
+  const tu = useTranslations("userNav");
+  const tch = useTranslations("channelNav");
+  const tp = useTranslations("partnerNav");
+  const tc = useTranslations("chrome");
   const isAdmin = pathname.startsWith("/admin");
-  const isUser = pathname.startsWith("/app");
+  const isUser = pathname.startsWith("/app") || pathname.startsWith("/console");
   const isChannel = pathname.startsWith("/channel");
   const isPartner = pathname.startsWith("/partner");
   const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";
@@ -57,12 +85,13 @@ export function ConsoleShell({
             <span className="text-lg font-semibold">{title}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            <LocaleSwitch />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={onCommand}>
-              跳转
+              {tc("jump")}
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href="/docs">文档</Link>
+              <Link href="/docs">{tc("docs")}</Link>
             </Button>
           </div>
         </div>
@@ -72,16 +101,16 @@ export function ConsoleShell({
           className="th-scrollbar border-b border-hairline px-3 py-2 md:w-60 md:border-b-0 md:border-r md:py-6"
           aria-label={title}
         >
-          {isUser ? <SectionLinks items={userSections} pathname={pathname} /> : null}
-          {isChannel ? <SectionLinks items={channelSections} pathname={pathname} /> : null}
-          {isPartner ? <SectionLinks items={partnerSections} pathname={pathname} /> : null}
+          {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} /> : null}
+          {isChannel ? <GroupedNav groups={channelNavGroups} pathname={pathname} t={tch} /> : null}
+          {isPartner ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} /> : null}
           {isAdmin
             ? adminGroups.map((group) => (
-                <div key={group.title} className="mb-4">
-                  <p className="th-eyebrow mb-2 px-3 text-ink-mute">{group.title}</p>
+                <div key={group.titleKey} className="mb-4">
+                  <p className="th-eyebrow mb-2 px-3 text-ink-mute">{ta(group.titleKey)}</p>
                   <ul className="flex flex-col gap-1">
                     {group.items.map((item) => {
-                      const active = pathname === item.href;
+                      const active = adminNavActive(pathname, item.href);
                       return (
                         <li key={item.href}>
                           <Link

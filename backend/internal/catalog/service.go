@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"strings"
 	"time"
@@ -114,14 +115,27 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID           string         `json:"id"`
-	Vendor       string         `json:"vendor"`
-	DisplayName  string         `json:"display_name"`
-	Capabilities map[string]any `json:"capabilities"`
-	SellPrice    map[string]any `json:"sell_price,omitempty"`
-	Providers    []string       `json:"providers"`
-	Status       string         `json:"status"`
-	SyncState    string         `json:"sync_state,omitempty"`
+	ID                  string         `json:"id"`
+	Vendor              string         `json:"vendor"`
+	DisplayName         string         `json:"display_name"`
+	Capabilities        map[string]any `json:"capabilities"`
+	SellPrice           map[string]any `json:"sell_price,omitempty"`
+	Providers           []string       `json:"providers"`
+	Status              string         `json:"status"`
+	SyncState           string         `json:"sync_state,omitempty"`
+	Description         string         `json:"description,omitempty"`
+	Kind                string         `json:"kind,omitempty"`
+	ContextLength       int            `json:"context_length,omitempty"`
+	MaxCompletionTokens int            `json:"max_completion_tokens,omitempty"`
+}
+
+// ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
+type ChannelModelView struct {
+	PublicID    string `json:"public_id"`
+	DisplayName string `json:"display_name"`
+	Vendor      string `json:"vendor"`
+	Status      string `json:"status"`
+	Enabled     bool   `json:"enabled"`
 }
 
 type RouteCandidate struct {
@@ -194,7 +208,7 @@ func (s *Service) Seed(ctx context.Context) error {
 		"currency": "USD", "video_second": "0.01", "image_count": "0.02", "audio_second": "0.002",
 		"video_second_cost": "0.004", "image_count_cost": "0.008",
 	})
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		providers := []providerRow{
 			{ID: "prd_echo_primary", Name: "Echo Primary", Slug: PrimaryProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
 			{ID: "prd_echo_backup", Name: "Echo Backup", Slug: BackupProvider, Kind: "direct", Adapter: "test", Status: "active", Health: "available", TestBehavior: "ok"},
@@ -255,8 +269,14 @@ func (s *Service) Seed(ctx context.Context) error {
 		if err := seedMediaCatalog(tx, mediaCaps, mediaPrice); err != nil {
 			return err
 		}
-		return seedGeminiCatalog(tx, caps, price)
-	})
+		if err := seedGeminiCatalog(tx, caps, price); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return s.ImportOfoxSnapshot(ctx)
 }
 
 func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
@@ -390,6 +410,79 @@ func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) e
 		}
 	}
 	return nil
+}
+
+// ListChannelModels 返回该租户的模型授权。includeCatalog 时带上平台目录里尚未授权的模型，供平台勾选；租户视角只看已有白名单。不含提供商凭据。
+func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, includeCatalog bool) ([]ChannelModelView, error) {
+	if channelOrgID == "" {
+		return []ChannelModelView{}, nil
+	}
+	type row struct {
+		PublicID    string `gorm:"column:public_id"`
+		DisplayName string `gorm:"column:display_name"`
+		Vendor      string `gorm:"column:vendor"`
+		Status      string `gorm:"column:status"`
+		Enabled     bool   `gorm:"column:enabled"`
+	}
+	var rows []row
+	q := s.db.WithContext(ctx)
+	if includeCatalog {
+		q = q.Table("catalog_public_models m").
+			Select("m.public_id, m.display_name, m.vendor, m.status, COALESCE(p.enabled, false) AS enabled").
+			Joins("LEFT JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.channel_org_id = ?", channelOrgID)
+	} else {
+		q = q.Table("catalog_channel_model_policies p").
+			Select("m.public_id, m.display_name, m.vendor, m.status, p.enabled").
+			Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
+			Where("p.channel_org_id = ?", channelOrgID)
+	}
+	if err := q.Order("m.public_id").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]ChannelModelView, 0, len(rows))
+	for _, item := range rows {
+		out = append(out, ChannelModelView{
+			PublicID: item.PublicID, DisplayName: item.DisplayName, Vendor: item.Vendor, Status: item.Status, Enabled: item.Enabled,
+		})
+	}
+	return out, nil
+}
+
+// SetChannelModels 只授权平台目录里已有的公开模型。不会创建提供商或新模型。
+func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, grants []ChannelModelGrant) error {
+	if channelOrgID == "" || len(grants) == 0 {
+		return ErrInvalidInput
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, grant := range grants {
+			publicID := strings.TrimSpace(grant.PublicID)
+			if publicID == "" {
+				return ErrInvalidInput
+			}
+			var model publicModelRow
+			if err := tx.Where("public_id = ?", publicID).First(&model).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrUnknownModel
+				}
+				return err
+			}
+			var existing channelPolicyRow
+			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled}).Error; err != nil {
+					return err
+				}
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := tx.Model(&existing).Update("enabled", grant.Enabled).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {
@@ -666,9 +759,11 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 	if err := s.db.WithContext(ctx).Where("public_model_id = ?", model.ID).Order("id").First(&mapping).Error; err == nil {
 		syncState = mapping.SyncState
 	}
+	desc, kind, ctxLen, maxTok := extraFromCaps(caps)
 	return &ModelView{
 		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
-		SellPrice: sell, Providers: slugs, Status: model.Status, SyncState: syncState,
+		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, SyncState: syncState,
+		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}, nil
 }
 

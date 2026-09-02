@@ -13,6 +13,8 @@
     "docs": "文档",
     "login": "登录",
     "register": "注册",
+    "console": "控制台",
+    "entering": "正在进入控制台…",
     "publicNav": "公共站",
     "mobileNav": "公共站移动导航",
     "palette": "快速跳转",

@@ -8,5 +8,6 @@ describe("safeNextPath", () => {
     expect(safeNextPath("//evil.example")).toBe("");
     expect(safeNextPath("https://evil.example")).toBe("");
     expect(loginHref("/")).toBe("/login?next=%2F");
+    expect(loginHref("/enter")).toBe("/login?next=%2Fenter");
   });
 });

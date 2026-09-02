@@ -6,11 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Brand } from "@/lib/brand";
 import { MEGA_MENUS, TOP_LINKS } from "@/lib/mega-nav";
-import { ChevronDown, LogIn, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
+import { ConsoleEntryButton } from "@/components/layout/console-entry";
 import { iconForMegaLink } from "@/lib/page-icons";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
@@ -151,24 +151,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             <kbd className="rounded-control bg-canvas px-1.5 py-0.5 font-mono text-[11px] text-ink-mute">⌘K</kbd>
           </button>
           <span className="mx-1 hidden h-5 w-px bg-hairline sm:block" aria-hidden />
-          <div className="hidden items-center gap-2 sm:flex">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/login">
-                {tc("login")}
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/login">
-                {tc("register")}
-              </Link>
-            </Button>
-          </div>
-          <Button asChild variant="ghost" size="sm" className="sm:hidden">
-            <Link href="/login">
-              <LogIn />
-              {tc("login")}
-            </Link>
-          </Button>
+          <ConsoleEntryButton />
         </div>
       </div>
 

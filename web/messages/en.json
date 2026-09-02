@@ -13,6 +13,8 @@
     "docs": "Docs",
     "login": "Sign in",
     "register": "Sign up",
+    "console": "Console",
+    "entering": "Opening the console…",
     "publicNav": "Public site",
     "mobileNav": "Public mobile nav",
     "palette": "Jump to",

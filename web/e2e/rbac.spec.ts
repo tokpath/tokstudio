@@ -6,13 +6,13 @@ test("unsigned admin still shows the full P0 nav", async ({ page }) => {
   await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
   await expect(page.getByRole("link", { name: "用户/项目" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "余额 / 充值 / 账务" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "余额/充值" })).toBeVisible();
 });
 
 test("finance admin sees ledger menus and not upstream keys", async ({ page }) => {
   await mockViewer(page, { roles: ["finance_admin"] });
   await page.goto("/admin");
-  await expect(page.getByRole("link", { name: "余额 / 充值 / 账务" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "余额/充值" })).toBeVisible();
   await expect(page.getByRole("link", { name: "渠道租户" })).toBeVisible();
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("link", { name: "提供商" })).toHaveCount(0);
@@ -35,7 +35,7 @@ test("tech admin sees credentials and not refunds", async ({ page }) => {
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
   await expect(page.getByRole("link", { name: "API Key" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "余额 / 充值 / 账务" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "余额/充值" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "佣金策略" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
   await page.goto("/admin/providers");
@@ -47,7 +47,7 @@ test("audit readonly sees logs but no write buttons", async ({ page }) => {
   await mockViewer(page, { roles: ["audit_readonly"] });
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "余额 / 充值 / 账务" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "余额/充值" })).toBeVisible();
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "系统设置" })).toHaveCount(0);
   await page.goto("/admin/audit");

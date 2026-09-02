@@ -21,13 +21,15 @@
 |---|---|---|
 | `user` | `id`, `email`, `password_hash`, `status`, `channel_org_id`, `brand_id`, `display_name`, `locale` | 普通用户是唯一终端用户类型；管理员是附加角色；`locale` 仅 zh/en/ja；`status` 为 `active`/`banned`，封禁后会话与 API Key 失效 |
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
-| `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权 |
+| `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权。路由放行由 Casbin 策略（`identity/casbin_policy.go`）判定，不另建 permission 表 |
 | `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级；`disabled` 冻结新消费（聊天/媒体 403），余额和历史保留 |
 | `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、1/2 级 KOL |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
 | `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
 
 P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。管理员 TOTP 物理表为 `identity_admin_totp`（密钥密文，`pending`/`enabled`）；未启用前敏感操作只要求二次确认，启用后还要 `X-Tokenhub-TOTP`。
+
+功能权限由 Casbin 执行：请求是 `(角色, 路径, HTTP 方法)`，策略在 `backend/internal/identity/casbin_policy.go`，默认拒绝。数据隔离（本渠道、推广下线、自己的资源）仍在 handler 里按 scope 过滤，不放进 Casbin。前端继续读 `/v1/me` 的 `roles` 做门户跳转，不必接 casbin.js。
 | `brand` | `id`, `name`, `logo_url`, `logo_dark_url`, `favicon_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
 | `identity_brand_assets` | `id`, `brand_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `width_px`, `height_px`, `sha256`, `status` | 品牌公开资源；`kind` 为 `logo` / `logo_dark` / `favicon` / `og_image`。Logo ≤128KiB、短边 64–1024px。不走媒体 7 天签名 URL |
 

@@ -3,6 +3,7 @@ package identity
 import "time"
 
 // Principal 是跨模块可安全传递的身份视图，不是 ORM Model。
+// 功能权限由 Casbin（path + method）判定；HasRole / VisibleChannelID 负责数据范围。
 type Principal struct {
 	UserID       string   `json:"user_id"`
 	Email        string   `json:"email"`

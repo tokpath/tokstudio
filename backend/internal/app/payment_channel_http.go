@@ -18,7 +18,7 @@ func (a *App) registerPaymentChannelRoutes(r *gin.Engine) {
 	r.GET("/v1/payments/quote", a.requireUserOrKey(), a.userPaymentQuote)
 
 	r.GET("/channel/payments/overview", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPaymentOverview)
-	r.GET("/channel/payments/adapters", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPaymentAdapters))
+	r.GET("/channel/payments/adapters", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPaymentAdapters)
 	r.GET("/channel/payments/instances", a.requireRoles("channel_admin"), a.channelListPaymentInstances)
 	r.POST("/channel/payments/instances", a.requireRoles("channel_admin"), a.channelCreatePaymentInstance)
 	r.PATCH("/channel/payments/instances/:id", a.requireRoles("channel_admin"), a.channelPatchPaymentInstance)

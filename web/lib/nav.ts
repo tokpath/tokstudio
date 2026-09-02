@@ -185,3 +185,8 @@ export function isConsolePath(pathname: string) {
     pathname.startsWith("/admin")
   );
 }
+
+/** 登录页不套公共顶栏/页脚，只留中间表单。 */
+export function isAuthPath(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/login/");
+}

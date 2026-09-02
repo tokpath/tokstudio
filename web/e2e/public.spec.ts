@@ -45,6 +45,8 @@ test("login page has no ofox copy", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/ofox/i);
   await expect(page.getByText("结构对齐")).toHaveCount(0);
+  await expect(page.locator("header")).toHaveCount(0);
+  await expect(page.locator("footer")).toHaveCount(0);
 });
 
 test("public ofox replica pages render headings", async ({ page }) => {

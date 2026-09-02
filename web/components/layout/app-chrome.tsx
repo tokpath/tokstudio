@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { Brand } from "@/lib/brand";
-import { isConsolePath } from "@/lib/nav";
+import { isAuthPath, isConsolePath } from "@/lib/nav";
+import { BrandProvider } from "@/components/brand-context";
 import { CommandPalette } from "./command-palette";
 import { ConsoleShell } from "./console-shell";
 import { SiteFooter } from "./site-footer";
@@ -16,6 +17,10 @@ export function AppChrome({ brand, children }: { brand?: Brand; children: React.
     () => <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />,
     [commandOpen],
   );
+
+  if (isAuthPath(pathname)) {
+    return <BrandProvider brand={brand}>{children}</BrandProvider>;
+  }
 
   if (isConsolePath(pathname)) {
     return (

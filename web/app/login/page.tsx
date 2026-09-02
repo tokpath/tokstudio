@@ -10,6 +10,10 @@ import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
+import { useBrand } from "@/components/brand-context";
+import { BrandLogo } from "@/components/brand-logo";
+import { LocaleSwitch } from "@/components/locale-switch";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { safeNextPath } from "@/lib/login-next";
 import { KeyRound, LogIn, Mail, Shield, UserPlus } from "lucide-react";
 import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
@@ -17,7 +21,8 @@ import { useTranslations } from "next-intl";
 
 function LoginForm() {
   const t = useTranslations("login");
-  const th = useTranslations("home");
+  const brand = useBrand();
+  const siteName = brand?.name || "TokenHub";
   const schema = useMemo(
     () =>
       z.object({
@@ -156,19 +161,20 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto grid min-h-[calc(100vh-8rem)] w-full max-w-[1120px] items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_26rem] lg:gap-20 lg:py-20">
-      <section className="hidden max-w-xl lg:block">
-        <p className="th-eyebrow text-brand-emphasis">{t("eyebrow")}</p>
-        <p className="th-display mt-5">
-          {th("h1a")}
-          <span className="text-brand-emphasis">{th("h1b")}</span>
-          {th("h1c")}
-        </p>
-        <p className="mt-6 text-base leading-relaxed text-ink-secondary">{th("lead")}</p>
-      </section>
-      <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8 sm:p-10">
-        <p className="th-eyebrow text-brand-emphasis lg:hidden">{t("eyebrow")}</p>
-        <h1 className="th-display-sm mt-3">{t("title")}</h1>
+    <main className="flex min-h-svh w-full flex-col items-center justify-center px-6 py-12">
+      <div className="w-full max-w-[26rem]">
+        <Link href="/" className="mb-8 flex items-center justify-center gap-2.5 text-ink no-underline">
+          <BrandLogo brand={brand} />
+          <span className="text-xl font-semibold tracking-tight">{siteName}</span>
+        </Link>
+        <section className="w-full rounded-card border border-hairline bg-canvas-raised p-8 sm:p-10">
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+            <div className="flex shrink-0 items-center">
+              <LocaleSwitch />
+              <ThemeToggle />
+            </div>
+          </div>
 
         <div className="mt-8 flex flex-col gap-3">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
@@ -270,11 +276,11 @@ function LoginForm() {
         <div className="mt-8 border-t border-hairline pt-5">
           {mode === "login" ? <p className="text-[13px] leading-relaxed text-ink-mute">{t("forgot")}</p> : null}
           <p className={`text-[13px] leading-relaxed text-ink-mute ${mode === "login" ? "mt-3" : ""}`}>
-            {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>. {t("backHome")}{" "}
-            <Link href="/">{t("public")}</Link>.
+            {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>.
           </p>
         </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
@@ -282,7 +288,7 @@ function LoginForm() {
 export default function LoginPage() {
   const t = useTranslations("login");
   return (
-    <Suspense fallback={<main className="mx-auto max-w-md px-6 py-20 text-ink-secondary">{t("fallback")}</main>}>
+    <Suspense fallback={<main className="flex min-h-svh items-center justify-center px-6 text-ink-secondary">{t("fallback")}</main>}>
       <LoginForm />
     </Suspense>
   );

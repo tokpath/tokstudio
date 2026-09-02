@@ -193,7 +193,7 @@ function LoginForm() {
             </label>
             <input
               id="google-email"
-              className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
+              className="h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
               value={googleEmail}
               onChange={(event) => setGoogleEmail(event.target.value)}
               placeholder="you@gmail.com"

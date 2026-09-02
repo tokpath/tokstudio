@@ -2,10 +2,7 @@ package identity
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
-	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -23,7 +20,6 @@ var (
 	ErrChannelImmutable   = errors.New("channel attribution cannot be changed by the user")
 	ErrChannelDisabled    = errors.New("channel is disabled")
 	ErrPromotionInvalid   = errors.New("promotion code is invalid")
-	ErrOTPInvalid         = errors.New("verification code is invalid")
 	ErrInvalidProfile     = errors.New("profile is invalid")
 	ErrInvalidLocale      = errors.New("locale is not supported")
 	ErrNotFound             = errors.New("record not found")
@@ -46,18 +42,6 @@ func mapNotFound(err error) error {
 	}
 	return err
 }
-
-type otpRow struct {
-	ID         string     `gorm:"column:id;primaryKey"`
-	Email      string     `gorm:"column:email"`
-	Purpose    string     `gorm:"column:purpose"`
-	CodeHash   string     `gorm:"column:code_hash"`
-	ExpiresAt  time.Time  `gorm:"column:expires_at"`
-	ConsumedAt *time.Time `gorm:"column:consumed_at"`
-	CreatedAt  time.Time  `gorm:"column:created_at"`
-}
-
-func (otpRow) TableName() string { return "identity_email_otps" }
 
 func HashPassword(password string) (string, error) {
 	if len(password) < 8 {
@@ -87,11 +71,6 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 	if err != nil {
 		return nil, err
 	}
-	if in.OTP != "" {
-		if err := s.consumeOTP(ctx, email, "register", in.OTP); err != nil {
-			return nil, err
-		}
-	}
 
 	var count int64
 	if err := s.db.WithContext(ctx).Model(&userRow{}).Where("email = ?", email).Count(&count).Error; err != nil {
@@ -112,9 +91,6 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 		Locale:       DefaultLocale,
 		CreatedAt:    now,
 		UpdatedAt:    now,
-	}
-	if in.OTP != "" {
-		user.EmailVerifiedAt = &now
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&user).Error; err != nil {
@@ -155,63 +131,6 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 		return nil, ErrInvalidCredentials
 	}
 	return s.issueSession(ctx, user)
-}
-
-func (s *Service) RequestOTP(ctx context.Context, email, purpose string) (string, error) {
-	email = normalizeEmail(email)
-	if email == "" {
-		return "", ErrInvalidCredentials
-	}
-	if purpose == "" {
-		purpose = "login"
-	}
-	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
-	if err != nil {
-		return "", err
-	}
-	code := fmt.Sprintf("%06d", n.Int64())
-	row := otpRow{
-		ID:        id.New("otp"),
-		Email:     email,
-		Purpose:   purpose,
-		CodeHash:  crypto.HashToken(code),
-		ExpiresAt: time.Now().UTC().Add(10 * time.Minute),
-		CreatedAt: time.Now().UTC(),
-	}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
-		return "", err
-	}
-	return code, nil
-}
-
-func (s *Service) LoginWithOTP(ctx context.Context, email, code string) (*Session, error) {
-	email = normalizeEmail(email)
-	if err := s.consumeOTP(ctx, email, "login", code); err != nil {
-		return nil, err
-	}
-	var user userRow
-	if err := s.db.WithContext(ctx).Where("email = ? AND status = ?", email, "active").First(&user).Error; err != nil {
-		return nil, ErrInvalidCredentials
-	}
-	now := time.Now().UTC()
-	_ = s.db.WithContext(ctx).Model(&userRow{}).Where("id = ?", user.ID).Update("email_verified_at", now).Error
-	return s.issueSession(ctx, user)
-}
-
-func (s *Service) consumeOTP(ctx context.Context, email, purpose, code string) error {
-	var row otpRow
-	err := s.db.WithContext(ctx).
-		Where("email = ? AND purpose = ? AND consumed_at IS NULL AND expires_at > ?", email, purpose, time.Now().UTC()).
-		Order("created_at DESC").
-		First(&row).Error
-	if err != nil {
-		return ErrOTPInvalid
-	}
-	if row.CodeHash != crypto.HashToken(code) {
-		return ErrOTPInvalid
-	}
-	now := time.Now().UTC()
-	return s.db.WithContext(ctx).Model(&otpRow{}).Where("id = ?", row.ID).Update("consumed_at", now).Error
 }
 
 func (s *Service) SwitchChannel(_ context.Context, _ Principal, _ string) error {

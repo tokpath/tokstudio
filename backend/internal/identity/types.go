@@ -87,7 +87,6 @@ type RegisterInput struct {
 	Email         string
 	Password      string
 	PromotionCode string
-	OTP           string
 }
 
 type LoginInput struct {

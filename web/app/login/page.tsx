@@ -15,7 +15,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { safeNextPath } from "@/lib/login-next";
-import { KeyRound, LogIn, Mail, Shield, UserPlus } from "lucide-react";
+import { KeyRound, LogIn, Mail, UserPlus } from "lucide-react";
 import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
 import { useTranslations } from "next-intl";
 
@@ -29,7 +29,6 @@ function LoginForm() {
         email: z.string().trim().email(t("emailInvalid")),
         password: z.string().min(8, t("passMin")),
         promo: z.string().trim(),
-        otp: z.string().trim(),
       }),
     [t],
   );
@@ -40,7 +39,7 @@ function LoginForm() {
   const [googleEmail, setGoogleEmail] = useState("");
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "", promo: "", otp: "" },
+    defaultValues: { email: "", password: "", promo: "" },
   });
 
   function goNext() {
@@ -125,41 +124,6 @@ function LoginForm() {
     setMessage(t("githubMissing"));
   }
 
-  async function requestOtp() {
-    const email = form.getValues("email");
-    const response = await fetch(`${apiBase}/v1/auth/otp/request`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, purpose: "login" }),
-    });
-    const body = await response.json();
-    setMessage(
-      response.ok
-        ? body.dev_code
-          ? t("otpSentDev", { code: body.dev_code })
-          : t("otpSent")
-        : body.error?.message || t("otpSendFail"),
-    );
-  }
-
-  async function loginOtp() {
-    const values = form.getValues();
-    const response = await fetch(`${apiBase}/v1/auth/otp/verify`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: values.email, code: values.otp }),
-    });
-    const body = await response.json();
-    if (response.ok) {
-      setMessage(t("welcome", { email: body.session?.user?.email || "" }));
-      goNext();
-      return;
-    }
-    setMessage(body.error?.message || t("otpInvalid"));
-  }
-
   return (
     <main className="flex min-h-svh w-full flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-[26rem]">
@@ -216,18 +180,6 @@ function LoginForm() {
           <form className="flex w-full flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
-            {mode === "login" ? (
-              <div>
-                <TextField control={form.control} name="otp" label={t("otp")} placeholder={t("otpPlaceholder")} icon={Shield} />
-                <button
-                  type="button"
-                  className="mt-2 text-[13px] text-brand-emphasis hover:underline"
-                  onClick={requestOtp}
-                >
-                  {t("sendOtp")}
-                </button>
-              </div>
-            ) : null}
             {mode === "register" ? (
               <TextField control={form.control} name="promo" label={t("promo")} placeholder={t("promoPh")} />
             ) : null}
@@ -248,11 +200,6 @@ function LoginForm() {
                 </>
               )}
             </Button>
-            {mode === "login" ? (
-              <Button type="button" variant="outline" className="w-full" onClick={loginOtp}>
-                {t("otpLogin")}
-              </Button>
-            ) : null}
             {message ? <p className="text-sm leading-relaxed text-hold">{message}</p> : null}
             <p className="pt-1 text-sm text-ink-secondary">
               {mode === "login" ? (
@@ -274,8 +221,7 @@ function LoginForm() {
           </form>
         </Form>
         <div className="mt-8 border-t border-hairline pt-5">
-          {mode === "login" ? <p className="text-[13px] leading-relaxed text-ink-mute">{t("forgot")}</p> : null}
-          <p className={`text-[13px] leading-relaxed text-ink-mute ${mode === "login" ? "mt-3" : ""}`}>
+          <p className="text-[13px] leading-relaxed text-ink-mute">
             {t("terms")} <Link href="/terms">{t("termsLink")}</Link> {t("and")} <Link href="/privacy">{t("privacy")}</Link>.
           </p>
         </div>

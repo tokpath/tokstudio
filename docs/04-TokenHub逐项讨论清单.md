@@ -132,7 +132,7 @@
 
 ### D14. 注册登录与渠道归因：已确认
 
-已确认：P0 支持邮箱密码、邮箱验证码和 Google OAuth；GitHub OAuth 放到 P1。推广链接通过服务端暂存 attribution，注册完成后固化 channel_org_id、acquisition_role_id 和 brand_id；B/C/OEM 域名沿用同一身份系统。
+已确认：P0 支持邮箱密码和 Google OAuth；GitHub OAuth 放到 P1。推广链接通过服务端暂存 attribution，注册完成后固化 channel_org_id、acquisition_role_id 和 brand_id；B/C/OEM 域名沿用同一身份系统。
 
 ### D15. 充值支付方式
 

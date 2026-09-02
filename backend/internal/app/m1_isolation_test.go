@@ -68,6 +68,17 @@ func TestM1IdentityIsolation(t *testing.T) {
 		t.Fatal("A and B users must belong to different channels")
 	}
 
+	if code := mustStatusJSON(t, http.MethodPost, server.URL+"/v1/auth/otp/request", "", map[string]string{
+		"email": "alice-a+" + suffix + "@example.test", "purpose": "login",
+	}); code != http.StatusNotFound {
+		t.Fatalf("otp request should be 404, got %d", code)
+	}
+	if code := mustStatusJSON(t, http.MethodPost, server.URL+"/v1/auth/otp/verify", "", map[string]string{
+		"email": "alice-a+" + suffix + "@example.test", "code": "000000",
+	}); code != http.StatusNotFound {
+		t.Fatalf("otp verify should be 404, got %d", code)
+	}
+
 	switchCode := mustStatusJSON(t, http.MethodPost, server.URL+"/v1/me/channel/switch", tokenOf(regA), map[string]string{
 		"channel_org_id": identity.ResellerChannelID,
 	})

@@ -9,12 +9,6 @@ paths:
   /v1/auth/login:
     post:
       summary: Password login, sets HttpOnly session cookie
-  /v1/auth/otp/request:
-    post:
-      summary: Send email OTP
-  /v1/auth/otp/verify:
-    post:
-      summary: Login with OTP
   /v1/auth/google/start:
     get:
       summary: Start Google OAuth and stash promotion code

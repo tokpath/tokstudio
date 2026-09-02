@@ -39,7 +39,7 @@ export const PUBLIC_PAGE_SPECS: PublicPageSpec[] = [
   { href: "/blog", ofox: "https://ofox.ai/zh/blog", label: "博客", purpose: "文章列表" },
   { href: "/terms", ofox: "https://ofox.ai/zh/terms-of-service", label: "服务条款", purpose: "法律条款" },
   { href: "/privacy", ofox: "https://ofox.ai/zh/privacy", label: "隐私政策", purpose: "隐私说明" },
-  { href: "/login", ofox: "https://app.ofox.ai/auth", label: "登录", purpose: "邮箱/OTP/Google" },
+  { href: "/login", ofox: "https://app.ofox.ai/auth", label: "登录", purpose: "邮箱/Google" },
   { href: "/app", ofox: "https://app.ofox.ai/dashboard", label: "总览", purpose: "余额/Key/回单", auth: true },
   { href: "/app/playground", ofox: "https://app.ofox.ai/playground", label: "快速试用", purpose: "选模型发一条", auth: true },
   { href: "/app/keys", ofox: "https://app.ofox.ai/manage/api-keys", label: "API Key", purpose: "创建/轮换/白名单", auth: true },

@@ -46,6 +46,7 @@ test("English public pages keep the same URLs and translate body copy", async ({
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Why TokenHub" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Start reconciling" })).toBeVisible();
+  await expect(page.locator("header").getByRole("link", { name: "Console" })).toBeVisible();
 
   await page.goto("/models");
   await expect(page).toHaveURL(/\/models$/);

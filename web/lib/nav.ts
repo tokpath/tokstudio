@@ -186,7 +186,12 @@ export function isConsolePath(pathname: string) {
   );
 }
 
-/** 登录页不套公共顶栏/页脚，只留中间表单。 */
+/** 登录页和控制台入口不套公共顶栏/页脚。 */
 export function isAuthPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/login/");
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/enter" ||
+    pathname.startsWith("/enter/")
+  );
 }

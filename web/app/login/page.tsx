@@ -14,6 +14,7 @@ import { useBrand } from "@/components/brand-context";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
 import { safeNextPath } from "@/lib/login-next";
 import { KeyRound, LogIn, Mail, UserPlus } from "lucide-react";
 import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
@@ -42,9 +43,13 @@ function LoginForm() {
     defaultValues: { email: "", password: "", promo: "" },
   });
 
-  function goNext() {
+  async function goNext() {
     const next = safeNextPath(search.get("next"));
-    window.location.href = next || "/app";
+    if (next && next !== CONSOLE_ENTRY_PATH) {
+      window.location.href = next;
+      return;
+    }
+    window.location.href = await resolveConsoleHref();
   }
 
   async function register(values: z.infer<typeof schema>) {
@@ -57,7 +62,7 @@ function LoginForm() {
     const body = await response.json();
     if (response.ok) {
       setMessage(t("registered", { channel: body.session?.user?.channel_org_id || "—" }));
-      goNext();
+      await goNext();
       return;
     }
     setMessage(body.error?.message || t("fail"));
@@ -73,7 +78,7 @@ function LoginForm() {
     const body = await response.json();
     if (response.ok) {
       setMessage(t("welcome", { email: body.session?.user?.email || "" }));
-      goNext();
+      await goNext();
       return;
     }
     setMessage(body.error?.message || t("fail"));
@@ -114,7 +119,7 @@ function LoginForm() {
     const body = await response.json();
     if (response.ok) {
       setMessage(t("welcome", { email: body.session?.user?.email || "" }));
-      goNext();
+      await goNext();
       return;
     }
     setMessage(body.error?.message || t("googleFail"));

@@ -13,6 +13,8 @@
     "docs": "ドキュメント",
     "login": "ログイン",
     "register": "登録",
+    "console": "コンソール",
+    "entering": "コンソールに移動しています…",
     "publicNav": "公開サイト",
     "mobileNav": "公開サイト（モバイル）",
     "palette": "クイックジャンプ",

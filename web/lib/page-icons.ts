@@ -96,6 +96,7 @@ export const HREF_ICONS: Record<string, LucideIcon> = {
   "/blog": Newspaper,
   "/vs/openrouter": Scale,
   "/login": LogIn,
+  "/enter": LayoutDashboard,
   "/app": LayoutDashboard,
   "/app/playground": Play,
   "/app/keys": KeyRound,

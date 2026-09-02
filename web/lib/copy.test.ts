@@ -28,4 +28,10 @@ describe("user-facing copy", () => {
     expect(en.login).not.toHaveProperty("lead");
     expect(ja.login).not.toHaveProperty("lead");
   });
+
+  it("labels the public header console entry in every locale", () => {
+    expect(zh.chrome.console).toBe("控制台");
+    expect(en.chrome.console).toBe("Console");
+    expect(ja.chrome.console).toBe("コンソール");
+  });
 });

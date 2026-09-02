@@ -54,5 +54,6 @@ describe("page icons", () => {
       expect(iconForKind(kind)).toBe(KIND_ICONS[kind]);
     }
     expect(iconForHref("/models/openai/gpt-5.6-sol")).not.toBe(Circle);
+    expect(iconForHref("/enter")).not.toBe(Circle);
   });
 });

@@ -17,8 +17,8 @@ func (a *App) registerPaymentChannelRoutes(r *gin.Engine) {
 	r.GET("/v1/payments/checkout", a.requireUserOrKey(), a.userPaymentCheckout)
 	r.GET("/v1/payments/quote", a.requireUserOrKey(), a.userPaymentQuote)
 
-	r.GET("/channel/payments/overview", a.requireRoles("channel_admin"), a.channelPaymentOverview)
-	r.GET("/channel/payments/adapters", a.requireRoles("channel_admin"), a.channelPaymentAdapters)
+	r.GET("/channel/payments/overview", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPaymentOverview)
+	r.GET("/channel/payments/adapters", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPaymentAdapters))
 	r.GET("/channel/payments/instances", a.requireRoles("channel_admin"), a.channelListPaymentInstances)
 	r.POST("/channel/payments/instances", a.requireRoles("channel_admin"), a.channelCreatePaymentInstance)
 	r.PATCH("/channel/payments/instances/:id", a.requireRoles("channel_admin"), a.channelPatchPaymentInstance)
@@ -94,8 +94,10 @@ func (a *App) paymentCallbackOrigin(c *gin.Context, channelOrgID string) string 
 }
 
 func (a *App) channelPaymentOverview(c *gin.Context) {
-	channelID, ok := a.requireChannelOrg(c)
-	if !ok {
+	p := a.currentPrincipal(c)
+	channelID := a.channelOrgForAdmin(c)
+	if channelID == "" && p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未绑定渠道", false)
 		return
 	}
 	origin := a.paymentCallbackOrigin(c, channelID)
@@ -104,8 +106,10 @@ func (a *App) channelPaymentOverview(c *gin.Context) {
 		return
 	}
 	channelType := ""
-	if _, ch, err := a.Identity.ChannelBrand(c.Request.Context(), *a.currentPrincipal(c)); err == nil && ch != nil {
-		channelType = ch.Type
+	if p != nil {
+		if _, ch, err := a.Identity.ChannelBrand(c.Request.Context(), *p); err == nil && ch != nil {
+			channelType = ch.Type
+		}
 	}
 	httpx.OK(c, gin.H{
 		"item": item, "channel_type": channelType, "hint": paymentHint(channelType),
@@ -125,9 +129,6 @@ func paymentHint(channelType string) string {
 }
 
 func (a *App) channelPaymentAdapters(c *gin.Context) {
-	if _, ok := a.requireChannelOrg(c); !ok {
-		return
-	}
 	httpx.OK(c, gin.H{"items": a.Payment.Registry().Specs(), "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

@@ -54,6 +54,13 @@ func TestChannelPaymentPluggable(t *testing.T) {
 		t.Fatalf("lanes: %s", joined)
 	}
 
+	adminOver := getAuthJSON(t, server.URL+"/channel/payments/overview", "pay_admin")
+	adminItem, _ := adminOver["item"].(map[string]any)
+	adminLanes, _ := adminItem["lanes"].([]any)
+	if len(adminLanes) < 3 {
+		t.Fatalf("platform admin should still see plugin lanes, got %+v", adminOver)
+	}
+
 	created := postJSONRaw(t, server.URL+"/channel/payments/instances", "pay_channel", map[string]any{
 		"adapter": "alipay", "name": "B 支付宝沙箱", "mode": "sandbox",
 		"credentials": map[string]string{

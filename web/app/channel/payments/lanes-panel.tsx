@@ -15,8 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/empty-state";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { CreditCard } from "lucide-react";
 
 type Field = { key: string; label: string; secret?: boolean; required?: boolean };
 type Lane = {
@@ -51,7 +53,11 @@ export function PaymentLanesPanel() {
     queryKey: ["/channel/payments/overview"],
     queryFn: async () => {
       const res = await fetch(`${apiBase}/channel/payments/overview`, { credentials: "include" });
-      return (await res.json()) as Overview;
+      const body = (await res.json()) as Overview & { error?: { message?: string } };
+      if (!res.ok) {
+        throw new Error(body.error?.message || `加载失败（${res.status}）`);
+      }
+      return body;
     },
   });
   const [open, setOpen] = useState<Lane | null>(null);
@@ -138,6 +144,29 @@ export function PaymentLanesPanel() {
     }
     setMessage("连通成功");
     return true;
+  }
+
+  if (query.isPending) {
+    return <p className="text-sm text-ink-secondary">正在加载支付通道…</p>;
+  }
+  if (query.isError) {
+    const detail = query.error instanceof Error ? query.error.message : "加载失败";
+    return (
+      <EmptyState
+        icon={CreditCard}
+        title="无法加载支付通道"
+        detail={`${detail}。通道卡来自后端插件目录，不是写死在页面上。请用渠道管理员账号打开，或确认 api 已发布 payment 插件。`}
+      />
+    );
+  }
+  if (lanes.length === 0) {
+    return (
+      <EmptyState
+        icon={CreditCard}
+        title="还没有支付插件"
+        detail="支付宝 / 微信 / Stripe 由 api 进程里的 Registry 注册。这里空着说明当前 api 没有挂上内置 driver。"
+      />
+    );
   }
 
   return (

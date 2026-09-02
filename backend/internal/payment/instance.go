@@ -313,24 +313,27 @@ func (s *Service) PatchSettings(ctx context.Context, channelOrgID string, in Set
 }
 
 func (s *Service) Overview(ctx context.Context, channelOrgID, callbackOrigin string) (*OverviewView, error) {
-	settings, err := s.GetSettings(ctx, channelOrgID)
-	if err != nil {
-		return nil, err
+	view := &OverviewView{
+		ChannelOrgID:   channelOrgID,
+		FenPerUSD:      FenPerUSD,
+		CallbackOrigin: strings.TrimRight(callbackOrigin, "/"),
+		Lanes:          []LaneView{},
 	}
-	instances, err := s.ListInstances(ctx, channelOrgID, "")
-	if err != nil {
-		return nil, err
+	var instances []InstanceView
+	onlineDisabled := false
+	if channelOrgID != "" {
+		if settings, err := s.GetSettings(ctx, channelOrgID); err == nil && settings != nil {
+			view.OnlineDisabled = settings.OnlineDisabled
+			view.IssueRatioBPS = settings.IssueRatioBPS
+			onlineDisabled = settings.OnlineDisabled
+		}
+		if items, err := s.ListInstances(ctx, channelOrgID, ""); err == nil {
+			instances = items
+		}
 	}
 	byAdapter := map[string][]InstanceView{}
 	for _, item := range instances {
 		byAdapter[item.Adapter] = append(byAdapter[item.Adapter], item)
-	}
-	view := &OverviewView{
-		ChannelOrgID:   channelOrgID,
-		OnlineDisabled: settings.OnlineDisabled,
-		IssueRatioBPS:  settings.IssueRatioBPS,
-		FenPerUSD:      FenPerUSD,
-		CallbackOrigin: strings.TrimRight(callbackOrigin, "/"),
 	}
 	for _, plugin := range s.userFacing() {
 		adapter := plugin.Spec().ID
@@ -347,7 +350,7 @@ func (s *Service) Overview(ctx context.Context, channelOrgID, callbackOrigin str
 			view.Lanes = append(view.Lanes, lane)
 			continue
 		}
-		if settings.OnlineDisabled {
+		if onlineDisabled {
 			if len(items) == 0 {
 				lane.State = LaneNone
 			} else {

@@ -74,13 +74,13 @@ echo "== OEM brand by host"
 oem="$(curl -sf "$API_URL/v1/public/brand?host=oem.localhost")"
 echo "$oem" | grep -q "Aurora OEM"
 
-echo "== OTP login echo in development"
-otp="$(curl -sf -X POST "$API_URL/v1/auth/otp/request" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$alice\",\"purpose\":\"login\"}")"
-code="$(python3 -c "import json,sys; print(json.loads(sys.argv[1]).get('dev_code',''))" "$otp")"
-test -n "$code"
-curl -sf -X POST "$API_URL/v1/auth/otp/verify" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$alice\",\"code\":\"$code\"}" | grep -q "$alice"
+echo "== OTP login routes are gone"
+otp_req="$(curl -s -o /tmp/otp-request.json -w '%{http_code}' -X POST "$API_URL/v1/auth/otp/request" \
+  -H 'Content-Type: application/json' -d "{\"email\":\"$alice\",\"purpose\":\"login\"}")"
+test "$otp_req" = "404"
+otp_verify="$(curl -s -o /tmp/otp-verify.json -w '%{http_code}' -X POST "$API_URL/v1/auth/otp/verify" \
+  -H 'Content-Type: application/json' -d "{\"email\":\"$alice\",\"code\":\"000000\"}")"
+test "$otp_verify" = "404"
 
 echo "== Google mock keeps promotion"
 start="$(curl -sf "$API_URL/v1/auth/google/start?promotion_code=THC1")"

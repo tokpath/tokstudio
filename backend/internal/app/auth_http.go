@@ -27,8 +27,6 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
-	r.POST("/v1/auth/otp/request", a.requestOTP)
-	r.POST("/v1/auth/otp/verify", a.verifyOTP)
 	r.GET("/v1/auth/google/start", a.googleStart)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
@@ -95,8 +93,6 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "密码至少 8 位", false)
 	case errors.Is(err, identity.ErrPromotionInvalid):
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "推广码无效", false)
-	case errors.Is(err, identity.ErrOTPInvalid):
-		httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "验证码无效", false)
 	case errors.Is(err, identity.ErrChannelImmutable):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "渠道归属不可自行切换", false)
 	case errors.Is(err, identity.ErrNotFound):
@@ -123,14 +119,13 @@ func (a *App) register(c *gin.Context) {
 		Email         string `json:"email"`
 		Password      string `json:"password"`
 		PromotionCode string `json:"promotion_code"`
-		OTP           string `json:"otp"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
 	session, err := a.Identity.Register(c.Request.Context(), identity.RegisterInput{
-		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode, OTP: body.OTP,
+		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode,
 	})
 	if err != nil {
 		a.writeAuthError(c, err)
@@ -155,45 +150,6 @@ func (a *App) login(c *gin.Context) {
 		return
 	}
 	session, err := a.Identity.Login(c.Request.Context(), identity.LoginInput{Email: body.Email, Password: body.Password})
-	if err != nil {
-		a.writeAuthError(c, err)
-		return
-	}
-	a.setSessionCookie(c, session.Token)
-	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func (a *App) requestOTP(c *gin.Context) {
-	var body struct {
-		Email   string `json:"email"`
-		Purpose string `json:"purpose"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
-		return
-	}
-	code, err := a.Identity.RequestOTP(c.Request.Context(), body.Email, body.Purpose)
-	if err != nil {
-		a.writeAuthError(c, err)
-		return
-	}
-	resp := gin.H{"status": "sent", "request_id": c.GetString(httpx.ContextRequestID)}
-	if !a.Config.IsProduction() && a.Config.AllowDemoProbes {
-		resp["dev_code"] = code
-	}
-	httpx.OK(c, resp)
-}
-
-func (a *App) verifyOTP(c *gin.Context) {
-	var body struct {
-		Email string `json:"email"`
-		Code  string `json:"code"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
-		return
-	}
-	session, err := a.Identity.LoginWithOTP(c.Request.Context(), body.Email, body.Code)
 	if err != nil {
 		a.writeAuthError(c, err)
 		return

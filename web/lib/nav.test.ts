@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavKeys, channelSections, consoleItemHref, isConsolePath, isNavActive, userSections } from "./nav";
+import { adminNavKeys, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, userSections } from "./nav";
 import { adminNavActive } from "./tenants";
 
 describe("adminNavKeys", () => {
@@ -40,6 +40,16 @@ describe("isConsolePath", () => {
     expect(isConsolePath("/channel/users")).toBe(true);
     expect(isConsolePath("/partner")).toBe(true);
     expect(isConsolePath("/admin/plans")).toBe(true);
+  });
+});
+
+describe("isAuthPath", () => {
+  it("treats only the login route as chrome-free auth", () => {
+    expect(isAuthPath("/login")).toBe(true);
+    expect(isAuthPath("/login?next=%2Fapp")).toBe(false);
+    expect(isAuthPath("/")).toBe(false);
+    expect(isAuthPath("/docs")).toBe(false);
+    expect(isAuthPath("/app")).toBe(false);
   });
 });
 

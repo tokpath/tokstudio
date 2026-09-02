@@ -36,7 +36,7 @@ export function TextField<T extends FieldValues>({
           {showLabel ? <FormLabel>{label}</FormLabel> : null}
           <FormControl>
             {Icon ? (
-              <div className="relative">
+              <div className="relative w-full">
                 <Icon
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute"
                   strokeWidth={1.75}

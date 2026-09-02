@@ -45,6 +45,10 @@ func (a *App) requireUserOrKey() gin.HandlerFunc {
 			return
 		}
 		if principal != nil {
+			if !a.Identity.Allow(principal, c.Request.URL.Path, c.Request.Method) {
+				httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
+				return
+			}
 			c.Set("principal", principal)
 			c.Next()
 			return
@@ -57,6 +61,10 @@ func (a *App) requireUserOrKey() gin.HandlerFunc {
 		}
 		if key == nil {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+			return
+		}
+		if !a.Identity.Allow(&key.Principal, c.Request.URL.Path, c.Request.Method) {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
 			return
 		}
 		c.Set("principal", &key.Principal)

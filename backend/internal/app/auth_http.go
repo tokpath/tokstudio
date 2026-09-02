@@ -64,19 +64,7 @@ func (a *App) tokenFromRequest(c *gin.Context) string {
 }
 
 func (a *App) requireAnyUser() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
-		if err != nil {
-			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "身份校验失败", true)
-			return
-		}
-		if principal == nil {
-			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
-			return
-		}
-		c.Set("principal", principal)
-		c.Next()
-	}
+	return a.enforceSession(nil, true)
 }
 
 func (a *App) setSessionCookie(c *gin.Context, token string) {

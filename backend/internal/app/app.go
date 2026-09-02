@@ -299,6 +299,11 @@ func (a *App) requireConfirm(c *gin.Context) bool {
 }
 
 func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
+	// 登录 + 路由上声明的角色 + Casbin(path, method)。两边都过才放行，缺策略时默认拒绝。
+	return a.enforceSession(roles, false)
+}
+
+func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
@@ -309,7 +314,11 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}
-		if !principal.HasRole(roles...) {
+		if !anyAuthenticated && len(roles) > 0 && !principal.HasRole(roles...) {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
+			return
+		}
+		if !a.Identity.Allow(principal, c.Request.URL.Path, c.Request.Method) {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
 			return
 		}

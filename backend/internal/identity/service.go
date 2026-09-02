@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/casbin/casbin/v2"
 	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
@@ -62,13 +63,18 @@ type tokenRow struct {
 func (tokenRow) TableName() string { return "identity_access_tokens" }
 
 type Service struct {
-	db    *gorm.DB
-	acme  *ACME
-	store ObjectStore
+	db       *gorm.DB
+	acme     *ACME
+	store    ObjectStore
+	enforcer *casbin.Enforcer
 }
 
 func New(db *gorm.DB) *Service {
-	return &Service{db: db}
+	s := &Service{db: db}
+	if err := s.initEnforcer(); err != nil {
+		panic("casbin: " + err.Error())
+	}
+	return s
 }
 
 func (s *Service) SetACME(client *ACME) {

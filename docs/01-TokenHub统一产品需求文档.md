@@ -265,7 +265,7 @@ P0 使用一个 React/Next.js 前端代码库，按域名、品牌、角色和�
 
 ### 9.2 P0 技术栈与部署
 
-- 后端：Go + Gin，模块化单体；日志使用 zerolog，配置使用 Viper；
+- 后端：Go + Gin，模块化单体；日志使用 zerolog，配置使用 Viper；功能权限用 Casbin（角色 × 路径 × 方法），数据范围仍按渠道/资源 scope 在 handler 过滤；
 - 数据库：PostgreSQL + GORM，作为账务和核心业务事实源。账务核心必须显式事务、锁、幂等约束和定点金额字段，使用版本化 migration，生产环境禁止 AutoMigrate；
 - Redis：限流、并发控制、短期缓存和分布式锁；
 - 异步：PostgreSQL Outbox + Worker，事件采用 Dapr 兼容的 CloudEvents；

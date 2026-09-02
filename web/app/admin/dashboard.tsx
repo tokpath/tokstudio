@@ -1,15 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 import { apiBase } from "@/lib/api";
-import { dailyChartOption, requestChartOption } from "@/lib/charts";
+import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
 import { dashboardHero, dashboardSummaryParams } from "@/lib/dashboard";
 import { Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { AdminH2 } from "@/components/admin-h2";
 import { MetricCard } from "@/components/feature-card";
+import { EChart } from "@/components/echart";
 import { DASHBOARD_HERO_ICONS } from "@/lib/page-icons";
 
 type DashboardBody = {
@@ -30,10 +32,10 @@ export default function AdminDashboard() {
   const t = useTranslations("admin");
   const tu = useTranslations("adminUi");
   const td = useTranslations("dashboard");
+  const tChart = useTranslations("charts");
+  const { resolvedTheme } = useTheme();
   const [message, setMessage] = useState(td("lead"));
   const [dimension, setDimension] = useState("model");
-  const chartRef = useRef<HTMLDivElement>(null);
-  const seriesRef = useRef<HTMLDivElement>(null);
   const query = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
@@ -75,45 +77,28 @@ export default function AdminDashboard() {
     setMessage(td("exported"));
   }
 
-  useEffect(() => {
-    const items = query.data?.dashboard?.dimensions?.[dimension] ?? [];
-    if (!chartRef.current || items.length === 0) {
-      return;
-    }
-    let disposed = false;
-    import("echarts").then((echarts) => {
-      if (disposed || !chartRef.current) {
-        return;
-      }
-      const chart = echarts.init(chartRef.current);
-      chart.setOption(requestChartOption(items));
-      return () => chart.dispose();
-    });
-    return () => {
-      disposed = true;
-    };
-  }, [query.data, dimension]);
-
-  useEffect(() => {
-    const items = seriesQuery.data?.items ?? [];
-    if (!seriesRef.current || items.length === 0) {
-      return;
-    }
-    let disposed = false;
-    import("echarts").then((echarts) => {
-      if (disposed || !seriesRef.current) {
-        return;
-      }
-      const chart = echarts.init(seriesRef.current);
-      chart.setOption(dailyChartOption(items));
-      return () => chart.dispose();
-    });
-    return () => {
-      disposed = true;
-    };
-  }, [seriesQuery.data]);
+  const palette = useMemo(() => chartPalette(resolvedTheme === "dark"), [resolvedTheme]);
+  const labels = useMemo(() => ({ requests: tChart("requests"), revenue: tChart("spend") }), [tChart]);
+  const dimItems = query.data?.dashboard?.dimensions?.[dimension] ?? [];
+  const dayItems = seriesQuery.data?.items ?? [];
+  const dimOption = useMemo(
+    () => (dimItems.length ? requestChartOption(dimItems, labels, palette) : null),
+    [dimItems, labels, palette],
+  );
+  const dayOption = useMemo(
+    () => (dayItems.length ? dailyChartOption(dayItems, labels, palette) : null),
+    [dayItems, labels, palette],
+  );
 
   const hero = dashboardHero(query.data?.dashboard || {});
+  const dimTitle =
+    {
+      model: td("dimModel"),
+      api_key: td("dimApiKey"),
+      channel: td("dimChannel"),
+      user: td("dimUser"),
+      provider: td("dimProvider"),
+    }[dimension] || td("dimLabel");
 
   return (
     <div className="flex flex-col gap-5">
@@ -159,20 +144,22 @@ export default function AdminDashboard() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-card border border-hairline bg-canvas p-3">
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">
-              {{
-                model: td("dimModel"),
-                api_key: td("dimApiKey"),
-                channel: td("dimChannel"),
-                user: td("dimUser"),
-                provider: td("dimProvider"),
-              }[dimension] || td("dimLabel")}
-            </p>
-            <div ref={chartRef} className="h-72 w-full" data-testid="ops-echarts" />
+            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">{dimTitle}</p>
+            <EChart
+              option={dimOption}
+              emptyTitle={tChart("empty")}
+              emptyDetail={tChart("emptyDetail")}
+              testId="ops-echarts"
+            />
           </div>
           <div className="rounded-card border border-hairline bg-canvas p-3">
             <p className="mb-2 text-xs uppercase tracking-[0.16em] text-ink-mute">{td("last7d")}</p>
-            <div ref={seriesRef} className="h-72 w-full" data-testid="ops-daily-chart" />
+            <EChart
+              option={dayOption}
+              emptyTitle={tChart("empty")}
+              emptyDetail={tChart("emptyDetail")}
+              testId="ops-daily-chart"
+            />
           </div>
         </div>
       </section>

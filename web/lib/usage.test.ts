@@ -3,6 +3,8 @@ import {
   dimToKeyBuckets,
   filterUsage,
   groupUsageByAPIKey,
+  groupUsageByDay,
+  groupUsageByModel,
   keyLabel,
   shortKeyRef,
   summarizeUsage,
@@ -18,6 +20,7 @@ const rows = [
     prompt_tokens: 40,
     completion_tokens: 12,
     customer_amount_minor: 64,
+    occurred_at: "2026-08-29T10:00:00.000Z",
   },
   {
     id: "usg_b",
@@ -26,6 +29,7 @@ const rows = [
     prompt_tokens: 8,
     completion_tokens: 4,
     customer_amount_minor: 16,
+    occurred_at: "2026-08-29T18:00:00.000Z",
   },
   {
     id: "usg_c",
@@ -33,6 +37,7 @@ const rows = [
     public_model_id: "tokenhub/other",
     unit_usage: { prompt_tokens: 8, completion_tokens: 4 },
     customer_amount_minor: 16,
+    occurred_at: "2026-08-30T09:00:00.000Z",
   },
 ];
 
@@ -68,5 +73,13 @@ describe("usage grouping", () => {
     expect(dimToKeyBuckets([{ key: "key_alpha", requests: 2, revenue_minor: 80, prompt_tokens: 48 }])[0].api_key_id).toBe(
       "key_alpha",
     );
+  });
+
+  it("groups events into daily and model chart series", () => {
+    expect(groupUsageByDay(rows)).toEqual([
+      { day: "2026-08-29", requests: 2, revenue_minor: 80 },
+      { day: "2026-08-30", requests: 1, revenue_minor: 16 },
+    ]);
+    expect(groupUsageByModel(rows)[0]).toMatchObject({ key: "tokenhub/echo-1", requests: 2, revenue_minor: 80 });
   });
 });

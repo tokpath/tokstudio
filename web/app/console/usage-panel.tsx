@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
 import {
   type APIKeyOption,
   type DimMoney,
   type UsageEvent,
+  bucketsToMetricPoints,
   dimToKeyBuckets,
   filterUsage,
   formatUsageTime,
@@ -27,6 +29,7 @@ const selectClass = "h-10 min-w-[12rem] rounded-control border border-hairline b
 export default function UsagePanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
+  const tChart = useTranslations("charts");
   const [usage, setUsage] = useState<UsageEvent[]>([]);
   const [keysDim, setKeysDim] = useState<DimMoney[]>([]);
   const [modelDims, setModelDims] = useState<DimMoney[]>([]);
@@ -135,6 +138,11 @@ export default function UsagePanel() {
           </div>
         ))}
       </section>
+      <UsageCharts
+        events={filtered}
+        breakdown={bucketsToMetricPoints(byKey, (id) => keyLabel(id, keys))}
+        breakdownTitle={tChart("byKey")}
+      />
       <h3 className="mb-2 text-sm font-medium">{t("byApiKey")}</h3>
       <div className="mb-4 overflow-x-auto rounded-card border border-hairline">
         <table className="w-full text-left text-sm">

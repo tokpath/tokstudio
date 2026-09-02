@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
-import { type DimMoney, type UsageEvent, dimToKeyBuckets, shortKeyRef, usageTokens } from "@/lib/usage";
+import { type DimMoney, type UsageEvent, bucketsToMetricPoints, dimToKeyBuckets, shortKeyRef, usageTokens } from "@/lib/usage";
 
 type Usage = {
   usage_minor?: number;
@@ -17,6 +18,7 @@ type Usage = {
 
 export default function ChannelUsage() {
   const t = useTranslations("channelUi");
+  const tChart = useTranslations("charts");
   const [usage, setUsage] = useState<Usage>({});
   const [keys, setKeys] = useState<DimMoney[]>([]);
   const [items, setItems] = useState<UsageEvent[]>([]);
@@ -36,6 +38,12 @@ export default function ChannelUsage() {
   }
 
   const byKey = dimToKeyBuckets(keys);
+
+  useEffect(() => {
+    void refresh();
+    // 进入页面拉一次真实 usage。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Card>
@@ -58,7 +66,10 @@ export default function ChannelUsage() {
           </div>
         ))}
       </section>
-      <h3 className="mt-5 mb-2 text-sm font-medium">{t("byApiKey")}</h3>
+      <div className="mt-5">
+        <UsageCharts events={items} breakdown={bucketsToMetricPoints(byKey, shortKeyRef)} breakdownTitle={tChart("byKey")} />
+      </div>
+      <h3 className="mb-2 text-sm font-medium">{t("byApiKey")}</h3>
       <div className="overflow-x-auto rounded-card border border-hairline">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-ink-mute">

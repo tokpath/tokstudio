@@ -135,7 +135,53 @@ export function dimToKeyBuckets(rows: DimMoney[] = []): KeyBucket[] {
       prompt: row.prompt_tokens ?? 0,
       completion: row.completion_tokens ?? 0,
       reasoning: row.reasoning_tokens ?? 0,
-      amount: row.revenue_minor ?? 0,
+      amount: row.revenue_minor ?? row.usage_minor ?? 0,
     }))
     .sort((a, b) => b.amount - a.amount || b.requests - a.requests);
+}
+
+export function usageDayKey(value?: string) {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.slice(0, 10);
+  }
+  return parsed.toISOString().slice(0, 10);
+}
+
+export function groupUsageByDay(rows: UsageEvent[] = []) {
+  const map = new Map<string, { day: string; requests: number; revenue_minor: number }>();
+  for (const row of rows) {
+    const day = usageDayKey(row.occurred_at) || "—";
+    const cur = map.get(day) ?? { day, requests: 0, revenue_minor: 0 };
+    cur.requests += 1;
+    cur.revenue_minor += row.customer_amount_minor ?? row.wholesale_amount_minor ?? 0;
+    map.set(day, cur);
+  }
+  return [...map.values()].sort((a, b) => a.day.localeCompare(b.day));
+}
+
+export function groupUsageByModel(rows: UsageEvent[] = []) {
+  const map = new Map<string, { key: string; requests: number; revenue_minor: number }>();
+  for (const row of rows) {
+    const key = row.public_model_id || "—";
+    const cur = map.get(key) ?? { key, requests: 0, revenue_minor: 0 };
+    cur.requests += 1;
+    cur.revenue_minor += row.customer_amount_minor ?? row.wholesale_amount_minor ?? 0;
+    map.set(key, cur);
+  }
+  return [...map.values()].sort((a, b) => b.revenue_minor - a.revenue_minor || b.requests - a.requests);
+}
+
+export function bucketsToMetricPoints(
+  rows: { api_key_id: string; requests: number; amount: number }[],
+  labelFor = (id: string) => id || "—",
+) {
+  return rows.map((row) => ({
+    key: labelFor(row.api_key_id),
+    requests: row.requests,
+    revenue_minor: row.amount,
+  }));
 }

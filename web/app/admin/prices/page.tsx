@@ -12,6 +12,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type PriceBook = { id: string; public_id: string; status: string };
 
@@ -33,6 +34,7 @@ export default function AdminPricesPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="prices" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded，历史 usage 仍按当时快照计费。单个模型也可以在模型编辑页改价。</p>
+        <IfCan action="prices.write">
         <Form {...form}>
           <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="model" label="模型 ID" placeholder="public model id" showLabel={false} className="w-56" />
@@ -58,6 +60,7 @@ export default function AdminPricesPage() {
             </ConfirmButton>
           </form>
         </Form>
+        </IfCan>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<PriceBook>

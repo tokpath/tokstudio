@@ -18,6 +18,8 @@ import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { iconForHref } from "@/lib/page-icons";
+import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, shouldBypassRbac } from "@/lib/rbac";
+import { useViewer } from "@/components/rbac/viewer-context";
 
 function GroupedNav({
   groups,
@@ -82,6 +84,10 @@ export function ConsoleShell({
   const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";
   const portalKey = isAdmin ? "admin" : isChannel ? "channel" : isPartner ? "partner" : "app";
   const title = t(portalKey);
+  const viewer = useViewer();
+  const adminNav = filterAdminGroups(adminGroups, viewer);
+  const showChannelNav = isChannel && (shouldBypassRbac(viewer) || canAccessChannelPortal(viewer.roles));
+  const showPartnerNav = isPartner && (shouldBypassRbac(viewer) || canAccessPartnerPortal(viewer));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -112,10 +118,10 @@ export function ConsoleShell({
           aria-label={title}
         >
           {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} /> : null}
-          {isChannel ? <GroupedNav groups={channelNavGroups} pathname={pathname} t={tch} /> : null}
-          {isPartner ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} /> : null}
+          {showChannelNav ? <GroupedNav groups={channelNavGroups} pathname={pathname} t={tch} /> : null}
+          {showPartnerNav ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} /> : null}
           {isAdmin
-            ? adminGroups.map((group) => (
+            ? adminNav.map((group) => (
                 <div key={group.titleKey} className="mb-6">
                   <p className="th-eyebrow mb-2.5 px-3 text-ink-mute">{ta(group.titleKey)}</p>
                   <ul className="flex flex-col gap-0.5">

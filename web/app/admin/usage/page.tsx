@@ -15,6 +15,7 @@ import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
 import { type UsageEvent, groupUsageByDay, groupUsageByModel } from "@/lib/usage";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Usage = {
   id: string;
@@ -81,9 +82,11 @@ export default function AdminUsagePage() {
           <Input className="w-72" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="request_id" placeholder="request_id" />
           <Input className="w-24" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="prompt tokens" />
           <Input className="w-24" value={completion} onChange={(e) => setCompletion(e.target.value)} aria-label="completion tokens" />
+          <IfCan action="usage.replay">
           <ConfirmButton size="sm" title="确认回放 usage" description="只对 pending_reconciliation 按真实 Token 回放，不会双扣。" onConfirm={replay}>
             回放 usage
           </ConfirmButton>
+          </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">

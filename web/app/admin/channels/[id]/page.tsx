@@ -19,6 +19,7 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { CHANNEL_TYPES, STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/lib/tenants";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
 type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; status: string };
@@ -65,6 +66,7 @@ export default function AdminChannelDetailPage() {
           <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <IfCan action="channels.write">
           {editing ? (
             <>
               <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
@@ -100,6 +102,7 @@ export default function AdminChannelDetailPage() {
               编辑
             </Button>
           )}
+          </IfCan>
         </div>
       </div>
       {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
@@ -192,9 +195,14 @@ export default function AdminChannelDetailPage() {
         )}
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <ChannelModelsPanel channelID={id} />
-      <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
+      <IfCan action="models.grant">
+        <ChannelModelsPanel channelID={id} />
+      </IfCan>
+      <IfCan action="channels.quota">
+        <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
+      </IfCan>
       <ChannelPaymentReadiness channelID={id} />
+      <IfCan action="partners.view">
       <AdminListPanel<Role>
         path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=agent`}
         title="本租户代理商"
@@ -216,6 +224,7 @@ export default function AdminChannelDetailPage() {
           { accessorKey: "status", header: "状态" },
         ]}
       />
+      </IfCan>
     </AdminShell>
   );
 }

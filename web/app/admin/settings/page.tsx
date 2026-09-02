@@ -8,6 +8,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan, IfRoles } from "@/components/rbac/if-can";
 
 export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
@@ -157,6 +158,7 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </section>
+      <IfCan action="settings.totp">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="twofa" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
@@ -193,6 +195,8 @@ export default function AdminSettingsPage() {
         </div>
         <p className="text-sm text-ink-secondary">{totpMessage}</p>
       </section>
+      </IfCan>
+      <IfCan action="settings.thresholds.view">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="thresholds" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
@@ -203,17 +207,22 @@ export default function AdminSettingsPage() {
           <Button type="button" variant="outline" onClick={loadThresholds}>
             读取阈值
           </Button>
+          <IfCan action="settings.thresholds">
           <ConfirmButton size="sm" variant="outline" title="确认保存阈值" description="评估告警时会读取这些阈值。" onConfirm={saveThresholds}>
             保存阈值
           </ConfirmButton>
+          </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
+      </IfCan>
+      <IfRoles roles={["platform_admin", "ops_admin", "tech_admin"]}>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="ops" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="Provider ID" />
+          <IfCan action="settings.circuit">
           <Button
             size="sm"
             variant="outline"
@@ -261,6 +270,7 @@ export default function AdminSettingsPage() {
           >
             复位熔断
           </Button>
+          </IfCan>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input className="w-40" value={canarySlug} onChange={(e) => setCanarySlug(e.target.value)} aria-label="灰度 Provider slug" />
@@ -299,6 +309,8 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </section>
+      </IfRoles>
+      <IfCan action="settings.backup">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="backup" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
@@ -323,12 +335,14 @@ export default function AdminSettingsPage() {
         </Button>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
+      </IfCan>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="drill" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
           支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          <IfCan action="settings.drill.payment">
           <Button
             size="sm"
             variant="outline"
@@ -345,6 +359,8 @@ export default function AdminSettingsPage() {
           >
             支付演练
           </Button>
+          </IfCan>
+          <IfCan action="settings.drill.media">
           <Button
             size="sm"
             variant="outline"
@@ -361,6 +377,8 @@ export default function AdminSettingsPage() {
           >
             媒体演练
           </Button>
+          </IfCan>
+          <IfCan action="settings.drill.tls">
           <Button
             size="sm"
             onClick={async () => {
@@ -376,6 +394,7 @@ export default function AdminSettingsPage() {
           >
             TLS 演练
           </Button>
+          </IfCan>
           <p className="text-sm text-ink-secondary">{drillMessage}</p>
         </div>
       </section>
@@ -401,6 +420,7 @@ export default function AdminSettingsPage() {
           >
             读取品牌
           </Button>
+          <IfCan action="settings.drill.tls">
           <ConfirmButton
             size="sm"
             title="确认签发证书"
@@ -422,6 +442,7 @@ export default function AdminSettingsPage() {
           >
             签发证书
           </ConfirmButton>
+          </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>

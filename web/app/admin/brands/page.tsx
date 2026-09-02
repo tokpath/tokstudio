@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 export default function AdminBrandsPage() {
   const [brandID, setBrandID] = useState("brd_oem");
@@ -28,6 +29,7 @@ export default function AdminBrandsPage() {
           <Input placeholder="api_domain" value={api} onChange={(e) => setAPI(e.target.value)} />
           <Input placeholder="admin_domain" value={admin} onChange={(e) => setAdmin(e.target.value)} />
         </div>
+        <IfCan action="brands.write">
         <Button
           size="sm"
           onClick={async () => {
@@ -48,18 +50,21 @@ export default function AdminBrandsPage() {
         >
           创建品牌
         </Button>
+        </IfCan>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <div className="mb-4 flex flex-wrap gap-2">
           <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" />
         </div>
+        <IfCan action="brands.write">
         <BrandEditor
           key={brandID}
           endpoint={`/admin/brands/${brandID}`}
           uploadEndpoint={`/admin/brands/${brandID}/assets`}
           confirmWrites
         />
+        </IfCan>
       </section>
     </AdminShell>
   );

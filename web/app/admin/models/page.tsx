@@ -16,6 +16,7 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { type AdminModel, formatSellPrice, modelEditHref } from "@/lib/catalog";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type ListResponse = { items?: AdminModel[]; error?: { message?: string } };
 
@@ -141,6 +142,7 @@ export default function AdminModelsPage() {
                 <td className="px-2 py-2 text-ink-secondary">{item.sync_state || "-"}</td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
+                    <IfCan action="models.write">
                     {item.sync_state === "draft" || !item.sync_state ? (
                       <>
                         <ConfirmButton size="sm" title="确认通过模型" description={`将通过 ${item.id}，并写入审计。创建人不能审核自己建的模型。`} onConfirm={() => review(item.id, "approve")}>
@@ -161,6 +163,7 @@ export default function AdminModelsPage() {
                         通过
                       </ConfirmButton>
                     ) : null}
+                    </IfCan>
                     <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(item.id)}>
                       编辑
                     </Link>
@@ -197,6 +200,7 @@ export default function AdminModelsPage() {
           },
         ]}
       />
+      <IfCan action="models.write">
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="createModel" className="text-lg font-semibold tracking-tight" />
@@ -231,6 +235,8 @@ export default function AdminModelsPage() {
           <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
+      </IfCan>
+      <IfCan action="models.attach">
       <Form {...syncForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <p className="text-sm text-ink-secondary">同步只写入 draft。请换另一个运营账号去「模型审核」里通过或拒绝。</p>
@@ -285,6 +291,8 @@ export default function AdminModelsPage() {
           </ConfirmButton>
         </form>
       </Form>
+      </IfCan>
+      <IfCan action="models.write">
       <Form {...deprecateForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="deprecateModel" className="text-lg font-semibold tracking-tight" />
@@ -310,6 +318,7 @@ export default function AdminModelsPage() {
           </ConfirmButton>
         </form>
       </Form>
+      </IfCan>
     </AdminShell>
   );
 }

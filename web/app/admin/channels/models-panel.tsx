@@ -8,27 +8,24 @@ import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
-import { canGrantTenantModels } from "@/lib/tenants";
+import { canWrite } from "@/lib/rbac";
+import { useViewer } from "@/components/rbac/viewer-context";
 
 type ChannelModel = { public_id: string; display_name: string; vendor: string; status: string; enabled: boolean };
 type ModelsResponse = { items?: ChannelModel[]; error?: { message?: string } };
-type MeResponse = { roles?: string[] };
 
 export function ChannelModelsPanel({ channelID }: { channelID: string }) {
   const queryClient = useQueryClient();
   const [granting, setGranting] = useState(false);
   const [enabledIDs, setEnabledIDs] = useState<string[]>([]);
   const [message, setMessage] = useState("只能勾选平台目录里已有的模型。不能在租户里新建提供商或模型。");
-  const meQuery = useQuery({
-    queryKey: ["/admin/me"],
-    queryFn: () => apiClient<MeResponse>("GET", "/admin/me"),
-  });
+  const viewer = useViewer();
   const modelsQuery = useQuery({
     queryKey: ["/admin/channels", channelID, "models"],
     queryFn: () => apiClient<ModelsResponse>("GET", `/admin/channels/${channelID}/models`),
   });
   const items = modelsQuery.data?.items ?? [];
-  const canGrant = canGrantTenantModels(meQuery.data?.roles) || meQuery.data?.roles === undefined;
+  const canGrant = canWrite("models.grant", viewer);
   const selected = useMemo(() => new Set(enabledIDs), [enabledIDs]);
 
   function startGrant() {

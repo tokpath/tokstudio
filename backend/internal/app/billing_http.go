@@ -29,7 +29,7 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.POST("/admin/refunds", a.requireRoles("platform_admin", "finance_admin"), a.adminRefund)
 	r.GET("/admin/ledger", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminLedger)
 	r.GET("/admin/usage", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminUsage)
-	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.billingReport)
+	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingReport)
 	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
 	r.GET("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPrices)

@@ -16,6 +16,7 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 const schema = z.object({
   name: z.string().trim().min(1, "请填写名称"),
@@ -56,6 +57,7 @@ function ProbeCell({ id }: { id: string }) {
   const [result, setResult] = useState("");
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <IfCan action="providers.health">
       <Button
         size="sm"
         variant="outline"
@@ -73,6 +75,7 @@ function ProbeCell({ id }: { id: string }) {
       >
         探测
       </Button>
+      </IfCan>
       {result ? <span className="text-xs text-ink-secondary">{result}</span> : null}
     </div>
   );
@@ -87,6 +90,7 @@ function RotateCredentialForm() {
   });
 
   return (
+    <IfCan action="providers.write">
     <Form {...form}>
       <form className="mt-4 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
         <AdminH2 k="rotateCreds" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -122,6 +126,7 @@ function RotateCredentialForm() {
         <p className="text-sm text-ink-secondary">{message}</p>
       </form>
     </Form>
+    </IfCan>
   );
 }
 
@@ -200,12 +205,14 @@ function AccountPoolPanel() {
                 <td className="px-2 py-2">{item.status}</td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
+                    <IfCan action="providers.write">
                     <ConfirmButton size="sm" variant="outline" title="确认冷却账号" description="冷却后该账号不会被路由选中。" onConfirm={() => patch(item.id, { cooldown_seconds: 120 }, "已冷却")}>
                       冷却
                     </ConfirmButton>
                     <ConfirmButton size="sm" variant="outline" title="确认停用账号" description="停用后该账号不会被路由选中。" onConfirm={() => patch(item.id, { status: "disabled" }, "已停用")}>
                       停用
                     </ConfirmButton>
+                    </IfCan>
                   </div>
                 </td>
               </tr>
@@ -218,6 +225,7 @@ function AccountPoolPanel() {
           <TextField control={addForm.control} name="provider_id" label="添加账号 provider id" />
           <TextField control={addForm.control} name="label" label="账号标签" placeholder="label" />
           <TextField control={addForm.control} name="secret" label="账号密文" type="password" autoComplete="new-password" />
+          <IfCan action="providers.write">
           <ConfirmButton
             size="sm"
             title="确认添加账号"
@@ -247,6 +255,7 @@ function AccountPoolPanel() {
           >
             添加账号
           </ConfirmButton>
+          </IfCan>
         </form>
       </Form>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
@@ -263,6 +272,7 @@ function PatchProviderForm() {
   });
 
   return (
+    <IfCan action="providers.write">
     <Form {...form}>
       <form className="mt-4 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
         <AdminH2 k="editProvider" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -302,6 +312,7 @@ function PatchProviderForm() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </form>
     </Form>
+    </IfCan>
   );
 }
 
@@ -334,7 +345,8 @@ export default function AdminProvidersPage() {
           },
         ]}
       />
-      <RotateCredentialForm />
+      <RotateCredentialForm       />
+      <IfCan action="providers.write">
       <Form {...form}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <p className="text-sm text-ink-secondary">创建 Provider 需要二次确认头，密钥不会回显。</p>
@@ -361,6 +373,7 @@ export default function AdminProvidersPage() {
           <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
+      </IfCan>
       <PatchProviderForm />
       <AccountPoolPanel />
     </AdminShell>

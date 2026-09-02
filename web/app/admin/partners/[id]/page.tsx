@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/client";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { STATUS_OPTIONS, channelHref, isKOLType, roleTypeLabel } from "@/lib/tenants";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Role = {
   id: string;
@@ -64,6 +65,7 @@ export default function AdminPartnerDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <IfCan action="partners.write">
           {editing ? (
             <>
               <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
@@ -99,6 +101,7 @@ export default function AdminPartnerDetailPage() {
               编辑
             </Button>
           )}
+          </IfCan>
         </div>
       </div>
       {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}

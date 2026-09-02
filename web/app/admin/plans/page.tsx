@@ -15,6 +15,7 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Plan = {
   id: string;
@@ -120,6 +121,7 @@ export default function AdminPlansPage() {
                 <td className="px-2 py-2 text-ink-secondary">{item.review_reason || "-"}</td>
                 <td className="px-2 py-2">
                   {item.status === "pending_review" ? (
+                    <IfCan action="plans.write">
                     <div className="flex flex-wrap gap-2">
                       <ConfirmButton size="sm" title="确认通过套餐" description={`将通过 ${item.name}，并写入审计。`} onConfirm={() => review(item.id, "approve")}>
                         通过
@@ -128,6 +130,7 @@ export default function AdminPlansPage() {
                         拒绝
                       </ConfirmButton>
                     </div>
+                    </IfCan>
                   ) : (
                     item.id
                   )}
@@ -138,6 +141,7 @@ export default function AdminPlansPage() {
         </table>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
+      <IfCan action="plans.write">
       <Form {...createForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="createPlan" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -218,6 +222,8 @@ export default function AdminPlansPage() {
         </form>
       </Form>
       <p className="text-sm text-ink-secondary">{writeMessage}</p>
+      </IfCan>
+      <IfCan action="plans.renew">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="renewScan" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
@@ -260,6 +266,7 @@ export default function AdminPlansPage() {
         </Button>
         <p className="mt-3 text-sm text-ink-secondary">{renewMessage}</p>
       </section>
+      </IfCan>
     </AdminShell>
   );
 }

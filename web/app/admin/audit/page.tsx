@@ -7,6 +7,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Audit = { id: string; action: string; resource_type: string; resource_id: string };
 
@@ -22,41 +23,45 @@ export default function AdminAuditPage() {
           pending 太高说明 worker 没跟上。探测用来确认审计链路还能写，不会计费，也不要二次确认。
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              const res = await fetch(`${apiBase}/admin/outbox/stats`, { credentials: "include" });
-              const body = await res.json();
-              setMessage(
-                res.ok
-                  ? `Outbox pending=${body.stats?.pending ?? 0} published=${body.stats?.published ?? 0} failed=${body.stats?.failed ?? 0}`
-                  : body.error?.message || "读取失败",
-              );
-            }}
-          >
-            读取 Outbox
-          </Button>
-          <Button
-            size="sm"
-            onClick={async () => {
-              const res = await fetch(`${apiBase}/admin/audit-probes`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: "{}",
-              });
-              const body = await res.json();
-              if (!res.ok) {
-                setMessage(body.error?.message || "探测失败");
-                return;
-              }
-              setMessage(`已写入探测 ${body.item?.id} → ${body.item?.action}`);
-              await queryClient.invalidateQueries();
-            }}
-          >
-            写入探测
-          </Button>
+          <IfCan action="audit.outbox">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                const res = await fetch(`${apiBase}/admin/outbox/stats`, { credentials: "include" });
+                const body = await res.json();
+                setMessage(
+                  res.ok
+                    ? `Outbox pending=${body.stats?.pending ?? 0} published=${body.stats?.published ?? 0} failed=${body.stats?.failed ?? 0}`
+                    : body.error?.message || "读取失败",
+                );
+              }}
+            >
+              读取 Outbox
+            </Button>
+          </IfCan>
+          <IfCan action="audit.probe">
+            <Button
+              size="sm"
+              onClick={async () => {
+                const res = await fetch(`${apiBase}/admin/audit-probes`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: "{}",
+                });
+                const body = await res.json();
+                if (!res.ok) {
+                  setMessage(body.error?.message || "探测失败");
+                  return;
+                }
+                setMessage(`已写入探测 ${body.item?.id} → ${body.item?.action}`);
+                await queryClient.invalidateQueries();
+              }}
+            >
+              写入探测
+            </Button>
+          </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>

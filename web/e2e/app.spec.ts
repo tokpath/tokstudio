@@ -26,6 +26,8 @@ test("user console shows API Key panel", async ({ page }) => {
   await page.getByRole("button", { name: "取消" }).click();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
+  await expect(page.getByTestId("usage-trend-chart")).toBeVisible();
   await expect(page.getByRole("heading", { name: "密钥汇总" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
   await expect(page.getByLabel("生成模式")).toBeVisible();
@@ -59,6 +61,8 @@ test("channel console shows scoped user list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "推广链接" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道归因" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道用量" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
+  await expect(page.getByTestId("usage-trend-chart")).toBeVisible();
   await expect(page.getByRole("heading", { name: "密钥汇总" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道结算" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "渠道额度与佣金" })).toBeVisible();

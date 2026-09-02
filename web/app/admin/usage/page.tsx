@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
+import { EChart } from "@/components/echart";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
+import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
+import { type UsageEvent, groupUsageByDay, groupUsageByModel } from "@/lib/usage";
 
 type Usage = {
   id: string;
@@ -22,6 +29,8 @@ type Usage = {
 };
 
 export default function AdminUsagePage() {
+  const tChart = useTranslations("charts");
+  const { resolvedTheme } = useTheme();
   const [requestID, setRequestID] = useState("");
   const [prompt, setPrompt] = useState("8");
   const [completion, setCompletion] = useState("4");
@@ -47,6 +56,21 @@ export default function AdminUsagePage() {
   if (apiKeyID.trim()) qs.set("api_key_id", apiKeyID.trim());
   if (userID.trim()) qs.set("user_id", userID.trim());
   const listPath = qs.toString() ? `/admin/usage?${qs.toString()}` : "/admin/usage";
+  const chartQuery = useQuery({
+    queryKey: ["admin-usage-chart", listPath],
+    queryFn: () => apiClient<{ items?: UsageEvent[] }>("GET", `${listPath}${listPath.includes("?") ? "&" : "?"}limit=100`),
+  });
+  const palette = useMemo(() => chartPalette(resolvedTheme === "dark"), [resolvedTheme]);
+  const labels = useMemo(() => ({ requests: tChart("requests"), revenue: tChart("spend") }), [tChart]);
+  const events = chartQuery.data?.items ?? [];
+  const trendOption = useMemo(() => {
+    const points = groupUsageByDay(events);
+    return points.length ? dailyChartOption(points, labels, palette) : null;
+  }, [events, labels, palette]);
+  const modelOption = useMemo(() => {
+    const points = groupUsageByModel(events);
+    return points.length ? requestChartOption(points, labels, palette) : null;
+  }, [events, labels, palette]);
 
   return (
     <AdminShell>
@@ -62,6 +86,26 @@ export default function AdminUsagePage() {
           </ConfirmButton>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-card border border-hairline bg-canvas p-3">
+            <h3 className="mb-2 text-sm font-medium">{tChart("trend")}</h3>
+            <EChart
+              option={trendOption}
+              emptyTitle={tChart("empty")}
+              emptyDetail={tChart("emptyDetail")}
+              testId="admin-usage-trend-chart"
+            />
+          </div>
+          <div className="rounded-card border border-hairline bg-canvas p-3">
+            <h3 className="mb-2 text-sm font-medium">{tChart("byModel")}</h3>
+            <EChart
+              option={modelOption}
+              emptyTitle={tChart("empty")}
+              emptyDetail={tChart("emptyDetail")}
+              testId="admin-usage-model-chart"
+            />
+          </div>
+        </div>
       </section>
       <AdminListPanel<Usage>
         path={listPath}

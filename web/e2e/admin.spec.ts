@@ -38,6 +38,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/metrics");
   await expect(page.getByRole("heading", { name: "运营看板" })).toBeVisible();
   await expect(page.getByLabel("用量维度")).toBeVisible();
+  await expect(page.getByTestId("ops-echarts")).toBeVisible();
+  await expect(page.getByTestId("ops-daily-chart")).toBeVisible();
   await page.goto("/admin/users");
   await expect(page.getByRole("heading", { name: "用户/项目" })).toBeVisible();
   await expect(page.getByLabel("操作原因")).toBeVisible();
@@ -109,6 +111,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/usage");
   await expect(page.getByRole("heading", { name: "用量回放" })).toBeVisible();
   await expect(page.getByRole("button", { name: "回放 usage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
+  await expect(page.getByTestId("admin-usage-trend-chart")).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量 / 账单" })).toBeVisible();
   await page.goto("/admin/promos");

@@ -9,7 +9,8 @@ describe("i18n", () => {
     expect(translate("zh", "admin.title")).toContain("平台管理");
     expect(messagesFor("zh").admin.plans).toBe("套餐审核");
     expect(messagesFor("zh").admin.prices).toBe("价格");
-    expect(messagesFor("zh").admin.promos).toBe("推广码");
+    expect(messagesFor("zh").charts.trend).toBe("按日用量");
+    expect(messagesFor("en").charts.empty).toContain("No usage");
     expect(messagesFor("en").admin.commission).toBe("Commission");
   });
 

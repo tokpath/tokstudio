@@ -1313,6 +1313,15 @@
     "dimUser": "ユーザー別",
     "dimProvider": "プロバイダー別"
   },
+  "charts": {
+    "trend": "日次の使用量",
+    "byKey": "API Key 別",
+    "byModel": "モデル別",
+    "empty": "使用イベントはまだありません",
+    "emptyDetail": "実際のリクエストのあとにグラフが出ます。仮の滑らかな線は描きません。",
+    "requests": "リクエスト",
+    "spend": "金額"
+  },
   "settingsEmpty": {
     "teamTitle": "デフォルトチーム",
     "teamDetail": "ログイン後にチーム名と精算主体。未ログインはプレースホルダ。環境の個人情報は頁に書かない。",

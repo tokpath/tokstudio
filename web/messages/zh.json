@@ -1313,6 +1313,15 @@
     "dimUser": "按用户",
     "dimProvider": "按提供商"
   },
+  "charts": {
+    "trend": "按日用量",
+    "byKey": "按密钥",
+    "byModel": "按模型",
+    "empty": "还没有用量事件",
+    "emptyDetail": "有真实请求后会出现趋势图。不会画一条假的平滑曲线。",
+    "requests": "请求数",
+    "spend": "金额"
+  },
   "settingsEmpty": {
     "teamTitle": "默认团队",
     "teamDetail": "登录后显示你的团队名称与结算主体。未登录时保持占位，避免把环境里的个人信息写进页面。",

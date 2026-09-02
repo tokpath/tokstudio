@@ -69,6 +69,7 @@ test("user console main flow shows DESIGN.md hero cards", async ({ page }) => {
   await expect(overview.getByText("路由回单")).toBeVisible();
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
 });
 
 const consolePaths = [

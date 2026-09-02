@@ -1313,6 +1313,15 @@
     "dimUser": "By user",
     "dimProvider": "By provider"
   },
+  "charts": {
+    "trend": "Daily usage",
+    "byKey": "By API key",
+    "byModel": "By model",
+    "empty": "No usage events yet",
+    "emptyDetail": "Charts appear after real requests. We do not draw a fake smooth line.",
+    "requests": "Requests",
+    "spend": "Amount"
+  },
   "settingsEmpty": {
     "teamTitle": "Default team",
     "teamDetail": "After sign-in this shows your team name and billing entity. Unsigned stays a placeholder so env PII never lands on the page.",

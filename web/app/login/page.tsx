@@ -176,7 +176,7 @@ function LoginForm() {
             </div>
           </div>
 
-        <div className="mt-8 flex flex-col gap-3">
+        <div className="mt-8 flex w-full flex-col gap-3">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
             <GitHubMark />
             {t("github")}
@@ -213,7 +213,7 @@ function LoginForm() {
         </div>
 
         <Form {...form}>
-          <form className="flex flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
+          <form className="flex w-full flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "login" ? (

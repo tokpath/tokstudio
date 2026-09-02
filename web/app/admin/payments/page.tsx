@@ -8,6 +8,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Payment = {
   id: string;
@@ -43,6 +44,7 @@ export default function AdminPaymentsPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="payments" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">跨渠道订单检索与退款审计。商户配置在各渠道台 /channel/payments，这里不是全站支付设置。</p>
+        <IfCan action="payments.write">
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-72" value={orderID} onChange={(e) => setOrderID(e.target.value)} aria-label="支付单 ID" placeholder="pay_..." />
           <ConfirmButton size="sm" title="确认支付入账" description="手工确认后会给用户入账对应权益。" onConfirm={() => act("confirm")}>
@@ -52,6 +54,7 @@ export default function AdminPaymentsPage() {
             退款
           </ConfirmButton>
         </div>
+        </IfCan>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<Payment>

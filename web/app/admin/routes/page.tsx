@@ -13,6 +13,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Route = { id: string; public_model_id: string; strategy: string; status: string };
 
@@ -53,6 +54,7 @@ export default function AdminRoutesPage() {
           { accessorKey: "status", header: "Status" },
         ]}
       />
+      <IfCan action="routes.write">
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="createRoute" className="text-lg font-semibold tracking-tight" />
@@ -128,6 +130,7 @@ export default function AdminRoutesPage() {
         </form>
       </Form>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+      </IfCan>
     </AdminShell>
   );
 }

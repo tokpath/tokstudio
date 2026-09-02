@@ -12,6 +12,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; status: string };
 type Promo = { id: string; code: string; channel_org_id: string; acquisition_role_id?: string; status: string };
@@ -41,6 +42,7 @@ export default function AdminPromosPage() {
 
   return (
     <AdminShell>
+      <IfCan action="partners.write">
       <Form {...roleForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="promoRoles" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -81,6 +83,8 @@ export default function AdminPromosPage() {
           <p className="text-sm text-ink-secondary">{message}</p>
         </form>
       </Form>
+      </IfCan>
+      <IfCan action="promos.write">
       <Form {...promoForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="promos" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -113,6 +117,7 @@ export default function AdminPromosPage() {
           </div>
         </form>
       </Form>
+      </IfCan>
       <AdminListPanel<Role>
         path="/admin/acquisition-roles"
         title="角色列表"

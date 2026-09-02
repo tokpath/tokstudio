@@ -11,6 +11,7 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Policy = {
   id?: string;
@@ -104,13 +105,16 @@ export default function AdminCommissionPage() {
           <Button size="sm" variant="outline" onClick={loadPolicy}>
             读取策略
           </Button>
+          <IfCan action="commission.write">
           <ConfirmButton size="sm" title="确认保存策略" description="改策略只影响之后的 usage，不改已经入账的明细。" onConfirm={savePolicy}>
             保存策略
           </ConfirmButton>
+          </IfCan>
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-ink-secondary">{policyQuery.data.error.message}</p> : null}
       </section>
+      <IfCan action="commission.write">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="recalc" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
@@ -209,6 +213,7 @@ export default function AdminCommissionPage() {
           </ConfirmButton>
         </div>
       </section>
+      </IfCan>
       <AdminListPanel<Commission>
         path="/admin/commissions"
         title="佣金明细"

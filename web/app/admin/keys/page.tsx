@@ -13,6 +13,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Key = { id: string; user_id: string; name: string; prefix: string; rpm_limit: number; status: string };
 
@@ -30,6 +31,7 @@ export default function AdminKeysPage() {
 
   return (
     <AdminShell>
+      <IfCan action="keys.write">
       <Form {...form}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="disableKey" className="mb-4 text-lg font-semibold tracking-tight" />
@@ -64,6 +66,7 @@ export default function AdminKeysPage() {
           <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         </form>
       </Form>
+      </IfCan>
       <AdminListPanel<Key>
         path="/admin/api-keys"
         title="API Key"

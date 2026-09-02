@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { useState } from "react";
+import { IfCan } from "@/components/rbac/if-can";
 
 type Lane = { adapter: string; display_name?: string; state: string; instance_count?: number };
 
@@ -36,6 +37,7 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
           </li>
         ))}
       </ul>
+      <IfCan action="channels.payments.disable">
       <ConfirmButton
         size="sm"
         variant="outline"
@@ -54,6 +56,7 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
       >
         紧急停用在线支付
       </ConfirmButton>
+      </IfCan>
       {message ? <p className="mt-2 text-sm text-ink-secondary">{message}</p> : null}
     </section>
   );

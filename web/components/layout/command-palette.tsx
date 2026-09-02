@@ -17,6 +17,14 @@ import {
 } from "@/lib/nav";
 import { PUBLIC_PAGE_SPECS } from "@/lib/public-site";
 import { iconForHref } from "@/lib/page-icons";
+import {
+  canAccessChannelPortal,
+  canAccessPartnerPortal,
+  filterAdminGroups,
+  filterPortalHrefs,
+  shouldBypassRbac,
+} from "@/lib/rbac";
+import { useViewer } from "@/components/rbac/viewer-context";
 
 type Item = { href: string; label: string; group: string };
 
@@ -94,13 +102,17 @@ export function CommandPalette({
   const tLogin = useTranslations("login");
   const tOverview = useTranslations("overview");
   const tConsole = useTranslations("console");
+  const viewer = useViewer();
 
   const items = useMemo<Item[]>(() => {
-    const portals = portalLinks.map((item) => ({
-      href: item.href,
-      label: tNav(item.key),
-      group: tChrome("groupPortal"),
-    }));
+    const allowedPortals = new Set(filterPortalHrefs(portalLinks.map((item) => item.href), viewer));
+    const portals = portalLinks
+      .filter((item) => allowedPortals.has(item.href))
+      .map((item) => ({
+        href: item.href,
+        label: tNav(item.key),
+        group: tChrome("groupPortal"),
+      }));
     const publicPages = PUBLIC_PAGE_SPECS.filter((p) => !p.auth).map((p) => {
       let label = p.label;
       if (p.href === "/") {
@@ -122,17 +134,23 @@ export function CommandPalette({
       label: tUser(item.key),
       group: tChrome("groupUser"),
     }));
-    const channel = channelSections.map((item) => ({
-      href: consoleItemHref(item, "/channel"),
-      label: tChannel(item.key),
-      group: tChrome("groupChannel"),
-    }));
-    const partner = partnerSections.map((item) => ({
-      href: consoleItemHref(item, "/partner"),
-      label: tPartner(item.key),
-      group: tChrome("groupPartner"),
-    }));
-    const admin = adminGroups.flatMap((group) =>
+    const channel =
+      shouldBypassRbac(viewer) || canAccessChannelPortal(viewer.roles)
+        ? channelSections.map((item) => ({
+            href: consoleItemHref(item, "/channel"),
+            label: tChannel(item.key),
+            group: tChrome("groupChannel"),
+          }))
+        : [];
+    const partner =
+      shouldBypassRbac(viewer) || canAccessPartnerPortal(viewer)
+        ? partnerSections.map((item) => ({
+            href: consoleItemHref(item, "/partner"),
+            label: tPartner(item.key),
+            group: tChrome("groupPartner"),
+          }))
+        : [];
+    const admin = filterAdminGroups(adminGroups, viewer).flatMap((group) =>
       group.items.map((item) => ({ href: item.href, label: tAdmin(item.key), group: tChrome("groupAdmin") })),
     );
     const authPages = PUBLIC_PAGE_SPECS.filter((p) => p.auth).map((p) => {
@@ -152,7 +170,7 @@ export function CommandPalette({
       seen.add(key);
       return true;
     });
-  }, [tNav, tChrome, tMega, tUser, tChannel, tPartner, tAdmin, tPublic, tHome, tLogin, tOverview, tConsole]);
+  }, [tNav, tChrome, tMega, tUser, tChannel, tPartner, tAdmin, tPublic, tHome, tLogin, tOverview, tConsole, viewer]);
 
   const filtered = items.filter((item) => {
     const hay = `${item.label} ${item.href} ${item.group}`.toLowerCase();

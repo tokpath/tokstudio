@@ -22,6 +22,7 @@ import {
   formatSellPrice,
   supportedParametersText,
 } from "@/lib/catalog";
+import { IfCan } from "@/components/rbac/if-can";
 
 type PriceBook = { id: string; public_id: string; status: string };
 
@@ -101,6 +102,7 @@ export default function AdminModelEditPage() {
           返回模型列表
         </Link>
       </p>
+      <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">编辑属性</h2>
         <p className="mt-1 text-sm text-ink-secondary">
@@ -153,6 +155,8 @@ export default function AdminModelEditPage() {
           </form>
         </Form>
       </section>
+      </IfCan>
+      <IfCan action="prices.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">定价</h2>
         <p className="mt-1 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded。空字段不会写入。</p>
@@ -195,6 +199,8 @@ export default function AdminModelEditPage() {
           </form>
         </Form>
       </section>
+      </IfCan>
+      <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">上架</h2>
         <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。不要改 tokenhub/echo-1。</p>
@@ -276,6 +282,7 @@ export default function AdminModelEditPage() {
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{lifeMessage}</p>
       </section>
+      </IfCan>
       {publicId ? (
         <AdminListPanel<PriceBook>
           path={`/admin/price-books?q=${encodeURIComponent(publicId)}`}

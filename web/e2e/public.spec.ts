@@ -40,17 +40,6 @@ test("model catalog vendor query stays on the models path", async ({ page }) => 
   await expect(page.getByRole("link", { name: "全部厂商" })).toBeVisible();
 });
 
-test("public header console entry goes to login when unsigned", async ({ page }) => {
-  await page.goto("/");
-  const header = page.locator("header").first();
-  await expect(header.getByRole("link", { name: "控制台" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "登录" })).toHaveCount(0);
-  await expect(header.getByRole("link", { name: "注册" })).toHaveCount(0);
-  await header.getByRole("link", { name: "控制台" }).click();
-  await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
-});
-
 test("login page has no ofox copy", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();

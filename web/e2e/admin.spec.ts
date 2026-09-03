@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("admin P0 nav renders", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page.getByRole("link", { name: "平台管理" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "平台管理" })).toBeVisible();
   await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
   await expect(page.getByRole("link", { name: "套餐审核" })).toBeVisible();
   await expect(page.getByRole("link", { name: "价格" })).toBeVisible();
@@ -119,7 +119,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "推广角色" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建推广码" })).toBeVisible();
   await page.goto("/admin/providers");
-  await expect(page.getByRole("heading", { name: "提供商" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "提供商", exact: true })).toBeVisible();
   await expect(page.getByText("列表每行可探测")).toBeVisible();
   await expect(page.getByText("同一公开模型可以挂多家提供商")).toBeVisible();
   await expect(page.getByRole("heading", { name: "接入提供商" })).toBeVisible();

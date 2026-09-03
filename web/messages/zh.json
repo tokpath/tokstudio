@@ -909,6 +909,8 @@
     "createRoute": "创建路由",
     "editRoute": "改路由策略",
     "createModel": "创建模型",
+    "createProvider": "接入提供商",
+    "syncUpstream": "同步上游",
     "modelReview": "模型审核",
     "mountProvider": "挂载 Provider",
     "deprecateModel": "弃用模型",

@@ -909,6 +909,8 @@
     "createRoute": "ルート作成",
     "editRoute": "ルート方針を変更",
     "createModel": "モデル作成",
+    "createProvider": "プロバイダーを追加",
+    "syncUpstream": "上流を同期",
     "modelReview": "モデル審査",
     "mountProvider": "Provider を接続",
     "deprecateModel": "モデルを非推奨",

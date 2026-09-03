@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,42 +9,59 @@ import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Form } from "@/components/ui/form";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { type AdminModel, formatSellPrice, modelEditHref } from "@/lib/catalog";
+import {
+  catalogStatusTone,
+  formatProviderSlugs,
+  statusWord,
+  syncStateLabel,
+} from "@/lib/catalog-admin";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
 type ListResponse = { items?: AdminModel[]; error?: { message?: string } };
 
 const createSchema = z.object({
-  public_id: z.string().trim().min(1, "请填写 public id"),
+  public_id: z.string().trim().min(1, "请填写公开 ID"),
   vendor: z.string().trim().min(1, "请填写厂商"),
   display_name: z.string().trim().min(1, "请填写显示名"),
 });
 
 const syncSchema = z.object({
-  provider_id: z.string().trim().min(1, "请填写 provider id"),
+  provider_id: z.string().trim().min(1, "请填写提供商 ID"),
 });
 
 const attachSchema = z.object({
-  public_id: z.string().trim().min(1, "请填写 public id"),
-  provider_id: z.string().trim().min(1, "请填写 provider id"),
-  upstream_model_id: z.string().trim().min(1, "请填写 upstream model id"),
+  public_id: z.string().trim().min(1, "请填写或点选公开 ID"),
+  provider_id: z.string().trim().min(1, "请填写提供商 ID"),
+  upstream_model_id: z.string().trim().min(1, "请填写上游模型名"),
 });
 
 const deprecateSchema = z.object({
-  public_id: z.string().trim().min(1, "请填写 public id"),
+  public_id: z.string().trim().min(1, "请填写或点选公开 ID"),
 });
+
+function ModelStatusCell({ status, syncState }: { status: string; syncState?: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge tone={catalogStatusTone(status)}>{statusWord(status)}</Badge>
+      <span className="text-xs text-ink-secondary">{syncStateLabel(syncState)}</span>
+    </div>
+  );
+}
 
 export default function AdminModelsPage() {
   const queryClient = useQueryClient();
   const [syncState, setSyncState] = useState("draft");
   const [message, setMessage] = useState("同步只进入 draft。通过、拒绝、发布要分开做，创建人不能审核或发布自己建的模型。");
   const [createMessage, setCreateMessage] = useState("手工创建永远是 draft。客户目录要先换人审核再发布。不要改 tokenhub/echo-1。");
+  const [selected, setSelected] = useState<AdminModel | null>(null);
   const createForm = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { public_id: "", vendor: "tokenhub", display_name: "" },
@@ -70,6 +87,14 @@ export default function AdminModelsPage() {
     },
   });
   const items = query.data?.items ?? [];
+
+  useEffect(() => {
+    if (!selected?.id) {
+      return;
+    }
+    attachForm.setValue("public_id", selected.id, { shouldValidate: false });
+    deprecateForm.setValue("public_id", selected.id, { shouldValidate: false });
+  }, [selected, attachForm, deprecateForm]);
 
   async function review(id: string, action: "approve" | "reject") {
     const res = await fetch(`${apiBase}/admin/models/review`, {
@@ -97,10 +122,24 @@ export default function AdminModelsPage() {
 
   return (
     <AdminShell>
-      <p className="text-sm text-ink-secondary">
-        提供商和公开模型只在平台目录维护。租户不能自己添加提供商或模型，只能由平台把已有目录授权给渠道白名单。列表和编辑都走后端
-        catalog，不是 mock。点「编辑」改属性、定价和上架。不要改 tokenhub/echo-1。
-      </p>
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+        <p className="text-sm text-ink-secondary">
+          公开模型是客户看到的货架名，例如 openai/gpt-5.6。斜杠左边是模型厂商，不是路由提供商。
+          「提供商」列才是实际进货渠道，同一公开模型可以挂多条途径。提供商和公开模型只在平台目录维护。租户不能自己添加提供商或模型，只能由平台把已有目录授权给渠道白名单。列表和编辑都走后端
+          catalog，不是 mock。点「编辑」改属性、定价和上架。点一行可选用，下面的挂载和弃用会填入公开 ID。不要改 tokenhub/echo-1。
+        </p>
+      </section>
+      {selected ? (
+        <p className="rounded-card border border-hairline bg-brand-soft/40 px-4 py-2 text-sm text-ink">
+          已选 <span className="font-mono">{selected.id}</span>
+          {" · 厂商 "}
+          {selected.vendor}
+          {" · 途径 "}
+          {formatProviderSlugs(selected.providers)}
+        </p>
+      ) : (
+        <p className="text-sm text-ink-secondary">点列表中的一行来选用公开模型。厂商和提供商不是同一列。</p>
+      )}
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <AdminH2 k="modelReview" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
@@ -124,22 +163,28 @@ export default function AdminModelsPage() {
         <table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-hairline text-ink-secondary">
-              <th className="px-2 py-2">Public ID</th>
-              <th className="px-2 py-2">Vendor</th>
-              <th className="px-2 py-2">Name</th>
-              <th className="px-2 py-2">Status</th>
-              <th className="px-2 py-2">Sync</th>
-              <th className="px-2 py-2">操作</th>
+              <th className="th-eyebrow px-2 py-2">公开 ID</th>
+              <th className="th-eyebrow px-2 py-2">厂商</th>
+              <th className="th-eyebrow px-2 py-2">显示名</th>
+              <th className="th-eyebrow px-2 py-2">提供商</th>
+              <th className="th-eyebrow px-2 py-2">状态</th>
+              <th className="th-eyebrow px-2 py-2">操作</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b border-hairline/80">
-                <td className="px-2 py-2 text-ink">{item.id}</td>
+              <tr
+                key={item.id}
+                className={`cursor-pointer border-b border-hairline/80 hover:bg-brand-soft/40 ${selected?.id === item.id ? "bg-brand-soft" : ""}`}
+                onClick={() => setSelected(item)}
+              >
+                <td className="px-2 py-2 font-mono text-[13px] text-ink">{item.id}</td>
                 <td className="px-2 py-2 text-ink-secondary">{item.vendor}</td>
                 <td className="px-2 py-2 text-ink-secondary">{item.display_name}</td>
-                <td className="px-2 py-2 text-ink-secondary">{item.status}</td>
-                <td className="px-2 py-2 text-ink-secondary">{item.sync_state || "-"}</td>
+                <td className="px-2 py-2 font-mono text-[12px] text-ink-secondary">{formatProviderSlugs(item.providers)}</td>
+                <td className="px-2 py-2">
+                  <ModelStatusCell status={item.status} syncState={item.sync_state} />
+                </td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
                     <IfCan action="models.write">
@@ -164,7 +209,7 @@ export default function AdminModelsPage() {
                       </ConfirmButton>
                     ) : null}
                     </IfCan>
-                    <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(item.id)}>
+                    <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(item.id)} onClick={(event) => event.stopPropagation()}>
                       编辑
                     </Link>
                   </div>
@@ -178,22 +223,49 @@ export default function AdminModelsPage() {
       <AdminListPanel<AdminModel>
         path="/admin/models"
         title="模型"
+        emptyTitle="还没有公开模型"
+        emptyDetail="从提供商同步或手工创建，审核后再发布到客户目录。"
+        onRowSelect={setSelected}
+        rowSelected={(row) => row.id === selected?.id}
         columns={[
-          { accessorKey: "id", header: "Public ID" },
-          { accessorKey: "vendor", header: "Vendor" },
-          { accessorKey: "display_name", header: "Name" },
-          { accessorKey: "status", header: "Status" },
-          { accessorKey: "sync_state", header: "Sync" },
+          {
+            accessorKey: "id",
+            header: "公开 ID",
+            cell: ({ row }) => <span className="font-mono text-[13px]">{row.original.id}</span>,
+          },
+          { accessorKey: "vendor", header: "厂商" },
+          { accessorKey: "display_name", header: "显示名" },
+          {
+            id: "providers",
+            header: "提供商",
+            cell: ({ row }) => (
+              <span className="font-mono text-[12px] text-ink-secondary">{formatProviderSlugs(row.original.providers)}</span>
+            ),
+          },
+          {
+            accessorKey: "status",
+            header: "状态",
+            cell: ({ row }) => <Badge tone={catalogStatusTone(row.original.status)}>{statusWord(row.original.status)}</Badge>,
+          },
+          {
+            accessorKey: "sync_state",
+            header: "同步",
+            cell: ({ row }) => syncStateLabel(row.original.sync_state),
+          },
           {
             id: "sell_price",
-            header: "Sell",
+            header: "销售价",
             cell: ({ row }) => formatSellPrice(row.original.sell_price),
           },
           {
             id: "edit",
             header: "操作",
             cell: ({ row }) => (
-              <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(row.original.id)}>
+              <Link
+                className="text-brand-emphasis underline-offset-4 hover:underline"
+                href={modelEditHref(row.original.id)}
+                onClick={(event) => event.stopPropagation()}
+              >
                 编辑
               </Link>
             ),
@@ -204,10 +276,10 @@ export default function AdminModelsPage() {
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="createModel" className="text-lg font-semibold tracking-tight" />
-          <p className="text-sm text-ink-secondary">缺确认会 409。永远创建为 draft，不会立刻出现在客户目录。</p>
-          <TextField control={createForm.control} name="public_id" label="创建用 public id" placeholder="创建用 public id tokenhub/ops-ui" />
-          <TextField control={createForm.control} name="vendor" label="创建用厂商" placeholder="创建用厂商 tokenhub" />
-          <TextField control={createForm.control} name="display_name" label="创建用显示名" />
+          <p className="text-sm text-ink-secondary">缺确认会 409。永远创建为 draft，不会立刻出现在客户目录。公开 ID 写成 厂商/模型，左边是原厂，不是进货渠道。</p>
+          <TextField control={createForm.control} name="public_id" label="公开 ID" placeholder="例如 tokenhub/ops-ui" />
+          <TextField control={createForm.control} name="vendor" label="厂商" placeholder="模型原厂，如 openai / tokenhub" />
+          <TextField control={createForm.control} name="display_name" label="显示名" />
           <ConfirmButton
             size="sm"
             title="确认创建模型"
@@ -239,8 +311,9 @@ export default function AdminModelsPage() {
       <IfCan action="models.attach">
       <Form {...syncForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
-          <p className="text-sm text-ink-secondary">同步只写入 draft。请换另一个运营账号去「模型审核」里通过或拒绝。</p>
-          <TextField control={syncForm.control} name="provider_id" label="provider id 同步" placeholder="provider id 同步" />
+          <AdminH2 k="syncUpstream" className="text-lg font-semibold tracking-tight" />
+          <p className="text-sm text-ink-secondary">从已接入的提供商拉取上游模型。同步只写入 draft。请换另一个运营账号去「模型审核」里通过或拒绝。</p>
+          <TextField control={syncForm.control} name="provider_id" label="同步用提供商 ID" placeholder="提供商 ID 或 slug" />
           <ConfirmButton
             size="sm"
             variant="outline"
@@ -267,10 +340,10 @@ export default function AdminModelsPage() {
       <Form {...attachForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="mountProvider" className="text-lg font-semibold tracking-tight" />
-          <p className="text-sm text-ink-secondary">把已有公开模型挂到 Provider，upstream 名称可以和公开 ID 不同。</p>
-          <TextField control={attachForm.control} name="public_id" label="挂载 public id" placeholder="public_id" />
-          <TextField control={attachForm.control} name="provider_id" label="挂载 provider id" placeholder="provider_id" />
-          <TextField control={attachForm.control} name="upstream_model_id" label="upstream model id" placeholder="upstream_model_id" />
+          <p className="text-sm text-ink-secondary">给已有公开模型增加一条进货途径。上游模型名可以和公开 ID 不同，例如公开 openai/gpt-5.6，上游仍可能叫 gpt-5.6。</p>
+          <TextField control={attachForm.control} name="public_id" label="公开 ID" placeholder="点列表选用，或填写 public_id" />
+          <TextField control={attachForm.control} name="provider_id" label="提供商 ID" placeholder="进货渠道，不是厂商名" />
+          <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="这家提供商内部的模型 ID" />
           <ConfirmButton
             size="sm"
             title="确认挂载 Provider"
@@ -297,7 +370,7 @@ export default function AdminModelsPage() {
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="deprecateModel" className="text-lg font-semibold tracking-tight" />
           <p className="text-sm text-ink-secondary">只改状态，不删除历史映射和价格版本。</p>
-          <TextField control={deprecateForm.control} name="public_id" label="弃用 public id" placeholder="public_id" />
+          <TextField control={deprecateForm.control} name="public_id" label="弃用公开 ID" placeholder="点列表选用，或填写 public_id" />
           <ConfirmButton
             size="sm"
             title="确认弃用模型"

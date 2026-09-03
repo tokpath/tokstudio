@@ -22,6 +22,7 @@ import {
   formatSellPrice,
   supportedParametersText,
 } from "@/lib/catalog";
+import { formatProviderSlugs, syncStateLabel } from "@/lib/catalog-admin";
 import { IfCan } from "@/components/rbac/if-can";
 
 type PriceBook = { id: string; public_id: string; status: string };
@@ -106,9 +107,11 @@ export default function AdminModelEditPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">编辑属性</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          {publicId || "缺少 public id"} · {model?.status || query.data?.error?.message || "需要平台管理员登录后才能加载。"}
-          {model?.sync_state ? ` · sync ${model.sync_state}` : ""}
-          {model?.providers?.length ? ` · providers ${model.providers.join(", ")}` : ""}
+          公开模型 <span className="font-mono">{publicId || "缺少 public id"}</span>
+          {model?.vendor ? ` · 厂商 ${model.vendor}` : ""}
+          {` · ${model?.status || query.data?.error?.message || "需要平台管理员登录后才能加载。"}`}
+          {model?.sync_state ? ` · ${syncStateLabel(model.sync_state)}` : ""}
+          {model ? ` · 途径 ${formatProviderSlugs(model.providers)}` : ""}
           {model ? ` · ${formatSellPrice(model.sell_price)}` : ""}
         </p>
         <Form {...attrForm}>

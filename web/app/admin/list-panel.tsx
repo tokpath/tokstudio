@@ -18,6 +18,8 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   title,
   columns,
   rowHref,
+  onRowSelect,
+  rowSelected,
   actions,
   emptyTitle = "暂无记录",
   emptyDetail = "登录平台管理员后可以看到数据。",
@@ -26,6 +28,8 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   title: string;
   columns: ColumnDef<T, unknown>[];
   rowHref?: (row: T) => string;
+  onRowSelect?: (row: T) => void;
+  rowSelected?: (row: T) => boolean;
   actions?: ReactNode;
   emptyTitle?: string;
   emptyDetail?: string;
@@ -68,8 +72,6 @@ export function AdminListPanel<T extends Record<string, unknown>>({
       </div>
       {query.isError || query.data?.error ? (
         <p className="text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
-      ) : data.length === 0 ? (
-        <EmptyState title={emptyTitle} detail={emptyDetail} />
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -85,23 +87,37 @@ export function AdminListPanel<T extends Record<string, unknown>>({
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={`border-b border-hairline hover:bg-brand-soft/40 ${rowHref ? "cursor-pointer" : ""}`}
-                  onClick={() => {
-                    if (rowHref) {
-                      router.push(rowHref(row.original));
-                    }
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2.5 text-ink">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={Math.max(columns.length, 1)} className="px-3 py-6">
+                    <EmptyState title={emptyTitle} detail={emptyDetail} />
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={`border-b border-hairline hover:bg-brand-soft/40 ${
+                      rowHref || onRowSelect ? "cursor-pointer" : ""
+                    } ${rowSelected?.(row.original) ? "bg-brand-soft" : ""}`}
+                    onClick={() => {
+                      if (onRowSelect) {
+                        onRowSelect(row.original);
+                        return;
+                      }
+                      if (rowHref) {
+                        router.push(rowHref(row.original));
+                      }
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-3 py-2.5 text-ink">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

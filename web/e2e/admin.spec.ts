@@ -121,6 +121,9 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/providers");
   await expect(page.getByRole("heading", { name: "提供商" })).toBeVisible();
   await expect(page.getByText("列表每行可探测")).toBeVisible();
+  await expect(page.getByText("同一公开模型可以挂多家提供商")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "接入提供商" })).toBeVisible();
+  await expect(page.getByLabel("类型")).toBeVisible();
   await expect(page.getByRole("heading", { name: "凭据轮换" })).toBeVisible();
   await expect(page.getByRole("button", { name: "轮换凭据" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "账号池" })).toBeVisible();
@@ -137,8 +140,13 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/models");
   await expect(page.getByRole("heading", { name: "模型审核" })).toBeVisible();
   await expect(page.getByRole("button", { name: "待审核" })).toBeVisible();
+  await expect(page.getByText("斜杠左边是模型厂商，不是路由提供商")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "公开 ID" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "厂商" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "提供商" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "创建模型" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建模型" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "同步上游" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "挂载 Provider" })).toBeVisible();
   await expect(page.getByRole("button", { name: "挂载" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "弃用模型" })).toBeVisible();

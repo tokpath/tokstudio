@@ -909,6 +909,8 @@
     "createRoute": "Create route",
     "editRoute": "Edit route policy",
     "createModel": "Create model",
+    "createProvider": "Connect provider",
+    "syncUpstream": "Sync upstream",
     "modelReview": "Model review",
     "mountProvider": "Attach provider",
     "deprecateModel": "Deprecate model",

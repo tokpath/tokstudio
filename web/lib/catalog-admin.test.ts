@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  adapterLabel,
   catalogStatusTone,
   formatCredentialRef,
+  formatMappedModels,
   formatProviderSlugs,
   formatRpm,
+  healthLabel,
   healthTone,
+  providerHref,
   providerKindLabel,
+  providerStatusLabel,
   statusWord,
   syncStateLabel,
 } from "./catalog-admin";
@@ -30,11 +35,19 @@ describe("admin catalog labels", () => {
     expect(formatRpm(0)).toBe("未限制");
     expect(formatRpm(30)).toBe("30");
     expect(formatCredentialRef("")).toBe("未配置");
-    expect(formatCredentialRef("crd_123")).toBe("crd_123");
+    expect(formatCredentialRef("crd_123")).toBe("已配置");
     expect(formatProviderSlugs([])).toBe("未挂载");
     expect(formatProviderSlugs(["ark-seedance", "openrouter-seedance"])).toBe(
       "ark-seedance · openrouter-seedance",
     );
+    expect(formatMappedModels([])).toBe("未挂模型");
+    expect(formatMappedModels([{ public_id: "tokenhub/echo-1" }, { public_id: "tokenhub/oem-demo" }])).toBe(
+      "tokenhub/echo-1 · tokenhub/oem-demo",
+    );
+    expect(adapterLabel("openai")).toBe("OpenAI 兼容");
+    expect(providerStatusLabel("maintenance")).toBe("维护中");
+    expect(healthLabel("available")).toBe("正常");
+    expect(providerHref("echo-primary")).toBe("/admin/providers/echo-primary");
   });
 
   it("maps sync states to review-queue labels", () => {

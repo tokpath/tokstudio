@@ -66,6 +66,17 @@ paths:
         "201":
           description: created
   /admin/providers/{id}:
+    get:
+      operationId: getProvider
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: provider
     patch:
       operationId: patchProvider
       parameters:

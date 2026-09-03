@@ -37,6 +37,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/providers"
   },
   {
+    "method": "GET",
+    "path": "/admin/providers/{id}"
+  },
+  {
     "method": "PATCH",
     "path": "/admin/providers/{id}"
   },

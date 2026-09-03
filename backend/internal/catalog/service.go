@@ -697,25 +697,34 @@ func (s *Service) MarkHealth(ctx context.Context, providerID, health string) err
 	return s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).Update("health", health).Error
 }
 
+type MappedModelView struct {
+	PublicID        string `json:"public_id"`
+	Vendor          string `json:"vendor"`
+	DisplayName     string `json:"display_name"`
+	UpstreamModelID string `json:"upstream_model_id"`
+	Status          string `json:"status"`
+}
+
 type ProviderView struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Slug             string `json:"slug"`
-	Kind             string `json:"kind"`
-	Adapter          string `json:"adapter"`
-	BaseURL          string `json:"base_url,omitempty"`
-	Region           string `json:"region,omitempty"`
-	Health           string `json:"health"`
-	Status           string `json:"status"`
-	Priority         int    `json:"priority"`
-	Weight           int    `json:"weight"`
-	TimeoutMS        int    `json:"timeout_ms"`
-	RetryMax         int    `json:"retry_max"`
-	RPMLimit         int    `json:"rpm_limit"`
-	ConcurrencyLimit int    `json:"concurrency_limit"`
-	CapabilityTags   string `json:"capability_tags,omitempty"`
-	CredentialRef    string `json:"credential_ref,omitempty"`
-	TestBehavior     string `json:"test_behavior,omitempty"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name"`
+	Slug             string            `json:"slug"`
+	Kind             string            `json:"kind"`
+	Adapter          string            `json:"adapter"`
+	BaseURL          string            `json:"base_url,omitempty"`
+	Region           string            `json:"region,omitempty"`
+	Health           string            `json:"health"`
+	Status           string            `json:"status"`
+	Priority         int               `json:"priority"`
+	Weight           int               `json:"weight"`
+	TimeoutMS        int               `json:"timeout_ms"`
+	RetryMax         int               `json:"retry_max"`
+	RPMLimit         int               `json:"rpm_limit"`
+	ConcurrencyLimit int               `json:"concurrency_limit"`
+	CapabilityTags   string            `json:"capability_tags,omitempty"`
+	CredentialRef    string            `json:"credential_ref,omitempty"`
+	TestBehavior     string            `json:"test_behavior,omitempty"`
+	Models           []MappedModelView `json:"models"`
 }
 
 func (s *Service) ListProviders(ctx context.Context) ([]ProviderView, error) {
@@ -727,7 +736,11 @@ func (s *Service) ListProviders(ctx context.Context) ([]ProviderView, error) {
 	for _, row := range rows {
 		out = append(out, *providerView(row))
 	}
-	return out, nil
+	maps, err := s.loadMappedModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return attachMappedModels(out, maps), nil
 }
 
 func (s *Service) Probe(ctx context.Context, providerID string) (string, error) {

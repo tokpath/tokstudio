@@ -37,6 +37,7 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.GET("/v1/requests/:id/attempts", a.requireAPIKey(), a.listAttempts)
 	r.GET("/admin/providers", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviders)
 	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
+	r.GET("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.getProvider)
 	r.PATCH("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchProvider)
 	r.POST("/admin/providers/:id/credentials", a.requireRoles("platform_admin", "tech_admin"), a.rotateProviderCredential)
 	r.GET("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviderAccounts)
@@ -439,13 +440,33 @@ func (a *App) listProviders(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Provider 失败", true)
 		return
 	}
+	items = catalog.FilterProviders(items, c.Query("q"))
 	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "providers.csv", []string{"id", "slug", "adapter", "status", "health"}, items, func(item catalog.ProviderView) []string {
-			return []string{item.ID, item.Slug, item.Adapter, item.Status, item.Health}
+		httpx.WriteCSV(c, "providers.csv", []string{"id", "slug", "adapter", "status", "health", "models"}, items, func(item catalog.ProviderView) []string {
+			return []string{item.ID, item.Slug, item.Adapter, item.Status, item.Health, mappedPublicIDs(item)}
 		})
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item catalog.ProviderView) string { return item.ID })
+}
+
+func (a *App) getProvider(c *gin.Context) {
+	item, err := a.Catalog.GetProvider(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "Provider 不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func mappedPublicIDs(item catalog.ProviderView) string {
+	ids := make([]string, 0, len(item.Models))
+	for _, model := range item.Models {
+		if model.PublicID != "" {
+			ids = append(ids, model.PublicID)
+		}
+	}
+	return strings.Join(ids, " ")
 }
 
 func (a *App) healthCheckProvider(c *gin.Context) {

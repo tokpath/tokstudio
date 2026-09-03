@@ -242,6 +242,18 @@ func TestM7OpsHardening(t *testing.T) {
 	if rpm, _ := patchedItem["rpm_limit"].(float64); rpm != 30 {
 		t.Fatalf("patch provider rpm: %+v", patched)
 	}
+	gotProvider := getAuthJSON(t, server.URL+"/admin/providers/"+prov["id"].(string), "m7_admin")["item"].(map[string]any)
+	if gotProvider["id"] != prov["id"] || gotProvider["status"] != "maintenance" {
+		t.Fatalf("get provider: %+v", gotProvider)
+	}
+	echoProvider := getAuthJSON(t, server.URL+"/admin/providers/echo-primary", "m7_admin")["item"].(map[string]any)
+	if echoProvider["slug"] != catalog.PrimaryProvider {
+		t.Fatalf("get provider by slug: %+v", echoProvider)
+	}
+	echoModels, _ := echoProvider["models"].([]any)
+	if len(echoModels) < 2 {
+		t.Fatalf("echo-primary should map more than one public model: %+v", echoProvider)
+	}
 	if code := postStatus(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-no-confirm"}); code != http.StatusConflict {
 		t.Fatalf("rotate credential without confirm should be 409, got %d", code)
 	}
@@ -542,6 +554,12 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	if getStatus(t, server.URL+"/admin/providers", finance) != http.StatusForbidden {
 		t.Fatal("finance must not list providers")
+	}
+	if getStatus(t, server.URL+"/admin/providers/prd_echo_primary", finance) != http.StatusForbidden {
+		t.Fatal("finance must not read a provider")
+	}
+	if getStatus(t, server.URL+"/admin/providers/prd_echo_primary", tech) != http.StatusOK {
+		t.Fatal("tech should read a provider")
 	}
 	if getStatus(t, server.URL+"/admin/billing/export", finance) != http.StatusOK {
 		t.Fatal("finance should export billing")

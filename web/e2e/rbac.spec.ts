@@ -38,7 +38,7 @@ test("tech admin sees credentials and not refunds", async ({ page }) => {
   await expect(page.getByRole("link", { name: "余额/充值" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "佣金策略" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
-  await page.goto("/admin/providers");
+  await page.goto("/admin/providers/echo-primary");
   await expect(page.getByRole("heading", { name: "凭据轮换" })).toBeVisible();
   await expect(page.getByRole("button", { name: "轮换凭据" })).toBeVisible();
 });

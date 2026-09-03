@@ -76,6 +76,24 @@ type RouteView struct {
 	Candidates    []map[string]any `json:"candidates"`
 }
 
+func (s *Service) GetProvider(ctx context.Context, id string) (*ProviderView, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var row providerRow
+	if err := s.db.WithContext(ctx).Where("id = ? OR slug = ?", id, id).First(&row).Error; err != nil {
+		return nil, err
+	}
+	view := providerView(row)
+	maps, err := s.loadMappedModels(ctx, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	attached := attachMappedModels([]ProviderView{*view}, maps)
+	return &attached[0], nil
+}
+
 func (s *Service) CreateProvider(ctx context.Context, in ProviderInput) (*ProviderView, error) {
 	in = normalizeProvider(in)
 	if err := ValidateUpstreamURL(in.BaseURL, s.production, s.allowHosts); err != nil {
@@ -465,6 +483,21 @@ func providerView(row providerRow) *ProviderView {
 		BaseURL: row.BaseURL, Region: row.Region, Health: row.Health, Status: row.Status,
 		Priority: row.Priority, Weight: row.Weight, TimeoutMS: row.TimeoutMS, RetryMax: row.RetryMax,
 		RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit, CapabilityTags: row.CapabilityTags,
-		CredentialRef: row.CredentialRef, TestBehavior: row.TestBehavior,
+		CredentialRef: row.CredentialRef, TestBehavior: row.TestBehavior, Models: []MappedModelView{},
 	}
+}
+
+func (s *Service) loadMappedModels(ctx context.Context, providerIDs ...string) ([]mappedModelScan, error) {
+	q := s.db.WithContext(ctx).Table("catalog_provider_model_mappings AS m").
+		Select("m.provider_id, pm.public_id, pm.vendor, pm.display_name, m.upstream_model_id, m.status").
+		Joins("JOIN catalog_public_models AS pm ON pm.id = m.public_model_id").
+		Order("pm.public_id ASC")
+	if len(providerIDs) > 0 {
+		q = q.Where("m.provider_id IN ?", providerIDs)
+	}
+	var rows []mappedModelScan
+	if err := q.Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

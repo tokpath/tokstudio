@@ -388,6 +388,19 @@ export default function AdminProvidersPage() {
           同一公开模型可以挂多家提供商。提供商只由平台接入。租户不能自带上游 Key，也不能在渠道里新建提供商。列表每行可探测；探测走上游沙箱、不会计费，也不要二次确认。点一行即可选用，下面的轮换、改状态、账号池会填入该提供商。
         </p>
       </section>
+      {selected ? (
+        <p className="rounded-card border border-hairline bg-brand-soft/40 px-4 py-2 text-sm text-ink">
+          已选 <span className="font-medium">{selected.name || selected.slug}</span>
+          {" · "}
+          <span className="font-mono">{selected.slug}</span>
+          {" · "}
+          {providerKindLabel(selected.kind)}
+          {" · "}
+          <span className="font-mono">{selected.id}</span>
+        </p>
+      ) : (
+        <p className="text-sm text-ink-secondary">点列表中的一行来选用提供商，不必手抄内部 ID。</p>
+      )}
       <AdminListPanel<Provider>
         path="/admin/providers"
         title="提供商"
@@ -437,19 +450,6 @@ export default function AdminProvidersPage() {
           },
         ]}
       />
-      {selected ? (
-        <p className="text-sm text-ink-secondary">
-          已选 <span className="font-medium text-ink">{selected.name || selected.slug}</span>
-          {" · "}
-          <span className="font-mono">{selected.slug}</span>
-          {" · "}
-          {providerKindLabel(selected.kind)}
-          {" · "}
-          <span className="font-mono">{selected.id}</span>
-        </p>
-      ) : (
-        <p className="text-sm text-ink-secondary">点列表中的一行来选用提供商，不必手抄内部 ID。</p>
-      )}
       <RotateCredentialForm selectedID={selected?.id || ""} />
       <IfCan action="providers.write">
       <Form {...form}>

@@ -129,6 +129,17 @@ export default function AdminModelsPage() {
           catalog，不是 mock。点「编辑」改属性、定价和上架。点一行可选用，下面的挂载和弃用会填入公开 ID。不要改 tokenhub/echo-1。
         </p>
       </section>
+      {selected ? (
+        <p className="rounded-card border border-hairline bg-brand-soft/40 px-4 py-2 text-sm text-ink">
+          已选 <span className="font-mono">{selected.id}</span>
+          {" · 厂商 "}
+          {selected.vendor}
+          {" · 途径 "}
+          {formatProviderSlugs(selected.providers)}
+        </p>
+      ) : (
+        <p className="text-sm text-ink-secondary">点列表中的一行来选用公开模型。厂商和提供商不是同一列。</p>
+      )}
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <AdminH2 k="modelReview" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
@@ -261,17 +272,6 @@ export default function AdminModelsPage() {
           },
         ]}
       />
-      {selected ? (
-        <p className="text-sm text-ink-secondary">
-          已选 <span className="font-mono text-ink">{selected.id}</span>
-          {" · 厂商 "}
-          {selected.vendor}
-          {" · 途径 "}
-          {formatProviderSlugs(selected.providers)}
-        </p>
-      ) : (
-        <p className="text-sm text-ink-secondary">点列表中的一行来选用公开模型。厂商和提供商不是同一列。</p>
-      )}
       <IfCan action="models.write">
       <Form {...createForm}>
         <form className="mt-4 grid max-w-xl gap-2 rounded-card border border-hairline bg-canvas-raised  p-4" onSubmit={(event) => event.preventDefault()}>

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { useTranslations } from "next-intl";
 import { apiClient } from "@/lib/client";
+import { stickyColumnClass } from "@/lib/scroll-table";
+import { cn } from "@/lib/utils";
 
 type ListResponse<T> = { items?: T[]; error?: { message?: string } };
 
@@ -21,6 +23,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   actions,
   emptyTitle = "暂无记录",
   emptyDetail = "登录平台管理员后可以看到数据。",
+  stickyEnds = true,
 }: {
   path: string;
   title: string;
@@ -31,6 +34,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   actions?: ReactNode;
   emptyTitle?: string;
   emptyDetail?: string;
+  stickyEnds?: boolean;
 }) {
   const router = useRouter();
   const tc = useTranslations("common");
@@ -42,6 +46,8 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   });
   const data = query.data?.items ?? [];
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+  const colCount = columns.length;
+
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -60,12 +66,12 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
       ) : null}
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-[52rem] w-full text-left text-sm">
           <thead>
             {table.getHeaderGroups().map((group) => (
-              <tr key={group.id} className="border-b border-hairline">
-                {group.headers.map((header) => (
-                  <th key={header.id} className="th-eyebrow px-3 py-2.5 text-ink-mute">
+              <tr key={group.id} className="group border-b border-hairline">
+                {group.headers.map((header, index) => (
+                  <th key={header.id} className={stickyColumnClass(index, colCount, { stickyEnds, header: true })}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -75,7 +81,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={Math.max(columns.length, 1)} className="px-3 py-6">
+                <td colSpan={Math.max(colCount, 1)} className="px-3 py-6">
                   <EmptyState
                     title={query.isError || query.data?.error ? "暂时看不到数据" : emptyTitle}
                     detail={query.isError || query.data?.error ? tc("needAdmin") : emptyDetail}
@@ -86,9 +92,12 @@ export function AdminListPanel<T extends Record<string, unknown>>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-hairline hover:bg-brand-soft/40 ${
-                    rowHref || onRowSelect ? "cursor-pointer" : ""
-                  } ${rowSelected?.(row.original) ? "bg-brand-soft" : ""}`}
+                  data-selected={rowSelected?.(row.original) ? "true" : undefined}
+                  className={cn(
+                    "group border-b border-hairline hover:bg-brand-soft/40",
+                    rowHref || onRowSelect ? "cursor-pointer" : "",
+                    rowSelected?.(row.original) ? "bg-brand-soft" : "",
+                  )}
                   onClick={() => {
                     if (onRowSelect) {
                       onRowSelect(row.original);
@@ -99,8 +108,8 @@ export function AdminListPanel<T extends Record<string, unknown>>({
                     }
                   }}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2.5 text-ink">
+                  {row.getVisibleCells().map((cell, index) => (
+                    <td key={cell.id} className={stickyColumnClass(index, colCount, { stickyEnds })}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

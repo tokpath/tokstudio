@@ -71,57 +71,59 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              {table.getHeaderGroups().map((group) => (
-                <tr key={group.id} className="border-b border-hairline">
-                  {group.headers.map((header) => (
-                    <th key={header.id} className="th-eyebrow px-3 py-2.5 text-ink-mute">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
+        <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
+      ) : null}
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead>
+            {table.getHeaderGroups().map((group) => (
+              <tr key={group.id} className="border-b border-hairline">
+                {group.headers.map((header) => (
+                  <th key={header.id} className="th-eyebrow px-3 py-2.5 text-ink-mute">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {data.length === 0 ? (
+              <tr>
+                <td colSpan={Math.max(columns.length, 1)} className="px-3 py-6">
+                  <EmptyState
+                    title={query.isError || query.data?.error ? "暂时看不到数据" : emptyTitle}
+                    detail={query.isError || query.data?.error ? tc("needAdmin") : emptyDetail}
+                  />
+                </td>
+              </tr>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className={`border-b border-hairline hover:bg-brand-soft/40 ${
+                    rowHref || onRowSelect ? "cursor-pointer" : ""
+                  } ${rowSelected?.(row.original) ? "bg-brand-soft" : ""}`}
+                  onClick={() => {
+                    if (onRowSelect) {
+                      onRowSelect(row.original);
+                      return;
+                    }
+                    if (rowHref) {
+                      router.push(rowHref(row.original));
+                    }
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-3 py-2.5 text-ink">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
                   ))}
                 </tr>
-              ))}
-            </thead>
-            <tbody>
-              {data.length === 0 ? (
-                <tr>
-                  <td colSpan={Math.max(columns.length, 1)} className="px-3 py-6">
-                    <EmptyState title={emptyTitle} detail={emptyDetail} />
-                  </td>
-                </tr>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={`border-b border-hairline hover:bg-brand-soft/40 ${
-                      rowHref || onRowSelect ? "cursor-pointer" : ""
-                    } ${rowSelected?.(row.original) ? "bg-brand-soft" : ""}`}
-                    onClick={() => {
-                      if (onRowSelect) {
-                        onRowSelect(row.original);
-                        return;
-                      }
-                      if (rowHref) {
-                        router.push(rowHref(row.original));
-                      }
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2.5 text-ink">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

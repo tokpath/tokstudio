@@ -91,66 +91,68 @@ export default function AdminRoutesPage() {
         <h2 className="mb-3 text-lg font-semibold tracking-tight">路由组</h2>
         <p className="mb-4 text-sm text-ink-secondary">按厂商折叠展示。主键仍是公开模型；详情再改候选权重与跨模型 fallback。</p>
         {query.data?.error ? (
-          <p className="text-sm text-ink-secondary">{query.data.error.message}</p>
-        ) : (
-          <div className="space-y-6">
-            {grouped.length === 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-hairline text-ink-secondary">
-                      <th className="th-eyebrow px-3 py-2.5">ID</th>
-                      <th className="th-eyebrow px-3 py-2.5">模型</th>
-                      <th className="th-eyebrow px-3 py-2.5">厂商</th>
-                      <th className="th-eyebrow px-3 py-2.5">策略</th>
-                      <th className="th-eyebrow px-3 py-2.5">候选 Provider</th>
-                      <th className="th-eyebrow px-3 py-2.5">状态</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={6} className="px-3 py-6">
-                        <EmptyState title="还没有路由组" detail="给已有公开模型创建路由后会出现在这里。" />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              grouped.map(([vendor, routes]) => (
-                <div key={vendor}>
-                  <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">{vendor}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-hairline text-ink-secondary">
-                          <th className="th-eyebrow px-3 py-2.5">ID</th>
-                          <th className="th-eyebrow px-3 py-2.5">模型</th>
-                          <th className="th-eyebrow px-3 py-2.5">厂商</th>
-                          <th className="th-eyebrow px-3 py-2.5">策略</th>
-                          <th className="th-eyebrow px-3 py-2.5">候选 Provider</th>
-                          <th className="th-eyebrow px-3 py-2.5">状态</th>
+          <p className="mb-4 text-sm text-ink-secondary">{query.data.error.message}</p>
+        ) : null}
+        <div className="space-y-6">
+          {grouped.length === 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-hairline text-ink-secondary">
+                    <th className="th-eyebrow px-3 py-2.5">ID</th>
+                    <th className="th-eyebrow px-3 py-2.5">模型</th>
+                    <th className="th-eyebrow px-3 py-2.5">厂商</th>
+                    <th className="th-eyebrow px-3 py-2.5">策略</th>
+                    <th className="th-eyebrow px-3 py-2.5">候选 Provider</th>
+                    <th className="th-eyebrow px-3 py-2.5">状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan={6} className="px-3 py-6">
+                      <EmptyState
+                        title={query.data?.error ? "暂时看不到路由组" : "还没有路由组"}
+                        detail={query.data?.error ? "登录平台管理员后可以看到数据。" : "给已有公开模型创建路由后会出现在这里。"}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            grouped.map(([vendor, routes]) => (
+              <div key={vendor}>
+                <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">{vendor}</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-hairline text-ink-secondary">
+                        <th className="th-eyebrow px-3 py-2.5">ID</th>
+                        <th className="th-eyebrow px-3 py-2.5">模型</th>
+                        <th className="th-eyebrow px-3 py-2.5">厂商</th>
+                        <th className="th-eyebrow px-3 py-2.5">策略</th>
+                        <th className="th-eyebrow px-3 py-2.5">候选 Provider</th>
+                        <th className="th-eyebrow px-3 py-2.5">状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {routes.map((route) => (
+                        <tr key={route.id} className="border-b border-hairline hover:bg-brand-soft/40">
+                          <td className="px-3 py-2.5 font-mono text-[13px]">{route.id}</td>
+                          <td className="px-3 py-2.5 font-mono text-[13px]">{route.public_model_id}</td>
+                          <td className="px-3 py-2.5 text-ink-secondary">{vendorOf(route)}</td>
+                          <td className="px-3 py-2.5">{route.strategy}</td>
+                          <td className="px-3 py-2.5 font-mono text-[12px] text-ink-secondary">{formatCandidates(route.candidates)}</td>
+                          <td className="px-3 py-2.5">{route.status}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {routes.map((route) => (
-                          <tr key={route.id} className="border-b border-hairline hover:bg-brand-soft/40">
-                            <td className="px-3 py-2.5 font-mono text-[13px]">{route.id}</td>
-                            <td className="px-3 py-2.5 font-mono text-[13px]">{route.public_model_id}</td>
-                            <td className="px-3 py-2.5 text-ink-secondary">{vendorOf(route)}</td>
-                            <td className="px-3 py-2.5">{route.strategy}</td>
-                            <td className="px-3 py-2.5 font-mono text-[12px] text-ink-secondary">{formatCandidates(route.candidates)}</td>
-                            <td className="px-3 py-2.5">{route.status}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              </div>
+            ))
+          )}
+        </div>
       </section>
       <IfCan action="routes.write">
         <Form {...createForm}>

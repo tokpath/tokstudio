@@ -482,11 +482,15 @@ TokenHub 是面向开发者和渠道商的**多模型 API 中转与分销清算�
 
 **`vendor-strip`**：已发布公开模型的厂商名，单行或轻量换行，字色 `--ink-secondary`，上下 1px 细线。可以慢速平移，不要彩色 Logo 墙，不要把未发布厂商写上去。
 
-### 4.5 表（TanStack Table）
+### 4.5 表（TanStack Table / ScrollTable）
 
 表头用 `{typography.eyebrow}`。行 1px 底边。悬停：淡章 40%，不要投影。选中：`--brand-soft`。
 
-金额列 `{typography.tabular}` 右对齐。分页、筛选、导出是次按钮，不是主章。空表用 `empty-state`，不要骨架闪烁假装有数。
+金额列 `{typography.tabular}` 右对齐。分页、筛选是次按钮，不是主章。空表用 `empty-state`，不要骨架闪烁假装有数。
+
+宽表用 `ScrollTable`（或 `AdminListPanel`）：外层横向滚动；**默认钉住第一列与最后一列**，中间列滑动。列数少于 3 时不钉。钉列用抬起表面底色 + 轻阴影，悬停与行同步。
+
+新建 / 编辑：字段少（约 ≤5）用 Dialog；多区块、凭据、生命周期用独立详情页。不要把长表单堆在列表页底部。
 
 公共站价目表行高可以比控制台松一档（16–20px 内边距），让单价先被看见。
 

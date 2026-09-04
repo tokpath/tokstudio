@@ -413,6 +413,10 @@ func TestM7OpsHardening(t *testing.T) {
 	if len(keys) == 0 {
 		t.Fatal("channel api keys empty")
 	}
+	firstKey, _ := keys[0].(map[string]any)
+	if firstKey["id"] == nil || firstKey["id"] == "" || firstKey["prefix"] == nil || firstKey["prefix"] == "" || firstKey["status"] == nil || firstKey["status"] == "" {
+		t.Fatalf("channel api key list fields incomplete: %+v", firstKey)
+	}
 	if code := getStatus(t, server.URL+"/admin/api-keys", "m7_admin"); code != http.StatusGone {
 		t.Fatalf("admin api-keys should be 410, got %d", code)
 	}

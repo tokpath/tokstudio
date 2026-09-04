@@ -68,30 +68,37 @@ func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error)
 }
 
 // ListAPIKeySummariesForChannel 列出某渠道下属用户的 Key 摘要（无密文）。D38：平台不管用户 Key，渠道可看。
+// 分两步查：先取渠道用户 ID，再按 user_id 查 Key。避免 GORM Joins+Scan/Find 扫嵌入列时字段为空。
 func (s *Service) ListAPIKeySummariesForChannel(ctx context.Context, channelOrgID string) ([]APIKeyView, error) {
 	channelOrgID = strings.TrimSpace(channelOrgID)
 	if channelOrgID == "" {
 		return nil, ErrChannelRequired
 	}
-	type joined struct {
-		apiKeyRow
-		UserEmail string `gorm:"column:user_email"`
+	var users []userRow
+	if err := s.db.WithContext(ctx).Select("id", "email").Where("channel_org_id = ?", channelOrgID).Find(&users).Error; err != nil {
+		return nil, err
 	}
-	var rows []joined
-	err := s.db.WithContext(ctx).Table("identity_api_keys AS k").
-		Select("k.*, u.email AS user_email").
-		Joins("JOIN identity_users AS u ON u.id = k.user_id").
-		Where("u.channel_org_id = ?", channelOrgID).
-		Order("k.created_at DESC").
+	if len(users) == 0 {
+		return []APIKeyView{}, nil
+	}
+	emailByUser := make(map[string]string, len(users))
+	userIDs := make([]string, 0, len(users))
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID)
+		emailByUser[user.ID] = user.Email
+	}
+	var rows []apiKeyRow
+	if err := s.db.WithContext(ctx).
+		Where("user_id IN ?", userIDs).
+		Order("created_at DESC").
 		Limit(200).
-		Scan(&rows).Error
-	if err != nil {
+		Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]APIKeyView, 0, len(rows))
 	for _, row := range rows {
-		view := viewFromRow(row.apiKeyRow, "")
-		view.UserEmail = row.UserEmail
+		view := viewFromRow(row, "")
+		view.UserEmail = emailByUser[row.UserID]
 		out = append(out, view)
 	}
 	s.attachAllowlists(ctx, out)
@@ -106,12 +113,14 @@ func (s *Service) DisableChannelAPIKey(ctx context.Context, channelOrgID, keyID 
 		return nil, ErrChannelRequired
 	}
 	var row apiKeyRow
-	err := s.db.WithContext(ctx).Table("identity_api_keys AS k").
-		Select("k.*").
-		Joins("JOIN identity_users AS u ON u.id = k.user_id").
-		Where("k.id = ? AND u.channel_org_id = ?", keyID, channelOrgID).
-		First(&row).Error
-	if err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ?", keyID).First(&row).Error; err != nil {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	var user userRow
+	if err := s.db.WithContext(ctx).Select("id", "email", "channel_org_id").Where("id = ?", row.UserID).First(&user).Error; err != nil {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	if user.ChannelOrgID == nil || *user.ChannelOrgID != channelOrgID {
 		return nil, ErrAPIKeyNotInChannel
 	}
 	if err := s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Update("status", "disabled").Error; err != nil {
@@ -119,6 +128,7 @@ func (s *Service) DisableChannelAPIKey(ctx context.Context, channelOrgID, keyID 
 	}
 	view := viewFromRow(row, "")
 	view.Status = "disabled"
+	view.UserEmail = user.Email
 	view = s.withAllowlist(ctx, view)
 	return &view, nil
 }

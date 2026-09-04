@@ -93,6 +93,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
     items: [
       { href: "/channel", key: "overview" },
       { href: "/channel/users", key: "users" },
+      { href: "/channel/keys", key: "keys" },
       { href: "/channel/models", key: "models" },
       { href: "/channel/plans", key: "plans" },
       { href: "/channel/payments", key: "payments" },
@@ -138,14 +139,12 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
       { href: "/admin/providers", key: "providers" },
       { href: "/admin/models", key: "models" },
       { href: "/admin/routes", key: "routes" },
-      { href: "/admin/keys", key: "keys" },
     ],
   },
   {
     titleKey: "groupBilling",
     items: [
       { href: "/admin/plans", key: "plans" },
-      { href: "/admin/prices", key: "prices" },
       { href: "/admin/payments", key: "payments" },
       { href: "/admin/billing", key: "billing" },
       { href: "/admin/usage", key: "usage" },

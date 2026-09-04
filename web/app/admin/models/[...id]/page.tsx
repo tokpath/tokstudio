@@ -43,6 +43,11 @@ const priceSchema = z.object({
   currency: z.string().trim().min(1, "请填写币种"),
 });
 
+const attachSchema = z.object({
+  provider_id: z.string().trim().min(1, "请填写提供商 ID"),
+  upstream_model_id: z.string().trim().min(1, "请填写上游模型名"),
+});
+
 export default function AdminModelEditPage() {
   const params = useParams<{ id?: string | string[] }>();
   const publicId = useMemo(() => {
@@ -56,6 +61,7 @@ export default function AdminModelEditPage() {
   const [attrMessage, setAttrMessage] = useState("属性和定价都写到 catalog，不是前端 mock。不要改 tokenhub/echo-1。");
   const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
   const [lifeMessage, setLifeMessage] = useState("draft 要先换人审核，再单独发布。创建人不能审核或发布。弃用不删历史映射和价格。");
+  const [attachMessage, setAttachMessage] = useState("给当前公开模型增加一条进货途径。上游模型名可以和公开 ID 不同。");
   const query = useQuery({
     queryKey: ["/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
@@ -69,6 +75,10 @@ export default function AdminModelEditPage() {
   const priceForm = useForm<z.infer<typeof priceSchema>>({
     resolver: zodResolver(priceSchema),
     defaultValues: { input: "", output: "", video_second: "", image_count: "", audio_second: "", currency: "USD" },
+  });
+  const attachForm = useForm<z.infer<typeof attachSchema>>({
+    resolver: zodResolver(attachSchema),
+    defaultValues: { provider_id: "", upstream_model_id: "" },
   });
 
   useEffect(() => {
@@ -199,6 +209,49 @@ export default function AdminModelEditPage() {
               发布价格
             </ConfirmButton>
             <p className="text-sm text-ink-secondary">{priceMessage}</p>
+          </form>
+        </Form>
+      </section>
+      </IfCan>
+      <IfCan action="models.attach">
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+        <h2 className="text-lg font-semibold tracking-tight">挂载 Provider</h2>
+        <p className="mt-1 text-sm text-ink-secondary">
+          公开 ID 已锁定为 <span className="font-mono">{publicId || "缺少 public id"}</span>。上游模型名可以和公开 ID 不同。
+        </p>
+        <Form {...attachForm}>
+          <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
+            <TextField control={attachForm.control} name="provider_id" label="提供商 ID" placeholder="进货渠道，不是厂商名" />
+            <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="这家提供商内部的模型 ID" />
+            <ConfirmButton
+              size="sm"
+              title="确认挂载 Provider"
+              description="upstream 名称可以和公开 ID 不同。"
+              validate={() => attachForm.trigger()}
+              onConfirm={attachForm.handleSubmit(async (values) => {
+                const res = await fetch(`${apiBase}/admin/models/attach`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: confirmHeaders,
+                  body: JSON.stringify({
+                    public_id: publicId,
+                    provider_id: values.provider_id,
+                    upstream_model_id: values.upstream_model_id,
+                  }),
+                });
+                const body = await res.json();
+                if (!res.ok) {
+                  setAttachMessage(body.error?.message || "挂载失败");
+                  return;
+                }
+                attachForm.reset({ provider_id: "", upstream_model_id: "" });
+                setAttachMessage(`已挂载 ${publicId} → ${values.provider_id}`);
+                await reload();
+              })}
+            >
+              挂载
+            </ConfirmButton>
+            <p className="text-sm text-ink-secondary">{attachMessage}</p>
           </form>
         </Form>
       </section>

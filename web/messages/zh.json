@@ -154,6 +154,7 @@
     "ledger": "账本",
     "overview": "总览",
     "users": "本渠道用户",
+    "keys": "本渠道 API Key",
     "models": "本渠道模型",
     "plans": "套餐",
     "payments": "收款",
@@ -710,6 +711,11 @@
       "eyebrow": "USERS",
       "title": "本渠道用户",
       "description": "邮箱可能已脱敏。归因在注册时写死，这里不含其他渠道。"
+    },
+    "channelKeys": {
+      "eyebrow": "API KEYS",
+      "title": "本渠道 API Key",
+      "description": "只列本渠道用户的 Key 摘要。可禁用，不能创建或查看完整密钥。"
     },
     "channelModels": {
       "eyebrow": "MODELS",
@@ -1508,7 +1514,6 @@
     "actDone": "请求明细已刷新",
     "actEmpty": "暂无数据",
     "colModel": "模型",
-    "colStatus": "状态",
     "colReq": "请求 ID",
     "colAmount": "金额",
     "ledHint": "登录后可查看交易流水。",
@@ -1614,6 +1619,20 @@
     "colLeft": "剩余",
     "emptyIssued": "暂无发放记录",
     "emptyIssuedDetail": "点刷新后可看到下属用户充值对应的额度。",
-    "commCount": "佣金流水 {comm} 条，已发放 {issued} 笔"
+    "commCount": "佣金流水 {comm} 条，已发放 {issued} 笔",
+    "keysTitle": "本渠道 API Key",
+    "keysLead": "只列本渠道用户的 Key。无密文，不能创建或改限额。",
+    "keysHint": "渠道管理员可禁用本渠道用户 Key；禁用后网关立刻 403。",
+    "keysCount": "本渠道 Key {n} 个",
+    "refreshKeys": "刷新 Key",
+    "colKeyName": "名称",
+    "colPrefix": "前缀",
+    "colLastUsed": "最近使用",
+    "emptyKeys": "暂无本渠道 API Key",
+    "emptyKeysDetail": "登录渠道管理员后刷新。不含其他渠道。",
+    "disableKey": "禁用",
+    "confirmDisableKey": "确认禁用 Key",
+    "confirmDisableKeyD": "禁用后网关立刻 403。不要禁正在跑 e2e 的主 Key。",
+    "disabledKey": "已禁用 {id} → {status}"
   }
 }

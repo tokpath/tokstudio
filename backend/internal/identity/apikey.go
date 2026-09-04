@@ -2,12 +2,16 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
+
+var ErrChannelRequired = errors.New("channel org required")
+var ErrAPIKeyNotInChannel = errors.New("api key not in channel")
 
 type apiKeyRow struct {
 	ID               string     `gorm:"column:id;primaryKey"`
@@ -37,6 +41,7 @@ func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_polic
 type APIKeyView struct {
 	ID               string     `json:"id"`
 	UserID           string     `json:"user_id,omitempty"`
+	UserEmail        string     `json:"user_email,omitempty"`
 	Name             string     `json:"name"`
 	Prefix           string     `json:"prefix"`
 	Secret           string     `json:"key,omitempty"`
@@ -60,6 +65,72 @@ func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error)
 	}
 	s.attachAllowlists(ctx, out)
 	return out, nil
+}
+
+// ListAPIKeySummariesForChannel 列出某渠道下属用户的 Key 摘要（无密文）。D38：平台不管用户 Key，渠道可看。
+// 分两步查：先取渠道用户 ID，再按 user_id 查 Key。避免 GORM Joins+Scan/Find 扫嵌入列时字段为空。
+func (s *Service) ListAPIKeySummariesForChannel(ctx context.Context, channelOrgID string) ([]APIKeyView, error) {
+	channelOrgID = strings.TrimSpace(channelOrgID)
+	if channelOrgID == "" {
+		return nil, ErrChannelRequired
+	}
+	var users []userRow
+	if err := s.db.WithContext(ctx).Select("id", "email").Where("channel_org_id = ?", channelOrgID).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return []APIKeyView{}, nil
+	}
+	emailByUser := make(map[string]string, len(users))
+	userIDs := make([]string, 0, len(users))
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID)
+		emailByUser[user.ID] = user.Email
+	}
+	var rows []apiKeyRow
+	if err := s.db.WithContext(ctx).
+		Where("user_id IN ?", userIDs).
+		Order("created_at DESC").
+		Limit(200).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]APIKeyView, 0, len(rows))
+	for _, row := range rows {
+		view := viewFromRow(row, "")
+		view.UserEmail = emailByUser[row.UserID]
+		out = append(out, view)
+	}
+	s.attachAllowlists(ctx, out)
+	return out, nil
+}
+
+// DisableChannelAPIKey 渠道管理员禁本渠道用户的 Key（无密文回显）。
+func (s *Service) DisableChannelAPIKey(ctx context.Context, channelOrgID, keyID string) (*APIKeyView, error) {
+	channelOrgID = strings.TrimSpace(channelOrgID)
+	keyID = strings.TrimSpace(keyID)
+	if channelOrgID == "" || keyID == "" {
+		return nil, ErrChannelRequired
+	}
+	var row apiKeyRow
+	if err := s.db.WithContext(ctx).Where("id = ?", keyID).First(&row).Error; err != nil {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	var user userRow
+	if err := s.db.WithContext(ctx).Select("id", "email", "channel_org_id").Where("id = ?", row.UserID).First(&user).Error; err != nil {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	if user.ChannelOrgID == nil || *user.ChannelOrgID != channelOrgID {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	if err := s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Update("status", "disabled").Error; err != nil {
+		return nil, err
+	}
+	view := viewFromRow(row, "")
+	view.Status = "disabled"
+	view.UserEmail = user.Email
+	view = s.withAllowlist(ctx, view)
+	return &view, nil
 }
 
 type APIKeyPrincipal struct {

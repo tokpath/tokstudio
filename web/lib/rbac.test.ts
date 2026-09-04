@@ -35,28 +35,35 @@ describe("role menus", () => {
     expect(hrefs).not.toContain("/admin/providers");
     expect(hrefs).not.toContain("/admin/users");
     expect(hrefs).not.toContain("/admin/audit");
+    expect(hrefs).not.toContain("/admin/keys");
+    expect(hrefs).not.toContain("/admin/prices");
     expect(canWrite("billing.refund", finance)).toBe(true);
     expect(canWrite("providers.write", finance)).toBe(false);
     expect(canWrite("models.grant", finance)).toBe(false);
     expect(canWrite("channels.quota", finance)).toBe(true);
+    expect(canWrite("prices.write", finance)).toBe(true);
   });
 
   it("lets ops manage catalog and grants, but not refunds or bans", () => {
     const ops = signed(["ops_admin"]);
+    const hrefs = filterAdminGroups(adminGroups, ops).flatMap((group) => group.items.map((item) => item.href));
     expect(canViewAdminHref("/admin/models", ops)).toBe(true);
     expect(canViewAdminHref("/admin/channels", ops)).toBe(true);
     expect(canViewAdminHref("/admin/users", ops)).toBe(false);
     expect(canViewAdminHref("/admin/audit", ops)).toBe(false);
+    expect(hrefs).not.toContain("/admin/keys");
+    expect(hrefs).not.toContain("/admin/prices");
     expect(canWrite("models.grant", ops)).toBe(true);
     expect(canWrite("billing.bonus", ops)).toBe(true);
     expect(canWrite("billing.refund", ops)).toBe(false);
     expect(canWrite("commission.write", ops)).toBe(false);
+    expect(canWrite("prices.write", ops)).toBe(true);
   });
 
   it("lets tech manage credentials but not billing writes", () => {
     const tech = signed(["tech_admin"]);
     expect(canViewAdminHref("/admin/providers", tech)).toBe(true);
-    expect(canViewAdminHref("/admin/keys", tech)).toBe(true);
+    expect(canViewAdminHref("/admin/keys", tech)).toBe(false);
     expect(canViewAdminHref("/admin/billing", tech)).toBe(false);
     expect(canViewAdminHref("/admin/commission", tech)).toBe(false);
     expect(canViewAdminHref("/admin/channels", tech)).toBe(false);

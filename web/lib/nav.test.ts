@@ -9,9 +9,7 @@ describe("adminNavKeys", () => {
       "providers",
       "models",
       "routes",
-      "keys",
       "plans",
-      "prices",
       "payments",
       "billing",
       "usage",
@@ -27,6 +25,12 @@ describe("adminNavKeys", () => {
       "audit",
       "settings",
     ]);
+  });
+});
+
+describe("channel keys nav", () => {
+  it("lists channel API keys after users", () => {
+    expect(channelSections.some((item) => item.href === "/channel/keys")).toBe(true);
   });
 });
 

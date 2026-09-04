@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { apiBase } from "@/lib/api";
 import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
 import { dashboardHero, dashboardSummaryParams } from "@/lib/dashboard";
-import { Download, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { AdminH2 } from "@/components/admin-h2";
@@ -59,22 +59,6 @@ export default function AdminDashboard() {
       return;
     }
     setMessage(td("summary", dashboardSummaryParams(body.dashboard)));
-  }
-
-  async function exportDaily() {
-    const res = await fetch(`${apiBase}/admin/metrics/daily?format=csv&days=7`, { credentials: "include" });
-    if (!res.ok) {
-      setMessage(td("exportFail"));
-      return;
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "metrics-daily.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-    setMessage(td("exported"));
   }
 
   const palette = useMemo(() => chartPalette(resolvedTheme === "dark"), [resolvedTheme]);
@@ -135,10 +119,6 @@ export default function AdminDashboard() {
           <Button type="button" variant="outline" onClick={() => void refresh()}>
             <RefreshCw />
             {td("refreshMetrics")}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => void exportDaily()}>
-            <Download />
-            {td("exportDaily")}
           </Button>
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>

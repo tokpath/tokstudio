@@ -34,7 +34,7 @@ test("tech admin sees credentials and not refunds", async ({ page }) => {
   await mockViewer(page, { roles: ["tech_admin"] });
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "API Key" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "API Key" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "余额/充值" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "佣金策略" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);

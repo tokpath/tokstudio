@@ -154,6 +154,7 @@
     "ledger": "台帳",
     "overview": "概要",
     "users": "チャネルユーザー",
+    "keys": "チャネル API Key",
     "models": "チャネルモデル",
     "plans": "プラン",
     "payments": "決済",
@@ -710,6 +711,11 @@
       "eyebrow": "USERS",
       "title": "チャネルユーザー",
       "description": "メールはマスクされることがあります。帰属は登録時に固定。"
+    },
+    "channelKeys": {
+      "eyebrow": "API KEYS",
+      "title": "チャネル API Key",
+      "description": "本チャネルユーザーの Key 要約のみ。無効化可。作成や完全な秘密は不可。"
     },
     "channelModels": {
       "eyebrow": "MODELS",
@@ -1508,7 +1514,6 @@
     "actDone": "リクエスト明細を更新しました",
     "actEmpty": "データはまだありません",
     "colModel": "モデル",
-    "colStatus": "状態",
     "colReq": "リクエスト ID",
     "colAmount": "金額",
     "ledHint": "ログインすると取引明細を見られます。",
@@ -1614,6 +1619,20 @@
     "colLeft": "残",
     "emptyIssued": "発行記録はありません",
     "emptyIssuedDetail": "更新すると配下ユーザーの入金に対応する枠が見えます。",
-    "commCount": "手数料 {comm} 件、発行 {issued} 件"
+    "commCount": "手数料 {comm} 件、発行 {issued} 件",
+    "keysTitle": "チャネル API Key",
+    "keysLead": "本チャネルユーザーの Key のみ。密文なし。作成や上限変更は不可。",
+    "keysHint": "チャネル管理者は本チャネルの Key を無効化できます。無効化後は直ちに 403。",
+    "keysCount": "本チャネル Key {n} 件",
+    "refreshKeys": "Key を更新",
+    "colKeyName": "名前",
+    "colPrefix": "接頭辞",
+    "colLastUsed": "最終使用",
+    "emptyKeys": "本チャネルの API Key はありません",
+    "emptyKeysDetail": "チャネル管理者でログインして更新。他チャネルは含みません。",
+    "disableKey": "無効化",
+    "confirmDisableKey": "Key を無効化しますか",
+    "confirmDisableKeyD": "無効化後ゲートウェイは直ちに 403。e2e の主 Key は無効化しないでください。",
+    "disabledKey": "無効化済み {id} → {status}"
   }
 }

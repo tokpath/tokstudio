@@ -30,6 +30,7 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	cfg.BootstrapAdmin = "m7_admin"
 	cfg.BootstrapUser = "m7_user"
+	cfg.BootstrapChannel = "m7_admin-b"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
@@ -408,9 +409,16 @@ func TestM7OpsHardening(t *testing.T) {
 	if _, ok := renewed["processed"]; !ok {
 		t.Fatalf("process renewals: %+v", renewed)
 	}
-	keys := getAuthJSON(t, server.URL+"/admin/api-keys", "m7_admin")["items"].([]any)
+	keys := getAuthJSON(t, server.URL+"/channel/api-keys", "m7_admin-b")["items"].([]any)
 	if len(keys) == 0 {
-		t.Fatal("admin api keys empty")
+		t.Fatal("channel api keys empty")
+	}
+	firstKey, _ := keys[0].(map[string]any)
+	if firstKey["id"] == nil || firstKey["id"] == "" || firstKey["prefix"] == nil || firstKey["prefix"] == "" || firstKey["status"] == nil || firstKey["status"] == "" {
+		t.Fatalf("channel api key list fields incomplete: %+v", firstKey)
+	}
+	if code := getStatus(t, server.URL+"/admin/api-keys", "m7_admin"); code != http.StatusGone {
+		t.Fatalf("admin api-keys should be 410, got %d", code)
 	}
 
 	setup := postJSONRaw(t, server.URL+"/admin/me/2fa/setup", "m7_admin", map[string]any{})
@@ -512,17 +520,20 @@ func TestM7OpsHardening(t *testing.T) {
 	adminBan := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "admin-disable"})
 	adminBanID := adminBan["item"].(map[string]any)["id"].(string)
 	adminBanSecret := adminBan["item"].(map[string]any)["key"].(string)
-	if code := postStatus(t, server.URL+"/admin/api-keys/"+adminBanID+"/disable", "m7_admin", map[string]any{}); code != http.StatusConflict {
-		t.Fatalf("admin disable key without confirm should be 409, got %d", code)
+	if code := postStatus(t, server.URL+"/admin/api-keys/"+adminBanID+"/disable", "m7_admin", map[string]any{}); code != http.StatusGone {
+		t.Fatalf("admin disable key should be 410, got %d", code)
 	}
-	banned := postJSONRaw(t, server.URL+"/admin/api-keys/"+adminBanID+"/disable", "m7_admin", map[string]any{})
+	if code := postStatus(t, server.URL+"/channel/api-keys/"+adminBanID+"/disable", "m7_admin-b", map[string]any{}); code != http.StatusConflict {
+		t.Fatalf("channel disable key without confirm should be 409, got %d", code)
+	}
+	banned := postJSONRaw(t, server.URL+"/channel/api-keys/"+adminBanID+"/disable", "m7_admin-b", map[string]any{})
 	if banned["item"].(map[string]any)["status"] != "disabled" {
-		t.Fatalf("admin disable key: %+v", banned)
+		t.Fatalf("channel disable key: %+v", banned)
 	}
 	if code := postStatus(t, server.URL+"/v1/chat/completions", adminBanSecret, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "admin-off"}},
 	}); code != http.StatusForbidden {
-		t.Fatalf("admin-disabled key should be 403, got %d", code)
+		t.Fatalf("channel-disabled key should be 403, got %d", code)
 	}
 	expKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "exp"})
 	expID := expKey["item"].(map[string]any)["id"].(string)

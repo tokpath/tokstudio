@@ -724,6 +724,7 @@ type ProviderView struct {
 	CapabilityTags   string            `json:"capability_tags,omitempty"`
 	CredentialRef    string            `json:"credential_ref,omitempty"`
 	TestBehavior     string            `json:"test_behavior,omitempty"`
+	AccountCount     int               `json:"account_count"`
 	Models           []MappedModelView `json:"models"`
 }
 
@@ -740,7 +741,32 @@ func (s *Service) ListProviders(ctx context.Context) ([]ProviderView, error) {
 	if err != nil {
 		return nil, err
 	}
-	return attachMappedModels(out, maps), nil
+	out = attachMappedModels(out, maps)
+	s.attachAccountCounts(ctx, out)
+	return out, nil
+}
+
+func (s *Service) attachAccountCounts(ctx context.Context, items []ProviderView) {
+	if len(items) == 0 {
+		return
+	}
+	type countRow struct {
+		ProviderID string `gorm:"column:provider_id"`
+		N          int64  `gorm:"column:n"`
+	}
+	var counts []countRow
+	_ = s.db.WithContext(ctx).Model(&accountRow{}).
+		Select("provider_id, COUNT(*) AS n").
+		Where("status <> ?", AccountRotated).
+		Group("provider_id").
+		Scan(&counts).Error
+	byID := map[string]int{}
+	for _, row := range counts {
+		byID[row.ProviderID] = int(row.N)
+	}
+	for i := range items {
+		items[i].AccountCount = byID[items[i].ID]
+	}
 }
 
 func (s *Service) Probe(ctx context.Context, providerID string) (string, error) {

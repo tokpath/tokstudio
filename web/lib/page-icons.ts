@@ -117,6 +117,7 @@ export const HREF_ICONS: Record<string, LucideIcon> = {
   "/app/settings/webhooks": Webhook,
   "/channel": LayoutDashboard,
   "/channel/users": Users,
+  "/channel/keys": KeyRound,
   "/channel/models": Boxes,
   "/channel/plans": CreditCard,
   "/channel/payments": Banknote,

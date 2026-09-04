@@ -42,7 +42,7 @@ P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_ro
 | `public_model` | `id`, `public_id`, `vendor`, `display_name`, `capabilities_json`, `status`, `sync_state`, `created_by_user_id`, `reviewed_by_user_id` | 客户看到的模型，如 `openai/gpt-5.6`；手工创建/同步为 `draft`，审核通过为 `reviewed`，拒绝为 `rejected`，发布后 `status=published` 且 `sync_state=published`。创建人不能审核或发布自己建的模型。ofox 公开目录快照由独立命令 `cmd/catalog-seed` 预置为已审核已发布（`created_by`/`reviewed_by` 为空，系统目录不做创建人互斥） |
 | `provider_model_mapping` | `id`, `public_model_id`, `provider_id`, `upstream_model_id`, `capabilities_json`, `sync_state` | 上游模型映射，自动同步先进入 draft |
 | `price_version` | `id`, `public_model_id`, `provider_id`, `unit_prices_json`, `effective_at`, `status` | 成本、批发价、销售价版本化 |
-| `route_group` | `id`, `public_model_id`, `strategy`, `fallback_policy`, `status` | 固定优先级/权重/价格/健康优先 |
+| `route_group` | `id`, `public_model_id`, `strategy`, `fallback_policy`, `status` | 固定优先级/权重/价格/健康优先；主键仍是公开模型。厂商默认路由是应用层模板（批量写入/覆盖多条 `route_group`），不另建 vendor 主键表；见 `docs/13` |
 | `route_candidate` | `route_group_id`, `provider_id`, `priority`, `weight`, `constraints_json` | provider.only/provider.ignore 等约束 |
 | `channel_model_policy` | `channel_org_id`, `public_model_id`, `enabled`, `sell_price_override` | 平台从目录授权给租户的可见模型；租户不能自建提供商或模型 |
 

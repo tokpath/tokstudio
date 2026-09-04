@@ -6,7 +6,7 @@
 2. [统一产品需求文档](01-TokenHub统一产品需求文档.md)：全平台最终 PRD，定义 P0/P1 范围和业务规则。
 3. [分销与代理商需求](02-分销与代理商需求.md)：A/B/C、代理商、KOL、归因和佣金细则。
 4. [账务与技术模型](03-账务与技术模型.md)：价格、钱包、预授权、usage 和账务原则。
-5. [逐项讨论清单](04-TokenHub逐项讨论清单.md)：D1-D32 的拍板记录，作为决策日志。
+5. [逐项讨论清单](04-TokenHub逐项讨论清单.md)：D1-D38 的拍板记录，作为决策日志。
 6. [P0 数据模型与状态机](05-TokenHub-P0数据模型与状态机.md)：数据库实体、账务不变量和状态机。
 7. [P0 OpenAPI 契约](06-TokenHub-P0-OpenAPI契约.md)：对外 API、错误码、幂等和管理 API 骨架。
 8. [Bifrost 集成边界](07-TokenHub-Bifrost集成边界与架构建议.md)：TokenHub 控制面、Bifrost 数据面和 Dapr 兼容事件边界。
@@ -17,11 +17,12 @@
 13. [DESIGN.md](../DESIGN.md)：TokenHub Clearing 视觉宪法（`alpha.2`）。结构对齐 Stitch / awesome-design-md；公共站版式手艺参考 Ofox 的留白与信息节奏，不搬橙色或促销墙。内容覆盖四个入口、账本、路由回单、OEM `theme_json` 和 ECharts。隐喻与 OEM 契约锁定，组件待真页面压测后升 1.0。
 14. [OEM 品牌自助配置方案](11-OEM品牌自助配置方案.md)：对照现状回答「每个租户能否自定义 Logo/品牌名/配色」；一期含资源上传，文件体积/像素/展示尺寸为硬门禁。方案待审批后再开工。
 15. [渠道收款与支付 UE 方案](12-渠道收款与支付UE方案.md)：支付能力由平台提供，商户配置在渠道台；支付方式可插拔。
-16. [AGENTS.md](../AGENTS.md)：改代码前必须先把当前分支同步到 `origin/release/v0.1.0`。
+16. [目录与网关管理面信息架构](13-目录与网关管理面信息架构.md)：平台侧栏提供商/模型/路由组；用户 API Key 归用户+渠道；路由主键仍是公开模型，按 vendor 折叠与模板套用。已拍板，实现另开 PR。
+17. [AGENTS.md](../AGENTS.md)：改代码前必须先把当前分支同步到 `origin/release/v0.1.0`。
 
 ## 决策状态
 
-D1-D32 已确认。当前已锁定：
+D1-D38 已确认。当前已锁定：
 
 - P0：OpenAI Chat/Responses、Anthropic Messages、Google Gemini、Seedance 视频/图像媒体；
 - P0：Stripe、支付宝、微信支付、人工入账/兑换码；

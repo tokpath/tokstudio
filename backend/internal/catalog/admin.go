@@ -71,6 +71,7 @@ type RouteCandidateIn struct {
 type RouteView struct {
 	ID            string           `json:"id"`
 	PublicModelID string           `json:"public_model_id"`
+	Vendor        string           `json:"vendor,omitempty"`
 	Strategy      string           `json:"strategy"`
 	Status        string           `json:"status"`
 	Candidates    []map[string]any `json:"candidates"`
@@ -91,6 +92,7 @@ func (s *Service) GetProvider(ctx context.Context, id string) (*ProviderView, er
 		return nil, err
 	}
 	attached := attachMappedModels([]ProviderView{*view}, maps)
+	s.attachAccountCounts(ctx, attached)
 	return &attached[0], nil
 }
 
@@ -298,7 +300,13 @@ func (s *Service) ListRoutes(ctx context.Context) ([]RouteView, error) {
 		if publicID == "" {
 			publicID = group.PublicModelID
 		}
-		out = append(out, RouteView{ID: group.ID, PublicModelID: publicID, Strategy: group.Strategy, Status: group.Status, Candidates: items})
+		vendor := model.Vendor
+		if vendor == "" {
+			if i := strings.IndexByte(publicID, '/'); i > 0 {
+				vendor = publicID[:i]
+			}
+		}
+		out = append(out, RouteView{ID: group.ID, PublicModelID: publicID, Vendor: vendor, Strategy: group.Strategy, Status: group.Status, Candidates: items})
 	}
 	return out, nil
 }

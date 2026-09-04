@@ -27,6 +27,8 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/me/api-keys/:id/disable", a.requireAnyUser(), a.disableAPIKey)
 	r.POST("/v1/me/api-keys/:id/expire", a.requireAnyUser(), a.expireAPIKey)
 	r.POST("/v1/me/api-keys/:id/copy", a.requireAnyUser(), a.copyAPIKey)
+	r.GET("/channel/api-keys", a.requireRoles("channel_admin"), a.listChannelAPIKeys)
+	r.POST("/channel/api-keys/:id/disable", a.requireRoles("channel_admin"), a.channelDisableAPIKey)
 	r.GET("/admin/api-keys", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminAPIKeys)
 	r.POST("/admin/api-keys/:id/disable", a.requireRoles("platform_admin", "tech_admin"), a.adminDisableAPIKey)
 	r.GET("/v1/models", a.requireAPIKey(), a.listModels)
@@ -129,7 +131,18 @@ func (a *App) listAPIKeys(c *gin.Context) {
 }
 
 func (a *App) listAdminAPIKeys(c *gin.Context) {
-	items, err := a.Identity.ListAPIKeySummaries(c.Request.Context())
+	// D38：平台不再管理用户 API Key。
+	httpx.Abort(c, http.StatusGone, "gone", "平台不再管理用户 API Key，请到渠道台查看", false)
+}
+
+func (a *App) listChannelAPIKeys(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	channelID := principal.ChannelOrgID
+	if channelID == "" {
+		httpx.Abort(c, http.StatusForbidden, "forbidden", "缺少渠道归属", false)
+		return
+	}
+	items, err := a.Identity.ListAPIKeySummariesForChannel(c.Request.Context(), channelID)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 Key 失败", true)
 		return
@@ -137,7 +150,8 @@ func (a *App) listAdminAPIKeys(c *gin.Context) {
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]identity.APIKeyView, 0, len(items))
 		for _, item := range items {
-			if strings.Contains(strings.ToLower(item.ID+item.Name+item.Prefix+item.Status+item.UserID), q) {
+			hay := strings.ToLower(item.ID + item.Name + item.Prefix + item.Status + item.UserID + item.UserEmail)
+			if strings.Contains(hay, q) {
 				filtered = append(filtered, item)
 			}
 		}
@@ -152,13 +166,30 @@ func (a *App) listAdminAPIKeys(c *gin.Context) {
 		}
 		items = filtered
 	}
-	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "api-keys.csv", []string{"id", "name", "prefix", "status", "user_id"}, items, func(item identity.APIKeyView) []string {
-			return []string{item.ID, item.Name, item.Prefix, item.Status, item.UserID}
-		})
+	httpx.OKPage(c, items, 100, func(item identity.APIKeyView) string { return item.ID })
+}
+
+func (a *App) channelDisableAPIKey(c *gin.Context) {
+	if !a.requireConfirm(c) {
 		return
 	}
-	httpx.OKPage(c, items, 100, func(item identity.APIKeyView) string { return item.ID })
+	principal := a.currentPrincipal(c)
+	channelID := principal.ChannelOrgID
+	if channelID == "" {
+		httpx.Abort(c, http.StatusForbidden, "forbidden", "缺少渠道归属", false)
+		return
+	}
+	item, err := a.Identity.DisableChannelAPIKey(c.Request.Context(), channelID, c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "API Key 不存在或不属于本渠道", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: "api_key.channel_disable", ResourceType: "api_key", ResourceID: item.ID,
+		After: map[string]string{"status": item.Status, "channel_org_id": channelID},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) rotateAPIKey(c *gin.Context) {
@@ -225,10 +256,8 @@ func (a *App) copyAPIKey(c *gin.Context) {
 }
 
 func (a *App) adminDisableAPIKey(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	a.disableAPIKey(c)
+	// D38：平台不再禁用用户 API Key。
+	httpx.Abort(c, http.StatusGone, "gone", "平台不再管理用户 API Key，请由渠道管理员禁用", false)
 }
 
 func (a *App) listModels(c *gin.Context) {

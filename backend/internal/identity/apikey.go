@@ -2,12 +2,16 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
+
+var ErrChannelRequired = errors.New("channel org required")
+var ErrAPIKeyNotInChannel = errors.New("api key not in channel")
 
 type apiKeyRow struct {
 	ID               string     `gorm:"column:id;primaryKey"`
@@ -37,6 +41,7 @@ func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_polic
 type APIKeyView struct {
 	ID               string     `json:"id"`
 	UserID           string     `json:"user_id,omitempty"`
+	UserEmail        string     `json:"user_email,omitempty"`
 	Name             string     `json:"name"`
 	Prefix           string     `json:"prefix"`
 	Secret           string     `json:"key,omitempty"`
@@ -60,6 +65,62 @@ func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error)
 	}
 	s.attachAllowlists(ctx, out)
 	return out, nil
+}
+
+// ListAPIKeySummariesForChannel 列出某渠道下属用户的 Key 摘要（无密文）。D38：平台不管用户 Key，渠道可看。
+func (s *Service) ListAPIKeySummariesForChannel(ctx context.Context, channelOrgID string) ([]APIKeyView, error) {
+	channelOrgID = strings.TrimSpace(channelOrgID)
+	if channelOrgID == "" {
+		return nil, ErrChannelRequired
+	}
+	type joined struct {
+		apiKeyRow
+		UserEmail string `gorm:"column:user_email"`
+	}
+	var rows []joined
+	err := s.db.WithContext(ctx).Table("identity_api_keys AS k").
+		Select("k.*, u.email AS user_email").
+		Joins("JOIN identity_users AS u ON u.id = k.user_id").
+		Where("u.channel_org_id = ?", channelOrgID).
+		Order("k.created_at DESC").
+		Limit(200).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]APIKeyView, 0, len(rows))
+	for _, row := range rows {
+		view := viewFromRow(row.apiKeyRow, "")
+		view.UserEmail = row.UserEmail
+		out = append(out, view)
+	}
+	s.attachAllowlists(ctx, out)
+	return out, nil
+}
+
+// DisableChannelAPIKey 渠道管理员禁本渠道用户的 Key（无密文回显）。
+func (s *Service) DisableChannelAPIKey(ctx context.Context, channelOrgID, keyID string) (*APIKeyView, error) {
+	channelOrgID = strings.TrimSpace(channelOrgID)
+	keyID = strings.TrimSpace(keyID)
+	if channelOrgID == "" || keyID == "" {
+		return nil, ErrChannelRequired
+	}
+	var row apiKeyRow
+	err := s.db.WithContext(ctx).Table("identity_api_keys AS k").
+		Select("k.*").
+		Joins("JOIN identity_users AS u ON u.id = k.user_id").
+		Where("k.id = ? AND u.channel_org_id = ?", keyID, channelOrgID).
+		First(&row).Error
+	if err != nil {
+		return nil, ErrAPIKeyNotInChannel
+	}
+	if err := s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Update("status", "disabled").Error; err != nil {
+		return nil, err
+	}
+	view := viewFromRow(row, "")
+	view.Status = "disabled"
+	view = s.withAllowlist(ctx, view)
+	return &view, nil
 }
 
 type APIKeyPrincipal struct {

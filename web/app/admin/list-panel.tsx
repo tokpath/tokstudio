@@ -4,11 +4,9 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { useTranslations } from "next-intl";
-import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 
 type ListResponse<T> = { items?: T[]; error?: { message?: string } };
@@ -51,23 +49,6 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         <div className="flex flex-wrap items-center gap-2">
           {actions}
           <Input placeholder={tc("filter")} value={q} onChange={(e) => setQ(e.target.value)} />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              const sep = href.includes("?") ? "&" : "?";
-              const response = await fetch(`${apiBase}${href}${sep}format=csv&limit=100`, { credentials: "include" });
-              const blob = await response.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "export.csv";
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            {tc("exportCsv")}
-          </Button>
         </div>
       </div>
       {query.isError || query.data?.error ? (

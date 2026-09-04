@@ -92,6 +92,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
+                  data-selected={rowSelected?.(row.original) ? "true" : undefined}
                   className={cn(
                     "group border-b border-hairline hover:bg-brand-soft/40",
                     rowHref || onRowSelect ? "cursor-pointer" : "",

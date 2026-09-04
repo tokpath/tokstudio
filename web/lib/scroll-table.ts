@@ -23,7 +23,7 @@ export function stickyColumnClass(
     return cn(
       pad,
       header,
-      "sticky left-0 z-[1] whitespace-nowrap bg-canvas-raised shadow-[4px_0_8px_-4px_rgba(20,20,20,0.12)] group-hover:bg-brand-soft/40",
+      "sticky left-0 z-[1] whitespace-nowrap bg-canvas-raised shadow-[4px_0_8px_-4px_rgba(20,20,20,0.12)] group-hover:bg-brand-soft/40 group-data-[selected=true]:bg-brand-soft",
       opts?.header && "z-[2]",
     );
   }
@@ -31,7 +31,7 @@ export function stickyColumnClass(
     return cn(
       pad,
       header,
-      "sticky right-0 z-[1] whitespace-nowrap bg-canvas-raised shadow-[-4px_0_8px_-4px_rgba(20,20,20,0.12)] group-hover:bg-brand-soft/40",
+      "sticky right-0 z-[1] whitespace-nowrap bg-canvas-raised shadow-[-4px_0_8px_-4px_rgba(20,20,20,0.12)] group-hover:bg-brand-soft/40 group-data-[selected=true]:bg-brand-soft",
       opts?.header && "z-[2]",
     );
   }

@@ -10,15 +10,12 @@ import { Button } from "@/components/ui/button";
 import { IfCan } from "@/components/rbac/if-can";
 import {
   adapterLabel,
-  formatCredentialRef,
-  formatMappedModels,
   healthLabel,
   healthTone,
   providerHref,
   providerKindLabel,
   providerStatusLabel,
   catalogStatusTone,
-  type MappedPublicModel,
 } from "@/lib/catalog-admin";
 
 type Provider = {
@@ -29,8 +26,7 @@ type Provider = {
   adapter: string;
   health: string;
   status: string;
-  credential_ref?: string;
-  models?: MappedPublicModel[];
+  account_count?: number;
 };
 
 export default function AdminProvidersPage() {
@@ -40,8 +36,7 @@ export default function AdminProvidersPage() {
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <p className="text-sm text-ink-secondary">
-          提供商是 TokenHub 真正去调用的上游，例如 OpenAI、Anthropic、火山方舟。客户看到的是公开模型名（如 openai/gpt-5.6），一家提供商可以同时挂多个公开模型。
-          点一行进入编辑页，在那里改状态、轮换上游 Key、管理账号池。列表每行可探测；探测走上游沙箱、不会计费，也不要二次确认。提供商只由平台接入，租户不能自带上游 Key。
+          提供商是 TokenHub 真正去调用的上游，例如 OpenAI、Anthropic、火山方舟。列表看健康、状态和账号池数量。凭据、已挂模型和同步在详情页。探测走上游沙箱、不会计费。提供商只由平台接入，租户不能自带上游 Key。
         </p>
       </section>
       <AdminListPanel<Provider>
@@ -87,16 +82,9 @@ export default function AdminProvidersPage() {
             ),
           },
           {
-            accessorKey: "credential_ref",
-            header: "凭据",
-            cell: ({ row }) => formatCredentialRef(row.original.credential_ref),
-          },
-          {
-            id: "models",
-            header: "已挂模型",
-            cell: ({ row }) => (
-              <span className="font-mono text-[13px] text-ink-secondary">{formatMappedModels(row.original.models)}</span>
-            ),
+            accessorKey: "account_count",
+            header: "账号池",
+            cell: ({ row }) => row.original.account_count ?? 0,
           },
           {
             id: "probe",

@@ -62,7 +62,6 @@ const ADMIN_PAGE_VIEW: Record<string, readonly string[]> = {
   "/admin/providers": [P, O, T, A],
   "/admin/models": [P, O, T, A],
   "/admin/routes": [P, O, T, A],
-  "/admin/keys": [P, O, T, A],
   "/admin/plans": [P, O, A],
   "/admin/prices": [P, F, O, A],
   "/admin/payments": [P, F, O, A],

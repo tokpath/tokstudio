@@ -154,6 +154,7 @@
     "ledger": "Ledger",
     "overview": "Overview",
     "users": "Channel users",
+    "keys": "Channel API keys",
     "models": "Channel models",
     "plans": "Plans",
     "payments": "Payments",
@@ -710,6 +711,11 @@
       "eyebrow": "USERS",
       "title": "Channel users",
       "description": "Emails may be masked. Attribution is locked at signup."
+    },
+    "channelKeys": {
+      "eyebrow": "API KEYS",
+      "title": "Channel API keys",
+      "description": "Summaries for this channel's user keys. Disable only — no create, no full secret."
     },
     "channelModels": {
       "eyebrow": "MODELS",
@@ -1508,7 +1514,6 @@
     "actDone": "Request detail refreshed",
     "actEmpty": "No data yet",
     "colModel": "Model",
-    "colStatus": "Status",
     "colReq": "Request ID",
     "colAmount": "Amount",
     "ledHint": "Sign in to see ledger rows.",
@@ -1614,6 +1619,20 @@
     "colLeft": "Left",
     "emptyIssued": "No issue records",
     "emptyIssuedDetail": "Refresh to see quota issued when downline users top up.",
-    "commCount": "{comm} commission rows, {issued} issues"
+    "commCount": "{comm} commission rows, {issued} issues",
+    "keysTitle": "Channel API keys",
+    "keysLead": "Keys for users in this channel. No secrets, no create, no limit edits.",
+    "keysHint": "Channel admins can disable keys in this channel; the gateway returns 403 right away.",
+    "keysCount": "{n} keys in this channel",
+    "refreshKeys": "Refresh keys",
+    "colKeyName": "Name",
+    "colPrefix": "Prefix",
+    "colLastUsed": "Last used",
+    "emptyKeys": "No API keys in this channel",
+    "emptyKeysDetail": "Sign in as channel admin and refresh. No other channels.",
+    "disableKey": "Disable",
+    "confirmDisableKey": "Disable this key?",
+    "confirmDisableKeyD": "The gateway will return 403 immediately. Do not disable the main e2e key.",
+    "disabledKey": "Disabled {id} → {status}"
   }
 }

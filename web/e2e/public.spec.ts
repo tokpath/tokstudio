@@ -106,6 +106,7 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   const channelNav = page.getByRole("navigation", { name: "渠道控制台" });
   await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "本渠道用户" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "本渠道 API Key" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
   await channelNav.getByRole("link", { name: "收款" }).click();
   await expect(page).toHaveURL(/\/channel\/payments/);
@@ -115,6 +116,9 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await channelNav.getByRole("link", { name: "本渠道用户" }).click();
   await expect(page).toHaveURL(/\/channel\/users/);
   await expect(page.locator("h1")).toHaveText("本渠道用户");
+  await page.goto("/channel/keys");
+  await expect(page.locator("h1")).toHaveText("本渠道 API Key");
+  await expect(page.getByText("暂无本渠道 API Key")).toBeVisible();
 
   await page.goto("/partner");
   const partnerNav = page.getByRole("navigation", { name: "分销控制台" });

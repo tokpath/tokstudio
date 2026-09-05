@@ -135,7 +135,7 @@
     "catalog": "模型广场",
     "wallet": "余额/充值",
     "plans": "套餐",
-    "usage": "用量/账单",
+    "usage": "用量汇总",
     "activity": "请求明细",
     "media": "媒体任务",
     "referral": "推荐计划",
@@ -358,7 +358,7 @@
   "overview": {
     "eyebrow": "用户控制台",
     "title": "我的账户",
-    "lead": "欢迎回来。这里只展示你自己的余额、套餐、API Key、用量、账单和个人设置。渠道归属在注册时已经写死，页面上不会提供“切换渠道”入口。",
+    "lead": "总览只看你自己的余额、Key 和最近回单，办事请走快捷入口。渠道归属在注册时写死，这里没有「切换渠道」。",
     "available": "可用余额",
     "availableHint": "现金钱包可调用额度",
     "reserved": "预授权占用",
@@ -369,9 +369,20 @@
     "receiptHint": "最近一次 attempt 可解释",
     "createKey": "创建 API Key",
     "topup": "充值余额",
-    "footnote": "预授权占用会先锁住额度，结算后才从现金钱包扣。这里不放促销墙。",
+    "footnote": "预授权占用会先锁住额度，结算后才从现金钱包扣。这里不放促销墙，也不堆业务面板。",
     "region": "总览",
-    "hasReceipt": "有回单"
+    "hasReceipt": "有回单",
+    "shortcutsTitle": "快捷入口",
+    "shortcutsLead": "去对应页面办事，总览不嵌完整表单或明细表。",
+    "shortcutsRegion": "快捷入口",
+    "shortcutWallet": "余额 / 充值",
+    "shortcutKeys": "API Key",
+    "shortcutPlayground": "快速试用",
+    "shortcutUsage": "用量汇总",
+    "shortcutActivity": "请求明细",
+    "shortcutMedia": "媒体任务",
+    "shortcutCatalog": "模型广场",
+    "shortcutDocs": "接入文档"
   },
   "compareUi": {
     "left": "左侧",
@@ -649,13 +660,13 @@
     },
     "usage": {
       "eyebrow": "USAGE",
-      "title": "用量与账单",
-      "description": "按账本汇总，不含 prompt 原文。"
+      "title": "用量汇总",
+      "description": "趋势与按 Key 汇总。逐条回单在「请求明细」。不含 prompt 原文。"
     },
     "activity": {
       "eyebrow": "ACTIVITY",
       "title": "请求明细",
-      "description": "路由回单表。每次 attempt 可解释。"
+      "description": "路由回单宽表（钉首末列）。每次 attempt 可解释。"
     },
     "media": {
       "eyebrow": "MEDIA",
@@ -1393,12 +1404,13 @@
     "expireConfirmTitle": "确认过期",
     "expireConfirm": "过期后网关立刻返回 403。",
     "copyMissing": "没有可复制的密钥",
-    "usageTitle": "用量与账单",
-    "usageLead": "只展示当前登录用户的 usage 和账本，不含其他渠道数据。",
-    "usageHint": "登录后可查看自己的用量和账单流水。",
+    "usageTitle": "用量汇总",
+    "usageLead": "看趋势和按 Key 汇总。逐条路由回单请去「请求明细」。",
+    "usageHint": "登录后可查看自己的用量汇总。",
     "usageRefresh": "刷新账单",
-    "usageDone": "用量与账单已刷新",
+    "usageDone": "用量汇总已刷新",
     "usageCount": "usage {usage} 条，流水 {ledger} 条。{message}",
+    "usageToActivity": "查看请求明细",
     "filterApiKey": "按 API Key 筛选",
     "filterModel": "按模型筛选",
     "allApiKeys": "全部 API Key",

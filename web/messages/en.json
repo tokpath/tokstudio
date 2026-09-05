@@ -135,7 +135,7 @@
     "catalog": "Catalog",
     "wallet": "Wallet",
     "plans": "Plans",
-    "usage": "Usage",
+    "usage": "Usage summary",
     "activity": "Activity",
     "media": "Media",
     "referral": "Referral",
@@ -358,7 +358,7 @@
   "overview": {
     "eyebrow": "User console",
     "title": "My account",
-    "lead": "Your balance, plans, API keys, usage, bills, and settings. Channel binding is locked at registration — there is no switcher.",
+    "lead": "Overview shows your balance, keys, and latest receipt. Use shortcuts for work. Channel binding is locked at signup — no switcher.",
     "available": "Available",
     "availableHint": "Cash wallet you can spend",
     "reserved": "Authorization hold",
@@ -369,9 +369,20 @@
     "receiptHint": "Last attempt is explainable",
     "createKey": "Create API Key",
     "topup": "Add balance",
-    "footnote": "Holds lock quota first; settlement then debits cash. No promo wall here.",
+    "footnote": "Holds lock quota first; settlement then debits cash. No promo wall or stacked panels here.",
     "region": "Overview",
-    "hasReceipt": "Has receipt"
+    "hasReceipt": "Has receipt",
+    "shortcutsTitle": "Shortcuts",
+    "shortcutsLead": "Open the right page to act — overview does not embed full forms or ledgers.",
+    "shortcutsRegion": "Shortcuts",
+    "shortcutWallet": "Balance / top-up",
+    "shortcutKeys": "API Keys",
+    "shortcutPlayground": "Playground",
+    "shortcutUsage": "Usage summary",
+    "shortcutActivity": "Request activity",
+    "shortcutMedia": "Media jobs",
+    "shortcutCatalog": "Model catalog",
+    "shortcutDocs": "Integration docs"
   },
   "compareUi": {
     "left": "Left",
@@ -649,13 +660,13 @@
     },
     "usage": {
       "eyebrow": "USAGE",
-      "title": "Usage & bills",
-      "description": "Ledger totals. No prompt bodies."
+      "title": "Usage summary",
+      "description": "Trends and per-key totals. Per-request receipts live under Activity. No prompt bodies."
     },
     "activity": {
       "eyebrow": "ACTIVITY",
       "title": "Activity",
-      "description": "Routing receipts. Each attempt is explainable."
+      "description": "Wide routing-receipt table (pinned ends). Each attempt is explainable."
     },
     "media": {
       "eyebrow": "MEDIA",
@@ -1393,12 +1404,13 @@
     "expireConfirmTitle": "Confirm expire",
     "expireConfirm": "The gateway will return 403 after expire.",
     "copyMissing": "No secret to copy",
-    "usageTitle": "Usage & billing",
-    "usageLead": "Only this signed-in user's usage and ledger. No other channel data.",
-    "usageHint": "Sign in to see your usage and ledger.",
+    "usageTitle": "Usage summary",
+    "usageLead": "Trends and per-key totals. Open Activity for per-request receipts.",
+    "usageHint": "Sign in to see your usage summary.",
     "usageRefresh": "Refresh billing",
-    "usageDone": "Usage and billing refreshed",
+    "usageDone": "Usage summary refreshed",
     "usageCount": "{usage} usage rows, {ledger} ledger rows. {message}",
+    "usageToActivity": "Open activity",
     "filterApiKey": "Filter by API key",
     "filterModel": "Filter by model",
     "allApiKeys": "All API keys",

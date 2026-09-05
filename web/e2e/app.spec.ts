@@ -13,9 +13,25 @@ test("public storefront shows models plans and topup", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
 });
 
-test("user console shows API Key panel", async ({ page }) => {
+test("user overview is personal stats and shortcuts only", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByRole("link", { name: "用户控制台" })).toBeVisible();
+  const overview = page.getByLabel("总览");
+  await expect(overview.getByText("可用余额")).toBeVisible();
+  await expect(overview.getByText("预授权占用")).toBeVisible();
+  await expect(overview.getByText("API Key")).toBeVisible();
+  await expect(overview.getByText("路由回单")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "快捷入口" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "创建 API Key" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "充值余额" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "用量汇总" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "媒体任务" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "个人设置" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "接入示例" })).toHaveCount(0);
+});
+
+test("user keys page keeps create dialog", async ({ page }) => {
+  await page.goto("/app/keys");
   await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建 API Key" })).toBeVisible();
   await page.getByRole("button", { name: "创建 API Key" }).click();
@@ -24,22 +40,30 @@ test("user console shows API Key panel", async ({ page }) => {
   await expect(page.getByLabel("模型白名单")).toBeVisible();
   await expect(page.getByLabel("并发限额")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
-  await expect(page.getByRole("heading", { name: "用量与账单" })).toBeVisible();
+});
+
+test("user usage page is summary and links to activity", async ({ page }) => {
+  await page.goto("/app/usage");
+  await expect(page.getByRole("heading", { name: "用量汇总" }).first()).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
   await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
   await expect(page.getByTestId("usage-trend-chart")).toBeVisible();
   await expect(page.getByRole("heading", { name: "密钥汇总" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "查看请求明细" })).toBeVisible();
+  await page.getByRole("link", { name: "查看请求明细" }).click();
+  await expect(page).toHaveURL(/\/app\/activity/);
+  await expect(page.getByRole("heading", { name: "请求明细" })).toBeVisible();
+});
+
+test("user media page stays on its own route", async ({ page }) => {
+  await page.goto("/app/media");
   await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
-  await expect(page.getByLabel("生成模式")).toBeVisible();
+  await expect(page.getByLabel("媒体类型")).toBeVisible();
   await expect(page.getByLabel("时长")).toBeVisible();
   await expect(page.getByLabel("分辨率")).toBeVisible();
   await expect(page.getByLabel("宽高比")).toBeVisible();
   await expect(page.getByLabel("帧率")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "个人设置" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "接入示例" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建视频任务" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存资料" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "复制 curl" })).toBeVisible();
 });
 
 test("partner console shows scoped downline cards", async ({ page }) => {

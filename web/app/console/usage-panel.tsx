@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -12,10 +13,8 @@ import {
   bucketsToMetricPoints,
   dimToKeyBuckets,
   filterUsage,
-  formatUsageTime,
   keyLabel,
   summarizeUsage,
-  usageTokens,
 } from "@/lib/usage";
 
 type LedgerRow = {
@@ -26,6 +25,7 @@ type LedgerRow = {
 
 const selectClass = "h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
 
+/** 用量汇总：指标 + 图表 + 按 Key 汇总。逐条回单在 /app/activity（docs/14）。 */
 export default function UsagePanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -67,7 +67,6 @@ export default function UsagePanel() {
 
   useEffect(() => {
     void refresh();
-    // 进入页面拉一次；筛选变化走 onChange。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -78,8 +77,15 @@ export default function UsagePanel() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
-      <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
+          <p className="mt-2 text-sm text-ink-secondary">{t("usageLead")}</p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/app/activity">{t("usageToActivity")}</Link>
+        </Button>
+      </div>
       <div className="mb-5 flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-ink-mute">{t("filterApiKey")}</span>
@@ -172,45 +178,6 @@ export default function UsagePanel() {
                   <td className="px-4 py-3 font-mono tabular-nums">{row.amount}</td>
                 </tr>
               ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div className="overflow-x-auto rounded-card border border-hairline">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-canvas text-ink-mute">
-            <tr>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colTime")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colModel")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colStatus")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td className="px-4 py-3.5 text-ink-secondary" colSpan={7}>
-                  {t("usageEmptyDetail")}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((row) => {
-                const tokens = usageTokens(row);
-                return (
-                  <tr key={row.id} className="border-t border-hairline">
-                    <td className="px-4 py-3 text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.prompt}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{tokens.completion}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
-                    <td className="px-4 py-3">{row.state || "—"}</td>
-                  </tr>
-                );
-              })
             )}
           </tbody>
         </table>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/feature-card";
+import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
+import { type UsageEvent, summarizeUsage } from "@/lib/usage";
 import { useTranslations } from "next-intl";
 
 type Balance = {
@@ -30,12 +32,15 @@ function money(value?: string) {
   return `$${n.toFixed(2)}`;
 }
 
-/** 总览英雄：个人维度统计 + 主操作 + 快捷入口（docs/14）。 */
+/** 总览英雄：个人状态 + 周期用量趋势 + 快捷入口（docs/14，对齐 tokpath dashboard）。 */
 export function OverviewHero() {
   const t = useTranslations("overview");
+  const tChart = useTranslations("charts");
   const [balance, setBalance] = useState<Balance | null>(null);
   const [keyCount, setKeyCount] = useState<number | null>(null);
   const [lastReceipt, setLastReceipt] = useState("—");
+  const [events, setEvents] = useState<UsageEvent[]>([]);
+  const [usageReady, setUsageReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +48,7 @@ export function OverviewHero() {
       const [balRes, keyRes, usageRes] = await Promise.all([
         fetch(`${apiBase}/v1/me/balance`, { credentials: "include" }),
         fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" }),
-        fetch(`${apiBase}/v1/me/usage`, { credentials: "include" }),
+        fetch(`${apiBase}/v1/me/usage?limit=100`, { credentials: "include" }),
       ]);
       if (cancelled) return;
       if (balRes.ok) {
@@ -56,7 +61,8 @@ export function OverviewHero() {
       }
       if (usageRes.ok) {
         const body = await usageRes.json();
-        const items = Array.isArray(body.items) ? body.items : [];
+        const items = (Array.isArray(body.items) ? body.items : []) as UsageEvent[];
+        setEvents(items);
         const last = items[0] as { public_model_id?: string; state?: string; request_id?: string } | undefined;
         if (last) {
           setLastReceipt(
@@ -64,6 +70,7 @@ export function OverviewHero() {
           );
         }
       }
+      setUsageReady(true);
     }
     void load();
     return () => {
@@ -71,11 +78,20 @@ export function OverviewHero() {
     };
   }, [t]);
 
+  const summary = useMemo(() => summarizeUsage(events), [events]);
+  const tokens = summary.prompt + summary.completion + summary.reasoning;
+
   const cards = [
     { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet", icon: Wallet, compact: false },
     { t: t("reserved"), d: t("reservedHint"), v: money(balance?.reserved), href: "/app/wallet", icon: Lock, compact: false },
     { t: t("keys"), d: t("keysHint"), v: keyCount == null ? "—" : String(keyCount), href: "/app/keys", icon: KeyRound, compact: false },
     { t: t("receipt"), d: t("receiptHint"), v: lastReceipt, href: "/app/activity", icon: Receipt, compact: true },
+  ];
+
+  const periodCards = [
+    { k: t("periodRequests"), v: usageReady ? String(summary.requests) : "—" },
+    { k: t("periodTokens"), v: usageReady ? String(tokens) : "—" },
+    { k: t("periodSpend"), v: usageReady ? String(summary.amount) : "—" },
   ];
 
   const shortcuts = [
@@ -118,6 +134,27 @@ export function OverviewHero() {
             compact={card.compact}
           />
         ))}
+      </section>
+
+      <section aria-label={t("trendsRegion")} className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight text-ink">{t("trendsTitle")}</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-mute">{t("trendsLead")}</p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/app/usage">{t("trendsToUsage")}</Link>
+          </Button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {periodCards.map((card) => (
+            <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">
+              <p className="th-eyebrow text-ink-mute">{card.k}</p>
+              <p className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
+            </div>
+          ))}
+        </div>
+        <UsageCharts events={events} breakdownTitle={tChart("byModel")} testIdPrefix="overview" />
       </section>
 
       <section aria-label={t("shortcutsRegion")} className="flex flex-col gap-3">

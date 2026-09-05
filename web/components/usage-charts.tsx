@@ -7,15 +7,18 @@ import { EChart } from "@/components/echart";
 import { chartPalette, dailyChartOption, requestChartOption, type MetricPoint } from "@/lib/charts";
 import { type UsageEvent, groupUsageByDay, groupUsageByModel } from "@/lib/usage";
 
-/** 用量页两张图：按日趋势 + 按 Key/模型分布。表格仍保留作对账。 */
+/** 用量两张图：按日趋势 + 按 Key/模型分布。总览与用量页复用；表格对账留在用量页。 */
 export function UsageCharts({
   events,
   breakdown,
   breakdownTitle,
+  testIdPrefix = "usage",
 }: {
   events: UsageEvent[];
   breakdown?: MetricPoint[];
   breakdownTitle: string;
+  /** 总览用 overview，用量页默认 usage，避免同一 DOM 里 testId 撞车。 */
+  testIdPrefix?: string;
 }) {
   const t = useTranslations("charts");
   const { resolvedTheme } = useTheme();
@@ -41,7 +44,7 @@ export function UsageCharts({
           option={trendOption}
           emptyTitle={t("empty")}
           emptyDetail={t("emptyDetail")}
-          testId="usage-trend-chart"
+          testId={`${testIdPrefix}-trend-chart`}
         />
       </div>
       <div className="rounded-card border border-hairline bg-canvas p-4">
@@ -50,7 +53,7 @@ export function UsageCharts({
           option={barOption}
           emptyTitle={t("empty")}
           emptyDetail={t("emptyDetail")}
-          testId="usage-breakdown-chart"
+          testId={`${testIdPrefix}-breakdown-chart`}
         />
       </div>
     </div>

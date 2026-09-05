@@ -5,12 +5,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
-import { ActionRow } from "@/components/console/action-row";
+import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 
@@ -41,6 +49,25 @@ const schema = z.object({
   source_job_id: z.string(),
 });
 
+type FormValues = z.infer<typeof schema>;
+
+const defaultValues: FormValues = {
+  prompt: "a river at dusk",
+  kind: "video",
+  task_type: "t2v",
+  duration: 5,
+  resolution: "720p",
+  aspect_ratio: "16:9",
+  fps: 24,
+  generate_audio: false,
+  first_frame: "",
+  last_frame: "",
+  images: "",
+  reference_video: "",
+  reference_audio: "",
+  source_job_id: "",
+};
+
 function splitRefs(raw: string) {
   return raw
     .split(/[\n,]/)
@@ -58,6 +85,7 @@ function jobStatusTone(status: string): "success" | "warn" | "neutral" {
   return "neutral";
 }
 
+/** 媒体任务：默认先看列表；空态引导创建；顶栏筛选 / 刷新 / 新建（表单进 Dialog，对齐 Keys）。 */
 export default function MediaPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -65,25 +93,11 @@ export default function MediaPanel() {
   const [items, setItems] = useState<Job[]>([]);
   const [kind, setKind] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [message, setMessage] = useState(t("mediaHint"));
-  const form = useForm<z.infer<typeof schema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      prompt: "a river at dusk",
-      kind: "video",
-      task_type: "t2v",
-      duration: 5,
-      resolution: "720p",
-      aspect_ratio: "16:9",
-      fps: 24,
-      generate_audio: false,
-      first_frame: "",
-      last_frame: "",
-      images: "",
-      reference_video: "",
-      reference_audio: "",
-      source_job_id: "",
-    },
+    defaultValues,
   });
   const currentKind = form.watch("kind");
   const videoModes = useMemo(
@@ -126,7 +140,14 @@ export default function MediaPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
 
-  async function createJob(values: z.infer<typeof schema>) {
+  function handleCreateOpenChange(open: boolean) {
+    setCreateOpen(open);
+    if (!open) {
+      form.reset(defaultValues);
+    }
+  }
+
+  async function createJob(values: FormValues) {
     const images = splitRefs(values.images);
     const payload: Record<string, unknown> = {
       prompt: values.prompt,
@@ -161,105 +182,46 @@ export default function MediaPanel() {
       return;
     }
     setMessage(t("createdJob", { id: body.id || "", type: body.task_type || values.task_type }));
+    handleCreateOpenChange(false);
     await refresh();
   }
 
   return (
     <Card>
-      <p className="mb-4 text-sm text-ink-secondary">{t("mediaLead")}</p>
-      <Form {...form}>
-        <form className="mb-4 space-y-3" onSubmit={form.handleSubmit(createJob)}>
-          <TextField control={form.control} name="prompt" label="prompt" placeholder="prompt" showLabel={false} />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <FormField
-              control={form.control}
-              name="kind"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("kind")}</FormLabel>
-                  <FormControl>
-                    <select
-                      className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
-                      {...field}
-                      onChange={(event) => {
-                        field.onChange(event);
-                        form.setValue("task_type", event.target.value === "image" ? "generate" : "t2v");
-                      }}
-                    >
-                      <option value="video">{tCat("video")}</option>
-                      <option value="image">{tCat("image")}</option>
-                    </select>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="task_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("mode")}</FormLabel>
-                  <FormControl>
-                    <select className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm" aria-label={t("mode")} {...field}>
-                      {modes.map((mode) => (
-                        <option key={mode.value} value={mode.value}>
-                          {mode.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <TextField control={form.control} name="duration" label={t("duration")} type="number" />
-            <TextField control={form.control} name="resolution" label={t("resolution")} />
-            <TextField control={form.control} name="aspect_ratio" label={t("aspect")} />
-            <TextField control={form.control} name="fps" label={t("fps")} type="number" />
-            <TextField control={form.control} name="first_frame" label={t("firstFrame")} />
-            <TextField control={form.control} name="last_frame" label={t("lastFrame")} />
-            <TextField control={form.control} name="images" label={t("images")} placeholder={t("imagesPh")} />
-            <TextField control={form.control} name="reference_video" label={t("refVideo")} />
-            <TextField control={form.control} name="reference_audio" label={t("refAudio")} />
-            <TextField control={form.control} name="source_job_id" label={t("sourceJob")} />
-            <FormField
-              control={form.control}
-              name="generate_audio"
-              render={({ field }) => (
-                <FormItem className="flex items-end gap-2 pb-2">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-brand"
-                      aria-label={t("nativeAudio")}
-                      checked={field.value}
-                      onChange={(event) => field.onChange(event.target.checked)}
-                    />
-                  </FormControl>
-                  <FormLabel className="!mt-0">{t("nativeAudio")}</FormLabel>
-                </FormItem>
-              )}
-            />
-          </div>
-          <Button type="submit">{t("createVideo")}</Button>
-        </form>
-      </Form>
-      <ActionRow className="mb-4 gap-3">
-        <select
-          className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-          aria-label={t("mediaFilterKind")}
-        >
-          <option value="">{tc("all")}</option>
-          <option value="video">{tCat("video")}</option>
-          <option value="image">{tCat("image")}</option>
-        </select>
-        <Button variant="outline" onClick={() => void refresh()}>
-          {t("refreshJobs")}
-        </Button>
-      </ActionRow>
+      <LeadActions
+        lead={<p className="text-sm text-ink-secondary">{t("mediaLead")}</p>}
+        actions={
+          <>
+            <select
+              className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+              aria-label={t("mediaFilterKind")}
+            >
+              <option value="">{tc("all")}</option>
+              <option value="video">{tCat("video")}</option>
+              <option value="image">{tCat("image")}</option>
+            </select>
+            <Button type="button" variant="outline" onClick={() => void refresh()}>
+              {t("refreshJobs")}
+            </Button>
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              {t("createJob")}
+            </Button>
+          </>
+        }
+      />
+
       {loaded && items.length === 0 ? (
-        <EmptyLedger title={t("mediaEmpty")} detail={t("mediaEmptyDetail")} />
+        <EmptyLedger
+          title={t("mediaEmpty")}
+          detail={t("mediaEmptyDetail")}
+          action={
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              {t("createJob")}
+            </Button>
+          }
+        />
       ) : (
         <ul className="space-y-2">
           {items.map((item) => (
@@ -279,6 +241,102 @@ export default function MediaPanel() {
         </ul>
       )}
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("createJob")}</DialogTitle>
+            <DialogDescription>{t("createJobLead")}</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form className="grid gap-3" onSubmit={form.handleSubmit(createJob)}>
+              <TextField control={form.control} name="prompt" label="prompt" placeholder="prompt" showLabel={false} />
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="kind"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("kind")}</FormLabel>
+                      <FormControl>
+                        <select
+                          className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
+                          {...field}
+                          onChange={(event) => {
+                            field.onChange(event);
+                            form.setValue("task_type", event.target.value === "image" ? "generate" : "t2v");
+                          }}
+                        >
+                          <option value="video">{tCat("video")}</option>
+                          <option value="image">{tCat("image")}</option>
+                        </select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="task_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("mode")}</FormLabel>
+                      <FormControl>
+                        <select
+                          className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
+                          aria-label={t("mode")}
+                          {...field}
+                        >
+                          {modes.map((mode) => (
+                            <option key={mode.value} value={mode.value}>
+                              {mode.label}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <TextField control={form.control} name="duration" label={t("duration")} type="number" />
+                <TextField control={form.control} name="resolution" label={t("resolution")} />
+                <TextField control={form.control} name="aspect_ratio" label={t("aspect")} />
+                <TextField control={form.control} name="fps" label={t("fps")} type="number" />
+                <TextField control={form.control} name="first_frame" label={t("firstFrame")} />
+                <TextField control={form.control} name="last_frame" label={t("lastFrame")} />
+                <TextField control={form.control} name="images" label={t("images")} placeholder={t("imagesPh")} />
+                <TextField control={form.control} name="reference_video" label={t("refVideo")} />
+                <TextField control={form.control} name="reference_audio" label={t("refAudio")} />
+                <TextField control={form.control} name="source_job_id" label={t("sourceJob")} />
+                <FormField
+                  control={form.control}
+                  name="generate_audio"
+                  render={({ field }) => (
+                    <FormItem className="flex items-end gap-2 pb-2">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-brand"
+                          aria-label={t("nativeAudio")}
+                          checked={field.value}
+                          onChange={(event) => field.onChange(event.target.checked)}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">{t("nativeAudio")}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
+                <ActionRow className="gap-2">
+                  <Button type="button" variant="outline" onClick={() => handleCreateOpenChange(false)}>
+                    {tc("cancel")}
+                  </Button>
+                  <Button type="submit">{t("createJob")}</Button>
+                </ActionRow>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

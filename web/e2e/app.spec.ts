@@ -15,7 +15,8 @@ test("public storefront shows models plans and topup", async ({ page }) => {
 
 test("user overview is personal stats trends and shortcuts", async ({ page }) => {
   await page.goto("/app");
-  await expect(page.getByRole("link", { name: "用户控制台" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "用户控制台" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "我的账户" })).toBeVisible();
   const overview = page.getByLabel("总览");
   await expect(overview.getByText("可用余额")).toBeVisible();
   await expect(overview.getByText("预授权占用")).toBeVisible();
@@ -35,7 +36,7 @@ test("user overview is personal stats trends and shortcuts", async ({ page }) =>
 
 test("user keys page keeps create dialog", async ({ page }) => {
   await page.goto("/app/keys");
-  await expect(page.getByRole("heading", { name: "API Key" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "API Key" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建 API Key" })).toBeVisible();
   await page.getByRole("button", { name: "创建 API Key" }).click();
   await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
@@ -60,7 +61,7 @@ test("user usage page is summary and links to activity", async ({ page }) => {
 
 test("user media page stays on its own route", async ({ page }) => {
   await page.goto("/app/media");
-  await expect(page.getByRole("heading", { name: "媒体任务" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "媒体任务" })).toBeVisible();
   await expect(page.getByLabel("媒体类型")).toBeVisible();
   await expect(page.getByLabel("时长")).toBeVisible();
   await expect(page.getByLabel("分辨率")).toBeVisible();

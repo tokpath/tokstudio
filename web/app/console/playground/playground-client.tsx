@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ActionRow } from "@/components/console/action-row";
 import { Button } from "@/components/ui/button";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
@@ -86,7 +87,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
             placeholder={t("pgPh")}
           />
         </label>
-        <div className="flex flex-wrap gap-2">
+        <ActionRow>
           <Button type="button" disabled={busy} onClick={() => void send()}>
             {t("pgSend")}
           </Button>
@@ -102,7 +103,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
           >
             {t("pgClear")}
           </Button>
-        </div>
+        </ActionRow>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-5">

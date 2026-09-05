@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
+import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +127,7 @@ export function KeysList({
                 <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
                   {maskAPIKey(item.prefix, item.key, isRevealed)}
                 </code>
-                <div className="flex flex-wrap gap-2">
+                <ActionRow>
                   {onCopy ? (
                     <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
                       {tc("copy")}
@@ -137,7 +138,7 @@ export function KeysList({
                       {isRevealed ? t("hide") : t("reveal")}
                     </Button>
                   ) : null}
-                </div>
+                </ActionRow>
               </div>
             );
           },
@@ -175,7 +176,7 @@ export function KeysList({
           id: "actions",
           header: t("colActions"),
           cell: (item) => (
-            <div className="flex flex-wrap gap-2">
+            <ActionRow>
               {onRotate ? (
                 <ConfirmButton
                   size="sm"
@@ -209,7 +210,7 @@ export function KeysList({
                   {t("expire")}
                 </ConfirmButton>
               ) : null}
-            </div>
+            </ActionRow>
           ),
         },
       ]}
@@ -367,17 +368,19 @@ export default function KeysPanel() {
 
   return (
     <Card>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="text-sm text-ink-secondary">{t("keysLead")}</p>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => void refresh()}>
-            {tc("refresh")}
-          </Button>
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            {t("createKey")}
-          </Button>
-        </div>
-      </div>
+      <LeadActions
+        lead={<p className="text-sm text-ink-secondary">{t("keysLead")}</p>}
+        actions={
+          <>
+            <Button type="button" variant="outline" onClick={() => void refresh()}>
+              {tc("refresh")}
+            </Button>
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              {t("createKey")}
+            </Button>
+          </>
+        }
+      />
       <KeysList
         items={items}
         revealedIds={revealedIds}

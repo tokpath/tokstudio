@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
+import { ActionRow } from "@/components/console/action-row";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -123,13 +125,15 @@ export default function SettingsPanel() {
               <option value="ja">{chrome("localeJa")}</option>
             </select>
           </label>
-          <Button type="button" variant="outline" onClick={() => void refresh()}>
-            {t("refreshProfile")}
-          </Button>
-          <Button type="submit">{t("saveProfile")}</Button>
-          <Button type="button" variant="outline" onClick={() => setPassOpen(true)}>
-            {t("changePass")}
-          </Button>
+          <ActionRow className="gap-3">
+            <Button type="button" variant="outline" onClick={() => void refresh()}>
+              {t("refreshProfile")}
+            </Button>
+            <Button type="submit">{t("saveProfile")}</Button>
+            <Button type="button" variant="outline" onClick={() => setPassOpen(true)}>
+              {t("changePass")}
+            </Button>
+          </ActionRow>
         </form>
       </Form>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>

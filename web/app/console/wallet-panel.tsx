@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ActionRow } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 
@@ -140,14 +141,14 @@ export default function WalletPanel() {
           <EmptyLedger title={t("payOfflineTitle")} detail={help || t("payOfflineDetail")} />
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap gap-2">
+            <ActionRow className="mb-4">
               {chips.map((n) => (
                 <Button key={n} type="button" size="sm" variant={amount === n ? "default" : "outline"} onClick={() => setAmount(n)}>
                   {n}
                 </Button>
               ))}
-            </div>
-            <div className="mb-4 flex flex-wrap gap-2">
+            </ActionRow>
+            <ActionRow className="mb-4">
               {methods.map((method) => (
                 <Button
                   key={method.adapter}
@@ -160,7 +161,7 @@ export default function WalletPanel() {
                   {method.sandbox ? " · SANDBOX" : ""}
                 </Button>
               ))}
-            </div>
+            </ActionRow>
             {selected && !selected.auto_renew_supported ? (
               <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payNoAutoRenew")}</p>
             ) : null}
@@ -172,7 +173,7 @@ export default function WalletPanel() {
             </Button>
           </>
         )}
-        <div className="mt-6 flex flex-wrap gap-3">
+        <ActionRow className="mt-6 gap-3">
           <Button type="button" variant="outline" onClick={() => void refresh()}>
             {t("refreshBalance")}
           </Button>
@@ -180,7 +181,7 @@ export default function WalletPanel() {
           <Button type="button" onClick={() => void redeem()}>
             {t("redeem")}
           </Button>
-        </div>
+        </ActionRow>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <aside className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24">

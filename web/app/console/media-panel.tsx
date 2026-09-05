@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
+import { ActionRow } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
@@ -242,7 +243,7 @@ export default function MediaPanel() {
           <Button type="submit">{t("createVideo")}</Button>
         </form>
       </Form>
-      <div className="mb-4 flex flex-wrap gap-3">
+      <ActionRow className="mb-4 gap-3">
         <select
           className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
           value={kind}
@@ -256,7 +257,7 @@ export default function MediaPanel() {
         <Button variant="outline" onClick={() => void refresh()}>
           {t("refreshJobs")}
         </Button>
-      </div>
+      </ActionRow>
       {loaded && items.length === 0 ? (
         <EmptyLedger title={t("mediaEmpty")} detail={t("mediaEmptyDetail")} />
       ) : (

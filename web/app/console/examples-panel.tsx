@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ActionRow } from "@/components/console/action-row";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { apiBase } from "@/lib/api";
@@ -55,7 +56,7 @@ export default function ExamplesPanel() {
   return (
     <Card>
       <p className="mb-3 text-sm text-ink-secondary">{t("examplesLead")}</p>
-      <div className="mb-3 flex flex-wrap gap-3">
+      <ActionRow className="mb-3 gap-3">
         <Button variant="outline" onClick={() => void refresh()}>
           {t("refreshExamples")}
         </Button>
@@ -68,7 +69,7 @@ export default function ExamplesPanel() {
         <Button variant="outline" onClick={() => void copy("Node.js", docs.examples?.node)}>
           {t("copyNode")}
         </Button>
-      </div>
+      </ActionRow>
       <div className="mb-3 flex gap-1" role="tablist" aria-label={t("examplesTitle")}>
         {(
           [

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
 import { ScrollTable } from "@/components/ui/scroll-table";
@@ -75,12 +76,14 @@ export default function UsagePanel() {
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-ink-secondary">{t("usageLead")}</p>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/app/activity">{t("usageToActivity")}</Link>
-        </Button>
-      </div>
+      <LeadActions
+        lead={<p className="text-sm text-ink-secondary">{t("usageLead")}</p>}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/app/activity">{t("usageToActivity")}</Link>
+          </Button>
+        }
+      />
       <div className="mb-5 flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-ink-mute">{t("filterApiKey")}</span>
@@ -122,9 +125,11 @@ export default function UsagePanel() {
             ))}
           </select>
         </label>
-        <Button type="button" variant="outline" onClick={() => void refresh()}>
-          {t("usageRefresh")}
-        </Button>
+        <ActionRow>
+          <Button type="button" variant="outline" onClick={() => void refresh()}>
+            {t("usageRefresh")}
+          </Button>
+        </ActionRow>
       </div>
       <section className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[

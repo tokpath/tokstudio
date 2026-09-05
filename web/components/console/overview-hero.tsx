@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { MetricCard } from "@/components/feature-card";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
@@ -107,7 +108,7 @@ export function OverviewHero() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap gap-3">
+      <ActionRow className="gap-3">
         <Button asChild>
           <Link href="/app/keys">
             <KeyRound />
@@ -120,7 +121,7 @@ export function OverviewHero() {
             {t("topup")}
           </Link>
         </Button>
-      </div>
+      </ActionRow>
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
@@ -137,15 +138,20 @@ export function OverviewHero() {
       </section>
 
       <section aria-label={t("trendsRegion")} className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight text-ink">{t("trendsTitle")}</h2>
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-mute">{t("trendsLead")}</p>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/app/usage">{t("trendsToUsage")}</Link>
-          </Button>
-        </div>
+        <LeadActions
+          className="mb-0"
+          lead={
+            <>
+              <h2 className="text-sm font-semibold tracking-tight text-ink">{t("trendsTitle")}</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-mute">{t("trendsLead")}</p>
+            </>
+          }
+          actions={
+            <Button asChild variant="outline" size="sm">
+              <Link href="/app/usage">{t("trendsToUsage")}</Link>
+            </Button>
+          }
+        />
         <div className="grid gap-4 sm:grid-cols-3">
           {periodCards.map((card) => (
             <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">

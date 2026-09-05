@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
+import { ScrollTable } from "@/components/ui/scroll-table";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
 import {
   type APIKeyOption,
   type DimMoney,
+  type KeyBucket,
   type UsageEvent,
   bucketsToMetricPoints,
   dimToKeyBuckets,
@@ -16,12 +19,6 @@ import {
   keyLabel,
   summarizeUsage,
 } from "@/lib/usage";
-
-type LedgerRow = {
-  id: string;
-  event_type?: string;
-  amount_minor?: number;
-};
 
 const selectClass = "h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
 
@@ -33,7 +30,6 @@ export default function UsagePanel() {
   const [usage, setUsage] = useState<UsageEvent[]>([]);
   const [keysDim, setKeysDim] = useState<DimMoney[]>([]);
   const [modelDims, setModelDims] = useState<DimMoney[]>([]);
-  const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [keys, setKeys] = useState<APIKeyOption[]>([]);
   const [keyFilter, setKeyFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");
@@ -45,13 +41,11 @@ export default function UsagePanel() {
     if (nextModel) params.set("public_model_id", nextModel);
     params.set("limit", "100");
     const qs = params.toString();
-    const [usageRes, ledgerRes, keysRes] = await Promise.all([
+    const [usageRes, keysRes] = await Promise.all([
       fetch(`${apiBase}/v1/me/usage?${qs}`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/me/ledger`, { credentials: "include" }),
       fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" }),
     ]);
     const usageBody = await usageRes.json();
-    const ledgerBody = await ledgerRes.json();
     const keysBody = await keysRes.json();
     if (!usageRes.ok) {
       setMessage(usageBody.error?.message || tc("notLoggedIn"));
@@ -60,7 +54,6 @@ export default function UsagePanel() {
     setUsage(usageBody.items || []);
     setKeysDim(usageBody.keys || []);
     setModelDims(usageBody.models || []);
-    setLedger(ledgerBody.items || []);
     setKeys(keysBody.items || []);
     setMessage(t("usageDone"));
   }
@@ -70,18 +63,20 @@ export default function UsagePanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtered = useMemo(() => filterUsage(usage, { apiKeyId: keyFilter, model: modelFilter }), [usage, keyFilter, modelFilter]);
+  const filtered = useMemo(
+    () => filterUsage(usage, { apiKeyId: keyFilter, model: modelFilter }),
+    [usage, keyFilter, modelFilter],
+  );
   const summary = summarizeUsage(filtered);
   const models = modelDims.map((row) => row.key).filter(Boolean);
-  const byKey = keyFilter ? dimToKeyBuckets(keysDim).filter((row) => row.api_key_id === keyFilter) : dimToKeyBuckets(keysDim);
+  const byKey = keyFilter
+    ? dimToKeyBuckets(keysDim).filter((row) => row.api_key_id === keyFilter)
+    : dimToKeyBuckets(keysDim);
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{t("usageTitle")}</h2>
-          <p className="mt-2 text-sm text-ink-secondary">{t("usageLead")}</p>
-        </div>
+        <p className="text-sm text-ink-secondary">{t("usageLead")}</p>
         <Button asChild variant="outline" size="sm">
           <Link href="/app/activity">{t("usageToActivity")}</Link>
         </Button>
@@ -150,41 +145,42 @@ export default function UsagePanel() {
         breakdownTitle={tChart("byKey")}
       />
       <h3 className="mb-2 text-sm font-medium">{t("byApiKey")}</h3>
-      <div className="mb-4 overflow-x-auto rounded-card border border-hairline">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-canvas text-ink-mute">
-            <tr>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colApiKey")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("statRequests")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colPrompt")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colCompletion")}</th>
-              <th className="th-eyebrow px-4 py-3 text-ink-mute">{t("colAmount")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {byKey.length === 0 ? (
-              <tr>
-                <td className="px-4 py-3.5 text-ink-secondary" colSpan={5}>
-                  {t("usageEmpty")}
-                </td>
-              </tr>
-            ) : (
-              byKey.map((row) => (
-                <tr key={row.api_key_id || "none"} className="border-t border-hairline">
-                  <td className="px-4 py-3 font-mono text-xs">{keyLabel(row.api_key_id, keys)}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums">{row.requests}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums">{row.prompt}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums">{row.completion}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums">{row.amount}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-3 text-sm text-ink-secondary">
-        {t("usageCount", { usage: filtered.length, ledger: ledger.length, message })}
-      </p>
+      <ScrollTable
+        density="ledger"
+        className="mb-4 rounded-card border border-hairline"
+        minWidthClassName="min-w-[40rem]"
+        getRowId={(row: KeyBucket) => row.api_key_id || "none"}
+        rows={byKey}
+        empty={<EmptyLedger title={t("usageEmpty")} detail={t("usageEmptyDetail")} />}
+        columns={[
+          {
+            id: "key",
+            header: t("colApiKey"),
+            cell: (row) => <span className="font-mono text-xs">{keyLabel(row.api_key_id, keys)}</span>,
+          },
+          {
+            id: "requests",
+            header: t("statRequests"),
+            cell: (row) => <span className="font-mono tabular-nums">{row.requests}</span>,
+          },
+          {
+            id: "prompt",
+            header: t("colPrompt"),
+            cell: (row) => <span className="font-mono tabular-nums">{row.prompt}</span>,
+          },
+          {
+            id: "completion",
+            header: t("colCompletion"),
+            cell: (row) => <span className="font-mono tabular-nums">{row.completion}</span>,
+          },
+          {
+            id: "amount",
+            header: t("colAmount"),
+            cell: (row) => <span className="font-mono tabular-nums">{row.amount}</span>,
+          },
+        ]}
+      />
+      <p className="mt-3 text-sm text-ink-secondary">{t("usageCount", { usage: filtered.length, message })}</p>
     </section>
   );
 }

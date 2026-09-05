@@ -173,12 +173,17 @@ export default function WalletPanel() {
             </Button>
           </>
         )}
-        <ActionRow className="mt-6 gap-3">
-          <Button type="button" variant="outline" onClick={() => void refresh()}>
+        <ActionRow className="mt-6 w-full flex-nowrap gap-3">
+          <Button type="button" variant="outline" className="shrink-0" onClick={() => void refresh()}>
             {t("refreshBalance")}
           </Button>
-          <Input aria-label={t("redeemCode")} className="max-w-xs" value={code} onChange={(e) => setCode(e.target.value)} />
-          <Button type="button" onClick={() => void redeem()}>
+          <Input
+            aria-label={t("redeemCode")}
+            className="min-w-0 max-w-xs flex-1"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+          <Button type="button" className="shrink-0" onClick={() => void redeem()}>
             {t("redeem")}
           </Button>
         </ActionRow>

@@ -10,7 +10,7 @@ import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { ScrollTable } from "@/components/ui/scroll-table";
 import { apiBase } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 
@@ -103,98 +104,116 @@ export function KeysList({
   }
   const revealed = new Set(revealedIds);
   return (
-    <div className="overflow-x-auto rounded-card border border-hairline">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-canvas-raised text-ink-mute">
-          <tr>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colName")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colKey")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colStatus")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colLimits")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("allowTitle")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colLastUsed")}</th>
-            <th className="th-eyebrow px-4 py-3 font-medium">{t("colActions")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => {
+    <ScrollTable
+      density="ledger"
+      className="rounded-card border border-hairline"
+      minWidthClassName="min-w-[52rem]"
+      getRowId={(item) => item.id}
+      rows={items}
+      columns={[
+        {
+          id: "name",
+          header: t("colName"),
+          cell: (item) => <span className="text-ink">{item.name}</span>,
+        },
+        {
+          id: "key",
+          header: t("colKey"),
+          cell: (item) => {
             const isRevealed = revealed.has(item.id);
             return (
-              <tr key={item.id} className="border-t border-hairline hover:bg-brand-soft/40">
-                <td className="px-4 py-3 text-ink">{item.name}</td>
-                <td className="px-4 py-3">
-                  <div className="flex min-w-[14rem] max-w-md flex-col gap-2">
-                    <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
-                      {maskAPIKey(item.prefix, item.key, isRevealed)}
-                    </code>
-                    <div className="flex flex-wrap gap-2">
-                      {onCopy ? (
-                        <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
-                          {tc("copy")}
-                        </Button>
-                      ) : null}
-                      {onToggleReveal ? (
-                        <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
-                          {isRevealed ? t("hide") : t("reveal")}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge tone={statusTone(item)}>{item.status}</Badge>
-                </td>
-                <td className="px-4 py-3 text-ink">
-                  {item.rpm_limit ? `RPM ${item.rpm_limit}` : ""}
-                  {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
-                </td>
-                <td className="px-4 py-3 text-ink-secondary">
-                  {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
-                </td>
-                <td className="px-4 py-3 text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    {onRotate ? (
-                      <ConfirmButton
-                        size="sm"
-                        variant="outline"
-                        title={t("rotateConfirmTitle")}
-                        description={t("rotateConfirm")}
-                        onConfirm={() => onRotate(item.id)}
-                      >
-                        {t("rotate")}
-                      </ConfirmButton>
-                    ) : null}
-                    {onDisable ? (
-                      <ConfirmButton
-                        size="sm"
-                        variant="outline"
-                        title={t("disableConfirmTitle")}
-                        description={t("disableConfirm")}
-                        onConfirm={() => onDisable(item.id)}
-                      >
-                        {t("disable")}
-                      </ConfirmButton>
-                    ) : null}
-                    {onExpire ? (
-                      <ConfirmButton
-                        size="sm"
-                        variant="outline"
-                        title={t("expireConfirmTitle")}
-                        description={t("expireConfirm")}
-                        onConfirm={() => onExpire(item.id)}
-                      >
-                        {t("expire")}
-                      </ConfirmButton>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
+              <div className="flex min-w-[14rem] max-w-md flex-col gap-2">
+                <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
+                  {maskAPIKey(item.prefix, item.key, isRevealed)}
+                </code>
+                <div className="flex flex-wrap gap-2">
+                  {onCopy ? (
+                    <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
+                      {tc("copy")}
+                    </Button>
+                  ) : null}
+                  {onToggleReveal ? (
+                    <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
+                      {isRevealed ? t("hide") : t("reveal")}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          id: "status",
+          header: t("colStatus"),
+          cell: (item) => <Badge tone={statusTone(item)}>{item.status}</Badge>,
+        },
+        {
+          id: "limits",
+          header: t("colLimits"),
+          cell: (item) => (
+            <span className="text-ink">
+              {item.rpm_limit ? `RPM ${item.rpm_limit}` : ""}
+              {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
+            </span>
+          ),
+        },
+        {
+          id: "allowlist",
+          header: t("allowTitle"),
+          cell: (item) => (
+            <span className="text-ink-secondary">
+              {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
+            </span>
+          ),
+        },
+        {
+          id: "lastUsed",
+          header: t("colLastUsed"),
+          cell: (item) => <span className="text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</span>,
+        },
+        {
+          id: "actions",
+          header: t("colActions"),
+          cell: (item) => (
+            <div className="flex flex-wrap gap-2">
+              {onRotate ? (
+                <ConfirmButton
+                  size="sm"
+                  variant="outline"
+                  title={t("rotateConfirmTitle")}
+                  description={t("rotateConfirm")}
+                  onConfirm={() => onRotate(item.id)}
+                >
+                  {t("rotate")}
+                </ConfirmButton>
+              ) : null}
+              {onDisable ? (
+                <ConfirmButton
+                  size="sm"
+                  variant="outline"
+                  title={t("disableConfirmTitle")}
+                  description={t("disableConfirm")}
+                  onConfirm={() => onDisable(item.id)}
+                >
+                  {t("disable")}
+                </ConfirmButton>
+              ) : null}
+              {onExpire ? (
+                <ConfirmButton
+                  size="sm"
+                  variant="outline"
+                  title={t("expireConfirmTitle")}
+                  description={t("expireConfirm")}
+                  onConfirm={() => onExpire(item.id)}
+                >
+                  {t("expire")}
+                </ConfirmButton>
+              ) : null}
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -349,10 +368,7 @@ export default function KeysPanel() {
   return (
     <Card>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <CardTitle className="mb-2">{t("keysTitle")}</CardTitle>
-          <p className="text-sm text-ink-secondary">{t("keysLead")}</p>
-        </div>
+        <p className="text-sm text-ink-secondary">{t("keysLead")}</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => void refresh()}>
             {tc("refresh")}

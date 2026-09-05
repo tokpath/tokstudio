@@ -20,6 +20,13 @@ type UsageRow = {
   occurred_at?: string;
 };
 
+function formatAmountUsd(minor?: number) {
+  if (typeof minor !== "number" || !Number.isFinite(minor)) {
+    return "—";
+  }
+  return `$${(minor / 1_000_000).toFixed(2)}`;
+}
+
 /** 请求明细：宽表钉首末列，对齐 DESIGN.md §4.5 / docs/14。 */
 export function ActivityTable() {
   const t = useTranslations("user");
@@ -44,7 +51,18 @@ export function ActivityTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!rows || rows.length === 0) {
+  if (rows === null) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
+          {tc("refresh")}
+        </Button>
+        <EmptyLedger title={t("actLoading")} detail={message} />
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
@@ -104,7 +122,7 @@ export function ActivityTable() {
           {
             id: "amount",
             header: t("colAmount"),
-            cell: (row) => <span className="font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</span>,
+            cell: (row) => <span className="font-mono tabular-nums">{formatAmountUsd(row.customer_amount_minor)}</span>,
           },
         ]}
       />

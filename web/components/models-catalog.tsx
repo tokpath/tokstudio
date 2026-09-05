@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Copy, LayoutList, Search, Table2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ScrollTable } from "@/components/ui/scroll-table";
 import { EmptyState } from "@/components/empty-state";
 import { iconForKind } from "@/lib/page-icons";
 import {
@@ -195,42 +196,63 @@ export function ModelsCatalog({
           <EmptyState title={t("emptyTitle")} detail={t("emptyDetail")} />
         </div>
       ) : view === "table" ? (
-        <div className="overflow-x-auto rounded-card border border-hairline bg-canvas-raised">
-          <table className="min-w-[960px] w-full text-left text-sm">
-            <thead className="border-b border-hairline">
-              <tr>
-                {(["colModel", "colVendor", "colContext", "colInput", "colOutput", "colCaps"] as const).map((h) => (
-                  <th key={h} className="th-eyebrow px-4 py-3 text-ink-mute">
-                    {t(h)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-              {filtered.map((m) => {
+        <ScrollTable
+          density="admin"
+          className="rounded-card border border-hairline bg-canvas-raised"
+          minWidthClassName="min-w-[960px]"
+          getRowId={(m) => m.id}
+          rows={filtered}
+          columns={[
+            {
+              id: "model",
+              header: t("colModel"),
+              cell: (m) => (
+                <>
+                  <Link href={`/models/${m.id}`} className="font-medium no-underline hover:text-brand-emphasis">
+                    {m.display_name}
+                  </Link>
+                  <p className="font-mono text-[11px] text-ink-mute">{m.id}</p>
+                </>
+              ),
+            },
+            {
+              id: "vendor",
+              header: t("colVendor"),
+              cell: (m) => <span className="text-ink-secondary">{m.vendor}</span>,
+            },
+            {
+              id: "context",
+              header: t("colContext"),
+              cell: (m) => <span className="font-mono tabular-nums">{formatContext(m.context_length)}</span>,
+            },
+            {
+              id: "input",
+              header: t("colInput"),
+              cell: (m) => {
+                const price = priceForModel(m, units);
+                return <span className="font-mono tabular-nums text-brand-emphasis">{price.primary}</span>;
+              },
+            },
+            {
+              id: "output",
+              header: t("colOutput"),
+              cell: (m) => {
                 const kind = inferKind(m);
                 const price = priceForModel(m, units);
                 return (
-                  <tr key={m.id} className="hover:bg-brand-soft/40">
-                    <td className="px-4 py-3">
-                      <Link href={`/models/${m.id}`} className="font-medium no-underline hover:text-brand-emphasis">
-                        {m.display_name}
-                      </Link>
-                      <p className="font-mono text-[11px] text-ink-mute">{m.id}</p>
-                    </td>
-                    <td className="px-4 py-3 text-ink-secondary">{m.vendor}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{formatContext(m.context_length)}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-brand-emphasis">{price.primary}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">
-                      {kind === "video" ? t("kindVideo") : kind === "image" ? t("kindImage") : price.secondary}
-                    </td>
-                    <td className="px-4 py-3 text-[12px] text-ink-mute">{capText(m.capabilities) || "—"}</td>
-                  </tr>
+                  <span className="font-mono tabular-nums">
+                    {kind === "video" ? t("kindVideo") : kind === "image" ? t("kindImage") : price.secondary}
+                  </span>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
+              },
+            },
+            {
+              id: "caps",
+              header: t("colCaps"),
+              cell: (m) => <span className="text-[12px] text-ink-mute">{capText(m.capabilities) || "—"}</span>,
+            },
+          ]}
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {filtered.map((m) => {

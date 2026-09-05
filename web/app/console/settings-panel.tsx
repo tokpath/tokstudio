@@ -1,13 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
+import { ActionRow } from "@/components/console/action-row";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 import { resolveLocale } from "@/lib/i18n";
@@ -24,6 +34,7 @@ export default function SettingsPanel() {
   const tc = useTranslations("common");
   const chrome = useTranslations("chrome");
   const [user, setUser] = useState<MeUser | null>(null);
+  const [passOpen, setPassOpen] = useState(false);
   const [message, setMessage] = useState(t("settingsHint"));
   const profileSchema = useMemo(
     () =>
@@ -63,9 +74,20 @@ export default function SettingsPanel() {
     setMessage(t("profileRefreshed"));
   }
 
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handlePassOpenChange(open: boolean) {
+    setPassOpen(open);
+    if (!open) {
+      passwordForm.reset();
+    }
+  }
+
   return (
     <Card>
-      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("settingsTitle")}</CardTitle>
       <p className="mb-4 text-sm text-ink-secondary">
         {t("settingsMeta", { email: user?.email ?? "—", channel: user?.channel_org_id ?? "—" })}
       </p>
@@ -103,37 +125,60 @@ export default function SettingsPanel() {
               <option value="ja">{chrome("localeJa")}</option>
             </select>
           </label>
-          <Button type="button" variant="outline" onClick={refresh}>
-            {t("refreshProfile")}
-          </Button>
-          <Button type="submit">{t("saveProfile")}</Button>
-        </form>
-      </Form>
-      <Form {...passwordForm}>
-        <form
-          className="flex flex-wrap items-end gap-3"
-          onSubmit={passwordForm.handleSubmit(async (values) => {
-            const response = await fetch(`${apiBase}/v1/me/password`, {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(values),
-            });
-            const body = await response.json();
-            setMessage(response.ok ? t("passUpdated") : body.error?.message || t("passFail"));
-            if (response.ok) {
-              passwordForm.reset();
-            }
-          })}
-        >
-          <TextField control={passwordForm.control} name="current_password" label={t("curPass")} type="password" showLabel={false} />
-          <TextField control={passwordForm.control} name="new_password" label={t("newPass")} placeholder={t("newPassPh")} type="password" showLabel={false} />
-          <Button type="submit" variant="outline">
-            {t("changePass")}
-          </Button>
+          <ActionRow className="gap-3">
+            <Button type="button" variant="outline" onClick={() => void refresh()}>
+              {t("refreshProfile")}
+            </Button>
+            <Button type="submit">{t("saveProfile")}</Button>
+            <Button type="button" variant="outline" onClick={() => setPassOpen(true)}>
+              {t("changePass")}
+            </Button>
+          </ActionRow>
         </form>
       </Form>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+      <Dialog open={passOpen} onOpenChange={handlePassOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("changePassTitle")}</DialogTitle>
+            <DialogDescription>{t("changePassLead")}</DialogDescription>
+          </DialogHeader>
+          <Form {...passwordForm}>
+            <form
+              className="space-y-4"
+              onSubmit={passwordForm.handleSubmit(async (values) => {
+                const response = await fetch(`${apiBase}/v1/me/password`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(values),
+                });
+                const body = await response.json();
+                setMessage(response.ok ? t("passUpdated") : body.error?.message || t("passFail"));
+                if (response.ok) {
+                  passwordForm.reset();
+                  setPassOpen(false);
+                }
+              })}
+            >
+              <TextField control={passwordForm.control} name="current_password" label={t("curPass")} type="password" />
+              <TextField
+                control={passwordForm.control}
+                name="new_password"
+                label={t("newPass")}
+                placeholder={t("newPassPh")}
+                type="password"
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => handlePassOpenChange(false)}>
+                  {tc("cancel")}
+                </Button>
+                <Button type="submit">{t("changePass")}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
+import { ScrollTable } from "@/components/ui/scroll-table";
 import { apiBase } from "@/lib/api";
 import { formatUsageTime, shortKeyRef, usageTokens } from "@/lib/usage";
 
@@ -19,6 +20,14 @@ type UsageRow = {
   occurred_at?: string;
 };
 
+function formatAmountUsd(minor?: number) {
+  if (typeof minor !== "number" || !Number.isFinite(minor)) {
+    return "—";
+  }
+  return `$${(minor / 1_000_000).toFixed(2)}`;
+}
+
+/** 请求明细：宽表钉首末列，对齐 DESIGN.md §4.5 / docs/14。 */
 export function ActivityTable() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -39,11 +48,21 @@ export function ActivityTable() {
 
   useEffect(() => {
     void refresh();
-    // 首次进入拉一次明细；refresh 闭包读当前文案即可。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!rows || rows.length === 0) {
+  if (rows === null) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
+          {tc("refresh")}
+        </Button>
+        <EmptyLedger title={t("actLoading")} detail={message} />
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
@@ -55,38 +74,59 @@ export function ActivityTable() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-card border border-hairline">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-canvas-raised text-ink-mute">
-          <tr>
-            <th className="px-4 py-3 font-medium">{t("colTime")}</th>
-            <th className="px-4 py-3 font-medium">{t("colApiKey")}</th>
-            <th className="px-4 py-3 font-medium">{t("colModel")}</th>
-            <th className="px-4 py-3 font-medium">{t("colPrompt")}</th>
-            <th className="px-4 py-3 font-medium">{t("colCompletion")}</th>
-            <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
-            <th className="px-4 py-3 font-medium">{t("colReq")}</th>
-            <th className="px-4 py-3 font-medium">{t("colAmount")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const tokens = usageTokens(row);
-            return (
-              <tr key={row.id} className="border-t border-hairline">
-                <td className="px-4 py-3 text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</td>
-                <td className="px-4 py-3 font-mono text-xs">{shortKeyRef(row.api_key_id)}</td>
-                <td className="px-4 py-3 font-mono text-xs">{row.public_model_id || "—"}</td>
-                <td className="px-4 py-3 font-mono tabular-nums">{tokens.prompt}</td>
-                <td className="px-4 py-3 font-mono tabular-nums">{tokens.completion}</td>
-                <td className="px-4 py-3">{row.state || "—"}</td>
-                <td className="px-4 py-3 font-mono text-xs text-ink-mute">{row.request_id || row.id}</td>
-                <td className="px-4 py-3 font-mono tabular-nums">{row.customer_amount_minor ?? "—"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-3">
+      <Button variant="outline" size="sm" className="self-start" onClick={() => void refresh()}>
+        {tc("refresh")}
+      </Button>
+      <ScrollTable
+        density="ledger"
+        className="rounded-card border border-hairline"
+        getRowId={(row) => row.id}
+        rows={rows}
+        columns={[
+          {
+            id: "time",
+            header: t("colTime"),
+            cell: (row) => <span className="text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</span>,
+          },
+          {
+            id: "key",
+            header: t("colApiKey"),
+            cell: (row) => <span className="font-mono text-xs">{shortKeyRef(row.api_key_id)}</span>,
+          },
+          {
+            id: "model",
+            header: t("colModel"),
+            cell: (row) => <span className="font-mono text-xs">{row.public_model_id || "—"}</span>,
+          },
+          {
+            id: "prompt",
+            header: t("colPrompt"),
+            cell: (row) => <span className="font-mono tabular-nums">{usageTokens(row).prompt}</span>,
+          },
+          {
+            id: "completion",
+            header: t("colCompletion"),
+            cell: (row) => <span className="font-mono tabular-nums">{usageTokens(row).completion}</span>,
+          },
+          {
+            id: "status",
+            header: t("colStatus"),
+            cell: (row) => row.state || "—",
+          },
+          {
+            id: "req",
+            header: t("colReq"),
+            cell: (row) => <span className="font-mono text-xs text-ink-mute">{row.request_id || row.id}</span>,
+          },
+          {
+            id: "amount",
+            header: t("colAmount"),
+            cell: (row) => <span className="font-mono tabular-nums">{formatAmountUsd(row.customer_amount_minor)}</span>,
+          },
+        ]}
+      />
+      <p className="text-sm text-ink-secondary">{message}</p>
     </div>
   );
 }

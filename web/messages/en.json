@@ -1563,7 +1563,7 @@
     "plansEmpty": "No plans yet",
     "plansEmptyDetail": "Sign in and refresh to see plans and active entitlements.",
     "mediaEmpty": "No media jobs",
-    "mediaEmptyDetail": "Created jobs show up here with live status.",
+    "mediaEmptyDetail": "No jobs yet. Click “New job” to create a video or image job; it will show up in this list.",
     "refComing": "Referral is coming soon",
     "refComingDetail": "Your own referral code and rewards will appear after sign-in. No fake codes here.",
     "changePassTitle": "Change password",
@@ -1575,7 +1575,9 @@
     "pgReceiptModel": "Model",
     "pgReceiptStatus": "Status",
     "pgReceiptOk": "OK",
-    "mediaFilterKind": "Filter media type"
+    "mediaFilterKind": "Filter media type",
+    "createJob": "New job",
+    "createJobLead": "Fill in the prompt and options, then submit. Longer forms open in a dialog."
   },
   "channelUi": {
     "needAdmin": "Not signed in as channel admin",

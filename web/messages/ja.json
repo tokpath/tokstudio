@@ -1563,7 +1563,7 @@
     "plansEmpty": "プランがありません",
     "plansEmptyDetail": "ログイン後に更新すると、購読可能なプランと有効な権利が表示されます。",
     "mediaEmpty": "メディアジョブがありません",
-    "mediaEmptyDetail": "作成したジョブがここに状態付きで表示されます。",
+    "mediaEmptyDetail": "ジョブはまだありません。「新規ジョブ」から動画または画像を作成すると、ここに表示されます。",
     "refComing": "紹介プログラムは準備中",
     "refComingDetail": "ログイン後に自分の紹介コードと報酬が出ます。偽のコードは出しません。",
     "changePassTitle": "パスワード変更",
@@ -1575,7 +1575,9 @@
     "pgReceiptModel": "モデル",
     "pgReceiptStatus": "状態",
     "pgReceiptOk": "成功",
-    "mediaFilterKind": "メディア種別で絞り込み"
+    "mediaFilterKind": "メディア種別で絞り込み",
+    "createJob": "新規ジョブ",
+    "createJobLead": "プロンプトとパラメータを入力して送信します。項目が多いためダイアログで作成します。"
   },
   "channelUi": {
     "needAdmin": "チャネル管理者でログインしていません",

@@ -1563,7 +1563,7 @@
     "plansEmpty": "暂无套餐",
     "plansEmptyDetail": "登录后刷新即可看到可订阅套餐与有效权益。",
     "mediaEmpty": "暂无媒体任务",
-    "mediaEmptyDetail": "创建任务后会出现在这里。状态会随任务更新。",
+    "mediaEmptyDetail": "还没有任务。点「新建任务」创建视频或图像任务，完成后会出现在此列表。",
     "refComing": "推荐计划即将上线",
     "refComingDetail": "登录后会显示你自己的推广码与奖励流水。现在不展示假码。",
     "changePassTitle": "修改密码",
@@ -1575,7 +1575,9 @@
     "pgReceiptModel": "模型",
     "pgReceiptStatus": "状态",
     "pgReceiptOk": "成功",
-    "mediaFilterKind": "筛选媒体类型"
+    "mediaFilterKind": "筛选媒体类型",
+    "createJob": "新建任务",
+    "createJobLead": "填写提示词与参数后提交。字段较多，在弹窗内完成。"
   },
   "channelUi": {
     "needAdmin": "未登录渠道管理员",

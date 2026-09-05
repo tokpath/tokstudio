@@ -1,13 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { TextField } from "@/components/text-field";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
 
@@ -45,12 +47,23 @@ function splitRefs(raw: string) {
     .filter(Boolean);
 }
 
+function jobStatusTone(status: string): "success" | "warn" | "neutral" {
+  if (status === "completed" || status === "succeeded") {
+    return "success";
+  }
+  if (status === "failed" || status === "cancelled" || status === "expired") {
+    return "warn";
+  }
+  return "neutral";
+}
+
 export default function MediaPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const tCat = useTranslations("catalog");
   const [items, setItems] = useState<Job[]>([]);
   const [kind, setKind] = useState("");
+  const [loaded, setLoaded] = useState(false);
   const [message, setMessage] = useState(t("mediaHint"));
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -93,17 +106,24 @@ export default function MediaPanel() {
   );
   const modes = currentKind === "image" ? imageModes : videoModes;
 
-  async function refresh() {
-    const query = kind ? `?kind=${encodeURIComponent(kind)}` : "";
+  async function refresh(nextKind = kind) {
+    const query = nextKind ? `?kind=${encodeURIComponent(nextKind)}` : "";
     const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
+      setLoaded(true);
       setMessage(body.error?.message || tc("notLoggedIn"));
       return;
     }
     setItems(body.items || []);
+    setLoaded(true);
     setMessage(t("mediaRefreshed"));
   }
+
+  useEffect(() => {
+    void refresh(kind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
 
   async function createJob(values: z.infer<typeof schema>) {
     const images = splitRefs(values.images);
@@ -145,7 +165,6 @@ export default function MediaPanel() {
 
   return (
     <Card>
-      <CardTitle>{t("mediaTitle")}</CardTitle>
       <p className="mb-4 text-sm text-ink-secondary">{t("mediaLead")}</p>
       <Form {...form}>
         <form className="mb-4 space-y-3" onSubmit={form.handleSubmit(createJob)}>
@@ -210,7 +229,7 @@ export default function MediaPanel() {
                   <FormControl>
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-sky-400"
+                      className="h-4 w-4 accent-brand"
                       aria-label={t("nativeAudio")}
                       checked={field.value}
                       onChange={(event) => field.onChange(event.target.checked)}
@@ -225,22 +244,40 @@ export default function MediaPanel() {
         </form>
       </Form>
       <div className="mb-4 flex flex-wrap gap-3">
-        <select className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm" value={kind} onChange={(e) => setKind(e.target.value)}>
+        <select
+          className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+          aria-label={t("kind")}
+        >
           <option value="">{tc("all")}</option>
           <option value="video">{tCat("video")}</option>
           <option value="image">{tCat("image")}</option>
         </select>
-        <Button variant="outline" onClick={refresh}>
+        <Button variant="outline" onClick={() => void refresh()}>
           {t("refreshJobs")}
         </Button>
       </div>
-      <ul className="space-y-2 text-sm text-ink">
-        {items.map((item) => (
-          <li key={item.id}>
-            {item.kind || item.status} · {item.task_type || "t2v"} · {item.resolution || ""} · {item.duration || ""}s · {item.model} · {item.status} · {item.id}
-          </li>
-        ))}
-      </ul>
+      {loaded && items.length === 0 ? (
+        <EmptyLedger title={t("mediaEmpty")} detail={t("mediaEmptyDetail")} />
+      ) : (
+        <ul className="space-y-2">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-hairline bg-canvas px-3 py-2.5 text-sm text-ink"
+            >
+              <Badge tone={jobStatusTone(item.status)}>{item.status}</Badge>
+              <span className="text-ink-secondary">{item.kind || "—"}</span>
+              <span>{item.task_type || "t2v"}</span>
+              {item.resolution ? <span className="text-ink-mute">{item.resolution}</span> : null}
+              {item.duration ? <span className="text-ink-mute">{item.duration}s</span> : null}
+              <span className="font-mono text-xs text-ink-secondary">{item.model}</span>
+              <span className="font-mono text-xs text-ink-mute">{item.id}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </Card>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
+import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 
@@ -11,6 +12,11 @@ type LedgerRow = {
   entry_type?: string;
   amount_minor?: number;
 };
+
+function formatMinor(amount?: number) {
+  if (amount == null) return "—";
+  return `$${(amount / 1_000_000).toFixed(2)}`;
+}
 
 export function WalletLedger() {
   const t = useTranslations("user");
@@ -38,22 +44,30 @@ export function WalletLedger() {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{t("ledTitle")}</h2>
+        <h3 className="text-sm font-medium">{t("ledTitle")}</h3>
         <Button variant="outline" size="sm" onClick={() => void refresh()}>
           {tc("refresh")}
         </Button>
       </div>
-      {!rows || rows.length === 0 ? (
-        <EmptyLedger title={t("ledEmpty")} detail={message} />
+      {rows === null ? (
+        <EmptyLedger title={t("ledLoading")} detail={t("ledHint")} />
       ) : (
-        <ul className="divide-y divide-hairline rounded-card border border-hairline bg-canvas-raised">
-          {rows.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <span className="font-mono text-ink-mute">{row.entry_type || row.id}</span>
-              <span className="font-mono tabular-nums">{row.amount_minor ?? "—"}</span>
-            </li>
-          ))}
-        </ul>
+        <LedgerTable
+          columns={[t("ledColType"), t("ledColAmount")]}
+          emptyTitle={t("ledEmpty")}
+          emptyDetail={message}
+          rows={rows.map((row) => ({
+            key: row.id,
+            cells: [
+              <span key="type" className="font-mono text-ink-mute">
+                {row.entry_type || row.id}
+              </span>,
+              <span key="amount" className="font-mono tabular-nums">
+                {formatMinor(row.amount_minor)}
+              </span>,
+            ],
+          }))}
+        />
       )}
     </section>
   );

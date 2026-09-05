@@ -13,6 +13,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
   const [model, setModel] = useState(fallbackId);
   const [prompt, setPrompt] = useState("");
   const [output, setOutput] = useState("");
+  const [receiptModel, setReceiptModel] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(t("pgHint"));
 
@@ -39,6 +40,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
       const body = await response.json();
       if (!response.ok) {
         setOutput("");
+        setReceiptModel("");
         setMessage(body.error?.message || t("pgFail", { status: response.status }));
         return;
       }
@@ -47,6 +49,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
         body.output_text ||
         JSON.stringify(body, null, 2);
       setOutput(typeof content === "string" ? content : JSON.stringify(content, null, 2));
+      setReceiptModel(model);
       setMessage(t("pgDone"));
     } catch (err) {
       setMessage(err instanceof Error ? err.message : t("pgNet"));
@@ -93,6 +96,7 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
             onClick={() => {
               setPrompt("");
               setOutput("");
+              setReceiptModel("");
               setMessage(t("pgCleared"));
             }}
           >
@@ -104,7 +108,27 @@ export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
       <section className="rounded-card border border-hairline bg-canvas-raised p-5">
         <h2 className="mb-3 text-lg font-semibold">{t("pgReply")}</h2>
         {output ? (
-          <pre className="th-scrollbar max-h-[420px] overflow-auto whitespace-pre-wrap font-mono text-sm text-ink">{output}</pre>
+          <div className="flex flex-col gap-3">
+            {receiptModel ? (
+              <aside
+                className="rounded-stamp border border-hairline bg-canvas px-3 py-2 text-sm"
+                aria-label={t("pgReceipt")}
+              >
+                <p className="th-eyebrow mb-2 text-ink-mute">{t("pgReceipt")}</p>
+                <ul className="divide-y divide-hairline">
+                  <li className="flex justify-between gap-3 py-1.5">
+                    <span className="text-ink-mute">{t("pgReceiptModel")}</span>
+                    <span className="font-mono text-ink">{receiptModel}</span>
+                  </li>
+                  <li className="flex justify-between gap-3 py-1.5">
+                    <span className="text-ink-mute">{t("pgReceiptStatus")}</span>
+                    <span className="text-ink">{t("pgReceiptOk")}</span>
+                  </li>
+                </ul>
+              </aside>
+            ) : null}
+            <pre className="th-scrollbar max-h-[420px] overflow-auto whitespace-pre-wrap font-mono text-sm text-ink">{output}</pre>
+          </div>
         ) : (
           <EmptyLedger title={t("pgEmpty")} detail={t("pgEmptyDetail")} />
         )}

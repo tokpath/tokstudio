@@ -1574,7 +1574,8 @@
     "pgReceipt": "路由回单",
     "pgReceiptModel": "模型",
     "pgReceiptStatus": "状态",
-    "pgReceiptOk": "成功"
+    "pgReceiptOk": "成功",
+    "mediaFilterKind": "筛选媒体类型"
   },
   "channelUi": {
     "needAdmin": "未登录渠道管理员",

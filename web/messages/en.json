@@ -1574,7 +1574,8 @@
     "pgReceipt": "Routing receipt",
     "pgReceiptModel": "Model",
     "pgReceiptStatus": "Status",
-    "pgReceiptOk": "OK"
+    "pgReceiptOk": "OK",
+    "mediaFilterKind": "Filter media type"
   },
   "channelUi": {
     "needAdmin": "Not signed in as channel admin",

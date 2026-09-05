@@ -62,7 +62,7 @@ test("user usage page is summary and links to activity", async ({ page }) => {
 test("user media page stays on its own route", async ({ page }) => {
   await page.goto("/app/media");
   await expect(page.getByRole("heading", { level: 1, name: "媒体任务" })).toBeVisible();
-  await expect(page.getByLabel("媒体类型")).toBeVisible();
+  await expect(page.getByLabel("媒体类型").first()).toBeVisible();
   await expect(page.getByLabel("时长")).toBeVisible();
   await expect(page.getByLabel("分辨率")).toBeVisible();
   await expect(page.getByLabel("宽高比")).toBeVisible();

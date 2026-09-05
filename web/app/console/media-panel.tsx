@@ -179,7 +179,6 @@ export default function MediaPanel() {
                   <FormControl>
                     <select
                       className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
-                      aria-label={t("kind")}
                       {...field}
                       onChange={(event) => {
                         field.onChange(event);
@@ -248,7 +247,7 @@ export default function MediaPanel() {
           className="h-9 rounded-md border border-hairline bg-canvas px-3 text-sm"
           value={kind}
           onChange={(e) => setKind(e.target.value)}
-          aria-label={t("kind")}
+          aria-label={t("mediaFilterKind")}
         >
           <option value="">{tc("all")}</option>
           <option value="video">{tCat("video")}</option>

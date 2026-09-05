@@ -60,6 +60,14 @@ test("user usage page is summary and links to activity", async ({ page }) => {
 });
 
 test("user media page is list-first with create dialog", async ({ page }) => {
+  // 前端 job 无 Go API；先 mock 空列表，避免依赖 proxy :8080。
+  await page.route("**/v1/me/media**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [] }),
+    });
+  });
   await page.goto("/app/media");
   await expect(page.getByRole("heading", { level: 1, name: "媒体任务" })).toBeVisible();
   await expect(page.getByLabel("筛选媒体类型")).toBeVisible();

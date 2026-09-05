@@ -123,16 +123,23 @@ export default function MediaPanel() {
 
   async function refresh(nextKind = kind) {
     const query = nextKind ? `?kind=${encodeURIComponent(nextKind)}` : "";
-    const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
+    try {
+      const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setItems([]);
+        setMessage(body.error?.message || tc("notLoggedIn"));
+        return;
+      }
+      setItems(body.items || []);
+      setMessage(t("mediaRefreshed"));
+    } catch {
+      setItems([]);
+      setMessage(tc("notLoggedIn"));
+    } finally {
+      // 前端 CI 无 API 时 fetch/json 会失败；仍要结束加载，否则空态永远不出现。
       setLoaded(true);
-      setMessage(body.error?.message || tc("notLoggedIn"));
-      return;
     }
-    setItems(body.items || []);
-    setLoaded(true);
-    setMessage(t("mediaRefreshed"));
   }
 
   useEffect(() => {

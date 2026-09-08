@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,6 +46,10 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.POST("/admin/settlements/:id/payout", a.requireRoles("platform_admin", "finance_admin"), a.adminPayout)
 	r.GET("/admin/commission-policy", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPolicy)
 	r.PATCH("/admin/commission-policy", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchPolicy)
+	r.GET("/admin/eligibility-rules", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminEligibility)
+	r.PATCH("/admin/eligibility-rules", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchEligibility)
+	r.GET("/channel/eligibility-rules", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelEligibility)
+	r.PATCH("/channel/eligibility-rules", a.requireRoles("channel_admin"), a.channelPatchEligibility)
 }
 
 func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, ok bool) {
@@ -597,4 +602,81 @@ func (a *App) adminPatchPolicy(c *gin.Context) {
 		Before: before, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"policy": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminEligibility(c *gin.Context) {
+	item, err := a.Identity.PlatformEligibility(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "达线规则不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPatchEligibility(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body identity.EligibilityView
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则字段无效", false)
+		return
+	}
+	before, _ := a.Identity.PlatformEligibility(c.Request.Context())
+	item, err := a.Identity.UpdatePlatformEligibility(c.Request.Context(), body.SpendMinor, body.TopupMinor)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则不合法", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "eligibility.rule.update",
+		ResourceType: "eligibility_rule", ResourceID: item.ID,
+		Before: before, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelEligibility(c *gin.Context) {
+	p := a.currentPrincipal(c)
+	channelID := ""
+	if p != nil {
+		channelID = p.ChannelOrgID
+	}
+	item, err := a.Identity.EffectiveEligibility(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "达线规则不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) channelPatchEligibility(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
+		return
+	}
+	var body identity.EligibilityView
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则字段无效", false)
+		return
+	}
+	item, err := a.Identity.UpdateChannelEligibility(c.Request.Context(), *p, body.SpendMinor, body.TopupMinor)
+	if err != nil {
+		if errors.Is(err, identity.ErrChannelImmutable) {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 C 渠道可改达线规则", false)
+			return
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则不合法", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: p.UserID, Action: "eligibility.rule.update",
+		ResourceType: "eligibility_rule", ResourceID: item.ID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }

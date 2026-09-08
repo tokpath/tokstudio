@@ -26,6 +26,7 @@ type Service struct {
 	coverer      EntitlementCoverer
 	commissioner Commissioner
 	pool         ChannelPool
+	qualifier    Qualifier
 }
 
 func (s *Service) SetCoverer(c EntitlementCoverer) {
@@ -40,6 +41,10 @@ func (s *Service) SetPool(p ChannelPool) {
 	s.pool = p
 }
 
+func (s *Service) SetQualifier(q Qualifier) {
+	s.qualifier = q
+}
+
 // Credit 是支付模块入账现金钱包的公开入口，不暴露内部表。
 func (s *Service) Credit(ctx context.Context, userID, idempotencyKey string, amount int64, memo string) error {
 	if amount <= 0 {
@@ -51,9 +56,14 @@ func (s *Service) Credit(ctx context.Context, userID, idempotencyKey string, amo
 	if memo == "" {
 		memo = "payment credit"
 	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return creditWallet(tx, userID, amount, EventTopup, "payment", idempotencyKey, "pay:"+idempotencyKey)
 	})
+	if err != nil {
+		return err
+	}
+	s.considerEligibility(ctx, userID, "", amount)
+	return nil
 }
 
 func New(db *gorm.DB, publisher *outbox.Service) *Service {
@@ -392,12 +402,15 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		in.IdempotencyKey = "usage:" + in.RequestID
 	}
 	var out *Settlement
+	var settleUser, settleChannel string
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing chargeRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
 			out = &Settlement{ChargeID: existing.ID, UsageEventID: existing.UsageEventID, AmountMinor: existing.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}
 			var prior authRow
 			if tx.Where("request_id = ?", in.RequestID).First(&prior).Error == nil {
+				settleUser = prior.UserID
+				settleChannel = firstNonEmpty(in.ChannelOrgID, stringPtr(prior.ChannelOrgID))
 				keep := entitlementKeep(prior, existing.AmountMinor)
 				if s.coverer != nil {
 					_ = s.coverer.ReverseKeep(ctx, in.RequestID, keep)
@@ -413,11 +426,15 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			var charge chargeRow
 			_ = tx.Where("request_id = ?", in.RequestID).First(&charge)
 			out = &Settlement{ChargeID: charge.ID, UsageEventID: charge.UsageEventID, AmountMinor: charge.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}
+			settleUser = auth.UserID
+			settleChannel = firstNonEmpty(in.ChannelOrgID, stringPtr(auth.ChannelOrgID))
 			return nil
 		}
 		if auth.Status != AuthReserved && auth.Status != AuthPendingReconciliation {
 			return ErrAuthNotReserved
 		}
+		settleUser = auth.UserID
+		settleChannel = firstNonEmpty(in.ChannelOrgID, stringPtr(auth.ChannelOrgID))
 		if in.MissingUsage {
 			now := time.Now().UTC()
 			auth.Status = AuthPendingReconciliation
@@ -571,6 +588,9 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		}
 		return nil
 	})
+	if err == nil && out != nil && out.State == UsageConfirmed {
+		s.considerEligibility(ctx, firstNonEmpty(settleUser, in.UserID), settleChannel, 0)
+	}
 	return out, err
 }
 
@@ -753,4 +773,15 @@ func firstBytes(primary, fallback []byte) []byte {
 		return primary
 	}
 	return fallback
+}
+
+func (s *Service) considerEligibility(ctx context.Context, userID, channelID string, topup int64) {
+	if s.qualifier == nil || userID == "" {
+		return
+	}
+	var spend int64
+	_ = s.db.WithContext(ctx).Model(&usageRow{}).
+		Where("user_id = ? AND state = ?", userID, UsageConfirmed).
+		Select("COALESCE(SUM(customer_amount_minor),0)").Scan(&spend).Error
+	_ = s.qualifier.Consider(ctx, userID, channelID, topup, spend)
 }

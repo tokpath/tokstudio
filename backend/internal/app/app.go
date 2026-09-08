@@ -76,6 +76,7 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	commSvc.SetRoles(idSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	billingSvc.SetPool(idSvc)
+	billingSvc.SetQualifier(idSvc)
 	var rt *gateway.Runtime
 	if withGateway {
 		var err error

@@ -43,16 +43,17 @@ func localeOrDefault(locale string) string {
 
 func viewFromUser(user userRow, roles []string, source string) UserView {
 	return UserView{
-		ID:           user.ID,
-		Email:        user.Email,
-		DisplayName:  user.DisplayName,
-		Locale:       localeOrDefault(user.Locale),
-		Status:       user.Status,
-		ChannelOrgID: deref(user.ChannelOrgID),
-		BrandID:      deref(user.BrandID),
-		Roles:        roles,
-		SourceCode:   source,
-		CreatedAt:    user.CreatedAt,
+		ID:            user.ID,
+		Email:         user.Email,
+		DisplayName:   user.DisplayName,
+		Locale:        localeOrDefault(user.Locale),
+		Status:        user.Status,
+		ChannelOrgID:  deref(user.ChannelOrgID),
+		BrandID:       deref(user.BrandID),
+		Roles:         roles,
+		SourceCode:    source,
+		CanCommission: user.CanCommission,
+		CreatedAt:     user.CreatedAt,
 	}
 }
 

@@ -27,6 +27,9 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := seedCatalog(tx); err != nil {
 			return err
 		}
+		if err := seedEligibility(tx); err != nil {
+			return err
+		}
 		if adminToken == "" || userToken == "" {
 			return nil
 		}

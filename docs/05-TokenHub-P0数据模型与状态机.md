@@ -26,6 +26,7 @@
 | `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、个人推广员（历史种子可仍为 `kol_l1`/`kol_l2`） |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
 | `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/推广员主体绑定 |
+| `eligibility_rule` | `scope_type`, `scope_id`, `spend_minor`, `topup_minor` | 达线：累计已确认消费 / 单笔充值；platform=`*`，C 可覆盖 |
 
 P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级为 agent（代理商）与 promoter（个人推广员，含历史 `kol_l1`/`kol_l2` 种子）。计佣两跳。用户有 `can_commission`。详见 `docs/15`。
 

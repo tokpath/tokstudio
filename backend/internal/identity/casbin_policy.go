@@ -78,6 +78,7 @@ func financeRules() []policyRule {
 		"/admin/settlements",
 		"/admin/commissions",
 		"/admin/commission-policy",
+		"/admin/eligibility-rules",
 		"/admin/channel-quotas/:channel_id",
 		"/admin/channel-quotas/:channel_id/issue-rule",
 		"/admin/channels",
@@ -94,6 +95,7 @@ func financeRules() []policyRule {
 		"/channel/commissions",
 		"/channel/usage",
 		"/channel/settlements",
+		"/channel/eligibility-rules",
 	)...)
 	out = append(out, grantMany("POST", roles,
 		"/admin/me/2fa/setup",
@@ -118,6 +120,7 @@ func financeRules() []policyRule {
 	)...)
 	out = append(out, grantMany("PATCH", roles,
 		"/admin/commission-policy",
+		"/admin/eligibility-rules",
 		"/admin/channel-quotas/:channel_id/issue-rule",
 	)...)
 	return out
@@ -150,6 +153,7 @@ func opsRules() []policyRule {
 		"/admin/settlements",
 		"/admin/commissions",
 		"/admin/commission-policy",
+		"/admin/eligibility-rules",
 		"/admin/promotion-codes",
 		"/admin/media",
 		"/admin/metrics",
@@ -298,6 +302,7 @@ func auditRules() []policyRule {
 		"/admin/settlements",
 		"/admin/commissions",
 		"/admin/commission-policy",
+		"/admin/eligibility-rules",
 		"/admin/promotion-codes",
 		"/admin/media",
 		"/admin/metrics",

@@ -46,10 +46,14 @@ func (s *Service) GetTopup(ctx context.Context, id, userID string) (*TopupView, 
 
 func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string) (*TopupView, error) {
 	var view *TopupView
+	var channelID string
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row topupRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
 			return ErrNotFound
+		}
+		if row.ChannelOrgID != nil {
+			channelID = *row.ChannelOrgID
 		}
 		if row.Status == TopupPaid {
 			view = topupView(row)
@@ -60,10 +64,6 @@ func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string)
 		}
 		if err := creditWallet(tx, row.UserID, row.AmountMinor, EventTopup, "topup", row.ID, "topup:"+row.ID); err != nil {
 			return err
-		}
-		channelID := ""
-		if row.ChannelOrgID != nil {
-			channelID = *row.ChannelOrgID
 		}
 		if err := s.issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
 			return err
@@ -81,6 +81,9 @@ func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string)
 		view = topupView(row)
 		return nil
 	})
+	if err == nil && view != nil {
+		s.considerEligibility(ctx, view.UserID, channelID, view.AmountMinor)
+	}
 	return view, err
 }
 
@@ -127,6 +130,9 @@ func (s *Service) Redeem(ctx context.Context, userID, channelOrgID, code string)
 		view = topupView(row)
 		return nil
 	})
+	if err == nil && view != nil {
+		s.considerEligibility(ctx, userID, channelOrgID, view.AmountMinor)
+	}
 	return view, err
 }
 

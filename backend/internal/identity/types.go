@@ -40,16 +40,17 @@ func (p Principal) VisibleChannelID() string {
 }
 
 type UserView struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	DisplayName  string    `json:"display_name"`
-	Locale       string    `json:"locale"`
-	Status       string    `json:"status"`
-	ChannelOrgID string    `json:"channel_org_id,omitempty"`
-	BrandID      string    `json:"brand_id,omitempty"`
-	Roles        []string  `json:"roles,omitempty"`
-	SourceCode   string    `json:"source_code,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID            string    `json:"id"`
+	Email         string    `json:"email"`
+	DisplayName   string    `json:"display_name"`
+	Locale        string    `json:"locale"`
+	Status        string    `json:"status"`
+	ChannelOrgID  string    `json:"channel_org_id,omitempty"`
+	BrandID       string    `json:"brand_id,omitempty"`
+	Roles         []string  `json:"roles,omitempty"`
+	SourceCode    string    `json:"source_code,omitempty"`
+	CanCommission bool      `json:"can_commission"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type BrandView struct {

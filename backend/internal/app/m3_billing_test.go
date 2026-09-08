@@ -15,6 +15,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
@@ -137,13 +138,30 @@ func TestM3BillingInvariants(t *testing.T) {
 	if afterBal == beforeBal {
 		t.Fatal("refund should credit wallet")
 	}
-	comms, err := application.Billing.ListCommissions(ctx, usageID)
+	regComm := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "bill-comm-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": identity.PromoKOL2B,
+	})
+	sessionComm := tokenOf(regComm)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", sessionComm, map[string]any{"code": billing.RedeemE2E})
+	keyComm := postJSONRaw(t, server.URL+"/v1/me/api-keys", sessionComm, map[string]any{"name": "m3-comm"})["item"].(map[string]any)["key"].(string)
+	chatComm := postEchoUsage(t, server.URL+"/v1/chat/completions", keyComm, "m3-comm")
+	usageComm := getAuthJSON(t, server.URL+"/v1/me/usage", sessionComm)["items"].([]any)[0].(map[string]any)["id"].(string)
+	accrued, err := application.Commission.ListEntries(ctx, "", nil, usageComm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(accrued) == 0 {
+		t.Fatalf("THB-KOL2 usage should accrue two-hop commission, got %+v", accrued)
+	}
+	_ = postJSONRaw(t, server.URL+"/admin/refunds", "m3_admin", map[string]any{"request_id": chatComm["request_id"]})
+	comms, err := application.Commission.ListEntries(ctx, "", nil, usageComm)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sawReverse := false
 	for _, item := range comms {
-		if item.Status == billing.CommissionReversed {
+		if item.Status == commission.StatusReversed {
 			sawReverse = true
 		}
 	}

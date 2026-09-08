@@ -155,7 +155,7 @@ func TestM1IdentityIsolation(t *testing.T) {
 	kols := getAuthJSON(t, server.URL+"/admin/acquisition-roles?type=kol", "m1_admin_token")
 	for _, raw := range kols["items"].([]any) {
 		typ := raw.(map[string]any)["type"]
-		if typ != identity.AcqKOL1 && typ != identity.AcqKOL2 {
+		if typ != identity.AcqPromoter && typ != identity.AcqKOL1 && typ != identity.AcqKOL2 {
 			t.Fatalf("type=kol leaked: %+v", raw)
 		}
 	}

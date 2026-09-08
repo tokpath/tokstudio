@@ -1,7 +1,9 @@
 package app_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -58,9 +60,7 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("quota should record issued allocation: %+v", quotaIssued)
 	}
 	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "m6"})["item"].(map[string]any)["key"].(string)
-	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
-		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "kol2-usage"}},
-	})
+	chat := postEchoUsage(t, server.URL+"/v1/chat/completions", apiKey, "kol2-usage")
 	quotaAfterChat := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
 	if asInt(quotaAfterChat["available_minor"]) != asInt(quotaIssued["available_minor"]) {
 		t.Fatalf("chat must not deduct channel available again: issued=%v after=%v", quotaIssued, quotaAfterChat)
@@ -86,6 +86,9 @@ func TestM6CommissionDistribution(t *testing.T) {
 	}
 	if !kinds[commission.KindDirect] || !kinds[commission.KindIndirect] {
 		t.Fatalf("expected direct+indirect splits, got %+v", entries)
+	}
+	if kinds[commission.KindOverride] || kinds[commission.KindChannel] || kinds[commission.KindTeam] {
+		t.Fatalf("old four-bucket kinds must not appear: %+v", entries)
 	}
 
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/users", "", nil) != http.StatusForbidden {
@@ -177,9 +180,7 @@ func TestM6CommissionDistribution(t *testing.T) {
 	s2 := tokenOf(reg2)
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", s2, map[string]any{"code": billing.RedeemE2E})
 	k2 := postJSONRaw(t, server.URL+"/v1/me/api-keys", s2, map[string]any{"name": "m6b"})["item"].(map[string]any)["key"].(string)
-	_ = postJSONRaw(t, server.URL+"/v1/chat/completions", k2, map[string]any{
-		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "settle-me"}},
-	})
+	_ = postEchoUsage(t, server.URL+"/v1/chat/completions", k2, "settle-me")
 	u2 := getAuthJSON(t, server.URL+"/v1/me/usage", s2)["items"].([]any)[0].(map[string]any)["id"].(string)
 	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]string{"usage_event_id": u2}) != http.StatusConflict {
 		t.Fatal("unfreeze without confirm must be 409")
@@ -229,7 +230,7 @@ func TestM6CommissionDistribution(t *testing.T) {
 	if asInt(policy["direct_bps"]) != commission.DefaultDirect {
 		t.Fatalf("default policy: %+v", policy)
 	}
-	noConfirm, _ := http.NewRequest(http.MethodPatch, server.URL+"/admin/commission-policy", strings.NewReader(`{"direct_bps":1600,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000}`))
+	noConfirm, _ := http.NewRequest(http.MethodPatch, server.URL+"/admin/commission-policy", strings.NewReader(`{"direct_bps":1600,"indirect_bps":500,"total_bps":2000,"freeze_days":7,"min_settle_minor":1000000}`))
 	noConfirm.Header.Set("Authorization", "Bearer m6_admin")
 	noConfirm.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(noConfirm)
@@ -241,16 +242,14 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("policy patch without confirm should 409, got %d", resp.StatusCode)
 	}
 	updated := patchJSONRaw(t, server.URL+"/admin/commission-policy", "m6_admin", map[string]any{
-		"direct_bps": 1600, "override_bps": 500, "channel_bps": 500, "team_bps": 0,
-		"cap_bps": 3500, "freeze_days": 7, "min_settle_minor": 1_000_000, "version": "m6-v1-e2e",
+		"direct_bps": 1600, "indirect_bps": 500, "total_bps": 2500, "freeze_days": 7, "min_settle_minor": 1_000_000, "version": "m6-v1-e2e",
 	})
 	if asInt(updated["policy"].(map[string]any)["direct_bps"]) != 1600 {
 		t.Fatalf("policy patch: %+v", updated)
 	}
 	_ = patchJSONRaw(t, server.URL+"/admin/commission-policy", "m6_admin", map[string]any{
-		"direct_bps": commission.DefaultDirect, "override_bps": commission.DefaultOver,
-		"channel_bps": commission.DefaultChan, "team_bps": commission.DefaultTeam,
-		"cap_bps": commission.DefaultCap, "freeze_days": commission.FreezeDays,
+		"direct_bps": commission.DefaultDirect, "indirect_bps": commission.DefaultIndirect,
+		"total_bps": commission.DefaultTotal, "freeze_days": commission.FreezeDays,
 		"min_settle_minor": billing.MinorPerUSD, "version": commission.PolicyM6,
 	})
 
@@ -261,9 +260,7 @@ func TestM6CommissionDistribution(t *testing.T) {
 	holdSession := tokenOf(regHold)
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", holdSession, map[string]any{"code": billing.RedeemE2E})
 	holdKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", holdSession, map[string]any{"name": "hold"})["item"].(map[string]any)["key"].(string)
-	_ = postJSONRaw(t, server.URL+"/v1/chat/completions", holdKey, map[string]any{
-		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hold-me"}},
-	})
+	_ = postEchoUsage(t, server.URL+"/v1/chat/completions", holdKey, "hold-me")
 	holdUsage := getAuthJSON(t, server.URL+"/v1/me/usage", holdSession)["items"].([]any)[0].(map[string]any)["id"].(string)
 	holdUser := getAuthJSON(t, server.URL+"/v1/me", holdSession)["user"].(map[string]any)["id"].(string)
 	held, err := application.Commission.HoldUnsettledForUser(ctx, holdUser)
@@ -400,4 +397,28 @@ func TestD82QuotaRatio(t *testing.T) {
 	if asInt(plainAfter["available_minor"]) != asInt(plainBefore["available_minor"])-10*billing.MinorPerUSD {
 		t.Fatalf("unset rule must stay 1:1: before=%v after=%v", plainBefore, plainAfter)
 	}
+}
+
+// postEchoUsage 用 content 沙箱把批发价抬过间接档整数除法门槛（默认 500 BPS）。
+func postEchoUsage(t *testing.T, url, token, content string) map[string]any {
+	t.Helper()
+	payload := map[string]any{
+		"model":    catalog.EchoModelID,
+		"messages": []map[string]string{{"role": "user", "content": content + strings.Repeat("x", 48)}},
+	}
+	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Tokenhub-Sandbox-Mode", "content")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	if resp.StatusCode >= 300 {
+		t.Fatalf("POST %s %d %v", url, resp.StatusCode, out)
+	}
+	return out
 }

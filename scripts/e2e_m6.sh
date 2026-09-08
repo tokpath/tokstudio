@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# M6 端到端：代理层级归因、佣金冻结/冲正、渠道额度不超发、分销脱敏。
+# M6 端到端：归因、两跳佣金冻结/冲正、渠道额度不超发、分销脱敏。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -85,9 +85,10 @@ fi
 key="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
   "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"e2e"}')")"
 
-echo "== usage accrues frozen hierarchy"
+echo "== usage accrues frozen direct+indirect"
 chat="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m6"}]}')"
+  -H 'X-Tokenhub-Sandbox-Mode: content' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"m6-indirect-xxxxxxxxxxxxxxxxxxxxxxxx"}]}')"
 echo "$chat" | grep -q request_id
 q2="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"
 avail2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['quota']['available_minor'])" "$q2")"
@@ -99,9 +100,12 @@ curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/channel/allocations?c
 usage="$(curl -sf -H "Authorization: Bearer $session" "$API_URL/v1/me/usage")"
 uid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" "$usage")"
 comms="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commissions?usage_event_id=$uid")"
-echo "$comms" | grep -q direct
-echo "$comms" | grep -q override
-echo "$comms" | grep -q channel
+echo "$comms" | grep -q '"kind":"direct"'
+echo "$comms" | grep -q '"kind":"indirect"'
+if echo "$comms" | grep -q '"kind":"override"' || echo "$comms" | grep -q '"kind":"channel"'; then
+  echo "old four-bucket kinds must not appear: $comms" >&2
+  exit 1
+fi
 echo "$comms" | grep -q frozen
 
 echo "== agent scope is masked and isolated"
@@ -153,7 +157,8 @@ curl -sf -X POST "$API_URL/v1/topups/redeem" -H "Authorization: Bearer $s2" -H '
 k2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['key'])" \
   "$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $s2" -H 'Content-Type: application/json' -d '{"name":"e2e2"}')")"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $k2" -H 'Content-Type: application/json' \
-  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"settle"}]}' >/dev/null
+  -H 'X-Tokenhub-Sandbox-Mode: content' \
+  -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"settle-xxxxxxxxxxxxxxxxxxxxxxxx"}]}' >/dev/null
 u2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" \
   "$(curl -sf -H "Authorization: Bearer $s2" "$API_URL/v1/me/usage")")"
 curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
@@ -185,11 +190,11 @@ echo "== commission policy"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commission-policy" | grep -q direct_bps
 code="$(curl -s -o /tmp/m6-policy.json -w '%{http_code}' -X PATCH "$API_URL/admin/commission-policy" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"direct_bps":1600,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000}')"
+  -d '{"direct_bps":1600,"indirect_bps":500,"total_bps":2000,"freeze_days":7,"min_settle_minor":1000000}')"
 if [[ "$code" != "409" ]]; then echo "policy without confirm should 409, got $code $(cat /tmp/m6-policy.json)" >&2; exit 1; fi
 curl -sf -X PATCH "$API_URL/admin/commission-policy" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d '{"direct_bps":1500,"override_bps":500,"channel_bps":500,"team_bps":0,"cap_bps":3500,"freeze_days":7,"min_settle_minor":1000000,"version":"m6-v1"}' \
+  -d '{"direct_bps":1500,"indirect_bps":500,"total_bps":2000,"freeze_days":7,"min_settle_minor":1000000,"version":"m6-v1"}' \
   | grep -q '"direct_bps":1500'
 
 echo "== D8.2 configurable issue ratio"

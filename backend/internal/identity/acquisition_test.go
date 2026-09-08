@@ -7,7 +7,7 @@ func TestAcqTypeFilter(t *testing.T) {
 		t.Fatalf("empty filter must be nil, got %#v", got)
 	}
 	kol := AcqTypeFilter("kol")
-	if len(kol) != 2 || kol[0] != AcqKOL1 || kol[1] != AcqKOL2 {
+	if len(kol) != 3 || kol[0] != AcqKOL1 || kol[1] != AcqKOL2 || kol[2] != AcqPromoter {
 		t.Fatalf("kol filter: %#v", kol)
 	}
 	agent := AcqTypeFilter("agent")

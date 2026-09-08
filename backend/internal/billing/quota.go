@@ -209,9 +209,15 @@ func (s *Service) SetIssueRule(ctx context.Context, channelOrgID string, bps int
 
 // issueAllocation 在 B/C 用户充值入账后按渠道换算比发放服务额度，并从渠道 available 扣减发放额。
 // 无规则时默认 1:1。官方渠道跳过。同一 source（一笔 topup）只发放一次。
-func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID string, amount int64) error {
+func (s *Service) issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID string, amount int64) error {
 	if skipChannelQuota(channelOrgID) || amount <= 0 || userID == "" {
 		return nil
+	}
+	poolID := channelOrgID
+	if s.pool != nil {
+		if p, err := s.pool.ResolvePoolChannelID(context.Background(), channelOrgID); err == nil && p != "" {
+			poolID = p
+		}
 	}
 	var existing allocationRow
 	if err := tx.Where("source_type = ? AND source_id = ?", sourceType, sourceID).First(&existing).Error; err == nil {
@@ -219,13 +225,13 @@ func issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType, sourceID str
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	grant, err := ConvertQuota(amount, loadIssueRatioBPS(tx, channelOrgID))
+	grant, err := ConvertQuota(amount, loadIssueRatioBPS(tx, poolID))
 	if err != nil {
 		return err
 	}
 	var quota quotaRow
 	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", channelOrgID, "usd_credit").
+		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", poolID, "usd_credit").
 		First(&quota).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

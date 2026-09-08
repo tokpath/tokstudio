@@ -83,6 +83,9 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 }
 
 func (s *Service) accrueCommission(tx *gorm.DB, usage usageRow) error {
+	if s.commissioner != nil {
+		return s.commissioner.AccrueUsage(context.Background(), usage.ID, usage.RequestID, usage.UserID, stringPtr(usage.ChannelOrgID), usage.WholesaleAmountMinor)
+	}
 	var frozen commissionRow
 	if err := tx.Where("usage_event_id = ? AND status = ?", usage.ID, CommissionFrozen).First(&frozen).Error; err == nil {
 		return nil
@@ -99,13 +102,7 @@ func (s *Service) accrueCommission(tx *gorm.DB, usage usageRow) error {
 		Status: CommissionFrozen, IdempotencyKey: key,
 		CreatedAt: time.Now().UTC(), ChannelOrgID: usage.ChannelOrgID,
 	}
-	if err := tx.Create(&row).Error; err != nil {
-		return err
-	}
-	if s.commissioner != nil {
-		_ = s.commissioner.AccrueUsage(context.Background(), usage.ID, usage.RequestID, usage.UserID, stringPtr(usage.ChannelOrgID), usage.WholesaleAmountMinor)
-	}
-	return nil
+	return tx.Create(&row).Error
 }
 
 func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
@@ -153,6 +150,10 @@ func (s *Service) RecalcCommission(ctx context.Context, usageEventID string) (*C
 		}
 		if err := s.accrueCommission(tx, usage); err != nil {
 			return err
+		}
+		if s.commissioner != nil {
+			view = &CommissionView{UsageEventID: usage.ID, Status: CommissionFrozen, PolicyVersion: CommissionPolicyM3}
+			return nil
 		}
 		var row commissionRow
 		if err := tx.Where("usage_event_id = ? AND status = ?", usage.ID, CommissionFrozen).Order("created_at DESC").First(&row).Error; err != nil {

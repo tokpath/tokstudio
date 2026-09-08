@@ -73,6 +73,11 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 		if err := bindAcquisition(tx, "kol2.b@tokenhub.local", KOL2BRoleID); err != nil {
 			return err
 		}
+		for _, email := range []string{"agent.b@tokenhub.local", "kol1.b@tokenhub.local", "kol2.b@tokenhub.local"} {
+			if err := tx.Model(&userRow{}).Where("email = ?", email).Update("can_commission", true).Error; err != nil {
+				return err
+			}
+		}
 		return upsertBootUser(tx, "user@tokenhub.local", "end_user", userToken, "thusr_", OfficialChannelID, OfficialBrandID, "channel", OfficialChannelID)
 	})
 }

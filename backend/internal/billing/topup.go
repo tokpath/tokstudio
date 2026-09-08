@@ -65,7 +65,7 @@ func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string)
 		if row.ChannelOrgID != nil {
 			channelID = *row.ChannelOrgID
 		}
-		if err := issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
+		if err := s.issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
 			return err
 		}
 		row.Status = TopupPaid
@@ -112,7 +112,7 @@ func (s *Service) Redeem(ctx context.Context, userID, channelOrgID, code string)
 		if err := creditWallet(tx, userID, redeem.AmountMinor, EventTopup, "topup", row.ID, "redeem:"+row.ID); err != nil {
 			return err
 		}
-		if err := issueAllocation(tx, userID, channelOrgID, "topup", row.ID, redeem.AmountMinor); err != nil {
+		if err := s.issueAllocation(tx, userID, channelOrgID, "topup", row.ID, redeem.AmountMinor); err != nil {
 			return err
 		}
 		redeem.RedeemedCount++

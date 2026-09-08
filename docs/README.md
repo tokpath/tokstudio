@@ -4,9 +4,9 @@
 
 1. [调研与产品结论](00-TokenHub调研与产品结论.md)：外部产品调研、竞品能力和设计结论。
 2. [统一产品需求文档](01-TokenHub统一产品需求文档.md)：全平台最终 PRD，定义 P0/P1 范围和业务规则。
-3. [分销与代理商需求](02-分销与代理商需求.md)：A/B/C、代理商、KOL、归因和佣金细则。
+3. [渠道与分销规则](15-渠道与分销规则.md)：A/B/C 渠道树、两级分佣、积分与营销账户、冲正。替代已删除的旧 `02`。
 4. [账务与技术模型](03-账务与技术模型.md)：价格、钱包、预授权、usage 和账务原则。
-5. [逐项讨论清单](04-TokenHub逐项讨论清单.md)：D1-D38 的拍板记录，作为决策日志。
+5. [逐项讨论清单](04-TokenHub逐项讨论清单.md)：D1-D38 的拍板记录；分销以 D39 / `docs/15` 为准。
 6. [P0 数据模型与状态机](05-TokenHub-P0数据模型与状态机.md)：数据库实体、账务不变量和状态机。
 7. [P0 OpenAPI 契约](06-TokenHub-P0-OpenAPI契约.md)：对外 API、错误码、幂等和管理 API 骨架。
 8. [Bifrost 集成边界](07-TokenHub-Bifrost集成边界与架构建议.md)：TokenHub 控制面、Bifrost 数据面和 Dapr 兼容事件边界。
@@ -23,11 +23,11 @@
 
 ## 决策状态
 
-D1-D38 已确认。当前已锁定：
+D1–D39 已确认。当前已锁定：
 
 - P0：OpenAI Chat/Responses、Anthropic Messages、Google Gemini、Seedance 视频/图像媒体；
 - P0：Stripe、支付宝、微信支付、人工入账/兑换码；
-- P0：A/B/C/OEM、两级 KOL、套餐/订阅/赠送额度/自动续费；
+- P0：A/B/C 渠道树、代理商与个人推广员、两级分佣、套餐/订阅/赠送额度/自动续费；
 - 架构：Go + Gin + PostgreSQL/GORM + Redis + Outbox Worker + S3 + React/Next.js；zerolog、Viper、Prometheus、Grafana、OpenTelemetry；
 - Bifrost：嵌入 API 进程的 Go SDK，TokenHub 保留业务控制面和账务事实源；
 - 演进：单节点容器 -> Kubernetes + Dapr；
@@ -36,4 +36,4 @@ D1-D38 已确认。当前已锁定：
 
 ## 文档清理说明
 
-旧版分销 Markdown/Word 文档中的有效内容已归并到 `01`、`02`、`03` 和 `04`；旧版文件不再作为项目文档维护。
+旧版 `02-分销与代理商需求.md` 已删除；现行渠道规则见 `15-渠道与分销规则.md`。

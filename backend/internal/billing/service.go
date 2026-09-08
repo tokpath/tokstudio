@@ -25,6 +25,7 @@ type Service struct {
 	outbox       *outbox.Service
 	coverer      EntitlementCoverer
 	commissioner Commissioner
+	pool         ChannelPool
 }
 
 func (s *Service) SetCoverer(c EntitlementCoverer) {
@@ -33,6 +34,10 @@ func (s *Service) SetCoverer(c EntitlementCoverer) {
 
 func (s *Service) SetCommissioner(c Commissioner) {
 	s.commissioner = c
+}
+
+func (s *Service) SetPool(p ChannelPool) {
+	s.pool = p
 }
 
 // Credit 是支付模块入账现金钱包的公开入口，不暴露内部表。

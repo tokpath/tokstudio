@@ -209,7 +209,7 @@ type ChannelInput struct {
 }
 
 func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in ChannelInput) (*ChannelView, error) {
-	if !viewer.IsPlatformAdmin() {
+	if !viewer.IsPlatformAdmin() && !viewer.HasRole("channel_admin") {
 		return nil, ErrChannelImmutable
 	}
 	in.Code = strings.TrimSpace(in.Code)
@@ -222,15 +222,58 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 	if in.BrandID == "" {
 		in.BrandID = OfficialBrandID
 	}
-	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC()}
-	if in.ParentID != "" {
-		row.ParentID = &in.ParentID
+	parentID := strings.TrimSpace(in.ParentID)
+	if viewer.HasRole("channel_admin") && !viewer.IsPlatformAdmin() {
+		parentID = viewer.ChannelOrgID
+		in.Type = ChannelTypeB
+	}
+	if parentID == "" {
+		parentID = OfficialChannelID
+	}
+	parent, err := s.lookupChannel(ctx, parentID)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateChannelParent(parent.Type, in.Type); err != nil {
+		return nil, err
+	}
+	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC(), ParentID: &parentID}
+	if in.Type == ChannelTypeC {
+		// C 可后续配自有品牌；默认仍用传入 brand。
 	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return nil, err
 	}
 	view := channelViewFrom(row)
 	return &view, nil
+}
+
+func (s *Service) lookupChannel(ctx context.Context, channelID string) (channelRow, error) {
+	var row channelRow
+	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
+		return channelRow{}, mapNotFound(err)
+	}
+	return row, nil
+}
+
+func (s *Service) ResolvePoolChannelID(ctx context.Context, channelID string) (string, error) {
+	if channelID == "" {
+		return "", nil
+	}
+	row, err := s.lookupChannel(ctx, channelID)
+	if err != nil {
+		return "", err
+	}
+	parentType := ""
+	parentID := ""
+	if row.ParentID != nil && *row.ParentID != "" {
+		parent, err := s.lookupChannel(ctx, *row.ParentID)
+		if err == nil {
+			parentType = parent.Type
+			parentID = parent.ID
+		}
+	}
+	return PoolChannelID(row.Type, row.ID, parentID, parentType), nil
 }
 
 func (s *Service) GetChannel(ctx context.Context, viewer Principal, channelID string) (*ChannelView, error) {

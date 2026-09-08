@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	AcqAgent = "agent"
-	AcqKOL1  = "kol_l1"
-	AcqKOL2  = "kol_l2"
+	AcqAgent    = "agent"
+	AcqKOL1     = "kol_l1"
+	AcqPromoter = "promoter"
+	AcqKOL2     = "kol_l2"
 
 	AgentBRoleID = "acr_b_agent"
 	KOL1BRoleID  = "acr_b_kol1"
@@ -81,7 +82,7 @@ func (s *Service) CreateAcquisitionRole(ctx context.Context, channelID, typ, par
 		return nil, ErrPromotionInvalid
 	}
 	level := acqLevel(typ)
-	if typ != AcqAgent && parentID == "" {
+	if typ != AcqAgent && typ != AcqPromoter && parentID == "" {
 		return nil, ErrPromotionInvalid
 	}
 	if typ == AcqKOL2 && parentID != "" {
@@ -375,7 +376,7 @@ func MaskEmail(email string) string {
 }
 
 func validAcqType(t string) bool {
-	return t == AcqAgent || t == AcqKOL1 || t == AcqKOL2
+	return t == AcqAgent || t == AcqKOL1 || t == AcqKOL2 || t == AcqPromoter
 }
 
 // AcqTypeFilter 把列表类型收成 SQL type 条件。空表示不过滤；kol 覆盖 1 级和 2 级。
@@ -384,7 +385,7 @@ func AcqTypeFilter(listType string) []string {
 	case "":
 		return nil
 	case "kol":
-		return []string{AcqKOL1, AcqKOL2}
+		return []string{AcqKOL1, AcqKOL2, AcqPromoter}
 	default:
 		return []string{listType}
 	}
@@ -392,13 +393,58 @@ func AcqTypeFilter(listType string) []string {
 
 func acqLevel(t string) int {
 	switch t {
-	case AcqKOL1:
+	case AcqKOL1, AcqPromoter:
 		return 1
 	case AcqKOL2:
 		return 2
 	default:
 		return 0
 	}
+}
+
+func (s *Service) ensureUserPromo(ctx context.Context, userID, channelID string, parentRole *string) error {
+	if userID == "" || channelID == "" {
+		return nil
+	}
+	parent := ""
+	if parentRole != nil {
+		parent = *parentRole
+	}
+	role, err := s.CreateAcquisitionRole(ctx, channelID, AcqPromoter, parent)
+	if err != nil {
+		return err
+	}
+	code := "THU" + strings.ToUpper(strings.ReplaceAll(role.ID, "acr_", ""))
+	if len(code) > 16 {
+		code = code[:16]
+	}
+	_, err = s.CreatePromotionCode(ctx, channelID, role.ID, code)
+	if err != nil {
+		return err
+	}
+	return s.BindRoleMember(ctx, userID, role.ID)
+}
+
+func (s *Service) RoleAllowsCommission(ctx context.Context, roleID string) bool {
+	if roleID == "" {
+		return false
+	}
+	var mem roleMemberRow
+	if err := s.db.WithContext(ctx).Where("acquisition_role_id = ?", roleID).First(&mem).Error; err != nil {
+		return false
+	}
+	var user userRow
+	if err := s.db.WithContext(ctx).Where("id = ?", mem.UserID).First(&user).Error; err != nil {
+		return false
+	}
+	return user.CanCommission
+}
+
+func (s *Service) SetCommissionEligible(ctx context.Context, userID string, eligible bool) error {
+	if userID == "" {
+		return ErrNotFound
+	}
+	return s.db.WithContext(ctx).Model(&userRow{}).Where("id = ?", userID).Update("can_commission", eligible).Error
 }
 
 func acqView(row acquisitionRow) *AcquisitionRoleView {

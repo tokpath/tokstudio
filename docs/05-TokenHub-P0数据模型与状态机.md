@@ -23,11 +23,11 @@
 | `role` | `id`, `code` | `platform_admin`, `finance_admin`, `ops_admin`, `tech_admin`, `channel_admin`, `audit_readonly`, `end_user` |
 | `user_role` | `user_id`, `role_id`, `scope_type`, `scope_id` | 管理角色按平台/渠道范围授权。路由放行由 Casbin 策略（`identity/casbin_policy.go`）判定，不另建 permission 表 |
 | `channel_org` | `id`, `code`, `type`, `parent_id`, `status`, `brand_id` | A 官方、B 分销、C OEM；支持渠道层级；`disabled` 冻结新消费（聊天/媒体 403），余额和历史保留 |
-| `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、1/2 级 KOL |
+| `acquisition_role` | `id`, `channel_org_id`, `type`, `parent_id`, `level`, `status` | 代理商、个人推广员（历史种子可仍为 `kol_l1`/`kol_l2`） |
 | `acquisition_attribution` | `user_id`, `channel_org_id`, `acquisition_role_id`, `source_code`, `attributed_at` | 唯一归因，注册完成后固化 |
-| `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/KOL 主体绑定 |
+| `role_member` | `user_id`, `acquisition_role_id` | 登录用户与代理商/推广员主体绑定 |
 
-P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级固定为 agent → kol_l1 → kol_l2。管理员 TOTP 物理表为 `identity_admin_totp`（密钥密文，`pending`/`enabled`）；未启用前敏感操作只要求二次确认，启用后还要 `X-Tokenhub-TOTP`。
+P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级为 agent（代理商）与 promoter（个人推广员，含历史 `kol_l1`/`kol_l2` 种子）。计佣两跳。用户有 `can_commission`。详见 `docs/15`。
 
 功能权限由 Casbin 执行：请求是 `(角色, 路径, HTTP 方法)`，策略在 `backend/internal/identity/casbin_policy.go`，默认拒绝。数据隔离（本渠道、推广下线、自己的资源）仍在 handler 里按 scope 过滤，不放进 Casbin。前端继续读 `/v1/me` 的 `roles` 做门户跳转，不必接 casbin.js。
 | `brand` | `id`, `name`, `logo_url`, `logo_dark_url`, `favicon_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
@@ -76,7 +76,7 @@ P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`�
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
 | `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/held/available/paid/reversed；封禁把未结算标 `held` |
 
-P0 佣金明细由独立 `commission` 模块拥有：`commission_policies`、`commission_entries`、`commission_settlements`、`commission_payouts`。默认 7 天冻结、35% 单笔上限、按团队→渠道→管理奖励→直接佣金缩减。billing 只通过 `AccrueUsage`/`ReverseUsage` 接口通知，不直连佣金表。
+P0 佣金明细由独立 `commission` 模块拥有。分成仅 **direct / indirect**，总比例封顶；无推广角色不计佣。营销支出另记渠道营销流水（负，冻结/已发放）。默认 7 天冻结。billing 只通过 `AccrueUsage`/`ReverseUsage` 通知。详见 `docs/15`。
 
 P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前缀（如 `billing_wallets`、`billing_usage_events`、`billing_quota_allocations`、`billing_quota_issue_rules`）。金额使用 micro-USD（`1 USD = 1_000_000`）。其他模块只能通过账务服务接口读写，禁止直连表。
 
@@ -84,7 +84,7 @@ P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前
 |---|---|---|
 | `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按渠道配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；B/C 代理商不能改 |
 
-B/C 额度发放：用户充值入账后按渠道 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从渠道 `billing_quota_accounts.available_minor` 扣减发放额（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。代理商实际充值、平台授予额度、用户充值、用户额度、终端消费、渠道批发成本和佣金基数分别记账。
+B/C 额度发放：用户充值入账后按**积分池所属渠道**（C 下的 B 跟 C）的 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从该池 `billing_quota_accounts.available_minor` 扣减发放额（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。代理商实际充值、平台授予额度、用户充值、用户额度、终端消费、渠道批发成本和佣金基数分别记账。现行产品口径见 `docs/15`。
 
 ### 2.5 媒体任务与审计
 

@@ -270,6 +270,7 @@ func channelRules() []policyRule {
 		"/admin/plans",
 		"/admin/acquisition-roles",
 		"/admin/promotion-codes",
+		"/admin/channels",
 	)...)
 	out = append(out, grant("/admin/acquisition-roles/:id", "PATCH", roles...)...)
 	return out

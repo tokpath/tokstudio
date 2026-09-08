@@ -29,6 +29,7 @@ type userRow struct {
 	Locale          string     `gorm:"column:locale"`
 	EmailVerifiedAt *time.Time `gorm:"column:email_verified_at"`
 	GoogleSub       *string    `gorm:"column:google_sub"`
+	CanCommission    bool       `gorm:"column:can_commission"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }

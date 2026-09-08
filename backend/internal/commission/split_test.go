@@ -1,43 +1,51 @@
 package commission
 
-import (
-	"testing"
-
-	"github.com/tokpath/tokstudio/backend/internal/billing"
-)
+import "testing"
 
 func TestSplitRespectsCapAndHierarchy(t *testing.T) {
 	policy := &PolicyView{
-		DirectBPS: 2000, OverrideBPS: 1000, ChannelBPS: 1000, TeamBPS: 500, CapBPS: 3500,
+		DirectBPS: 1500, IndirectBPS: 800, TotalBPS: 2000, CapBPS: 2000,
 	}
 	parts := splitCommission(AccrueInput{
-		WholesaleMinor: 10_000, RoleID: "kol2", RoleType: "kol_l2", ParentRoleID: "kol1",
+		WholesaleMinor: 10_000, RoleID: "promoter", ParentRoleID: "agent",
 	}, policy)
 	var total int64
+	kinds := map[string]int64{}
 	for _, p := range parts {
 		total += p.Amount
+		kinds[p.Kind] = p.Amount
 	}
-	if total > 3500 {
+	if total > 2000 {
 		t.Fatalf("cap exceeded: %d", total)
 	}
-	if parts[0].Kind != KindTeam || parts[0].Amount != 0 {
-		t.Fatalf("team should shrink first: %+v", parts[0])
+	if kinds[KindDirect] != 1500 {
+		t.Fatalf("direct: %+v", parts)
+	}
+	if kinds[KindIndirect] != 500 {
+		t.Fatalf("indirect should shrink to cap remainder: %+v", parts)
+	}
+
+	onlyDirect := splitCommission(AccrueInput{
+		WholesaleMinor: 10_000, RoleID: "promoter",
+	}, policy)
+	if len(onlyDirect) != 1 || onlyDirect[0].Kind != KindDirect || onlyDirect[0].Amount != 1500 {
+		t.Fatalf("no parent should be direct only: %+v", onlyDirect)
 	}
 
 	noRole := splitCommission(AccrueInput{WholesaleMinor: 10_000}, policy)
-	if noRole[1].Amount != 10_000*int64(billing.CommissionRateBPS)/10000 {
-		t.Fatalf("no-role should keep M3 10 percent channel: %+v", noRole)
+	if len(noRole) != 0 {
+		t.Fatalf("no referrer should not accrue: %+v", noRole)
 	}
 }
 
 func TestValidatePolicyRejectsOverCap(t *testing.T) {
-	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 500, ChannelBPS: 500, CapBPS: 3500, FreezeDays: 7}); err != nil {
+	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 500, CapBPS: 3500, FreezeDays: 7}); err != nil {
 		t.Fatalf("valid policy: %v", err)
 	}
-	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 1000, ChannelBPS: 1000, CapBPS: 3500}); err != nil {
+	if err := validatePolicy(PolicyView{DirectBPS: 1500, OverrideBPS: 1000, CapBPS: 3500}); err != nil {
 		t.Fatal("3500 cap equals the sum")
 	}
-	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 2000, ChannelBPS: 2000, CapBPS: 3500}); err != ErrInvalid {
+	if err := validatePolicy(PolicyView{DirectBPS: 2000, OverrideBPS: 2000, CapBPS: 3500}); err != ErrInvalid {
 		t.Fatalf("sum over cap should be invalid, got %v", err)
 	}
 	if err := validatePolicy(PolicyView{DirectBPS: -1, CapBPS: 3500}); err != ErrInvalid {

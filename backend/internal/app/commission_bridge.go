@@ -27,6 +27,12 @@ func (b *commissionBridge) AccrueUsage(ctx context.Context, usageEventID, reques
 			}
 		}
 	}
+	in.CanCommission = b.identity.RoleAllowsCommission(ctx, in.RoleID)
+	if in.ChannelOrgID != "" {
+		if pool, err := b.identity.ResolvePoolChannelID(ctx, in.ChannelOrgID); err == nil && pool != "" {
+			in.ChannelOrgID = pool
+		}
+	}
 	_, err := b.comm.Accrue(ctx, in)
 	return err
 }

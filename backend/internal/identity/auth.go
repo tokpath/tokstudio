@@ -118,6 +118,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 	}); err != nil {
 		return nil, err
 	}
+	_ = s.ensureUserPromo(ctx, user.ID, resolved.ChannelID, resolved.AcquisitionRoleID)
 	return s.issueSession(ctx, user)
 }
 

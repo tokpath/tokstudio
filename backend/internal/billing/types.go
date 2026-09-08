@@ -25,6 +25,10 @@ type Commissioner interface {
 	ReverseUsage(ctx context.Context, usageEventID string) error
 }
 
+type ChannelPool interface {
+	ResolvePoolChannelID(ctx context.Context, channelID string) (string, error)
+}
+
 // EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
 type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)

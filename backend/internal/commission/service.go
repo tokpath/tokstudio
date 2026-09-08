@@ -3,6 +3,7 @@ package commission
 import (
 	"context"
 	"embed"
+	"errors"
 	"io/fs"
 	"time"
 
@@ -22,10 +23,12 @@ type policyRow struct {
 	ScopeID        string    `gorm:"column:scope_id"`
 	Version        string    `gorm:"column:version"`
 	DirectBPS      int       `gorm:"column:direct_bps"`
+	IndirectBPS    int       `gorm:"column:indirect_bps"`
 	OverrideBPS    int       `gorm:"column:override_bps"`
 	ChannelBPS     int       `gorm:"column:channel_bps"`
 	TeamBPS        int       `gorm:"column:team_bps"`
 	CapBPS         int       `gorm:"column:cap_bps"`
+	TotalBPS       int       `gorm:"column:total_bps"`
 	FreezeDays     int       `gorm:"column:freeze_days"`
 	MinSettleMinor int64     `gorm:"column:min_settle_minor"`
 	Status         string    `gorm:"column:status"`
@@ -103,16 +106,31 @@ func Migrations() (string, fs.FS) {
 func (s *Service) Seed(ctx context.Context) error {
 	row := policyRow{
 		ID: "plc_m6_default", ScopeType: "platform", ScopeID: "*", Version: PolicyM6,
-		DirectBPS: DefaultDirect, OverrideBPS: DefaultOver, ChannelBPS: DefaultChan, TeamBPS: DefaultTeam,
-		CapBPS: DefaultCap, FreezeDays: FreezeDays, MinSettleMinor: billing.MinorPerUSD, Status: "active",
+		DirectBPS: DefaultDirect, IndirectBPS: DefaultIndirect, OverrideBPS: DefaultOver, ChannelBPS: DefaultChan, TeamBPS: DefaultTeam,
+		CapBPS: DefaultCap, TotalBPS: DefaultTotal, FreezeDays: FreezeDays, MinSettleMinor: billing.MinorPerUSD, Status: "active",
 		CreatedAt: time.Now().UTC(),
 	}
 	return s.db.WithContext(ctx).Where("id = ?", row.ID).FirstOrCreate(&row).Error
 }
 
 func (s *Service) ActivePolicy(ctx context.Context) (*PolicyView, error) {
+	return s.PolicyFor(ctx, "")
+}
+
+func (s *Service) PolicyFor(ctx context.Context, channelID string) (*PolicyView, error) {
 	var row policyRow
-	if err := s.db.WithContext(ctx).Where("status = ?", "active").Order("created_at DESC").First(&row).Error; err != nil {
+	if channelID != "" {
+		err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "channel", channelID).
+			Order("created_at DESC").First(&row).Error
+		if err == nil {
+			return policyView(row), nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	}
+	if err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "platform", "*").
+		Order("created_at DESC").First(&row).Error; err != nil {
 		return nil, ErrNotFound
 	}
 	return policyView(row), nil
@@ -120,17 +138,25 @@ func (s *Service) ActivePolicy(ctx context.Context) (*PolicyView, error) {
 
 func policyView(row policyRow) *PolicyView {
 	return &PolicyView{
-		ID: row.ID, Version: row.Version, DirectBPS: row.DirectBPS, OverrideBPS: row.OverrideBPS,
-		ChannelBPS: row.ChannelBPS, TeamBPS: row.TeamBPS, CapBPS: row.CapBPS,
+		ID: row.ID, Version: row.Version, DirectBPS: row.DirectBPS, IndirectBPS: row.IndirectBPS, OverrideBPS: row.OverrideBPS,
+		ChannelBPS: row.ChannelBPS, TeamBPS: row.TeamBPS, CapBPS: row.CapBPS, TotalBPS: row.TotalBPS,
 		FreezeDays: row.FreezeDays, MinSettleMinor: row.MinSettleMinor,
 	}
 }
 
 func validatePolicy(in PolicyView) error {
-	if in.DirectBPS < 0 || in.OverrideBPS < 0 || in.ChannelBPS < 0 || in.TeamBPS < 0 {
+	total := in.TotalBPS
+	if total <= 0 {
+		total = in.CapBPS
+	}
+	indirect := in.IndirectBPS
+	if indirect == 0 {
+		indirect = in.OverrideBPS
+	}
+	if in.DirectBPS < 0 || indirect < 0 {
 		return ErrInvalid
 	}
-	if in.CapBPS <= 0 || in.DirectBPS+in.OverrideBPS+in.ChannelBPS+in.TeamBPS > in.CapBPS {
+	if total <= 0 || in.DirectBPS+indirect > total {
 		return ErrInvalid
 	}
 	if in.FreezeDays < 0 || in.FreezeDays > 90 {
@@ -147,14 +173,26 @@ func (s *Service) UpdatePolicy(ctx context.Context, in PolicyView) (*PolicyView,
 		return nil, err
 	}
 	var row policyRow
-	if err := s.db.WithContext(ctx).Where("status = ?", "active").Order("created_at DESC").First(&row).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "platform", "*").
+		Order("created_at DESC").First(&row).Error; err != nil {
 		return nil, ErrNotFound
 	}
 	row.DirectBPS = in.DirectBPS
-	row.OverrideBPS = in.OverrideBPS
-	row.ChannelBPS = in.ChannelBPS
-	row.TeamBPS = in.TeamBPS
-	row.CapBPS = in.CapBPS
+	if in.IndirectBPS > 0 {
+		row.IndirectBPS = in.IndirectBPS
+	} else {
+		row.IndirectBPS = in.OverrideBPS
+	}
+	row.OverrideBPS = row.IndirectBPS
+	row.ChannelBPS = 0
+	row.TeamBPS = 0
+	if in.TotalBPS > 0 {
+		row.TotalBPS = in.TotalBPS
+		row.CapBPS = in.TotalBPS
+	} else if in.CapBPS > 0 {
+		row.CapBPS = in.CapBPS
+		row.TotalBPS = in.CapBPS
+	}
 	if in.FreezeDays > 0 {
 		row.FreezeDays = in.FreezeDays
 	}
@@ -169,7 +207,7 @@ func (s *Service) UpdatePolicy(ctx context.Context, in PolicyView) (*PolicyView,
 }
 
 func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
-	if in.UsageEventID == "" || in.WholesaleMinor <= 0 {
+	if in.UsageEventID == "" || in.WholesaleMinor <= 0 || in.RoleID == "" || !in.CanCommission {
 		return 0, nil
 	}
 	var existing []entryRow
@@ -183,7 +221,7 @@ func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
 		}
 		return sum, nil
 	}
-	policy, err := s.ActivePolicy(ctx)
+	policy, err := s.PolicyFor(ctx, in.ChannelOrgID)
 	if err != nil {
 		return 0, err
 	}
@@ -218,6 +256,11 @@ func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
+			if in.ChannelOrgID != "" {
+				if err := writeMarketing(tx, in.ChannelOrgID, MarketingKindCommission, MarketingFrozen, -part.Amount, in.UsageEventID, row.ID, "usage", in.UsageEventID, "mkt-frz:"+row.ID, nil); err != nil {
+					return err
+				}
+			}
 			total += part.Amount
 		}
 		if s.outbox != nil && total > 0 {
@@ -240,39 +283,41 @@ type split struct {
 
 func splitCommission(in AccrueInput, policy *PolicyView) []split {
 	base := in.WholesaleMinor
+	indirectBPS := policy.IndirectBPS
+	if indirectBPS == 0 {
+		indirectBPS = policy.OverrideBPS
+	}
+	totalBPS := policy.TotalBPS
+	if totalBPS <= 0 {
+		totalBPS = policy.CapBPS
+	}
 	direct := base * int64(policy.DirectBPS) / 10000
-	over := base * int64(policy.OverrideBPS) / 10000
-	channel := base * int64(policy.ChannelBPS) / 10000
-	team := base * int64(policy.TeamBPS) / 10000
-	if in.RoleID == "" {
-		// 无推广角色时保持 M3 口径：批发价 10% 记到渠道。
-		channel = base * int64(billing.CommissionRateBPS) / 10000
-		direct, over, team = 0, 0, 0
+	indirect := int64(0)
+	if in.ParentRoleID != "" {
+		indirect = base * int64(indirectBPS) / 10000
 	}
 	parts := []split{
-		{Kind: KindTeam, Raw: team, Amount: team},
-		{Kind: KindChannel, Beneficiary: "", Raw: channel, Amount: channel},
-		{Kind: KindOverride, Beneficiary: in.ParentRoleID, Raw: over, Amount: over},
+		{Kind: KindIndirect, Beneficiary: in.ParentRoleID, Raw: indirect, Amount: indirect},
 		{Kind: KindDirect, Beneficiary: in.RoleID, Raw: direct, Amount: direct},
 	}
-	if in.RoleType == AcqTypeAgent || in.ParentRoleID == "" {
-		parts[2].Amount = 0
-		parts[2].Raw = 0
-	}
-	cap := base * int64(policy.CapBPS) / 10000
-	total := parts[0].Amount + parts[1].Amount + parts[2].Amount + parts[3].Amount
-	for i := 0; i < len(parts) && total > cap; i++ {
-		cut := total - cap
+	capAmt := base * int64(totalBPS) / 10000
+	sum := parts[0].Amount + parts[1].Amount
+	for i := 0; i < len(parts) && sum > capAmt; i++ {
+		cut := sum - capAmt
 		if cut > parts[i].Amount {
 			cut = parts[i].Amount
 		}
 		parts[i].Amount -= cut
-		total -= cut
+		sum -= cut
 	}
-	return parts
+	out := make([]split, 0, 2)
+	for _, p := range parts {
+		if p.Amount > 0 && p.Beneficiary != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
-
-const AcqTypeAgent = "agent"
 
 func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
 	if usageEventID == "" {
@@ -285,6 +330,8 @@ func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
 		}
 		now := time.Now().UTC()
 		for i := range rows {
+			origStatus := rows[i].Status
+			origAmt := rows[i].AmountMinor
 			rev := entryRow{
 				ID: id.New("cme"), UsageEventID: usageEventID, Kind: rows[i].Kind,
 				PolicyVersion: rows[i].PolicyVersion, BaseAmountMinor: rows[i].BaseAmountMinor,
@@ -301,16 +348,49 @@ func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
 			if err := tx.Save(&rows[i]).Error; err != nil {
 				return err
 			}
+			ch := ""
+			if rows[i].ChannelOrgID != nil {
+				ch = *rows[i].ChannelOrgID
+			}
+			st := MarketingFrozen
+			if origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled {
+				st = MarketingIssued
+			}
+			if err := writeMarketing(tx, ch, MarketingKindCommission, st, origAmt, usageEventID, rev.ID, "reversal", rows[i].ID, "mkt-rev:"+rows[i].ID, &rows[i].ID); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
 }
 
 func (s *Service) Unfreeze(ctx context.Context, now time.Time) (int, error) {
-	res := s.db.WithContext(ctx).Model(&entryRow{}).
-		Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now).
-		Updates(map[string]any{"status": StatusAvailable})
-	return int(res.RowsAffected), res.Error
+	n := 0
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var rows []entryRow
+		if err := tx.Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now).Find(&rows).Error; err != nil {
+			return err
+		}
+		for i := range rows {
+			rows[i].Status = StatusAvailable
+			if err := tx.Save(&rows[i]).Error; err != nil {
+				return err
+			}
+			ch := ""
+			if rows[i].ChannelOrgID != nil {
+				ch = *rows[i].ChannelOrgID
+			}
+			if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingFrozen, rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-frz:"+rows[i].ID, nil); err != nil {
+				return err
+			}
+			if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingIssued, -rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-iss:"+rows[i].ID, nil); err != nil {
+				return err
+			}
+			n++
+		}
+		return nil
+	})
+	return n, err
 }
 
 // HoldUnsettledForUser 把该用户产生的未结算佣金标成 held，封禁后不再进入结算。

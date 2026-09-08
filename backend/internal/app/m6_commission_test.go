@@ -84,8 +84,8 @@ func TestM6CommissionDistribution(t *testing.T) {
 			t.Fatalf("new commission should be frozen: %+v", item)
 		}
 	}
-	if !kinds[commission.KindDirect] || !kinds[commission.KindOverride] || !kinds[commission.KindChannel] {
-		t.Fatalf("expected hierarchy splits, got %+v", entries)
+	if !kinds[commission.KindDirect] || !kinds[commission.KindIndirect] {
+		t.Fatalf("expected direct+indirect splits, got %+v", entries)
 	}
 
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/users", "", nil) != http.StatusForbidden {

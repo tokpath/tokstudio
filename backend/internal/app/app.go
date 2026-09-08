@@ -73,6 +73,7 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	commSvc := commission.New(gdb, outboxSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
+	billingSvc.SetPool(idSvc)
 	var rt *gateway.Runtime
 	if withGateway {
 		var err error

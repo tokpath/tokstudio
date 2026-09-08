@@ -64,7 +64,7 @@ P0 落地时套餐实体由独立 `plans` 模块拥有，物理表为 `plans_pro
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `wallet_account` | `id`, `user_id`, `currency`, `available_minor`, `reserved_minor`, `version` | 现金钱包，乐观锁/行锁控制并发 |
+| `wallet_account` | `id`, `user_id`, `currency`, `available_minor`, `gift_minor`, `commission_available_minor`, `reserved_minor`, `version` | API 只扣 `available`（其中 `gift_minor` 为赠送标签，先于充值积分消耗且不可退）；`commission_available_minor` 是佣金钱包，不抵 API |
 | `wallet_ledger` | `id`, `wallet_id`, `event_type`, `amount_minor`, `reference_type`, `reference_id`, `idempotency_key` | 充值、预授权、结算、释放、退款 |
 | `topup_order` | `id`, `user_id`, `channel_org_id`, `amount_minor`, `currency`, `payment_method`, `status`, `provider_trade_id` | pending/paid/failed/expired/refunded/partially_refunded |
 | `payment_event` | `id`, `adapter`, `external_event_id`, `signature_valid`, `payload_json`, `processed_at` | webhook 原文与幂等 |

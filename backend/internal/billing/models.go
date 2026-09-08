@@ -3,14 +3,16 @@ package billing
 import "time"
 
 type walletRow struct {
-	ID             string    `gorm:"column:id;primaryKey"`
-	UserID         string    `gorm:"column:user_id"`
-	Currency       string    `gorm:"column:currency"`
-	AvailableMinor int64     `gorm:"column:available_minor"`
-	ReservedMinor  int64     `gorm:"column:reserved_minor"`
-	Version        int64     `gorm:"column:version"`
-	CreatedAt      time.Time `gorm:"column:created_at"`
-	UpdatedAt      time.Time `gorm:"column:updated_at"`
+	ID                       string    `gorm:"column:id;primaryKey"`
+	UserID                   string    `gorm:"column:user_id"`
+	Currency                 string    `gorm:"column:currency"`
+	AvailableMinor           int64     `gorm:"column:available_minor"`
+	GiftMinor                int64     `gorm:"column:gift_minor"`
+	CommissionAvailableMinor int64     `gorm:"column:commission_available_minor"`
+	ReservedMinor            int64     `gorm:"column:reserved_minor"`
+	Version                  int64     `gorm:"column:version"`
+	CreatedAt                time.Time `gorm:"column:created_at"`
+	UpdatedAt                time.Time `gorm:"column:updated_at"`
 }
 
 func (walletRow) TableName() string { return "billing_wallets" }
@@ -129,6 +131,8 @@ type authRow struct {
 	RequestID           string    `gorm:"column:request_id"`
 	AmountMinor         int64     `gorm:"column:amount_minor"`
 	WalletReservedMinor int64     `gorm:"column:wallet_reserved_minor"`
+	GiftReservedMinor   int64     `gorm:"column:gift_reserved_minor"`
+	GiftSettledMinor    int64     `gorm:"column:gift_settled_minor"`
 	SettledMinor        int64     `gorm:"column:settled_minor"`
 	Currency            string    `gorm:"column:currency"`
 	Status              string    `gorm:"column:status"`

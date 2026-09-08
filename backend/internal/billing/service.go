@@ -121,11 +121,19 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 	if err != nil {
 		return nil, err
 	}
+	gift := wallet.GiftMinor
+	if gift > wallet.AvailableMinor {
+		gift = wallet.AvailableMinor
+	}
 	view := &BalanceView{
 		UserID: userID, Currency: wallet.Currency,
-		AvailableMinor: wallet.AvailableMinor, ReservedMinor: wallet.ReservedMinor,
-		AvailableUSD: MinorToUSDString(wallet.AvailableMinor),
-		ReservedUSD:  MinorToUSDString(wallet.ReservedMinor),
+		AvailableMinor:           wallet.AvailableMinor,
+		GiftMinor:                gift,
+		PurchasedMinor:           wallet.AvailableMinor - gift,
+		CommissionAvailableMinor: wallet.CommissionAvailableMinor,
+		ReservedMinor:            wallet.ReservedMinor,
+		AvailableUSD:             MinorToUSDString(wallet.AvailableMinor),
+		ReservedUSD:              MinorToUSDString(wallet.ReservedMinor),
 	}
 	if channelOrgID != "" && channelOrgID != identity.OfficialChannelID {
 		var quota quotaRow
@@ -277,16 +285,22 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 			return err
 		}
 		now := time.Now().UTC()
+		var giftTake int64
 		if walletNeed > 0 {
+			giftTake = wallet.GiftMinor
+			if giftTake > walletNeed {
+				giftTake = walletNeed
+			}
 			// 用原生 SQL 原子扣减，避免 GORM Updates 在并发下漏掉 WHERE 条件。
 			exec := tx.Exec(
 				`UPDATE billing_wallets
 				 SET available_minor = available_minor - ?,
 				     reserved_minor = reserved_minor + ?,
+				     gift_minor = gift_minor - ?,
 				     version = version + 1,
 				     updated_at = ?
-				 WHERE id = ? AND available_minor >= ?`,
-				walletNeed, walletNeed, now, wallet.ID, walletNeed,
+				 WHERE id = ? AND available_minor >= ? AND gift_minor >= ?`,
+				walletNeed, walletNeed, giftTake, now, wallet.ID, walletNeed, giftTake,
 			)
 			if exec.Error != nil {
 				if s.coverer != nil && covered > 0 {
@@ -309,7 +323,8 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		}
 		auth := authRow{
 			ID: id.New("aut"), WalletID: wallet.ID, UserID: in.UserID, RequestID: in.RequestID,
-			AmountMinor: in.ReserveMinor, WalletReservedMinor: walletNeed, Currency: CurrencyUSD, Status: AuthReserved,
+			AmountMinor: in.ReserveMinor, WalletReservedMinor: walletNeed, GiftReservedMinor: giftTake,
+			Currency: CurrencyUSD, Status: AuthReserved,
 			UnitPrices: in.UnitPrices, ExpiresAt: now.Add(15 * time.Minute), CreatedAt: now, UpdatedAt: now,
 		}
 		if in.ChannelOrgID != "" {
@@ -463,6 +478,15 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if walletRelease < 0 {
 			walletRelease = 0
 		}
+		giftReserved := auth.GiftReservedMinor
+		if giftReserved > walletReserved {
+			giftReserved = walletReserved
+		}
+		giftUsed := walletUsed
+		if giftUsed > giftReserved {
+			giftUsed = giftReserved
+		}
+		giftRestore := giftReserved - giftUsed
 		wallet, err := lockWalletByID(tx, auth.WalletID)
 		if err != nil {
 			return err
@@ -470,6 +494,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		now := time.Now().UTC()
 		wallet.ReservedMinor -= walletReserved
 		wallet.AvailableMinor += walletRelease
+		wallet.GiftMinor += giftRestore
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {
@@ -530,6 +555,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		}
 		auth.Status = AuthSettled
 		auth.SettledMinor = customer
+		auth.GiftSettledMinor = giftUsed
 		auth.UpdatedAt = now
 		if err := tx.Save(&auth).Error; err != nil {
 			return err
@@ -587,8 +613,13 @@ func (s *Service) Release(ctx context.Context, requestID string) error {
 		if walletPart > auth.AmountMinor {
 			walletPart = auth.AmountMinor
 		}
+		giftPart := auth.GiftReservedMinor
+		if giftPart > walletPart {
+			giftPart = walletPart
+		}
 		wallet.ReservedMinor -= walletPart
 		wallet.AvailableMinor += walletPart
+		wallet.GiftMinor += giftPart
 		wallet.Version++
 		wallet.UpdatedAt = now
 		if err := tx.Save(wallet).Error; err != nil {

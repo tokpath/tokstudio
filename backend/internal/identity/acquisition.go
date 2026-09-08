@@ -193,6 +193,17 @@ func (s *Service) BindRoleMember(ctx context.Context, userID, roleID string) err
 		FirstOrCreate(&roleMemberRow{UserID: userID, AcquisitionRoleID: roleID, CreatedAt: time.Now().UTC()}).Error
 }
 
+func (s *Service) UserIDForRole(ctx context.Context, roleID string) string {
+	if roleID == "" {
+		return ""
+	}
+	var mem roleMemberRow
+	if err := s.db.WithContext(ctx).Where("acquisition_role_id = ?", roleID).Order("created_at").First(&mem).Error; err != nil {
+		return ""
+	}
+	return mem.UserID
+}
+
 func (s *Service) MemberRole(ctx context.Context, userID string) (*AcquisitionRoleView, error) {
 	var mem roleMemberRow
 	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).First(&mem).Error; err != nil {

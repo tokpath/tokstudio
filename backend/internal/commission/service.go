@@ -86,13 +86,32 @@ type payoutRow struct {
 
 func (payoutRow) TableName() string { return "commission_payouts" }
 
+type CashBook interface {
+	CreditCommissionTx(tx *gorm.DB, userID, entryID string, amount int64) error
+	ReverseCommissionTx(tx *gorm.DB, entryID string) error
+}
+
+type RoleUsers interface {
+	UserIDForRole(ctx context.Context, roleID string) string
+}
+
 type Service struct {
 	db     *gorm.DB
 	outbox *outbox.Service
+	cash   CashBook
+	roles  RoleUsers
 }
 
 func New(db *gorm.DB, publisher *outbox.Service) *Service {
 	return &Service{db: db, outbox: publisher}
+}
+
+func (s *Service) SetCashier(c CashBook) {
+	s.cash = c
+}
+
+func (s *Service) SetRoles(r RoleUsers) {
+	s.roles = r
 }
 
 func Migrations() (string, fs.FS) {
@@ -359,6 +378,11 @@ func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
 			if err := writeMarketing(tx, ch, MarketingKindCommission, st, origAmt, usageEventID, rev.ID, "reversal", rows[i].ID, "mkt-rev:"+rows[i].ID, &rows[i].ID); err != nil {
 				return err
 			}
+			if s.cash != nil && (origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled) {
+				if err := s.cash.ReverseCommissionTx(tx, rows[i].ID); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	})
@@ -385,6 +409,14 @@ func (s *Service) Unfreeze(ctx context.Context, now time.Time) (int, error) {
 			}
 			if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingIssued, -rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-iss:"+rows[i].ID, nil); err != nil {
 				return err
+			}
+			if s.cash != nil && rows[i].AmountMinor > 0 {
+				uid := s.beneficiaryUser(ctx, rows[i])
+				if uid != "" {
+					if err := s.cash.CreditCommissionTx(tx, uid, rows[i].ID, rows[i].AmountMinor); err != nil {
+						return err
+					}
+				}
 			}
 			n++
 		}
@@ -570,6 +602,13 @@ func (s *Service) RunUnfreeze(ctx context.Context) {
 			_, _ = s.Unfreeze(ctx, time.Now().UTC())
 		}
 	}
+}
+
+func (s *Service) beneficiaryUser(ctx context.Context, row entryRow) string {
+	if s.roles == nil || row.BeneficiaryRoleID == nil {
+		return ""
+	}
+	return s.roles.UserIDForRole(ctx, *row.BeneficiaryRoleID)
 }
 
 func entryView(row entryRow) *EntryView {

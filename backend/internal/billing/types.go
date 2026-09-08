@@ -40,13 +40,15 @@ type EntitlementCoverer interface {
 const (
 	CurrencyUSD = "USD"
 
-	EventTopup           = "topup"
-	EventAuthorization   = "authorization"
-	EventRelease         = "release"
-	EventUsageDebit      = "usage_debit"
-	EventRefund          = "refund"
-	EventAdjustment      = "adjustment"
-	EventCommissionDebit = "commission_debit"
+	EventTopup            = "topup"
+	EventAuthorization    = "authorization"
+	EventRelease          = "release"
+	EventUsageDebit       = "usage_debit"
+	EventRefund           = "refund"
+	EventAdjustment       = "adjustment"
+	EventCommissionDebit  = "commission_debit"
+	EventGiftCredit       = "gift_credit"
+	EventCommissionCredit = "commission_credit"
 
 	AuthReserved              = "reserved"
 	AuthSettled               = "settled"
@@ -122,14 +124,17 @@ type Settlement struct {
 }
 
 type BalanceView struct {
-	UserID              string `json:"user_id"`
-	Currency            string `json:"currency"`
-	AvailableMinor      int64  `json:"available_minor"`
-	ReservedMinor       int64  `json:"reserved_minor"`
-	AvailableUSD        string `json:"available"`
-	ReservedUSD         string `json:"reserved"`
-	ChannelQuota        int64  `json:"channel_quota_minor,omitempty"`
-	AllocationRemaining int64  `json:"allocation_remaining_minor,omitempty"`
+	UserID                   string `json:"user_id"`
+	Currency                 string `json:"currency"`
+	AvailableMinor           int64  `json:"available_minor"`
+	GiftMinor                int64  `json:"gift_minor"`
+	PurchasedMinor           int64  `json:"purchased_minor"`
+	CommissionAvailableMinor int64  `json:"commission_available_minor"`
+	ReservedMinor            int64  `json:"reserved_minor"`
+	AvailableUSD             string `json:"available"`
+	ReservedUSD              string `json:"reserved"`
+	ChannelQuota             int64  `json:"channel_quota_minor,omitempty"`
+	AllocationRemaining      int64  `json:"allocation_remaining_minor,omitempty"`
 }
 
 type LedgerView struct {

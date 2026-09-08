@@ -72,6 +72,8 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	idSvc.SetStore(store)
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	commSvc := commission.New(gdb, outboxSvc)
+	commSvc.SetCashier(billingSvc)
+	commSvc.SetRoles(idSvc)
 	billingSvc.SetCommissioner(&commissionBridge{identity: idSvc, comm: commSvc})
 	billingSvc.SetPool(idSvc)
 	var rt *gateway.Runtime

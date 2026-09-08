@@ -43,6 +43,13 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 				walletCredit = 0
 			}
 		}
+		if auth.ID != "" && auth.GiftSettledMinor > 0 {
+			if walletCredit > auth.GiftSettledMinor {
+				walletCredit -= auth.GiftSettledMinor
+			} else {
+				walletCredit = 0
+			}
+		}
 		if walletCredit > 0 {
 			if err := creditWallet(tx, userID, walletCredit, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
 				return err

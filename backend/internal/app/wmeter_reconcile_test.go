@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,9 +31,13 @@ func newWMeter3Env(t *testing.T) *wmeterEnv {
 	server := httptest.NewServer(application.Router())
 	t.Cleanup(server.Close)
 
+	promo := "THA1"
+	if strings.Contains(t.Name(), "Channel") {
+		promo = "THB1"
+	}
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "wmeter3-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
-		"password": "password1", "promotion_code": "THA1",
+		"password": "password1", "promotion_code": promo,
 	})
 	session := tokenOf(reg)
 	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "wmeter3"})["item"].(map[string]any)["key"].(string)
@@ -142,20 +147,24 @@ func TestWMeter3ChannelReconcileIsomorphic(t *testing.T) {
 	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter3-channel")
 	requestID := omit["request_id"].(string)
 
-	body := getAuthJSON(t, fx.server.URL+"/channel/reconciliation", "wmeter3_admin")
-	item := body["item"].(map[string]any)
+	channelTok := "wmeter3_admin-b"
+	body := getAuthJSON(t, fx.server.URL+"/channel/reconciliation", channelTok)
+	item, _ := body["item"].(map[string]any)
+	if item == nil {
+		t.Fatalf("channel reconciliation must return item: %+v", body)
+	}
 	if item["buckets"] == nil || item["usage_totals"] == nil {
 		t.Fatalf("channel page must expose buckets + usage totals: %+v", item)
 	}
 	if findDiffRow(item, requestID) == nil {
 		t.Fatalf("channel mismatch must not be dropped: %+v", item)
 	}
-	if postStatus(t, fx.server.URL+"/channel/reconciliation/flag", "wmeter3_admin", map[string]any{
+	if postStatus(t, fx.server.URL+"/channel/reconciliation/flag", channelTok, map[string]any{
 		"request_id": requestID,
 	}) != http.StatusConflict {
 		t.Fatal("channel flag without confirm must be 409")
 	}
-	flagged := postJSONRaw(t, fx.server.URL+"/channel/reconciliation/flag", "wmeter3_admin", map[string]any{
+	flagged := postJSONRaw(t, fx.server.URL+"/channel/reconciliation/flag", channelTok, map[string]any{
 		"request_id": requestID,
 	})
 	if flagged["item"].(map[string]any)["state"] != billing.UsagePending {

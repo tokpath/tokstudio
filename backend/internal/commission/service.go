@@ -225,6 +225,67 @@ func (s *Service) UpdatePolicy(ctx context.Context, in PolicyView) (*PolicyView,
 	return policyView(row), nil
 }
 
+func (s *Service) UpdateChannelPolicy(ctx context.Context, channelID string, in PolicyView) (*PolicyView, error) {
+	if channelID == "" {
+		return nil, ErrInvalid
+	}
+	if err := validatePolicy(in); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	var row policyRow
+	err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "channel", channelID).
+		Order("created_at DESC").First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		row = policyRow{
+			ID: id.New("plc"), ScopeType: "channel", ScopeID: channelID, Status: "active", CreatedAt: now,
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	row.DirectBPS = in.DirectBPS
+	if in.IndirectBPS > 0 {
+		row.IndirectBPS = in.IndirectBPS
+	} else {
+		row.IndirectBPS = in.OverrideBPS
+	}
+	row.OverrideBPS = row.IndirectBPS
+	row.ChannelBPS = 0
+	row.TeamBPS = 0
+	if in.TotalBPS > 0 {
+		row.TotalBPS = in.TotalBPS
+		row.CapBPS = in.TotalBPS
+	} else if in.CapBPS > 0 {
+		row.CapBPS = in.CapBPS
+		row.TotalBPS = in.CapBPS
+	}
+	if in.FreezeDays > 0 {
+		row.FreezeDays = in.FreezeDays
+	}
+	row.MinSettleMinor = in.MinSettleMinor
+	if in.Version != "" {
+		row.Version = in.Version
+	} else if row.Version == "" {
+		row.Version = "c-" + channelID
+	}
+	if row.ID == "" {
+		row.ID = id.New("plc")
+	}
+	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		return nil, err
+	}
+	return policyView(row), nil
+}
+
+func (s *Service) RecordSignupCredit(ctx context.Context, channelID, userID string, amount int64) error {
+	if channelID == "" || userID == "" || amount <= 0 {
+		return nil
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return writeMarketing(tx, channelID, MarketingKindCredit, MarketingIssued, -amount, "", "", "signup_gift", userID, "mkt-gift:"+userID, nil)
+	})
+}
+
 func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
 	if in.UsageEventID == "" || in.WholesaleMinor <= 0 || in.RoleID == "" || !in.CanCommission {
 		return 0, nil
@@ -240,7 +301,7 @@ func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
 		}
 		return sum, nil
 	}
-	policy, err := s.PolicyFor(ctx, in.ChannelOrgID)
+	policy, err := s.PolicyFor(ctx, in.PolicyChannelID)
 	if err != nil {
 		return 0, err
 	}

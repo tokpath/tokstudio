@@ -31,7 +31,7 @@ func TestCommissionEligibilityThresholds(t *testing.T) {
 	defer server.Close()
 	ctx := context.Background()
 	restore := func() {
-		_, _ = application.Identity.UpdatePlatformEligibility(ctx, identity.DefaultEligibilitySpendMinor, identity.DefaultEligibilityTopupMinor)
+		_, _ = application.Identity.UpdatePlatformEligibility(ctx, identity.DefaultEligibilitySpendMinor, identity.DefaultEligibilityTopupMinor, identity.DefaultEligibilityGiftMinor)
 	}
 	restore()
 	t.Cleanup(restore)
@@ -69,7 +69,7 @@ func TestCommissionEligibilityThresholds(t *testing.T) {
 	}
 
 	_ = patchJSONRaw(t, server.URL+"/admin/eligibility-rules", "elig_admin", map[string]any{
-		"spend_minor": billing.MinorPerUSD, "topup_minor": 100 * billing.MinorPerUSD,
+		"spend_minor": billing.MinorPerUSD, "topup_minor": 100 * billing.MinorPerUSD, "gift_minor": identity.DefaultEligibilityGiftMinor,
 	})
 	regSpend := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "elig-spend-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
@@ -110,7 +110,7 @@ func TestCommissionEligibilityThresholds(t *testing.T) {
 		t.Fatalf("B channel must not write eligibility, got %d", bResp.StatusCode)
 	}
 	_ = patchJSONRaw(t, server.URL+"/channel/eligibility-rules", "elig_admin-c", map[string]any{
-		"spend_minor": 0, "topup_minor": billing.MinorPerUSD,
+		"spend_minor": 0, "topup_minor": billing.MinorPerUSD, "gift_minor": identity.DefaultEligibilityGiftMinor,
 	})
 	regC := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "elig-c-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",

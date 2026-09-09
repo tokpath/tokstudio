@@ -85,7 +85,7 @@ P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前
 |---|---|---|
 | `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按渠道配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；B/C 代理商不能改 |
 
-B/C 额度发放：用户充值入账后按**积分池所属渠道**（C 下的 B 跟 C）的 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从该池 `billing_quota_accounts.available_minor` 扣减发放额（`quota_issue`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。代理商实际充值、平台授予额度、用户充值、用户额度、终端消费、渠道批发成本和佣金基数分别记账。现行产品口径见 `docs/15`。
+B/C 额度发放：用户充值入账后按**该用户所属渠道自己的积分池**的 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从该池 `available_minor` 扣减。C 下的 B 有独立池，向 C 进货（`quota_wholesale_out/in`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。现行产品口径见 `docs/15`。
 
 ### 2.5 媒体任务与审计
 

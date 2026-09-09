@@ -37,6 +37,7 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
+	r.POST("/channel/quotas/grant", a.requireRoles("channel_admin"), a.channelGrantQuota)
 	r.GET("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetIssueRule)
 	r.PATCH("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchIssueRule)
 	r.GET("/admin/channel-quotas/:channel_id", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetQuota)
@@ -50,6 +51,16 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.PATCH("/admin/eligibility-rules", a.requireRoles("platform_admin", "finance_admin"), a.adminPatchEligibility)
 	r.GET("/channel/eligibility-rules", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelEligibility)
 	r.PATCH("/channel/eligibility-rules", a.requireRoles("channel_admin"), a.channelPatchEligibility)
+	r.GET("/channel/commission-policy", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelPolicy)
+	r.PATCH("/channel/commission-policy", a.requireRoles("channel_admin"), a.channelPatchPolicy)
+	r.GET("/channel/supplier-entries", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelListSupplier)
+	r.POST("/channel/supplier-entries", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelRecordSupplier)
+	r.POST("/channel/supplier-entries/:id/reverse", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelReverseSupplier)
+	r.GET("/channel/pnl", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.channelPnL)
+	r.GET("/admin/supplier-entries", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListSupplier)
+	r.POST("/admin/supplier-entries", a.requireRoles("platform_admin", "finance_admin"), a.adminRecordSupplier)
+	r.POST("/admin/supplier-entries/:id/reverse", a.requireRoles("platform_admin", "finance_admin"), a.adminReverseSupplier)
+	r.GET("/admin/channels/:id/pnl", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminChannelPnL)
 }
 
 func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, ok bool) {
@@ -431,6 +442,45 @@ func (a *App) adminGrantQuota(c *gin.Context) {
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) channelGrantQuota(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	p := a.currentPrincipal(c)
+	if p == nil || p.ChannelOrgID == "" {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return
+	}
+	parent, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+	if err != nil || parent.Type != identity.ChannelTypeC {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 C 渠道可向下属 B 划拨积分", false)
+		return
+	}
+	var body struct {
+		ChannelOrgID string `json:"channel_org_id"`
+		AmountMinor  int64  `json:"amount_minor"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.ChannelOrgID == "" || body.AmountMinor <= 0 {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "额度参数无效", false)
+		return
+	}
+	child, err := a.Identity.GetChannel(c.Request.Context(), *p, body.ChannelOrgID)
+	if err != nil || child.Type != identity.ChannelTypeB || child.ParentID != parent.ID {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能划给本 C 下的 B", false)
+		return
+	}
+	item, err := a.Billing.TransferChannelQuota(c.Request.Context(), parent.ID, child.ID, body.AmountMinor, p.UserID)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "划拨失败", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: p.UserID, Action: "billing.quota.wholesale", ResourceType: "quota", ResourceID: child.ID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) adminGetQuota(c *gin.Context) {
 	item, err := a.Billing.ChannelQuota(c.Request.Context(), c.Param("channel_id"))
 	if err != nil {
@@ -447,8 +497,11 @@ func (a *App) canReadChannelQuota(c *gin.Context, channelID string) bool {
 		return false
 	}
 	if p.HasRole("channel_admin") && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") && p.ChannelOrgID != channelID {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能查看本渠道额度", false)
-		return false
+		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, channelID)
+		if err != nil || ch.ParentID != p.ChannelOrgID {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能查看本渠道额度", false)
+			return false
+		}
 	}
 	return true
 }
@@ -623,7 +676,7 @@ func (a *App) adminPatchEligibility(c *gin.Context) {
 		return
 	}
 	before, _ := a.Identity.PlatformEligibility(c.Request.Context())
-	item, err := a.Identity.UpdatePlatformEligibility(c.Request.Context(), body.SpendMinor, body.TopupMinor)
+	item, err := a.Identity.UpdatePlatformEligibility(c.Request.Context(), body.SpendMinor, body.TopupMinor, body.GiftMinor)
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则不合法", false)
 		return
@@ -664,7 +717,7 @@ func (a *App) channelPatchEligibility(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "达线规则字段无效", false)
 		return
 	}
-	item, err := a.Identity.UpdateChannelEligibility(c.Request.Context(), *p, body.SpendMinor, body.TopupMinor)
+	item, err := a.Identity.UpdateChannelEligibility(c.Request.Context(), *p, body.SpendMinor, body.TopupMinor, body.GiftMinor)
 	if err != nil {
 		if errors.Is(err, identity.ErrChannelImmutable) {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 C 渠道可改达线规则", false)

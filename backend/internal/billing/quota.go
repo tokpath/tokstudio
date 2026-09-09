@@ -143,6 +143,90 @@ func (s *Service) GrantChannelQuota(ctx context.Context, channelOrgID string, am
 	return s.ChannelQuota(ctx, channelOrgID)
 }
 
+func lockQuota(tx *gorm.DB, channelOrgID string) (*quotaRow, error) {
+	var quota quotaRow
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", channelOrgID, "usd_credit").
+		First(&quota).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		quota = quotaRow{
+			ID: id.New("qta"), OwnerType: "channel", OwnerID: channelOrgID, UnitType: "usd_credit",
+		}
+		if err := tx.Create(&quota).Error; err != nil {
+			return nil, err
+		}
+		err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", quota.ID).First(&quota).Error
+		if err != nil {
+			return nil, err
+		}
+		return &quota, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &quota, nil
+}
+
+func (s *Service) EnsureChannelQuota(ctx context.Context, channelOrgID string) error {
+	if channelOrgID == "" || skipChannelQuota(channelOrgID) {
+		return nil
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		_, err := lockQuota(tx, channelOrgID)
+		return err
+	})
+}
+
+// TransferChannelQuota 上家把积分卖给下家：扣 from 的 available，加到 to。
+func (s *Service) TransferChannelQuota(ctx context.Context, fromID, toID string, amount int64, actor string) (*QuotaView, error) {
+	if amount <= 0 || fromID == "" || toID == "" || fromID == toID {
+		return nil, ErrInvalidAmount
+	}
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		first, second := fromID, toID
+		if first > second {
+			first, second = second, first
+		}
+		if _, err := lockQuota(tx, first); err != nil {
+			return err
+		}
+		if _, err := lockQuota(tx, second); err != nil {
+			return err
+		}
+		from, err := lockQuota(tx, fromID)
+		if err != nil {
+			return err
+		}
+		if from.AvailableMinor < amount {
+			return ErrInsufficientQuota
+		}
+		to, err := lockQuota(tx, toID)
+		if err != nil {
+			return err
+		}
+		from.AvailableMinor -= amount
+		from.Version++
+		to.AvailableMinor += amount
+		to.Version++
+		if err := tx.Save(from).Error; err != nil {
+			return err
+		}
+		if err := tx.Save(to).Error; err != nil {
+			return err
+		}
+		batch := id.New("qxf")
+		if err := writeQuotaLedger(tx, from.ID, "quota_wholesale_out", -amount, "channel", toID, "qout:"+batch); err != nil {
+			return err
+		}
+		return writeQuotaLedger(tx, to.ID, "quota_wholesale_in", amount, "channel", fromID, "qin:"+batch)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.ChannelQuota(ctx, toID)
+}
+
 func loadIssueRatioBPS(db *gorm.DB, channelOrgID string) int64 {
 	if channelOrgID == "" {
 		return DefaultIssueRatioBPS

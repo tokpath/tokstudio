@@ -276,13 +276,35 @@ func (s *Service) ResolvePoolChannelID(ctx context.Context, channelID string) (s
 	return PoolChannelID(row.Type, row.ID, parentID, parentType), nil
 }
 
+func (s *Service) ResolveMarketChannelID(ctx context.Context, channelID string) (string, error) {
+	if channelID == "" {
+		return "", nil
+	}
+	row, err := s.lookupChannel(ctx, channelID)
+	if err != nil {
+		return "", err
+	}
+	parentType := ""
+	parentID := ""
+	if row.ParentID != nil && *row.ParentID != "" {
+		parent, err := s.lookupChannel(ctx, *row.ParentID)
+		if err == nil {
+			parentType = parent.Type
+			parentID = parent.ID
+		}
+	}
+	return MarketChannelID(row.Type, row.ID, parentID, parentType), nil
+}
+
 func (s *Service) GetChannel(ctx context.Context, viewer Principal, channelID string) (*ChannelView, error) {
 	var row channelRow
 	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
 		return nil, mapNotFound(err)
 	}
 	if scoped := viewer.VisibleChannelID(); scoped != "" && scoped != row.ID {
-		return nil, ErrChannelImmutable
+		if row.ParentID == nil || *row.ParentID != scoped {
+			return nil, ErrChannelImmutable
+		}
 	}
 	view := channelViewFrom(row)
 	return &view, nil
@@ -321,7 +343,7 @@ func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID 
 func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]ChannelView, error) {
 	q := s.db.WithContext(ctx).Model(&channelRow{})
 	if channelID := viewer.VisibleChannelID(); channelID != "" {
-		q = q.Where("id = ?", channelID)
+		q = q.Where("id = ? OR parent_id = ?", channelID, channelID)
 	}
 	var rows []channelRow
 	if err := q.Order("code").Find(&rows).Error; err != nil {

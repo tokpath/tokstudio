@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -34,7 +35,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/v1/me/password", a.requireAnyUser(), a.changePassword)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.listChannels)
-	r.POST("/admin/channels", a.requireRoles("platform_admin"), a.createChannel)
+	r.POST("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.createChannel)
 	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.getChannel)
 	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.getChannelModels)
 	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin"), a.patchChannelModels)
@@ -119,6 +120,7 @@ func (a *App) register(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
+	a.grantSignupGift(c, session.User.ID)
 	a.setSessionCookie(c, session.Token)
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: session.User.ID, Action: "auth.register", ResourceType: "user", ResourceID: session.User.ID,
@@ -178,6 +180,9 @@ func (a *App) googleCallback(c *gin.Context) {
 	if err != nil {
 		a.writeAuthError(c, err)
 		return
+	}
+	if time.Since(session.User.CreatedAt) < 5*time.Minute {
+		a.grantSignupGift(c, session.User.ID)
 	}
 	a.setSessionCookie(c, session.Token)
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -505,6 +510,7 @@ func (a *App) createChannel(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道默认模型失败", true)
 		return
 	}
+	_ = a.Billing.EnsureChannelQuota(c.Request.Context(), item.ID)
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.create", ResourceType: "channel", ResourceID: item.ID,
 		After: map[string]string{"code": item.Code, "type": item.Type},

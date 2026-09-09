@@ -32,10 +32,18 @@ func ValidateChannelParent(parentType, childType string) error {
 	}
 }
 
-// PoolChannelID 积分池所属渠道：C 下的 B 跟 C。
+// PoolChannelID 积分池：每个渠道（含 C 下的 B）都用自己的池。
 func PoolChannelID(channelType, channelID string, parentID, parentType string) string {
+	return channelID
+}
+
+// MarketChannelID 分佣/达线所属市场：C 及其下属 B 走 C；其它走平台（空字符串）。
+func MarketChannelID(channelType, channelID, parentID, parentType string) string {
+	if channelType == ChannelTypeC {
+		return channelID
+	}
 	if channelType == ChannelTypeB && parentType == ChannelTypeC && parentID != "" {
 		return parentID
 	}
-	return channelID
+	return ""
 }

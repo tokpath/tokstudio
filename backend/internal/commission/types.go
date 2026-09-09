@@ -25,7 +25,7 @@ const (
 	StatusPaid      = "paid"
 	StatusReversed  = "reversed"
 
-	PolicyM6      = "m6-v1"
+	PolicyM6        = "m6-v1"
 	DefaultDirect   = 1500
 	DefaultIndirect = 500
 	DefaultOver     = 0
@@ -33,19 +33,20 @@ const (
 	DefaultTeam     = 0
 	DefaultCap      = 2000
 	DefaultTotal    = 2000
-	FreezeDays    = 7
+	FreezeDays      = 7
 )
 
 type AccrueInput struct {
-	UsageEventID   string
-	RequestID      string
-	UserID         string
-	ChannelOrgID   string
-	WholesaleMinor int64
-	RoleID         string
-	RoleType       string
-	ParentRoleID   string
-	CanCommission  bool
+	UsageEventID    string
+	RequestID       string
+	UserID          string
+	ChannelOrgID    string
+	PolicyChannelID string
+	WholesaleMinor  int64
+	RoleID          string
+	RoleType        string
+	ParentRoleID    string
+	CanCommission   bool
 }
 
 type EntryView struct {

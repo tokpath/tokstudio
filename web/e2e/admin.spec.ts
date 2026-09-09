@@ -12,6 +12,8 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("link", { name: "推广码" })).toBeVisible();
   await expect(page.getByRole("link", { name: "告警" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "应急手册" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
 });
@@ -162,8 +164,9 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByLabel("按渠道筛选")).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量 / 账单" })).toBeVisible();
   await page.goto("/admin/reconciliation");
-  await expect(page.getByRole("heading", { name: "待对账" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "待对账队列" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "对账", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账队列", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByText("不按估算扣款")).toBeVisible();
   await expect(page.getByRole("button", { name: "标记已解" })).toBeVisible();
   await expect(page.getByTestId("admin-usage-trend-chart")).toHaveCount(0);

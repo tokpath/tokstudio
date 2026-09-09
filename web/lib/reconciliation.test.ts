@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
+import zh from "../messages/zh.json";
 import { gapKey, pendingListPath, statementListPath } from "./reconciliation";
+
+describe("Aura reconciliation copy", () => {
+  it("uses 对账 for map/h1 and 待对账队列 for the section, never a bare 待对账 heading", () => {
+    expect(zh.admin.reconciliation).toBe("对账");
+    expect(zh.adminUi.reconciliation).toBe("对账");
+    expect(zh.adminUi.pendingList).toBe("待对账队列");
+    expect(zh.admin.reconciliation).not.toBe("待对账");
+    expect(zh.adminUi.reconciliation).not.toBe("待对账");
+    expect(zh.admin.heroPending).toBe("待对账");
+  });
+});
 
 describe("pendingListPath", () => {
   it("defaults to the pending queue with no fake query", () => {

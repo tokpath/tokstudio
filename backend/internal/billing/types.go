@@ -18,6 +18,7 @@ var (
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
 	ErrAlreadyCharged      = errors.New("usage already charged")
+	ErrAlreadyMatched      = errors.New("usage already matched")
 )
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。

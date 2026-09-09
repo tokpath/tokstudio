@@ -118,7 +118,7 @@ P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`o
 
 `reserved -> released`（上游明确失败且无费用）
 
-`reserved -> pending_reconciliation`（成功但缺 usage）
+`reserved -> pending_reconciliation`（成功但缺 usage；用户/渠道对账页也可把 usage↔三桶差异送入该队列，仍禁止估算扣款）
 
 `settled -> reversed`（退款/冲正，仅退未消费部分或生成负向流水）
 

@@ -98,6 +98,7 @@ func financeRules() []policyRule {
 		"/channel/allocations",
 		"/channel/commissions",
 		"/channel/usage",
+		"/channel/reconciliation",
 		"/channel/settlements",
 		"/channel/eligibility-rules",
 		"/channel/commission-policy",
@@ -122,6 +123,7 @@ func financeRules() []policyRule {
 		"/admin/supplier-entries/:id/reverse",
 		"/channel/supplier-entries",
 		"/channel/supplier-entries/:id/reverse",
+		"/channel/reconciliation/flag",
 		"/admin/price-books",
 		"/admin/usage/replay",
 		"/admin/usage/pending/resolve",
@@ -184,6 +186,7 @@ func opsRules() []policyRule {
 		"/admin/payment-adapters",
 		"/channel/plans",
 		"/channel/usage",
+		"/channel/reconciliation",
 		"/channel/pnl",
 	)...)
 	out = append(out, grantMany("POST", roles,

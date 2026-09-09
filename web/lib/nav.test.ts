@@ -37,6 +37,7 @@ describe("channel keys nav", () => {
   it("lists channel stock and rules in the ledger group", () => {
     expect(channelSections.some((item) => item.href === "/channel/ledger")).toBe(true);
     expect(channelSections.some((item) => item.href === "/channel/rules")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/reconciliation")).toBe(true);
   });
 });
 
@@ -76,6 +77,7 @@ describe("adminNavActive", () => {
 describe("user console nav", () => {
   it("uses real routes instead of hash anchors", () => {
     expect(userSections.some((item) => item.href === "/app/keys")).toBe(true);
+    expect(userSections.some((item) => item.href === "/app/reconciliation")).toBe(true);
     expect(userSections.some((item) => item.href.startsWith("#"))).toBe(false);
   });
 

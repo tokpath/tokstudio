@@ -149,6 +149,9 @@
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
 - `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
 - `GET /admin/usage/pending`：待对账工作队列。`status`（默认 `pending_reconciliation`，`voided` / `all`）、`from` / `to`、以及 API Key / 模型 / 渠道筛选。管理页 `/admin/reconciliation`。
+- `GET /v1/me/reconciliation`：用户台 W-meter ③。三桶（`available` / `reserved` / `commission_available`）+ 同一窗口 usage 合计 + 差异表。只问 TokenHub billing（Balance / QueryUsage / ListChargesByRequest / ListLedger）。
+- `POST /v1/me/reconciliation/flag`：把差异行送进 `pending_reconciliation`。匹配行 `409`。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`。**禁止估算扣款**。
+- `GET /channel/reconciliation`、`POST /channel/reconciliation/flag`：渠道台同构页；桶来自 `ChannelQuota`（可提现无账本口径时为 0）。渠道管理员 / 财务可写 flag；运营只读。
 - `GET /admin/usage/pending/{id}`：用量缺口详情（usage id 或 request_id）。
 - `POST /admin/usage/pending/resolve`：单条或批量「标记已解」——作废 pending usage 并释放预授权，**禁止估算扣款**。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，写审计 `billing.usage.resolve`。已结算账单拒绝。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。

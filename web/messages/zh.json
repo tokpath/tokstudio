@@ -136,6 +136,7 @@
     "wallet": "余额/充值",
     "plans": "套餐",
     "usage": "用量汇总",
+    "reconciliation": "对账",
     "activity": "请求明细",
     "media": "媒体任务",
     "referral": "推荐计划",
@@ -164,6 +165,7 @@
     "rules": "规则",
     "attribution": "额度",
     "usage": "用量",
+    "reconciliation": "对账",
     "settlements": "结算",
     "commissions": "佣金/结算"
   },
@@ -673,6 +675,11 @@
       "title": "用量汇总",
       "description": "趋势与按 Key 汇总。逐条回单在「请求明细」。不含 prompt 原文。"
     },
+    "reconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "对账",
+      "description": "同一窗口核对三桶与 usage。匹配走绿色；差异只送入待对账队列，不按估算扣款。"
+    },
     "activity": {
       "eyebrow": "ACTIVITY",
       "title": "请求明细",
@@ -782,6 +789,11 @@
       "eyebrow": "USAGE",
       "title": "用量",
       "description": "Token 和媒体秒数按账务 usage 汇总，不含 prompt 原文。"
+    },
+    "channelReconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "对账",
+      "description": "同一窗口核对三桶与本渠道 usage。匹配走绿色；差异只送入待对账队列，不按估算扣款。"
     },
     "channelSettlements": {
       "eyebrow": "SETTLEMENTS",
@@ -1619,6 +1631,45 @@
     "mediaFilterKind": "筛选媒体类型",
     "createJob": "新建任务",
     "createJobLead": "填写提示词与参数后提交。字段较多，在弹窗内完成。"
+  },
+  "reconcile": {
+    "lead": "三桶与同一窗口 usage 对账。匹配走绿色；差异只能送入待对账队列，禁止估扣。",
+    "needLogin": "未登录",
+    "done": "对账窗口已刷新",
+    "needRow": "先选一行差异。",
+    "flagged": "已送入待对账队列",
+    "flagFail": "送入待对账失败",
+    "bucketsLabel": "三桶",
+    "bucketAvailable": "余额",
+    "bucketAvailableHint": "available",
+    "bucketHold": "冻结",
+    "bucketHoldHint": "HOLD / reserved",
+    "bucketWithdraw": "可提现",
+    "bucketWithdrawHint": "commission_available",
+    "totalsLabel": "同一窗口 usage",
+    "totRequests": "请求数",
+    "totUsage": "usage 金额",
+    "totCharge": "已入账",
+    "totPending": "差异条数",
+    "refresh": "刷新对账",
+    "diffTitle": "usage 差异",
+    "empty": "暂无 usage",
+    "emptyDetail": "没有 usage 时保持空白，不画假图或趋势。",
+    "loading": "正在读取账本…",
+    "colTime": "时间",
+    "colModel": "模型",
+    "colUsage": "usage",
+    "colCharge": "charge",
+    "colHold": "冻结",
+    "colStatus": "结果",
+    "colAction": "动作",
+    "matchOk": "OK",
+    "mismatch": "差异",
+    "flag": "送入待对账队列",
+    "flagTitle": "确认送入待对账队列",
+    "flagDesc": "只把差异标记为 pending_reconciliation，不按估算扣款。",
+    "pendingList": "待对账队列",
+    "pendingLead": "已在队列里的缺口。有真实 Token 去用量回放；这里不会估扣。"
   },
   "channelUi": {
     "needAdmin": "未登录渠道管理员",

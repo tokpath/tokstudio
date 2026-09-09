@@ -25,6 +25,7 @@ func newWMeter4Env(t *testing.T) *wmeterEnv {
 	}
 	cfg.BootstrapAdmin = "wmeter4_admin"
 	cfg.BootstrapUser = "wmeter4_user"
+	cfg.BootstrapChannel = ""
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())

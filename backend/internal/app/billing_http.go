@@ -381,9 +381,15 @@ func (a *App) adminListPrices(c *gin.Context) {
 		items = filtered
 	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "price-books.csv", []string{"id", "public_id", "status"}, items, func(item catalog.PriceBookView) []string {
-			return []string{item.ID, item.PublicID, item.Status}
-		})
+		httpx.WriteCSV(c, "price-books.csv",
+			[]string{"id", "public_id", "status", "effective_at", "upstream", "wholesale", "sell", "channel"},
+			items, func(item catalog.PriceBookView) []string {
+				return []string{
+					item.ID, item.PublicID, item.Status,
+					item.EffectiveAt.UTC().Format("2006-01-02T15:04:05Z"),
+					item.Upstream, item.Wholesale, item.Sell, item.Channel,
+				}
+			})
 		return
 	}
 	httpx.OKPage(c, items, 100, func(item catalog.PriceBookView) string { return item.ID })
@@ -409,5 +415,9 @@ func (a *App) publishPrice(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "发布价格失败", false)
 		return
 	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "catalog.price.publish", ResourceType: "price_version",
+		ResourceID: snap.VersionID, After: snap, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	httpx.OK(c, gin.H{"price": snap, "request_id": c.GetString(httpx.ContextRequestID)})
 }

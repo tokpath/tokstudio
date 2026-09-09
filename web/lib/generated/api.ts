@@ -581,6 +581,18 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/usage"
   },
   {
+    "method": "GET",
+    "path": "/admin/usage/pending"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/usage/pending/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/usage/pending/resolve"
+  },
+  {
     "method": "POST",
     "path": "/admin/usage/replay"
   },

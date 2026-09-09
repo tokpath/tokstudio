@@ -204,6 +204,15 @@ func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageVi
 	if in.PublicModelID != "" {
 		q = q.Where("public_model_id = ?", in.PublicModelID)
 	}
+	if in.State != "" {
+		q = q.Where("state = ?", in.State)
+	}
+	if !in.Since.IsZero() {
+		q = q.Where("occurred_at >= ?", in.Since.UTC())
+	}
+	if !in.Until.IsZero() {
+		q = q.Where("occurred_at <= ?", in.Until.UTC())
+	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -621,48 +630,52 @@ func (s *Service) Release(ctx context.Context, requestID string) error {
 			}
 			return err
 		}
-		if auth.Status == AuthReleased || auth.Status == AuthSettled || auth.Status == AuthReversed {
-			return nil
-		}
-		wallet, err := lockWalletByID(tx, auth.WalletID)
-		if err != nil {
-			return err
-		}
-		now := time.Now().UTC()
-		walletPart := auth.WalletReservedMinor
-		if walletPart > auth.AmountMinor {
-			walletPart = auth.AmountMinor
-		}
-		giftPart := auth.GiftReservedMinor
-		if giftPart > walletPart {
-			giftPart = walletPart
-		}
-		wallet.ReservedMinor -= walletPart
-		wallet.AvailableMinor += walletPart
-		wallet.GiftMinor += giftPart
-		wallet.Version++
-		wallet.UpdatedAt = now
-		if err := tx.Save(wallet).Error; err != nil {
-			return err
-		}
-		if walletPart > 0 {
-			if err := writeLedger(tx, wallet, EventRelease, walletPart, "authorization", auth.ID, "release:"+requestID); err != nil {
-				return err
-			}
-		}
-		if auth.ChannelOrgID != nil {
-			_ = s.releaseChannelQuota(tx, *auth.ChannelOrgID, requestID, auth.AmountMinor)
-		}
-		auth.Status = AuthReleased
-		auth.UpdatedAt = now
-		if err := tx.Save(&auth).Error; err != nil {
-			return err
-		}
-		if s.coverer != nil {
-			_ = s.coverer.ReverseByRequest(ctx, requestID)
-		}
-		return nil
+		return s.releaseAuthTx(ctx, tx, &auth)
 	})
+}
+
+func (s *Service) releaseAuthTx(ctx context.Context, tx *gorm.DB, auth *authRow) error {
+	if auth.Status == AuthReleased || auth.Status == AuthSettled || auth.Status == AuthReversed {
+		return nil
+	}
+	wallet, err := lockWalletByID(tx, auth.WalletID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	walletPart := auth.WalletReservedMinor
+	if walletPart > auth.AmountMinor {
+		walletPart = auth.AmountMinor
+	}
+	giftPart := auth.GiftReservedMinor
+	if giftPart > walletPart {
+		giftPart = walletPart
+	}
+	wallet.ReservedMinor -= walletPart
+	wallet.AvailableMinor += walletPart
+	wallet.GiftMinor += giftPart
+	wallet.Version++
+	wallet.UpdatedAt = now
+	if err := tx.Save(wallet).Error; err != nil {
+		return err
+	}
+	if walletPart > 0 {
+		if err := writeLedger(tx, wallet, EventRelease, walletPart, "authorization", auth.ID, "release:"+auth.RequestID); err != nil {
+			return err
+		}
+	}
+	if auth.ChannelOrgID != nil {
+		_ = s.releaseChannelQuota(tx, *auth.ChannelOrgID, auth.RequestID, auth.AmountMinor)
+	}
+	auth.Status = AuthReleased
+	auth.UpdatedAt = now
+	if err := tx.Save(auth).Error; err != nil {
+		return err
+	}
+	if s.coverer != nil {
+		_ = s.coverer.ReverseByRequest(ctx, auth.RequestID)
+	}
+	return nil
 }
 
 func (s *Service) ReapExpired(ctx context.Context) (int, error) {

@@ -165,6 +165,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
     titleKey: "groupOps",
     items: [
       { href: "/admin/metrics", key: "metrics" },
+      { href: "/admin/reconciliation", key: "reconciliation" },
       { href: "/admin/media", key: "media" },
       { href: "/admin/users", key: "users" },
       { href: "/admin/alerts", key: "alerts" },

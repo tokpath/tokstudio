@@ -79,6 +79,9 @@ omit="$(curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Beare
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"no-usage"}]}')"
 orid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['request_id'])" "$omit")"
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/billing/report" | grep -q pending_reconciliation_count
+curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/usage/pending" | grep -q pending_reconciliation
+curl -s -X POST "$API_URL/admin/usage/pending/resolve" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"request_ids\":[\"$orid\"]}" | grep -q confirm_required
 curl -sf -X POST "$API_URL/admin/usage/replay" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -H 'X-Tokenhub-Confirm: 1' \
   -d "{\"request_id\":\"$orid\",\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":4}}" | grep -q confirmed

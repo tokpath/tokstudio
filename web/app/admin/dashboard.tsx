@@ -94,6 +94,7 @@ export default function AdminDashboard() {
             label={t(card.key)}
             value={card.v}
             hint={t(card.hintKey)}
+            href={card.href}
           />
         ))}
       </section>

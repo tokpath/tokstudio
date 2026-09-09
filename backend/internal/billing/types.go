@@ -17,6 +17,7 @@ var (
 	ErrRedeemUnavailable   = errors.New("redeem code unavailable")
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
+	ErrAlreadyCharged      = errors.New("usage already charged")
 )
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
@@ -175,13 +176,35 @@ type UsageView struct {
 	OccurredAt       time.Time       `json:"occurred_at"`
 }
 
-// QueryUsageInput 按渠道→用户→API Key，再交叉模型过滤账本。空字段表示不过滤。
+// UsageGapView 是待对账工作队列行：usage 缺口 + 仍扣住的预授权。
+type UsageGapView struct {
+	UsageView
+	AuthStatus    string `json:"auth_status,omitempty"`
+	ReservedMinor int64  `json:"reserved_minor"`
+	SettledMinor  int64  `json:"settled_minor"`
+	MissingUsage  bool   `json:"missing_usage"`
+}
+
+// QueryUsageInput 按渠道→用户→API Key，再交叉模型/状态/时间过滤账本。空字段表示不过滤。
 type QueryUsageInput struct {
 	UserID        string
 	APIKeyID      string
 	ChannelOrgID  string
 	PublicModelID string
+	State         string
+	Since         time.Time
+	Until         time.Time
 	Limit         int
+}
+
+// ResolvePendingInput 标记已解：只作废待对账并释放预授权，禁止估算扣款。
+type ResolvePendingInput struct {
+	IDs        []string `json:"ids"`
+	RequestIDs []string `json:"request_ids"`
+}
+
+type ResolvePendingResult struct {
+	Items []UsageGapView `json:"items"`
 }
 
 type TopupView struct {

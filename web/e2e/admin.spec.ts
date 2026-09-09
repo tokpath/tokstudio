@@ -158,7 +158,15 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
   await expect(page.getByTestId("admin-usage-trend-chart")).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
+  await expect(page.getByLabel("按模型筛选")).toBeVisible();
+  await expect(page.getByLabel("按渠道筛选")).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量 / 账单" })).toBeVisible();
+  await page.goto("/admin/reconciliation");
+  await expect(page.getByRole("heading", { name: "待对账" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "待对账队列" })).toBeVisible();
+  await expect(page.getByText("不按估算扣款")).toBeVisible();
+  await expect(page.getByRole("button", { name: "标记已解" })).toBeVisible();
+  await expect(page.getByTestId("admin-usage-trend-chart")).toHaveCount(0);
   await page.goto("/admin/promos");
   await expect(page.getByRole("heading", { name: "推广角色" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建推广码" })).toBeVisible();

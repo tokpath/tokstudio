@@ -18,6 +18,7 @@ describe("adminNavKeys", () => {
       "promos",
       "commission",
       "metrics",
+      "reconciliation",
       "media",
       "users",
       "alerts",

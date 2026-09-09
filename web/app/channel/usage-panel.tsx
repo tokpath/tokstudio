@@ -21,11 +21,18 @@ export default function ChannelUsage() {
   const tChart = useTranslations("charts");
   const [usage, setUsage] = useState<Usage>({});
   const [keys, setKeys] = useState<DimMoney[]>([]);
+  const [models, setModels] = useState<DimMoney[]>([]);
   const [items, setItems] = useState<UsageEvent[]>([]);
+  const [keyFilter, setKeyFilter] = useState("");
+  const [modelFilter, setModelFilter] = useState("");
   const [message, setMessage] = useState(t("usageHint"));
 
-  async function refresh() {
-    const response = await fetch(`${apiBase}/channel/usage`, { credentials: "include" });
+  async function refresh(nextKey = keyFilter, nextModel = modelFilter) {
+    const params = new URLSearchParams();
+    if (nextKey) params.set("api_key_id", nextKey);
+    if (nextModel) params.set("public_model_id", nextModel);
+    const qs = params.toString();
+    const response = await fetch(`${apiBase}/channel/usage${qs ? `?${qs}` : ""}`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
       setMessage(body.error?.message || t("needAdmin"));
@@ -33,6 +40,7 @@ export default function ChannelUsage() {
     }
     setUsage((body.usage || {}) as Usage);
     setKeys(body.keys || []);
+    setModels(body.models || []);
     setItems(body.items || []);
     setMessage(t("usageDone"));
   }
@@ -49,9 +57,51 @@ export default function ChannelUsage() {
     <Card>
       <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("usageTitle")}</CardTitle>
       <p className="mb-4 text-sm text-ink-secondary">{t("usageLead")}</p>
-      <Button variant="outline" onClick={refresh}>
-        {t("refreshUsage")}
-      </Button>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-ink-mute">{t("filterApiKey")}</span>
+          <select
+            className="h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
+            aria-label={t("filterApiKey")}
+            value={keyFilter}
+            onChange={(e) => {
+              const value = e.target.value;
+              setKeyFilter(value);
+              void refresh(value, modelFilter);
+            }}
+          >
+            <option value="">{t("allApiKeys")}</option>
+            {keys.map((row) => (
+              <option key={row.key} value={row.key}>
+                {shortKeyRef(row.key)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-ink-mute">{t("filterModel")}</span>
+          <select
+            className="h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
+            aria-label={t("filterModel")}
+            value={modelFilter}
+            onChange={(e) => {
+              const value = e.target.value;
+              setModelFilter(value);
+              void refresh(keyFilter, value);
+            }}
+          >
+            <option value="">{t("allModels")}</option>
+            {models.map((row) => (
+              <option key={row.key} value={row.key}>
+                {row.key}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button variant="outline" onClick={() => void refresh()}>
+          {t("refreshUsage")}
+        </Button>
+      </div>
       <section className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[
           { t: t("wholesale"), v: String(usage.usage_minor ?? 0), d: "micro-USD" },

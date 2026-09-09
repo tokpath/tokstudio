@@ -245,7 +245,12 @@ func (s *Service) Seed(ctx context.Context) error {
 				return err
 			}
 		}
-		if err := tx.Where("id = ?", "price_echo").FirstOrCreate(&priceRow{ID: "price_echo", PublicModelID: "mdl_echo", UnitPrices: price, Status: "published"}).Error; err != nil {
+		if err := tx.Where("id = ?", "price_echo").FirstOrCreate(&priceRow{
+			ID: "price_echo", PublicModelID: "mdl_echo", UnitPrices: price, Status: "published", EffectiveAt: time.Now().UTC(),
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&priceRow{}).Where("effective_at = ?", time.Time{}).Update("effective_at", time.Now().UTC()).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("id = ?", "rg_echo").FirstOrCreate(&routeGroupRow{ID: "rg_echo", PublicModelID: "mdl_echo", Strategy: "priority", Status: "active"}).Error; err != nil {

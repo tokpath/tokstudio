@@ -204,6 +204,26 @@ func hasPricedUnit(out map[string]any) bool {
 	return false
 }
 
+// FourPriceDims 从快照 JSON 抽出四列单价（in/out）。渠道覆盖可以缺省。
+func FourPriceDims(raw []byte) (upstream, wholesale, sell, channel string) {
+	d := decodeUnitPrices(raw)
+	return formatIO(d["upstream_cost_input"], d["upstream_cost_output"]),
+		formatIO(d["wholesale_input"], d["wholesale_output"]),
+		formatIO(firstNonEmpty(d["input"], d["customer_sell_input"]), firstNonEmpty(d["output"], d["customer_sell_output"])),
+		formatIO(d["channel_customer_input"], d["channel_customer_output"])
+}
+
+func RequireFourPriceSnapshot(raw []byte, channelRequired bool) error {
+	upstream, wholesale, sell, channel := FourPriceDims(raw)
+	if upstream == "" || wholesale == "" || sell == "" {
+		return errors.New("usage snapshot missing upstream/wholesale/sell")
+	}
+	if channelRequired && channel == "" {
+		return errors.New("usage snapshot missing optional channel that was published")
+	}
+	return nil
+}
+
 func formatIO(input, output string) string {
 	switch {
 	case input == "" && output == "":

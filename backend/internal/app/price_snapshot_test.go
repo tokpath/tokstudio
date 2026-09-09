@@ -47,6 +47,7 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 		t.Fatalf("chat: %+v", chat)
 	}
 	first := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)[0].(map[string]any)
+	oldID, _ := first["id"].(string)
 	oldAmount := first["customer_amount_minor"]
 	oldPrices := first["unit_prices"]
 
@@ -85,14 +86,14 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 			prior = row
 		}
 	}
-	if live == nil || live["status"] != "published" || live["effective_at"] == "" {
+	if live == nil || live["status"] != "published" || !hasEffectiveAt(live["effective_at"]) {
 		t.Fatalf("published version missing effective_at: %+v", books)
 	}
 	if fmtString(live["upstream"]) == "" || fmtString(live["wholesale"]) == "" || fmtString(live["sell"]) == "" || fmtString(live["channel"]) == "" {
 		t.Fatalf("list must expose four price columns: %+v", live)
 	}
-	if prior == nil || prior["effective_at"] == "" {
-		t.Fatalf("superseded chain missing: %+v", books)
+	if prior == nil || prior["status"] != "superseded" || !hasEffectiveAt(prior["effective_at"]) {
+		t.Fatalf("superseded chain missing effective_at: %+v", books)
 	}
 
 	csvBody := getAuthText(t, server.URL+"/admin/price-books?format=csv&q="+catalog.EchoModelID, "wmeter_admin")
@@ -109,12 +110,40 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 		t.Fatalf("csv missing four-price breakdown: %s", csvBody)
 	}
 
-	again := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)[0].(map[string]any)
-	if again["customer_amount_minor"] != oldAmount {
-		t.Fatalf("price change rewrote old bill: %v -> %v", oldAmount, again["customer_amount_minor"])
+	againItems := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)
+	frozen := usageByID(againItems, oldID)
+	if frozen == nil || frozen["customer_amount_minor"] != oldAmount || !jsonEqual(frozen["unit_prices"], oldPrices) {
+		t.Fatalf("price change rewrote old bill/snapshot: old=%v now=%+v", oldAmount, frozen)
 	}
-	if !jsonEqual(again["unit_prices"], oldPrices) {
-		t.Fatalf("old usage snapshot rewritten: %v -> %v", oldPrices, again["unit_prices"])
+
+	freshChat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "wmeter-after-publish"}},
+	})
+	if freshChat["request_id"] == nil {
+		t.Fatalf("new usage after publish: %+v", freshChat)
+	}
+	afterItems := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)
+	stillFrozen := usageByID(afterItems, oldID)
+	if stillFrozen == nil || stillFrozen["customer_amount_minor"] != oldAmount || !jsonEqual(stillFrozen["unit_prices"], oldPrices) {
+		t.Fatalf("new usage mutated old snapshot: %+v", stillFrozen)
+	}
+	fresh := newestUsageExcept(afterItems, oldID)
+	if fresh == nil {
+		t.Fatalf("expected new usage after publish, got %+v", afterItems)
+	}
+	rawFresh, _ := json.Marshal(fresh["unit_prices"])
+	if err := catalog.RequireFourPriceSnapshot(rawFresh, true); err != nil {
+		t.Fatalf("new usage must persist four-price snapshot: %v raw=%s", err, rawFresh)
+	}
+	up, wholesale, sell, channel := catalog.FourPriceDims(rawFresh)
+	if up != "0.000003/0.000004" || wholesale != "0.000006/0.000008" || sell != "0.000009/0.000011" || channel != "0.000010/0.000012" {
+		t.Fatalf("new usage snapshot dims upstream=%q wholesale=%q sell=%q channel=%q", up, wholesale, sell, channel)
+	}
+	if fresh["customer_amount_minor"] == oldAmount {
+		t.Fatalf("new usage should bill the new sell snapshot, still %v", oldAmount)
+	}
+	if fresh["price_version_id"] != versionID {
+		t.Fatalf("new usage should pin published version %s, got %+v", versionID, fresh)
 	}
 }
 
@@ -155,4 +184,29 @@ func jsonEqual(a, b any) bool {
 	left, _ := json.Marshal(a)
 	right, _ := json.Marshal(b)
 	return string(left) == string(right)
+}
+
+func hasEffectiveAt(v any) bool {
+	s := fmtString(v)
+	return s != "" && !strings.HasPrefix(s, "0001-01-01")
+}
+
+func usageByID(items []any, id string) map[string]any {
+	for _, raw := range items {
+		item, _ := raw.(map[string]any)
+		if item["id"] == id {
+			return item
+		}
+	}
+	return nil
+}
+
+func newestUsageExcept(items []any, oldID string) map[string]any {
+	for _, raw := range items {
+		item, _ := raw.(map[string]any)
+		if item["id"] != oldID {
+			return item
+		}
+	}
+	return nil
 }

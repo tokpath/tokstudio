@@ -61,6 +61,12 @@ func TestPriceBookFromRowFourColumns(t *testing.T) {
 	if view.PublicID != "tokenhub/echo-1" || view.Status != "published" {
 		t.Fatalf("identity: %+v", view)
 	}
+	if err := RequireFourPriceSnapshot(raw, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := RequireFourPriceSnapshot([]byte(`{"input":"0.01","output":"0.02"}`), false); err == nil {
+		t.Fatal("sell-only snapshot must fail four-price gate")
+	}
 }
 
 func TestMergeUnitPricesKeepsPriorDims(t *testing.T) {

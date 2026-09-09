@@ -40,55 +40,60 @@ export default function ChannelRules() {
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
   const [message, setMessage] = useState(t("rulesHint"));
+  const [ready, setReady] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
-  const [direct, setDirect] = useState("1500");
-  const [indirect, setIndirect] = useState("500");
-  const [total, setTotal] = useState("2500");
-  const [freeze, setFreeze] = useState("7");
-  const [minSettle, setMinSettle] = useState("1");
-  const [spend, setSpend] = useState("10");
-  const [topup, setTopup] = useState("10");
-  const [gift, setGift] = useState("1");
+  const [direct, setDirect] = useState("");
+  const [indirect, setIndirect] = useState("");
+  const [total, setTotal] = useState("");
+  const [freeze, setFreeze] = useState("");
+  const [minSettle, setMinSettle] = useState("");
+  const [spend, setSpend] = useState("");
+  const [topup, setTopup] = useState("");
+  const [gift, setGift] = useState("");
   const [inherited, setInherited] = useState(false);
 
   async function refresh() {
-    const meRes = await fetch(`${apiBase}/channel/me`, { credentials: "include" });
-    const meBody = await meRes.json();
-    if (!meRes.ok) {
-      setMessage(meBody.error?.message || t("needAdmin"));
-      return;
+    try {
+      const meRes = await fetch(`${apiBase}/channel/me`, { credentials: "include" });
+      const meBody = await meRes.json();
+      if (!meRes.ok) {
+        setMessage(meBody.error?.message || t("needAdmin"));
+        return;
+      }
+      const id = String(meBody.channel_org_id || "");
+      const [chRes, pRes, eRes] = await Promise.all([
+        fetch(`${apiBase}/admin/channels/${encodeURIComponent(id)}`, { credentials: "include" }),
+        fetch(`${apiBase}/channel/commission-policy`, { credentials: "include" }),
+        fetch(`${apiBase}/channel/eligibility-rules`, { credentials: "include" }),
+      ]);
+      const chBody = await chRes.json();
+      const pBody = await pRes.json();
+      const eBody = await eRes.json();
+      const ch = (chBody.item || {}) as Channel;
+      setCanWrite(ch.type === "C");
+      if (pRes.ok) {
+        const p = (pBody.policy || {}) as Policy;
+        setDirect(String(p.direct_bps ?? 0));
+        setIndirect(String(p.indirect_bps ?? 0));
+        setTotal(String(p.total_bps ?? 0));
+        setFreeze(String(p.freeze_days ?? 0));
+        setMinSettle(minorToUsd(p.min_settle_minor ?? 0));
+      }
+      if (eRes.ok) {
+        const r = (eBody.rule || {}) as Rule;
+        setSpend(minorToUsd(r.spend_minor));
+        setTopup(minorToUsd(r.topup_minor));
+        setGift(minorToUsd(r.gift_minor));
+        setInherited(Boolean(r.inherited));
+      }
+      if (!pRes.ok && !eRes.ok) {
+        setMessage(pBody.error?.message || t("needAdmin"));
+        return;
+      }
+      setMessage(ch.type === "C" ? t("rulesWriteHint") : t("rulesReadHint"));
+    } finally {
+      setReady(true);
     }
-    const id = String(meBody.channel_org_id || "");
-    const [chRes, pRes, eRes] = await Promise.all([
-      fetch(`${apiBase}/admin/channels/${encodeURIComponent(id)}`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/commission-policy`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/eligibility-rules`, { credentials: "include" }),
-    ]);
-    const chBody = await chRes.json();
-    const pBody = await pRes.json();
-    const eBody = await eRes.json();
-    const ch = (chBody.item || {}) as Channel;
-    setCanWrite(ch.type === "C");
-    if (pRes.ok) {
-      const p = (pBody.policy || {}) as Policy;
-      setDirect(String(p.direct_bps ?? 1500));
-      setIndirect(String(p.indirect_bps ?? 0));
-      setTotal(String(p.total_bps ?? 2500));
-      setFreeze(String(p.freeze_days ?? 7));
-      setMinSettle(minorToUsd(p.min_settle_minor ?? 1_000_000));
-    }
-    if (eRes.ok) {
-      const r = (eBody.rule || {}) as Rule;
-      setSpend(minorToUsd(r.spend_minor));
-      setTopup(minorToUsd(r.topup_minor));
-      setGift(minorToUsd(r.gift_minor));
-      setInherited(Boolean(r.inherited));
-    }
-    if (!pRes.ok && !eRes.ok) {
-      setMessage(pBody.error?.message || t("needAdmin"));
-      return;
-    }
-    setMessage(ch.type === "C" ? t("rulesWriteHint") : t("rulesReadHint"));
   }
 
   useEffect(() => {
@@ -128,6 +133,10 @@ export default function ChannelRules() {
     const body = await res.json();
     setMessage(res.ok ? t("savedEligibility") : body.error?.message || t("needAdmin"));
     if (res.ok) await refresh();
+  }
+
+  if (!ready) {
+    return <p className="text-sm text-ink-secondary">{t("rulesLoading")}</p>;
   }
 
   return (

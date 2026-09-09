@@ -1752,6 +1752,7 @@
     "createB": "B を作成",
     "createdB": "作成 {code} {id}",
     "rulesHint": "C はこの市場を編集できます。B は読み取り専用です。",
+    "rulesLoading": "手数料と到達線を読み込み中…",
     "rulesWriteHint": "変更は以降の usage と到達線に効き、既存明細は変えません。",
     "rulesReadHint": "このチャネルは料率を変えられません。プラットフォームまたは上位 C の規則です。",
     "policyTitle": "手数料率",

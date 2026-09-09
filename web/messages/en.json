@@ -1752,6 +1752,7 @@
     "createB": "Create B",
     "createdB": "Created {code} {id}",
     "rulesHint": "C can edit this market. B is read-only.",
+    "rulesLoading": "Loading commission and eligibility…",
     "rulesWriteHint": "Changes apply to later usage and eligibility, not posted rows.",
     "rulesReadHint": "This channel cannot edit rates. Showing the platform or parent C policy.",
     "policyTitle": "Commission rates",

@@ -1752,6 +1752,7 @@
     "createB": "创建 B",
     "createdB": "已创建 {code} {id}",
     "rulesHint": "C 可改本市场规则。B 只读。",
+    "rulesLoading": "正在读取分佣与达线…",
     "rulesWriteHint": "改规则只影响之后的 usage 和达线，不改已经入账的明细。",
     "rulesReadHint": "本渠道不能改分佣或达线，显示的是平台或上级 C 的规则。",
     "policyTitle": "分佣比例",

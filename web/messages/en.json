@@ -136,6 +136,7 @@
     "wallet": "Wallet",
     "plans": "Plans",
     "usage": "Usage summary",
+    "reconciliation": "Reconciliation",
     "activity": "Activity",
     "media": "Media",
     "referral": "Referral",
@@ -164,6 +165,7 @@
     "rules": "Rules",
     "attribution": "Quota",
     "usage": "Usage",
+    "reconciliation": "Reconciliation",
     "settlements": "Settlements",
     "commissions": "Commissions"
   },
@@ -673,6 +675,11 @@
       "title": "Usage summary",
       "description": "Trends and per-key totals. Per-request receipts live under Activity. No prompt bodies."
     },
+    "reconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "Reconciliation",
+      "description": "Same-window three-bucket vs usage. Matches stay green. Mismatches only go to the pending queue — never estimate-debit."
+    },
     "activity": {
       "eyebrow": "ACTIVITY",
       "title": "Activity",
@@ -782,6 +789,11 @@
       "eyebrow": "USAGE",
       "title": "Usage",
       "description": "Tokens and media seconds from billing usage. No prompt bodies."
+    },
+    "channelReconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "Reconciliation",
+      "description": "Same-window three-bucket vs channel usage. Matches stay green. Mismatches only go to the pending queue — never estimate-debit."
     },
     "channelSettlements": {
       "eyebrow": "SETTLEMENTS",
@@ -1619,6 +1631,45 @@
     "mediaFilterKind": "Filter media type",
     "createJob": "New job",
     "createJobLead": "Fill in the prompt and options, then submit. Longer forms open in a dialog."
+  },
+  "reconcile": {
+    "lead": "Reconcile the three buckets with the same-window usage. Matches stay green. Mismatches only go to the pending queue — never estimate-debit.",
+    "needLogin": "Not signed in",
+    "done": "Reconciliation window refreshed",
+    "needRow": "Pick a mismatch row first.",
+    "flagged": "Sent to the pending reconciliation queue",
+    "flagFail": "Could not flag the mismatch",
+    "bucketsLabel": "Three buckets",
+    "bucketAvailable": "Balance",
+    "bucketAvailableHint": "available",
+    "bucketHold": "Hold",
+    "bucketHoldHint": "HOLD / reserved",
+    "bucketWithdraw": "Withdrawable",
+    "bucketWithdrawHint": "commission_available",
+    "totalsLabel": "Same-window usage",
+    "totRequests": "Requests",
+    "totUsage": "Usage amount",
+    "totCharge": "Charged",
+    "totPending": "Mismatches",
+    "refresh": "Refresh",
+    "diffTitle": "Usage diff",
+    "empty": "No usage",
+    "emptyDetail": "Empty stays empty. No fake charts or trends.",
+    "loading": "Reading the ledger…",
+    "colTime": "Time",
+    "colModel": "Model",
+    "colUsage": "usage",
+    "colCharge": "charge",
+    "colHold": "Hold",
+    "colStatus": "Result",
+    "colAction": "Action",
+    "matchOk": "OK",
+    "mismatch": "Mismatch",
+    "flag": "Send to pending queue",
+    "flagTitle": "Confirm send to pending queue",
+    "flagDesc": "Only mark pending_reconciliation. Never estimate-debit.",
+    "pendingList": "Pending reconciliation queue",
+    "pendingLead": "Gaps already in the queue. Replay real tokens on the usage page. No estimate-debit here."
   },
   "channelUi": {
     "needAdmin": "Not signed in as channel admin",

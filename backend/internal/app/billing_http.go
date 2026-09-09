@@ -21,6 +21,8 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/v1/me/ledger", a.requireUserOrKey(), a.getLedger)
 	r.GET("/v1/me/usage", a.requireUserOrKey(), a.getUsage)
 	r.GET("/v1/usage", a.requireUserOrKey(), a.getUsage)
+	r.GET("/v1/me/reconciliation", a.requireUserOrKey(), a.getMyReconciliation)
+	r.POST("/v1/me/reconciliation/flag", a.requireUserOrKey(), a.flagMyReconciliation)
 	r.POST("/v1/topups", a.requireUserOrKey(), a.createTopup)
 	r.GET("/v1/topups/:id", a.requireUserOrKey(), a.getTopup)
 	r.POST("/v1/topups/redeem", a.requireUserOrKey(), a.redeemTopup)
@@ -39,6 +41,8 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPrices)
 	r.POST("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.publishPrice)
 	r.POST("/admin/usage/replay", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.replayUsage)
+	r.GET("/channel/reconciliation", a.requireRoles("channel_admin", "platform_admin", "finance_admin", "ops_admin"), a.getChannelReconciliation)
+	r.POST("/channel/reconciliation/flag", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.flagChannelReconciliation)
 }
 
 func (a *App) requireUserOrKey() gin.HandlerFunc {
@@ -114,6 +118,114 @@ func (a *App) getLedger(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) getMyReconciliation(c *gin.Context) {
+	userID, channelID := a.billingUser(c)
+	view, err := a.Billing.ReconcileWindow(c.Request.Context(), billing.ReconcileInput{
+		UserID:        userID,
+		ChannelOrgID:  channelID,
+		Scope:         billing.ScopeUser,
+		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
+		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
+	})
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取对账失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": view, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) flagMyReconciliation(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	userID, _ := a.billingUser(c)
+	item, err := a.Billing.FlagPending(c.Request.Context(), billing.FlagPendingInput{
+		Key:    flagKey(c),
+		UserID: userID,
+	})
+	a.respondFlagPending(c, item, err)
+}
+
+func (a *App) getChannelReconciliation(c *gin.Context) {
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = strings.TrimSpace(c.Query("channel_id"))
+	}
+	view, err := a.Billing.ReconcileWindow(c.Request.Context(), billing.ReconcileInput{
+		ChannelOrgID:  channelID,
+		Scope:         billing.ScopeChannel,
+		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
+		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
+	})
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道对账失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": view, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) flagChannelReconciliation(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	channelID := a.currentPrincipal(c).VisibleChannelID()
+	if channelID == "" {
+		channelID = strings.TrimSpace(c.Query("channel_id"))
+	}
+	item, err := a.Billing.FlagPending(c.Request.Context(), billing.FlagPendingInput{
+		Key:          flagKey(c),
+		ChannelOrgID: channelID,
+	})
+	a.respondFlagPending(c, item, err)
+}
+
+func flagKey(c *gin.Context) string {
+	var body struct {
+		ID        string `json:"id"`
+		RequestID string `json:"request_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if strings.TrimSpace(body.ID) != "" {
+		return strings.TrimSpace(body.ID)
+	}
+	return strings.TrimSpace(body.RequestID)
+}
+
+func (a *App) respondFlagPending(c *gin.Context, item *billing.UsageGapView, err error) {
+	if err != nil {
+		if errors.Is(err, billing.ErrAlreadyMatched) {
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "匹配行无需送入待对账", false)
+			return
+		}
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "对账行不存在", false)
+			return
+		}
+		if errors.Is(err, billing.ErrInvalidAmount) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 id 或 request_id", false)
+			return
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "送入待对账失败", false)
+		return
+	}
+	resourceID := item.ID
+	if resourceID == "" {
+		resourceID = item.RequestID
+	}
+	if p := a.currentPrincipal(c); p != nil {
+		_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+			ActorUserID: p.UserID, Action: "billing.usage.flag_pending", ResourceType: "usage_event",
+			ResourceID: resourceID, After: item,
+			IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		})
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) getUsage(c *gin.Context) {

@@ -136,6 +136,7 @@
     "wallet": "残高/入金",
     "plans": "プラン",
     "usage": "利用量サマリー",
+    "reconciliation": "照合",
     "activity": "リクエスト明細",
     "media": "メディア",
     "referral": "紹介",
@@ -164,6 +165,7 @@
     "rules": "規則",
     "attribution": "枠",
     "usage": "利用量",
+    "reconciliation": "照合",
     "settlements": "精算",
     "commissions": "手数料/精算"
   },
@@ -673,6 +675,11 @@
       "title": "利用量サマリー",
       "description": "トレンドと Key 別集計。一件ずつの回単はリクエスト明細。prompt 本文は含みません。"
     },
+    "reconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "照合",
+      "description": "同じ窓の三バケットと usage を突き合わせます。一致は緑。差分は照合待ちキューへ。見積り引落としはしません。"
+    },
     "activity": {
       "eyebrow": "ACTIVITY",
       "title": "リクエスト明細",
@@ -782,6 +789,11 @@
       "eyebrow": "USAGE",
       "title": "利用量",
       "description": "トークンとメディア秒は課金 usage。prompt 本文なし。"
+    },
+    "channelReconciliation": {
+      "eyebrow": "RECONCILE",
+      "title": "照合",
+      "description": "同じ窓の三バケットとチャネル usage。一致は緑。差分は照合待ちキューへ。見積り引落としはしません。"
     },
     "channelSettlements": {
       "eyebrow": "SETTLEMENTS",
@@ -1619,6 +1631,45 @@
     "mediaFilterKind": "メディア種別で絞り込み",
     "createJob": "新規ジョブ",
     "createJobLead": "プロンプトとパラメータを入力して送信します。項目が多いためダイアログで作成します。"
+  },
+  "reconcile": {
+    "lead": "三バケットと同じ窓の usage を照合します。一致は緑。差分は照合待ちキューへ。見積り引落としは禁止です。",
+    "needLogin": "未ログイン",
+    "done": "照合窓を更新しました",
+    "needRow": "先に差分行を選んでください。",
+    "flagged": "照合待ちキューに送りました",
+    "flagFail": "キュー投入に失敗しました",
+    "bucketsLabel": "三バケット",
+    "bucketAvailable": "残高",
+    "bucketAvailableHint": "available",
+    "bucketHold": "凍結",
+    "bucketHoldHint": "HOLD / reserved",
+    "bucketWithdraw": "引出可能",
+    "bucketWithdrawHint": "commission_available",
+    "totalsLabel": "同じ窓の usage",
+    "totRequests": "リクエスト",
+    "totUsage": "usage 金額",
+    "totCharge": "請求済",
+    "totPending": "差分数",
+    "refresh": "照合を更新",
+    "diffTitle": "usage 差分",
+    "empty": "usage なし",
+    "emptyDetail": "usage が無いときは空白のまま。偽のグラフは出しません。",
+    "loading": "台帳を読み込み中…",
+    "colTime": "時刻",
+    "colModel": "モデル",
+    "colUsage": "usage",
+    "colCharge": "charge",
+    "colHold": "凍結",
+    "colStatus": "結果",
+    "colAction": "操作",
+    "matchOk": "OK",
+    "mismatch": "差分",
+    "flag": "照合待ちキューへ送る",
+    "flagTitle": "照合待ちキューへ送る確認",
+    "flagDesc": "pending_reconciliation にするだけです。見積り引落としはしません。",
+    "pendingList": "照合待ちキュー",
+    "pendingLead": "すでにキューにある缺口。本物の Token は利用量ページで再生。ここでは見積り引落とししません。"
   },
   "channelUi": {
     "needAdmin": "チャネル管理者でログインしていません",

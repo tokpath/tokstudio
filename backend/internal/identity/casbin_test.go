@@ -14,6 +14,9 @@ func TestCasbinAllowMatrix(t *testing.T) {
 		want   bool
 	}{
 		{"end_user", "GET", "/v1/me", true},
+		{"end_user", "GET", "/v1/me/reconciliation", true},
+		{"end_user", "POST", "/v1/me/reconciliation/flag", true},
+		{"end_user", "GET", "/channel/reconciliation", false},
 		{"end_user", "GET", "/v1/me/api-keys", true},
 		{"end_user", "GET", "/v1/partner/me", true},
 		{"end_user", "GET", "/admin/audit-logs", false},
@@ -27,8 +30,12 @@ func TestCasbinAllowMatrix(t *testing.T) {
 		{"finance_admin", "POST", "/admin/refunds", true},
 		{"finance_admin", "GET", "/admin/usage/pending", true},
 		{"finance_admin", "POST", "/admin/usage/pending/resolve", true},
+		{"finance_admin", "GET", "/channel/reconciliation", true},
+		{"finance_admin", "POST", "/channel/reconciliation/flag", true},
 		{"ops_admin", "GET", "/admin/usage/pending", true},
 		{"ops_admin", "POST", "/admin/usage/pending/resolve", true},
+		{"ops_admin", "GET", "/channel/reconciliation", true},
+		{"ops_admin", "POST", "/channel/reconciliation/flag", false},
 		{"audit_readonly", "GET", "/admin/usage/pending", true},
 		{"audit_readonly", "POST", "/admin/usage/pending/resolve", false},
 		{"finance_admin", "GET", "/admin/ledger", true},

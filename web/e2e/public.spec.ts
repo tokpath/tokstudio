@@ -79,6 +79,7 @@ const consolePaths = [
   "/app/keys",
   "/app/catalog",
   "/app/usage",
+  "/app/reconciliation",
   "/app/activity",
   "/app/wallet",
   "/app/plans",
@@ -111,6 +112,8 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "进货" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "规则" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await channelNav.getByRole("link", { name: "收款" }).click();
   await expect(page).toHaveURL(/\/channel\/payments/);
   await expect(page.locator("h1")).toHaveText("收款");

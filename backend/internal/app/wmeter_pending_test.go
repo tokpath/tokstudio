@@ -11,12 +11,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/app"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 )
 
-func TestWMeterPendingQueue(t *testing.T) {
+type wmeterEnv struct {
+	t       *testing.T
+	app     *app.App
+	server  *httptest.Server
+	ctx     context.Context
+	session string
+	apiKey  string
+	userID  string
+}
+
+func newWMeterEnv(t *testing.T) *wmeterEnv {
+	t.Helper()
 	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
 		t.Skip("integration test requires postgres and redis")
 	}
@@ -29,8 +41,7 @@ func TestWMeterPendingQueue(t *testing.T) {
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
-	defer server.Close()
-	ctx := context.Background()
+	t.Cleanup(server.Close)
 
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "wmeter2-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
@@ -41,38 +52,153 @@ func TestWMeterPendingQueue(t *testing.T) {
 	if postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})["item"] == nil {
 		t.Fatal("redeem failed")
 	}
+	return &wmeterEnv{
+		t: t, app: application, server: server, ctx: context.Background(),
+		session: session, apiKey: apiKey, userID: userIDOf(reg),
+	}
+}
 
-	charged := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+// TestWMeterSentinelDoubleCharge：同一 request 再结算/回放不得写出第二条客户扣费。
+func TestWMeterSentinelDoubleCharge(t *testing.T) {
+	fx := newWMeterEnv(t)
+	charged := postJSONRaw(t, fx.server.URL+"/v1/chat/completions", fx.apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "wmeter2-charge"}},
 	})
-	chargedID := charged["request_id"].(string)
-	firstReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
-		"request_id": chargedID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
-	})
-	secondReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
-		"request_id": chargedID, "usage": map[string]int{"prompt_tokens": 99, "completion_tokens": 99},
-	})
-	firstCharge := firstReplay["item"].(map[string]any)["charge_id"]
-	if firstCharge == nil || firstCharge != secondReplay["item"].(map[string]any)["charge_id"] {
-		t.Fatalf("sentinel double-charge FAIL: replay must be idempotent: %+v %+v", firstReplay, secondReplay)
-	}
+	requestID := charged["request_id"].(string)
+	first := requireChargeCount(t, fx.app.Billing, requestID, 1, "sentinel double-charge FAIL: live settle")
+	beforeReplay := balanceMinor(t, fx.server.URL, fx.session)
+	beforeDebits := usageDebitCount(t, fx.app.Billing, fx.userID, requestID)
 
-	beforeOmit := balanceMinor(t, server.URL, session)
-	omit := omitChat(t, server.URL, apiKey, "wmeter2-omit")
-	omitID := omit["request_id"].(string)
-	afterOmit := balanceMinor(t, server.URL, session)
+	firstReplay := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+	})
+	secondReplay := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 99, "completion_tokens": 99},
+	})
+	replayCharge := firstReplay["item"].(map[string]any)["charge_id"]
+	if replayCharge == nil || replayCharge != first[0].ChargeID {
+		t.Fatalf("sentinel double-charge FAIL: replay must reuse the live charge: live=%s replay=%v", first[0].ChargeID, replayCharge)
+	}
+	if replayCharge != secondReplay["item"].(map[string]any)["charge_id"] {
+		t.Fatalf("sentinel double-charge FAIL: second replay minted another charge: %+v %+v", firstReplay, secondReplay)
+	}
+	after := requireChargeCount(t, fx.app.Billing, requestID, 1, "sentinel double-charge FAIL")
+	if after[0].ChargeID != first[0].ChargeID || after[0].AmountMinor != first[0].AmountMinor {
+		t.Fatalf("sentinel double-charge FAIL: charge mutated: before=%+v after=%+v", first[0], after[0])
+	}
+	if balanceMinor(t, fx.server.URL, fx.session) != beforeReplay {
+		t.Fatalf("sentinel double-charge FAIL: wallet moved on replay")
+	}
+	if usageDebitCount(t, fx.app.Billing, fx.userID, requestID) != beforeDebits {
+		t.Fatalf("sentinel double-charge FAIL: extra usage_debit on replay")
+	}
+}
+
+// TestWMeterSentinelReplayIdempotent：同一 usage 回放必须幂等（同 charge、同金额、余额不动）。
+func TestWMeterSentinelReplayIdempotent(t *testing.T) {
+	fx := newWMeterEnv(t)
+	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-replay")
+	requestID := omit["request_id"].(string)
+	requireChargeCount(t, fx.app.Billing, requestID, 0, "omit must not estimate-debit before replay")
+
+	r1 := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+	})
+	afterFirst := balanceMinor(t, fx.server.URL, fx.session)
+	charge1 := r1["item"].(map[string]any)
+	if charge1["state"] != billing.UsageConfirmed || charge1["charge_id"] == nil {
+		t.Fatalf("replay should confirm with a charge: %+v", r1)
+	}
+	firstCharges := requireChargeCount(t, fx.app.Billing, requestID, 1, "same usage replay must write exactly one charge")
+
+	r2 := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+	})
+	if charge1["charge_id"] != r2["item"].(map[string]any)["charge_id"] {
+		t.Fatalf("same usage replay must be idempotent: %+v %+v", r1, r2)
+	}
+	secondCharges := requireChargeCount(t, fx.app.Billing, requestID, 1, "same usage replay must stay one charge")
+	if secondCharges[0].ChargeID != firstCharges[0].ChargeID || secondCharges[0].AmountMinor != firstCharges[0].AmountMinor {
+		t.Fatalf("same usage replay mutated the bill: first=%+v second=%+v", firstCharges[0], secondCharges[0])
+	}
+	if balanceMinor(t, fx.server.URL, fx.session) != afterFirst {
+		t.Fatalf("same usage replay must not move the wallet again")
+	}
+	if n := usageDebitCount(t, fx.app.Billing, fx.userID, requestID); n > 1 {
+		t.Fatalf("same usage replay wrote %d usage_debit rows", n)
+	}
+}
+
+// TestWMeterSentinelMissingUsageNoEstimate：缺 usage 只进 pending_reconciliation，永不估算扣款。
+func TestWMeterSentinelMissingUsageNoEstimate(t *testing.T) {
+	fx := newWMeterEnv(t)
+	beforeOmit := balanceMinor(t, fx.server.URL, fx.session)
+	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-omit")
+	requestID := omit["request_id"].(string)
+	afterOmit := balanceMinor(t, fx.server.URL, fx.session)
 	if afterOmit >= beforeOmit {
 		t.Fatalf("omit should keep a reservation held: before=%d after=%d", beforeOmit, afterOmit)
 	}
-	if _, err := application.Billing.ChargeByRequest(ctx, omitID); err != billing.ErrNotFound {
+	requireChargeCount(t, fx.app.Billing, requestID, 0, "missing usage must NEVER estimate-debit")
+	if _, err := fx.app.Billing.ChargeByRequest(fx.ctx, requestID); err != billing.ErrNotFound {
 		t.Fatalf("missing usage must NEVER estimate-debit, charge=%v", err)
 	}
+	if usageDebitCount(t, fx.app.Billing, fx.userID, requestID) != 0 {
+		t.Fatal("missing usage must not write usage_debit")
+	}
 
-	pending := getAuthJSON(t, server.URL+"/admin/usage/pending", "wmeter2_admin")
+	gaps, err := fx.app.Billing.ListPendingReconciliation(fx.ctx, billing.QueryUsageInput{Limit: 50})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, gap := range gaps {
+		if gap.RequestID != requestID {
+			continue
+		}
+		found = true
+		if gap.State != billing.UsagePending || !gap.MissingUsage {
+			t.Fatalf("missing usage must be pending_reconciliation only: %+v", gap)
+		}
+		if gap.CustomerMinor != 0 || gap.SettledMinor != 0 {
+			t.Fatalf("pending gap must not carry an estimated bill: %+v", gap)
+		}
+	}
+	if !found {
+		t.Fatalf("missing usage must enter pending_reconciliation: %+v", gaps)
+	}
+
+	usages, err := fx.app.Billing.QueryUsage(fx.ctx, billing.QueryUsageInput{
+		UserID: fx.userID, State: billing.UsagePending, PublicModelID: catalog.EchoModelID, Limit: 50,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	saw := false
+	for _, row := range usages {
+		if row.RequestID == requestID {
+			saw = true
+			if row.CustomerMinor != 0 {
+				t.Fatalf("statements must not show an estimated debit: %+v", row)
+			}
+		}
+	}
+	if !saw {
+		t.Fatalf("TokenHub QueryUsage missed pending usage: %+v", usages)
+	}
+}
+
+func TestWMeterPendingQueue(t *testing.T) {
+	fx := newWMeterEnv(t)
+	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-queue")
+	omitID := omit["request_id"].(string)
+	afterOmit := balanceMinor(t, fx.server.URL, fx.session)
+
+	pending := getAuthJSON(t, fx.server.URL+"/admin/usage/pending", "wmeter2_admin")
 	if !containsRequest(pending, omitID) {
 		t.Fatalf("pending queue missing omit request: %+v", pending)
 	}
-	detail := getAuthJSON(t, server.URL+"/admin/usage/pending/"+omitID, "wmeter2_admin")["item"].(map[string]any)
+	detail := getAuthJSON(t, fx.server.URL+"/admin/usage/pending/"+omitID, "wmeter2_admin")["item"].(map[string]any)
 	if detail["state"] != billing.UsagePending || detail["missing_usage"] != true {
 		t.Fatalf("gap detail: %+v", detail)
 	}
@@ -80,58 +206,48 @@ func TestWMeterPendingQueue(t *testing.T) {
 		t.Fatalf("pending gap must not carry an estimated bill: %+v", detail)
 	}
 
-	filtered := getAuthJSON(t, server.URL+"/admin/usage?state=pending_reconciliation&public_model_id="+catalog.EchoModelID, "wmeter2_admin")
+	filtered := getAuthJSON(t, fx.server.URL+"/admin/usage?state=pending_reconciliation&public_model_id="+catalog.EchoModelID, "wmeter2_admin")
 	if !containsRequest(filtered, omitID) {
 		t.Fatalf("statements filter missed pending usage: %+v", filtered)
 	}
 
-	if postStatus(t, server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
+	if postStatus(t, fx.server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
 		"request_ids": []string{omitID},
 	}) != http.StatusConflict {
 		t.Fatal("mark resolved without seal confirm must be 409")
 	}
-	if _, err := application.Billing.ChargeByRequest(ctx, omitID); err != billing.ErrNotFound {
-		t.Fatal("409 resolve must not create a charge")
-	}
+	requireChargeCount(t, fx.app.Billing, omitID, 0, "409 resolve must not create a charge")
 
-	resolved := postJSONRaw(t, server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
+	resolved := postJSONRaw(t, fx.server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
 		"request_ids": []string{omitID},
 	})
 	item := resolved["item"].(map[string]any)["items"].([]any)[0].(map[string]any)
 	if item["state"] != billing.UsageVoided {
 		t.Fatalf("resolve should void pending usage: %+v", item)
 	}
-	again := postJSONRaw(t, server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
+	again := postJSONRaw(t, fx.server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
 		"ids": []string{item["id"].(string)},
 	})
 	againItem := again["item"].(map[string]any)["items"].([]any)[0].(map[string]any)
 	if againItem["id"] != item["id"] || againItem["state"] != billing.UsageVoided {
 		t.Fatalf("resolve must be idempotent: %+v", again)
 	}
-	afterResolve := balanceMinor(t, server.URL, session)
+	afterResolve := balanceMinor(t, fx.server.URL, fx.session)
 	if afterResolve <= afterOmit {
 		t.Fatalf("mark resolved must release hold, not debit: afterOmit=%d afterResolve=%d", afterOmit, afterResolve)
 	}
-	if _, err := application.Billing.ChargeByRequest(ctx, omitID); err != billing.ErrNotFound {
-		t.Fatal("mark resolved must never create a customer charge")
-	}
+	requireChargeCount(t, fx.app.Billing, omitID, 0, "mark resolved must never create a customer charge")
 
-	replayOmit := omitChat(t, server.URL, apiKey, "wmeter2-replay")
+	replayOmit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-replay-queue")
 	replayID := replayOmit["request_id"].(string)
-	r1 := postJSONRaw(t, server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+	r1 := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
 		"request_id": replayID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
 	})
-	r2 := postJSONRaw(t, server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
-		"request_id": replayID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
-	})
-	if r1["item"].(map[string]any)["charge_id"] != r2["item"].(map[string]any)["charge_id"] {
-		t.Fatalf("same usage replay must be idempotent: %+v %+v", r1, r2)
-	}
 	if r1["item"].(map[string]any)["state"] != billing.UsageConfirmed {
 		t.Fatalf("replay should confirm: %+v", r1)
 	}
-
-	if postStatus(t, server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
+	requireChargeCount(t, fx.app.Billing, replayID, 1, "replay of missing usage writes exactly one charge")
+	if postStatus(t, fx.server.URL+"/admin/usage/pending/resolve", "wmeter2_admin", map[string]any{
 		"request_ids": []string{replayID},
 	}) != http.StatusConflict {
 		t.Fatal("already charged request cannot be mark-resolved")
@@ -189,4 +305,40 @@ func containsRequest(body map[string]any, requestID string) bool {
 		}
 	}
 	return false
+}
+
+func requireChargeCount(t *testing.T, svc *billing.Service, requestID string, want int, msg string) []billing.Settlement {
+	t.Helper()
+	rows, err := svc.ListChargesByRequest(context.Background(), requestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != want {
+		t.Fatalf("%s: want %d customer charges, got %d %+v", msg, want, len(rows), rows)
+	}
+	committed := 0
+	for _, row := range rows {
+		if row.State == billing.ChargeCommitted {
+			committed++
+		}
+	}
+	if committed > 1 {
+		t.Fatalf("sentinel double-charge FAIL: %d committed charges for %s: %+v", committed, requestID, rows)
+	}
+	return rows
+}
+
+func usageDebitCount(t *testing.T, svc *billing.Service, userID, requestID string) int {
+	t.Helper()
+	entries, err := svc.ListLedger(context.Background(), userID, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, entry := range entries {
+		if entry.EventType == billing.EventUsageDebit && entry.ReferenceID == requestID {
+			n++
+		}
+	}
+	return n
 }

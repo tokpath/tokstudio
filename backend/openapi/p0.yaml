@@ -468,6 +468,63 @@ paths:
       responses:
         "200":
           description: service quotas issued from this channel using the platform issue ratio
+  /channel/pnl:
+    get:
+      operationId: getChannelPnL
+      responses:
+        "200":
+          description: channel pool PnL
+  /channel/supplier-entries:
+    get:
+      operationId: listChannelSupplier
+      responses:
+        "200":
+          description: supplier spend for the actor's books
+    post:
+      operationId: createChannelSupplier
+      responses:
+        "201":
+          description: recorded supplier spend
+  /channel/supplier-entries/{id}/reverse:
+    post:
+      operationId: reverseChannelSupplier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: reversing row
+  /channel/quotas/grant:
+    post:
+      operationId: grantChannelWholesale
+      responses:
+        "200":
+          description: C transfers credits to a child B
+  /channel/commission-policy:
+    get:
+      operationId: getChannelCommissionPolicy
+      responses:
+        "200":
+          description: market commission policy
+    patch:
+      operationId: patchChannelCommissionPolicy
+      responses:
+        "200":
+          description: C updates own commission policy
+  /channel/eligibility-rules:
+    get:
+      operationId: getChannelEligibility
+      responses:
+        "200":
+          description: effective eligibility
+    patch:
+      operationId: patchChannelEligibility
+      responses:
+        "200":
+          description: C updates eligibility
   /v1/partner/me:
     get:
       operationId: getPartnerMe
@@ -827,6 +884,52 @@ paths:
       responses:
         "200":
           description: updated policy
+  /admin/eligibility-rules:
+    get:
+      operationId: getAdminEligibility
+      responses:
+        "200":
+          description: platform eligibility
+    patch:
+      operationId: patchAdminEligibility
+      responses:
+        "200":
+          description: updated eligibility
+  /admin/supplier-entries:
+    get:
+      operationId: listAdminSupplier
+      responses:
+        "200":
+          description: supplier spend
+    post:
+      operationId: createAdminSupplier
+      responses:
+        "201":
+          description: recorded supplier spend
+  /admin/supplier-entries/{id}/reverse:
+    post:
+      operationId: reverseAdminSupplier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: reversing row
+  /admin/channels/{id}/pnl:
+    get:
+      operationId: getAdminChannelPnL
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: channel pool PnL
   /admin/price-books:
     get:
       operationId: listAdminPriceBooks

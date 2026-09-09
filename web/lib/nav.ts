@@ -104,6 +104,8 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {
     titleKey: "ledger",
     items: [
+      { href: "/channel/ledger", key: "books" },
+      { href: "/channel/rules", key: "rules" },
       { href: "/channel/attribution", key: "attribution" },
       { href: "/channel/usage", key: "usage" },
       { href: "/channel/settlements", key: "settlements" },

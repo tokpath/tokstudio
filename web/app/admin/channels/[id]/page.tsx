@@ -13,6 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AdminShell } from "../../shell";
 import { AdminListPanel } from "../../list-panel";
 import { ChannelQuotaPanel } from "../quota-panel";
+import { ChannelPnLPanel } from "../pnl-panel";
+import { AdminSupplierPanel } from "../../billing/supplier-panel";
 import { ChannelModelsPanel } from "../models-panel";
 import { ChannelPaymentReadiness } from "../payment-readiness";
 import { apiBase } from "@/lib/api";
@@ -201,6 +203,8 @@ export default function AdminChannelDetailPage() {
       <IfCan action="channels.quota">
         <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
       </IfCan>
+      <ChannelPnLPanel channelID={id} />
+      <AdminSupplierPanel channelID={id} />
       <ChannelPaymentReadiness channelID={id} />
       <IfCan action="partners.view">
       <AdminListPanel<Role>

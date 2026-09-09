@@ -17,12 +17,16 @@ type Policy = {
   id?: string;
   version?: string;
   direct_bps?: number;
-  override_bps?: number;
-  channel_bps?: number;
-  team_bps?: number;
-  cap_bps?: number;
+  indirect_bps?: number;
+  total_bps?: number;
   freeze_days?: number;
   min_settle_minor?: number;
+};
+
+type Eligibility = {
+  spend_minor?: number;
+  topup_minor?: number;
+  gift_minor?: number;
 };
 
 type Commission = { id: string; kind: string; status: string; amount_minor: number; channel_org_id?: string };
@@ -30,18 +34,20 @@ type Settlement = { id: string; status: string; amount_minor: number; channel_or
 
 export default function AdminCommissionPage() {
   const [direct, setDirect] = useState("1500");
-  const [overrideBps, setOverrideBps] = useState("500");
-  const [channel, setChannel] = useState("500");
-  const [team, setTeam] = useState("0");
-  const [cap, setCap] = useState("3500");
+  const [indirect, setIndirect] = useState("500");
+  const [total, setTotal] = useState("2500");
   const [freeze, setFreeze] = useState("7");
-  const [minSettle, setMinSettle] = useState("1000000");
+  const [minSettle, setMinSettle] = useState("1");
+  const [spend, setSpend] = useState("10");
+  const [topup, setTopup] = useState("10");
+  const [gift, setGift] = useState("1");
+  const [eligMessage, setEligMessage] = useState("累计消费 / 单笔充值达线；无资格分享发注册赠送积分。金额是 USD。");
   const [usageEventID, setUsageEventID] = useState("");
   const [recalcUsageID, setRecalcUsageID] = useState("");
   const [recalcMessage, setRecalcMessage] = useState("按 usage 上的价格快照冲正旧流水，再挂新冻结额。需要二次确认。");
   const [settlementID, setSettlementID] = useState("");
   const [payoutRef, setPayoutRef] = useState("manual-wire");
-  const [message, setMessage] = useState("BPS 是万分比。各档之和不能超过上限。保存、解冻、结算和打款都要二次确认。");
+  const [message, setMessage] = useState("BPS 是万分比。直接+间接不能超过总佣金。保存、解冻、结算和打款都要二次确认。");
 
   const policyQuery = useQuery({
     queryKey: ["commission-policy"],
@@ -57,12 +63,10 @@ export default function AdminCommissionPage() {
     }
     const p = body.policy as Policy;
     setDirect(String(p.direct_bps ?? 1500));
-    setOverrideBps(String(p.override_bps ?? 500));
-    setChannel(String(p.channel_bps ?? 500));
-    setTeam(String(p.team_bps ?? 0));
-    setCap(String(p.cap_bps ?? 3500));
+    setIndirect(String(p.indirect_bps ?? 0));
+    setTotal(String(p.total_bps ?? 2500));
     setFreeze(String(p.freeze_days ?? 7));
-    setMinSettle(String(p.min_settle_minor ?? 1_000_000));
+    setMinSettle(String((p.min_settle_minor ?? 1_000_000) / 1_000_000));
     setMessage(`已读取策略 ${p.version || p.id}`);
   }
 
@@ -71,14 +75,12 @@ export default function AdminCommissionPage() {
       method: "PATCH",
       credentials: "include",
       headers: confirmHeaders,
-      body: JSON.stringify({
+        body: JSON.stringify({
         direct_bps: Number(direct),
-        override_bps: Number(overrideBps),
-        channel_bps: Number(channel),
-        team_bps: Number(team),
-        cap_bps: Number(cap),
+        indirect_bps: Number(indirect),
+        total_bps: Number(total),
         freeze_days: Number(freeze),
-        min_settle_minor: Number(minSettle),
+        min_settle_minor: Math.round(Number(minSettle) * 1_000_000),
       }),
     });
     const body = await res.json();
@@ -90,16 +92,14 @@ export default function AdminCommissionPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="commission" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          直接 / 管理奖励 / 渠道 / 团队分成与冻结天数。改策略只影响之后的 usage，不改已经入账的明细。
+          直接 / 间接 / 总佣金与冻结天数。改策略只影响之后的 usage，不改已经入账的明细。
         </p>
-        <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3">
           <Input value={direct} onChange={(e) => setDirect(e.target.value)} aria-label="直接佣金 BPS" placeholder="direct_bps" />
-          <Input value={overrideBps} onChange={(e) => setOverrideBps(e.target.value)} aria-label="管理奖励 BPS" placeholder="override_bps" />
-          <Input value={channel} onChange={(e) => setChannel(e.target.value)} aria-label="渠道 BPS" placeholder="channel_bps" />
-          <Input value={team} onChange={(e) => setTeam(e.target.value)} aria-label="团队 BPS" placeholder="team_bps" />
-          <Input value={cap} onChange={(e) => setCap(e.target.value)} aria-label="上限 BPS" placeholder="cap_bps" />
+          <Input value={indirect} onChange={(e) => setIndirect(e.target.value)} aria-label="间接佣金 BPS" placeholder="indirect_bps" />
+          <Input value={total} onChange={(e) => setTotal(e.target.value)} aria-label="总佣金 BPS" placeholder="total_bps" />
           <Input value={freeze} onChange={(e) => setFreeze(e.target.value)} aria-label="冻结天数" placeholder="freeze_days" />
-          <Input value={minSettle} onChange={(e) => setMinSettle(e.target.value)} aria-label="最低结算额" placeholder="min_settle_minor" />
+          <Input value={minSettle} onChange={(e) => setMinSettle(e.target.value)} aria-label="最低结算额 USD" placeholder="1" />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={loadPolicy}>
@@ -113,6 +113,60 @@ export default function AdminCommissionPage() {
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         {policyQuery.data?.error ? <p className="mt-2 text-sm text-ink-secondary">{policyQuery.data.error.message}</p> : null}
+      </section>
+      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">达线规则</h2>
+        <p className="mb-3 text-sm text-ink-secondary">平台默认达线。C 可在渠道台覆盖。金额是 USD。</p>
+        <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3">
+          <Input value={spend} onChange={(e) => setSpend(e.target.value)} aria-label="累计消费达线 USD" placeholder="10" />
+          <Input value={topup} onChange={(e) => setTopup(e.target.value)} aria-label="单笔充值达线 USD" placeholder="10" />
+          <Input value={gift} onChange={(e) => setGift(e.target.value)} aria-label="注册赠送 USD" placeholder="1" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const res = await fetch(`${apiBase}/admin/eligibility-rules`, { credentials: "include" });
+              const body = await res.json();
+              if (!res.ok) {
+                setEligMessage(body.error?.message || "读取达线失败");
+                return;
+              }
+              const r = body.rule as Eligibility;
+              setSpend(String((r.spend_minor ?? 0) / 1_000_000));
+              setTopup(String((r.topup_minor ?? 0) / 1_000_000));
+              setGift(String((r.gift_minor ?? 0) / 1_000_000));
+              setEligMessage("已读取平台达线");
+            }}
+          >
+            读取达线
+          </Button>
+          <IfCan action="commission.write">
+            <ConfirmButton
+              size="sm"
+              title="确认保存达线"
+              description="只影响之后的达线和注册赠送。"
+              onConfirm={async () => {
+                const res = await fetch(`${apiBase}/admin/eligibility-rules`, {
+                  method: "PATCH",
+                  credentials: "include",
+                  headers: confirmHeaders,
+                  body: JSON.stringify({
+                    spend_minor: Math.round(Number(spend) * 1_000_000),
+                    topup_minor: Math.round(Number(topup) * 1_000_000),
+                    gift_minor: Math.round(Number(gift) * 1_000_000),
+                  }),
+                });
+                const body = await res.json();
+                setEligMessage(res.ok ? "已保存达线规则" : body.error?.message || "保存失败");
+              }}
+            >
+              保存达线
+            </ConfirmButton>
+          </IfCan>
+        </div>
+        <p className="mt-3 text-sm text-ink-secondary">{eligMessage}</p>
       </section>
       <IfCan action="commission.write">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">

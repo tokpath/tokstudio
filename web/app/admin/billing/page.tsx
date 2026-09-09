@@ -10,6 +10,7 @@ import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
+import { AdminSupplierPanel } from "./supplier-panel";
 
 export default function AdminBillingPage() {
   const [requestID, setRequestID] = useState("");
@@ -76,6 +77,7 @@ export default function AdminBillingPage() {
         <p className="text-sm text-ink-secondary">{message}</p>
         <pre className="mt-3 overflow-x-auto text-sm text-ink">{JSON.stringify(report, null, 2) || query.data?.error?.message}</pre>
       </section>
+      <AdminSupplierPanel />
     </AdminShell>
   );
 }

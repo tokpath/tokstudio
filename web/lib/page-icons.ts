@@ -125,6 +125,8 @@ export const HREF_ICONS: Record<string, LucideIcon> = {
   "/channel/payments/orders": Receipt,
   "/channel/promos": Ticket,
   "/channel/brand": Palette,
+  "/channel/ledger": Handshake,
+  "/channel/rules": Scale,
   "/channel/attribution": GitBranch,
   "/channel/usage": BarChart3,
   "/channel/settlements": Landmark,

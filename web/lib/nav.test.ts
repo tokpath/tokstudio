@@ -32,6 +32,11 @@ describe("channel keys nav", () => {
   it("lists channel API keys after users", () => {
     expect(channelSections.some((item) => item.href === "/channel/keys")).toBe(true);
   });
+
+  it("lists channel stock and rules in the ledger group", () => {
+    expect(channelSections.some((item) => item.href === "/channel/ledger")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/rules")).toBe(true);
+  });
 });
 
 describe("isConsolePath", () => {

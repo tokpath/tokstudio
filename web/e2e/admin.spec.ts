@@ -60,6 +60,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("button", { name: "读取策略" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "达线规则" })).toBeVisible();
   await page.goto("/admin/payments");
   await expect(page.getByRole("heading", { name: "支付", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "确认支付" })).toBeVisible();
@@ -82,6 +83,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/billing");
   await expect(page.getByRole("heading", { name: "余额 / 充值 / 账务" })).toBeVisible();
   await expect(page.getByRole("button", { name: "赠送额度" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "供应商支出" })).toBeVisible();
   await page.goto("/admin/channels");
   await expect(page.getByRole("heading", { name: "渠道租户" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "新建渠道" })).toBeVisible();
@@ -106,6 +108,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "从平台目录授权" })).toBeVisible();
   await expect(page.getByRole("link", { name: "模型" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "收款就绪" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "渠道盈亏" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "供应商支出" })).toBeVisible();
   await expect(page.getByText("停用后冻结新消费")).toBeVisible();
   await page.getByRole("button", { name: "编辑" }).click();
   await expect(page.getByRole("button", { name: "保存渠道" })).toBeVisible();

@@ -226,6 +226,42 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/channel/pnl"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/supplier-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/supplier-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/supplier-entries/{id}/reverse"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/quotas/grant"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/commission-policy"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/commission-policy"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/eligibility-rules"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/eligibility-rules"
+  },
+  {
+    "method": "GET",
     "path": "/v1/partner/me"
   },
   {
@@ -399,6 +435,30 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "PATCH",
     "path": "/admin/commission-policy"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/eligibility-rules"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/eligibility-rules"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/supplier-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/supplier-entries"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/supplier-entries/{id}/reverse"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/channels/{id}/pnl"
   },
   {
     "method": "GET",

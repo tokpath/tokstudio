@@ -72,13 +72,17 @@ func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
 func (a *App) requireAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := strings.TrimSpace(strings.TrimPrefix(a.tokenFromRequest(c), "Bearer "))
+		if token == "" {
+			httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+			return
+		}
 		principal, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), token)
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "API Key 校验失败", true)
 			return
 		}
 		if principal == nil {
-			httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}
 		c.Set("api_key", principal)

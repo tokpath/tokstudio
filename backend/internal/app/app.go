@@ -324,7 +324,7 @@ func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth b
 			return
 		}
 		if principal == nil {
-			if catalogAuth {
+			if catalogAuth && a.tokenFromRequest(c) == "" {
 				httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
 				return
 			}

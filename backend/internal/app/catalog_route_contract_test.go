@@ -52,6 +52,34 @@ func TestCatalogRouteContractNegatives(t *testing.T) {
 	if code := mustStatusJSON(t, http.MethodPost, server.URL+"/v1/chat/completions", "", map[string]string{"model": catalog.EchoModelID}); code != http.StatusUnauthorized {
 		t.Fatalf("no API key on chat must be 401, got %d", code)
 	}
+	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/models", "thk_not_a_real_key", nil); code != http.StatusForbidden {
+		t.Fatalf("invalid API key on /v1/models must be 403, got %d", code)
+	}
+
+	life := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "lifecycle"})
+	oldSecret := life["item"].(map[string]any)["key"].(string)
+	lifeID := life["item"].(map[string]any)["id"].(string)
+	rotated := postJSONRaw(t, server.URL+"/v1/me/api-keys/"+lifeID+"/rotate", session, map[string]any{})
+	newSecret := rotated["item"].(map[string]any)["key"].(string)
+	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/models", oldSecret, nil); code != http.StatusForbidden {
+		t.Fatalf("rotated old key must be 403, got %d", code)
+	}
+	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/models", newSecret, nil); code != http.StatusOK {
+		t.Fatalf("rotated new key must still list models, got %d", code)
+	}
+	_ = postJSONRaw(t, server.URL+"/v1/me/api-keys/"+lifeID+"/disable", session, map[string]any{})
+	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/models", newSecret, nil); code != http.StatusForbidden {
+		t.Fatalf("disabled key must be 403, got %d", code)
+	}
+	exp := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "exp"})
+	expID := exp["item"].(map[string]any)["id"].(string)
+	expSecret := exp["item"].(map[string]any)["key"].(string)
+	_ = postJSONRaw(t, server.URL+"/v1/me/api-keys/"+expID+"/expire", session, map[string]any{
+		"expires_at": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339),
+	})
+	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/models", expSecret, nil); code != http.StatusForbidden {
+		t.Fatalf("expired key must be 403, got %d", code)
+	}
 
 	if code := mustStatusJSON(t, http.MethodGet, server.URL+"/admin/models", session, nil); code != http.StatusForbidden {
 		t.Fatalf("end user GET /admin/models must be 403, got %d", code)

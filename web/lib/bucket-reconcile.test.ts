@@ -8,6 +8,7 @@ import {
   pageTitle,
   pendingQueueTitle,
   reconcileActions,
+  rowClassName,
   rowTone,
 } from "./bucket-reconcile";
 
@@ -22,6 +23,9 @@ describe("Aura three-bucket reconcile copy", () => {
     expect(zh.reconcile.pendingList).toBe("待对账队列");
     expect(zh.userNav.reconciliation).not.toBe("待对账");
     expect(zh.console.reconciliation.title).not.toBe("待对账");
+    expect(pageTitle()).not.toBe(pendingQueueTitle());
+    expect(zh.userNav.reconciliation).not.toBe(zh.reconcile.pendingList);
+    expect(zh.channelNav.reconciliation).not.toBe(zh.reconcile.pendingList);
   });
 
   it("keeps an honest empty title with no fake charts", () => {
@@ -35,6 +39,7 @@ describe("sentinel match and mismatch", () => {
     const row = { request_id: "req_ok", match: true, status: "match", usage_minor: 160000, charge_minor: 160000 };
     expect(isMatchRow(row)).toBe(true);
     expect(rowTone(row)).toBe("success");
+    expect(rowClassName(row)).not.toContain("--danger");
     expect(reconcileActions(row)).toEqual([]);
   });
 
@@ -42,6 +47,7 @@ describe("sentinel match and mismatch", () => {
     const row = { request_id: "req_gap", match: false, status: "mismatch", usage_minor: 0, charge_minor: 0 };
     expect(isMatchRow(row)).toBe(false);
     expect(rowTone(row)).toBe("danger");
+    expect(rowClassName(row)).toContain("--danger");
     expect(reconcileActions(row)).toEqual(["flag_pending"]);
   });
 

@@ -49,7 +49,8 @@ export function rowTone(row: DiffRow): "success" | "danger" {
 }
 
 export function rowClassName(row: DiffRow): string {
-  return isMatchRow(row) ? "bg-success/10 text-success" : "bg-danger/10 text-danger";
+  // Chronos：匹配绿；差异行必须走 DESIGN.md 1.0 `--danger`，不是普通 ink。
+  return isMatchRow(row) ? "bg-success/10 text-success" : "bg-danger/10 text-[var(--danger)]";
 }
 
 /** 只有差异能送进 pending_reconciliation。匹配行无动作。永不估扣。 */

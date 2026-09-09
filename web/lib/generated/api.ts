@@ -397,6 +397,14 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/billing/report"
   },
   {
+    "method": "GET",
+    "path": "/admin/margin"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/margin/corrections"
+  },
+  {
     "method": "POST",
     "path": "/v1/chat/completions"
   },

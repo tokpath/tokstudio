@@ -11,6 +11,9 @@ type ChannelPnLView struct {
 	MarketingFrozen int64  `json:"marketing_frozen_minor"`
 	MarketingIssued int64  `json:"marketing_issued_minor"`
 	SupplierMinor   int64  `json:"supplier_minor"`
+	AttemptCost     int64  `json:"attempt_cost_minor"`
+	SellMinor       int64  `json:"sell_minor"`
+	MarginMinor     int64  `json:"margin_minor"`
 	PnLMinor        int64  `json:"pnl_minor"`
 }
 
@@ -30,6 +33,10 @@ func (s *Service) ChannelPnL(ctx context.Context, channelOrgID string, marketing
 		consumed = 0
 	}
 	marketing := marketingFrozen + marketingIssued
+	margin, err := s.AssembleMargin(ctx, QueryUsageInput{ChannelOrgID: channelOrgID, Limit: 1})
+	if err != nil {
+		margin = &MarginView{}
+	}
 	return &ChannelPnLView{
 		ChannelOrgID:    channelOrgID,
 		RechargeMinor:   recharge,
@@ -39,6 +46,9 @@ func (s *Service) ChannelPnL(ctx context.Context, channelOrgID string, marketing
 		MarketingFrozen: marketingFrozen,
 		MarketingIssued: marketingIssued,
 		SupplierMinor:   supplier,
+		AttemptCost:     margin.CostMinor,
+		SellMinor:       margin.SellMinor,
+		MarginMinor:     margin.MarginMinor,
 		PnLMinor:        consumed + marketing + supplier,
 	}, nil
 }

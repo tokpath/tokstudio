@@ -808,6 +808,46 @@ paths:
       responses:
         "200":
           description: money
+  /admin/margin:
+    get:
+      operationId: getAdminMargin
+      parameters:
+        - name: request_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: channel_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: public_model_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: attempt cost and margin assembled from TokenHub facts
+  /admin/margin/corrections:
+    post:
+      operationId: postAdminMarginCorrection
+      responses:
+        "201":
+          description: correction ticket
+        "409":
+          description: confirm required
   /v1/chat/completions:
     post:
       operationId: chatCompletions

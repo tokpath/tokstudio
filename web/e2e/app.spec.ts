@@ -93,6 +93,7 @@ test("user reconciliation page is three-bucket vs usage with no estimate debit",
   await expect(page.getByRole("heading", { level: 1, name: "对账" })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "用户控制台" }).getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "用户控制台" }).getByRole("link", { name: "成本/毛利" })).toHaveCount(0);
   const userBuckets = page.getByLabel("三桶");
   await expect(userBuckets.getByText("余额", { exact: true })).toBeVisible();
   await expect(userBuckets.getByText("冻结", { exact: true })).toBeVisible();
@@ -166,6 +167,7 @@ test("channel reconciliation page matches user structure and forbids estimate de
   await expect(page.getByRole("heading", { level: 1, name: "对账" })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "成本/毛利" })).toHaveCount(0);
   const channelBuckets = page.getByLabel("三桶");
   await expect(channelBuckets.getByText("余额", { exact: true })).toBeVisible();
   await expect(channelBuckets.getByText("冻结", { exact: true })).toBeVisible();

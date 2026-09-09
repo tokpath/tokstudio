@@ -155,6 +155,8 @@
 - `GET /admin/usage/pending/{id}`：用量缺口详情（usage id 或 request_id）。
 - `POST /admin/usage/pending/resolve`：单条或批量「标记已解」——作废 pending usage 并释放预授权，**禁止估算扣款**。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，写审计 `billing.usage.resolve`。已结算账单拒绝。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
+- `GET /admin/margin`：管理台 W-meter ④「成本/毛利」。同一窗口 attempt 成本合计 / 售价合计 / 毛利合计；明细钉 `attempt_id`，成本源固定 `TokenHub`，四维单价只读快照。可用 `request_id` / `channel_id` / `public_model_id` / `from` / `to` 收窄窗口。缺 attempt 成本不进明细、计入 `pending_count`，禁止估算。只问 TokenHub billing（usage + `billing_cost_entries`）。
+- `POST /admin/margin/corrections`：补成本 / 调毛利更正票。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`。禁止带 `amount_minor` 估算写入成本。
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
 - `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`、`state`、`from`、`to`。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。

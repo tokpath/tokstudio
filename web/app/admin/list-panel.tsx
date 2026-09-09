@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { useTranslations } from "next-intl";
 import { apiClient } from "@/lib/client";
-import { stickyColumnClass } from "@/lib/scroll-table";
+import { stickyColumnClass, type ScrollTableDensity } from "@/lib/scroll-table";
 import { cn } from "@/lib/utils";
 
 type ListResponse<T> = { items?: T[]; error?: { message?: string } };
@@ -24,6 +24,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyTitle = "暂无记录",
   emptyDetail = "登录平台管理员后可以看到数据。",
   stickyEnds = true,
+  density = "admin",
 }: {
   path: string;
   title: string;
@@ -35,6 +36,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyTitle?: string;
   emptyDetail?: string;
   stickyEnds?: boolean;
+  density?: ScrollTableDensity;
 }) {
   const router = useRouter();
   const tc = useTranslations("common");
@@ -71,7 +73,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id} className="group border-b border-hairline">
                 {group.headers.map((header, index) => (
-                  <th key={header.id} className={stickyColumnClass(index, colCount, { stickyEnds, header: true })}>
+                  <th key={header.id} className={stickyColumnClass(index, colCount, { stickyEnds, density, header: true })}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -109,7 +111,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
                   }}
                 >
                   {row.getVisibleCells().map((cell, index) => (
-                    <td key={cell.id} className={stickyColumnClass(index, colCount, { stickyEnds })}>
+                    <td key={cell.id} className={stickyColumnClass(index, colCount, { stickyEnds, density })}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

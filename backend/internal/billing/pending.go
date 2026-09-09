@@ -146,6 +146,9 @@ func applyUsageFilters(q *gorm.DB, in QueryUsageInput) *gorm.DB {
 	if in.PublicModelID != "" {
 		q = q.Where("public_model_id = ?", in.PublicModelID)
 	}
+	if in.RequestID != "" {
+		q = q.Where("request_id = ?", in.RequestID)
+	}
 	if !in.Since.IsZero() {
 		q = q.Where("occurred_at >= ?", in.Since.UTC())
 	}

@@ -130,6 +130,12 @@ func (s *Service) RecordSupplier(ctx context.Context, actorUserID string, in Sup
 	if in.ChannelOrgID == "" || in.SourceType == "" || in.IdempotencyKey == "" || actorUserID == "" {
 		return nil, ErrInvalidAmount
 	}
+	if InventedSupplierSource(in.SourceType) {
+		return nil, ErrInventedCost
+	}
+	if !AllowedSupplierSource(in.SourceType) {
+		return nil, ErrInventedCost
+	}
 	if s.pool != nil {
 		if pool, err := s.pool.ResolvePoolChannelID(ctx, in.ChannelOrgID); err == nil && pool != "" {
 			in.ChannelOrgID = pool

@@ -9,6 +9,7 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "API Key" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "支付" })).toBeVisible();
   await expect(page.getByRole("link", { name: "指标" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "成本/毛利", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("link", { name: "推广码" })).toBeVisible();
   await expect(page.getByRole("link", { name: "告警" })).toBeVisible();
@@ -16,6 +17,32 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "应急手册" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
+});
+
+test("admin margin page is TokenHub-only and never estimates cost", async ({ page }) => {
+  await page.route("**/admin/margin**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: { attempt_cost_minor: 0, sell_minor: 0, margin_minor: 0, pending_count: 1, items: [] },
+        items: [],
+      }),
+    });
+  });
+  await page.goto("/admin/margin");
+  await expect(page.getByRole("heading", { name: "成本/毛利" }).first()).toBeVisible();
+  await expect(page.getByText("暂无 attempt 成本")).toBeVisible();
+  await expect(page.getByText("TokenHub").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "补成本" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "调毛利" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /估扣|估算扣款|estimate/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /智能路由|smart routing/i })).toHaveCount(0);
+  await expect(page.getByLabel(/手填成本|estimate cost/i)).toHaveCount(0);
 });
 
 test("admin reconciliation headings are unique", async ({ page }) => {

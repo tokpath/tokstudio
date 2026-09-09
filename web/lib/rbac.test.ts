@@ -30,6 +30,7 @@ describe("role menus", () => {
     const finance = signed(["finance_admin"]);
     const hrefs = filterAdminGroups(adminGroups, finance).flatMap((group) => group.items.map((item) => item.href));
     expect(hrefs).toContain("/admin/billing");
+    expect(hrefs).toContain("/admin/margin");
     expect(hrefs).toContain("/admin/channels");
     expect(hrefs).toContain("/admin/commission");
     expect(hrefs).not.toContain("/admin/providers");

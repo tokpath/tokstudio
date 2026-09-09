@@ -119,7 +119,7 @@ func Migrations() (string, fs.FS) {
 func (s *Service) Seed(ctx context.Context) error {
 	now := time.Now().UTC()
 	books := []runbookRow{
-		{ID: "rb_pending", AlertKind: AlertPending, Title: "待对账 usage", Body: "1. GET /admin/usage 找 pending_reconciliation\n2. POST /admin/usage/replay 按 request_id 回放\n3. 禁止按估算扣款。", CreatedAt: now},
+		{ID: "rb_pending", AlertKind: AlertPending, Title: "待对账 usage", Body: "1. GET /admin/usage/pending 打开待对账队列\n2. 有真实 Token 时 POST /admin/usage/replay 回放\n3. 无真实 usage 时盖章 POST /admin/usage/pending/resolve 标记已解并释放预授权\n4. 禁止按估算扣款。", CreatedAt: now},
 		{ID: "rb_circuit", AlertKind: AlertCircuit, Title: "Provider 熔断", Body: "1. GET /admin/providers 看 health\n2. POST /admin/providers/:id/health-check 探测\n3. 连续成功或 POST /admin/ops/circuit/:id reset 后恢复。", CreatedAt: now},
 		{ID: "rb_backup", AlertKind: AlertBackup, Title: "备份演练", Body: "1. 运行 scripts/backup_drill.sh\n2. 目标 RPO ≤ 15 分钟、RTO ≤ 1 小时\n3. Redis 不是账务事实源，丢失后只重建限流。", CreatedAt: now},
 		{ID: "rb_payment", AlertKind: "payment_chaos", Title: "支付异常演练", Body: "伪造签名必须 401；合法 webhook 按 event_id 幂等。", CreatedAt: now},

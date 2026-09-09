@@ -1172,7 +1172,33 @@ paths:
       operationId: listAdminUsage
       responses:
         "200":
-          description: usage events
+          description: usage events filterable by api_key_id, public_model_id, channel_id, state, from, to
+  /admin/usage/pending:
+    get:
+      operationId: listPendingReconciliation
+      responses:
+        "200":
+          description: pending_reconciliation work queue; filter status/from/to
+  /admin/usage/pending/{id}:
+    get:
+      operationId: getPendingReconciliation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: usage gap detail
+  /admin/usage/pending/resolve:
+    post:
+      operationId: resolvePendingReconciliation
+      responses:
+        "200":
+          description: void pending usage and release reservation; requires X-Tokenhub-Confirm
+        "409":
+          description: confirm_required or already charged
   /admin/usage/replay:
     post:
       operationId: replayAdminUsage

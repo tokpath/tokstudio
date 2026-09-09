@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,6 +30,9 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.POST("/admin/refunds", a.requireRoles("platform_admin", "finance_admin"), a.adminRefund)
 	r.GET("/admin/ledger", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminLedger)
 	r.GET("/admin/usage", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminUsage)
+	r.GET("/admin/usage/pending", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPendingUsage)
+	r.GET("/admin/usage/pending/:id", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPendingUsageDetail)
+	r.POST("/admin/usage/pending/resolve", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.resolvePendingUsage)
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingReport)
 	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
@@ -118,6 +122,9 @@ func (a *App) getUsage(c *gin.Context) {
 		UserID:        userID,
 		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
 		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
+		State:         strings.TrimSpace(c.Query("state")),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
 	}
 	if a.currentPrincipal(c) != nil && a.currentPrincipal(c).HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly") && c.Query("all") == "1" {
 		in.UserID = ""
@@ -285,6 +292,9 @@ func (a *App) adminUsage(c *gin.Context) {
 		APIKeyID:      c.Query("api_key_id"),
 		ChannelOrgID:  c.Query("channel_id"),
 		PublicModelID: c.Query("public_model_id"),
+		State:         strings.TrimSpace(c.Query("state")),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
 		Limit:         limit,
 	})
 	if err != nil {
@@ -363,6 +373,89 @@ func (a *App) replayUsage(c *gin.Context) {
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPendingUsage(c *gin.Context) {
+	limit, _ := httpx.Page(c, 50)
+	items, err := a.Billing.ListPendingReconciliation(c.Request.Context(), billing.QueryUsageInput{
+		UserID:        c.Query("user_id"),
+		APIKeyID:      c.Query("api_key_id"),
+		ChannelOrgID:  c.Query("channel_id"),
+		PublicModelID: c.Query("public_model_id"),
+		State:         strings.TrimSpace(c.Query("status")),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
+		Limit:         limit,
+	})
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取待对账失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminPendingUsageDetail(c *gin.Context) {
+	item, err := a.Billing.GetUsageGap(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "待对账记录不存在", false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用量缺口失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) resolvePendingUsage(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body billing.ResolvePendingInput
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 ids 或 request_ids", false)
+		return
+	}
+	item, err := a.Billing.ResolvePending(c.Request.Context(), body)
+	if err != nil {
+		if errors.Is(err, billing.ErrAlreadyCharged) {
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "已结算账单不能标记已解，禁止估算扣款", false)
+			return
+		}
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "待对账记录不存在", false)
+			return
+		}
+		if errors.Is(err, billing.ErrInvalidAmount) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 ids 或 request_ids", false)
+			return
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "标记已解失败", false)
+		return
+	}
+	resourceID := ""
+	if len(item.Items) > 0 {
+		resourceID = firstNonEmpty(item.Items[0].ID, item.Items[0].RequestID)
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.usage.resolve", ResourceType: "usage_event",
+		ResourceID: resourceID, After: item,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func parseQueryTime(raw string) time.Time {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return time.Time{}
+	}
+	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05Z", "2006-01-02"} {
+		if ts, err := time.Parse(layout, raw); err == nil {
+			return ts.UTC()
+		}
+	}
+	return time.Time{}
 }
 
 func (a *App) adminListPrices(c *gin.Context) {

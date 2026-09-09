@@ -100,6 +100,9 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/ops/circuit/{id}")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/usage")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/usage/replay")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/usage/pending")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/usage/pending/{id}")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/usage/pending/resolve")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/channels/{id}/models")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/channels/{id}/models")).toBe(true);
     expect(hasGeneratedPath("GET", "/channel/models")).toBe(true);

@@ -145,6 +145,7 @@ export const HREF_ICONS: Record<string, LucideIcon> = {
   "/admin/payments": Banknote,
   "/admin/billing": Receipt,
   "/admin/usage": BarChart3,
+  "/admin/reconciliation": Scale,
   "/admin/channels": Store,
   "/admin/brands": Palette,
   "/admin/promos": Ticket,

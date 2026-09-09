@@ -148,9 +148,12 @@
 - `POST /admin/topups/{id}/confirm`：财务确认人工充值。
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
 - `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
+- `GET /admin/usage/pending`：待对账工作队列。`status`（默认 `pending_reconciliation`，`voided` / `all`）、`from` / `to`、以及 API Key / 模型 / 渠道筛选。管理页 `/admin/reconciliation`。
+- `GET /admin/usage/pending/{id}`：用量缺口详情（usage id 或 request_id）。
+- `POST /admin/usage/pending/resolve`：单条或批量「标记已解」——作废 pending usage 并释放预授权，**禁止估算扣款**。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，写审计 `billing.usage.resolve`。已结算账单拒绝。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
-- `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`。
+- `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`、`state`、`from`、`to`。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
 - `GET /v1/me/media`：当前用户媒体任务（kind/status 筛选，不含他人数据）。
 - `POST /v1/videos` 与图像创建接口同时接受用户会话或 API Key，方便控制台直接提交任务。

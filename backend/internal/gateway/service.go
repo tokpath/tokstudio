@@ -169,6 +169,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
+		if errors.Is(err, catalog.ErrUnknownModel) {
+			return nil, catalog.ErrUnknownModel
+		}
 		return nil, ErrModelNotAllowed
 	}
 	if err := ValidateChat(in.Chat, model.Capabilities); err != nil {

@@ -515,6 +515,9 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 }
 
 func (s *Service) GetVisibleModel(ctx context.Context, channelOrgID, publicID string, allowlist []string) (*ModelView, error) {
+	if _, err := s.loadModel(ctx, publicID); err != nil {
+		return nil, err
+	}
 	models, err := s.ListVisibleModels(ctx, channelOrgID, allowlist)
 	if err != nil {
 		return nil, err
@@ -524,7 +527,7 @@ func (s *Service) GetVisibleModel(ctx context.Context, channelOrgID, publicID st
 			return &models[i], nil
 		}
 	}
-	return nil, gorm.ErrRecordNotFound
+	return nil, ErrModelNotVisible
 }
 
 func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteHint) ([]RouteCandidate, error) {

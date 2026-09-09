@@ -307,7 +307,16 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return a.enforceSession(roles, false)
 }
 
+// requireCatalogRoles 用于模型目录 / 路由组：无 token 是 401，有登录无权限是 403。
+func (a *App) requireCatalogRoles(roles ...string) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, false, true)
+}
+
 func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, anyAuthenticated, false)
+}
+
+func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
@@ -315,6 +324,10 @@ func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerF
 			return
 		}
 		if principal == nil {
+			if catalogAuth && a.tokenFromRequest(c) == "" {
+				httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+				return
+			}
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}

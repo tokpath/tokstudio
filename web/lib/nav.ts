@@ -152,6 +152,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
       { href: "/admin/payments", key: "payments" },
       { href: "/admin/billing", key: "billing" },
       { href: "/admin/usage", key: "usage" },
+      { href: "/admin/margin", key: "margin" },
     ],
   },
   {

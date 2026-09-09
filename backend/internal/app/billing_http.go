@@ -37,6 +37,8 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.POST("/admin/usage/pending/resolve", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.resolvePendingUsage)
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingReport)
 	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
+	r.GET("/admin/margin", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminMargin)
+	r.POST("/admin/margin/corrections", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.adminMarginCorrection)
 	r.POST("/admin/commissions/recalc", a.requireRoles("platform_admin", "finance_admin"), a.recalcCommission)
 	r.GET("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminListPrices)
 	r.POST("/admin/price-books", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.publishPrice)
@@ -447,6 +449,60 @@ func (a *App) billingReport(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"report": report, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminMargin(c *gin.Context) {
+	limit, _ := httpx.Page(c, 50)
+	item, err := a.Billing.AssembleMargin(c.Request.Context(), billing.QueryUsageInput{
+		ChannelOrgID:  c.Query("channel_id"),
+		PublicModelID: c.Query("public_model_id"),
+		RequestID:     c.Query("request_id"),
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
+		Limit:         limit,
+	})
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取成本/毛利失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "items": item.Items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) adminMarginCorrection(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return
+	}
+	var body billing.MarginCorrectionInput
+	if err := c.ShouldBindJSON(&body); err != nil || body.RequestID == "" || body.Kind == "" {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 kind 与 request_id", false)
+		return
+	}
+	if body.IdempotencyKey == "" {
+		body.IdempotencyKey = "mcr:" + body.Kind + ":" + body.RequestID + ":" + body.AttemptID
+	}
+	item, err := a.Billing.FileMarginCorrection(c.Request.Context(), p.UserID, body)
+	if err != nil {
+		if errors.Is(err, billing.ErrInventedCost) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "禁止估算 attempt 成本", false)
+			return
+		}
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "找不到对应 usage", false)
+			return
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "更正票不合法", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: p.UserID, Action: "billing.margin.correction", ResourceType: "margin_correction", ResourceID: item.ID,
+		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) recalcCommission(c *gin.Context) {

@@ -29,6 +29,7 @@ export type WriteAction =
   | "billing.bonus"
   | "usage.replay"
   | "usage.resolve"
+  | "margin.correct"
   | "users.write"
   | "channels.write"
   | "channels.quota"
@@ -68,6 +69,7 @@ const ADMIN_PAGE_VIEW: Record<string, readonly string[]> = {
   "/admin/payments": [P, F, O, A],
   "/admin/billing": [P, F, O, A],
   "/admin/usage": [P, F, O, A],
+  "/admin/margin": [P, F, O, A],
   "/admin/reconciliation": [P, F, O, A],
   "/admin/channels": [P, F, O, A],
   "/admin/partners": [P],
@@ -99,6 +101,7 @@ const WRITE_ACTION_ROLES: Record<WriteAction, readonly string[]> = {
   "billing.bonus": [P, F, O],
   "usage.replay": [P, F, O],
   "usage.resolve": [P, F, O],
+  "margin.correct": [P, F, O],
   "users.write": [P],
   "channels.write": [P],
   "channels.quota": [P, F],

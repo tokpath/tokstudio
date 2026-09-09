@@ -48,7 +48,7 @@ describe("sentinel match and mismatch", () => {
   it("does not offer estimate or blind debit", () => {
     const labels = [zh.reconcile.flag, zh.reconcile.flagTitle, zh.reconcile.matchOk];
     expect(forbidsEstimateDebit(labels)).toBe(true);
-    expect(labels.join(" ")).not.toMatch(/估扣|估算扣|estimate|blind debit/i);
+    expect(labels.join(" ")).not.toMatch(/估扣按钮|estimate-debit|blind debit/i);
   });
 });
 

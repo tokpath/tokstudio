@@ -1633,7 +1633,7 @@
     "createJobLead": "填写提示词与参数后提交。字段较多，在弹窗内完成。"
   },
   "reconcile": {
-    "lead": "三桶与同一窗口 usage 对账。匹配走绿色；差异只能送入待对账队列，禁止估扣。",
+    "lead": "三桶与同一窗口 usage 对账。匹配走绿色；差异只能送入待对账队列，不会按估算扣款。",
     "needLogin": "未登录",
     "done": "对账窗口已刷新",
     "needRow": "先选一行差异。",
@@ -1669,7 +1669,7 @@
     "flagTitle": "确认送入待对账队列",
     "flagDesc": "只把差异标记为 pending_reconciliation，不按估算扣款。",
     "pendingList": "待对账队列",
-    "pendingLead": "已在队列里的缺口。有真实 Token 去用量回放；这里不会估扣。"
+    "pendingLead": "已在队列里的缺口。有真实 Token 去用量回放；这里不会按估算扣款。"
   },
   "channelUi": {
     "needAdmin": "未登录渠道管理员",

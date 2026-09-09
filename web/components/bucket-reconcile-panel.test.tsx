@@ -45,9 +45,10 @@ describe("BucketReconcilePanel", () => {
   it("renders match as green OK and mismatch as danger with only flag-pending", () => {
     render(withZh(<BucketReconcilePanel scope="user" initial={stub} />));
 
-    expect(screen.getByText("余额")).toBeTruthy();
-    expect(screen.getByText("冻结")).toBeTruthy();
-    expect(screen.getByText("可提现")).toBeTruthy();
+    const buckets = screen.getByLabelText("三桶").textContent || "";
+    expect(buckets).toContain("余额");
+    expect(buckets).toContain("冻结");
+    expect(buckets).toContain("可提现");
     expect(screen.getAllByTestId("diff-match").length).toBeGreaterThan(0);
     expect(screen.getAllByTestId("diff-mismatch").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "待对账队列" })).toBeTruthy();

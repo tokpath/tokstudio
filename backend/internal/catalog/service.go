@@ -245,7 +245,12 @@ func (s *Service) Seed(ctx context.Context) error {
 				return err
 			}
 		}
-		if err := tx.Where("id = ?", "price_echo").FirstOrCreate(&priceRow{ID: "price_echo", PublicModelID: "mdl_echo", UnitPrices: price, Status: "published"}).Error; err != nil {
+		if err := tx.Where("id = ?", "price_echo").FirstOrCreate(&priceRow{
+			ID: "price_echo", PublicModelID: "mdl_echo", UnitPrices: price, Status: "published", EffectiveAt: time.Now().UTC(),
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&priceRow{}).Where("effective_at = ?", time.Time{}).Update("effective_at", time.Now().UTC()).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("id = ?", "rg_echo").FirstOrCreate(&routeGroupRow{ID: "rg_echo", PublicModelID: "mdl_echo", Strategy: "priority", Status: "active"}).Error; err != nil {
@@ -604,13 +609,6 @@ func (s *Service) providerCost(ctx context.Context, modelID, providerID string) 
 	return 1 << 62
 }
 
-// PriceSnapshot 是账务模块允许看到的公开价格视图，不含内部 ORM。
-type PriceSnapshot struct {
-	VersionID string
-	PublicID  string
-	Raw       json.RawMessage
-}
-
 func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSnapshot, error) {
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
@@ -626,15 +624,7 @@ func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSna
 	if err != nil {
 		return nil, err
 	}
-	return &PriceSnapshot{VersionID: price.ID, PublicID: model.PublicID, Raw: price.UnitPrices}, nil
-}
-
-type PriceBookView struct {
-	ID          string          `json:"id"`
-	PublicID    string          `json:"public_id"`
-	Status      string          `json:"status"`
-	UnitPrices  json.RawMessage `json:"unit_prices"`
-	EffectiveAt time.Time       `json:"effective_at"`
+	return &PriceSnapshot{VersionID: price.ID, PublicID: model.PublicID, Raw: price.UnitPrices, EffectiveAt: price.EffectiveAt}, nil
 }
 
 func (s *Service) ListPriceBooks(ctx context.Context) ([]PriceBookView, error) {
@@ -662,38 +652,48 @@ func (s *Service) ListPriceBooks(ctx context.Context) ([]PriceBookView, error) {
 	}
 	out := make([]PriceBookView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, PriceBookView{
-			ID: row.ID, PublicID: names[row.PublicModelID], Status: row.Status,
-			UnitPrices: row.UnitPrices, EffectiveAt: row.EffectiveAt,
-		})
+		out = append(out, priceBookFromRow(row, names[row.PublicModelID]))
 	}
 	return out, nil
 }
 
 func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices map[string]any) (*PriceSnapshot, error) {
+	incoming, err := NormalizeUnitPrices(unitPrices)
+	if err != nil {
+		return nil, err
+	}
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
 		return nil, err
 	}
-	body, err := json.Marshal(unitPrices)
-	if err != nil {
-		return nil, err
-	}
+	var created priceRow
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		merged := incoming
+		var current priceRow
+		if err := tx.Where("public_model_id = ? AND status = ?", model.ID, "published").
+			Order("effective_at DESC").First(&current).Error; err == nil {
+			prev := map[string]any{}
+			_ = json.Unmarshal(current.UnitPrices, &prev)
+			merged = mergeUnitPrices(prev, incoming)
+		}
+		body, err := json.Marshal(merged)
+		if err != nil {
+			return err
+		}
 		if err := tx.Model(&priceRow{}).Where("public_model_id = ? AND status = ?", model.ID, "published").
 			Update("status", "superseded").Error; err != nil {
 			return err
 		}
-		row := priceRow{
+		created = priceRow{
 			ID: id.New("prc"), PublicModelID: model.ID, UnitPrices: body,
 			Status: "published", EffectiveAt: time.Now().UTC(),
 		}
-		return tx.Create(&row).Error
+		return tx.Create(&created).Error
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.PriceSnapshot(ctx, publicID)
+	return &PriceSnapshot{VersionID: created.ID, PublicID: model.PublicID, Raw: created.UnitPrices, EffectiveAt: created.EffectiveAt}, nil
 }
 
 func (s *Service) MarkHealth(ctx context.Context, providerID, health string) error {

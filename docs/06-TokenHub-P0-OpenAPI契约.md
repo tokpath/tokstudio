@@ -179,7 +179,7 @@
 - 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`（平台向 B/C 进货）、`POST /channel/quotas/grant`（仅 C 向其下属 B 划拨，扣 C 加 B，需确认）、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），B/C 不能改换算比；用户充值从**所属渠道自己的池**发放；渠道额度不足返回 `402 insufficient_quota`；
 - 渠道运营：`GET /channel/users`、`GET/POST /channel/plans`（渠道自建套餐，归属强制为本渠道；低于 1 USD 进 `pending_review`；渠道控制台「创建渠道套餐」）、`GET /channel/usage`（合计 + `keys`/`models`/`items`，可按 `api_key_id` 筛，不含 prompt）、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；渠道 API Key 列表与禁用见上条；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；管理页 `/admin/plans` 可审核、创建平台套餐，并用 `PATCH` 把套餐标成 `archived`（不要下架 `pln_echo_month`）；`POST /admin/subscriptions/{id}/force-period-end` 与 `POST /admin/subscriptions/process-renewals` 只在沙箱拨时钟/扫续费（生产禁止；管理页「续费扫描」）；
-- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；管理面改价入口在模型详情）；
+- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；发布需 `X-Tokenhub-Confirm`；body 可带 `upstream_cost` / `wholesale` / `customer_sell` 及可选 `channel_override`；`GET ?format=csv` 含 `effective_at` 与四列单价；管理面改价入口在模型详情与 `/admin/prices`，走盖章确认）；
 - 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；

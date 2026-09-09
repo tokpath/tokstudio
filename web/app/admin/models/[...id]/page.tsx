@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
+import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
 import { Form } from "@/components/ui/form";
 import { AdminListPanel } from "../../list-panel";
@@ -15,6 +16,7 @@ import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
 import {
   type AdminModel,
   buildCapabilities,
@@ -24,8 +26,6 @@ import {
 } from "@/lib/catalog";
 import { formatProviderSlugs, syncStateLabel } from "@/lib/catalog-admin";
 import { IfCan } from "@/components/rbac/if-can";
-
-type PriceBook = { id: string; public_id: string; status: string };
 
 const attrSchema = z.object({
   display_name: z.string().trim().min(1, "请填写显示名"),
@@ -37,11 +37,28 @@ const attrSchema = z.object({
 const priceSchema = z.object({
   input: z.string(),
   output: z.string(),
+  wholesale_input: z.string(),
+  wholesale_output: z.string(),
+  upstream_cost_input: z.string(),
+  upstream_cost_output: z.string(),
+  channel_input: z.string(),
+  channel_output: z.string(),
   video_second: z.string(),
   image_count: z.string(),
   audio_second: z.string(),
   currency: z.string().trim().min(1, "请填写币种"),
 });
+
+function dim(input: string, output: string) {
+  const next: Record<string, string> = {};
+  if (input.trim()) {
+    next.input = input.trim();
+  }
+  if (output.trim()) {
+    next.output = output.trim();
+  }
+  return Object.keys(next).length > 0 ? next : undefined;
+}
 
 const attachSchema = z.object({
   provider_id: z.string().trim().min(1, "请填写提供商 ID"),
@@ -74,7 +91,20 @@ export default function AdminModelEditPage() {
   });
   const priceForm = useForm<z.infer<typeof priceSchema>>({
     resolver: zodResolver(priceSchema),
-    defaultValues: { input: "", output: "", video_second: "", image_count: "", audio_second: "", currency: "USD" },
+    defaultValues: {
+      input: "",
+      output: "",
+      wholesale_input: "",
+      wholesale_output: "",
+      upstream_cost_input: "",
+      upstream_cost_output: "",
+      channel_input: "",
+      channel_output: "",
+      video_second: "",
+      image_count: "",
+      audio_second: "",
+      currency: "USD",
+    },
   });
   const attachForm = useForm<z.infer<typeof attachSchema>>({
     resolver: zodResolver(attachSchema),
@@ -94,6 +124,12 @@ export default function AdminModelEditPage() {
     priceForm.reset({
       input: String(model.sell_price?.input ?? ""),
       output: String(model.sell_price?.output ?? ""),
+      wholesale_input: "",
+      wholesale_output: "",
+      upstream_cost_input: "",
+      upstream_cost_output: "",
+      channel_input: "",
+      channel_output: "",
       video_second: String(model.sell_price?.video_second ?? ""),
       image_count: String(model.sell_price?.image_count ?? ""),
       audio_second: String(model.sell_price?.audio_second ?? ""),
@@ -172,23 +208,47 @@ export default function AdminModelEditPage() {
       <IfCan action="prices.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">定价</h2>
-        <p className="mt-1 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded。空字段不会写入。</p>
+        <p className="mt-1 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded。空字段不会覆盖已有维度。历史版本只读。</p>
         <Form {...priceForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={priceForm.control} name="input" label="输入单价" />
-            <TextField control={priceForm.control} name="output" label="输出单价" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <TextField control={priceForm.control} name="upstream_cost_input" label="成本 输入" />
+              <TextField control={priceForm.control} name="upstream_cost_output" label="成本 输出" />
+              <TextField control={priceForm.control} name="wholesale_input" label="批发 输入" />
+              <TextField control={priceForm.control} name="wholesale_output" label="批发 输出" />
+              <TextField control={priceForm.control} name="input" label="售价 输入" />
+              <TextField control={priceForm.control} name="output" label="售价 输出" />
+              <TextField control={priceForm.control} name="channel_input" label="渠道覆盖 输入" />
+              <TextField control={priceForm.control} name="channel_output" label="渠道覆盖 输出" />
+            </div>
             <TextField control={priceForm.control} name="video_second" label="视频秒单价" />
             <TextField control={priceForm.control} name="image_count" label="图片次单价" />
             <TextField control={priceForm.control} name="audio_second" label="音频秒单价" />
             <TextField control={priceForm.control} name="currency" label="币种" />
-            <ConfirmButton
+            <SealConfirm
               size="sm"
-              title="确认发布价格"
-              description="新价格只影响之后的请求，旧账单保持快照。"
+              title="新牌价只约束之后的请求，已入账金额不会改写。"
+              description="当前 published 会标成 superseded。历史版本保持只读快照。"
               validate={() => priceForm.trigger()}
               onConfirm={priceForm.handleSubmit(async (values) => {
-                const payload: Record<string, string> = { model: publicId, currency: values.currency };
-                for (const key of ["input", "output", "video_second", "image_count", "audio_second"] as const) {
+                const payload: Record<string, unknown> = { model: publicId, currency: values.currency };
+                const sell = dim(values.input, values.output);
+                const wholesale = dim(values.wholesale_input, values.wholesale_output);
+                const upstream = dim(values.upstream_cost_input, values.upstream_cost_output);
+                const channel = dim(values.channel_input, values.channel_output);
+                if (sell) {
+                  payload.customer_sell = sell;
+                }
+                if (wholesale) {
+                  payload.wholesale = wholesale;
+                }
+                if (upstream) {
+                  payload.upstream_cost = upstream;
+                }
+                if (channel) {
+                  payload.channel_override = channel;
+                }
+                for (const key of ["video_second", "image_count", "audio_second"] as const) {
                   if (values[key].trim()) {
                     payload[key] = values[key].trim();
                   }
@@ -200,14 +260,14 @@ export default function AdminModelEditPage() {
                   body: JSON.stringify(payload),
                 });
                 const body = await res.json();
-                setPriceMessage(res.ok ? `已发布 ${body.price?.PublicID || publicId}` : body.error?.message || "发布失败");
+                setPriceMessage(res.ok ? `已发布 ${publishedPriceLabel(body.price, publicId)}` : body.error?.message || "发布失败");
                 if (res.ok) {
                   await reload();
                 }
               })}
             >
               发布价格
-            </ConfirmButton>
+            </SealConfirm>
             <p className="text-sm text-ink-secondary">{priceMessage}</p>
           </form>
         </Form>
@@ -343,11 +403,9 @@ export default function AdminModelEditPage() {
         <AdminListPanel<PriceBook>
           path={`/admin/price-books?q=${encodeURIComponent(publicId)}`}
           title="本模型价格版本"
-          columns={[
-            { accessorKey: "public_id", header: "Model" },
-            { accessorKey: "status", header: "Status" },
-            { accessorKey: "id", header: "Version" },
-          ]}
+          columns={priceBookColumns}
+          emptyTitle="还没有价格版本"
+          emptyDetail="发布后会出现版本号、生效时间和四列单价。"
         />
       ) : null}
     </AdminShell>

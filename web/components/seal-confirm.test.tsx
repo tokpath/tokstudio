@@ -1,8 +1,12 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SealConfirm } from "./seal-confirm";
 import { withZh } from "@/lib/test-i18n";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("SealConfirm", () => {
   it("keeps the trigger label and confirms with a seal, not a lightweight dialog", async () => {

@@ -1,31 +1,48 @@
 package media
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
+
+const (
+	SourceS3          = "s3"
+	SourceMinIO       = "minio"
+	SourceLocal       = "local"
+	SourceUnavailable = "unavailable"
+	LabelS3           = "S3"
+	LabelUnavailable  = "存储不可用"
+)
+
+// ErrStoreUnavailable 表示对象存储不可用（未配置或后端失败）。
+var ErrStoreUnavailable = errors.New("object store unavailable")
+
+// Status 是只读「存储源」徽章的事实。
+type Status struct {
+	Source string `json:"source"`
+	OK     bool   `json:"ok"`
+	Label  string `json:"label"`
+	Detail string `json:"detail,omitempty"`
+}
 
 // Store 是受控对象存储。未配置 S3 时用本地目录；配齐后对象进 S3/MinIO。
 // 下载仍走 HMAC 签名的 /v1/media/objects，由 API 从后端读出，浏览器不必直连桶。
 type Store struct {
-	Root   string
-	Secret string
-	Public string
-	blob   blobStore
+	Root     string
+	Secret   string
+	Public   string
+	blob     blobStore
+	s3Source string // SourceS3 或 SourceMinIO，仅 UsingS3 时有意义
 }
 
 type StoreOptions struct {
@@ -56,12 +73,23 @@ func OpenStore(opts StoreOptions) (*Store, error) {
 			return nil, err
 		}
 		store.blob = blob
+		store.s3Source = SourceS3
+		if endpointLooksMinIO(opts.S3.Endpoint) {
+			store.s3Source = SourceMinIO
+		}
 		return store, nil
 	}
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
 	}
 	return store, nil
+}
+
+func endpointLooksMinIO(endpoint string) bool {
+	host := strings.ToLower(endpoint)
+	return strings.Contains(host, "minio") ||
+		strings.Contains(host, "127.0.0.1") ||
+		strings.Contains(host, "localhost")
 }
 
 func (s *Store) UsingS3() bool {
@@ -77,24 +105,7 @@ func (s *Store) Put(key, contentType string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	if strings.TrimSpace(key) == "" {
-		return fmt.Errorf("%w: empty object key", ErrStoreUnavailable)
-	}
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), storeOpTimeout)
-	defer cancel()
-	_, err := s.api().PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(s.bucket),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(data),
-		ContentType: aws.String(contentType),
-	})
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
-	}
-	return nil
+	return os.WriteFile(path, data, 0o644)
 }
 
 func (s *Store) Read(key string) ([]byte, error) {
@@ -112,122 +123,49 @@ func (s *Store) Delete(key string) error {
 }
 
 func (s *Store) Sign(key string, ttl time.Duration) (string, time.Time, error) {
-	if err := s.ready(); err != nil {
-		return "", time.Time{}, err
-	}
-	if ttl <= 0 {
-		ttl = SignTTL
-	}
 	exp := time.Now().UTC().Add(ttl)
-	ctx, cancel := context.WithTimeout(context.Background(), storeOpTimeout)
-	defer cancel()
-	out, err := s.signerAPI().PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
-	}, func(o *s3.PresignOptions) {
-		o.Expires = ttl
-	})
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
+	mac := hmac.New(sha256.New, []byte(s.Secret))
+	_, _ = mac.Write([]byte(key + "|" + strconv.FormatInt(exp.Unix(), 10)))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	url := fmt.Sprintf("/v1/media/objects?key=%s&exp=%d&sig=%s", url.QueryEscape(key), exp.Unix(), sig)
+	if s.Public != "" && !strings.HasPrefix(s.Public, "http://localhost") && !strings.HasPrefix(s.Public, "http://127.0.0.1") {
+		url = s.Public + url
 	}
-	if out == nil || out.URL == "" {
-		return "", time.Time{}, fmt.Errorf("%w: empty presigned url", ErrStoreUnavailable)
-	}
-	return out.URL, exp, nil
+	return url, exp, nil
 }
 
 func (s *Store) Verify(key, sig string, expUnix int64) bool {
-	return s.signer.Verify(key, sig, expUnix)
+	if time.Now().UTC().Unix() > expUnix {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(s.Secret))
+	_, _ = mac.Write([]byte(key + "|" + strconv.FormatInt(expUnix, 10)))
+	want := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(want), []byte(sig))
 }
 
 func (s *Store) CallbackSign(eventID, jobID string) string {
-	return s.signer.Sign(eventID + "|" + jobID)
+	mac := hmac.New(sha256.New, []byte(s.Secret))
+	_, _ = mac.Write([]byte(eventID + "|" + jobID))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func (s *Store) CallbackValid(eventID, jobID, sig string) bool {
 	return hmac.Equal([]byte(s.CallbackSign(eventID, jobID)), []byte(sig))
 }
 
+// Status 报告当前存储后端，供 healthz / 控制台徽章使用。
 func (s *Store) Status(ctx context.Context) Status {
+	_ = ctx
 	if s == nil {
-		return unavailableStatus("store not configured")
+		return Status{Source: SourceUnavailable, OK: false, Label: LabelUnavailable, Detail: "store not configured"}
 	}
-	if err := s.ready(); err != nil {
-		return unavailableStatus(s.disableWhy)
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	probe, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	_, err := s.api().HeadBucket(probe, &s3.HeadBucketInput{Bucket: aws.String(s.bucket)})
-	if err != nil {
-		detail := "store failure"
-		if isMissingBucket(err) {
-			detail = "missing bucket"
+	if s.UsingS3() {
+		src := s.s3Source
+		if src == "" {
+			src = SourceS3
 		}
-		return unavailableStatus(detail)
+		return Status{Source: src, OK: true, Label: LabelS3}
 	}
-	label := LabelS3
-	return Status{Source: s.source, OK: true, Label: label}
-}
-
-func (s *Store) ready() error {
-	if s == nil || s.disabled || s.api() == nil || s.bucket == "" {
-		why := "object store unavailable"
-		if s != nil && s.disableWhy != "" {
-			why = s.disableWhy
-		}
-		return fmt.Errorf("%w: %s", ErrStoreUnavailable, why)
-	}
-	return nil
-}
-
-func newTestStore(api objectAPI, presign objectPresigner, bucket string) *Store {
-	return &Store{
-		bucket:      bucket,
-		source:      SourceMinIO,
-		signer:      hmacSigner{secret: "test-media-sign-key"},
-		testAPI:     api,
-		testPresign: presign,
-	}
-}
-
-func unavailableStatus(detail string) Status {
-	return Status{Source: SourceUnavailable, OK: false, Label: LabelUnavailable, Detail: detail}
-}
-
-func isMissingBucket(err error) bool {
-	if err == nil {
-		return false
-	}
-	var notFound *s3types.NotFound
-	var noBucket *s3types.NoSuchBucket
-	if errors.As(err, &notFound) || errors.As(err, &noBucket) {
-		return true
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "nosuchbucket") || strings.Contains(msg, "not found") || strings.Contains(msg, "404")
-}
-
-func (h hmacSigner) Sign(payload string) string {
-	mac := hmac.New(sha256.New, []byte(h.secret))
-	_, _ = mac.Write([]byte(payload))
-	return hex.EncodeToString(mac.Sum(nil))
-}
-
-func (h hmacSigner) Verify(key, sig string, expUnix int64) bool {
-	if time.Now().UTC().Unix() > expUnix {
-		return false
-	}
-	want := h.Sign(key + "|" + strconv.FormatInt(expUnix, 10))
-	return hmac.Equal([]byte(want), []byte(sig))
-}
-
-// LocalWriteProbe 给测试用：S3 实现不得在这些路径落盘。
-func LocalWriteProbePaths() []string {
-	return []string{
-		"/tmp/tokenhub-media",
-		"/tmp/tokenhub-media-s3",
-	}
+	return Status{Source: SourceLocal, OK: true, Label: LabelS3, Detail: "local directory fallback"}
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"time"
 
@@ -171,13 +170,13 @@ type Service struct {
 	catalog *catalog.Service
 	billing *billing.Service
 	outbox  *outbox.Service
-	store   ObjectStore
+	store   *Store
 	test    *TestAdapter
 	ark     RemoteAdapter
 	or      RemoteAdapter
 }
 
-func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store ObjectStore, arkURL, arkKey, orURL, orKey string) *Service {
+func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store *Store, arkURL, arkKey, orURL, orKey string) *Service {
 	return &Service{
 		db: db, catalog: cat, billing: bill, outbox: pub, store: store,
 		test: NewTestAdapter(),
@@ -419,14 +418,15 @@ func (s *Service) Content(ctx context.Context, jobID, userID string) (*ContentVi
 	}
 	url, exp, err := s.store.Sign(asset.ObjectKey, SignTTL)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
+		return nil, err
 	}
 	return &ContentView{URL: url, ExpiresAt: exp.Unix(), Storage: s.StoreStatus(ctx)}, nil
 }
 
+// StoreStatus 供 healthz / 列表接口返回只读存储源事实。
 func (s *Service) StoreStatus(ctx context.Context) Status {
 	if s == nil || s.store == nil {
-		return unavailableStatus("store not configured")
+		return Status{Source: SourceUnavailable, OK: false, Label: LabelUnavailable, Detail: "store not configured"}
 	}
 	return s.store.Status(ctx)
 }
@@ -610,7 +610,7 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 	if job.Status != StatusCompleted {
 		key := job.ID + "/output.bin"
 		if err := s.store.Put(key, result.ContentType, result.Content); err != nil {
-			return fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
+			return err
 		}
 		sum := sha256.Sum256(result.Content)
 		now := time.Now().UTC()

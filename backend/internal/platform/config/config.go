@@ -234,6 +234,12 @@ func (c *Config) RedactedMap() map[string]any {
 		"cloudflare_token_set": c.CloudflareAPIToken != "",
 		"cloudflare_zone_set":  c.CloudflareZoneID != "",
 		"cloudflare_cname_set": c.CloudflareCNAME != "",
+		"google_client_id_set": c.GoogleClientID != "",
+		"google_secret_set":    c.GoogleClientSecret != "",
+		"google_redirect_set":  c.GoogleRedirect != "",
+		"google_triad":         c.GoogleTriad(),
+		"google_allow_mock":    c.GoogleAllowMock,
+		"google_mock_allowed":  c.GoogleMockAllowed(),
 	}
 }
 

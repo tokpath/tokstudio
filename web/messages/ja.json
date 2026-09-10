@@ -39,6 +39,23 @@
     "localeJa": "日本語",
     "metaDescription": "1 つの Key。説明可能なルーティング。再計算できる台帳。"
   },
+  "shell": {
+    "bell": "通知",
+    "bellSoon": "通知センターはまだありません",
+    "balance": "利用可能残高",
+    "balanceLoading": "残高を読み込み中",
+    "accountMenu": "アカウントメニュー",
+    "profile": "プロフィール",
+    "keys": "API キー",
+    "logout": "ログアウト",
+    "roleUser": "ユーザー",
+    "roleAdmin": "管理者",
+    "displayName": "表示名",
+    "email": "メール",
+    "loginMethod": "ログイン方法",
+    "loginPassword": "メールとパスワード",
+    "loginGoogle": "Google"
+  },
   "mega": {
     "models": "モデル",
     "docs": "ドキュメント",
@@ -703,6 +720,11 @@
       "eyebrow": "DOCS",
       "title": "接続ドキュメント",
       "description": "コンソールのサンプル。Key はプレースホルダ。"
+    },
+    "profile": {
+      "eyebrow": "PROFILE",
+      "title": "プロフィール",
+      "description": "セッションの表示名、メール、ログイン方法を読み取り専用で表示します。変更はアカウント設定へ。"
     },
     "settings": {
       "eyebrow": "ACCOUNT",

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Route } from "@playwright/test";
 
 test("public storefront shows models plans and topup", async ({ page }) => {
   await page.goto("/");
@@ -312,3 +312,99 @@ test("channel console shows scoped user list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "已发放额度" })).toBeVisible();
   await expect(page.getByText(/换算比 .+ BPS/)).toBeVisible();
 });
+
+async function fulfillJSON(route: Route, status: number, body: unknown) {
+  if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+    await route.continue();
+    return;
+  }
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  });
+}
+
+test("user shell shows real available balance and profile dropdown", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "12.5", reserved: "1.00", gift_minor: 0, commission_available_minor: 0 } });
+  });
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await fulfillJSON(route, 200, { items: [] });
+  });
+  await page.route("**/v1/auth/logout", async (route) => {
+    await fulfillJSON(route, 200, { ok: true });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, {
+      user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"], login_methods: ["password"] },
+    });
+  });
+  await page.goto("/app");
+  await expect(page.getByTestId("shell-bell")).toBeDisabled();
+  const pill = page.getByTestId("balance-pill");
+  await expect(pill).toHaveText("$12.50");
+  await expect(pill).toHaveAttribute("data-field", "available");
+  await expect(pill).toHaveAttribute("href", "/app/wallet");
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+  await page.getByTestId("avatar-trigger").click();
+  await expect(page.getByTestId("menu-display-name")).toHaveText("Ada");
+  await expect(page.getByTestId("menu-email")).toHaveText("ada@example.test");
+  await expect(page.getByRole("menuitem", { name: "个人资料" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "API 密钥" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible();
+  await expect(page.getByText("GitHub")).toHaveCount(0);
+  await expect(page.getByText("新手引导")).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "个人资料" }).click();
+  await expect(page).toHaveURL(/\/app\/profile/);
+  await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
+  await expect(page.getByTestId("profile-display-name")).toHaveText("Ada");
+  await expect(page.getByTestId("profile-email")).toHaveText("ada@example.test");
+  await expect(page.getByTestId("profile-login-methods").locator("[data-method=password]")).toBeVisible();
+});
+
+test("user shell balance failure is — never fake $0.00", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 503, { error: { message: "余额不可用" } });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "", email: "", roles: ["end_user"] } });
+  });
+  await page.goto("/app");
+  const pill = page.getByTestId("balance-pill");
+  await expect(pill).toHaveAttribute("data-state", "error");
+  await expect(pill).toHaveText("—");
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+  await page.getByTestId("avatar-trigger").click();
+  await expect(page.getByTestId("menu-display-name")).toHaveText("—");
+  await expect(page.getByTestId("menu-email")).toHaveText("—");
+});
+
+test("user keys empty state is honest 暂无 API 密钥", async ({ page }) => {
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await fulfillJSON(route, 200, { items: [] });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"] } });
+  });
+  await page.goto("/app/keys");
+  await expect(page.getByText("暂无 API 密钥")).toBeVisible();
+  await expect(page.getByText("thk_")).toHaveCount(0);
+});
+
+test("user shell logout clears session and returns to login", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "1" } });
+  });
+  await page.route("**/v1/auth/logout", async (route) => {
+    await fulfillJSON(route, 200, { ok: true });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"] } });
+  });
+  await page.goto("/app");
+  await page.getByTestId("avatar-trigger").click();
+  await page.getByRole("menuitem", { name: "退出登录" }).click();
+  await expect(page).toHaveURL(/\/login/);
+});
+

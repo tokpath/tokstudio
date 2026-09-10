@@ -28,6 +28,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
+	r.POST("/v1/auth/logout", a.logout)
 	r.GET("/v1/auth/google/status", a.googleStatus)
 	r.GET("/v1/auth/google/start", a.googleStart)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
@@ -73,6 +74,18 @@ func (a *App) setSessionCookie(c *gin.Context, token string) {
 	secure := a.Config.IsProduction()
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(sessionCookie, token, 86400, "/", "", secure, true)
+}
+
+func (a *App) clearSessionCookie(c *gin.Context) {
+	secure := a.Config.IsProduction()
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(sessionCookie, "", -1, "/", "", secure, true)
+}
+
+func (a *App) logout(c *gin.Context) {
+	_ = a.Identity.Logout(c.Request.Context(), a.tokenFromRequest(c))
+	a.clearSessionCookie(c)
+	httpx.OK(c, gin.H{"ok": true, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) writeAuthError(c *gin.Context, err error) {

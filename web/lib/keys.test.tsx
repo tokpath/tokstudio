@@ -47,7 +47,7 @@ describe("KeysList", () => {
 
   it("renders an empty ledger when there are no keys", () => {
     render(withZh(<KeysList items={[]} />));
-    expect(screen.getByText("暂无 API Keys")).toBeTruthy();
+    expect(screen.getByText("暂无 API 密钥")).toBeTruthy();
   });
 
   it("reveals the full secret when asked", () => {

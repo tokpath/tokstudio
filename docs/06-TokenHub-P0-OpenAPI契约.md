@@ -112,10 +112,11 @@
 
 - `GET /v1/public/docs-context`：品牌 Base URL、模型白名单、curl/Python/Node/Messages/视频示例（占位 `$TOKENHUB_API_KEY`）以及错误码/限流/回调说明
 - `GET /v1/public/models`：按域名品牌列出已发布模型卡片（id/vendor/display_name/capabilities/kind），不含 Provider 路由。查询参数 `vendor`、`kind`、`q`、`id`、`limit` 在服务端筛选；响应带 `total` 与 `facets.kinds` / `facets.vendors`（类型分面不含当前 kind，厂商分面不含当前 vendor）。前端目录不得再维护一份本地模型快照。
-- `GET /v1/me`
+- `GET /v1/me`：当前会话用户。`login_methods` 只来自真实列（有 `password_hash` → `password`，有 `google_sub` → `google`），缺显示名/邮箱保持空串
 - `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
 - `POST /v1/me/password`：校验当前密码后改密
-- `GET /v1/me/balance`
+- `POST /v1/auth/logout`：吊销当前会话令牌并清除 HttpOnly cookie
+- `GET /v1/me/balance`：钱包视图。用户台顶栏余额钉 `balance.available`（可用 USD 字符串，对应 `available_minor`），失败不得写成假 `$0.00`
 - `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。
 - `GET /v1/me/ledger`
 - `GET /v1/plans`：公共站已发布的平台套餐；

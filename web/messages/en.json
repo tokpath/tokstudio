@@ -39,6 +39,23 @@
     "localeJa": "日本語",
     "metaDescription": "One key. Explainable routing. A ledger you can recompute."
   },
+  "shell": {
+    "bell": "Notifications",
+    "bellSoon": "Notification center is not available yet",
+    "balance": "Available balance",
+    "balanceLoading": "Loading balance",
+    "accountMenu": "Account menu",
+    "profile": "Profile",
+    "keys": "API keys",
+    "logout": "Sign out",
+    "roleUser": "User",
+    "roleAdmin": "Admin",
+    "displayName": "Display name",
+    "email": "Email",
+    "loginMethod": "Sign-in method",
+    "loginPassword": "Email password",
+    "loginGoogle": "Google"
+  },
   "mega": {
     "models": "Models",
     "docs": "Docs",
@@ -703,6 +720,11 @@
       "eyebrow": "DOCS",
       "title": "Integration docs",
       "description": "Console samples. Keys are placeholders. No platform cost in the snippet."
+    },
+    "profile": {
+      "eyebrow": "PROFILE",
+      "title": "Profile",
+      "description": "Read-only display name, email, and sign-in method from the current session. Edit them in account settings."
     },
     "settings": {
       "eyebrow": "ACCOUNT",

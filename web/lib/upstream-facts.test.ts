@@ -41,6 +41,14 @@ describe("W1-① upstream facts badge", () => {
     expect(truncateFact("short")).toBe("short");
   });
 
+  it("sandbox or incomplete Gemini never impersonates live upstream", () => {
+    expect(badgeLabel({ request_id: "req_gem", fact_source: "sandbox" })).toBe(MISSING_UPSTREAM);
+    expect(isSandboxFact({ fact_source: "sandbox" })).toBe(true);
+    expect(badgeLabel({ provider: "google", model: "gemini-pro" })).toBe(MISSING_UPSTREAM);
+    expect(forbidsFakeUpstream(badgeLabel({ provider: "google", model: "gemini-pro" }))).toBe(true);
+    expect(hasCompleteUpstreamFacts({ provider: "google", model: "gemini-pro" })).toBe(false);
+  });
+
   it("maps TokenHub row fields without promoting public_model_id", () => {
     const facts = fromDiffRow({
       provider_id: "prd_echo",

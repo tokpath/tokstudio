@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -123,24 +122,33 @@ func (TestAdapter) Chat(ctx context.Context, providerSlug, behavior string, req 
 	return result, nil
 }
 
-// GeminiAdapter 在未配置真实 Base URL 时走沙箱回声，保证 P0 可验证 Google Gemini 目录与路由。
+// GeminiAdapter 用 Key 门控：sandbox 或空 Key 只回声；live+Key 经 Bifrost 打真实 Gemini。
+// 回声不得把 fact_source 标成 live，也不得伪造 Google 上游身份。
 type GeminiAdapter struct {
-	BaseURL string
+	Runtime *Runtime
 }
 
 func (GeminiAdapter) Name() string { return "gemini" }
 
 func (a GeminiAdapter) Chat(ctx context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
-	_ = ctx
-	if strings.TrimSpace(a.BaseURL) == "" {
-		result, err := TestAdapter{}.Chat(ctx, providerSlug, behavior, req)
-		if err != nil {
-			return result, err
+	if GeminiLiveEnabled(a.Runtime) {
+		if a.Runtime == nil || a.Runtime.Client == nil {
+			return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini live bifrost unavailable")
 		}
-		if result.HTTPStatus == 200 && len(result.Body.Choices) > 0 {
-			result.Body.Choices[0].Message.Content = "gemini:" + result.Body.Choices[0].Message.Content
-		}
-		return result, nil
+		return BifrostAdapter{Runtime: a.Runtime}.Chat(ctx, providerSlug, behavior, req)
 	}
-	return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini upstream not configured")
+	result, err := TestAdapter{}.Chat(ctx, providerSlug, behavior, req)
+	if err != nil {
+		result.FactSource = FactSourceSandbox
+		return result, err
+	}
+	if result.HTTPStatus == 200 && len(result.Body.Choices) > 0 {
+		result.Body.Choices[0].Message.Content = "gemini:" + result.Body.Choices[0].Message.Content
+	}
+	result.FactSource = FactSourceSandbox
+	if result.EchoedMeta == nil {
+		result.EchoedMeta = map[string]string{}
+	}
+	result.EchoedMeta["fact_source"] = FactSourceSandbox
+	return result, nil
 }

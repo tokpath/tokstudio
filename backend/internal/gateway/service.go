@@ -128,7 +128,7 @@ func New(db *gorm.DB, cat *catalog.Service, booker Booker, rt *Runtime) *Service
 		runtime: rt,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
-			"gemini":  GeminiAdapter{},
+			"gemini":  GeminiAdapter{Runtime: rt},
 			"bifrost": BifrostAdapter{Runtime: rt},
 		},
 	}
@@ -261,7 +261,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
 		callReq := in.Chat
-		if cand.Adapter == "bifrost" && cand.UpstreamModelID != "" {
+		if cand.UpstreamModelID != "" && useUpstreamModel(cand.Adapter, s.runtime) {
 			callReq.Model = cand.UpstreamModelID
 		}
 		attemptID := id.New("atm")
@@ -337,7 +337,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		})
 		usage := result.Body.Usage
 		mode := NormalizeSandboxMode(in.SandboxMode, in.OmitUsage)
-		usage = resolveAttemptUsage(cand.Adapter, mode, in.Chat, completionText(result.Body), usage)
+		usage = resolveAttemptUsage(usageAdapterName(cand.Adapter, s.runtime), mode, in.Chat, completionText(result.Body), usage)
 		result.Body.Usage = usage
 		out.Response.Usage = usage
 		missing := mode == SandboxOmit || len(usage) == 0
@@ -403,16 +403,32 @@ func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]Attempt
 }
 
 func attemptFactSource(adapter string, result AdapterResult, rt *Runtime) string {
-	if src := normalizeFactSource(result.FactSource, rt != nil && rt.Sandbox && adapter == "bifrost"); src != "" {
+	liveGemini := adapter == "gemini" && GeminiLiveEnabled(rt)
+	sandboxForce := rt != nil && rt.Sandbox && (adapter == "bifrost" || adapter == "gemini")
+	if liveGemini {
+		sandboxForce = false
+	}
+	if src := normalizeFactSource(result.FactSource, sandboxForce); src != "" {
 		return src
 	}
-	if adapter == "test" || adapter == "gemini" {
+	if adapter == "test" || (adapter == "gemini" && !liveGemini) {
 		return FactSourceSandbox
 	}
 	if rt != nil && rt.Sandbox && adapter == "bifrost" {
 		return FactSourceSandbox
 	}
 	return ""
+}
+
+func useUpstreamModel(adapter string, rt *Runtime) bool {
+	return adapter == "bifrost" || (adapter == "gemini" && GeminiLiveEnabled(rt))
+}
+
+func usageAdapterName(adapter string, rt *Runtime) string {
+	if adapter == "gemini" && GeminiLiveEnabled(rt) {
+		return "bifrost"
+	}
+	return adapter
 }
 
 func passthroughMeta(in ExecuteInput, attemptID, publicModelID string, result AdapterResult, factSource string) map[string]string {

@@ -19,6 +19,21 @@ describe("UpstreamFactsBadge", () => {
     expect(screen.queryByText("gpt-4")).toBeNull();
   });
 
+  it("keeps sandbox Gemini grey and never a green live impersonation", () => {
+    render(
+      <UpstreamFactsBadge
+        facts={{ request_id: "req_gem", fact_source: "sandbox" }}
+      />,
+    );
+    const badge = screen.getByTestId("upstream-facts-badge");
+    expect(badge.textContent).toBe("缺上游元数据");
+    expect(badge.getAttribute("data-complete")).toBe("false");
+    expect(badge.getAttribute("data-sandbox")).toBe("true");
+    expect(badge.className).not.toContain("success");
+    expect(badge.className).toContain("--muted");
+    expect(badge.textContent).not.toMatch(/gemini-pro|google|openai/i);
+  });
+
   it("opens a read-only JSON drawer on hover when facts are complete", () => {
     render(
       <UpstreamFactsBadge
@@ -27,6 +42,8 @@ describe("UpstreamFactsBadge", () => {
     );
     const badge = screen.getByTestId("upstream-facts-badge");
     expect(badge.getAttribute("data-complete")).toBe("true");
+    expect(badge.getAttribute("data-sandbox")).toBe("true");
+    expect(badge.className).not.toContain("success");
     expect(badge.textContent).toContain("prd_echo");
     fireEvent.mouseEnter(badge.parentElement as HTMLElement);
     const drawer = screen.getByTestId("upstream-facts-drawer");

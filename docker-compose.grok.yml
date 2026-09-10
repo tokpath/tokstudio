@@ -3,6 +3,7 @@
 # - 宿主机 80/443 仍由 nova/gashub Caddy 占用；本栈 edge 只在内网听 HTTP
 # - 公网入口是 https://grok.tokpath.com，由 nova Caddy 终止 TLS 再反代到 tokstudio-grok-edge
 # - 禁止与 /root/workspace/tokstudio 的 test 栈共用检出或项目名
+# - Bifrost 继续继承基础 compose 的 TOKENHUB_BIFROST_SANDBOX=true，不要在此强制写入 GEMINI Key
 name: tokstudio-grok
 
 services:

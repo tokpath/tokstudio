@@ -186,6 +186,7 @@ func (c *Config) RedactedMap() map[string]any {
 		"encryption_key_set":  c.EncryptionKey != "",
 		"bifrost_sandbox":     c.BifrostSandbox,
 		"openai_key_set":      c.OpenAIAPIKey != "",
+		"gemini_key_set":      c.GeminiAPIKey != "",
 		"acme_directory_set":  c.ACMEDirectory != "",
 		"acme_force":          c.ACMEForce,
 		"s3_endpoint_set":     c.S3Endpoint != "",

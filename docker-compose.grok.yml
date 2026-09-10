@@ -24,6 +24,8 @@ services:
     environment:
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://grok.tokpath.com}
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://grok.tokpath.com}
+      # grok 默认 Redirect URI；不要在此打开 ALLOW_MOCK。
+      TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-https://grok.tokpath.com/login/oauth/google}
 
 networks:
   gashub:

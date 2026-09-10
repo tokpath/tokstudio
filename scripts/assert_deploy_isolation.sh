@@ -77,6 +77,9 @@ fi
 if grep -qF 'tokstudio-edge:80' deploy/caddy-grok.tokpath.com.caddy; then
   fail "grok caddy snippet must not point at the test edge"
 fi
+if grep -vE '^[[:space:]]*#' docker-compose.grok.yml | grep -q 'TOKENHUB_GOOGLE_ALLOW_MOCK'; then
+  fail "grok compose must not enable Google mock"
+fi
 pass "grok compose + caddy stay isolated"
 
 # 目录门禁：误在 test 检出里跑 grok 必须失败。

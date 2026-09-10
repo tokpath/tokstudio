@@ -1,10 +1,11 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
 import ProfilePanel from "./profile-panel";
 
 afterEach(() => {
+  cleanup();
   vi.unstubAllGlobals();
 });
 

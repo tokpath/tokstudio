@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
 import { UserShellBell, UserShellRightZone } from "./user-shell-menu";
@@ -49,6 +49,7 @@ describe("UserShellRightZone", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
   });
 

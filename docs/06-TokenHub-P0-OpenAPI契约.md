@@ -90,7 +90,7 @@
 
 ### `GET /v1/videos/{id}/content`
 
-返回短期签名 URL 或媒体流；默认结果保留 7 天。
+返回短期 **S3 预签名** URL（Compose/CI 无云 Key 时走 MinIO）；默认结果保留 7 天。响应带只读 `storage`（`source=s3|minio|unavailable`，`label` 为 `S3` 或 `存储不可用`）。缺桶或存储失败返回 `503 store_unavailable`，**禁止**回退本地盘并报告成功。`GET /healthz`、`GET /v1/me/media`、`GET /channel/brand` 同样回带 `storage`。
 
 ### `POST /v1/images/generations` 与 `POST /v1/images/edits`
 

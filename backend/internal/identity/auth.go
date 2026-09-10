@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrEmailTaken         = errors.New("email already registered")
-	ErrWeakPassword       = errors.New("password too short")
-	ErrChannelImmutable   = errors.New("channel attribution cannot be changed by the user")
-	ErrChannelDisabled    = errors.New("channel is disabled")
-	ErrPromotionInvalid   = errors.New("promotion code is invalid")
-	ErrInvalidProfile     = errors.New("profile is invalid")
-	ErrInvalidLocale      = errors.New("locale is not supported")
+	ErrInvalidCredentials   = errors.New("invalid credentials")
+	ErrEmailTaken           = errors.New("email already registered")
+	ErrWeakPassword         = errors.New("password too short")
+	ErrChannelImmutable     = errors.New("channel attribution cannot be changed by the user")
+	ErrChannelDisabled      = errors.New("channel is disabled")
+	ErrPromotionInvalid     = errors.New("promotion code is invalid")
+	ErrInvalidProfile       = errors.New("profile is invalid")
+	ErrInvalidLocale        = errors.New("locale is not supported")
 	ErrNotFound             = errors.New("record not found")
 	ErrThemeKey             = errors.New("theme key is not allowed")
 	ErrThemeHex             = errors.New("theme color must be #RRGGBB")
@@ -34,6 +34,7 @@ var (
 	ErrAssetSVG             = errors.New("svg asset is unsafe or missing viewBox")
 	ErrAssetRateLimited     = errors.New("brand asset upload rate limited")
 	ErrBrandDomainTaken     = errors.New("brand domain is already used")
+	ErrStoreUnavailable     = errors.New("object store unavailable")
 )
 
 func mapNotFound(err error) error {

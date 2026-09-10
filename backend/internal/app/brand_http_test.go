@@ -52,6 +52,7 @@ func TestOEMBrandSelfService(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer application.Close()
+	requireObjectStore(t, application)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 

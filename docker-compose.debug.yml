@@ -34,6 +34,11 @@ services:
     ports:
       - "3000:3000"
 
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
   pebble:
     ports:
       - "14000:14000"

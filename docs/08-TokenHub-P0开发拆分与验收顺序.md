@@ -36,7 +36,7 @@ M3 实现补充：网关在调用 Adapter 前通过 `billing.Reserve` 预授权�
 
 验收：任务拿到上游 ID 后不重复提交；回调可重试且不重复结算；失败/取消释放正确预授权；结果只能通过签名 URL 获取。
 
-M4 实现补充：`TOKENHUB_ARK_BASE_URL` + `TOKENHUB_ARK_API_KEY` 齐时火山方舟走 `POST/GET /contents/generations/tasks`；`TOKENHUB_OPENROUTER_BASE_URL` + `TOKENHUB_OPENROUTER_API_KEY` 齐时 OpenRouter 走 `/videos`。缺任一项仍走沙箱 TestAdapter。拿到 `upstream_job_id` 后只 Get、不重复 Create。Worker/API 轮询 in_progress；`GET /v1/videos/{id}` 也会刷新。终端态向客户 `callback_url` 投递 `X-Tokenhub-Signature`（HMAC `event_id|job_id`），失败退避最多 8 次。沙箱入站仍是 `POST /v1/media/callbacks`。媒体计费单位为 `video_seconds` / `image_count` / `audio_seconds`。`GET /v1/videos/{id}/content` 只返回 HMAC 签名路径。D3.2 任务模式不变。独立音频/转写/视频理解/复杂时间线仍是 P1。
+M4 实现补充：`TOKENHUB_ARK_BASE_URL` + `TOKENHUB_ARK_API_KEY` 齐时火山方舟走 `POST/GET /contents/generations/tasks`；`TOKENHUB_OPENROUTER_BASE_URL` + `TOKENHUB_OPENROUTER_API_KEY` 齐时 OpenRouter 走 `/videos`。缺任一项仍走沙箱 TestAdapter。拿到 `upstream_job_id` 后只 Get、不重复 Create。Worker/API 轮询 in_progress；`GET /v1/videos/{id}` 也会刷新。终端态向客户 `callback_url` 投递 `X-Tokenhub-Signature`（HMAC `event_id|job_id`），失败退避最多 8 次。沙箱入站仍是 `POST /v1/media/callbacks`。媒体计费单位为 `video_seconds` / `image_count` / `audio_seconds`。`GET /v1/videos/{id}/content` 只返回 HMAC 签名路径。`TOKENHUB_S3_BUCKET` + Access Key + Secret Key 齐时对象写入 S3/MinIO（可配 `TOKENHUB_S3_ENDPOINT`，有 endpoint 时用 path-style）；缺任一项仍用 `TOKENHUB_MEDIA_STORE_PATH` 本地目录。下载始终经 API HMAC，浏览器不必直连桶。配齐 S3 但连不上时启动失败，不静默回落磁盘。D3.2 任务模式不变。独立音频/转写/视频理解/复杂时间线仍是 P1。
 
 ### M5 套餐、订阅与支付
 

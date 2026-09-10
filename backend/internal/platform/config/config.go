@@ -36,6 +36,11 @@ type Config struct {
 	AllowDemoProbes        bool
 	MediaStorePath         string
 	MediaSignKey           string
+	S3Endpoint             string
+	S3Bucket               string
+	S3AccessKey            string
+	S3SecretKey            string
+	S3Region               string
 	ArkBaseURL             string
 	ArkAPIKey              string
 	OpenRouterBaseURL      string
@@ -92,6 +97,11 @@ func Load() (*Config, error) {
 		AllowDemoProbes:        v.GetBool("ALLOW_DEMO_PROBES"),
 		MediaStorePath:         v.GetString("MEDIA_STORE_PATH"),
 		MediaSignKey:           v.GetString("MEDIA_SIGN_KEY"),
+		S3Endpoint:             v.GetString("S3_ENDPOINT"),
+		S3Bucket:               v.GetString("S3_BUCKET"),
+		S3AccessKey:            v.GetString("S3_ACCESS_KEY"),
+		S3SecretKey:            v.GetString("S3_SECRET_KEY"),
+		S3Region:               v.GetString("S3_REGION"),
 		ArkBaseURL:             v.GetString("ARK_BASE_URL"),
 		ArkAPIKey:              v.GetString("ARK_API_KEY"),
 		OpenRouterBaseURL:      v.GetString("OPENROUTER_BASE_URL"),
@@ -190,6 +200,9 @@ func (c *Config) RedactedMap() map[string]any {
 		"ark_key_set":         c.ArkAPIKey != "",
 		"openrouter_url_set":  c.OpenRouterBaseURL != "",
 		"openrouter_key_set":  c.OpenRouterAPIKey != "",
+		"s3_endpoint_set":     c.S3Endpoint != "",
+		"s3_bucket_set":       c.S3Bucket != "",
+		"s3_key_set":          c.S3AccessKey != "",
 		"acme_directory_set":  c.ACMEDirectory != "",
 		"acme_force":          c.ACMEForce,
 	}

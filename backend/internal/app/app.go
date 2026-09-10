@@ -65,7 +65,21 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	billingSvc := billing.New(gdb, outboxSvc)
 	plansSvc := plans.New(gdb, outboxSvc)
 	billingSvc.SetCoverer(plansSvc)
-	store := media.NewStore(cfg.MediaStorePath, firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey), cfg.PublicBaseURL)
+	store, err := media.OpenStore(media.StoreOptions{
+		Root:   cfg.MediaStorePath,
+		Secret: firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey),
+		Public: cfg.PublicBaseURL,
+		S3: media.S3Options{
+			Endpoint:  cfg.S3Endpoint,
+			Bucket:    cfg.S3Bucket,
+			AccessKey: cfg.S3AccessKey,
+			SecretKey: cfg.S3SecretKey,
+			Region:    cfg.S3Region,
+		},
+	})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("media_store_open_failed")
+	}
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.ArkAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterAPIKey)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)

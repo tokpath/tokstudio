@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionRow } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
+import { CheckoutPay } from "@/components/checkout-pay";
 import { apiBase } from "@/lib/api";
+import type { CheckoutPayload } from "@/lib/checkout";
 
 type Balance = {
   available?: string;
@@ -46,6 +48,7 @@ export default function WalletPanel() {
   const [amount, setAmount] = useState(100);
   const [adapter, setAdapter] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
 
   async function refresh() {
     const response = await fetch(`${apiBase}/v1/me/balance`, { credentials: "include" });
@@ -117,11 +120,13 @@ export default function WalletPanel() {
       body: JSON.stringify({ adapter, pay_major: amount }),
     });
     const body = await response.json();
-    setMessage(
-      response.ok
-        ? t("payOrderOk", { id: body.checkout?.order?.id })
-        : body.error?.message || t("payOrderFail"),
-    );
+    if (response.ok) {
+      setCheckout(body.checkout || null);
+      setMessage(t("payOrderOk", { id: body.checkout?.order?.id }));
+    } else {
+      setCheckout(null);
+      setMessage(body.error?.message || t("payOrderFail"));
+    }
   }
 
   const selected = methods.find((m) => m.adapter === adapter);
@@ -171,6 +176,7 @@ export default function WalletPanel() {
             <Button type="button" onClick={() => void pay()}>
               {payLabel}
             </Button>
+            {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
           </>
         )}
         <ActionRow className="mt-6 w-full flex-nowrap gap-3">

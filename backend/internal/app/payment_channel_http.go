@@ -55,6 +55,8 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 		httpx.Abort(c, http.StatusForbidden, "payment_unavailable", "该支付方式当前不可用", false)
 	case errors.Is(err, payment.ErrRefundDisabled):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "该商户未开启退款", false)
+	case errors.Is(err, payment.ErrProviderFailed):
+		httpx.Abort(c, http.StatusBadGateway, "payment_provider_failed", "支付渠道请求失败", true)
 	default:
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "支付操作失败", false)
 	}

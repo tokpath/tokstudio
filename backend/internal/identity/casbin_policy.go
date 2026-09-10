@@ -56,6 +56,7 @@ func authenticatedRules() []policyRule {
 		p(RoleAuthenticated, "/v1/payments/quote", "GET"),
 		p(RoleAuthenticated, "/v1/payments/orders", "POST"),
 		p(RoleAuthenticated, "/v1/payments/orders/:id", "GET"),
+		p(RoleAuthenticated, "/v1/payments/orders/:id/sync", "POST"),
 		p(RoleAuthenticated, "/v1/videos", "POST"),
 		p(RoleAuthenticated, "/v1/videos/:id", "GET"),
 		p(RoleAuthenticated, "/v1/videos/:id/*", "*"),

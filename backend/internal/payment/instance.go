@@ -620,6 +620,18 @@ func (s *Service) missingFor(adapter string, set map[string]bool) []string {
 	return missingRequired(adapter, set)
 }
 
+func (s *Service) instancesForAdapter(ctx context.Context, adapter string) []instanceRow {
+	if adapter == "" {
+		return nil
+	}
+	var rows []instanceRow
+	if err := s.db.WithContext(ctx).Where("adapter = ? AND enabled = ?", adapter, true).
+		Order("sort_order, created_at").Find(&rows).Error; err != nil {
+		return nil
+	}
+	return rows
+}
+
 func (s *Service) firstReadyInstance(ctx context.Context, channelOrgID, adapter string) *instanceRow {
 	if channelOrgID == "" || adapter == "" {
 		return nil

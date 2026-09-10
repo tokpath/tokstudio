@@ -198,7 +198,41 @@ func (s *Service) GetOrder(ctx context.Context, id, userID string) (*OrderView, 
 	return orderView(row), nil
 }
 
-func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase string) *CheckoutView {
+func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) (*OrderView, error) {
+	order, err := s.GetOrder(ctx, orderID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status == StatusPaid || order.Status == StatusRefunded {
+		return order, nil
+	}
+	plugin, ok := s.plugin(order.Adapter)
+	if !ok {
+		return nil, ErrInvalidAdapter
+	}
+	in := QueryRequest{Order: order, Mode: ModeSandbox}
+	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
+		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
+		in.Mode = inst.Mode
+	}
+	res, err := plugin.QueryOrder(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	switch res.Status {
+	case StatusPaid:
+		if err := s.markPaid(ctx, order.ID, res.TradeID); err != nil {
+			return nil, err
+		}
+	case StatusFailed:
+		now := time.Now().UTC()
+		_ = s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ? AND status = ?", order.ID, StatusPending).
+			Updates(map[string]any{"status": StatusFailed, "updated_at": now})
+	}
+	return s.GetOrder(ctx, orderID, userID)
+}
+
+func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase string) (*CheckoutView, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -211,7 +245,7 @@ func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase str
 	}
 	plugin, ok := s.plugin(order.Adapter)
 	if !ok {
-		return view
+		return view, nil
 	}
 	spec := plugin.Spec()
 	view.AutoRenew = spec.AutoRenew
@@ -222,7 +256,10 @@ func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase str
 		in.Mode = inst.Mode
 	}
 	sess, err := plugin.CreateCheckout(ctx, in)
-	if err == nil && sess != nil {
+	if err != nil {
+		return view, err
+	}
+	if sess != nil {
 		view.Sandbox = sess.Sandbox
 		view.WebhookURL = sess.WebhookURL
 		view.AutoRenew = sess.AutoRenew
@@ -234,7 +271,7 @@ func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase str
 		view.Payload = sess.Payload
 		view.Session = sess
 	}
-	return view
+	return view, nil
 }
 
 func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers http.Header, body []byte) (*EventView, error) {
@@ -245,9 +282,7 @@ func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers htt
 	if headers == nil {
 		headers = http.Header{}
 	}
-	parsed, err := plugin.ParseWebhook(ctx, WebhookRequest{
-		Adapter: adapter, Headers: headers, Body: body, SignKey: s.signKey,
-	})
+	parsed, err := s.parseWebhookEvent(ctx, plugin, adapter, headers, body)
 	if err != nil {
 		return nil, err
 	}
@@ -331,10 +366,81 @@ func (s *Service) ConfirmManual(ctx context.Context, orderID string) (*OrderView
 }
 
 func (s *Service) Refund(ctx context.Context, orderID string) (*OrderView, error) {
+	order, err := s.GetOrder(ctx, orderID, "")
+	if err != nil {
+		return nil, err
+	}
+	plugin, ok := s.plugin(order.Adapter)
+	if !ok {
+		return nil, ErrInvalidAdapter
+	}
+	in := RefundRequest{Order: order, Mode: ModeSandbox}
+	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
+		if !inst.RefundEnabled {
+			return nil, ErrRefundDisabled
+		}
+		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
+		in.Mode = inst.Mode
+	}
+	if _, err := plugin.Refund(ctx, in); err != nil {
+		return nil, err
+	}
 	if err := s.markRefunded(ctx, orderID); err != nil {
 		return nil, err
 	}
 	return s.GetOrder(ctx, orderID, "")
+}
+
+func (s *Service) parseWebhookEvent(ctx context.Context, plugin Adapter, adapter string, headers http.Header, body []byte) (*WebhookEvent, error) {
+	var parsed *WebhookEvent
+	var lastErr error
+	for _, creds := range s.webhookCredentialSets(ctx, adapter, body) {
+		ev, err := plugin.ParseWebhook(ctx, WebhookRequest{
+			Adapter: adapter, Headers: headers, Body: body, SignKey: s.signKey, Credentials: creds,
+		})
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		parsed = ev
+		if ev != nil && ev.SignatureValid {
+			return ev, nil
+		}
+	}
+	if parsed != nil {
+		return parsed, nil
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, ErrInvalidEvent
+}
+
+func (s *Service) webhookCredentialSets(ctx context.Context, adapter string, body []byte) []map[string]string {
+	var out []map[string]string
+	seen := map[string]bool{}
+	add := func(row *instanceRow) {
+		if row == nil || seen[row.ID] {
+			return
+		}
+		seen[row.ID] = true
+		creds, err := openCredentials(s.signKey, row.CredentialsCiphertext)
+		if err != nil || len(creds) == 0 {
+			return
+		}
+		out = append(out, creds)
+	}
+	if oid := peekPaymentOrderID(body); oid != "" {
+		if order, err := s.GetOrder(ctx, oid, ""); err == nil {
+			add(s.firstReadyInstance(ctx, order.ChannelOrgID, adapter))
+		}
+	}
+	rows := s.instancesForAdapter(ctx, adapter)
+	for i := range rows {
+		add(&rows[i])
+	}
+	out = append(out, map[string]string{})
+	return out
 }
 
 func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {

@@ -434,6 +434,18 @@
     "leftAria": "对比左侧模型",
     "rightAria": "对比右侧模型"
   },
+  "checkout": {
+    "orderEyebrow": "待支付订单",
+    "sandboxHint": "沙箱订单，请用渠道 webhook 完成入账。",
+    "scanQr": "请用对应 App 扫码支付",
+    "paidCheck": "我已付款",
+    "checking": "正在查单…",
+    "paid": "已到账",
+    "pending": "待支付",
+    "stripePay": "确认支付",
+    "stripeNeed": "填写卡或 Link 后确认支付。",
+    "redirect": "前往支付页"
+  },
   "common": {
     "refresh": "刷新",
     "filter": "筛选",
@@ -1583,7 +1595,7 @@
     "plansHint": "登录后可查看套餐。沙箱支付走 Stripe webhook。",
     "plansLead": "扣减顺序：即将过期的赠送 → 当期套餐 → 现金钱包。金额单位是 micro-USD。",
     "plansRefreshed": "套餐与权益已刷新",
-    "ordered": "已下单 {id}，请走沙箱 webhook",
+    "ordered": "已下单 {id}",
     "subFail": "订阅失败",
     "refreshPlans": "刷新套餐",
     "subscribe": "订阅",
@@ -1653,7 +1665,8 @@
     "payOfflineDetail": "可使用兑换码，或联系渠道客服。不要写成支付功能未启用。",
     "payNoAutoRenew": "不支持自动扣款，到期需手动续费。",
     "payAutoRenew": "到期按同一支付方式续费，可随时取消。",
-    "payOrderOk": "已创建 {id}，沙箱请走 webhook",
+    "payOrderOk": "已创建 {id}",
+    "payOrderFail": "下单失败",
     "payOrderFail": "下单失败",
     "payCny": "支付 ¥{amount}，到账 ${credit}",
     "payUsd": "支付 ${amount}，到账 ${credit}",

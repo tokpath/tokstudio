@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
+import { CheckoutPay } from "@/components/checkout-pay";
 import { apiBase } from "@/lib/api";
+import type { CheckoutPayload } from "@/lib/checkout";
 import { loginHref } from "@/lib/login-next";
 import { Boxes, CreditCard, Ticket } from "lucide-react";
 import { IconStamp } from "@/components/icon-stamp";
@@ -28,6 +30,7 @@ export default function PublicStorefront({
 }) {
   const t = useTranslations("storefront");
   const [message, setMessage] = useState("");
+  const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
   const redeemForm = useForm<{ code: string }>({
     resolver: zodResolver(z.object({ code: z.string().trim().min(1, t("needCode")) })),
     defaultValues: { code: "THE2E" },
@@ -52,14 +55,34 @@ export default function PublicStorefront({
   }
 
   async function topup() {
-    const response = await fetch(`${apiBase}/v1/topups`, {
+    const methodsRes = await fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" });
+    const methodsBody = await methodsRes.json();
+    if (!methodsRes.ok) {
+      setCheckout(null);
+      setMessage(unauthorizedMessage(methodsRes.status, methodsBody.error?.message, t("loginToTopup")));
+      return;
+    }
+    const list: { adapter?: string }[] = methodsBody.item?.methods || [];
+    const adapter = list.find((m) => m.adapter === "stripe")?.adapter || list[0]?.adapter;
+    if (!adapter) {
+      setCheckout(null);
+      setMessage(unauthorizedMessage(methodsRes.status, undefined, t("loginToTopup")));
+      return;
+    }
+    const response = await fetch(`${apiBase}/v1/payments/orders`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount_minor: 1_000_000, payment_method: "stripe" }),
+      body: JSON.stringify({ adapter, pay_major: 1 }),
     });
     const body = await response.json();
-    setMessage(response.ok ? t("topupOk", { id: body.item?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
+    if (response.ok) {
+      setCheckout(body.checkout || null);
+      setMessage(t("topupOk", { id: body.checkout?.order?.id || "" }));
+    } else {
+      setCheckout(null);
+      setMessage(unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
+    }
   }
 
   async function subscribe(planId: string) {
@@ -70,7 +93,13 @@ export default function PublicStorefront({
       body: JSON.stringify({ plan_id: planId, adapter: "stripe" }),
     });
     const body = await response.json();
-    setMessage(response.ok ? t("ordered", { id: body.checkout?.order?.id || "" }) : unauthorizedMessage(response.status, body.error?.message, t("loginToSubscribe")));
+    if (response.ok) {
+      setCheckout(body.checkout || null);
+      setMessage(t("ordered", { id: body.checkout?.order?.id || "" }));
+    } else {
+      setCheckout(null);
+      setMessage(unauthorizedMessage(response.status, body.error?.message, t("loginToSubscribe")));
+    }
   }
 
   return (
@@ -143,6 +172,7 @@ export default function PublicStorefront({
         </form>
         </Form>
         <p className="mt-5 text-sm leading-relaxed text-ink-secondary">{message || t("guestHint")}</p>
+        {checkout ? <CheckoutPay checkout={checkout} /> : null}
       </Card>
     </div>
   );

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
+import { CheckoutPay } from "@/components/checkout-pay";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
+import type { CheckoutPayload } from "@/lib/checkout";
 
 type Plan = {
   id: string;
@@ -22,6 +24,15 @@ type Entitlement = {
   status: string;
 };
 
+type Method = {
+  adapter: string;
+  display_name?: string;
+  name?: string;
+  sandbox?: boolean;
+  auto_renew_supported?: boolean;
+  brand_color?: string;
+};
+
 export default function PlansPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -29,11 +40,15 @@ export default function PlansPanel() {
   const [ents, setEnts] = useState<Entitlement[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [message, setMessage] = useState(t("plansHint"));
+  const [methods, setMethods] = useState<Method[]>([]);
+  const [adapter, setAdapter] = useState("stripe");
+  const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
 
   async function refresh() {
-    const [planRes, entRes] = await Promise.all([
+    const [planRes, entRes, payRes] = await Promise.all([
       fetch(`${apiBase}/v1/me/plans`, { credentials: "include" }),
       fetch(`${apiBase}/v1/me/entitlements`, { credentials: "include" }),
+      fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" }),
     ]);
     const planBody = await planRes.json();
     const entBody = await entRes.json();
@@ -44,6 +59,13 @@ export default function PlansPanel() {
     }
     setPlans(planBody.items || []);
     setEnts(entBody.items || []);
+    if (payRes.ok) {
+      const payBody = await payRes.json();
+      const list: Method[] = payBody.item?.methods || [];
+      setMethods(list);
+      const preferred = list.find((m) => m.adapter === "stripe") || list[0];
+      if (preferred) setAdapter(preferred.adapter);
+    }
     setLoaded(true);
     setMessage(t("plansRefreshed"));
   }
@@ -58,10 +80,16 @@ export default function PlansPanel() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan_id: planId, adapter: "stripe" }),
+      body: JSON.stringify({ plan_id: planId, adapter }),
     });
     const body = await response.json();
-    setMessage(response.ok ? t("ordered", { id: body.checkout?.order?.id }) : body.error?.message || t("subFail"));
+    if (response.ok) {
+      setCheckout(body.checkout || null);
+      setMessage(t("ordered", { id: body.checkout?.order?.id }));
+    } else {
+      setCheckout(null);
+      setMessage(body.error?.message || t("subFail"));
+    }
   }
 
   const activeEnts = ents.filter((item) => item.status === "active").length;
@@ -69,6 +97,27 @@ export default function PlansPanel() {
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <p className="mb-4 text-sm text-ink-secondary">{t("plansLead")}</p>
+      {methods.length > 0 ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {methods.map((method) => (
+            <Button
+              key={method.adapter}
+              type="button"
+              size="sm"
+              variant={adapter === method.adapter ? "default" : "outline"}
+              onClick={() => setAdapter(method.adapter)}
+            >
+              {method.display_name || method.name || method.adapter}
+              {method.sandbox ? " · SANDBOX" : ""}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+      {methods.find((m) => m.adapter === adapter)?.auto_renew_supported ? (
+        <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payAutoRenew")}</p>
+      ) : methods.find((m) => m.adapter === adapter) ? (
+        <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payNoAutoRenew")}</p>
+      ) : null}
       <Button type="button" variant="outline" className="mb-4" onClick={() => void refresh()}>
         {t("refreshPlans")}
       </Button>
@@ -89,6 +138,7 @@ export default function PlansPanel() {
         </ul>
       )}
       {loaded ? <p className="mt-4 text-sm text-ink-secondary">{t("ents", { n: activeEnts })}</p> : null}
+      {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );

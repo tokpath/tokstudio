@@ -36,7 +36,7 @@ M3 实现补充：网关在调用 Adapter 前通过 `billing.Reserve` 预授权�
 
 验收：任务拿到上游 ID 后不重复提交；回调可重试且不重复结算；失败/取消释放正确预授权；结果只能通过签名 URL 获取。
 
-M4 实现补充：火山方舟 / OpenRouter 适配器已预留，无 Base URL 时走沙箱 TestAdapter。媒体计费单位为 `video_seconds` / `image_count` / `audio_seconds`，按价格快照结算。`GET /v1/videos/{id}/content` 只返回带过期时间的 HMAC 签名路径。沙箱回调入口为 `POST /v1/media/callbacks`，按 `event_id` 幂等，未完成任务重试时继续结算。D3.2：`POST /v1/videos` 接受 `task_type`/`mode`（t2v/i2v/first_frame/first_last_frame/reference/extend/edit）及时长/分辨率/宽高比/帧率/原生音频/参考素材；`POST /v1/videos/{id}/extend` 延长已完成任务；图像 `edits` 必须带 `images`。独立音频/转写/视频理解/复杂时间线仍是 P1。
+M4 实现补充：`TOKENHUB_ARK_BASE_URL` + `TOKENHUB_ARK_API_KEY` 齐时火山方舟走 `POST/GET /contents/generations/tasks`；`TOKENHUB_OPENROUTER_BASE_URL` + `TOKENHUB_OPENROUTER_API_KEY` 齐时 OpenRouter 走 `/videos`。缺任一项仍走沙箱 TestAdapter。拿到 `upstream_job_id` 后只 Get、不重复 Create。Worker/API 轮询 in_progress；`GET /v1/videos/{id}` 也会刷新。终端态向客户 `callback_url` 投递 `X-Tokenhub-Signature`（HMAC `event_id|job_id`），失败退避最多 8 次。沙箱入站仍是 `POST /v1/media/callbacks`。媒体计费单位为 `video_seconds` / `image_count` / `audio_seconds`。`GET /v1/videos/{id}/content` 只返回 HMAC 签名路径。D3.2 任务模式不变。独立音频/转写/视频理解/复杂时间线仍是 P1。
 
 ### M5 套餐、订阅与支付
 

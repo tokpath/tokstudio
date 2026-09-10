@@ -37,6 +37,7 @@ type Config struct {
 	MediaStorePath         string
 	MediaSignKey           string
 	ArkBaseURL             string
+	ArkAPIKey              string
 	OpenRouterBaseURL      string
 	PaymentSignKey         string
 	UpstreamURLAllowlist   []string
@@ -92,6 +93,7 @@ func Load() (*Config, error) {
 		MediaStorePath:         v.GetString("MEDIA_STORE_PATH"),
 		MediaSignKey:           v.GetString("MEDIA_SIGN_KEY"),
 		ArkBaseURL:             v.GetString("ARK_BASE_URL"),
+		ArkAPIKey:              v.GetString("ARK_API_KEY"),
 		OpenRouterBaseURL:      v.GetString("OPENROUTER_BASE_URL"),
 		PaymentSignKey:         v.GetString("PAYMENT_SIGN_KEY"),
 		UpstreamURLAllowlist:   splitCSV(v.GetString("UPSTREAM_URL_ALLOWLIST")),
@@ -184,6 +186,10 @@ func (c *Config) RedactedMap() map[string]any {
 		"encryption_key_set":  c.EncryptionKey != "",
 		"bifrost_sandbox":     c.BifrostSandbox,
 		"openai_key_set":      c.OpenAIAPIKey != "",
+		"ark_url_set":         c.ArkBaseURL != "",
+		"ark_key_set":         c.ArkAPIKey != "",
+		"openrouter_url_set":  c.OpenRouterBaseURL != "",
+		"openrouter_key_set":  c.OpenRouterAPIKey != "",
 		"acme_directory_set":  c.ACMEDirectory != "",
 		"acme_force":          c.ACMEForce,
 	}

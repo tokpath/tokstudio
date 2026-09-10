@@ -62,6 +62,7 @@ func main() {
 			logger.Fatal().Err(err).Msg("api_listen_failed")
 		}
 	}()
+	go application.Media.Run(ctx)
 
 	<-ctx.Done()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

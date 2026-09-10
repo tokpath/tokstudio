@@ -42,38 +42,43 @@ var (
 )
 
 type jobRow struct {
-	ID              string     `gorm:"column:id;primaryKey"`
-	UserID          string     `gorm:"column:user_id"`
-	APIKeyID        *string    `gorm:"column:api_key_id"`
-	ChannelOrgID    *string    `gorm:"column:channel_org_id"`
-	RequestID       string     `gorm:"column:request_id"`
-	PublicModelID   string     `gorm:"column:public_model_id"`
-	ProviderID      *string    `gorm:"column:provider_id"`
-	UpstreamJobID   *string    `gorm:"column:upstream_job_id"`
-	JobKind         string     `gorm:"column:job_kind"`
-	Status          string     `gorm:"column:status"`
-	Progress        int        `gorm:"column:progress"`
-	Prompt          string     `gorm:"column:prompt"`
-	DurationSeconds int        `gorm:"column:duration_seconds"`
-	Resolution      string     `gorm:"column:resolution"`
-	AspectRatio     string     `gorm:"column:aspect_ratio"`
-	FPS             int        `gorm:"column:fps"`
-	GenerateAudio   bool       `gorm:"column:generate_audio"`
-	TaskType        string     `gorm:"column:task_type"`
-	FirstFrame      string     `gorm:"column:first_frame"`
-	LastFrame       string     `gorm:"column:last_frame"`
-	ReferenceVideo  string     `gorm:"column:reference_video"`
-	ReferenceAudio  string     `gorm:"column:reference_audio"`
-	SourceJobID     string     `gorm:"column:source_job_id"`
-	ImagesJSON      []byte     `gorm:"column:images_json"`
-	CallbackURL     string     `gorm:"column:callback_url"`
-	IdempotencyKey  *string    `gorm:"column:idempotency_key"`
-	ErrorCode       *string    `gorm:"column:error_code"`
-	UsageJSON       []byte     `gorm:"column:usage_json"`
-	ExpiresAt       *time.Time `gorm:"column:expires_at"`
-	CreatedAt       time.Time  `gorm:"column:created_at"`
-	UpdatedAt       time.Time  `gorm:"column:updated_at"`
-	CompletedAt     *time.Time `gorm:"column:completed_at"`
+	ID                string     `gorm:"column:id;primaryKey"`
+	UserID            string     `gorm:"column:user_id"`
+	APIKeyID          *string    `gorm:"column:api_key_id"`
+	ChannelOrgID      *string    `gorm:"column:channel_org_id"`
+	RequestID         string     `gorm:"column:request_id"`
+	PublicModelID     string     `gorm:"column:public_model_id"`
+	ProviderID        *string    `gorm:"column:provider_id"`
+	UpstreamJobID     *string    `gorm:"column:upstream_job_id"`
+	JobKind           string     `gorm:"column:job_kind"`
+	Status            string     `gorm:"column:status"`
+	Progress          int        `gorm:"column:progress"`
+	Prompt            string     `gorm:"column:prompt"`
+	DurationSeconds   int        `gorm:"column:duration_seconds"`
+	Resolution        string     `gorm:"column:resolution"`
+	AspectRatio       string     `gorm:"column:aspect_ratio"`
+	FPS               int        `gorm:"column:fps"`
+	GenerateAudio     bool       `gorm:"column:generate_audio"`
+	TaskType          string     `gorm:"column:task_type"`
+	FirstFrame        string     `gorm:"column:first_frame"`
+	LastFrame         string     `gorm:"column:last_frame"`
+	ReferenceVideo    string     `gorm:"column:reference_video"`
+	ReferenceAudio    string     `gorm:"column:reference_audio"`
+	SourceJobID       string     `gorm:"column:source_job_id"`
+	ImagesJSON        []byte     `gorm:"column:images_json"`
+	CallbackURL       string     `gorm:"column:callback_url"`
+	CallbackEventID   string     `gorm:"column:callback_event_id"`
+	CallbackStatus    string     `gorm:"column:callback_status"`
+	CallbackAttempts  int        `gorm:"column:callback_attempts"`
+	CallbackNextAt    *time.Time `gorm:"column:callback_next_at"`
+	CallbackLastError string     `gorm:"column:callback_last_error"`
+	IdempotencyKey    *string    `gorm:"column:idempotency_key"`
+	ErrorCode         *string    `gorm:"column:error_code"`
+	UsageJSON         []byte     `gorm:"column:usage_json"`
+	ExpiresAt         *time.Time `gorm:"column:expires_at"`
+	CreatedAt         time.Time  `gorm:"column:created_at"`
+	UpdatedAt         time.Time  `gorm:"column:updated_at"`
+	CompletedAt       *time.Time `gorm:"column:completed_at"`
 }
 
 func (jobRow) TableName() string { return "media_jobs" }
@@ -170,12 +175,12 @@ type Service struct {
 	or      RemoteAdapter
 }
 
-func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store *Store, arkURL, orURL string) *Service {
+func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store *Store, arkURL, arkKey, orURL, orKey string) *Service {
 	return &Service{
 		db: db, catalog: cat, billing: bill, outbox: pub, store: store,
 		test: NewTestAdapter(),
-		ark:  RemoteAdapter{NameValue: "ark", BaseURL: arkURL},
-		or:   RemoteAdapter{NameValue: "openrouter", BaseURL: orURL},
+		ark:  RemoteAdapter{NameValue: "ark", BaseURL: arkURL, APIKey: arkKey},
+		or:   RemoteAdapter{NameValue: "openrouter", BaseURL: orURL, APIKey: orKey},
 	}
 }
 
@@ -309,7 +314,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		}
 		adapter := s.adapterFor(cand.Adapter)
 		result, err := adapter.Create(ctx, SubmitInput{
-			JobID: job.ID, Kind: in.Kind, Model: in.Model, Prompt: in.Prompt,
+			JobID: job.ID, Kind: in.Kind, Model: firstNonEmpty(cand.UpstreamModelID, in.Model), Prompt: in.Prompt,
 			Duration: in.Duration, Resolution: in.Resolution, AspectRatio: in.AspectRatio,
 			FPS: in.FPS, Audio: in.Audio, Images: adapterImages(in),
 			TaskType: in.TaskType, FirstFrame: in.FirstFrame, LastFrame: in.LastFrame,
@@ -378,6 +383,16 @@ func (s *Service) Get(ctx context.Context, jobID, userID string) (*JobView, erro
 	if err := q.First(&job).Error; err != nil {
 		return nil, ErrNotFound
 	}
+	if job.Status == StatusQueued || job.Status == StatusInProgress {
+		_ = s.refreshJob(ctx, job)
+		reload := s.db.WithContext(ctx).Where("id = ?", jobID)
+		if userID != "" {
+			reload = reload.Where("user_id = ?", userID)
+		}
+		if err := reload.First(&job).Error; err != nil {
+			return nil, ErrNotFound
+		}
+	}
 	return s.view(ctx, job), nil
 }
 
@@ -416,7 +431,7 @@ func (s *Service) Cancel(ctx context.Context, jobID, userID string) (*JobView, e
 		return s.view(ctx, job), nil
 	}
 	if job.UpstreamJobID != nil && *job.UpstreamJobID != "" {
-		_ = s.test.Cancel(ctx, *job.UpstreamJobID)
+		_ = s.adapterForJob(ctx, job).Cancel(ctx, *job.UpstreamJobID)
 	}
 	job.Status = StatusCancelled
 	job.UpdatedAt = time.Now().UTC()
@@ -424,6 +439,8 @@ func (s *Service) Cancel(ctx context.Context, jobID, userID string) (*JobView, e
 		return nil, err
 	}
 	_ = s.billing.Release(ctx, job.RequestID)
+	s.queueCustomerCallback(ctx, job)
+	s.DeliverCustomerCallbacks(ctx)
 	return s.view(ctx, job), nil
 }
 
@@ -481,14 +498,88 @@ func (s *Service) Cleanup(ctx context.Context) (int, error) {
 func (s *Service) Run(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
+	s.Tick(ctx)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			_, _ = s.Cleanup(ctx)
+			s.Tick(ctx)
 		}
 	}
+}
+
+func (s *Service) Tick(ctx context.Context) {
+	s.PollUpstream(ctx)
+	s.DeliverCustomerCallbacks(ctx)
+	_, _ = s.Cleanup(ctx)
+}
+
+func (s *Service) CompleteTestJob(upstreamID string, body []byte) {
+	s.test.Complete(upstreamID, body)
+}
+
+func (s *Service) PollUpstream(ctx context.Context) {
+	var jobs []jobRow
+	if err := s.db.WithContext(ctx).
+		Where("status IN ? AND upstream_job_id IS NOT NULL AND upstream_job_id <> ''", []string{StatusQueued, StatusInProgress}).
+		Order("updated_at ASC").Limit(20).Find(&jobs).Error; err != nil {
+		return
+	}
+	for _, job := range jobs {
+		_ = s.refreshJob(ctx, job)
+	}
+}
+
+func (s *Service) refreshJob(ctx context.Context, job jobRow) error {
+	if job.UpstreamJobID == nil || *job.UpstreamJobID == "" {
+		return nil
+	}
+	if job.Status != StatusQueued && job.Status != StatusInProgress {
+		return nil
+	}
+	result, err := s.adapterForJob(ctx, job).Get(ctx, *job.UpstreamJobID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	if result.Status == StatusInProgress || result.Status == StatusQueued {
+		progress := result.Progress
+		if progress == 0 {
+			progress = job.Progress
+		}
+		_ = s.db.WithContext(ctx).Model(&jobRow{}).
+			Where("id = ? AND status IN ?", job.ID, []string{StatusQueued, StatusInProgress}).
+			Updates(map[string]any{"status": StatusInProgress, "progress": progress, "updated_at": now}).Error
+		return nil
+	}
+	if result.Status == StatusCompleted {
+		if result.Usage == nil {
+			result.Usage = map[string]int{}
+		}
+		if job.JobKind == KindVideo && result.Usage["video_seconds"] == 0 {
+			result.Usage["video_seconds"] = job.DurationSeconds
+		}
+		if job.JobKind == KindImage && result.Usage["image_count"] == 0 {
+			result.Usage["image_count"] = 1
+		}
+		snapshot, err := s.catalog.PriceSnapshot(ctx, job.PublicModelID)
+		if err != nil {
+			return err
+		}
+		return s.finish(ctx, job, result, snapshot)
+	}
+	if result.Status == StatusCancelled {
+		job.Status = StatusCancelled
+		job.UpdatedAt = now
+		_ = s.db.WithContext(ctx).Save(&job).Error
+		_ = s.billing.Release(ctx, job.RequestID)
+		s.queueCustomerCallback(ctx, job)
+		s.DeliverCustomerCallbacks(ctx)
+		return nil
+	}
+	_, _ = s.fail(ctx, job, "upstream_error")
+	return nil
 }
 
 func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, snapshot *catalog.PriceSnapshot) error {
@@ -496,6 +587,17 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 	if usage == nil {
 		usage = map[string]int{}
 	}
+	if job.JobKind == KindVideo && usage["video_seconds"] == 0 {
+		usage["video_seconds"] = job.DurationSeconds
+	}
+	if job.JobKind == KindImage && usage["image_count"] == 0 {
+		usage["image_count"] = 1
+	}
+	if job.GenerateAudio && usage["audio_seconds"] == 0 && job.JobKind == KindVideo {
+		usage["audio_seconds"] = job.DurationSeconds
+	}
+	wrote := false
+	var usageJSON []byte
 	if job.Status != StatusCompleted {
 		key := job.ID + "/output.bin"
 		if err := s.store.Put(key, result.ContentType, result.Content); err != nil {
@@ -513,6 +615,7 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 			return err
 		}
 		body, _ := json.Marshal(usage)
+		usageJSON = body
 		res := s.db.WithContext(ctx).Model(&jobRow{}).
 			Where("id = ? AND status NOT IN ?", job.ID, []string{StatusCompleted, StatusCancelled, StatusFailed}).
 			Updates(map[string]any{
@@ -526,6 +629,13 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 		if res.Error != nil {
 			return res.Error
 		}
+		wrote = res.RowsAffected > 0
+	}
+	if wrote {
+		job.Status = StatusCompleted
+		job.UsageJSON = usageJSON
+		s.queueCustomerCallback(ctx, job)
+		s.DeliverCustomerCallbacks(ctx)
 	}
 	// 已完成的任务再收到回调时只做幂等结算，不重复写资产。
 	_, err := s.billing.Settle(ctx, billing.SettleInput{
@@ -543,18 +653,30 @@ func (s *Service) fail(ctx context.Context, job jobRow, code string) (*JobView, 
 	job.UpdatedAt = time.Now().UTC()
 	_ = s.db.WithContext(ctx).Save(&job).Error
 	_ = s.billing.Release(ctx, job.RequestID)
+	s.queueCustomerCallback(ctx, job)
+	s.DeliverCustomerCallbacks(ctx)
 	return s.view(ctx, job), nil
 }
 
 func (s *Service) adapterFor(name string) Adapter {
 	switch name {
 	case "ark":
-		if s.ark.BaseURL != "" {
+		if s.ark.Ready() {
 			return s.ark
 		}
 	case "openrouter":
-		if s.or.BaseURL != "" {
+		if s.or.Ready() {
 			return s.or
+		}
+	}
+	return s.test
+}
+
+func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
+	if job.ProviderID != nil && *job.ProviderID != "" {
+		p, err := s.catalog.GetProvider(ctx, *job.ProviderID)
+		if err == nil {
+			return s.adapterFor(p.Adapter)
 		}
 	}
 	return s.test
@@ -653,4 +775,13 @@ func (s *Service) ensureAsset(ctx context.Context, asset assetRow) error {
 		return err
 	}
 	return s.db.WithContext(ctx).Create(&asset).Error
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

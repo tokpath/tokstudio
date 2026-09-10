@@ -125,23 +125,3 @@ func (a *TestAdapter) Complete(upstreamID string, body []byte) {
 	}
 	a.jobs[upstreamID] = row
 }
-
-// RemoteAdapter 预留火山方舟 / OpenRouter。未配置 BaseURL 时不可用，测试走 TestAdapter。
-type RemoteAdapter struct {
-	NameValue string
-	BaseURL   string
-}
-
-func (a RemoteAdapter) Name() string { return a.NameValue }
-
-func (a RemoteAdapter) Create(_ context.Context, _ SubmitInput) (SubmitResult, error) {
-	if a.BaseURL == "" {
-		return SubmitResult{}, fmt.Errorf("%s unavailable", a.NameValue)
-	}
-	return SubmitResult{}, fmt.Errorf("%s not configured for sandbox", a.NameValue)
-}
-
-func (a RemoteAdapter) Cancel(context.Context, string) error { return nil }
-func (a RemoteAdapter) Get(context.Context, string) (SubmitResult, error) {
-	return SubmitResult{}, fmt.Errorf("unavailable")
-}

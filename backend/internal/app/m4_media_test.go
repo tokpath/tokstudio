@@ -28,6 +28,9 @@ func TestM4MediaJobs(t *testing.T) {
 	cfg.BootstrapAdmin = "m4_admin"
 	cfg.BootstrapUser = "m4_user"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
+	cfg.ArkBaseURL = ""
+	cfg.ArkAPIKey = ""
+	cfg.OpenRouterBaseURL = ""
 	application := mustApp(t, cfg)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
@@ -231,6 +234,86 @@ func TestM4MediaJobs(t *testing.T) {
 	})
 	if imgEdit["object"] != "image" || imgEdit["task_type"] != "edit" {
 		t.Fatalf("image edit: %+v", imgEdit)
+	}
+}
+
+func TestM4PollAndCustomerCallback(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
+		t.Skip("integration test requires postgres and redis")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.BootstrapAdmin = "m4_admin"
+	cfg.BootstrapUser = "m4_user"
+	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
+	cfg.ArkBaseURL = ""
+	cfg.ArkAPIKey = ""
+	cfg.OpenRouterBaseURL = ""
+	application := mustApp(t, cfg)
+	server := httptest.NewServer(application.Router())
+	defer server.Close()
+
+	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
+		"email":    "media-cb-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"password": "password1", "promotion_code": "THA1",
+	})
+	session := tokenOf(reg)
+	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "m4-cb"})["item"].(map[string]any)["key"].(string)
+	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})
+
+	var got []map[string]any
+	var sigs []string
+	cb := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sigs = append(sigs, r.Header.Get("X-Tokenhub-Signature"))
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		got = append(got, payload)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer cb.Close()
+
+	syncJob := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-cb-sync", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "callback sync", "duration": 5,
+		"callback_url": cb.URL,
+	})
+	if syncJob["status"] != "completed" {
+		t.Fatalf("sync job: %+v", syncJob)
+	}
+	if len(got) < 1 {
+		application.Media.Tick(t.Context())
+	}
+	if len(got) < 1 {
+		t.Fatal("expected customer callback after completed job")
+	}
+	eventID, _ := got[0]["event_id"].(string)
+	if eventID == "" || got[0]["job_id"] != syncJob["id"] || got[0]["status"] != "completed" {
+		t.Fatalf("callback payload %+v", got[0])
+	}
+	want := application.Media.SignCallback(eventID, syncJob["id"].(string))
+	if len(sigs) < 1 || sigs[0] != want {
+		t.Fatalf("signature %q want %q", sigs, want)
+	}
+
+	asyncJob := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-cb-async", map[string]any{
+		"model": catalog.SeedanceModelID, "prompt": "force-async", "duration": 5,
+		"callback_url": cb.URL,
+	})
+	if asyncJob["status"] != "in_progress" {
+		t.Fatalf("async: %+v", asyncJob)
+	}
+	before := len(got)
+	application.Media.CompleteTestJob(asyncJob["upstream_job_id"].(string), []byte("polled-bytes"))
+	polled := getAuthJSON(t, server.URL+"/v1/videos/"+asyncJob["id"].(string), apiKey)
+	if polled["status"] != "completed" {
+		t.Fatalf("poll via GET: %+v", polled)
+	}
+	if len(got) <= before {
+		application.Media.Tick(t.Context())
+	}
+	if len(got) <= before {
+		t.Fatal("expected callback after poll complete")
 	}
 }
 

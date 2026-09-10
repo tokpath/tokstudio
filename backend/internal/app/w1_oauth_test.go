@@ -132,7 +132,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 		if strings.Contains(code, "ya29") || strings.HasPrefix(code, "mock:") {
 			return identity.GoogleProfile{}, errors.New("fake exchanger received a token-like code")
 		}
-		return identity.GoogleProfile{Subject: "google_fake_sub", Email: email}, nil
+		return identity.GoogleProfile{Subject: "google_fake_" + email, Email: email}, nil
 	}
 
 	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")

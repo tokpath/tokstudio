@@ -26,7 +26,11 @@ export function googleButtonState(status: GoogleAuthStatus | null, loading: bool
   return { disabled: false, showUnconfigured: false, labelKey: "google" };
 }
 
-const SECRET_LIKE = /(?:ya29\.|1\/\/|mock:|[A-Za-z0-9-_]{24,})/g;
+const SECRET_LIKE = /(?:ya29\.[^\s]+|1\/\/[^\s]+|mock:[^\s]+|[A-Za-z0-9-_]{24,})/;
+
+function hasSecretLike(value: string): boolean {
+  return SECRET_LIKE.test(value);
+}
 
 /** 结构化错误可以上屏；授权码 / token 不能出现在 UI。 */
 export function sanitizeOAuthError(message: string | undefined | null, fallback: string): string {
@@ -34,8 +38,8 @@ export function sanitizeOAuthError(message: string | undefined | null, fallback:
   if (!raw) {
     return fallback;
   }
-  const cleaned = raw.replace(SECRET_LIKE, "…").trim();
-  if (!cleaned || cleaned === "…") {
+  const cleaned = raw.replace(new RegExp(SECRET_LIKE, "g"), "…").trim();
+  if (!cleaned || cleaned === "…" || hasSecretLike(cleaned)) {
     return fallback;
   }
   return cleaned;
@@ -44,7 +48,7 @@ export function sanitizeOAuthError(message: string | undefined | null, fallback:
 export function oauthFailureHref(message: string, errorCode?: string): string {
   const params = new URLSearchParams();
   params.set("oauth_error", sanitizeOAuthError(message, "Google 登录失败"));
-  if (errorCode && !SECRET_LIKE.test(errorCode) && errorCode.length < 64) {
+  if (errorCode && !hasSecretLike(errorCode) && errorCode.length < 64) {
     params.set("error_code", errorCode);
   }
   return `/login?${params.toString()}`;

@@ -101,6 +101,9 @@ func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 	_ = postJSONRaw(t, fx.server.URL+"/admin/models/attach", "wmeter2_admin", map[string]any{
 		"public_id": catalog.GeminiModelID, "provider_id": prdID, "upstream_model_id": "echo-gemini-backup",
 	})
+	t.Cleanup(func() {
+		_ = patchJSONRaw(t, fx.server.URL+"/admin/providers/"+prdID, "wmeter2_admin", map[string]any{"status": "maintenance"})
+	})
 
 	before := fx.app.Gateway.AdapterCalls()
 	fb := forceFailGeminiChat(t, fx.server.URL+"/v1/chat/completions", fx.apiKey, catalog.GeminiProvider)
@@ -108,8 +111,12 @@ func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 		t.Fatalf("429 must stay single-layer catalog fallback (2 sequential calls), got %d", got)
 	}
 	fbID, _ := fb["request_id"].(string)
-	if fb["provider"] != slug {
-		t.Fatalf("catalog backup should win after gemini 429: %+v", fb)
+	if fb["provider"] == catalog.GeminiProvider {
+		t.Fatalf("429 must leave gemini-flash via catalog fallback: %+v", fb)
+	}
+	content, _ := firstContentOf(fb)
+	if !strings.Contains(content, "echo:") {
+		t.Fatalf("catalog backup should echo after gemini 429: %+v", fb)
 	}
 	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+fbID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)

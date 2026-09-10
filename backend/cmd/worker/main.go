@@ -52,6 +52,8 @@ func main() {
 	go application.Billing.RunReaper(ctx)
 	go application.Media.Run(ctx)
 	go application.Plans.RunRenewal(ctx, application.Payment.RenewCharger())
+	go application.Payment.RunFulfillment(ctx)
+	go application.Identity.RunTLSRefresh(ctx)
 	go application.Commission.RunUnfreeze(ctx)
 	logger.Info().Msg("worker_running")
 	<-ctx.Done()

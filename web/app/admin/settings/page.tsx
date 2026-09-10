@@ -400,7 +400,7 @@ export default function AdminSettingsPage() {
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="oem" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配齐 Cloudflare API Token 与 Zone ID 后，公网形态域名会登记 Custom Hostname，由 Cloudflare 签发续期；客户把域名 CNAME 到入口。未登记域名 tls-check 仍 404。Pebble/ACME 目录仅本地 RFC 8555，不自建公网 Let&apos;s Encrypt。</p>
+        <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配齐 Cloudflare API Token 与 Zone ID 后，公网形态域名会登记 Custom Hostname；Worker 会刷新 pending。客户把域名 CNAME 到入口。未登记域名 tls-check 仍 404。不自建公网 Let&apos;s Encrypt。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />
           <Button

@@ -91,6 +91,17 @@ func (c *Cloudflare) Ensure(ctx context.Context, hostname string) (*HostnameResu
 	return c.getByHostname(ctx, hostname)
 }
 
+func (c *Cloudflare) Get(ctx context.Context, hostname string) (*HostnameResult, error) {
+	if !c.Ready() {
+		return nil, wrapCloudflare(errors.New("cloudflare token or zone missing"))
+	}
+	hostname = strings.ToLower(strings.TrimSpace(strings.Split(hostname, ":")[0]))
+	if hostname == "" || !UsePublicACME(hostname) {
+		return nil, wrapCloudflare(errors.New("custom hostname 需要公网形态域名"))
+	}
+	return c.getByHostname(ctx, hostname)
+}
+
 func (c *Cloudflare) create(ctx context.Context, hostname string) (*HostnameResult, error) {
 	body, _ := json.Marshal(map[string]any{
 		"hostname": hostname,

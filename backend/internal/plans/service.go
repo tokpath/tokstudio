@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"io/fs"
+	"strconv"
 	"strings"
 	"time"
 
@@ -424,6 +425,11 @@ func grantPlanEntitlements(tx *gorm.DB, sub subRow, now time.Time) error {
 		if sub.CurrentPeriodEnd != nil {
 			exp = *sub.CurrentPeriodEnd
 		}
+		idem := grantIdemKey(sub, item.ID)
+		var existing ledRow
+		if err := tx.Where("idempotency_key = ?", idem).First(&existing).Error; err == nil {
+			continue
+		}
 		ent := entRow{
 			ID: id.New("ent"), UserID: sub.UserID, SourceType: SourcePlan, SourceID: sub.ID,
 			UnitType: item.UnitType, Granted: item.IncludedAmount, Status: EntActive,
@@ -432,11 +438,19 @@ func grantPlanEntitlements(tx *gorm.DB, sub subRow, now time.Time) error {
 		if err := tx.Create(&ent).Error; err != nil {
 			return err
 		}
-		if err := writeEntLedger(tx, ent.ID, EventGrant, item.IncludedAmount, "", "grant:"+sub.ID+":"+item.ID+":"+now.Format(time.RFC3339)); err != nil {
+		if err := writeEntLedger(tx, ent.ID, EventGrant, item.IncludedAmount, "", idem); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func grantIdemKey(sub subRow, itemID string) string {
+	key := "grant:" + sub.ID + ":" + itemID
+	if sub.CurrentPeriodEnd != nil {
+		key += ":" + strconv.FormatInt(sub.CurrentPeriodEnd.Unix(), 10)
+	}
+	return key
 }
 
 func (s *Service) Cancel(ctx context.Context, subID, userID string) (*SubscriptionView, error) {
@@ -831,7 +845,7 @@ func writeEntLedger(tx *gorm.DB, accountID, event string, amount int64, requestI
 
 func subView(row subRow) *SubscriptionView {
 	return &SubscriptionView{
-		ID: row.ID, UserID: row.UserID, PlanID: row.PlanID, Status: row.Status,
+		ID: row.ID, UserID: row.UserID, ChannelOrgID: deref(row.ChannelOrgID), PlanID: row.PlanID, Status: row.Status,
 		PeriodStart: row.CurrentPeriodStart, PeriodEnd: row.CurrentPeriodEnd,
 		RenewalPolicy: row.RenewalPolicy, Adapter: strings.TrimSpace(deref(row.PaymentAdapter)),
 		GraceUntil: row.GraceUntil,

@@ -101,6 +101,42 @@ func (d stripeDriver) ParseWebhook(_ context.Context, in WebhookRequest) (*Webho
 	return d.sandboxDriver.ParseWebhook(context.Background(), in)
 }
 
+type OffSessionCharge struct {
+	Order            *OrderView
+	Credentials      map[string]string
+	PaymentMethodRef string
+}
+
+func (d stripeDriver) ChargeOffSession(ctx context.Context, in OffSessionCharge) (string, error) {
+	if in.Order == nil || strings.TrimSpace(in.PaymentMethodRef) == "" {
+		return "", ErrChargeFailed
+	}
+	currency := strings.ToLower(cred(in.Credentials, "currency"))
+	if currency == "" {
+		currency = "usd"
+	}
+	form := url.Values{}
+	form.Set("amount", strconv.FormatInt(stripeCents(in.Order.AmountMinor), 10))
+	form.Set("currency", currency)
+	form.Set("payment_method", strings.TrimSpace(in.PaymentMethodRef))
+	form.Set("confirm", "true")
+	form.Set("off_session", "true")
+	form.Set("metadata[order_id]", in.Order.ID)
+	raw, code, err := stripeDoKeyed(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/payment_intents", form, "renew:"+in.Order.ID)
+	if err != nil || code >= 300 {
+		return "", ErrChargeFailed
+	}
+	obj := decodeJSONMap(raw)
+	if asString(obj["status"]) != "succeeded" {
+		return "", ErrChargeFailed
+	}
+	id := asString(obj["id"])
+	if id == "" {
+		return "", ErrChargeFailed
+	}
+	return id, nil
+}
+
 func (d stripeDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryResult, error) {
 	if !officialLive(in.Mode, in.Credentials, "secret_key") {
 		return d.sandboxDriver.QueryOrder(ctx, in)

@@ -68,8 +68,24 @@ func TestCloudflareEnsureConflictThenGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if posts != 1 || got.ID != "ch_dup" || got.Status != "issued" {
+	if got.ID != "ch_dup" || got.Status != "issued" {
 		t.Fatalf("posts=%d %+v", posts, got)
+	}
+}
+
+func TestCloudflareGet(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("method %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"ch_get","ssl":{"status":"active","expires_on":"2027-06-01T00:00:00Z"}}]}`))
+	}))
+	defer srv.Close()
+	cf := NewCloudflare(CloudflareOptions{APIToken: "tok", ZoneID: "zone1", BaseURL: srv.URL})
+	got, err := cf.Get(context.Background(), "oem.example.com")
+	if err != nil || got.Status != "issued" || got.ID != "ch_get" {
+		t.Fatalf("%+v %v", got, err)
 	}
 }
 

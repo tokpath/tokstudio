@@ -93,6 +93,7 @@ type PlanView struct {
 type SubscriptionView struct {
 	ID            string     `json:"id"`
 	UserID        string     `json:"user_id"`
+	ChannelOrgID  string     `json:"channel_org_id,omitempty"`
 	PlanID        string     `json:"plan_id"`
 	Status        string     `json:"status"`
 	PeriodStart   *time.Time `json:"current_period_start,omitempty"`

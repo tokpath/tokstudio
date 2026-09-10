@@ -50,6 +50,10 @@ type Config struct {
 	PaymentSignKey         string
 	UpstreamURLAllowlist   []string
 	EdgeCNAME              string
+	CloudflareAPIToken     string
+	CloudflareZoneID       string
+	CloudflareCNAME        string
+	CloudflareBaseURL      string
 	ACMEDirectory          string
 	ACMEInsecureSkipVerify bool
 	ACMEForce              bool
@@ -114,6 +118,10 @@ func Load() (*Config, error) {
 		PaymentSignKey:         v.GetString("PAYMENT_SIGN_KEY"),
 		UpstreamURLAllowlist:   splitCSV(v.GetString("UPSTREAM_URL_ALLOWLIST")),
 		EdgeCNAME:              v.GetString("EDGE_CNAME"),
+		CloudflareAPIToken:     v.GetString("CLOUDFLARE_API_TOKEN"),
+		CloudflareZoneID:       v.GetString("CLOUDFLARE_ZONE_ID"),
+		CloudflareCNAME:        v.GetString("CLOUDFLARE_CNAME_TARGET"),
+		CloudflareBaseURL:      v.GetString("CLOUDFLARE_BASE_URL"),
 		ACMEDirectory:          v.GetString("ACME_DIRECTORY"),
 		ACMEInsecureSkipVerify: v.GetBool("ACME_INSECURE_SKIP_VERIFY"),
 		ACMEForce:              v.GetBool("ACME_FORCE"),
@@ -234,6 +242,9 @@ func (c *Config) RedactedMap() map[string]any {
 		"google_triad":         c.GoogleTriad(),
 		"google_allow_mock":    c.GoogleAllowMock,
 		"google_mock_allowed":  c.GoogleMockAllowed(),
+		"cloudflare_token_set": c.CloudflareAPIToken != "",
+		"cloudflare_zone_set":  c.CloudflareZoneID != "",
+		"cloudflare_cname_set": c.CloudflareCNAME != "",
 	}
 }
 

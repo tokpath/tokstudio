@@ -496,8 +496,8 @@ func (a *App) issueBrandTLS(c *gin.Context) {
 	}
 	item, err := a.Identity.IssueBrandTLS(c.Request.Context(), c.Param("id"), a.Config.EdgeCNAME)
 	if err != nil {
-		if errors.Is(err, identity.ErrACMEFailed) {
-			httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "ACME 签发失败："+err.Error(), true)
+		if errors.Is(err, identity.ErrACMEFailed) || errors.Is(err, identity.ErrCloudflareFailed) {
+			httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "证书签发失败："+err.Error(), true)
 			return
 		}
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "品牌不存在", false)

@@ -156,8 +156,28 @@ func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*Br
 	}
 	issuer := IssuerSandbox
 	directory := ""
+	tlsStatus := "issued"
 	var expires *time.Time
-	if s.acme.Enabled() && (s.acme.Force || UsePublicACME(row.PrimaryDomain)) {
+	if s.cf.Ready() && UsePublicACME(row.PrimaryDomain) {
+		if target := s.cf.CNAMETarget(); target != "" {
+			cname = target
+		}
+		result, err := s.cf.Ensure(ctx, row.PrimaryDomain)
+		if err != nil {
+			_ = s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
+				"cname_target": cname, "tls_status": "failed", "tls_issuer": IssuerCloudflare,
+				"tls_directory": "cloudflare",
+			}).Error
+			return nil, err
+		}
+		issuer = result.Issuer
+		tlsStatus = result.Status
+		directory = "cloudflare"
+		if result.ID != "" {
+			directory = "cloudflare:" + result.ID
+		}
+		expires = result.ExpiresAt
+	} else if s.acme.Enabled() && (s.acme.Force || UsePublicACME(row.PrimaryDomain)) {
 		result, err := s.acme.Issue(ctx, row.PrimaryDomain)
 		if err != nil {
 			_ = s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(map[string]any{
@@ -171,7 +191,7 @@ func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*Br
 		expires = result.ExpiresAt
 	}
 	updates := map[string]any{
-		"cname_target": cname, "tls_status": "issued", "tls_issuer": issuer, "tls_directory": directory,
+		"cname_target": cname, "tls_status": tlsStatus, "tls_issuer": issuer, "tls_directory": directory,
 	}
 	if expires != nil {
 		updates["tls_expires_at"] = *expires

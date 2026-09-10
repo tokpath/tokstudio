@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,6 +52,42 @@ function LoginForm() {
     window.location.href = await resolveConsoleHref();
   }
 
+  const oauthOnce = useRef(false);
+  useEffect(() => {
+    const oauth = search.get("oauth");
+    if (oauth === "denied" || oauth === "fail") {
+      setMessage(t("googleFail"));
+      return;
+    }
+    const code = search.get("code");
+    const state = search.get("state");
+    if (!code || !state || oauthOnce.current) {
+      return;
+    }
+    oauthOnce.current = true;
+    setMessage(t("googleReturning"));
+    const url = new URL(window.location.href);
+    url.searchParams.delete("code");
+    url.searchParams.delete("state");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    void (async () => {
+      const response = await fetch(`${apiBase}/v1/auth/google/callback`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state, code }),
+      });
+      const body = await response.json();
+      if (response.ok) {
+        setMessage(t("welcome", { email: body.session?.user?.email || "" }));
+        await goNext();
+        return;
+      }
+      oauthOnce.current = false;
+      setMessage(body.error?.message || t("googleFail"));
+    })();
+  }, [search, t]);
+
   async function register(values: z.infer<typeof schema>) {
     const response = await fetch(`${apiBase}/v1/auth/register`, {
       method: "POST",
@@ -85,7 +121,9 @@ function LoginForm() {
   }
 
   async function googleStart() {
-    const response = await fetch(`${apiBase}/v1/auth/google/start`, { credentials: "include" });
+    const promo = form.getValues("promo");
+    const qs = promo ? `?promotion_code=${encodeURIComponent(promo)}` : "";
+    const response = await fetch(`${apiBase}/v1/auth/google/start${qs}`, { credentials: "include" });
     const body = await response.json();
     if (!response.ok) {
       setMessage(body.error?.message || t("googleUnavailable"));

@@ -255,6 +255,7 @@
     "googleNoRedirect": "Google 登录未返回跳转地址",
     "googleNeedEmail": "请填写 Google 邮箱",
     "googleFail": "Google 登录失败",
+    "googleReturning": "正在完成 Google 登录…",
     "promoPh": "可选 · THA1 / THB1 / THC1"
   },
   "home": {

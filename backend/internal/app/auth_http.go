@@ -29,6 +29,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
 	r.GET("/v1/auth/google/start", a.googleStart)
+	r.GET("/v1/auth/google/callback", a.googleCallbackRedirect)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
 	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
@@ -154,8 +155,9 @@ func (a *App) googleStart(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
+	live := a.Config != nil && a.Config.GoogleOAuthReady()
 	authURL := a.Config.PublicBaseURL + "/v1/auth/google/mock?state=" + url.QueryEscape(state)
-	if a.Config.GoogleClientID != "" && a.Config.GoogleRedirect != "" {
+	if live {
 		values := url.Values{}
 		values.Set("client_id", a.Config.GoogleClientID)
 		values.Set("redirect_uri", a.Config.GoogleRedirect)
@@ -164,7 +166,33 @@ func (a *App) googleStart(c *gin.Context) {
 		values.Set("state", state)
 		authURL = "https://accounts.google.com/o/oauth2/v2/auth?" + values.Encode()
 	}
-	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": a.Config.GoogleClientID == "", "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": !live, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) googleExchanger() identity.GoogleExchanger {
+	if a.Config == nil || !a.Config.GoogleOAuthReady() {
+		return identity.MockGoogleExchange
+	}
+	return identity.GoogleOAuth{
+		ClientID:     a.Config.GoogleClientID,
+		ClientSecret: a.Config.GoogleClientSecret,
+		RedirectURI:  a.Config.GoogleRedirect,
+	}.Exchange
+}
+
+func (a *App) finishGoogleSession(c *gin.Context, state, code string) (*identity.Session, error) {
+	return a.Identity.FinishGoogle(c.Request.Context(), state, code, a.googleExchanger())
+}
+
+func (a *App) afterGoogleSession(c *gin.Context, session *identity.Session) {
+	if time.Since(session.User.CreatedAt) < 5*time.Minute {
+		a.grantSignupGift(c, session.User.ID)
+	}
+	a.setSessionCookie(c, session.Token)
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: session.User.ID, Action: "auth.google", ResourceType: "user", ResourceID: session.User.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) googleCallback(c *gin.Context) {
@@ -176,20 +204,39 @@ func (a *App) googleCallback(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
-	session, err := a.Identity.FinishGoogle(c.Request.Context(), body.State, body.Code, identity.MockGoogleExchange)
+	session, err := a.finishGoogleSession(c, body.State, body.Code)
 	if err != nil {
 		a.writeAuthError(c, err)
 		return
 	}
-	if time.Since(session.User.CreatedAt) < 5*time.Minute {
-		a.grantSignupGift(c, session.User.ID)
-	}
-	a.setSessionCookie(c, session.Token)
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: session.User.ID, Action: "auth.google", ResourceType: "user", ResourceID: session.User.ID,
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
+	a.afterGoogleSession(c, session)
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) googleCallbackRedirect(c *gin.Context) {
+	if qErr := strings.TrimSpace(c.Query("error")); qErr != "" {
+		c.Redirect(http.StatusFound, a.oauthReturnURL("denied"))
+		return
+	}
+	session, err := a.finishGoogleSession(c, c.Query("state"), c.Query("code"))
+	if err != nil {
+		c.Redirect(http.StatusFound, a.oauthReturnURL("fail"))
+		return
+	}
+	a.afterGoogleSession(c, session)
+	c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+}
+
+func (a *App) webOrigin() string {
+	base := strings.TrimSpace(a.Config.WebOrigin)
+	if base == "" {
+		base = a.Config.PublicBaseURL
+	}
+	return strings.TrimRight(base, "/")
+}
+
+func (a *App) oauthReturnURL(reason string) string {
+	return a.webOrigin() + "/login?oauth=" + url.QueryEscape(reason)
 }
 
 func (a *App) me(c *gin.Context) {

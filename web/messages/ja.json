@@ -255,6 +255,7 @@
     "googleNoRedirect": "Google ログインのリダイレクトがありません",
     "googleNeedEmail": "Google メールを入力してください",
     "googleFail": "Google ログインに失敗",
+    "googleReturning": "Google ログインを完了しています…",
     "promoPh": "任意 · THA1 / THB1 / THC1"
   },
   "home": {

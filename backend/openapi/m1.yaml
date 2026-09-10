@@ -13,8 +13,11 @@ paths:
     get:
       summary: Start Google OAuth and stash promotion code
   /v1/auth/google/callback:
+    get:
+      summary: Google redirect; exchanges code and sets session cookie
     post:
-      summary: Finish Google OAuth
+      summary: Finish Google OAuth (JSON body or mock code)
+
   /v1/me:
     get:
       summary: Current user

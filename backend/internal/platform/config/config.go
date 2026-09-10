@@ -22,6 +22,7 @@ type Config struct {
 	BootstrapUser          string
 	BootstrapChannel       string
 	GoogleClientID         string
+	GoogleClientSecret     string
 	GoogleRedirect         string
 	BifrostSandbox         bool
 	OpenAIAPIKey           string
@@ -76,6 +77,7 @@ func Load() (*Config, error) {
 		BootstrapUser:          v.GetString("BOOTSTRAP_USER_TOKEN"),
 		BootstrapChannel:       v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:     v.GetString("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
 		BifrostSandbox:         resolveBifrostSandbox(v),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
@@ -146,6 +148,16 @@ func splitCSV(raw string) []string {
 
 func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production")
+}
+
+// GoogleOAuthReady 表示可以走真实 Google token 交换。缺任一项时 start/callback 仍用 mock。
+func (c *Config) GoogleOAuthReady() bool {
+	if c == nil {
+		return false
+	}
+	return strings.TrimSpace(c.GoogleClientID) != "" &&
+		strings.TrimSpace(c.GoogleClientSecret) != "" &&
+		strings.TrimSpace(c.GoogleRedirect) != ""
 }
 
 func resolveBifrostSandbox(v *viper.Viper) bool {

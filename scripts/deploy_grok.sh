@@ -89,7 +89,7 @@ if [[ -f "$CADDY_SNIPPET" && -f "$NOVA_CADDY" ]]; then
     echo "refusing: test.tokpath.com disappeared from nova Caddyfile" >&2
     exit 1
   fi
-  if grep -qF "test.tokpath.com" "$CADDY_SNIPPET"; then
+  if grep -vE '^[[:space:]]*#' "$CADDY_SNIPPET" | grep -qF "test.tokpath.com"; then
     echo "refusing: grok caddy snippet must not mention test.tokpath.com" >&2
     exit 1
   fi

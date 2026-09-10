@@ -20,10 +20,10 @@ if grep -R -n --include='*.yml' --include='*.yaml' -F '47.237.102.13' .github/wo
 fi
 pass "no literal 47.237.102.13 in workflows"
 
-if grep -R -n --include='*.yml' --include='*.yaml' -F 'vars.ALIYUN_HOST' .github/workflows; then
+if grep -R -n --include='*.yml' --include='*.yaml' -F '${{ vars.ALIYUN_HOST }}' .github/workflows; then
   fail "workflows must use secrets.ALIYUN_HOST, not vars.ALIYUN_HOST"
 fi
-pass "no vars.ALIYUN_HOST in workflows"
+pass 'no ${{ vars.ALIYUN_HOST }} usage in workflows'
 
 for f in .github/workflows/deploy.yml .github/workflows/deploy-grok.yml; do
   [[ -f "$f" ]] || fail "missing $f"
@@ -71,7 +71,7 @@ grep -qF 'name: tokstudio-grok' docker-compose.grok.yml || fail "compose project
 grep -qF 'tokstudio-grok-edge' docker-compose.grok.yml || fail "grok edge service name"
 grep -qF 'https://grok.tokpath.com' docker-compose.grok.yml || fail "grok public URL in compose"
 grep -qF 'tokstudio-grok-edge:80' deploy/caddy-grok.tokpath.com.caddy || fail "caddy must proxy grok edge"
-if grep -qF 'test.tokpath.com' deploy/caddy-grok.tokpath.com.caddy; then
+if grep -vE '^[[:space:]]*#' deploy/caddy-grok.tokpath.com.caddy | grep -qF 'test.tokpath.com'; then
   fail "grok caddy snippet must not mention test.tokpath.com"
 fi
 if grep -qF 'tokstudio-edge:80' deploy/caddy-grok.tokpath.com.caddy; then

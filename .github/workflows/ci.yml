@@ -65,8 +65,10 @@ jobs:
             sleep 1
           done
           test "$ok" = "1"
-          docker run --rm --network host minio/mc:RELEASE.2025-04-16T18-13-26Z \
-            /bin/sh -c 'mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && mc mb -p local/tokenhub'
+          # 新版 mc 镜像 ENTRYPOINT 就是 mc，不能再传 /bin/sh。Hub 已核对该 tag 200。
+          docker run --rm --network host \
+            -e MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
+            minio/mc:RELEASE.2025-04-16T18-13-26Z mb -p local/tokenhub
       - name: download modules
         run: |
           # proxy.golang.org 偶发 HTTP/2 INTERNAL_ERROR；先下全模块再测，避免编译期再打网。

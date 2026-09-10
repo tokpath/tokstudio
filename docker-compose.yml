@@ -174,14 +174,16 @@ services:
     image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     depends_on:
       - minio
+    environment:
+      MC_HOST_local: http://minioadmin:minioadmin@minio:9000
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-          mc alias set local http://minio:9000 minioadmin minioadmin && break
+          mc mb -p local/tokenhub && exit 0
           sleep 1
         done
-        mc mb -p local/tokenhub
+        exit 1
 
   pebble:
     image: ghcr.io/letsencrypt/pebble:2.6.0

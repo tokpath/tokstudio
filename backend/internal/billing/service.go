@@ -207,6 +207,9 @@ func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageVi
 	if in.State != "" {
 		q = q.Where("state = ?", in.State)
 	}
+	if in.RequestID != "" {
+		q = q.Where("request_id = ?", in.RequestID)
+	}
 	if !in.Since.IsZero() {
 		q = q.Where("occurred_at >= ?", in.Since.UTC())
 	}
@@ -241,6 +244,12 @@ func usageViews(rows []usageRow) []UsageView {
 		}
 		if row.ProviderID != nil {
 			view.ProviderID = *row.ProviderID
+		}
+		if row.UpstreamModelID != nil {
+			view.UpstreamModelID = *row.UpstreamModelID
+		}
+		if row.FactSource != nil {
+			view.FactSource = *row.FactSource
 		}
 		if row.PriceVersionID != nil {
 			view.PriceVersionID = *row.PriceVersionID
@@ -759,6 +768,10 @@ func copySettleRefs(row *usageRow, in SettleInput) {
 	}
 	if in.UpstreamModelID != "" {
 		row.UpstreamModelID = &in.UpstreamModelID
+	}
+	if in.FactSource != "" {
+		src := in.FactSource
+		row.FactSource = &src
 	}
 	if in.UserID != "" {
 		row.UserID = in.UserID

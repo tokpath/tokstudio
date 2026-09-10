@@ -12,6 +12,7 @@ import { IfCan } from "@/components/rbac/if-can";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { UpstreamFactsBadge } from "@/components/upstream-facts-badge";
 import {
   COST_SOURCE,
   emptyAttemptCostTitle,
@@ -19,6 +20,7 @@ import {
   type AttemptCostRow,
   type MarginView,
 } from "@/lib/margin";
+import { fromDiffRow } from "@/lib/upstream-facts";
 
 function micro(n: unknown) {
   const v = Number(n);
@@ -123,6 +125,11 @@ export default function AdminMarginPage() {
         rowSelected={(row) => row.attempt_id === selected?.attempt_id && row.request_id === selected?.request_id}
         columns={[
           { accessorKey: "attempt_id", header: t("colAttempt") },
+          {
+            id: "upstream_facts",
+            header: t("colUpstreamFacts"),
+            cell: ({ row }) => <UpstreamFactsBadge facts={fromDiffRow(row.original)} />,
+          },
           {
             id: "source",
             header: t("marginSource"),

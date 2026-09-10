@@ -53,23 +53,27 @@ type WindowUsageTotals struct {
 
 // DiffRow 是 usage ↔ charge/预授权 的一行。
 type DiffRow struct {
-	RequestID      string    `json:"request_id"`
-	UsageID        string    `json:"usage_id,omitempty"`
-	OccurredAt     time.Time `json:"occurred_at"`
-	PublicModelID  string    `json:"public_model_id,omitempty"`
-	APIKeyID       string    `json:"api_key_id,omitempty"`
-	UserID         string    `json:"user_id,omitempty"`
-	ChannelOrgID   string    `json:"channel_org_id,omitempty"`
-	State          string    `json:"state"`
-	UsageMinor     int64     `json:"usage_minor"`
-	ChargeMinor    int64     `json:"charge_minor"`
-	LedgerDebit    int64     `json:"ledger_debit_minor"`
-	ReservedMinor  int64     `json:"reserved_minor"`
-	Match          bool      `json:"match"`
-	Status         string    `json:"status"`
-	AlreadyPending bool      `json:"already_pending"`
-	MissingUsage   bool      `json:"missing_usage"`
-	ChargeCount    int       `json:"charge_count"`
+	RequestID       string    `json:"request_id"`
+	UsageID         string    `json:"usage_id,omitempty"`
+	OccurredAt      time.Time `json:"occurred_at"`
+	PublicModelID   string    `json:"public_model_id,omitempty"`
+	APIKeyID        string    `json:"api_key_id,omitempty"`
+	UserID          string    `json:"user_id,omitempty"`
+	ChannelOrgID    string    `json:"channel_org_id,omitempty"`
+	State           string    `json:"state"`
+	UsageMinor      int64     `json:"usage_minor"`
+	ChargeMinor     int64     `json:"charge_minor"`
+	LedgerDebit     int64     `json:"ledger_debit_minor"`
+	ReservedMinor   int64     `json:"reserved_minor"`
+	Match           bool      `json:"match"`
+	Status          string    `json:"status"`
+	AlreadyPending  bool      `json:"already_pending"`
+	MissingUsage    bool      `json:"missing_usage"`
+	ChargeCount     int       `json:"charge_count"`
+	ProviderID      string    `json:"provider_id,omitempty"`
+	UpstreamModelID string    `json:"upstream_model_id,omitempty"`
+	FactSource      string    `json:"fact_source,omitempty"`
+	AttemptID       string    `json:"attempt_id,omitempty"`
 }
 
 // ReconcileView 是用户台 / 渠道台同构对账页的账本真相。
@@ -81,41 +85,49 @@ type ReconcileView struct {
 }
 
 type diffInput struct {
-	RequestID     string
-	UsageID       string
-	OccurredAt    time.Time
-	PublicModelID string
-	APIKeyID      string
-	UserID        string
-	ChannelOrgID  string
-	State         string
-	UsageMinor    int64
-	ChargeMinor   int64
-	LedgerDebit   int64
-	ReservedMinor int64
-	MissingUsage  bool
-	ChargeCount   int
-	AuthStatus    string
+	RequestID       string
+	UsageID         string
+	OccurredAt      time.Time
+	PublicModelID   string
+	APIKeyID        string
+	UserID          string
+	ChannelOrgID    string
+	State           string
+	UsageMinor      int64
+	ChargeMinor     int64
+	LedgerDebit     int64
+	ReservedMinor   int64
+	MissingUsage    bool
+	ChargeCount     int
+	AuthStatus      string
+	ProviderID      string
+	UpstreamModelID string
+	FactSource      string
+	AttemptID       string
 }
 
 func classifyDiff(in diffInput) DiffRow {
 	row := DiffRow{
-		RequestID:      in.RequestID,
-		UsageID:        in.UsageID,
-		OccurredAt:     in.OccurredAt,
-		PublicModelID:  in.PublicModelID,
-		APIKeyID:       in.APIKeyID,
-		UserID:         in.UserID,
-		ChannelOrgID:   in.ChannelOrgID,
-		State:          in.State,
-		UsageMinor:     in.UsageMinor,
-		ChargeMinor:    in.ChargeMinor,
-		LedgerDebit:    in.LedgerDebit,
-		ReservedMinor:  in.ReservedMinor,
-		MissingUsage:   in.MissingUsage || in.State == UsagePending,
-		AlreadyPending: in.State == UsagePending || in.AuthStatus == AuthPendingReconciliation,
-		ChargeCount:    in.ChargeCount,
-		Status:         DiffMismatch,
+		RequestID:       in.RequestID,
+		UsageID:         in.UsageID,
+		OccurredAt:      in.OccurredAt,
+		PublicModelID:   in.PublicModelID,
+		APIKeyID:        in.APIKeyID,
+		UserID:          in.UserID,
+		ChannelOrgID:    in.ChannelOrgID,
+		State:           in.State,
+		UsageMinor:      in.UsageMinor,
+		ChargeMinor:     in.ChargeMinor,
+		LedgerDebit:     in.LedgerDebit,
+		ReservedMinor:   in.ReservedMinor,
+		MissingUsage:    in.MissingUsage || in.State == UsagePending,
+		AlreadyPending:  in.State == UsagePending || in.AuthStatus == AuthPendingReconciliation,
+		ChargeCount:     in.ChargeCount,
+		ProviderID:      in.ProviderID,
+		UpstreamModelID: in.UpstreamModelID,
+		FactSource:      in.FactSource,
+		AttemptID:       in.AttemptID,
+		Status:          DiffMismatch,
 	}
 	if row.MissingUsage || row.AlreadyPending {
 		return row
@@ -207,21 +219,25 @@ func (s *Service) ReconcileWindow(ctx context.Context, in ReconcileInput) (*Reco
 			reserved = auth.AmountMinor
 		}
 		row := classifyDiff(diffInput{
-			RequestID:     usage.RequestID,
-			UsageID:       usage.ID,
-			OccurredAt:    usage.OccurredAt,
-			PublicModelID: usage.PublicModelID,
-			APIKeyID:      usage.APIKeyID,
-			UserID:        usage.UserID,
-			ChannelOrgID:  usage.ChannelOrgID,
-			State:         usage.State,
-			UsageMinor:    usage.CustomerMinor,
-			ChargeMinor:   chargeMinor,
-			LedgerDebit:   debits[usage.RequestID],
-			ReservedMinor: reserved,
-			MissingUsage:  usageMissing(usage.UnitUsage) || usage.State == UsagePending,
-			ChargeCount:   len(chargeRows),
-			AuthStatus:    auth.Status,
+			RequestID:       usage.RequestID,
+			UsageID:         usage.ID,
+			OccurredAt:      usage.OccurredAt,
+			PublicModelID:   usage.PublicModelID,
+			APIKeyID:        usage.APIKeyID,
+			UserID:          usage.UserID,
+			ChannelOrgID:    usage.ChannelOrgID,
+			State:           usage.State,
+			UsageMinor:      usage.CustomerMinor,
+			ChargeMinor:     chargeMinor,
+			LedgerDebit:     debits[usage.RequestID],
+			ReservedMinor:   reserved,
+			MissingUsage:    usageMissing(usage.UnitUsage) || usage.State == UsagePending,
+			ChargeCount:     len(chargeRows),
+			AuthStatus:      auth.Status,
+			ProviderID:      usage.ProviderID,
+			UpstreamModelID: usage.UpstreamModelID,
+			FactSource:      usage.FactSource,
+			AttemptID:       usage.AttemptID,
 		})
 		view.Items = append(view.Items, row)
 		view.UsageTotals.Requests++
@@ -306,21 +322,25 @@ func (s *Service) diffOne(ctx context.Context, row usageRow) (DiffRow, error) {
 		reserved = auth.AmountMinor
 	}
 	return classifyDiff(diffInput{
-		RequestID:     usage.RequestID,
-		UsageID:       usage.ID,
-		OccurredAt:    usage.OccurredAt,
-		PublicModelID: usage.PublicModelID,
-		APIKeyID:      usage.APIKeyID,
-		UserID:        usage.UserID,
-		ChannelOrgID:  usage.ChannelOrgID,
-		State:         usage.State,
-		UsageMinor:    usage.CustomerMinor,
-		ChargeMinor:   chargeMinor,
-		LedgerDebit:   debits[usage.RequestID],
-		ReservedMinor: reserved,
-		MissingUsage:  usageMissing(row.UnitUsage) || usage.State == UsagePending,
-		ChargeCount:   live,
-		AuthStatus:    auth.Status,
+		RequestID:       usage.RequestID,
+		UsageID:         usage.ID,
+		OccurredAt:      usage.OccurredAt,
+		PublicModelID:   usage.PublicModelID,
+		APIKeyID:        usage.APIKeyID,
+		UserID:          usage.UserID,
+		ChannelOrgID:    usage.ChannelOrgID,
+		State:           usage.State,
+		UsageMinor:      usage.CustomerMinor,
+		ChargeMinor:     chargeMinor,
+		LedgerDebit:     debits[usage.RequestID],
+		ReservedMinor:   reserved,
+		MissingUsage:    usageMissing(row.UnitUsage) || usage.State == UsagePending,
+		ChargeCount:     live,
+		AuthStatus:      auth.Status,
+		ProviderID:      usage.ProviderID,
+		UpstreamModelID: usage.UpstreamModelID,
+		FactSource:      usage.FactSource,
+		AttemptID:       usage.AttemptID,
 	}), nil
 }
 

@@ -50,6 +50,8 @@ type AdapterResult struct {
 	ErrorClass string
 	Body       ChatResponse
 	Stream     []string
+	FactSource string
+	EchoedMeta map[string]string
 }
 
 type Adapter interface {

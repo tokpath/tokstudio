@@ -27,6 +27,10 @@ export type DiffRow = {
   status?: "match" | "mismatch" | string;
   already_pending?: boolean;
   missing_usage?: boolean;
+  provider_id?: string;
+  upstream_model_id?: string;
+  fact_source?: string;
+  attempt_id?: string;
 };
 
 export type ReconcileView = {

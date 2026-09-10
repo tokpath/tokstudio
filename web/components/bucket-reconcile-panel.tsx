@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { UpstreamFactsBadge } from "@/components/upstream-facts-badge";
 import {
   type DiffRow,
   type ReconcileView,
@@ -21,6 +22,7 @@ import {
   rowClassName,
   tabularMinor,
 } from "@/lib/bucket-reconcile";
+import { fromDiffRow } from "@/lib/upstream-facts";
 
 type Scope = "user" | "channel";
 
@@ -175,6 +177,11 @@ export function BucketReconcilePanel({
                   {isMatchRow(row) ? t("matchOk") : t("mismatch")}
                 </span>
               ),
+            },
+            {
+              id: "upstream",
+              header: t("colUpstreamFacts"),
+              cell: (row) => <UpstreamFactsBadge facts={fromDiffRow(row)} />,
             },
             {
               id: "action",

@@ -43,6 +43,78 @@ test("admin margin page is TokenHub-only and never estimates cost", async ({ pag
   await expect(page.getByRole("button", { name: /估扣|估算扣款|estimate/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /智能路由|smart routing/i })).toHaveCount(0);
   await expect(page.getByLabel(/手填成本|estimate cost/i)).toHaveCount(0);
+  await expect(page.getByTestId("upstream-facts-badge")).toHaveCount(0);
+});
+
+test("admin margin detail rows show honest upstream-fact badges", async ({ page }) => {
+  await page.route("**/admin/margin**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: {
+          attempt_cost_minor: 40,
+          sell_minor: 20,
+          margin_minor: -20,
+          pending_count: 0,
+          items: [
+            {
+              attempt_id: "atm_ok",
+              request_id: "req_ok",
+              provider_id: "prd_echo",
+              upstream_model_id: "echo-up",
+              fact_source: "sandbox",
+              cost_source: "TokenHub",
+              cost_minor: 20,
+              sell_minor: 40,
+              margin_minor: 20,
+            },
+            {
+              attempt_id: "atm_gap",
+              request_id: "req_gap",
+              cost_source: "TokenHub",
+              cost_minor: 0,
+              sell_minor: 0,
+              margin_minor: 0,
+              missing_cost: true,
+            },
+          ],
+        },
+        items: [
+          {
+            attempt_id: "atm_ok",
+            request_id: "req_ok",
+            provider_id: "prd_echo",
+            upstream_model_id: "echo-up",
+            fact_source: "sandbox",
+            cost_source: "TokenHub",
+            cost_minor: 20,
+            sell_minor: 40,
+            margin_minor: 20,
+          },
+          {
+            attempt_id: "atm_gap",
+            request_id: "req_gap",
+            cost_source: "TokenHub",
+            cost_minor: 0,
+            sell_minor: 0,
+            margin_minor: 0,
+            missing_cost: true,
+          },
+        ],
+      }),
+    });
+  });
+  await page.goto("/admin/margin");
+  await expect(page.getByText("prd_echo / echo-up / req_ok")).toBeVisible();
+  await expect(page.getByText("缺上游元数据")).toBeVisible();
+  await expect(page.getByTestId("upstream-facts-badge").first()).toBeVisible();
+  await expect(page.getByText("openai")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "暂无 attempt 成本" })).toHaveCount(0);
 });
 
 test("admin reconciliation headings are unique", async ({ page }) => {

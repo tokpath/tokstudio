@@ -10,6 +10,7 @@ html.light {
   --ink: #141414;
   --ink-secondary: #4a453c;
   --ink-mute: #7a7368;
+  --muted: var(--ink-mute);
   --hairline: #d9d3c7;
   --brand: var(--oem-brand, #2150d6);
   --brand-primary: var(--oem-brand, #2150d6);
@@ -34,6 +35,7 @@ html.dark {
   --ink: #edeae4;
   --ink-secondary: #c4bdb2;
   --ink-mute: #8a8378;
+  --muted: var(--ink-mute);
   --hairline: #2a2723;
   --brand: var(--oem-brand, #2150d6);
   --brand-primary: var(--oem-brand, #2150d6);

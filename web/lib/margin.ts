@@ -19,6 +19,9 @@ export type AttemptCostRow = {
   missing_cost?: boolean;
   prices?: PriceTiers;
   public_model_id?: string;
+  provider_id?: string;
+  upstream_model_id?: string;
+  fact_source?: string;
   state?: string;
 };
 

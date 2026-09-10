@@ -163,6 +163,7 @@ type usageRow struct {
 	WholesaleAmountMinor int64     `gorm:"column:wholesale_amount_minor"`
 	Currency             string    `gorm:"column:currency"`
 	State                string    `gorm:"column:state"`
+	FactSource           *string   `gorm:"column:fact_source"`
 	IdempotencyKey       string    `gorm:"column:idempotency_key"`
 	OccurredAt           time.Time `gorm:"column:occurred_at"`
 }

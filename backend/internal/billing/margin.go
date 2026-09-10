@@ -284,6 +284,7 @@ func (s *Service) listAttemptCosts(ctx context.Context, in QueryUsageInput) ([]A
 			MarginMinor: marginOf(row.CustomerAmountMinor, costMinor), WholesaleMinor: row.WholesaleAmountMinor,
 			Prices: priceTiersFromRaw(row.UnitPrices), UnitPrices: row.UnitPrices,
 			State: row.State, PublicModelID: row.PublicModelID, ProviderID: view.ProviderID,
+			UpstreamModelID: view.UpstreamModelID, FactSource: view.FactSource,
 			ChannelOrgID: view.ChannelOrgID, UserID: row.UserID, OccurredAt: row.OccurredAt,
 		})
 	}

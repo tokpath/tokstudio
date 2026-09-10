@@ -37,6 +37,9 @@ describe("user-facing copy", () => {
 
   it("locks user-shell copy and empty keys", () => {
     expect(zh.shell.profile).toBe("个人资料");
+    expect(zh.shell.platformAdmin).toBe("平台管理");
+    expect(en.shell.platformAdmin).toBe("Platform admin");
+    expect(ja.shell.platformAdmin).toBe("プラットフォーム管理");
     expect(zh.shell.keys).toBe("API 密钥");
     expect(zh.shell.logout).toBe("退出登录");
     expect(zh.user.emptyKeys).toBe("暂无 API 密钥");

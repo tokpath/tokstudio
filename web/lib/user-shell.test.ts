@@ -5,6 +5,7 @@ import {
   MISSING_PROFILE,
   avatarInitial,
   balancePillText,
+  canSeePlatformAdmin,
   formatAvailableBalance,
   loginMethodsOf,
   profileDash,
@@ -31,6 +32,18 @@ describe("user-shell profile fields", () => {
     expect(shellRole(["platform_admin"])).toBe("admin");
     expect(shellRole(["finance_admin", "end_user"])).toBe("admin");
     expect(shellRole([])).toBe("user");
+  });
+
+  it("shows the platform admin menu only for platform_admin", () => {
+    expect(canSeePlatformAdmin(["platform_admin"])).toBe(true);
+    expect(canSeePlatformAdmin(["platform_admin", "end_user"])).toBe(true);
+    expect(canSeePlatformAdmin(["finance_admin"])).toBe(false);
+    expect(canSeePlatformAdmin(["ops_admin"])).toBe(false);
+    expect(canSeePlatformAdmin(["tech_admin"])).toBe(false);
+    expect(canSeePlatformAdmin(["audit_readonly"])).toBe(false);
+    expect(canSeePlatformAdmin(["end_user"])).toBe(false);
+    expect(canSeePlatformAdmin([])).toBe(false);
+    expect(canSeePlatformAdmin(undefined)).toBe(false);
   });
 });
 

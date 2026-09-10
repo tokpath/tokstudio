@@ -49,6 +49,11 @@ export function shellRole(roles?: string[] | null): "admin" | "user" {
   return "user";
 }
 
+/** 头像菜单「平台管理」只给 platform_admin，不用 ADMIN_CONSOLE_ROLES。 */
+export function canSeePlatformAdmin(roles?: string[] | null): boolean {
+  return Boolean(roles?.includes("platform_admin"));
+}
+
 /** 只格式化钉死的 available。缺字段或非数字 → 「—」。真实 0 才是 $0.00。 */
 export function formatAvailableBalance(available: unknown): string {
   if (available == null || available === "") {

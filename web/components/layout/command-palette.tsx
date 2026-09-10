@@ -66,6 +66,7 @@ const CONSOLE_TITLE: Record<string, string> = {
   "/app/keys": "keys",
   "/app/catalog": "catalog",
   "/app/usage": "usage",
+  "/app/reconciliation": "reconciliation",
   "/app/activity": "activity",
   "/app/wallet": "wallet",
   "/app/plans": "plans",

@@ -325,6 +325,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/v1/me/api-keys/{id}/expire"
   },
   {
+    "method": "POST",
+    "path": "/v1/auth/logout"
+  },
+  {
     "method": "GET",
     "path": "/v1/me"
   },
@@ -395,6 +399,14 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/billing/report"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/margin"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/margin/corrections"
   },
   {
     "method": "POST",
@@ -579,6 +591,18 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/admin/usage"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/usage/pending"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/usage/pending/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/usage/pending/resolve"
   },
   {
     "method": "POST",

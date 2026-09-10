@@ -131,6 +131,10 @@ func (a *App) writeSupplier(c *gin.Context) {
 	}
 	item, err := a.Billing.RecordSupplier(c.Request.Context(), p.UserID, body)
 	if err != nil {
+		if errors.Is(err, billing.ErrInventedCost) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "禁止估算 attempt 成本", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "记供应商支出失败", false)
 		return
 	}

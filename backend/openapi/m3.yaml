@@ -27,6 +27,18 @@ paths:
   /admin/refunds:
     post:
       summary: Reverse a customer charge or paid topup
+  /admin/usage:
+    get:
+      summary: Usage and bill statements; filter by api_key_id, public_model_id, channel_id, state, from, to
+  /admin/usage/pending:
+    get:
+      summary: pending_reconciliation work queue; filter by status and time
+  /admin/usage/pending/{id}:
+    get:
+      summary: Usage gap detail for one pending or resolved request
+  /admin/usage/pending/resolve:
+    post:
+      summary: Mark pending usage resolved (void + release); requires X-Tokenhub-Confirm; never estimate-debits
   /admin/usage/replay:
     post:
       summary: Idempotent usage settle / pending reconciliation complete; requires X-Tokenhub-Confirm

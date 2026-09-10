@@ -24,6 +24,7 @@ type Config struct {
 	GoogleClientID         string
 	GoogleClientSecret     string
 	GoogleRedirect         string
+	GoogleAllowMock        bool
 	BifrostSandbox         bool
 	OpenAIAPIKey           string
 	AnthropicAPIKey        string
@@ -89,6 +90,7 @@ func Load() (*Config, error) {
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:     v.GetString("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
+		GoogleAllowMock:        v.GetBool("GOOGLE_ALLOW_MOCK"),
 		BifrostSandbox:         resolveBifrostSandbox(v),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
 		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
@@ -170,14 +172,30 @@ func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production")
 }
 
-// GoogleOAuthReady 表示可以走真实 Google token 交换。缺任一项时 start/callback 仍用 mock。
-func (c *Config) GoogleOAuthReady() bool {
+// GoogleTriad 表示 Client ID / Secret / Redirect URI 三件套齐全，可以走真实交换。
+func (c *Config) GoogleTriad() bool {
 	if c == nil {
 		return false
 	}
 	return strings.TrimSpace(c.GoogleClientID) != "" &&
 		strings.TrimSpace(c.GoogleClientSecret) != "" &&
 		strings.TrimSpace(c.GoogleRedirect) != ""
+}
+
+// GoogleMockAllowed 仅在显式打开且不在 production / grok / test 预览时允许 mock。
+// 默认禁止；缺三件套时不得静默 mock 成功。
+func (c *Config) GoogleMockAllowed() bool {
+	if c == nil || !c.GoogleAllowMock {
+		return false
+	}
+	if c.IsProduction() {
+		return false
+	}
+	host := strings.ToLower(c.PublicBaseURL + " " + c.WebOrigin)
+	if strings.Contains(host, "grok.tokpath.com") || strings.Contains(host, "test.tokpath.com") {
+		return false
+	}
+	return true
 }
 
 func resolveBifrostSandbox(v *viper.Viper) bool {
@@ -217,4 +235,13 @@ func (c *Config) RedactedMap() map[string]any {
 		"cloudflare_zone_set":  c.CloudflareZoneID != "",
 		"cloudflare_cname_set": c.CloudflareCNAME != "",
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }

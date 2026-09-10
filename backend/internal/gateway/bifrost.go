@@ -71,8 +71,15 @@ func contextString(ctx context.Context, key ctxKey) string {
 // Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面。
 // 沙箱模式用 plugin 短路回声，不打真实上游；live 模式才用 Account 里的 Key。
 type Runtime struct {
-	Client  *bifrost.Bifrost
-	Sandbox bool
+	Client       *bifrost.Bifrost
+	Sandbox      bool
+	GeminiAPIKey string
+}
+
+// GeminiLiveEnabled 只有同时关闭沙箱且配置了非空 Gemini Key 才打真实上游。
+// 缺任一条件都走回声，禁止假装 live Gemini。
+func GeminiLiveEnabled(rt *Runtime) bool {
+	return rt != nil && !rt.Sandbox && strings.TrimSpace(rt.GeminiAPIKey) != ""
 }
 
 func (rt *Runtime) Close() {
@@ -124,7 +131,7 @@ func Start(ctx context.Context, in Settings) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{Client: client, Sandbox: in.Sandbox}, nil
+	return &Runtime{Client: client, Sandbox: in.Sandbox, GeminiAPIKey: in.GeminiAPIKey}, nil
 }
 
 // BifrostAdapter 在进程内调用 Bifrost SDK。client 为空时返回 503。
@@ -156,7 +163,7 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if berr != nil {
 		return mapBifrostError(berr), fmt.Errorf("%s", berr.GetErrorString())
 	}
-	out := fromBifrostChat(resp)
+	out := fromBifrostChat(resp, a.Runtime.Sandbox)
 	if req.Stream && len(out.Body.Choices) > 0 {
 		text := out.Body.Choices[0].Message.Content
 		out.Stream = []string{
@@ -306,6 +313,7 @@ func (sandboxPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifros
 		model = req.ChatRequest.Model
 	}
 	id := fmt.Sprintf("bifrost_%d", time.Now().UnixNano())
+	headers := sandboxEchoHeaders(req)
 	return req, &schemas.LLMPluginShortCircuit{
 		Response: &schemas.BifrostResponse{
 			ChatResponse: &schemas.BifrostChatResponse{
@@ -316,6 +324,9 @@ func (sandboxPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifros
 					PromptTokens:     8,
 					CompletionTokens: 4,
 					TotalTokens:      12,
+				},
+				ExtraFields: schemas.BifrostResponseExtraFields{
+					ProviderResponseHeaders: headers,
 				},
 				Choices: []schemas.BifrostResponseChoice{{
 					Index: 0,
@@ -331,6 +342,20 @@ func (sandboxPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifros
 			},
 		},
 	}, nil
+}
+
+func sandboxEchoHeaders(req *schemas.BifrostRequest) map[string]string {
+	headers := map[string]string{"x-tokenhub-fact_source": FactSourceSandbox}
+	if req == nil || req.ChatRequest == nil || req.ChatRequest.Params == nil || req.ChatRequest.Params.Metadata == nil {
+		return headers
+	}
+	for key, value := range *req.ChatRequest.Params.Metadata {
+		if s := stringFromAny(value); s != "" {
+			headers["x-tokenhub-"+key] = s
+		}
+	}
+	headers["x-tokenhub-fact_source"] = FactSourceSandbox
+	return headers
 }
 
 func (sandboxPlugin) PostLLMHook(_ *schemas.BifrostContext, resp *schemas.BifrostResponse, bifrostErr *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
@@ -420,10 +445,10 @@ func toBifrostParams(ctx context.Context, req ChatRequest, providerSlug string) 
 	return params
 }
 
-func fromBifrostChat(resp *schemas.BifrostChatResponse) AdapterResult {
+func fromBifrostChat(resp *schemas.BifrostChatResponse, sandbox bool) AdapterResult {
 	out := ChatResponse{Object: "chat.completion"}
 	if resp == nil {
-		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error", Body: out}
+		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error", Body: out, FactSource: normalizeFactSource("", sandbox)}
 	}
 	out.ID = resp.ID
 	out.Model = resp.Model
@@ -451,7 +476,39 @@ func fromBifrostChat(resp *schemas.BifrostChatResponse) AdapterResult {
 			Message ChatMessage `json:"message"`
 		}{Index: choice.Index, Message: msg})
 	}
-	return AdapterResult{HTTPStatus: 200, Body: out}
+	echoed := echoedMetaFromExtra(resp.ExtraFields)
+	fact := normalizeFactSource(echoed["fact_source"], sandbox)
+	if fact == "" && sandbox {
+		fact = FactSourceSandbox
+	}
+	// live 只在 Bifrost 回了真实路由事实时标记；空 Extra 不得冒充上游。
+	if fact == "" && !sandbox && (echoed["bifrost_provider"] != "" || echoed["upstream_model"] != "") {
+		fact = FactSourceLive
+	}
+	return AdapterResult{
+		HTTPStatus: 200,
+		Body:       out,
+		FactSource: fact,
+		EchoedMeta: echoed,
+	}
+}
+
+func echoedMetaFromExtra(extra schemas.BifrostResponseExtraFields) map[string]string {
+	out := map[string]string{}
+	for key, value := range extra.ProviderResponseHeaders {
+		name := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(key)), "x-tokenhub-")
+		if name == "" || strings.TrimSpace(value) == "" {
+			continue
+		}
+		out[name] = value
+	}
+	if extra.RoutingInfo.Model != "" {
+		out["upstream_model"] = extra.RoutingInfo.Model
+	}
+	if extra.RoutingInfo.Provider != "" {
+		out["bifrost_provider"] = string(extra.RoutingInfo.Provider)
+	}
+	return out
 }
 
 func mapBifrostError(berr *schemas.BifrostError) AdapterResult {

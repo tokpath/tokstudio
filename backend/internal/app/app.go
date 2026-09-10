@@ -46,6 +46,8 @@ type App struct {
 	Commission *commission.Service
 	Ops        *ops.Service
 	Logger     zerolog.Logger
+	// GoogleExchange 仅测试注入。生产路径为 nil，由配置选择真实交换或（显式）mock。
+	GoogleExchange identity.GoogleExchanger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
@@ -247,7 +249,15 @@ func (a *App) healthz(c *gin.Context) {
 		"service":    "tokenhub-api",
 		"version":    "0.1.0-m7",
 		"request_id": c.GetString(httpx.ContextRequestID),
+		"storage":    a.storageView(),
 	})
+}
+
+func (a *App) storageView() media.Status {
+	if a == nil || a.Media == nil {
+		return media.Status{Source: media.SourceUnavailable, Label: media.LabelUnavailable}
+	}
+	return a.Media.StoreStatus(context.Background())
 }
 
 func (a *App) readyz(c *gin.Context) {
@@ -329,7 +339,16 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return a.enforceSession(roles, false)
 }
 
+// requireCatalogRoles 用于模型目录 / 路由组：无 token 是 401，有登录无权限是 403。
+func (a *App) requireCatalogRoles(roles ...string) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, false, true)
+}
+
 func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, anyAuthenticated, false)
+}
+
+func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
@@ -337,6 +356,10 @@ func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerF
 			return
 		}
 		if principal == nil {
+			if catalogAuth && a.tokenFromRequest(c) == "" {
+				httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+				return
+			}
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}

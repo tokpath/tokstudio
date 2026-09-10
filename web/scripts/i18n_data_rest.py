@@ -4,7 +4,7 @@ USER = {
     "zh": {
         "keysTitle": "API Key",
         "keysLead": "完整 Key 可长期查看。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。",
-        "emptyKeys": "暂无 API Keys",
+        "emptyKeys": "暂无 API 密钥",
         "emptyKeysDetail": "创建一把 Key 后会出现在这里。空白名单不限制模型。",
         "concurrency": " · 并发 {n}",
         "allowlistLine": "模型白名单：{list}",

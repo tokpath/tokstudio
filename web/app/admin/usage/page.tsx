@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
@@ -15,6 +16,7 @@ import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
 import { type UsageEvent, groupUsageByDay, groupUsageByModel } from "@/lib/usage";
+import { statementListPath } from "@/lib/reconciliation";
 import { IfCan } from "@/components/rbac/if-can";
 
 type Usage = {
@@ -37,6 +39,11 @@ export default function AdminUsagePage() {
   const [completion, setCompletion] = useState("4");
   const [apiKeyID, setApiKeyID] = useState("");
   const [userID, setUserID] = useState("");
+  const [modelID, setModelID] = useState("");
+  const [channelID, setChannelID] = useState("");
+  const [state, setState] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [message, setMessage] = useState("待对账必须按真实 usage 回放，禁止按估算扣款。");
 
   async function replay() {
@@ -53,10 +60,15 @@ export default function AdminUsagePage() {
     setMessage(res.ok ? `已回放 ${body.item?.usage_event_id || requestID} → ${body.item?.state}` : body.error?.message || "回放失败");
   }
 
-  const qs = new URLSearchParams();
-  if (apiKeyID.trim()) qs.set("api_key_id", apiKeyID.trim());
-  if (userID.trim()) qs.set("user_id", userID.trim());
-  const listPath = qs.toString() ? `/admin/usage?${qs.toString()}` : "/admin/usage";
+  const listPath = statementListPath({
+    apiKeyId: apiKeyID,
+    userId: userID,
+    modelId: modelID,
+    channelId: channelID,
+    state,
+    from,
+    to,
+  });
   const chartQuery = useQuery({
     queryKey: ["admin-usage-chart", listPath],
     queryFn: () => apiClient<{ items?: UsageEvent[] }>("GET", `${listPath}${listPath.includes("?") ? "&" : "?"}limit=100`),
@@ -89,6 +101,11 @@ export default function AdminUsagePage() {
           </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
+        <p className="mt-2 text-sm text-ink-mute">
+          <Link href="/admin/reconciliation" className="underline-offset-2 hover:underline">
+            待对账队列
+          </Link>
+        </p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <div className="rounded-card border border-hairline bg-canvas p-3">
             <h3 className="mb-2 text-sm font-medium">{tChart("trend")}</h3>
@@ -129,6 +146,29 @@ export default function AdminUsagePage() {
               aria-label="按用户筛选"
               placeholder="user_id"
             />
+            <Input
+              className="w-44"
+              value={modelID}
+              onChange={(e) => setModelID(e.target.value)}
+              aria-label="按模型筛选"
+              placeholder="public_model_id"
+            />
+            <Input
+              className="w-40"
+              value={channelID}
+              onChange={(e) => setChannelID(e.target.value)}
+              aria-label="按渠道筛选"
+              placeholder="channel_id"
+            />
+            <Input
+              className="w-36"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              aria-label="按状态筛选"
+              placeholder="state"
+            />
+            <Input type="date" className="w-36" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="起始日期" />
+            <Input type="date" className="w-36" value={to} onChange={(e) => setTo(e.target.value)} aria-label="结束日期" />
           </div>
         }
         columns={[

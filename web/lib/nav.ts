@@ -42,6 +42,7 @@ export const userNavGroups: { titleKey: string; items: NavItem[] }[] = [
       { href: "/app/wallet", key: "wallet" },
       { href: "/app/plans", key: "plans" },
       { href: "/app/usage", key: "usage" },
+      { href: "/app/reconciliation", key: "reconciliation" },
       { href: "/app/activity", key: "activity" },
       { href: "/app/media", key: "media" },
     ],
@@ -108,6 +109,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
       { href: "/channel/rules", key: "rules" },
       { href: "/channel/attribution", key: "attribution" },
       { href: "/channel/usage", key: "usage" },
+      { href: "/channel/reconciliation", key: "reconciliation" },
       { href: "/channel/settlements", key: "settlements" },
       { href: "/channel/commissions", key: "commissions" },
     ],
@@ -150,6 +152,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
       { href: "/admin/payments", key: "payments" },
       { href: "/admin/billing", key: "billing" },
       { href: "/admin/usage", key: "usage" },
+      { href: "/admin/margin", key: "margin" },
     ],
   },
   {
@@ -165,6 +168,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
     titleKey: "groupOps",
     items: [
       { href: "/admin/metrics", key: "metrics" },
+      { href: "/admin/reconciliation", key: "reconciliation" },
       { href: "/admin/media", key: "media" },
       { href: "/admin/users", key: "users" },
       { href: "/admin/alerts", key: "alerts" },

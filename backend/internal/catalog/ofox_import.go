@@ -239,6 +239,9 @@ func firstNonEmpty(values ...string) string {
 }
 
 func stringifyPrice(v any) string {
+	if v == nil {
+		return ""
+	}
 	switch t := v.(type) {
 	case string:
 		return t
@@ -302,7 +305,7 @@ func asInt(v any) int {
 func publicSell(price map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, v := range price {
-		if isCostKey(k) {
+		if isCostKey(k) || k == "customer_sell" || k == "channel_override" || k == "channel_customer" {
 			continue
 		}
 		out[k] = v

@@ -13,11 +13,13 @@ describe("adminNavKeys", () => {
       "payments",
       "billing",
       "usage",
+      "margin",
       "channels",
       "brands",
       "promos",
       "commission",
       "metrics",
+      "reconciliation",
       "media",
       "users",
       "alerts",
@@ -36,6 +38,7 @@ describe("channel keys nav", () => {
   it("lists channel stock and rules in the ledger group", () => {
     expect(channelSections.some((item) => item.href === "/channel/ledger")).toBe(true);
     expect(channelSections.some((item) => item.href === "/channel/rules")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/reconciliation")).toBe(true);
   });
 });
 
@@ -55,6 +58,7 @@ describe("isConsolePath", () => {
 describe("isAuthPath", () => {
   it("treats login and console entry as chrome-free auth", () => {
     expect(isAuthPath("/login")).toBe(true);
+    expect(isAuthPath("/login/oauth/google")).toBe(true);
     expect(isAuthPath("/enter")).toBe(true);
     expect(isAuthPath("/login?next=%2Fapp")).toBe(false);
     expect(isAuthPath("/enter?x=1")).toBe(false);
@@ -75,7 +79,12 @@ describe("adminNavActive", () => {
 describe("user console nav", () => {
   it("uses real routes instead of hash anchors", () => {
     expect(userSections.some((item) => item.href === "/app/keys")).toBe(true);
+    expect(userSections.some((item) => item.href === "/app/reconciliation")).toBe(true);
     expect(userSections.some((item) => item.href.startsWith("#"))).toBe(false);
+  });
+
+  it("does not add profile to the frozen sidebar", () => {
+    expect(userSections.some((item) => item.href === "/app/profile")).toBe(false);
   });
 
   it("highlights overview only on /app", () => {

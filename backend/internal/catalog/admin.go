@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	ErrInvalidInput = errors.New("invalid catalog input")
-	ErrUnknownModel = errors.New("model not in platform catalog")
-	ErrNotReviewed  = errors.New("model not reviewed")
-	ErrRejected     = errors.New("model rejected")
-	ErrSameActor    = errors.New("creator cannot review or publish")
+	ErrInvalidInput    = errors.New("invalid catalog input")
+	ErrUnknownModel    = errors.New("model not in platform catalog")
+	ErrModelNotVisible = errors.New("model not visible to tenant")
+	ErrNotReviewed     = errors.New("model not reviewed")
+	ErrRejected        = errors.New("model rejected")
+	ErrSameActor       = errors.New("creator cannot review or publish")
 )
 
 type ChannelModelGrant struct {

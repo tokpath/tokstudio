@@ -21,7 +21,7 @@ type oauthStateRow struct {
 
 func (oauthStateRow) TableName() string { return "identity_oauth_states" }
 
-// GoogleProfile 是 Google 用户信息。真实环境由 token 交换得到；测试用 mock。
+// GoogleProfile 是 Google 用户信息。生产路径由真实 token/profile 交换得到；测试注入假 exchanger。
 type GoogleProfile struct {
 	Subject string
 	Email   string
@@ -62,7 +62,7 @@ func (s *Service) StartGoogle(ctx context.Context, promotionCode string) (state 
 
 func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange GoogleExchanger) (*Session, error) {
 	if exchange == nil {
-		exchange = MockGoogleExchange
+		return nil, ErrGoogleUnavailable
 	}
 	var row oauthStateRow
 	if err := s.db.WithContext(ctx).

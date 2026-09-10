@@ -195,12 +195,32 @@ func (s *Service) Risk(ctx context.Context) (*RiskView, error) {
 }
 
 func (s *Service) ChargeByRequest(ctx context.Context, requestID string) (*Settlement, error) {
-	var charge chargeRow
-	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&charge).Error; err != nil {
+	charges, err := s.ListChargesByRequest(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if len(charges) == 0 {
 		return nil, ErrNotFound
 	}
-	return &Settlement{
-		ChargeID: charge.ID, UsageEventID: charge.UsageEventID,
-		AmountMinor: charge.AmountMinor, State: charge.Status, Currency: CurrencyUSD,
-	}, nil
+	return &charges[0], nil
+}
+
+// ListChargesByRequest 是 TokenHub 对「一请求几条客户扣费」的账本真相。
+// Sentinel：同一 request 最多一条 committed charge；双扣必须被测出来。
+func (s *Service) ListChargesByRequest(ctx context.Context, requestID string) ([]Settlement, error) {
+	if requestID == "" {
+		return nil, nil
+	}
+	var rows []chargeRow
+	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).Order("created_at ASC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]Settlement, 0, len(rows))
+	for _, charge := range rows {
+		out = append(out, Settlement{
+			ChargeID: charge.ID, UsageEventID: charge.UsageEventID,
+			AmountMinor: charge.AmountMinor, State: charge.Status, Currency: CurrencyUSD,
+		})
+	}
+	return out, nil
 }

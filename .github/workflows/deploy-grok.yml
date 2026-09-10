@@ -1,0 +1,59 @@
+# 只有 push 到 feature/grokbot 且 CI 全绿，才会更新 https://grok.tokpath.com。
+# 不会改、不会检出、也不会覆盖 release/v0.1.0 → https://test.tokpath.com。
+# Atlas 编排本流水线；concurrency 组 deploy-grok，必须与 deploy-token 隔离。
+# 宿主机独立检出：/root/workspace/tokstudio-grok（禁止进入 /root/workspace/tokstudio）。
+# 需要仓库 Secret：ALIYUN_HOST（SSH 主机，Settings → Secrets and variables → Actions → Secrets）。
+# 需要仓库 Secret：TOKEN_DEPLOY_SSH_KEY。
+# 不要把主机写成字面 IP；也不要用 vars.ALIYUN_HOST。
+name: deploy-grok
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+    branches: [feature/grokbot]
+
+concurrency:
+  group: deploy-grok
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'feature/grokbot' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require ALIYUN_HOST secret
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+        run: |
+          if [ -z "$ALIYUN_HOST" ]; then
+            echo "Set repository Secret ALIYUN_HOST before deploying." >&2
+            exit 1
+          fi
+      - name: SSH to host and deploy grok preview
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: root
+          key: ${{ secrets.TOKEN_DEPLOY_SSH_KEY }}
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+            ROOT=/root/workspace/tokstudio-grok
+            BRANCH=feature/grokbot
+            TEST_ROOT=/root/workspace/tokstudio
+            if [ "$ROOT" = "$TEST_ROOT" ]; then
+              echo "grok deploy must not use the test checkout" >&2
+              exit 1
+            fi
+            if [ ! -d "$ROOT/.git" ]; then
+              git clone --branch "$BRANCH" git@github.com:tokpath/tokstudio.git "$ROOT"
+            fi
+            cd "$ROOT"
+            git fetch origin
+            git checkout "$BRANCH"
+            git pull --ff-only origin "$BRANCH"
+            bash scripts/deploy_grok.sh

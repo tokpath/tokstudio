@@ -47,17 +47,17 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.PATCH("/admin/providers/:id/accounts/:aid", a.requireRoles("platform_admin", "tech_admin"), a.patchProviderAccount)
 	r.POST("/admin/providers/:id/health-check", a.requireRoles("platform_admin", "tech_admin"), a.healthCheckProvider)
 	r.POST("/admin/providers/:id/sync", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.syncProvider)
-	r.GET("/admin/models", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
-	r.POST("/admin/models", a.requireRoles("platform_admin", "ops_admin"), a.createAdminModel)
-	r.GET("/admin/models/*id", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.getAdminModel)
-	r.PATCH("/admin/models/*id", a.requireRoles("platform_admin", "ops_admin"), a.patchAdminModel)
-	r.POST("/admin/models/review", a.requireRoles("platform_admin", "ops_admin"), a.reviewAdminModel)
-	r.POST("/admin/models/publish", a.requireRoles("platform_admin", "ops_admin"), a.publishAdminModel)
-	r.POST("/admin/models/deprecate", a.requireRoles("platform_admin", "ops_admin"), a.deprecateAdminModel)
-	r.GET("/admin/routes", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
-	r.POST("/admin/routes", a.requireRoles("platform_admin", "tech_admin"), a.createAdminRoute)
-	r.PATCH("/admin/routes/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
-	r.POST("/admin/models/attach", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.attachModelProvider)
+	r.GET("/admin/models", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
+	r.POST("/admin/models", a.requireCatalogRoles("platform_admin", "ops_admin"), a.createAdminModel)
+	r.GET("/admin/models/*id", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.getAdminModel)
+	r.PATCH("/admin/models/*id", a.requireCatalogRoles("platform_admin", "ops_admin"), a.patchAdminModel)
+	r.POST("/admin/models/review", a.requireCatalogRoles("platform_admin", "ops_admin"), a.reviewAdminModel)
+	r.POST("/admin/models/publish", a.requireCatalogRoles("platform_admin", "ops_admin"), a.publishAdminModel)
+	r.POST("/admin/models/deprecate", a.requireCatalogRoles("platform_admin", "ops_admin"), a.deprecateAdminModel)
+	r.GET("/admin/routes", a.requireCatalogRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
+	r.POST("/admin/routes", a.requireCatalogRoles("platform_admin", "tech_admin"), a.createAdminRoute)
+	r.PATCH("/admin/routes/:id", a.requireCatalogRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
+	r.POST("/admin/models/attach", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin"), a.attachModelProvider)
 }
 
 func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
@@ -72,6 +72,10 @@ func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
 func (a *App) requireAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := strings.TrimSpace(strings.TrimPrefix(a.tokenFromRequest(c), "Bearer "))
+		if token == "" {
+			httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+			return
+		}
 		principal, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), token)
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "API Key 校验失败", true)
@@ -274,6 +278,10 @@ func (a *App) getModel(c *gin.Context) {
 	caller := a.currentAPIKey(c)
 	item, err := a.Catalog.GetVisibleModel(c.Request.Context(), caller.ChannelOrgID, c.Param("model"), caller.Allowlist)
 	if err != nil {
+		if errors.Is(err, catalog.ErrUnknownModel) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
+			return
+		}
 		httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型不可用", false)
 		return
 	}
@@ -355,6 +363,8 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 				msg = "不支持的参数 " + pe.Param
 			}
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", msg, false)
+		case errors.Is(err, catalog.ErrUnknownModel):
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型不存在", false)
 		case errors.Is(err, gateway.ErrModelNotAllowed):
 			httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "模型未授权", false)
 		case errors.Is(err, gateway.ErrInsufficientBalance):

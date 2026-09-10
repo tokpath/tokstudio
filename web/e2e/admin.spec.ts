@@ -9,11 +9,124 @@ test("admin P0 nav renders", async ({ page }) => {
   await expect(page.getByRole("link", { name: "API Key" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "支付" })).toBeVisible();
   await expect(page.getByRole("link", { name: "指标" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "成本/毛利", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("link", { name: "推广码" })).toBeVisible();
   await expect(page.getByRole("link", { name: "告警" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "应急手册" })).toBeVisible();
   await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
+});
+
+test("admin margin page is TokenHub-only and never estimates cost", async ({ page }) => {
+  await page.route("**/admin/margin**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: { attempt_cost_minor: 0, sell_minor: 0, margin_minor: 0, pending_count: 1, items: [] },
+        items: [],
+      }),
+    });
+  });
+  await page.goto("/admin/margin");
+  await expect(page.getByRole("heading", { name: "成本/毛利" }).first()).toBeVisible();
+  await expect(page.getByText("暂无 attempt 成本")).toBeVisible();
+  await expect(page.getByText("TokenHub").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "补成本" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "调毛利" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /估扣|估算扣款|estimate/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /智能路由|smart routing/i })).toHaveCount(0);
+  await expect(page.getByLabel(/手填成本|estimate cost/i)).toHaveCount(0);
+  await expect(page.getByTestId("upstream-facts-badge")).toHaveCount(0);
+});
+
+test("admin margin detail rows show honest upstream-fact badges", async ({ page }) => {
+  await page.route("**/admin/margin**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: {
+          attempt_cost_minor: 40,
+          sell_minor: 20,
+          margin_minor: -20,
+          pending_count: 0,
+          items: [
+            {
+              attempt_id: "atm_ok",
+              request_id: "req_ok",
+              provider_id: "prd_echo",
+              upstream_model_id: "echo-up",
+              fact_source: "sandbox",
+              cost_source: "TokenHub",
+              cost_minor: 20,
+              sell_minor: 40,
+              margin_minor: 20,
+            },
+            {
+              attempt_id: "atm_gap",
+              request_id: "req_gap",
+              cost_source: "TokenHub",
+              cost_minor: 0,
+              sell_minor: 0,
+              margin_minor: 0,
+              missing_cost: true,
+            },
+          ],
+        },
+        items: [
+          {
+            attempt_id: "atm_ok",
+            request_id: "req_ok",
+            provider_id: "prd_echo",
+            upstream_model_id: "echo-up",
+            fact_source: "sandbox",
+            cost_source: "TokenHub",
+            cost_minor: 20,
+            sell_minor: 40,
+            margin_minor: 20,
+          },
+          {
+            attempt_id: "atm_gap",
+            request_id: "req_gap",
+            cost_source: "TokenHub",
+            cost_minor: 0,
+            sell_minor: 0,
+            margin_minor: 0,
+            missing_cost: true,
+          },
+        ],
+      }),
+    });
+  });
+  await page.goto("/admin/margin");
+  await expect(page.getByText("prd_echo / echo-up / req_ok")).toBeVisible();
+  await expect(page.getByText("缺上游元数据")).toBeVisible();
+  await expect(page.getByTestId("upstream-facts-badge").first()).toBeVisible();
+  await expect(page.getByText("openai")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "暂无 attempt 成本" })).toHaveCount(0);
+});
+
+test("admin reconciliation headings are unique", async ({ page }) => {
+  await page.goto("/admin/reconciliation");
+  await expect(page.getByRole("heading", { name: "对账", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账队列", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
+  await expect(page.getByText("缺 usage 只进队列，不按估算扣款").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "标记已解" }).first()).toBeVisible();
+  await expect(page.getByTestId("admin-usage-trend-chart")).toHaveCount(0);
 });
 
 test("admin providers list and detail", async ({ page }) => {
@@ -158,6 +271,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
   await expect(page.getByTestId("admin-usage-trend-chart")).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
+  await expect(page.getByLabel("按模型筛选")).toBeVisible();
+  await expect(page.getByLabel("按渠道筛选")).toBeVisible();
   await expect(page.getByRole("heading", { name: "用量 / 账单" })).toBeVisible();
   await page.goto("/admin/promos");
   await expect(page.getByRole("heading", { name: "推广角色" })).toBeVisible();
@@ -199,4 +314,38 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "拒绝" })).toBeVisible();
   await expect(page.getByRole("button", { name: "通过" })).toBeVisible();
   await expect(page.getByRole("button", { name: "发布", exact: true })).toBeVisible();
+});
+
+test("admin OEM brand download shows storage source and forbids a success check", async ({ page }) => {
+  await page.route("**/admin/brands/**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    if (route.request().url().includes("/assets")) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: { id: "brd_oem", name: "OEM", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        brand: { id: "brd_oem", name: "OEM", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "s3", ok: true, label: "S3" },
+      }),
+    });
+  });
+  await page.goto("/admin/brands");
+  await expect(page.getByRole("heading", { name: "OEM 品牌" }).first()).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-tone", "ok");
+  await expect(page.getByRole("link", { name: "下载 Logo" })).toBeVisible();
+  await expect(page.getByText("✓")).toHaveCount(0);
 });

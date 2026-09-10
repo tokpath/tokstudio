@@ -29,6 +29,23 @@ describe("user-facing copy", () => {
     expect(ja.login).not.toHaveProperty("lead");
   });
 
+  it("locks the Google idle button copy", () => {
+    expect(zh.login.google).toBe("用 Google 登录");
+    expect(zh.login.googleRedirecting).toBe("正在跳转 Google…");
+    expect(zh.login.googleUnconfigured).toBe("未配置 Google 登录");
+  });
+
+  it("locks user-shell copy and empty keys", () => {
+    expect(zh.shell.profile).toBe("个人资料");
+    expect(zh.shell.platformAdmin).toBe("平台管理");
+    expect(en.shell.platformAdmin).toBe("Platform admin");
+    expect(ja.shell.platformAdmin).toBe("プラットフォーム管理");
+    expect(zh.shell.keys).toBe("API 密钥");
+    expect(zh.shell.logout).toBe("退出登录");
+    expect(zh.user.emptyKeys).toBe("暂无 API 密钥");
+    expect(zh.console.profile.title).toBe("个人资料");
+  });
+
   it("labels the public header console entry in every locale", () => {
     expect(zh.chrome.console).toBe("控制台");
     expect(en.chrome.console).toBe("Console");

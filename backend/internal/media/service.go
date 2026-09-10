@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"time"
 
@@ -162,6 +163,7 @@ type JobView struct {
 type ContentView struct {
 	URL       string `json:"url"`
 	ExpiresAt int64  `json:"expires_at"`
+	Storage   Status `json:"storage"`
 }
 
 type Service struct {
@@ -169,13 +171,13 @@ type Service struct {
 	catalog *catalog.Service
 	billing *billing.Service
 	outbox  *outbox.Service
-	store   *Store
+	store   ObjectStore
 	test    *TestAdapter
 	ark     RemoteAdapter
 	or      RemoteAdapter
 }
 
-func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store *Store, arkURL, arkKey, orURL, orKey string) *Service {
+func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store ObjectStore, arkURL, arkKey, orURL, orKey string) *Service {
 	return &Service{
 		db: db, catalog: cat, billing: bill, outbox: pub, store: store,
 		test: NewTestAdapter(),
@@ -417,9 +419,16 @@ func (s *Service) Content(ctx context.Context, jobID, userID string) (*ContentVi
 	}
 	url, exp, err := s.store.Sign(asset.ObjectKey, SignTTL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
 	}
-	return &ContentView{URL: url, ExpiresAt: exp.Unix()}, nil
+	return &ContentView{URL: url, ExpiresAt: exp.Unix(), Storage: s.StoreStatus(ctx)}, nil
+}
+
+func (s *Service) StoreStatus(ctx context.Context) Status {
+	if s == nil || s.store == nil {
+		return unavailableStatus("store not configured")
+	}
+	return s.store.Status(ctx)
 }
 
 func (s *Service) Cancel(ctx context.Context, jobID, userID string) (*JobView, error) {
@@ -601,7 +610,7 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 	if job.Status != StatusCompleted {
 		key := job.ID + "/output.bin"
 		if err := s.store.Put(key, result.ContentType, result.Content); err != nil {
-			return err
+			return fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
 		}
 		sum := sha256.Sum256(result.Content)
 		now := time.Now().UTC()

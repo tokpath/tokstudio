@@ -9,15 +9,18 @@ paths:
   /v1/auth/login:
     post:
       summary: Password login, sets HttpOnly session cookie
+  /v1/auth/google/status:
+    get:
+      summary: Whether Google OAuth triad is configured; mock only if ALLOW_MOCK and not grok/test/production
   /v1/auth/google/start:
     get:
-      summary: Start Google OAuth and stash promotion code
+      summary: Start Google OAuth, stash promotion code; real Google URL when triad is present
   /v1/auth/google/callback:
-    get:
-      summary: Google redirect; exchanges code and sets session cookie
     post:
-      summary: Finish Google OAuth (JSON body or mock code)
-
+      summary: Finish Google OAuth with real token/profile exchange when triad is present; HttpOnly cookie
+  /v1/auth/logout:
+    post:
+      summary: Revoke the current session token and clear the HttpOnly cookie
   /v1/me:
     get:
       summary: Current user

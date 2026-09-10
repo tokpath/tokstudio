@@ -90,7 +90,7 @@
 
 ### `GET /v1/videos/{id}/content`
 
-返回短期签名 URL 或媒体流；默认结果保留 7 天。
+返回短期 **S3 预签名** URL（Compose/CI 无云 Key 时走 MinIO）；默认结果保留 7 天。响应带只读 `storage`（`source=s3|minio|unavailable`，`label` 为 `S3` 或 `存储不可用`）。缺桶或存储失败返回 `503 store_unavailable`，**禁止**回退本地盘并报告成功。`GET /healthz`、`GET /v1/me/media`、`GET /channel/brand` 同样回带 `storage`。
 
 ### `POST /v1/images/generations` 与 `POST /v1/images/edits`
 
@@ -112,10 +112,11 @@
 
 - `GET /v1/public/docs-context`：品牌 Base URL、模型白名单、curl/Python/Node/Messages/视频示例（占位 `$TOKENHUB_API_KEY`）以及错误码/限流/回调说明
 - `GET /v1/public/models`：按域名品牌列出已发布模型卡片（id/vendor/display_name/capabilities/kind），不含 Provider 路由。查询参数 `vendor`、`kind`、`q`、`id`、`limit` 在服务端筛选；响应带 `total` 与 `facets.kinds` / `facets.vendors`（类型分面不含当前 kind，厂商分面不含当前 vendor）。前端目录不得再维护一份本地模型快照。
-- `GET /v1/me`
+- `GET /v1/me`：当前会话用户。`login_methods` 只来自真实列（有 `password_hash` → `password`，有 `google_sub` → `google`），缺显示名/邮箱保持空串
 - `PATCH /v1/me`：更新 `display_name` 与 `locale`（zh/en/ja）；不能改渠道归属
 - `POST /v1/me/password`：校验当前密码后改密
-- `GET /v1/me/balance`
+- `POST /v1/auth/logout`：吊销当前会话令牌并清除 HttpOnly cookie
+- `GET /v1/me/balance`：钱包视图。用户台顶栏余额钉 `balance.available`（可用 USD 字符串，对应 `available_minor`），失败不得写成假 `$0.00`
 - `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。
 - `GET /v1/me/ledger`
 - `GET /v1/plans`：公共站已发布的平台套餐；
@@ -148,9 +149,17 @@
 - `POST /admin/topups/{id}/confirm`：财务确认人工充值。
 - `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
 - `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
+- `GET /admin/usage/pending`：待对账工作队列。`status`（默认 `pending_reconciliation`，`voided` / `all`）、`from` / `to`、以及 API Key / 模型 / 渠道筛选。管理页 `/admin/reconciliation`。
+- `GET /v1/me/reconciliation`：用户台 W-meter ③。三桶（`available` / `reserved` / `commission_available`）+ 同一窗口 usage 合计 + 差异表。只问 TokenHub billing（Balance / QueryUsage / ListChargesByRequest / ListLedger）。
+- `POST /v1/me/reconciliation/flag`：把差异行送进 `pending_reconciliation`。匹配行 `409`。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`。**禁止估算扣款**。
+- `GET /channel/reconciliation`、`POST /channel/reconciliation/flag`：渠道台同构页；桶来自 `ChannelQuota`（可提现无账本口径时为 0）。渠道管理员 / 财务可写 flag；运营只读。
+- `GET /admin/usage/pending/{id}`：用量缺口详情（usage id 或 request_id）。
+- `POST /admin/usage/pending/resolve`：单条或批量「标记已解」——作废 pending usage 并释放预授权，**禁止估算扣款**。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，写审计 `billing.usage.resolve`。已结算账单拒绝。
 - `GET /admin/billing/report`：收入、成本、佣金负债、待对账数量。
+- `GET /admin/margin`：管理台 W-meter ④「成本/毛利」。同一窗口 attempt 成本合计 / 售价合计 / 毛利合计；明细钉 `attempt_id`，成本源固定 `TokenHub`，四维单价只读快照。可用 `request_id` / `channel_id` / `public_model_id` / `from` / `to` 收窄窗口。缺 attempt 成本不进明细、计入 `pending_count`，禁止估算。只问 TokenHub billing（usage + `billing_cost_entries`）。
+- `POST /admin/margin/corrections`：补成本 / 调毛利更正票。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`。禁止带 `amount_minor` 估算写入成本。
 - `GET /admin/billing/export`：对账 CSV（收入/成本/佣金/毛利/待对账）。
-- `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`。
+- `GET /admin/usage?format=csv`：用量明细导出，含 `api_key_id`、`user_id`、token 与金额。查询 `user_id`、`api_key_id`、`channel_id`、`public_model_id`、`state`、`from`、`to`。
 - `POST /v1/me/api-keys/{id}/expire`：设置过期时间；过期后鉴权失败。
 - `GET /v1/me/media`：当前用户媒体任务（kind/status 筛选，不含他人数据）。
 - `POST /v1/videos` 与图像创建接口同时接受用户会话或 API Key，方便控制台直接提交任务。
@@ -167,7 +176,7 @@
 
 - Provider：`GET/POST /admin/providers`、`GET/PATCH /admin/providers/{id}`（`id` 可为内部 id 或 slug）、`POST /admin/providers/{id}/health-check`（不会计费、不强制确认；管理列表 `/admin/providers` 每行可探测）。`PATCH` 改状态/名称/适配器/上游地址/超时（二次确认；不要改种子 echo/gemini）。`POST /admin/providers/{id}/credentials` 凭据轮换（二次确认，响应只回 `credential_ref`，明文不回显）。管理列表只展示目录和新建；改状态、凭据轮换、账号池、已挂模型在详情页 `/admin/providers/{id}`；
 - 上游账号池：`GET/POST /admin/providers/{id}/accounts`、`PATCH /admin/providers/{id}/accounts/{aid}`；列表只回指纹，不回密文；冷却/失效账号不参与路由；详情页「账号池」可读取、添加、冷却、停用；
-- 模型：`GET/POST /admin/models`、`GET/PATCH /admin/models/{id}`（`id` 为 public_id，可含斜杠，如 `tokenhub/echo-1`）、`POST /admin/models/attach` 挂载 Provider 映射；`GET /admin/models?status=&sync_state=&q=` 先筛选再分页，`sync_state=draft` 为待审核队列（空 sync_state 且 `status=draft` 也算待审核）；`POST /admin/providers/{id}/sync` 同步结果只进入 `draft`，不自动审核（同步入口仅提供商详情，见 `docs/13`）；`POST /admin/models` 手工创建永远是 `draft`（请求里的 `status` 会被忽略）；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`）分别通过/拒绝、发布、弃用，不删除历史映射和价格版本。发布要求 `sync_state=reviewed`，已拒绝不能发布；创建人（`created_by_user_id`）不能审核或发布自己建的模型（409）。`PATCH` 只改展示名、厂商和 `capabilities`（需二次确认），不能靠 PATCH 直接上架。管理页 `/admin/models`：Tab「目录 | 审核」；目录列表极简；审核分待审核 / 已通过待发布 / 已拒绝；挂载、弃用、发布销售价在 `/admin/models/{public_id}`；不要改 `tokenhub/echo-1`；
+- 模型：`GET/POST /admin/models`、`GET/PATCH /admin/models/{id}`（`id` 为 public_id，可含斜杠，如 `tokenhub/echo-1`）、`POST /admin/models/attach` 挂载 Provider 映射；目录/路由组无 token 返回 `401 authentication_error`；出示了禁用/轮换/过期/无效 Key 或无权限仍是 `403`；未知模型 `404`，坏输入 `400`；`GET /v1/models/{id}` 与聊天对目录中不存在的模型返回 `404`，对存在但未授权的模型返回 `403 model_not_allowed`；`GET /admin/models?status=&sync_state=&q=` 先筛选再分页，`sync_state=draft` 为待审核队列（空 sync_state 且 `status=draft` 也算待审核）；`POST /admin/providers/{id}/sync` 同步结果只进入 `draft`，不自动审核（同步入口仅提供商详情，见 `docs/13`）；`POST /admin/models` 手工创建永远是 `draft`（请求里的 `status` 会被忽略）；`POST /admin/models/review|publish|deprecate`（body 带 `public_id`）分别通过/拒绝、发布、弃用，不删除历史映射和价格版本。发布要求 `sync_state=reviewed`，已拒绝不能发布；创建人（`created_by_user_id`）不能审核或发布自己建的模型（409）。`PATCH` 只改展示名、厂商和 `capabilities`（需二次确认），不能靠 PATCH 直接上架。管理页 `/admin/models`：Tab「目录 | 审核」；目录列表极简；审核分待审核 / 已通过待发布 / 已拒绝；挂载、弃用、发布销售价在 `/admin/models/{public_id}`；不要改 `tokenhub/echo-1`；
 - 路由：`GET/POST/PATCH /admin/routes`；创建和改策略需二次确认；管理页 `/admin/routes` 按 vendor 折叠、主键仍是公开模型，可创建路由组并改 `priority`/`weight`/`price`/`health`；厂商默认以模板批量套用（见 `docs/13`）；
 - 渠道/代理：`GET/POST /admin/channels`、`GET/PATCH /admin/channels/{id}`、`GET/PATCH /admin/channels/{id}/models`、`GET /channel/models`；渠道组织是租户边界（A/B/C），代理商和个人推广员是租户内推广角色；A 可建 B/C，B 无下属，C 只建 B；创建和改状态需二次确认；管理页 `/admin/channels` 先列表（渠道/代理商/推广员分栏），点进详情可编辑保存；列表提供新建渠道；新建渠道会复制官方已启用模型白名单；平台可从目录勾选授权/撤销租户模型（`PATCH` 需二次确认，未知 `public_id` 返回 400）；租户不能自建提供商或模型，渠道控制台只读本渠道已授权模型；`disabled` 后聊天/媒体返回 `403 channel_disabled`，`GET /v1/me/balance` 与 usage 仍可读；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
@@ -179,7 +188,7 @@
 - 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`（平台向 B/C 进货）、`POST /channel/quotas/grant`（仅 C 向其下属 B 划拨，扣 C 加 B，需确认）、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），B/C 不能改换算比；用户充值从**所属渠道自己的池**发放；渠道额度不足返回 `402 insufficient_quota`；
 - 渠道运营：`GET /channel/users`、`GET/POST /channel/plans`（渠道自建套餐，归属强制为本渠道；低于 1 USD 进 `pending_review`；渠道控制台「创建渠道套餐」）、`GET /channel/usage`（合计 + `keys`/`models`/`items`，可按 `api_key_id` 筛，不含 prompt）、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；渠道 API Key 列表与禁用见上条；
 - 套餐：`GET/POST/PATCH /admin/plans`、`POST /admin/plans/{id}/review`、发布、下架；管理页 `/admin/plans` 可审核、创建平台套餐，并用 `PATCH` 把套餐标成 `archived`（不要下架 `pln_echo_month`）；`POST /admin/subscriptions/{id}/force-period-end` 与 `POST /admin/subscriptions/process-renewals` 只在沙箱拨时钟/扫续费（生产禁止；管理页「续费扫描」）；
-- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；管理面改价入口在模型详情）；
+- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；发布需 `X-Tokenhub-Confirm`；body 可带 `upstream_cost` / `wholesale` / `customer_sell` 及可选 `channel_override`；`GET ?format=csv` 含 `effective_at` 与四列单价；管理面改价入口在模型详情与 `/admin/prices`，走盖章确认）；
 - 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；

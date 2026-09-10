@@ -67,8 +67,15 @@ func contextString(ctx context.Context, key ctxKey) string {
 // Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面。
 // 沙箱模式用 plugin 短路回声，不打真实上游；live 模式才用 Account 里的 Key。
 type Runtime struct {
-	Client  *bifrost.Bifrost
-	Sandbox bool
+	Client       *bifrost.Bifrost
+	Sandbox      bool
+	GeminiAPIKey string
+}
+
+// GeminiLiveEnabled 只有同时关闭沙箱且配置了非空 Gemini Key 才打真实上游。
+// 缺任一条件都走回声，禁止假装 live Gemini。
+func GeminiLiveEnabled(rt *Runtime) bool {
+	return rt != nil && !rt.Sandbox && strings.TrimSpace(rt.GeminiAPIKey) != ""
 }
 
 func (rt *Runtime) Close() {
@@ -112,7 +119,7 @@ func Start(ctx context.Context, in Settings) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{Client: client, Sandbox: in.Sandbox}, nil
+	return &Runtime{Client: client, Sandbox: in.Sandbox, GeminiAPIKey: in.GeminiAPIKey}, nil
 }
 
 // BifrostAdapter 在进程内调用 Bifrost SDK。client 为空时返回 503。
@@ -408,6 +415,10 @@ func fromBifrostChat(resp *schemas.BifrostChatResponse, sandbox bool) AdapterRes
 	fact := normalizeFactSource(echoed["fact_source"], sandbox)
 	if fact == "" && sandbox {
 		fact = FactSourceSandbox
+	}
+	// live 只在 Bifrost 回了真实路由事实时标记；空 Extra 不得冒充上游。
+	if fact == "" && !sandbox && (echoed["bifrost_provider"] != "" || echoed["upstream_model"] != "") {
+		fact = FactSourceLive
 	}
 	return AdapterResult{
 		HTTPStatus: 200,

@@ -72,6 +72,9 @@ test("user reconciliation page is three-bucket vs usage with no estimate debit",
               usage_minor: 160000,
               charge_minor: 160000,
               reserved_minor: 0,
+              provider_id: "prd_echo",
+              upstream_model_id: "echo-up",
+              fact_source: "sandbox",
             },
             {
               request_id: "req_gap",
@@ -104,6 +107,7 @@ test("user reconciliation page is three-bucket vs usage with no estimate debit",
   await expect(page.getByRole("button", { name: "送入待对账队列" })).toBeVisible();
   await expect(page.getByRole("button", { name: /估扣|估算扣款/ })).toHaveCount(0);
   await expect(page.getByTestId("usage-trend-chart")).toHaveCount(0);
+  await expect(page.getByText("prd_echo / echo-up / req_ok")).toBeVisible();
   await expect(page.getByText("缺上游元数据").first()).toBeVisible();
   await expect(page.getByText("openai")).toHaveCount(0);
 });

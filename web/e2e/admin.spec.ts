@@ -110,6 +110,7 @@ test("admin margin detail rows show honest upstream-fact badges", async ({ page 
     });
   });
   await page.goto("/admin/margin");
+  await expect(page.getByText("prd_echo / echo-up / req_ok")).toBeVisible();
   await expect(page.getByText("缺上游元数据")).toBeVisible();
   await expect(page.getByTestId("upstream-facts-badge").first()).toBeVisible();
   await expect(page.getByText("openai")).toHaveCount(0);

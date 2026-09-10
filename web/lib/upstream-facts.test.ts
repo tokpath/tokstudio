@@ -35,9 +35,9 @@ describe("W1-① upstream facts badge", () => {
       model: "echo-upstream-model",
       request_id: "req_abcdef123456",
     });
-    expect(label).toContain("prd_echo_pr…");
-    expect(label).toContain("echo-upstre…");
-    expect(label).toContain("req_abcdef1…");
+    expect(label).toContain("prd_echo_pri…");
+    expect(label).toContain("echo-upstrea…");
+    expect(label).toContain("req_abcdef12…");
     expect(truncateFact("short")).toBe("short");
   });
 

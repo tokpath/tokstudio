@@ -23,6 +23,9 @@ const stub: ReconcileView = {
       usage_minor: 160000,
       charge_minor: 160000,
       reserved_minor: 0,
+      provider_id: "prd_echo",
+      upstream_model_id: "echo-up",
+      fact_source: "sandbox",
     },
     {
       request_id: "req_gap",
@@ -56,6 +59,7 @@ describe("BucketReconcilePanel", () => {
     expect(screen.queryByRole("button", { name: /估扣|估算扣款|estimate/i })).toBeNull();
     expect(screen.queryByText("估扣")).toBeNull();
     expect(screen.queryByText("估算扣款")).toBeNull();
+    expect(screen.getByText("prd_echo / echo-up / req_ok")).toBeTruthy();
     expect(screen.getAllByText("缺上游元数据").length).toBeGreaterThan(0);
     expect(screen.queryByText("openai")).toBeNull();
     expect(screen.queryByText("gpt-4")).toBeNull();

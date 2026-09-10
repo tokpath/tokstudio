@@ -83,7 +83,7 @@ services:
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
       TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_BIFROST_SANDBOX: "true"
+      TOKENHUB_BIFROST_SANDBOX: ${TOKENHUB_BIFROST_SANDBOX:-true}
       TOKENHUB_GOOGLE_ALLOW_MOCK: ${TOKENHUB_GOOGLE_ALLOW_MOCK:-false}
       TOKENHUB_S3_ENDPOINT: http://minio:9000
       TOKENHUB_S3_PUBLIC_ENDPOINT: http://localhost:9000
@@ -92,6 +92,8 @@ services:
       TOKENHUB_S3_ACCESS_KEY: minioadmin
       TOKENHUB_S3_SECRET_KEY: minioadmin
       TOKENHUB_S3_FORCE_PATH_STYLE: "true"
+    volumes:
+      - tokenhub_media:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -224,3 +226,4 @@ volumes:
   tokenhub_caddy:
   tokenhub_offsite:
   tokenhub_minio:
+  tokenhub_media:

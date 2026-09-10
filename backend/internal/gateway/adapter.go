@@ -122,7 +122,8 @@ func (TestAdapter) Chat(ctx context.Context, providerSlug, behavior string, req 
 	return result, nil
 }
 
-// GeminiAdapter 用 Key 门控：sandbox 或空 Key 只回声；live+Key 经 Bifrost 打真实 Gemini。
+// GeminiAdapter 沙箱回声；live 且 Runtime 可用时改走 Bifrost Gemini。
+// W1-Gemini：sandbox 或空 Key 且无 live Runtime 只回声；live+Key 无 Client 返回 503。
 // 回声不得把 fact_source 标成 live，也不得伪造 Google 上游身份。
 type GeminiAdapter struct {
 	Runtime *Runtime
@@ -131,11 +132,11 @@ type GeminiAdapter struct {
 func (GeminiAdapter) Name() string { return "gemini" }
 
 func (a GeminiAdapter) Chat(ctx context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
-	if GeminiLiveEnabled(a.Runtime) {
+	if GeminiLiveEnabled(a.Runtime) || (a.Runtime != nil && !a.Runtime.Sandbox && a.Runtime.Client != nil) {
 		if a.Runtime == nil || a.Runtime.Client == nil {
 			return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini live bifrost unavailable")
 		}
-		return BifrostAdapter{Runtime: a.Runtime}.Chat(ctx, providerSlug, behavior, req)
+		return BifrostAdapter{Runtime: a.Runtime}.Chat(ctx, firstNonEmpty(providerSlug, "gemini"), behavior, req)
 	}
 	result, err := TestAdapter{}.Chat(ctx, providerSlug, behavior, req)
 	if err != nil {

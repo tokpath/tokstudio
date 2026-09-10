@@ -5,6 +5,21 @@ import (
 	"time"
 )
 
+func TestProviderMatchesKind(t *testing.T) {
+	if !providerMatchesKind(providerRow{Adapter: "openai", Slug: "lab"}, "openai") {
+		t.Fatal("openai adapter")
+	}
+	if !providerMatchesKind(providerRow{Adapter: "test", Slug: "openai-prod"}, "openai") {
+		t.Fatal("openai slug")
+	}
+	if providerMatchesKind(providerRow{Adapter: "gemini", Slug: "gemini-flash"}, "openai") {
+		t.Fatal("gemini is not openai")
+	}
+	if !providerMatchesKind(providerRow{Adapter: "gemini", Slug: "gemini-flash"}, "gemini") {
+		t.Fatal("gemini adapter")
+	}
+}
+
 func TestAccountUsable(t *testing.T) {
 	now := time.Date(2026, 8, 29, 12, 0, 0, 0, time.UTC)
 	future := now.Add(time.Minute)

@@ -9,8 +9,6 @@ import (
 const (
 	FactSourceSandbox = "sandbox"
 	FactSourceLive    = "live"
-
-	ctxAttemptIDKey ctxKey = "tokenhub.attempt_id"
 )
 
 // PassthroughMeta 是每次调用必须带进 Bifrost、再写回 TokenHub 的不可变账务键。

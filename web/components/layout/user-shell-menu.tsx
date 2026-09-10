@@ -9,6 +9,7 @@ import { apiBase } from "@/lib/api";
 import {
   avatarInitial,
   balancePillText,
+  canSeePlatformAdmin,
   profileDash,
   readNailedAvailable,
   shellRole,
@@ -17,6 +18,8 @@ import {
 } from "@/lib/user-shell";
 
 type ShellMe = MeProfile & { id?: string };
+
+export type UserShellVariant = "user" | "admin";
 
 export function UserShellBell() {
   const t = useTranslations("shell");
@@ -35,9 +38,10 @@ export function UserShellBell() {
   );
 }
 
-export function UserShellRightZone() {
+export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVariant }) {
   const t = useTranslations("shell");
   const router = useRouter();
+  const isUserShell = variant === "user";
   const [me, setMe] = useState<ShellMe | null>(null);
   const [meReady, setMeReady] = useState(false);
   const [balanceState, setBalanceState] = useState<BalanceLoadState>("loading");
@@ -93,11 +97,13 @@ export function UserShellRightZone() {
       }
     }
     void loadMe();
-    void loadBalance();
+    if (isUserShell) {
+      void loadBalance();
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isUserShell]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,6 +127,7 @@ export function UserShellRightZone() {
   const roleLabel = role === "admin" ? t("roleAdmin") : t("roleUser");
   const initial = avatarInitial(me?.display_name, me?.email);
   const amount = balancePillText(balanceState, available);
+  const showPlatformAdmin = isUserShell && canSeePlatformAdmin(me?.roles);
 
   async function logout() {
     setOpen(false);
@@ -135,32 +142,34 @@ export function UserShellRightZone() {
 
   return (
     <>
-      {balanceState === "loading" ? (
-        <span
-          data-testid="balance-pill"
-          data-state="loading"
-          aria-busy="true"
-          aria-label={t("balanceLoading")}
-          className="inline-flex h-9 min-w-[4.5rem] items-center rounded-control bg-success/15 px-3"
-        >
-          <span className="h-3 w-12 animate-pulse rounded-control bg-success/25" />
-        </span>
-      ) : (
-        <Link
-          href="/app/wallet"
-          data-testid="balance-pill"
-          data-state={balanceState}
-          data-field="available"
-          aria-label={t("balance")}
-          className={`inline-flex h-9 items-center rounded-control px-3 font-mono text-sm font-medium tabular-nums no-underline ${
-            balanceState === "error" || amount === "—"
-              ? "bg-canvas-raised text-ink-mute"
-              : "bg-success/15 text-success"
-          }`}
-        >
-          {amount}
-        </Link>
-      )}
+      {isUserShell ? (
+        balanceState === "loading" ? (
+          <span
+            data-testid="balance-pill"
+            data-state="loading"
+            aria-busy="true"
+            aria-label={t("balanceLoading")}
+            className="inline-flex h-9 min-w-[4.5rem] items-center rounded-control bg-success/15 px-3"
+          >
+            <span className="h-3 w-12 animate-pulse rounded-control bg-success/25" />
+          </span>
+        ) : (
+          <Link
+            href="/app/wallet"
+            data-testid="balance-pill"
+            data-state={balanceState}
+            data-field="available"
+            aria-label={t("balance")}
+            className={`inline-flex h-9 items-center rounded-control px-3 font-mono text-sm font-medium tabular-nums no-underline ${
+              balanceState === "error" || amount === "—"
+                ? "bg-canvas-raised text-ink-mute"
+                : "bg-success/15 text-success"
+            }`}
+          >
+            {amount}
+          </Link>
+        )
+      ) : null}
 
       <div ref={rootRef} className="relative">
         <button
@@ -209,7 +218,7 @@ export function UserShellRightZone() {
               <UserRound className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
               {t("profile")}
             </Link>
-            {me?.roles?.includes("platform_admin") ? (
+            {showPlatformAdmin ? (
               <Link
                 href="/admin"
                 role="menuitem"
@@ -221,15 +230,29 @@ export function UserShellRightZone() {
                 {t("platformAdmin")}
               </Link>
             ) : null}
-            <Link
-              href="/app/keys"
-              role="menuitem"
-              className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
-              onClick={() => setOpen(false)}
-            >
-              <KeyRound className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
-              {t("keys")}
-            </Link>
+            {!isUserShell ? (
+              <Link
+                href="/app"
+                role="menuitem"
+                data-testid="menu-user-console"
+                className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
+                onClick={() => setOpen(false)}
+              >
+                <LayoutDashboard className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
+                {t("userConsole")}
+              </Link>
+            ) : null}
+            {isUserShell ? (
+              <Link
+                href="/app/keys"
+                role="menuitem"
+                className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
+                onClick={() => setOpen(false)}
+              >
+                <KeyRound className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
+                {t("keys")}
+              </Link>
+            ) : null}
             <div className="my-1.5 border-t border-hairline" role="separator" />
             <button
               type="button"

@@ -164,3 +164,62 @@ describe("UserShellBell", () => {
     expect(bell.getAttribute("title")).toBe("通知中心尚未开放");
   });
 });
+
+describe("UserShellRightZone admin variant", () => {
+  beforeEach(() => {
+    push.mockReset();
+    refresh.mockReset();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/me/balance")) {
+          return jsonResponse(true, { balance: { available: "99" } });
+        }
+        if (url.includes("/v1/auth/logout")) {
+          return jsonResponse(true, { ok: true });
+        }
+        if (url.includes("/v1/me")) {
+          return jsonResponse(true, {
+            user: {
+              display_name: "Ops",
+              email: "ops@example.test",
+              roles: ["platform_admin"],
+            },
+          });
+        }
+        return jsonResponse(false, {});
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows avatar profile without balance or API keys, and links back to user console", async () => {
+    render(withZh(<UserShellRightZone variant="admin" />));
+    await waitFor(() => expect(screen.getByTestId("avatar-trigger")).toBeTruthy());
+    expect(screen.queryByTestId("balance-pill")).toBeNull();
+    const calledUrls = vi.mocked(fetch).mock.calls.map((call) => String(call[0]));
+    expect(calledUrls.some((url) => url.includes("/v1/me/balance"))).toBe(false);
+    fireEvent.click(screen.getByTestId("avatar-trigger"));
+    expect(screen.getByTestId("menu-display-name").textContent).toBe("Ops");
+    expect(screen.getByTestId("menu-email").textContent).toBe("ops@example.test");
+    expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/profile");
+    expect(screen.getByRole("menuitem", { name: "用户控制台" }).getAttribute("href")).toBe("/app");
+    expect(screen.queryByRole("menuitem", { name: "API 密钥" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();
+    expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
+  });
+
+  it("still logs out through the real session endpoint", async () => {
+    render(withZh(<UserShellRightZone variant="admin" />));
+    await waitFor(() => expect(screen.getByTestId("avatar-trigger")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("avatar-trigger"));
+    fireEvent.click(screen.getByRole("menuitem", { name: "退出登录" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
+    expect(fetch).toHaveBeenCalledWith("/api/v1/auth/logout", expect.objectContaining({ method: "POST" }));
+  });
+});

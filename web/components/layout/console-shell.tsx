@@ -110,6 +110,19 @@ export function ConsoleShell({
                   {tc("jump")}
                 </Button>
               </>
+            ) : isAdmin ? (
+              <>
+                <LocaleSwitch />
+                <ThemeToggle />
+                <UserShellRightZone variant="admin" />
+                <Button variant="ghost" size="sm" onClick={onCommand}>
+                  <Search />
+                  {tc("jump")}
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/docs">{tc("docs")}</Link>
+                </Button>
+              </>
             ) : (
               <>
                 <LocaleSwitch />

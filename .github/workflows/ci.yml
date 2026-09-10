@@ -31,6 +31,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      minio:
+        image: bitnami/minio:2024.12.18
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+          MINIO_DEFAULT_BUCKETS: tokenhub
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     defaults:
       run:
         working-directory: backend
@@ -57,6 +70,11 @@ jobs:
           TOKENHUB_REDIS_URL: redis://localhost:6379/0
           TOKENHUB_BOOTSTRAP_ADMIN_TOKEN: ci_admin_token
           TOKENHUB_BOOTSTRAP_USER_TOKEN: ci_user_token
+          TOKENHUB_S3_ENDPOINT: http://127.0.0.1:9000
+          TOKENHUB_S3_PUBLIC_ENDPOINT: http://127.0.0.1:9000
+          TOKENHUB_S3_BUCKET: tokenhub
+          TOKENHUB_S3_REGION: us-east-1
+          TOKENHUB_S3_FORCE_PATH_STYLE: "true"
         run: go test ./...
 
   frontend:

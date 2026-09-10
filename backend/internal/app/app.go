@@ -65,7 +65,17 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	billingSvc := billing.New(gdb, outboxSvc)
 	plansSvc := plans.New(gdb, outboxSvc)
 	billingSvc.SetCoverer(plansSvc)
-	store := media.NewStore(cfg.MediaStorePath, firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey), cfg.PublicBaseURL)
+	store := media.NewStore(media.Settings{
+		Endpoint:       cfg.S3Endpoint,
+		PublicEndpoint: cfg.S3PublicEndpoint,
+		Region:         cfg.S3Region,
+		Bucket:         cfg.S3Bucket,
+		AccessKey:      cfg.S3AccessKey,
+		SecretKey:      cfg.S3SecretKey,
+		ForcePathStyle: cfg.S3ForcePathStyle,
+		Production:     cfg.IsProduction(),
+		SignKey:        firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey),
+	})
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
@@ -225,7 +235,15 @@ func (a *App) healthz(c *gin.Context) {
 		"service":    "tokenhub-api",
 		"version":    "0.1.0-m7",
 		"request_id": c.GetString(httpx.ContextRequestID),
+		"storage":    a.storageView(),
 	})
+}
+
+func (a *App) storageView() media.Status {
+	if a == nil || a.Media == nil {
+		return media.Status{Source: media.SourceUnavailable, Label: media.LabelUnavailable}
+	}
+	return a.Media.StoreStatus(context.Background())
 }
 
 func (a *App) readyz(c *gin.Context) {

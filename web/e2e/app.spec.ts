@@ -131,11 +131,15 @@ test("user media page is list-first with create dialog", async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ items: [] }),
+      body: JSON.stringify({ items: [], storage: { source: "minio", ok: true, label: "S3" } }),
     });
   });
   await page.goto("/app/media");
   await expect(page.getByRole("heading", { level: 1, name: "媒体任务" })).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "true");
+  await expect(page.getByText("✓")).toHaveCount(0);
   await expect(page.getByLabel("筛选媒体类型")).toBeVisible();
   await expect(page.getByRole("button", { name: "刷新任务" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新建任务" }).first()).toBeVisible();
@@ -147,6 +151,36 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await expect(page.getByLabel("宽高比")).toBeVisible();
   await expect(page.getByLabel("帧率")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
+});
+
+test("media download badge is grey 存储不可用 when the bucket is missing", async ({ page }) => {
+  await page.route("**/v1/me/media**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [{ id: "vid_missing", kind: "video", status: "completed", model: "bytedance/seedance-1.0" }],
+        storage: { source: "unavailable", ok: false, label: "存储不可用", detail: "missing bucket" },
+      }),
+    });
+  });
+  await page.route("**/v1/videos/vid_missing/content**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: { code: "store_unavailable", message: "存储不可用" },
+        storage: { source: "unavailable", ok: false, label: "存储不可用" },
+      }),
+    });
+  });
+  await page.goto("/app/media");
+  await expect(page.getByRole("button", { name: "下载" })).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("存储不可用");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "false");
+  await expect(page.getByText("✓")).toHaveCount(0);
+  await page.getByRole("button", { name: "下载" }).click();
+  await expect(page.getByText("存储不可用").first()).toBeVisible();
 });
 
 test("channel reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {

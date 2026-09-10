@@ -773,11 +773,13 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("bifrost embed sandbox reply: %+v", viaBifrost)
 	}
 
-	fromSession := postAccepted(t, server.URL+"/v1/videos", session, "sess-m7", map[string]any{
-		"model": catalog.SeedanceModelID, "prompt": "from console",
-	})
-	if fromSession["id"] == nil {
-		t.Fatalf("session media create: %+v", fromSession)
+	if application.Media.StoreStatus(context.Background()).OK {
+		fromSession := postAccepted(t, server.URL+"/v1/videos", session, "sess-m7", map[string]any{
+			"model": catalog.SeedanceModelID, "prompt": "from console",
+		})
+		if fromSession["id"] == nil {
+			t.Fatalf("session media create: %+v", fromSession)
+		}
 	}
 
 	frozenCode := "freeze-" + strconv.FormatInt(time.Now().UnixNano(), 10)

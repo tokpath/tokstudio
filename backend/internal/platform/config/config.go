@@ -35,6 +35,13 @@ type Config struct {
 	AllowDemoProbes        bool
 	MediaStorePath         string
 	MediaSignKey           string
+	S3Endpoint             string
+	S3PublicEndpoint       string
+	S3Region               string
+	S3Bucket               string
+	S3AccessKey            string
+	S3SecretKey            string
+	S3ForcePathStyle       bool
 	ArkBaseURL             string
 	OpenRouterBaseURL      string
 	PaymentSignKey         string
@@ -89,6 +96,13 @@ func Load() (*Config, error) {
 		AllowDemoProbes:        v.GetBool("ALLOW_DEMO_PROBES"),
 		MediaStorePath:         v.GetString("MEDIA_STORE_PATH"),
 		MediaSignKey:           v.GetString("MEDIA_SIGN_KEY"),
+		S3Endpoint:             v.GetString("S3_ENDPOINT"),
+		S3PublicEndpoint:       v.GetString("S3_PUBLIC_ENDPOINT"),
+		S3Region:               v.GetString("S3_REGION"),
+		S3Bucket:               v.GetString("S3_BUCKET"),
+		S3AccessKey:            firstNonEmpty(v.GetString("S3_ACCESS_KEY"), os.Getenv("AWS_ACCESS_KEY_ID")),
+		S3SecretKey:            firstNonEmpty(v.GetString("S3_SECRET_KEY"), os.Getenv("AWS_SECRET_ACCESS_KEY")),
+		S3ForcePathStyle:       v.GetBool("S3_FORCE_PATH_STYLE"),
 		ArkBaseURL:             v.GetString("ARK_BASE_URL"),
 		OpenRouterBaseURL:      v.GetString("OPENROUTER_BASE_URL"),
 		PaymentSignKey:         v.GetString("PAYMENT_SIGN_KEY"),
@@ -174,5 +188,17 @@ func (c *Config) RedactedMap() map[string]any {
 		"openai_key_set":      c.OpenAIAPIKey != "",
 		"acme_directory_set":  c.ACMEDirectory != "",
 		"acme_force":          c.ACMEForce,
+		"s3_endpoint_set":     c.S3Endpoint != "",
+		"s3_bucket":           c.S3Bucket,
+		"s3_key_set":          c.S3AccessKey != "",
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }

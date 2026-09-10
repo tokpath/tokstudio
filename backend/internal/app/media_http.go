@@ -38,7 +38,13 @@ func (a *App) listMyMedia(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
 		return
 	}
-	httpx.OKPage(c, items, 20, func(item media.JobView) string { return item.ID })
+	limit, cursor := httpx.Page(c, 20)
+	page, next := httpx.Paginate(items, limit, cursor, func(item media.JobView) string { return item.ID })
+	httpx.OK(c, gin.H{
+		"items": page, "limit": limit, "next_cursor": next,
+		"storage":    a.storageView(),
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) listAdminMedia(c *gin.Context) {
@@ -53,7 +59,13 @@ func (a *App) listAdminMedia(c *gin.Context) {
 		})
 		return
 	}
-	httpx.OKPage(c, items, 50, func(item media.JobView) string { return item.ID })
+	limit, cursor := httpx.Page(c, 50)
+	page, next := httpx.Paginate(items, limit, cursor, func(item media.JobView) string { return item.ID })
+	httpx.OK(c, gin.H{
+		"items": page, "limit": limit, "next_cursor": next,
+		"storage":    a.storageView(),
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
 }
 
 func (a *App) createVideo(c *gin.Context) {
@@ -160,6 +172,8 @@ func (a *App) createMedia(c *gin.Context, kind, defaultTask string) {
 			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
 		case errors.Is(err, media.ErrInvalidRequest):
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", err.Error(), false)
+		case errors.Is(err, media.ErrStoreUnavailable):
+			httpx.Abort(c, http.StatusServiceUnavailable, "store_unavailable", "存储不可用", true)
 		default:
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建媒体任务失败", false)
 		}
@@ -199,6 +213,10 @@ func (a *App) videoContent(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, media.ErrNotReady) {
 			httpx.Abort(c, http.StatusConflict, "media_job_not_ready", "结果未就绪或已过期", true)
+			return
+		}
+		if errors.Is(err, media.ErrStoreUnavailable) {
+			httpx.Abort(c, http.StatusServiceUnavailable, "store_unavailable", "存储不可用", true)
 			return
 		}
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "任务不存在", false)

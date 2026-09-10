@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -178,7 +179,7 @@ func (s *Service) AssertBrandWritable(channel *ChannelView, viewer Principal, br
 
 func (s *Service) UploadBrandAsset(ctx context.Context, viewer Principal, brandID, kind, filename string, data []byte) (*AssetView, error) {
 	if s.store == nil {
-		return nil, ErrNotFound
+		return nil, ErrStoreUnavailable
 	}
 	decoded, err := ValidateAsset(kind, filename, data)
 	if err != nil {
@@ -198,7 +199,7 @@ func (s *Service) UploadBrandAsset(ctx context.Context, viewer Principal, brandI
 	assetID := id.New("bas")
 	key := BrandAssetObjectKey(brandID, decoded.Kind, decoded.SHA256, decoded.Ext)
 	if err := s.store.Put(key, decoded.ContentType, data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
 	}
 	now := time.Now().UTC()
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -238,7 +239,7 @@ func (s *Service) UploadBrandAsset(ctx context.Context, viewer Principal, brandI
 
 func (s *Service) PublicBrandAsset(ctx context.Context, assetID string) (*brandAssetRow, []byte, error) {
 	if s.store == nil {
-		return nil, nil, ErrNotFound
+		return nil, nil, ErrStoreUnavailable
 	}
 	var row brandAssetRow
 	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", assetID, "active").First(&row).Error; err != nil {
@@ -246,7 +247,7 @@ func (s *Service) PublicBrandAsset(ctx context.Context, assetID string) (*brandA
 	}
 	body, err := s.store.Read(row.ObjectKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("%w: %v", ErrStoreUnavailable, err)
 	}
 	return &row, body, nil
 }

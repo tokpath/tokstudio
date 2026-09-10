@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/app"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
@@ -29,6 +31,7 @@ func TestM4MediaJobs(t *testing.T) {
 	cfg.BootstrapUser = "m4_user"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
 	application := mustApp(t, cfg)
+	requireObjectStore(t, application)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 
@@ -76,8 +79,12 @@ func TestM4MediaJobs(t *testing.T) {
 
 	content := getAuthJSON(t, server.URL+"/v1/videos/"+first["id"].(string)+"/content", apiKey)
 	url, _ := content["url"].(string)
-	if url == "" || !strings.Contains(url, "/v1/media/objects") {
-		t.Fatalf("expected signed url, got %+v", content)
+	if !presignedDownloadURL(url) {
+		t.Fatalf("expected S3 presigned url, got %+v", content)
+	}
+	storage, _ := content["storage"].(map[string]any)
+	if storage["ok"] != true || storage["label"] != "S3" {
+		t.Fatalf("content storage badge: %+v", content["storage"])
 	}
 	if !strings.HasPrefix(url, "http") {
 		url = server.URL + url
@@ -301,6 +308,18 @@ func getBytes(t *testing.T, url string) []byte {
 		t.Fatalf("GET %s %d %s", url, resp.StatusCode, body)
 	}
 	return body
+}
+
+func presignedDownloadURL(url string) bool {
+	return url != "" && (strings.Contains(url, "X-Amz-") || strings.Contains(url, "/v1/media/objects"))
+}
+
+func requireObjectStore(t *testing.T, application *app.App) {
+	t.Helper()
+	st := application.Media.StoreStatus(context.Background())
+	if !st.OK {
+		t.Skip("integration test requires MinIO/S3: " + st.Detail)
+	}
 }
 
 func num(v any) float64 {

@@ -20,7 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { StorageSourceBadge } from "@/components/storage-source-badge";
 import { apiBase } from "@/lib/api";
+import type { StorageSource } from "@/lib/storage-source";
 
 type Job = {
   id: string;
@@ -94,6 +96,7 @@ export default function MediaPanel() {
   const [kind, setKind] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [storage, setStorage] = useState<StorageSource | undefined>();
   const [message, setMessage] = useState(t("mediaHint"));
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -132,6 +135,9 @@ export default function MediaPanel() {
         return;
       }
       setItems(body.items || []);
+      if (body.storage) {
+        setStorage(body.storage as StorageSource);
+      }
       setMessage(t("mediaRefreshed"));
     } catch {
       setItems([]);
@@ -193,10 +199,34 @@ export default function MediaPanel() {
     await refresh();
   }
 
+  async function downloadJob(id: string, jobKind?: string) {
+    const path = jobKind === "image" ? `/v1/images/${encodeURIComponent(id)}/content` : `/v1/videos/${encodeURIComponent(id)}/content`;
+    const response = await fetch(`${apiBase}${path}`, { credentials: "include" });
+    const body = await response.json().catch(() => ({}));
+    if (body.storage) {
+      setStorage(body.storage as StorageSource);
+    }
+    if (!response.ok) {
+      setMessage(body.error?.message || "存储不可用");
+      return;
+    }
+    const url = typeof body.url === "string" ? body.url : "";
+    if (!url) {
+      setMessage("存储不可用");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <Card>
       <LeadActions
-        lead={<p className="text-sm text-ink-secondary">{t("mediaLead")}</p>}
+        lead={
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-ink-secondary">{t("mediaLead")}</p>
+            <StorageSourceBadge storage={storage} />
+          </div>
+        }
         actions={
           <>
             <select
@@ -243,6 +273,14 @@ export default function MediaPanel() {
               {item.duration ? <span className="text-ink-mute">{item.duration}s</span> : null}
               <span className="font-mono text-xs text-ink-secondary">{item.model}</span>
               <span className="font-mono text-xs text-ink-mute">{item.id}</span>
+              {item.status === "completed" || item.status === "succeeded" ? (
+                <span className="ml-auto inline-flex items-center gap-2">
+                  <StorageSourceBadge storage={storage} />
+                  <Button type="button" size="sm" variant="outline" onClick={() => void downloadJob(item.id, item.kind)}>
+                    下载
+                  </Button>
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>

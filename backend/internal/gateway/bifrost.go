@@ -9,6 +9,8 @@ import (
 
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/schemas"
+
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 )
 
 type ctxKey string
@@ -20,6 +22,8 @@ const (
 	ctxUserIDKey           ctxKey = "tokenhub.user_id"
 	ctxChannelIDKey        ctxKey = "tokenhub.channel_org_id"
 	ctxPublicModelKey      ctxKey = "tokenhub.public_model_id"
+	ctxAttemptIDKey        ctxKey = "tokenhub.attempt_id"
+	ctxAccountSecretKey    ctxKey = "tokenhub.account_secret"
 )
 
 // ContextWithRequestID 把账务 request_id 放进 context，供 Bifrost metadata 透传。
@@ -47,6 +51,8 @@ func ContextWithMeta(ctx context.Context, meta map[string]string) context.Contex
 			ctx = context.WithValue(ctx, ctxChannelIDKey, value)
 		case "public_model_id":
 			ctx = context.WithValue(ctx, ctxPublicModelKey, value)
+		case "attempt_id":
+			ctx = context.WithValue(ctx, ctxAttemptIDKey, value)
 		}
 	}
 	return ctx
@@ -84,6 +90,14 @@ type Settings struct {
 	AnthropicAPIKey  string
 	GeminiAPIKey     string
 	OpenRouterAPIKey string
+	EncryptionKey    string
+	Keys             AccountKeys
+}
+
+// AccountKeys 由 catalog 实现：把目录账号池解密给 Bifrost。
+type AccountKeys interface {
+	ListPlainKeys(ctx context.Context, encKey, providerKind string) ([]catalog.PlainKey, error)
+	HasPlainKeys(ctx context.Context, encKey, providerKind string) bool
 }
 
 // Start 在当前进程初始化 Bifrost SDK。失败时调用方应让 Adapter 返回 provider_unavailable。
@@ -161,48 +175,101 @@ func (a *envAccount) GetConfiguredProviders() ([]schemas.ModelProvider, error) {
 		return []schemas.ModelProvider{schemas.OpenAI}, nil
 	}
 	var out []schemas.ModelProvider
-	if strings.TrimSpace(a.settings.OpenAIAPIKey) != "" {
-		out = append(out, schemas.OpenAI)
-	}
-	if strings.TrimSpace(a.settings.AnthropicAPIKey) != "" {
-		out = append(out, schemas.Anthropic)
-	}
-	if strings.TrimSpace(a.settings.GeminiAPIKey) != "" {
-		out = append(out, schemas.Gemini)
-	}
-	if strings.TrimSpace(a.settings.OpenRouterAPIKey) != "" {
-		out = append(out, schemas.OpenRouter)
+	for _, item := range []struct {
+		key   string
+		kind  string
+		model schemas.ModelProvider
+	}{
+		{a.settings.OpenAIAPIKey, "openai", schemas.OpenAI},
+		{a.settings.AnthropicAPIKey, "anthropic", schemas.Anthropic},
+		{a.settings.GeminiAPIKey, "gemini", schemas.Gemini},
+		{a.settings.OpenRouterAPIKey, "openrouter", schemas.OpenRouter},
+	} {
+		if strings.TrimSpace(item.key) != "" || a.hasCatalogKeys(item.kind) {
+			out = append(out, item.model)
+		}
 	}
 	return out, nil
 }
 
-func (a *envAccount) GetKeysForProvider(_ context.Context, provider schemas.ModelProvider) ([]schemas.Key, error) {
-	key := ""
+func (a *envAccount) hasCatalogKeys(kind string) bool {
+	if a.settings.Keys == nil {
+		return false
+	}
+	return a.settings.Keys.HasPlainKeys(context.Background(), a.settings.EncryptionKey, kind)
+}
+
+func (a *envAccount) GetKeysForProvider(ctx context.Context, provider schemas.ModelProvider) ([]schemas.Key, error) {
+	kind := bifrostKind(provider)
+	envKey := ""
 	switch provider {
 	case schemas.OpenAI:
-		key = a.settings.OpenAIAPIKey
-		if a.settings.Sandbox && strings.TrimSpace(key) == "" {
-			key = "sk-tokenhub-sandbox"
+		envKey = a.settings.OpenAIAPIKey
+		if a.settings.Sandbox && strings.TrimSpace(envKey) == "" {
+			envKey = "sk-tokenhub-sandbox"
 		}
 	case schemas.Anthropic:
-		key = a.settings.AnthropicAPIKey
+		envKey = a.settings.AnthropicAPIKey
 	case schemas.Gemini:
-		key = a.settings.GeminiAPIKey
+		envKey = a.settings.GeminiAPIKey
 	case schemas.OpenRouter:
-		key = a.settings.OpenRouterAPIKey
+		envKey = a.settings.OpenRouterAPIKey
 	default:
 		return nil, fmt.Errorf("provider %s not configured", provider)
 	}
-	if strings.TrimSpace(key) == "" {
+	var out []schemas.Key
+	if preferred := contextString(ctx, ctxAccountSecretKey); strings.TrimSpace(preferred) != "" {
+		out = append(out, schemas.Key{
+			ID:     firstNonEmpty(contextString(ctx, ctxAttemptIDKey), "tokenhub-preferred"),
+			Name:   "tokenhub-preferred",
+			Value:  *schemas.NewSecretVar(preferred),
+			Models: schemas.WhiteList{"*"},
+			Weight: 1.0,
+		})
+	}
+	if strings.TrimSpace(envKey) != "" {
+		out = append(out, schemas.Key{
+			ID:     "tokenhub-" + string(provider),
+			Name:   "tokenhub-" + string(provider),
+			Value:  *schemas.NewSecretVar(envKey),
+			Models: schemas.WhiteList{"*"},
+			Weight: 0.5,
+		})
+	}
+	if a.settings.Keys != nil && strings.TrimSpace(a.settings.EncryptionKey) != "" {
+		rows, err := a.settings.Keys.ListPlainKeys(ctx, a.settings.EncryptionKey, kind)
+		if err == nil {
+			for _, row := range rows {
+				if strings.TrimSpace(row.Value) == "" {
+					continue
+				}
+				out = append(out, schemas.Key{
+					ID:     row.ID,
+					Name:   row.ID,
+					Value:  *schemas.NewSecretVar(row.Value),
+					Models: schemas.WhiteList{"*"},
+					Weight: 0.5,
+				})
+			}
+		}
+	}
+	if len(out) == 0 {
 		return nil, fmt.Errorf("provider %s has no api key", provider)
 	}
-	return []schemas.Key{{
-		ID:     "tokenhub-" + string(provider),
-		Name:   "tokenhub-" + string(provider),
-		Value:  *schemas.NewSecretVar(key),
-		Models: schemas.WhiteList{"*"},
-		Weight: 1.0,
-	}}, nil
+	return out, nil
+}
+
+func bifrostKind(provider schemas.ModelProvider) string {
+	switch provider {
+	case schemas.Anthropic:
+		return "anthropic"
+	case schemas.Gemini:
+		return "gemini"
+	case schemas.OpenRouter:
+		return "openrouter"
+	default:
+		return "openai"
+	}
 }
 
 func (a *envAccount) GetConfigForProvider(provider schemas.ModelProvider) (*schemas.ProviderConfig, error) {
@@ -314,6 +381,9 @@ func toBifrostParams(ctx context.Context, req ChatRequest, providerSlug string) 
 	}
 	if v := contextString(ctx, ctxPublicModelKey); v != "" {
 		meta["public_model_id"] = v
+	}
+	if v := contextString(ctx, ctxAttemptIDKey); v != "" {
+		meta["attempt_id"] = v
 	}
 	params := &schemas.ChatParameters{
 		Temperature:         req.Temperature,

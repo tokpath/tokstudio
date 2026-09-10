@@ -83,7 +83,7 @@ services:
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
       TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_BIFROST_SANDBOX: "true"
+      TOKENHUB_BIFROST_SANDBOX: ${TOKENHUB_BIFROST_SANDBOX:-true}
     volumes:
       - tokenhub_media:/data/media
     depends_on:

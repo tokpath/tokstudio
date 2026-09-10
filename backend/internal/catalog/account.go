@@ -234,6 +234,83 @@ func (s *Service) pickAccount(ctx context.Context, providerID, publicID string) 
 	return "", true
 }
 
+// PlainKey 是解密后的上游账号，只给网关/Bifrost 用，不进 JSON。
+type PlainKey struct {
+	ID    string
+	Value string
+}
+
+// RevealAccount 解密一条账号。找不到或不可用时返回空串。
+func (s *Service) RevealAccount(ctx context.Context, accountID, encKey string) (string, error) {
+	if strings.TrimSpace(accountID) == "" || strings.TrimSpace(encKey) == "" {
+		return "", nil
+	}
+	var row accountRow
+	if err := s.db.WithContext(ctx).Where("id = ?", accountID).First(&row).Error; err != nil {
+		return "", err
+	}
+	if !accountUsable(row, time.Now().UTC(), "") {
+		return "", nil
+	}
+	return crypto.Open(encKey, row.Ciphertext)
+}
+
+// ListPlainKeys 列出某类适配器下仍可用的上游 Key，供 Bifrost Account 使用。
+func (s *Service) ListPlainKeys(ctx context.Context, encKey, providerKind string) ([]PlainKey, error) {
+	if strings.TrimSpace(encKey) == "" || strings.TrimSpace(providerKind) == "" {
+		return nil, nil
+	}
+	var providers []providerRow
+	if err := s.db.WithContext(ctx).Where("status = ?", "active").Find(&providers).Error; err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	var out []PlainKey
+	for _, provider := range providers {
+		if !providerMatchesKind(provider, providerKind) {
+			continue
+		}
+		var rows []accountRow
+		if err := s.db.WithContext(ctx).Where("provider_id = ?", provider.ID).Order("created_at ASC").Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			if !accountUsable(row, now, "") {
+				continue
+			}
+			plain, err := crypto.Open(encKey, row.Ciphertext)
+			if err != nil || strings.TrimSpace(plain) == "" {
+				continue
+			}
+			out = append(out, PlainKey{ID: row.ID, Value: plain})
+		}
+	}
+	return out, nil
+}
+
+func (s *Service) HasPlainKeys(ctx context.Context, encKey, providerKind string) bool {
+	keys, err := s.ListPlainKeys(ctx, encKey, providerKind)
+	return err == nil && len(keys) > 0
+}
+
+func providerMatchesKind(provider providerRow, kind string) bool {
+	kind = strings.ToLower(strings.TrimSpace(kind))
+	adapter := strings.ToLower(strings.TrimSpace(provider.Adapter))
+	slug := strings.ToLower(strings.TrimSpace(provider.Slug))
+	switch kind {
+	case "openai":
+		return adapter == "openai" || strings.Contains(slug, "openai")
+	case "anthropic":
+		return adapter == "anthropic" || strings.Contains(slug, "anthropic") || strings.Contains(slug, "claude")
+	case "gemini":
+		return adapter == "gemini" || strings.Contains(slug, "gemini") || strings.Contains(slug, "google")
+	case "openrouter":
+		return adapter == "openrouter" || strings.Contains(slug, "openrouter")
+	default:
+		return adapter == kind
+	}
+}
+
 func (s *Service) RecordAccountOutcome(ctx context.Context, accountID string, httpStatus int) error {
 	if strings.TrimSpace(accountID) == "" {
 		return nil

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -97,6 +98,7 @@ type Service struct {
 	adapters     map[string]Adapter
 	adapterCalls int32
 	runtime      *Runtime
+	encKey       string
 }
 
 func (s *Service) SetBreaker(b Breaker) {
@@ -107,15 +109,16 @@ func (s *Service) SetChannelGuard(g ChannelGuard) {
 	s.channels = g
 }
 
-func New(db *gorm.DB, cat *catalog.Service, booker Booker, rt *Runtime) *Service {
+func New(db *gorm.DB, cat *catalog.Service, booker Booker, rt *Runtime, encKey string) *Service {
 	return &Service{
 		db:      db,
 		catalog: cat,
 		booker:  booker,
 		runtime: rt,
+		encKey:  encKey,
 		adapters: map[string]Adapter{
 			"test":    TestAdapter{},
-			"gemini":  GeminiAdapter{},
+			"gemini":  GeminiAdapter{Runtime: rt},
 			"bifrost": BifrostAdapter{Runtime: rt},
 		},
 	}
@@ -238,24 +241,31 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		if in.ForceFail != "" && in.ForceFail == cand.ProviderSlug {
 			behavior = "429"
 		}
-		adapter := s.adapters[cand.Adapter]
+		adapter := s.adapterFor(cand.Adapter)
 		if adapter == nil {
 			adapter = s.adapters["test"]
 		}
 		start := time.Now()
 		atomic.AddInt32(&s.adapterCalls, 1)
 		callReq := in.Chat
-		if cand.Adapter == "bifrost" && cand.UpstreamModelID != "" {
+		if s.usesUpstreamModel(cand.Adapter) && cand.UpstreamModelID != "" {
 			callReq.Model = cand.UpstreamModelID
 		}
 		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
+		attemptID := id.New("atm")
 		callCtx = ContextWithMeta(callCtx, map[string]string{
 			"request_id":      in.RequestID,
 			"api_key_id":      in.Caller.APIKeyID,
 			"user_id":         in.Caller.UserID,
 			"channel_org_id":  in.Caller.ChannelOrgID,
 			"public_model_id": model.ID,
+			"attempt_id":      attemptID,
 		})
+		if cand.AccountID != "" && s.encKey != "" {
+			if secret, err := s.catalog.RevealAccount(callCtx, cand.AccountID, s.encKey); err == nil && secret != "" {
+				callCtx = context.WithValue(callCtx, ctxAccountSecretKey, secret)
+			}
+		}
 		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, callReq)
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			if result.HTTPStatus < 400 {
@@ -272,7 +282,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		end := time.Now().UTC()
 		latency := int(time.Since(start).Milliseconds())
 		attempt := attemptRow{
-			ID: id.New("atm"), RequestPK: req.ID, ProviderID: cand.ProviderID,
+			ID: attemptID, RequestPK: req.ID, ProviderID: cand.ProviderID,
 			UpstreamModelID: cand.UpstreamModelID, AttemptNo: i + 1, StartedAt: start.UTC(), EndedAt: &end, LatencyMS: latency,
 		}
 		status := result.HTTPStatus
@@ -368,6 +378,39 @@ func candidateTimeout(ms int) time.Duration {
 		ms = 30000
 	}
 	return time.Duration(ms) * time.Millisecond
+}
+
+func (s *Service) adapterFor(name string) Adapter {
+	name = strings.ToLower(strings.TrimSpace(name))
+	live := s.runtime != nil && !s.runtime.Sandbox && s.runtime.Client != nil
+	switch name {
+	case "test", "":
+		return s.adapters["test"]
+	case "gemini":
+		if live {
+			return s.adapters["bifrost"]
+		}
+		return GeminiAdapter{Runtime: s.runtime}
+	case "bifrost", "openai", "anthropic", "openrouter", "google":
+		if s.runtime != nil && s.runtime.Client != nil && (live || name == "bifrost") {
+			return s.adapters["bifrost"]
+		}
+		return s.adapters["test"]
+	default:
+		if live {
+			return s.adapters["bifrost"]
+		}
+		return s.adapters["test"]
+	}
+}
+
+func (s *Service) usesUpstreamModel(adapter string) bool {
+	switch strings.ToLower(strings.TrimSpace(adapter)) {
+	case "bifrost", "openai", "anthropic", "openrouter", "gemini", "google":
+		return true
+	default:
+		return false
+	}
 }
 
 func ParseHint(only, ignore, order string) catalog.RouteHint {

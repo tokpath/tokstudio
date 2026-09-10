@@ -87,12 +87,14 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 			AnthropicAPIKey:  cfg.AnthropicAPIKey,
 			GeminiAPIKey:     cfg.GeminiAPIKey,
 			OpenRouterAPIKey: cfg.OpenRouterAPIKey,
+			EncryptionKey:    cfg.EncryptionKey,
+			Keys:             catalogSvc,
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("bifrost_embed_init_failed")
 		}
 	}
-	gw := gateway.New(gdb, catalogSvc, billingSvc, rt)
+	gw := gateway.New(gdb, catalogSvc, billingSvc, rt, cfg.EncryptionKey)
 	opsSvc := ops.New(gdb, rdb)
 	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
 	gw.SetBreaker(opsSvc)

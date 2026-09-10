@@ -1,0 +1,123 @@
+package gateway
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+)
+
+const (
+	FactSourceSandbox = "sandbox"
+	FactSourceLive    = "live"
+
+	ctxAttemptIDKey ctxKey = "tokenhub.attempt_id"
+)
+
+// PassthroughMeta 是每次调用必须带进 Bifrost、再写回 TokenHub 的不可变账务键。
+// 缺字段保持空串，调用方不得填估算值。
+type PassthroughMeta struct {
+	RequestID     string `json:"request_id,omitempty"`
+	AttemptID     string `json:"attempt_id,omitempty"`
+	UserID        string `json:"user_id,omitempty"`
+	APIKeyID      string `json:"api_key_id,omitempty"`
+	ChannelOrgID  string `json:"channel_org_id,omitempty"`
+	PublicModelID string `json:"public_model_id,omitempty"`
+	FactSource    string `json:"fact_source,omitempty"`
+}
+
+func (m PassthroughMeta) Map() map[string]string {
+	out := map[string]string{}
+	put := func(key, value string) {
+		if strings.TrimSpace(value) == "" {
+			return
+		}
+		out[key] = value
+	}
+	put("request_id", m.RequestID)
+	put("attempt_id", m.AttemptID)
+	put("user_id", m.UserID)
+	put("api_key_id", m.APIKeyID)
+	put("channel_org_id", m.ChannelOrgID)
+	put("public_model_id", m.PublicModelID)
+	put("fact_source", m.FactSource)
+	return out
+}
+
+func passthroughFromContext(ctx context.Context) PassthroughMeta {
+	return PassthroughMeta{
+		RequestID:     contextString(ctx, ctxRequestIDKey),
+		AttemptID:     contextString(ctx, ctxAttemptIDKey),
+		UserID:        contextString(ctx, ctxUserIDKey),
+		APIKeyID:      contextString(ctx, ctxAPIKeyIDKey),
+		ChannelOrgID:  contextString(ctx, ctxChannelIDKey),
+		PublicModelID: contextString(ctx, ctxPublicModelKey),
+	}
+}
+
+func normalizeFactSource(raw string, sandbox bool) string {
+	v := strings.ToLower(strings.TrimSpace(raw))
+	if sandbox {
+		return FactSourceSandbox
+	}
+	switch v {
+	case FactSourceSandbox, "echo":
+		return FactSourceSandbox
+	case FactSourceLive, "upstream":
+		return FactSourceLive
+	default:
+		return ""
+	}
+}
+
+func usageTokenPtrs(usage map[string]int) (prompt, completion, total *int) {
+	if len(usage) == 0 {
+		return nil, nil, nil
+	}
+	if v, ok := usage["prompt_tokens"]; ok {
+		p := v
+		prompt = &p
+	}
+	if v, ok := usage["completion_tokens"]; ok {
+		c := v
+		completion = &c
+	}
+	if v, ok := usage["total_tokens"]; ok {
+		t := v
+		total = &t
+	}
+	return prompt, completion, total
+}
+
+func metadataJSON(meta map[string]string) []byte {
+	if len(meta) == 0 {
+		return nil
+	}
+	raw, err := json.Marshal(meta)
+	if err != nil {
+		return nil
+	}
+	return raw
+}
+
+func stringFromAny(v any) string {
+	s, _ := v.(string)
+	return strings.TrimSpace(s)
+}
+
+// resolveAttemptUsage 决定写入账本的 usage。
+// Bifrost 默认不套 ApplySandboxUsage 的 8/4/12 填空；缺 usage 保持空，由结算标 pending。
+func resolveAttemptUsage(adapter, mode string, chat ChatRequest, completion string, current map[string]int) map[string]int {
+	if mode == SandboxOmit {
+		return map[string]int{}
+	}
+	if adapter == "bifrost" {
+		if mode == SandboxContent || mode == SandboxReasoning {
+			return ApplySandboxUsage(mode, chat, completion, current)
+		}
+		if current == nil {
+			return map[string]int{}
+		}
+		return current
+	}
+	return ApplySandboxUsage(mode, chat, completion, current)
+}

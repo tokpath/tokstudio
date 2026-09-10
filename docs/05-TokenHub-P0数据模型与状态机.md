@@ -72,8 +72,8 @@ P0 落地时套餐实体由独立 `plans` 模块拥有，物理表为 `plans_pro
 
 P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`（含 `channel_org_id`、`credit_minor`）、`payment_events`、`payment_provider_instances`（按渠道加密凭证）、`payment_channel_settings`、`payment_adapter_flags`。适配器是可插拔插件（`Adapter` 接口 + `Registry`）：内置 `stripe` / `alipay` / `wechat` / `manual`；后续本地支付或聚合网关实现同一接口并 Register 即可。只有声明 `AutoRenew` 的插件（当前 Stripe）可代扣。billing 预授权增加 `wallet_reserved_minor`：权益覆盖后钱包只冻结差额。
 | `request` | `id`, `request_id`, `user_id`, `api_key_id`, `channel_org_id`, `public_model_id`, `protocol`, `status`, `started_at`, `ended_at` | 一次客户请求 |
-| `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费 |
-| `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |
+| `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `fact_source`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `metadata_json`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费。`fact_source` 为 `sandbox` / `live`；缺 usage/metadata 保持空，禁止估算填空 |
+| `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `fact_source`, `idempotency_key` | confirmed/pending_reconciliation/voided。账本只认 TokenHub 已落库的透传事实 |
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
 | `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/held/available/paid/reversed；封禁把未结算标 `held` |
 

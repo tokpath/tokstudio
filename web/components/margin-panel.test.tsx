@@ -95,5 +95,7 @@ describe("admin margin page", () => {
     expect(screen.queryByRole("button", { name: /估扣|估算扣款|estimate/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /智能路由|smart routing/i })).toBeNull();
     expect(screen.queryByLabelText(/手填成本|estimate cost/i)).toBeNull();
+    expect(screen.getByText("缺上游元数据")).toBeTruthy();
+    expect(screen.queryByText("openai")).toBeNull();
   });
 });

@@ -56,6 +56,9 @@ describe("BucketReconcilePanel", () => {
     expect(screen.queryByRole("button", { name: /估扣|估算扣款|estimate/i })).toBeNull();
     expect(screen.queryByText("估扣")).toBeNull();
     expect(screen.queryByText("估算扣款")).toBeNull();
+    expect(screen.getAllByText("缺上游元数据").length).toBeGreaterThan(0);
+    expect(screen.queryByText("openai")).toBeNull();
+    expect(screen.queryByText("gpt-4")).toBeNull();
   });
 
   it("shows an honest empty usage state without charts", () => {

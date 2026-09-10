@@ -67,6 +67,9 @@ const (
 	UsagePending   = "pending_reconciliation"
 	UsageVoided    = "voided"
 
+	FactSourceSandbox = "sandbox"
+	FactSourceLive    = "live"
+
 	ChargeCommitted = "committed"
 	ChargeReversed  = "reversed"
 
@@ -128,6 +131,7 @@ type SettleInput struct {
 	PriceVersionID  string          `json:"price_version_id"`
 	UnitPrices      json.RawMessage `json:"unit_prices"`
 	MissingUsage    bool            `json:"missing_usage"`
+	FactSource      string          `json:"fact_source,omitempty"`
 	IdempotencyKey  string          `json:"idempotency_key"`
 	Resolution      string          `json:"resolution"`
 }
@@ -175,6 +179,8 @@ type UsageView struct {
 	ChannelOrgID     string          `json:"channel_org_id,omitempty"`
 	PublicModelID    string          `json:"public_model_id"`
 	ProviderID       string          `json:"provider_id,omitempty"`
+	UpstreamModelID  string          `json:"upstream_model_id,omitempty"`
+	FactSource       string          `json:"fact_source,omitempty"`
 	PromptTokens     int64           `json:"prompt_tokens"`
 	CompletionTokens int64           `json:"completion_tokens"`
 	ReasoningTokens  int64           `json:"reasoning_tokens,omitempty"`
@@ -322,23 +328,25 @@ type PriceTierSnapshot struct {
 
 // AttemptCostView 是一次上游 attempt 的 TokenHub 成本事实。缺事实不填估算。
 type AttemptCostView struct {
-	AttemptID      string            `json:"attempt_id"`
-	RequestID      string            `json:"request_id"`
-	UsageEventID   string            `json:"usage_event_id,omitempty"`
-	CostSource     string            `json:"cost_source"`
-	CostMinor      int64             `json:"cost_minor"`
-	SellMinor      int64             `json:"sell_minor"`
-	MarginMinor    int64             `json:"margin_minor"`
-	WholesaleMinor int64             `json:"wholesale_minor,omitempty"`
-	Prices         PriceTierSnapshot `json:"prices"`
-	UnitPrices     json.RawMessage   `json:"unit_prices,omitempty"`
-	State          string            `json:"state"`
-	MissingCost    bool              `json:"missing_cost"`
-	PublicModelID  string            `json:"public_model_id,omitempty"`
-	ProviderID     string            `json:"provider_id,omitempty"`
-	ChannelOrgID   string            `json:"channel_org_id,omitempty"`
-	UserID         string            `json:"user_id,omitempty"`
-	OccurredAt     time.Time         `json:"occurred_at"`
+	AttemptID       string            `json:"attempt_id"`
+	RequestID       string            `json:"request_id"`
+	UsageEventID    string            `json:"usage_event_id,omitempty"`
+	CostSource      string            `json:"cost_source"`
+	CostMinor       int64             `json:"cost_minor"`
+	SellMinor       int64             `json:"sell_minor"`
+	MarginMinor     int64             `json:"margin_minor"`
+	WholesaleMinor  int64             `json:"wholesale_minor,omitempty"`
+	Prices          PriceTierSnapshot `json:"prices"`
+	UnitPrices      json.RawMessage   `json:"unit_prices,omitempty"`
+	State           string            `json:"state"`
+	MissingCost     bool              `json:"missing_cost"`
+	PublicModelID   string            `json:"public_model_id,omitempty"`
+	ProviderID      string            `json:"provider_id,omitempty"`
+	UpstreamModelID string            `json:"upstream_model_id,omitempty"`
+	FactSource      string            `json:"fact_source,omitempty"`
+	ChannelOrgID    string            `json:"channel_org_id,omitempty"`
+	UserID          string            `json:"user_id,omitempty"`
+	OccurredAt      time.Time         `json:"occurred_at"`
 }
 
 // MarginView 是管理台「成本/毛利」同一窗口的合计 + 明细。

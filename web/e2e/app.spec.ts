@@ -353,6 +353,7 @@ test("user shell shows real available balance and profile dropdown", async ({ pa
   await expect(page.getByRole("menuitem", { name: "个人资料" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "API 密钥" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "平台管理" })).toHaveCount(0);
   await expect(page.getByText("GitHub")).toHaveCount(0);
   await expect(page.getByText("新手引导")).toHaveCount(0);
   await page.getByRole("menuitem", { name: "个人资料" }).click();
@@ -390,6 +391,23 @@ test("user keys empty state is honest 暂无 API 密钥", async ({ page }) => {
   await page.goto("/app/keys");
   await expect(page.getByText("暂无 API 密钥")).toBeVisible();
   await expect(page.getByText("thk_")).toHaveCount(0);
+});
+
+test("user shell shows 平台管理 only for platform_admin", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "12.5" } });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, {
+      user: { display_name: "Pat", email: "pat@example.test", roles: ["platform_admin"] },
+    });
+  });
+  await page.goto("/app");
+  await page.getByTestId("avatar-trigger").click();
+  const adminItem = page.getByRole("menuitem", { name: "平台管理" });
+  await expect(adminItem).toBeVisible();
+  await expect(adminItem).toHaveAttribute("href", "/admin");
+  await expect(adminItem).not.toHaveAttribute("aria-disabled", "true");
 });
 
 test("user shell logout clears session and returns to login", async ({ page }) => {

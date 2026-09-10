@@ -46,6 +46,7 @@
     "balanceLoading": "正在读取余额",
     "accountMenu": "账户菜单",
     "profile": "个人资料",
+    "platformAdmin": "平台管理",
     "keys": "API 密钥",
     "logout": "退出登录",
     "roleUser": "用户",

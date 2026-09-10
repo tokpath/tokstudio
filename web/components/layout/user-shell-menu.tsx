@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, KeyRound, UserRound } from "lucide-react";
+import { Bell, KeyRound, LayoutDashboard, UserRound } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiBase } from "@/lib/api";
@@ -209,6 +209,18 @@ export function UserShellRightZone() {
               <UserRound className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
               {t("profile")}
             </Link>
+            {me?.roles?.includes("platform_admin") ? (
+              <Link
+                href="/admin"
+                role="menuitem"
+                data-testid="menu-platform-admin"
+                className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
+                onClick={() => setOpen(false)}
+              >
+                <LayoutDashboard className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
+                {t("platformAdmin")}
+              </Link>
+            ) : null}
             <Link
               href="/app/keys"
               role="menuitem"

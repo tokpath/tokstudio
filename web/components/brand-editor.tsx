@@ -8,7 +8,7 @@ import { describeAssetLimit, inspectLocalAsset, publicAssetURL } from "@/lib/bra
 import { StorageSourceBadge } from "@/components/storage-source-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { StorageSource } from "@/lib/storage-source";
+import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 
 const KINDS: AssetKind[] = ["logo", "logo_dark", "favicon", "og_image"];
 
@@ -33,6 +33,10 @@ export function BrandEditor({
   async function load() {
     const res = await fetch(`${apiBase}${endpoint}`, { credentials: "include" });
     const body = await res.json();
+    const nextStorage = applyStorageFact(body, res.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
+    }
     if (!res.ok) {
       setMessage(body.error?.message || "读取品牌失败");
       return;
@@ -41,9 +45,6 @@ export function BrandEditor({
     setBrand(item);
     setName(item?.name || "");
     setColor(item?.theme?.brand || item?.theme?.primary || "#2150D6");
-    if (body.storage) {
-      setStorage(body.storage as StorageSource);
-    }
     if (typeof body.customizable === "boolean") {
       setCustomizable(body.customizable);
     }
@@ -77,8 +78,9 @@ export function BrandEditor({
     form.set("file", file);
     const res = await fetch(`${apiBase}${uploadEndpoint}`, { method: "POST", credentials: "include", body: form });
     const body = await res.json();
-    if (body.storage) {
-      setStorage(body.storage as StorageSource);
+    const nextStorage = applyStorageFact(body, res.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
     }
     setMessage(res.ok ? `已上传 ${kind} ${body.item?.width_px}×${body.item?.height_px}` : body.error?.message || "存储不可用");
     if (res.ok) await load();

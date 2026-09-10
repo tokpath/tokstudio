@@ -315,3 +315,37 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "通过" })).toBeVisible();
   await expect(page.getByRole("button", { name: "发布", exact: true })).toBeVisible();
 });
+
+test("admin OEM brand download shows storage source and forbids a success check", async ({ page }) => {
+  await page.route("**/admin/brands/**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    if (route.request().url().includes("/assets")) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: { id: "brd_oem", name: "OEM", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        brand: { id: "brd_oem", name: "OEM", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "s3", ok: true, label: "S3" },
+      }),
+    });
+  });
+  await page.goto("/admin/brands");
+  await expect(page.getByRole("heading", { name: "OEM 品牌" }).first()).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-tone", "ok");
+  await expect(page.getByRole("link", { name: "下载 Logo" })).toBeVisible();
+  await expect(page.getByText("✓")).toHaveCount(0);
+});

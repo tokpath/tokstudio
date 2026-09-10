@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   STORAGE_LABEL_S3,
   STORAGE_LABEL_UNAVAILABLE,
+  applyStorageFact,
   forbidsSilentSuccessCheck,
   storageBadge,
 } from "./storage-source";
@@ -31,5 +32,15 @@ describe("W1-S3 storage source badge", () => {
       expect(view.label).not.toMatch(/✓|✔|☑/);
       expect(forbidsSilentSuccessCheck(view)).toBe(true);
     }
+  });
+
+  it("503 without storage body still paints 存储不可用, never a leftover S3 check", () => {
+    const fromError = applyStorageFact({ error: { code: "store_unavailable", message: "存储不可用" } }, false);
+    expect(storageBadge(fromError)).toEqual({
+      label: STORAGE_LABEL_UNAVAILABLE,
+      tone: "unavailable",
+      ok: false,
+    });
+    expect(fromError?.label).not.toMatch(/✓|✔|☑|已上传/);
   });
 });

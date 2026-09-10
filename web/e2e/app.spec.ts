@@ -183,6 +183,73 @@ test("media download badge is grey 存储不可用 when the bucket is missing", 
   await expect(page.getByText("存储不可用").first()).toBeVisible();
 });
 
+test("channel OEM brand download shows muted S3 and never a success check", async ({ page }) => {
+  await page.route("**/channel/brand**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    if (route.request().url().includes("/assets")) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        brand: { name: "OEM C", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "minio", ok: true, label: "S3" },
+      }),
+    });
+  });
+  await page.goto("/channel/brand");
+  await expect(page.getByRole("heading", { name: "本渠道品牌" })).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-tone", "muted");
+  await expect(page.getByRole("link", { name: "下载 Logo" })).toBeVisible();
+  await expect(page.getByText("✓")).toHaveCount(0);
+});
+
+test("channel OEM brand upload failure is grey 存储不可用", async ({ page }) => {
+  await page.route("**/channel/brand/assets**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+    });
+  });
+  await page.route("**/channel/brand**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        brand: { name: "OEM C", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "unavailable", ok: false, label: "存储不可用", detail: "missing bucket" },
+      }),
+    });
+  });
+  await page.goto("/channel/brand");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("存储不可用");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "false");
+  await expect(page.getByText("✓")).toHaveCount(0);
+  await expect(page.getByText("已上传")).toHaveCount(0);
+});
+
 test("channel reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {
   await page.route("**/channel/reconciliation**", async (route) => {
     // 页面 URL 与账本 API 同路径；只 stub fetch，别把 document/RSC 导航盖成 JSON。

@@ -22,7 +22,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { StorageSourceBadge } from "@/components/storage-source-badge";
 import { apiBase } from "@/lib/api";
-import type { StorageSource } from "@/lib/storage-source";
+import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 
 type Job = {
   id: string;
@@ -129,15 +129,16 @@ export default function MediaPanel() {
     try {
       const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
       const body = await response.json().catch(() => ({}));
+      const nextStorage = applyStorageFact(body, response.ok);
+      if (nextStorage) {
+        setStorage(nextStorage);
+      }
       if (!response.ok) {
         setItems([]);
         setMessage(body.error?.message || tc("notLoggedIn"));
         return;
       }
       setItems(body.items || []);
-      if (body.storage) {
-        setStorage(body.storage as StorageSource);
-      }
       setMessage(t("mediaRefreshed"));
     } catch {
       setItems([]);
@@ -190,6 +191,10 @@ export default function MediaPanel() {
       body: JSON.stringify(payload),
     });
     const body = await response.json();
+    const nextStorage = applyStorageFact(body, response.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
+    }
     if (!response.ok) {
       setMessage(body.error?.message || tc("createFailed"));
       return;
@@ -203,8 +208,9 @@ export default function MediaPanel() {
     const path = jobKind === "image" ? `/v1/images/${encodeURIComponent(id)}/content` : `/v1/videos/${encodeURIComponent(id)}/content`;
     const response = await fetch(`${apiBase}${path}`, { credentials: "include" });
     const body = await response.json().catch(() => ({}));
-    if (body.storage) {
-      setStorage(body.storage as StorageSource);
+    const nextStorage = applyStorageFact(body, response.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
     }
     if (!response.ok) {
       setMessage(body.error?.message || "存储不可用");

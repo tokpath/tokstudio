@@ -700,6 +700,12 @@ paths:
       responses:
         "200":
           description: expired
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      responses:
+        "200":
+          description: session revoked and cookie cleared
   /v1/me:
     get:
       operationId: getMe

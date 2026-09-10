@@ -83,6 +83,10 @@ describe("user console nav", () => {
     expect(userSections.some((item) => item.href.startsWith("#"))).toBe(false);
   });
 
+  it("does not add profile to the frozen sidebar", () => {
+    expect(userSections.some((item) => item.href === "/app/profile")).toBe(false);
+  });
+
   it("highlights overview only on /app", () => {
     expect(isNavActive("/app", "/app")).toBe(true);
     expect(isNavActive("/app/keys", "/app")).toBe(false);

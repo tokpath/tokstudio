@@ -18,6 +18,9 @@ paths:
   /v1/auth/google/callback:
     post:
       summary: Finish Google OAuth with real token/profile exchange when triad is present; HttpOnly cookie
+  /v1/auth/logout:
+    post:
+      summary: Revoke the current session token and clear the HttpOnly cookie
   /v1/me:
     get:
       summary: Current user

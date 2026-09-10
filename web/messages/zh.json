@@ -39,6 +39,23 @@
     "localeJa": "日本語",
     "metaDescription": "一个 Key，可解释路由，账能复算。"
   },
+  "shell": {
+    "bell": "通知",
+    "bellSoon": "通知中心尚未开放",
+    "balance": "可用余额",
+    "balanceLoading": "正在读取余额",
+    "accountMenu": "账户菜单",
+    "profile": "个人资料",
+    "keys": "API 密钥",
+    "logout": "退出登录",
+    "roleUser": "用户",
+    "roleAdmin": "管理员",
+    "displayName": "显示名",
+    "email": "邮箱",
+    "loginMethod": "登录方式",
+    "loginPassword": "邮箱密码",
+    "loginGoogle": "Google"
+  },
   "mega": {
     "models": "模型",
     "docs": "文档",
@@ -703,6 +720,11 @@
       "eyebrow": "DOCS",
       "title": "接入文档",
       "description": "控制台示例。Key 用占位，不写平台成本。"
+    },
+    "profile": {
+      "eyebrow": "PROFILE",
+      "title": "个人资料",
+      "description": "只读查看登录会话里的显示名、邮箱和登录方式。改资料去账户设置。"
     },
     "settings": {
       "eyebrow": "ACCOUNT",
@@ -1450,7 +1472,7 @@
   "user": {
     "keysTitle": "API Key",
     "keysLead": "完整 Key 可长期查看，之后仍可复制。创建时可填模型白名单、RPM 和并发限额。轮换、复制、禁用、过期都会写审计日志；过期或禁用后网关返回 403。",
-    "emptyKeys": "暂无 API Keys",
+    "emptyKeys": "暂无 API 密钥",
     "emptyKeysDetail": "点击「创建 API Key」生成一把密钥。完整 Key 默认掩码，之后仍可从列表复制。",
     "concurrency": " · 并发 {n}",
     "allowlistLine": "模型白名单：{list}",

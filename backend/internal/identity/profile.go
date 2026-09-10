@@ -41,6 +41,17 @@ func localeOrDefault(locale string) string {
 	return locale
 }
 
+func loginMethodsOf(user userRow) []string {
+	out := make([]string, 0, 2)
+	if user.PasswordHash != nil && strings.TrimSpace(*user.PasswordHash) != "" {
+		out = append(out, "password")
+	}
+	if user.GoogleSub != nil && strings.TrimSpace(*user.GoogleSub) != "" {
+		out = append(out, "google")
+	}
+	return out
+}
+
 func viewFromUser(user userRow, roles []string, source string) UserView {
 	return UserView{
 		ID:            user.ID,
@@ -52,6 +63,7 @@ func viewFromUser(user userRow, roles []string, source string) UserView {
 		BrandID:       deref(user.BrandID),
 		Roles:         roles,
 		SourceCode:    source,
+		LoginMethods:  loginMethodsOf(user),
 		CanCommission: user.CanCommission,
 		CreatedAt:     user.CreatedAt,
 	}

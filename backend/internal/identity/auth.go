@@ -137,6 +137,18 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 	return s.issueSession(ctx, user)
 }
 
+// Logout 吊销当前会话令牌。空令牌是空操作，不发明会话。
+func (s *Service) Logout(ctx context.Context, bearer string) error {
+	token := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil
+	}
+	return s.db.WithContext(ctx).Model(&tokenRow{}).
+		Where("token_hash = ? AND status = ?", crypto.HashToken(token), "active").
+		Update("status", "revoked").Error
+}
+
 func (s *Service) SwitchChannel(_ context.Context, _ Principal, _ string) error {
 	return ErrChannelImmutable
 }

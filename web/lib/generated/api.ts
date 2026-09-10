@@ -325,6 +325,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/v1/me/api-keys/{id}/expire"
   },
   {
+    "method": "POST",
+    "path": "/v1/auth/logout"
+  },
+  {
     "method": "GET",
     "path": "/v1/me"
   },

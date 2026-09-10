@@ -21,6 +21,7 @@ var (
 	ErrNotTested           = errors.New("payment instance has not passed connectivity test")
 	ErrMethodUnavailable   = errors.New("payment method is not available for this channel")
 	ErrRefundDisabled      = errors.New("refunds are disabled for this instance")
+	ErrProviderFailed      = errors.New("payment provider request failed")
 )
 
 const (

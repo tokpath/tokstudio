@@ -22,6 +22,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.POST("/v1/me/subscriptions/:id/cancel", a.requireUserOrKey(), a.cancelMySubscription)
 	r.GET("/v1/me/entitlements", a.requireUserOrKey(), a.listMyEntitlements)
 	r.POST("/v1/payments/orders", a.requireUserOrKey(), a.createPaymentOrder)
+	r.POST("/v1/payments/orders/:id/sync", a.requireUserOrKey(), a.syncPaymentOrder)
 	r.GET("/v1/payments/orders/:id", a.requireUserOrKey(), a.getPaymentOrder)
 	r.POST("/v1/payments/:adapter/webhook", a.paymentWebhook)
 
@@ -106,9 +107,13 @@ func (a *App) createMySubscription(c *gin.Context) {
 		After: map[string]any{"plan_id": body.PlanID, "adapter": body.Adapter, "order_id": order.ID},
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
+	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL)
+	if a.abortPaymentErr(c, err) {
+		return
+	}
 	httpx.Created(c, gin.H{
 		"subscription": sub,
-		"checkout":     a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL),
+		"checkout":     checkout,
 		"request_id":   c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -159,7 +164,11 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	httpx.Created(c, gin.H{"checkout": a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL), "request_id": c.GetString(httpx.ContextRequestID)})
+	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL)
+	if a.abortPaymentErr(c, err) {
+		return
+	}
+	httpx.Created(c, gin.H{"checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) getPaymentOrder(c *gin.Context) {
@@ -170,6 +179,15 @@ func (a *App) getPaymentOrder(c *gin.Context) {
 	item, err := a.Payment.GetOrder(c.Request.Context(), c.Param("id"), userID)
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "支付单不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) syncPaymentOrder(c *gin.Context) {
+	userID, _ := a.billingUser(c)
+	item, err := a.Payment.SyncFromProvider(c.Request.Context(), c.Param("id"), userID)
+	if a.abortPaymentErr(c, err) {
 		return
 	}
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})

@@ -410,6 +410,18 @@
     "leftAria": "Left model",
     "rightAria": "Right model"
   },
+  "checkout": {
+    "orderEyebrow": "Open order",
+    "sandboxHint": "Sandbox order. Complete it with the channel webhook.",
+    "scanQr": "Scan with the matching app to pay",
+    "paidCheck": "I have paid",
+    "checking": "Checking…",
+    "paid": "Paid",
+    "pending": "Pending",
+    "stripePay": "Confirm payment",
+    "stripeNeed": "Enter card or Link, then confirm.",
+    "redirect": "Continue to pay"
+  },
   "common": {
     "refresh": "Refresh",
     "filter": "Filter",
@@ -1491,7 +1503,7 @@
     "plansHint": "Sign in to see plans. Sandbox payments go through Stripe webhooks.",
     "plansLead": "Debit order: expiring grants → current plan → cash wallet. Amounts are micro-USD.",
     "plansRefreshed": "Plans and entitlements refreshed",
-    "ordered": "Ordered {id}. Complete the sandbox webhook.",
+    "ordered": "Ordered {id}.",
     "subFail": "Subscribe failed",
     "refreshPlans": "Refresh plans",
     "subscribe": "Subscribe",
@@ -1561,7 +1573,8 @@
     "payOfflineDetail": "Use a redeem code or contact channel support. Do not say payments are unavailable as a product defect.",
     "payNoAutoRenew": "Auto-renew is not supported; renew manually when it expires.",
     "payAutoRenew": "Renews with the same method at expiry; cancel anytime.",
-    "payOrderOk": "Created {id}. Complete the sandbox webhook.",
+    "payOrderOk": "Created {id}.",
+    "payOrderFail": "Checkout failed",
     "payOrderFail": "Checkout failed",
     "payCny": "Pay ¥{amount}, credit ${credit}",
     "payUsd": "Pay ${amount}, credit ${credit}",

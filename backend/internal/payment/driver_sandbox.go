@@ -6,9 +6,8 @@ import (
 	"strings"
 )
 
-// sandboxDriver 是官方通道在真实 SDK 接入前的共用实现。
+// sandboxDriver 是官方通道在 Mode!=live 或缺凭证时的 HMAC 实现。
 // 验签格式与现有 M5 测试一致：HMAC(event_id|order_id|status)。
-// 换成支付宝/微信/Stripe 客户端时，只改对应 driver 文件的方法，不必改 Registry。
 type sandboxDriver struct{}
 
 func (sandboxDriver) Test(_ context.Context, in TestInput) error {

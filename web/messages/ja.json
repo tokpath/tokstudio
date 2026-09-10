@@ -410,6 +410,18 @@
     "leftAria": "左側のモデル",
     "rightAria": "右側のモデル"
   },
+  "checkout": {
+    "orderEyebrow": "未払い注文",
+    "sandboxHint": "サンドボックス注文です。チャネル webhook で入金してください。",
+    "scanQr": "対応アプリでスキャンして支払う",
+    "paidCheck": "支払い済み",
+    "checking": "照会中…",
+    "paid": "入金済み",
+    "pending": "支払い待ち",
+    "stripePay": "支払いを確定",
+    "stripeNeed": "カードまたは Link を入力して確定。",
+    "redirect": "支払いページへ"
+  },
   "common": {
     "refresh": "更新",
     "filter": "絞り込み",
@@ -1491,7 +1503,7 @@
     "plansHint": "ログインするとプランを見られます。サンドボックス支払は Stripe webhook。",
     "plansLead": "控除順：期限が近い付与 → 当期プラン → 現金。単位は micro-USD。",
     "plansRefreshed": "プランと権利を更新しました",
-    "ordered": "注文 {id}。サンドボックス webhook を完了してください。",
+    "ordered": "注文 {id}",
     "subFail": "購読に失敗しました",
     "refreshPlans": "プランを更新",
     "subscribe": "購読",
@@ -1561,7 +1573,8 @@
     "payOfflineDetail": "兑换コードを使うか、チャネルサポートへ。決済機能が壊れているとは書かないでください。",
     "payNoAutoRenew": "自動更新非対応。期限後は手動更新が必要です。",
     "payAutoRenew": "期限で同じ支払い方法で更新。いつでもキャンセル可。",
-    "payOrderOk": "{id} を作成しました。サンドボックスは webhook へ。",
+    "payOrderOk": "{id} を作成しました。",
+    "payOrderFail": "注文に失敗しました",
     "payOrderFail": "注文に失敗しました",
     "payCny": "支払 ¥{amount}、入金 ${credit}",
     "payUsd": "支払 ${amount}、入金 ${credit}",

@@ -106,7 +106,7 @@
 
 ### 回调 `POST {callback_url}` 与 `POST /v1/media/callbacks`
 
-上游完成后可回调客户 `callback_url`，沙箱与自建上游使用平台入口 `POST /v1/media/callbacks`。服务端校验 `X-Tokenhub-Signature`（HMAC-SHA256，`event_id|job_id`），按 `event_id` 幂等；重复事件必须返回 2xx 且不得重复结算。未完成的任务在重试时会继续落状态和结算。
+上游完成后可回调客户 `callback_url`，沙箱与自建上游使用平台入口 `POST /v1/media/callbacks`。出站与入站均校验/签发 `X-Tokenhub-Signature`（HMAC-SHA256，`event_id|job_id`）。入站按 `event_id` 幂等；重复事件必须返回 2xx 且不得重复结算。出站失败按退避重试，超过上限记死信，不阻断创建。未完成的任务在重试或状态轮询时会继续落状态和结算。
 
 ## 5. 用户、Key、套餐与余额
 

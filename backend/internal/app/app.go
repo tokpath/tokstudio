@@ -78,7 +78,7 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 		Production:     cfg.IsProduction(),
 		SignKey:        firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey),
 	})
-	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.OpenRouterBaseURL)
+	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.ArkAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterAPIKey)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
 	idSvc.SetStore(store)

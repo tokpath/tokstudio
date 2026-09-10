@@ -45,6 +45,7 @@ type Config struct {
 	S3SecretKey            string
 	S3ForcePathStyle       bool
 	ArkBaseURL             string
+	ArkAPIKey              string
 	OpenRouterBaseURL      string
 	PaymentSignKey         string
 	UpstreamURLAllowlist   []string
@@ -108,6 +109,7 @@ func Load() (*Config, error) {
 		S3SecretKey:            firstNonEmpty(v.GetString("S3_SECRET_KEY"), os.Getenv("AWS_SECRET_ACCESS_KEY")),
 		S3ForcePathStyle:       v.GetBool("S3_FORCE_PATH_STYLE"),
 		ArkBaseURL:             v.GetString("ARK_BASE_URL"),
+		ArkAPIKey:              v.GetString("ARK_API_KEY"),
 		OpenRouterBaseURL:      v.GetString("OPENROUTER_BASE_URL"),
 		PaymentSignKey:         v.GetString("PAYMENT_SIGN_KEY"),
 		UpstreamURLAllowlist:   splitCSV(v.GetString("UPSTREAM_URL_ALLOWLIST")),
@@ -217,6 +219,10 @@ func (c *Config) RedactedMap() map[string]any {
 		"bifrost_sandbox":      c.BifrostSandbox,
 		"openai_key_set":       c.OpenAIAPIKey != "",
 		"gemini_key_set":       c.GeminiAPIKey != "",
+		"ark_url_set":          c.ArkBaseURL != "",
+		"ark_key_set":          c.ArkAPIKey != "",
+		"openrouter_url_set":   c.OpenRouterBaseURL != "",
+		"openrouter_key_set":   c.OpenRouterAPIKey != "",
 		"acme_directory_set":   c.ACMEDirectory != "",
 		"acme_force":           c.ACMEForce,
 		"s3_endpoint_set":      c.S3Endpoint != "",

@@ -82,12 +82,25 @@ otp_verify="$(curl -s -o /tmp/otp-verify.json -w '%{http_code}' -X POST "$API_UR
   -H 'Content-Type: application/json' -d "{\"email\":\"$alice\",\"code\":\"000000\"}")"
 test "$otp_verify" = "404"
 
-echo "== Google mock keeps promotion"
-start="$(curl -sf "$API_URL/v1/auth/google/start?promotion_code=THC1")"
-state="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['state'])" "$start")"
-google="$(curl -sf -X POST "$API_URL/v1/auth/google/callback" -H 'Content-Type: application/json' \
-  -d "{\"state\":\"$state\",\"code\":\"mock:oem-$RANDOM@example.test\"}")"
-echo "$google" | grep -q chn_oem_c
+echo "== Google OAuth start (no silent mock)"
+status="$(curl -sf "$API_URL/v1/auth/google/status")"
+echo "$status" | grep -q request_id
+start_code="$(curl -sS -o /tmp/google-start.json -w '%{http_code}' "$API_URL/v1/auth/google/start?promotion_code=THC1")"
+start="$(cat /tmp/google-start.json)"
+if python3 -c "import json,sys; d=json.load(open('/tmp/google-start.json')); sys.exit(0 if d.get('mock') else 1)"; then
+  state="$(python3 -c "import json,sys; print(json.load(open('/tmp/google-start.json'))['state'])")"
+  google="$(curl -sf -X POST "$API_URL/v1/auth/google/callback" -H 'Content-Type: application/json' \
+    -d "{\"state\":\"$state\",\"code\":\"mock:oem-$RANDOM@example.test\"}")"
+  echo "$google" | grep -q chn_oem_c
+elif echo "$start" | grep -q accounts.google.com; then
+  echo "$start" | grep -q login/oauth/google
+  echo "$start" | grep -q '"mock":false'
+else
+  test "$start_code" = "503"
+  echo "$start" | grep -q provider_unavailable
+  echo "$start" | grep -q '未配置 Google 登录'
+  echo "$start" | grep -qv '"session"'
+fi
 
 echo "== user settings profile and password"
 me="$(curl -sf -H "Authorization: Bearer $token_a" "$API_URL/v1/me")"

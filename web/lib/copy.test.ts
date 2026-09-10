@@ -29,6 +29,12 @@ describe("user-facing copy", () => {
     expect(ja.login).not.toHaveProperty("lead");
   });
 
+  it("locks the Google idle button copy", () => {
+    expect(zh.login.google).toBe("用 Google 登录");
+    expect(zh.login.googleRedirecting).toBe("正在跳转 Google…");
+    expect(zh.login.googleUnconfigured).toBe("未配置 Google 登录");
+  });
+
   it("labels the public header console entry in every locale", () => {
     expect(zh.chrome.console).toBe("控制台");
     expect(en.chrome.console).toBe("Console");

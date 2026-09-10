@@ -35,6 +35,8 @@ var (
 	ErrAssetRateLimited     = errors.New("brand asset upload rate limited")
 	ErrBrandDomainTaken     = errors.New("brand domain is already used")
 	ErrStoreUnavailable     = errors.New("object store unavailable")
+	ErrGoogleUnavailable    = errors.New("google oauth is not configured")
+	ErrGoogleExchange       = errors.New("google oauth exchange failed")
 )
 
 func mapNotFound(err error) error {

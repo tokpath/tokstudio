@@ -58,6 +58,7 @@ describe("isConsolePath", () => {
 describe("isAuthPath", () => {
   it("treats login and console entry as chrome-free auth", () => {
     expect(isAuthPath("/login")).toBe(true);
+    expect(isAuthPath("/login/oauth/google")).toBe(true);
     expect(isAuthPath("/enter")).toBe(true);
     expect(isAuthPath("/login?next=%2Fapp")).toBe(false);
     expect(isAuthPath("/enter?x=1")).toBe(false);

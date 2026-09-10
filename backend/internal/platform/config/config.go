@@ -22,7 +22,9 @@ type Config struct {
 	BootstrapUser          string
 	BootstrapChannel       string
 	GoogleClientID         string
+	GoogleClientSecret     string
 	GoogleRedirect         string
+	GoogleAllowMock        bool
 	BifrostSandbox         bool
 	OpenAIAPIKey           string
 	AnthropicAPIKey        string
@@ -83,7 +85,9 @@ func Load() (*Config, error) {
 		BootstrapUser:          v.GetString("BOOTSTRAP_USER_TOKEN"),
 		BootstrapChannel:       v.GetString("BOOTSTRAP_CHANNEL_TOKEN"),
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:     v.GetString("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
+		GoogleAllowMock:        v.GetBool("GOOGLE_ALLOW_MOCK"),
 		BifrostSandbox:         resolveBifrostSandbox(v),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
 		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
@@ -162,6 +166,32 @@ func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production")
 }
 
+// GoogleTriad 表示 Client ID / Secret / Redirect URI 三件套齐全，可以走真实交换。
+func (c *Config) GoogleTriad() bool {
+	if c == nil {
+		return false
+	}
+	return strings.TrimSpace(c.GoogleClientID) != "" &&
+		strings.TrimSpace(c.GoogleClientSecret) != "" &&
+		strings.TrimSpace(c.GoogleRedirect) != ""
+}
+
+// GoogleMockAllowed 仅在显式打开且不在 production / grok / test 预览时允许 mock。
+// 默认禁止；缺三件套时不得静默 mock 成功。
+func (c *Config) GoogleMockAllowed() bool {
+	if c == nil || !c.GoogleAllowMock {
+		return false
+	}
+	if c.IsProduction() {
+		return false
+	}
+	host := strings.ToLower(c.PublicBaseURL + " " + c.WebOrigin)
+	if strings.Contains(host, "grok.tokpath.com") || strings.Contains(host, "test.tokpath.com") {
+		return false
+	}
+	return true
+}
+
 func resolveBifrostSandbox(v *viper.Viper) bool {
 	if v.IsSet("BIFROST_SANDBOX") {
 		return v.GetBool("BIFROST_SANDBOX")
@@ -172,26 +202,32 @@ func resolveBifrostSandbox(v *viper.Viper) bool {
 // RedactedMap 返回可安全写入日志的配置摘要，绝不包含密钥原文。
 func (c *Config) RedactedMap() map[string]any {
 	return map[string]any{
-		"env":                 c.Env,
-		"http_addr":           c.HTTPAddr,
-		"public_base_url":     c.PublicBaseURL,
-		"web_origin":          c.WebOrigin,
-		"database_configured": c.DatabaseURL != "",
-		"redis_configured":    c.RedisURL != "",
-		"otel_endpoint_set":   c.OTELEndpoint != "",
-		"otel_service_name":   c.OTELServiceName,
-		"log_level":           c.LogLevel,
-		"bootstrap_admin_set": c.BootstrapAdmin != "",
-		"bootstrap_user_set":  c.BootstrapUser != "",
-		"encryption_key_set":  c.EncryptionKey != "",
-		"bifrost_sandbox":     c.BifrostSandbox,
-		"openai_key_set":      c.OpenAIAPIKey != "",
-		"gemini_key_set":      c.GeminiAPIKey != "",
-		"acme_directory_set":  c.ACMEDirectory != "",
-		"acme_force":          c.ACMEForce,
-		"s3_endpoint_set":     c.S3Endpoint != "",
-		"s3_bucket":           c.S3Bucket,
-		"s3_key_set":          c.S3AccessKey != "",
+		"env":                  c.Env,
+		"http_addr":            c.HTTPAddr,
+		"public_base_url":      c.PublicBaseURL,
+		"web_origin":           c.WebOrigin,
+		"database_configured":  c.DatabaseURL != "",
+		"redis_configured":     c.RedisURL != "",
+		"otel_endpoint_set":    c.OTELEndpoint != "",
+		"otel_service_name":    c.OTELServiceName,
+		"log_level":            c.LogLevel,
+		"bootstrap_admin_set":  c.BootstrapAdmin != "",
+		"bootstrap_user_set":   c.BootstrapUser != "",
+		"encryption_key_set":   c.EncryptionKey != "",
+		"bifrost_sandbox":      c.BifrostSandbox,
+		"openai_key_set":       c.OpenAIAPIKey != "",
+		"gemini_key_set":       c.GeminiAPIKey != "",
+		"acme_directory_set":   c.ACMEDirectory != "",
+		"acme_force":           c.ACMEForce,
+		"s3_endpoint_set":      c.S3Endpoint != "",
+		"s3_bucket":            c.S3Bucket,
+		"s3_key_set":           c.S3AccessKey != "",
+		"google_client_id_set": c.GoogleClientID != "",
+		"google_secret_set":    c.GoogleClientSecret != "",
+		"google_redirect_set":  c.GoogleRedirect != "",
+		"google_triad":         c.GoogleTriad(),
+		"google_allow_mock":    c.GoogleAllowMock,
+		"google_mock_allowed":  c.GoogleMockAllowed(),
 	}
 }
 

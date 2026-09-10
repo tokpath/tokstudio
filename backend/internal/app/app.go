@@ -46,6 +46,8 @@ type App struct {
 	Commission *commission.Service
 	Ops        *ops.Service
 	Logger     zerolog.Logger
+	// GoogleExchange 仅测试注入。生产路径为 nil，由配置选择真实交换或（显式）mock。
+	GoogleExchange identity.GoogleExchanger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {

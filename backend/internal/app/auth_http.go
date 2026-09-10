@@ -31,6 +31,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/v1/auth/logout", a.logout)
 	r.GET("/v1/auth/google/status", a.googleStatus)
 	r.GET("/v1/auth/google/start", a.googleStart)
+	r.GET("/v1/auth/google/callback", a.googleCallbackRedirect)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
 	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
@@ -238,6 +239,25 @@ func (a *App) googleStart(c *gin.Context) {
 	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": mock, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) finishGoogleSession(c *gin.Context, state, code string) (*identity.Session, error) {
+	exchange := a.resolveGoogleExchange()
+	if exchange == nil {
+		return nil, identity.ErrGoogleUnavailable
+	}
+	return a.Identity.FinishGoogle(c.Request.Context(), state, code, exchange)
+}
+
+func (a *App) afterGoogleSession(c *gin.Context, session *identity.Session) {
+	if time.Since(session.User.CreatedAt) < 5*time.Minute {
+		a.grantSignupGift(c, session.User.ID)
+	}
+	a.setSessionCookie(c, session.Token)
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: session.User.ID, Action: "auth.google", ResourceType: "user", ResourceID: session.User.ID,
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+}
+
 func (a *App) googleCallback(c *gin.Context) {
 	var body struct {
 		State string `json:"state"`
@@ -247,25 +267,39 @@ func (a *App) googleCallback(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
-	exchange := a.resolveGoogleExchange()
-	if exchange == nil {
-		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
-		return
-	}
-	session, err := a.Identity.FinishGoogle(c.Request.Context(), body.State, body.Code, exchange)
+	session, err := a.finishGoogleSession(c, body.State, body.Code)
 	if err != nil {
 		a.writeGoogleAuthError(c, err)
 		return
 	}
-	if time.Since(session.User.CreatedAt) < 5*time.Minute {
-		a.grantSignupGift(c, session.User.ID)
-	}
-	a.setSessionCookie(c, session.Token)
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: session.User.ID, Action: "auth.google", ResourceType: "user", ResourceID: session.User.ID,
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
+	a.afterGoogleSession(c, session)
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) googleCallbackRedirect(c *gin.Context) {
+	if qErr := strings.TrimSpace(c.Query("error")); qErr != "" {
+		c.Redirect(http.StatusFound, a.oauthReturnURL("denied"))
+		return
+	}
+	session, err := a.finishGoogleSession(c, c.Query("state"), c.Query("code"))
+	if err != nil {
+		c.Redirect(http.StatusFound, a.oauthReturnURL("fail"))
+		return
+	}
+	a.afterGoogleSession(c, session)
+	c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+}
+
+func (a *App) webOrigin() string {
+	base := strings.TrimSpace(a.Config.WebOrigin)
+	if base == "" {
+		base = a.Config.PublicBaseURL
+	}
+	return strings.TrimRight(base, "/")
+}
+
+func (a *App) oauthReturnURL(reason string) string {
+	return a.webOrigin() + "/login?oauth=" + url.QueryEscape(reason)
 }
 
 func (a *App) me(c *gin.Context) {

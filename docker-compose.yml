@@ -64,6 +64,9 @@ services:
   api:
     build:
       context: ./backend
+    # Google 等密钥从仓库根 .env 注入；environment 里不要再写空的 ${GOOGLE:-}，否则会覆盖掉文件里的值。
+    env_file:
+      - .env
     environment:
       TOKENHUB_ENV: development
       TOKENHUB_HTTP_ADDR: :8080
@@ -80,9 +83,6 @@ services:
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
       TOKENHUB_LOG_LEVEL: info
       TOKENHUB_BIFROST_SANDBOX: "true"
-      TOKENHUB_GOOGLE_CLIENT_ID: ${TOKENHUB_GOOGLE_CLIENT_ID:-}
-      TOKENHUB_GOOGLE_CLIENT_SECRET: ${TOKENHUB_GOOGLE_CLIENT_SECRET:-}
-      TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-}
       TOKENHUB_GOOGLE_ALLOW_MOCK: ${TOKENHUB_GOOGLE_ALLOW_MOCK:-false}
       TOKENHUB_S3_ENDPOINT: http://minio:9000
       TOKENHUB_S3_PUBLIC_ENDPOINT: http://localhost:9000

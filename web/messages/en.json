@@ -279,6 +279,7 @@
     "googleNoRedirect": "Google sign-in did not return a redirect",
     "googleNeedEmail": "Enter a Google email",
     "googleFail": "Google sign-in failed",
+    "googleReturning": "Finishing Google sign-in…",
     "promoPh": "Optional · THA1 / THB1 / THC1"
   },
   "home": {

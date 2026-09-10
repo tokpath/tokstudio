@@ -22,20 +22,21 @@ import (
 var migrationFS embed.FS
 
 type orderRow struct {
-	ID              string    `gorm:"column:id;primaryKey"`
-	UserID          string    `gorm:"column:user_id"`
-	ChannelOrgID    string    `gorm:"column:channel_org_id"`
-	Adapter         string    `gorm:"column:adapter"`
-	Purpose         string    `gorm:"column:purpose"`
-	ReferenceType   *string   `gorm:"column:reference_type"`
-	ReferenceID     *string   `gorm:"column:reference_id"`
-	AmountMinor     int64     `gorm:"column:amount_minor"`
-	CreditMinor     int64     `gorm:"column:credit_minor"`
-	Currency        string    `gorm:"column:currency"`
-	Status          string    `gorm:"column:status"`
-	ProviderTradeID *string   `gorm:"column:provider_trade_id"`
-	CreatedAt       time.Time `gorm:"column:created_at"`
-	UpdatedAt       time.Time `gorm:"column:updated_at"`
+	ID              string     `gorm:"column:id;primaryKey"`
+	UserID          string     `gorm:"column:user_id"`
+	ChannelOrgID    string     `gorm:"column:channel_org_id"`
+	Adapter         string     `gorm:"column:adapter"`
+	Purpose         string     `gorm:"column:purpose"`
+	ReferenceType   *string    `gorm:"column:reference_type"`
+	ReferenceID     *string    `gorm:"column:reference_id"`
+	AmountMinor     int64      `gorm:"column:amount_minor"`
+	CreditMinor     int64      `gorm:"column:credit_minor"`
+	Currency        string     `gorm:"column:currency"`
+	Status          string     `gorm:"column:status"`
+	ProviderTradeID *string    `gorm:"column:provider_trade_id"`
+	FulfilledAt     *time.Time `gorm:"column:fulfilled_at"`
+	CreatedAt       time.Time  `gorm:"column:created_at"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }
 
 func (orderRow) TableName() string { return "payment_orders" }
@@ -329,6 +330,11 @@ func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers htt
 		return view, err
 	}
 	if view.Duplicate {
+		if parsed.SignatureValid && orderID != "" && parsed.Status == StatusPaid {
+			if err := s.ensureFulfill(ctx, orderID); err != nil {
+				return view, err
+			}
+		}
 		return view, nil
 	}
 	view.Status = status
@@ -470,24 +476,68 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 	return s.fulfill(ctx, row)
 }
 
-func (s *Service) fulfill(ctx context.Context, row orderRow) error {
-	switch row.Purpose {
-	case PurposeSubscription:
-		if row.ReferenceID == nil || s.plans == nil {
-			return nil
-		}
-		_, err := s.plans.ActivatePaid(ctx, *row.ReferenceID, time.Now().UTC())
-		return err
-	case PurposeWallet:
-		if row.ReferenceID == nil || s.billing == nil {
-			return nil
-		}
-		_, err := s.billing.ConfirmTopup(ctx, *row.ReferenceID, "payment:"+row.ID)
-		return err
-	case PurposeRenewal:
+func (s *Service) ensureFulfill(ctx context.Context, orderID string) error {
+	var row orderRow
+	if err := s.db.WithContext(ctx).Where("id = ?", orderID).First(&row).Error; err != nil {
+		return ErrNotFound
+	}
+	if row.Status != StatusPaid {
 		return nil
 	}
-	return nil
+	return s.fulfill(ctx, row)
+}
+
+func (s *Service) fulfill(ctx context.Context, row orderRow) error {
+	if row.FulfilledAt != nil {
+		return nil
+	}
+	var err error
+	switch row.Purpose {
+	case PurposeSubscription:
+		if row.ReferenceID != nil && s.plans != nil {
+			_, err = s.plans.ActivatePaid(ctx, *row.ReferenceID, time.Now().UTC())
+		}
+	case PurposeWallet:
+		if row.ReferenceID != nil && s.billing != nil {
+			_, err = s.billing.ConfirmTopup(ctx, *row.ReferenceID, "payment:"+row.ID)
+		}
+	case PurposeRenewal:
+		err = nil
+	}
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	return s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ? AND fulfilled_at IS NULL", row.ID).
+		Updates(map[string]any{"fulfilled_at": now, "updated_at": now}).Error
+}
+
+func (s *Service) RetryUnfulfilled(ctx context.Context) (int, error) {
+	var rows []orderRow
+	if err := s.db.WithContext(ctx).Where("status = ? AND fulfilled_at IS NULL", StatusPaid).
+		Order("created_at").Limit(50).Find(&rows).Error; err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, row := range rows {
+		if err := s.fulfill(ctx, row); err == nil {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (s *Service) RunFulfillment(ctx context.Context) {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			_, _ = s.RetryUnfulfilled(ctx)
+		}
+	}
 }
 
 func (s *Service) markRefunded(ctx context.Context, orderID string) error {
@@ -542,20 +592,51 @@ func (s *Service) ChargeRenewal(ctx context.Context, subID, adapter, methodRef s
 	if err != nil {
 		return err
 	}
+	if s.renewalAlreadyCharged(ctx, subID, sub.PeriodEnd) {
+		return nil
+	}
 	plan, err := s.plans.GetPlan(ctx, sub.PlanID)
 	if err != nil {
 		return err
 	}
+	channelID := identity.OfficialChannelID
+	if sub.ChannelOrgID != "" {
+		channelID = sub.ChannelOrgID
+	}
 	now := time.Now().UTC()
 	refType := PurposeSubscription
 	row := orderRow{
-		ID: id.New("pay"), UserID: sub.UserID, Adapter: adapter, Purpose: PurposeRenewal,
+		ID: id.New("pay"), UserID: sub.UserID, ChannelOrgID: channelID, Adapter: adapter, Purpose: PurposeRenewal,
 		ReferenceType: &refType, ReferenceID: &subID, AmountMinor: plan.PriceMinor, CreditMinor: plan.PriceMinor,
-		Currency: plan.Currency, Status: StatusPaid, CreatedAt: now, UpdatedAt: now,
+		Currency: plan.Currency, Status: StatusPaid, CreatedAt: now, UpdatedAt: now, FulfilledAt: &now,
 	}
 	trade := "sandbox-renew:" + subID
+	if inst := s.firstReadyInstance(ctx, channelID, adapter); inst != nil && inst.Mode == ModeLive {
+		creds, err := openCredentials(s.signKey, inst.CredentialsCiphertext)
+		if err == nil && officialLive(inst.Mode, creds, "secret_key") {
+			id, err := stripeDriver{}.ChargeOffSession(ctx, OffSessionCharge{
+				Order:            orderView(row),
+				Credentials:      creds,
+				PaymentMethodRef: methodRef,
+			})
+			if err != nil {
+				return err
+			}
+			trade = id
+		}
+	}
 	row.ProviderTradeID = &trade
 	return s.db.WithContext(ctx).Create(&row).Error
+}
+
+func (s *Service) renewalAlreadyCharged(ctx context.Context, subID string, since *time.Time) bool {
+	q := s.db.WithContext(ctx).Model(&orderRow{}).Where("purpose = ? AND reference_id = ? AND status = ?", PurposeRenewal, subID, StatusPaid)
+	if since != nil {
+		q = q.Where("created_at >= ?", *since)
+	}
+	var n int64
+	_ = q.Count(&n)
+	return n > 0
 }
 
 func (s *Service) plugin(id string) (Adapter, bool) {

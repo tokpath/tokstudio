@@ -141,7 +141,7 @@
 - `GET /v1/payments/checkout`：按用户 `channel_org_id` 返回已开通通道。空列表不要写成「支付功能未启用」。
 - `GET /v1/payments/quote`：应付 / 手续费 / 钱包入账 / 发放额度。BPS 只读。
 - `GET /v1/payments/orders/{id}`：查询支付单；
-- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。插件 `ParseWebhook` 验签；沙箱 HMAC 为 `event_id|order_id|status`，按 `external_event_id` 幂等。
+- `POST /v1/payments/{adapter}/webhook`：支付适配器回调。插件 `ParseWebhook` 验签；沙箱 HMAC 为 `event_id|order_id|status`，按 `external_event_id` 幂等。同一事件重放时若订单已 paid 但尚未 `fulfilled_at`，会再履约。
 - 渠道收款：`GET /channel/payments/overview|adapters|instances|settings|orders`；`POST /channel/payments/instances`；`PATCH /channel/payments/instances/{id}`（改凭证需确认）；`POST .../test`、`POST .../go-live`（确认）。通道卡来自支付插件注册表，新增本地支付只需注册 Adapter。
 - 平台：`GET /admin/channels/{id}/payments` 就绪灯（无密钥）；`POST .../disable` 紧急停用；`GET/PATCH /admin/payment-adapters` 插件总开关。
 - `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。

@@ -55,6 +55,13 @@ func TestStripeLiveCheckoutAndSignature(t *testing.T) {
 		}
 		body, _ := io.ReadAll(r.Body)
 		vals, _ := url.ParseQuery(string(body))
+		if vals.Get("off_session") == "true" {
+			if vals.Get("payment_method") != "pm_card" || vals.Get("confirm") != "true" {
+				t.Errorf("off-session form %v", vals)
+			}
+			_, _ = w.Write([]byte(`{"id":"pi_1","status":"succeeded"}`))
+			return
+		}
 		if vals.Get("metadata[order_id]") != "pay_1" {
 			t.Errorf("order metadata %q", vals.Get("metadata[order_id]"))
 		}
@@ -76,6 +83,15 @@ func TestStripeLiveCheckoutAndSignature(t *testing.T) {
 	})
 	if err != nil || sess == nil || sess.Sandbox || sess.ClientSecret != "cs_test" {
 		t.Fatalf("live checkout: %+v %v", sess, err)
+	}
+
+	id, err := d.ChargeOffSession(context.Background(), OffSessionCharge{
+		Credentials:      map[string]string{"secret_key": "sk_test", "currency": "usd"},
+		PaymentMethodRef: "pm_card",
+		Order:            &OrderView{ID: "pay_renew", AmountMinor: 1_000_000},
+	})
+	if err != nil || id != "pi_1" {
+		t.Fatalf("off-session %s %v", id, err)
 	}
 
 	body := []byte(`{"id":"evt_1","type":"payment_intent.succeeded","data":{"object":{"id":"pi_1","metadata":{"order_id":"pay_1"}}}}`)

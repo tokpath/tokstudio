@@ -23,6 +23,10 @@ var (
 const maxProviderBody = 1 << 20
 
 func stripeDo(ctx context.Context, secret, method, path string, form url.Values) ([]byte, int, error) {
+	return stripeDoKeyed(ctx, secret, method, path, form, "")
+}
+
+func stripeDoKeyed(ctx context.Context, secret, method, path string, form url.Values, idempotencyKey string) ([]byte, int, error) {
 	var body io.Reader
 	if form != nil {
 		body = strings.NewReader(form.Encode())
@@ -34,6 +38,9 @@ func stripeDo(ctx context.Context, secret, method, path string, form url.Values)
 	req.SetBasicAuth(secret, "")
 	if form != nil {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	if strings.TrimSpace(idempotencyKey) != "" {
+		req.Header.Set("Idempotency-Key", strings.TrimSpace(idempotencyKey))
 	}
 	resp, err := stripeHTTP.Do(req)
 	if err != nil {

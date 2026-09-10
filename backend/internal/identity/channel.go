@@ -205,6 +205,50 @@ func (s *Service) IssueBrandTLS(ctx context.Context, brandID, cname string) (*Br
 	return brandView(row), nil
 }
 
+func (s *Service) RefreshPendingTLS(ctx context.Context) (int, error) {
+	if !s.cf.Ready() {
+		return 0, nil
+	}
+	var rows []brandRow
+	if err := s.db.WithContext(ctx).Where("tls_issuer = ? AND tls_status = ?", IssuerCloudflare, "pending").Find(&rows).Error; err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, row := range rows {
+		result, err := s.cf.Get(ctx, row.PrimaryDomain)
+		if err != nil {
+			continue
+		}
+		updates := map[string]any{"tls_status": result.Status}
+		if result.ID != "" {
+			updates["tls_directory"] = "cloudflare:" + result.ID
+		}
+		if result.ExpiresAt != nil {
+			updates["tls_expires_at"] = *result.ExpiresAt
+		}
+		if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", row.ID).Updates(updates).Error; err != nil {
+			continue
+		}
+		if result.Status == "issued" {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (s *Service) RunTLSRefresh(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			_, _ = s.RefreshPendingTLS(ctx)
+		}
+	}
+}
+
 func (s *Service) BrandByHost(ctx context.Context, host string) (*BrandView, error) {
 	host = strings.ToLower(strings.TrimSpace(strings.Split(host, ":")[0]))
 	var row brandRow

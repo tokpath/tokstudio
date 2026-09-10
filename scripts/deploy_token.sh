@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # 在 token 机器上拉起 TokenHub 预览：https://test.tokpath.com
-# 只应被 GitHub Actions 在合入 release/v0.1.0 后调用；脚本本身也只检出该分支的代码。
+# Atlas 编排：只应被 GitHub Actions deploy-token 在合入 release/v0.1.0 后调用。
+# 检出固定为 /root/workspace/tokstudio；不要进入 /root/workspace/tokstudio-grok。
 # 不抢 80/443；gashub Caddy 继续服务 www.tokpath.com，并加一条 test 主机名反代。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+GROK_CHECKOUT="${TOKENHUB_GROK_CHECKOUT:-/root/workspace/tokstudio-grok}"
+if [[ "$ROOT" == "$GROK_CHECKOUT" ]]; then
+  echo "deploy_token.sh must not run in the grok checkout (${GROK_CHECKOUT})" >&2
+  exit 1
+fi
 
 PUBLIC_BASE_URL="${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}"
 NOVA_CADDY="${NOVA_CADDY:-/root/workspace/nova/Caddyfile}"

@@ -1,0 +1,11 @@
+# 追加到 token 机器上 /root/workspace/nova/Caddyfile。
+# 只处理 grok.tokpath.com；不要改、不要删 test.tokpath.com。
+# nova Caddy 在此站点终止 TLS（Cloudflare Full 需要源站握手，避免 525），
+# 再 HTTP 反代到并行栈的 tokstudio-grok-edge。
+grok.tokpath.com {
+	encode zstd gzip
+	reverse_proxy tokstudio-grok-edge:80 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}

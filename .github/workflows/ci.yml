@@ -2,10 +2,17 @@ name: ci
 
 on:
   push:
-    branches: [main, release/v0.1.0, "cursor/**"]
+    branches: [main, release/v0.1.0, feature/grokbot, "cursor/**"]
   pull_request:
 
 jobs:
+  deploy-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: assert deploy host + grok/test isolation
+        run: bash scripts/assert_deploy_isolation.sh
+
   backend:
     runs-on: ubuntu-latest
     services:

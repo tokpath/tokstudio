@@ -82,12 +82,13 @@ if grep -vE '^[[:space:]]*#' docker-compose.grok.yml | grep -q 'TOKENHUB_GOOGLE_
 fi
 pass "grok compose + caddy stay isolated"
 
-# MinIO：凭证走 TOKENHUB_S3_*；init 用 mc ready；部署走卷重建恢复脚本。
+# MinIO：凭证走 TOKENHUB_S3_*；init 用短 expiry 的 mc ready；部署先重置卷。
 grep -qF 'MINIO_ROOT_USER: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}' docker-compose.yml \
   || fail "minio root user must track TOKENHUB_S3_ACCESS_KEY"
 grep -qF 'MINIO_ROOT_PASSWORD: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}' docker-compose.yml \
   || fail "minio root password must track TOKENHUB_S3_SECRET_KEY"
-grep -qF 'mc ready local' docker-compose.yml || fail "minio-init must wait with mc ready"
+grep -qF 'mc ready local --expiry 3s' docker-compose.yml \
+  || fail "minio-init must use mc ready with short --expiry (default 1m hangs deploys)"
 if grep -A2 'minio:$' docker-compose.yml | grep -q 'curl'; then
   fail "minio healthcheck must not rely on curl (server image has none)"
 fi
@@ -95,6 +96,8 @@ grep -qF 'compose_up_with_minio_recovery.sh' scripts/deploy_token.sh \
   || fail "deploy_token.sh must use MinIO volume recovery helper"
 grep -qF 'compose_up_with_minio_recovery.sh' scripts/deploy_grok.sh \
   || fail "deploy_grok.sh must use MinIO volume recovery helper"
+grep -qF 'pre-up credential sync' scripts/compose_up_with_minio_recovery.sh \
+  || fail "recovery helper must reset MinIO volume before first up"
 [[ -x scripts/compose_up_with_minio_recovery.sh ]] || fail "compose_up_with_minio_recovery.sh must be executable"
 pass "minio credentials + init + deploy recovery wiring"
 

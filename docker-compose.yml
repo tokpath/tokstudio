@@ -190,15 +190,18 @@ services:
     command:
       - |
         set -eu
+        # mc ready 默认 --expiry=1m，凭证不对时每次探测会卡满 1 分钟；预览部署会被 40m SSH 超时杀掉。
         export MC_HOST_local="http://$${TOKENHUB_S3_ACCESS_KEY}:$${TOKENHUB_S3_SECRET_KEY}@minio:9000"
-        echo "minio-init: waiting for MinIO (mc ready) as $${TOKENHUB_S3_ACCESS_KEY}"
+        echo "minio-init: waiting for MinIO (mc ready --expiry 3s) as $${TOKENHUB_S3_ACCESS_KEY}"
         ready=0
-        for n in $$(seq 1 60); do
-          if mc ready local >/tmp/mc-ready.out 2>&1; then
+        n=0
+        while [ "$$n" -lt 40 ]; do
+          n=$$((n + 1))
+          if mc ready local --expiry 3s >/tmp/mc-ready.out 2>&1; then
             ready=1
             break
           fi
-          echo "minio-init: not ready yet ($$n/60): $$(tr '\n' ' ' </tmp/mc-ready.out)"
+          echo "minio-init: not ready yet ($$n/40): $$(tr '\n' ' ' </tmp/mc-ready.out)"
           sleep 1
         done
         if [ "$$ready" -ne 1 ]; then

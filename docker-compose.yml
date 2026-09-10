@@ -171,7 +171,7 @@ services:
       - tokenhub_minio:/data
 
   minio-init:
-    image: minio/mc:RELEASE.2024-12-13T00-44-48Z
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     depends_on:
       - minio
     entrypoint: ["/bin/sh", "-c"]

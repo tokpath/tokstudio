@@ -65,7 +65,7 @@ jobs:
             sleep 1
           done
           test "$ok" = "1"
-          docker run --rm --network host minio/mc:RELEASE.2024-12-13T00-44-48Z \
+          docker run --rm --network host minio/mc:RELEASE.2025-04-16T18-13-26Z \
             /bin/sh -c 'mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && mc mb -p local/tokenhub'
       - name: download modules
         run: |

@@ -103,7 +103,7 @@ if echo "$csv" | grep -q "a river"; then echo "admin media csv leaked prompt" >&
 
 echo "== signed content url, not a permanent public link"
 content="$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/videos/$jid/content")"
-echo "$content" | grep -q '/v1/media/objects'
+python3 -c "import json,sys; d=json.loads(sys.argv[1]); u=d.get('url') or ''; assert u and ('X-Amz-' in u or '/v1/media/objects' in u), d; s=d.get('storage') or {}; assert s.get('ok') is True and s.get('label')=='S3', d" "$content"
 path="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['url'])" "$content")"
 case "$path" in http*) url="$path" ;; *) url="$API_URL$path" ;; esac
 curl -sf "$url" | grep -q tokenhub-sandbox-media

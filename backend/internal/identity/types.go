@@ -49,6 +49,7 @@ type UserView struct {
 	BrandID       string    `json:"brand_id,omitempty"`
 	Roles         []string  `json:"roles,omitempty"`
 	SourceCode    string    `json:"source_code,omitempty"`
+	LoginMethods  []string  `json:"login_methods"`
 	CanCommission bool      `json:"can_commission"`
 	CreatedAt     time.Time `json:"created_at"`
 }

@@ -15,6 +15,7 @@ services:
     environment:
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://test.tokpath.com}
+      TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-https://test.tokpath.com/login/oauth/google}
 
 networks:
   gashub:

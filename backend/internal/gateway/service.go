@@ -7,11 +7,10 @@ import (
 	"errors"
 	"io/fs"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"gorm.io/gorm"
-
-	"sync/atomic"
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
@@ -59,28 +58,41 @@ type requestRow struct {
 func (requestRow) TableName() string { return "gateway_requests" }
 
 type attemptRow struct {
-	ID              string     `gorm:"column:id;primaryKey"`
-	RequestPK       string     `gorm:"column:request_pk"`
-	ProviderID      string     `gorm:"column:provider_id"`
-	UpstreamModelID string     `gorm:"column:upstream_model_id"`
-	AttemptNo       int        `gorm:"column:attempt_no"`
-	Status          string     `gorm:"column:status"`
-	HTTPStatus      *int       `gorm:"column:http_status"`
-	ErrorCode       *string    `gorm:"column:error_code"`
-	LatencyMS       int        `gorm:"column:latency_ms"`
-	StartedAt       time.Time  `gorm:"column:started_at"`
-	EndedAt         *time.Time `gorm:"column:ended_at"`
+	ID               string     `gorm:"column:id;primaryKey"`
+	RequestPK        string     `gorm:"column:request_pk"`
+	ProviderID       string     `gorm:"column:provider_id"`
+	UpstreamModelID  string     `gorm:"column:upstream_model_id"`
+	AttemptNo        int        `gorm:"column:attempt_no"`
+	Status           string     `gorm:"column:status"`
+	HTTPStatus       *int       `gorm:"column:http_status"`
+	ErrorCode        *string    `gorm:"column:error_code"`
+	LatencyMS        int        `gorm:"column:latency_ms"`
+	FactSource       *string    `gorm:"column:fact_source"`
+	PromptTokens     *int       `gorm:"column:prompt_tokens"`
+	CompletionTokens *int       `gorm:"column:completion_tokens"`
+	TotalTokens      *int       `gorm:"column:total_tokens"`
+	MetadataJSON     []byte     `gorm:"column:metadata_json"`
+	StartedAt        time.Time  `gorm:"column:started_at"`
+	EndedAt          *time.Time `gorm:"column:ended_at"`
 }
 
 func (attemptRow) TableName() string { return "gateway_attempts" }
 
 type AttemptView struct {
-	ID         string `json:"id"`
-	ProviderID string `json:"provider_id"`
-	AttemptNo  int    `json:"attempt_no"`
-	Status     string `json:"status"`
-	HTTPStatus int    `json:"http_status"`
-	ErrorCode  string `json:"error_code,omitempty"`
+	ID               string            `json:"id"`
+	RequestID        string            `json:"request_id,omitempty"`
+	ProviderID       string            `json:"provider_id"`
+	UpstreamModelID  string            `json:"upstream_model_id,omitempty"`
+	AttemptNo        int               `json:"attempt_no"`
+	Status           string            `json:"status"`
+	HTTPStatus       int               `json:"http_status"`
+	ErrorCode        string            `json:"error_code,omitempty"`
+	LatencyMS        int               `json:"latency_ms,omitempty"`
+	FactSource       string            `json:"fact_source,omitempty"`
+	PromptTokens     *int              `json:"prompt_tokens,omitempty"`
+	CompletionTokens *int              `json:"completion_tokens,omitempty"`
+	TotalTokens      *int              `json:"total_tokens,omitempty"`
+	Metadata         map[string]string `json:"metadata,omitempty"`
 }
 
 // Breaker 由 ops 实现。网关只问是否跳过、并回报成败，不读 ops 表。
@@ -172,6 +184,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
+		if errors.Is(err, catalog.ErrUnknownModel) {
+			return nil, catalog.ErrUnknownModel
+		}
 		return nil, ErrModelNotAllowed
 	}
 	if err := ValidateChat(in.Chat, model.Capabilities); err != nil {
@@ -251,15 +266,15 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		if s.usesUpstreamModel(cand.Adapter) && cand.UpstreamModelID != "" {
 			callReq.Model = cand.UpstreamModelID
 		}
-		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
 		attemptID := id.New("atm")
+		callCtx, cancel := context.WithTimeout(ctx, candidateTimeout(cand.TimeoutMS))
 		callCtx = ContextWithMeta(callCtx, map[string]string{
 			"request_id":      in.RequestID,
+			"attempt_id":      attemptID,
 			"api_key_id":      in.Caller.APIKeyID,
 			"user_id":         in.Caller.UserID,
 			"channel_org_id":  in.Caller.ChannelOrgID,
 			"public_model_id": model.ID,
-			"attempt_id":      attemptID,
 		})
 		if cand.AccountID != "" && s.encKey != "" {
 			if secret, err := s.catalog.RevealAccount(callCtx, cand.AccountID, s.encKey); err == nil && secret != "" {
@@ -294,6 +309,8 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				code = "upstream_error"
 			}
 			attempt.ErrorCode = &code
+			factSource := attemptFactSource(cand.Adapter, result, s.runtime)
+			applyAttemptFacts(&attempt, nil, factSource, passthroughMeta(in, attemptID, model.ID, result, factSource))
 			_ = s.db.WithContext(ctx).Create(&attempt).Error
 			if s.breaker != nil {
 				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
@@ -327,20 +344,25 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		})
 		usage := result.Body.Usage
 		mode := NormalizeSandboxMode(in.SandboxMode, in.OmitUsage)
-		if mode == SandboxOmit {
-			usage = map[string]int{}
-		} else {
-			usage = ApplySandboxUsage(in.SandboxMode, in.Chat, completionText(result.Body), usage)
-		}
+		usage = resolveAttemptUsage(usageAdapterName(cand.Adapter, s.runtime), mode, in.Chat, completionText(result.Body), usage)
 		result.Body.Usage = usage
 		out.Response.Usage = usage
 		missing := mode == SandboxOmit || len(usage) == 0
+		factSource := attemptFactSource(cand.Adapter, result, s.runtime)
+		applyAttemptFacts(&attempt, usage, factSource, passthroughMeta(in, attemptID, model.ID, result, factSource))
+		_ = s.db.WithContext(ctx).Model(&attemptRow{}).Where("id = ?", attempt.ID).Updates(map[string]any{
+			"fact_source":       attempt.FactSource,
+			"prompt_tokens":     attempt.PromptTokens,
+			"completion_tokens": attempt.CompletionTokens,
+			"total_tokens":      attempt.TotalTokens,
+			"metadata_json":     attempt.MetadataJSON,
+		})
 		_, _ = s.booker.Settle(ctx, billing.SettleInput{
 			RequestID: in.RequestID, AttemptID: attempt.ID, UserID: in.Caller.UserID,
 			APIKeyID: in.Caller.APIKeyID, ChannelOrgID: in.Caller.ChannelOrgID,
 			PublicModelID: model.ID, ProviderID: cand.ProviderID, UpstreamModelID: cand.UpstreamModelID,
 			Usage: usage, PriceVersionID: snapshot.VersionID, UnitPrices: snapshot.Raw,
-			MissingUsage: missing, IdempotencyKey: "usage:" + in.RequestID,
+			MissingUsage: missing, FactSource: factSource, IdempotencyKey: "usage:" + in.RequestID,
 		})
 		return out, nil
 	}
@@ -361,16 +383,97 @@ func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]Attempt
 	}
 	out := make([]AttemptView, 0, len(rows))
 	for _, row := range rows {
-		view := AttemptView{ID: row.ID, ProviderID: row.ProviderID, AttemptNo: row.AttemptNo, Status: row.Status}
+		view := AttemptView{
+			ID: row.ID, RequestID: req.RequestID, ProviderID: row.ProviderID,
+			UpstreamModelID: row.UpstreamModelID, AttemptNo: row.AttemptNo, Status: row.Status,
+			LatencyMS: row.LatencyMS, PromptTokens: row.PromptTokens,
+			CompletionTokens: row.CompletionTokens, TotalTokens: row.TotalTokens,
+		}
 		if row.HTTPStatus != nil {
 			view.HTTPStatus = *row.HTTPStatus
 		}
 		if row.ErrorCode != nil {
 			view.ErrorCode = *row.ErrorCode
 		}
+		if row.FactSource != nil {
+			view.FactSource = *row.FactSource
+		}
+		if len(row.MetadataJSON) > 0 {
+			var meta map[string]string
+			if json.Unmarshal(row.MetadataJSON, &meta) == nil {
+				view.Metadata = meta
+			}
+		}
 		out = append(out, view)
 	}
 	return out, nil
+}
+
+func geminiGoesLive(rt *Runtime) bool {
+	return GeminiLiveEnabled(rt) || (rt != nil && !rt.Sandbox && rt.Client != nil)
+}
+
+func attemptFactSource(adapter string, result AdapterResult, rt *Runtime) string {
+	liveGemini := adapter == "gemini" && geminiGoesLive(rt)
+	sandboxForce := rt != nil && rt.Sandbox && (adapter == "bifrost" || adapter == "gemini")
+	if liveGemini {
+		sandboxForce = false
+	}
+	if src := normalizeFactSource(result.FactSource, sandboxForce); src != "" {
+		return src
+	}
+	if adapter == "test" || (adapter == "gemini" && !liveGemini) {
+		return FactSourceSandbox
+	}
+	if rt != nil && rt.Sandbox && adapter == "bifrost" {
+		return FactSourceSandbox
+	}
+	return ""
+}
+
+func useUpstreamModel(adapter string, rt *Runtime) bool {
+	if adapter == "bifrost" || (adapter == "gemini" && geminiGoesLive(rt)) {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(adapter)) {
+	case "openai", "anthropic", "openrouter", "google":
+		return true
+	default:
+		return false
+	}
+}
+
+func usageAdapterName(adapter string, rt *Runtime) string {
+	if adapter == "gemini" && geminiGoesLive(rt) {
+		return "bifrost"
+	}
+	return adapter
+}
+
+func passthroughMeta(in ExecuteInput, attemptID, publicModelID string, result AdapterResult, factSource string) map[string]string {
+	meta := PassthroughMeta{
+		RequestID: in.RequestID, AttemptID: attemptID, UserID: in.Caller.UserID,
+		APIKeyID: in.Caller.APIKeyID, ChannelOrgID: in.Caller.ChannelOrgID,
+		PublicModelID: publicModelID, FactSource: factSource,
+	}.Map()
+	for key, value := range result.EchoedMeta {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		if _, exists := meta[key]; !exists {
+			meta[key] = value
+		}
+	}
+	return meta
+}
+
+func applyAttemptFacts(row *attemptRow, usage map[string]int, factSource string, meta map[string]string) {
+	if factSource != "" {
+		src := factSource
+		row.FactSource = &src
+	}
+	row.PromptTokens, row.CompletionTokens, row.TotalTokens = usageTokenPtrs(usage)
+	row.MetadataJSON = metadataJSON(meta)
 }
 
 func candidateTimeout(ms int) time.Duration {
@@ -405,6 +508,9 @@ func (s *Service) adapterFor(name string) Adapter {
 }
 
 func (s *Service) usesUpstreamModel(adapter string) bool {
+	if useUpstreamModel(adapter, s.runtime) {
+		return true
+	}
 	switch strings.ToLower(strings.TrimSpace(adapter)) {
 	case "bifrost", "openai", "anthropic", "openrouter", "gemini", "google":
 		return true

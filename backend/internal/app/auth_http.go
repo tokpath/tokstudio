@@ -28,6 +28,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
+	r.POST("/v1/auth/logout", a.logout)
+	r.GET("/v1/auth/google/status", a.googleStatus)
 	r.GET("/v1/auth/google/start", a.googleStart)
 	r.GET("/v1/auth/google/callback", a.googleCallbackRedirect)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
@@ -73,6 +75,18 @@ func (a *App) setSessionCookie(c *gin.Context, token string) {
 	secure := a.Config.IsProduction()
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(sessionCookie, token, 86400, "/", "", secure, true)
+}
+
+func (a *App) clearSessionCookie(c *gin.Context) {
+	secure := a.Config.IsProduction()
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(sessionCookie, "", -1, "/", "", secure, true)
+}
+
+func (a *App) logout(c *gin.Context) {
+	_ = a.Identity.Logout(c.Request.Context(), a.tokenFromRequest(c))
+	a.clearSessionCookie(c)
+	httpx.OK(c, gin.H{"ok": true, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) writeAuthError(c *gin.Context, err error) {
@@ -149,39 +163,88 @@ func (a *App) login(c *gin.Context) {
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) googleStart(c *gin.Context) {
-	state, err := a.Identity.StartGoogle(c.Request.Context(), c.Query("promotion_code"))
-	if err != nil {
+func (a *App) googleMode() (configured, mock, available bool) {
+	configured = a.Config.GoogleTriad()
+	mock = !configured && a.Config.GoogleMockAllowed()
+	available = configured || mock
+	return configured, mock, available
+}
+
+func (a *App) resolveGoogleExchange() identity.GoogleExchanger {
+	if a.GoogleExchange != nil {
+		return a.GoogleExchange
+	}
+	configured, mock, _ := a.googleMode()
+	if configured {
+		return identity.NewGoogleExchange(identity.GoogleOAuthConfig{
+			ClientID:     a.Config.GoogleClientID,
+			ClientSecret: a.Config.GoogleClientSecret,
+			RedirectURL:  a.Config.GoogleRedirect,
+		})
+	}
+	if mock {
+		return identity.MockGoogleExchange
+	}
+	return nil
+}
+
+func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, identity.ErrGoogleUnavailable):
+		httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "未配置 Google 登录", false)
+	case errors.Is(err, identity.ErrGoogleExchange):
+		httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "Google 登录失败", true)
+	case errors.Is(err, identity.ErrInvalidCredentials):
+		httpx.Abort(c, http.StatusForbidden, "authentication_error", "Google 登录失败", true)
+	case errors.Is(err, identity.ErrPromotionInvalid):
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "推广码无效", false)
+	default:
 		a.writeAuthError(c, err)
+	}
+}
+
+func (a *App) googleStatus(c *gin.Context) {
+	configured, mock, available := a.googleMode()
+	httpx.OK(c, gin.H{
+		"available":  available,
+		"configured": configured,
+		"mock":       mock,
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
+}
+
+func (a *App) googleStart(c *gin.Context) {
+	configured, mock, available := a.googleMode()
+	if !available {
+		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
 		return
 	}
-	live := a.Config != nil && a.Config.GoogleOAuthReady()
-	authURL := a.Config.PublicBaseURL + "/v1/auth/google/mock?state=" + url.QueryEscape(state)
-	if live {
+	state, err := a.Identity.StartGoogle(c.Request.Context(), c.Query("promotion_code"))
+	if err != nil {
+		a.writeGoogleAuthError(c, err)
+		return
+	}
+	authURL := ""
+	if configured {
 		values := url.Values{}
 		values.Set("client_id", a.Config.GoogleClientID)
 		values.Set("redirect_uri", a.Config.GoogleRedirect)
 		values.Set("response_type", "code")
 		values.Set("scope", "openid email profile")
 		values.Set("state", state)
-		authURL = "https://accounts.google.com/o/oauth2/v2/auth?" + values.Encode()
+		authURL = identity.GoogleAuthorizeURL + "?" + values.Encode()
+	} else if mock {
+		authURL = a.Config.PublicBaseURL + "/v1/auth/google/mock?state=" + url.QueryEscape(state)
 	}
-	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": !live, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func (a *App) googleExchanger() identity.GoogleExchanger {
-	if a.Config == nil || !a.Config.GoogleOAuthReady() {
-		return identity.MockGoogleExchange
-	}
-	return identity.GoogleOAuth{
-		ClientID:     a.Config.GoogleClientID,
-		ClientSecret: a.Config.GoogleClientSecret,
-		RedirectURI:  a.Config.GoogleRedirect,
-	}.Exchange
+	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": mock, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) finishGoogleSession(c *gin.Context, state, code string) (*identity.Session, error) {
-	return a.Identity.FinishGoogle(c.Request.Context(), state, code, a.googleExchanger())
+	exchange := a.resolveGoogleExchange()
+	if exchange == nil {
+		return nil, identity.ErrGoogleUnavailable
+	}
+	return a.Identity.FinishGoogle(c.Request.Context(), state, code, exchange)
 }
 
 func (a *App) afterGoogleSession(c *gin.Context, session *identity.Session) {
@@ -206,7 +269,7 @@ func (a *App) googleCallback(c *gin.Context) {
 	}
 	session, err := a.finishGoogleSession(c, body.State, body.Code)
 	if err != nil {
-		a.writeAuthError(c, err)
+		a.writeGoogleAuthError(c, err)
 		return
 	}
 	a.afterGoogleSession(c, session)

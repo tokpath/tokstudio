@@ -49,6 +49,18 @@ test("login page has no ofox copy", async ({ page }) => {
   await expect(page.locator("footer")).toHaveCount(0);
   await expect(page.getByText("发送验证码")).toHaveCount(0);
   await expect(page.getByText("用验证码登录")).toHaveCount(0);
+  const google = page.getByRole("button", { name: "用 Google 登录" });
+  await expect(google).toBeVisible();
+  await expect(google).toBeDisabled();
+  await expect(page.getByText("未配置 Google 登录")).toBeVisible();
+});
+
+test("google oauth callback without code returns to login", async ({ page }) => {
+  await page.goto("/login/oauth/google");
+  await expect(page).toHaveURL(/\/login\?/);
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/ya29\.|mock:/);
+  await expect(page.getByText("绑定成功")).toHaveCount(0);
 });
 
 test("public ofox replica pages render headings", async ({ page }) => {
@@ -79,6 +91,7 @@ const consolePaths = [
   "/app/keys",
   "/app/catalog",
   "/app/usage",
+  "/app/reconciliation",
   "/app/activity",
   "/app/wallet",
   "/app/plans",
@@ -111,6 +124,8 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "进货" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "规则" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await channelNav.getByRole("link", { name: "收款" }).click();
   await expect(page).toHaveURL(/\/channel\/payments/);
   await expect(page.locator("h1")).toHaveText("收款");

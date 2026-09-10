@@ -17,6 +17,9 @@ var (
 	ErrRedeemUnavailable   = errors.New("redeem code unavailable")
 	ErrTopupNotPending     = errors.New("topup is not pending")
 	ErrAuthNotReserved     = errors.New("authorization not reserved")
+	ErrAlreadyCharged      = errors.New("usage already charged")
+	ErrAlreadyMatched      = errors.New("usage already matched")
+	ErrInventedCost        = errors.New("supplier/attempt cost must come from TokenHub facts")
 )
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
@@ -64,6 +67,9 @@ const (
 	UsagePending   = "pending_reconciliation"
 	UsageVoided    = "voided"
 
+	FactSourceSandbox = "sandbox"
+	FactSourceLive    = "live"
+
 	ChargeCommitted = "committed"
 	ChargeReversed  = "reversed"
 
@@ -81,6 +87,16 @@ const (
 
 	CommissionPolicyM3 = "m3-stub-v1"
 	CommissionRateBPS  = 1000 // 批发价的 10%，只作可冲正挂接点；完整策略在 M6。
+
+	CostSourceTokenHub = "TokenHub"
+
+	CorrectionFillCost     = "fill_cost"
+	CorrectionAdjustMargin = "adjust_margin"
+	CorrectionOpen         = "open"
+
+	SupplierInvoice  = "provider_invoice"
+	SupplierRecharge = "platform_recharge"
+	SupplierOther    = "other"
 )
 
 type ReserveInput struct {
@@ -115,6 +131,7 @@ type SettleInput struct {
 	PriceVersionID  string          `json:"price_version_id"`
 	UnitPrices      json.RawMessage `json:"unit_prices"`
 	MissingUsage    bool            `json:"missing_usage"`
+	FactSource      string          `json:"fact_source,omitempty"`
 	IdempotencyKey  string          `json:"idempotency_key"`
 	Resolution      string          `json:"resolution"`
 }
@@ -162,6 +179,8 @@ type UsageView struct {
 	ChannelOrgID     string          `json:"channel_org_id,omitempty"`
 	PublicModelID    string          `json:"public_model_id"`
 	ProviderID       string          `json:"provider_id,omitempty"`
+	UpstreamModelID  string          `json:"upstream_model_id,omitempty"`
+	FactSource       string          `json:"fact_source,omitempty"`
 	PromptTokens     int64           `json:"prompt_tokens"`
 	CompletionTokens int64           `json:"completion_tokens"`
 	ReasoningTokens  int64           `json:"reasoning_tokens,omitempty"`
@@ -175,13 +194,36 @@ type UsageView struct {
 	OccurredAt       time.Time       `json:"occurred_at"`
 }
 
-// QueryUsageInput 按渠道→用户→API Key，再交叉模型过滤账本。空字段表示不过滤。
+// UsageGapView 是待对账工作队列行：usage 缺口 + 仍扣住的预授权。
+type UsageGapView struct {
+	UsageView
+	AuthStatus    string `json:"auth_status,omitempty"`
+	ReservedMinor int64  `json:"reserved_minor"`
+	SettledMinor  int64  `json:"settled_minor"`
+	MissingUsage  bool   `json:"missing_usage"`
+}
+
+// QueryUsageInput 按渠道→用户→API Key，再交叉模型/状态/时间过滤账本。空字段表示不过滤。
 type QueryUsageInput struct {
 	UserID        string
 	APIKeyID      string
 	ChannelOrgID  string
 	PublicModelID string
+	RequestID     string
+	State         string
+	Since         time.Time
+	Until         time.Time
 	Limit         int
+}
+
+// ResolvePendingInput 标记已解：只作废待对账并释放预授权，禁止估算扣款。
+type ResolvePendingInput struct {
+	IDs        []string `json:"ids"`
+	RequestIDs []string `json:"request_ids"`
+}
+
+type ResolvePendingResult struct {
+	Items []UsageGapView `json:"items"`
 }
 
 type TopupView struct {
@@ -274,4 +316,65 @@ type CommissionView struct {
 	AmountMinor   int64  `json:"amount_minor"`
 	Status        string `json:"status"`
 	PolicyVersion string `json:"policy_version"`
+}
+
+// PriceTierSnapshot 是 W-meter ① 四维单价的只读快照，装配毛利时不得改写。
+type PriceTierSnapshot struct {
+	Upstream  string `json:"upstream"`
+	Wholesale string `json:"wholesale"`
+	Sell      string `json:"sell"`
+	Channel   string `json:"channel,omitempty"`
+}
+
+// AttemptCostView 是一次上游 attempt 的 TokenHub 成本事实。缺事实不填估算。
+type AttemptCostView struct {
+	AttemptID       string            `json:"attempt_id"`
+	RequestID       string            `json:"request_id"`
+	UsageEventID    string            `json:"usage_event_id,omitempty"`
+	CostSource      string            `json:"cost_source"`
+	CostMinor       int64             `json:"cost_minor"`
+	SellMinor       int64             `json:"sell_minor"`
+	MarginMinor     int64             `json:"margin_minor"`
+	WholesaleMinor  int64             `json:"wholesale_minor,omitempty"`
+	Prices          PriceTierSnapshot `json:"prices"`
+	UnitPrices      json.RawMessage   `json:"unit_prices,omitempty"`
+	State           string            `json:"state"`
+	MissingCost     bool              `json:"missing_cost"`
+	PublicModelID   string            `json:"public_model_id,omitempty"`
+	ProviderID      string            `json:"provider_id,omitempty"`
+	UpstreamModelID string            `json:"upstream_model_id,omitempty"`
+	FactSource      string            `json:"fact_source,omitempty"`
+	ChannelOrgID    string            `json:"channel_org_id,omitempty"`
+	UserID          string            `json:"user_id,omitempty"`
+	OccurredAt      time.Time         `json:"occurred_at"`
+}
+
+// MarginView 是管理台「成本/毛利」同一窗口的合计 + 明细。
+type MarginView struct {
+	CostMinor    int64             `json:"attempt_cost_minor"`
+	SellMinor    int64             `json:"sell_minor"`
+	MarginMinor  int64             `json:"margin_minor"`
+	PendingCount int64             `json:"pending_count"`
+	Items        []AttemptCostView `json:"items"`
+}
+
+type MarginCorrectionInput struct {
+	Kind           string `json:"kind"`
+	RequestID      string `json:"request_id"`
+	AttemptID      string `json:"attempt_id"`
+	Reason         string `json:"reason"`
+	IdempotencyKey string `json:"idempotency_key"`
+	AmountMinor    int64  `json:"amount_minor"`
+}
+
+type MarginCorrectionView struct {
+	ID             string    `json:"id"`
+	Kind           string    `json:"kind"`
+	RequestID      string    `json:"request_id"`
+	AttemptID      string    `json:"attempt_id,omitempty"`
+	Reason         string    `json:"reason,omitempty"`
+	Status         string    `json:"status"`
+	ActorUserID    string    `json:"actor_user_id"`
+	IdempotencyKey string    `json:"idempotency_key"`
+	CreatedAt      time.Time `json:"created_at"`
 }

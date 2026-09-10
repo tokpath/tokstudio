@@ -18,6 +18,7 @@ describe("dashboardSummaryParams", () => {
     });
     expect(cards.map((c) => c.key)).toEqual(["heroPending", "heroProfit", "heroCommission", "heroHealth"]);
     expect(cards[0].v).toBe("2");
+    expect(cards[0].href).toBe("/admin/reconciliation");
     expect(cards[1].v).toBe("$4.00");
     expect(cards[3].v).toBe("DEGRADED");
   });

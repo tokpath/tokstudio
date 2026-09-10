@@ -25,6 +25,8 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/v1/public/tls-check")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/public/models")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/billing/export")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/margin")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/margin/corrections")).toBe(true);
     expect(hasGeneratedPath("GET", "/v1/me/media")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/videos")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/models/attach")).toBe(true);
@@ -32,6 +34,7 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("GET", "/admin/ops/dashboard")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/v1/me")).toBe(true);
     expect(hasGeneratedPath("POST", "/v1/me/password")).toBe(true);
+    expect(hasGeneratedPath("POST", "/v1/auth/logout")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/metrics/series")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/metrics/daily")).toBe(true);
     expect(hasGeneratedPath("GET", "/channel/attribution")).toBe(true);
@@ -100,6 +103,9 @@ describe("generated OpenAPI client", () => {
     expect(hasGeneratedPath("POST", "/admin/ops/circuit/{id}")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/usage")).toBe(true);
     expect(hasGeneratedPath("POST", "/admin/usage/replay")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/usage/pending")).toBe(true);
+    expect(hasGeneratedPath("GET", "/admin/usage/pending/{id}")).toBe(true);
+    expect(hasGeneratedPath("POST", "/admin/usage/pending/resolve")).toBe(true);
     expect(hasGeneratedPath("GET", "/admin/channels/{id}/models")).toBe(true);
     expect(hasGeneratedPath("PATCH", "/admin/channels/{id}/models")).toBe(true);
     expect(hasGeneratedPath("GET", "/channel/models")).toBe(true);

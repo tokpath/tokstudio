@@ -24,10 +24,10 @@ export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: Da
   const alerts = dashboard.alerts || [];
   const circuit = alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
   return [
-    { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—") },
-    { key: "heroProfit", hintKey: "heroProfitHint", v: micro(totals.gross_profit_minor) },
-    { key: "heroCommission", hintKey: "heroCommissionHint", v: micro(totals.commission_liability_minor) },
-    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : "heroHealthOk", v: circuit ? "DEGRADED" : "READY" },
+    { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—"), href: "/admin/reconciliation" },
+    { key: "heroProfit", hintKey: "heroProfitHint", v: micro(totals.gross_profit_minor), href: undefined },
+    { key: "heroCommission", hintKey: "heroCommissionHint", v: micro(totals.commission_liability_minor), href: undefined },
+    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : "heroHealthOk", v: circuit ? "DEGRADED" : "READY", href: undefined },
   ];
 }
 

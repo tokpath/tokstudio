@@ -2,10 +2,17 @@ name: ci
 
 on:
   push:
-    branches: [main, release/v0.1.0, "cursor/**"]
+    branches: [main, release/v0.1.0, feature/grokbot, "cursor/**"]
   pull_request:
 
 jobs:
+  deploy-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: assert deploy host + grok/test isolation
+        run: bash scripts/assert_deploy_isolation.sh
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -40,6 +47,28 @@ jobs:
         with:
           go-version: "1.27"
           cache-dependency-path: backend/go.sum
+      - name: start MinIO
+        working-directory: .
+        run: |
+          # GHA service 不能改 CMD；官方镜像默认不是 server。与 Compose 同一发行，启动后再建桶。
+          # 不设云 Key：测试进程走 MinIO 默认账号。
+          docker run -d --name tokenhub-minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:RELEASE.2024-12-18T13-15-44Z server /data --console-address :9001
+          ok=0
+          for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+            if curl -sf http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ok" = "1"
+          # 新版 mc 镜像 ENTRYPOINT 就是 mc，不能再传 /bin/sh。Hub 已核对该 tag 200。
+          docker run --rm --network host \
+            -e MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
+            minio/mc:RELEASE.2025-04-16T18-13-26Z mb -p local/tokenhub
       - name: download modules
         run: |
           # proxy.golang.org 偶发 HTTP/2 INTERNAL_ERROR；先下全模块再测，避免编译期再打网。
@@ -57,6 +86,11 @@ jobs:
           TOKENHUB_REDIS_URL: redis://localhost:6379/0
           TOKENHUB_BOOTSTRAP_ADMIN_TOKEN: ci_admin_token
           TOKENHUB_BOOTSTRAP_USER_TOKEN: ci_user_token
+          TOKENHUB_S3_ENDPOINT: http://127.0.0.1:9000
+          TOKENHUB_S3_PUBLIC_ENDPOINT: http://127.0.0.1:9000
+          TOKENHUB_S3_BUCKET: tokenhub
+          TOKENHUB_S3_REGION: us-east-1
+          TOKENHUB_S3_FORCE_PATH_STYLE: "true"
         run: go test ./...
 
   frontend:

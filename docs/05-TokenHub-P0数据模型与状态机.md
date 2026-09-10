@@ -72,8 +72,8 @@ P0 落地时套餐实体由独立 `plans` 模块拥有，物理表为 `plans_pro
 
 P0 支付实体由独立 `payment` 模块拥有，物理表为 `payment_orders`（含 `channel_org_id`、`credit_minor`、`fulfilled_at`）、`payment_events`、`payment_provider_instances`（按渠道加密凭证）、`payment_channel_settings`、`payment_adapter_flags`。适配器是可插拔插件（`Adapter` 接口 + `Registry`）：内置 `stripe` / `alipay` / `wechat` / `manual`；后续本地支付或聚合网关实现同一接口并 Register 即可。只有声明 `AutoRenew` 的插件（当前 Stripe）可代扣；live Stripe 用 off-session PaymentIntent，沙箱仍 HMAC。`paid` 但 `fulfilled_at` 为空时 webhook 重放与 Worker 再履约。billing 预授权增加 `wallet_reserved_minor`：权益覆盖后钱包只冻结差额。
 | `request` | `id`, `request_id`, `user_id`, `api_key_id`, `channel_org_id`, `public_model_id`, `protocol`, `status`, `started_at`, `ended_at` | 一次客户请求 |
-| `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费 |
-| `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `idempotency_key` | confirmed/pending_reconciliation/voided |
+| `attempt` | `id`, `request_id`, `provider_id`, `upstream_model_id`, `status`, `error_code`, `latency_ms`, `fact_source`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `metadata_json`, `started_at`, `ended_at` | 一次上游尝试；fallback 不重复客户收费。`fact_source` 为 `sandbox` / `live`；缺 usage/metadata 保持空，禁止估算填空 |
+| `usage_event` | `id`, `request_id`, `attempt_id`, `unit_usage_json`, `unit_prices_json`, `customer_amount`, `upstream_cost`, `currency`, `state`, `fact_source`, `idempotency_key` | confirmed/pending_reconciliation/voided。账本只认 TokenHub 已落库的透传事实 |
 | `customer_charge` | `id`, `request_id`, `usage_event_id`, `amount_minor`, `price_version_id`, `status` | 每个请求最多一个最终客户扣费事件 |
 | `commission_ledger` | `id`, `usage_event_id`, `channel_org_id`, `acquisition_role_id`, `policy_version`, `amount_minor`, `status` | frozen/held/available/paid/reversed；封禁把未结算标 `held` |
 
@@ -96,7 +96,7 @@ B/C 额度发放：用户充值入账后按**该用户所属渠道自己的积�
 
 P0 落地时媒体实体由 `media` 模块拥有，物理表为 `media_jobs`、`media_assets`、`media_callback_events`。D3.2 用 `0002_d32_task_modes.sql` 补任务模式和参考素材列，禁止 AutoMigrate。拿到 `upstream_job_id` 后禁止再次 Create；回调按 `event_id` 幂等；结果默认 7 天后清理。图生/首帧要图，首尾帧要两帧，参考模式至少一种参考，延长/编辑要本用户已完成视频的 `source_job_id`，图像 edit 要 `images`。独立音频/转写/视频理解/复杂时间线仍是 P1。
 
-P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`ops_backup_drills`、`ops_canary`、`ops_alert_thresholds`。看板数字通过 gateway/billing 公开接口聚合，ops 不直连它们的表。预授权失败由 `billing_preauth_failures` 在事务外落库，供看板统计 `preauth_failed`。限流、熔断与写操作 `Idempotency-Key` 计数只存在 Redis（幂等记录 TTL 24h）。目录管理通过 catalog 公开接口做 Provider/模型/路由 CRUD，不直连表；`AttachProvider` 写 mapping 并追加 route candidate。P0 文本模型含 `tokenhub/echo-1` 与 `google/gemini-flash`（无 Gemini Base URL 时走沙箱适配器）。Bifrost 数据面默认嵌入 API 进程（`github.com/maximhq/bifrost/core`），`TOKENHUB_BIFROST_SANDBOX=true` 时用 plugin 回声；未成功 Init 时该 Adapter 返回 `provider_unavailable`。过期预授权由 `billing.ReapExpired` 回收。
+P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`ops_backup_drills`、`ops_canary`、`ops_alert_thresholds`。看板数字通过 gateway/billing 公开接口聚合，ops 不直连它们的表。预授权失败由 `billing_preauth_failures` 在事务外落库，供看板统计 `preauth_failed`。限流、熔断与写操作 `Idempotency-Key` 计数只存在 Redis（幂等记录 TTL 24h）。目录管理通过 catalog 公开接口做 Provider/模型/路由 CRUD，不直连表；`AttachProvider` 写 mapping 并追加 route candidate。P0 文本模型含 `tokenhub/echo-1` 与 `google/gemini-flash`。`TOKENHUB_BIFROST_SANDBOX=false` 且 `TOKENHUB_GEMINI_API_KEY` 非空时经嵌入 Bifrost 打真实 Gemini，attempt/usage 带真实 provider/model/request_id 且 `fact_source≠sandbox`；否则只回声，徽章为灰色「缺上游元数据」或显式 sandbox，禁止绿标或伪造 live 上游。Bifrost 数据面默认嵌入 API 进程（`github.com/maximhq/bifrost/core`），`TOKENHUB_BIFROST_SANDBOX=true` 时用 plugin 回声；未成功 Init 时该 Adapter 返回 `provider_unavailable`。过期预授权由 `billing.ReapExpired` 回收。
 | `audit_log` | `id`, `actor_user_id`, `action`, `resource_type`, `resource_id`, `before_json`, `after_json`, `ip`, `created_at` | 不可删除，敏感操作二次确认 |
 | `outbox_event` | `id`, `event_type`, `aggregate_type`, `aggregate_id`, `payload_json`, `status`, `attempts`, `available_at`, `published_at` | 可靠投递；可由本地 Worker 或 Dapr Pub/Sub 消费 |
 
@@ -118,7 +118,7 @@ P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`o
 
 `reserved -> released`（上游明确失败且无费用）
 
-`reserved -> pending_reconciliation`（成功但缺 usage）
+`reserved -> pending_reconciliation`（成功但缺 usage；用户/渠道对账页也可把 usage↔三桶差异送入该队列，仍禁止估算扣款）
 
 `settled -> reversed`（退款/冲正，仅退未消费部分或生成负向流水）
 

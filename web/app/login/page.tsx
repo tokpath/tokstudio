@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,9 +16,17 @@ import { LocaleSwitch } from "@/components/locale-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
 import { safeNextPath } from "@/lib/login-next";
+import {
+  type GoogleAuthStatus,
+  googleButtonState,
+  sanitizeOAuthError,
+  storeLoginNext,
+} from "@/lib/google-oauth";
 import { KeyRound, LogIn, Mail, UserPlus } from "lucide-react";
 import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
 import { useTranslations } from "next-intl";
+
+type AuthError = { code?: string; message?: string; retryable?: boolean };
 
 function LoginForm() {
   const t = useTranslations("login");
@@ -35,13 +43,45 @@ function LoginForm() {
   );
   const search = useSearchParams();
   const [message, setMessage] = useState("");
+  const [errorBanner, setErrorBanner] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [googleStatus, setGoogleStatus] = useState<GoogleAuthStatus | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [googleState, setGoogleState] = useState("");
   const [googleEmail, setGoogleEmail] = useState("");
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "", promo: "" },
   });
+  const googleUI = googleButtonState(googleStatus, googleLoading);
+
+  useEffect(() => {
+    const fromCallback = sanitizeOAuthError(search.get("oauth_error"), "");
+    if (fromCallback) {
+      setErrorBanner(fromCallback);
+    }
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiBase}/v1/auth/google/status`, { credentials: "include" })
+      .then(async (response) => {
+        const body = (await response.json()) as GoogleAuthStatus;
+        if (!cancelled && response.ok) {
+          setGoogleStatus(body);
+        } else if (!cancelled) {
+          setGoogleStatus({ available: false, configured: false, mock: false });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGoogleStatus({ available: false, configured: false, mock: false });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function goNext() {
     const next = safeNextPath(search.get("next"));
@@ -52,41 +92,11 @@ function LoginForm() {
     window.location.href = await resolveConsoleHref();
   }
 
-  const oauthOnce = useRef(false);
-  useEffect(() => {
-    const oauth = search.get("oauth");
-    if (oauth === "denied" || oauth === "fail") {
-      setMessage(t("googleFail"));
-      return;
-    }
-    const code = search.get("code");
-    const state = search.get("state");
-    if (!code || !state || oauthOnce.current) {
-      return;
-    }
-    oauthOnce.current = true;
-    setMessage(t("googleReturning"));
-    const url = new URL(window.location.href);
-    url.searchParams.delete("code");
-    url.searchParams.delete("state");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
-    void (async () => {
-      const response = await fetch(`${apiBase}/v1/auth/google/callback`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state, code }),
-      });
-      const body = await response.json();
-      if (response.ok) {
-        setMessage(t("welcome", { email: body.session?.user?.email || "" }));
-        await goNext();
-        return;
-      }
-      oauthOnce.current = false;
-      setMessage(body.error?.message || t("googleFail"));
-    })();
-  }, [search, t]);
+  function showAuthFailure(body: { error?: AuthError }, fallback: string) {
+    const text = sanitizeOAuthError(body.error?.message, fallback);
+    setErrorBanner(text);
+    setMessage("");
+  }
 
   async function register(values: z.infer<typeof schema>) {
     const response = await fetch(`${apiBase}/v1/auth/register`, {
@@ -97,11 +107,12 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
+      setErrorBanner("");
       setMessage(t("registered", { channel: body.session?.user?.channel_org_id || "—" }));
       await goNext();
       return;
     }
-    setMessage(body.error?.message || t("fail"));
+    showAuthFailure(body, t("fail"));
   }
 
   async function login(values: z.infer<typeof schema>) {
@@ -113,39 +124,53 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
+      setErrorBanner("");
       setMessage(t("welcome", { email: body.session?.user?.email || "" }));
       await goNext();
       return;
     }
-    setMessage(body.error?.message || t("fail"));
+    showAuthFailure(body, t("fail"));
   }
 
   async function googleStart() {
+    if (googleUI.disabled || googleLoading) {
+      return;
+    }
+    setGoogleLoading(true);
+    setErrorBanner("");
+    storeLoginNext(typeof sessionStorage === "undefined" ? null : sessionStorage, safeNextPath(search.get("next")));
     const promo = form.getValues("promo");
-    const qs = promo ? `?promotion_code=${encodeURIComponent(promo)}` : "";
-    const response = await fetch(`${apiBase}/v1/auth/google/start${qs}`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || t("googleUnavailable"));
-      return;
+    const query = promo ? `?promotion_code=${encodeURIComponent(promo)}` : "";
+    try {
+      const response = await fetch(`${apiBase}/v1/auth/google/start${query}`, { credentials: "include" });
+      const body = await response.json();
+      if (!response.ok) {
+        showAuthFailure(body, t("googleUnavailable"));
+        setGoogleLoading(false);
+        return;
+      }
+      if (body.mock) {
+        setGoogleState(body.state || "");
+        setGoogleEmail(form.getValues("email"));
+        setGoogleLoading(false);
+        return;
+      }
+      if (body.auth_url) {
+        window.location.href = body.auth_url;
+        return;
+      }
+      setErrorBanner(t("googleNoRedirect"));
+      setGoogleLoading(false);
+    } catch {
+      setErrorBanner(t("googleUnavailable"));
+      setGoogleLoading(false);
     }
-    if (body.mock) {
-      setGoogleState(body.state || "");
-      setGoogleEmail(form.getValues("email"));
-      setMessage(t("googleDevHint"));
-      return;
-    }
-    if (body.auth_url) {
-      window.location.href = body.auth_url;
-      return;
-    }
-    setMessage(t("googleNoRedirect"));
   }
 
   async function googleFinish() {
     const email = googleEmail.trim();
     if (!googleState || !email.includes("@")) {
-      setMessage(t("googleNeedEmail"));
+      setErrorBanner(t("googleNeedEmail"));
       return;
     }
     const response = await fetch(`${apiBase}/v1/auth/google/callback`, {
@@ -156,15 +181,15 @@ function LoginForm() {
     });
     const body = await response.json();
     if (response.ok) {
-      setMessage(t("welcome", { email: body.session?.user?.email || "" }));
+      setErrorBanner("");
       await goNext();
       return;
     }
-    setMessage(body.error?.message || t("googleFail"));
+    showAuthFailure(body, t("googleFail"));
   }
 
   function githubStart() {
-    setMessage(t("githubMissing"));
+    setErrorBanner(t("githubMissing"));
   }
 
   return (
@@ -183,15 +208,34 @@ function LoginForm() {
             </div>
           </div>
 
+        {errorBanner ? (
+          <div
+            role="alert"
+            className="mt-6 rounded-control border border-danger/40 bg-danger/10 px-3 py-2 text-sm leading-relaxed text-danger"
+          >
+            {errorBanner}
+          </div>
+        ) : null}
+
         <div className="mt-8 flex w-full flex-col gap-3">
           <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
             <GitHubMark />
             {t("github")}
           </Button>
-          <Button type="button" variant="outline" className="w-full" onClick={googleStart}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={googleUI.disabled}
+            aria-disabled={googleUI.disabled}
+            onClick={googleStart}
+          >
             <GoogleMark />
-            {t("google")}
+            {t(googleUI.labelKey)}
           </Button>
+          {googleUI.showUnconfigured ? (
+            <p className="text-[13px] leading-relaxed text-ink-mute">{t("googleUnconfigured")}</p>
+          ) : null}
         </div>
         {googleState ? (
           <div className="mt-4 flex flex-col gap-3 rounded-card border border-hairline bg-canvas p-4">
@@ -243,7 +287,7 @@ function LoginForm() {
                 </>
               )}
             </Button>
-            {message ? <p className="text-sm leading-relaxed text-hold">{message}</p> : null}
+            {message ? <p className="text-sm leading-relaxed text-ink-secondary">{message}</p> : null}
             <p className="pt-1 text-sm text-ink-secondary">
               {mode === "login" ? (
                 <>

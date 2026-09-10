@@ -1,6 +1,10 @@
 package billing
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
+)
 
 func TestConvertQuota(t *testing.T) {
 	got, err := ConvertQuota(10*MinorPerUSD, DefaultIssueRatioBPS)
@@ -74,5 +78,25 @@ func TestParseUSDToMinor(t *testing.T) {
 	}
 	if EstimateMediaReserveMinor(media, 5, 0, "720p", false) < 50_000 {
 		t.Fatal("media reserve must cover actual usage")
+	}
+}
+
+func TestParseQuoteKeepsFourPriceSnapshot(t *testing.T) {
+	four := []byte(`{"input":"0.000009","output":"0.000011","customer_sell_input":"0.000009","customer_sell_output":"0.000011","wholesale_input":"0.000006","wholesale_output":"0.000008","upstream_cost_input":"0.000003","upstream_cost_output":"0.000004","channel_customer_input":"0.000010","channel_customer_output":"0.000012"}`)
+	snap, err := ParseQuote("prc_four", four)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, "") != 116 {
+		t.Fatalf("sell snapshot: %d", snap.Charge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, ""))
+	}
+	if snap.WholesaleCharge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, "") != 80 {
+		t.Fatalf("wholesale snapshot: %d", snap.WholesaleCharge(map[string]int{"prompt_tokens": 8, "completion_tokens": 4}, ""))
+	}
+	if snap.CostMinor(8, 4) != 40 {
+		t.Fatalf("upstream snapshot: %d", snap.CostMinor(8, 4))
+	}
+	if err := catalog.RequireFourPriceSnapshot(snap.Raw, true); err != nil {
+		t.Fatalf("ParseQuote must keep four-price raw snapshot: %v %s", err, snap.Raw)
 	}
 }

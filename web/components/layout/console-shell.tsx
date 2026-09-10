@@ -17,6 +17,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
+import { UserShellBell, UserShellRightZone } from "@/components/layout/user-shell-menu";
 import { iconForHref } from "@/lib/page-icons";
 import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, shouldBypassRbac } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
@@ -98,17 +99,30 @@ export function ConsoleShell({
             <span className="text-lg font-semibold tracking-tight">{brand?.name || title}</span>
           </Link>
           <div className="ml-auto flex items-center gap-1">
-            <LocaleSwitch />
-            <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={onCommand}>
-              <Search />
-              {tc("jump")}
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/docs">
-                {tc("docs")}
-              </Link>
-            </Button>
+            {isUser ? (
+              <>
+                <UserShellBell />
+                <LocaleSwitch />
+                <ThemeToggle />
+                <UserShellRightZone />
+                <Button variant="ghost" size="sm" onClick={onCommand}>
+                  <Search />
+                  {tc("jump")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <LocaleSwitch />
+                <ThemeToggle />
+                <Button variant="ghost" size="sm" onClick={onCommand}>
+                  <Search />
+                  {tc("jump")}
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/docs">{tc("docs")}</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

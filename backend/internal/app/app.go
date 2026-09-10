@@ -46,6 +46,8 @@ type App struct {
 	Commission *commission.Service
 	Ops        *ops.Service
 	Logger     zerolog.Logger
+	// GoogleExchange 仅测试注入。生产路径为 nil，由配置选择真实交换或（显式）mock。
+	GoogleExchange identity.GoogleExchanger
 }
 
 func New(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.Logger) *App {
@@ -65,21 +67,17 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	billingSvc := billing.New(gdb, outboxSvc)
 	plansSvc := plans.New(gdb, outboxSvc)
 	billingSvc.SetCoverer(plansSvc)
-	store, err := media.OpenStore(media.StoreOptions{
-		Root:   cfg.MediaStorePath,
-		Secret: firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey),
-		Public: cfg.PublicBaseURL,
-		S3: media.S3Options{
-			Endpoint:  cfg.S3Endpoint,
-			Bucket:    cfg.S3Bucket,
-			AccessKey: cfg.S3AccessKey,
-			SecretKey: cfg.S3SecretKey,
-			Region:    cfg.S3Region,
-		},
+	store := media.NewStore(media.Settings{
+		Endpoint:       cfg.S3Endpoint,
+		PublicEndpoint: cfg.S3PublicEndpoint,
+		Region:         cfg.S3Region,
+		Bucket:         cfg.S3Bucket,
+		AccessKey:      cfg.S3AccessKey,
+		SecretKey:      cfg.S3SecretKey,
+		ForcePathStyle: cfg.S3ForcePathStyle,
+		Production:     cfg.IsProduction(),
+		SignKey:        firstNonEmpty(cfg.MediaSignKey, cfg.EncryptionKey),
 	})
-	if err != nil {
-		logger.Fatal().Err(err).Msg("media_store_open_failed")
-	}
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.ArkAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterAPIKey)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
@@ -247,7 +245,15 @@ func (a *App) healthz(c *gin.Context) {
 		"service":    "tokenhub-api",
 		"version":    "0.1.0-m7",
 		"request_id": c.GetString(httpx.ContextRequestID),
+		"storage":    a.storageView(),
 	})
+}
+
+func (a *App) storageView() media.Status {
+	if a == nil || a.Media == nil {
+		return media.Status{Source: media.SourceUnavailable, Label: media.LabelUnavailable}
+	}
+	return a.Media.StoreStatus(context.Background())
 }
 
 func (a *App) readyz(c *gin.Context) {
@@ -329,7 +335,16 @@ func (a *App) requireRoles(roles ...string) gin.HandlerFunc {
 	return a.enforceSession(roles, false)
 }
 
+// requireCatalogRoles 用于模型目录 / 路由组：无 token 是 401，有登录无权限是 403。
+func (a *App) requireCatalogRoles(roles ...string) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, false, true)
+}
+
 func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerFunc {
+	return a.enforceSessionAuth(roles, anyAuthenticated, false)
+}
+
+func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
@@ -337,6 +352,10 @@ func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerF
 			return
 		}
 		if principal == nil {
+			if catalogAuth && a.tokenFromRequest(c) == "" {
+				httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
+				return
+			}
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}

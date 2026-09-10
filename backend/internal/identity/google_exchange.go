@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	googleTokenURL    = "https://oauth2.googleapis.com/token"
-	googleUserInfoURL = "https://www.googleapis.com/oauth2/v3/userinfo"
 	googleHTTPTimeout = 10 * time.Second
 	maxOAuthBody      = 1 << 20
 )

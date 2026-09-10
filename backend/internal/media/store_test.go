@@ -1,91 +1,253 @@
 package media
 
 import (
-	"net/url"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-func TestDiskStorePutReadDeleteSign(t *testing.T) {
+type fakeS3 struct {
+	objects map[string][]byte
+	putErr  error
+	headErr error
+	puts    int
+}
+
+func (f *fakeS3) PutObject(_ context.Context, params *s3.PutObjectInput, _ ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+	f.puts++
+	if f.putErr != nil {
+		return nil, f.putErr
+	}
+	if f.objects == nil {
+		f.objects = map[string][]byte{}
+	}
+	body, _ := io.ReadAll(params.Body)
+	f.objects[awsString(params.Key)] = body
+	return &s3.PutObjectOutput{}, nil
+}
+
+func (f *fakeS3) GetObject(_ context.Context, params *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	data, ok := f.objects[awsString(params.Key)]
+	if !ok {
+		return nil, &s3types.NoSuchKey{}
+	}
+	return &s3.GetObjectOutput{Body: io.NopCloser(bytes.NewReader(data))}, nil
+}
+
+func (f *fakeS3) DeleteObject(_ context.Context, params *s3.DeleteObjectInput, _ ...func(*s3.Options)) (*s3.DeleteObjectOutput, error) {
+	delete(f.objects, awsString(params.Key))
+	return &s3.DeleteObjectOutput{}, nil
+}
+
+func (f *fakeS3) HeadBucket(context.Context, *s3.HeadBucketInput, ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
+	if f.headErr != nil {
+		return nil, f.headErr
+	}
+	return &s3.HeadBucketOutput{}, nil
+}
+
+type fakePresign struct {
+	url string
+	err error
+}
+
+func (f fakePresign) PresignGetObject(context.Context, *s3.GetObjectInput, ...func(*s3.PresignOptions)) (*v4Presigned, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &v4Presigned{URL: f.url}, nil
+}
+
+func awsString(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
+func TestResolveSettingsNoKeyUsesMinIO(t *testing.T) {
+	got := ResolveSettings(Settings{})
+	if got.Endpoint != defaultMinIOHost || got.AccessKey != defaultMinIOUser || got.SecretKey != defaultMinIOPass {
+		t.Fatalf("no-key must select MinIO defaults: %+v", got)
+	}
+	if got.Bucket != defaultBucket || !got.ForcePathStyle {
+		t.Fatalf("minio bucket/path-style: %+v", got)
+	}
+	if sourceOf(got) != SourceMinIO {
+		t.Fatalf("source: %s", sourceOf(got))
+	}
+}
+
+func TestResolveSettingsProductionNoKeyStaysUnavailable(t *testing.T) {
+	got := ResolveSettings(Settings{Production: true})
+	if got.AccessKey != "" || got.SecretKey != "" {
+		t.Fatalf("production must not invent minioadmin: %+v", got)
+	}
+	store := NewStore(got)
+	if err := store.Put("brand/x/logo.png", "image/png", []byte("x")); !errors.Is(err, ErrStoreUnavailable) {
+		t.Fatalf("production no-key put: %v", err)
+	}
+	st := store.Status(context.Background())
+	if st.OK || st.Label != LabelUnavailable || st.Source != SourceUnavailable {
+		t.Fatalf("production status: %+v", st)
+	}
+	assertNoLocalMasquerade(t)
+}
+
+func TestStoreMissingBucketNeverWritesLocal(t *testing.T) {
+	api := &fakeS3{putErr: &s3types.NoSuchBucket{}, headErr: &s3types.NotFound{}}
+	store := newTestStore(api, fakePresign{err: errors.New("no bucket")}, "missing-bucket")
 	root := t.TempDir()
-	store := NewStore(root, "sign-secret", "http://localhost:8080")
-	if store.UsingS3() {
-		t.Fatal("disk store should not use s3")
+	t.Setenv("TOKENHUB_MEDIA_STORE_PATH", root)
+
+	err := store.Put("jobs/vid_1/output.bin", "video/mp4", []byte("should-not-land"))
+	if !errors.Is(err, ErrStoreUnavailable) {
+		t.Fatalf("missing bucket put: %v", err)
 	}
-	if err := store.Put("vid_1/output.bin", "video/mp4", []byte("payload")); err != nil {
+	if api.puts != 1 {
+		t.Fatalf("put must attempt S3 once, got %d", api.puts)
+	}
+	if _, err := store.Read("jobs/vid_1/output.bin"); !errors.Is(err, ErrStoreUnavailable) {
+		t.Fatalf("missing bucket read: %v", err)
+	}
+	if _, _, err := store.Sign("jobs/vid_1/output.bin", time.Minute); !errors.Is(err, ErrStoreUnavailable) {
+		t.Fatalf("missing bucket sign: %v", err)
+	}
+	st := store.Status(context.Background())
+	if st.OK || st.Label != LabelUnavailable {
+		t.Fatalf("missing bucket status: %+v", st)
+	}
+	if st.Detail != "missing bucket" {
+		t.Fatalf("status detail: %+v", st)
+	}
+	assertDirEmpty(t, root)
+	assertNoLocalMasquerade(t)
+}
+
+func TestStoreFailureNeverWritesLocalOrReportsOK(t *testing.T) {
+	api := &fakeS3{putErr: errors.New("connection refused"), headErr: errors.New("connection refused")}
+	store := newTestStore(api, fakePresign{err: errors.New("down")}, "tokenhub")
+	root := t.TempDir()
+
+	err := store.Put("oem/logo.png", "image/png", []byte("logo"))
+	if !errors.Is(err, ErrStoreUnavailable) {
+		t.Fatalf("failure put: %v", err)
+	}
+	entries, _ := os.ReadDir(root)
+	if len(entries) != 0 {
+		t.Fatalf("failed put wrote local files: %v", names(entries))
+	}
+	st := store.Status(context.Background())
+	if st.OK || st.Label != LabelUnavailable || strings.Contains(st.Label, "✓") {
+		t.Fatalf("failure must not look like success: %+v", st)
+	}
+	assertNoLocalMasquerade(t)
+}
+
+func TestStorePutGetDeleteAndPresign(t *testing.T) {
+	api := &fakeS3{}
+	store := newTestStore(api, fakePresign{url: "http://127.0.0.1:9000/tokenhub/jobs/a.bin?X-Amz-Algorithm=AWS4-HMAC-SHA256"}, "tokenhub")
+	if err := store.Put("jobs/a.bin", "video/mp4", []byte("tokenhub-sandbox-media")); err != nil {
 		t.Fatal(err)
 	}
-	got, err := store.Read("vid_1/output.bin")
-	if err != nil || string(got) != "payload" {
-		t.Fatalf("read %q %v", got, err)
+	got, err := store.Read("jobs/a.bin")
+	if err != nil || string(got) != "tokenhub-sandbox-media" {
+		t.Fatalf("read: %s %v", got, err)
 	}
-	signed, exp, err := store.Sign("vid_1/output.bin", time.Minute)
-	if err != nil {
+	url, exp, err := store.Sign("jobs/a.bin", time.Minute)
+	if err != nil || !strings.Contains(url, "X-Amz-") || exp.Before(time.Now()) {
+		t.Fatalf("presign: %s %v %v", url, exp, err)
+	}
+	if err := store.Delete("jobs/a.bin"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(signed, "/v1/media/objects") {
-		t.Fatalf("sign %s", signed)
-	}
-	parsed, err := url.Parse(signed)
-	if err != nil {
-		t.Fatal(err)
-	}
-	q := parsed.Query()
-	expUnix, _ := strconv.ParseInt(q.Get("exp"), 10, 64)
-	if expUnix != exp.Unix() {
-		t.Fatalf("exp %d vs %d", expUnix, exp.Unix())
-	}
-	if !store.Verify(q.Get("key"), q.Get("sig"), expUnix) {
-		t.Fatalf("verify %s", signed)
-	}
-	if err := store.Delete("vid_1/output.bin"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(root, "vid_1", "output.bin")); !os.IsNotExist(err) {
-		t.Fatalf("expected delete: %v", err)
+	st := store.Status(context.Background())
+	if !st.OK || st.Label != LabelS3 || st.Source != SourceMinIO {
+		t.Fatalf("ok status: %+v", st)
 	}
 }
 
-func TestS3OptionsReady(t *testing.T) {
-	if (S3Options{Bucket: "b", AccessKey: "a"}).Ready() {
-		t.Fatal("secret missing")
+func TestStoreMinIOPathWithoutCloudKeys(t *testing.T) {
+	store := NewStore(Settings{SignKey: "k"})
+	if store.source != SourceMinIO || store.disabled {
+		t.Fatalf("no-key store should be live MinIO client: source=%s disabled=%v", store.source, store.disabled)
 	}
-	if !(S3Options{Bucket: "b", AccessKey: "a", SecretKey: "s"}).Ready() {
-		t.Fatal("bucket+keys should be ready")
+	if store.client == nil || store.bucket != defaultBucket {
+		t.Fatalf("minio client/bucket: %+v", store)
 	}
 }
 
-func TestS3StoreRoundTrip(t *testing.T) {
-	endpoint := os.Getenv("TOKENHUB_S3_ENDPOINT")
-	bucket := os.Getenv("TOKENHUB_S3_BUCKET")
-	ak := os.Getenv("TOKENHUB_S3_ACCESS_KEY")
-	sk := os.Getenv("TOKENHUB_S3_SECRET_KEY")
-	if endpoint == "" || bucket == "" || ak == "" || sk == "" {
-		t.Skip("S3/MinIO not configured")
+func TestStoreLiveMinIORoundTrip(t *testing.T) {
+	store := NewStore(Settings{SignKey: "k"})
+	st := store.Status(context.Background())
+	if !st.OK {
+		t.Skip("live MinIO not available: " + st.Detail)
 	}
-	store, err := OpenStore(StoreOptions{
-		Secret: "sign-secret",
-		S3:     S3Options{Endpoint: endpoint, Bucket: bucket, AccessKey: ak, SecretKey: sk, Region: "us-east-1"},
+	key := fmt.Sprintf("ci/%d.bin", time.Now().UnixNano())
+	if err := store.Put(key, "text/plain", []byte("minio-ci")); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Delete(key) })
+	got, err := store.Read(key)
+	if err != nil || string(got) != "minio-ci" {
+		t.Fatalf("live read: %s %v", got, err)
+	}
+	url, _, err := store.Sign(key, time.Minute)
+	if err != nil || !strings.Contains(url, "X-Amz-") {
+		t.Fatalf("live presign: %s %v", url, err)
+	}
+}
+
+func TestCallbackHMACStillIndependentOfS3(t *testing.T) {
+	store := NewStore(Settings{Production: true, SignKey: "cb-key"})
+	sig := store.CallbackSign("evt", "job")
+	if !store.CallbackValid("evt", "job", sig) || store.CallbackValid("evt", "job", "nope") {
+		t.Fatal("callback hmac")
+	}
+}
+
+func assertDirEmpty(t *testing.T, root string) {
+	t.Helper()
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return fmt.Errorf("local file %s", path)
+		}
+		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("store must not write local disk: %v", err)
 	}
-	if !store.UsingS3() {
-		t.Fatal("expected s3 backend")
+}
+
+func assertNoLocalMasquerade(t *testing.T) {
+	t.Helper()
+	for _, root := range LocalWriteProbePaths() {
+		if _, err := os.Stat(root); err == nil {
+			entries, _ := os.ReadDir(root)
+			if len(entries) > 0 {
+				t.Fatalf("legacy local store path %s has files after S3 failure: %v", root, names(entries))
+			}
+		}
 	}
-	key := "itest/" + t.Name() + ".bin"
-	if err := store.Put(key, "text/plain", []byte("minio-bytes")); err != nil {
-		t.Fatal(err)
+}
+
+func names(entries []os.DirEntry) []string {
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, e.Name())
 	}
-	got, err := store.Read(key)
-	if err != nil || string(got) != "minio-bytes" {
-		t.Fatalf("s3 read %q %v", got, err)
-	}
-	if err := store.Delete(key); err != nil {
-		t.Fatal(err)
-	}
+	return out
 }

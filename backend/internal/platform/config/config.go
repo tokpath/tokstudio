@@ -24,6 +24,7 @@ type Config struct {
 	GoogleClientID         string
 	GoogleClientSecret     string
 	GoogleRedirect         string
+	GoogleAllowMock        bool
 	BifrostSandbox         bool
 	OpenAIAPIKey           string
 	AnthropicAPIKey        string
@@ -37,10 +38,12 @@ type Config struct {
 	MediaStorePath         string
 	MediaSignKey           string
 	S3Endpoint             string
+	S3PublicEndpoint       string
+	S3Region               string
 	S3Bucket               string
 	S3AccessKey            string
 	S3SecretKey            string
-	S3Region               string
+	S3ForcePathStyle       bool
 	ArkBaseURL             string
 	ArkAPIKey              string
 	OpenRouterBaseURL      string
@@ -89,6 +92,7 @@ func Load() (*Config, error) {
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:     v.GetString("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
+		GoogleAllowMock:        v.GetBool("GOOGLE_ALLOW_MOCK"),
 		BifrostSandbox:         resolveBifrostSandbox(v),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
 		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
@@ -102,10 +106,12 @@ func Load() (*Config, error) {
 		MediaStorePath:         v.GetString("MEDIA_STORE_PATH"),
 		MediaSignKey:           v.GetString("MEDIA_SIGN_KEY"),
 		S3Endpoint:             v.GetString("S3_ENDPOINT"),
-		S3Bucket:               v.GetString("S3_BUCKET"),
-		S3AccessKey:            v.GetString("S3_ACCESS_KEY"),
-		S3SecretKey:            v.GetString("S3_SECRET_KEY"),
+		S3PublicEndpoint:       v.GetString("S3_PUBLIC_ENDPOINT"),
 		S3Region:               v.GetString("S3_REGION"),
+		S3Bucket:               v.GetString("S3_BUCKET"),
+		S3AccessKey:            firstNonEmpty(v.GetString("S3_ACCESS_KEY"), os.Getenv("AWS_ACCESS_KEY_ID")),
+		S3SecretKey:            firstNonEmpty(v.GetString("S3_SECRET_KEY"), os.Getenv("AWS_SECRET_ACCESS_KEY")),
+		S3ForcePathStyle:       v.GetBool("S3_FORCE_PATH_STYLE"),
 		ArkBaseURL:             v.GetString("ARK_BASE_URL"),
 		ArkAPIKey:              v.GetString("ARK_API_KEY"),
 		OpenRouterBaseURL:      v.GetString("OPENROUTER_BASE_URL"),
@@ -170,14 +176,30 @@ func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production")
 }
 
-// GoogleOAuthReady 表示可以走真实 Google token 交换。缺任一项时 start/callback 仍用 mock。
-func (c *Config) GoogleOAuthReady() bool {
+// GoogleTriad 表示 Client ID / Secret / Redirect URI 三件套齐全，可以走真实交换。
+func (c *Config) GoogleTriad() bool {
 	if c == nil {
 		return false
 	}
 	return strings.TrimSpace(c.GoogleClientID) != "" &&
 		strings.TrimSpace(c.GoogleClientSecret) != "" &&
 		strings.TrimSpace(c.GoogleRedirect) != ""
+}
+
+// GoogleMockAllowed 仅在显式打开且不在 production / grok / test 预览时允许 mock。
+// 默认禁止；缺三件套时不得静默 mock 成功。
+func (c *Config) GoogleMockAllowed() bool {
+	if c == nil || !c.GoogleAllowMock {
+		return false
+	}
+	if c.IsProduction() {
+		return false
+	}
+	host := strings.ToLower(c.PublicBaseURL + " " + c.WebOrigin)
+	if strings.Contains(host, "grok.tokpath.com") || strings.Contains(host, "test.tokpath.com") {
+		return false
+	}
+	return true
 }
 
 func resolveBifrostSandbox(v *viper.Viper) bool {
@@ -204,17 +226,33 @@ func (c *Config) RedactedMap() map[string]any {
 		"encryption_key_set":   c.EncryptionKey != "",
 		"bifrost_sandbox":      c.BifrostSandbox,
 		"openai_key_set":       c.OpenAIAPIKey != "",
+		"gemini_key_set":       c.GeminiAPIKey != "",
 		"ark_url_set":          c.ArkBaseURL != "",
 		"ark_key_set":          c.ArkAPIKey != "",
 		"openrouter_url_set":   c.OpenRouterBaseURL != "",
 		"openrouter_key_set":   c.OpenRouterAPIKey != "",
-		"s3_endpoint_set":      c.S3Endpoint != "",
-		"s3_bucket_set":        c.S3Bucket != "",
-		"s3_key_set":           c.S3AccessKey != "",
 		"acme_directory_set":   c.ACMEDirectory != "",
 		"acme_force":           c.ACMEForce,
+		"s3_endpoint_set":      c.S3Endpoint != "",
+		"s3_bucket":            c.S3Bucket,
+		"s3_key_set":           c.S3AccessKey != "",
+		"google_client_id_set": c.GoogleClientID != "",
+		"google_secret_set":    c.GoogleClientSecret != "",
+		"google_redirect_set":  c.GoogleRedirect != "",
+		"google_triad":         c.GoogleTriad(),
+		"google_allow_mock":    c.GoogleAllowMock,
+		"google_mock_allowed":  c.GoogleMockAllowed(),
 		"cloudflare_token_set": c.CloudflareAPIToken != "",
 		"cloudflare_zone_set":  c.CloudflareZoneID != "",
 		"cloudflare_cname_set": c.CloudflareCNAME != "",
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }

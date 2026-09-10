@@ -5,8 +5,10 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import type { AssetKind, Brand } from "@/lib/brand";
 import { describeAssetLimit, inspectLocalAsset, publicAssetURL } from "@/lib/brand";
+import { StorageSourceBadge } from "@/components/storage-source-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 
 const KINDS: AssetKind[] = ["logo", "logo_dark", "favicon", "og_image"];
 
@@ -26,10 +28,15 @@ export function BrandEditor({
   const [color, setColor] = useState("#2150D6");
   const [message, setMessage] = useState("");
   const [customizable, setCustomizable] = useState(true);
+  const [storage, setStorage] = useState<StorageSource | undefined>();
 
   async function load() {
     const res = await fetch(`${apiBase}${endpoint}`, { credentials: "include" });
     const body = await res.json();
+    const nextStorage = applyStorageFact(body, res.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
+    }
     if (!res.ok) {
       setMessage(body.error?.message || "读取品牌失败");
       return;
@@ -71,7 +78,11 @@ export function BrandEditor({
     form.set("file", file);
     const res = await fetch(`${apiBase}${uploadEndpoint}`, { method: "POST", credentials: "include", body: form });
     const body = await res.json();
-    setMessage(res.ok ? `已上传 ${kind} ${body.item?.width_px}×${body.item?.height_px}` : body.error?.message || "上传失败");
+    const nextStorage = applyStorageFact(body, res.ok);
+    if (nextStorage) {
+      setStorage(nextStorage);
+    }
+    setMessage(res.ok ? `已上传 ${kind} ${body.item?.width_px}×${body.item?.height_px}` : body.error?.message || "存储不可用");
     if (res.ok) await load();
   }
 
@@ -90,12 +101,23 @@ export function BrandEditor({
           <Input className="mt-1" type="color" value={color} disabled={locked} onChange={(e) => setColor(e.target.value)} />
         </label>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="inline-flex h-9 items-center rounded-stamp bg-brand px-3 text-sm text-on-brand">主按钮预览</span>
         <span className="text-sm text-brand-emphasis">链字预览</span>
         {brand?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={publicAssetURL(brand.logo_url)} alt="" className="h-6 max-w-24 object-contain" />
+        ) : null}
+        <StorageSourceBadge storage={storage} />
+        {brand?.logo_url ? (
+          <a
+            className="text-sm text-brand-emphasis"
+            href={publicAssetURL(brand.logo_url)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            下载 Logo
+          </a>
         ) : null}
       </div>
       {!locked ? (

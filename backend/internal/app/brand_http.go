@@ -11,6 +11,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/media"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -50,6 +51,8 @@ func (a *App) abortBrandErr(c *gin.Context, err error) bool {
 		httpx.Abort(c, http.StatusForbidden, "brand_not_customizable", "该渠道不能自定义品牌", false)
 	case errors.Is(err, identity.ErrBrandDomainTaken):
 		httpx.Abort(c, http.StatusConflict, "invalid_request", "域名已被其它品牌使用", false)
+	case errors.Is(err, identity.ErrStoreUnavailable), errors.Is(err, media.ErrStoreUnavailable):
+		httpx.Abort(c, http.StatusServiceUnavailable, "store_unavailable", "存储不可用", true)
 	case errors.Is(err, identity.ErrChannelImmutable):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "没有权限", false)
 	case errors.Is(err, identity.ErrPromotionInvalid):
@@ -67,7 +70,7 @@ func (a *App) getBrand(c *gin.Context) {
 	if a.abortBrandErr(c, err) {
 		return
 	}
-	httpx.OK(c, gin.H{"item": item, "brand": item, "customizable": true, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"item": item, "brand": item, "customizable": true, "storage": a.storageView(), "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) createBrand(c *gin.Context) {
@@ -118,7 +121,7 @@ func (a *App) channelBrand(c *gin.Context) {
 	}
 	httpx.OK(c, gin.H{
 		"brand": brand, "channel": channel, "customizable": channel != nil && channel.Type == "C",
-		"request_id": c.GetString(httpx.ContextRequestID),
+		"storage": a.storageView(), "request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 
@@ -194,12 +197,16 @@ func (a *App) uploadBrandAsset(c *gin.Context, brandID string, _ bool) {
 		After: map[string]any{"kind": item.Kind, "size_bytes": item.SizeBytes, "width_px": item.WidthPx, "height_px": item.HeightPx, "brand_id": brandID},
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"item": item, "storage": a.storageView(), "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) publicBrandAsset(c *gin.Context) {
 	row, body, err := a.Identity.PublicBrandAsset(c.Request.Context(), c.Param("id"))
 	if err != nil {
+		if errors.Is(err, identity.ErrStoreUnavailable) {
+			httpx.Abort(c, http.StatusServiceUnavailable, "store_unavailable", "存储不可用", true)
+			return
+		}
 		c.Status(http.StatusNotFound)
 		return
 	}

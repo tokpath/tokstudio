@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Route } from "@playwright/test";
 
 test("public storefront shows models plans and topup", async ({ page }) => {
   await page.goto("/");
@@ -46,6 +46,72 @@ test("user keys page keeps create dialog", async ({ page }) => {
   await page.getByRole("button", { name: "取消" }).click();
 });
 
+test("user reconciliation page is three-bucket vs usage with no estimate debit", async ({ page }) => {
+  await page.route("**/v1/me/reconciliation**", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ item: { request_id: "req_gap", state: "pending_reconciliation" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: {
+          buckets: { available_minor: 9000000, reserved_minor: 1000000, withdrawable_minor: 0 },
+          usage_totals: { requests: 2, customer_minor: 160000, charge_minor: 160000, pending_count: 1 },
+          items: [
+            {
+              request_id: "req_ok",
+              usage_id: "usg_ok",
+              match: true,
+              status: "match",
+              usage_minor: 160000,
+              charge_minor: 160000,
+              reserved_minor: 0,
+              provider_id: "prd_echo",
+              upstream_model_id: "echo-up",
+              fact_source: "sandbox",
+            },
+            {
+              request_id: "req_gap",
+              usage_id: "usg_gap",
+              match: false,
+              status: "mismatch",
+              already_pending: true,
+              usage_minor: 0,
+              charge_minor: 0,
+              reserved_minor: 1000000,
+            },
+          ],
+          pending: [{ request_id: "req_gap" }],
+        },
+      }),
+    });
+  });
+  await page.goto("/app/reconciliation");
+  await expect(page.getByRole("heading", { level: 1, name: "对账" })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "用户控制台" }).getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "用户控制台" }).getByRole("link", { name: "成本/毛利" })).toHaveCount(0);
+  const userBuckets = page.getByLabel("三桶");
+  await expect(userBuckets.getByText("余额", { exact: true })).toBeVisible();
+  await expect(userBuckets.getByText("冻结", { exact: true })).toBeVisible();
+  await expect(userBuckets.getByText("可提现", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("diff-match")).toBeVisible();
+  await expect(page.getByTestId("diff-mismatch")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "待对账队列" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "送入待对账队列" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /估扣|估算扣款/ })).toHaveCount(0);
+  await expect(page.getByTestId("usage-trend-chart")).toHaveCount(0);
+  await expect(page.getByText("prd_echo / echo-up / req_ok")).toBeVisible();
+  await expect(page.getByText("缺上游元数据").first()).toBeVisible();
+  await expect(page.getByText("openai")).toHaveCount(0);
+});
+
 test("user usage page is summary and links to activity", async ({ page }) => {
   await page.goto("/app/usage");
   await expect(page.getByRole("heading", { name: "用量汇总" }).first()).toBeVisible();
@@ -65,11 +131,15 @@ test("user media page is list-first with create dialog", async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ items: [] }),
+      body: JSON.stringify({ items: [], storage: { source: "minio", ok: true, label: "S3" } }),
     });
   });
   await page.goto("/app/media");
   await expect(page.getByRole("heading", { level: 1, name: "媒体任务" })).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "true");
+  await expect(page.getByText("✓")).toHaveCount(0);
   await expect(page.getByLabel("筛选媒体类型")).toBeVisible();
   await expect(page.getByRole("button", { name: "刷新任务" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新建任务" }).first()).toBeVisible();
@@ -81,6 +151,138 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await expect(page.getByLabel("宽高比")).toBeVisible();
   await expect(page.getByLabel("帧率")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
+});
+
+test("media download badge is grey 存储不可用 when the bucket is missing", async ({ page }) => {
+  await page.route("**/v1/me/media**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [{ id: "vid_missing", kind: "video", status: "completed", model: "bytedance/seedance-1.0" }],
+        storage: { source: "unavailable", ok: false, label: "存储不可用", detail: "missing bucket" },
+      }),
+    });
+  });
+  await page.route("**/v1/videos/vid_missing/content**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: { code: "store_unavailable", message: "存储不可用" },
+        storage: { source: "unavailable", ok: false, label: "存储不可用" },
+      }),
+    });
+  });
+  await page.goto("/app/media");
+  await expect(page.getByRole("button", { name: "下载" })).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("存储不可用");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "false");
+  await expect(page.getByText("✓")).toHaveCount(0);
+  await page.getByRole("button", { name: "下载" }).click();
+  await expect(page.getByText("存储不可用").first()).toBeVisible();
+});
+
+test("channel OEM brand download shows muted S3 and never a success check", async ({ page }) => {
+  await page.route("**/channel/brand**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    if (route.request().url().includes("/assets")) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        brand: { name: "OEM C", logo_url: "/v1/public/brand-assets/bas_logo", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "minio", ok: true, label: "S3" },
+      }),
+    });
+  });
+  await page.goto("/channel/brand");
+  await expect(page.getByRole("heading", { name: "本渠道品牌" })).toBeVisible();
+  await expect(page.getByText("存储源").first()).toBeVisible();
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("S3");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-tone", "muted");
+  await expect(page.getByRole("link", { name: "下载 Logo" })).toBeVisible();
+  await expect(page.getByText("✓")).toHaveCount(0);
+});
+
+test("channel OEM brand upload failure is grey 存储不可用", async ({ page }) => {
+  await page.route("**/channel/brand/assets**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "store_unavailable", message: "存储不可用" } }),
+    });
+  });
+  await page.route("**/channel/brand**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        brand: { name: "OEM C", theme: { brand: "#2150D6" } },
+        customizable: true,
+        storage: { source: "unavailable", ok: false, label: "存储不可用", detail: "missing bucket" },
+      }),
+    });
+  });
+  await page.goto("/channel/brand");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveText("存储不可用");
+  await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "false");
+  await expect(page.getByText("✓")).toHaveCount(0);
+  await expect(page.getByText("已上传")).toHaveCount(0);
+});
+
+test("channel reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {
+  await page.route("**/channel/reconciliation**", async (route) => {
+    // 页面 URL 与账本 API 同路径；只 stub fetch，别把 document/RSC 导航盖成 JSON。
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        item: {
+          buckets: { available_minor: 0, reserved_minor: 0, withdrawable_minor: 0 },
+          usage_totals: { requests: 0, customer_minor: 0, charge_minor: 0, pending_count: 0 },
+          items: [],
+          pending: [],
+        },
+      }),
+    });
+  });
+  await page.goto("/channel/reconciliation");
+  await expect(page.getByRole("heading", { level: 1, name: "对账" })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "成本/毛利" })).toHaveCount(0);
+  const channelBuckets = page.getByLabel("三桶");
+  await expect(channelBuckets.getByText("余额", { exact: true })).toBeVisible();
+  await expect(channelBuckets.getByText("冻结", { exact: true })).toBeVisible();
+  await expect(channelBuckets.getByText("可提现", { exact: true })).toBeVisible();
+  await expect(page.getByText("暂无 usage")).toBeVisible();
+  await expect(page.getByRole("button", { name: /估扣|估算扣款/ })).toHaveCount(0);
+  await expect(page.getByTestId("usage-trend-chart")).toHaveCount(0);
+  await expect(page.getByTestId("upstream-facts-badge")).toHaveCount(0);
 });
 
 test("partner console shows scoped downline cards", async ({ page }) => {
@@ -110,3 +312,117 @@ test("channel console shows scoped user list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "已发放额度" })).toBeVisible();
   await expect(page.getByText(/换算比 .+ BPS/)).toBeVisible();
 });
+
+async function fulfillJSON(route: Route, status: number, body: unknown) {
+  if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+    await route.continue();
+    return;
+  }
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  });
+}
+
+test("user shell shows real available balance and profile dropdown", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "12.5", reserved: "1.00", gift_minor: 0, commission_available_minor: 0 } });
+  });
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await fulfillJSON(route, 200, { items: [] });
+  });
+  await page.route("**/v1/auth/logout", async (route) => {
+    await fulfillJSON(route, 200, { ok: true });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, {
+      user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"], login_methods: ["password"] },
+    });
+  });
+  await page.goto("/app");
+  await expect(page.getByTestId("shell-bell")).toBeDisabled();
+  const pill = page.getByTestId("balance-pill");
+  await expect(pill).toHaveText("$12.50");
+  await expect(pill).toHaveAttribute("data-field", "available");
+  await expect(pill).toHaveAttribute("href", "/app/wallet");
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+  await page.getByTestId("avatar-trigger").click();
+  await expect(page.getByTestId("menu-display-name")).toHaveText("Ada");
+  await expect(page.getByTestId("menu-email")).toHaveText("ada@example.test");
+  await expect(page.getByRole("menuitem", { name: "个人资料" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "API 密钥" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "平台管理" })).toHaveCount(0);
+  await expect(page.getByText("GitHub")).toHaveCount(0);
+  await expect(page.getByText("新手引导")).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "个人资料" }).click();
+  await expect(page).toHaveURL(/\/app\/profile/);
+  await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
+  await expect(page.getByTestId("profile-display-name")).toHaveText("Ada");
+  await expect(page.getByTestId("profile-email")).toHaveText("ada@example.test");
+  await expect(page.getByTestId("profile-login-methods").locator("[data-method=password]")).toBeVisible();
+});
+
+test("user shell balance failure is — never fake $0.00", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 503, { error: { message: "余额不可用" } });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "", email: "", roles: ["end_user"] } });
+  });
+  await page.goto("/app");
+  const pill = page.getByTestId("balance-pill");
+  await expect(pill).toHaveAttribute("data-state", "error");
+  await expect(pill).toHaveText("—");
+  await expect(page.getByText("$0.00")).toHaveCount(0);
+  await page.getByTestId("avatar-trigger").click();
+  await expect(page.getByTestId("menu-display-name")).toHaveText("—");
+  await expect(page.getByTestId("menu-email")).toHaveText("—");
+});
+
+test("user keys empty state is honest 暂无 API 密钥", async ({ page }) => {
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await fulfillJSON(route, 200, { items: [] });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"] } });
+  });
+  await page.goto("/app/keys");
+  await expect(page.getByText("暂无 API 密钥")).toBeVisible();
+  await expect(page.getByText("thk_")).toHaveCount(0);
+});
+
+test("user shell shows 平台管理 only for platform_admin", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "12.5" } });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, {
+      user: { display_name: "Pat", email: "pat@example.test", roles: ["platform_admin"] },
+    });
+  });
+  await page.goto("/app");
+  await page.getByTestId("avatar-trigger").click();
+  const adminItem = page.getByRole("menuitem", { name: "平台管理" });
+  await expect(adminItem).toBeVisible();
+  await expect(adminItem).toHaveAttribute("href", "/admin");
+  await expect(adminItem).not.toHaveAttribute("aria-disabled", "true");
+});
+
+test("user shell logout clears session and returns to login", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "1" } });
+  });
+  await page.route("**/v1/auth/logout", async (route) => {
+    await fulfillJSON(route, 200, { ok: true });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, { user: { display_name: "Ada", email: "ada@example.test", roles: ["end_user"] } });
+  });
+  await page.goto("/app");
+  await page.getByTestId("avatar-trigger").click();
+  await page.getByRole("menuitem", { name: "退出登录" }).click();
+  await expect(page).toHaveURL(/\/login/);
+});
+

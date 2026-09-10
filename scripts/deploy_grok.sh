@@ -72,7 +72,7 @@ fi
 if [[ "${TOKENHUB_DEPLOY_SKIP_DOCKER:-}" != "1" ]]; then
   # 释放已无用的构建缓存，避免 40G 盘在镜像构建时写满。
   docker builder prune -f >/dev/null
-  docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.grok.yml up --build -d
+  bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -p "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.grok.yml
 fi
 
 had_test=0
@@ -116,6 +116,7 @@ done
 if [[ "$ok" -ne 1 ]]; then
   echo "healthz did not become ready on grok.tokpath.com" >&2
   docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.grok.yml ps >&2
+  docker compose -p "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.grok.yml logs --no-color --tail=80 minio minio-init api web >&2 || true
   exit 1
 fi
 

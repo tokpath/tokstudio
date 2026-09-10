@@ -54,7 +54,7 @@ PY
 # 释放已无用的构建缓存，避免 40G 盘在镜像构建时写满。
 docker builder prune -f >/dev/null
 
-docker compose -f docker-compose.yml -f docker-compose.token.yml up --build -d
+bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
 
 if [[ -f "$CADDY_SNIPPET" && -f "$NOVA_CADDY" ]]; then
   if ! grep -qF "test.tokpath.com" "$NOVA_CADDY"; then
@@ -77,6 +77,7 @@ done
 if [[ "$ok" -ne 1 ]]; then
   echo "healthz did not become ready on test.tokpath.com" >&2
   docker compose -f docker-compose.yml -f docker-compose.token.yml ps >&2
+  docker compose -f docker-compose.yml -f docker-compose.token.yml logs --no-color --tail=80 minio minio-init api web >&2 || true
   exit 1
 fi
 

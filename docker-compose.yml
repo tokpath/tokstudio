@@ -85,13 +85,13 @@ services:
       TOKENHUB_LOG_LEVEL: info
       TOKENHUB_BIFROST_SANDBOX: ${TOKENHUB_BIFROST_SANDBOX:-true}
       TOKENHUB_GOOGLE_ALLOW_MOCK: ${TOKENHUB_GOOGLE_ALLOW_MOCK:-false}
-      TOKENHUB_S3_ENDPOINT: http://minio:9000
-      TOKENHUB_S3_PUBLIC_ENDPOINT: http://localhost:9000
-      TOKENHUB_S3_BUCKET: tokenhub
-      TOKENHUB_S3_REGION: us-east-1
-      TOKENHUB_S3_ACCESS_KEY: minioadmin
-      TOKENHUB_S3_SECRET_KEY: minioadmin
-      TOKENHUB_S3_FORCE_PATH_STYLE: "true"
+      TOKENHUB_S3_ENDPOINT: ${TOKENHUB_S3_ENDPOINT:-http://minio:9000}
+      TOKENHUB_S3_PUBLIC_ENDPOINT: ${TOKENHUB_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
+      TOKENHUB_S3_REGION: ${TOKENHUB_S3_REGION:-us-east-1}
+      TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
+      TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
+      TOKENHUB_S3_FORCE_PATH_STYLE: ${TOKENHUB_S3_FORCE_PATH_STYLE:-true}
     volumes:
       - tokenhub_media:/data/media
     depends_on:
@@ -129,13 +129,13 @@ services:
       TOKENHUB_MEDIA_STORE_PATH: /data/media
       TOKENHUB_OTEL_SERVICE_NAME: tokenhub-worker
       TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_S3_ENDPOINT: http://minio:9000
-      TOKENHUB_S3_PUBLIC_ENDPOINT: http://localhost:9000
-      TOKENHUB_S3_BUCKET: tokenhub
-      TOKENHUB_S3_REGION: us-east-1
-      TOKENHUB_S3_ACCESS_KEY: minioadmin
-      TOKENHUB_S3_SECRET_KEY: minioadmin
-      TOKENHUB_S3_FORCE_PATH_STYLE: "true"
+      TOKENHUB_S3_ENDPOINT: ${TOKENHUB_S3_ENDPOINT:-http://minio:9000}
+      TOKENHUB_S3_PUBLIC_ENDPOINT: ${TOKENHUB_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
+      TOKENHUB_S3_REGION: ${TOKENHUB_S3_REGION:-us-east-1}
+      TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
+      TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
+      TOKENHUB_S3_FORCE_PATH_STYLE: ${TOKENHUB_S3_FORCE_PATH_STYLE:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -167,17 +167,14 @@ services:
     depends_on:
       - api
 
+  # MinIO 官方 server 镜像接近 scratch，没有 curl；健康检查改由 minio-init 的 mc ready 完成。
+  # MINIO_ROOT_* 必须与卷内既有配置一致：已有 /data 时 MinIO 会忽略新的环境变量。
   minio:
     image: minio/minio:RELEASE.2024-12-18T13-15-44Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
-      interval: 3s
-      timeout: 5s
-      retries: 20
+      MINIO_ROOT_USER: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
     volumes:
       - tokenhub_minio:/data
 
@@ -186,15 +183,32 @@ services:
     depends_on:
       - minio
     environment:
-      MC_HOST_local: http://minioadmin:minioadmin@minio:9000
+      TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
+      TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
+      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-          mc mb -p local/tokenhub && exit 0
+        set -eu
+        export MC_HOST_local="http://$${TOKENHUB_S3_ACCESS_KEY}:$${TOKENHUB_S3_SECRET_KEY}@minio:9000"
+        echo "minio-init: waiting for MinIO (mc ready) as $${TOKENHUB_S3_ACCESS_KEY}"
+        ready=0
+        for n in $$(seq 1 60); do
+          if mc ready local >/tmp/mc-ready.out 2>&1; then
+            ready=1
+            break
+          fi
+          echo "minio-init: not ready yet ($$n/60): $$(tr '\n' ' ' </tmp/mc-ready.out)"
           sleep 1
         done
-        exit 1
+        if [ "$$ready" -ne 1 ]; then
+          echo "minio-init: MinIO never became ready with configured credentials" >&2
+          echo "minio-init: if the Docker volume predates a credential change, recreate tokenhub_minio" >&2
+          exit 1
+        fi
+        mc mb -p "local/$${TOKENHUB_S3_BUCKET}"
+        mc ls "local/$${TOKENHUB_S3_BUCKET}" >/dev/null
+        echo "minio-init: bucket $${TOKENHUB_S3_BUCKET} ready"
 
   pebble:
     image: ghcr.io/letsencrypt/pebble:2.6.0

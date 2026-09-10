@@ -48,3 +48,4 @@ e2e-m7:
 
 assert-deploy:
 	bash scripts/assert_deploy_isolation.sh
+	bash scripts/assert_minio_recovery.sh

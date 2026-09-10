@@ -85,6 +85,12 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	idSvc := identity.New(gdb)
 	idSvc.SetStore(store)
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
+	idSvc.SetCloudflare(identity.NewCloudflare(identity.CloudflareOptions{
+		APIToken:    cfg.CloudflareAPIToken,
+		ZoneID:      cfg.CloudflareZoneID,
+		CNAMETarget: cfg.CloudflareCNAME,
+		BaseURL:     cfg.CloudflareBaseURL,
+	}))
 	commSvc := commission.New(gdb, outboxSvc)
 	commSvc.SetCashier(billingSvc)
 	commSvc.SetRoles(idSvc)

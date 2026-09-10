@@ -1,7 +1,8 @@
-# OEM / 平台域名：客户把 CNAME 指到 edge.tokenhub.local 后，由 Caddy 按需签发 HTTPS。
+# OEM / 平台域名：客户把 CNAME 指到 TOKENHUB_EDGE_CNAME（公网为 Cloudflare 入口）。
 # ask 接口只对已登记品牌域名返回 200，避免给任意主机签发证书。
-# 默认走 Let's Encrypt；本地可用 TOKENHUB_ACME_CA 指到 compose 里的 Pebble（自签 CA，仅演练）。
-# 公网生产域名 + 真实 LE 仍要 DNS 指向边缘节点，本仓库不把「已对公网签发」标完成。
+# 公网 OEM 证书由 Cloudflare Custom Hostname 签发续期；Caddy on-demand 仅作直连源站/本地演练。
+# 本地可用 TOKENHUB_ACME_CA 指到 compose 里的 Pebble（自签 CA，仅演练）。
+# 不自建公网 Let's Encrypt，也不把 Pebble 标成公网签发。
 #
 # 浏览器与控制台走同一主机：页面 → web:3000；接口 → /api/*（去掉前缀后到 api:8080）。
 # /admin、/channel 是 Next.js 页面，不能整段转给 Go，所以浏览器 API 必须带 /api 前缀。

@@ -47,6 +47,10 @@ type Config struct {
 	PaymentSignKey         string
 	UpstreamURLAllowlist   []string
 	EdgeCNAME              string
+	CloudflareAPIToken     string
+	CloudflareZoneID       string
+	CloudflareCNAME        string
+	CloudflareBaseURL      string
 	ACMEDirectory          string
 	ACMEInsecureSkipVerify bool
 	ACMEForce              bool
@@ -108,6 +112,10 @@ func Load() (*Config, error) {
 		PaymentSignKey:         v.GetString("PAYMENT_SIGN_KEY"),
 		UpstreamURLAllowlist:   splitCSV(v.GetString("UPSTREAM_URL_ALLOWLIST")),
 		EdgeCNAME:              v.GetString("EDGE_CNAME"),
+		CloudflareAPIToken:     v.GetString("CLOUDFLARE_API_TOKEN"),
+		CloudflareZoneID:       v.GetString("CLOUDFLARE_ZONE_ID"),
+		CloudflareCNAME:        v.GetString("CLOUDFLARE_CNAME_TARGET"),
+		CloudflareBaseURL:      v.GetString("CLOUDFLARE_BASE_URL"),
 		ACMEDirectory:          v.GetString("ACME_DIRECTORY"),
 		ACMEInsecureSkipVerify: v.GetBool("ACME_INSECURE_SKIP_VERIFY"),
 		ACMEForce:              v.GetBool("ACME_FORCE"),
@@ -182,28 +190,31 @@ func resolveBifrostSandbox(v *viper.Viper) bool {
 // RedactedMap 返回可安全写入日志的配置摘要，绝不包含密钥原文。
 func (c *Config) RedactedMap() map[string]any {
 	return map[string]any{
-		"env":                 c.Env,
-		"http_addr":           c.HTTPAddr,
-		"public_base_url":     c.PublicBaseURL,
-		"web_origin":          c.WebOrigin,
-		"database_configured": c.DatabaseURL != "",
-		"redis_configured":    c.RedisURL != "",
-		"otel_endpoint_set":   c.OTELEndpoint != "",
-		"otel_service_name":   c.OTELServiceName,
-		"log_level":           c.LogLevel,
-		"bootstrap_admin_set": c.BootstrapAdmin != "",
-		"bootstrap_user_set":  c.BootstrapUser != "",
-		"encryption_key_set":  c.EncryptionKey != "",
-		"bifrost_sandbox":     c.BifrostSandbox,
-		"openai_key_set":      c.OpenAIAPIKey != "",
-		"ark_url_set":         c.ArkBaseURL != "",
-		"ark_key_set":         c.ArkAPIKey != "",
-		"openrouter_url_set":  c.OpenRouterBaseURL != "",
-		"openrouter_key_set":  c.OpenRouterAPIKey != "",
-		"s3_endpoint_set":     c.S3Endpoint != "",
-		"s3_bucket_set":       c.S3Bucket != "",
-		"s3_key_set":          c.S3AccessKey != "",
-		"acme_directory_set":  c.ACMEDirectory != "",
-		"acme_force":          c.ACMEForce,
+		"env":                  c.Env,
+		"http_addr":            c.HTTPAddr,
+		"public_base_url":      c.PublicBaseURL,
+		"web_origin":           c.WebOrigin,
+		"database_configured":  c.DatabaseURL != "",
+		"redis_configured":     c.RedisURL != "",
+		"otel_endpoint_set":    c.OTELEndpoint != "",
+		"otel_service_name":    c.OTELServiceName,
+		"log_level":            c.LogLevel,
+		"bootstrap_admin_set":  c.BootstrapAdmin != "",
+		"bootstrap_user_set":   c.BootstrapUser != "",
+		"encryption_key_set":   c.EncryptionKey != "",
+		"bifrost_sandbox":      c.BifrostSandbox,
+		"openai_key_set":       c.OpenAIAPIKey != "",
+		"ark_url_set":          c.ArkBaseURL != "",
+		"ark_key_set":          c.ArkAPIKey != "",
+		"openrouter_url_set":   c.OpenRouterBaseURL != "",
+		"openrouter_key_set":   c.OpenRouterAPIKey != "",
+		"s3_endpoint_set":      c.S3Endpoint != "",
+		"s3_bucket_set":        c.S3Bucket != "",
+		"s3_key_set":           c.S3AccessKey != "",
+		"acme_directory_set":   c.ACMEDirectory != "",
+		"acme_force":           c.ACMEForce,
+		"cloudflare_token_set": c.CloudflareAPIToken != "",
+		"cloudflare_zone_set":  c.CloudflareZoneID != "",
+		"cloudflare_cname_set": c.CloudflareCNAME != "",
 	}
 }

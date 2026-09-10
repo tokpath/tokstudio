@@ -29,7 +29,7 @@ type userRow struct {
 	Locale          string     `gorm:"column:locale"`
 	EmailVerifiedAt *time.Time `gorm:"column:email_verified_at"`
 	GoogleSub       *string    `gorm:"column:google_sub"`
-	CanCommission    bool       `gorm:"column:can_commission"`
+	CanCommission   bool       `gorm:"column:can_commission"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }
@@ -66,6 +66,7 @@ func (tokenRow) TableName() string { return "identity_access_tokens" }
 type Service struct {
 	db       *gorm.DB
 	acme     *ACME
+	cf       *Cloudflare
 	store    ObjectStore
 	enforcer *casbin.Enforcer
 }
@@ -80,6 +81,10 @@ func New(db *gorm.DB) *Service {
 
 func (s *Service) SetACME(client *ACME) {
 	s.acme = client
+}
+
+func (s *Service) SetCloudflare(client *Cloudflare) {
+	s.cf = client
 }
 
 func (s *Service) LookupACMEChallenge(token string) string {

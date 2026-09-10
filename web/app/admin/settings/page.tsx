@@ -400,7 +400,7 @@ export default function AdminSettingsPage() {
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="oem" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配置 ACME 目录后，公网形态域名走 RFC 8555。公网 Let&apos;s Encrypt 仍要真实 DNS 与边缘节点，本页不假装已对公网签发。</p>
+        <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配齐 Cloudflare API Token 与 Zone ID 后，公网形态域名会登记 Custom Hostname，由 Cloudflare 签发续期；客户把域名 CNAME 到入口。未登记域名 tls-check 仍 404。Pebble/ACME 目录仅本地 RFC 8555，不自建公网 Let&apos;s Encrypt。</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />
           <Button
@@ -424,7 +424,7 @@ export default function AdminSettingsPage() {
           <ConfirmButton
             size="sm"
             title="确认签发证书"
-            description="沙箱域名只标 issued。已配置 ACME 目录的公网形态域名会走 RFC 8555。公网 Let's Encrypt 仍由边缘节点对真实 DNS 签发。"
+            description="沙箱域名只标 issued。已配置 Cloudflare 的公网形态域名会登记 Custom Hostname。Pebble 仅本地演练 RFC 8555。"
             onConfirm={async () => {
               const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
                 method: "POST",

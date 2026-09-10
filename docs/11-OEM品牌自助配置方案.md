@@ -373,7 +373,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 5. **管理面 + 渠道面**：表单、上传控件（旁注写死尺寸）、标题/favicon、控制台也吃 Logo。
 6. **e2e / Playwright**（含超体积/超像素拒绝）；更新 `docs/06`、`docs/09`、飞书目录该条为「已实现待验收」。
 
-公网 Custom Hostname（飞书目录独立条目）仍另批，不绑在这次换皮里。
+公网 Custom Hostname：配齐 Cloudflare Token+Zone 后由 `tls/issue` 登记；换皮不依赖这条。
 
 ---
 

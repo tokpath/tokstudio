@@ -31,7 +31,7 @@
 P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_role_members`。层级为 agent（代理商）与 promoter（个人推广员，含历史 `kol_l1`/`kol_l2` 种子）。计佣两跳。用户有 `can_commission`。详见 `docs/15`。
 
 功能权限由 Casbin 执行：请求是 `(角色, 路径, HTTP 方法)`，策略在 `backend/internal/identity/casbin_policy.go`，默认拒绝。数据隔离（本渠道、推广下线、自己的资源）仍在 handler 里按 scope 过滤，不放进 Casbin。前端继续读 `/v1/me` 的 `roles` 做门户跳转，不必接 casbin.js。
-| `brand` | `id`, `name`, `logo_url`, `logo_dark_url`, `favicon_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` 或 `acme`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`，不假装公网 Let's Encrypt |
+| `brand` | `id`, `name`, `logo_url`, `logo_dark_url`, `favicon_url`, `primary_domain`, `api_domain`, `admin_domain`, `theme_json`, `cname_target`, `tls_status`, `tls_issuer`, `tls_directory`, `tls_expires_at` | OEM 品牌和域名；`tls_issuer` 为 `sandbox` / `acme` / `cloudflare`；空 ACME 目录或 `.localhost` 只标沙箱 `issued`；公网域名在配齐 Cloudflare 后登记 Custom Hostname |
 | `identity_brand_assets` | `id`, `brand_id`, `kind`, `object_key`, `content_type`, `size_bytes`, `width_px`, `height_px`, `sha256`, `status` | 品牌公开资源；`kind` 为 `logo` / `logo_dark` / `favicon` / `og_image`。Logo ≤128KiB、短边 64–1024px。不走媒体 7 天签名 URL |
 
 ### 2.2 Provider、模型与路由

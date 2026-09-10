@@ -1141,9 +1141,9 @@ paths:
             type: string
       responses:
         "200":
-          description: tls issued (sandbox for .localhost; RFC 8555 ACME when directory + public hostname)
+          description: tls issued or pending (sandbox .localhost; Cloudflare Custom Hostname when token+zone; else Pebble ACME)
         "502":
-          description: ACME directory issuance failed
+          description: Cloudflare or ACME issuance failed
   /admin/ops/canary:
     get:
       operationId: getAdminCanary

@@ -37,7 +37,15 @@ func (a HarnessAdapter) Chat(ctx context.Context, providerSlug, behavior string,
 		last = req.Messages[len(req.Messages)-1]
 	}
 	text := "echo:" + last.Content
-	usage := map[string]int{"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+	// 按内容长度放大 usage：替换已删除的 content 沙箱填空，让佣金等契约在默认批发价下
+	// 仍能越过间接档整数除法门槛（500 BPS → wholesale>=20），同时保持确定性。
+	promptTokens := 8 + len(last.Content)
+	completionTokens := 4 + len(last.Content)/2
+	usage := map[string]int{
+		"prompt_tokens":     promptTokens,
+		"completion_tokens": completionTokens,
+		"total_tokens":      promptTokens + completionTokens,
+	}
 	msg := ChatMessage{Role: "assistant", Content: text + " via " + providerSlug}
 	if n := visionCount(req); n > 0 {
 		msg.Content = fmt.Sprintf("vision:%s images=%d via %s", last.Content, n, providerSlug)

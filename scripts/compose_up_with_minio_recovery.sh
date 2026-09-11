@@ -2,7 +2,6 @@
 # 预览栈共用：docker compose up，若 minio-init 因卷内旧凭证失败则重建 MinIO 卷并重试一次。
 # 用法：compose_up_with_minio_recovery.sh <compose 额外参数...>
 # 例：compose_up_with_minio_recovery.sh -f docker-compose.yml -f docker-compose.token.yml
-#     compose_up_with_minio_recovery.sh -p tokstudio-grok -f docker-compose.yml -f docker-compose.grok.yml
 set -euo pipefail
 
 if [[ "$#" -lt 1 ]]; then

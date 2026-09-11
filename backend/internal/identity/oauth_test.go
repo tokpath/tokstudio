@@ -58,7 +58,7 @@ func TestNewGoogleExchangeUsesTokenAndProfile(t *testing.T) {
 	ex := NewGoogleExchange(GoogleOAuthConfig{
 		ClientID:     "id.apps.googleusercontent.com",
 		ClientSecret: "client-secret",
-		RedirectURL:  "https://grok.tokpath.com/login/oauth/google",
+		RedirectURL:  "https://test.tokpath.com/login/oauth/google",
 		TokenURL:     srv.URL + "/token",
 		UserInfoURL:  srv.URL + "/userinfo",
 		HTTPClient:   srv.Client(),
@@ -94,7 +94,7 @@ func TestNewGoogleExchangeRejectsBadCodeWithoutLeaking(t *testing.T) {
 	ex := NewGoogleExchange(GoogleOAuthConfig{
 		ClientID:     "id.apps.googleusercontent.com",
 		ClientSecret: "client-secret",
-		RedirectURL:  "https://grok.tokpath.com/login/oauth/google",
+		RedirectURL:  "https://test.tokpath.com/login/oauth/google",
 		TokenURL:     srv.URL + "/token",
 		UserInfoURL:  srv.URL + "/userinfo",
 		HTTPClient:   srv.Client(),

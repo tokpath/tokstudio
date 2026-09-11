@@ -8,7 +8,7 @@ func TestGoogleTriadAndMockGate(t *testing.T) {
 		t.Fatal("empty config must not look configured or allow mock")
 	}
 
-	partial := &Config{GoogleClientID: "id.apps.googleusercontent.com", GoogleRedirect: "https://grok.tokpath.com/login/oauth/google"}
+	partial := &Config{GoogleClientID: "id.apps.googleusercontent.com", GoogleRedirect: "https://test.tokpath.com/login/oauth/google"}
 	if partial.GoogleTriad() {
 		t.Fatal("missing secret is not a triad")
 	}
@@ -16,7 +16,7 @@ func TestGoogleTriadAndMockGate(t *testing.T) {
 	triad := &Config{
 		GoogleClientID:     "id.apps.googleusercontent.com",
 		GoogleClientSecret: "secret",
-		GoogleRedirect:     "https://grok.tokpath.com/login/oauth/google",
+		GoogleRedirect:     "https://test.tokpath.com/login/oauth/google",
 	}
 	if !triad.GoogleTriad() {
 		t.Fatal("triad must be complete")
@@ -30,11 +30,6 @@ func TestGoogleTriadAndMockGate(t *testing.T) {
 	prodMock := &Config{Env: "production", GoogleAllowMock: true, PublicBaseURL: "https://www.tokpath.com"}
 	if prodMock.GoogleMockAllowed() {
 		t.Fatal("production must forbid mock even if ALLOW_MOCK=true")
-	}
-
-	grokMock := &Config{Env: "development", GoogleAllowMock: true, PublicBaseURL: "https://grok.tokpath.com"}
-	if grokMock.GoogleMockAllowed() {
-		t.Fatal("grok preview must forbid mock")
 	}
 
 	testMock := &Config{Env: "development", GoogleAllowMock: true, WebOrigin: "https://test.tokpath.com"}

@@ -70,7 +70,7 @@ Atlas 拥有编排：`release/v0.1.0` 分支 CI 全绿后，GitHub Actions SSH �
 - `ALIYUN_HOST`：SSH 主机。工作流写成 `${{ secrets.ALIYUN_HOST }}`，不要写死 IP。
 - `TOKEN_DEPLOY_SSH_KEY`：SSH 私钥。
 
-`deploy-token` 只维护 nova Caddy 的 `test.tokpath.com`。本地可用 `make assert-deploy` 做 dry-run / grep 门禁。若宿主机仍残留旧的 grok 预览栈，可手动触发 Actions `teardown-grok` 或运行 `scripts/teardown_grok.sh`。
+`deploy-token` 只维护 nova Caddy 的 `test.tokpath.com`。本地可用 `make assert-deploy` 做 dry-run / grep 门禁。
 
 对象存储（W1-S3）是另一条 PR，不混进本预览路径。
 

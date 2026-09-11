@@ -88,7 +88,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
 	application.Config.GoogleClientSecret = "not-a-real-secret"
-	application.Config.GoogleRedirect = "https://grok.tokpath.com/login/oauth/google"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
 
 	status := getJSON(t, server.URL+"/v1/auth/google/status", "")
 	if status["available"] != true || status["configured"] != true || status["mock"] != false {
@@ -111,7 +111,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 	if q.Get("client_id") != "id.apps.googleusercontent.com" {
 		t.Fatalf("client_id: %s", q.Get("client_id"))
 	}
-	if q.Get("redirect_uri") != "https://grok.tokpath.com/login/oauth/google" {
+	if q.Get("redirect_uri") != "https://test.tokpath.com/login/oauth/google" {
 		t.Fatalf("redirect_uri: %s", q.Get("redirect_uri"))
 	}
 	if q.Get("state") == "" || q.Get("response_type") != "code" {
@@ -126,7 +126,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
 	application.Config.GoogleClientSecret = "not-a-real-secret"
-	application.Config.GoogleRedirect = "https://grok.tokpath.com/login/oauth/google"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
 	email := "oauth-fake-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
 	application.GoogleExchange = func(_ context.Context, code string) (identity.GoogleProfile, error) {
 		if strings.Contains(code, "ya29") || strings.HasPrefix(code, "mock:") {
@@ -187,19 +187,19 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	}
 }
 
-func TestW1OAuthGrokPreviewForbidsMockEvenIfAllowFlag(t *testing.T) {
+func TestW1OAuthTestPreviewForbidsMockEvenIfAllowFlag(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleAllowMock = true
-	application.Config.PublicBaseURL = "https://grok.tokpath.com"
-	application.Config.WebOrigin = "https://grok.tokpath.com"
+	application.Config.PublicBaseURL = "https://test.tokpath.com"
+	application.Config.WebOrigin = "https://test.tokpath.com"
 
 	status := getJSON(t, server.URL+"/v1/auth/google/status", "")
 	if status["available"] != false || status["mock"] != false {
-		t.Fatalf("grok must forbid mock: %+v", status)
+		t.Fatalf("test preview must forbid mock: %+v", status)
 	}
 	code, body := doJSON(t, http.MethodGet, server.URL+"/v1/auth/google/start", "", false, nil)
 	if code != http.StatusServiceUnavailable {
-		t.Fatalf("grok start: %d %+v", code, body)
+		t.Fatalf("test preview start: %d %+v", code, body)
 	}
 }
 

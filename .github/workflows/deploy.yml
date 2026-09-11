@@ -1,6 +1,6 @@
 # 只有合入 release/v0.1.0（push 到该分支）且 CI 全绿，才会更新 https://test.tokpath.com。
 # PR、cursor/**、main、手动 Run workflow 都不会部署。
-# Atlas 编排本流水线；concurrency 组 deploy-token，不会与 deploy-grok 互相取消。
+# Atlas 编排本流水线；concurrency 组 deploy-token。
 # 需要仓库 Secret：ALIYUN_HOST（SSH 主机，Settings → Secrets and variables → Actions → Secrets）。
 # 需要仓库 Secret：TOKEN_DEPLOY_SSH_KEY。
 # 不要把主机写成字面 IP；也不要用 vars.ALIYUN_HOST。

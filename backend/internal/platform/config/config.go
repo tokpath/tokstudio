@@ -186,7 +186,7 @@ func (c *Config) GoogleTriad() bool {
 		strings.TrimSpace(c.GoogleRedirect) != ""
 }
 
-// GoogleMockAllowed 仅在显式打开且不在 production / grok / test 预览时允许 mock。
+// GoogleMockAllowed 仅在显式打开且不在 production / test 预览时允许 mock。
 // 默认禁止；缺三件套时不得静默 mock 成功。
 func (c *Config) GoogleMockAllowed() bool {
 	if c == nil || !c.GoogleAllowMock {
@@ -196,7 +196,7 @@ func (c *Config) GoogleMockAllowed() bool {
 		return false
 	}
 	host := strings.ToLower(c.PublicBaseURL + " " + c.WebOrigin)
-	if strings.Contains(host, "grok.tokpath.com") || strings.Contains(host, "test.tokpath.com") {
+	if strings.Contains(host, "test.tokpath.com") {
 		return false
 	}
 	return true

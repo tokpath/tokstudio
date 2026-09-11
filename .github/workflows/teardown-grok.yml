@@ -1,0 +1,68 @@
+# 一次性 / 可重复拆除 https://grok.tokpath.com 预览栈。
+# 不触碰 release → https://test.tokpath.com。
+# 需要仓库 Secret：ALIYUN_HOST、TOKEN_DEPLOY_SSH_KEY。
+name: teardown-grok
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/remove-grok-tokpath-27f5]
+
+concurrency:
+  group: teardown-grok
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require ALIYUN_HOST secret
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+        run: |
+          if [ -z "$ALIYUN_HOST" ]; then
+            echo "Set repository Secret ALIYUN_HOST before teardown." >&2
+            exit 1
+          fi
+      - name: SSH to host and tear down grok preview
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: root
+          key: ${{ secrets.TOKEN_DEPLOY_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            BRANCH='${{ github.ref_name }}'
+            GROK_ROOT=/root/workspace/tokstudio-grok
+            TEST_ROOT=/root/workspace/tokstudio
+            if [ "$GROK_ROOT" = "$TEST_ROOT" ]; then
+              echo "refusing: grok and test checkout paths collide" >&2
+              exit 1
+            fi
+            WORK=$(mktemp -d)
+            cleanup() { rm -rf "$WORK"; }
+            trap cleanup EXIT
+            # 从触发分支取 teardown 脚本，避免宿主机检出尚未合入。
+            git clone --depth 1 --branch "$BRANCH" git@github.com:tokpath/tokstudio.git "$WORK/tokstudio"
+            bash "$WORK/tokstudio/scripts/teardown_grok.sh"
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -H 'Host: grok.tokpath.com' http://127.0.0.1/healthz || true)"
+            echo "post-teardown Host:grok.tokpath.com /healthz => ${code:-curl-failed}"
+            if [[ "$code" == "200" ]]; then
+              echo "refusing: grok.tokpath.com still returns healthz 200" >&2
+              exit 1
+            fi
+            if curl -fsS --max-time 5 -H 'Host: test.tokpath.com' http://127.0.0.1/healthz >/dev/null; then
+              echo "test.tokpath.com healthz still ok"
+            else
+              echo "warning: test.tokpath.com healthz not ready (may be unrelated)" >&2
+            fi
+            if [[ -f /root/workspace/nova/Caddyfile ]] && grep -qF 'grok.tokpath.com' /root/workspace/nova/Caddyfile; then
+              echo "refusing: nova Caddyfile still mentions grok.tokpath.com" >&2
+              exit 1
+            fi
+            if [[ -d "$GROK_ROOT" ]]; then
+              echo "refusing: grok checkout still exists at $GROK_ROOT" >&2
+              exit 1
+            fi
+            echo "remote grok teardown verified"

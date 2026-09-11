@@ -59,19 +59,18 @@ make e2e-m0
 
 ## 预览部署（Atlas）
 
-Atlas 拥有编排：对应分支 CI 全绿后，GitHub Actions SSH 到宿主机跑幂等脚本。两条流水线互不取消、互不共用检出。
+Atlas 拥有编排：`release/v0.1.0` 分支 CI 全绿后，GitHub Actions SSH 到宿主机跑幂等脚本，更新 https://test.tokpath.com。
 
-| 栈 | 触发分支 | 宿主机检出 | compose 项目 | 公网 |
+| 栈 | 触发分支 | 宿主机检出 | compose | 公网 |
 | --- | --- | --- | --- | --- |
-| test | `release/v0.1.0` | `/root/workspace/tokstudio` | 目录默认名 | https://test.tokpath.com |
-| grok | `feature/grokbot` | `/root/workspace/tokstudio-grok` | `tokstudio-grok` | https://grok.tokpath.com |
+| test | `release/v0.1.0` | `/root/workspace/tokstudio` | 目录默认名 + `docker-compose.token.yml` | https://test.tokpath.com |
 
 仓库 **Secret**（Settings → Secrets and variables → Actions → Secrets，不是 Variables）：
 
 - `ALIYUN_HOST`：SSH 主机。工作流写成 `${{ secrets.ALIYUN_HOST }}`，不要写死 IP。
 - `TOKEN_DEPLOY_SSH_KEY`：SSH 私钥。
 
-`deploy-grok` 只追加 nova Caddy 的 `grok.tokpath.com`（源站 TLS 站点，供 Cloudflare Full 握手，避免 525），**不会删除或改写** `test.tokpath.com`。grok 栈的 `.env` 只写 `TOKENHUB_PUBLIC_BASE_URL` / `TOKENHUB_WEB_ORIGIN=https://grok.tokpath.com`。本地可用 `make assert-deploy` 做 dry-run / grep 门禁。
+`deploy-token` 只维护 nova Caddy 的 `test.tokpath.com`。本地可用 `make assert-deploy` 做 dry-run / grep 门禁。若宿主机仍残留旧的 grok 预览栈，可手动触发 Actions `teardown-grok` 或运行 `scripts/teardown_grok.sh`。
 
 对象存储（W1-S3）是另一条 PR，不混进本预览路径。
 

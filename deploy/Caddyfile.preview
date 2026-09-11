@@ -1,5 +1,5 @@
 # token 机器上 TokenHub 自己的 Caddy：只在容器内提供 HTTP。
-# 公网 HTTPS 由 nova/gashub Caddy 按主机名终止（test.tokpath.com 或 grok.tokpath.com），再反代进来。
+# 公网 HTTPS 由 nova/gashub Caddy 按主机名终止（test.tokpath.com），再反代进来。
 {
 	email {$TOKENHUB_ACME_EMAIL:ops@tokenhub.local}
 	auto_https off

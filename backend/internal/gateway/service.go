@@ -418,11 +418,9 @@ func attemptFactSource(adapter string, result AdapterResult, rt *Runtime) string
 	if src := normalizeFactSource(result.FactSource, false); src != "" {
 		return src
 	}
-	if liveGemini || adapter == "bifrost" || useUpstreamModel(adapter, rt) {
-		if result.HTTPStatus == 200 {
-			return FactSourceLive
-		}
-		return ""
+	liveUpstream := liveGemini || ((adapter == "bifrost" || useUpstreamModel(adapter, rt)) && rt != nil && rt.Client != nil)
+	if liveUpstream && result.HTTPStatus == 200 {
+		return FactSourceLive
 	}
 	return ""
 }
@@ -484,6 +482,9 @@ func (s *Service) adapterFor(name string) Adapter {
 	live := s.runtime != nil && !s.runtime.Sandbox && s.runtime.Client != nil
 	switch name {
 	case "test", "":
+		if a := s.adapters["test"]; a != nil {
+			return a
+		}
 		return UnavailableAdapter{AdapterName: "test"}
 	case "gemini":
 		if live {
@@ -494,10 +495,17 @@ func (s *Service) adapterFor(name string) Adapter {
 		if s.runtime != nil && s.runtime.Client != nil {
 			return s.adapters["bifrost"]
 		}
+		// 仅测试 harness 可在无 Client 时顶上；生产 BifrostAdapter 不得伪装成功。
+		if a, ok := s.adapters["bifrost"].(HarnessAdapter); ok {
+			return a
+		}
 		return UnavailableAdapter{AdapterName: name}
 	default:
 		if live {
 			return s.adapters["bifrost"]
+		}
+		if a := s.adapters["test"]; a != nil {
+			return a
 		}
 		return UnavailableAdapter{AdapterName: name}
 	}

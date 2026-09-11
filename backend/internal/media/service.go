@@ -174,6 +174,7 @@ type Service struct {
 	store   ObjectStore
 	ark     RemoteAdapter
 	or      RemoteAdapter
+	harness *HarnessAdapter
 }
 
 func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store ObjectStore, arkURL, arkKey, orURL, orKey string) *Service {
@@ -192,7 +193,12 @@ func Migrations() (string, fs.FS) {
 	return "media", sub
 }
 
-func (s *Service) TestCreates() int32 { return 0 }
+func (s *Service) TestCreates() int32 {
+	if s == nil || s.harness == nil {
+		return 0
+	}
+	return s.harness.Creates()
+}
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) {
 	if in.Kind == "" {
@@ -522,7 +528,12 @@ func (s *Service) Tick(ctx context.Context) {
 	_, _ = s.Cleanup(ctx)
 }
 
-func (s *Service) CompleteTestJob(string, []byte) {}
+func (s *Service) CompleteTestJob(upstreamID string, body []byte) {
+	if s == nil || s.harness == nil {
+		return
+	}
+	s.harness.Complete(upstreamID, body)
+}
 
 func (s *Service) PollUpstream(ctx context.Context) {
 	var jobs []jobRow
@@ -674,6 +685,9 @@ func (s *Service) adapterFor(name string) Adapter {
 			return s.or
 		}
 	}
+	if s.harness != nil {
+		return s.harness
+	}
 	return UnavailableAdapter{AdapterName: firstNonEmpty(name, "test")}
 }
 
@@ -683,6 +697,9 @@ func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
 		if err == nil {
 			return s.adapterFor(p.Adapter)
 		}
+	}
+	if s.harness != nil {
+		return s.harness
 	}
 	return UnavailableAdapter{AdapterName: "test"}
 }

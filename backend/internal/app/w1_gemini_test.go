@@ -25,7 +25,8 @@ func TestW1GeminiWithoutKeyIsUnavailable(t *testing.T) {
 		t.Skip("this contract is the no-Key path; live Key is gated separately")
 	}
 
-	code, body := doJSON(t, http.MethodPost, fx.server.URL+"/v1/chat/completions", fx.apiKey, true, map[string]any{
+	// 只钉住种子 gemini：共享库上可能残留测试挂上的 active backup，否则会先 503 再回落到 harness echo。
+	code, body := doJSON(t, http.MethodPost, fx.server.URL+"/v1/chat/completions?provider.only="+catalog.GeminiProvider, fx.apiKey, true, map[string]any{
 		"model": catalog.GeminiModelID, "messages": []map[string]string{{"role": "user", "content": "w1-gemini-echo"}},
 	})
 	if code != http.StatusServiceUnavailable && code != http.StatusBadGateway && code != http.StatusOK {
@@ -61,6 +62,10 @@ func TestW1GeminiWithoutKeyIsUnavailable(t *testing.T) {
 
 func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 	fx := newWMeterEnv(t)
+	// 确保种子 gemini 仍在路由候选里（共享库上一次 503 熔断后会被 ResolveRoute 跳过）。
+	if err := fx.app.Ops.ResetCircuit(fx.ctx, "prd_gemini"); err != nil {
+		t.Fatal(err)
+	}
 
 	models := getAuthJSON(t, fx.server.URL+"/v1/models", fx.apiKey)
 	found := false
@@ -95,8 +100,11 @@ func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 	if fbID == "" {
 		t.Fatalf("fallback chat missing request_id: %+v", fb)
 	}
-	if content, ok := firstContentOf(fb); ok && strings.Contains(content, "echo:") {
-		t.Fatalf("catalog backup must not sandbox-echo: %+v", fb)
+	if content, ok := firstContentOf(fb); !ok || !strings.Contains(content, "echo:") {
+		t.Fatalf("catalog backup harness should echo after gemini fail: %+v", fb)
+	}
+	if fb["provider"] == catalog.GeminiProvider {
+		t.Fatalf("429 must leave gemini via catalog fallback: %+v", fb)
 	}
 	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+fbID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)

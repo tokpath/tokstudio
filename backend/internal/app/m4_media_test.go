@@ -23,9 +23,6 @@ func TestM4MediaJobs(t *testing.T) {
 	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
 		t.Skip("integration test requires postgres and redis")
 	}
-	if strings.TrimSpace(os.Getenv("TOKENHUB_ARK_BASE_URL")) == "" || strings.TrimSpace(os.Getenv("TOKENHUB_ARK_API_KEY")) == "" {
-		t.Skip("media sandbox TestAdapter removed; live Ark required (TOKENHUB_ARK_BASE_URL + TOKENHUB_ARK_API_KEY)")
-	}
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)
@@ -251,9 +248,6 @@ func TestM4PollAndCustomerCallback(t *testing.T) {
 	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
 		t.Skip("integration test requires postgres and redis")
 	}
-	if strings.TrimSpace(os.Getenv("TOKENHUB_ARK_BASE_URL")) == "" || strings.TrimSpace(os.Getenv("TOKENHUB_ARK_API_KEY")) == "" {
-		t.Skip("media sandbox TestAdapter removed; live Ark required (TOKENHUB_ARK_BASE_URL + TOKENHUB_ARK_API_KEY)")
-	}
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)
@@ -265,6 +259,7 @@ func TestM4PollAndCustomerCallback(t *testing.T) {
 	cfg.ArkAPIKey = ""
 	cfg.OpenRouterBaseURL = ""
 	application := mustApp(t, cfg)
+	requireObjectStore(t, application)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 

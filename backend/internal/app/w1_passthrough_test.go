@@ -31,8 +31,8 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 		t.Fatalf("chat missing request_id: %+v", chat)
 	}
 	content, _ := firstContentOf(chat)
-	if !strings.Contains(content, "bifrost:w1-pass") {
-		t.Fatalf("sandbox bifrost reply: %+v", chat)
+	if !strings.Contains(content, "echo:w1-pass") {
+		t.Fatalf("test harness bifrost reply should echo: %+v", chat)
 	}
 
 	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
@@ -50,11 +50,11 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 	if atm["upstream_model_id"] != "echo-upstream" {
 		t.Fatalf("attempt upstream model: %+v", atm)
 	}
-	if atm["fact_source"] != gateway.FactSourceSandbox {
-		t.Fatalf("CI sandbox must label echo, not live: %+v", atm)
+	if atm["fact_source"] == gateway.FactSourceSandbox {
+		t.Fatalf("harness must not invent sandbox fact_source: %+v", atm)
 	}
 	if atm["fact_source"] == gateway.FactSourceLive {
-		t.Fatal("sandbox must not impersonate live upstream")
+		t.Fatal("harness without live Client must not label live")
 	}
 	meta, _ := atm["metadata"].(map[string]any)
 	if meta["request_id"] != requestID || meta["attempt_id"] != atm["id"] {
@@ -74,8 +74,8 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 	if usages[0].AttemptID != atm["id"] || usages[0].ProviderID != prdID || usages[0].UpstreamModelID != "echo-upstream" {
 		t.Fatalf("usage must keep TokenHub attempt facts: %+v", usages[0])
 	}
-	if usages[0].FactSource != billing.FactSourceSandbox {
-		t.Fatalf("usage fact_source: %+v", usages[0])
+	if usages[0].FactSource == billing.FactSourceSandbox || usages[0].FactSource == billing.FactSourceLive {
+		t.Fatalf("harness usage must not invent sandbox/live fact_source: %+v", usages[0])
 	}
 
 	margin := getAuthJSON(t, fx.server.URL+"/admin/margin?request_id="+requestID, "wmeter2_admin")

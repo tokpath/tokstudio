@@ -81,6 +81,15 @@ type GeminiAdapter struct {
 func (GeminiAdapter) Name() string { return "gemini" }
 
 func (a GeminiAdapter) Chat(ctx context.Context, providerSlug, behavior string, req ChatRequest) (AdapterResult, error) {
+	// 测试 ForceFail / TestBehavior：无 live 时也要能返回 429/5xx，才能跑 catalog fallback 契约。
+	switch behavior {
+	case "429":
+		return AdapterResult{HTTPStatus: 429, ErrorClass: "rate_limited"}, nil
+	case "500":
+		return AdapterResult{HTTPStatus: 500, ErrorClass: "upstream_error"}, nil
+	case "timeout":
+		return AdapterResult{HTTPStatus: 408, ErrorClass: "timeout"}, context.DeadlineExceeded
+	}
 	if !GeminiLiveEnabled(a.Runtime) && !(a.Runtime != nil && !a.Runtime.Sandbox && a.Runtime.Client != nil) {
 		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("gemini live bifrost unavailable")
 	}

@@ -215,11 +215,21 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatal("runbooks missing")
 	}
 
-	gemini := postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+	gemini := mustStatusBody(t, http.MethodPost, server.URL+"/v1/chat/completions", key, map[string]any{
 		"model": catalog.GeminiModelID, "messages": []map[string]string{{"role": "user", "content": "hi-gemini"}},
 	})
-	if gemini["provider"] != catalog.GeminiProvider {
-		t.Fatalf("gemini sandbox: %+v", gemini)
+	if strings.TrimSpace(os.Getenv("TOKENHUB_GEMINI_API_KEY")) == "" {
+		if gemini.status != http.StatusServiceUnavailable && gemini.status != http.StatusBadGateway {
+			// chat 可能以 200 + error 或 503 返回；禁止 sandbox echo 成功
+			if content, ok := firstContentOf(gemini.body); ok && strings.Contains(content, "echo:") {
+				t.Fatalf("gemini without key must not harness/sandbox-echo: %+v", gemini.body)
+			}
+			if gemini.status == http.StatusOK && gemini.body["provider"] == catalog.GeminiProvider {
+				t.Fatalf("gemini without key must not succeed via echo: %+v", gemini.body)
+			}
+		}
+	} else if gemini.body["provider"] != catalog.GeminiProvider {
+		t.Fatalf("live gemini: %+v", gemini.body)
 	}
 
 	if code := postStatus(t, server.URL+"/admin/providers", "m7_admin", map[string]any{"slug": "ops-echo", "name": "Ops Echo"}); code != http.StatusConflict {
@@ -769,8 +779,8 @@ func TestM7OpsHardening(t *testing.T) {
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "sidecar"}},
 	})
 	content, _ := firstContentOf(viaBifrost)
-	if !strings.Contains(content, "bifrost:sidecar") {
-		t.Fatalf("bifrost embed sandbox reply: %+v", viaBifrost)
+	if !strings.Contains(content, "echo:sidecar") {
+		t.Fatalf("test harness bifrost reply should echo: %+v", viaBifrost)
 	}
 
 	if application.Media.StoreStatus(context.Background()).OK {

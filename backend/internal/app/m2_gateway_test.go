@@ -291,6 +291,9 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 		t.Fatal(err)
 	}
 	application := app.New(cfg, gdb, rdb, logx.New("error", os.Stdout))
+	// 测试专用：注入确定性上游，覆盖 CI 无 Provider Key 的场景。生产 app.New 不挂 harness。
+	application.Gateway.InstallTestHarness()
+	application.Media.InstallTestHarness()
 	if err := application.Migrate(); err != nil {
 		t.Fatal(err)
 	}
@@ -298,8 +301,37 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	if err := application.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}
+	// 共享 Postgres/Redis 上一次失败会把种子 Provider 熔断成 unavailable，
+	// ResolveRoute 会直接跳过，破坏 fallback/无 Key 契约。每个 mustApp 重置一次。
+	resetSeededProviderHealth(t, application)
 	t.Cleanup(application.Close)
 	return application
+}
+
+func resetSeededProviderHealth(t *testing.T, application *app.App) {
+	t.Helper()
+	if application == nil {
+		return
+	}
+	ctx := context.Background()
+	for _, providerID := range []string{
+		"prd_echo_primary", "prd_echo_backup", "prd_gemini", "prd_ark", "prd_or",
+	} {
+		if application.Ops != nil {
+			_ = application.Ops.ResetCircuit(ctx, providerID)
+			continue
+		}
+		_ = application.Catalog.MarkHealth(ctx, providerID, "available")
+	}
+	// 共享库上一次用例挂上的 gemini backup 若仍为 active，无 Key / fallback 契约会被污染。
+	if application.DB != nil {
+		_ = application.DB.WithContext(ctx).Exec(`
+			UPDATE catalog_providers SET status = 'maintenance'
+			WHERE id IN (
+				SELECT provider_id FROM catalog_route_candidates WHERE route_group_id = 'rg_gemini'
+			) AND id <> 'prd_gemini' AND status = 'active'
+		`).Error
+	}
 }
 
 func postJSONRaw(t *testing.T, url, token string, payload map[string]any) map[string]any {

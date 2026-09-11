@@ -259,6 +259,7 @@ func TestM4PollAndCustomerCallback(t *testing.T) {
 	cfg.ArkAPIKey = ""
 	cfg.OpenRouterBaseURL = ""
 	application := mustApp(t, cfg)
+	requireObjectStore(t, application)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 

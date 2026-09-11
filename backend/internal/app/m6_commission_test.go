@@ -399,7 +399,8 @@ func TestD82QuotaRatio(t *testing.T) {
 	}
 }
 
-// postEchoUsage 用 content 沙箱把批发价抬过间接档整数除法门槛（默认 500 BPS）。
+// postEchoUsage 通过加长 prompt 让测试 harness 报出足够大的 usage。
+// 默认 echo 批发价约 1 micro/token，间接档 500 BPS 需要 wholesale>=20 才能生成 indirect 分账。
 func postEchoUsage(t *testing.T, url, token, content string) map[string]any {
 	t.Helper()
 	payload := map[string]any{
@@ -409,7 +410,6 @@ func postEchoUsage(t *testing.T, url, token, content string) map[string]any {
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Tokenhub-Sandbox-Mode", "content")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

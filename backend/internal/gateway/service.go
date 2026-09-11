@@ -129,7 +129,7 @@ func New(db *gorm.DB, cat *catalog.Service, booker Booker, rt *Runtime, encKey s
 		runtime: rt,
 		encKey:  encKey,
 		adapters: map[string]Adapter{
-			"test":    TestAdapter{},
+			"test":    UnavailableAdapter{AdapterName: "test"},
 			"gemini":  GeminiAdapter{Runtime: rt},
 			"bifrost": BifrostAdapter{Runtime: rt},
 		},
@@ -343,11 +343,11 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			"status": "succeeded", "ended_at": ended, "final_attempt_id": attempt.ID,
 		})
 		usage := result.Body.Usage
-		mode := NormalizeSandboxMode(in.SandboxMode, in.OmitUsage)
+		mode := NormalizeUsageMode(in.SandboxMode, in.OmitUsage)
 		usage = resolveAttemptUsage(usageAdapterName(cand.Adapter, s.runtime), mode, in.Chat, completionText(result.Body), usage)
 		result.Body.Usage = usage
 		out.Response.Usage = usage
-		missing := mode == SandboxOmit || len(usage) == 0
+		missing := mode == UsageOmit || len(usage) == 0
 		factSource := attemptFactSource(cand.Adapter, result, s.runtime)
 		applyAttemptFacts(&attempt, usage, factSource, passthroughMeta(in, attemptID, model.ID, result, factSource))
 		_ = s.db.WithContext(ctx).Model(&attemptRow{}).Where("id = ?", attempt.ID).Updates(map[string]any{
@@ -415,18 +415,12 @@ func geminiGoesLive(rt *Runtime) bool {
 
 func attemptFactSource(adapter string, result AdapterResult, rt *Runtime) string {
 	liveGemini := adapter == "gemini" && geminiGoesLive(rt)
-	sandboxForce := rt != nil && rt.Sandbox && (adapter == "bifrost" || adapter == "gemini")
-	if liveGemini {
-		sandboxForce = false
-	}
-	if src := normalizeFactSource(result.FactSource, sandboxForce); src != "" {
+	if src := normalizeFactSource(result.FactSource, false); src != "" {
 		return src
 	}
-	if adapter == "test" || (adapter == "gemini" && !liveGemini) {
-		return FactSourceSandbox
-	}
-	if rt != nil && rt.Sandbox && adapter == "bifrost" {
-		return FactSourceSandbox
+	liveUpstream := liveGemini || ((adapter == "bifrost" || useUpstreamModel(adapter, rt)) && rt != nil && rt.Client != nil)
+	if liveUpstream && result.HTTPStatus == 200 {
+		return FactSourceLive
 	}
 	return ""
 }
@@ -488,22 +482,32 @@ func (s *Service) adapterFor(name string) Adapter {
 	live := s.runtime != nil && !s.runtime.Sandbox && s.runtime.Client != nil
 	switch name {
 	case "test", "":
-		return s.adapters["test"]
+		if a := s.adapters["test"]; a != nil {
+			return a
+		}
+		return UnavailableAdapter{AdapterName: "test"}
 	case "gemini":
 		if live {
 			return s.adapters["bifrost"]
 		}
 		return GeminiAdapter{Runtime: s.runtime}
 	case "bifrost", "openai", "anthropic", "openrouter", "google":
-		if s.runtime != nil && s.runtime.Client != nil && (live || name == "bifrost") {
+		if s.runtime != nil && s.runtime.Client != nil {
 			return s.adapters["bifrost"]
 		}
-		return s.adapters["test"]
+		// 仅测试 harness 可在无 Client 时顶上；生产 BifrostAdapter 不得伪装成功。
+		if a, ok := s.adapters["bifrost"].(HarnessAdapter); ok {
+			return a
+		}
+		return UnavailableAdapter{AdapterName: name}
 	default:
 		if live {
 			return s.adapters["bifrost"]
 		}
-		return s.adapters["test"]
+		if a := s.adapters["test"]; a != nil {
+			return a
+		}
+		return UnavailableAdapter{AdapterName: name}
 	}
 }
 

@@ -172,17 +172,16 @@ type Service struct {
 	billing *billing.Service
 	outbox  *outbox.Service
 	store   ObjectStore
-	test    *TestAdapter
 	ark     RemoteAdapter
 	or      RemoteAdapter
+	harness *HarnessAdapter
 }
 
 func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store ObjectStore, arkURL, arkKey, orURL, orKey string) *Service {
 	return &Service{
 		db: db, catalog: cat, billing: bill, outbox: pub, store: store,
-		test: NewTestAdapter(),
-		ark:  RemoteAdapter{NameValue: "ark", BaseURL: arkURL, APIKey: arkKey},
-		or:   RemoteAdapter{NameValue: "openrouter", BaseURL: orURL, APIKey: orKey},
+		ark: RemoteAdapter{NameValue: "ark", BaseURL: arkURL, APIKey: arkKey},
+		or:  RemoteAdapter{NameValue: "openrouter", BaseURL: orURL, APIKey: orKey},
 	}
 }
 
@@ -194,7 +193,12 @@ func Migrations() (string, fs.FS) {
 	return "media", sub
 }
 
-func (s *Service) TestCreates() int32 { return s.test.Creates() }
+func (s *Service) TestCreates() int32 {
+	if s == nil || s.harness == nil {
+		return 0
+	}
+	return s.harness.Creates()
+}
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) {
 	if in.Kind == "" {
@@ -525,7 +529,10 @@ func (s *Service) Tick(ctx context.Context) {
 }
 
 func (s *Service) CompleteTestJob(upstreamID string, body []byte) {
-	s.test.Complete(upstreamID, body)
+	if s == nil || s.harness == nil {
+		return
+	}
+	s.harness.Complete(upstreamID, body)
 }
 
 func (s *Service) PollUpstream(ctx context.Context) {
@@ -678,7 +685,10 @@ func (s *Service) adapterFor(name string) Adapter {
 			return s.or
 		}
 	}
-	return s.test
+	if s.harness != nil {
+		return s.harness
+	}
+	return UnavailableAdapter{AdapterName: firstNonEmpty(name, "test")}
 }
 
 func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
@@ -688,7 +698,10 @@ func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
 			return s.adapterFor(p.Adapter)
 		}
 	}
-	return s.test
+	if s.harness != nil {
+		return s.harness
+	}
+	return UnavailableAdapter{AdapterName: "test"}
 }
 
 func (s *Service) view(_ context.Context, job jobRow) *JobView {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/schemas"
@@ -68,16 +67,14 @@ func contextString(ctx context.Context, key ctxKey) string {
 	return v
 }
 
-// Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面。
-// 沙箱模式用 plugin 短路回声，不打真实上游；live 模式才用 Account 里的 Key。
+// Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面（仅 live，禁止 sandbox echo plugin）。
 type Runtime struct {
 	Client       *bifrost.Bifrost
-	Sandbox      bool
+	Sandbox      bool // 恒为 false；保留字段避免调用方大面积改动。
 	GeminiAPIKey string
 }
 
-// GeminiLiveEnabled 只有同时关闭沙箱且配置了非空 Gemini Key 才打真实上游。
-// 缺任一条件都走回声，禁止假装 live Gemini。
+// GeminiLiveEnabled 仅在配置了非空 Gemini Key 且 Runtime 非沙箱时打真实上游。
 func GeminiLiveEnabled(rt *Runtime) bool {
 	return rt != nil && !rt.Sandbox && strings.TrimSpace(rt.GeminiAPIKey) != ""
 }
@@ -90,8 +87,9 @@ func (rt *Runtime) Close() {
 }
 
 // Settings 是进程内 Init Bifrost 所需的配置。
+// Sandbox 字段已废弃：即使传入 true 也会被忽略，始终走 live，缺 Key 则 Init 失败。
 type Settings struct {
-	Sandbox          bool
+	Sandbox          bool // deprecated: ignored
 	LogLevel         string
 	OpenAIAPIKey     string
 	AnthropicAPIKey  string
@@ -107,31 +105,27 @@ type AccountKeys interface {
 	HasPlainKeys(ctx context.Context, encKey, providerKind string) bool
 }
 
-// Start 在当前进程初始化 Bifrost SDK。失败时调用方应让 Adapter 返回 provider_unavailable。
+// Start 在当前进程初始化 Bifrost SDK（仅 live）。失败时调用方应让 Adapter 返回 provider_unavailable。
 func Start(ctx context.Context, in Settings) (*Runtime, error) {
+	in.Sandbox = false
 	account := &envAccount{settings: in}
-	if !in.Sandbox {
-		providers, err := account.GetConfiguredProviders()
-		if err != nil {
-			return nil, err
-		}
-		if len(providers) == 0 {
-			return nil, fmt.Errorf("bifrost live mode requires at least one provider api key")
-		}
+	providers, err := account.GetConfiguredProviders()
+	if err != nil {
+		return nil, err
+	}
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("bifrost live mode requires at least one provider api key")
 	}
 	cfg := schemas.BifrostConfig{
 		Account:         account,
 		Logger:          newBifrostLogger(in.LogLevel),
 		InitialPoolSize: 0,
 	}
-	if in.Sandbox {
-		cfg.LLMPlugins = []schemas.LLMPlugin{sandboxPlugin{}}
-	}
 	client, err := bifrost.Init(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{Client: client, Sandbox: in.Sandbox, GeminiAPIKey: in.GeminiAPIKey}, nil
+	return &Runtime{Client: client, Sandbox: false, GeminiAPIKey: in.GeminiAPIKey}, nil
 }
 
 // BifrostAdapter 在进程内调用 Bifrost SDK。client 为空时返回 503。
@@ -149,21 +143,21 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if len(messages) == 0 {
 		messages = []schemas.ChatMessage{{
 			Role:    schemas.ChatMessageRoleUser,
-			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("echo")},
+			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("")},
 		}}
 	}
 	bctx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 	bctx.SetValue(bifrostProviderSlugKey, providerSlug)
 	resp, berr := a.Runtime.Client.ChatCompletionRequest(bctx, &schemas.BifrostChatRequest{
 		Provider: resolveBifrostProvider(providerSlug),
-		Model:    firstNonEmpty(req.Model, "tokenhub/echo-1"),
+		Model:    firstNonEmpty(req.Model, "gemini-2.0-flash"),
 		Input:    messages,
 		Params:   toBifrostParams(ctx, req, providerSlug),
 	})
 	if berr != nil {
 		return mapBifrostError(berr), fmt.Errorf("%s", berr.GetErrorString())
 	}
-	out := fromBifrostChat(resp, a.Runtime.Sandbox)
+	out := fromBifrostChat(resp)
 	if req.Stream && len(out.Body.Choices) > 0 {
 		text := out.Body.Choices[0].Message.Content
 		out.Stream = []string{
@@ -178,9 +172,6 @@ type envAccount struct {
 }
 
 func (a *envAccount) GetConfiguredProviders() ([]schemas.ModelProvider, error) {
-	if a.settings.Sandbox {
-		return []schemas.ModelProvider{schemas.OpenAI}, nil
-	}
 	var out []schemas.ModelProvider
 	for _, item := range []struct {
 		key   string
@@ -212,9 +203,6 @@ func (a *envAccount) GetKeysForProvider(ctx context.Context, provider schemas.Mo
 	switch provider {
 	case schemas.OpenAI:
 		envKey = a.settings.OpenAIAPIKey
-		if a.settings.Sandbox && strings.TrimSpace(envKey) == "" {
-			envKey = "sk-tokenhub-sandbox"
-		}
 	case schemas.Anthropic:
 		envKey = a.settings.AnthropicAPIKey
 	case schemas.Gemini:
@@ -291,88 +279,6 @@ func (a *envAccount) GetConfigForProvider(provider schemas.ModelProvider) (*sche
 	}
 }
 
-// sandboxPlugin 在 PreLLMHook 短路，保持本地/CI 不依赖真实 Provider Key。
-type sandboxPlugin struct{}
-
-func (sandboxPlugin) GetName() string { return "tokenhub-sandbox" }
-
-func (sandboxPlugin) Cleanup() error { return nil }
-
-func (sandboxPlugin) PreRequestHook(*schemas.BifrostContext, *schemas.BifrostRequest) error {
-	return nil
-}
-
-func (sandboxPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error) {
-	slug, _ := ctx.Value(bifrostProviderSlugKey).(string)
-	text := "bifrost:" + lastChatText(req)
-	if slug != "" {
-		text += " via " + slug
-	}
-	model := "tokenhub/echo-1"
-	if req != nil && req.ChatRequest != nil && req.ChatRequest.Model != "" {
-		model = req.ChatRequest.Model
-	}
-	id := fmt.Sprintf("bifrost_%d", time.Now().UnixNano())
-	headers := sandboxEchoHeaders(req)
-	return req, &schemas.LLMPluginShortCircuit{
-		Response: &schemas.BifrostResponse{
-			ChatResponse: &schemas.BifrostChatResponse{
-				ID:     id,
-				Object: "chat.completion",
-				Model:  model,
-				Usage: &schemas.BifrostLLMUsage{
-					PromptTokens:     8,
-					CompletionTokens: 4,
-					TotalTokens:      12,
-				},
-				ExtraFields: schemas.BifrostResponseExtraFields{
-					ProviderResponseHeaders: headers,
-				},
-				Choices: []schemas.BifrostResponseChoice{{
-					Index: 0,
-					ChatNonStreamResponseChoice: &schemas.ChatNonStreamResponseChoice{
-						Message: &schemas.ChatMessage{
-							Role: schemas.ChatMessageRoleAssistant,
-							Content: &schemas.ChatMessageContent{
-								ContentStr: schemas.Ptr(text),
-							},
-						},
-					},
-				}},
-			},
-		},
-	}, nil
-}
-
-func sandboxEchoHeaders(req *schemas.BifrostRequest) map[string]string {
-	headers := map[string]string{"x-tokenhub-fact_source": FactSourceSandbox}
-	if req == nil || req.ChatRequest == nil || req.ChatRequest.Params == nil || req.ChatRequest.Params.Metadata == nil {
-		return headers
-	}
-	for key, value := range *req.ChatRequest.Params.Metadata {
-		if s := stringFromAny(value); s != "" {
-			headers["x-tokenhub-"+key] = s
-		}
-	}
-	headers["x-tokenhub-fact_source"] = FactSourceSandbox
-	return headers
-}
-
-func (sandboxPlugin) PostLLMHook(_ *schemas.BifrostContext, resp *schemas.BifrostResponse, bifrostErr *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
-	return resp, bifrostErr, nil
-}
-
-func lastChatText(req *schemas.BifrostRequest) string {
-	if req == nil || req.ChatRequest == nil || len(req.ChatRequest.Input) == 0 {
-		return "echo"
-	}
-	last := req.ChatRequest.Input[len(req.ChatRequest.Input)-1]
-	if last.Content != nil && last.Content.ContentStr != nil {
-		return *last.Content.ContentStr
-	}
-	return "echo"
-}
-
 func toBifrostMessages(in []ChatMessage) []schemas.ChatMessage {
 	out := make([]schemas.ChatMessage, 0, len(in))
 	for _, msg := range in {
@@ -445,10 +351,10 @@ func toBifrostParams(ctx context.Context, req ChatRequest, providerSlug string) 
 	return params
 }
 
-func fromBifrostChat(resp *schemas.BifrostChatResponse, sandbox bool) AdapterResult {
+func fromBifrostChat(resp *schemas.BifrostChatResponse) AdapterResult {
 	out := ChatResponse{Object: "chat.completion"}
 	if resp == nil {
-		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error", Body: out, FactSource: normalizeFactSource("", sandbox)}
+		return AdapterResult{HTTPStatus: 502, ErrorClass: "upstream_error", Body: out}
 	}
 	out.ID = resp.ID
 	out.Model = resp.Model
@@ -477,12 +383,9 @@ func fromBifrostChat(resp *schemas.BifrostChatResponse, sandbox bool) AdapterRes
 		}{Index: choice.Index, Message: msg})
 	}
 	echoed := echoedMetaFromExtra(resp.ExtraFields)
-	fact := normalizeFactSource(echoed["fact_source"], sandbox)
-	if fact == "" && sandbox {
-		fact = FactSourceSandbox
-	}
+	fact := normalizeFactSource(echoed["fact_source"], false)
 	// live 只在 Bifrost 回了真实路由事实时标记；空 Extra 不得冒充上游。
-	if fact == "" && !sandbox && (echoed["bifrost_provider"] != "" || echoed["upstream_model"] != "") {
+	if fact == "" && (echoed["bifrost_provider"] != "" || echoed["upstream_model"] != "") {
 		fact = FactSourceLive
 	}
 	return AdapterResult{

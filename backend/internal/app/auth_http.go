@@ -163,27 +163,23 @@ func (a *App) login(c *gin.Context) {
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) googleMode() (configured, mock, available bool) {
+func (a *App) googleMode() (configured, available bool) {
 	configured = a.Config.GoogleTriad()
-	mock = !configured && a.Config.GoogleMockAllowed()
-	available = configured || mock
-	return configured, mock, available
+	available = configured
+	return configured, available
 }
 
 func (a *App) resolveGoogleExchange() identity.GoogleExchanger {
 	if a.GoogleExchange != nil {
 		return a.GoogleExchange
 	}
-	configured, mock, _ := a.googleMode()
+	configured, _ := a.googleMode()
 	if configured {
 		return identity.NewGoogleExchange(identity.GoogleOAuthConfig{
 			ClientID:     a.Config.GoogleClientID,
 			ClientSecret: a.Config.GoogleClientSecret,
 			RedirectURL:  a.Config.GoogleRedirect,
 		})
-	}
-	if mock {
-		return identity.MockGoogleExchange
 	}
 	return nil
 }
@@ -204,17 +200,17 @@ func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
 }
 
 func (a *App) googleStatus(c *gin.Context) {
-	configured, mock, available := a.googleMode()
+	configured, available := a.googleMode()
 	httpx.OK(c, gin.H{
 		"available":  available,
 		"configured": configured,
-		"mock":       mock,
+		"mock":       false,
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 
 func (a *App) googleStart(c *gin.Context) {
-	configured, mock, available := a.googleMode()
+	configured, available := a.googleMode()
 	if !available {
 		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
 		return
@@ -233,10 +229,8 @@ func (a *App) googleStart(c *gin.Context) {
 		values.Set("scope", "openid email profile")
 		values.Set("state", state)
 		authURL = identity.GoogleAuthorizeURL + "?" + values.Encode()
-	} else if mock {
-		authURL = a.Config.PublicBaseURL + "/v1/auth/google/mock?state=" + url.QueryEscape(state)
 	}
-	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": mock, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": false, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) finishGoogleSession(c *gin.Context, state, code string) (*identity.Session, error) {

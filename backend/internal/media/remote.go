@@ -21,7 +21,7 @@ const (
 var remoteHTTP = &http.Client{Timeout: 45 * time.Second}
 
 // RemoteAdapter 对接火山方舟 contents/generations 与 OpenRouter /videos。
-// BaseURL 与 API Key 都齐才 Ready；否则 Create 仍走 TestAdapter。
+// BaseURL 与 API Key 都齐才 Ready；否则 Create 返回 provider unavailable。
 type RemoteAdapter struct {
 	NameValue string
 	BaseURL   string

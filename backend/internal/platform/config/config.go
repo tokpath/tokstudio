@@ -24,8 +24,6 @@ type Config struct {
 	GoogleClientID         string
 	GoogleClientSecret     string
 	GoogleRedirect         string
-	GoogleAllowMock        bool
-	BifrostSandbox         bool
 	OpenAIAPIKey           string
 	AnthropicAPIKey        string
 	GeminiAPIKey           string
@@ -92,8 +90,6 @@ func Load() (*Config, error) {
 		GoogleClientID:         v.GetString("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:     v.GetString("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirect:         v.GetString("GOOGLE_REDIRECT_URL"),
-		GoogleAllowMock:        v.GetBool("GOOGLE_ALLOW_MOCK"),
-		BifrostSandbox:         resolveBifrostSandbox(v),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
 		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
 		GeminiAPIKey:           v.GetString("GEMINI_API_KEY"),
@@ -186,30 +182,11 @@ func (c *Config) GoogleTriad() bool {
 		strings.TrimSpace(c.GoogleRedirect) != ""
 }
 
-// GoogleMockAllowed 仅在显式打开且不在 production / grok / test 预览时允许 mock。
-// 默认禁止；缺三件套时不得静默 mock 成功。
-func (c *Config) GoogleMockAllowed() bool {
-	if c == nil || !c.GoogleAllowMock {
-		return false
-	}
-	if c.IsProduction() {
-		return false
-	}
-	host := strings.ToLower(c.PublicBaseURL + " " + c.WebOrigin)
-	if strings.Contains(host, "grok.tokpath.com") || strings.Contains(host, "test.tokpath.com") {
-		return false
-	}
-	return true
+// GoogleConfigured 三件套齐全才走真实 Google OAuth；缺任一则不可用，禁止 mock。
+func (c *Config) GoogleConfigured() bool {
+	return c.GoogleTriad()
 }
 
-func resolveBifrostSandbox(v *viper.Viper) bool {
-	if v.IsSet("BIFROST_SANDBOX") {
-		return v.GetBool("BIFROST_SANDBOX")
-	}
-	return !strings.EqualFold(v.GetString("ENV"), "production")
-}
-
-// RedactedMap 返回可安全写入日志的配置摘要，绝不包含密钥原文。
 func (c *Config) RedactedMap() map[string]any {
 	return map[string]any{
 		"env":                  c.Env,
@@ -224,7 +201,6 @@ func (c *Config) RedactedMap() map[string]any {
 		"bootstrap_admin_set":  c.BootstrapAdmin != "",
 		"bootstrap_user_set":   c.BootstrapUser != "",
 		"encryption_key_set":   c.EncryptionKey != "",
-		"bifrost_sandbox":      c.BifrostSandbox,
 		"openai_key_set":       c.OpenAIAPIKey != "",
 		"gemini_key_set":       c.GeminiAPIKey != "",
 		"ark_url_set":          c.ArkBaseURL != "",
@@ -240,8 +216,6 @@ func (c *Config) RedactedMap() map[string]any {
 		"google_secret_set":    c.GoogleClientSecret != "",
 		"google_redirect_set":  c.GoogleRedirect != "",
 		"google_triad":         c.GoogleTriad(),
-		"google_allow_mock":    c.GoogleAllowMock,
-		"google_mock_allowed":  c.GoogleMockAllowed(),
 		"cloudflare_token_set": c.CloudflareAPIToken != "",
 		"cloudflare_zone_set":  c.CloudflareZoneID != "",
 		"cloudflare_cname_set": c.CloudflareCNAME != "",

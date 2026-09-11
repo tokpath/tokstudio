@@ -52,13 +52,11 @@ func passthroughFromContext(ctx context.Context) PassthroughMeta {
 	}
 }
 
-func normalizeFactSource(raw string, sandbox bool) string {
+func normalizeFactSource(raw string, _ bool) string {
 	v := strings.ToLower(strings.TrimSpace(raw))
-	if sandbox {
-		return FactSourceSandbox
-	}
 	switch v {
 	case FactSourceSandbox, "echo":
+		// 仍识别历史 sandbox/echo 标签，便于徽章诚实展示；生产路径不再主动写入。
 		return FactSourceSandbox
 	case FactSourceLive, "upstream":
 		return FactSourceLive
@@ -103,19 +101,13 @@ func stringFromAny(v any) string {
 }
 
 // resolveAttemptUsage 决定写入账本的 usage。
-// Bifrost 默认不套 ApplySandboxUsage 的 8/4/12 填空；缺 usage 保持空，由结算标 pending。
-func resolveAttemptUsage(adapter, mode string, chat ChatRequest, completion string, current map[string]int) map[string]int {
-	if mode == SandboxOmit {
+// 只透传上游 usage 或按 omit 清空；禁止按内容估算或固定 8/4/12 填空。
+func resolveAttemptUsage(_, mode string, _ ChatRequest, _ string, current map[string]int) map[string]int {
+	if NormalizeUsageMode(mode, false) == UsageOmit {
 		return map[string]int{}
 	}
-	if adapter == "bifrost" {
-		if mode == SandboxContent || mode == SandboxReasoning {
-			return ApplySandboxUsage(mode, chat, completion, current)
-		}
-		if current == nil {
-			return map[string]int{}
-		}
-		return current
+	if current == nil {
+		return map[string]int{}
 	}
-	return ApplySandboxUsage(mode, chat, completion, current)
+	return current
 }

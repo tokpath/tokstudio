@@ -3,7 +3,7 @@
 # - 宿主机 80/443 仍由 nova/gashub Caddy 占用；本栈 edge 只在内网听 HTTP
 # - 公网入口是 https://grok.tokpath.com，由 nova Caddy 终止 TLS 再反代到 tokstudio-grok-edge
 # - 禁止与 /root/workspace/tokstudio 的 test 栈共用检出或项目名
-# - Bifrost 继续继承基础 compose 的 TOKENHUB_BIFROST_SANDBOX=true，不要在此强制写入 GEMINI Key
+# - Bifrost 仅 live：本 overlay 不强制写入 GEMINI Key；缺 Key 时网关诚实 503，不再 sandbox echo
 name: tokstudio-grok
 
 services:
@@ -24,7 +24,7 @@ services:
     environment:
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://grok.tokpath.com}
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://grok.tokpath.com}
-      # grok 默认 Redirect URI；不要在此打开 ALLOW_MOCK。
+      # grok 默认 Redirect URI；已移除 ALLOW_MOCK。
       TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-https://grok.tokpath.com/login/oauth/google}
 
 networks:

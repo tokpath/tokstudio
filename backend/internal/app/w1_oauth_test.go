@@ -41,7 +41,6 @@ func newOAuthEnv(t *testing.T) (*app.App, *httptest.Server) {
 	cfg.GoogleClientID = ""
 	cfg.GoogleClientSecret = ""
 	cfg.GoogleRedirect = ""
-	cfg.GoogleAllowMock = false
 	cfg.BootstrapAdmin = "oauth_admin"
 	cfg.BootstrapUser = "oauth_user"
 	application := mustApp(t, cfg)
@@ -187,42 +186,16 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	}
 }
 
-func TestW1OAuthGrokPreviewForbidsMockEvenIfAllowFlag(t *testing.T) {
-	application, server := newOAuthEnv(t)
-	application.Config.GoogleAllowMock = true
-	application.Config.PublicBaseURL = "https://grok.tokpath.com"
-	application.Config.WebOrigin = "https://grok.tokpath.com"
+func TestW1OAuthMockPathRemoved(t *testing.T) {
+	_, server := newOAuthEnv(t)
 
 	status := getJSON(t, server.URL+"/v1/auth/google/status", "")
 	if status["available"] != false || status["mock"] != false {
-		t.Fatalf("grok must forbid mock: %+v", status)
+		t.Fatalf("without triad must stay unavailable, no mock: %+v", status)
 	}
 	code, body := doJSON(t, http.MethodGet, server.URL+"/v1/auth/google/start", "", false, nil)
 	if code != http.StatusServiceUnavailable {
-		t.Fatalf("grok start: %d %+v", code, body)
-	}
-}
-
-func TestW1OAuthAllowMockOnlyWhenExplicitAndLocal(t *testing.T) {
-	application, server := newOAuthEnv(t)
-	application.Config.GoogleAllowMock = true
-	application.Config.PublicBaseURL = "http://127.0.0.1:8080"
-	application.Config.WebOrigin = "http://127.0.0.1:3000"
-
-	status := getJSON(t, server.URL+"/v1/auth/google/status", "")
-	if status["available"] != true || status["mock"] != true || status["configured"] != false {
-		t.Fatalf("local ALLOW_MOCK: %+v", status)
-	}
-	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
-	if started["mock"] != true {
-		t.Fatalf("mock start: %+v", started)
-	}
-	email := "oauth-mock-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
-	finished := postBody(t, server.URL+"/v1/auth/google/callback", "", map[string]string{
-		"state": started["state"].(string), "code": "mock:" + email,
-	})
-	if channelOf(finished) != identity.OEMChannelID {
-		t.Fatalf("mock attribution: %+v", finished)
+		t.Fatalf("start without triad: %d %+v", code, body)
 	}
 }
 

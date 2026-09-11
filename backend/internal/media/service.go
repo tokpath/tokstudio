@@ -172,7 +172,6 @@ type Service struct {
 	billing *billing.Service
 	outbox  *outbox.Service
 	store   ObjectStore
-	test    *TestAdapter
 	ark     RemoteAdapter
 	or      RemoteAdapter
 }
@@ -180,9 +179,8 @@ type Service struct {
 func New(db *gorm.DB, cat *catalog.Service, bill *billing.Service, pub *outbox.Service, store ObjectStore, arkURL, arkKey, orURL, orKey string) *Service {
 	return &Service{
 		db: db, catalog: cat, billing: bill, outbox: pub, store: store,
-		test: NewTestAdapter(),
-		ark:  RemoteAdapter{NameValue: "ark", BaseURL: arkURL, APIKey: arkKey},
-		or:   RemoteAdapter{NameValue: "openrouter", BaseURL: orURL, APIKey: orKey},
+		ark: RemoteAdapter{NameValue: "ark", BaseURL: arkURL, APIKey: arkKey},
+		or:  RemoteAdapter{NameValue: "openrouter", BaseURL: orURL, APIKey: orKey},
 	}
 }
 
@@ -194,7 +192,7 @@ func Migrations() (string, fs.FS) {
 	return "media", sub
 }
 
-func (s *Service) TestCreates() int32 { return s.test.Creates() }
+func (s *Service) TestCreates() int32 { return 0 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) {
 	if in.Kind == "" {
@@ -524,9 +522,7 @@ func (s *Service) Tick(ctx context.Context) {
 	_, _ = s.Cleanup(ctx)
 }
 
-func (s *Service) CompleteTestJob(upstreamID string, body []byte) {
-	s.test.Complete(upstreamID, body)
-}
+func (s *Service) CompleteTestJob(string, []byte) {}
 
 func (s *Service) PollUpstream(ctx context.Context) {
 	var jobs []jobRow
@@ -678,7 +674,7 @@ func (s *Service) adapterFor(name string) Adapter {
 			return s.or
 		}
 	}
-	return s.test
+	return UnavailableAdapter{AdapterName: firstNonEmpty(name, "test")}
 }
 
 func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
@@ -688,7 +684,7 @@ func (s *Service) adapterForJob(ctx context.Context, job jobRow) Adapter {
 			return s.adapterFor(p.Adapter)
 		}
 	}
-	return s.test
+	return UnavailableAdapter{AdapterName: "test"}
 }
 
 func (s *Service) view(_ context.Context, job jobRow) *JobView {

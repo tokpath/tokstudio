@@ -47,8 +47,6 @@ function LoginForm() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [googleStatus, setGoogleStatus] = useState<GoogleAuthStatus | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleState, setGoogleState] = useState("");
-  const [googleEmail, setGoogleEmail] = useState("");
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "", promo: "" },
@@ -149,12 +147,6 @@ function LoginForm() {
         setGoogleLoading(false);
         return;
       }
-      if (body.mock) {
-        setGoogleState(body.state || "");
-        setGoogleEmail(form.getValues("email"));
-        setGoogleLoading(false);
-        return;
-      }
       if (body.auth_url) {
         window.location.href = body.auth_url;
         return;
@@ -165,27 +157,6 @@ function LoginForm() {
       setErrorBanner(t("googleUnavailable"));
       setGoogleLoading(false);
     }
-  }
-
-  async function googleFinish() {
-    const email = googleEmail.trim();
-    if (!googleState || !email.includes("@")) {
-      setErrorBanner(t("googleNeedEmail"));
-      return;
-    }
-    const response = await fetch(`${apiBase}/v1/auth/google/callback`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ state: googleState, code: `mock:${email}` }),
-    });
-    const body = await response.json();
-    if (response.ok) {
-      setErrorBanner("");
-      await goNext();
-      return;
-    }
-    showAuthFailure(body, t("googleFail"));
   }
 
   function githubStart() {
@@ -237,25 +208,6 @@ function LoginForm() {
             <p className="text-[13px] leading-relaxed text-ink-mute">{t("googleUnconfigured")}</p>
           ) : null}
         </div>
-        {googleState ? (
-          <div className="mt-4 flex flex-col gap-3 rounded-card border border-hairline bg-canvas p-4">
-            <label className="text-[13px] text-ink-secondary" htmlFor="google-email">
-              {t("googleEmail")}
-            </label>
-            <input
-              id="google-email"
-              className="h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
-              value={googleEmail}
-              onChange={(event) => setGoogleEmail(event.target.value)}
-              placeholder="you@gmail.com"
-              type="email"
-            />
-            <Button type="button" variant="outline" onClick={googleFinish}>
-              <GoogleMark />
-              {t("continueGoogle")}
-            </Button>
-          </div>
-        ) : null}
 
         <div className="my-7 flex items-center gap-3 text-[13px] text-ink-mute">
           <span className="h-px flex-1 bg-hairline" />

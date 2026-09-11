@@ -85,4 +85,4 @@ paths:
       summary: Disable admin TOTP; requires confirm and TOTP if already enabled
   /v1/chat/completions:
     post:
-      summary: Includes google/gemini-flash; Bifrost hits real Gemini only when sandbox=false and TOKENHUB_GEMINI_API_KEY is set, otherwise honest sandbox echo
+      summary: Includes google/gemini-flash; Bifrost hits real Gemini only when TOKENHUB_GEMINI_API_KEY is set, otherwise provider_unavailable (no sandbox echo)

@@ -22,19 +22,6 @@ func TestFinishGoogleNilExchangeIsUnavailable(t *testing.T) {
 	}
 }
 
-func TestMockGoogleExchangeStillWorksWhenCalled(t *testing.T) {
-	profile, err := MockGoogleExchange(context.Background(), "mock:user@example.test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if profile.Email != "user@example.test" || profile.Subject == "" {
-		t.Fatalf("mock profile: %+v", profile)
-	}
-	if _, err := MockGoogleExchange(context.Background(), "not-an-email"); !errors.Is(err, ErrInvalidCredentials) {
-		t.Fatalf("bad mock code: %v", err)
-	}
-}
-
 func TestNewGoogleExchangeUsesTokenAndProfile(t *testing.T) {
 	var sawCode, leaked bool
 	mux := http.NewServeMux()

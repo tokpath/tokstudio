@@ -21,21 +21,13 @@ type oauthStateRow struct {
 
 func (oauthStateRow) TableName() string { return "identity_oauth_states" }
 
-// GoogleProfile 是 Google 用户信息。生产路径由真实 token/profile 交换得到；测试注入假 exchanger。
+// GoogleProfile 是 Google 用户信息。生产路径由真实 token/profile 交换得到；测试可注入假 exchanger。
 type GoogleProfile struct {
 	Subject string
 	Email   string
 }
 
 type GoogleExchanger func(ctx context.Context, code string) (GoogleProfile, error)
-
-func MockGoogleExchange(_ context.Context, code string) (GoogleProfile, error) {
-	email := strings.TrimPrefix(code, "mock:")
-	if email == "" || !strings.Contains(email, "@") {
-		return GoogleProfile{}, ErrInvalidCredentials
-	}
-	return GoogleProfile{Subject: "google_" + crypto.HashToken(email)[:16], Email: normalizeEmail(email)}, nil
-}
 
 func (s *Service) StartGoogle(ctx context.Context, promotionCode string) (state string, err error) {
 	state, err = crypto.RandomToken("gstate_")

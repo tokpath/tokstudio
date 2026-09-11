@@ -11,7 +11,7 @@ paths:
       summary: Password login, sets HttpOnly session cookie
   /v1/auth/google/status:
     get:
-      summary: Whether Google OAuth triad is configured; mock only if ALLOW_MOCK and not grok/test/production
+      summary: Whether Google OAuth triad is configured; unavailable when incomplete (mock removed)
   /v1/auth/google/start:
     get:
       summary: Start Google OAuth, stash promotion code; real Google URL when triad is present

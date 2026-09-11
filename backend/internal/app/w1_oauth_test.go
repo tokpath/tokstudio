@@ -87,7 +87,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
 	application.Config.GoogleClientSecret = "not-a-real-secret"
-	application.Config.GoogleRedirect = "https://grok.tokpath.com/login/oauth/google"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
 
 	status := getJSON(t, server.URL+"/v1/auth/google/status", "")
 	if status["available"] != true || status["configured"] != true || status["mock"] != false {
@@ -110,7 +110,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 	if q.Get("client_id") != "id.apps.googleusercontent.com" {
 		t.Fatalf("client_id: %s", q.Get("client_id"))
 	}
-	if q.Get("redirect_uri") != "https://grok.tokpath.com/login/oauth/google" {
+	if q.Get("redirect_uri") != "https://test.tokpath.com/login/oauth/google" {
 		t.Fatalf("redirect_uri: %s", q.Get("redirect_uri"))
 	}
 	if q.Get("state") == "" || q.Get("response_type") != "code" {
@@ -125,7 +125,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
 	application.Config.GoogleClientSecret = "not-a-real-secret"
-	application.Config.GoogleRedirect = "https://grok.tokpath.com/login/oauth/google"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
 	email := "oauth-fake-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
 	application.GoogleExchange = func(_ context.Context, code string) (identity.GoogleProfile, error) {
 		if strings.Contains(code, "ya29") || strings.HasPrefix(code, "mock:") {

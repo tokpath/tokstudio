@@ -33,73 +33,36 @@ jobs:
           command_timeout: 20m
           script: |
             set -euo pipefail
+            BRANCH='${{ github.ref_name }}'
             GROK_ROOT=/root/workspace/tokstudio-grok
             TEST_ROOT=/root/workspace/tokstudio
             if [ "$GROK_ROOT" = "$TEST_ROOT" ]; then
               echo "refusing: grok and test checkout paths collide" >&2
               exit 1
             fi
-            # 优先用独立检出里的脚本；若检出已删，则从本仓库临时拉一份最小 teardown。
-            if [ -x "$GROK_ROOT/scripts/teardown_grok.sh" ]; then
-              bash "$GROK_ROOT/scripts/teardown_grok.sh"
-            elif [ -x "$TEST_ROOT/scripts/teardown_grok.sh" ]; then
-              bash "$TEST_ROOT/scripts/teardown_grok.sh"
-            else
-              # 内联最小拆除：停项目、删 Caddy 块、删检出。
-              COMPOSE_PROJECT=tokstudio-grok
-              NOVA_CADDY=/root/workspace/nova/Caddyfile
-              docker compose -p "$COMPOSE_PROJECT" down --remove-orphans 2>/dev/null || true
-              docker ps -a --format '{{.Names}}' | grep -E '^tokstudio-grok' | while read -r name; do
-                docker rm -f "$name" >/dev/null 2>&1 || true
-              done
-              if [ -f "$NOVA_CADDY" ] && grep -qF 'grok.tokpath.com' "$NOVA_CADDY"; then
-                python3 - <<'PY'
-            from pathlib import Path
-            import re
-            path = Path("/root/workspace/nova/Caddyfile")
-            text = path.read_text()
-            new_text, n = re.subn(
-                r"\n*grok\.tokpath\.com\s*\{(?:[^{}]|\{[^{}]*\})*\}\n*",
-                "\n",
-                text,
-                count=1,
-            )
-            if n == 0:
-                lines = text.splitlines(True)
-                out = []
-                skipping = False
-                depth = 0
-                for line in lines:
-                    if not skipping and "grok.tokpath.com" in line and "{" in line:
-                        skipping = True
-                        depth = line.count("{") - line.count("}")
-                        continue
-                    if skipping:
-                        depth += line.count("{") - line.count("}")
-                        if depth <= 0:
-                            skipping = False
-                        continue
-                    out.append(line)
-                new_text = "".join(out)
-            path.write_text(new_text.rstrip() + "\n")
-            PY
-                if grep -qF 'grok.tokpath.com' "$NOVA_CADDY"; then
-                  echo "grok.tokpath.com still in Caddyfile" >&2
-                  exit 1
-                fi
-                if docker ps --format '{{.Names}}' | grep -qx caddy; then
-                  docker exec caddy caddy validate --config /etc/caddy/Caddyfile
-                  docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-                fi
-              fi
-              rm -rf "$GROK_ROOT"
-              echo "inline grok teardown complete"
-            fi
-            # 探活：grok Host 不应再命中 TokenHub healthz（允许连接失败或非 200）。
+            WORK=$(mktemp -d)
+            cleanup() { rm -rf "$WORK"; }
+            trap cleanup EXIT
+            # 从触发分支取 teardown 脚本，避免宿主机检出尚未合入。
+            git clone --depth 1 --branch "$BRANCH" git@github.com:tokpath/tokstudio.git "$WORK/tokstudio"
+            bash "$WORK/tokstudio/scripts/teardown_grok.sh"
             code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -H 'Host: grok.tokpath.com' http://127.0.0.1/healthz || true)"
             echo "post-teardown Host:grok.tokpath.com /healthz => ${code:-curl-failed}"
+            if [[ "$code" == "200" ]]; then
+              echo "refusing: grok.tokpath.com still returns healthz 200" >&2
+              exit 1
+            fi
             if curl -fsS --max-time 5 -H 'Host: test.tokpath.com' http://127.0.0.1/healthz >/dev/null; then
               echo "test.tokpath.com healthz still ok"
             else
               echo "warning: test.tokpath.com healthz not ready (may be unrelated)" >&2
             fi
+            if [[ -f /root/workspace/nova/Caddyfile ]] && grep -qF 'grok.tokpath.com' /root/workspace/nova/Caddyfile; then
+              echo "refusing: nova Caddyfile still mentions grok.tokpath.com" >&2
+              exit 1
+            fi
+            if [[ -d "$GROK_ROOT" ]]; then
+              echo "refusing: grok checkout still exists at $GROK_ROOT" >&2
+              exit 1
+            fi
+            echo "remote grok teardown verified"

@@ -39,7 +39,6 @@ else
   echo "no running containers for project ${COMPOSE_PROJECT} (or docker unavailable)"
 fi
 
-# 再扫一遍可能残留的同名容器。
 if [[ "$have_docker" -eq 1 ]] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qE '^tokstudio-grok'; then
   docker ps -a --format '{{.Names}}' | grep -E '^tokstudio-grok' | while read -r name; do
     docker rm -f "$name" >/dev/null 2>&1 || true
@@ -48,39 +47,64 @@ fi
 
 if [[ -f "$NOVA_CADDY" ]]; then
   if grep -qF 'grok.tokpath.com' "$NOVA_CADDY"; then
-    python3 - <<'PY' "$NOVA_CADDY"
+    python3 - "$NOVA_CADDY" <<'PY'
 import pathlib
 import re
 import sys
 
 path = pathlib.Path(sys.argv[1])
+host = "grok.tokpath.com"
 text = path.read_text()
-# 去掉 grok.tokpath.com { ... } 整块（含前导空行），保留其余站点。
-pattern = re.compile(
-    r"\n*grok\.tokpath\.com\s*\{(?:[^{}]|\{[^{}]*\})*\}\n*",
-    re.MULTILINE,
-)
-new_text, n = pattern.subn("\n", text, count=1)
-if n == 0 and "grok.tokpath.com" in text:
-    # 回退：按行删到匹配的闭合大括号。
-    lines = text.splitlines(True)
+site_re = re.compile(rf"(?m)^[ \t]*{re.escape(host)}[ \t]*\{{")
+match = site_re.search(text)
+
+def drop_host_comments(chunk: str) -> str:
     out = []
-    skipping = False
-    depth = 0
-    for line in lines:
-        if not skipping and "grok.tokpath.com" in line and "{" in line:
-            skipping = True
-            depth = line.count("{") - line.count("}")
+    for line in chunk.splitlines(True):
+        stripped = line.strip()
+        if host in stripped and (stripped.startswith("#") or stripped == host):
             continue
-        if skipping:
-            depth += line.count("{") - line.count("}")
-            if depth <= 0:
-                skipping = False
+        if host in stripped and not stripped.startswith(host):
+            # 非站点开块、也非纯注释：仍删掉，避免门禁误报。
             continue
         out.append(line)
-    new_text = "".join(out)
-path.write_text(new_text.rstrip() + "\n")
-print(f"removed grok.tokpath.com site block from {path}")
+    return "".join(out)
+
+if match:
+    before = text[: match.start()].splitlines(True)
+    while before:
+        stripped = before[-1].strip()
+        if stripped == "" or (host in stripped and stripped.startswith("#")):
+            before.pop()
+            continue
+        break
+    prefix = "".join(before)
+
+    brace = text.find("{", match.start())
+    depth = 0
+    end = None
+    for i in range(brace, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end is None:
+        raise SystemExit(f"unclosed site block for {host} in {path}")
+    while end < len(text) and text[end] in "\r\n":
+        end += 1
+    suffix = text[end:]
+    new_text = drop_host_comments(prefix + suffix)
+    # 去掉站点块留下的多余空行。
+    new_text = re.sub(r"\n{3,}", "\n\n", new_text)
+    path.write_text(new_text.rstrip() + "\n")
+    print(f"removed {host} site block from {path}")
+else:
+    new_text = drop_host_comments(text)
+    path.write_text(new_text.rstrip() + "\n")
+    print(f"removed leftover {host} mentions from {path}")
 PY
     if grep -qF 'test.tokpath.com' "$NOVA_CADDY"; then
       echo "test.tokpath.com still present in nova Caddyfile"
@@ -88,7 +112,7 @@ PY
       echo "warning: test.tokpath.com missing after edit; review ${NOVA_CADDY}" >&2
     fi
     if grep -qF 'grok.tokpath.com' "$NOVA_CADDY"; then
-      echo "refusing: grok.tokpath.com still in Caddyfile after teardown" >&2
+      echo "refusing: grok.tokpath.com still mentioned in Caddyfile after teardown" >&2
       exit 1
     fi
     if [[ "$have_docker" -eq 1 ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx caddy; then
@@ -98,7 +122,7 @@ PY
       echo "caddy container not running; skipped reload"
     fi
   else
-    echo "nova Caddyfile has no grok.tokpath.com block"
+    echo "nova Caddyfile has no grok.tokpath.com mentions"
   fi
 else
   echo "nova Caddyfile not found at ${NOVA_CADDY}; skipped"

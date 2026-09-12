@@ -54,6 +54,42 @@ export function oauthFailureHref(message: string, errorCode?: string): string {
   return `/login?${params.toString()}`;
 }
 
+const OAUTH_CALLBACK_LOCK_PREFIX = "tokenhub_google_oauth_code:";
+
+/** 同一授权码只允许一个回调兑换；防止 React 重挂载打出第二次 invalid_grant。 */
+export function claimOAuthCallback(
+  storage: Pick<Storage, "getItem" | "setItem"> | null | undefined,
+  code: string,
+): boolean {
+  if (!storage || !code) {
+    return true;
+  }
+  try {
+    const key = OAUTH_CALLBACK_LOCK_PREFIX + code;
+    if (storage.getItem(key)) {
+      return false;
+    }
+    storage.setItem(key, "pending");
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export function releaseOAuthCallback(
+  storage: Pick<Storage, "removeItem"> | null | undefined,
+  code: string,
+): void {
+  if (!storage || !code) {
+    return;
+  }
+  try {
+    storage.removeItem(OAUTH_CALLBACK_LOCK_PREFIX + code);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function readStoredNext(storage: Pick<Storage, "getItem" | "removeItem"> | null | undefined): string {
   if (!storage) {
     return "";

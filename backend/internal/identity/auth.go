@@ -39,6 +39,40 @@ var (
 	ErrGoogleExchange       = errors.New("google oauth exchange failed")
 )
 
+// GoogleExchangeError 携带 Google 返回的安全 error 码（不含 code/token/secret）。
+type GoogleExchangeError struct {
+	Reason string
+}
+
+func (e *GoogleExchangeError) Error() string {
+	if e == nil || e.Reason == "" {
+		return ErrGoogleExchange.Error()
+	}
+	return ErrGoogleExchange.Error() + ": " + e.Reason
+}
+
+func (e *GoogleExchangeError) Unwrap() error { return ErrGoogleExchange }
+
+func NewGoogleExchangeError(reason string) error {
+	reason = sanitizeGoogleReason(reason)
+	if reason == "" {
+		return ErrGoogleExchange
+	}
+	return &GoogleExchangeError{Reason: reason}
+}
+
+func sanitizeGoogleReason(reason string) string {
+	reason = strings.TrimSpace(strings.ToLower(reason))
+	switch reason {
+	case "invalid_grant", "redirect_uri_mismatch", "invalid_client", "unauthorized_client",
+		"access_denied", "invalid_request", "unsupported_grant_type", "network_error",
+		"userinfo_error", "empty_token", "empty_profile":
+		return reason
+	default:
+		return ""
+	}
+}
+
 func mapNotFound(err error) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrNotFound

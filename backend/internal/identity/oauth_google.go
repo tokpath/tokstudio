@@ -61,7 +61,7 @@ func (c GoogleOAuthConfig) exchange(ctx context.Context, code string) (GooglePro
 		return GoogleProfile{}, ErrGoogleUnavailable
 	}
 	if strings.TrimSpace(code) == "" {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("invalid_request")
 	}
 
 	form := url.Values{}
@@ -73,50 +73,53 @@ func (c GoogleOAuthConfig) exchange(ctx context.Context, code string) (GooglePro
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURL(), strings.NewReader(form.Encode()))
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("network_error")
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("network_error")
 	}
 	defer resp.Body.Close()
 	tokenBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("network_error")
 	}
 	var token googleTokenResponse
 	if err := json.Unmarshal(tokenBody, &token); err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("empty_token")
 	}
 	if resp.StatusCode >= 300 || token.AccessToken == "" {
-		return GoogleProfile{}, ErrGoogleExchange
+		if token.Error != "" {
+			return GoogleProfile{}, NewGoogleExchangeError(token.Error)
+		}
+		return GoogleProfile{}, NewGoogleExchangeError("empty_token")
 	}
 
 	infoReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.userInfoURL(), nil)
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("userinfo_error")
 	}
 	infoReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	infoReq.Header.Set("Accept", "application/json")
 
 	infoResp, err := c.client().Do(infoReq)
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("network_error")
 	}
 	defer infoResp.Body.Close()
 	infoBody, err := io.ReadAll(io.LimitReader(infoResp.Body, 1<<20))
 	if err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("network_error")
 	}
 	var info googleUserInfo
 	if err := json.Unmarshal(infoBody, &info); err != nil {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("userinfo_error")
 	}
 	if infoResp.StatusCode >= 300 || info.Subject == "" || !strings.Contains(info.Email, "@") {
-		return GoogleProfile{}, ErrGoogleExchange
+		return GoogleProfile{}, NewGoogleExchangeError("empty_profile")
 	}
 	return GoogleProfile{Subject: info.Subject, Email: normalizeEmail(info.Email)}, nil
 }

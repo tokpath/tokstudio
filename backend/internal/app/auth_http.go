@@ -185,9 +185,13 @@ func (a *App) resolveGoogleExchange() identity.GoogleExchanger {
 }
 
 func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
+	var exchangeErr *identity.GoogleExchangeError
 	switch {
 	case errors.Is(err, identity.ErrGoogleUnavailable):
 		httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "未配置 Google 登录", false)
+	case errors.As(err, &exchangeErr):
+		msg, retryable := googleExchangeMessage(exchangeErr.Reason)
+		httpx.AbortParam(c, http.StatusBadGateway, "provider_unavailable", msg, exchangeErr.Reason, retryable)
 	case errors.Is(err, identity.ErrGoogleExchange):
 		httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "Google 登录失败", true)
 	case errors.Is(err, identity.ErrInvalidCredentials):
@@ -196,6 +200,25 @@ func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "推广码无效", false)
 	default:
 		a.writeAuthError(c, err)
+	}
+}
+
+func googleExchangeMessage(reason string) (string, bool) {
+	switch reason {
+	case "redirect_uri_mismatch":
+		return "Google Redirect URI 不匹配", false
+	case "invalid_client":
+		return "Google 客户端配置无效", false
+	case "invalid_grant":
+		return "Google 授权码无效或已使用", true
+	case "access_denied":
+		return "已取消 Google 授权", false
+	case "network_error":
+		return "无法连接 Google，请检查服务器出网", true
+	case "empty_profile", "userinfo_error", "empty_token":
+		return "无法读取 Google 账号资料", true
+	default:
+		return "Google 登录失败", true
 	}
 }
 

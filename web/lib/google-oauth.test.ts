@@ -1,16 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   GOOGLE_OAUTH_CALLBACK_PATH,
   claimOAuthCallback,
   googleButtonState,
   oauthFailureHref,
   readStoredNext,
+  recoverAuthenticatedSession,
   releaseOAuthCallback,
+  resetOAuthCallbackLocksForTests,
   sanitizeOAuthError,
+  shouldRecoverOAuthFailure,
   storeLoginNext,
 } from "./google-oauth";
 
 describe("google oauth helpers", () => {
+  beforeEach(() => {
+    resetOAuthCallbackLocksForTests();
+  });
+
   it("names the Console Redirect URI path", () => {
     expect(GOOGLE_OAUTH_CALLBACK_PATH).toBe("/login/oauth/google");
   });
@@ -42,7 +49,7 @@ describe("google oauth helpers", () => {
     expect(oauthFailureHref("Google 登录失败", "redirect_uri_mismatch")).toContain("error_code=redirect_uri_mismatch");
   });
 
-  it("claims each authorization code only once", () => {
+  it("claims each authorization code only once across memory and storage", () => {
     const store: Record<string, string> = {};
     const memory = {
       getItem: (key: string) => store[key] ?? null,
@@ -55,8 +62,43 @@ describe("google oauth helpers", () => {
     };
     expect(claimOAuthCallback(memory, "code-1")).toBe(true);
     expect(claimOAuthCallback(memory, "code-1")).toBe(false);
+    expect(claimOAuthCallback(null, "code-1")).toBe(false);
     releaseOAuthCallback(memory, "code-1");
     expect(claimOAuthCallback(memory, "code-1")).toBe(true);
+  });
+
+  it("recovers when a late probe sees an authenticated session", async () => {
+    let calls = 0;
+    const ok = await recoverAuthenticatedSession({
+      attempts: 4,
+      delayMs: 1,
+      sleep: async () => undefined,
+      probe: async () => {
+        calls += 1;
+        return calls >= 3;
+      },
+    });
+    expect(ok).toBe(true);
+    expect(calls).toBe(3);
+  });
+
+  it("does not recover when probe never authenticates", async () => {
+    const probe = vi.fn(async () => false);
+    const ok = await recoverAuthenticatedSession({
+      attempts: 3,
+      delayMs: 1,
+      sleep: async () => undefined,
+      probe,
+    });
+    expect(ok).toBe(false);
+    expect(probe).toHaveBeenCalledTimes(3);
+  });
+
+  it("treats oauth_state_consumed and authentication_error as recoverable", () => {
+    expect(shouldRecoverOAuthFailure("authentication_error", null)).toBe(true);
+    expect(shouldRecoverOAuthFailure("authentication_error", "oauth_state_consumed")).toBe(true);
+    expect(shouldRecoverOAuthFailure("provider_unavailable", "invalid_grant")).toBe(false);
+    expect(shouldRecoverOAuthFailure("provider_unavailable", "oauth_state_consumed")).toBe(true);
   });
 
   it("round-trips the post-login next path", () => {

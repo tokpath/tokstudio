@@ -10,9 +10,29 @@ import {
   claimOAuthCallback,
   oauthFailureHref,
   readStoredNext,
+  recoverAuthenticatedSession,
   releaseOAuthCallback,
   sanitizeOAuthError,
+  shouldRecoverOAuthFailure,
 } from "@/lib/google-oauth";
+
+async function probeMe(): Promise<boolean> {
+  try {
+    const res = await fetch(`${apiBase}/v1/me`, { credentials: "include" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function goConsoleOrNext(storage: Storage | null): Promise<void> {
+  const next = safeNextPath(readStoredNext(storage));
+  if (next && next !== CONSOLE_ENTRY_PATH) {
+    window.location.replace(next);
+    return;
+  }
+  window.location.replace(await resolveConsoleHref());
+}
 
 function GoogleOAuthCallback() {
   const t = useTranslations("login");
@@ -37,7 +57,14 @@ function GoogleOAuthCallback() {
 
     const storage = typeof sessionStorage === "undefined" ? null : sessionStorage;
     if (!claimOAuthCallback(storage, code)) {
-      // 同码已在兑换中或刚完成：避免第二次 POST 触发 invalid_grant。
+      // 同码已在兑换中：等同伴写好 cookie 再进控制台，绝不跳失败页。
+      void (async () => {
+        if (await recoverAuthenticatedSession({ probe: probeMe })) {
+          await goConsoleOrNext(storage);
+          return;
+        }
+        window.location.replace(await resolveConsoleHref());
+      })();
       return;
     }
 
@@ -54,28 +81,38 @@ function GoogleOAuthCallback() {
         try {
           body = raw ? (JSON.parse(raw) as typeof body) : {};
         } catch {
+          if (await recoverAuthenticatedSession({ probe: probeMe })) {
+            await goConsoleOrNext(storage);
+            return;
+          }
           releaseOAuthCallback(storage, code);
           window.location.replace(oauthFailureHref(t("googleFail"), `http_${response.status || 0}`));
           return;
         }
         if (!response.ok) {
-          releaseOAuthCallback(storage, code);
           const detail =
             typeof body.error?.param === "string" && body.error.param.length > 0
               ? body.error.param
               : body.error?.code;
+          if (
+            shouldRecoverOAuthFailure(body.error?.code, typeof body.error?.param === "string" ? body.error.param : null) &&
+            (await recoverAuthenticatedSession({ probe: probeMe }))
+          ) {
+            await goConsoleOrNext(storage);
+            return;
+          }
+          releaseOAuthCallback(storage, code);
           window.location.replace(
             oauthFailureHref(sanitizeOAuthError(body.error?.message, t("googleFail")), detail),
           );
           return;
         }
-        const next = safeNextPath(readStoredNext(storage));
-        if (next && next !== CONSOLE_ENTRY_PATH) {
-          window.location.replace(next);
+        await goConsoleOrNext(storage);
+      } catch {
+        if (await recoverAuthenticatedSession({ probe: probeMe })) {
+          await goConsoleOrNext(storage);
           return;
         }
-        window.location.replace(await resolveConsoleHref());
-      } catch {
         releaseOAuthCallback(storage, code);
         window.location.replace(oauthFailureHref(t("googleFail"), "callback_network_error"));
       }

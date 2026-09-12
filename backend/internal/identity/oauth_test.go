@@ -22,6 +22,15 @@ func TestFinishGoogleNilExchangeIsUnavailable(t *testing.T) {
 	}
 }
 
+func TestErrOAuthStateConsumedIsDistinct(t *testing.T) {
+	if errors.Is(ErrOAuthStateConsumed, ErrInvalidCredentials) {
+		t.Fatal("consumed state must stay distinct from invalid credentials")
+	}
+	if ErrOAuthStateConsumed.Error() == "" {
+		t.Fatal("error message required")
+	}
+}
+
 func TestNewGoogleExchangeUsesTokenAndProfile(t *testing.T) {
 	var sawCode, leaked bool
 	mux := http.NewServeMux()

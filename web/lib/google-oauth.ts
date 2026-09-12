@@ -56,30 +56,43 @@ export function oauthFailureHref(message: string, errorCode?: string): string {
 
 const OAUTH_CALLBACK_LOCK_PREFIX = "tokenhub_google_oauth_code:";
 
+/** 同文档内存锁：React 重挂载 / Strict Mode 比 sessionStorage 更可靠。 */
+const inflightOAuthCodes = new Set<string>();
+
 /** 同一授权码只允许一个回调兑换；防止 React 重挂载打出第二次 invalid_grant。 */
 export function claimOAuthCallback(
   storage: Pick<Storage, "getItem" | "setItem"> | null | undefined,
   code: string,
 ): boolean {
-  if (!storage || !code) {
+  if (!code) {
     return true;
   }
-  try {
-    const key = OAUTH_CALLBACK_LOCK_PREFIX + code;
-    if (storage.getItem(key)) {
-      return false;
+  if (inflightOAuthCodes.has(code)) {
+    return false;
+  }
+  if (storage) {
+    try {
+      const key = OAUTH_CALLBACK_LOCK_PREFIX + code;
+      if (storage.getItem(key)) {
+        inflightOAuthCodes.add(code);
+        return false;
+      }
+      storage.setItem(key, "pending");
+    } catch {
+      /* private mode：退回内存锁 */
     }
-    storage.setItem(key, "pending");
-    return true;
-  } catch {
-    return true;
   }
+  inflightOAuthCodes.add(code);
+  return true;
 }
 
 export function releaseOAuthCallback(
   storage: Pick<Storage, "removeItem"> | null | undefined,
   code: string,
 ): void {
+  if (code) {
+    inflightOAuthCodes.delete(code);
+  }
   if (!storage || !code) {
     return;
   }
@@ -88,6 +101,11 @@ export function releaseOAuthCallback(
   } catch {
     /* ignore */
   }
+}
+
+/** 仅供单测重置模块级锁。 */
+export function resetOAuthCallbackLocksForTests(): void {
+  inflightOAuthCodes.clear();
 }
 
 export function readStoredNext(storage: Pick<Storage, "getItem" | "removeItem"> | null | undefined): string {
@@ -112,4 +130,40 @@ export function storeLoginNext(storage: Pick<Storage, "setItem"> | null | undefi
   } catch {
     /* ignore quota / private mode */
   }
+}
+
+/** 回调失败但可能已由同伴请求写好 session：短轮询 /v1/me。 */
+export async function recoverAuthenticatedSession(options: {
+  probe: () => Promise<boolean>;
+  attempts?: number;
+  delayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<boolean> {
+  const attempts = options.attempts ?? 6;
+  const delayMs = options.delayMs ?? 120;
+  const sleep =
+    options.sleep ??
+    ((ms: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
+      }));
+  for (let i = 0; i < attempts; i++) {
+    if (await options.probe()) {
+      return true;
+    }
+    if (i + 1 < attempts) {
+      await sleep(delayMs);
+    }
+  }
+  return false;
+}
+
+/** authentication_error / oauth_state_consumed：宁可先查 session，再决定是否进失败页。 */
+export function shouldRecoverOAuthFailure(errorCode?: string | null, errorParam?: string | null): boolean {
+  const code = (errorCode || "").trim();
+  const param = (errorParam || "").trim();
+  if (param === "oauth_state_consumed") {
+    return true;
+  }
+  return code === "authentication_error" || code === "oauth_state_consumed";
 }

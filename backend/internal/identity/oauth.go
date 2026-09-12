@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -61,7 +62,10 @@ func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("state_hash = ? AND expires_at > ?", crypto.HashToken(state), time.Now().UTC()).
 			First(&row).Error; err != nil {
-			return ErrInvalidCredentials
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrOAuthStateConsumed
+			}
+			return err
 		}
 		if err := tx.Where("id = ?", row.ID).Delete(&oauthStateRow{}).Error; err != nil {
 			return err

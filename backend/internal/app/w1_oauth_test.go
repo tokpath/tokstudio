@@ -121,6 +121,55 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 	}
 }
 
+func TestW1OAuthExchangeFailureAvoidsBadGateway(t *testing.T) {
+	application, server := newOAuthEnv(t)
+	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
+	application.Config.GoogleClientSecret = "not-a-real-secret"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
+
+	t.Run("invalid_grant", func(t *testing.T) {
+		application.GoogleExchange = func(_ context.Context, _ string) (identity.GoogleProfile, error) {
+			return identity.GoogleProfile{}, identity.NewGoogleExchangeError("invalid_grant")
+		}
+		started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+		state, _ := started["state"].(string)
+		code, body := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, map[string]string{
+			"state": state, "code": "auth-code-used",
+		})
+		if code == http.StatusBadGateway {
+			t.Fatalf("must not use 502 (Cloudflare masks body): %d %+v", code, body)
+		}
+		if code != http.StatusBadRequest {
+			t.Fatalf("invalid_grant status: %d %+v", code, body)
+		}
+		errObj, _ := body["error"].(map[string]any)
+		if errObj["code"] != "provider_unavailable" || errObj["param"] != "invalid_grant" {
+			t.Fatalf("structured exchange error: %+v", body)
+		}
+	})
+
+	t.Run("network_error", func(t *testing.T) {
+		application.GoogleExchange = func(_ context.Context, _ string) (identity.GoogleProfile, error) {
+			return identity.GoogleProfile{}, identity.NewGoogleExchangeError("network_error")
+		}
+		started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+		state, _ := started["state"].(string)
+		code, body := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, map[string]string{
+			"state": state, "code": "auth-code-net",
+		})
+		if code == http.StatusBadGateway {
+			t.Fatalf("must not use 502 (Cloudflare masks body): %d %+v", code, body)
+		}
+		if code != http.StatusServiceUnavailable {
+			t.Fatalf("network_error status: %d %+v", code, body)
+		}
+		errObj, _ := body["error"].(map[string]any)
+		if errObj["param"] != "network_error" {
+			t.Fatalf("structured network error: %+v", body)
+		}
+	})
+}
+
 func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	application, server := newOAuthEnv(t)
 	application.Config.GoogleClientID = "id.apps.googleusercontent.com"

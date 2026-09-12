@@ -155,7 +155,7 @@ export function PaymentLanesPanel() {
       <EmptyState
         icon={CreditCard}
         title="无法加载支付通道"
-        detail={`${detail}。通道卡来自后端插件目录，不是写死在页面上。请用渠道管理员账号打开，或确认 api 已发布 payment 插件。`}
+        detail={`${detail}。通道卡来自后端插件目录，并非页面写死配置。请使用渠道管理员账号打开，或确认 API 已发布 payment 插件。`}
       />
     );
   }

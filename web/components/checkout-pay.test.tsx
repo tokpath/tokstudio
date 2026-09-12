@@ -26,7 +26,7 @@ describe("CheckoutPay", () => {
       ),
     );
     expect(screen.getByText("pay_sandbox")).toBeTruthy();
-    expect(screen.getByText("沙箱订单，请用渠道 webhook 完成入账。")).toBeTruthy();
+    expect(screen.getByText("沙箱订单，请通过渠道 Webhook 完成入账。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "我已付款" })).toBeNull();
   });
 

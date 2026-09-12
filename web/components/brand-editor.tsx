@@ -90,7 +90,7 @@ export function BrandEditor({
 
   return (
     <div className="space-y-6">
-      {locked ? <p className="text-sm text-ink-secondary">B 渠道使用平台品牌，不能自己换皮。</p> : null}
+      {locked ? <p className="text-sm text-ink-secondary">B 渠道使用平台品牌，不可自行更换外观。</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm text-ink-secondary">
           站点名

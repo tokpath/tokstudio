@@ -75,10 +75,10 @@ export default function AdminModelEditPage() {
     return raw || "";
   }, [params.id]);
   const queryClient = useQueryClient();
-  const [attrMessage, setAttrMessage] = useState("属性和定价都写到 catalog，不是前端 mock。不要改 tokenhub/echo-1。");
+  const [attrMessage, setAttrMessage] = useState("属性与定价写入目录服务，非前端本地数据。请勿修改 tokenhub/echo-1。");
   const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
-  const [lifeMessage, setLifeMessage] = useState("draft 要先换人审核，再单独发布。创建人不能审核或发布。弃用不删历史映射和价格。");
-  const [attachMessage, setAttachMessage] = useState("给当前公开模型增加一条进货途径。上游模型名可以和公开 ID 不同。");
+  const [lifeMessage, setLifeMessage] = useState("draft 需由另一位管理员审核后再单独发布。创建人不能审核或发布。弃用不删除历史映射和价格。");
+  const [attachMessage, setAttachMessage] = useState("为当前公开模型增加一条上游接入途径。上游模型名可以与公开 ID 不同。");
   const query = useQuery({
     queryKey: ["/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
@@ -169,7 +169,7 @@ export default function AdminModelEditPage() {
             <ConfirmButton
               size="sm"
               title="确认保存属性"
-              description="只改展示名、厂商和能力，不改 public id。不要改 tokenhub/echo-1。"
+              description="仅修改展示名、厂商和能力，不修改 public id。请勿修改 tokenhub/echo-1。"
               validate={() => attrForm.trigger()}
               onConfirm={attrForm.handleSubmit(async (values) => {
                 let capabilities: Record<string, unknown>;
@@ -275,18 +275,18 @@ export default function AdminModelEditPage() {
       </IfCan>
       <IfCan action="models.attach">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">挂载 Provider</h2>
+        <h2 className="text-lg font-semibold tracking-tight">关联提供商</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          公开 ID 已锁定为 <span className="font-mono">{publicId || "缺少 public id"}</span>。上游模型名可以和公开 ID 不同。
+          公开 ID 已锁定为 <span className="font-mono">{publicId || "缺少 public id"}</span>。上游模型名可以与公开 ID 不同。
         </p>
         <Form {...attachForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={attachForm.control} name="provider_id" label="提供商 ID" placeholder="进货渠道，不是厂商名" />
-            <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="这家提供商内部的模型 ID" />
+            <TextField control={attachForm.control} name="provider_id" label="提供商 ID" placeholder="上游接入渠道，不是厂商名" />
+            <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="该提供商内部的模型 ID" />
             <ConfirmButton
               size="sm"
-              title="确认挂载 Provider"
-              description="upstream 名称可以和公开 ID 不同。"
+              title="确认关联提供商"
+              description="上游名称可以与公开 ID 不同。"
               validate={() => attachForm.trigger()}
               onConfirm={attachForm.handleSubmit(async (values) => {
                 const res = await fetch(`${apiBase}/admin/models/attach`, {
@@ -301,15 +301,15 @@ export default function AdminModelEditPage() {
                 });
                 const body = await res.json();
                 if (!res.ok) {
-                  setAttachMessage(body.error?.message || "挂载失败");
+                  setAttachMessage(body.error?.message || "关联失败");
                   return;
                 }
                 attachForm.reset({ provider_id: "", upstream_model_id: "" });
-                setAttachMessage(`已挂载 ${publicId} → ${values.provider_id}`);
+                setAttachMessage(`已关联 ${publicId} → ${values.provider_id}`);
                 await reload();
               })}
             >
-              挂载
+              关联
             </ConfirmButton>
             <p className="text-sm text-ink-secondary">{attachMessage}</p>
           </form>
@@ -319,7 +319,7 @@ export default function AdminModelEditPage() {
       <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">上架</h2>
-        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。不要改 tokenhub/echo-1。</p>
+        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。请勿修改 tokenhub/echo-1。</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ConfirmButton
             size="sm"

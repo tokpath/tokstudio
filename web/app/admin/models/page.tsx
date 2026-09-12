@@ -47,7 +47,7 @@ export default function AdminModelsPage() {
   const [syncState, setSyncState] = useState("draft");
   const [createOpen, setCreateOpen] = useState(false);
   const [message, setMessage] = useState("同步只进入 draft。通过、拒绝、发布要分开做，创建人不能审核或发布自己建的模型。");
-  const [createMessage, setCreateMessage] = useState("手工创建永远是 draft。客户目录要先换人审核再发布。不要改 tokenhub/echo-1。");
+  const [createMessage, setCreateMessage] = useState("手工创建始终为 draft。客户目录需由另一位管理员审核后再发布。请勿修改 tokenhub/echo-1。");
   const createForm = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { public_id: "", vendor: "tokenhub", display_name: "" },
@@ -91,7 +91,7 @@ export default function AdminModelsPage() {
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <p className="text-sm text-ink-secondary">
-          公开模型是客户看到的货架名。目录 Tab 只看公开 ID、显示名、状态和途径；挂载、弃用和改价在详情。审核 Tab
+          公开模型是客户看到的货架名。目录 Tab 只看公开 ID、显示名、状态和途径；关联提供商、弃用和改价在详情。审核 Tab
           处理 draft / 已通过 / 已拒绝，并可手工创建。同步上游在提供商详情。不要改 tokenhub/echo-1。
         </p>
         <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="模型页签">
@@ -266,7 +266,7 @@ export default function AdminModelsPage() {
               <ConfirmButton
                 size="sm"
                 title="确认创建模型"
-                description="永远创建为 draft，不会立刻出现在客户目录。不要改 tokenhub/echo-1。"
+                description="始终创建为 draft，不会立即出现在客户目录。请勿修改 tokenhub/echo-1。"
                 validate={() => createForm.trigger()}
                 onConfirm={createForm.handleSubmit(async (values) => {
                   const res = await fetch(`${apiBase}/admin/models`, {

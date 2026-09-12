@@ -55,7 +55,7 @@ export default function AdminPlansPage() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [message, setMessage] = useState("渠道低价或高风险媒体配额会进入待审核。通过或拒绝都会写审计。");
   const [writeMessage, setWriteMessage] = useState("平台套餐满 1 USD 会直接发布。不要下架 pln_echo_month，那是公共站演示套餐。");
-  const [renewMessage, setRenewMessage] = useState("强制到期和续费扫描只在沙箱可用。不要对还在演示的订阅乱拨时钟。");
+  const [renewMessage, setRenewMessage] = useState("强制到期和续费扫描仅在沙箱可用。请勿对演示中的订阅随意调整时间。");
   const queryClient = useQueryClient();
   const path = status ? `/admin/plans?status=${encodeURIComponent(status)}` : "/admin/plans";
   const query = useQuery({

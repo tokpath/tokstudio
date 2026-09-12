@@ -34,7 +34,7 @@ export function CreateProviderDialog({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("一家提供商可以挂多个公开模型，例如 OpenAI 同时提供 gpt-5.6 和 gpt-4.1。创建后去详情页填写上游 Key。");
+  const [message, setMessage] = useState("一家提供商可关联多个公开模型，例如 OpenAI 同时提供 gpt-5.6 和 gpt-4.1。创建后请前往详情页填写上游 Key。");
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { name: "", slug: "", kind: "direct", adapter: "openai", base_url: "" },

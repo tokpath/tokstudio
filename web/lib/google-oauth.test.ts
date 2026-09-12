@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   GOOGLE_OAUTH_CALLBACK_PATH,
+  claimOAuthCallback,
   googleButtonState,
   oauthFailureHref,
   readStoredNext,
+  releaseOAuthCallback,
   sanitizeOAuthError,
   storeLoginNext,
 } from "./google-oauth";
@@ -37,6 +39,24 @@ describe("google oauth helpers", () => {
     expect(sanitizeOAuthError("Google 登录失败", "fallback")).toBe("Google 登录失败");
     expect(oauthFailureHref("invalid_grant ya29.abc", "authentication_error")).toContain("/login?");
     expect(oauthFailureHref("invalid_grant ya29.abc")).not.toContain("ya29");
+    expect(oauthFailureHref("Google 登录失败", "redirect_uri_mismatch")).toContain("error_code=redirect_uri_mismatch");
+  });
+
+  it("claims each authorization code only once", () => {
+    const store: Record<string, string> = {};
+    const memory = {
+      getItem: (key: string) => store[key] ?? null,
+      setItem: (key: string, value: string) => {
+        store[key] = value;
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+    };
+    expect(claimOAuthCallback(memory, "code-1")).toBe(true);
+    expect(claimOAuthCallback(memory, "code-1")).toBe(false);
+    releaseOAuthCallback(memory, "code-1");
+    expect(claimOAuthCallback(memory, "code-1")).toBe(true);
   });
 
   it("round-trips the post-login next path", () => {

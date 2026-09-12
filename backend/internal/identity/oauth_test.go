@@ -90,6 +90,10 @@ func TestNewGoogleExchangeRejectsBadCodeWithoutLeaking(t *testing.T) {
 	if !errors.Is(err, ErrGoogleExchange) {
 		t.Fatalf("bad code: %v", err)
 	}
+	var exchangeErr *GoogleExchangeError
+	if !errors.As(err, &exchangeErr) || exchangeErr.Reason != "invalid_grant" {
+		t.Fatalf("expected invalid_grant reason, got %v", err)
+	}
 	if profile.Email != "" || profile.Subject != "" {
 		t.Fatalf("failed exchange must not invent a profile: %+v", profile)
 	}

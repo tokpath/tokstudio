@@ -6,7 +6,13 @@ import { useTranslations } from "next-intl";
 import { apiBase } from "@/lib/api";
 import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
 import { safeNextPath } from "@/lib/login-next";
-import { oauthFailureHref, readStoredNext, sanitizeOAuthError } from "@/lib/google-oauth";
+import {
+  claimOAuthCallback,
+  oauthFailureHref,
+  readStoredNext,
+  releaseOAuthCallback,
+  sanitizeOAuthError,
+} from "@/lib/google-oauth";
 
 function GoogleOAuthCallback() {
   const t = useTranslations("login");
@@ -23,7 +29,15 @@ function GoogleOAuthCallback() {
     const code = search.get("code") || "";
     const state = search.get("state") || "";
     if (googleError || !code || !state) {
-      window.location.replace(oauthFailureHref(t("googleFail"), search.get("error_code") || googleError || "authentication_error"));
+      window.location.replace(
+        oauthFailureHref(t("googleFail"), search.get("error_code") || googleError || "authentication_error"),
+      );
+      return;
+    }
+
+    const storage = typeof sessionStorage === "undefined" ? null : sessionStorage;
+    if (!claimOAuthCallback(storage, code)) {
+      // 同码已在兑换中或刚完成：避免第二次 POST 触发 invalid_grant。
       return;
     }
 
@@ -35,21 +49,35 @@ function GoogleOAuthCallback() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ state, code }),
         });
-        const body = (await response.json()) as { error?: { message?: string; code?: string } };
+        const raw = await response.text();
+        let body: { error?: { message?: string; code?: string; param?: string } } = {};
+        try {
+          body = raw ? (JSON.parse(raw) as typeof body) : {};
+        } catch {
+          releaseOAuthCallback(storage, code);
+          window.location.replace(oauthFailureHref(t("googleFail"), `http_${response.status || 0}`));
+          return;
+        }
         if (!response.ok) {
+          releaseOAuthCallback(storage, code);
+          const detail =
+            typeof body.error?.param === "string" && body.error.param.length > 0
+              ? body.error.param
+              : body.error?.code;
           window.location.replace(
-            oauthFailureHref(sanitizeOAuthError(body.error?.message, t("googleFail")), body.error?.code),
+            oauthFailureHref(sanitizeOAuthError(body.error?.message, t("googleFail")), detail),
           );
           return;
         }
-        const next = safeNextPath(readStoredNext(typeof sessionStorage === "undefined" ? null : sessionStorage));
+        const next = safeNextPath(readStoredNext(storage));
         if (next && next !== CONSOLE_ENTRY_PATH) {
           window.location.replace(next);
           return;
         }
         window.location.replace(await resolveConsoleHref());
       } catch {
-        window.location.replace(oauthFailureHref(t("googleFail")));
+        releaseOAuthCallback(storage, code);
+        window.location.replace(oauthFailureHref(t("googleFail"), "callback_network_error"));
       }
     }
 
@@ -68,7 +96,11 @@ function GoogleOAuthCallback() {
 export default function GoogleOAuthCallbackPage() {
   const t = useTranslations("login");
   return (
-    <Suspense fallback={<main className="flex min-h-svh items-center justify-center px-6 text-ink-secondary">{t("googleFinishing")}</main>}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-svh items-center justify-center px-6 text-ink-secondary">{t("googleFinishing")}</main>
+      }
+    >
       <GoogleOAuthCallback />
     </Suspense>
   );

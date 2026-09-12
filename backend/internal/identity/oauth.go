@@ -56,12 +56,22 @@ func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange
 	if exchange == nil {
 		return nil, ErrGoogleUnavailable
 	}
+	// 先原子领取 state，避免 React 双请求把同一授权码兑换两次（第二次 invalid_grant）。
 	var row oauthStateRow
-	if err := s.db.WithContext(ctx).
-		Where("state_hash = ? AND expires_at > ?", crypto.HashToken(state), time.Now().UTC()).
-		First(&row).Error; err != nil {
-		return nil, ErrInvalidCredentials
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("state_hash = ? AND expires_at > ?", crypto.HashToken(state), time.Now().UTC()).
+			First(&row).Error; err != nil {
+			return ErrInvalidCredentials
+		}
+		if err := tx.Where("id = ?", row.ID).Delete(&oauthStateRow{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	profile, err := exchange(ctx, code)
 	if err != nil {
 		return nil, err
@@ -90,7 +100,6 @@ func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange
 			"google_sub":        profile.Subject,
 			"email_verified_at": time.Now().UTC(),
 		})
-		_ = s.db.WithContext(ctx).Where("id = ?", row.ID).Delete(&oauthStateRow{})
 		return session, nil
 	}
 	if err != nil {
@@ -105,6 +114,5 @@ func (s *Service) FinishGoogle(ctx context.Context, state, code string, exchange
 		user.ChannelOrgID = &resolved.ChannelID
 		user.BrandID = &resolved.BrandID
 	}
-	_ = s.db.WithContext(ctx).Where("id = ?", row.ID).Delete(&oauthStateRow{})
 	return s.issueSession(ctx, user)
 }

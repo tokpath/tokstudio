@@ -17,12 +17,17 @@ type APIError struct {
 }
 
 func Abort(c *gin.Context, status int, code, message string, retryable bool) {
+	AbortParam(c, status, code, message, nil, retryable)
+}
+
+// AbortParam 与 Abort 相同，但可带上安全的 param（例如 Google OAuth 的 error 码）。
+func AbortParam(c *gin.Context, status int, code, message string, param any, retryable bool) {
 	requestID, _ := c.Get(ContextRequestID)
 	c.AbortWithStatusJSON(status, gin.H{
 		"error": APIError{
 			Code:      code,
 			Message:   message,
-			Param:     nil,
+			Param:     param,
 			RequestID: stringify(requestID),
 			Retryable: retryable,
 		},

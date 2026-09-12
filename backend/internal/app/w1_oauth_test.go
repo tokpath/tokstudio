@@ -186,6 +186,104 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	}
 }
 
+func TestW1OAuthDoubleCallbackIsIdempotent(t *testing.T) {
+	application, server := newOAuthEnv(t)
+	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
+	application.Config.GoogleClientSecret = "not-a-real-secret"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
+	email := "oauth-dup-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
+	var exchanges int
+	application.GoogleExchange = func(_ context.Context, code string) (identity.GoogleProfile, error) {
+		exchanges++
+		return identity.GoogleProfile{Subject: "google_dup_" + email, Email: email}, nil
+	}
+
+	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	state, _ := started["state"].(string)
+	if state == "" {
+		t.Fatalf("state: %+v", started)
+	}
+
+	payload := map[string]string{"state": state, "code": "auth-code-once"}
+	firstCode, first := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, payload)
+	if firstCode != http.StatusOK {
+		t.Fatalf("first callback: %d %+v", firstCode, first)
+	}
+	if first["session"] == nil {
+		t.Fatalf("first must issue session: %+v", first)
+	}
+
+	secondCode, second := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, payload)
+	if secondCode != http.StatusOK {
+		t.Fatalf("second callback must be idempotent success, got %d %+v", secondCode, second)
+	}
+	if second["session"] == nil {
+		t.Fatalf("second must replay session: %+v", second)
+	}
+	if second["idempotent"] != true {
+		t.Fatalf("second should mark idempotent: %+v", second)
+	}
+	firstUser, _ := first["session"].(map[string]any)["user"].(map[string]any)
+	secondUser, _ := second["session"].(map[string]any)["user"].(map[string]any)
+	if firstUser["email"] != email || secondUser["email"] != email {
+		t.Fatalf("users: first=%+v second=%+v", firstUser, secondUser)
+	}
+	if exchanges != 1 {
+		t.Fatalf("Google exchange must run once, got %d", exchanges)
+	}
+}
+
+func TestW1OAuthConcurrentDoubleCallback(t *testing.T) {
+	application, server := newOAuthEnv(t)
+	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
+	application.Config.GoogleClientSecret = "not-a-real-secret"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
+	email := "oauth-race-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
+	var exchanges int
+	application.GoogleExchange = func(_ context.Context, code string) (identity.GoogleProfile, error) {
+		exchanges++
+		time.Sleep(80 * time.Millisecond)
+		return identity.GoogleProfile{Subject: "google_race_" + email, Email: email}, nil
+	}
+
+	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	state, _ := started["state"].(string)
+	payload := mustJSON(map[string]string{"state": state, "code": "auth-code-race"})
+
+	type result struct {
+		code int
+		body map[string]any
+	}
+	ch := make(chan result, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/auth/google/callback", bytes.NewReader(payload))
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				ch <- result{code: 0, body: map[string]any{"err": err.Error()}}
+				return
+			}
+			defer resp.Body.Close()
+			raw, _ := io.ReadAll(resp.Body)
+			var body map[string]any
+			_ = json.Unmarshal(raw, &body)
+			ch <- result{code: resp.StatusCode, body: body}
+		}()
+	}
+
+	a, b := <-ch, <-ch
+	if a.code != http.StatusOK || b.code != http.StatusOK {
+		t.Fatalf("both callbacks must succeed: a=%d %+v b=%d %+v", a.code, a.body, b.code, b.body)
+	}
+	if a.body["session"] == nil || b.body["session"] == nil {
+		t.Fatalf("both must carry session: a=%+v b=%+v", a.body, b.body)
+	}
+	if exchanges != 1 {
+		t.Fatalf("Google exchange must run once under race, got %d", exchanges)
+	}
+}
+
 func TestW1OAuthMockPathRemoved(t *testing.T) {
 	_, server := newOAuthEnv(t)
 

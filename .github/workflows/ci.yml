@@ -52,10 +52,11 @@ jobs:
         run: |
           # GHA service 不能改 CMD；官方镜像默认不是 server。与 Compose 同一发行，启动后再建桶。
           # 不设云 Key：测试进程走 MinIO 默认账号。
+          # Docker Hub 对 minio/* 匿名拉取在 GHA 上会 denied；改走 quay.io 同 tag。
           docker run -d --name tokenhub-minio -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin \
             -e MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:RELEASE.2024-12-18T13-15-44Z server /data --console-address :9001
+            quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z server /data --console-address :9001
           ok=0
           for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
             if curl -sf http://127.0.0.1:9000/minio/health/live >/dev/null; then
@@ -65,10 +66,10 @@ jobs:
             sleep 1
           done
           test "$ok" = "1"
-          # 新版 mc 镜像 ENTRYPOINT 就是 mc，不能再传 /bin/sh。Hub 已核对该 tag 200。
+          # 新版 mc 镜像 ENTRYPOINT 就是 mc，不能再传 /bin/sh。
           docker run --rm --network host \
             -e MC_HOST_local=http://minioadmin:minioadmin@127.0.0.1:9000 \
-            minio/mc:RELEASE.2025-04-16T18-13-26Z mb -p local/tokenhub
+            quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z mb -p local/tokenhub
       - name: download modules
         run: |
           # proxy.golang.org 偶发 HTTP/2 INTERNAL_ERROR；先下全模块再测，避免编译期再打网。

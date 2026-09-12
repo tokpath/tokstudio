@@ -194,6 +194,9 @@ func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
 		httpx.AbortParam(c, http.StatusBadGateway, "provider_unavailable", msg, exchangeErr.Reason, retryable)
 	case errors.Is(err, identity.ErrGoogleExchange):
 		httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "Google 登录失败", true)
+	case errors.Is(err, identity.ErrOAuthStateConsumed):
+		// 可区分码：前端可探测已有 session 再进控制台，避免假失败页。
+		httpx.AbortParam(c, http.StatusForbidden, "authentication_error", "Google 登录失败", "oauth_state_consumed", true)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		httpx.Abort(c, http.StatusForbidden, "authentication_error", "Google 登录失败", true)
 	case errors.Is(err, identity.ErrPromotionInvalid):
@@ -284,13 +287,66 @@ func (a *App) googleCallback(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
+	ctx := c.Request.Context()
+	if session := a.recallGoogleOAuth(ctx, body.State); session != nil {
+		a.setSessionCookie(c, session.Token)
+		httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+		return
+	}
+	if !a.beginGoogleOAuthFlight(ctx, body.State) {
+		if session := a.waitGoogleOAuth(ctx, body.State, googleOAuthWaitBudget); session != nil {
+			a.setSessionCookie(c, session.Token)
+			httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+			return
+		}
+		if session := a.sessionFromCookie(c); session != nil {
+			httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+			return
+		}
+		a.writeGoogleAuthError(c, identity.ErrOAuthStateConsumed)
+		return
+	}
+	defer a.endGoogleOAuthFlight(ctx, body.State)
+
 	session, err := a.finishGoogleSession(c, body.State, body.Code)
 	if err != nil {
+		if errors.Is(err, identity.ErrOAuthStateConsumed) {
+			if replay := a.waitGoogleOAuth(ctx, body.State, googleOAuthWaitBudget); replay != nil {
+				a.setSessionCookie(c, replay.Token)
+				httpx.OK(c, gin.H{"session": replay, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+				return
+			}
+			if existing := a.sessionFromCookie(c); existing != nil {
+				httpx.OK(c, gin.H{"session": existing, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+				return
+			}
+		}
 		a.writeGoogleAuthError(c, err)
 		return
 	}
+	a.rememberGoogleOAuth(ctx, body.State, session)
 	a.afterGoogleSession(c, session)
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) sessionFromCookie(c *gin.Context) *identity.Session {
+	cookie, err := c.Cookie(sessionCookie)
+	if err != nil || strings.TrimSpace(cookie) == "" {
+		return nil
+	}
+	principal, err := a.Identity.Authenticate(c.Request.Context(), "Bearer "+cookie)
+	if err != nil || principal == nil {
+		return nil
+	}
+	me, err := a.Identity.Me(c.Request.Context(), *principal)
+	if err != nil || me == nil {
+		return nil
+	}
+	return &identity.Session{
+		Token:     cookie,
+		User:      *me,
+		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+	}
 }
 
 func (a *App) googleCallbackRedirect(c *gin.Context) {
@@ -298,11 +354,30 @@ func (a *App) googleCallbackRedirect(c *gin.Context) {
 		c.Redirect(http.StatusFound, a.oauthReturnURL("denied"))
 		return
 	}
-	session, err := a.finishGoogleSession(c, c.Query("state"), c.Query("code"))
+	state, code := c.Query("state"), c.Query("code")
+	ctx := c.Request.Context()
+	if session := a.recallGoogleOAuth(ctx, state); session != nil {
+		a.setSessionCookie(c, session.Token)
+		c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+		return
+	}
+	session, err := a.finishGoogleSession(c, state, code)
 	if err != nil {
+		if errors.Is(err, identity.ErrOAuthStateConsumed) {
+			if replay := a.waitGoogleOAuth(ctx, state, googleOAuthWaitBudget); replay != nil {
+				a.setSessionCookie(c, replay.Token)
+				c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+				return
+			}
+			if existing := a.sessionFromCookie(c); existing != nil {
+				c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+				return
+			}
+		}
 		c.Redirect(http.StatusFound, a.oauthReturnURL("fail"))
 		return
 	}
+	a.rememberGoogleOAuth(ctx, state, session)
 	a.afterGoogleSession(c, session)
 	c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
 }

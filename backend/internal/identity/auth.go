@@ -37,6 +37,8 @@ var (
 	ErrStoreUnavailable     = errors.New("object store unavailable")
 	ErrGoogleUnavailable    = errors.New("google oauth is not configured")
 	ErrGoogleExchange       = errors.New("google oauth exchange failed")
+	// ErrOAuthStateConsumed：state 已领取/删除（典型是 React 双回调二次请求）。
+	ErrOAuthStateConsumed = errors.New("oauth state already consumed")
 )
 
 // GoogleExchangeError 携带 Google 返回的安全 error 码（不含 code/token/secret）。

@@ -190,10 +190,11 @@ func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
 	case errors.Is(err, identity.ErrGoogleUnavailable):
 		httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "未配置 Google 登录", false)
 	case errors.As(err, &exchangeErr):
+		// 不用 502：Cloudflare 会把源站 502 换成明文「error code: 502」，前端只能看到 http_502。
 		msg, retryable := googleExchangeMessage(exchangeErr.Reason)
-		httpx.AbortParam(c, http.StatusBadGateway, "provider_unavailable", msg, exchangeErr.Reason, retryable)
+		httpx.AbortParam(c, googleExchangeHTTPStatus(exchangeErr.Reason), "provider_unavailable", msg, exchangeErr.Reason, retryable)
 	case errors.Is(err, identity.ErrGoogleExchange):
-		httpx.Abort(c, http.StatusBadGateway, "provider_unavailable", "Google 登录失败", true)
+		httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "Google 登录失败", true)
 	case errors.Is(err, identity.ErrOAuthStateConsumed):
 		// 可区分码：前端可探测已有 session 再进控制台，避免假失败页。
 		httpx.AbortParam(c, http.StatusForbidden, "authentication_error", "Google 登录失败", "oauth_state_consumed", true)
@@ -204,6 +205,14 @@ func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
 	default:
 		a.writeAuthError(c, err)
 	}
+}
+
+// googleExchangeHTTPStatus 避免应用层 OAuth 失败使用 502（会被 CF 盖掉 JSON）。
+func googleExchangeHTTPStatus(reason string) int {
+	if reason == "network_error" {
+		return http.StatusServiceUnavailable
+	}
+	return http.StatusBadRequest
 }
 
 func googleExchangeMessage(reason string) (string, bool) {

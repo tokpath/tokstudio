@@ -71,14 +71,37 @@ func (a *App) requireAnyUser() gin.HandlerFunc {
 	return a.enforceSession(nil, true)
 }
 
+// sessionCookieSecure：公网 HTTPS（含 token 预览 ENV=development）必须带 Secure。
+// 只看 IsProduction 会在 Cloudflare→Caddy→HTTP 上游链路上发出无 Secure 的 cookie，
+// 经本地代理 / 部分浏览器策略后 /v1/me 收不到 session → permission_denied。
+func (a *App) sessionCookieSecure(c *gin.Context) bool {
+	if a.Config != nil && a.Config.IsProduction() {
+		return true
+	}
+	if a.Config != nil {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(a.Config.PublicBaseURL)), "https://") {
+			return true
+		}
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(a.Config.WebOrigin)), "https://") {
+			return true
+		}
+	}
+	proto := strings.ToLower(strings.TrimSpace(c.GetHeader("X-Forwarded-Proto")))
+	if first, _, _ := strings.Cut(proto, ","); strings.TrimSpace(first) == "https" {
+		return true
+	}
+	return c.Request != nil && c.Request.TLS != nil
+}
+
 func (a *App) setSessionCookie(c *gin.Context, token string) {
-	secure := a.Config.IsProduction()
+	secure := a.sessionCookieSecure(c)
+	// Domain 空串 = host-only（test.tokpath.com），避免写到父域导致跨站串会话。
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(sessionCookie, token, 86400, "/", "", secure, true)
 }
 
 func (a *App) clearSessionCookie(c *gin.Context) {
-	secure := a.Config.IsProduction()
+	secure := a.sessionCookieSecure(c)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(sessionCookie, "", -1, "/", "", secure, true)
 }

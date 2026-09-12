@@ -14,12 +14,15 @@
 	handle_path /api/* {
 		reverse_proxy api:8080 {
 			header_up Host {host}
+			# 上游是明文 HTTP；公网 TLS 在 Cloudflare/gashub。固定 https 供 Secure cookie。
+			header_up X-Forwarded-Proto https
 		}
 	}
 
 	handle /v1/* {
 		reverse_proxy api:8080 {
 			header_up Host {host}
+			header_up X-Forwarded-Proto https
 		}
 	}
 	handle /healthz {

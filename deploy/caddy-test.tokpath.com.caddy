@@ -5,5 +5,7 @@ test.tokpath.com {
 	reverse_proxy tokstudio-edge:80 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
+		# 浏览器侧是 HTTPS；edge 只听 80。显式标记 proto，避免会话 cookie 丢 Secure。
+		header_up X-Forwarded-Proto https
 	}
 }

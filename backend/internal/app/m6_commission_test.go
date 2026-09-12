@@ -91,8 +91,8 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("old four-bucket kinds must not appear: %+v", entries)
 	}
 
-	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/users", "", nil) != http.StatusForbidden {
-		t.Fatal("unauth partner users must be 403")
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/users", "", nil) != http.StatusUnauthorized {
+		t.Fatal("unauth partner users must be 401")
 	}
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/v1/partner/me", "m6_user", nil) != http.StatusForbidden {
 		t.Fatal("plain end user is not a partner")

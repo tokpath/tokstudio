@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { apiBase } from "@/lib/api";
 import { emptyViewer, type Viewer } from "@/lib/rbac";
 
 const ViewerContext = createContext<Viewer | null>(null);
@@ -10,8 +11,8 @@ type MeBody = { user?: { id?: string; roles?: string[] } };
 async function loadViewer(): Promise<Viewer> {
   try {
     const [meRes, partnerRes] = await Promise.all([
-      fetch("/v1/me", { credentials: "include" }),
-      fetch("/v1/partner/me", { credentials: "include" }),
+      fetch(`${apiBase}/v1/me`, { credentials: "include" }),
+      fetch(`${apiBase}/v1/partner/me`, { credentials: "include" }),
     ]);
     if (!meRes.ok) {
       return { signedIn: false, loading: false, roles: [] };

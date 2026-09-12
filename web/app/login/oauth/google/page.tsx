@@ -63,7 +63,8 @@ function GoogleOAuthCallback() {
           await goConsoleOrNext(storage);
           return;
         }
-        window.location.replace(await resolveConsoleHref());
+        // 仍无 session：回登录并带可诊断码，避免裸进控制台刷 /v1/me 403。
+        window.location.replace(oauthFailureHref(t("googleFail"), "session_cookie_missing"));
       })();
       return;
     }
@@ -105,6 +106,12 @@ function GoogleOAuthCallback() {
           window.location.replace(
             oauthFailureHref(sanitizeOAuthError(body.error?.message, t("googleFail")), detail),
           );
+          return;
+        }
+        // 回调 200 仍须能读到 HttpOnly cookie；否则进控制台只会看到 /v1/me 403。
+        if (!(await recoverAuthenticatedSession({ probe: probeMe }))) {
+          releaseOAuthCallback(storage, code);
+          window.location.replace(oauthFailureHref(t("googleFail"), "session_cookie_missing"));
           return;
         }
         await goConsoleOrNext(storage);

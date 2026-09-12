@@ -345,13 +345,16 @@ func (a *App) enforceSession(roles []string, anyAuthenticated bool) gin.HandlerF
 
 func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
+		token := a.tokenFromRequest(c)
+		principal, err := a.Identity.Authenticate(c.Request.Context(), token)
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "身份校验失败", true)
 			return
 		}
 		if principal == nil {
-			if catalogAuth && a.tokenFromRequest(c) == "" {
+			// 无凭证：401 未登录（含 /v1/me）；有坏凭证或其它失败：403 未授权。
+			// catalog 路由与用户会话统一，避免登录后丢 cookie 时被误读成「权限不足」。
+			if token == "" && (catalogAuth || anyAuthenticated) {
 				httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
 				return
 			}

@@ -229,9 +229,74 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 		if cookie.Value == "" {
 			t.Fatal("empty session cookie")
 		}
+		if cookie.Secure {
+			t.Fatal("http PublicBaseURL must not force Secure")
+		}
+		if cookie.SameSite != http.SameSiteLaxMode {
+			t.Fatalf("SameSite want Lax, got %v", cookie.SameSite)
+		}
 	}
 	if !found {
 		t.Fatalf("missing tokenhub_session cookie: %v", resp.Header.Values("Set-Cookie"))
+	}
+
+	meCode, me := doJSON(t, http.MethodGet, server.URL+"/v1/me", body["session"].(map[string]any)["token"].(string), false, nil)
+	if meCode != http.StatusOK || me["user"] == nil {
+		t.Fatalf("cookie session must read /v1/me: %d %+v", meCode, me)
+	}
+}
+
+func TestW1OAuthSessionCookieSecureWhenPublicHTTPS(t *testing.T) {
+	application, server := newOAuthEnv(t)
+	application.Config.PublicBaseURL = "https://test.tokpath.com"
+	application.Config.WebOrigin = "https://test.tokpath.com"
+	application.Config.Env = "development"
+	application.Config.GoogleClientID = "id.apps.googleusercontent.com"
+	application.Config.GoogleClientSecret = "not-a-real-secret"
+	application.Config.GoogleRedirect = "https://test.tokpath.com/login/oauth/google"
+	email := "oauth-secure-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
+	application.GoogleExchange = func(_ context.Context, _ string) (identity.GoogleProfile, error) {
+		return identity.GoogleProfile{Subject: "google_secure_" + email, Email: email}, nil
+	}
+
+	started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+	state, _ := started["state"].(string)
+	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/auth/google/callback", bytes.NewReader(mustJSON(map[string]string{
+		"state": state, "code": "auth-code-secure",
+	})))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		t.Fatalf("callback %d %s", resp.StatusCode, raw)
+	}
+	var secureCookie *http.Cookie
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "tokenhub_session" {
+			secureCookie = cookie
+			break
+		}
+	}
+	if secureCookie == nil {
+		t.Fatalf("missing tokenhub_session: %v", resp.Header.Values("Set-Cookie"))
+	}
+	if !secureCookie.Secure {
+		t.Fatal("https PublicBaseURL must set Secure even when ENV=development")
+	}
+	if !secureCookie.HttpOnly {
+		t.Fatal("session cookie must be HttpOnly")
+	}
+	if secureCookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("SameSite want Lax, got %v", secureCookie.SameSite)
+	}
+
+	anon := mustStatusJSON(t, http.MethodGet, server.URL+"/v1/me", "", nil)
+	if anon != http.StatusUnauthorized {
+		t.Fatalf("anonymous /v1/me must be 401 未登录, got %d", anon)
 	}
 }
 

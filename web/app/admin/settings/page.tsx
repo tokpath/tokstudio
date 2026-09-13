@@ -20,7 +20,7 @@ export default function AdminSettingsPage() {
   const [brandID, setBrandID] = useState("brd_oem");
   const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
   const [drillMessage, setDrillMessage] = useState("支付/媒体/TLS 演练不强制确认头。TLS 只验沙箱门禁，不是公网 ACME。");
-  const [totpMessage, setTotpMessage] = useState("读取状态不回密文。绑定后用 6 位码确认启用。不要在共享管理员上留下 enabled。");
+  const [totpMessage, setTotpMessage] = useState("读取状态不返回密文。绑定后请使用 6 位验证码确认启用。请勿在共享管理员账户上保持 enabled 状态。");
   const [totpStatus, setTotpStatus] = useState("disabled");
   const [totpSecret, setTotpSecret] = useState("");
   const [totpURL, setTotpURL] = useState("");
@@ -75,7 +75,7 @@ export default function AdminSettingsPage() {
     setTotpStatus("enabled");
     setTotpSecret("");
     setTotpURL("");
-    setTotpMessage("已启用。共享管理员请立刻关闭，否则后续写操作都会要 TOTP。");
+    setTotpMessage("已启用。共享管理员账户请立即关闭，否则后续写操作均需提供 TOTP。");
   }
 
   async function disable2FA(code: string) {
@@ -162,7 +162,7 @@ export default function AdminSettingsPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="twofa" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          读取状态不回密文。开始绑定后用验证器扫码，再填 6 位码确认启用。关闭要二次确认；已经 enabled 时还要带 TOTP。不要在共享管理员上留下 enabled。
+          读取状态不返回密文。开始绑定后请使用验证器扫码，再填写 6 位验证码确认启用。关闭需二次确认；已启用时还需提供 TOTP。请勿在共享管理员账户上保持 enabled 状态。
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={load2FA}>

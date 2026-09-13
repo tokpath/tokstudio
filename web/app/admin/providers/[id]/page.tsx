@@ -286,7 +286,7 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <AdminH2 k="mappedModels" className="mb-3 text-lg font-semibold tracking-tight" />
       <p className="mb-3 text-sm text-ink-secondary">
-        一家提供商可以挂多个公开模型。左边是客户看到的公开 ID，右边是这家上游真正认识的模型名。要增删挂载，去模型页操作。
+        一家提供商可关联多个公开模型。左侧为客户看到的公开 ID，右侧为该上游识别的模型名。如需增删关联，请前往模型页操作。
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
@@ -385,7 +385,7 @@ function RotateCredentialForm({ providerID }: { providerID: string }) {
         <form className="rounded-card border border-hairline bg-canvas-raised p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="rotateCreds" className="mb-3 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">
-            凭据轮换 = 把这家上游的 API Key 换成一把新的。旧密文立刻标记为 rotated，路由改用新 Key。这不是用户在 TokenHub 控制台里用的 API Key。不要对生产主提供商随便试。
+            凭据轮换用于更换该上游的 API Key。旧密文将立即标记为 rotated，路由改用新 Key。此密钥不同于用户在 TokenHub 控制台使用的 API Key。请勿在生产主提供商上随意测试。
           </p>
           <div className="mb-3 flex max-w-xl flex-wrap items-end gap-2">
             <TextField control={form.control} name="secret" label="新的上游 API Key" placeholder="不会回显明文" type="password" autoComplete="new-password" />

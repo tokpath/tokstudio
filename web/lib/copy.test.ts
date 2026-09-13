@@ -30,9 +30,9 @@ describe("user-facing copy", () => {
   });
 
   it("locks the Google idle button copy", () => {
-    expect(zh.login.google).toBe("用 Google 登录");
+    expect(zh.login.google).toBe("使用 Google 登录");
     expect(zh.login.googleRedirecting).toBe("正在跳转 Google…");
-    expect(zh.login.googleUnconfigured).toBe("未配置 Google 登录");
+    expect(zh.login.googleUnconfigured).toBe("Google 登录暂未启用");
   });
 
   it("locks user-shell copy and empty keys", () => {

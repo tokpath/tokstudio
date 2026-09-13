@@ -49,10 +49,10 @@ test("login page has no ofox copy", async ({ page }) => {
   await expect(page.locator("footer")).toHaveCount(0);
   await expect(page.getByText("发送验证码")).toHaveCount(0);
   await expect(page.getByText("用验证码登录")).toHaveCount(0);
-  const google = page.getByRole("button", { name: "用 Google 登录" });
+  const google = page.getByRole("button", { name: "使用 Google 登录" });
   await expect(google).toBeVisible();
   await expect(google).toBeDisabled();
-  await expect(page.getByText("未配置 Google 登录")).toBeVisible();
+  await expect(page.getByText("Google 登录暂未启用")).toBeVisible();
 });
 
 test("google oauth callback without code returns to login", async ({ page }) => {

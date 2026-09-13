@@ -72,7 +72,7 @@ export type MappedPublicModel = {
 
 export function formatMappedModels(models?: MappedPublicModel[]): string {
   const ids = (models || []).map((item) => (item.public_id || "").trim()).filter(Boolean);
-  return ids.length > 0 ? ids.join(" · ") : "未挂模型";
+  return ids.length > 0 ? ids.join(" · ") : "尚未关联模型";
 }
 
 export function healthTone(health?: string): "success" | "warn" | "neutral" {
@@ -134,10 +134,10 @@ export function formatRpm(limit?: number): string {
 }
 
 export function formatCredentialRef(ref?: string): string {
-  return (ref || "").trim() ? "已配置" : "未配置";
+  return (ref || "").trim() ? "已配置" : "尚未配置";
 }
 
 export function formatProviderSlugs(providers?: string[]): string {
   const items = (providers || []).map((item) => item.trim()).filter(Boolean);
-  return items.length > 0 ? items.join(" · ") : "未挂载";
+  return items.length > 0 ? items.join(" · ") : "尚未关联";
 }

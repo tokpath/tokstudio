@@ -34,13 +34,13 @@ describe("admin catalog labels", () => {
   it("explains empty rpm, credentials, and unmapped models", () => {
     expect(formatRpm(0)).toBe("未限制");
     expect(formatRpm(30)).toBe("30");
-    expect(formatCredentialRef("")).toBe("未配置");
+    expect(formatCredentialRef("")).toBe("尚未配置");
     expect(formatCredentialRef("crd_123")).toBe("已配置");
-    expect(formatProviderSlugs([])).toBe("未挂载");
+    expect(formatProviderSlugs([])).toBe("尚未关联");
     expect(formatProviderSlugs(["ark-seedance", "openrouter-seedance"])).toBe(
       "ark-seedance · openrouter-seedance",
     );
-    expect(formatMappedModels([])).toBe("未挂模型");
+    expect(formatMappedModels([])).toBe("尚未关联模型");
     expect(formatMappedModels([{ public_id: "tokenhub/echo-1" }, { public_id: "tokenhub/oem-demo" }])).toBe(
       "tokenhub/echo-1 · tokenhub/oem-demo",
     );

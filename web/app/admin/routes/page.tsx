@@ -62,7 +62,7 @@ function formatCandidates(candidates?: RouteCandidate[]): string {
 
 export default function AdminRoutesPage() {
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("创建和改策略都要二次确认。不要改 rg_echo，那是文本网关默认路由。");
+  const [message, setMessage] = useState("创建与修改策略均需二次确认。请勿修改 rg_echo，该路由为文本网关默认路由。");
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const createForm = useForm<z.infer<typeof createSchema>>({
@@ -198,7 +198,7 @@ export default function AdminRoutesPage() {
               <ConfirmButton
                 size="sm"
                 title="确认创建路由"
-                description="不要改 rg_echo。策略可选 priority / weight / price / health。"
+                description="请勿修改 rg_echo。策略可选 priority / weight / price / health。"
                 validate={() => createForm.trigger()}
                 onConfirm={createForm.handleSubmit(async (values) => {
                   const body: Record<string, unknown> = {
@@ -237,7 +237,7 @@ export default function AdminRoutesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>改路由策略</DialogTitle>
-            <DialogDescription>只改策略或状态。不要对 rg_echo 乱改，改完会改变 echo 网关的选路。</DialogDescription>
+            <DialogDescription>仅可修改策略或状态。请勿修改 rg_echo，否则将影响 echo 网关选路。</DialogDescription>
           </DialogHeader>
           <Form {...patchForm}>
             <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
@@ -247,7 +247,7 @@ export default function AdminRoutesPage() {
               <ConfirmButton
                 size="sm"
                 title="确认保存策略"
-                description="不要对 rg_echo 乱改。"
+                description="请勿修改 rg_echo。"
                 validate={() => patchForm.trigger()}
                 onConfirm={patchForm.handleSubmit(async (values) => {
                   const res = await fetch(`${apiBase}/admin/routes/${values.route_id}`, {

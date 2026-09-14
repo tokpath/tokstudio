@@ -333,6 +333,56 @@ export const KNOWN_ENDPOINTS = [
   "/v1/embeddings",
 ] as const;
 
+export const VENDOR_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google",
+  alibaba: "阿里",
+  bytedance: "字节跳动",
+  deepseek: "DeepSeek",
+  zhipu: "智谱",
+  moonshot: "月之暗面",
+  minimax: "MiniMax",
+  xai: "xAI",
+  tokenhub: "TokenHub",
+};
+
+export const KNOWN_VENDORS = [
+  "openai",
+  "anthropic",
+  "google",
+  "alibaba",
+  "bytedance",
+  "deepseek",
+  "zhipu",
+  "moonshot",
+  "minimax",
+  "xai",
+  "tokenhub",
+] as const;
+
+export function vendorLabel(value?: string): string {
+  const key = (value || "").trim().toLowerCase();
+  if (!key) {
+    return "—";
+  }
+  return VENDOR_LABELS[key] || value?.trim() || "—";
+}
+
+export function resolveVendorInput(value: string): string {
+  const raw = value.trim();
+  const lower = raw.toLowerCase();
+  if (!raw) {
+    return "";
+  }
+  const byValue = KNOWN_VENDORS.find((item) => item === lower);
+  if (byValue) {
+    return byValue;
+  }
+  const byLabel = KNOWN_VENDORS.find((item) => vendorLabel(item).toLowerCase() === lower);
+  return byLabel || raw;
+}
+
 export const KNOWN_TOKENIZERS = [
   "gpt",
   "claude",

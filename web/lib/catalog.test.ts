@@ -12,7 +12,9 @@ import {
   parseCatalogSearchParams,
   parseSupportedParameters,
   publicModelsPath,
+  resolveVendorInput,
   supportedParametersText,
+  vendorLabel,
 } from "./catalog";
 
 describe("admin model catalog helpers", () => {
@@ -87,5 +89,15 @@ describe("public catalog query strings", () => {
     );
     expect(catalogHref("/models", { vendor: "z-ai", kind: "all" })).toBe("/models?vendor=z-ai");
     expect(catalogHref("/app/catalog", {})).toBe("/app/catalog");
+  });
+});
+
+describe("vendor labels", () => {
+  it("shows business names and maps typed labels back to ids", () => {
+    expect(vendorLabel("alibaba")).toBe("阿里");
+    expect(vendorLabel("")).toBe("—");
+    expect(resolveVendorInput("阿里")).toBe("alibaba");
+    expect(resolveVendorInput("OpenAI")).toBe("openai");
+    expect(resolveVendorInput("tokenhub")).toBe("tokenhub");
   });
 });

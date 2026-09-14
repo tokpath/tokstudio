@@ -17,7 +17,8 @@ import { ProbeCell } from "../probe-cell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
-import { modelEditHref } from "@/lib/catalog";
+import { modelEditHref, vendorLabel } from "@/lib/catalog";
+import { CATALOG_LABEL } from "@/lib/catalog-copy";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import {
@@ -28,9 +29,9 @@ import {
   formatCredentialRef,
   healthLabel,
   healthTone,
+  modelStatusLabel,
   providerKindLabel,
   providerStatusLabel,
-  statusWord,
   type MappedPublicModel,
 } from "@/lib/catalog-admin";
 
@@ -286,23 +287,23 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <AdminH2 k="mappedModels" className="mb-3 text-lg font-semibold tracking-tight" />
       <p className="mb-3 text-sm text-ink-secondary">
-        一家提供商可关联多个公开模型。左侧为客户看到的公开 ID，右侧为该上游识别的模型名。如需增删关联，请前往模型页操作。
+        一家提供商可接到多个公开模型。左边是客户看到的公开模型标识，右边是该提供商内部的上游模型标识。增删请到模型页。
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-hairline text-ink-secondary">
-              <th className="th-eyebrow px-2 py-2 font-medium">公开模型</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">厂商</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">上游模型名</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">映射状态</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.publicModelId}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.vendor}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.upstreamModelId}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">状态</th>
             </tr>
           </thead>
           <tbody>
             {models.length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-ink-secondary" colSpan={4}>
-                  还没有挂模型。创建提供商不会自动带模型，需要在模型页把公开模型挂上来。
+                  还没有接到公开模型。创建提供商不会自动带模型，请到模型页填写公开模型标识和上游模型标识。
                 </td>
               </tr>
             ) : (
@@ -318,10 +319,10 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
                     )}
                     {model.display_name ? <span className="ml-2 text-ink-secondary">{model.display_name}</span> : null}
                   </td>
-                  <td className="px-2 py-2">{model.vendor || "—"}</td>
+                  <td className="px-2 py-2">{vendorLabel(model.vendor)}</td>
                   <td className="px-2 py-2 font-mono text-[13px]">{model.upstream_model_id || "—"}</td>
                   <td className="px-2 py-2">
-                    <Badge tone={catalogStatusTone(model.status)}>{statusWord(model.status)}</Badge>
+                    <Badge tone={catalogStatusTone(model.status)}>{modelStatusLabel(model.status)}</Badge>
                   </td>
                 </tr>
               ))
@@ -340,7 +341,7 @@ function SyncProviderPanel({ providerID }: { providerID: string }) {
     <IfCan action="models.attach">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <AdminH2 k="syncUpstream" className="mb-3 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">从这家上游拉模型清单，结果进入待审核。创建人不能审核或发布自己同步出来的模型。</p>
+        <p className="mb-3 text-sm text-ink-secondary">从这家提供商拉取可卖模型，结果进入待审核，不会直接上架。</p>
         <ConfirmButton
           size="sm"
           variant="outline"
@@ -506,7 +507,7 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
                 <td className="px-2 py-2 font-mono text-[13px]">{row.fingerprint}</td>
                 <td className="px-2 py-2">{accountKindLabel(row.kind)}</td>
                 <td className="px-2 py-2">
-                  <Badge tone={catalogStatusTone(row.status)}>{statusWord(row.status)}</Badge>
+                  <Badge tone={catalogStatusTone(row.status)}>{modelStatusLabel(row.status)}</Badge>
                 </td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">

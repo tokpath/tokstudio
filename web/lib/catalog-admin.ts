@@ -29,16 +29,16 @@ export const PROVIDER_STATUSES = [
 
 /** 对齐 catalog.applyStrategy：priority / weight / price / health。 */
 export const ROUTE_STRATEGIES = [
-  { value: "priority", label: "priority · 按优先级" },
-  { value: "weight", label: "weight · 按权重" },
-  { value: "price", label: "price · 按成本价" },
-  { value: "health", label: "health · 按健康度" },
+  { value: "priority", label: "按指定顺序" },
+  { value: "weight", label: "按流量权重" },
+  { value: "price", label: "选更便宜的" },
+  { value: "health", label: "选更健康的" },
 ] as const;
 
 /** 网关 ResolveRoute 只取 status=active 的路由组。 */
 export const ROUTE_STATUSES = [
-  { value: "active", label: "active · 参与选路" },
-  { value: "inactive", label: "inactive · 停用" },
+  { value: "active", label: "启用选路" },
+  { value: "inactive", label: "停用" },
 ] as const;
 
 function withCurrentOption(
@@ -59,6 +59,35 @@ export function routeStrategyOptions(current?: string): { value: string; label: 
 
 export function routeStatusOptions(current?: string): { value: string; label: string }[] {
   return withCurrentOption(ROUTE_STATUSES, current);
+}
+
+export function routeStrategyLabel(value?: string): string {
+  const key = (value || "").trim().toLowerCase();
+  return ROUTE_STRATEGIES.find((item) => item.value === key)?.label || value?.trim() || "—";
+}
+
+export function routeStatusLabel(value?: string): string {
+  const key = (value || "").trim().toLowerCase();
+  return ROUTE_STATUSES.find((item) => item.value === key)?.label || value?.trim() || "—";
+}
+
+export function modelStatusLabel(status?: string): string {
+  switch ((status || "").trim().toLowerCase()) {
+    case "published":
+      return "已上架";
+    case "draft":
+      return "草稿";
+    case "deprecated":
+      return "已下架";
+    case "active":
+      return "启用";
+    case "inactive":
+      return "停用";
+    case "disabled":
+      return "已停用";
+    default:
+      return statusWord(status);
+  }
 }
 
 export function providerKindLabel(kind?: string): string {
@@ -126,7 +155,7 @@ export type MappedPublicModel = {
 
 export function formatMappedModels(models?: MappedPublicModel[]): string {
   const ids = (models || []).map((item) => (item.public_id || "").trim()).filter(Boolean);
-  return ids.length > 0 ? ids.join(" · ") : "尚未关联模型";
+  return ids.length > 0 ? ids.join(" · ") : "尚未接到公开模型";
 }
 
 export function healthTone(health?: string): "success" | "warn" | "neutral" {
@@ -218,7 +247,7 @@ export function formatCredentialRef(ref?: string): string {
 
 export function formatProviderSlugs(providers?: string[]): string {
   const items = (providers || []).map((item) => item.trim()).filter(Boolean);
-  return items.length > 0 ? items.join(" · ") : "尚未关联";
+  return items.length > 0 ? items.join(" · ") : "尚未接入提供商";
 }
 
 export type ProviderOption = { id: string; name: string; slug: string };

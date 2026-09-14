@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Control, type FieldPath, type FieldValues } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { AdminSelectField } from "@/components/admin-select-field";
 import { ConfirmButton } from "@/components/confirm-button";
 import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
-import { TextField } from "@/components/text-field";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { PublicModelCombobox } from "@/components/public-model-combobox";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
@@ -18,44 +19,9 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { IfCan } from "@/components/rbac/if-can";
-import { routeStatusOptions, routeStrategyOptions } from "@/lib/catalog-admin";
-
-const selectClass =
-  "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
-
-function SelectField<T extends FieldValues>({
-  control,
-  name,
-  label,
-  options,
-}: {
-  control: Control<T>;
-  name: FieldPath<T>;
-  label: string;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <select className={selectClass} aria-label={label} {...field}>
-              {options.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
+import { routeStatusLabel, routeStatusOptions, routeStrategyLabel, routeStrategyOptions } from "@/lib/catalog-admin";
+import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
+import { type AdminModel, vendorLabel } from "@/lib/catalog";
 
 type RouteCandidate = { provider_id?: string; provider_slug?: string; priority?: number; weight?: number };
 type Route = {
@@ -68,9 +34,9 @@ type Route = {
 };
 
 const createSchema = z.object({
-  public_model_id: z.string().trim().min(1, "请填写本平台公开模型标识"),
-  strategy: z.string().trim().min(1, "请填写策略"),
-  status: z.string().trim().min(1, "请填写状态"),
+  public_model_id: z.string().trim().min(1, "请选择公开模型标识"),
+  strategy: z.string().trim().min(1, "请选择选路策略"),
+  status: z.string().trim().min(1, "请选择路由状态"),
   provider_id: z.string().trim(),
 });
 
@@ -121,6 +87,11 @@ export default function AdminRoutesPage() {
     queryFn: () => apiClient<{ items?: { id: string; name: string; slug: string }[] }>("GET", "/admin/providers"),
   });
   const providerOptions = providersQuery.data?.items ?? [];
+  const modelsQuery = useQuery({
+    queryKey: ["/admin/models"],
+    queryFn: () => apiClient<{ items?: AdminModel[] }>("GET", "/admin/models"),
+  });
+  const modelOptions = modelsQuery.data?.items ?? [];
   const grouped = useMemo(() => {
     const items = query.data?.items ?? [];
     const map = new Map<string, Route[]>();
@@ -142,19 +113,29 @@ export default function AdminRoutesPage() {
     { id: "id", header: "ID", cell: (route: Route) => <span className="font-mono text-[13px]">{route.id}</span> },
     {
       id: "model",
-      header: "模型",
-      cell: (route: Route) => <span className="font-mono text-[13px]">{route.public_model_id}</span>,
+      header: CATALOG_LABEL.publicModelId,
+      cell: (route: Route) => {
+        const model = modelOptions.find((item) => item.id === route.public_model_id);
+        return (
+          <div>
+            <p>{model?.display_name || route.public_model_id}</p>
+            {model?.display_name ? (
+              <p className="font-mono text-[12px] text-ink-secondary">{route.public_model_id}</p>
+            ) : null}
+          </div>
+        );
+      },
     },
-    { id: "vendor", header: "厂商", cell: (route: Route) => vendorOf(route) },
-    { id: "strategy", header: "策略", cell: (route: Route) => route.strategy },
+    { id: "vendor", header: CATALOG_LABEL.vendor, cell: (route: Route) => vendorLabel(vendorOf(route)) },
+    { id: "strategy", header: CATALOG_LABEL.routeStrategy, cell: (route: Route) => routeStrategyLabel(route.strategy) },
     {
       id: "candidates",
-      header: "提供商池（路由顺序）",
+      header: CATALOG_LABEL.providerPool,
       cell: (route: Route) => (
         <span className="font-mono text-[12px] text-ink-secondary">{formatCandidates(route.candidates)}</span>
       ),
     },
-    { id: "status", header: "状态", cell: (route: Route) => route.status },
+    { id: "status", header: CATALOG_LABEL.routeStatus, cell: (route: Route) => routeStatusLabel(route.status) },
     {
       id: "actions",
       header: "操作",
@@ -181,22 +162,12 @@ export default function AdminRoutesPage() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">路由组</h2>
-            <p className="mt-1 text-sm text-ink-secondary">按厂商折叠展示。主键仍是公开模型；短表单用弹窗创建/改策略。</p>
+            <p className="mt-1 text-sm text-ink-secondary">{CATALOG_HELP.routes}</p>
           </div>
           <IfCan action="routes.write">
             <div className="flex shrink-0 items-center gap-2">
               <Button size="sm" onClick={() => setCreateOpen(true)}>
                 创建路由
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  patchForm.reset({ route_id: "", strategy: "priority", status: "active" });
-                  setEditOpen(true);
-                }}
-              >
-                改路由策略
               </Button>
             </div>
           </IfCan>
@@ -218,7 +189,9 @@ export default function AdminRoutesPage() {
           ) : (
             grouped.map(([vendor, routes]) => (
               <div key={vendor}>
-                <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">{vendor}</h3>
+                <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">
+                  {CATALOG_LABEL.vendor} {vendorLabel(vendor)}
+                </h3>
                 <ScrollTable columns={columns} rows={routes} getRowId={(route) => route.id} />
               </div>
             ))
@@ -231,39 +204,34 @@ export default function AdminRoutesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>创建路由</DialogTitle>
-            <DialogDescription>给本平台已有的公开模型建路由组，不是填写上游官方模型名。</DialogDescription>
+            <DialogDescription>选择已有公开模型和提供商。上游模型标识在模型页填写，这里只排提供商池。</DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
             <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
-              <TextField
-                control={createForm.control}
-                name="public_model_id"
-                label="公开模型标识（本平台）"
-                placeholder="例如 alibaba/happyhorse-1.0"
-              />
-              <SelectField
+              <PublicModelCombobox control={createForm.control} name="public_model_id" options={modelOptions} />
+              <AdminSelectField
                 control={createForm.control}
                 name="strategy"
-                label="策略"
+                label={CATALOG_LABEL.routeStrategy}
                 options={routeStrategyOptions(createForm.watch("strategy"))}
               />
-              <SelectField
+              <AdminSelectField
                 control={createForm.control}
                 name="status"
-                label="状态"
+                label={CATALOG_LABEL.routeStatus}
                 options={routeStatusOptions(createForm.watch("status"))}
               />
               <ProviderSlugCombobox
                 control={createForm.control}
                 name="provider_id"
-                label="提供商标识"
+                label={CATALOG_LABEL.provider}
                 options={providerOptions}
-                placeholder="可选，输入名称或标识筛选"
+                placeholder="可选，写入提供商池第一家"
               />
               <ConfirmButton
                 size="sm"
                 title="确认创建路由"
-                description="请勿修改 rg_echo。策略可选 priority / weight / price / health。"
+                description="请勿修改 rg_echo。选路策略只决定走哪家提供商、谁优先。"
                 validate={() => createForm.trigger()}
                 onConfirm={createForm.handleSubmit(async (values) => {
                   const body: Record<string, unknown> = {
@@ -301,22 +269,24 @@ export default function AdminRoutesPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>改路由策略</DialogTitle>
-            <DialogDescription>仅可修改策略或状态。请勿修改 rg_echo，否则将影响 echo 网关选路。</DialogDescription>
+            <DialogTitle>改选路策略</DialogTitle>
+            <DialogDescription>只改选路策略或路由状态。请勿修改 rg_echo，否则会影响默认选路。</DialogDescription>
           </DialogHeader>
           <Form {...patchForm}>
             <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
-              <TextField control={patchForm.control} name="route_id" label="路由 ID" />
-              <SelectField
+              <p className="text-sm text-ink-secondary">
+                路由 ID <span className="font-mono">{patchForm.watch("route_id") || "请从列表点「改策略」"}</span>
+              </p>
+              <AdminSelectField
                 control={patchForm.control}
                 name="strategy"
-                label="策略"
+                label={CATALOG_LABEL.routeStrategy}
                 options={routeStrategyOptions(patchForm.watch("strategy"))}
               />
-              <SelectField
+              <AdminSelectField
                 control={patchForm.control}
                 name="status"
-                label="状态"
+                label={CATALOG_LABEL.routeStatus}
                 options={routeStatusOptions(patchForm.watch("status"))}
               />
               <ConfirmButton

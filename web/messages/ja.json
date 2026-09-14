@@ -1060,7 +1060,7 @@
     "rotateCreds": "資格情報のローテ",
     "accountPool": "アカウントプール",
     "editProvider": "プロバイダー状態",
-    "mappedModels": "関連モデル",
+    "mappedModels": "接続した公開モデル",
     "promoRoles": "プロモ役割",
     "promos": "プロモコード",
     "prices": "価格",

@@ -3,39 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
-import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Form } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
+import { CreateModelDialog } from "./create-dialog";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
-import { type AdminModel, modelEditHref } from "@/lib/catalog";
-import { catalogStatusTone, formatProviderSlugs, statusWord, syncStateLabel } from "@/lib/catalog-admin";
+import { type AdminModel, modelEditHref, vendorLabel } from "@/lib/catalog";
+import { catalogStatusTone, formatProviderSlugs, modelStatusLabel, syncStateLabel } from "@/lib/catalog-admin";
+import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
 type ListResponse = { items?: AdminModel[]; error?: { message?: string } };
 type Tab = "catalog" | "review";
 
-const createSchema = z.object({
-  public_id: z.string().trim().min(1, "请填写公开 ID"),
-  vendor: z.string().trim().min(1, "请填写厂商"),
-  display_name: z.string().trim().min(1, "请填写显示名"),
-});
-
 function ModelStatusCell({ status, syncState }: { status: string; syncState?: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <Badge tone={catalogStatusTone(status)}>{statusWord(status)}</Badge>
+      <Badge tone={catalogStatusTone(status)}>{modelStatusLabel(status)}</Badge>
       <span className="text-xs text-ink-secondary">{syncStateLabel(syncState)}</span>
     </div>
   );
@@ -46,12 +36,7 @@ export default function AdminModelsPage() {
   const [tab, setTab] = useState<Tab>("catalog");
   const [syncState, setSyncState] = useState("draft");
   const [createOpen, setCreateOpen] = useState(false);
-  const [message, setMessage] = useState("同步只进入 draft。通过、拒绝、发布要分开做，创建人不能审核或发布自己建的模型。");
-  const [createMessage, setCreateMessage] = useState("手工创建始终为 draft。客户目录需由另一位管理员审核后再发布。请勿修改 tokenhub/echo-1。");
-  const createForm = useForm<z.infer<typeof createSchema>>({
-    resolver: zodResolver(createSchema),
-    defaultValues: { public_id: "", vendor: "tokenhub", display_name: "" },
-  });
+  const [message, setMessage] = useState("待审核由另一人通过后再发布。创建人不能审核或发布自己建的模型。");
   const path = syncState ? `/admin/models?sync_state=${encodeURIComponent(syncState)}` : "/admin/models";
   const query = useQuery({
     queryKey: [path],
@@ -87,13 +72,38 @@ export default function AdminModelsPage() {
     await queryClient.invalidateQueries();
   }
 
+  const createButton = (
+    <IfCan action="models.write">
+      <Button size="sm" onClick={() => setCreateOpen(true)}>
+        创建模型
+      </Button>
+    </IfCan>
+  );
+
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <p className="text-sm text-ink-secondary">
-          公开模型是客户看到的货架名。目录 Tab 只看公开 ID、显示名、状态和途径；关联提供商、弃用和改价在详情。审核 Tab
-          处理 draft / 已通过 / 已拒绝，并可手工创建。同步上游在提供商详情。不要改 tokenhub/echo-1。
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="max-w-3xl">
+            <h2 className="text-lg font-semibold tracking-tight">模型</h2>
+            <p className="mt-1 text-sm text-ink-secondary">{CATALOG_HELP.models}</p>
+          </div>
+          {createButton}
+        </div>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+          <li className="rounded-control border border-hairline bg-canvas p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-ink-mute">1 公开模型</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink">给客户的名字和公开模型标识，例如 alibaba/happyhorse-1.0。</p>
+          </li>
+          <li className="rounded-control border border-hairline bg-canvas p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-ink-mute">2 提供商</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink">选定进货渠道，并填写该渠道内部的上游模型标识。</p>
+          </li>
+          <li className="rounded-control border border-hairline bg-canvas p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-ink-mute">3 路由组</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink">多家提供商时，在路由组里排提供商池和选路策略。</p>
+          </li>
+        </ol>
         <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="模型页签">
           <Button
             size="sm"
@@ -119,25 +129,32 @@ export default function AdminModelsPage() {
       {tab === "catalog" ? (
         <AdminListPanel<AdminModel>
           path="/admin/models"
-          title="模型目录"
+          title="已上架与全部模型"
           emptyTitle="还没有公开模型"
-          emptyDetail="从提供商同步或手工创建，审核后再发布到客户目录。"
+          emptyDetail="点「创建模型」一次填好名字和提供商，或从提供商详情同步后再审核发布。"
           rowHref={(row) => modelEditHref(row.id)}
           columns={[
             {
               accessorKey: "id",
-              header: "公开 ID",
+              header: CATALOG_LABEL.publicModelId,
               cell: ({ row }) => <span className="font-mono text-[13px]">{row.original.id}</span>,
             },
-            { accessorKey: "display_name", header: "显示名" },
+            { accessorKey: "display_name", header: CATALOG_LABEL.displayName },
+            {
+              accessorKey: "vendor",
+              header: CATALOG_LABEL.vendor,
+              cell: ({ row }) => vendorLabel(row.original.vendor),
+            },
             {
               accessorKey: "status",
               header: "状态",
-              cell: ({ row }) => <Badge tone={catalogStatusTone(row.original.status)}>{statusWord(row.original.status)}</Badge>,
+              cell: ({ row }) => (
+                <Badge tone={catalogStatusTone(row.original.status)}>{modelStatusLabel(row.original.status)}</Badge>
+              ),
             },
             {
               id: "providers",
-              header: "途径",
+              header: CATALOG_LABEL.providerPool,
               cell: ({ row }) => (
                 <span className="font-mono text-[12px] text-ink-secondary">{formatProviderSlugs(row.original.providers)}</span>
               ),
@@ -149,13 +166,8 @@ export default function AdminModelsPage() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <AdminH2 k="modelReview" className="text-lg font-semibold tracking-tight" />
-              <p className="mt-1 text-sm text-ink-secondary">同步和手工创建先进待审核。通过后才能发布到客户目录。创建人和审核人必须是不同账号。</p>
+              <p className="mt-1 text-sm text-ink-secondary">通过后才能出现在客户目录。创建人和审核人必须是不同账号。</p>
             </div>
-            <IfCan action="models.write">
-              <Button size="sm" onClick={() => setCreateOpen(true)}>
-                创建模型
-              </Button>
-            </IfCan>
           </div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Button size="sm" variant={syncState === "draft" ? "default" : "outline"} onClick={() => setSyncState("draft")}>
@@ -176,13 +188,14 @@ export default function AdminModelsPage() {
             columns={[
               {
                 id: "id",
-                header: "公开 ID",
+                header: CATALOG_LABEL.publicModelId,
                 cell: (item) => <span className="font-mono text-[13px]">{item.id}</span>,
               },
-              { id: "display_name", header: "显示名", cell: (item) => item.display_name },
+              { id: "display_name", header: CATALOG_LABEL.displayName, cell: (item) => item.display_name },
+              { id: "vendor", header: CATALOG_LABEL.vendor, cell: (item) => vendorLabel(item.vendor) },
               {
                 id: "providers",
-                header: "途径",
+                header: CATALOG_LABEL.providerPool,
                 cell: (item) => (
                   <span className="font-mono text-[12px] text-ink-secondary">{formatProviderSlugs(item.providers)}</span>
                 ),
@@ -203,7 +216,7 @@ export default function AdminModelsPage() {
                           <ConfirmButton
                             size="sm"
                             title="确认通过模型"
-                            description={`将通过 ${item.id}，并写入审计。创建人不能审核自己建的模型。`}
+                            description={`将通过 ${item.id}。创建人不能审核自己建的模型。`}
                             onConfirm={() => review(item.id, "approve")}
                           >
                             通过
@@ -212,7 +225,7 @@ export default function AdminModelsPage() {
                             size="sm"
                             variant="outline"
                             title="确认拒绝模型"
-                            description={`将拒绝 ${item.id}，并写入审计。`}
+                            description={`将拒绝 ${item.id}。`}
                             onConfirm={() => review(item.id, "reject")}
                           >
                             拒绝
@@ -235,8 +248,8 @@ export default function AdminModelsPage() {
                         </ConfirmButton>
                       ) : null}
                     </IfCan>
-                    <Link className="text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(item.id)}>
-                      编辑
+                    <Link className="inline-flex min-h-10 items-center text-sm text-brand-emphasis underline-offset-4 hover:underline" href={modelEditHref(item.id)}>
+                      去改价和能力
                     </Link>
                   </div>
                 ),
@@ -244,56 +257,17 @@ export default function AdminModelsPage() {
             ]}
             rows={items}
             getRowId={(item) => item.id}
-            empty={<EmptyState title="暂无待审模型" detail="从提供商同步或点「创建模型」后会出现在这里。" />}
+            empty={<EmptyState title="暂无待审模型" detail="点「创建模型」或从提供商同步后会出现在这里。" />}
           />
           <p className="mt-3 text-sm text-ink-secondary">{message}</p>
         </section>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>创建模型</DialogTitle>
-            <DialogDescription>
-              缺确认会 409。永远创建为 draft，不会立刻出现在客户目录。公开 ID 写成 厂商/模型，左边是原厂，不是进货渠道。
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...createForm}>
-            <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
-              <TextField control={createForm.control} name="public_id" label="公开 ID" placeholder="例如 tokenhub/ops-ui" />
-              <TextField control={createForm.control} name="vendor" label="厂商" placeholder="模型原厂，如 openai / tokenhub" />
-              <TextField control={createForm.control} name="display_name" label="显示名" />
-              <ConfirmButton
-                size="sm"
-                title="确认创建模型"
-                description="始终创建为 draft，不会立即出现在客户目录。请勿修改 tokenhub/echo-1。"
-                validate={() => createForm.trigger()}
-                onConfirm={createForm.handleSubmit(async (values) => {
-                  const res = await fetch(`${apiBase}/admin/models`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: confirmHeaders,
-                    body: JSON.stringify(values),
-                  });
-                  const body = await res.json();
-                  if (!res.ok) {
-                    setCreateMessage(body.error?.message || "创建失败");
-                    return;
-                  }
-                  createForm.reset();
-                  setCreateMessage(`已创建 ${body.item?.id} → ${body.item?.status} / ${body.item?.sync_state}`);
-                  setCreateOpen(false);
-                  setTab("review");
-                  await queryClient.invalidateQueries();
-                })}
-              >
-                创建模型
-              </ConfirmButton>
-              <p className="text-sm text-ink-secondary">{createMessage}</p>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <CreateModelDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => setTab("review")}
+      />
     </AdminShell>
   );
 }

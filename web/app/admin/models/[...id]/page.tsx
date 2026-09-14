@@ -8,12 +8,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
+import { VendorCombobox } from "@/components/vendor-combobox";
 import { CheckPills } from "@/components/check-pills";
 import { ConfirmButton } from "@/components/confirm-button";
 import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
 import { TokenizerCombobox } from "@/components/tokenizer-combobox";
+import { AdminSelectField } from "@/components/admin-select-field";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { AdminListPanel } from "../../list-panel";
 import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
@@ -30,13 +33,15 @@ import {
   KNOWN_MODALITIES,
   KNOWN_PARAMETERS,
   optionUnion,
+  vendorLabel,
 } from "@/lib/catalog";
-import { formatProviderSlugs, modelLifecycleEnabled, syncStateLabel } from "@/lib/catalog-admin";
+import { catalogStatusTone, formatProviderSlugs, modelLifecycleEnabled, modelStatusLabel, syncStateLabel } from "@/lib/catalog-admin";
+import { CATALOG_LABEL } from "@/lib/catalog-copy";
 import { IfCan } from "@/components/rbac/if-can";
 
 const attrSchema = z.object({
   display_name: z.string().trim().min(1, "请填写显示名"),
-  vendor: z.string().trim().min(1, "请填写厂商"),
+  vendor: z.string().trim().min(1, "请选择原厂"),
   supported_parameters: z.array(z.string()),
   input_modalities: z.array(z.string()),
   output_modalities: z.array(z.string()),
@@ -61,8 +66,8 @@ const priceSchema = z.object({
 });
 
 const attachSchema = z.object({
-  provider_id: z.string().trim().min(1, "请选择提供商标识"),
-  upstream_model_id: z.string().trim().min(1, "请填写上游模型名"),
+  provider_id: z.string().trim().min(1, "请选择提供商"),
+  upstream_model_id: z.string().trim().min(1, "请填写上游模型标识"),
 });
 
 export default function AdminModelEditPage() {
@@ -75,10 +80,10 @@ export default function AdminModelEditPage() {
     return raw || "";
   }, [params.id]);
   const queryClient = useQueryClient();
-  const [attrMessage, setAttrMessage] = useState("属性与定价写入目录服务，非前端本地数据。请勿修改 tokenhub/echo-1。");
+  const [attrMessage, setAttrMessage] = useState("只改客户看到的名字和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。");
   const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
-  const [lifeMessage, setLifeMessage] = useState("draft 需由另一位管理员审核后再单独发布。创建人不能审核或发布。弃用不删除历史映射和价格。");
-  const [attachMessage, setAttachMessage] = useState("为当前公开模型增加一条上游接入途径。上游模型名可以与公开 ID 不同。");
+  const [lifeMessage, setLifeMessage] = useState("草稿需由另一位管理员审核后再单独发布。创建人不能审核或发布。弃用不删除历史映射和价格。");
+  const [attachMessage, setAttachMessage] = useState("把这个公开模型接到一家提供商，并填写该提供商内部的上游模型标识。");
   const query = useQuery({
     queryKey: ["/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
@@ -167,74 +172,94 @@ export default function AdminModelEditPage() {
           返回模型列表
         </Link>
       </p>
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+        <p className="th-eyebrow text-ink-mute">MODEL</p>
+        <h2 className="mt-2 text-lg font-semibold tracking-tight">{model?.display_name || publicId || "模型详情"}</h2>
+        <p className="mt-1 font-mono text-sm text-ink-secondary">{publicId || "缺少公开模型标识"}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge tone={catalogStatusTone(model?.status)}>{modelStatusLabel(model?.status)}</Badge>
+          {model?.sync_state ? <Badge tone="neutral">{syncStateLabel(model.sync_state)}</Badge> : null}
+          {model?.vendor ? (
+            <span className="text-sm text-ink-secondary">
+              {CATALOG_LABEL.vendor} {vendorLabel(model.vendor)}
+            </span>
+          ) : null}
+          <span className="text-sm text-ink-secondary">
+            {CATALOG_LABEL.providerPool} {model ? formatProviderSlugs(model.providers) : "需要平台管理员登录后才能加载。"}
+          </span>
+          {model ? <span className="text-sm text-ink-secondary">{formatSellPrice(model.sell_price)}</span> : null}
+        </div>
+        {query.data?.error ? <p className="mt-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
+      </section>
       <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">编辑属性</h2>
+        <h2 className="text-lg font-semibold tracking-tight">客户怎么看到它</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          公开模型 <span className="font-mono">{publicId || "缺少 public id"}</span>
-          {model?.vendor ? ` · 厂商 ${model.vendor}` : ""}
-          {` · ${model?.status || query.data?.error?.message || "需要平台管理员登录后才能加载。"}`}
-          {model?.sync_state ? ` · ${syncStateLabel(model.sync_state)}` : ""}
-          {model ? ` · 途径 ${formatProviderSlugs(model.providers)}` : ""}
-          {model ? ` · ${formatSellPrice(model.sell_price)}` : ""}
+          改显示名、原厂和能力。{CATALOG_LABEL.publicModelId}创建后不能改。
         </p>
         <Form {...attrForm}>
           <form className="mt-4 grid max-w-3xl gap-4" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={attrForm.control} name="display_name" label="显示名" />
-            <TextField control={attrForm.control} name="vendor" label="厂商" />
+            <TextField control={attrForm.control} name="display_name" label={CATALOG_LABEL.displayName} />
+            <VendorCombobox control={attrForm.control} name="vendor" extra={[model?.vendor || ""]} />
             <CheckPills
               control={attrForm.control}
               name="supported_parameters"
               label="支持参数"
-              hint="点选目录里的参数名，不必手打。当前模型多出来的名字也会出现在这里。"
+              hint="客户请求里能带的选项。点选即可，不必手打。"
               options={optionUnion(KNOWN_PARAMETERS, selectedParams)}
             />
             <CheckPills
               control={attrForm.control}
               name="input_modalities"
-              label="输入模态"
+              label="能接收什么"
+              hint="客户能送进模型的内容类型。"
               options={optionUnion(KNOWN_MODALITIES, selectedInputs)}
             />
             <CheckPills
               control={attrForm.control}
               name="output_modalities"
-              label="输出模态"
+              label="能返回什么"
+              hint="模型能产出的内容类型。"
               options={optionUnion(KNOWN_MODALITIES, selectedOutputs)}
             />
             <CheckPills
               control={attrForm.control}
               name="supported_endpoints"
-              label="支持端点"
+              label="支持的调用方式"
+              hint="客户走哪类接口。不确定就保持现状。"
               options={optionUnion(KNOWN_ENDPOINTS, selectedEndpoints)}
             />
             <TokenizerCombobox control={attrForm.control} name="tokenizer" />
-            <FormField
-              control={attrForm.control}
-              name="rest_json"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>其余能力字段</FormLabel>
-                  <p className="text-sm text-ink-secondary">
-                    只放上面勾选盖不住的键，例如 video_attributes、unsupported_parameters。空白即可。
-                  </p>
-                  <FormControl>
-                    <textarea
-                      {...field}
-                      rows={6}
-                      spellCheck={false}
-                      aria-label="其余能力字段"
-                      placeholder="{}"
-                      className="min-h-24 w-full rounded-control border border-hairline bg-canvas-raised px-3 py-2 font-mono text-sm leading-normal text-ink placeholder:text-ink-mute focus:border-brand-emphasis"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <details className="rounded-control border border-hairline bg-canvas p-4">
+              <summary className="cursor-pointer text-sm font-medium">高级：其余能力字段</summary>
+              <FormField
+                control={attrForm.control}
+                name="rest_json"
+                render={({ field }) => (
+                  <FormItem className="mt-3">
+                    <FormLabel>其余能力字段</FormLabel>
+                    <p className="text-sm text-ink-secondary">
+                      只放上面勾选盖不住的键，例如 video_attributes。空白即可。
+                    </p>
+                    <FormControl>
+                      <textarea
+                        {...field}
+                        rows={6}
+                        spellCheck={false}
+                        aria-label="其余能力字段"
+                        placeholder="{}"
+                        className="min-h-24 w-full rounded-control border border-hairline bg-canvas-raised px-3 py-2 font-mono text-sm leading-normal text-ink placeholder:text-ink-mute focus:border-brand-emphasis"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </details>
             <ConfirmButton
               size="sm"
-              title="确认保存属性"
-              description="仅修改展示名、厂商和能力，不修改 public id。请勿修改 tokenhub/echo-1。"
+              title="确认保存显示信息"
+              description="只改显示名、原厂和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。"
               validate={() => attrForm.trigger()}
               onConfirm={attrForm.handleSubmit(async (values) => {
                 let capabilities: Record<string, unknown>;
@@ -263,7 +288,7 @@ export default function AdminModelEditPage() {
                 await reload();
               })}
             >
-              保存属性
+              保存显示信息
             </ConfirmButton>
             <p className="text-sm text-ink-secondary">{attrMessage}</p>
           </form>
@@ -274,8 +299,7 @@ export default function AdminModelEditPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">定价</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          发布新版本会把当前 published 标成 superseded。空字段不会覆盖已有维度。历史版本只读。Token
-          价按每百万 token 的美元填写，例如 2 表示 $2/M。发布时换算成内部美元/token。
+          发布新价格只影响之后的请求，旧账单保持快照。空着的格子不会覆盖已有单价。Token 价按每百万 token 的美元填写，例如 2 表示 $2/M。
         </p>
         <Form {...priceForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
@@ -292,7 +316,15 @@ export default function AdminModelEditPage() {
             <TextField control={priceForm.control} name="video_second" label="视频秒单价" suffix="美元/秒" />
             <TextField control={priceForm.control} name="image_count" label="图片次单价" suffix="美元/张" />
             <TextField control={priceForm.control} name="audio_second" label="音频秒单价" suffix="美元/秒" />
-            <TextField control={priceForm.control} name="currency" label="币种" />
+            <AdminSelectField
+              control={priceForm.control}
+              name="currency"
+              label="币种"
+              options={[
+                { value: "USD", label: "美元 USD" },
+                { value: "CNY", label: "人民币 CNY" },
+              ]}
+            />
             <SealConfirm
               size="sm"
               title="新牌价只约束之后的请求，已入账金额不会改写。"
@@ -352,24 +384,25 @@ export default function AdminModelEditPage() {
       </IfCan>
       <IfCan action="models.attach">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">关联提供商</h2>
+        <h2 className="text-lg font-semibold tracking-tight">接到哪家提供商</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          公开 ID 已锁定为 <span className="font-mono">{publicId || "缺少 public id"}</span>。上游模型名可以与公开 ID 不同。
+          {CATALOG_LABEL.publicModelId}已锁定为 <span className="font-mono">{publicId || "缺少标识"}</span>。
+          {CATALOG_LABEL.upstreamModelId}可以不同。
         </p>
         <Form {...attachForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
             <ProviderSlugCombobox
               control={attachForm.control}
               name="provider_id"
-              label="提供商标识"
+              label={CATALOG_LABEL.provider}
               options={providerOptions}
               placeholder="输入名称或标识筛选"
             />
-            <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="该提供商内部的模型 ID" />
+            <TextField control={attachForm.control} name="upstream_model_id" label={CATALOG_LABEL.upstreamModelId} placeholder="这家提供商内部的模型名" />
             <ConfirmButton
               size="sm"
-              title="确认关联提供商"
-              description="上游名称可以与公开 ID 不同。"
+              title="确认接到提供商"
+              description={`${CATALOG_LABEL.upstreamModelId}可以与${CATALOG_LABEL.publicModelId}不同。`}
               validate={() => attachForm.trigger()}
               onConfirm={attachForm.handleSubmit(async (values) => {
                 const res = await fetch(`${apiBase}/admin/models/attach`, {
@@ -392,7 +425,7 @@ export default function AdminModelEditPage() {
                 await reload();
               })}
             >
-              关联
+              接到提供商
             </ConfirmButton>
             <p className="text-sm text-ink-secondary">{attachMessage}</p>
           </form>
@@ -402,7 +435,11 @@ export default function AdminModelEditPage() {
       <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">上架</h2>
-        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。请勿修改 tokenhub/echo-1。已发布模型不能再审核或重复发布，后端会直接拒绝。</p>
+        <p className="mt-1 text-sm text-ink-secondary">
+          当前 {modelStatusLabel(model?.status)}
+          {model?.sync_state ? ` · ${syncStateLabel(model.sync_state)}` : ""}
+          。请勿修改 tokenhub/echo-1。已上架的模型不能再审核或重复发布。
+        </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ConfirmButton
             size="sm"

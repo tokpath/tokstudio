@@ -1,25 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { AdminSelectField } from "@/components/admin-select-field";
 import { ConfirmButton } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { protocolOptions, providerHref } from "@/lib/catalog-admin";
-
-const selectClass =
-  "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
+import { CATALOG_LABEL, slugifyCatalogId, suggestProviderSlug } from "@/lib/catalog-copy";
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "请填写名称"),
-  slug: z.string().trim().min(1, "请填写标识"),
+  slug: z.string().trim().min(1, "请填写提供商标识"),
   kind: z.enum(["direct", "aggregator"]),
   adapter: z.string().trim().min(1, "请选择协议"),
   base_url: z.string().trim(),
@@ -34,14 +33,38 @@ export function CreateProviderDialog({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("一家提供商可关联多个公开模型，例如 OpenAI 同时提供 gpt-5.6 和 gpt-4.1。创建后请前往详情页填写上游 Key。");
+  const previousSlug = useRef("");
+  const [message, setMessage] = useState("提供商是进货渠道。创建后去详情页填密钥，再到模型页接到公开模型。");
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { name: "", slug: "", kind: "direct", adapter: "openai", base_url: "" },
   });
+  const name = form.watch("name");
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const current = form.getValues("slug");
+    const next = suggestProviderSlug(name, current, previousSlug.current);
+    if (next !== current) {
+      form.setValue("slug", next);
+    }
+    previousSlug.current = slugifyCatalogId(name);
+  }, [form, name, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          form.reset({ name: "", slug: "", kind: "direct", adapter: "openai", base_url: "" });
+          previousSlug.current = "";
+          setMessage("提供商是进货渠道。创建后去详情页填密钥，再到模型页接到公开模型。");
+        }
+        onOpenChange(next);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>接入提供商</DialogTitle>
@@ -52,45 +75,26 @@ export function CreateProviderDialog({
         <Form {...form}>
           <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="name" label="名称" placeholder="例如 OpenAI" />
-            <TextField control={form.control} name="slug" label="标识" placeholder="例如 openai，创建后不要改" />
-            <FormField
+            <TextField control={form.control} name="slug" label={CATALOG_LABEL.providerSlug} placeholder="例如 openai，创建后不要改" />
+            <p className="text-sm text-ink-secondary">会按名称自动生成，创建后不要改。</p>
+            <AdminSelectField
               control={form.control}
               name="kind"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>类型</FormLabel>
-                  <FormControl>
-                    <select className={selectClass} aria-label="类型" {...field}>
-                      <option value="direct">直连 · 官方或兼容协议</option>
-                      <option value="aggregator">聚合 · OpenRouter 等，禁止回流 TokenHub</option>
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="类型"
+              options={[
+                { value: "direct", label: "直连 · 官方或兼容协议" },
+                { value: "aggregator", label: "聚合 · OpenRouter 等，禁止回流 TokenHub" },
+              ]}
             />
-            <FormField
+            <AdminSelectField
               control={form.control}
               name="adapter"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>协议</FormLabel>
-                  <FormControl>
-                    <select className={selectClass} aria-label="协议" {...field}>
-                      {protocolOptions().map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormDescription>
-                    请求怎么发给上游。同一协议可接多家（例如官方 OpenAI 和百炼都选 OpenAI 兼容）。发请求的引擎由系统选择。
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="协议"
+              options={protocolOptions(form.watch("adapter"))}
             />
+            <p className="text-sm text-ink-secondary">
+              请求怎么发给上游。同一协议可接多家（例如官方 OpenAI 和百炼都选 OpenAI 兼容）。
+            </p>
             <TextField
               control={form.control}
               name="base_url"
@@ -121,6 +125,7 @@ export function CreateProviderDialog({
                   return;
                 }
                 form.reset({ name: "", slug: "", kind: "direct", adapter: "openai", base_url: "" });
+                previousSlug.current = "";
                 await queryClient.invalidateQueries();
                 onOpenChange(false);
                 router.push(providerHref(String(body.item?.slug || body.item?.id || values.slug)));

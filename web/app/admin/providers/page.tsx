@@ -17,6 +17,7 @@ import {
   providerStatusLabel,
   catalogStatusTone,
 } from "@/lib/catalog-admin";
+import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
 
 type Provider = {
   id: string;
@@ -35,9 +36,7 @@ export default function AdminProvidersPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <p className="text-sm text-ink-secondary">
-          提供商是 TokenHub 实际调用的上游，例如 OpenAI、Anthropic、火山方舟。列表展示健康状态、运行状态和账号池数量。凭据、已关联模型与同步操作在详情页。探测走上游沙箱、不会计费。提供商仅由平台接入，租户不能自带上游 Key。
-        </p>
+        <p className="text-sm text-ink-secondary">{CATALOG_HELP.providers}</p>
       </section>
       <AdminListPanel<Provider>
         path="/admin/providers"
@@ -56,7 +55,7 @@ export default function AdminProvidersPage() {
           { accessorKey: "name", header: "名称" },
           {
             accessorKey: "slug",
-            header: "标识",
+            header: CATALOG_LABEL.providerSlug,
             cell: ({ row }) => <span className="font-mono text-[13px]">{row.original.slug}</span>,
           },
           {

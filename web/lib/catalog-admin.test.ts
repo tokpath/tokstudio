@@ -8,13 +8,16 @@ import {
   filterProviderOptions,
   formatRpm,
   modelLifecycleEnabled,
+  modelStatusLabel,
   healthLabel,
   healthTone,
   protocolOptions,
   providerHref,
   providerKindLabel,
   providerStatusLabel,
+  routeStatusLabel,
   routeStatusOptions,
+  routeStrategyLabel,
   routeStrategyOptions,
   statusWord,
   syncStateLabel,
@@ -41,11 +44,11 @@ describe("admin catalog labels", () => {
     expect(formatRpm(30)).toBe("30");
     expect(formatCredentialRef("")).toBe("尚未配置");
     expect(formatCredentialRef("crd_123")).toBe("已配置");
-    expect(formatProviderSlugs([])).toBe("尚未关联");
+    expect(formatProviderSlugs([])).toBe("尚未接入提供商");
     expect(formatProviderSlugs(["ark-seedance", "openrouter-seedance"])).toBe(
       "ark-seedance · openrouter-seedance",
     );
-    expect(formatMappedModels([])).toBe("尚未关联模型");
+    expect(formatMappedModels([])).toBe("尚未接到公开模型");
     expect(formatMappedModels([{ public_id: "tokenhub/echo-1" }, { public_id: "tokenhub/oem-demo" }])).toBe(
       "tokenhub/echo-1 · tokenhub/oem-demo",
     );
@@ -127,5 +130,9 @@ describe("admin catalog labels", () => {
     expect(routeStrategyOptions("custom")[0]).toEqual({ value: "custom", label: "custom" });
     expect(routeStatusOptions().map((item) => item.value)).toEqual(["active", "inactive"]);
     expect(routeStatusOptions("paused")[0]).toEqual({ value: "paused", label: "paused" });
+    expect(routeStrategyLabel("priority")).toBe("按指定顺序");
+    expect(routeStatusLabel("active")).toBe("启用选路");
+    expect(modelStatusLabel("published")).toBe("已上架");
+    expect(modelStatusLabel("draft")).toBe("草稿");
   });
 });

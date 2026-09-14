@@ -77,6 +77,12 @@ describe("admin catalog labels", () => {
   });
 
   it("grays out listing actions that the catalog API would reject", () => {
+    expect(modelLifecycleEnabled("", "")).toEqual({
+      approve: false,
+      reject: false,
+      publish: false,
+      deprecate: false,
+    });
     expect(modelLifecycleEnabled("published", "published")).toEqual({
       approve: false,
       reject: false,

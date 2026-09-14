@@ -324,10 +324,11 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "关联提供商" })).toBeVisible();
   await expect(page.getByRole("button", { name: "关联" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "上架" })).toBeVisible();
+  // Playwright CI 只起 Next，没有目录 API；未加载模型时四个动作都应置灰。
   await expect(page.getByRole("button", { name: "拒绝" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "通过" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "发布", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "弃用此模型" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "弃用此模型" })).toBeDisabled();
 });
 
 test("admin OEM brand download shows storage source and forbids a success check", async ({ page }) => {

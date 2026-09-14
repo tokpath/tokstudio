@@ -132,7 +132,7 @@ test("admin reconciliation headings are unique", async ({ page }) => {
 test("admin providers list and detail", async ({ page }) => {
   await page.goto("/admin/providers");
   await expect(page.getByRole("heading", { name: "提供商", exact: true })).toBeVisible();
-  await expect(page.getByText("账号池数量")).toBeVisible();
+  await expect(page.getByText("提供商是进货渠道")).toBeVisible();
   await expect(page.getByRole("button", { name: "新建提供商" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "账号池" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "已关联模型" })).toHaveCount(0);

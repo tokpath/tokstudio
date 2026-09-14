@@ -10,6 +10,32 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 )
 
+func TestChatCompletionsURL(t *testing.T) {
+	if got := chatCompletionsURL(""); got != "" {
+		t.Fatalf("empty base: %q", got)
+	}
+	for in, want := range map[string]string{
+		"https://coding.dashscope.aliyuncs.com/v1":                  "https://coding.dashscope.aliyuncs.com/v1/chat/completions",
+		"https://coding.dashscope.aliyuncs.com/v1/":                 "https://coding.dashscope.aliyuncs.com/v1/chat/completions",
+		"https://coding.dashscope.aliyuncs.com":                     "https://coding.dashscope.aliyuncs.com/v1/chat/completions",
+		"https://coding.dashscope.aliyuncs.com/v1/chat/completions": "https://coding.dashscope.aliyuncs.com/v1/chat/completions",
+	} {
+		if got := chatCompletionsURL(in); got != want {
+			t.Fatalf("chatCompletionsURL(%q)=%q want %q", in, got, want)
+		}
+	}
+}
+
+func TestWithProviderChatURLSetsAbsolutePath(t *testing.T) {
+	ctx := context.WithValue(context.Background(), ctxProviderBaseURLKey, "https://coding.dashscope.aliyuncs.com/v1")
+	ctx = withProviderChatURL(ctx)
+	got, _ := ctx.Value(schemas.BifrostContextKeyURLPath).(string)
+	want := "https://coding.dashscope.aliyuncs.com/v1/chat/completions"
+	if got != want {
+		t.Fatalf("url path %q want %q", got, want)
+	}
+}
+
 func TestBifrostAdapterWithoutClient(t *testing.T) {
 	out, err := BifrostAdapter{}.Chat(context.Background(), "x", "ok", ChatRequest{})
 	if err == nil || out.HTTPStatus != 503 {

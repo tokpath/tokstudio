@@ -147,6 +147,7 @@ type RouteCandidate struct {
 	ProviderID      string
 	ProviderSlug    string
 	Adapter         string
+	BaseURL         string
 	UpstreamModelID string
 	TestBehavior    string
 	Health          string
@@ -580,7 +581,7 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		}
 		out = append(out, RouteCandidate{
 			ProviderID: provider.ID, ProviderSlug: provider.Slug, Adapter: provider.Adapter,
-			UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
+			BaseURL: provider.BaseURL, UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
 			Priority: cand.Priority, Weight: weight, CostMinor: s.providerCost(ctx, model.ID, provider.ID),
 			AccountID: accountID, TimeoutMS: provider.TimeoutMS,
 		})

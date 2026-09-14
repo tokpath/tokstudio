@@ -24,6 +24,9 @@ func TestValidateUpstreamURL(t *testing.T) {
 	if err := ValidateUpstreamURL("https://api.openai.com/v1", true, nil); err != nil {
 		t.Fatalf("openai https should pass: %v", err)
 	}
+	if err := ValidateUpstreamURL("https://coding.dashscope.aliyuncs.com/v1", true, nil); err != nil {
+		t.Fatalf("dashscope https should pass: %v", err)
+	}
 	if err := ValidateUpstreamURL("https://proxy.mycorp.test", true, []string{"mycorp.test"}); err != nil {
 		t.Fatalf("extra allowlist should pass: %v", err)
 	}

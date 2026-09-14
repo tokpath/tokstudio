@@ -276,6 +276,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			"channel_org_id":  in.Caller.ChannelOrgID,
 			"public_model_id": model.ID,
 		})
+		if strings.TrimSpace(cand.BaseURL) != "" {
+			callCtx = context.WithValue(callCtx, ctxProviderBaseURLKey, cand.BaseURL)
+		}
 		if cand.AccountID != "" && s.encKey != "" {
 			if secret, err := s.catalog.RevealAccount(callCtx, cand.AccountID, s.encKey); err == nil && secret != "" {
 				callCtx = context.WithValue(callCtx, ctxAccountSecretKey, secret)

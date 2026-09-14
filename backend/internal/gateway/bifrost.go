@@ -23,6 +23,7 @@ const (
 	ctxPublicModelKey      ctxKey = "tokenhub.public_model_id"
 	ctxAttemptIDKey        ctxKey = "tokenhub.attempt_id"
 	ctxAccountSecretKey    ctxKey = "tokenhub.account_secret"
+	ctxProviderBaseURLKey  ctxKey = "tokenhub.provider_base_url"
 )
 
 // ContextWithRequestID 把账务 request_id 放进 context，供 Bifrost metadata 透传。
@@ -146,6 +147,7 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("")},
 		}}
 	}
+	ctx = withProviderChatURL(ctx)
 	bctx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 	bctx.SetValue(bifrostProviderSlugKey, providerSlug)
 	resp, berr := a.Runtime.Client.ChatCompletionRequest(bctx, &schemas.BifrostChatRequest{
@@ -429,6 +431,28 @@ func mapBifrostError(berr *schemas.BifrostError) AdapterResult {
 		class = "provider_unavailable"
 	}
 	return AdapterResult{HTTPStatus: status, ErrorClass: class}
+}
+
+func withProviderChatURL(ctx context.Context) context.Context {
+	u := chatCompletionsURL(contextString(ctx, ctxProviderBaseURLKey))
+	if u == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, schemas.BifrostContextKeyURLPath, u)
+}
+
+func chatCompletionsURL(base string) string {
+	base = strings.TrimRight(strings.TrimSpace(base), "/")
+	if base == "" {
+		return ""
+	}
+	if strings.HasSuffix(base, "/chat/completions") {
+		return base
+	}
+	if strings.HasSuffix(base, "/v1") {
+		return base + "/chat/completions"
+	}
+	return base + "/v1/chat/completions"
 }
 
 func resolveBifrostProvider(slug string) schemas.ModelProvider {

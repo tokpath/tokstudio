@@ -17,6 +17,7 @@ var defaultAllowHosts = []string{
 	"generativelanguage.googleapis.com",
 	"ark.cn-beijing.volces.com",
 	"ark.ap-southeast.volces.com",
+	"dashscope.aliyuncs.com",
 }
 
 // ValidateUpstreamURL 校验 Provider Base URL。

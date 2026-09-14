@@ -1,4 +1,5 @@
 import { fetchAPI } from "@/lib/api";
+import { perTokenToPerMillion } from "@/lib/token-price";
 
 export type CatalogModel = {
   id: string;
@@ -244,10 +245,10 @@ export function formatSellPrice(price?: Record<string, unknown> | null): string 
   }
   const parts: string[] = [];
   if (price.input != null && String(price.input) !== "") {
-    parts.push(`in ${price.input}`);
+    parts.push(`in ${perTokenToPerMillion(String(price.input))}/M`);
   }
   if (price.output != null && String(price.output) !== "") {
-    parts.push(`out ${price.output}`);
+    parts.push(`out ${perTokenToPerMillion(String(price.output))}/M`);
   }
   if (price.video_second != null && String(price.video_second) !== "") {
     parts.push(`video ${price.video_second}`);
@@ -291,4 +292,159 @@ export function extraCapabilitiesJSON(capabilities?: Record<string, unknown> | n
 export function buildCapabilities(params: string, extraJSON: string): Record<string, unknown> {
   const extra = extraJSON.trim() ? (JSON.parse(extraJSON) as Record<string, unknown>) : {};
   return { ...extra, supported_parameters: parseSupportedParameters(params) };
+}
+
+export const KNOWN_PARAMETERS = [
+  "stream",
+  "temperature",
+  "top_p",
+  "max_tokens",
+  "stop",
+  "tools",
+  "tool_choice",
+  "response_format",
+  "reasoning",
+  "vision",
+  "json",
+  "messages",
+  "model",
+  "system",
+  "prompt",
+  "duration",
+  "resolution",
+  "aspect_ratio",
+  "size",
+  "generate_audio",
+  "seed",
+  "frame_images",
+  "input_references",
+  "callback_url",
+  "provider",
+] as const;
+
+export const KNOWN_MODALITIES = ["text", "image", "video", "audio", "file"] as const;
+
+export const KNOWN_ENDPOINTS = [
+  "/v1/chat/completions",
+  "/v1/responses",
+  "/v1/images/generations",
+  "/v1/videos",
+  "/v1/audio/transcriptions",
+  "/v1/embeddings",
+] as const;
+
+export const KNOWN_TOKENIZERS = [
+  "gpt",
+  "claude",
+  "gemini",
+  "qwen",
+  "deepseek",
+  "glm",
+  "grok",
+  "kimi",
+  "doubao",
+  "minimax",
+  "seedance",
+  "wan",
+  "happyhorse",
+] as const;
+
+export type CapabilityFormValues = {
+  supported_parameters: string[];
+  input_modalities: string[];
+  output_modalities: string[];
+  supported_endpoints: string[];
+  tokenizer: string;
+  rest_json: string;
+};
+
+export function optionUnion(known: readonly string[], current: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...known, ...(current ?? [])]) {
+    const value = String(item).trim();
+    if (!value || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+export function capabilitiesToForm(caps?: Record<string, unknown> | null): CapabilityFormValues {
+  const extra: Record<string, unknown> = { ...(caps || {}) };
+  const params = asStringList(extra.supported_parameters);
+  delete extra.supported_parameters;
+  const endpoints = asStringList(extra.supported_endpoints);
+  delete extra.supported_endpoints;
+  const archRaw = extra.architecture;
+  delete extra.architecture;
+  const arch =
+    archRaw && typeof archRaw === "object" && !Array.isArray(archRaw)
+      ? { ...(archRaw as Record<string, unknown>) }
+      : {};
+  const input = asStringList(arch.input_modalities);
+  const output = asStringList(arch.output_modalities);
+  const tokenizer = arch.tokenizer == null || arch.tokenizer === "" ? "" : String(arch.tokenizer);
+  delete arch.input_modalities;
+  delete arch.output_modalities;
+  delete arch.tokenizer;
+  delete arch.modality;
+  if (Object.keys(arch).length > 0) {
+    extra.architecture = arch;
+  }
+  return {
+    supported_parameters: params,
+    input_modalities: input,
+    output_modalities: output,
+    supported_endpoints: endpoints,
+    tokenizer,
+    rest_json: Object.keys(extra).length > 0 ? JSON.stringify(extra, null, 2) : "",
+  };
+}
+
+export function formToCapabilities(form: CapabilityFormValues): Record<string, unknown> {
+  const rest = form.rest_json.trim() ? (JSON.parse(form.rest_json) as unknown) : {};
+  if (!rest || typeof rest !== "object" || Array.isArray(rest)) {
+    throw new Error("rest json");
+  }
+  const extra = { ...(rest as Record<string, unknown>) };
+  const archRest =
+    extra.architecture && typeof extra.architecture === "object" && !Array.isArray(extra.architecture)
+      ? { ...(extra.architecture as Record<string, unknown>) }
+      : {};
+  delete extra.architecture;
+  const inputs = orderKnown(KNOWN_MODALITIES, form.input_modalities);
+  const outputs = orderKnown(KNOWN_MODALITIES, form.output_modalities);
+  const tokenizer = form.tokenizer.trim();
+  const architecture: Record<string, unknown> = {
+    ...archRest,
+    input_modalities: inputs,
+    output_modalities: outputs,
+    tokenizer: tokenizer || null,
+    modality: formatModality(inputs, outputs),
+  };
+  const hasArch = inputs.length > 0 || outputs.length > 0 || tokenizer || Object.keys(archRest).length > 0;
+  return {
+    ...extra,
+    ...(hasArch ? { architecture } : {}),
+    supported_endpoints: orderKnown(KNOWN_ENDPOINTS, form.supported_endpoints),
+    supported_parameters: orderKnown(KNOWN_PARAMETERS, form.supported_parameters),
+  };
+}
+
+function asStringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function orderKnown(known: readonly string[], current: string[]): string[] {
+  return optionUnion(known.filter((item) => current.includes(item)), current.filter((item) => !known.includes(item)));
+}
+
+function formatModality(inputs: string[], outputs: string[]): string {
+  return `${inputs.join("+") || "?"}->${outputs.join("+") || "?"}`;
 }

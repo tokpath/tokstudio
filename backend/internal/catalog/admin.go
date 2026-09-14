@@ -295,7 +295,12 @@ func (s *Service) ListRoutes(ctx context.Context) ([]RouteView, error) {
 		_ = s.db.WithContext(ctx).Where("route_group_id = ?", group.ID).Order("priority").Find(&cands).Error
 		items := make([]map[string]any, 0, len(cands))
 		for _, cand := range cands {
-			items = append(items, map[string]any{"provider_id": cand.ProviderID, "priority": cand.Priority, "weight": cand.Weight})
+			var provider providerRow
+			_ = s.db.WithContext(ctx).Where("id = ?", cand.ProviderID).First(&provider).Error
+			items = append(items, map[string]any{
+				"provider_id": cand.ProviderID, "provider_slug": provider.Slug,
+				"priority": cand.Priority, "weight": cand.Weight,
+			})
 		}
 		publicID := model.PublicID
 		if publicID == "" {
@@ -374,6 +379,10 @@ func (s *Service) CreateRoute(ctx context.Context, in RouteInput) (*RouteView, e
 			return err
 		}
 		for i, cand := range in.Candidates {
+			var provider providerRow
+			if err := tx.Where("id = ? OR slug = ?", cand.ProviderID, cand.ProviderID).First(&provider).Error; err != nil {
+				return err
+			}
 			priority := cand.Priority
 			if priority == 0 {
 				priority = i + 1
@@ -382,7 +391,7 @@ func (s *Service) CreateRoute(ctx context.Context, in RouteInput) (*RouteView, e
 			if weight == 0 {
 				weight = 1
 			}
-			if err := tx.Create(&candidateRow{RouteGroupID: group.ID, ProviderID: cand.ProviderID, Priority: priority, Weight: weight}).Error; err != nil {
+			if err := tx.Create(&candidateRow{RouteGroupID: group.ID, ProviderID: provider.ID, Priority: priority, Weight: weight}).Error; err != nil {
 				return err
 			}
 		}
@@ -426,6 +435,10 @@ func (s *Service) PatchRoute(ctx context.Context, routeID string, in RouteInput)
 				return err
 			}
 			for i, cand := range in.Candidates {
+				var provider providerRow
+				if err := tx.Where("id = ? OR slug = ?", cand.ProviderID, cand.ProviderID).First(&provider).Error; err != nil {
+					return err
+				}
 				priority := cand.Priority
 				if priority == 0 {
 					priority = i + 1
@@ -434,7 +447,7 @@ func (s *Service) PatchRoute(ctx context.Context, routeID string, in RouteInput)
 				if weight == 0 {
 					weight = 1
 				}
-				if err := tx.Create(&candidateRow{RouteGroupID: routeID, ProviderID: cand.ProviderID, Priority: priority, Weight: weight}).Error; err != nil {
+				if err := tx.Create(&candidateRow{RouteGroupID: routeID, ProviderID: provider.ID, Priority: priority, Weight: weight}).Error; err != nil {
 					return err
 				}
 			}

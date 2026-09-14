@@ -21,9 +21,9 @@ import { modelEditHref } from "@/lib/catalog";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import {
-  PROVIDER_ADAPTERS,
   PROVIDER_STATUSES,
   adapterLabel,
+  protocolOptions,
   catalogStatusTone,
   formatCredentialRef,
   healthLabel,
@@ -57,7 +57,7 @@ type Account = { id: string; label: string; fingerprint: string; status: string;
 const patchSchema = z.object({
   name: z.string().trim().min(1, "请填写名称"),
   kind: z.enum(["direct", "aggregator"]),
-  adapter: z.string().trim().min(1, "请选择适配器"),
+  adapter: z.string().trim().min(1, "请选择协议"),
   base_url: z.string().trim(),
   status: z.string().trim().min(1, "请选择状态"),
   timeout_ms: z.string().trim(),
@@ -181,7 +181,7 @@ export default function AdminProviderDetailPage() {
           <Form {...form}>
             <form className="grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
               <p className="text-sm text-ink-secondary">
-                改状态、适配器和上游地址。标识创建后不要改。超时只影响调用这家上游时等多久。
+                改状态、协议和上游地址。标识创建后不要改。超时只影响调用这家上游时等多久。
               </p>
               <TextField control={form.control} name="name" label="名称" />
               <FormField
@@ -205,10 +205,10 @@ export default function AdminProviderDetailPage() {
                 name="adapter"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>适配器</FormLabel>
+                    <FormLabel>协议</FormLabel>
                     <FormControl>
-                      <select className={selectClass} aria-label="适配器" {...field}>
-                        {PROVIDER_ADAPTERS.map((option) => (
+                      <select className={selectClass} aria-label="协议" {...field}>
+                        {protocolOptions(field.value).map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>

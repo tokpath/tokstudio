@@ -16,6 +16,7 @@ export function TextField<T extends FieldValues>({
   autoComplete,
   showLabel = true,
   icon: Icon,
+  suffix,
 }: {
   control: Control<T>;
   name: FieldPath<T>;
@@ -26,7 +27,9 @@ export function TextField<T extends FieldValues>({
   autoComplete?: string;
   showLabel?: boolean;
   icon?: LucideIcon;
+  suffix?: string;
 }) {
+  const ariaLabel = suffix ? `${label}（${suffix}）` : label;
   return (
     <FormField
       control={control}
@@ -35,27 +38,34 @@ export function TextField<T extends FieldValues>({
         <FormItem>
           {showLabel ? <FormLabel>{label}</FormLabel> : null}
           <FormControl>
-            {Icon ? (
+            {Icon || suffix ? (
               <div className="relative w-full">
-                <Icon
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute"
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
+                {Icon ? (
+                  <Icon
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                ) : null}
                 <Input
                   type={type}
                   placeholder={placeholder ?? label}
-                  aria-label={label}
-                  className={cn("pl-9", className)}
+                  aria-label={ariaLabel}
+                  className={cn(Icon && "pl-9", suffix && "pr-16", className)}
                   autoComplete={autoComplete}
                   {...field}
                 />
+                {suffix ? (
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-mute">
+                    {suffix}
+                  </span>
+                ) : null}
               </div>
             ) : (
               <Input
                 type={type}
                 placeholder={placeholder ?? label}
-                aria-label={label}
+                aria-label={ariaLabel}
                 className={className}
                 autoComplete={autoComplete}
                 {...field}

@@ -1,3 +1,4 @@
+import { formatIOPerMillion } from "@/lib/token-price";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export type PriceBook = {
@@ -28,10 +29,10 @@ export const priceBookColumns: ColumnDef<PriceBook, unknown>[] = [
     header: "Effective",
     cell: ({ row }) => <span className={tabular}>{row.original.effective_at || "—"}</span>,
   },
-  { accessorKey: "upstream", header: "Upstream", cell: ({ row }) => <PriceCell value={row.original.upstream} /> },
-  { accessorKey: "wholesale", header: "Wholesale", cell: ({ row }) => <PriceCell value={row.original.wholesale} /> },
-  { accessorKey: "sell", header: "Sell", cell: ({ row }) => <PriceCell value={row.original.sell} /> },
-  { accessorKey: "channel", header: "Channel", cell: ({ row }) => <PriceCell value={row.original.channel} /> },
+  { accessorKey: "upstream", header: "Upstream /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.upstream)} /> },
+  { accessorKey: "wholesale", header: "Wholesale /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.wholesale)} /> },
+  { accessorKey: "sell", header: "Sell /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.sell)} /> },
+  { accessorKey: "channel", header: "Channel /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.channel)} /> },
 ];
 
 export function publishedPriceLabel(

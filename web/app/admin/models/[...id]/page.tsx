@@ -7,31 +7,42 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
+import { CheckPills } from "@/components/check-pills";
 import { ConfirmButton } from "@/components/confirm-button";
 import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
-import { Form } from "@/components/ui/form";
+import { TokenizerCombobox } from "@/components/tokenizer-combobox";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminListPanel } from "../../list-panel";
 import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
 import {
   type AdminModel,
-  buildCapabilities,
-  extraCapabilitiesJSON,
+  capabilitiesToForm,
+  formToCapabilities,
   formatSellPrice,
-  supportedParametersText,
+  KNOWN_ENDPOINTS,
+  KNOWN_MODALITIES,
+  KNOWN_PARAMETERS,
+  optionUnion,
 } from "@/lib/catalog";
-import { formatProviderSlugs, syncStateLabel } from "@/lib/catalog-admin";
+import { formatProviderSlugs, modelLifecycleEnabled, syncStateLabel } from "@/lib/catalog-admin";
 import { IfCan } from "@/components/rbac/if-can";
 
 const attrSchema = z.object({
   display_name: z.string().trim().min(1, "请填写显示名"),
   vendor: z.string().trim().min(1, "请填写厂商"),
-  supported_parameters: z.string(),
-  capabilities_json: z.string(),
+  supported_parameters: z.array(z.string()),
+  input_modalities: z.array(z.string()),
+  output_modalities: z.array(z.string()),
+  supported_endpoints: z.array(z.string()),
+  tokenizer: z.string(),
+  rest_json: z.string(),
 });
 
 const priceSchema = z.object({
@@ -49,19 +60,8 @@ const priceSchema = z.object({
   currency: z.string().trim().min(1, "请填写币种"),
 });
 
-function dim(input: string, output: string) {
-  const next: Record<string, string> = {};
-  if (input.trim()) {
-    next.input = input.trim();
-  }
-  if (output.trim()) {
-    next.output = output.trim();
-  }
-  return Object.keys(next).length > 0 ? next : undefined;
-}
-
 const attachSchema = z.object({
-  provider_id: z.string().trim().min(1, "请填写提供商 ID"),
+  provider_id: z.string().trim().min(1, "请选择提供商标识"),
   upstream_model_id: z.string().trim().min(1, "请填写上游模型名"),
 });
 
@@ -84,11 +84,30 @@ export default function AdminModelEditPage() {
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
     enabled: publicId.length > 0,
   });
+  const providersQuery = useQuery({
+    queryKey: ["/admin/providers"],
+    queryFn: () => apiClient<{ items?: { id: string; name: string; slug: string }[] }>("GET", "/admin/providers"),
+  });
+  const providerOptions = providersQuery.data?.items ?? [];
   const model = query.data?.item;
+  const life = modelLifecycleEnabled(model?.status, model?.sync_state);
   const attrForm = useForm<z.infer<typeof attrSchema>>({
     resolver: zodResolver(attrSchema),
-    defaultValues: { display_name: "", vendor: "", supported_parameters: "", capabilities_json: "" },
+    defaultValues: {
+      display_name: "",
+      vendor: "",
+      supported_parameters: [],
+      input_modalities: [],
+      output_modalities: [],
+      supported_endpoints: [],
+      tokenizer: "",
+      rest_json: "",
+    },
   });
+  const selectedParams = attrForm.watch("supported_parameters");
+  const selectedInputs = attrForm.watch("input_modalities");
+  const selectedOutputs = attrForm.watch("output_modalities");
+  const selectedEndpoints = attrForm.watch("supported_endpoints");
   const priceForm = useForm<z.infer<typeof priceSchema>>({
     resolver: zodResolver(priceSchema),
     defaultValues: {
@@ -118,12 +137,11 @@ export default function AdminModelEditPage() {
     attrForm.reset({
       display_name: model.display_name || "",
       vendor: model.vendor || "",
-      supported_parameters: supportedParametersText(model.capabilities),
-      capabilities_json: extraCapabilitiesJSON(model.capabilities),
+      ...capabilitiesToForm(model.capabilities),
     });
     priceForm.reset({
-      input: String(model.sell_price?.input ?? ""),
-      output: String(model.sell_price?.output ?? ""),
+      input: perTokenToPerMillion(String(model.sell_price?.input ?? "")),
+      output: perTokenToPerMillion(String(model.sell_price?.output ?? "")),
       wholesale_input: "",
       wholesale_output: "",
       upstream_cost_input: "",
@@ -161,11 +179,58 @@ export default function AdminModelEditPage() {
           {model ? ` · ${formatSellPrice(model.sell_price)}` : ""}
         </p>
         <Form {...attrForm}>
-          <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
+          <form className="mt-4 grid max-w-3xl gap-4" onSubmit={(event) => event.preventDefault()}>
             <TextField control={attrForm.control} name="display_name" label="显示名" />
             <TextField control={attrForm.control} name="vendor" label="厂商" />
-            <TextField control={attrForm.control} name="supported_parameters" label="支持参数" placeholder="stream, tools, vision, json, reasoning" />
-            <TextField control={attrForm.control} name="capabilities_json" label="额外 capabilities JSON" placeholder='{"output_modality":"video"}' />
+            <CheckPills
+              control={attrForm.control}
+              name="supported_parameters"
+              label="支持参数"
+              hint="点选目录里的参数名，不必手打。当前模型多出来的名字也会出现在这里。"
+              options={optionUnion(KNOWN_PARAMETERS, selectedParams)}
+            />
+            <CheckPills
+              control={attrForm.control}
+              name="input_modalities"
+              label="输入模态"
+              options={optionUnion(KNOWN_MODALITIES, selectedInputs)}
+            />
+            <CheckPills
+              control={attrForm.control}
+              name="output_modalities"
+              label="输出模态"
+              options={optionUnion(KNOWN_MODALITIES, selectedOutputs)}
+            />
+            <CheckPills
+              control={attrForm.control}
+              name="supported_endpoints"
+              label="支持端点"
+              options={optionUnion(KNOWN_ENDPOINTS, selectedEndpoints)}
+            />
+            <TokenizerCombobox control={attrForm.control} name="tokenizer" />
+            <FormField
+              control={attrForm.control}
+              name="rest_json"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>其余能力字段</FormLabel>
+                  <p className="text-sm text-ink-secondary">
+                    只放上面勾选盖不住的键，例如 video_attributes、unsupported_parameters。空白即可。
+                  </p>
+                  <FormControl>
+                    <textarea
+                      {...field}
+                      rows={6}
+                      spellCheck={false}
+                      aria-label="其余能力字段"
+                      placeholder="{}"
+                      className="min-h-24 w-full rounded-control border border-hairline bg-canvas-raised px-3 py-2 font-mono text-sm leading-normal text-ink placeholder:text-ink-mute focus:border-brand-emphasis"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <ConfirmButton
               size="sm"
               title="确认保存属性"
@@ -174,9 +239,9 @@ export default function AdminModelEditPage() {
               onConfirm={attrForm.handleSubmit(async (values) => {
                 let capabilities: Record<string, unknown>;
                 try {
-                  capabilities = buildCapabilities(values.supported_parameters, values.capabilities_json);
+                  capabilities = formToCapabilities(values);
                 } catch {
-                  setAttrMessage("额外 capabilities 必须是 JSON 对象");
+                  setAttrMessage("其余能力字段必须是 JSON 对象");
                   return;
                 }
                 const res = await fetch(`${apiBase}/admin/models/${publicId}`, {
@@ -208,22 +273,25 @@ export default function AdminModelEditPage() {
       <IfCan action="prices.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">定价</h2>
-        <p className="mt-1 text-sm text-ink-secondary">发布新版本会把当前 published 标成 superseded。空字段不会覆盖已有维度。历史版本只读。</p>
+        <p className="mt-1 text-sm text-ink-secondary">
+          发布新版本会把当前 published 标成 superseded。空字段不会覆盖已有维度。历史版本只读。Token
+          价按每百万 token 的美元填写，例如 2 表示 $2/M。发布时换算成内部美元/token。
+        </p>
         <Form {...priceForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
             <div className="grid gap-2 sm:grid-cols-2">
-              <TextField control={priceForm.control} name="upstream_cost_input" label="成本 输入" />
-              <TextField control={priceForm.control} name="upstream_cost_output" label="成本 输出" />
-              <TextField control={priceForm.control} name="wholesale_input" label="批发 输入" />
-              <TextField control={priceForm.control} name="wholesale_output" label="批发 输出" />
-              <TextField control={priceForm.control} name="input" label="售价 输入" />
-              <TextField control={priceForm.control} name="output" label="售价 输出" />
-              <TextField control={priceForm.control} name="channel_input" label="渠道覆盖 输入" />
-              <TextField control={priceForm.control} name="channel_output" label="渠道覆盖 输出" />
+              <TextField control={priceForm.control} name="upstream_cost_input" label="成本 输入" suffix="美元/M" />
+              <TextField control={priceForm.control} name="upstream_cost_output" label="成本 输出" suffix="美元/M" />
+              <TextField control={priceForm.control} name="wholesale_input" label="批发 输入" suffix="美元/M" />
+              <TextField control={priceForm.control} name="wholesale_output" label="批发 输出" suffix="美元/M" />
+              <TextField control={priceForm.control} name="input" label="售价 输入" suffix="美元/M" />
+              <TextField control={priceForm.control} name="output" label="售价 输出" suffix="美元/M" />
+              <TextField control={priceForm.control} name="channel_input" label="渠道覆盖 输入" suffix="美元/M" />
+              <TextField control={priceForm.control} name="channel_output" label="渠道覆盖 输出" suffix="美元/M" />
             </div>
-            <TextField control={priceForm.control} name="video_second" label="视频秒单价" />
-            <TextField control={priceForm.control} name="image_count" label="图片次单价" />
-            <TextField control={priceForm.control} name="audio_second" label="音频秒单价" />
+            <TextField control={priceForm.control} name="video_second" label="视频秒单价" suffix="美元/秒" />
+            <TextField control={priceForm.control} name="image_count" label="图片次单价" suffix="美元/张" />
+            <TextField control={priceForm.control} name="audio_second" label="音频秒单价" suffix="美元/秒" />
             <TextField control={priceForm.control} name="currency" label="币种" />
             <SealConfirm
               size="sm"
@@ -232,10 +300,19 @@ export default function AdminModelEditPage() {
               validate={() => priceForm.trigger()}
               onConfirm={priceForm.handleSubmit(async (values) => {
                 const payload: Record<string, unknown> = { model: publicId, currency: values.currency };
-                const sell = dim(values.input, values.output);
-                const wholesale = dim(values.wholesale_input, values.wholesale_output);
-                const upstream = dim(values.upstream_cost_input, values.upstream_cost_output);
-                const channel = dim(values.channel_input, values.channel_output);
+                let sell: Record<string, string> | undefined;
+                let wholesale: Record<string, string> | undefined;
+                let upstream: Record<string, string> | undefined;
+                let channel: Record<string, string> | undefined;
+                try {
+                  sell = millionDim(values.input, values.output);
+                  wholesale = millionDim(values.wholesale_input, values.wholesale_output);
+                  upstream = millionDim(values.upstream_cost_input, values.upstream_cost_output);
+                  channel = millionDim(values.channel_input, values.channel_output);
+                } catch (err) {
+                  setPriceMessage(err instanceof Error ? err.message : "单价无效");
+                  return;
+                }
                 if (sell) {
                   payload.customer_sell = sell;
                 }
@@ -281,7 +358,13 @@ export default function AdminModelEditPage() {
         </p>
         <Form {...attachForm}>
           <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={attachForm.control} name="provider_id" label="提供商 ID" placeholder="上游接入渠道，不是厂商名" />
+            <ProviderSlugCombobox
+              control={attachForm.control}
+              name="provider_id"
+              label="提供商标识"
+              options={providerOptions}
+              placeholder="输入名称或标识筛选"
+            />
             <TextField control={attachForm.control} name="upstream_model_id" label="上游模型名" placeholder="该提供商内部的模型 ID" />
             <ConfirmButton
               size="sm"
@@ -319,10 +402,11 @@ export default function AdminModelEditPage() {
       <IfCan action="models.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <h2 className="text-lg font-semibold tracking-tight">上架</h2>
-        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。请勿修改 tokenhub/echo-1。</p>
+        <p className="mt-1 text-sm text-ink-secondary">当前状态 {model?.status || "未知"} · sync {model?.sync_state || "无"}。请勿修改 tokenhub/echo-1。已发布模型不能再审核或重复发布，后端会直接拒绝。</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ConfirmButton
             size="sm"
+            disabled={!life.approve}
             title="确认通过模型"
             description="只标记审核通过，不会发布到客户目录。创建人不能审核自己建的模型。"
             onConfirm={async () => {
@@ -342,6 +426,7 @@ export default function AdminModelEditPage() {
           <ConfirmButton
             size="sm"
             variant="outline"
+            disabled={!life.reject}
             title="确认拒绝模型"
             description="拒绝后不能发布，需要重新通过。"
             onConfirm={async () => {
@@ -360,6 +445,7 @@ export default function AdminModelEditPage() {
           </ConfirmButton>
           <ConfirmButton
             size="sm"
+            disabled={!life.publish}
             title="确认发布模型"
             description="必须先审核通过。创建人不能发布自己建的模型。"
             onConfirm={async () => {
@@ -379,6 +465,7 @@ export default function AdminModelEditPage() {
           <ConfirmButton
             size="sm"
             variant="outline"
+            disabled={!life.deprecate}
             title="确认弃用模型"
             description="只改状态，不删除历史映射和价格版本。"
             onConfirm={async () => {

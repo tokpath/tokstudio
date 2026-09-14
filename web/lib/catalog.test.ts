@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCapabilities,
+  capabilitiesToForm,
   catalogHref,
   extraCapabilitiesJSON,
+  formToCapabilities,
   formatSellPrice,
+  KNOWN_PARAMETERS,
   modelEditHref,
+  optionUnion,
   parseCatalogSearchParams,
   parseSupportedParameters,
   publicModelsPath,
@@ -18,7 +22,7 @@ describe("admin model catalog helpers", () => {
 
   it("formats text and media sell prices", () => {
     expect(formatSellPrice(undefined)).toBe("—");
-    expect(formatSellPrice({ input: "0.000001", output: "0.000002", currency: "USD" })).toBe("in 0.000001 / out 0.000002");
+    expect(formatSellPrice({ input: "0.000001", output: "0.000002", currency: "USD" })).toBe("in 1/M / out 2/M");
     expect(formatSellPrice({ video_second: "0.01", image_count: "0.02" })).toBe("video 0.01 / image 0.02");
   });
 
@@ -32,6 +36,39 @@ describe("admin model catalog helpers", () => {
       output_modality: "video",
       supported_parameters: ["stream", "tools"],
     });
+  });
+
+  it("edits capabilities via checkboxes without typing parameter names", () => {
+    const form = capabilitiesToForm({
+      supported_parameters: ["stream", "tools", "custom_foo"],
+      supported_endpoints: ["/v1/chat/completions"],
+      architecture: {
+        modality: "text+image->text",
+        input_modalities: ["text", "image"],
+        output_modalities: ["text"],
+        tokenizer: "qwen",
+        instruct_type: null,
+      },
+      video_attributes: { fps: 24 },
+    });
+    expect(form.supported_parameters).toEqual(["stream", "tools", "custom_foo"]);
+    expect(form.input_modalities).toEqual(["text", "image"]);
+    expect(form.tokenizer).toBe("qwen");
+    expect(JSON.parse(form.rest_json)).toEqual({
+      architecture: { instruct_type: null },
+      video_attributes: { fps: 24 },
+    });
+    expect(optionUnion(KNOWN_PARAMETERS, form.supported_parameters)).toContain("custom_foo");
+    const saved = formToCapabilities({ ...form, supported_parameters: ["stream", "reasoning"] });
+    expect(saved.supported_parameters).toEqual(["stream", "reasoning"]);
+    expect(saved.architecture).toMatchObject({
+      input_modalities: ["text", "image"],
+      output_modalities: ["text"],
+      tokenizer: "qwen",
+      modality: "text+image->text",
+      instruct_type: null,
+    });
+    expect(saved.video_attributes).toEqual({ fps: 24 });
   });
 });
 

@@ -15,6 +15,7 @@ import { confirmHeaders } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
+import { millionDim } from "@/lib/token-price";
 
 const schema = z.object({
   model: z.string().trim().min(1, "请填写模型 ID"),
@@ -28,28 +29,17 @@ const schema = z.object({
   channel_output: z.string(),
 });
 
-function dim(input: string, output: string) {
-  const next: Record<string, string> = {};
-  if (input.trim()) {
-    next.input = input.trim();
-  }
-  if (output.trim()) {
-    next.output = output.trim();
-  }
-  return Object.keys(next).length > 0 ? next : undefined;
-}
-
 export default function AdminPricesPage() {
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
       model: "tokenhub/echo-1",
-      input: "0.000001",
-      output: "0.000002",
-      wholesale_input: "0.0000007",
-      wholesale_output: "0.0000014",
-      upstream_cost_input: "0.0000004",
-      upstream_cost_output: "0.0000008",
+      input: "1",
+      output: "2",
+      wholesale_input: "0.7",
+      wholesale_output: "1.4",
+      upstream_cost_input: "0.4",
+      upstream_cost_output: "0.8",
       channel_input: "",
       channel_output: "",
     },
@@ -70,7 +60,7 @@ export default function AdminPricesPage() {
     a.download = "price-books.csv";
     a.click();
     URL.revokeObjectURL(url);
-    setMessage("已导出价格书 CSV（含 effective_at 与四列单价）。");
+    setMessage("已导出价格书 CSV（单价列为内部美元/token）。");
   }
 
   return (
@@ -78,21 +68,22 @@ export default function AdminPricesPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="prices" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          发布新版本会把当前 published 标成 superseded。历史 usage 仍按当时快照计费，旧行数字不会动画改写。单个模型也可以在模型编辑页改价。
+          发布新版本会把当前 published 标成 superseded。历史 usage 仍按当时快照计费，旧行数字不会动画改写。单个模型也可以在模型编辑页改价。Token
+          价按每百万 token 的美元填写，例如 2 表示 $2/M。发布时换算成内部美元/token。列表里的 Token 价也按 /M 显示。
         </p>
         <IfCan action="prices.write">
         <Form {...form}>
           <form className="mb-3 grid gap-2" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="model" label="模型 ID" placeholder="public model id" className="max-w-sm" />
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <TextField control={form.control} name="upstream_cost_input" label="成本 输入" />
-              <TextField control={form.control} name="upstream_cost_output" label="成本 输出" />
-              <TextField control={form.control} name="wholesale_input" label="批发 输入" />
-              <TextField control={form.control} name="wholesale_output" label="批发 输出" />
-              <TextField control={form.control} name="input" label="售价 输入" />
-              <TextField control={form.control} name="output" label="售价 输出" />
-              <TextField control={form.control} name="channel_input" label="渠道覆盖 输入" />
-              <TextField control={form.control} name="channel_output" label="渠道覆盖 输出" />
+              <TextField control={form.control} name="upstream_cost_input" label="成本 输入" suffix="美元/M" />
+              <TextField control={form.control} name="upstream_cost_output" label="成本 输出" suffix="美元/M" />
+              <TextField control={form.control} name="wholesale_input" label="批发 输入" suffix="美元/M" />
+              <TextField control={form.control} name="wholesale_output" label="批发 输出" suffix="美元/M" />
+              <TextField control={form.control} name="input" label="售价 输入" suffix="美元/M" />
+              <TextField control={form.control} name="output" label="售价 输出" suffix="美元/M" />
+              <TextField control={form.control} name="channel_input" label="渠道覆盖 输入" suffix="美元/M" />
+              <TextField control={form.control} name="channel_output" label="渠道覆盖 输出" suffix="美元/M" />
             </div>
             <SealConfirm
               size="sm"
@@ -100,22 +91,28 @@ export default function AdminPricesPage() {
               description="当前 published 会标成 superseded。历史版本保持只读快照。"
               validate={() => form.trigger()}
               onConfirm={form.handleSubmit(async (values) => {
-                const payload: Record<string, unknown> = {
-                  model: values.model,
-                  currency: "USD",
-                  customer_sell: dim(values.input, values.output),
-                };
-                const wholesale = dim(values.wholesale_input, values.wholesale_output);
-                const upstream = dim(values.upstream_cost_input, values.upstream_cost_output);
-                const channel = dim(values.channel_input, values.channel_output);
-                if (wholesale) {
-                  payload.wholesale = wholesale;
-                }
-                if (upstream) {
-                  payload.upstream_cost = upstream;
-                }
-                if (channel) {
-                  payload.channel_override = channel;
+                let payload: Record<string, unknown>;
+                try {
+                  payload = {
+                    model: values.model,
+                    currency: "USD",
+                    customer_sell: millionDim(values.input, values.output),
+                  };
+                  const wholesale = millionDim(values.wholesale_input, values.wholesale_output);
+                  const upstream = millionDim(values.upstream_cost_input, values.upstream_cost_output);
+                  const channel = millionDim(values.channel_input, values.channel_output);
+                  if (wholesale) {
+                    payload.wholesale = wholesale;
+                  }
+                  if (upstream) {
+                    payload.upstream_cost = upstream;
+                  }
+                  if (channel) {
+                    payload.channel_override = channel;
+                  }
+                } catch (err) {
+                  setMessage(err instanceof Error ? err.message : "单价无效");
+                  return;
                 }
                 const res = await fetch(`${apiBase}/admin/price-books`, {
                   method: "POST",

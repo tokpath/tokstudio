@@ -364,11 +364,16 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	createdRoute := postJSONRaw(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
 		"public_model_id": publicID, "strategy": "priority", "status": "active",
-		"candidates": []map[string]any{{"provider_id": "prd_echo_primary", "priority": 1, "weight": 1}},
+		"candidates": []map[string]any{{"provider_id": "echo-primary", "priority": 1, "weight": 1}},
 	})
-	routeID := createdRoute["item"].(map[string]any)["id"].(string)
+	routeItem := createdRoute["item"].(map[string]any)
+	routeID := routeItem["id"].(string)
 	if !strings.HasPrefix(routeID, "rg_") {
 		t.Fatalf("create route: %+v", createdRoute)
+	}
+	candidate := routeItem["candidates"].([]any)[0].(map[string]any)
+	if candidate["provider_id"] != "prd_echo_primary" || candidate["provider_slug"] != "echo-primary" {
+		t.Fatalf("route provider slug was not resolved: %+v", candidate)
 	}
 	if code := patchStatus(t, server.URL+"/admin/routes/"+routeID, "m7_admin", map[string]any{"strategy": "health"}); code != http.StatusConflict {
 		t.Fatalf("patch route without confirm should be 409, got %d", code)

@@ -66,7 +66,7 @@ export default function AdminProvidersPage() {
           },
           {
             accessorKey: "adapter",
-            header: "适配器",
+            header: "协议",
             cell: ({ row }) => adapterLabel(row.original.adapter),
           },
           {

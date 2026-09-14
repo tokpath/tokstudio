@@ -8,11 +8,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
-import { PROVIDER_ADAPTERS, providerHref } from "@/lib/catalog-admin";
+import { protocolOptions, providerHref } from "@/lib/catalog-admin";
 
 const selectClass =
   "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
@@ -21,7 +21,7 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "请填写名称"),
   slug: z.string().trim().min(1, "请填写标识"),
   kind: z.enum(["direct", "aggregator"]),
-  adapter: z.string().trim().min(1, "请选择适配器"),
+  adapter: z.string().trim().min(1, "请选择协议"),
   base_url: z.string().trim(),
 });
 
@@ -74,16 +74,19 @@ export function CreateProviderDialog({
               name="adapter"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>适配器</FormLabel>
+                  <FormLabel>协议</FormLabel>
                   <FormControl>
-                    <select className={selectClass} aria-label="适配器" {...field}>
-                      {PROVIDER_ADAPTERS.map((item) => (
+                    <select className={selectClass} aria-label="协议" {...field}>
+                      {protocolOptions().map((item) => (
                         <option key={item.value} value={item.value}>
                           {item.label}
                         </option>
                       ))}
                     </select>
                   </FormControl>
+                  <FormDescription>
+                    请求怎么发给上游。同一协议可接多家（例如官方 OpenAI 和百炼都选 OpenAI 兼容）。发请求的引擎由系统选择。
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -19,8 +19,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { SubmitStatus } from "@/components/console/submit-status";
 import { apiBase } from "@/lib/api";
 import { resolveLocale } from "@/lib/i18n";
+import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 
 type MeUser = {
   email?: string;
@@ -36,6 +38,9 @@ export default function SettingsPanel() {
   const [user, setUser] = useState<MeUser | null>(null);
   const [passOpen, setPassOpen] = useState(false);
   const [message, setMessage] = useState(t("settingsHint"));
+  const [passError, setPassError] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [changingPass, setChangingPass] = useState(false);
   const profileSchema = useMemo(
     () =>
       z.object({
@@ -62,16 +67,20 @@ export default function SettingsPanel() {
   });
 
   async function refresh() {
-    const response = await fetch(`${apiBase}/v1/me`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || tc("notLoggedIn"));
-      return;
+    try {
+      const response = await fetch(`${apiBase}/v1/me`, { credentials: "include" });
+      const body = await readResponseBody(response);
+      if (!response.ok) {
+        setMessage(errorMessageFromBody(body, tc("notLoggedIn")));
+        return;
+      }
+      const next = ((body as { user?: MeUser }).user || {}) as MeUser;
+      setUser(next);
+      profileForm.reset({ display_name: next.display_name || "", locale: resolveLocale(next.locale) as "zh" | "en" | "ja" });
+      setMessage(t("profileRefreshed"));
+    } catch {
+      setMessage(tc("listNetwork"));
     }
-    const next = (body.user || {}) as MeUser;
-    setUser(next);
-    profileForm.reset({ display_name: next.display_name || "", locale: resolveLocale(next.locale) as "zh" | "en" | "ja" });
-    setMessage(t("profileRefreshed"));
   }
 
   useEffect(() => {
@@ -81,6 +90,7 @@ export default function SettingsPanel() {
 
   function handlePassOpenChange(open: boolean) {
     setPassOpen(open);
+    setPassError("");
     if (!open) {
       passwordForm.reset();
     }
@@ -95,21 +105,28 @@ export default function SettingsPanel() {
         <form
           className="mb-4 flex flex-wrap items-end gap-3"
           onSubmit={profileForm.handleSubmit(async (values) => {
-            const response = await fetch(`${apiBase}/v1/me`, {
-              method: "PATCH",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ display_name: values.display_name, locale: values.locale }),
-            });
-            const body = await response.json();
-            if (!response.ok) {
-              setMessage(body.error?.message || t("saveFail"));
-              return;
+            setSavingProfile(true);
+            try {
+              const response = await fetch(`${apiBase}/v1/me`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ display_name: values.display_name, locale: values.locale }),
+              });
+              const body = await readResponseBody(response);
+              if (!response.ok) {
+                setMessage(errorMessageFromBody(body, t("saveFail")));
+                return;
+              }
+              const next = ((body as { user?: MeUser }).user || {}) as MeUser;
+              setUser(next);
+              document.cookie = `NEXT_LOCALE=${resolveLocale(next.locale)}; path=/; max-age=31536000`;
+              setMessage(t("profileSaved"));
+            } catch {
+              setMessage(tc("listNetwork"));
+            } finally {
+              setSavingProfile(false);
             }
-            const next = (body.user || {}) as MeUser;
-            setUser(next);
-            document.cookie = `NEXT_LOCALE=${resolveLocale(next.locale)}; path=/; max-age=31536000`;
-            setMessage(t("profileSaved"));
           })}
         >
           <TextField control={profileForm.control} name="display_name" label={t("displayName")} showLabel={false} />
@@ -129,7 +146,9 @@ export default function SettingsPanel() {
             <Button type="button" variant="outline" onClick={() => void refresh()}>
               {t("refreshProfile")}
             </Button>
-            <Button type="submit">{t("saveProfile")}</Button>
+            <Button type="submit" disabled={savingProfile}>
+              {savingProfile ? tc("submitting") : t("saveProfile")}
+            </Button>
             <Button type="button" variant="outline" onClick={() => setPassOpen(true)}>
               {t("changePass")}
             </Button>
@@ -147,17 +166,27 @@ export default function SettingsPanel() {
             <form
               className="space-y-4"
               onSubmit={passwordForm.handleSubmit(async (values) => {
-                const response = await fetch(`${apiBase}/v1/me/password`, {
-                  method: "POST",
-                  credentials: "include",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(values),
-                });
-                const body = await response.json();
-                setMessage(response.ok ? t("passUpdated") : body.error?.message || t("passFail"));
-                if (response.ok) {
+                setChangingPass(true);
+                setPassError("");
+                try {
+                  const response = await fetch(`${apiBase}/v1/me/password`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(values),
+                  });
+                  const body = await readResponseBody(response);
+                  if (!response.ok) {
+                    setPassError(errorMessageFromBody(body, t("passFail")));
+                    return;
+                  }
                   passwordForm.reset();
                   setPassOpen(false);
+                  setMessage(t("passUpdated"));
+                } catch {
+                  setPassError(tc("listNetwork"));
+                } finally {
+                  setChangingPass(false);
                 }
               })}
             >
@@ -169,11 +198,14 @@ export default function SettingsPanel() {
                 placeholder={t("newPassPh")}
                 type="password"
               />
+              <SubmitStatus error={passError} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => handlePassOpenChange(false)}>
                   {tc("cancel")}
                 </Button>
-                <Button type="submit">{t("changePass")}</Button>
+                <Button type="submit" disabled={changingPass}>
+                  {changingPass ? tc("submitting") : t("changePass")}
+                </Button>
               </DialogFooter>
             </form>
           </Form>

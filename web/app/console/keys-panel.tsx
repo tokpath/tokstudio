@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { ScrollTable } from "@/components/ui/scroll-table";
+import { SubmitStatus } from "@/components/console/submit-status";
 import { apiBase } from "@/lib/api";
+import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
 
 export type APIKeyItem = {
@@ -227,8 +229,10 @@ export default function KeysPanel() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createdKey, setCreatedKey] = useState<APIKeyItem | null>(null);
   const [createMessage, setCreateMessage] = useState(t("createHint"));
+  const [dialogError, setDialogError] = useState("");
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [copyFallback, setCopyFallback] = useState("");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
   const createSchema = useMemo(
@@ -247,15 +251,19 @@ export default function KeysPanel() {
   });
 
   async function refresh(silent = false) {
-    const response = await fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || tc("notLoggedIn"));
-      return;
-    }
-    setItems(body.items || []);
-    if (!silent) {
-      setMessage(t("refreshed"));
+    try {
+      const response = await fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" });
+      const body = await readResponseBody(response);
+      if (!response.ok) {
+        setMessage(errorMessageFromBody(body, tc("notLoggedIn")));
+        return;
+      }
+      setItems((body as { items?: APIKeyItem[] }).items || []);
+      if (!silent) {
+        setMessage(t("refreshed"));
+      }
+    } catch {
+      setMessage(tc("listNetwork"));
     }
   }
 
@@ -268,6 +276,8 @@ export default function KeysPanel() {
   function resetCreateDialog() {
     setCreatedKey(null);
     setCreateMessage(t("createHint"));
+    setDialogError("");
+    setCopyFallback("");
     form.reset(defaultForm);
   }
 
@@ -293,6 +303,7 @@ export default function KeysPanel() {
       payload.concurrency_limit = concLimit;
     }
     setCreating(true);
+    setDialogError("");
     try {
       const response = await fetch(`${apiBase}/v1/me/api-keys`, {
         method: "POST",
@@ -300,66 +311,96 @@ export default function KeysPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = await response.json();
+      const body = await readResponseBody(response);
       if (!response.ok) {
-        setCreateMessage(body.error?.message || tc("createFailed"));
+        setDialogError(errorMessageFromBody(body, tc("createFailed")));
         return;
       }
-      const created = (body.item || {}) as APIKeyItem;
+      const created = ((body as { item?: APIKeyItem }).item || {}) as APIKeyItem;
       const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : tc("unlimited");
       setCreateMessage(t("created", { id: created.id || "", name: created.name || values.name, list: listed, n: created.concurrency_limit || 5 }));
       setCreatedKey(created);
       form.reset(defaultForm);
       await refresh(true);
+    } catch {
+      setDialogError(tc("listNetwork"));
     } finally {
       setCreating(false);
-    }
-  }
-
-  async function writeClipboard(secret: string) {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(secret);
     }
   }
 
   async function copySecret(id: string, secret?: string) {
     const value = secret ?? items.find((item) => item.id === id)?.key;
     if (!value) {
-      setMessage(t("copyMissing"));
+      setCopyFallback("");
+      const text = t("copyMissing");
+      setMessage(text);
+      if (createOpen) {
+        setDialogError(text);
+      }
       return;
     }
-    const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/copy`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || t("actFail"));
-      return;
-    }
-    await writeClipboard(value);
-    setMessage(t("copiedAudit"));
-    if (createOpen) {
-      setCreateMessage(t("copiedAudit"));
+    try {
+      const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/copy`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const body = await readResponseBody(response);
+      if (!response.ok) {
+        setCopyFallback(value);
+        const text = errorMessageFromBody(body, t("actFail"));
+        setMessage(text);
+        if (createOpen) {
+          setDialogError(text);
+        }
+        return;
+      }
+      const wrote = await copyText(value);
+      if (!wrote) {
+        setCopyFallback(value);
+        const text = t("copyFailed");
+        setMessage(text);
+        if (createOpen) {
+          setDialogError(text);
+        }
+        return;
+      }
+      setCopyFallback("");
+      setMessage(t("copiedAudit"));
+      if (createOpen) {
+        setDialogError("");
+        setCreateMessage(t("copiedAudit"));
+      }
+    } catch {
+      setCopyFallback(value);
+      const text = tc("listNetwork");
+      setMessage(text);
+      if (createOpen) {
+        setDialogError(text);
+      }
     }
   }
 
   async function act(id: string, action: "rotate" | "disable" | "expire") {
-    const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/${action}`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: action === "expire" ? JSON.stringify({ expires_at: new Date().toISOString() }) : "{}",
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || t("actFail"));
-      return;
+    try {
+      const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/${action}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: action === "expire" ? JSON.stringify({ expires_at: new Date().toISOString() }) : "{}",
+      });
+      const body = await readResponseBody(response);
+      if (!response.ok) {
+        setMessage(errorMessageFromBody(body, t("actFail")));
+        return;
+      }
+      setMessage(t("acted", { action }));
+      await refresh(true);
+    } catch {
+      setMessage(tc("listNetwork"));
     }
-    setMessage(t("acted", { action }));
-    await refresh(true);
   }
 
   function toggleReveal(id: string) {
@@ -391,6 +432,7 @@ export default function KeysPanel() {
         onExpire={(id) => void act(id, "expire")}
       />
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+      {!createOpen && copyFallback ? <SubmitStatus error={t("copyFailed")} selectable={copyFallback} /> : null}
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           {createdKey ? (
@@ -411,7 +453,8 @@ export default function KeysPanel() {
                   {tc("copy")}
                 </Button>
               </div>
-              <p className="text-sm text-ink-secondary">{createMessage}</p>
+              {!dialogError ? <p className="text-sm text-ink-secondary">{createMessage}</p> : null}
+              <SubmitStatus error={dialogError} selectable={copyFallback} />
               <DialogFooter>
                 <Button type="button" onClick={() => handleCreateOpenChange(false)}>
                   {t("done")}
@@ -431,13 +474,14 @@ export default function KeysPanel() {
                   <TextField control={form.control} name="allowlist" label={t("allowTitle")} placeholder={t("allowPh")} />
                   <TextField control={form.control} name="rpm" label={t("rpm")} placeholder={t("rpmPh")} />
                   <TextField control={form.control} name="concurrency" label={t("conc")} placeholder={t("concPh")} />
-                  <p className="text-sm text-ink-secondary">{createMessage}</p>
+                  {!dialogError ? <p className="text-sm text-ink-secondary">{createMessage}</p> : null}
+                  <SubmitStatus error={dialogError} />
                   <DialogFooter>
                     <Button type="button" variant="outline" disabled={creating} onClick={() => handleCreateOpenChange(false)}>
                       {tc("cancel")}
                     </Button>
                     <Button type="submit" disabled={creating}>
-                      {tc("create")}
+                      {creating ? tc("submitting") : tc("create")}
                     </Button>
                   </DialogFooter>
                 </form>

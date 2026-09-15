@@ -183,6 +183,32 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await page.getByRole("button", { name: "取消" }).click();
 });
 
+test("media create failure stays in the dialog", async ({ page }) => {
+  await page.route("**/v1/me/media**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], storage: { source: "minio", ok: true, label: "S3" } }),
+    });
+  });
+  await page.route("**/v1/videos**", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { message: "上游创建失败" } }),
+    });
+  });
+  await page.goto("/app/media");
+  await page.getByRole("button", { name: "新建任务" }).first().click();
+  await page.getByRole("button", { name: "新建任务" }).last().click();
+  await expect(page.getByTestId("submit-status")).toHaveText("上游创建失败");
+  await expect(page.getByRole("heading", { name: "新建任务" })).toBeVisible();
+});
+
 test("wallet payment methods distinguish load failure from not enabled", async ({ page }) => {
   await page.route("**/v1/payments/checkout**", async (route) => {
     await route.fulfill({

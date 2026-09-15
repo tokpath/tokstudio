@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import KeysPanel, { KeysList, maskAPIKey, parseAllowlist } from "../app/console/keys-panel";
 import { withZh } from "./test-i18n";
@@ -89,6 +89,7 @@ describe("KeysPanel", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
   });
 
@@ -101,5 +102,58 @@ describe("KeysPanel", () => {
     expect(screen.getByRole("heading", { name: "模型白名单" })).toBeTruthy();
     expect(screen.getByLabelText("模型白名单")).toBeTruthy();
     expect(screen.getByLabelText("并发限额")).toBeTruthy();
+  });
+
+  it("keeps the create dialog open and shows the API error next to submit", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/v1/me/api-keys") && init?.method === "POST") {
+          return {
+            ok: false,
+            json: async () => ({ error: { message: "名称已存在" } }),
+          };
+        }
+        return { ok: true, json: async () => ({ items: [] }) };
+      }),
+    );
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getByRole("button", { name: "创建 API Key" }));
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("submit-status").textContent).toContain("名称已存在");
+    });
+    expect(screen.getByRole("heading", { name: "创建 API Key" })).toBeTruthy();
+    expect(screen.getByLabelText("API Key 名称")).toHaveProperty("value", "default");
+  });
+
+  it("does not claim copy success when clipboard write fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/copy") && init?.method === "POST") {
+          return { ok: true, json: async () => ({ ok: true }) };
+        }
+        return {
+          ok: true,
+          json: async () => ({ items: [sampleKey] }),
+        };
+      }),
+    );
+    vi.stubGlobal("navigator", {
+      clipboard: {
+        writeText: vi.fn(async () => {
+          throw new Error("denied");
+        }),
+      },
+    });
+    render(withZh(<KeysPanel />));
+    await waitFor(() => expect(screen.getAllByText(/default/).length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByRole("button", { name: "复制" })[0]!);
+    await waitFor(() => {
+      expect(screen.getByTestId("submit-status").textContent).toContain("thk_abcdsecret");
+      expect(screen.getByTestId("submit-status").textContent).toContain("未能写入剪贴板");
+    });
   });
 });

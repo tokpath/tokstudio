@@ -21,9 +21,11 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { StorageSourceBadge } from "@/components/storage-source-badge";
+import { SubmitStatus } from "@/components/console/submit-status";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
+import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 
 type Job = {
   id: string;
@@ -97,6 +99,8 @@ export default function MediaPanel() {
   const [createOpen, setCreateOpen] = useState(false);
   const [storage, setStorage] = useState<StorageSource | undefined>();
   const [message, setMessage] = useState(t("mediaHint"));
+  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] = useState(false);
   const list = useListResource<Job>({
     queryKey: kind,
     load: async () => {
@@ -145,6 +149,7 @@ export default function MediaPanel() {
 
   function handleCreateOpenChange(open: boolean) {
     setCreateOpen(open);
+    setCreateError("");
     if (!open) {
       form.reset(defaultValues);
     }
@@ -173,44 +178,57 @@ export default function MediaPanel() {
     } else if (values.task_type === "extend" && values.source_job_id) {
       path = `/v1/videos/${encodeURIComponent(values.source_job_id)}/extend`;
     }
-    const response = await fetch(`${apiBase}${path}`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": `console-${Date.now()}` },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.json();
-    const nextStorage = applyStorageFact(body, response.ok);
-    if (nextStorage) {
-      setStorage(nextStorage);
+    setCreating(true);
+    setCreateError("");
+    try {
+      const response = await fetch(`${apiBase}${path}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": `console-${Date.now()}` },
+        body: JSON.stringify(payload),
+      });
+      const body = await readResponseBody(response);
+      const nextStorage = applyStorageFact(body, response.ok);
+      if (nextStorage) {
+        setStorage(nextStorage);
+      }
+      if (!response.ok) {
+        setCreateError(errorMessageFromBody(body, tc("createFailed")));
+        return;
+      }
+      const created = body as { id?: string; task_type?: string };
+      setMessage(t("createdJob", { id: created.id || "", type: created.task_type || values.task_type }));
+      handleCreateOpenChange(false);
+      await list.reload();
+    } catch {
+      setCreateError(tc("listNetwork"));
+    } finally {
+      setCreating(false);
     }
-    if (!response.ok) {
-      setMessage(body.error?.message || tc("createFailed"));
-      return;
-    }
-    setMessage(t("createdJob", { id: body.id || "", type: body.task_type || values.task_type }));
-    handleCreateOpenChange(false);
-    await list.reload();
   }
 
   async function downloadJob(id: string, jobKind?: string) {
     const path = jobKind === "image" ? `/v1/images/${encodeURIComponent(id)}/content` : `/v1/videos/${encodeURIComponent(id)}/content`;
-    const response = await fetch(`${apiBase}${path}`, { credentials: "include" });
-    const body = await response.json().catch(() => ({}));
-    const nextStorage = applyStorageFact(body, response.ok);
-    if (nextStorage) {
-      setStorage(nextStorage);
+    try {
+      const response = await fetch(`${apiBase}${path}`, { credentials: "include" });
+      const body = await readResponseBody(response);
+      const nextStorage = applyStorageFact(body, response.ok);
+      if (nextStorage) {
+        setStorage(nextStorage);
+      }
+      if (!response.ok) {
+        setMessage(errorMessageFromBody(body, "存储不可用"));
+        return;
+      }
+      const url = typeof (body as { url?: string }).url === "string" ? (body as { url: string }).url : "";
+      if (!url) {
+        setMessage("存储不可用");
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      setMessage(tc("listNetwork"));
     }
-    if (!response.ok) {
-      setMessage(body.error?.message || "存储不可用");
-      return;
-    }
-    const url = typeof body.url === "string" ? body.url : "";
-    if (!url) {
-      setMessage("存储不可用");
-      return;
-    }
-    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -365,12 +383,15 @@ export default function MediaPanel() {
                   )}
                 />
               </div>
+              <SubmitStatus error={createError} />
               <DialogFooter>
                 <ActionRow className="gap-2">
                   <Button type="button" variant="outline" onClick={() => handleCreateOpenChange(false)}>
                     {tc("cancel")}
                   </Button>
-                  <Button type="submit">{t("createJob")}</Button>
+                  <Button type="submit" disabled={creating}>
+                    {creating ? tc("submitting") : t("createJob")}
+                  </Button>
                 </ActionRow>
               </DialogFooter>
             </form>

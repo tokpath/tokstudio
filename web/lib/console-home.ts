@@ -4,6 +4,14 @@ import { loginHref } from "@/lib/login-next";
 /** 公共站「控制台」入口：未登录去登录，登录后按角色落到对应台。 */
 export const CONSOLE_ENTRY_PATH = "/enter";
 
+export function playgroundHref(modelId?: string): string {
+  const id = modelId?.trim();
+  if (!id) {
+    return "/app/playground";
+  }
+  return `/app/playground?model=${encodeURIComponent(id)}`;
+}
+
 export const ADMIN_CONSOLE_ROLES = [
   "platform_admin",
   "finance_admin",
@@ -56,5 +64,15 @@ export async function resolveConsoleHref(fetcher: typeof fetch = fetch): Promise
     }
   } catch {
     return loginHref(CONSOLE_ENTRY_PATH);
+  }
+}
+
+export async function resolveStartUsingHref(modelId: string, fetcher: typeof fetch = fetch): Promise<string> {
+  const next = playgroundHref(modelId);
+  try {
+    const meRes = await fetcher(`${apiBase}/v1/me`, { credentials: "include" });
+    return meRes.ok ? next : loginHref(next);
+  } catch {
+    return loginHref(next);
   }
 }

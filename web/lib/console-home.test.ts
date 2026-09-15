@@ -4,7 +4,9 @@ import {
   CONSOLE_ENTRY_PATH,
   consoleHomeForRoles,
   consoleHomeForViewer,
+  playgroundHref,
   resolveConsoleHref,
+  resolveStartUsingHref,
 } from "./console-home";
 
 function jsonResponse(ok: boolean, body: unknown, status = ok ? 200 : 403) {
@@ -85,5 +87,26 @@ describe("resolveConsoleHref", () => {
   it("falls back to login when /v1/me cannot be reached", async () => {
     const fetcher = vi.fn().mockRejectedValue(new Error("offline"));
     await expect(resolveConsoleHref(fetcher)).resolves.toBe(loginHref(CONSOLE_ENTRY_PATH));
+  });
+});
+
+describe("playgroundHref", () => {
+  it("encodes model ids so slashes stay in the query", () => {
+    expect(playgroundHref()).toBe("/app/playground");
+    expect(playgroundHref("tokenhub/echo-1")).toBe("/app/playground?model=tokenhub%2Fecho-1");
+  });
+});
+
+describe("resolveStartUsingHref", () => {
+  it("sends guests to login with playground as next", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse(false, { error: { message: "未授权" } }));
+    await expect(resolveStartUsingHref("tokenhub/echo-1", fetcher)).resolves.toBe(
+      loginHref("/app/playground?model=tokenhub%2Fecho-1"),
+    );
+  });
+
+  it("sends signed-in users to playground with the selected model", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse(true, { user: { roles: ["end_user"] } }));
+    await expect(resolveStartUsingHref("tokenhub/echo-1", fetcher)).resolves.toBe("/app/playground?model=tokenhub%2Fecho-1");
   });
 });

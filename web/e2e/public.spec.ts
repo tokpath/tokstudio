@@ -40,6 +40,19 @@ test("model catalog vendor query stays on the models path", async ({ page }) => 
   await expect(page.getByRole("link", { name: "全部厂商" })).toBeVisible();
 });
 
+test("signed-in start using from a model detail goes to playground", async ({ page }) => {
+  await page.route(/\/v1\/me$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ user: { roles: ["end_user"] } }),
+    });
+  });
+  await page.goto("/models/tokenhub/echo-1");
+  const start = page.getByRole("link", { name: "开始使用" });
+  await expect(start).toHaveAttribute("href", "/app/playground?model=tokenhub%2Fecho-1");
+});
+
 test("login page has no ofox copy", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();

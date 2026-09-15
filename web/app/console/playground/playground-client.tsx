@@ -8,10 +8,29 @@ import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
 
-export function PlaygroundClient({ models }: { models: CatalogModel[] }) {
+function pickPlaygroundModel(models: CatalogModel[], requested?: string): string {
+  const fallbackId = models[0]?.id || "tokenhub/echo-1";
+  if (!requested) {
+    return fallbackId;
+  }
+  try {
+    const id = decodeURIComponent(requested).trim();
+    return models.some((item) => item.id === id) ? id : fallbackId;
+  } catch {
+    return fallbackId;
+  }
+}
+
+export function PlaygroundClient({
+  models,
+  initialModel,
+}: {
+  models: CatalogModel[];
+  initialModel?: string;
+}) {
   const t = useTranslations("user");
   const fallbackId = models[0]?.id || "tokenhub/echo-1";
-  const [model, setModel] = useState(fallbackId);
+  const [model, setModel] = useState(() => pickPlaygroundModel(models, initialModel));
   const [prompt, setPrompt] = useState("");
   const [output, setOutput] = useState("");
   const [receiptModel, setReceiptModel] = useState("");

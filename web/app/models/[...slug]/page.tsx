@@ -15,6 +15,7 @@ import {
 } from "@/lib/catalog";
 import { getTranslations } from "next-intl/server";
 import { PublicMain } from "@/components/public-section";
+import { StartUsingLink } from "@/components/start-using-link";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -91,7 +92,7 @@ export default async function ModelDetailPage({
             <Link href={`/models?kind=${kind}`}>{t("sameKind")}</Link>
           </Button>
           <Button asChild>
-            <Link href="/login">{th("ctaStart")}</Link>
+            <StartUsingLink modelId={model.id}>{th("ctaStart")}</StartUsingLink>
           </Button>
         </div>
       </header>

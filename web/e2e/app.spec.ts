@@ -408,7 +408,7 @@ test("channel console shows scoped user list", async ({ page }) => {
   await page.goto("/channel");
   await expect(page.getByRole("heading", { name: "本渠道用户" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道模型" })).toBeVisible();
-  await expect(page.getByText("本渠道只能使用平台已授权的模型，不能自己添加提供商和模型。")).toBeVisible();
+  await expect(page.getByText("所有租户的模型资源都只能从平台目录出发。渠道不能自建提供商或模型，也不能引入目录外的模型。")).toBeVisible();
   await expect(page.getByRole("heading", { name: "本渠道套餐" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "创建渠道套餐" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建渠道套餐" })).toBeVisible();

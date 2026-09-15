@@ -43,16 +43,21 @@ test("user keys page keeps create dialog", async ({ page }) => {
   await expect(page.getByRole("button", { name: "创建 API Key" })).toBeVisible();
   await page.getByRole("button", { name: "创建 API Key" }).click();
   await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "模型白名单" })).toBeVisible();
-  await expect(page.getByLabel("模型白名单")).toBeVisible();
-  await expect(page.getByLabel("并发限额")).toBeVisible();
+  await expect(page.getByLabel("密钥名称")).toBeVisible();
+  await expect(page.getByPlaceholder("我的聊天客户端")).toBeVisible();
+  await expect(page.getByRole("button", { name: "高级设置" })).toBeVisible();
+  await expect(page.getByLabel("每分钟请求数")).toHaveCount(0);
+  await page.getByRole("button", { name: "高级设置" }).click();
+  await expect(page.getByText("所有允许使用的模型", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("每分钟请求数")).toBeVisible();
+  await expect(page.getByLabel("同时请求数")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
 });
 
 test("user keys create query opens the dialog", async ({ page }) => {
   await page.goto("/app/keys?create=1");
   await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
-  await expect(page.getByLabel("模型白名单")).toBeVisible();
+  await expect(page.getByLabel("密钥名称")).toBeVisible();
 });
 
 test("user reconciliation page is three-bucket vs usage with no estimate debit", async ({ page }) => {

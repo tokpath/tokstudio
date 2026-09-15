@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
+import { ModelAllowlistPicker } from "@/components/console/model-allowlist-picker";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,13 +22,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { SubmitStatus } from "@/components/console/submit-status";
 import { apiBase } from "@/lib/api";
+import type { CatalogModel } from "@/lib/catalog";
+import { optionalPositiveInt } from "@/lib/key-limits";
 import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
+
+export { optionalPositiveInt, parseAllowlist } from "@/lib/key-limits";
 
 export type APIKeyItem = {
   id: string;
@@ -41,13 +47,6 @@ export type APIKeyItem = {
   last_used_at?: string | null;
   created_at?: string;
 };
-
-export function parseAllowlist(raw: string): string[] {
-  return raw
-    .split(/[,，]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 /** 列表默认只露前缀；完整密文要用户点「显示」或「复制」才出来。 */
 export function maskAPIKey(prefix: string, secret?: string, revealed = false): string {
@@ -91,6 +90,103 @@ type KeysListProps = {
   onDisable?: (id: string) => void;
   onExpire?: (id: string) => void;
 };
+
+function KeyMoreMenu({
+  item,
+  onRotate,
+  onDisable,
+  onExpire,
+}: {
+  item: APIKeyItem;
+  onRotate?: (id: string) => void;
+  onDisable?: (id: string) => void;
+  onExpire?: (id: string) => void;
+}) {
+  const t = useTranslations("user");
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    function onDoc(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  if (!onRotate && !onDisable && !onExpire) {
+    return null;
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {t("moreActions")}
+      </Button>
+      {open ? (
+        <div role="menu" className="absolute right-0 z-20 mt-1.5 min-w-[10rem] rounded-card border border-hairline bg-canvas-raised p-1.5 shadow-[0_1px_2px_rgba(20,20,20,0.06)]">
+          {onRotate ? (
+            <ConfirmButton
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start"
+              title={t("rotateConfirmTitle")}
+              description={t("rotateConfirm")}
+              onConfirm={() => onRotate(item.id)}
+            >
+              {t("rotate")}
+            </ConfirmButton>
+          ) : null}
+          {onDisable ? (
+            <ConfirmButton
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start"
+              title={t("disableConfirmTitle")}
+              description={t("disableConfirm")}
+              onConfirm={() => onDisable(item.id)}
+            >
+              {t("disable")}
+            </ConfirmButton>
+          ) : null}
+          {onExpire ? (
+            <ConfirmButton
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start"
+              title={t("expireConfirmTitle")}
+              description={t("expireConfirm")}
+              onConfirm={() => onExpire(item.id)}
+            >
+              {t("expireNow")}
+            </ConfirmButton>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function KeysList({
   items,
@@ -179,41 +275,7 @@ export function KeysList({
           id: "actions",
           header: t("colActions"),
           cell: (item) => (
-            <ActionRow>
-              {onRotate ? (
-                <ConfirmButton
-                  size="sm"
-                  variant="outline"
-                  title={t("rotateConfirmTitle")}
-                  description={t("rotateConfirm")}
-                  onConfirm={() => onRotate(item.id)}
-                >
-                  {t("rotate")}
-                </ConfirmButton>
-              ) : null}
-              {onDisable ? (
-                <ConfirmButton
-                  size="sm"
-                  variant="outline"
-                  title={t("disableConfirmTitle")}
-                  description={t("disableConfirm")}
-                  onConfirm={() => onDisable(item.id)}
-                >
-                  {t("disable")}
-                </ConfirmButton>
-              ) : null}
-              {onExpire ? (
-                <ConfirmButton
-                  size="sm"
-                  variant="outline"
-                  title={t("expireConfirmTitle")}
-                  description={t("expireConfirm")}
-                  onConfirm={() => onExpire(item.id)}
-                >
-                  {t("expire")}
-                </ConfirmButton>
-              ) : null}
-            </ActionRow>
+            <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
           ),
         },
       ]}
@@ -221,7 +283,7 @@ export function KeysList({
   );
 }
 
-const defaultForm = { name: "default", allowlist: "", rpm: "", concurrency: "" };
+const defaultForm = { name: "", allowlist: [] as string[], rpm: "", concurrency: "" };
 
 export default function KeysPanel() {
   const t = useTranslations("user");
@@ -234,15 +296,19 @@ export default function KeysPanel() {
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [copyFallback, setCopyFallback] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [models, setModels] = useState<CatalogModel[]>([]);
+  const [endpoint, setEndpoint] = useState("");
+  const [exampleCurl, setExampleCurl] = useState("");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
   const createSchema = useMemo(
     () =>
       z.object({
         name: z.string().trim().min(1, t("nameRequired")),
-        allowlist: z.string(),
-        rpm: z.string(),
-        concurrency: z.string(),
+        allowlist: z.array(z.string()),
+        rpm: z.string().refine((value) => optionalPositiveInt(value) !== "invalid", t("limitInvalid")),
+        concurrency: z.string().refine((value) => optionalPositiveInt(value) !== "invalid", t("limitInvalid")),
       }),
     [t],
   );
@@ -277,11 +343,46 @@ export default function KeysPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!createOpen) {
+      return;
+    }
+    let cancelled = false;
+    async function loadSupport() {
+      const host = window.location.host;
+      const [modelsRes, docsRes] = await Promise.all([
+        fetch(`${apiBase}/v1/public/models?limit=100`, { credentials: "include" }),
+        fetch(`${apiBase}/v1/public/docs-context?host=${encodeURIComponent(host)}`, { credentials: "include" }),
+      ]);
+      if (cancelled) {
+        return;
+      }
+      const modelsBody = await readResponseBody(modelsRes);
+      if (modelsRes.ok) {
+        setModels(((modelsBody as { items?: CatalogModel[] }).items || []) as CatalogModel[]);
+      }
+      const docsBody = await readResponseBody(docsRes);
+      if (docsRes.ok) {
+        const domain = ((docsBody as { brand?: { api_domain?: string } }).brand?.api_domain || host).replace(/\/$/, "");
+        setEndpoint(`https://${domain}/v1`);
+        const curl = (docsBody as { examples?: { curl?: string } }).examples?.curl || "";
+        setExampleCurl(curl);
+      } else {
+        setEndpoint(`${window.location.origin}/v1`);
+      }
+    }
+    void loadSupport();
+    return () => {
+      cancelled = true;
+    };
+  }, [createOpen]);
+
   function resetCreateDialog() {
     setCreatedKey(null);
     setCreateMessage(t("createHint"));
     setDialogError("");
     setCopyFallback("");
+    setAdvancedOpen(false);
     form.reset(defaultForm);
   }
 
@@ -293,17 +394,16 @@ export default function KeysPanel() {
   }
 
   async function createKey(values: z.infer<typeof createSchema>) {
-    const models = parseAllowlist(values.allowlist);
     const payload: { name: string; allowlist?: string[]; rpm_limit?: number; concurrency_limit?: number } = { name: values.name };
-    if (models.length > 0) {
-      payload.allowlist = models;
+    if (values.allowlist.length > 0) {
+      payload.allowlist = values.allowlist;
     }
-    const rpmLimit = Number(values.rpm);
-    if (values.rpm && Number.isFinite(rpmLimit) && rpmLimit > 0) {
+    const rpmLimit = optionalPositiveInt(values.rpm);
+    if (rpmLimit !== "empty" && rpmLimit !== "invalid") {
       payload.rpm_limit = rpmLimit;
     }
-    const concLimit = Number(values.concurrency);
-    if (values.concurrency && Number.isFinite(concLimit) && concLimit > 0) {
+    const concLimit = optionalPositiveInt(values.concurrency);
+    if (concLimit !== "empty" && concLimit !== "invalid") {
       payload.concurrency_limit = concLimit;
     }
     setCreating(true);
@@ -445,18 +545,46 @@ export default function KeysPanel() {
                 <DialogTitle>{t("createdTitle")}</DialogTitle>
                 <DialogDescription>{t("createdLead")}</DialogDescription>
               </DialogHeader>
-              <div className="flex flex-col gap-2 rounded-control border border-hairline bg-canvas px-3 py-3">
-                <code className="th-code block overflow-x-auto whitespace-nowrap text-sm text-ink">
-                  {createdKey.key || maskAPIKey(createdKey.prefix)}
-                </code>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void copySecret(createdKey.id, createdKey.key)}
-                >
-                  {tc("copy")}
-                </Button>
-              </div>
+              <dl className="grid gap-3 text-sm">
+                <div>
+                  <dt className="text-xs text-ink-mute">{t("endpoint")}</dt>
+                  <dd>
+                    <code className="th-code mt-1 block overflow-x-auto whitespace-nowrap text-[13px] text-ink">{endpoint || "/v1"}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-mute">{t("secret")}</dt>
+                  <dd className="mt-1 flex flex-col gap-2">
+                    <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
+                      {createdKey.key || maskAPIKey(createdKey.prefix)}
+                    </code>
+                    <Button type="button" variant="outline" size="sm" onClick={() => void copySecret(createdKey.id, createdKey.key)}>
+                      {tc("copy")}
+                    </Button>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-mute">{t("example")}</dt>
+                  <dd className="mt-1 space-y-2">
+                    <pre className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-[12px] text-ink">
+                      {exampleCurl
+                        ? exampleCurl.replaceAll("$TOKENHUB_API_KEY", createdKey.key || "$TOKENHUB_API_KEY")
+                        : `curl ${(endpoint || "/v1")}/chat/completions \\\n  -H "Authorization: Bearer ${createdKey.key || "YOUR_KEY"}"`}
+                    </pre>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <Link href="/app/docs">{t("example")}</Link>
+                    </Button>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-mute">{t("verify")}</dt>
+                  <dd className="mt-1">
+                    <Button type="button" size="sm" asChild>
+                      <Link href="/app/playground">{t("verifyCta")}</Link>
+                    </Button>
+                  </dd>
+                </div>
+              </dl>
               {!dialogError ? <p className="text-sm text-ink-secondary">{createMessage}</p> : null}
               <SubmitStatus error={dialogError} selectable={copyFallback} />
               <DialogFooter>
@@ -472,12 +600,45 @@ export default function KeysPanel() {
                 <DialogDescription>{t("createDialogLead")}</DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form className="grid gap-3" onSubmit={form.handleSubmit(createKey)}>
+                <form
+                  className="grid gap-3"
+                  onSubmit={form.handleSubmit(createKey, () => {
+                    setAdvancedOpen(true);
+                  })}
+                >
                   <TextField control={form.control} name="name" label={t("nameLabel")} placeholder={t("namePh")} />
-                  <h3 className="text-lg font-medium">{t("allowTitle")}</h3>
-                  <TextField control={form.control} name="allowlist" label={t("allowTitle")} placeholder={t("allowPh")} />
-                  <TextField control={form.control} name="rpm" label={t("rpm")} placeholder={t("rpmPh")} />
-                  <TextField control={form.control} name="concurrency" label={t("conc")} placeholder={t("concPh")} />
+                  <button
+                    type="button"
+                    className="justify-self-start text-sm text-brand underline-offset-2 hover:underline"
+                    aria-expanded={advancedOpen}
+                    onClick={() => setAdvancedOpen((current) => !current)}
+                  >
+                    {t("advanced")}
+                  </button>
+                  {advancedOpen ? (
+                    <div className="grid gap-3 rounded-control border border-hairline bg-canvas p-3">
+                      <FormField
+                        control={form.control}
+                        name="allowlist"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t("modelLimit")}</FormLabel>
+                            <ModelAllowlistPicker
+                              value={field.value ?? []}
+                              onChange={field.onChange}
+                              options={models}
+                              allLabel={t("allowlistAll")}
+                              searchLabel={t("modelSearch")}
+                              selectedLabel={t("modelLimit")}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <TextField control={form.control} name="rpm" label={t("rpm")} placeholder={t("rpmPh")} />
+                      <TextField control={form.control} name="concurrency" label={t("conc")} placeholder={t("concPh")} />
+                    </div>
+                  ) : null}
                   {!dialogError ? <p className="text-sm text-ink-secondary">{createMessage}</p> : null}
                   <SubmitStatus error={dialogError} />
                   <DialogFooter>

@@ -125,6 +125,36 @@ test("user usage page is summary and links to activity", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "请求明细" })).toBeVisible();
 });
 
+test("activity failed load stays failed and does not look empty", async ({ page }) => {
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { message: "usage upstream timeout" } }),
+    });
+  });
+  await page.goto("/app/activity");
+  await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "error");
+  await expect(page.getByText("加载失败")).toBeVisible();
+  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
+  await expect(page.getByText("还没有请求记录")).toHaveCount(0);
+});
+
+test("activity session loss keeps the return path", async ({ page }) => {
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "authentication_error", message: "未登录" } }),
+    });
+  });
+  await page.goto("/app/activity");
+  await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "unauthorized");
+  await expect(page.getByRole("link", { name: "重新登录" })).toHaveAttribute("href", /\/login\?next=/);
+  await expect(page.getByText("还没有请求记录")).toHaveCount(0);
+});
+
 test("user media page is list-first with create dialog", async ({ page }) => {
   // 前端 job 无 Go API；先 mock 空列表，避免依赖 proxy :8080。
   await page.route("**/v1/me/media**", async (route) => {
@@ -151,6 +181,21 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await expect(page.getByLabel("宽高比")).toBeVisible();
   await expect(page.getByLabel("帧率")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
+});
+
+test("wallet payment methods distinguish load failure from not enabled", async ({ page }) => {
+  await page.route("**/v1/payments/checkout**", async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { message: "checkout unavailable" } }),
+    });
+  });
+  await page.goto("/app/wallet");
+  await expect(page.getByTestId("list-resource-payments")).toHaveAttribute("data-list-phase", "error");
+  await expect(page.getByText("加载失败").first()).toBeVisible();
+  await expect(page.getByText("checkout unavailable")).toBeVisible();
+  await expect(page.getByText("当前渠道尚未开通在线支付")).toHaveCount(0);
 });
 
 test("media download badge is grey 存储不可用 when the bucket is missing", async ({ page }) => {

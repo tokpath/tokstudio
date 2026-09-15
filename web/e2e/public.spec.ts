@@ -136,7 +136,8 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(page.locator("h1")).toHaveText("本渠道用户");
   await page.goto("/channel/keys");
   await expect(page.locator("h1")).toHaveText("本渠道 API Key");
-  await expect(page.getByText("暂无本渠道 API Key")).toBeVisible();
+  await expect(page.getByText("暂无本渠道 API Key")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "重试" }).or(page.getByRole("link", { name: "重新登录" }))).toBeVisible();
   await page.goto("/channel/ledger");
   await expect(page.locator("h1")).toHaveText("进货与记账");
   await page.goto("/channel/rules");
@@ -166,10 +167,25 @@ test("desktop landing lists tools without a fake installer", async ({ page }) =>
   await expect(page.getByRole("link", { name: "看接入片段" })).toBeVisible();
 });
 
-test("channel users page shows empty ledger table", async ({ page }) => {
+test("channel users page does not treat a failed load as empty", async ({ page }) => {
   await page.goto("/channel/users");
   await expect(page.locator("h1")).toHaveText("本渠道用户");
+  await expect(page.getByText("暂无本渠道用户")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "重试" }).or(page.getByRole("link", { name: "重新登录" }))).toBeVisible();
+});
+
+test("channel users empty account explains next step", async ({ page }) => {
+  await page.route("**/channel/users**", async (route) => {
+    if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
+  });
+  await page.goto("/channel/users");
+  await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "empty");
   await expect(page.getByText("暂无本渠道用户")).toBeVisible();
+  await expect(page.getByText("先去推广页创建推广码")).toBeVisible();
 });
 
 test("user console sidebar groups match ofox IA", async ({ page }) => {

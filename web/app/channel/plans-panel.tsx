@@ -6,20 +6,24 @@ import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { LedgerTable } from "@/components/console/ledger-table";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { fetchListItems } from "@/lib/list-resource";
 
 type Plan = { id?: string; name?: string; status?: string; owner_type?: string; owner_id?: string; price_minor?: number; review_reason?: string };
 
 export default function ChannelPlans() {
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
-  const [items, setItems] = useState<Plan[]>([]);
-  const [message, setMessage] = useState(t("plansHint"));
   const [createMessage, setCreateMessage] = useState(t("createHint"));
+  const list = useListResource<Plan>({
+    load: () => fetchListItems(`${apiBase}/channel/plans`),
+  });
   const schema = useMemo(
     () =>
       z.object({
@@ -35,23 +39,11 @@ export default function ChannelPlans() {
     defaultValues: { name: "", price_minor: "1000", unit_type: "usd_credit", included_amount: "1" },
   });
 
-  async function refresh() {
-    const response = await fetch(`${apiBase}/channel/plans`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      setMessage(body.error?.message || t("needAdmin"));
-      return;
-    }
-    const next = (body.items || []) as Plan[];
-    setItems(next);
-    setMessage(t("plansCount", { n: next.length }));
-  }
-
   return (
     <Card>
       <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("plansLead")}</p>
-      <Button variant="outline" onClick={refresh}>
+      <Button variant="outline" onClick={() => void list.reload()}>
         {t("refreshPlans")}
       </Button>
       <Form {...form}>
@@ -86,7 +78,7 @@ export default function ChannelPlans() {
                 status: `${body.item?.status || ""}${body.item?.review_reason ? ` (${body.item.review_reason})` : ""}`,
               }),
             );
-            await refresh();
+            await list.reload();
           })}
         >
           <h3 className="text-lg font-medium">{t("createPlan")}</h3>
@@ -100,16 +92,23 @@ export default function ChannelPlans() {
           <p className="text-sm text-ink-secondary">{createMessage}</p>
         </form>
       </Form>
-      <LedgerTable
-        columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice")]}
+      <ListResourceView
+        snapshot={list.snapshot}
+        loadingTitle={t("plansTitle")}
         emptyTitle={t("emptyPlans")}
         emptyDetail={t("emptyPlansDetail")}
-        rows={items.map((item) => ({
-          key: item.id || item.name || "plan",
-          cells: [item.name || "—", item.status || "—", item.owner_type || "—", `${item.price_minor ?? 0} micro-USD`],
-        }))}
-      />
-      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+        onRetry={() => void list.reload()}
+      >
+        <LedgerTable
+          columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice")]}
+          emptyTitle={t("emptyPlans")}
+          emptyDetail={t("emptyPlansDetail")}
+          rows={list.snapshot.items.map((item) => ({
+            key: item.id || item.name || "plan",
+            cells: [item.name || "—", item.status || "—", item.owner_type || "—", `${item.price_minor ?? 0} micro-USD`],
+          }))}
+        />
+      </ListResourceView>
     </Card>
   );
 }

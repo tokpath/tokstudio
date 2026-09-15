@@ -1,12 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
-import { EmptyLedger } from "@/components/console/empty-ledger";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { StorageSourceBadge } from "@/components/storage-source-badge";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 
@@ -92,12 +93,30 @@ export default function MediaPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const tCat = useTranslations("catalog");
-  const [items, setItems] = useState<Job[]>([]);
   const [kind, setKind] = useState("");
-  const [loaded, setLoaded] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [storage, setStorage] = useState<StorageSource | undefined>();
   const [message, setMessage] = useState(t("mediaHint"));
+  const list = useListResource<Job>({
+    queryKey: kind,
+    load: async () => {
+      const query = kind ? `?kind=${encodeURIComponent(kind)}` : "";
+      try {
+        const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
+        const body = await response.json().catch(() => ({}));
+        const nextStorage = applyStorageFact(body, response.ok);
+        if (nextStorage) {
+          setStorage(nextStorage);
+        }
+        if (!response.ok) {
+          return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code };
+        }
+        return { ok: true, status: response.status, items: (body.items || []) as Job[] };
+      } catch {
+        return { ok: false, network: true, items: [] };
+      }
+    },
+  });
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -123,36 +142,6 @@ export default function MediaPanel() {
     [t],
   );
   const modes = currentKind === "image" ? imageModes : videoModes;
-
-  async function refresh(nextKind = kind) {
-    const query = nextKind ? `?kind=${encodeURIComponent(nextKind)}` : "";
-    try {
-      const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
-      const body = await response.json().catch(() => ({}));
-      const nextStorage = applyStorageFact(body, response.ok);
-      if (nextStorage) {
-        setStorage(nextStorage);
-      }
-      if (!response.ok) {
-        setItems([]);
-        setMessage(body.error?.message || tc("notLoggedIn"));
-        return;
-      }
-      setItems(body.items || []);
-      setMessage(t("mediaRefreshed"));
-    } catch {
-      setItems([]);
-      setMessage(tc("notLoggedIn"));
-    } finally {
-      // 前端 CI 无 API 时 fetch/json 会失败；仍要结束加载，否则空态永远不出现。
-      setLoaded(true);
-    }
-  }
-
-  useEffect(() => {
-    void refresh(kind);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind]);
 
   function handleCreateOpenChange(open: boolean) {
     setCreateOpen(open);
@@ -201,7 +190,7 @@ export default function MediaPanel() {
     }
     setMessage(t("createdJob", { id: body.id || "", type: body.task_type || values.task_type }));
     handleCreateOpenChange(false);
-    await refresh();
+    await list.reload();
   }
 
   async function downloadJob(id: string, jobKind?: string) {
@@ -245,7 +234,7 @@ export default function MediaPanel() {
               <option value="video">{tCat("video")}</option>
               <option value="image">{tCat("image")}</option>
             </select>
-            <Button type="button" variant="outline" onClick={() => void refresh()}>
+            <Button type="button" variant="outline" onClick={() => void list.reload()}>
               {t("refreshJobs")}
             </Button>
             <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -255,19 +244,19 @@ export default function MediaPanel() {
         }
       />
 
-      {loaded && items.length === 0 ? (
-        <EmptyLedger
-          title={t("mediaEmpty")}
-          detail={t("mediaEmptyDetail")}
-          action={
-            <Button type="button" onClick={() => setCreateOpen(true)}>
-              {t("createJob")}
-            </Button>
-          }
-        />
-      ) : (
+      <ListResourceView
+        snapshot={list.snapshot}
+        emptyTitle={t("mediaEmpty")}
+        emptyDetail={t("mediaEmptyDetail")}
+        emptyAction={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            {t("createJob")}
+          </Button>
+        }
+        onRetry={() => void list.reload()}
+      >
         <ul className="space-y-2">
-          {items.map((item) => (
+          {list.snapshot.items.map((item) => (
             <li
               key={item.id}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-hairline bg-canvas px-3 py-2.5 text-sm text-ink"
@@ -290,7 +279,7 @@ export default function MediaPanel() {
             </li>
           ))}
         </ul>
-      )}
+      </ListResourceView>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
 
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>

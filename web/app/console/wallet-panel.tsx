@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionRow } from "@/components/console/action-row";
-import { EmptyLedger } from "@/components/console/empty-ledger";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { CheckoutPay } from "@/components/checkout-pay";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
 
@@ -42,13 +43,34 @@ export default function WalletPanel() {
   const [balance, setBalance] = useState<Balance | null>(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState(t("walletHint"));
-  const [methods, setMethods] = useState<Method[]>([]);
   const [help, setHelp] = useState("");
   const [chips, setChips] = useState<number[]>([100, 300, 500, 1000]);
   const [amount, setAmount] = useState(100);
   const [adapter, setAdapter] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
+  const methodsList = useListResource<Method>({
+    load: async () => {
+      try {
+        const response = await fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code };
+        }
+        const item = body.item || {};
+        const nextMethods: Method[] = item.methods || [];
+        setHelp(item.help_text || "");
+        const amounts: number[] = item.settings?.quick_amounts || [100, 300, 500, 1000];
+        setChips(amounts);
+        if (amounts[0]) setAmount(amounts[0]);
+        if (nextMethods[0]) setAdapter(nextMethods[0].adapter);
+        return { ok: true, status: response.status, items: nextMethods };
+      } catch {
+        return { ok: false, network: true, items: [] };
+      }
+    },
+  });
+  const methods = methodsList.snapshot.items;
 
   async function refresh() {
     const response = await fetch(`${apiBase}/v1/me/balance`, { credentials: "include" });
@@ -59,22 +81,6 @@ export default function WalletPanel() {
     }
     setBalance(body.balance);
     setMessage(t("walletRefreshed"));
-  }
-
-  async function loadCheckout() {
-    const response = await fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      return;
-    }
-    const item = body.item || {};
-    const list: Method[] = item.methods || [];
-    setMethods(list);
-    setHelp(item.help_text || "");
-    const amounts: number[] = item.settings?.quick_amounts || [100, 300, 500, 1000];
-    setChips(amounts);
-    if (amounts[0]) setAmount(amounts[0]);
-    if (list[0]) setAdapter(list[0].adapter);
   }
 
   async function loadQuote(nextAdapter: string, nextAmount: number) {
@@ -92,7 +98,6 @@ export default function WalletPanel() {
 
   useEffect(() => {
     void refresh();
-    void loadCheckout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,9 +147,13 @@ export default function WalletPanel() {
         <p className="mb-4 text-sm text-ink-secondary">
           {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "0" })}
         </p>
-        {methods.length === 0 ? (
-          <EmptyLedger title={t("payOfflineTitle")} detail={help || t("payOfflineDetail")} />
-        ) : (
+        <ListResourceView
+          name="payments"
+          snapshot={methodsList.snapshot}
+          emptyTitle={t("payOfflineTitle")}
+          emptyDetail={help || t("payOfflineDetail")}
+          onRetry={() => void methodsList.reload()}
+        >
           <>
             <ActionRow className="mb-4">
               {chips.map((n) => (
@@ -178,7 +187,7 @@ export default function WalletPanel() {
             </Button>
             {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
           </>
-        )}
+        </ListResourceView>
         <ActionRow className="mt-6 w-full flex-nowrap gap-3">
           <Button type="button" variant="outline" className="shrink-0" onClick={() => void refresh()}>
             {t("refreshBalance")}

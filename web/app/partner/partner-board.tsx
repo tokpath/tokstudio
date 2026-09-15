@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { LedgerTable } from "@/components/console/ledger-table";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { fetchListItems } from "@/lib/list-resource";
 import { useTranslations } from "next-intl";
 
 type PartnerMe = {
@@ -21,39 +23,40 @@ export type PartnerSection = "all" | "scope" | "users" | "commissions" | "settle
 
 export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) {
   const t = useTranslations("partnerBoard");
-  const [me, setMe] = useState<PartnerMe>({});
-  const [users, setUsers] = useState<PartnerUser[]>([]);
-  const [comms, setComms] = useState<Commission[]>([]);
-  const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [message, setMessage] = useState(t("hint"));
+  const users = useListResource<PartnerUser>({
+    enabled: section === "all" || section === "users",
+    load: () => fetchListItems(`${apiBase}/v1/partner/users`),
+  });
+  const comms = useListResource<Commission>({
+    enabled: section === "all" || section === "commissions",
+    load: () => fetchListItems(`${apiBase}/v1/partner/commissions`),
+  });
+  const settlements = useListResource<Settlement>({
+    enabled: section === "all" || section === "settlements",
+    load: () => fetchListItems(`${apiBase}/v1/partner/settlements`),
+  });
+  const me = useListResource<PartnerMe>({
+    enabled: section === "all" || section === "scope",
+    load: async () => {
+      try {
+        const response = await fetch(`${apiBase}/v1/partner/me`, { credentials: "include" });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code };
+        }
+        return { ok: true, status: response.status, items: [body as PartnerMe] };
+      } catch {
+        return { ok: false, network: true, items: [] };
+      }
+    },
+  });
+  const profile = me.snapshot.items[0] || {};
 
-  async function refresh() {
-    const [meRes, userRes, commRes, setRes] = await Promise.all([
-      fetch(`${apiBase}/v1/partner/me`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/partner/users`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/partner/commissions`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/partner/settlements`, { credentials: "include" }),
-    ]);
-    const meBody = await meRes.json();
-    if (!meRes.ok) {
-      setMessage(meBody.error?.message || t("notPartner"));
-      return;
-    }
-    setMe(meBody as PartnerMe);
-    const userBody = await userRes.json();
-    const commBody = await commRes.json();
-    const setBody = await setRes.json();
-    setUsers((userBody.items || []) as PartnerUser[]);
-    setComms((commBody.items || []) as Commission[]);
-    setSettlements((setBody.items || []) as Settlement[]);
-    setMessage(
-      t("summary", {
-        role: meBody.role_type || "—",
-        users: userBody.items?.length ?? 0,
-        comms: commBody.items?.length ?? 0,
-        settlements: setBody.items?.length ?? 0,
-      }),
-    );
+  function refreshAll() {
+    void me.reload();
+    void users.reload();
+    void comms.reload();
+    void settlements.reload();
   }
 
   const show = (id: PartnerSection) => section === "all" || section === id;
@@ -61,66 +64,91 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
   return (
     <div className="flex flex-col gap-6">
       {section !== "all" ? (
-        <Button variant="outline" className="self-start" onClick={() => void refresh()}>
+        <Button variant="outline" className="self-start" onClick={refreshAll}>
           {t("refresh")}
         </Button>
       ) : null}
       {show("scope") ? (
         <Card id="scope">
           <CardTitle>{t("hierarchy")}</CardTitle>
-          <p className="mb-3 text-sm text-ink-secondary">
-            {t("currentLine", {
-              role: me.role_type || t("notLoggedIn"),
-              channel: me.channel_org_id || "—",
-              scope: me.sees_downline ? t("seesDownline") : t("seesDirect"),
-            })}
-          </p>
-          <Button variant="outline" onClick={() => void refresh()}>
+          {me.snapshot.phase === "ready" ? (
+            <p className="mb-3 text-sm text-ink-secondary">
+              {t("currentLine", {
+                role: profile.role_type || t("notLoggedIn"),
+                channel: profile.channel_org_id || "—",
+                scope: profile.sees_downline ? t("seesDownline") : t("seesDirect"),
+              })}
+            </p>
+          ) : null}
+          <Button variant="outline" onClick={refreshAll}>
             {t("refresh")}
           </Button>
-          <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+          <ListResourceView snapshot={me.snapshot} emptyTitle={t("hierarchy")} emptyDetail={t("hint")} onRetry={() => void me.reload()}>
+            <p className="mt-3 text-sm text-ink-secondary">{t("hint")}</p>
+          </ListResourceView>
         </Card>
       ) : null}
       {show("users") ? (
         <Card id="users">
           <CardTitle>{t("users")}</CardTitle>
-          <LedgerTable
-            columns={[t("colEmail"), t("colCode"), t("colStatus")]}
+          <ListResourceView
+            snapshot={users.snapshot}
             emptyTitle={t("emptyUsers")}
             emptyDetail={t("emptyUsersDetail")}
-            rows={users.map((item) => ({
-              key: `${item.email}-${item.source_code}`,
-              cells: [item.email || "—", item.source_code || "—", item.status || "—"],
-            }))}
-          />
+            onRetry={() => void users.reload()}
+          >
+            <LedgerTable
+              columns={[t("colEmail"), t("colCode"), t("colStatus")]}
+              emptyTitle={t("emptyUsers")}
+              emptyDetail={t("emptyUsersDetail")}
+              rows={users.snapshot.items.map((item) => ({
+                key: `${item.email}-${item.source_code}`,
+                cells: [item.email || "—", item.source_code || "—", item.status || "—"],
+              }))}
+            />
+          </ListResourceView>
         </Card>
       ) : null}
       {show("commissions") ? (
         <Card id="commissions">
           <CardTitle>{t("commissions")}</CardTitle>
-          <LedgerTable
-            columns={[t("colKind"), t("colStatus"), t("colAmount")]}
+          <ListResourceView
+            snapshot={comms.snapshot}
             emptyTitle={t("emptyComms")}
             emptyDetail={t("emptyCommsDetail")}
-            rows={comms.map((item) => ({
-              key: item.id || `${item.kind}-${item.status}`,
-              cells: [item.kind || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
-            }))}
-          />
+            onRetry={() => void comms.reload()}
+          >
+            <LedgerTable
+              columns={[t("colKind"), t("colStatus"), t("colAmount")]}
+              emptyTitle={t("emptyComms")}
+              emptyDetail={t("emptyCommsDetail")}
+              rows={comms.snapshot.items.map((item) => ({
+                key: item.id || `${item.kind}-${item.status}`,
+                cells: [item.kind || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+              }))}
+            />
+          </ListResourceView>
         </Card>
       ) : null}
       {show("settlements") ? (
         <Card id="settlements">
           <CardTitle>{t("settlements")}</CardTitle>
-          <LedgerTable
-            columns={[t("colSettle"), t("colStatus"), t("colAmount")]}
+          <ListResourceView
+            snapshot={settlements.snapshot}
             emptyTitle={t("emptySettle")}
             emptyDetail={t("emptySettleDetail")}
-            rows={settlements.map((item) => ({
-              key: item.id || "settlement",
-              cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
-            }))}
-          />
+            onRetry={() => void settlements.reload()}
+          >
+            <LedgerTable
+              columns={[t("colSettle"), t("colStatus"), t("colAmount")]}
+              emptyTitle={t("emptySettle")}
+              emptyDetail={t("emptySettleDetail")}
+              rows={settlements.snapshot.items.map((item) => ({
+                key: item.id || "settlement",
+                cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+              }))}
+            />
+          </ListResourceView>
         </Card>
       ) : null}
     </div>

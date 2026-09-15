@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { EmptyLedger } from "@/components/console/empty-ledger";
 import { LedgerTable } from "@/components/console/ledger-table";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { Button } from "@/components/ui/button";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { fetchListItems } from "@/lib/list-resource";
 
 type LedgerRow = {
   id: string;
@@ -21,42 +22,31 @@ function formatMinor(amount?: number) {
 export function WalletLedger() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
-  const [rows, setRows] = useState<LedgerRow[] | null>(null);
-  const [message, setMessage] = useState(t("ledHint"));
-
-  async function refresh() {
-    const response = await fetch(`${apiBase}/v1/me/ledger`, { credentials: "include" });
-    const body = await response.json();
-    if (!response.ok) {
-      setRows([]);
-      setMessage(body.error?.message || tc("notLoggedIn"));
-      return;
-    }
-    setRows(body.items || []);
-    setMessage(t("ledDone"));
-  }
-
-  useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const list = useListResource<LedgerRow>({
+    load: () => fetchListItems(`${apiBase}/v1/me/ledger`),
+  });
 
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium">{t("ledTitle")}</h3>
-        <Button variant="outline" size="sm" onClick={() => void refresh()}>
+        <Button variant="outline" size="sm" onClick={() => void list.reload()}>
           {tc("refresh")}
         </Button>
       </div>
-      {rows === null ? (
-        <EmptyLedger title={t("ledLoading")} detail={t("ledHint")} />
-      ) : (
+      <ListResourceView
+        name="ledger"
+        snapshot={list.snapshot}
+        loadingTitle={t("ledLoading")}
+        emptyTitle={t("ledEmpty")}
+        emptyDetail={t("ledEmptyDetail")}
+        onRetry={() => void list.reload()}
+      >
         <LedgerTable
           columns={[t("ledColType"), t("ledColAmount")]}
           emptyTitle={t("ledEmpty")}
-          emptyDetail={message}
-          rows={rows.map((row) => ({
+          emptyDetail={t("ledEmptyDetail")}
+          rows={list.snapshot.items.map((row) => ({
             key: row.id,
             cells: [
               <span key="type" className="font-mono text-ink-mute">
@@ -68,7 +58,7 @@ export function WalletLedger() {
             ],
           }))}
         />
-      )}
+      </ListResourceView>
     </section>
   );
 }

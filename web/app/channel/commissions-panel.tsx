@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { LedgerTable } from "@/components/console/ledger-table";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { Button } from "@/components/ui/button";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { fetchListItems } from "@/lib/list-resource";
 
 type Allocation = {
   id?: string;
@@ -15,62 +18,82 @@ type Allocation = {
   status?: string;
 };
 
+type Quota = {
+  available_minor?: string | number;
+  issued_minor?: string | number;
+  consumed_minor?: string | number;
+  issue_ratio_bps?: string | number;
+};
+
 export default function ChannelCommissions() {
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
-  const [message, setMessage] = useState(t("commHint"));
-  const [quota, setQuota] = useState<string>("—");
-  const [issued, setIssued] = useState<string>("—");
-  const [consumed, setConsumed] = useState<string>("—");
-  const [ratioBPS, setRatioBPS] = useState<string>("—");
-  const [allocations, setAllocations] = useState<Allocation[]>([]);
-
-  async function refresh() {
-    const [q, c, a] = await Promise.all([
-      fetch(`${apiBase}/channel/quota`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/commissions`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/allocations`, { credentials: "include" }),
-    ]);
-    const qBody = await q.json();
-    const cBody = await c.json();
-    const aBody = await a.json();
-    if (!q.ok && !c.ok) {
-      setMessage(qBody.error?.message || t("needAdmin"));
-      return;
-    }
-    setQuota(qBody.quota?.available_minor ?? "—");
-    setIssued(qBody.quota?.issued_minor ?? "—");
-    setConsumed(qBody.quota?.consumed_minor ?? "—");
-    setRatioBPS(qBody.quota?.issue_ratio_bps ?? "—");
-    setAllocations(Array.isArray(aBody.items) ? aBody.items : []);
-    setMessage(t("commCount", { comm: cBody.items?.length ?? 0, issued: aBody.items?.length ?? 0 }));
-  }
+  const [quota, setQuota] = useState<Quota>({});
+  const list = useListResource<Allocation>({
+    load: async () => {
+      const [q, a] = await Promise.all([
+        fetch(`${apiBase}/channel/quota`, { credentials: "include" }),
+        fetchListItems<Allocation>(`${apiBase}/channel/allocations`),
+      ]);
+      try {
+        const qBody = await q.json();
+        if (q.ok) {
+          setQuota((qBody.quota || {}) as Quota);
+        }
+      } catch {
+        /* quota is supplementary; allocations drive the list state */
+      }
+      if (!q.ok && !a.ok) {
+        return {
+          ok: false,
+          status: q.status || a.status,
+          items: [],
+          message: a.message,
+          code: a.code,
+          network: a.network,
+        };
+      }
+      return a;
+    },
+  });
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("commTitle")}</h2>
-      <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota })}</p>
-      <p className="mb-3 text-sm text-ink-secondary">{t("commMeta", { ratio: ratioBPS, issued, consumed })}</p>
+      <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota: quota.available_minor ?? "—" })}</p>
+      <p className="mb-3 text-sm text-ink-secondary">
+        {t("commMeta", {
+          ratio: quota.issue_ratio_bps ?? "—",
+          issued: quota.issued_minor ?? "—",
+          consumed: quota.consumed_minor ?? "—",
+        })}
+      </p>
       <h3 className="mb-2 text-lg font-medium">{t("issuedTitle")}</h3>
-      <LedgerTable
-        columns={[t("colUser"), t("colGranted"), t("colUsed"), t("colLeft"), t("colStatus")]}
-        emptyTitle={t("emptyIssued")}
-        emptyDetail={t("emptyIssuedDetail")}
-        rows={allocations.map((item) => ({
-          key: item.id || item.user_id || "alloc",
-          cells: [
-            item.user_id || "—",
-            String(item.granted_minor ?? 0),
-            String(item.consumed_minor ?? 0),
-            String(item.remaining_minor ?? 0),
-            item.status || "—",
-          ],
-        }))}
-      />
-      <Button type="button" variant="outline" onClick={refresh}>
+      <Button type="button" variant="outline" className="mb-3" onClick={() => void list.reload()}>
         {tc("refresh")}
       </Button>
-      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+      <ListResourceView
+        snapshot={list.snapshot}
+        emptyTitle={t("emptyIssued")}
+        emptyDetail={t("emptyIssuedDetail")}
+        onRetry={() => void list.reload()}
+      >
+        <LedgerTable
+          columns={[t("colUser"), t("colGranted"), t("colUsed"), t("colLeft"), t("colStatus")]}
+          emptyTitle={t("emptyIssued")}
+          emptyDetail={t("emptyIssuedDetail")}
+          rows={list.snapshot.items.map((item) => ({
+            key: item.id || item.user_id || "alloc",
+            cells: [
+              item.user_id || "—",
+              String(item.granted_minor ?? 0),
+              String(item.consumed_minor ?? 0),
+              String(item.remaining_minor ?? 0),
+              item.status || "—",
+            ],
+          }))}
+        />
+      </ListResourceView>
     </section>
   );
 }

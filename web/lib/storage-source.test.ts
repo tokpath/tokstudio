@@ -42,5 +42,6 @@ describe("W1-S3 storage source badge", () => {
       ok: false,
     });
     expect(fromError?.label).not.toMatch(/✓|✔|☑|已上传/);
+    expect(applyStorageFact({}, false)).toBeUndefined();
   });
 });

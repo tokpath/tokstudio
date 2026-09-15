@@ -30,32 +30,42 @@ export function storageBadge(source?: StorageSource | null): StorageBadgeView {
   return { label: STORAGE_LABEL_S3, tone: "muted", ok: true };
 }
 
+type StorageFactBody = {
+  storage?: StorageSource | null;
+  error?: { code?: string; message?: string };
+};
+
+function asStorageFactBody(body: unknown): StorageFactBody | undefined {
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+  return body as StorageFactBody;
+}
+
 /** 接口失败时也要把徽章打成「存储不可用」，禁止残留绿色/对勾。 */
-export function applyStorageFact(
-  body: { storage?: StorageSource | null; error?: { code?: string; message?: string } } | null | undefined,
-  responseOK = true,
-): StorageSource | undefined {
+export function applyStorageFact(body: unknown, responseOK = true): StorageSource | undefined {
+  const fact = asStorageFactBody(body);
   const storeFailed =
     !responseOK &&
-    (body?.error?.code === "store_unavailable" ||
-      body?.error?.message === STORAGE_LABEL_UNAVAILABLE ||
-      body?.storage?.ok === false ||
-      body?.storage?.source === "unavailable");
+    (fact?.error?.code === "store_unavailable" ||
+      fact?.error?.message === STORAGE_LABEL_UNAVAILABLE ||
+      fact?.storage?.ok === false ||
+      fact?.storage?.source === "unavailable");
   if (storeFailed) {
     return {
       source: "unavailable",
       ok: false,
       label: STORAGE_LABEL_UNAVAILABLE,
-      detail: body?.storage?.detail,
+      detail: fact?.storage?.detail,
     };
   }
-  if (body?.storage) {
-    const view = storageBadge(body.storage);
+  if (fact?.storage) {
+    const view = storageBadge(fact.storage);
     return {
-      source: view.ok ? body.storage.source : "unavailable",
+      source: view.ok ? fact.storage.source : "unavailable",
       ok: view.ok,
       label: stripSilentCheck(view.label),
-      detail: body.storage.detail,
+      detail: fact.storage.detail,
     };
   }
   return undefined;

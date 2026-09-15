@@ -198,6 +198,72 @@ test("wallet payment methods distinguish load failure from not enabled", async (
   await expect(page.getByText("当前渠道尚未开通在线支付")).toHaveCount(0);
 });
 
+test("wallet quote ignores stale results and does not show zero while calculating", async ({ page }) => {
+  let releaseSlow: (() => void) | undefined;
+  const slow = new Promise<void>((resolve) => {
+    releaseSlow = resolve;
+  });
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "0", reserved: "0" } });
+  });
+  await page.route("**/v1/me/ledger**", async (route) => {
+    await fulfillJSON(route, 200, { items: [] });
+  });
+  await page.route("**/v1/payments/checkout**", async (route) => {
+    await fulfillJSON(route, 200, {
+      item: {
+        methods: [
+          { adapter: "alipay", display_name: "支付宝", pay_currency: "CNY", sandbox: true },
+          { adapter: "stripe", display_name: "Stripe", pay_currency: "USD", sandbox: true },
+        ],
+        settings: { quick_amounts: [100, 300] },
+      },
+    });
+  });
+  await page.route("**/v1/payments/quote**", async (route) => {
+    const url = new URL(route.request().url());
+    const major = url.searchParams.get("pay_major");
+    const adapter = url.searchParams.get("adapter");
+    if (major === "100" && adapter === "alipay") {
+      await slow;
+      await fulfillJSON(route, 200, {
+        item: {
+          adapter: "alipay",
+          pay_major: 100,
+          pay_currency: "CNY",
+          pay_minor: 10000,
+          fee_minor: 0,
+          credit_minor: 13990000,
+        },
+      });
+      return;
+    }
+    await fulfillJSON(route, 200, {
+      item: {
+        adapter,
+        pay_major: Number(major),
+        pay_currency: adapter === "stripe" ? "USD" : "CNY",
+        pay_minor: adapter === "stripe" ? Number(major) * 1_000_000 : Number(major) * 100,
+        fee_minor: 0,
+        credit_minor: Number(major) === 300 ? 41970000 : 10000000,
+      },
+    });
+  });
+  await page.goto("/app/wallet");
+  await expect(page.getByRole("button", { name: "¥100" })).toBeVisible();
+  await expect(page.getByTestId("quote-summary")).toHaveAttribute("data-quote-phase", "loading");
+  await expect(page.getByText("正在计算").first()).toBeVisible();
+  await expect(page.getByTestId("wallet-pay")).toBeDisabled();
+  await expect(page.getByTestId("quote-summary")).not.toContainText("$0.00");
+  await expect(page.getByTestId("quote-summary")).not.toContainText("¥0.00");
+  await page.getByRole("button", { name: "¥300" }).click();
+  await expect(page.getByTestId("wallet-pay")).toHaveText("支付 ¥300.00");
+  await expect(page.getByTestId("wallet-pay")).toBeEnabled();
+  releaseSlow?.();
+  await expect(page.getByTestId("wallet-pay")).toHaveText("支付 ¥300.00");
+  await expect(page.getByTestId("quote-summary").getByText("$41.97")).toBeVisible();
+});
+
 test("media download badge is grey 存储不可用 when the bucket is missing", async ({ page }) => {
   await page.route("**/v1/me/media**", async (route) => {
     await route.fulfill({

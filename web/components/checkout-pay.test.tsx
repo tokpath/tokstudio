@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPay } from "./checkout-pay";
 import { withZh } from "@/lib/test-i18n";
 
@@ -19,6 +19,9 @@ vi.stubGlobal(
 );
 
 describe("CheckoutPay", () => {
+  afterEach(() => {
+    cleanup();
+  });
   it("shows sandbox copy without a pay-check button", () => {
     render(
       withZh(
@@ -28,6 +31,44 @@ describe("CheckoutPay", () => {
     expect(screen.getByText("pay_sandbox")).toBeTruthy();
     expect(screen.getByText("沙箱订单，请通过渠道 Webhook 完成入账。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "我已付款" })).toBeNull();
+  });
+
+  it("names failed and expired orders instead of 待支付", () => {
+    const { rerender } = render(
+      withZh(<CheckoutPay checkout={{ order: { id: "pay_fail", status: "failed" }, sandbox: true }} />),
+    );
+    const failed = screen.getByText("pay_fail").closest("[data-checkout-status]");
+    expect(failed?.getAttribute("data-checkout-status")).toBe("failed");
+    expect(failed?.textContent).toContain("支付失败");
+    expect(failed?.textContent).not.toContain("待支付");
+    rerender(withZh(<CheckoutPay checkout={{ order: { id: "pay_exp", status: "expired" }, sandbox: true }} />));
+    const expired = screen.getByText("pay_exp").closest("[data-checkout-status]");
+    expect(expired?.getAttribute("data-checkout-status")).toBe("expired");
+    expect(expired?.textContent).toContain("订单过期");
+    expect(expired?.textContent).not.toContain("待支付");
+  });
+
+  it("says credit is processing when paid but not fulfilled", () => {
+    render(
+      withZh(
+        <CheckoutPay checkout={{ order: { id: "pay_paid", status: "paid", credit_minor: 13_990_000 }, sandbox: true }} />,
+      ),
+    );
+    expect(screen.getByText("已支付，额度入账处理中")).toBeTruthy();
+  });
+
+  it("shows credited amount after fulfillment", () => {
+    render(
+      withZh(
+        <CheckoutPay
+          checkout={{
+            order: { id: "pay_done", status: "paid", credit_minor: 13_990_000, fulfilled_at: "2026-09-15T07:00:00Z" },
+            sandbox: true,
+          }}
+        />,
+      ),
+    );
+    expect(screen.getByText("已到账 $13.99")).toBeTruthy();
   });
 
   it("renders a qr surface for live native checkout", async () => {

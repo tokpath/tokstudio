@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutKind, checkoutOrderID } from "./checkout";
+import { checkoutKind, checkoutOrderID, checkoutUiStatus } from "./checkout";
 
 describe("checkoutKind", () => {
   it("prefers live qr and stripe element over sandbox", () => {
@@ -15,5 +15,14 @@ describe("checkoutKind", () => {
   it("reads order id", () => {
     expect(checkoutOrderID({ order: { id: " pay_1 " } })).toBe("pay_1");
     expect(checkoutOrderID({})).toBe("");
+  });
+
+  it("maps payment statuses instead of collapsing to pending", () => {
+    expect(checkoutUiStatus("pending")).toBe("pending");
+    expect(checkoutUiStatus("pending", true)).toBe("confirming");
+    expect(checkoutUiStatus("failed")).toBe("failed");
+    expect(checkoutUiStatus("expired")).toBe("expired");
+    expect(checkoutUiStatus("paid", true)).toBe("paid");
+    expect(checkoutUiStatus("refunded")).toBe("refunded");
   });
 });

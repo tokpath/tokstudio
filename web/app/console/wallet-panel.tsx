@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,17 @@ import { CheckoutPay } from "@/components/checkout-pay";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
+import {
+  applyQuoteFetch,
+  emptyQuoteSnapshot,
+  formatAmountChip,
+  formatCreditMinor,
+  formatPayMinor,
+  loadingQuoteSnapshot,
+  quoteMatchesSelection,
+  type PaymentQuote,
+  type QuoteSnapshot,
+} from "@/lib/payment-quote";
 
 type Balance = {
   available?: string;
@@ -28,15 +39,6 @@ type Method = {
   pay_currency?: string;
 };
 
-type Quote = {
-  pay_major?: number;
-  pay_currency?: string;
-  pay_minor?: number;
-  fee_minor?: number;
-  wallet_minor?: number;
-  credit_minor?: number;
-};
-
 export default function WalletPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -47,8 +49,10 @@ export default function WalletPanel() {
   const [chips, setChips] = useState<number[]>([100, 300, 500, 1000]);
   const [amount, setAmount] = useState(100);
   const [adapter, setAdapter] = useState("");
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoteSnap, setQuoteSnap] = useState<QuoteSnapshot>(emptyQuoteSnapshot);
+  const [creating, setCreating] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
+  const quoteGen = useRef(0);
   const methodsList = useListResource<Method>({
     load: async () => {
       try {
@@ -83,27 +87,58 @@ export default function WalletPanel() {
     setMessage(t("walletRefreshed"));
   }
 
-  async function loadQuote(nextAdapter: string, nextAmount: number) {
-    if (!nextAdapter || nextAmount <= 0) {
-      setQuote(null);
-      return;
-    }
-    const response = await fetch(
-      `${apiBase}/v1/payments/quote?adapter=${encodeURIComponent(nextAdapter)}&pay_major=${nextAmount}`,
-      { credentials: "include" },
-    );
-    const body = await response.json();
-    if (response.ok) setQuote(body.item);
-  }
-
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    void loadQuote(adapter, amount);
-  }, [adapter, amount]);
+    setCheckout(null);
+    const generation = ++quoteGen.current;
+    if (!adapter || amount <= 0) {
+      setQuoteSnap(emptyQuoteSnapshot());
+      return;
+    }
+    setQuoteSnap(loadingQuoteSnapshot());
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(
+          `${apiBase}/v1/payments/quote?adapter=${encodeURIComponent(adapter)}&pay_major=${amount}`,
+          { credentials: "include", signal: controller.signal },
+        );
+        const body = await response.json().catch(() => ({}));
+        const next = applyQuoteFetch({
+          generation,
+          currentGeneration: quoteGen.current,
+          adapter,
+          amount,
+          ok: response.ok,
+          quote: body.item as PaymentQuote | undefined,
+          message: body.error?.message,
+        });
+        if (next) {
+          setQuoteSnap(next);
+        }
+      } catch {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const next = applyQuoteFetch({
+          generation,
+          currentGeneration: quoteGen.current,
+          adapter,
+          amount,
+          ok: false,
+          message: t("quoteFailed"),
+        });
+        if (next) {
+          setQuoteSnap(next);
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [adapter, amount, t]);
 
   async function redeem() {
     const response = await fetch(`${apiBase}/v1/topups/redeem`, {
@@ -118,28 +153,52 @@ export default function WalletPanel() {
   }
 
   async function pay() {
-    const response = await fetch(`${apiBase}/v1/payments/orders`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adapter, pay_major: amount }),
-    });
-    const body = await response.json();
-    if (response.ok) {
-      setCheckout(body.checkout || null);
-      setMessage(t("payOrderOk", { id: body.checkout?.order?.id }));
-    } else {
-      setCheckout(null);
-      setMessage(body.error?.message || t("payOrderFail"));
+    const quote = quoteSnap.quote;
+    if (creating || !quoteMatchesSelection(quote, adapter, amount)) {
+      return;
+    }
+    setCreating(true);
+    try {
+      const response = await fetch(`${apiBase}/v1/payments/orders`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adapter, pay_major: amount }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setCheckout(body.checkout || null);
+        setMessage(t("payOrderOk", { id: body.checkout?.order?.id }));
+      } else {
+        setCheckout(null);
+        setMessage(body.error?.message || t("payOrderFail"));
+      }
+    } finally {
+      setCreating(false);
     }
   }
 
   const selected = methods.find((m) => m.adapter === adapter);
-  const credit = ((quote?.credit_minor || 0) / 1_000_000).toFixed(2);
-  const payLabel =
-    quote?.pay_currency === "CNY"
-      ? t("payCny", { amount, credit })
-      : t("payUsd", { amount, credit });
+  const payCurrency = selected?.pay_currency || quoteSnap.quote?.pay_currency;
+  const canPay = quoteSnap.phase === "ready" && quoteMatchesSelection(quoteSnap.quote, adapter, amount) && !creating;
+  const payLabel = creating
+    ? t("creatingOrder")
+    : quoteSnap.phase === "loading"
+      ? t("quoteCalculating")
+      : canPay
+        ? t("payNow", { money: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor) })
+        : t("quoteUnavailable");
+
+  const dueText =
+    quoteSnap.phase === "ready" && quoteSnap.quote
+      ? formatPayMinor(quoteSnap.quote.pay_currency, quoteSnap.quote.pay_minor)
+      : "—";
+  const feeText =
+    quoteSnap.phase === "ready" && quoteSnap.quote
+      ? formatPayMinor(quoteSnap.quote.pay_currency, quoteSnap.quote.fee_minor)
+      : "—";
+  const creditText =
+    quoteSnap.phase === "ready" && quoteSnap.quote ? formatCreditMinor(quoteSnap.quote.credit_minor) : "—";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -155,10 +214,11 @@ export default function WalletPanel() {
           onRetry={() => void methodsList.reload()}
         >
           <>
+            <p className="th-eyebrow mb-3 text-ink-mute">{t("stepSelect")}</p>
             <ActionRow className="mb-4">
               {chips.map((n) => (
                 <Button key={n} type="button" size="sm" variant={amount === n ? "default" : "outline"} onClick={() => setAmount(n)}>
-                  {n}
+                  {formatAmountChip(payCurrency, n)}
                 </Button>
               ))}
             </ActionRow>
@@ -182,7 +242,8 @@ export default function WalletPanel() {
             {selected?.auto_renew_supported ? (
               <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payAutoRenew")}</p>
             ) : null}
-            <Button type="button" onClick={() => void pay()}>
+            <p className="th-eyebrow mb-3 text-ink-mute">{t("stepPay")}</p>
+            <Button type="button" disabled={!canPay} onClick={() => void pay()} data-testid="wallet-pay">
               {payLabel}
             </Button>
             {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
@@ -204,24 +265,26 @@ export default function WalletPanel() {
         </ActionRow>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <aside className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24">
-        <p className="th-eyebrow mb-3 text-ink-mute">{t("ledgerEyebrow")}</p>
+      <aside className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24" data-testid="quote-summary" data-quote-phase={quoteSnap.phase}>
+        <p className="th-eyebrow mb-3 text-ink-mute">{t("stepQuote")}</p>
+        {quoteSnap.phase === "loading" ? (
+          <p className="mb-3 text-sm text-ink-secondary">{t("quoteCalculating")}</p>
+        ) : null}
+        {quoteSnap.phase === "error" ? (
+          <p className="mb-3 text-sm text-danger">{quoteSnap.message || t("quoteFailed")}</p>
+        ) : null}
         <ul className="divide-y divide-hairline text-sm">
           <li className="flex justify-between py-2">
             <span>{t("ledgerDue")}</span>
-            <span className="font-mono tabular-nums">
-              {quote?.pay_currency === "CNY" ? `¥${((quote.pay_minor || 0) / 100).toFixed(2)}` : `$${((quote?.pay_minor || 0) / 1_000_000).toFixed(2)}`}
-            </span>
+            <span className="font-mono tabular-nums">{dueText}</span>
           </li>
           <li className="flex justify-between py-2">
             <span>{t("ledgerFee")}</span>
-            <span className="font-mono tabular-nums">
-              {quote?.pay_currency === "CNY" ? `¥${((quote.fee_minor || 0) / 100).toFixed(2)}` : `$${((quote?.fee_minor || 0) / 1_000_000).toFixed(2)}`}
-            </span>
+            <span className="font-mono tabular-nums">{feeText}</span>
           </li>
           <li className="flex justify-between py-2">
             <span>{t("ledgerCredit")}</span>
-            <span className="font-mono tabular-nums">${((quote?.credit_minor || 0) / 1_000_000).toFixed(2)}</span>
+            <span className="font-mono tabular-nums">{creditText}</span>
           </li>
         </ul>
       </aside>

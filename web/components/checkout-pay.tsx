@@ -6,7 +6,16 @@ import QRCode from "qrcode";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
-import { checkoutKind, checkoutOrderID, type CheckoutPayload } from "@/lib/checkout";
+import {
+  checkoutIsOpen,
+  checkoutKind,
+  checkoutNeedsFulfillment,
+  checkoutOrderID,
+  checkoutUiStatus,
+  type CheckoutOrder,
+  type CheckoutPayload,
+} from "@/lib/checkout";
+import { formatCreditMinor } from "@/lib/payment-quote";
 
 type Props = {
   checkout: CheckoutPayload;
@@ -17,26 +26,29 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   const t = useTranslations("checkout");
   const kind = checkoutKind(checkout);
   const orderID = checkoutOrderID(checkout);
-  const [status, setStatus] = useState(checkout.order?.status || "pending");
+  const [order, setOrder] = useState<CheckoutOrder>(checkout.order || { status: "pending" });
   const [qrSvg, setQrSvg] = useState("");
   const [busy, setBusy] = useState(false);
-  const paid = status === "paid";
+  const ui = checkoutUiStatus(order.status, busy);
+  const open = checkoutIsOpen(ui);
+  const paid = ui === "paid";
+  const awaitingCredit = checkoutNeedsFulfillment(order);
 
-  const applyStatus = useCallback(
-    (next?: string) => {
-      if (!next) return;
-      setStatus(next);
-      if (next === "paid") onPaid?.();
+  const applyOrder = useCallback(
+    (next?: CheckoutOrder) => {
+      if (!next?.status) return;
+      setOrder((prev) => ({ ...prev, ...next }));
+      if (next.status === "paid") onPaid?.();
     },
     [onPaid],
   );
 
   useEffect(() => {
-    setStatus(checkout.order?.status || "pending");
-  }, [checkout.order?.status, orderID]);
+    setOrder(checkout.order || { status: "pending" });
+  }, [checkout.order, orderID]);
 
   useEffect(() => {
-    if (kind !== "qr" || !checkout.qr_code) {
+    if (kind !== "qr" || !checkout.qr_code || !open) {
       setQrSvg("");
       return;
     }
@@ -49,37 +61,52 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [kind, checkout.qr_code]);
+  }, [kind, checkout.qr_code, open]);
 
   useEffect(() => {
-    if (!orderID || paid) return;
+    if (!orderID || (paid && !awaitingCredit) || ui === "failed" || ui === "expired" || ui === "refunded") {
+      return;
+    }
     const timer = window.setInterval(() => {
       void fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}`, { credentials: "include" })
         .then((res) => res.json())
-        .then((body) => applyStatus(body.item?.status));
+        .then((body) => applyOrder(body.item as CheckoutOrder));
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [applyStatus, orderID, paid]);
+  }, [applyOrder, awaitingCredit, orderID, paid, ui]);
 
   async function syncPaid() {
     if (!orderID) return;
     setBusy(true);
-    const response = await fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}/sync`, {
-      method: "POST",
-      credentials: "include",
-    });
-    const body = await response.json();
-    setBusy(false);
-    applyStatus(body.item?.status);
+    try {
+      const response = await fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}/sync`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const body = await response.json();
+      applyOrder(body.item as CheckoutOrder);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function statusCopy() {
+    if (ui === "paid") {
+      if (awaitingCredit) {
+        return t("paidPendingCredit");
+      }
+      return t("paidCredited", { credit: formatCreditMinor(order.credit_minor) });
+    }
+    return t(ui);
   }
 
   return (
-    <div className="mt-4 rounded-card border border-hairline bg-canvas p-4">
+    <div className="mt-4 rounded-card border border-hairline bg-canvas p-4" data-checkout-status={ui}>
       <p className="th-eyebrow text-ink-mute">{t("orderEyebrow")}</p>
       <p className="mt-1 font-mono text-sm tabular-nums text-ink">{orderID || "—"}</p>
-      <p className="mt-1 text-sm text-ink-secondary">{paid ? t("paid") : t("pending")}</p>
-      {kind === "sandbox" ? <p className="mt-3 text-sm text-ink-secondary">{t("sandboxHint")}</p> : null}
-      {kind === "qr" ? (
+      <p className="mt-1 text-sm text-ink-secondary">{statusCopy()}</p>
+      {kind === "sandbox" && open ? <p className="mt-3 text-sm text-ink-secondary">{t("sandboxHint")}</p> : null}
+      {kind === "qr" && open ? (
         <div className="mt-3">
           <p className="mb-2 text-sm text-ink-secondary">{t("scanQr")}</p>
           {qrSvg ? (
@@ -94,19 +121,19 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
           )}
         </div>
       ) : null}
-      {kind === "redirect" && checkout.redirect_url ? (
+      {kind === "redirect" && open && checkout.redirect_url ? (
         <Button className="mt-3" asChild>
           <a href={checkout.redirect_url}>{t("redirect")}</a>
         </Button>
       ) : null}
-      {kind === "element" && checkout.client_secret && checkout.publishable_key ? (
+      {kind === "element" && open && checkout.client_secret && checkout.publishable_key ? (
         <StripeElementPay
           publishableKey={checkout.publishable_key}
           clientSecret={checkout.client_secret}
-          onPaid={() => applyStatus("paid")}
+          onPaid={() => applyOrder({ status: "paid" })}
         />
       ) : null}
-      {!paid && kind !== "sandbox" ? (
+      {open && kind !== "sandbox" ? (
         <Button type="button" variant="outline" className="mt-3" disabled={busy} onClick={() => void syncPaid()}>
           {busy ? t("checking") : t("paidCheck")}
         </Button>

@@ -6,22 +6,22 @@ import (
 )
 
 var (
-	ErrNotFound            = errors.New("payment order not found")
-	ErrInvalidAdapter      = errors.New("unsupported payment adapter")
-	ErrInvalidSignature    = errors.New("invalid payment signature")
-	ErrInvalidEvent        = errors.New("invalid payment event")
-	ErrInvalidAmount       = errors.New("invalid payment amount")
-	ErrChargeFailed        = errors.New("renewal charge failed")
-	ErrNoAutoRenew         = errors.New("adapter cannot auto-renew")
-	ErrOrderNotPending     = errors.New("payment order is not pending")
-	ErrInstanceNotFound    = errors.New("payment instance not found")
-	ErrInstanceIncomplete  = errors.New("payment instance is incomplete")
-	ErrAdapterDisabled     = errors.New("payment adapter is disabled")
-	ErrOnlineDisabled      = errors.New("channel online payments are disabled")
-	ErrNotTested           = errors.New("payment instance has not passed connectivity test")
-	ErrMethodUnavailable   = errors.New("payment method is not available for this channel")
-	ErrRefundDisabled      = errors.New("refunds are disabled for this instance")
-	ErrProviderFailed      = errors.New("payment provider request failed")
+	ErrNotFound           = errors.New("payment order not found")
+	ErrInvalidAdapter     = errors.New("unsupported payment adapter")
+	ErrInvalidSignature   = errors.New("invalid payment signature")
+	ErrInvalidEvent       = errors.New("invalid payment event")
+	ErrInvalidAmount      = errors.New("invalid payment amount")
+	ErrChargeFailed       = errors.New("renewal charge failed")
+	ErrNoAutoRenew        = errors.New("adapter cannot auto-renew")
+	ErrOrderNotPending    = errors.New("payment order is not pending")
+	ErrInstanceNotFound   = errors.New("payment instance not found")
+	ErrInstanceIncomplete = errors.New("payment instance is incomplete")
+	ErrAdapterDisabled    = errors.New("payment adapter is disabled")
+	ErrOnlineDisabled     = errors.New("channel online payments are disabled")
+	ErrNotTested          = errors.New("payment instance has not passed connectivity test")
+	ErrMethodUnavailable  = errors.New("payment method is not available for this channel")
+	ErrRefundDisabled     = errors.New("refunds are disabled for this instance")
+	ErrProviderFailed     = errors.New("payment provider request failed")
 )
 
 const (
@@ -43,11 +43,11 @@ const (
 	ModeSandbox = "sandbox"
 	ModeLive    = "live"
 
-	LaneNone         = "none"
-	LaneConfiguring  = "configuring"
-	LaneSandbox      = "sandbox"
-	LaneLive         = "live"
-	LaneDisabled     = "disabled"
+	LaneNone        = "none"
+	LaneConfiguring = "configuring"
+	LaneSandbox     = "sandbox"
+	LaneLive        = "live"
+	LaneDisabled    = "disabled"
 )
 
 type CreateOrderInput struct {
@@ -70,19 +70,20 @@ type ListOrdersFilter struct {
 }
 
 type OrderView struct {
-	ID            string    `json:"id"`
-	UserID        string    `json:"user_id"`
-	ChannelOrgID  string    `json:"channel_org_id,omitempty"`
-	Adapter       string    `json:"adapter"`
-	Purpose       string    `json:"purpose"`
-	ReferenceType string    `json:"reference_type,omitempty"`
-	ReferenceID   string    `json:"reference_id,omitempty"`
-	AmountMinor   int64     `json:"amount_minor"`
-	CreditMinor   int64     `json:"credit_minor"`
-	Currency      string    `json:"currency"`
-	Status        string    `json:"status"`
-	TradeID       string    `json:"provider_trade_id,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string     `json:"id"`
+	UserID        string     `json:"user_id"`
+	ChannelOrgID  string     `json:"channel_org_id,omitempty"`
+	Adapter       string     `json:"adapter"`
+	Purpose       string     `json:"purpose"`
+	ReferenceType string     `json:"reference_type,omitempty"`
+	ReferenceID   string     `json:"reference_id,omitempty"`
+	AmountMinor   int64      `json:"amount_minor"`
+	CreditMinor   int64      `json:"credit_minor"`
+	Currency      string     `json:"currency"`
+	Status        string     `json:"status"`
+	TradeID       string     `json:"provider_trade_id,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	FulfilledAt   *time.Time `json:"fulfilled_at,omitempty"`
 }
 
 type EventView struct {
@@ -201,12 +202,12 @@ type LaneView struct {
 }
 
 type OverviewView struct {
-	ChannelOrgID    string     `json:"channel_org_id"`
-	OnlineDisabled  bool       `json:"online_disabled"`
-	IssueRatioBPS   int64      `json:"issue_ratio_bps"`
-	FenPerUSD       int64      `json:"fen_per_usd"`
-	CallbackOrigin  string     `json:"callback_origin"`
-	Lanes           []LaneView `json:"lanes"`
+	ChannelOrgID   string     `json:"channel_org_id"`
+	OnlineDisabled bool       `json:"online_disabled"`
+	IssueRatioBPS  int64      `json:"issue_ratio_bps"`
+	FenPerUSD      int64      `json:"fen_per_usd"`
+	CallbackOrigin string     `json:"callback_origin"`
+	Lanes          []LaneView `json:"lanes"`
 }
 
 type CheckoutMethodView struct {

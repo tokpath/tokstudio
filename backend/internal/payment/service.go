@@ -650,6 +650,7 @@ func orderView(row orderRow) *OrderView {
 	view := &OrderView{
 		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
 		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
+		FulfilledAt: row.FulfilledAt,
 	}
 	if row.ReferenceType != nil {
 		view.ReferenceType = *row.ReferenceType

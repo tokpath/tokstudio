@@ -18,6 +18,7 @@ import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { MetricCard } from "@/components/feature-card";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
+import { overviewHasUsage, overviewNeedsTopup } from "@/lib/overview-guide";
 import { type UsageEvent, summarizeUsage } from "@/lib/usage";
 import { useTranslations } from "next-intl";
 
@@ -33,7 +34,7 @@ function money(value?: string) {
   return `$${n.toFixed(2)}`;
 }
 
-/** 总览英雄：个人状态 + 周期用量趋势 + 快捷入口（docs/14，对齐 tokpath dashboard）。 */
+/** 总览英雄：个人状态 + 用量趋势；无用量时给第一次使用步骤（docs/14）。 */
 export function OverviewHero() {
   const t = useTranslations("overview");
   const tChart = useTranslations("charts");
@@ -81,6 +82,8 @@ export function OverviewHero() {
 
   const summary = useMemo(() => summarizeUsage(events), [events]);
   const tokens = summary.prompt + summary.completion + summary.reasoning;
+  const hasUsage = overviewHasUsage(events);
+  const needsTopup = overviewNeedsTopup(balance?.available);
 
   const cards = [
     { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet", icon: Wallet, compact: false },
@@ -108,20 +111,49 @@ export function OverviewHero() {
 
   return (
     <div className="flex flex-col gap-8">
-      <ActionRow className="gap-3">
-        <Button asChild>
-          <Link href="/app/keys">
-            <KeyRound />
-            {t("createKey")}
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/app/wallet">
-            <Wallet />
-            {t("topup")}
-          </Link>
-        </Button>
-      </ActionRow>
+      {usageReady ? (
+        <ActionRow className="gap-3">
+          {hasUsage ? (
+            <>
+              <Button asChild>
+                <Link href="/app/keys?create=1">
+                  <KeyRound />
+                  {t("createKey")}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/app/wallet">
+                  <Wallet />
+                  {t("topup")}
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild>
+                <Link href="/app/playground">
+                  <Play />
+                  {t("tryCta")}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/app/keys?create=1">
+                  <KeyRound />
+                  {t("createKey")}
+                </Link>
+              </Button>
+              {needsTopup ? (
+                <Button asChild variant="outline">
+                  <Link href="/app/wallet">
+                    <Wallet />
+                    {t("topup")}
+                  </Link>
+                </Button>
+              ) : null}
+            </>
+          )}
+        </ActionRow>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
         {cards.map((card) => (
@@ -163,26 +195,64 @@ export function OverviewHero() {
         <UsageCharts events={events} breakdownTitle={tChart("byModel")} testIdPrefix="overview" />
       </section>
 
-      <section aria-label={t("shortcutsRegion")} className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold tracking-tight text-ink">{t("shortcutsTitle")}</h2>
-        <p className="text-[13px] leading-relaxed text-ink-mute">{t("shortcutsLead")}</p>
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {shortcuts.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex items-center gap-2 rounded-control border border-hairline bg-canvas-raised px-3 py-2.5 text-sm text-ink transition-colors hover:border-brand/40 hover:bg-brand-soft/40"
-                >
-                  <Icon className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {usageReady && !hasUsage ? (
+        <section aria-label={t("firstUseRegion")} className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold tracking-tight text-ink">{t("firstUseTitle")}</h2>
+          <p className="text-[13px] leading-relaxed text-ink-mute">{t("firstUseLead")}</p>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <article className="flex flex-col gap-3 rounded-card border border-hairline bg-canvas-raised p-4">
+              <h3 className="text-sm font-semibold tracking-tight text-ink">{t("tryTitle")}</h3>
+              <p className="text-[13px] leading-relaxed text-ink-mute">{t("trySteps")}</p>
+              {needsTopup ? <p className="text-[13px] leading-relaxed text-danger">{t("tryNeedTopup")}</p> : null}
+              <ActionRow className="gap-2">
+                <Button asChild>
+                  <Link href="/app/playground">{t("tryCta")}</Link>
+                </Button>
+                {needsTopup ? (
+                  <Button asChild variant="outline">
+                    <Link href="/app/wallet">{t("topup")}</Link>
+                  </Button>
+                ) : null}
+              </ActionRow>
+            </article>
+            <article className="flex flex-col gap-3 rounded-card border border-hairline bg-canvas-raised p-4">
+              <h3 className="text-sm font-semibold tracking-tight text-ink">{t("integrateTitle")}</h3>
+              <p className="text-[13px] leading-relaxed text-ink-mute">{t("integrateSteps")}</p>
+              <ActionRow className="gap-2">
+                <Button asChild>
+                  <Link href="/app/keys?create=1">{t("createKey")}</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/app/docs">{t("copyConfigCta")}</Link>
+                </Button>
+              </ActionRow>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {usageReady && hasUsage ? (
+        <section aria-label={t("shortcutsRegion")} className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold tracking-tight text-ink">{t("shortcutsTitle")}</h2>
+          <p className="text-[13px] leading-relaxed text-ink-mute">{t("shortcutsLead")}</p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {shortcuts.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-2 rounded-control border border-hairline bg-canvas-raised px-3 py-2.5 text-sm text-ink transition-colors hover:border-brand/40 hover:bg-brand-soft/40"
+                  >
+                    <Icon className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <p className="text-[13px] leading-relaxed text-ink-mute">{t("footnote")}</p>
     </div>

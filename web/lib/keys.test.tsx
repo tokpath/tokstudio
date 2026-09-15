@@ -91,6 +91,14 @@ describe("KeysPanel", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("opens the create dialog when the page is opened with create=1", async () => {
+    window.history.replaceState({}, "", "/app/keys?create=1");
+    render(withZh(<KeysPanel />));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "创建 API Key" })).toBeTruthy());
+    expect(screen.getByLabelText("模型白名单")).toBeTruthy();
   });
 
   it("opens a create dialog instead of keeping the form on the list", () => {

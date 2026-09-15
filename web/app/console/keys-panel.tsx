@@ -24,6 +24,7 @@ import { Form } from "@/components/ui/form";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { SubmitStatus } from "@/components/console/submit-status";
 import { apiBase } from "@/lib/api";
+import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
 
@@ -268,8 +269,11 @@ export default function KeysPanel() {
   }
 
   useEffect(() => {
+    if (keysCreateQueryOpen(window.location.search)) {
+      setCreateOpen(true);
+    }
     void refresh(true);
-    // 进入页面拉一次列表；文案来自当前 locale。
+    // 进入页面拉一次列表；?create=1 时直接打开创建弹窗。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

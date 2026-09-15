@@ -26,9 +26,12 @@ test("user overview is personal stats trends and shortcuts", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
   await expect(page.getByTestId("overview-trend-chart")).toBeVisible();
   await expect(page.getByRole("link", { name: "查看用量汇总" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "快捷入口" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "创建 API Key" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "充值余额" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "第一次使用" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "直接体验模型" })).toBeVisible();
+  const tryLink = page.getByRole("link", { name: "去快速试用" }).first();
+  await expect(tryLink).toHaveAttribute("href", "/app/playground");
+  await expect(page.getByRole("link", { name: "创建 API Key" }).first()).toHaveAttribute("href", "/app/keys?create=1");
+  await expect(page.getByRole("heading", { name: "快捷入口" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "媒体任务" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "个人设置" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "接入示例" })).toHaveCount(0);
@@ -44,6 +47,12 @@ test("user keys page keeps create dialog", async ({ page }) => {
   await expect(page.getByLabel("模型白名单")).toBeVisible();
   await expect(page.getByLabel("并发限额")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
+});
+
+test("user keys create query opens the dialog", async ({ page }) => {
+  await page.goto("/app/keys?create=1");
+  await expect(page.getByRole("heading", { name: "创建 API Key" })).toBeVisible();
+  await expect(page.getByLabel("模型白名单")).toBeVisible();
 });
 
 test("user reconciliation page is three-bucket vs usage with no estimate debit", async ({ page }) => {

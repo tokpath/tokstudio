@@ -58,7 +58,7 @@ test("login page has no ofox copy", async ({ page }) => {
 test("google oauth callback without code returns to login", async ({ page }) => {
   await page.goto("/login/oauth/google");
   await expect(page).toHaveURL(/\/login\?/);
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: /Google 登录失败/ })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/ya29\.|mock:/);
   await expect(page.getByText("绑定成功")).toHaveCount(0);
 });

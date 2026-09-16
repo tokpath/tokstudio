@@ -205,9 +205,27 @@ test("activity session loss keeps the return path", async ({ page }) => {
       body: JSON.stringify({ error: { code: "authentication_error", message: "未登录" } }),
     });
   });
+  await page.goto("/app/activity?status=failed");
+  await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "unauthorized");
+  await expect(page.getByRole("link", { name: "重新登录" })).toHaveAttribute(
+    "href",
+    "/login?next=%2Fapp%2Factivity%3Fstatus%3Dfailed",
+  );
+  await expect(page.getByText("还没有请求记录")).toHaveCount(0);
+});
+
+test("activity forbidden stays on the page without a relogin link", async ({ page }) => {
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "permission_denied", message: "权限不足" } }),
+    });
+  });
   await page.goto("/app/activity");
   await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "unauthorized");
-  await expect(page.getByRole("link", { name: "重新登录" })).toHaveAttribute("href", /\/login\?next=/);
+  await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "重新登录" })).toHaveCount(0);
   await expect(page.getByText("还没有请求记录")).toHaveCount(0);
 });
 

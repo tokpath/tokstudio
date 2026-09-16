@@ -4,6 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MediaPanel from "../app/console/media-panel";
 import { withZh } from "./test-i18n";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app/media",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 function json(data: unknown, ok = true, status = 200) {
   return {
     ok,

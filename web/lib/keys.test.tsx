@@ -4,6 +4,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import KeysPanel, { KeysList, maskAPIKey, parseAllowlist } from "../app/console/keys-panel";
 import { withZh } from "./test-i18n";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app/keys",
+  useSearchParams: () => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search),
+}));
+
 const sampleKey = {
   id: "key_1",
   name: "default",

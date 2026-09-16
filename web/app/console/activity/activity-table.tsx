@@ -50,7 +50,7 @@ function useStatusText() {
   };
 }
 
-async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageEvent> & { models: string[]; keys: string[] }> {
+async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageEvent>> {
   try {
     const response = await fetch(`${apiBase}/v1/me/usage?${activityApiQuery(query).toString()}`, { credentials: "include" });
     const body: unknown = await response.json().catch(() => ({}));
@@ -64,20 +64,23 @@ async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageE
           })
         : {};
     const items = Array.isArray(record.items) ? record.items : [];
-    return {
-      ok: response.ok,
-      status: response.status,
-      items,
+    const extras = {
       models: mergeFilterValues(dimFilterKeys(record.models), uniqueModels(items)),
       keys: mergeFilterValues(
         dimFilterKeys(record.keys),
         items.map((row) => row.api_key_id),
       ),
+    };
+    return {
+      ok: response.ok,
+      status: response.status,
+      items,
+      extras,
       message: record.error?.message,
       code: record.error?.code,
     };
   } catch {
-    return { ok: false, network: true, items: [], models: [], keys: [] };
+    return { ok: false, network: true, items: [], extras: { models: [], keys: [] } };
   }
 }
 
@@ -92,17 +95,18 @@ export function ActivityTable() {
   const [selected, setSelected] = useState<UsageEvent | null>(null);
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [keyOptions, setKeyOptions] = useState<string[]>([]);
-  const load = useCallback(async () => {
-    const result = await loadActivity(query);
-    if (result.ok) {
-      setModelOptions((prev) => mergeFilterValues(prev, result.models, [query.model]));
-      setKeyOptions((prev) => mergeFilterValues(prev, result.keys, [query.key]));
-    }
-    return result;
-  }, [query]);
+  const load = useCallback(() => loadActivity(query), [query]);
   const list = useListResource<UsageEvent>({
     queryKey: activityHref(query),
     load,
+    onAccepted: (result) => {
+      if (!result.ok) {
+        return;
+      }
+      const extras = result.extras as { models?: string[]; keys?: string[] } | undefined;
+      setModelOptions((prev) => mergeFilterValues(prev, extras?.models, [query.model]));
+      setKeyOptions((prev) => mergeFilterValues(prev, extras?.keys, [query.key]));
+    },
   });
 
   function write(next: ActivityQuery) {

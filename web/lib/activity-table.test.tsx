@@ -26,6 +26,7 @@ describe("ActivityTable", () => {
   beforeEach(() => {
     nav.search = "";
     nav.replace.mockClear();
+    window.history.replaceState({}, "", "/app/activity");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -139,5 +140,31 @@ describe("ActivityTable", () => {
     expect(url).toContain("state=failed");
     expect(url).toContain("public_model_id=tokenhub%2Fecho-1");
     expect(url).toContain("limit=100");
+  });
+
+  it("keeps activity filters on the relogin link after a 401", async () => {
+    nav.search = "status=failed";
+    window.history.replaceState({}, "", "/app/activity?status=failed");
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: { code: "authentication_error", message: "未登录" } }),
+    } as Response);
+    render(withZh(<ActivityTable />));
+    const link = await waitFor(() => screen.getByRole("link", { name: "重新登录" }));
+    expect(link.getAttribute("href")).toBe("/login?next=%2Fapp%2Factivity%3Fstatus%3Dfailed");
+    expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
+  });
+
+  it("shows retry without relogin when permission is denied", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: { code: "permission_denied", message: "权限不足" } }),
+    } as Response);
+    render(withZh(<ActivityTable />));
+    await waitFor(() => expect(screen.getByRole("button", { name: "重试" })).toBeTruthy());
+    expect(screen.queryByRole("link", { name: "重新登录" })).toBeNull();
+    expect(screen.getByText("权限不足")).toBeTruthy();
   });
 });

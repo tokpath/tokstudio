@@ -36,10 +36,11 @@ export default function ChannelCommissions() {
         fetch(`${apiBase}/channel/quota`, { credentials: "include" }),
         fetchListItems<Allocation>(`${apiBase}/channel/allocations`),
       ]);
+      let extras: { quota?: Quota } = {};
       try {
         const qBody = await q.json();
         if (q.ok) {
-          setQuota((qBody.quota || {}) as Quota);
+          extras = { quota: (qBody.quota || {}) as Quota };
         }
       } catch {
         /* quota is supplementary; allocations drive the list state */
@@ -52,9 +53,16 @@ export default function ChannelCommissions() {
           message: a.message,
           code: a.code,
           network: a.network,
+          extras,
         };
       }
-      return a;
+      return { ...a, extras };
+    },
+    onAccepted: (result) => {
+      const quota = (result.extras as { quota?: Quota } | undefined)?.quota;
+      if (quota) {
+        setQuota(quota);
+      }
     },
   });
 

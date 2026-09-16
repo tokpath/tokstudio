@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { AlertCircle } from "lucide-react";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
-import { loginHref } from "@/lib/login-next";
+import { loginHref, pagePathWithSearch } from "@/lib/login-next";
 import type { ListSnapshot } from "@/lib/list-resource";
 
 export function ListResourceView<T>({
@@ -33,6 +33,7 @@ export function ListResourceView<T>({
   const pathname = usePathname();
   const reason = snapshot.message || (snapshot.httpStatus ? `${tc("listFailed")} (${snapshot.httpStatus})` : tc("listNetwork"));
   const testId = name ? `list-resource-${name}` : "list-resource";
+  const returnPath = pagePathWithSearch(pathname, typeof window === "undefined" ? "" : window.location.search);
 
   if (snapshot.phase === "loading") {
     return (
@@ -80,17 +81,23 @@ export function ListResourceView<T>({
   }
 
   if (snapshot.phase === "unauthorized") {
-    const forbidden = snapshot.message === "权限不足";
+    const forbidden = snapshot.auth === "forbidden";
     return (
       <div className="mt-3" data-testid={testId} data-list-phase="unauthorized" role="alert">
         <EmptyLedger
           icon={AlertCircle}
           title={forbidden ? tc("listForbidden") : tc("listSessionExpired")}
-          detail={forbidden ? reason : tc("listSessionExpiredDetail")}
+          detail={forbidden ? reason || tc("listForbidden") : tc("listSessionExpiredDetail")}
           action={
-            <Button asChild>
-              <Link href={loginHref(pathname)}>{tc("listRelogin")}</Link>
-            </Button>
+            forbidden ? (
+              <Button type="button" variant="outline" onClick={onRetry}>
+                {tc("listRetry")}
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href={loginHref(returnPath)}>{tc("listRelogin")}</Link>
+              </Button>
+            )
           }
         />
       </div>

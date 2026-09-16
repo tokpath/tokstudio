@@ -40,4 +40,28 @@ describe("list resource states", () => {
     expect(stale.items).toEqual([{ id: "u1" }]);
     expect(stale.message).toBe("bad gateway");
   });
+
+  it("treats 401 after loaded data as session loss, not a stale refresh", () => {
+    const ready = applyListResult(initialListSnapshot<{ id: string }>(), {
+      ok: true,
+      status: 200,
+      items: [{ id: "u1" }],
+    });
+    const next = applyListResult(ready, { ok: false, status: 401, code: "authentication_error", message: "未登录" });
+    expect(next.phase).toBe("unauthorized");
+    expect(next.auth).toBe("session");
+    expect(next.items).toEqual([]);
+  });
+
+  it("treats true forbidden after loaded data as unauthorized, not stale", () => {
+    const ready = applyListResult(initialListSnapshot<{ id: string }>(), {
+      ok: true,
+      status: 200,
+      items: [{ id: "u1" }],
+    });
+    const next = applyListResult(ready, { ok: false, status: 403, code: "permission_denied", message: "权限不足" });
+    expect(next.phase).toBe("unauthorized");
+    expect(next.auth).toBe("forbidden");
+    expect(next.items).toEqual([]);
+  });
 });

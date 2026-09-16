@@ -1,3 +1,5 @@
+export type ListAuth = "session" | "forbidden";
+
 export type ListPhase = "loading" | "empty" | "ready" | "error" | "unauthorized" | "stale";
 
 export type ListLoadResult<T> = {
@@ -7,6 +9,7 @@ export type ListLoadResult<T> = {
   message?: string;
   code?: string;
   network?: boolean;
+  extras?: unknown;
 };
 
 export type ListSnapshot<T> = {
@@ -15,6 +18,7 @@ export type ListSnapshot<T> = {
   message: string;
   httpStatus?: number;
   code?: string;
+  auth?: ListAuth;
 };
 
 export function initialListSnapshot<T>(): ListSnapshot<T> {
@@ -34,6 +38,10 @@ export function isSessionLoss(status?: number, code?: string, message?: string):
   return message === "未登录" || message === "未授权";
 }
 
+export function isForbidden(status?: number, code?: string, message?: string): boolean {
+  return status === 403 && !isSessionLoss(status, code, message);
+}
+
 function errorFromBody(body: unknown): { message?: string; code?: string } {
   if (!body || typeof body !== "object") {
     return {};
@@ -43,6 +51,17 @@ function errorFromBody(body: unknown): { message?: string; code?: string } {
     return {};
   }
   return { message: error.message, code: error.code };
+}
+
+function unauthorizedSnapshot<T>(auth: ListAuth, result: ListLoadResult<T>): ListSnapshot<T> {
+  return {
+    phase: "unauthorized",
+    items: [],
+    message: result.message ?? "",
+    httpStatus: result.status,
+    code: result.code,
+    auth,
+  };
 }
 
 export function applyListResult<T>(previous: ListSnapshot<T>, result: ListLoadResult<T>): ListSnapshot<T> {
@@ -56,6 +75,12 @@ export function applyListResult<T>(previous: ListSnapshot<T>, result: ListLoadRe
   }
   const status = result.status;
   const message = result.message ?? "";
+  if (isSessionLoss(status, result.code, message)) {
+    return unauthorizedSnapshot("session", result);
+  }
+  if (isForbidden(status, result.code, message)) {
+    return unauthorizedSnapshot("forbidden", result);
+  }
   if (previous.items.length > 0) {
     return {
       phase: "stale",
@@ -64,12 +89,6 @@ export function applyListResult<T>(previous: ListSnapshot<T>, result: ListLoadRe
       httpStatus: status,
       code: result.code,
     };
-  }
-  if (isSessionLoss(status, result.code, message)) {
-    return { phase: "unauthorized", items: [], message, httpStatus: status, code: result.code };
-  }
-  if (status === 403) {
-    return { phase: "unauthorized", items: [], message, httpStatus: status, code: result.code };
   }
   return { phase: "error", items: [], message, httpStatus: status, code: result.code };
 }

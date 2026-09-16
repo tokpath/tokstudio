@@ -103,16 +103,19 @@ export default function MediaPanel() {
       try {
         const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
         const body = await response.json().catch(() => ({}));
-        const nextStorage = applyStorageFact(body, response.ok);
-        if (nextStorage) {
-          setStorage(nextStorage);
-        }
+        const extras = { storage: applyStorageFact(body, response.ok) };
         if (!response.ok) {
-          return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code };
+          return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code, extras };
         }
-        return { ok: true, status: response.status, items: (body.items || []) as MediaJob[] };
+        return { ok: true, status: response.status, items: (body.items || []) as MediaJob[], extras };
       } catch {
         return { ok: false, network: true, items: [] };
+      }
+    },
+    onAccepted: (result) => {
+      const nextStorage = (result.extras as { storage?: StorageSource } | undefined)?.storage;
+      if (nextStorage) {
+        setStorage(nextStorage);
       }
     },
   });

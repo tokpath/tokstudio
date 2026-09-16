@@ -1168,6 +1168,8 @@
     "copy": "Copy",
     "emptyTitle": "No matching models",
     "emptyDetail": "Try another keyword, or clear the filter.",
+    "loadFailed": "Could not load the catalog",
+    "loadFailedDetail": "The model catalog is unavailable. This is not an empty catalog.",
     "allVendors": "All vendors",
     "vendorsAria": "Filter by vendor",
     "colModel": "Model",

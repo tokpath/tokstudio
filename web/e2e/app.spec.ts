@@ -37,6 +37,20 @@ test("user overview is personal stats trends and shortcuts", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "接入示例" })).toHaveCount(0);
 });
 
+test("user overview usage failure is not first-run", async ({ page }) => {
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { message: "usage upstream timeout" } }),
+    });
+  });
+  await page.goto("/app");
+  await expect(page.getByTestId("list-resource-overview-usage")).toHaveAttribute("data-list-phase", "error");
+  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "第一次使用" })).toHaveCount(0);
+});
+
 test("user keys page keeps create dialog", async ({ page }) => {
   await page.goto("/app/keys");
   await expect(page.getByRole("heading", { level: 1, name: "API Key" })).toBeVisible();
@@ -137,6 +151,20 @@ test("user usage page is summary and links to activity", async ({ page }) => {
   await page.getByRole("link", { name: "查看请求明细" }).click();
   await expect(page).toHaveURL(/\/app\/activity/);
   await expect(page.getByRole("heading", { name: "请求明细" })).toBeVisible();
+});
+
+test("user usage failed load is not empty usage", async ({ page }) => {
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { message: "usage upstream timeout" } }),
+    });
+  });
+  await page.goto("/app/usage");
+  await expect(page.getByTestId("list-resource-usage")).toHaveAttribute("data-list-phase", "error");
+  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  await expect(page.getByText("暂无用量")).toHaveCount(0);
 });
 
 test("usage summary carries filters into activity", async ({ page }) => {
@@ -656,6 +684,16 @@ test("user keys empty state is honest 暂无 API 密钥", async ({ page }) => {
   await page.goto("/app/keys");
   await expect(page.getByText("暂无 API 密钥")).toBeVisible();
   await expect(page.getByText("thk_")).toHaveCount(0);
+});
+
+test("user keys failed load is not an empty key list", async ({ page }) => {
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await fulfillJSON(route, 500, { error: { message: "keys down" } });
+  });
+  await page.goto("/app/keys");
+  await expect(page.getByTestId("list-resource-keys")).toHaveAttribute("data-list-phase", "error");
+  await expect(page.getByText("keys down")).toBeVisible();
+  await expect(page.getByText("暂无 API 密钥")).toHaveCount(0);
 });
 
 test("user shell shows 平台管理 only for platform_admin", async ({ page }) => {

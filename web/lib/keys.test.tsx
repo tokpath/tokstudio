@@ -232,4 +232,38 @@ describe("KeysPanel", () => {
       expect(screen.getByTestId("submit-status").textContent).toContain("未能写入剪贴板");
     });
   });
+
+  it("keeps a slow key list on loading instead of an empty ledger", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        await gate;
+        return { ok: true, status: 200, json: async () => ({ items: [] }) };
+      }),
+    );
+    render(withZh(<KeysPanel />));
+    expect(screen.getByTestId("list-resource-keys").getAttribute("data-list-phase")).toBe("loading");
+    expect(screen.queryByText("暂无 API 密钥")).toBeNull();
+    release();
+    await waitFor(() => expect(screen.getByTestId("list-resource-keys").getAttribute("data-list-phase")).toBe("empty"));
+  });
+
+  it("does not treat a 500 as 暂无 API 密钥", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "keys down" } }),
+      })),
+    );
+    render(withZh(<KeysPanel />));
+    await waitFor(() => expect(screen.getByTestId("list-resource-keys").getAttribute("data-list-phase")).toBe("error"));
+    expect(screen.getByText("keys down")).toBeTruthy();
+    expect(screen.queryByText("暂无 API 密钥")).toBeNull();
+  });
 });

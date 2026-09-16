@@ -18,6 +18,13 @@ describe("PlaygroundClient", () => {
     expect(screen.queryByLabelText("试用模型")).toBeNull();
   });
 
+  it("does not treat a catalog load failure as no models", () => {
+    render(withZh(<PlaygroundClient models={[]} catalogOk={false} catalogMessage="catalog down" />));
+    expect(screen.getByText("加载失败")).toBeTruthy();
+    expect(screen.getByText("catalog down")).toBeTruthy();
+    expect(screen.queryByText("暂无可用模型")).toBeNull();
+  });
+
   it("keeps the selected model from the catalog query", () => {
     render(
       withZh(

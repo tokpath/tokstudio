@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { loadCatalog } from "@/lib/catalog";
+import { loadCatalogPage } from "@/lib/catalog";
 import { PlaygroundClient } from "./playground-client";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 import { decodeModelId } from "@/lib/playground-session";
@@ -12,17 +12,26 @@ export default async function PlaygroundPage({
 }) {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
   const { model, from } = await searchParams;
-  let items = await loadCatalog(host, { limit: 100 });
   const wanted = decodeModelId(model);
-  if (wanted && !items.some((item) => item.id === wanted)) {
-    const extra = await loadCatalog(host, { id: wanted });
-    items = [...extra, ...items];
+  const page = await loadCatalogPage(host, { limit: 100 });
+  let items = page.items;
+  if (page.ok && wanted && !items.some((item) => item.id === wanted)) {
+    const extra = await loadCatalogPage(host, { id: wanted });
+    if (extra.ok) {
+      items = [...extra.items, ...items];
+    }
   }
 
   return (
     <div className="flex flex-col gap-6">
       <I18nConsoleHeader id="playground" />
-      <PlaygroundClient models={items} initialModel={model} catalogHref={safeNextPath(from) || "/app/catalog"} />
+      <PlaygroundClient
+        models={items}
+        initialModel={model}
+        catalogHref={safeNextPath(from) || "/app/catalog"}
+        catalogOk={page.ok}
+        catalogMessage={page.message}
+      />
     </div>
   );
 }

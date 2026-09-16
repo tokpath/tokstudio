@@ -1,4 +1,4 @@
-import { fetchAPI } from "@/lib/api";
+import { serverApiBase } from "@/lib/api";
 import { perTokenToPerMillion } from "@/lib/token-price";
 
 export type CatalogModel = {
@@ -34,9 +34,13 @@ export type CatalogPage = {
   items: CatalogModel[];
   total: number;
   facets: CatalogFacets;
+  ok: boolean;
+  status?: number;
+  message?: string;
+  network?: boolean;
 };
 
-const EMPTY_PAGE: CatalogPage = { items: [], total: 0, facets: { kinds: [], vendors: [] } };
+const FAILED_PAGE: CatalogPage = { items: [], total: 0, facets: { kinds: [], vendors: [] }, ok: false };
 
 export type AdminModel = {
   id: string;
@@ -115,24 +119,39 @@ function normalizeCatalogModel(m: CatalogModel): CatalogModel {
   };
 }
 
-/** 只读后端公开目录。失败或空列表就空着，不再用本地 ofox 快照顶上。 */
+/** 只读后端公开目录。成功零条才是空目录；失败单独标记，不再当成没有模型。 */
 export async function loadCatalogPage(host: string, query: CatalogQuery = {}): Promise<CatalogPage> {
   try {
-    const data = await fetchAPI<{ items?: CatalogModel[]; total?: number; facets?: CatalogFacets }>(
-      publicModelsPath(query),
-      { host },
-    );
-    const items = Array.isArray(data.items) ? data.items.map(normalizeCatalogModel) : [];
+    const headers = new Headers();
+    headers.set("X-Forwarded-Host", host);
+    const response = await fetch(`${serverApiBase}${publicModelsPath(query)}`, {
+      headers,
+      cache: "no-store",
+    });
+    const data: unknown = await response.json().catch(() => ({}));
+    const record =
+      data && typeof data === "object"
+        ? (data as { items?: CatalogModel[]; total?: number; facets?: CatalogFacets; error?: { message?: string } })
+        : {};
+    if (!response.ok) {
+      return {
+        ...FAILED_PAGE,
+        status: response.status,
+        message: record.error?.message,
+      };
+    }
+    const items = Array.isArray(record.items) ? record.items.map(normalizeCatalogModel) : [];
     return {
       items,
-      total: typeof data.total === "number" ? data.total : items.length,
+      total: typeof record.total === "number" ? record.total : items.length,
       facets: {
-        kinds: Array.isArray(data.facets?.kinds) ? data.facets.kinds : [],
-        vendors: Array.isArray(data.facets?.vendors) ? data.facets.vendors : [],
+        kinds: Array.isArray(record.facets?.kinds) ? record.facets.kinds : [],
+        vendors: Array.isArray(record.facets?.vendors) ? record.facets.vendors : [],
       },
+      ok: true,
     };
   } catch {
-    return EMPTY_PAGE;
+    return { ...FAILED_PAGE, network: true };
   }
 }
 

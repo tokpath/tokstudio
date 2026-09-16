@@ -15,7 +15,14 @@ export default async function ConsoleCatalogPage({
   return (
     <div className="flex flex-col gap-6">
       <I18nConsoleHeader id="catalog" />
-      <ModelsCatalog models={page.items} facets={page.facets} query={query} basePath="/app/catalog" />
+      <ModelsCatalog
+        models={page.items}
+        facets={page.facets}
+        query={query}
+        basePath="/app/catalog"
+        loadOk={page.ok}
+        loadMessage={page.message}
+      />
     </div>
   );
 }

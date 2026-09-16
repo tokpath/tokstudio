@@ -4,8 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OverviewHero } from "@/components/console/overview-hero";
 import { withZh } from "@/lib/test-i18n";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app",
+}));
+
 function jsonOk(body: unknown) {
-  return { ok: true, json: async () => body };
+  return { ok: true, status: 200, json: async () => body };
+}
+
+function jsonErr(status: number, message: string) {
+  return { ok: false, status, json: async () => ({ error: { message } }) };
 }
 
 describe("OverviewHero first-run vs returning", () => {
@@ -89,5 +97,50 @@ describe("OverviewHero first-run vs returning", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "快捷入口" })).toBeTruthy());
     expect(screen.queryByRole("heading", { name: "第一次使用" })).toBeNull();
     expect(screen.getByRole("link", { name: "创建 API Key" }).getAttribute("href")).toBe("/app/keys?create=1");
+  });
+
+  it("does not treat a usage 500 as a first-run account", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/me/balance")) {
+          return jsonOk({ balance: { available: "12.00", reserved: "0" } });
+        }
+        if (url.includes("/v1/me/api-keys")) {
+          return jsonOk({ items: [] });
+        }
+        if (url.includes("/v1/me/usage")) {
+          return jsonErr(500, "usage upstream timeout");
+        }
+        return jsonOk({});
+      }),
+    );
+    render(withZh(<OverviewHero />));
+    await waitFor(() => expect(screen.getAllByText("usage upstream timeout").length).toBeGreaterThan(0));
+    expect(screen.queryByRole("heading", { name: "第一次使用" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "重试" }).length).toBeGreaterThan(0);
+  });
+
+  it("keeps first-run tasks when only the key list fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/me/balance")) {
+          return jsonOk({ balance: { available: "12.00", reserved: "0" } });
+        }
+        if (url.includes("/v1/me/api-keys")) {
+          throw new Error("offline");
+        }
+        if (url.includes("/v1/me/usage")) {
+          return jsonOk({ items: [] });
+        }
+        return jsonOk({});
+      }),
+    );
+    render(withZh(<OverviewHero />));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "第一次使用" })).toBeTruthy());
+    expect(screen.getByTestId("overview-metric-keys").getAttribute("data-list-phase")).toBe("error");
   });
 });

@@ -1168,6 +1168,8 @@
     "copy": "コピー",
     "emptyTitle": "一致するモデルがありません",
     "emptyDetail": "キーワードを変えるか、絞り込みを外してください。",
+    "loadFailed": "カタログを読み込めません",
+    "loadFailedDetail": "モデル一覧を取得できません。モデルが無いわけではありません。",
     "allVendors": "すべてのベンダー",
     "vendorsAria": "ベンダーで絞り込む",
     "colModel": "モデル",

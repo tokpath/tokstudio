@@ -38,4 +38,23 @@ describe("ModelsCatalog", () => {
     expect(tryLink.getAttribute("href")).toContain("from=");
     expect(screen.getByText("适合短回复")).toBeTruthy();
   });
+
+  it("does not show an empty catalog when loading failed", () => {
+    render(
+      withZh(
+        <ModelsCatalog
+          basePath="/models"
+          query={{}}
+          facets={{ kinds: [], vendors: [] }}
+          models={[]}
+          loadOk={false}
+          loadMessage="catalog down"
+        />,
+      ),
+    );
+    expect(screen.getByText("目录加载失败")).toBeTruthy();
+    expect(screen.getByText("catalog down")).toBeTruthy();
+    expect(screen.queryByText("没有匹配的模型")).toBeNull();
+    expect(screen.getByRole("button", { name: "重试" })).toBeTruthy();
+  });
 });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Copy, LayoutList, Search, Table2 } from "lucide-react";
+import { AlertCircle, Copy, LayoutList, Search, Table2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,11 +50,15 @@ export function ModelsCatalog({
   facets,
   query,
   basePath = "/models",
+  loadOk = true,
+  loadMessage,
 }: {
   models: CatalogModel[];
   facets: CatalogFacets;
   query: CatalogQuery;
   basePath?: string;
+  loadOk?: boolean;
+  loadMessage?: string;
 }) {
   const t = useTranslations("catalog");
   const tCaps = useTranslations("caps");
@@ -193,8 +197,20 @@ export function ModelsCatalog({
         })}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-card border border-hairline bg-canvas-raised">
+      { !loadOk ? (
+        <div
+          className="rounded-card border border-hairline bg-canvas-raised p-6"
+          data-testid="catalog-status"
+          data-catalog-ok="false"
+          role="alert"
+        >
+          <EmptyState icon={AlertCircle} title={t("loadFailed")} detail={loadMessage || t("loadFailedDetail")} />
+          <Button type="button" variant="outline" className="mt-4" onClick={() => router.refresh()}>
+            {tCommon("listRetry")}
+          </Button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-card border border-hairline bg-canvas-raised" data-testid="catalog-status" data-catalog-ok="true">
           <EmptyState title={t("emptyTitle")} detail={t("emptyDetail")} />
         </div>
       ) : view === "table" ? (

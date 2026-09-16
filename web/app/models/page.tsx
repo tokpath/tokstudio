@@ -16,7 +16,14 @@ export default async function ModelsPage({
   return (
     <PublicMain>
       <I18nPublicHero id="models" primaryHref="/login" secondaryHref="/quickstart" />
-      <ModelsCatalog models={page.items} facets={page.facets} query={query} basePath="/models" />
+      <ModelsCatalog
+        models={page.items}
+        facets={page.facets}
+        query={query}
+        basePath="/models"
+        loadOk={page.ok}
+        loadMessage={page.message}
+      />
     </PublicMain>
   );
 }

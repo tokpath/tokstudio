@@ -18,6 +18,7 @@ export function ListResourceView<T>({
   loadingTitle,
   onRetry,
   name,
+  passEmpty = false,
   children,
 }: {
   snapshot: ListSnapshot<T>;
@@ -27,6 +28,7 @@ export function ListResourceView<T>({
   loadingTitle?: string;
   onRetry: () => void;
   name?: string;
+  passEmpty?: boolean;
   children: ReactNode;
 }) {
   const tc = useTranslations("common");
@@ -55,7 +57,7 @@ export function ListResourceView<T>({
     );
   }
 
-  if (snapshot.phase === "empty") {
+  if (snapshot.phase === "empty" && !passEmpty) {
     return (
       <div className="mt-3" data-testid={testId} data-list-phase="empty">
         <EmptyLedger title={emptyTitle} detail={emptyDetail} action={emptyAction} />

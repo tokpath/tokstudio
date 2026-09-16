@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildCapabilities,
   capabilitiesToForm,
@@ -13,6 +13,7 @@ import {
   parseSupportedParameters,
   publicModelsPath,
   resolveVendorInput,
+  loadCatalogPage,
   supportedParametersText,
   vendorLabel,
 } from "./catalog";
@@ -89,6 +90,39 @@ describe("public catalog query strings", () => {
     );
     expect(catalogHref("/models", { vendor: "z-ai", kind: "all" })).toBe("/models?vendor=z-ai");
     expect(catalogHref("/app/catalog", {})).toBe("/app/catalog");
+  });
+});
+
+describe("loadCatalogPage", () => {
+  it("marks HTTP failures separately from an empty catalog", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "catalog down" } }),
+      })),
+    );
+    const page = await loadCatalogPage("localhost");
+    expect(page.ok).toBe(false);
+    expect(page.items).toEqual([]);
+    expect(page.message).toBe("catalog down");
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps a successful empty list as ok", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], total: 0, facets: { kinds: [], vendors: [] } }),
+      })),
+    );
+    const page = await loadCatalogPage("localhost");
+    expect(page.ok).toBe(true);
+    expect(page.items).toEqual([]);
+    vi.unstubAllGlobals();
   });
 });
 

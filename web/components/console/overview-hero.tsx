@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -15,9 +15,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { MetricCard } from "@/components/feature-card";
 import { UsageCharts } from "@/components/usage-charts";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { fetchListItems, type ListLoadResult, type ListSnapshot } from "@/lib/list-resource";
 import { formatUsdMinor } from "@/lib/money";
 import { overviewHasUsage, overviewNeedsTopup } from "@/lib/overview-guide";
 import { type UsageEvent, summarizeUsage } from "@/lib/usage";
@@ -35,68 +38,106 @@ function money(value?: string) {
   return `$${n.toFixed(2)}`;
 }
 
-/** 总览英雄：个人状态 + 用量趋势；无用量时给第一次使用步骤（docs/14）。 */
+async function loadBalance(): Promise<ListLoadResult<Balance>> {
+  try {
+    const response = await fetch(`${apiBase}/v1/me/balance`, { credentials: "include" });
+    const body: unknown = await response.json().catch(() => ({}));
+    const record = body && typeof body === "object" ? (body as { balance?: Balance; error?: { message?: string; code?: string } }) : {};
+    if (!response.ok) {
+      return { ok: false, status: response.status, items: [], message: record.error?.message, code: record.error?.code };
+    }
+    return { ok: true, status: response.status, items: record.balance ? [record.balance] : [] };
+  } catch {
+    return { ok: false, network: true, items: [] };
+  }
+}
+
+function metricDisplay(snapshot: ListSnapshot<unknown>, ready: string) {
+  if (snapshot.phase === "ready" || snapshot.phase === "stale" || snapshot.phase === "empty") {
+    return ready;
+  }
+  return "—";
+}
+
+/** 总览英雄：各数据区独立加载；只有用量成功且零条才给第一次使用步骤。 */
 export function OverviewHero() {
   const t = useTranslations("overview");
+  const tc = useTranslations("common");
   const tChart = useTranslations("charts");
-  const [balance, setBalance] = useState<Balance | null>(null);
-  const [keyCount, setKeyCount] = useState<number | null>(null);
-  const [lastReceipt, setLastReceipt] = useState("—");
-  const [events, setEvents] = useState<UsageEvent[]>([]);
-  const [usageReady, setUsageReady] = useState(false);
+  const balanceList = useListResource<Balance>({ load: loadBalance });
+  const keysList = useListResource<{ id?: string }>({
+    load: () => fetchListItems(`${apiBase}/v1/me/api-keys`),
+  });
+  const usageList = useListResource<UsageEvent>({
+    load: () => fetchListItems(`${apiBase}/v1/me/usage?limit=100`),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const [balRes, keyRes, usageRes] = await Promise.all([
-        fetch(`${apiBase}/v1/me/balance`, { credentials: "include" }),
-        fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" }),
-        fetch(`${apiBase}/v1/me/usage?limit=100`, { credentials: "include" }),
-      ]);
-      if (cancelled) return;
-      if (balRes.ok) {
-        const body = await balRes.json();
-        setBalance(body.balance || null);
-      }
-      if (keyRes.ok) {
-        const body = await keyRes.json();
-        setKeyCount(Array.isArray(body.items) ? body.items.length : 0);
-      }
-      if (usageRes.ok) {
-        const body = await usageRes.json();
-        const items = (Array.isArray(body.items) ? body.items : []) as UsageEvent[];
-        setEvents(items);
-        const last = items[0] as { public_model_id?: string; state?: string; request_id?: string } | undefined;
-        if (last) {
-          setLastReceipt(
-            [last.public_model_id, last.state, last.request_id].filter(Boolean).join(" · ") || t("hasReceipt"),
-          );
-        }
-      }
-      setUsageReady(true);
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
-
+  const balance = balanceList.snapshot.items[0];
+  const events = usageList.snapshot.items;
   const summary = useMemo(() => summarizeUsage(events), [events]);
   const tokens = summary.prompt + summary.completion + summary.reasoning;
-  const hasUsage = overviewHasUsage(events);
+  const usageOk = usageList.snapshot.phase === "empty" || usageList.snapshot.phase === "ready" || usageList.snapshot.phase === "stale";
+  const hasUsage = usageOk && overviewHasUsage(events);
   const needsTopup = overviewNeedsTopup(balance?.available);
+  const usageEmpty = usageList.snapshot.phase === "empty";
 
   const cards = [
-    { t: t("available"), d: t("availableHint"), v: money(balance?.available), href: "/app/wallet", icon: Wallet, compact: false },
-    { t: t("reserved"), d: t("reservedHint"), v: money(balance?.reserved), href: "/app/wallet", icon: Lock, compact: false },
-    { t: t("keys"), d: t("keysHint"), v: keyCount == null ? "—" : String(keyCount), href: "/app/keys", icon: KeyRound, compact: false },
-    { t: t("receipt"), d: t("receiptHint"), v: lastReceipt, href: "/app/activity", icon: Receipt, compact: true },
+    {
+      t: t("available"),
+      d: t("availableHint"),
+      v: metricDisplay(balanceList.snapshot, money(balance?.available)),
+      href: "/app/wallet",
+      icon: Wallet,
+      compact: false,
+      snapshot: balanceList.snapshot,
+      retry: () => void balanceList.reload(),
+      name: "balance-available",
+    },
+    {
+      t: t("reserved"),
+      d: t("reservedHint"),
+      v: metricDisplay(balanceList.snapshot, money(balance?.reserved)),
+      href: "/app/wallet",
+      icon: Lock,
+      compact: false,
+      snapshot: balanceList.snapshot,
+      retry: () => void balanceList.reload(),
+      name: "balance-reserved",
+    },
+    {
+      t: t("keys"),
+      d: t("keysHint"),
+      v: metricDisplay(keysList.snapshot, keysList.snapshot.phase === "empty" ? "0" : String(keysList.snapshot.items.length)),
+      href: "/app/keys",
+      icon: KeyRound,
+      compact: false,
+      snapshot: keysList.snapshot,
+      retry: () => void keysList.reload(),
+      name: "keys",
+    },
+    {
+      t: t("receipt"),
+      d: t("receiptHint"),
+      v: metricDisplay(
+        usageList.snapshot,
+        events[0]
+          ? [events[0].public_model_id, events[0].state, events[0].request_id].filter(Boolean).join(" · ") || t("hasReceipt")
+          : "—",
+      ),
+      href: "/app/activity",
+      icon: Receipt,
+      compact: true,
+      snapshot: usageList.snapshot,
+      retry: () => void usageList.reload(),
+      name: "receipt",
+    },
   ];
 
+  const periodReady = usageOk;
   const periodCards = [
-    { k: t("periodRequests"), v: usageReady ? String(summary.requests) : "—" },
-    { k: t("periodTokens"), v: usageReady ? String(tokens) : "—" },
-    { k: t("periodSpend"), v: usageReady && events.length > 0 ? formatUsdMinor(summary.amount) : "—" },
+    { k: t("periodRequests"), v: periodReady ? String(summary.requests) : "—" },
+    { k: t("periodTokens"), v: periodReady ? String(tokens) : "—" },
+    { k: t("periodSpend"), v: periodReady && events.length > 0 ? formatUsdMinor(summary.amount) : "—" },
   ];
 
   const shortcuts = [
@@ -112,7 +153,7 @@ export function OverviewHero() {
 
   return (
     <div className="flex flex-col gap-8">
-      {usageReady ? (
+      {usageOk ? (
         <ActionRow className="gap-3">
           {hasUsage ? (
             <>
@@ -157,17 +198,26 @@ export function OverviewHero() {
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>
-        {cards.map((card) => (
-          <MetricCard
-            key={card.t}
-            href={card.href}
-            icon={card.icon}
-            label={card.t}
-            value={card.v}
-            hint={card.d}
-            compact={card.compact}
-          />
-        ))}
+        {cards.map((card) => {
+          const failed = card.snapshot.phase === "error" || card.snapshot.phase === "unauthorized";
+          return (
+            <div key={card.t} data-testid={`overview-metric-${card.name}`} data-list-phase={card.snapshot.phase}>
+              <MetricCard
+                href={card.href}
+                icon={card.icon}
+                label={card.t}
+                value={card.v}
+                hint={failed ? card.snapshot.message || tc("listFailed") : card.d}
+                compact={card.compact}
+              />
+              {failed ? (
+                <Button type="button" size="sm" variant="outline" className="mt-2" onClick={card.retry}>
+                  {tc("listRetry")}
+                </Button>
+              ) : null}
+            </div>
+          );
+        })}
       </section>
 
       <section aria-label={t("trendsRegion")} className="flex flex-col gap-3">
@@ -186,18 +236,28 @@ export function OverviewHero() {
             </Button>
           }
         />
-        <div className="grid gap-4 sm:grid-cols-3">
-          {periodCards.map((card) => (
-            <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">
-              <p className="th-eyebrow text-ink-mute">{card.k}</p>
-              <p className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
-            </div>
-          ))}
-        </div>
-        <UsageCharts events={events} breakdownTitle={tChart("byModel")} testIdPrefix="overview" />
+        <ListResourceView
+          snapshot={usageList.snapshot}
+          emptyTitle={tChart("empty")}
+          emptyDetail={tChart("emptyDetail")}
+          loadingTitle={t("trendsTitle")}
+          onRetry={() => void usageList.reload()}
+          name="overview-usage"
+          passEmpty
+        >
+          <div className="grid gap-4 sm:grid-cols-3">
+            {periodCards.map((card) => (
+              <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">
+                <p className="th-eyebrow text-ink-mute">{card.k}</p>
+                <p className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
+              </div>
+            ))}
+          </div>
+          <UsageCharts events={events} breakdownTitle={tChart("byModel")} testIdPrefix="overview" />
+        </ListResourceView>
       </section>
 
-      {usageReady && !hasUsage ? (
+      {usageEmpty ? (
         <section aria-label={t("firstUseRegion")} className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold tracking-tight text-ink">{t("firstUseTitle")}</h2>
           <p className="text-[13px] leading-relaxed text-ink-mute">{t("firstUseLead")}</p>
@@ -233,7 +293,7 @@ export function OverviewHero() {
         </section>
       ) : null}
 
-      {usageReady && hasUsage ? (
+      {hasUsage ? (
         <section aria-label={t("shortcutsRegion")} className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold tracking-tight text-ink">{t("shortcutsTitle")}</h2>
           <p className="text-[13px] leading-relaxed text-ink-mute">{t("shortcutsLead")}</p>

@@ -1168,6 +1168,8 @@
     "copy": "复制",
     "emptyTitle": "没有匹配的模型",
     "emptyDetail": "换个关键词，或清掉筛选再试。",
+    "loadFailed": "目录加载失败",
+    "loadFailedDetail": "暂时读不到模型目录。这不是没有模型。",
     "allVendors": "全部厂商",
     "vendorsAria": "按厂商筛选",
     "colModel": "模型",

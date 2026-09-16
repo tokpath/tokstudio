@@ -24,10 +24,13 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollTable } from "@/components/ui/scroll-table";
+import { ListResourceView } from "@/components/console/list-resource-view";
 import { SubmitStatus } from "@/components/console/submit-status";
+import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
 import { optionalPositiveInt } from "@/lib/key-limits";
+import { fetchListItems } from "@/lib/list-resource";
 import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { statusLabelKey } from "@/lib/status-copy";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
@@ -348,7 +351,10 @@ const defaultForm = { name: "", allowlist: [] as string[], rpm: "", concurrency:
 export default function KeysPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
-  const [items, setItems] = useState<APIKeyItem[]>([]);
+  const list = useListResource<APIKeyItem>({
+    load: () => fetchListItems(`${apiBase}/v1/me/api-keys`),
+  });
+  const items = list.snapshot.items;
   const [createOpen, setCreateOpen] = useState(false);
   const [createdKey, setCreatedKey] = useState<APIKeyItem | null>(null);
   const [createMessage, setCreateMessage] = useState(t("createHint"));
@@ -377,29 +383,11 @@ export default function KeysPanel() {
     defaultValues: defaultForm,
   });
 
-  async function refresh(silent = false) {
-    try {
-      const response = await fetch(`${apiBase}/v1/me/api-keys`, { credentials: "include" });
-      const body = await readResponseBody(response);
-      if (!response.ok) {
-        setMessage(errorMessageFromBody(body, tc("notLoggedIn")));
-        return;
-      }
-      setItems((body as { items?: APIKeyItem[] }).items || []);
-      if (!silent) {
-        setMessage(t("refreshed"));
-      }
-    } catch {
-      setMessage(tc("listNetwork"));
-    }
-  }
-
   useEffect(() => {
     if (keysCreateQueryOpen(window.location.search)) {
       setCreateOpen(true);
     }
-    void refresh(true);
-    // 进入页面拉一次列表；?create=1 时直接打开创建弹窗。
+    // 进入页面由 useListResource 拉列表；?create=1 时直接打开创建弹窗。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -485,7 +473,7 @@ export default function KeysPanel() {
       setCreateMessage(t("created", { id: created.id || "", name: created.name || values.name, list: listed, n: created.concurrency_limit || 5 }));
       setCreatedKey(created);
       form.reset(defaultForm);
-      await refresh(true);
+      await list.reload();
     } catch {
       setDialogError(tc("listNetwork"));
     } finally {
@@ -561,7 +549,7 @@ export default function KeysPanel() {
         return;
       }
       setMessage(t("acted", { action }));
-      await refresh(true);
+      await list.reload();
     } catch {
       setMessage(tc("listNetwork"));
     }
@@ -577,7 +565,7 @@ export default function KeysPanel() {
         lead={<p className="text-sm text-ink-secondary">{t("keysLead")}</p>}
         actions={
           <>
-            <Button type="button" variant="outline" onClick={() => void refresh()}>
+            <Button type="button" variant="outline" onClick={() => void list.reload()}>
               {tc("refresh")}
             </Button>
             <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -586,15 +574,29 @@ export default function KeysPanel() {
           </>
         }
       />
-      <KeysList
-        items={items}
-        revealedIds={revealedIds}
-        onCopy={(id) => void copySecret(id)}
-        onToggleReveal={toggleReveal}
-        onRotate={(id) => void act(id, "rotate")}
-        onDisable={(id) => void act(id, "disable")}
-        onExpire={(id) => void act(id, "expire")}
-      />
+      <ListResourceView
+        snapshot={list.snapshot}
+        emptyTitle={t("emptyKeys")}
+        emptyDetail={t("emptyKeysDetail")}
+        emptyAction={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            {t("createKey")}
+          </Button>
+        }
+        loadingTitle={t("keysTitle")}
+        onRetry={() => void list.reload()}
+        name="keys"
+      >
+        <KeysList
+          items={items}
+          revealedIds={revealedIds}
+          onCopy={(id) => void copySecret(id)}
+          onToggleReveal={toggleReveal}
+          onRotate={(id) => void act(id, "rotate")}
+          onDisable={(id) => void act(id, "disable")}
+          onExpire={(id) => void act(id, "expire")}
+        />
+      </ListResourceView>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       {!createOpen && copyFallback ? <SubmitStatus error={t("copyFailed")} selectable={copyFallback} /> : null}
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>

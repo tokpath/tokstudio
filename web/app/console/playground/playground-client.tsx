@@ -32,12 +32,17 @@ export function PlaygroundClient({
   models,
   initialModel,
   catalogHref = "/app/catalog",
+  catalogOk = true,
+  catalogMessage,
 }: {
   models: CatalogModel[];
   initialModel?: string;
   catalogHref?: string;
+  catalogOk?: boolean;
+  catalogMessage?: string;
 }) {
   const t = useTranslations("user");
+  const tc = useTranslations("common");
   const [model, setModel] = useState(() => pickPlaygroundModel(models, initialModel));
   const [prompt, setPrompt] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -140,6 +145,17 @@ export function PlaygroundClient({
     }
     const wrote = await copyText(last.reply);
     setMessage(wrote ? t("pgCopied") : t("pgCopyFailed"));
+  }
+
+  if (!catalogOk) {
+    return (
+      <div className="space-y-3" data-testid="catalog-status" data-catalog-ok="false" role="alert">
+        <Button asChild variant="outline" size="sm">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+        <EmptyLedger title={tc("listFailed")} detail={catalogMessage || tc("listNetwork")} />
+      </div>
+    );
   }
 
   if (models.length === 0 && !model) {

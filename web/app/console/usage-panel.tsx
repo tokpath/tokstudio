@@ -8,6 +8,7 @@ import { EmptyLedger } from "@/components/console/empty-ledger";
 import { Button } from "@/components/ui/button";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { UsageCharts } from "@/components/usage-charts";
+import { activityHref } from "@/lib/activity-query";
 import { apiBase } from "@/lib/api";
 import { formatUsdMinor } from "@/lib/money";
 import {
@@ -81,7 +82,7 @@ export default function UsagePanel() {
         lead={<p className="text-sm text-ink-secondary">{t("usageLead")}</p>}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/app/activity">{t("usageToActivity")}</Link>
+            <Link href={activityHref({ model: modelFilter || undefined, key: keyFilter || undefined })}>{t("usageToActivity")}</Link>
           </Button>
         }
       />
@@ -132,6 +133,7 @@ export default function UsagePanel() {
           </Button>
         </ActionRow>
       </div>
+      <p className="mb-4 text-sm text-ink-secondary">{t("usageScope")}</p>
       <section className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[
           { k: t("statRequests"), v: String(summary.requests) },
@@ -151,6 +153,7 @@ export default function UsagePanel() {
         breakdownTitle={tChart("byKey")}
       />
       <h3 className="mb-2 text-sm font-medium">{t("byApiKey")}</h3>
+      <p className="mb-2 text-sm text-ink-secondary">{t("usageByKeyScope")}</p>
       <ScrollTable
         density="ledger"
         className="mb-4 rounded-card border border-hairline"

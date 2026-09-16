@@ -177,6 +177,7 @@ export function OverviewHero() {
             <>
               <h2 className="text-sm font-semibold tracking-tight text-ink">{t("trendsTitle")}</h2>
               <p className="mt-1 text-[13px] leading-relaxed text-ink-mute">{t("trendsLead")}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-mute">{t("trendsScope")}</p>
             </>
           }
           actions={

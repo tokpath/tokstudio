@@ -139,6 +139,48 @@ test("user usage page is summary and links to activity", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "请求明细" })).toBeVisible();
 });
 
+test("usage summary carries filters into activity", async ({ page }) => {
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [{ id: "key_alpha", name: "alpha" }] }),
+    });
+  });
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "usg_fail",
+            request_id: "req_fail",
+            state: "failed",
+            public_model_id: "tokenhub/echo-1",
+            customer_amount_minor: 0,
+            occurred_at: "2026-09-16T01:00:00.000Z",
+          },
+        ],
+        keys: [],
+        models: [{ key: "tokenhub/echo-1" }],
+      }),
+    });
+  });
+  await page.goto("/app/usage");
+  await page.getByLabel("按模型筛选").selectOption("tokenhub/echo-1");
+  await expect(page.getByRole("link", { name: "查看请求明细" })).toHaveAttribute("href", "/app/activity?model=tokenhub%2Fecho-1");
+  await page.getByRole("link", { name: "查看请求明细" }).click();
+  await expect(page).toHaveURL(/\/app\/activity\?model=tokenhub%2Fecho-1/);
+  await expect(page.getByLabel("结果")).toBeVisible();
+  await page.getByLabel("结果").selectOption("failed");
+  await expect(page).toHaveURL(/status=failed/);
+  await expect(page).toHaveURL(/model=tokenhub%2Fecho-1/);
+  await page.getByRole("button", { name: "查看详情" }).first().click();
+  await expect(page.getByText("req_fail")).toBeVisible();
+  await expect(page.getByText("这条记录没有单独的失败原因，只保留了结果状态。")).toBeVisible();
+});
+
 test("activity failed load stays failed and does not look empty", async ({ page }) => {
   await page.route("**/v1/me/usage**", async (route) => {
     await route.fulfill({

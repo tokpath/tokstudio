@@ -72,6 +72,27 @@ test("public ofox replica pages render headings", async ({ page }) => {
 });
 
 test("user console main flow shows DESIGN.md hero cards", async ({ page }) => {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ balance: { available: "12.00", reserved: "0" } }),
+    });
+  });
+  await page.route("**/v1/me/api-keys**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [] }),
+    });
+  });
+  await page.route("**/v1/me/usage**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], keys: [], models: [] }),
+    });
+  });
   await page.goto("/app");
   await expect(page.getByRole("heading", { name: "我的账户" })).toBeVisible();
   const overview = page.getByLabel("总览");

@@ -1,4 +1,4 @@
-import { expect, test, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 test("public storefront shows models plans and topup", async ({ page }) => {
   await page.goto("/");
@@ -14,6 +14,7 @@ test("public storefront shows models plans and topup", async ({ page }) => {
 });
 
 test("user overview is personal stats trends and shortcuts", async ({ page }) => {
+  await stubEmptyUserLists(page);
   await page.goto("/app");
   await expect(page.getByRole("navigation", { name: "用户控制台" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "我的账户" })).toBeVisible();
@@ -38,16 +39,13 @@ test("user overview is personal stats trends and shortcuts", async ({ page }) =>
 });
 
 test("user overview usage failure is not first-run", async ({ page }) => {
-  await page.route("**/v1/me/usage**", async (route) => {
-    await route.fulfill({
-      status: 500,
-      contentType: "application/json",
-      body: JSON.stringify({ error: { message: "usage upstream timeout" } }),
-    });
-  });
+  await page.route("**/v1/me/usage**", (route) =>
+    fulfillJSON(route, 500, { error: { message: "usage upstream timeout" } }),
+  );
   await page.goto("/app");
-  await expect(page.getByTestId("list-resource-overview-usage")).toHaveAttribute("data-list-phase", "error");
-  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  const usage = page.getByTestId("list-resource-overview-usage");
+  await expect(usage).toHaveAttribute("data-list-phase", "error");
+  await expect(usage.getByText("usage upstream timeout")).toBeVisible();
   await expect(page.getByRole("heading", { name: "第一次使用" })).toHaveCount(0);
 });
 
@@ -141,6 +139,7 @@ test("user reconciliation page is three-bucket vs usage with no estimate debit",
 });
 
 test("user usage page is summary and links to activity", async ({ page }) => {
+  await stubEmptyUserLists(page);
   await page.goto("/app/usage");
   await expect(page.getByRole("heading", { name: "用量汇总" }).first()).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();
@@ -163,7 +162,7 @@ test("user usage failed load is not empty usage", async ({ page }) => {
   });
   await page.goto("/app/usage");
   await expect(page.getByTestId("list-resource-usage")).toHaveAttribute("data-list-phase", "error");
-  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  await expect(page.getByTestId("list-resource-usage").getByText("usage upstream timeout")).toBeVisible();
   await expect(page.getByText("暂无用量")).toHaveCount(0);
 });
 
@@ -616,6 +615,12 @@ async function fulfillJSON(route: Route, status: number, body: unknown) {
     contentType: "application/json",
     body: JSON.stringify(body),
   });
+}
+
+async function stubEmptyUserLists(page: Page) {
+  await page.route("**/v1/me/balance**", (route) => fulfillJSON(route, 200, { balance: { available: "12.00", reserved: "0" } }));
+  await page.route("**/v1/me/api-keys**", (route) => fulfillJSON(route, 200, { items: [] }));
+  await page.route("**/v1/me/usage**", (route) => fulfillJSON(route, 200, { items: [], keys: [], models: [] }));
 }
 
 test("user shell shows real available balance and profile dropdown", async ({ page }) => {

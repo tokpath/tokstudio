@@ -189,6 +189,46 @@ function KeyMoreMenu({
   );
 }
 
+function KeyStatusBadge({ item }: { item: APIKeyItem }) {
+  const tc = useTranslations("common");
+  const key = statusLabelKey(item.status);
+  return <Badge tone={statusTone(item)}>{key ? tc(key) : item.status ? tc("stUnknown", { status: item.status }) : "—"}</Badge>;
+}
+
+function KeySecretActions({
+  item,
+  revealed,
+  onCopy,
+  onToggleReveal,
+}: {
+  item: APIKeyItem;
+  revealed: boolean;
+  onCopy?: (id: string) => void;
+  onToggleReveal?: (id: string) => void;
+}) {
+  const t = useTranslations("user");
+  const tc = useTranslations("common");
+  return (
+    <div className="flex min-w-0 max-w-md flex-col gap-2">
+      <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
+        {maskAPIKey(item.prefix, item.key, revealed)}
+      </code>
+      <ActionRow>
+        {onCopy ? (
+          <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
+            {tc("copy")}
+          </Button>
+        ) : null}
+        {onToggleReveal ? (
+          <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
+            {revealed ? t("hide") : t("reveal")}
+          </Button>
+        ) : null}
+      </ActionRow>
+    </div>
+  );
+}
+
 export function KeysList({
   items,
   revealedIds = [],
@@ -205,85 +245,101 @@ export function KeysList({
   }
   const revealed = new Set(revealedIds);
   return (
-    <ScrollTable
-      density="ledger"
-      className="rounded-card border border-hairline"
-      minWidthClassName="min-w-[52rem]"
-      getRowId={(item) => item.id}
-      rows={items}
-      columns={[
-        {
-          id: "name",
-          header: t("colName"),
-          cell: (item) => <span className="text-ink">{item.name}</span>,
-        },
-        {
-          id: "key",
-          header: t("colKey"),
-          cell: (item) => {
-            const isRevealed = revealed.has(item.id);
-            return (
-              <div className="flex min-w-[14rem] max-w-md flex-col gap-2">
-                <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
-                  {maskAPIKey(item.prefix, item.key, isRevealed)}
-                </code>
-                <ActionRow>
-                  {onCopy ? (
-                    <Button size="sm" variant="outline" onClick={() => onCopy(item.id)}>
-                      {tc("copy")}
-                    </Button>
-                  ) : null}
-                  {onToggleReveal ? (
-                    <Button size="sm" variant="ghost" onClick={() => onToggleReveal(item.id)}>
-                      {isRevealed ? t("hide") : t("reveal")}
-                    </Button>
-                  ) : null}
-                </ActionRow>
+    <>
+      <ul className="flex flex-col gap-3 md:hidden">
+        {items.map((item) => {
+          const isRevealed = revealed.has(item.id);
+          return (
+            <li key={item.id} className="rounded-card border border-hairline bg-canvas-raised p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink">{item.name}</p>
+                  <p className="mt-1 font-mono text-xs text-ink-mute">{item.prefix}</p>
+                </div>
+                <KeyStatusBadge item={item} />
               </div>
-            );
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm text-brand-emphasis">{t("expandKeyDetails")}</summary>
+                <div className="mt-3 flex flex-col gap-3">
+                  <KeySecretActions item={item} revealed={isRevealed} onCopy={onCopy} onToggleReveal={onToggleReveal} />
+                  <p className="text-sm text-ink">
+                    {item.rpm_limit ? `${t("rpm")} ${item.rpm_limit}` : ""}
+                    {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
+                  </p>
+                  <p className="text-sm text-ink-secondary">
+                    {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
+                  </p>
+                  <p className="text-xs text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</p>
+                  <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+      <ScrollTable
+        density="ledger"
+        className="hidden rounded-card border border-hairline md:block"
+        minWidthClassName="min-w-[52rem]"
+        getRowId={(item) => item.id}
+        rows={items}
+        columns={[
+          {
+            id: "name",
+            header: t("colName"),
+            cell: (item) => <span className="text-ink">{item.name}</span>,
           },
-        },
-        {
-          id: "status",
-          header: t("colStatus"),
-          cell: (item) => {
-            const key = statusLabelKey(item.status);
-            return <Badge tone={statusTone(item)}>{key ? tc(key) : item.status ? tc("stUnknown", { status: item.status }) : "—"}</Badge>;
+          {
+            id: "key",
+            header: t("colKey"),
+            cell: (item) => (
+              <KeySecretActions
+                item={item}
+                revealed={revealed.has(item.id)}
+                onCopy={onCopy}
+                onToggleReveal={onToggleReveal}
+              />
+            ),
           },
-        },
-        {
-          id: "limits",
-          header: t("colLimits"),
-          cell: (item) => (
-            <span className="text-ink">
-              {item.rpm_limit ? `${t("rpm")} ${item.rpm_limit}` : ""}
-              {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
-            </span>
-          ),
-        },
-        {
-          id: "allowlist",
-          header: t("allowTitle"),
-          cell: (item) => (
-            <span className="text-ink-secondary">
-              {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
-            </span>
-          ),
-        },
-        {
-          id: "lastUsed",
-          header: t("colLastUsed"),
-          cell: (item) => <span className="text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</span>,
-        },
-        {
-          id: "actions",
-          header: t("colActions"),
-          cell: (item) => (
-            <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
-          ),
-        },
-      ]}
-    />
+          {
+            id: "status",
+            header: t("colStatus"),
+            cell: (item) => <KeyStatusBadge item={item} />,
+          },
+          {
+            id: "limits",
+            header: t("colLimits"),
+            cell: (item) => (
+              <span className="text-ink">
+                {item.rpm_limit ? `${t("rpm")} ${item.rpm_limit}` : ""}
+                {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
+              </span>
+            ),
+          },
+          {
+            id: "allowlist",
+            header: t("allowTitle"),
+            cell: (item) => (
+              <span className="text-ink-secondary">
+                {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
+              </span>
+            ),
+          },
+          {
+            id: "lastUsed",
+            header: t("colLastUsed"),
+            cell: (item) => <span className="text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</span>,
+          },
+          {
+            id: "actions",
+            header: t("colActions"),
+            cell: (item) => (
+              <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
+            ),
+          },
+        ]}
+      />
+    </>
   );
 }
 

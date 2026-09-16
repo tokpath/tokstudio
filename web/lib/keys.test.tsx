@@ -15,10 +15,11 @@ const sampleKey = {
 describe("KeysList", () => {
   it("renders API Key prefix and status for the user console", () => {
     render(withZh(<KeysList items={[sampleKey]} />));
-    expect(screen.getByText(/default/)).toBeTruthy();
+    expect(screen.getAllByText(/default/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/thk_abcd/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/已启用/)).toBeTruthy();
-    expect(screen.getByText(/模型限制：不限制/)).toBeTruthy();
+    expect(screen.getAllByText(/已启用/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("模型限制：不限制").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("详情").length).toBeGreaterThan(0);
     expect(screen.queryByText("thk_abcdsecret")).toBeNull();
   });
 
@@ -40,9 +41,9 @@ describe("KeysList", () => {
         />,
       ),
     );
-    expect(screen.getByText(/模型限制：google\/gemini-flash/)).toBeTruthy();
-    expect(screen.getByText(/每分钟最多请求数 30/)).toBeTruthy();
-    expect(screen.getByText(/同时请求 1/)).toBeTruthy();
+    expect(screen.getAllByText(/模型限制：google\/gemini-flash/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/每分钟最多请求数 30/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/同时请求 1/).length).toBeGreaterThan(0);
   });
 
   it("renders an empty ledger when there are no keys", () => {
@@ -52,13 +53,13 @@ describe("KeysList", () => {
 
   it("reveals the full secret when asked", () => {
     render(withZh(<KeysList items={[sampleKey]} revealedIds={["key_1"]} />));
-    expect(screen.getByText("thk_abcdsecret")).toBeTruthy();
+    expect(screen.getAllByText("thk_abcdsecret").length).toBeGreaterThan(0);
   });
 
   it("shows copy on the list so the key can be copied later", () => {
     const onCopy = vi.fn();
     render(withZh(<KeysList items={[sampleKey]} onCopy={onCopy} />));
-    fireEvent.click(screen.getByRole("button", { name: "复制" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "复制" })[0]);
     expect(onCopy).toHaveBeenCalledWith("key_1");
   });
 
@@ -66,8 +67,8 @@ describe("KeysList", () => {
     const onRotate = vi.fn();
     render(withZh(<KeysList items={[sampleKey]} onRotate={onRotate} />));
     expect(screen.queryByRole("button", { name: "轮换" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "更多操作" }));
-    expect(screen.getByRole("button", { name: "轮换" })).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    expect(screen.getAllByRole("button", { name: "轮换" }).length).toBeGreaterThan(0);
   });
 
   it("parses comma-separated allowlists", () => {

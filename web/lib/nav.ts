@@ -1,4 +1,4 @@
-export type NavItem = { href: string; key: string; hint?: string };
+export type NavItem = { href: string; key: string; hint?: string; unavailable?: boolean };
 
 export const portalLinks = [
   { href: "/", key: "public" as const },
@@ -60,15 +60,15 @@ export const userNavGroups: { titleKey: string; items: NavItem[] }[] = [
   },
 ];
 
-/** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。 */
+/** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。未上线的入口只标注、不当成可用功能。 */
 export const userSettingsNav: NavItem[] = [
   { href: "/app/settings", key: "account" },
-  { href: "/app/settings/team", key: "team" },
-  { href: "/app/settings/members", key: "members" },
+  { href: "/app/settings/team", key: "team", unavailable: true },
+  { href: "/app/settings/members", key: "members", unavailable: true },
   { href: "/app/settings/billing", key: "billing" },
   { href: "/app/settings/quotas", key: "quotas" },
-  { href: "/app/settings/apps", key: "apps" },
-  { href: "/app/settings/webhooks", key: "webhooks" },
+  { href: "/app/settings/apps", key: "apps", unavailable: true },
+  { href: "/app/settings/webhooks", key: "webhooks", unavailable: true },
 ];
 
 export const userSections: NavItem[] = userNavGroups.flatMap((group) => group.items);
@@ -79,6 +79,17 @@ export function isNavActive(pathname: string, href: string) {
     return pathname === href || pathname === `${href}/`;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function availableNavItems(items: NavItem[]) {
+  return items.filter((item) => !item.unavailable);
+}
+
+/** 当前路径对应的导航项：更长的 href 优先（设置子页盖过「设置」）。 */
+export function navItemForPath(pathname: string, items: NavItem[]) {
+  return items
+    .filter((item) => isNavActive(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 }
 
 export function consoleItemHref(item: { href: string }, hashPrefix: string) {

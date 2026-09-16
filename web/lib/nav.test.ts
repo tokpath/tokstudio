@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavKeys, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, userSections } from "./nav";
+import { adminNavKeys, availableNavItems, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, navItemForPath, userSections, userSettingsNav } from "./nav";
 import { adminNavActive } from "./tenants";
 
 describe("adminNavKeys", () => {
@@ -92,6 +92,16 @@ describe("user console nav", () => {
     expect(isNavActive("/app/keys", "/app")).toBe(false);
     expect(isNavActive("/app/keys", "/app/keys")).toBe(true);
     expect(isNavActive("/app/settings/team", "/app/settings")).toBe(true);
+  });
+
+  it("marks placeholder settings as unavailable without dropping their href", () => {
+    expect(userSettingsNav.some((item) => item.href === "/app/settings/team" && item.unavailable)).toBe(true);
+    expect(availableNavItems(userSettingsNav).map((item) => item.href)).toEqual([
+      "/app/settings",
+      "/app/settings/billing",
+      "/app/settings/quotas",
+    ]);
+    expect(navItemForPath("/app/settings/team", userSettingsNav)?.key).toBe("team");
   });
 
   it("uses real routes for channel console too", () => {

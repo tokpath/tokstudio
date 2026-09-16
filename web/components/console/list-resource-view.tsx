@@ -40,6 +40,8 @@ export function ListResourceView<T>({
         className="mt-3 rounded-card border border-hairline bg-canvas-raised px-8 py-12"
         data-testid={testId}
         data-list-phase="loading"
+        aria-busy="true"
+        aria-live="polite"
       >
         <div className="space-y-2" aria-hidden>
           <div className="h-4 w-36 animate-pulse rounded-md bg-brand-soft" />
@@ -62,7 +64,7 @@ export function ListResourceView<T>({
 
   if (snapshot.phase === "error") {
     return (
-      <div className="mt-3" data-testid={testId} data-list-phase="error">
+      <div className="mt-3" data-testid={testId} data-list-phase="error" role="alert">
         <EmptyLedger
           icon={AlertCircle}
           title={tc("listFailed")}
@@ -80,7 +82,7 @@ export function ListResourceView<T>({
   if (snapshot.phase === "unauthorized") {
     const forbidden = snapshot.message === "权限不足";
     return (
-      <div className="mt-3" data-testid={testId} data-list-phase="unauthorized">
+      <div className="mt-3" data-testid={testId} data-list-phase="unauthorized" role="alert">
         <EmptyLedger
           icon={AlertCircle}
           title={forbidden ? tc("listForbidden") : tc("listSessionExpired")}
@@ -98,7 +100,7 @@ export function ListResourceView<T>({
   return (
     <div data-testid={testId} data-list-phase={snapshot.phase}>
       {snapshot.phase === "stale" ? (
-        <p className="mb-3 rounded-stamp border border-hairline bg-canvas px-3 py-2 text-sm text-ink-secondary">
+        <p className="mb-3 rounded-stamp border border-hairline bg-canvas px-3 py-2 text-sm text-ink-secondary" role="alert">
           {tc("listUpdateFailed")} {reason}
           <Button type="button" size="sm" variant="outline" className="ml-3" onClick={onRetry}>
             {tc("listRetry")}

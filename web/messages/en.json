@@ -10,6 +10,10 @@
   },
   "chrome": {
     "jump": "Jump",
+    "openNav": "Open navigation",
+    "unavailable": "Not available",
+    "unavailableTitle": "This feature is not available yet",
+    "unavailableDetail": "The entry is marked as unavailable. Team, members, connected apps, and webhooks cannot be managed here yet.",
     "docs": "Docs",
     "login": "Sign in",
     "register": "Sign up",
@@ -802,12 +806,12 @@
     "team": {
       "eyebrow": "TEAM",
       "title": "Team",
-      "description": "Team name and billing entity after sign-in."
+      "description": "This feature is not available yet."
     },
     "members": {
       "eyebrow": "MEMBERS",
       "title": "Members",
-      "description": "Invites and roles. Empty ledger when signed out."
+      "description": "Invites and roles. This feature is not available yet."
     },
     "billing": {
       "eyebrow": "BILLING",
@@ -822,12 +826,12 @@
     "apps": {
       "eyebrow": "APPS",
       "title": "Connected apps",
-      "description": "No authorized third-party clients yet."
+      "description": "This feature is not available yet."
     },
     "webhooks": {
       "eyebrow": "WEBHOOKS",
       "title": "Webhook",
-      "description": "No callback URL configured yet."
+      "description": "This feature is not available yet. Webhooks cannot be configured here."
     },
     "channelUsers": {
       "eyebrow": "USERS",
@@ -1545,6 +1549,7 @@
     "keysLead": "Full keys stay visible and can be copied later. Create with a name; limits live under Advanced. Rotate, copy, disable, and expire write audit.",
     "emptyKeys": "No API keys yet",
     "emptyKeysDetail": "Click Create API Key to create a key. The secret is masked by default and can still be copied from this list later.",
+    "expandKeyDetails": "Details",
     "concurrency": " · {n} in flight",
     "allowlistLine": "Model limit: {list}",
     "nameRequired": "Enter a key name",

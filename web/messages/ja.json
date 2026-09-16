@@ -10,6 +10,10 @@
   },
   "chrome": {
     "jump": "ジャンプ",
+    "openNav": "ナビを開く",
+    "unavailable": "未開放",
+    "unavailableTitle": "この機能はまだ開放されていません",
+    "unavailableDetail": "入口に未開放と表示しています。チーム、メンバー、接続アプリ、Webhook はここでは操作できません。",
     "docs": "ドキュメント",
     "login": "ログイン",
     "register": "登録",
@@ -802,12 +806,12 @@
     "team": {
       "eyebrow": "TEAM",
       "title": "チーム",
-      "description": "ログイン後にチーム名と請求主体。"
+      "description": "この機能はまだ開放されていません。"
     },
     "members": {
       "eyebrow": "MEMBERS",
       "title": "メンバー",
-      "description": "招待と役割。未ログインは空。"
+      "description": "招待と役割。この機能はまだ開放されていません。"
     },
     "billing": {
       "eyebrow": "BILLING",
@@ -822,12 +826,12 @@
     "apps": {
       "eyebrow": "APPS",
       "title": "接続済みアプリ",
-      "description": "認可済みのサードパーティクライアントはまだありません。"
+      "description": "この機能はまだ開放されていません。"
     },
     "webhooks": {
       "eyebrow": "WEBHOOKS",
       "title": "Webhook",
-      "description": "コールバック URL は未設定です。"
+      "description": "この機能はまだ開放されていません。Webhook はここでは設定できません。"
     },
     "channelUsers": {
       "eyebrow": "USERS",
@@ -1545,6 +1549,7 @@
     "keysLead": "完全な Key は長期表示でき、後からでもコピーできます。作成は名前だけで十分です。上限は詳細設定にあります。",
     "emptyKeys": "API Key はまだありません",
     "emptyKeysDetail": "「API Key を作成」で発行します。秘密鍵は既定でマスクされ、一覧から後でもコピーできます。",
+    "expandKeyDetails": "詳細",
     "concurrency": " · 同時リクエスト {n}",
     "allowlistLine": "モデル制限：{list}",
     "nameRequired": "キー名を入力してください",

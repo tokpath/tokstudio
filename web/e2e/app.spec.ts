@@ -673,3 +673,24 @@ test("user shell logout clears session and returns to login", async ({ page }) =
   await expect(page).toHaveURL(/\/login/);
 });
 
+test("narrow console uses a drawer and labels unavailable settings at the entry", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/app");
+  await expect(page.getByRole("button", { name: "打开导航" })).toBeVisible();
+  const noPageOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+  );
+  expect(noPageOverflow).toBeTruthy();
+  await page.getByRole("button", { name: "打开导航" }).click();
+  const drawer = page.getByRole("dialog");
+  await expect(drawer.getByRole("link", { name: "总览" })).toBeVisible();
+  await drawer.getByRole("link", { name: "设置" }).click();
+  await expect(page.getByRole("link", { name: "账户" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "团队" })).toHaveCount(0);
+  await expect(page.getByText("未开放").first()).toBeVisible();
+  await page.goto("/app/settings/team");
+  await expect(page.getByRole("heading", { name: "团队" })).toBeVisible();
+  await expect(page.getByText("这个功能还没开放")).toBeVisible();
+  await expect(page.getByRole("button", { name: /重命名/ })).toHaveCount(0);
+});
+

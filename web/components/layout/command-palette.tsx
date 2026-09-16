@@ -12,6 +12,7 @@ import {
   portalLinks,
   userSections,
   userSettingsNav,
+  availableNavItems,
   PUBLIC_NAV,
   PUBLIC_NAV_MORE,
 } from "@/lib/nav";
@@ -130,7 +131,7 @@ export function CommandPalette({
       label: tMega(item.key),
       group: tChrome("groupPublic"),
     }));
-    const user = [...userSections, ...userSettingsNav].map((item) => ({
+    const user = [...userSections, ...availableNavItems(userSettingsNav)].map((item) => ({
       href: consoleItemHref(item, "/app"),
       label: tUser(item.key),
       group: tChrome("groupUser"),

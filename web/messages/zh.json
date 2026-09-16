@@ -10,6 +10,10 @@
   },
   "chrome": {
     "jump": "跳转",
+    "openNav": "打开导航",
+    "unavailable": "未开放",
+    "unavailableTitle": "这个功能还没开放",
+    "unavailableDetail": "入口已标明未开放。开放前不能在这里管理团队、成员、已连接应用或 Webhook。",
     "docs": "文档",
     "login": "登录",
     "register": "注册",
@@ -802,12 +806,12 @@
     "team": {
       "eyebrow": "TEAM",
       "title": "团队",
-      "description": "登录后显示你的团队名称与结算主体。"
+      "description": "此功能尚未开放。开放前不能在这里管理团队。"
     },
     "members": {
       "eyebrow": "MEMBERS",
       "title": "成员",
-      "description": "邀请与角色。未登录保持空账本。"
+      "description": "邀请与角色。此功能尚未开放。"
     },
     "billing": {
       "eyebrow": "BILLING",
@@ -822,12 +826,12 @@
     "apps": {
       "eyebrow": "APPS",
       "title": "已连接应用",
-      "description": "暂无已授权的第三方客户端。"
+      "description": "此功能尚未开放。开放前不能在这里管理已连接应用。"
     },
     "webhooks": {
       "eyebrow": "WEBHOOKS",
       "title": "Webhook",
-      "description": "尚未配置回调地址。"
+      "description": "此功能尚未开放。开放前不能在这里配置 Webhook。"
     },
     "channelUsers": {
       "eyebrow": "USERS",
@@ -1545,6 +1549,7 @@
     "keysLead": "完整 Key 可长期查看，之后仍可复制。创建时默认只填名称；限额和模型限制在高级设置。轮换、禁用、过期都会写审计日志。",
     "emptyKeys": "暂无 API 密钥",
     "emptyKeysDetail": "点击「创建 API Key」创建密钥。完整 Key 默认掩码，之后仍可从列表复制。",
+    "expandKeyDetails": "详情",
     "concurrency": " · 同时请求 {n}",
     "allowlistLine": "模型限制：{list}",
     "nameRequired": "请填写密钥名称",

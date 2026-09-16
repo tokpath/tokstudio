@@ -10,6 +10,7 @@ import { CheckoutPay } from "@/components/checkout-pay";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
+import { formatUsdMinor } from "@/lib/money";
 import {
   applyQuoteFetch,
   emptyQuoteSnapshot,
@@ -148,7 +149,7 @@ export default function WalletPanel() {
       body: JSON.stringify({ code }),
     });
     const body = await response.json();
-    setMessage(response.ok ? t("redeemOk", { amount: body.item?.amount_minor }) : body.error?.message || t("redeemFail"));
+    setMessage(response.ok ? t("redeemOk", { amount: formatUsdMinor(body.item?.amount_minor) }) : body.error?.message || t("redeemFail"));
     if (response.ok) await refresh();
   }
 

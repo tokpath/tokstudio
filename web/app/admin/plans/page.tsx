@@ -17,6 +17,7 @@ import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
+import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -35,9 +36,8 @@ type ListResponse = { items?: Plan[]; error?: { message?: string } };
 const createSchema = z.object({
   name: z.string().trim().min(1, "请填写套餐名"),
   owner_type: z.string().trim().min(1, "请填写归属"),
-  price_minor: z.string().trim().min(1, "请填写价格"),
-  unit_type: z.string().trim().min(1, "请填写权益单位"),
-  included_amount: z.string().trim().min(1, "请填写权益数量"),
+  price_usd: z.string().trim().min(1, "请填写价格"),
+  included_usd: z.string().trim().min(1, "请填写权益数量"),
 });
 
 const archiveSchema = z.object({
@@ -65,7 +65,7 @@ export default function AdminPlansPage() {
   const items = query.data?.items ?? [];
   const createForm = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
-    defaultValues: { name: "", owner_type: "platform", price_minor: "1000000", unit_type: "usd_credit", included_amount: "1000000" },
+    defaultValues: { name: "", owner_type: "platform", price_usd: "1", included_usd: "1" },
   });
   const archiveForm = useForm<z.infer<typeof archiveSchema>>({
     resolver: zodResolver(archiveSchema),
@@ -129,8 +129,8 @@ export default function AdminPlansPage() {
                 </span>
               ),
             },
-            { id: "price", header: "价格", cell: (item) => <span className="text-ink-secondary">{item.price_minor}</span> },
-            { id: "status", header: "状态", cell: (item) => <span className="text-ink-secondary">{item.status}</span> },
+            { id: "price", header: "价格", cell: (item) => <span className="text-ink-secondary">{formatUsdMinor(item.price_minor)}</span> },
+            { id: "status", header: "状态", cell: (item) => <span className="text-ink-secondary">{item.status === "pending_review" ? "待审核" : item.status === "published" ? "已发布" : item.status === "rejected" ? "已拒绝" : item.status}</span> },
             { id: "reason", header: "原因", cell: (item) => <span className="text-ink-secondary">{item.review_reason || "-"}</span> },
             {
               id: "actions",
@@ -170,21 +170,27 @@ export default function AdminPlansPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>创建套餐</DialogTitle>
-            <DialogDescription>价格单位是 micro-USD。渠道套餐低于 1 USD 会进 pending_review；平台套餐会直接 published。</DialogDescription>
+            <DialogDescription>售价按美元填写。渠道套餐低于 1 美元会进入待审核；平台套餐会直接发布。</DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
             <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
               <TextField control={createForm.control} name="name" label="创建用套餐名" />
               <TextField control={createForm.control} name="owner_type" label="创建用归属" placeholder="创建用归属 platform" />
-              <TextField control={createForm.control} name="price_minor" label="创建用价格" placeholder="创建用价格 1000000" />
-              <TextField control={createForm.control} name="unit_type" label="创建用权益单位" placeholder="创建用权益单位 usd_credit" />
-              <TextField control={createForm.control} name="included_amount" label="创建用权益数量" />
+              <TextField control={createForm.control} name="price_usd" label="售价" placeholder="1.00" suffix="USD" />
+              <p className="text-sm text-ink-secondary">额度类型：美元额度</p>
+              <TextField control={createForm.control} name="included_usd" label="包含额度" placeholder="1.00" suffix="USD" />
               <ConfirmButton
                 size="sm"
                 title="确认创建套餐"
                 description="平台套餐满 1 USD 会直接发布。"
                 validate={() => createForm.trigger()}
                 onConfirm={createForm.handleSubmit(async (values) => {
+                  const price = parseUsdToMinor(values.price_usd);
+                  const included = parseUsdToMinor(values.included_usd);
+                  if (price == null || included == null) {
+                    setWriteMessage("请填写有效的美元金额");
+                    return;
+                  }
                   const res = await fetch(`${apiBase}/admin/plans`, {
                     method: "POST",
                     credentials: "include",
@@ -192,11 +198,11 @@ export default function AdminPlansPage() {
                     body: JSON.stringify({
                       name: values.name,
                       owner_type: values.owner_type || "platform",
-                      price_minor: Number(values.price_minor || 0),
+                      price_minor: price,
                       items: [
                         {
-                          unit_type: values.unit_type || "usd_credit",
-                          included_amount: Number(values.included_amount || 0),
+                          unit_type: USD_CREDIT,
+                          included_amount: included,
                         },
                       ],
                     }),

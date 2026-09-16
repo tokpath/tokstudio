@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
+import { formatUsdMinor } from "@/lib/money";
 import {
   type APIKeyOption,
   type DimMoney,
@@ -136,7 +137,7 @@ export default function UsagePanel() {
           { k: t("statRequests"), v: String(summary.requests) },
           { k: t("statPrompt"), v: String(summary.prompt) },
           { k: t("statCompletion"), v: String(summary.completion) },
-          { k: t("statSpend"), v: String(summary.amount) },
+          { k: t("statSpend"), v: formatUsdMinor(summary.amount) },
         ].map((card) => (
           <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">
             <p className="th-eyebrow text-ink-mute">{card.k}</p>

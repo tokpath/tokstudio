@@ -46,11 +46,11 @@ test("user keys page keeps create dialog", async ({ page }) => {
   await expect(page.getByLabel("密钥名称")).toBeVisible();
   await expect(page.getByPlaceholder("我的聊天客户端")).toBeVisible();
   await expect(page.getByRole("button", { name: "高级设置" })).toBeVisible();
-  await expect(page.getByLabel("每分钟请求数")).toHaveCount(0);
+  await expect(page.getByLabel("每分钟最多请求数")).toHaveCount(0);
   await page.getByRole("button", { name: "高级设置" }).click();
   await expect(page.getByText("所有允许使用的模型", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("每分钟请求数")).toBeVisible();
-  await expect(page.getByLabel("同时请求数")).toBeVisible();
+  await expect(page.getByLabel("每分钟最多请求数")).toBeVisible();
+  await expect(page.getByLabel("同时进行的请求数")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
 });
 

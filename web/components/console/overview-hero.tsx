@@ -18,6 +18,7 @@ import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { MetricCard } from "@/components/feature-card";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
+import { formatUsdMinor } from "@/lib/money";
 import { overviewHasUsage, overviewNeedsTopup } from "@/lib/overview-guide";
 import { type UsageEvent, summarizeUsage } from "@/lib/usage";
 import { useTranslations } from "next-intl";
@@ -95,7 +96,7 @@ export function OverviewHero() {
   const periodCards = [
     { k: t("periodRequests"), v: usageReady ? String(summary.requests) : "—" },
     { k: t("periodTokens"), v: usageReady ? String(tokens) : "—" },
-    { k: t("periodSpend"), v: usageReady ? String(summary.amount) : "—" },
+    { k: t("periodSpend"), v: usageReady ? formatUsdMinor(summary.amount) : "—" },
   ];
 
   const shortcuts = [

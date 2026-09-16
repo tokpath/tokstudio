@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { channelUsesQuota } from "@/lib/tenants";
 
 export function ChannelQuotaPanel({ channelID, channelType }: { channelID: string; channelType: string }) {
-  const [amount, setAmount] = useState("1000000");
+  const [amount, setAmount] = useState("1");
   const [ratioBPS, setRatioBPS] = useState("10000");
-  const [message, setMessage] = useState("渠道额度按 micro-USD。发放和扣减都要二次确认。");
+  const [message, setMessage] = useState("渠道额度按美元填写。发放和扣减都要二次确认。");
 
   async function loadQuota() {
     const res = await fetch(`${apiBase}/admin/channel-quotas/${channelID}`, { credentials: "include" });
@@ -22,7 +23,7 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
     }
     const bps = body.quota?.issue_ratio_bps ?? 10000;
     setRatioBPS(String(bps));
-    setMessage(`可用额度 ${body.quota?.available_minor}，换算比 ${bps} BPS`);
+    setMessage(`可用额度 ${formatUsdMinor(body.quota?.available_minor)}，换算比 ${bps} BPS`);
   }
 
   async function saveRatio() {
@@ -37,14 +38,19 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
   }
 
   async function grant() {
+    const minor = parseUsdToMinor(amount);
+    if (minor == null) {
+      setMessage("请填写有效的美元金额");
+      return;
+    }
     const res = await fetch(`${apiBase}/admin/channel-quotas/grant`, {
       method: "POST",
       credentials: "include",
       headers: confirmHeaders,
-      body: JSON.stringify({ channel_org_id: channelID, amount_minor: Number(amount) }),
+      body: JSON.stringify({ channel_org_id: channelID, amount_minor: minor }),
     });
     const body = await res.json();
-    setMessage(res.ok ? `已调整 ${channelID}，可用 ${body.quota?.available_minor}` : body.error?.message || "调整失败");
+    setMessage(res.ok ? `已调整 ${channelID}，可用 ${formatUsdMinor(body.quota?.available_minor)}` : body.error?.message || "调整失败");
   }
 
   return (
@@ -54,7 +60,7 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
         <>
           <p className="mb-3 text-sm text-ink-secondary">B/C 渠道可用额度在用户充值时按平台换算比发放，默认 1:1。正数授予，负数扣减。额度不足时不能再给新用户发放，预授权也会失败。</p>
           <div className="mb-3 flex flex-wrap gap-2">
-            <Input className="w-40" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="额度 micro-USD" placeholder="amount_minor" />
+            <Input className="w-40" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="额度 USD" placeholder="1.00" />
             <Button size="sm" variant="outline" onClick={loadQuota}>
               读取额度
             </Button>

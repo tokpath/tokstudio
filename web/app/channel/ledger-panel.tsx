@@ -9,6 +9,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
+import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 
 type Channel = { id?: string; code?: string; type?: string; parent_id?: string; status?: string };
 type PnL = {
@@ -31,16 +32,8 @@ type Supplier = {
   created_at?: string;
 };
 
-function micro(n: unknown) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return `$${(v / 1_000_000).toFixed(2)}`;
-}
-
 function usdToMinor(raw: string) {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.round(n * 1_000_000);
+  return parseUsdToMinor(raw) ?? 0;
 }
 
 function newIdem() {
@@ -101,7 +94,7 @@ export default function ChannelLedger() {
     const next = (chBody.item || {}) as Channel;
     setChannel({ ...next, id: next.id || id });
     setPnl((pnlBody.pnl || {}) as PnL);
-    setQuota(micro(qBody.quota?.available_minor));
+    setQuota(formatUsdMinor(qBody.quota?.available_minor));
     const items = Array.isArray(sBody.items) ? (sBody.items as Supplier[]) : [];
     setEntries(items);
     const kids = (Array.isArray(listBody.items) ? (listBody.items as Channel[]) : []).filter(
@@ -109,7 +102,7 @@ export default function ChannelLedger() {
     );
     setChildren(kids);
     if (!childID && kids[0]?.id) setChildID(String(kids[0].id));
-    setMessage(t("ledgerCount", { n: items.length, quota: micro(qBody.quota?.available_minor) }));
+    setMessage(t("ledgerCount", { n: items.length, quota: formatUsdMinor(qBody.quota?.available_minor) }));
   }
 
   useEffect(() => {
@@ -169,7 +162,7 @@ export default function ChannelLedger() {
       body: JSON.stringify({ channel_org_id: childID, amount_minor: amount }),
     });
     const body = await res.json();
-    setMessage(res.ok ? t("wholesaleDone", { id: childID, left: micro(body.quota?.available_minor) }) : body.error?.message || t("needAdmin"));
+    setMessage(res.ok ? t("wholesaleDone", { id: childID, left: formatUsdMinor(body.quota?.available_minor) }) : body.error?.message || t("needAdmin"));
     if (res.ok) await refresh();
   }
 
@@ -194,12 +187,12 @@ export default function ChannelLedger() {
   }
 
   const metrics = [
-    { k: t("pnlRecharge"), v: micro(pnl.recharge_minor) },
-    { k: t("pnlUnconsumed"), v: micro(pnl.unconsumed_minor) },
-    { k: t("pnlConsumed"), v: micro(pnl.consumed_minor) },
-    { k: t("pnlMarketing"), v: micro(pnl.marketing_minor) },
-    { k: t("pnlSupplier"), v: micro(pnl.supplier_minor) },
-    { k: t("pnlResult"), v: micro(pnl.pnl_minor) },
+    { k: t("pnlRecharge"), v: formatUsdMinor(pnl.recharge_minor) },
+    { k: t("pnlUnconsumed"), v: formatUsdMinor(pnl.unconsumed_minor) },
+    { k: t("pnlConsumed"), v: formatUsdMinor(pnl.consumed_minor) },
+    { k: t("pnlMarketing"), v: formatUsdMinor(pnl.marketing_minor) },
+    { k: t("pnlSupplier"), v: formatUsdMinor(pnl.supplier_minor) },
+    { k: t("pnlResult"), v: formatUsdMinor(pnl.pnl_minor) },
   ];
 
   return (
@@ -250,7 +243,7 @@ export default function ChannelLedger() {
             cells: [
               item.created_at ? String(item.created_at).slice(0, 19) : "—",
               <span key="a" className="font-mono tabular-nums">
-                {micro(item.amount_minor)}
+                {formatUsdMinor(item.amount_minor)}
               </span>,
               item.source_type || "—",
               item.vendor_name || item.memo || item.reversal_of || "—",

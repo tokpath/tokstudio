@@ -1,3 +1,5 @@
+import { formatUsdMinor } from "@/lib/money";
+
 export type DashboardTotals = {
   revenue_minor?: number;
   gross_profit_minor?: number;
@@ -13,11 +15,6 @@ export type DashboardTotals = {
 
 export type DashboardAlert = { kind?: string };
 
-function micro(n?: number) {
-  if (n == null || !Number.isFinite(n)) return "—";
-  return `$${(n / 1_000_000).toFixed(2)}`;
-}
-
 /** DESIGN.md 管理台英雄：待对账、毛利、佣金负债、Provider 健康。不是营销大英雄区。 */
 export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: DashboardAlert[] }) {
   const totals = dashboard.totals || {};
@@ -25,8 +22,8 @@ export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: Da
   const circuit = alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
   return [
     { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—"), href: "/admin/reconciliation" },
-    { key: "heroProfit", hintKey: "heroProfitHint", v: micro(totals.gross_profit_minor), href: undefined },
-    { key: "heroCommission", hintKey: "heroCommissionHint", v: micro(totals.commission_liability_minor), href: undefined },
+    { key: "heroProfit", hintKey: "heroProfitHint", v: formatUsdMinor(totals.gross_profit_minor), href: undefined },
+    { key: "heroCommission", hintKey: "heroCommissionHint", v: formatUsdMinor(totals.commission_liability_minor), href: undefined },
     { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : "heroHealthOk", v: circuit ? "DEGRADED" : "READY", href: undefined },
   ];
 }
@@ -46,8 +43,8 @@ export function dashboardSummaryParams(dashboard: {
   const alerts = dashboard.alerts?.length ?? 0;
   return {
     rate: (rate * 100).toFixed(0),
-    revenue,
-    profit,
+    revenue: formatUsdMinor(revenue),
+    profit: formatUsdMinor(profit),
     pending,
     risk,
     timeouts,

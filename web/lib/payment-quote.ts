@@ -1,3 +1,5 @@
+import { formatUsdMinor } from "@/lib/money";
+
 export type PaymentQuote = {
   adapter?: string;
   pay_major?: number;
@@ -62,11 +64,11 @@ export function formatPayMinor(currency: string | undefined, minor: number | und
   if (currency === "CNY") {
     return `¥${(n / 100).toFixed(2)}`;
   }
-  return `$${(n / 1_000_000).toFixed(2)}`;
+  return formatUsdMinor(n);
 }
 
 export function formatCreditMinor(minor: number | undefined): string {
-  return `$${((Number(minor) || 0) / 1_000_000).toFixed(2)}`;
+  return formatUsdMinor(Number(minor) || 0);
 }
 
 export function formatAmountChip(currency: string | undefined, major: number): string {

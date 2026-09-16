@@ -7,6 +7,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { fetchListItems } from "@/lib/list-resource";
+import { formatUsdMinor } from "@/lib/money";
 import { useTranslations } from "next-intl";
 
 type PartnerMe = {
@@ -124,7 +125,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
               emptyDetail={t("emptyCommsDetail")}
               rows={comms.snapshot.items.map((item) => ({
                 key: item.id || `${item.kind}-${item.status}`,
-                cells: [item.kind || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+                cells: [item.kind || "—", item.status || "—", formatUsdMinor(item.amount_minor)],
               }))}
             />
           </ListResourceView>
@@ -145,7 +146,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
               emptyDetail={t("emptySettleDetail")}
               rows={settlements.snapshot.items.map((item) => ({
                 key: item.id || "settlement",
-                cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+                cells: [item.id || "—", item.status || "—", formatUsdMinor(item.amount_minor)],
               }))}
             />
           </ListResourceView>

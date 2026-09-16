@@ -8,6 +8,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { fetchListItems } from "@/lib/list-resource";
+import { formatUsdMinor } from "@/lib/money";
 
 type Settlement = { id?: string; status?: string; amount_minor?: number; channel_org_id?: string };
 
@@ -36,7 +37,7 @@ export default function ChannelSettlements() {
           emptyDetail={t("emptySettleDetail")}
           rows={list.snapshot.items.map((item) => ({
             key: item.id || "settlement",
-            cells: [item.id || "—", item.status || "—", `${item.amount_minor ?? 0} micro-USD`],
+            cells: [item.id || "—", item.status || "—", formatUsdMinor(item.amount_minor)],
           }))}
         />
       </ListResourceView>

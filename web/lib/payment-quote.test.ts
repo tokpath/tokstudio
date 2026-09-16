@@ -72,5 +72,6 @@ describe("money labels", () => {
     expect(formatAmountChip("USD", 10)).toBe("$10");
     expect(formatPayMinor("CNY", 10000)).toBe("¥100.00");
     expect(formatPayMinor("USD", 10_000_000)).toBe("$10.00");
+    expect(formatPayMinor("USD", 26)).toBe("$0.000026");
   });
 });

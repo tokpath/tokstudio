@@ -17,7 +17,7 @@ describe("KeysList", () => {
     render(withZh(<KeysList items={[sampleKey]} />));
     expect(screen.getByText(/default/)).toBeTruthy();
     expect(screen.getAllByText(/thk_abcd/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/active/)).toBeTruthy();
+    expect(screen.getByText(/已启用/)).toBeTruthy();
     expect(screen.getByText(/模型限制：不限制/)).toBeTruthy();
     expect(screen.queryByText("thk_abcdsecret")).toBeNull();
   });
@@ -41,8 +41,8 @@ describe("KeysList", () => {
       ),
     );
     expect(screen.getByText(/模型限制：google\/gemini-flash/)).toBeTruthy();
-    expect(screen.getByText(/RPM 30/)).toBeTruthy();
-    expect(screen.getByText(/并发 1/)).toBeTruthy();
+    expect(screen.getByText(/每分钟最多请求数 30/)).toBeTruthy();
+    expect(screen.getByText(/同时请求 1/)).toBeTruthy();
   });
 
   it("renders an empty ledger when there are no keys", () => {
@@ -118,12 +118,12 @@ describe("KeysPanel", () => {
     expect(screen.getByRole("heading", { name: "创建 API Key" })).toBeTruthy();
     expect(screen.getByLabelText("密钥名称")).toBeTruthy();
     expect(screen.getByPlaceholderText("我的聊天客户端")).toBeTruthy();
-    expect(screen.queryByLabelText("每分钟请求数")).toBeNull();
+    expect(screen.queryByLabelText("每分钟最多请求数")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /^高级设置$/ }));
     expect(screen.getByPlaceholderText("搜索模型")).toBeTruthy();
     expect(screen.getByText("所有允许使用的模型")).toBeTruthy();
-    expect(screen.getByLabelText("每分钟请求数")).toBeTruthy();
-    expect(screen.getByLabelText("同时请求数")).toBeTruthy();
+    expect(screen.getByLabelText("每分钟最多请求数")).toBeTruthy();
+    expect(screen.getByLabelText("同时进行的请求数")).toBeTruthy();
   });
 
   it("keeps the create dialog open and shows the API error next to submit", async () => {
@@ -157,7 +157,7 @@ describe("KeysPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建 API Key" }));
     fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "我的聊天客户端" } });
     fireEvent.click(screen.getByRole("button", { name: "高级设置" }));
-    fireEvent.change(screen.getByLabelText("每分钟请求数"), { target: { value: "abc" } });
+    fireEvent.change(screen.getByLabelText("每分钟最多请求数"), { target: { value: "abc" } });
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
     await waitFor(() => {
       expect(screen.getByText("请填写正整数，或留空使用默认值")).toBeTruthy();

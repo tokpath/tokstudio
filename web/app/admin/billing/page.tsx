@@ -40,7 +40,7 @@ export default function AdminBillingPage() {
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="billing" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">按 request_id 退消费账单会冲正佣金；按 topup_id 退未使用充值。赠送额度默认 usd_credit。</p>
+        <p className="mb-3 text-sm text-ink-secondary">按请求编号退消费账单会冲正佣金；按充值单退未使用充值。赠送默认是美元额度。</p>
         <IfCan action="billing.refund">
           <div className="mb-3 flex flex-wrap gap-2">
             <Input className="w-64" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="账单 request_id" placeholder="request_id" />
@@ -65,7 +65,7 @@ export default function AdminBillingPage() {
             <ConfirmButton
               size="sm"
               title="确认赠送额度"
-              description="赠送默认 usd_credit，会写入审计。"
+              description="赠送默认美元额度，会写入审计。"
               onConfirm={() =>
                 post("/admin/entitlements/bonus", { user_id: userID, unit_type: "usd_credit", amount: Number(bonus), expires_in_seconds: 86400 }, `已赠送 ${bonus} 给 ${userID}`)
               }

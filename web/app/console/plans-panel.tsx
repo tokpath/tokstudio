@@ -7,6 +7,7 @@ import { CheckoutPay } from "@/components/checkout-pay";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
+import { formatUsdMinor } from "@/lib/money";
 
 type Plan = {
   id: string;
@@ -128,7 +129,7 @@ export default function PlansPanel() {
           {plans.map((plan) => (
             <li key={plan.id} className="flex items-center justify-between gap-3">
               <span>
-                {plan.name} · {(plan.price_minor / 1_000_000).toString()} USD
+                {plan.name} · {formatUsdMinor(plan.price_minor)}
               </span>
               <Button type="button" size="sm" onClick={() => subscribe(plan.id)}>
                 {t("subscribe")}

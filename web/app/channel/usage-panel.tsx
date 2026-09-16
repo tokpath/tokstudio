@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { UsageCharts } from "@/components/usage-charts";
 import { apiBase } from "@/lib/api";
+import { formatUsdMinor } from "@/lib/money";
 import { type DimMoney, type UsageEvent, bucketsToMetricPoints, dimToKeyBuckets, shortKeyRef, usageTokens } from "@/lib/usage";
 
 type Usage = {
@@ -104,7 +105,7 @@ export default function ChannelUsage() {
       </div>
       <section className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
         {[
-          { t: t("wholesale"), v: String(usage.usage_minor ?? 0), d: "micro-USD" },
+          { t: t("wholesale"), v: formatUsdMinor(usage.usage_minor), d: t("planCreditUsd") },
           { t: "Prompt", v: String(usage.prompt_tokens ?? 0), d: "tokens" },
           { t: "Completion", v: String(usage.completion_tokens ?? 0), d: "tokens" },
           { t: t("media"), v: `${usage.video_seconds ?? 0}s / ${usage.image_count ?? 0}`, d: t("mediaHint") },

@@ -7,17 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { fetchListItems } from "@/lib/list-resource";
+import { formatUsdMinor } from "@/lib/money";
 
 type LedgerRow = {
   id: string;
   entry_type?: string;
   amount_minor?: number;
 };
-
-function formatMinor(amount?: number) {
-  if (amount == null) return "—";
-  return `$${(amount / 1_000_000).toFixed(2)}`;
-}
 
 export function WalletLedger() {
   const t = useTranslations("user");
@@ -53,7 +49,7 @@ export function WalletLedger() {
                 {row.entry_type || row.id}
               </span>,
               <span key="amount" className="font-mono tabular-nums">
-                {formatMinor(row.amount_minor)}
+                {formatUsdMinor(row.amount_minor)}
               </span>,
             ],
           }))}

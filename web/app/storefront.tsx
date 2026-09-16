@@ -14,6 +14,7 @@ import { CheckoutPay } from "@/components/checkout-pay";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
 import { loginHref } from "@/lib/login-next";
+import { formatUsdMinor } from "@/lib/money";
 import { Boxes, CreditCard, Ticket } from "lucide-react";
 import { IconStamp } from "@/components/icon-stamp";
 import { useTranslations } from "next-intl";
@@ -51,7 +52,7 @@ export default function PublicStorefront({
       body: JSON.stringify({ code: values.code }),
     });
     const body = await response.json();
-    setMessage(response.ok ? t("redeemOk", { amount: body.item?.amount_minor ?? 0 }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
+    setMessage(response.ok ? t("redeemOk", { amount: formatUsdMinor(body.item?.amount_minor ?? 0) }) : unauthorizedMessage(response.status, body.error?.message, t("loginToTopup")));
   }
 
   async function topup() {
@@ -140,7 +141,7 @@ export default function PublicStorefront({
                 <IconStamp icon={CreditCard} size="sm" />
               </div>
               <p className="mt-4 font-mono text-3xl font-medium tabular-nums tracking-tight">
-                {((plan.price_minor ?? 0) / 1_000_000).toString()}
+                {formatUsdMinor(plan.price_minor ?? 0)}
                 <span className="ml-1.5 font-sans text-sm font-normal text-ink-secondary">{t("perMonth")}</span>
               </p>
               <Button className="mt-6" onClick={() => subscribe(plan.id || "")}>

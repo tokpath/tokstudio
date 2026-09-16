@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { fetchListItems } from "@/lib/list-resource";
+import { formatUsdMinor } from "@/lib/money";
 
 type Allocation = {
   id?: string;
@@ -60,12 +61,12 @@ export default function ChannelCommissions() {
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
       <h2 className="mb-4 text-lg font-semibold tracking-tight">{t("commTitle")}</h2>
-      <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota: quota.available_minor ?? "—" })}</p>
+      <p className="mb-3 text-sm text-ink-secondary">{t("commLead", { quota: formatUsdMinor(quota.available_minor) })}</p>
       <p className="mb-3 text-sm text-ink-secondary">
         {t("commMeta", {
           ratio: quota.issue_ratio_bps ?? "—",
-          issued: quota.issued_minor ?? "—",
-          consumed: quota.consumed_minor ?? "—",
+          issued: formatUsdMinor(quota.issued_minor),
+          consumed: formatUsdMinor(quota.consumed_minor),
         })}
       </p>
       <h3 className="mb-2 text-lg font-medium">{t("issuedTitle")}</h3>

@@ -29,6 +29,7 @@ import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
 import { optionalPositiveInt } from "@/lib/key-limits";
 import { keysCreateQueryOpen } from "@/lib/overview-guide";
+import { statusLabelKey } from "@/lib/status-copy";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
 
@@ -245,14 +246,17 @@ export function KeysList({
         {
           id: "status",
           header: t("colStatus"),
-          cell: (item) => <Badge tone={statusTone(item)}>{item.status}</Badge>,
+          cell: (item) => {
+            const key = statusLabelKey(item.status);
+            return <Badge tone={statusTone(item)}>{key ? tc(key) : item.status ? tc("stUnknown", { status: item.status }) : "—"}</Badge>;
+          },
         },
         {
           id: "limits",
           header: t("colLimits"),
           cell: (item) => (
             <span className="text-ink">
-              {item.rpm_limit ? `RPM ${item.rpm_limit}` : ""}
+              {item.rpm_limit ? `${t("rpm")} ${item.rpm_limit}` : ""}
               {item.concurrency_limit ? t("concurrency", { n: item.concurrency_limit }) : ""}
             </span>
           ),

@@ -8,7 +8,7 @@ describe("dashboardSummaryParams", () => {
         totals: { revenue_minor: 10, gross_profit_minor: 4, pending_reconciliation_count: 1, success_rate: 1, low_balance_wallets: 2 },
         alerts: [{ kind: "pending_reconciliation" }],
       }),
-    ).toMatchObject({ pending: 1, revenue: 10, profit: 4, rate: "100", risk: 2, alerts: 1 });
+    ).toMatchObject({ pending: 1, revenue: "$0.00001", profit: "$0.000004", rate: "100", risk: 2, alerts: 1 });
   });
 
   it("exposes DESIGN.md admin hero stats", () => {

@@ -4,13 +4,8 @@ import { useEffect, useState } from "react";
 import { apiBase } from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { MetricCard } from "@/components/feature-card";
+import { formatUsdMinor } from "@/lib/money";
 import { CHANNEL_HERO_ICONS } from "@/lib/page-icons";
-
-function micro(n: unknown) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return `$${(v / 1_000_000).toFixed(2)}`;
-}
 
 export function ChannelHero() {
   const t = useTranslations("channelHero");
@@ -30,22 +25,22 @@ export function ChannelHero() {
       if (cancelled) return;
       if (q.ok) {
         const body = await q.json();
-        setQuota(micro(body.quota?.available_minor));
-        setConsumed(micro(body.quota?.consumed_minor));
+        setQuota(formatUsdMinor(body.quota?.available_minor));
+        setConsumed(formatUsdMinor(body.quota?.consumed_minor));
       }
       if (c.ok) {
         const body = await c.json();
         const items = Array.isArray(body.items) ? body.items : [];
         const hold = items.filter((i: { status?: string }) => i.status === "frozen" || i.status === "hold");
         const sum = hold.reduce((n: number, i: { amount_minor?: number }) => n + Number(i.amount_minor || 0), 0);
-        setFrozen(micro(sum));
+        setFrozen(formatUsdMinor(sum));
       }
       if (s.ok) {
         const body = await s.json();
         const items = Array.isArray(body.items) ? body.items : [];
         const open = items.filter((i: { status?: string }) => i.status !== "paid");
         const sum = open.reduce((n: number, i: { amount_minor?: number }) => n + Number(i.amount_minor || 0), 0);
-        setSettleable(micro(sum));
+        setSettleable(formatUsdMinor(sum));
       }
     }
     void load();

@@ -1,15 +1,21 @@
 import { apiBase } from "@/lib/api";
-import { loginHref } from "@/lib/login-next";
+import { loginHref, safeNextPath } from "@/lib/login-next";
 
 /** 公共站「控制台」入口：未登录去登录，登录后按角色落到对应台。 */
 export const CONSOLE_ENTRY_PATH = "/enter";
 
-export function playgroundHref(modelId?: string): string {
+export function playgroundHref(modelId?: string, from?: string): string {
+  const params = new URLSearchParams();
   const id = modelId?.trim();
-  if (!id) {
-    return "/app/playground";
+  if (id) {
+    params.set("model", id);
   }
-  return `/app/playground?model=${encodeURIComponent(id)}`;
+  const catalog = safeNextPath(from);
+  if (catalog) {
+    params.set("from", catalog);
+  }
+  const qs = params.toString();
+  return qs ? `/app/playground?${qs}` : "/app/playground";
 }
 
 export const ADMIN_CONSOLE_ROLES = [

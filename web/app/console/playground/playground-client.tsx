@@ -1,86 +1,166 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ActionRow } from "@/components/console/action-row";
 import { Button } from "@/components/ui/button";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
+import { pickPlaygroundModel } from "@/lib/playground-session";
+import { copyText } from "@/lib/submit-result";
 
-function pickPlaygroundModel(models: CatalogModel[], requested?: string): string {
-  const fallbackId = models[0]?.id || "tokenhub/echo-1";
-  if (!requested) {
-    return fallbackId;
-  }
-  try {
-    const id = decodeURIComponent(requested).trim();
-    return models.some((item) => item.id === id) ? id : fallbackId;
-  } catch {
-    return fallbackId;
-  }
+type Turn = {
+  id: string;
+  prompt: string;
+  reply: string;
+  model: string;
+  status: "ok" | "fail" | "pending";
+  error?: string;
+};
+
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
+function extractReply(body: Record<string, unknown>): string {
+  const choices = body.choices as { message?: { content?: unknown } }[] | undefined;
+  const content = choices?.[0]?.message?.content ?? body.output_text ?? body;
+  return typeof content === "string" ? content : JSON.stringify(content, null, 2);
 }
 
 export function PlaygroundClient({
   models,
   initialModel,
+  catalogHref = "/app/catalog",
 }: {
   models: CatalogModel[];
   initialModel?: string;
+  catalogHref?: string;
 }) {
   const t = useTranslations("user");
-  const fallbackId = models[0]?.id || "tokenhub/echo-1";
   const [model, setModel] = useState(() => pickPlaygroundModel(models, initialModel));
   const [prompt, setPrompt] = useState("");
-  const [output, setOutput] = useState("");
-  const [receiptModel, setReceiptModel] = useState("");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(t("pgHint"));
+  const abortRef = useRef<AbortController | null>(null);
 
-  const options = useMemo(() => (models.length ? models : [{ id: fallbackId, display_name: fallbackId, vendor: "" }]), [models, fallbackId]);
+  const options = useMemo(() => {
+    if (model && !models.some((item) => item.id === model)) {
+      return [{ id: model, display_name: model, vendor: "" }, ...models];
+    }
+    return models;
+  }, [models, model]);
 
-  async function send() {
+  const examples = [t("pgEx0"), t("pgEx1"), t("pgEx2")];
+
+  function stopWait() {
+    abortRef.current?.abort();
+  }
+
+  function newChat() {
+    abortRef.current?.abort();
+    setMessages([]);
+    setMessage(t("pgNewChatReady"));
+  }
+
+  async function send(reset: boolean) {
     const text = prompt.trim();
     if (!text) {
       setMessage(t("pgNeedMsg"));
       return;
     }
+    if (!model) {
+      setMessage(t("pgNoModels"));
+      return;
+    }
+    const pending: Turn = {
+      id: `${Date.now()}`,
+      prompt: text,
+      reply: "",
+      model,
+      status: "pending",
+    };
+    const history = reset ? [] : messages;
+    const payload = [...history, { role: "user" as const, content: text }];
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setTurns((current) => [...current, pending]);
     setBusy(true);
-    setMessage(t("pgSending"));
+    setMessage(t("pgWaiting"));
     try {
       const response = await fetch(`${apiBase}/v1/chat/completions`, {
         method: "POST",
         credentials: "include",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: text }],
-        }),
+        body: JSON.stringify({ model, messages: payload }),
       });
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown> & { error?: { message?: string } };
       if (!response.ok) {
-        setOutput("");
-        setReceiptModel("");
-        setMessage(body.error?.message || t("pgFail", { status: response.status }));
+        const error = body.error?.message || t("pgFail", { status: response.status });
+        setTurns((current) =>
+          current.map((item) => (item.id === pending.id ? { ...item, status: "fail", error } : item)),
+        );
+        setMessage(error);
         return;
       }
-      const content =
-        body.choices?.[0]?.message?.content ||
-        body.output_text ||
-        JSON.stringify(body, null, 2);
-      setOutput(typeof content === "string" ? content : JSON.stringify(content, null, 2));
-      setReceiptModel(model);
+      const reply = extractReply(body);
+      setTurns((current) =>
+        current.map((item) => (item.id === pending.id ? { ...item, status: "ok", reply } : item)),
+      );
+      setMessages([...payload, { role: "assistant", content: reply }]);
+      setPrompt("");
       setMessage(t("pgDone"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : t("pgNet"));
+      if (err instanceof Error && err.name === "AbortError") {
+        setTurns((current) => current.filter((item) => item.id !== pending.id));
+        setMessage(t("pgStopped"));
+        return;
+      }
+      const error = err instanceof Error ? err.message : t("pgNet");
+      setTurns((current) =>
+        current.map((item) => (item.id === pending.id ? { ...item, status: "fail", error } : item)),
+      );
+      setMessage(error);
     } finally {
       setBusy(false);
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
     }
+  }
+
+  async function copyLast() {
+    const last = [...turns].reverse().find((item) => item.status === "ok" && item.reply);
+    if (!last) {
+      return;
+    }
+    const wrote = await copyText(last.reply);
+    setMessage(wrote ? t("pgCopied") : t("pgCopyFailed"));
+  }
+
+  if (models.length === 0 && !model) {
+    return (
+      <div className="space-y-3">
+        <Button asChild variant="outline" size="sm">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+        <EmptyLedger title={t("pgNoModels")} detail={t("pgNoModelsDetail")} />
+      </div>
+    );
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <section className="flex flex-col gap-3 rounded-card border border-hairline bg-canvas-raised p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+          </Button>
+        </div>
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
           {t("pgModel")}
           <select
@@ -96,6 +176,18 @@ export function PlaygroundClient({
             ))}
           </select>
         </label>
+        <div className="flex flex-wrap gap-1.5" aria-label={t("pgExamples")}>
+          {examples.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className="rounded-control border border-hairline px-2.5 py-1 text-xs text-ink-secondary hover:bg-canvas hover:text-ink"
+              onClick={() => setPrompt(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
         <label className="flex flex-col gap-1 text-xs text-ink-mute">
           {t("pgMsg")}
           <textarea
@@ -107,50 +199,56 @@ export function PlaygroundClient({
           />
         </label>
         <ActionRow>
-          <Button type="button" disabled={busy} onClick={() => void send()}>
-            {t("pgSend")}
+          <Button type="button" disabled={busy || !model} onClick={() => void send(messages.length === 0)}>
+            {busy ? t("pgWaiting") : messages.length ? t("pgContinue") : t("pgSend")}
+          </Button>
+          {messages.length > 0 ? (
+            <Button type="button" variant="outline" disabled={busy} onClick={newChat}>
+              {t("pgNewChat")}
+            </Button>
+          ) : null}
+          {busy ? (
+            <Button type="button" variant="ghost" onClick={stopWait}>
+              {t("pgStopWait")}
+            </Button>
+          ) : null}
+          <Button type="button" variant="outline" disabled={busy || !turns.some((item) => item.status === "ok")} onClick={() => void copyLast()}>
+            {t("pgCopy")}
           </Button>
           <Button
             type="button"
-            variant="outline"
-            onClick={() => {
-              setPrompt("");
-              setOutput("");
-              setReceiptModel("");
-              setMessage(t("pgCleared"));
-            }}
+            variant="ghost"
+            disabled={busy || !prompt.trim()}
+            onClick={() => void send(messages.length === 0)}
           >
-            {t("pgClear")}
+            {t("pgRetry")}
           </Button>
         </ActionRow>
         <p className="text-sm text-ink-secondary">{message}</p>
+        <p className="text-[12px] text-ink-mute">{t("pgStopHint")}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-5">
         <h2 className="mb-3 text-lg font-semibold">{t("pgReply")}</h2>
-        {output ? (
-          <div className="flex flex-col gap-3">
-            {receiptModel ? (
-              <aside
-                className="rounded-stamp border border-hairline bg-canvas px-3 py-2 text-sm"
-                aria-label={t("pgReceipt")}
-              >
-                <p className="th-eyebrow mb-2 text-ink-mute">{t("pgReceipt")}</p>
-                <ul className="divide-y divide-hairline">
-                  <li className="flex justify-between gap-3 py-1.5">
-                    <span className="text-ink-mute">{t("pgReceiptModel")}</span>
-                    <span className="font-mono text-ink">{receiptModel}</span>
-                  </li>
-                  <li className="flex justify-between gap-3 py-1.5">
-                    <span className="text-ink-mute">{t("pgReceiptStatus")}</span>
-                    <span className="text-ink">{t("pgReceiptOk")}</span>
-                  </li>
-                </ul>
-              </aside>
-            ) : null}
-            <pre className="th-scrollbar max-h-[420px] overflow-auto whitespace-pre-wrap font-mono text-sm text-ink">{output}</pre>
-          </div>
-        ) : (
+        {turns.length === 0 ? (
           <EmptyLedger title={t("pgEmpty")} detail={t("pgEmptyDetail")} />
+        ) : (
+          <ol className="flex flex-col gap-3">
+            {turns.map((item) => (
+              <li key={item.id} className="rounded-control border border-hairline bg-canvas px-3 py-3 text-sm">
+                <p className="text-ink">{item.prompt}</p>
+                {item.status === "pending" ? (
+                  <p className="mt-2 text-ink-mute">{t("pgWaiting")}</p>
+                ) : item.status === "fail" ? (
+                  <p className="mt-2 text-danger">{item.error}</p>
+                ) : (
+                  <pre className="th-scrollbar mt-2 max-h-60 overflow-auto whitespace-pre-wrap font-mono text-[13px] text-ink">
+                    {item.reply}
+                  </pre>
+                )}
+                <p className="mt-2 font-mono text-[11px] text-ink-mute">{item.model}</p>
+              </li>
+            ))}
+          </ol>
         )}
       </section>
     </div>

@@ -95,6 +95,12 @@ describe("playgroundHref", () => {
     expect(playgroundHref()).toBe("/app/playground");
     expect(playgroundHref("tokenhub/echo-1")).toBe("/app/playground?model=tokenhub%2Fecho-1");
   });
+
+  it("keeps catalog filters on the return path", () => {
+    expect(playgroundHref("tokenhub/echo-1", "/app/catalog?kind=text")).toBe(
+      "/app/playground?model=tokenhub%2Fecho-1&from=%2Fapp%2Fcatalog%3Fkind%3Dtext",
+    );
+  });
 });
 
 describe("resolveStartUsingHref", () => {

@@ -6,10 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, LayoutList, Search, Table2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { EmptyState } from "@/components/empty-state";
 import { iconForKind } from "@/lib/page-icons";
+import { playgroundHref } from "@/lib/console-home";
 import {
   capabilityLabels,
   catalogHref,
@@ -216,6 +218,18 @@ export function ModelsCatalog({
               ),
             },
             {
+              id: "try",
+              header: t("tryNow"),
+              cell: (m) => (
+                <Link
+                  href={playgroundHref(m.id, catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined }))}
+                  className="text-sm font-medium text-brand-emphasis no-underline hover:underline"
+                >
+                  {t("tryNow")}
+                </Link>
+              ),
+            },
+            {
               id: "vendor",
               header: t("colVendor"),
               cell: (m) => <span className="text-ink-secondary">{m.vendor}</span>,
@@ -262,10 +276,7 @@ export function ModelsCatalog({
             const price = priceForModel(m, units);
             return (
               <li key={m.id}>
-                <Link
-                  href={`/models/${m.id}`}
-                  className="block rounded-card border border-hairline bg-canvas-raised px-5 py-4 no-underline transition-colors duration-150 hover:bg-brand-soft/30"
-                >
+                <article className="rounded-card border border-hairline bg-canvas-raised px-5 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -273,16 +284,18 @@ export function ModelsCatalog({
                           <KindIcon className="size-3" strokeWidth={1.75} aria-hidden />
                           {kind}
                         </span>
-                        <h3 className="text-base font-semibold text-ink">{m.display_name}</h3>
+                        <h3 className="text-base font-semibold text-ink">
+                          <Link href={`/models/${m.id}`} className="no-underline hover:text-brand-emphasis">
+                            {m.display_name}
+                          </Link>
+                        </h3>
                         <span className="th-eyebrow text-success">{(m.status || "available").toUpperCase()}</span>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-[12px] text-ink-mute">{m.id}</span>
-                        <CopyId id={m.id} />
-                        <span className="text-[12px] text-ink-mute">{m.vendor}</span>
-                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+                        {m.description?.trim() || t("noDesc")}
+                      </p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex shrink-0 flex-col items-end gap-2">
                       <p className="font-mono text-sm font-medium tabular-nums text-brand-emphasis">{price.primary}</p>
                       <p className="font-mono text-[12px] tabular-nums text-ink-mute">
                         {kind === "text"
@@ -293,46 +306,59 @@ export function ModelsCatalog({
                               ? t("kindImage")
                               : price.secondary}
                       </p>
+                      <Button asChild size="sm">
+                        <Link
+                          href={playgroundHref(
+                            m.id,
+                            catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined }),
+                          )}
+                        >
+                          {t("tryNow")}
+                        </Link>
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-ink-secondary">
-                    <span>
-                      {t("context")} <span className="font-mono tabular-nums text-ink">{formatContext(m.context_length)}</span>
-                    </span>
-                    {m.max_completion_tokens ? (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-[13px] text-ink-mute">{t("tech")}</summary>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[12px] text-ink-mute">{m.id}</span>
+                      <CopyId id={m.id} />
+                      <span className="text-[12px] text-ink-mute">{m.vendor}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-ink-secondary">
                       <span>
-                        {t("maxOut")} <span className="font-mono tabular-nums text-ink">{formatContext(m.max_completion_tokens)}</span>
+                        {t("context")} <span className="font-mono tabular-nums text-ink">{formatContext(m.context_length)}</span>
                       </span>
-                    ) : null}
-                    {kind === "text" ? (
-                      <>
+                      {m.max_completion_tokens ? (
                         <span>
-                          {t("input")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.input)}</span>
+                          {t("maxOut")} <span className="font-mono tabular-nums text-ink">{formatContext(m.max_completion_tokens)}</span>
                         </span>
-                        <span>
-                          {t("output")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.output)}</span>
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-
-                  {m.description ? (
-                    <p className="mt-2 line-clamp-2 text-[13px] text-ink-mute">{m.description}</p>
-                  ) : null}
-
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {caps.length ? (
-                      caps.map((c) => (
-                        <span key={c} className="rounded-control border border-hairline px-2 py-0.5 text-[11px] text-ink-secondary">
-                          {tCaps(c as "vision")}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[11px] text-ink-mute">—</span>
-                    )}
-                  </div>
-                </Link>
+                      ) : null}
+                      {kind === "text" ? (
+                        <>
+                          <span>
+                            {t("input")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.input)}</span>
+                          </span>
+                          <span>
+                            {t("output")} <span className="font-mono tabular-nums text-ink">{formatMoney(m.sell_price?.output)}</span>
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {caps.length ? (
+                        caps.map((c) => (
+                          <span key={c} className="rounded-control border border-hairline px-2 py-0.5 text-[11px] text-ink-secondary">
+                            {tCaps(c as "vision")}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-ink-mute">—</span>
+                      )}
+                    </div>
+                  </details>
+                </article>
               </li>
             );
           })}

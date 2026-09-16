@@ -96,7 +96,7 @@ export function OverviewHero() {
   const periodCards = [
     { k: t("periodRequests"), v: usageReady ? String(summary.requests) : "—" },
     { k: t("periodTokens"), v: usageReady ? String(tokens) : "—" },
-    { k: t("periodSpend"), v: usageReady ? formatUsdMinor(summary.amount) : "—" },
+    { k: t("periodSpend"), v: usageReady && events.length > 0 ? formatUsdMinor(summary.amount) : "—" },
   ];
 
   const shortcuts = [

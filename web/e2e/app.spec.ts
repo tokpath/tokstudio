@@ -190,9 +190,15 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await expect(page.getByText("暂无媒体任务")).toBeVisible();
   await page.getByRole("button", { name: "新建任务" }).first().click();
   await expect(page.getByRole("heading", { name: "新建任务" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成图片" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成视频" })).toBeVisible();
+  await expect(page.getByLabel("描述你想生成的内容")).toBeVisible();
+  await expect(page.getByLabel("帧率")).toHaveCount(0);
+  await expect(page.getByLabel("时长")).toHaveCount(0);
+  await page.getByRole("button", { name: "生成视频" }).click();
   await expect(page.getByLabel("时长")).toBeVisible();
-  await expect(page.getByLabel("分辨率")).toBeVisible();
-  await expect(page.getByLabel("宽高比")).toBeVisible();
+  await expect(page.getByLabel("帧率")).toHaveCount(0);
+  await page.getByRole("button", { name: "高级设置" }).click();
   await expect(page.getByLabel("帧率")).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
 });
@@ -205,7 +211,7 @@ test("media create failure stays in the dialog", async ({ page }) => {
       body: JSON.stringify({ items: [], storage: { source: "minio", ok: true, label: "S3" } }),
     });
   });
-  await page.route("**/v1/videos**", async (route) => {
+  await page.route("**/v1/images/generations**", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
       return;
@@ -218,9 +224,56 @@ test("media create failure stays in the dialog", async ({ page }) => {
   });
   await page.goto("/app/media");
   await page.getByRole("button", { name: "新建任务" }).first().click();
+  await page.getByLabel("描述你想生成的内容").fill("a river at dusk");
   await page.getByRole("button", { name: "新建任务" }).last().click();
   await expect(page.getByTestId("submit-status")).toHaveText("上游创建失败");
   await expect(page.getByRole("heading", { name: "新建任务" })).toBeVisible();
+});
+
+test("media in-progress jobs update without a manual refresh", async ({ page }) => {
+  await page.route("**/v1/me/media**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "vid_live",
+            kind: "video",
+            task_type: "t2v",
+            status: "in_progress",
+            model: "bytedance/seedance-1.0",
+            prompt: "river",
+          },
+        ],
+        storage: { source: "minio", ok: true, label: "S3" },
+      }),
+    });
+  });
+  await page.route("**/v1/videos/vid_live/content**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: "https://cdn.test/river.mp4" }),
+    });
+  });
+  await page.route("**/v1/videos/vid_live**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "vid_live",
+        kind: "video",
+        task_type: "t2v",
+        status: "completed",
+        model: "bytedance/seedance-1.0",
+        prompt: "river",
+      }),
+    });
+  });
+  await page.goto("/app/media");
+  await expect(page.getByTestId("media-job-vid_live")).toHaveAttribute("data-status", "completed");
+  await expect(page.getByRole("button", { name: "再次使用此配置" })).toBeVisible();
 });
 
 test("wallet payment methods distinguish load failure from not enabled", async ({ page }) => {
@@ -327,6 +380,7 @@ test("media download badge is grey 存储不可用 when the bucket is missing", 
   });
   await page.goto("/app/media");
   await expect(page.getByRole("button", { name: "下载" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "再次使用此配置" })).toBeVisible();
   await expect(page.getByTestId("storage-source-badge").first()).toHaveText("存储不可用");
   await expect(page.getByTestId("storage-source-badge").first()).toHaveAttribute("data-ok", "false");
   await expect(page.getByText("✓")).toHaveCount(0);

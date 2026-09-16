@@ -158,6 +158,7 @@ type JobView struct {
 	ReferenceVideo string         `json:"reference_video,omitempty"`
 	ReferenceAudio string         `json:"reference_audio,omitempty"`
 	SourceJobID    string         `json:"source_job_id,omitempty"`
+	Prompt         string         `json:"prompt,omitempty"`
 }
 
 type ContentView struct {
@@ -722,7 +723,7 @@ func (s *Service) view(_ context.Context, job jobRow) *JobView {
 		FPS: job.FPS, GenerateAudio: job.GenerateAudio, Images: images,
 		FirstFrame: job.FirstFrame, LastFrame: job.LastFrame,
 		ReferenceVideo: job.ReferenceVideo, ReferenceAudio: job.ReferenceAudio,
-		SourceJobID: job.SourceJobID,
+		SourceJobID: job.SourceJobID, Prompt: job.Prompt,
 	}
 	if job.JobKind == KindImage {
 		view.StatusURL = "/v1/images/" + job.ID

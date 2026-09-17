@@ -149,7 +149,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
             data-state="loading"
             aria-busy="true"
             aria-label={t("balanceLoading")}
-            className="inline-flex h-9 min-w-[4.5rem] items-center rounded-control bg-success/15 px-3"
+            className="hidden h-9 min-w-[4.5rem] items-center rounded-control bg-success/15 px-3 md:inline-flex"
           >
             <span className="h-3 w-12 animate-pulse rounded-control bg-success/25" />
           </span>
@@ -160,7 +160,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
             data-state={balanceState}
             data-field="available"
             aria-label={t("balance")}
-            className={`inline-flex h-9 items-center rounded-control px-3 font-mono text-sm font-medium tabular-nums no-underline ${
+            className={`hidden h-9 items-center rounded-control px-3 font-mono text-sm font-medium tabular-nums no-underline md:inline-flex ${
               balanceState === "error" || amount === "—"
                 ? "bg-canvas-raised text-ink-mute"
                 : "bg-success/15 text-success"
@@ -171,7 +171,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
         )
       ) : null}
 
-      <div ref={rootRef} className="relative">
+      <div ref={rootRef} className="relative shrink-0">
         <button
           type="button"
           aria-haspopup="menu"
@@ -180,7 +180,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
           aria-label={t("accountMenu")}
           data-testid="avatar-trigger"
           onClick={() => setOpen((next) => !next)}
-          className="inline-flex max-w-[14rem] items-center gap-2 rounded-control px-1.5 py-1 text-left transition-colors hover:bg-canvas-raised max-sm:h-11"
+          className="inline-flex max-w-[min(14rem,calc(100vw-8rem))] items-center gap-2 rounded-control px-1.5 py-1 text-left transition-colors hover:bg-canvas-raised max-sm:h-11"
         >
           <span
             aria-hidden
@@ -208,7 +208,24 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
               <p data-testid="menu-email" className="mt-0.5 truncate text-[12px] text-ink-mute">
                 {email}
               </p>
+              {isUserShell ? (
+                <p data-testid="menu-balance" className="mt-1 font-mono text-sm tabular-nums text-ink">
+                  {amount}
+                </p>
+              ) : null}
             </div>
+            {isUserShell ? (
+              <Link
+                href="/app/wallet"
+                role="menuitem"
+                data-testid="menu-balance-link"
+                className="flex w-full items-center justify-between gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas md:hidden"
+                onClick={() => setOpen(false)}
+              >
+                <span>{t("balance")}</span>
+                <span className="font-mono tabular-nums">{amount}</span>
+              </Link>
+            ) : null}
             <Link
               href="/app/profile"
               role="menuitem"

@@ -28,6 +28,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
+import { ConsoleOverflowMenu } from "@/components/layout/console-overflow-menu";
 import { UserShellBell, UserShellRightZone } from "@/components/layout/user-shell-menu";
 import { iconForHref } from "@/lib/page-icons";
 import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, shouldBypassRbac } from "@/lib/rbac";
@@ -161,9 +162,9 @@ export function ConsoleShell({
   }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu]);
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-screen min-w-0 flex-col" data-testid="console-shell">
       <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
-        <div className="relative flex h-16 min-w-0 items-center gap-2 px-3 md:gap-4 md:px-6">
+        <div className="flex h-16 min-w-0 items-center gap-2 px-3 md:gap-4 md:px-6">
           <Button
             type="button"
             variant="ghost"
@@ -176,49 +177,34 @@ export function ConsoleShell({
             <Menu />
             <span className="sr-only">{tc("openNav")}</span>
           </Button>
-          <Link href={portalHref} className="flex min-w-0 items-center gap-2.5 text-ink no-underline">
+          <Link href={portalHref} className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
             <BrandLogo brand={brand} />
-            <span className="hidden text-lg font-semibold tracking-tight sm:inline">{brand?.name || title}</span>
+            <span className="hidden text-lg font-semibold tracking-tight md:inline">{brand?.name || title}</span>
           </Link>
-          <p className="pointer-events-none absolute inset-x-14 truncate text-center text-sm font-medium text-ink md:hidden">{pageLabel}</p>
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            {isUser ? (
-              <>
-                <UserShellBell />
-                <LocaleSwitch />
-                <ThemeToggle />
-                <UserShellRightZone />
-                <Button variant="ghost" size="sm" onClick={onCommand}>
-                  <Search />
-                  <span className="hidden sm:inline">{tc("jump")}</span>
-                </Button>
-              </>
-            ) : isAdmin ? (
-              <>
-                <LocaleSwitch />
-                <ThemeToggle />
-                <UserShellRightZone variant="admin" />
-                <Button variant="ghost" size="sm" onClick={onCommand}>
-                  <Search />
-                  <span className="hidden sm:inline">{tc("jump")}</span>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
+          <p
+            data-testid="console-page-title"
+            className="min-w-0 flex-1 truncate text-sm font-medium text-ink"
+          >
+            {pageLabel}
+          </p>
+          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
+            <div className="hidden items-center gap-1 md:flex" data-testid="console-chrome-inline">
+              {isUser ? <UserShellBell /> : null}
+              <LocaleSwitch />
+              <ThemeToggle />
+              <Button variant="ghost" size="sm" onClick={onCommand}>
+                <Search />
+                <span className="hidden lg:inline">{tc("jump")}</span>
+              </Button>
+              {!isUser ? (
+                <Button asChild size="sm" variant="outline">
                   <Link href="/docs">{tc("docs")}</Link>
                 </Button>
-              </>
-            ) : (
-              <>
-                <LocaleSwitch />
-                <ThemeToggle />
-                <Button variant="ghost" size="sm" onClick={onCommand}>
-                  <Search />
-                  <span className="hidden sm:inline">{tc("jump")}</span>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-                  <Link href="/docs">{tc("docs")}</Link>
-                </Button>
-              </>
-            )}
+              ) : null}
+            </div>
+            <ConsoleOverflowMenu onCommand={onCommand} showBell={isUser} />
+            {isUser ? <UserShellRightZone /> : null}
+            {isAdmin ? <UserShellRightZone variant="admin" /> : null}
           </div>
         </div>
       </header>

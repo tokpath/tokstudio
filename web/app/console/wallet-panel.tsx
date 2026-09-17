@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ActionRow } from "@/components/console/action-row";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { CheckoutPay } from "@/components/checkout-pay";
@@ -245,9 +246,11 @@ export default function WalletPanel() {
       ? formatCreditMinor(quoteSnap.quote.credit_minor)
       : "—";
 
+  const methodsUsable = methodsList.snapshot.phase === "ready" || methodsList.snapshot.phase === "stale";
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="min-w-0 rounded-card border border-hairline bg-canvas-raised p-6">
         <p className="mb-4 text-sm text-ink-secondary">
           {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "0" })}
         </p>
@@ -295,39 +298,11 @@ export default function WalletPanel() {
             {selected?.auto_renew_supported ? (
               <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payAutoRenew")}</p>
             ) : null}
-            <p className="th-eyebrow mb-3 text-ink-mute">{t("stepPay")}</p>
-            {mismatch ? (
-              <p className="mb-3 text-sm text-ink-secondary">
-                {t("orderQuoteMismatch", {
-                  order: formatOrderDue(order),
-                  quote: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor),
-                })}
-              </p>
-            ) : null}
-            <Button type="button" disabled={!canPay} onClick={() => void pay()} data-testid="wallet-pay">
-              {payLabel}
-            </Button>
-            {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
           </>
         </ListResourceView>
-        <ActionRow className="mt-6 w-full flex-nowrap gap-3">
-          <Button type="button" variant="outline" className="shrink-0" onClick={() => void refresh()}>
-            {t("refreshBalance")}
-          </Button>
-          <Input
-            aria-label={t("redeemCode")}
-            className="min-w-0 max-w-xs flex-1"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <Button type="button" className="shrink-0" onClick={() => void redeem()}>
-            {t("redeem")}
-          </Button>
-        </ActionRow>
-        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       <aside
-        className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24"
+        className="h-fit min-w-0 rounded-card border border-hairline bg-canvas-raised p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-24"
         data-testid="quote-summary"
         data-quote-phase={showOrderSummary ? "order" : quoteSnap.phase}
       >
@@ -358,6 +333,45 @@ export default function WalletPanel() {
           </li>
         </ul>
       </aside>
+      <section className="min-w-0 rounded-card border border-hairline bg-canvas-raised p-6 lg:col-start-1">
+        {methodsUsable ? (
+          <>
+            <p className="th-eyebrow mb-3 text-ink-mute">{t("stepPay")}</p>
+            {mismatch ? (
+              <p className="mb-3 text-sm text-ink-secondary">
+                {t("orderQuoteMismatch", {
+                  order: formatOrderDue(order),
+                  quote: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor),
+                })}
+              </p>
+            ) : null}
+            <Button type="button" disabled={!canPay} onClick={() => void pay()} data-testid="wallet-pay">
+              {payLabel}
+            </Button>
+            {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
+          </>
+        ) : null}
+        <div className="mt-6 grid min-w-0 gap-3">
+          <div className="min-w-0">
+            <Label htmlFor="wallet-redeem-code">{t("redeemCode")}</Label>
+            <Input
+              id="wallet-redeem-code"
+              className="mt-1.5 min-w-0"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </div>
+          <ActionRow className="w-full max-w-full">
+            <Button type="button" variant="outline" className="shrink-0" onClick={() => void refresh()}>
+              {t("refreshBalance")}
+            </Button>
+            <Button type="button" className="shrink-0" onClick={() => void redeem()}>
+              {t("redeem")}
+            </Button>
+          </ActionRow>
+        </div>
+        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
+      </section>
     </div>
   );
 }

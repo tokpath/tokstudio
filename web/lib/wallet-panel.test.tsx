@@ -173,4 +173,35 @@ describe("WalletPanel order vs quote", () => {
     await waitFor(() => expect(screen.getByTestId("wallet-pay").textContent).toBe("支付 ¥100.00"));
     expect(quotes).toBe(2);
   });
+
+  it("keeps quote summary before the pay button in document order and names the redeem field", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/v1/me/balance")) {
+          return jsonResponse(200, { balance: { available: "$0.00" } });
+        }
+        if (url.includes("/v1/payments/checkout") && !url.includes("/orders")) {
+          return jsonResponse(200, {
+            item: {
+              methods: [{ adapter: "alipay", display_name: "支付宝", pay_currency: "CNY" }],
+              settings: { quick_amounts: [100, 300] },
+            },
+          });
+        }
+        if (url.includes("/v1/payments/quote")) {
+          return jsonResponse(200, quote(100));
+        }
+        return jsonResponse(200, {});
+      }),
+    );
+
+    render(withZh(<WalletPanel />));
+    await waitFor(() => expect(screen.getByTestId("wallet-pay")).toBeTruthy());
+    const quoteEl = screen.getByTestId("quote-summary");
+    const payEl = screen.getByTestId("wallet-pay");
+    expect(quoteEl.compareDocumentPosition(payEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByLabelText("兑换码")).toBeTruthy();
+  });
 });

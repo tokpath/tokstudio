@@ -62,6 +62,7 @@ describe("UserShellRightZone", () => {
     fireEvent.click(screen.getByTestId("avatar-trigger"));
     expect(screen.getByTestId("menu-display-name").textContent).toBe("Ada");
     expect(screen.getByTestId("menu-email").textContent).toBe("ada@example.test");
+    expect(screen.getByTestId("menu-balance").textContent).toBe("$12.50");
     expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/profile");
     expect(screen.getByRole("menuitem", { name: "API 密钥" }).getAttribute("href")).toBe("/app/keys");
     expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();

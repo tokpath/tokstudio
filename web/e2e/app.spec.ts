@@ -466,6 +466,13 @@ test("wallet quote ignores stale results and does not show zero while calculatin
   releaseSlow?.();
   await expect(page.getByTestId("wallet-pay")).toHaveText("支付 ¥300.00");
   await expect(page.getByTestId("quote-summary").getByText("$41.97")).toBeVisible();
+  const quoteBeforePay = await page.evaluate(() => {
+    const quote = document.querySelector("[data-testid=quote-summary]");
+    const pay = document.querySelector("[data-testid=wallet-pay]");
+    return Boolean(quote && pay && quote.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(quoteBeforePay).toBeTruthy();
+  await expect(page.getByLabel("兑换码")).toBeVisible();
 });
 
 test("media download badge is grey 存储不可用 when the bucket is missing", async ({ page }) => {
@@ -763,10 +770,17 @@ test("narrow console uses a drawer and labels unavailable settings at the entry"
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/app");
   await expect(page.getByRole("button", { name: "打开导航" })).toBeVisible();
+  await expect(page.getByTestId("console-page-title")).toBeVisible();
+  await expect(page.getByTestId("chrome-overflow-trigger")).toBeVisible();
+  await expect(page.getByTestId("console-chrome-inline")).toBeHidden();
+  const overflowX = await page.getByTestId("console-shell").evaluate((el) => getComputedStyle(el).overflowX);
+  expect(overflowX).not.toBe("hidden");
   const noPageOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
   );
   expect(noPageOverflow).toBeTruthy();
+  const titlePos = await page.getByTestId("console-page-title").evaluate((el) => getComputedStyle(el).position);
+  expect(titlePos).not.toBe("absolute");
   await page.getByRole("button", { name: "打开导航" }).click();
   const drawer = page.getByRole("dialog");
   await expect(drawer.getByRole("link", { name: "总览" })).toBeVisible();
@@ -778,5 +792,108 @@ test("narrow console uses a drawer and labels unavailable settings at the entry"
   await expect(page.getByRole("heading", { name: "团队" })).toBeVisible();
   await expect(page.getByText("这个功能还没开放")).toBeVisible();
   await expect(page.getByRole("button", { name: /重命名/ })).toHaveCount(0);
+});
+
+async function stubWalletChrome(page: Page) {
+  await page.route("**/v1/me/balance**", async (route) => {
+    await fulfillJSON(route, 200, { balance: { available: "12.5", reserved: "1.00" } });
+  });
+  await page.route("**/v1/me", async (route) => {
+    await fulfillJSON(route, 200, {
+      user: {
+        display_name: "Verylongusernamefortheconsoleheader",
+        email: "ada@example.test",
+        roles: ["end_user"],
+      },
+    });
+  });
+  await page.route("**/v1/payments/checkout**", async (route) => {
+    await fulfillJSON(route, 200, {
+      item: {
+        methods: [{ adapter: "alipay", display_name: "支付宝", pay_currency: "CNY", sandbox: true }],
+        settings: { quick_amounts: [100, 300] },
+      },
+    });
+  });
+  await page.route("**/v1/payments/quote**", async (route) => {
+    await fulfillJSON(route, 200, {
+      item: {
+        adapter: "alipay",
+        pay_major: 100,
+        pay_currency: "CNY",
+        pay_minor: 10000,
+        fee_minor: 0,
+        credit_minor: 10000000,
+      },
+    });
+  });
+}
+
+async function assertHeaderFits(page: Page) {
+  const overflowX = await page.getByTestId("console-shell").evaluate((el) => getComputedStyle(el).overflowX);
+  expect(overflowX).not.toBe("hidden");
+  const noPageOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+  );
+  expect(noPageOverflow).toBeTruthy();
+  const headerFits = await page.locator("header").first().evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+  expect(headerFits).toBeTruthy();
+  const title = page.getByTestId("console-page-title");
+  const avatar = page.getByTestId("avatar-trigger");
+  const titleBox = await title.boundingBox();
+  const avatarBox = await avatar.boundingBox();
+  expect(titleBox && avatarBox).toBeTruthy();
+  expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(avatarBox!.x + 1);
+  const position = await title.evaluate((el) => getComputedStyle(el).position);
+  expect(["static", "relative"]).toContain(position);
+}
+
+test("wallet and console chrome keep controls in view on 375 390 and desktop", async ({ page }) => {
+  await stubWalletChrome(page);
+  for (const width of [375, 390, 1280]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/app/wallet");
+    await expect(page.getByTestId("console-page-title")).toHaveText("充值");
+    await assertHeaderFits(page);
+    const quoteBeforePay = await page.evaluate(() => {
+      const quote = document.querySelector("[data-testid=quote-summary]");
+      const pay = document.querySelector("[data-testid=wallet-pay]");
+      return Boolean(quote && pay && quote.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(quoteBeforePay).toBeTruthy();
+    await expect(page.getByLabel("兑换码")).toBeVisible();
+    if (width < 768) {
+      await expect(page.getByTestId("chrome-overflow-trigger")).toBeVisible();
+      await expect(page.getByTestId("console-chrome-inline")).toBeHidden();
+      await expect(page.getByTestId("balance-pill")).toBeHidden();
+      await page.getByTestId("chrome-overflow-trigger").click();
+      const overflow = page.getByTestId("chrome-overflow-menu");
+      await expect(overflow).toBeVisible();
+      await expect(overflow.getByRole("button", { name: "语言" })).toBeVisible();
+      await expect(overflow.getByRole("button", { name: "主题" })).toBeVisible();
+      const overflowBox = await overflow.boundingBox();
+      expect(overflowBox).toBeTruthy();
+      expect(overflowBox!.x).toBeGreaterThanOrEqual(0);
+      expect(overflowBox!.x + overflowBox!.width).toBeLessThanOrEqual(width + 1);
+      await page.keyboard.press("Escape");
+      await page.getByTestId("avatar-trigger").click();
+      await expect(page.getByTestId("menu-display-name")).toHaveText("Verylongusernamefortheconsoleheader");
+      await expect(page.getByTestId("menu-balance")).toHaveText("$12.50");
+      await expect(page.getByTestId("menu-balance-link")).toBeVisible();
+      const menu = page.getByTestId("avatar-menu");
+      const menuBox = await menu.boundingBox();
+      expect(menuBox).toBeTruthy();
+      expect(menuBox!.x).toBeGreaterThanOrEqual(0);
+      expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(width + 1);
+      await page.keyboard.press("Escape");
+    } else {
+      await expect(page.getByTestId("chrome-overflow-trigger")).toBeHidden();
+      await expect(page.getByTestId("console-chrome-inline")).toBeVisible();
+      await expect(page.getByTestId("balance-pill")).toHaveText("$12.50");
+      await page.getByTestId("avatar-trigger").click();
+      await expect(page.getByTestId("menu-balance")).toHaveText("$12.50");
+      await page.keyboard.press("Escape");
+    }
+  }
 });
 

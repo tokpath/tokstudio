@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkoutKind,
   checkoutOrderID,
+  checkoutResponseBelongsToOrder,
   checkoutUiStatus,
   formatOrderDue,
   orderMatchesSelection,
@@ -22,6 +23,14 @@ describe("checkoutKind", () => {
   it("reads order id", () => {
     expect(checkoutOrderID({ order: { id: " pay_1 " } })).toBe("pay_1");
     expect(checkoutOrderID({})).toBe("");
+  });
+
+  it("rejects a response that belongs to another order", () => {
+    const paidA = { id: "pay_a", status: "paid", amount_minor: 10000 };
+    expect(checkoutResponseBelongsToOrder("pay_a", "pay_a", paidA)).toBe(true);
+    expect(checkoutResponseBelongsToOrder("pay_a", "pay_b", paidA)).toBe(false);
+    expect(checkoutResponseBelongsToOrder("pay_b", "pay_b", paidA)).toBe(false);
+    expect(checkoutResponseBelongsToOrder("pay_b", "pay_b", { status: "paid" })).toBe(true);
   });
 
   it("maps payment statuses instead of collapsing to pending", () => {

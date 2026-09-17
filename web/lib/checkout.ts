@@ -125,3 +125,21 @@ export function checkoutKind(checkout: CheckoutPayload | null | undefined): Chec
 export function checkoutOrderID(checkout: CheckoutPayload | null | undefined): string {
   return checkout?.order?.id?.trim() || "";
 }
+
+/** Drop a get/sync body when the request was for another order than the one now on screen. */
+export function checkoutResponseBelongsToOrder(
+  requestedID: string,
+  currentID: string,
+  item?: CheckoutOrder | null,
+): boolean {
+  const requested = requestedID.trim();
+  const current = currentID.trim();
+  if (!requested || requested !== current) {
+    return false;
+  }
+  const itemID = item?.id?.trim();
+  if (itemID && itemID !== requested) {
+    return false;
+  }
+  return Boolean(item?.status);
+}

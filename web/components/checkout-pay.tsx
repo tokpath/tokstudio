@@ -11,6 +11,7 @@ import {
   checkoutKind,
   checkoutNeedsFulfillment,
   checkoutOrderID,
+  checkoutResponseBelongsToOrder,
   checkoutUiStatus,
   formatOrderCredit,
   formatOrderDue,
@@ -28,6 +29,8 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   const t = useTranslations("checkout");
   const kind = checkoutKind(checkout);
   const orderID = checkoutOrderID(checkout);
+  const orderIDRef = useRef(orderID);
+  orderIDRef.current = orderID;
   const [order, setOrder] = useState<CheckoutOrder>(checkout.order || { status: "pending" });
   const [qrSvg, setQrSvg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,8 +42,10 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   const awaitingCredit = checkoutNeedsFulfillment(order);
 
   const applyOrder = useCallback(
-    (next?: CheckoutOrder) => {
-      if (!next?.status) return;
+    (requestedID: string, next?: CheckoutOrder) => {
+      if (!checkoutResponseBelongsToOrder(requestedID, orderIDRef.current, next) || !next) {
+        return;
+      }
       setOrder((prev) => ({ ...prev, ...next }));
       if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunded" || next.status === "partially_refunded") {
         setAwaitingProvider(false);
@@ -53,6 +58,12 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   useEffect(() => {
     setOrder(checkout.order || { status: "pending" });
   }, [checkout.order, orderID]);
+
+  useEffect(() => {
+    setBusy(false);
+    setAwaitingProvider(false);
+    setSyncError("");
+  }, [orderID]);
 
   useEffect(() => {
     if (kind !== "qr" || !checkout.qr_code || !open) {
@@ -75,34 +86,44 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
       return;
     }
     const timer = window.setInterval(() => {
-      void fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}`, { credentials: "include" })
+      const requestedID = orderID;
+      void fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(requestedID)}`, { credentials: "include" })
         .then((res) => res.json())
-        .then((body) => applyOrder(body.item as CheckoutOrder));
+        .then((body) => applyOrder(requestedID, body.item as CheckoutOrder));
     }, 4000);
     return () => window.clearInterval(timer);
   }, [applyOrder, awaitingCredit, orderID, paid, ui]);
 
   async function loadOrder(path: "get" | "sync") {
-    if (!orderID) return;
+    const requestedID = orderID;
+    if (!requestedID) return;
     setBusy(true);
     setSyncError("");
     try {
       const response = await fetch(
         path === "sync"
-          ? `${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}/sync`
-          : `${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}`,
+          ? `${apiBase}/v1/payments/orders/${encodeURIComponent(requestedID)}/sync`
+          : `${apiBase}/v1/payments/orders/${encodeURIComponent(requestedID)}`,
         { method: path === "sync" ? "POST" : "GET", credentials: "include" },
       );
       const body = await response.json().catch(() => ({}));
+      if (orderIDRef.current !== requestedID) {
+        return;
+      }
       if (!response.ok) {
         setSyncError(body.error?.message || t("syncFailed"));
         return;
       }
-      applyOrder(body.item as CheckoutOrder);
+      applyOrder(requestedID, body.item as CheckoutOrder);
     } catch {
+      if (orderIDRef.current !== requestedID) {
+        return;
+      }
       setSyncError(t("syncFailed"));
     } finally {
-      setBusy(false);
+      if (orderIDRef.current === requestedID) {
+        setBusy(false);
+      }
     }
   }
 

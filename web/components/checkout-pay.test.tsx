@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPay } from "./checkout-pay";
 import { withZh } from "@/lib/test-i18n";
@@ -21,6 +21,7 @@ vi.stubGlobal(
 describe("CheckoutPay", () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
   });
   it("shows sandbox copy without a pay-check button", () => {
     render(
@@ -147,4 +148,126 @@ describe("CheckoutPay", () => {
     expect(await screen.findByRole("img", { name: "请用对应 App 扫码支付" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "我已付款" })).toBeTruthy();
   });
+
+  it("keeps order B when a late paid response for A arrives", async () => {
+    const late = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => late.promise),
+    );
+    const { rerender } = render(withZh(<CheckoutPay checkout={qrOrder("pay_a", 10000)} />));
+    screen.getByRole("button", { name: "我已付款" }).click();
+    rerender(withZh(<CheckoutPay checkout={qrOrder("pay_b", 30000)} />));
+    expectOpenOrder("pay_b", "¥300.00");
+    late.resolve(
+      true,
+      paidItem("pay_a", 10000),
+    );
+    await waitFor(() => {
+      expectOpenOrder("pay_b", "¥300.00");
+    });
+    expect(screen.queryByText("正在查单…")).toBeNull();
+  });
+
+  it("does not show order A's failure or timeout on order B", async () => {
+    const lateFail = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => lateFail.promise),
+    );
+    const { rerender } = render(withZh(<CheckoutPay checkout={qrOrder("pay_a", 10000)} />));
+    screen.getByRole("button", { name: "我已付款" }).click();
+    rerender(withZh(<CheckoutPay checkout={qrOrder("pay_b", 30000)} />));
+    lateFail.resolve(false, { error: { message: "A 查单失败" } });
+    await waitFor(() => {
+      expectOpenOrder("pay_b", "¥300.00");
+    });
+    expect(screen.queryByText("A 查单失败")).toBeNull();
+
+    const lateTimeout = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => lateTimeout.promise),
+    );
+    rerender(withZh(<CheckoutPay checkout={qrOrder("pay_a2", 10000)} />));
+    screen.getByRole("button", { name: "我已付款" }).click();
+    rerender(withZh(<CheckoutPay checkout={qrOrder("pay_b2", 30000)} />));
+    lateTimeout.reject(new Error("network timeout"));
+    await waitFor(() => {
+      expectOpenOrder("pay_b2", "¥300.00");
+    });
+    expect(screen.queryByText("查单失败，请稍后重试")).toBeNull();
+  });
+
+  it("ignores a late poll for the previous order the same way as manual sync", async () => {
+    vi.useFakeTimers();
+    const late = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => late.promise),
+    );
+    const { rerender } = render(withZh(<CheckoutPay checkout={qrOrder("pay_a", 10000)} />));
+    vi.advanceTimersByTime(4000);
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain("/v1/payments/orders/pay_a");
+    rerender(withZh(<CheckoutPay checkout={qrOrder("pay_b", 30000)} />));
+    late.resolve(true, paidItem("pay_a", 10000));
+    await Promise.resolve();
+    await Promise.resolve();
+    expectOpenOrder("pay_b", "¥300.00");
+  });
 });
+
+function qrOrder(id: string, amountMinor: number) {
+  return {
+    order: { id, status: "pending" as const, amount_minor: amountMinor, currency: "CNY" },
+    qr_code: "weixin://wxpay/bizpayurl?pr=x",
+    sandbox: false,
+  };
+}
+
+function paidItem(id: string, amountMinor: number) {
+  return {
+    item: {
+      id,
+      status: "paid",
+      amount_minor: amountMinor,
+      currency: "CNY",
+      credit_minor: 10_000_000,
+      fulfilled_at: "2026-09-17T00:00:00Z",
+    },
+  };
+}
+
+function receipt(orderID: string) {
+  const root = screen.getByText(orderID).closest("[data-checkout-status]");
+  return {
+    status: root?.getAttribute("data-checkout-status"),
+    due: screen.getByTestId("checkout-order-due").textContent,
+    text: root?.textContent || "",
+  };
+}
+
+function expectOpenOrder(orderID: string, due: string) {
+  const view = receipt(orderID);
+  expect(view.status).toBe("pending");
+  expect(view.due).toContain(due);
+  expect(view.text).not.toContain("已到账");
+}
+
+function deferredJson() {
+  let resolve!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    promise,
+    resolve(ok: boolean, body: unknown) {
+      resolve({ ok, json: async () => body });
+    },
+    reject(reason?: unknown) {
+      reject(reason);
+    },
+  };
+}

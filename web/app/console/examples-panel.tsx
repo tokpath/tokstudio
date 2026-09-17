@@ -18,6 +18,8 @@ type DocsContext = {
 
 type ExampleTab = "curl" | "python" | "node";
 
+type Snippet = { id: ExampleTab; copyLabel: string; copyButton: string; text?: string };
+
 export default function ExamplesPanel({
   catalogHref = "/app/catalog",
   catalogOk = true,
@@ -68,9 +70,15 @@ export default function ExamplesPanel({
     setMessage(t("examplesCopied", { label }));
   }
 
-  const sample =
-    focusCurl ||
-    (tab === "python" ? docs.examples?.python : tab === "node" ? docs.examples?.node : docs.examples?.curl);
+  const snippets: Snippet[] = focusCurl
+    ? [{ id: "curl", copyLabel: "curl", copyButton: t("copyCurl"), text: focusCurl }]
+    : [
+        { id: "curl", copyLabel: "curl", copyButton: t("copyCurl"), text: docs.examples?.curl },
+        { id: "python", copyLabel: "Python", copyButton: t("copyPython"), text: docs.examples?.python },
+        { id: "node", copyLabel: "Node.js", copyButton: t("copyNode"), text: docs.examples?.node },
+      ];
+  const active = snippets.find((item) => item.id === tab) ?? snippets[0];
+  const sample = active?.text;
 
   if (!catalogOk) {
     return (
@@ -114,39 +122,34 @@ export default function ExamplesPanel({
         <Button variant="outline" onClick={() => void refresh()}>
           {t("refreshExamples")}
         </Button>
-        <Button variant="outline" onClick={() => void copy("curl", focusCurl || docs.examples?.curl)}>
-          {t("copyCurl")}
-        </Button>
-        <Button variant="outline" onClick={() => void copy("Python", docs.examples?.python)}>
-          {t("copyPython")}
-        </Button>
-        <Button variant="outline" onClick={() => void copy("Node.js", docs.examples?.node)}>
-          {t("copyNode")}
-        </Button>
+        {snippets.map((item) => (
+          <Button key={item.id} variant="outline" onClick={() => void copy(item.copyLabel, item.text)}>
+            {item.copyButton}
+          </Button>
+        ))}
       </ActionRow>
       <div className="mb-3 flex gap-1" role="tablist" aria-label={t("examplesTitle")}>
-        {(
-          [
-            ["curl", t("examplesTabCurl")],
-            ["python", t("examplesTabPython")],
-            ["node", t("examplesTabNode")],
-          ] as const
-        ).map(([id, label]) => (
+        {snippets.map((item) => (
           <button
-            key={id}
+            key={item.id}
             type="button"
             role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
+            aria-selected={active?.id === item.id}
+            onClick={() => setTab(item.id)}
             className={`rounded-control px-3 py-1.5 text-sm ${
-              tab === id ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-mute"
+              active?.id === item.id ? "bg-brand-soft text-brand-emphasis" : "border border-hairline text-ink-mute"
             }`}
           >
-            {label}
+            {item.id === "curl" ? t("examplesTabCurl") : item.id === "python" ? t("examplesTabPython") : t("examplesTabNode")}
           </button>
         ))}
       </div>
-      <pre className="overflow-x-auto rounded-card border border-hairline bg-ink p-4 font-mono text-xs text-canvas">
+      <pre
+        data-testid="example-sample"
+        data-example-lang={active?.id || "curl"}
+        data-example-model={requestedModel || ""}
+        className="overflow-x-auto rounded-card border border-hairline bg-ink p-4 font-mono text-xs text-canvas"
+      >
         {sample || t("clickRefresh")}
       </pre>
       <p className="mt-3 text-sm text-ink-secondary">{docs.notes?.auth}</p>

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmDialog } from "@/components/confirm-button";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { ModelAllowlistPicker } from "@/components/console/model-allowlist-picker";
@@ -87,26 +87,34 @@ function statusTone(item: APIKeyItem): "success" | "warn" | "neutral" {
   return "neutral";
 }
 
+type KeyAct = "rotate" | "disable" | "expire";
+
+type KeyActHandler = (id: string) => boolean | void | Promise<boolean | void>;
+
 type KeysListProps = {
   items: APIKeyItem[];
   revealedIds?: string[];
   onCopy?: (id: string) => void;
   onToggleReveal?: (id: string) => void;
-  onRotate?: (id: string) => void;
-  onDisable?: (id: string) => void;
-  onExpire?: (id: string) => void;
+  onRotate?: KeyActHandler;
+  onDisable?: KeyActHandler;
+  onExpire?: KeyActHandler;
+  actionError?: string;
+  onActionErrorClear?: () => void;
 };
 
 function KeyMoreMenu({
   item,
-  onRotate,
-  onDisable,
-  onExpire,
+  onPick,
+  canRotate,
+  canDisable,
+  canExpire,
 }: {
   item: APIKeyItem;
-  onRotate?: (id: string) => void;
-  onDisable?: (id: string) => void;
-  onExpire?: (id: string) => void;
+  onPick: (item: APIKeyItem, action: KeyAct) => void;
+  canRotate: boolean;
+  canDisable: boolean;
+  canExpire: boolean;
 }) {
   const t = useTranslations("user");
   const [open, setOpen] = useState(false);
@@ -134,8 +142,13 @@ function KeyMoreMenu({
     };
   }, [open]);
 
-  if (!onRotate && !onDisable && !onExpire) {
+  if (!canRotate && !canDisable && !canExpire) {
     return null;
+  }
+
+  function pick(action: KeyAct) {
+    setOpen(false);
+    onPick(item, action);
   }
 
   return (
@@ -152,41 +165,20 @@ function KeyMoreMenu({
       </Button>
       {open ? (
         <div role="menu" className="absolute right-0 z-20 mt-1.5 min-w-[10rem] rounded-card border border-hairline bg-canvas-raised p-1.5 shadow-[0_1px_2px_rgba(20,20,20,0.06)]">
-          {onRotate ? (
-            <ConfirmButton
-              size="sm"
-              variant="ghost"
-              className="w-full justify-start"
-              title={t("rotateConfirmTitle")}
-              description={t("rotateConfirm")}
-              onConfirm={() => onRotate(item.id)}
-            >
+          {canRotate ? (
+            <Button type="button" role="menuitem" size="sm" variant="ghost" className="w-full justify-start" onClick={() => pick("rotate")}>
               {t("rotate")}
-            </ConfirmButton>
+            </Button>
           ) : null}
-          {onDisable ? (
-            <ConfirmButton
-              size="sm"
-              variant="ghost"
-              className="w-full justify-start"
-              title={t("disableConfirmTitle")}
-              description={t("disableConfirm")}
-              onConfirm={() => onDisable(item.id)}
-            >
+          {canDisable ? (
+            <Button type="button" role="menuitem" size="sm" variant="ghost" className="w-full justify-start" onClick={() => pick("disable")}>
               {t("disable")}
-            </ConfirmButton>
+            </Button>
           ) : null}
-          {onExpire ? (
-            <ConfirmButton
-              size="sm"
-              variant="ghost"
-              className="w-full justify-start"
-              title={t("expireConfirmTitle")}
-              description={t("expireConfirm")}
-              onConfirm={() => onExpire(item.id)}
-            >
+          {canExpire ? (
+            <Button type="button" role="menuitem" size="sm" variant="ghost" className="w-full justify-start" onClick={() => pick("expire")}>
               {t("expireNow")}
-            </ConfirmButton>
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -242,9 +234,41 @@ export function KeysList({
   onRotate,
   onDisable,
   onExpire,
+  actionError,
+  onActionErrorClear,
 }: KeysListProps) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
+  const [pending, setPending] = useState<{ item: APIKeyItem; action: KeyAct } | null>(null);
+  const copy = {
+    rotate: { title: t("rotateConfirmTitle"), description: t("rotateConfirm") },
+    disable: { title: t("disableConfirmTitle"), description: t("disableConfirm") },
+    expire: { title: t("expireConfirmTitle"), description: t("expireConfirm") },
+  };
+
+  function pick(item: APIKeyItem, action: KeyAct) {
+    onActionErrorClear?.();
+    setPending({ item, action });
+  }
+
+  async function confirmPending() {
+    if (!pending) {
+      return false;
+    }
+    const run = pending.action === "rotate" ? onRotate : pending.action === "disable" ? onDisable : onExpire;
+    return (await run?.(pending.item.id)) === true;
+  }
+
+  const menu = (item: APIKeyItem) => (
+    <KeyMoreMenu
+      item={item}
+      onPick={pick}
+      canRotate={Boolean(onRotate)}
+      canDisable={Boolean(onDisable)}
+      canExpire={Boolean(onExpire)}
+    />
+  );
+
   if (items.length === 0) {
     return <EmptyLedger title={t("emptyKeys")} detail={t("emptyKeysDetail")} />;
   }
@@ -275,7 +299,7 @@ export function KeysList({
                     {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
                   </p>
                   <p className="text-xs text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</p>
-                  <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
+                  {menu(item)}
                 </div>
               </details>
             </li>
@@ -338,11 +362,22 @@ export function KeysList({
           {
             id: "actions",
             header: t("colActions"),
-            cell: (item) => (
-              <KeyMoreMenu item={item} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />
-            ),
+            cell: (item) => menu(item),
           },
         ]}
+      />
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPending(null);
+            onActionErrorClear?.();
+          }
+        }}
+        title={pending ? copy[pending.action].title : ""}
+        description={pending ? copy[pending.action].description : undefined}
+        error={actionError}
+        onConfirm={confirmPending}
       />
     </>
   );
@@ -370,6 +405,7 @@ export default function KeysPanel() {
   const [verifying, setVerifying] = useState(false);
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
   const [verifyMessage, setVerifyMessage] = useState("");
+  const [actError, setActError] = useState("");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
   const createSchema = useMemo(
@@ -586,14 +622,19 @@ export default function KeysPanel() {
       });
       const body = await readResponseBody(response);
       if (!response.ok) {
-        setMessage(errorMessageFromBody(body, t("actFail")));
+        const text = errorMessageFromBody(body, t("actFail"));
+        setActError(text);
+        setMessage(text);
         return false;
       }
+      setActError("");
       setMessage(t("acted", { action }));
       await list.reload();
       return true;
     } catch {
-      setMessage(tc("listNetwork"));
+      const text = tc("listNetwork");
+      setActError(text);
+      setMessage(text);
       return false;
     }
   }
@@ -639,9 +680,11 @@ export default function KeysPanel() {
           revealedIds={revealedIds}
           onCopy={(id) => void copySecret(id)}
           onToggleReveal={toggleReveal}
-          onRotate={(id) => void act(id, "rotate")}
-          onDisable={(id) => void act(id, "disable")}
-          onExpire={(id) => void act(id, "expire")}
+          onRotate={(id) => act(id, "rotate")}
+          onDisable={(id) => act(id, "disable")}
+          onExpire={(id) => act(id, "expire")}
+          actionError={actError}
+          onActionErrorClear={() => setActError("")}
         />
       </ListResourceView>
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
@@ -678,6 +721,7 @@ export default function KeysPanel() {
                     <pre data-testid="key-example" className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-[12px] text-ink">
                       {createdExample?.curl}
                     </pre>
+                    <p className="text-sm text-ink-secondary">{t("exampleEnv")}</p>
                     <Button type="button" variant="outline" size="sm" asChild>
                       <Link href="/app/docs">{t("example")}</Link>
                     </Button>

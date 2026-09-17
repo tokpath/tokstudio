@@ -23,7 +23,8 @@ describe("pickKeyExampleModel", () => {
 describe("keyExampleFor", () => {
   it("keeps the env placeholder and a complete chat request", () => {
     const example = keyExampleFor(undefined, [gemini], "https://api.tokenhub.test/v1");
-    expect(example.curl).toContain("$TOKENHUB_API_KEY");
+    expect(example.curl).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);
+    expect(example.curl).not.toContain("'Authorization:");
     expect(example.curl).not.toMatch(/thk_/);
     expect(example.curl).toContain("/v1/chat/completions");
     expect(example.curl).toContain('"model":"google/gemini-flash"');
@@ -35,7 +36,8 @@ describe("keyExampleFor", () => {
     expect(example.model).toBe("openai/text-embedding-3");
     expect(example.path).toBe("/v1/embeddings");
     expect(example.curl).toContain("/v1/embeddings");
-    expect(example.curl).toContain("$TOKENHUB_API_KEY");
+    expect(example.curl).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);
+    expect(example.curl).not.toContain("'Authorization:");
   });
 });
 

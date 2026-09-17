@@ -18,6 +18,10 @@ const sampleKey = {
 };
 
 describe("KeysList", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders API Key prefix and status for the user console", () => {
     render(withZh(<KeysList items={[sampleKey]} />));
     expect(screen.getAllByText(/default/).length).toBeGreaterThan(0);
@@ -73,7 +77,67 @@ describe("KeysList", () => {
     render(withZh(<KeysList items={[sampleKey]} onRotate={onRotate} />));
     expect(screen.queryByRole("button", { name: "轮换" })).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
-    expect(screen.getAllByRole("button", { name: "轮换" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("menuitem", { name: "轮换" }).length).toBeGreaterThan(0);
+  });
+
+  it("opens confirm outside the menu so a click on confirm still runs the action", async () => {
+    const onDisable = vi.fn(async () => true);
+    render(withZh(<KeysList items={[sampleKey]} onDisable={onDisable} />));
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "禁用" })[0]);
+    expect(onDisable).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "确认禁用" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "禁用" })).toBeNull();
+    fireEvent.mouseDown(document.body);
+    expect(screen.getByRole("heading", { name: "确认禁用" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    await waitFor(() => expect(onDisable).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onDisable).toHaveBeenCalledWith("key_1"));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "确认禁用" })).toBeNull());
+  });
+
+  it("does not call rotate, disable, or expire when the confirm is cancelled", () => {
+    const onRotate = vi.fn(async () => true);
+    const onDisable = vi.fn(async () => true);
+    const onExpire = vi.fn(async () => true);
+    render(withZh(<KeysList items={[sampleKey]} onRotate={onRotate} onDisable={onDisable} onExpire={onExpire} />));
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "立即过期" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(onRotate).not.toHaveBeenCalled();
+    expect(onDisable).not.toHaveBeenCalled();
+    expect(onExpire).not.toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { name: "确认过期" })).toBeNull();
+  });
+
+  it("keeps the confirm dialog open when the action returns false", async () => {
+    const onRotate = vi.fn(async () => false);
+    render(withZh(<KeysList items={[sampleKey]} onRotate={onRotate} actionError="当前密钥不能轮换" />));
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "轮换" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    await waitFor(() => expect(onRotate).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("heading", { name: "确认轮换" })).toBeTruthy();
+    expect(screen.getByTestId("submit-status").textContent).toContain("当前密钥不能轮换");
+  });
+
+  it("activates disable from the keyboard without sending until confirm", async () => {
+    const onDisable = vi.fn(async () => true);
+    render(withZh(<KeysList items={[sampleKey]} onDisable={onDisable} />));
+    const more = screen.getAllByRole("button", { name: "更多操作" })[0];
+    more.focus();
+    fireEvent.keyDown(more, { key: "Enter" });
+    fireEvent.click(more);
+    const disable = screen.getAllByRole("menuitem", { name: "禁用" })[0];
+    disable.focus();
+    fireEvent.keyDown(disable, { key: "Enter" });
+    fireEvent.click(disable);
+    expect(onDisable).not.toHaveBeenCalled();
+    const confirm = screen.getByRole("button", { name: "确认" });
+    confirm.focus();
+    fireEvent.keyDown(confirm, { key: "Enter" });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(onDisable).toHaveBeenCalledTimes(1));
   });
 
   it("parses comma-separated allowlists", () => {
@@ -200,7 +264,7 @@ describe("KeysPanel", () => {
     expect(screen.getByText("https://api.tokenhub.test/v1")).toBeTruthy();
     expect(screen.getByTestId("key-secret").textContent).toBe("thk_new1secret");
     const sample = screen.getByTestId("key-example").textContent || "";
-    expect(sample).toContain("$TOKENHUB_API_KEY");
+    expect(sample).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);
     expect(sample).toContain("/v1/chat/completions");
     expect(sample).toContain("Content-Type: application/json");
     expect(sample).not.toContain("thk_new1secret");
@@ -233,7 +297,7 @@ describe("KeysPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
     await waitFor(() => expect(screen.getByTestId("key-example")).toBeTruthy());
     const sample = screen.getByTestId("key-example").textContent || "";
-    expect(sample).toContain("$TOKENHUB_API_KEY");
+    expect(sample).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);
     expect(sample).toContain("/v1/chat/completions");
     expect(sample).toContain('"model":');
     expect(sample).not.toContain("thk_new1secret");
@@ -354,5 +418,31 @@ describe("KeysPanel", () => {
     await waitFor(() => expect(screen.getByTestId("list-resource-keys").getAttribute("data-list-phase")).toBe("error"));
     expect(screen.getByText("keys down")).toBeTruthy();
     expect(screen.queryByText("暂无 API 密钥")).toBeNull();
+  });
+
+  it("sends disable once from the confirm dialog and keeps it open on API failure", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/me/api-keys/key_1/disable") && init?.method === "POST") {
+        return { ok: false, json: async () => ({ error: { message: "密钥已禁用" } }) };
+      }
+      return { ok: true, json: async () => ({ items: [sampleKey] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<KeysPanel />));
+    await screen.findAllByRole("button", { name: "更多操作" });
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "禁用" })[0]);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/disable"))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/disable"))).toBe(false);
+    fireEvent.click(screen.getAllByRole("button", { name: "更多操作" })[0]);
+    fireEvent.click(screen.getAllByRole("menuitem", { name: "禁用" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("submit-status").textContent).toContain("密钥已禁用");
+    });
+    expect(screen.getByRole("heading", { name: "确认禁用" })).toBeTruthy();
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/disable") && call[1]?.method === "POST")).toHaveLength(1);
   });
 });

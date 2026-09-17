@@ -11,7 +11,7 @@ type DocsContext = {
   brand?: { name: string; api_domain: string };
   models?: string[];
   examples?: { curl: string; python: string; node: string; messages?: string; video?: string };
-  notes?: { errors?: string; rate_limit?: string; webhook?: string };
+  notes?: { auth?: string; errors?: string; rate_limit?: string; webhook?: string };
 };
 
 const sections = [
@@ -94,6 +94,7 @@ export default async function DocsPage() {
           </section>
         ) : null}
         <div className="space-y-3 text-sm leading-relaxed text-ink-secondary">
+          <p>{docs.notes?.auth}</p>
           <p>{docs.notes?.errors}</p>
           <p>{docs.notes?.rate_limit}</p>
           <p>{docs.notes?.webhook}</p>

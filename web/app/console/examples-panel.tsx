@@ -149,6 +149,7 @@ export default function ExamplesPanel({
       <pre className="overflow-x-auto rounded-card border border-hairline bg-ink p-4 font-mono text-xs text-canvas">
         {sample || t("clickRefresh")}
       </pre>
+      <p className="mt-3 text-sm text-ink-secondary">{docs.notes?.auth}</p>
       <p className="mt-3 text-sm text-ink-secondary">{docs.notes?.errors}</p>
       <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.rate_limit}</p>
       <p className="mt-1 text-sm text-ink-secondary">{docs.notes?.webhook}</p>

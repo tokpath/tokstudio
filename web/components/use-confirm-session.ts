@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type ConfirmResult = boolean | void | Promise<boolean | void>;
 
@@ -8,11 +8,30 @@ export function isConfirmSuccess(value: unknown): boolean {
   return value === true;
 }
 
-export function useConfirmSession(onConfirm: () => unknown | Promise<unknown>) {
-  const [open, setOpen] = useState(false);
+export function useConfirmSession(
+  onConfirm: () => unknown | Promise<unknown>,
+  controlledOpen?: boolean,
+  onControlledOpenChange?: (open: boolean) => void,
+) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   const generationRef = useRef(0);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : internalOpen;
+  const onControlledOpenChangeRef = useRef(onControlledOpenChange);
+  onControlledOpenChangeRef.current = onControlledOpenChange;
+
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlled) {
+        onControlledOpenChangeRef.current?.(next);
+        return;
+      }
+      setInternalOpen(next);
+    },
+    [controlled],
+  );
 
   const dismiss = useCallback(() => {
     if (pendingRef.current) {
@@ -21,7 +40,18 @@ export function useConfirmSession(onConfirm: () => unknown | Promise<unknown>) {
     pendingRef.current = false;
     setPending(false);
     setOpen(false);
-  }, []);
+  }, [setOpen]);
+
+  useEffect(() => {
+    if (!controlled || open) {
+      return;
+    }
+    if (pendingRef.current) {
+      generationRef.current += 1;
+    }
+    pendingRef.current = false;
+    setPending(false);
+  }, [controlled, open]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -31,7 +61,7 @@ export function useConfirmSession(onConfirm: () => unknown | Promise<unknown>) {
       }
       setOpen(true);
     },
-    [dismiss],
+    [dismiss, setOpen],
   );
 
   const runConfirm = useCallback(async () => {
@@ -59,7 +89,7 @@ export function useConfirmSession(onConfirm: () => unknown | Promise<unknown>) {
         setPending(false);
       }
     }
-  }, [onConfirm]);
+  }, [onConfirm, setOpen]);
 
   return { open, pending, handleOpenChange, dismiss, runConfirm };
 }

@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SubmitStatus } from "@/components/console/submit-status";
 import { useConfirmSession, type ConfirmResult } from "@/components/use-confirm-session";
 
 export type { ConfirmResult };
@@ -38,6 +39,90 @@ export function confirmFormSubmit<T extends FieldValues>(
     })();
     return outcome;
   };
+}
+
+function ConfirmDialogView({
+  open,
+  onOpenChange,
+  pending,
+  dismiss,
+  runConfirm,
+  title,
+  description,
+  error,
+  confirmText,
+  cancelText,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pending: boolean;
+  dismiss: () => void;
+  runConfirm: () => void;
+  title: string;
+  description?: string;
+  error?: string;
+  confirmText: string;
+  cancelText: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="inline-flex items-center gap-2">
+            <AlertTriangle className="size-4 text-hold" strokeWidth={1.75} aria-hidden />
+            {title}
+          </DialogTitle>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
+        </DialogHeader>
+        {error ? <SubmitStatus error={error} /> : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => dismiss()}>
+            {cancelText}
+          </Button>
+          <Button type="button" disabled={pending} onClick={() => runConfirm()}>
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  error,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  error?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => ConfirmResult;
+}) {
+  const t = useTranslations("common");
+  const { pending, handleOpenChange, dismiss, runConfirm } = useConfirmSession(onConfirm, open, onOpenChange);
+  return (
+    <ConfirmDialogView
+      open={open}
+      onOpenChange={handleOpenChange}
+      pending={pending}
+      dismiss={dismiss}
+      runConfirm={() => void runConfirm()}
+      title={title}
+      description={description}
+      error={error}
+      confirmText={confirmLabel ?? t("confirm")}
+      cancelText={cancelLabel ?? t("cancel")}
+    />
+  );
 }
 
 export function ConfirmButton({
@@ -71,25 +156,17 @@ export function ConfirmButton({
       <Button type="button" disabled={disabled || pending} onClick={openDialog} {...buttonProps}>
         {children}
       </Button>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="inline-flex items-center gap-2">
-              <AlertTriangle className="size-4 text-hold" strokeWidth={1.75} aria-hidden />
-              {title}
-            </DialogTitle>
-            {description ? <DialogDescription>{description}</DialogDescription> : null}
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => dismiss()}>
-              {cancelText}
-            </Button>
-            <Button type="button" disabled={pending} onClick={() => void runConfirm()}>
-              {confirmText}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialogView
+        open={open}
+        onOpenChange={handleOpenChange}
+        pending={pending}
+        dismiss={dismiss}
+        runConfirm={() => void runConfirm()}
+        title={title}
+        description={description}
+        confirmText={confirmText}
+        cancelText={cancelText}
+      />
     </>
   );
 }

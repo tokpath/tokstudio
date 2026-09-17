@@ -56,10 +56,13 @@ export function examplePath(model: Partial<CatalogModel> | null | undefined): st
   return "/v1/chat/completions";
 }
 
+/** Shell header that expands TOKENHUB_API_KEY. Single quotes would send the literal name. */
+export const CURL_BEARER_HEADER = `-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`;
+
 export function exampleCurl(modelId: string, path: string, host = "localhost"): string {
   const id = modelId.trim() || "your-model";
   if (path.startsWith("/v1/audio")) {
-    return `curl -sS https://${host}${path} -H 'Authorization: Bearer $TOKENHUB_API_KEY' -F file=@audio.mp3 -F model=${id}`;
+    return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -F file=@audio.mp3 -F model=${id}`;
   }
   const body = path.startsWith("/v1/embeddings")
     ? `{"model":"${id}","input":"hello"}`
@@ -68,7 +71,7 @@ export function exampleCurl(modelId: string, path: string, host = "localhost"): 
       : path.startsWith("/v1/videos")
         ? `{"model":"${id}","prompt":"a river at dusk"}`
         : `{"model":"${id}","messages":[{"role":"user","content":"hi"}]}`;
-  return `curl -sS https://${host}${path} -H 'Authorization: Bearer $TOKENHUB_API_KEY' -H 'Content-Type: application/json' -d '${body}'`;
+  return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -H "Content-Type: application/json" -d '${body}'`;
 }
 
 export function useModelHref(model: Pick<CatalogModel, "id"> & Partial<CatalogModel>, from?: string): string {

@@ -853,7 +853,7 @@ test("wallet and console chrome keep controls in view on 375 390 and desktop", a
   for (const width of [375, 390, 1280]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto("/app/wallet");
-    await expect(page.getByTestId("console-page-title")).toHaveText("充值");
+    await expect(page.getByTestId("console-page-title")).toHaveText("余额/充值");
     await assertHeaderFits(page);
     const quoteBeforePay = await page.evaluate(() => {
       const quote = document.querySelector("[data-testid=quote-summary]");

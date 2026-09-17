@@ -445,4 +445,120 @@ describe("KeysPanel", () => {
     expect(screen.getByRole("heading", { name: "确认禁用" })).toBeTruthy();
     expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/disable") && call[1]?.method === "POST")).toHaveLength(1);
   });
+
+  it("keeps draft B and still lists A when A's create returns late", async () => {
+    let listed: Array<{ id: string; name: string; prefix: string; status: string }> = [];
+    const createA = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+          const name = JSON.parse(String(init.body || "{}")).name;
+          if (name === "密钥A") {
+            return createA.promise;
+          }
+          return {
+            ok: true,
+            json: async () => ({
+              item: { id: "key_b", name: "密钥B", prefix: "thk_b", key: "thk_bsecret", status: "active" },
+            }),
+          };
+        }
+        if (url.includes("/v1/public/docs-context")) {
+          return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+        }
+        if (url.includes("/v1/public/models")) {
+          return { ok: true, json: async () => ({ items: [] }) };
+        }
+        return { ok: true, json: async () => ({ items: listed }) };
+      }),
+    );
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "密钥A" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "创建 API Key" })).toBeNull());
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "创建 API Key" })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "密钥B" } });
+    listed = [{ id: "key_a", name: "密钥A", prefix: "thk_a", status: "active" }];
+    createA.resolve(true, {
+      item: { id: "key_a", name: "密钥A", prefix: "thk_a", key: "thk_asecret", status: "active" },
+    });
+    await waitFor(() => expect(screen.getAllByText("密钥A").length).toBeGreaterThan(0));
+    expect(screen.getByRole("heading", { name: "创建 API Key" })).toBeTruthy();
+    expect(screen.getByLabelText("密钥名称")).toHaveProperty("value", "密钥B");
+    expect(screen.queryByRole("heading", { name: "API Key 已创建" })).toBeNull();
+    expect(screen.queryByTestId("key-secret")).toBeNull();
+  });
+
+  it("does not apply a late verify for A onto created key B", async () => {
+    const verifyA = deferredJson();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+          const name = JSON.parse(String(init.body || "{}")).name;
+          const id = name === "密钥A" ? "key_a" : "key_b";
+          return {
+            ok: true,
+            json: async () => ({
+              item: { id, name, prefix: `thk_${id}`, key: `thk_${id}secret`, status: "active" },
+            }),
+          };
+        }
+        if (url.includes("/v1/chat/completions")) {
+          const auth = String((init?.headers as Record<string, string> | undefined)?.Authorization || "");
+          if (auth.includes("thk_key_asecret")) {
+            return verifyA.promise;
+          }
+          return { ok: true, json: async () => ({ id: "chat_b" }) };
+        }
+        if (url.includes("/v1/public/docs-context")) {
+          return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+        }
+        if (url.includes("/v1/public/models")) {
+          return { ok: true, json: async () => ({ items: [{ id: "google/gemini-flash", kind: "text", status: "available" }] }) };
+        }
+        return { ok: true, json: async () => ({ items: [] }) };
+      }),
+    );
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "密钥A" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-secret").textContent).toBe("thk_key_asecret"));
+    fireEvent.click(screen.getByRole("button", { name: "发送验证请求" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "密钥B" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-secret").textContent).toBe("thk_key_bsecret"));
+    expect(screen.queryByTestId("key-verify-status")).toBeNull();
+    verifyA.resolve(true, { id: "chat_a" });
+    await waitFor(() => expect(screen.getByTestId("key-secret").textContent).toBe("thk_key_bsecret"));
+    expect(screen.queryByTestId("key-verify-status")).toBeNull();
+    expect(screen.queryByText("这把密钥可以调用所选模型")).toBeNull();
+  });
 });
+
+function deferredJson() {
+  let resolve!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    promise,
+    resolve(ok: boolean, body: unknown) {
+      resolve({ ok, json: async () => body });
+    },
+    reject(reason?: unknown) {
+      reject(reason);
+    },
+  };
+}

@@ -406,6 +406,9 @@ export default function KeysPanel() {
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
   const [verifyMessage, setVerifyMessage] = useState("");
   const [actError, setActError] = useState("");
+  const dialogSessionRef = useRef(0);
+  const createdKeyRef = useRef<APIKeyItem | null>(null);
+  createdKeyRef.current = createdKey;
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
   const createSchema = useMemo(
@@ -425,7 +428,7 @@ export default function KeysPanel() {
 
   useEffect(() => {
     if (keysCreateQueryOpen(window.location.search)) {
-      setCreateOpen(true);
+      handleCreateOpenChange(true);
     }
     // 进入页面由 useListResource 拉列表；?create=1 时直接打开创建弹窗。
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -435,6 +438,7 @@ export default function KeysPanel() {
     if (!createOpen) {
       return;
     }
+    const session = dialogSessionRef.current;
     let cancelled = false;
     async function loadSupport() {
       const host = window.location.host;
@@ -442,14 +446,20 @@ export default function KeysPanel() {
         fetch(`${apiBase}/v1/public/models?limit=100`, { credentials: "include" }),
         fetch(`${apiBase}/v1/public/docs-context?host=${encodeURIComponent(host)}`, { credentials: "include" }),
       ]);
-      if (cancelled) {
+      if (cancelled || session !== dialogSessionRef.current) {
         return;
       }
       const modelsBody = await readResponseBody(modelsRes);
+      if (cancelled || session !== dialogSessionRef.current) {
+        return;
+      }
       if (modelsRes.ok) {
         setModels(((modelsBody as { items?: CatalogModel[] }).items || []) as CatalogModel[]);
       }
       const docsBody = await readResponseBody(docsRes);
+      if (cancelled || session !== dialogSessionRef.current) {
+        return;
+      }
       if (docsRes.ok) {
         const domain = ((docsBody as { brand?: { api_domain?: string } }).brand?.api_domain || host).replace(/\/$/, "");
         setEndpoint(`https://${domain}/v1`);
@@ -469,6 +479,7 @@ export default function KeysPanel() {
     setDialogError("");
     setCopyFallback("");
     setAdvancedOpen(false);
+    setCreating(false);
     setVerifying(false);
     setVerifyOk(null);
     setVerifyMessage("");
@@ -476,6 +487,7 @@ export default function KeysPanel() {
   }
 
   function handleCreateOpenChange(open: boolean) {
+    dialogSessionRef.current += 1;
     setCreateOpen(open);
     if (!open) {
       resetCreateDialog();
@@ -483,6 +495,7 @@ export default function KeysPanel() {
   }
 
   async function createKey(values: z.infer<typeof createSchema>) {
+    const session = dialogSessionRef.current;
     const payload: { name: string; allowlist?: string[]; rpm_limit?: number; concurrency_limit?: number } = { name: values.name };
     if (values.allowlist.length > 0) {
       payload.allowlist = values.allowlist;
@@ -506,19 +519,30 @@ export default function KeysPanel() {
       });
       const body = await readResponseBody(response);
       if (!response.ok) {
+        if (session !== dialogSessionRef.current) {
+          return;
+        }
         setDialogError(errorMessageFromBody(body, tc("createFailed")));
         return;
       }
       const created = ((body as { item?: APIKeyItem }).item || {}) as APIKeyItem;
+      await list.reload();
+      if (session !== dialogSessionRef.current) {
+        return;
+      }
       const listed = Array.isArray(created.allowlist) && created.allowlist.length > 0 ? created.allowlist.join(", ") : tc("unlimited");
       setCreateMessage(t("created", { id: created.id || "", name: created.name || values.name, list: listed, n: created.concurrency_limit || 5 }));
       setCreatedKey(created);
       form.reset(defaultForm);
-      await list.reload();
     } catch {
+      if (session !== dialogSessionRef.current) {
+        return;
+      }
       setDialogError(tc("listNetwork"));
     } finally {
-      setCreating(false);
+      if (session === dialogSessionRef.current) {
+        setCreating(false);
+      }
     }
   }
 
@@ -577,8 +601,10 @@ export default function KeysPanel() {
   }
 
   async function verifyCreatedKey() {
+    const session = dialogSessionRef.current;
+    const keyID = createdKey?.id;
     const secret = createdKey?.key;
-    if (!secret) {
+    if (!secret || !keyID) {
       setVerifyOk(false);
       setVerifyMessage(t("verifyKeyNeedSecret"));
       return;
@@ -597,6 +623,9 @@ export default function KeysPanel() {
         body: JSON.stringify(req.body),
       });
       const body = await readResponseBody(response);
+      if (session !== dialogSessionRef.current || createdKeyRef.current?.id !== keyID) {
+        return;
+      }
       if (!response.ok) {
         setVerifyOk(false);
         setVerifyMessage(t("verifyKeyFail", { error: errorMessageFromBody(body, String(response.status)) }));
@@ -605,10 +634,15 @@ export default function KeysPanel() {
       setVerifyOk(true);
       setVerifyMessage(t("verifyKeyOk"));
     } catch {
+      if (session !== dialogSessionRef.current || createdKeyRef.current?.id !== keyID) {
+        return;
+      }
       setVerifyOk(false);
       setVerifyMessage(tc("listNetwork"));
     } finally {
-      setVerifying(false);
+      if (session === dialogSessionRef.current && createdKeyRef.current?.id === keyID) {
+        setVerifying(false);
+      }
     }
   }
 
@@ -656,7 +690,7 @@ export default function KeysPanel() {
             <Button type="button" variant="outline" onClick={() => void list.reload()}>
               {tc("refresh")}
             </Button>
-            <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Button type="button" onClick={() => handleCreateOpenChange(true)}>
               {t("createKey")}
             </Button>
           </>
@@ -667,7 +701,7 @@ export default function KeysPanel() {
         emptyTitle={t("emptyKeys")}
         emptyDetail={t("emptyKeysDetail")}
         emptyAction={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button type="button" onClick={() => handleCreateOpenChange(true)}>
             {t("createKey")}
           </Button>
         }

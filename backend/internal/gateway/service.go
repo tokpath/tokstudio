@@ -117,8 +117,8 @@ type QueryRequestsInput struct {
 	PublicModelID string
 	Status        string
 	RequestIDs    []string
-	Since         time.Time
-	Until         time.Time
+	Since         time.Time // inclusive
+	Until         time.Time // exclusive
 	Limit         int
 }
 
@@ -484,7 +484,7 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 		q = q.Where("started_at >= ?", in.Since.UTC())
 	}
 	if !in.Until.IsZero() {
-		q = q.Where("started_at <= ?", in.Until.UTC())
+		q = q.Where("started_at < ?", in.Until.UTC())
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err

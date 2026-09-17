@@ -116,7 +116,7 @@ export function keyLabel(id: string | undefined, keys: APIKeyOption[] = []) {
   return shortKeyRef(id);
 }
 
-export function formatUsageTime(value?: string) {
+export function formatUsageTime(value?: string, timeZone?: string) {
   if (!value) {
     return "—";
   }
@@ -124,7 +124,7 @@ export function formatUsageTime(value?: string) {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString();
+  return parsed.toLocaleString(undefined, timeZone ? { timeZone } : undefined);
 }
 
 export function dimToKeyBuckets(rows: DimMoney[] = []): KeyBucket[] {

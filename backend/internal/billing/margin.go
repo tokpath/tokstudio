@@ -174,7 +174,7 @@ func usageScopeSQL(in QueryUsageInput, alias string) (string, []any) {
 		args = append(args, in.Since.UTC())
 	}
 	if !in.Until.IsZero() {
-		parts = append(parts, col("occurred_at")+" <= ?")
+		parts = append(parts, col("occurred_at")+" < ?")
 		args = append(args, in.Until.UTC())
 	}
 	if len(parts) == 0 {

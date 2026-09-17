@@ -216,7 +216,7 @@ func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageVi
 		q = q.Where("occurred_at >= ?", in.Since.UTC())
 	}
 	if !in.Until.IsZero() {
-		q = q.Where("occurred_at <= ?", in.Until.UTC())
+		q = q.Where("occurred_at < ?", in.Until.UTC())
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err

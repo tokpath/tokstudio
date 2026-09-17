@@ -222,8 +222,8 @@ type QueryUsageInput struct {
 	RequestID     string
 	RequestIDs    []string
 	State         string
-	Since         time.Time
-	Until         time.Time
+	Since         time.Time // inclusive
+	Until         time.Time // exclusive
 	Limit         int
 }
 

@@ -155,7 +155,7 @@ func applyUsageFilters(q *gorm.DB, in QueryUsageInput) *gorm.DB {
 		q = q.Where("occurred_at >= ?", in.Since.UTC())
 	}
 	if !in.Until.IsZero() {
-		q = q.Where("occurred_at <= ?", in.Until.UTC())
+		q = q.Where("occurred_at < ?", in.Until.UTC())
 	}
 	return q
 }

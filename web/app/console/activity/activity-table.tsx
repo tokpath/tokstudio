@@ -24,10 +24,12 @@ import {
   type ActivityRequest,
   activityApiQuery,
   activityHref,
+  activityTimeWindow,
   dimFilterKeys,
   hasActivityFilters,
   mergeFilterValues,
   parseActivitySearchParams,
+  resolvedTimeZone,
 } from "@/lib/activity-query";
 import { apiBase } from "@/lib/api";
 import type { ListLoadResult } from "@/lib/list-resource";
@@ -52,9 +54,16 @@ function useStatusText() {
   };
 }
 
-async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<ActivityRequest>> {
+async function loadActivity(query: ActivityQuery, timeZone: string, invalidMessage: string, orderMessage: string): Promise<ListLoadResult<ActivityRequest>> {
+  const window = activityTimeWindow(query, new Date(), timeZone);
+  if (window.error === "invalid") {
+    return { ok: false, status: 400, items: [], extras: { models: [], keys: [] }, message: invalidMessage };
+  }
+  if (window.error === "order") {
+    return { ok: false, status: 400, items: [], extras: { models: [], keys: [] }, message: orderMessage };
+  }
   try {
-    const response = await fetch(`${apiBase}/v1/me/requests?${activityApiQuery(query).toString()}`, { credentials: "include" });
+    const response = await fetch(`${apiBase}/v1/me/requests?${activityApiQuery(query, new Date(), timeZone).toString()}`, { credentials: "include" });
     const body: unknown = await response.json().catch(() => ({}));
     const record =
       body && typeof body === "object"
@@ -90,11 +99,15 @@ export function ActivityTable() {
   const statusText = useStatusText();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const timeZone = useMemo(() => resolvedTimeZone(), []);
   const query = useMemo(() => parseActivitySearchParams(searchParams), [searchParams]);
   const [selected, setSelected] = useState<ActivityRequest | null>(null);
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [keyOptions, setKeyOptions] = useState<string[]>([]);
-  const load = useCallback(() => loadActivity(query), [query]);
+  const load = useCallback(
+    () => loadActivity(query, timeZone, t("actInvalidDate"), t("actDateOrder")),
+    [query, t, timeZone],
+  );
   const list = useListResource<ActivityRequest>({
     queryKey: activityHref(query),
     load,
@@ -118,6 +131,7 @@ export function ActivityTable() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-ink-secondary">{t("actScope", { n: ACTIVITY_PAGE_SIZE })}</p>
+      <p className="text-sm text-ink-secondary">{t("actTimezone", { tz: timeZone })}</p>
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-ink-mute">{t("filterTime")}</span>
@@ -244,7 +258,7 @@ export function ActivityTable() {
             {
               id: "time",
               header: t("colTime"),
-              cell: (row) => <span className="text-xs text-ink-mute">{formatUsageTime(row.started_at)}</span>,
+              cell: (row) => <span className="text-xs text-ink-mute">{formatUsageTime(row.started_at, timeZone)}</span>,
             },
             {
               id: "model",
@@ -285,7 +299,7 @@ export function ActivityTable() {
           ]}
         />
       </ListResourceView>
-      <RequestDetailDialog row={selected} onClose={() => setSelected(null)} statusText={statusText} />
+      <RequestDetailDialog row={selected} onClose={() => setSelected(null)} statusText={statusText} timeZone={timeZone} />
     </div>
   );
 }
@@ -294,10 +308,12 @@ function RequestDetailDialog({
   row,
   onClose,
   statusText,
+  timeZone,
 }: {
   row: ActivityRequest | null;
   onClose: () => void;
   statusText: (status?: string) => string;
+  timeZone: string;
 }) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -314,7 +330,7 @@ function RequestDetailDialog({
         </DialogHeader>
         {row ? (
           <dl className="grid gap-3 text-sm">
-            <Detail term={t("colTime")} value={formatUsageTime(row.started_at)} />
+            <Detail term={t("colTime")} value={formatUsageTime(row.started_at, timeZone)} />
             <Detail term={t("colResult")} value={<Badge tone={statusTone(row.result)}>{statusText(row.result)}</Badge>} />
             <Detail term={t("colBilling")} value={<Badge tone={statusTone(row.billing_state)}>{statusText(row.billing_state)}</Badge>} />
             <Detail term={t("colAmount")} value={formatUsdMinor(row.customer_amount_minor, tc("lessThanCent"))} />

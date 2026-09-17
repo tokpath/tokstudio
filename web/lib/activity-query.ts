@@ -95,28 +95,51 @@ export function dimFilterKeys(rows?: Array<{ key?: string }> | null): string[] {
   return mergeFilterValues((rows || []).map((row) => row.key));
 }
 
-export function resolveActivityWindow(query: ActivityQuery, now = new Date()): { from?: string; to?: string } {
-  if (query.range === "today") {
-    return { from: isoDateUTC(now) };
+export type ActivityTimeWindow = {
+  from?: string;
+  to?: string;
+  error?: "invalid" | "order";
+};
+
+export function resolvedTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+/** 页面日历日 → [本地日 00:00, 次日 00:00)，RFC3339 瞬间。与列表 toLocaleString 使用同一 timeZone。 */
+export function activityTimeWindow(query: ActivityQuery, now = new Date(), timeZone = resolvedTimeZone()): ActivityTimeWindow {
+  if (query.range === "custom") {
+    return civilWindow(query.from, query.to, timeZone);
   }
-  if (query.range === "7d") {
-    return { from: isoDateUTC(addUtcDays(now, -7)) };
+  if (query.range === "today" || query.range === "7d" || query.range === "30d") {
+    const today = calendarDateInZone(now, timeZone);
+    if (!today) {
+      return { error: "invalid" };
+    }
+    const daysBack = query.range === "today" ? 0 : query.range === "7d" ? 7 : 30;
+    return civilWindow(addCivilDays(today, -daysBack), today, timeZone);
   }
-  if (query.range === "30d") {
-    return { from: isoDateUTC(addUtcDays(now, -30)) };
-  }
-  if (query.range === "custom" || !query.range) {
-    return { from: query.from, to: query.to };
+  if (query.from || query.to) {
+    return civilWindow(query.from, query.to, timeZone);
   }
   return {};
 }
 
-export function activityApiQuery(query: ActivityQuery, now = new Date()): URLSearchParams {
+export function resolveActivityWindow(query: ActivityQuery, now = new Date(), timeZone = resolvedTimeZone()): { from?: string; to?: string } {
+  const window = activityTimeWindow(query, now, timeZone);
+  if (window.error) {
+    return {};
+  }
+  return { from: window.from, to: window.to };
+}
+
+export function activityApiQuery(query: ActivityQuery, now = new Date(), timeZone = resolvedTimeZone()): URLSearchParams {
   const params = new URLSearchParams();
   params.set("limit", String(ACTIVITY_PAGE_SIZE));
-  const window = resolveActivityWindow(query, now);
-  if (window.from) params.set("from", window.from);
-  if (window.to) params.set("to", window.to);
+  const window = activityTimeWindow(query, now, timeZone);
+  if (!window.error) {
+    if (window.from) params.set("from", window.from);
+    if (window.to) params.set("to", window.to);
+  }
   if (query.model) params.set("public_model_id", query.model);
   if (query.result) params.set("result", query.result);
   if (query.billing) params.set("billing_state", query.billing);
@@ -124,15 +147,99 @@ export function activityApiQuery(query: ActivityQuery, now = new Date()): URLSea
   return params;
 }
 
-export function isoDateUTC(value: Date): string {
-  const y = value.getUTCFullYear();
-  const m = String(value.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(value.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function isInHalfOpen(at: Date, from?: string, to?: string): boolean {
+  const t = at.getTime();
+  if (from && t < Date.parse(from)) {
+    return false;
+  }
+  if (to && t >= Date.parse(to)) {
+    return false;
+  }
+  return true;
 }
 
-function addUtcDays(value: Date, days: number): Date {
-  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate() + days));
+function civilWindow(fromDay: string | undefined, toDay: string | undefined, timeZone: string): ActivityTimeWindow {
+  if ((fromDay && !isValidCivilDate(fromDay)) || (toDay && !isValidCivilDate(toDay))) {
+    return { error: "invalid" };
+  }
+  const from = fromDay ? startOfZonedDay(fromDay, timeZone) : undefined;
+  const to = toDay ? startOfZonedDay(addCivilDays(toDay, 1), timeZone) : undefined;
+  if ((fromDay && !from) || (toDay && !to)) {
+    return { error: "invalid" };
+  }
+  if (from && to && !(from.getTime() < to.getTime())) {
+    return { error: "order" };
+  }
+  return { from: from?.toISOString(), to: to?.toISOString() };
+}
+
+export function calendarDateInZone(now: Date, timeZone: string): string | undefined {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) {
+    return undefined;
+  }
+  return `${year}-${month}-${day}`;
+}
+
+export function isValidCivilDate(ymd: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return false;
+  }
+  const [year, month, day] = ymd.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === day;
+}
+
+function addCivilDays(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day + days));
+  return `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, "0")}-${String(utc.getUTCDate()).padStart(2, "0")}`;
+}
+
+function startOfZonedDay(ymd: string, timeZone: string): Date | undefined {
+  let guess = Date.parse(`${ymd}T00:00:00.000Z`);
+  if (Number.isNaN(guess)) {
+    return undefined;
+  }
+  for (let i = 0; i < 4; i += 1) {
+    const offset = offsetAt(new Date(guess), timeZone);
+    const next = Date.parse(`${ymd}T00:00:00.000Z`) - offset;
+    if (next === guess) {
+      break;
+    }
+    guess = next;
+  }
+  return new Date(guess);
+}
+
+function offsetAt(date: Date, timeZone: string): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+  const asUTC = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  return asUTC - date.getTime();
 }
 
 function dateParam(raw: string | null): string | undefined {

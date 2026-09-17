@@ -484,13 +484,17 @@ func (a *App) listMyRequests(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账务状态无效", false)
 		return
 	}
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	in := gateway.QueryRequestsInput{
 		UserID:        userID,
 		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
 		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
 		Status:        result,
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 	}
 	if k := a.currentAPIKey(c); k != nil {
 		in.UserID = k.UserID

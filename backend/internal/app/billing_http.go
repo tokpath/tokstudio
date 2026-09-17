@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -123,6 +122,10 @@ func (a *App) getLedger(c *gin.Context) {
 }
 
 func (a *App) getMyReconciliation(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	userID, channelID := a.billingUser(c)
 	view, err := a.Billing.ReconcileWindow(c.Request.Context(), billing.ReconcileInput{
 		UserID:        userID,
@@ -130,8 +133,8 @@ func (a *App) getMyReconciliation(c *gin.Context) {
 		Scope:         billing.ScopeUser,
 		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
 		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取对账失败", true)
@@ -153,6 +156,10 @@ func (a *App) flagMyReconciliation(c *gin.Context) {
 }
 
 func (a *App) getChannelReconciliation(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	channelID := a.currentPrincipal(c).VisibleChannelID()
 	if channelID == "" {
 		channelID = strings.TrimSpace(c.Query("channel_id"))
@@ -162,8 +169,8 @@ func (a *App) getChannelReconciliation(c *gin.Context) {
 		Scope:         billing.ScopeChannel,
 		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
 		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道对账失败", true)
@@ -231,14 +238,18 @@ func (a *App) respondFlagPending(c *gin.Context, item *billing.UsageGapView, err
 }
 
 func (a *App) getUsage(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	userID, _ := a.billingUser(c)
 	in := billing.QueryUsageInput{
 		UserID:        userID,
 		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
 		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
 		State:         strings.TrimSpace(c.Query("state")),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 	}
 	if a.currentPrincipal(c) != nil && a.currentPrincipal(c).HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly") && c.Query("all") == "1" {
 		in.UserID = ""
@@ -404,6 +415,10 @@ func (a *App) adminLedger(c *gin.Context) {
 }
 
 func (a *App) adminUsage(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	limit, _ := httpx.Page(c, 50)
 	items, err := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
 		UserID:        c.Query("user_id"),
@@ -411,8 +426,8 @@ func (a *App) adminUsage(c *gin.Context) {
 		ChannelOrgID:  c.Query("channel_id"),
 		PublicModelID: c.Query("public_model_id"),
 		State:         strings.TrimSpace(c.Query("state")),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 		Limit:         limit,
 	})
 	if err != nil {
@@ -456,13 +471,17 @@ func (a *App) billingReport(c *gin.Context) {
 }
 
 func (a *App) adminMargin(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	limit, _ := httpx.Page(c, 50)
 	item, err := a.Billing.AssembleMargin(c.Request.Context(), billing.QueryUsageInput{
 		ChannelOrgID:  c.Query("channel_id"),
 		PublicModelID: c.Query("public_model_id"),
 		RequestID:     c.Query("request_id"),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 		Limit:         limit,
 	})
 	if err != nil {
@@ -548,6 +567,10 @@ func (a *App) replayUsage(c *gin.Context) {
 }
 
 func (a *App) adminPendingUsage(c *gin.Context) {
+	since, until, ok := queryWindowOrAbort(c)
+	if !ok {
+		return
+	}
 	limit, _ := httpx.Page(c, 50)
 	items, err := a.Billing.ListPendingReconciliation(c.Request.Context(), billing.QueryUsageInput{
 		UserID:        c.Query("user_id"),
@@ -555,8 +578,8 @@ func (a *App) adminPendingUsage(c *gin.Context) {
 		ChannelOrgID:  c.Query("channel_id"),
 		PublicModelID: c.Query("public_model_id"),
 		State:         strings.TrimSpace(c.Query("status")),
-		Since:         parseQueryTime(c.Query("from")),
-		Until:         parseQueryTime(c.Query("to")),
+		Since:         since,
+		Until:         until,
 		Limit:         limit,
 	})
 	if err != nil {
@@ -615,19 +638,6 @@ func (a *App) resolvePendingUsage(c *gin.Context) {
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func parseQueryTime(raw string) time.Time {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return time.Time{}
-	}
-	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05Z", "2006-01-02"} {
-		if ts, err := time.Parse(layout, raw); err == nil {
-			return ts.UTC()
-		}
-	}
-	return time.Time{}
 }
 
 func (a *App) adminListPrices(c *gin.Context) {

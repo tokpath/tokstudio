@@ -116,6 +116,7 @@ type QueryRequestsInput struct {
 	APIKeyID      string
 	PublicModelID string
 	Status        string
+	BillingState  string
 	RequestIDs    []string
 	Since         time.Time // inclusive
 	Until         time.Time // exclusive
@@ -479,6 +480,20 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 	}
 	if len(in.RequestIDs) > 0 {
 		q = q.Where("request_id IN ?", in.RequestIDs)
+	}
+	if in.BillingState != "" {
+		args := []any{in.UserID, in.BillingState}
+		clause := `EXISTS (SELECT 1 FROM billing_usage_events u WHERE u.request_id = gateway_requests.request_id AND u.user_id = ? AND u.state = ?`
+		if in.APIKeyID != "" {
+			clause += ` AND u.api_key_id = ?`
+			args = append(args, in.APIKeyID)
+		}
+		if in.PublicModelID != "" {
+			clause += ` AND u.public_model_id = ?`
+			args = append(args, in.PublicModelID)
+		}
+		clause += `)`
+		q = q.Where(clause, args...)
 	}
 	if !in.Since.IsZero() {
 		q = q.Where("started_at >= ?", in.Since.UTC())

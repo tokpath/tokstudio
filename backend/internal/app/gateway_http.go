@@ -502,34 +502,7 @@ func (a *App) listMyRequests(c *gin.Context) {
 	}
 	limit, _ := strconv.Atoi(c.Query("limit"))
 	in.Limit = limit
-	if billingState != "" {
-		usages, err := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
-			UserID:        in.UserID,
-			APIKeyID:      in.APIKeyID,
-			PublicModelID: in.PublicModelID,
-			State:         billingState,
-			Since:         in.Since,
-			Until:         in.Until,
-			Limit:         200,
-		})
-		if err != nil {
-			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
-			return
-		}
-		ids := make([]string, 0, len(usages))
-		seen := map[string]struct{}{}
-		for _, usage := range usages {
-			if usage.RequestID == "" {
-				continue
-			}
-			if _, ok := seen[usage.RequestID]; ok {
-				continue
-			}
-			seen[usage.RequestID] = struct{}{}
-			ids = append(ids, usage.RequestID)
-		}
-		in.RequestIDs = ids
-	}
+	in.BillingState = billingState
 	items, err := a.Gateway.ListRequests(c.Request.Context(), in)
 	if err != nil {
 		if errors.Is(err, gateway.ErrUserRequired) {

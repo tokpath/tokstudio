@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { useConfirmSession, type ConfirmResult } from "@/components/use-confirm-session";
 
 export type SealConfirmProps = Omit<ButtonProps, "onClick" | "type"> & {
   title: string;
@@ -19,7 +20,7 @@ export type SealConfirmProps = Omit<ButtonProps, "onClick" | "type"> & {
   confirmLabel?: string;
   cancelLabel?: string;
   validate?: () => boolean | Promise<boolean>;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => ConfirmResult;
 };
 
 /** DESIGN.md 1.0 高风险盖章：蒙层 + 抬起卡片 + 后果标题 + 实心确认章。点蒙层/Esc 只取消。 */
@@ -37,9 +38,8 @@ export function SealConfirm({
   const t = useTranslations("common");
   const confirmText = confirmLabel ?? "盖章确认";
   const cancelText = cancelLabel ?? t("cancel");
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const { open, pending, handleOpenChange, dismiss, runConfirm } = useConfirmSession(onConfirm);
 
   async function openSeal() {
     if (validate) {
@@ -48,17 +48,7 @@ export function SealConfirm({
         return;
       }
     }
-    setOpen(true);
-  }
-
-  async function handleConfirm() {
-    setPending(true);
-    try {
-      await onConfirm();
-      setOpen(false);
-    } finally {
-      setPending(false);
-    }
+    handleOpenChange(true);
   }
 
   return (
@@ -66,7 +56,7 @@ export function SealConfirm({
       <Button type="button" disabled={disabled || pending} onClick={openSeal} {...buttonProps}>
         {children}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogPortal>
           <DialogOverlay />
           <DialogPrimitive.Content
@@ -88,10 +78,10 @@ export function SealConfirm({
             </DialogTitle>
             {description ? <DialogDescription className="mt-3">{description}</DialogDescription> : null}
             <div className="mt-8 flex flex-row flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => dismiss()}>
                 {cancelText}
               </Button>
-              <Button type="button" variant="destructive" disabled={pending} onClick={handleConfirm}>
+              <Button type="button" variant="destructive" disabled={pending} onClick={() => void runConfirm()}>
                 {confirmText}
               </Button>
             </div>

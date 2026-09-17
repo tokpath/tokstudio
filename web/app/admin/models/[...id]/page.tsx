@@ -10,7 +10,7 @@ import { z } from "zod";
 import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
 import { VendorCombobox } from "@/components/vendor-combobox";
 import { CheckPills } from "@/components/check-pills";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
 import { TokenizerCombobox } from "@/components/tokenizer-combobox";
@@ -21,7 +21,7 @@ import { AdminListPanel } from "../../list-panel";
 import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
 import {
@@ -261,13 +261,14 @@ export default function AdminModelEditPage() {
               title="确认保存显示信息"
               description="只改显示名、原厂和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。"
               validate={() => attrForm.trigger()}
-              onConfirm={attrForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(attrForm.handleSubmit, async (values) => {
+                try {
                 let capabilities: Record<string, unknown>;
                 try {
                   capabilities = formToCapabilities(values);
                 } catch {
                   setAttrMessage("其余能力字段必须是 JSON 对象");
-                  return;
+                  return false;
                 }
                 const res = await fetch(`${apiBase}/admin/models/${publicId}`, {
                   method: "PATCH",
@@ -282,11 +283,16 @@ export default function AdminModelEditPage() {
                 const body = await res.json();
                 if (!res.ok) {
                   setAttrMessage(body.error?.message || "保存失败");
-                  return;
+                  return false;
                 }
                 setAttrMessage(`已保存 ${body.item?.id} → ${body.item?.display_name}`);
                 await reload();
-              })}
+                return true;
+                } catch {
+                  setAttrMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               保存显示信息
             </ConfirmButton>
@@ -330,7 +336,8 @@ export default function AdminModelEditPage() {
               title="新牌价只约束之后的请求，已入账金额不会改写。"
               description="当前 published 会标成 superseded。历史版本保持只读快照。"
               validate={() => priceForm.trigger()}
-              onConfirm={priceForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(priceForm.handleSubmit, async (values) => {
+                try {
                 const payload: Record<string, unknown> = { model: publicId, currency: values.currency };
                 let sell: Record<string, string> | undefined;
                 let wholesale: Record<string, string> | undefined;
@@ -343,7 +350,7 @@ export default function AdminModelEditPage() {
                   channel = millionDim(values.channel_input, values.channel_output);
                 } catch (err) {
                   setPriceMessage(err instanceof Error ? err.message : "单价无效");
-                  return;
+                  return false;
                 }
                 if (sell) {
                   payload.customer_sell = sell;
@@ -370,10 +377,16 @@ export default function AdminModelEditPage() {
                 });
                 const body = await res.json();
                 setPriceMessage(res.ok ? `已发布 ${publishedPriceLabel(body.price, publicId)}` : body.error?.message || "发布失败");
-                if (res.ok) {
-                  await reload();
+                if (!res.ok) {
+                  return false;
                 }
-              })}
+                  await reload();
+                return true;
+                } catch {
+                  setPriceMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               发布价格
             </SealConfirm>
@@ -404,7 +417,8 @@ export default function AdminModelEditPage() {
               title="确认接到提供商"
               description={`${CATALOG_LABEL.upstreamModelId}可以与${CATALOG_LABEL.publicModelId}不同。`}
               validate={() => attachForm.trigger()}
-              onConfirm={attachForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(attachForm.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/models/attach`, {
                   method: "POST",
                   credentials: "include",
@@ -418,12 +432,17 @@ export default function AdminModelEditPage() {
                 const body = await res.json();
                 if (!res.ok) {
                   setAttachMessage(body.error?.message || "关联失败");
-                  return;
+                  return false;
                 }
                 attachForm.reset({ provider_id: "", upstream_model_id: "" });
                 setAttachMessage(`已关联 ${publicId} → ${values.provider_id}`);
                 await reload();
-              })}
+                return true;
+                } catch {
+                  setAttachMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               接到提供商
             </ConfirmButton>
@@ -447,6 +466,7 @@ export default function AdminModelEditPage() {
             title="确认通过模型"
             description="只标记审核通过，不会发布到客户目录。创建人不能审核自己建的模型。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/models/review`, {
                 method: "POST",
                 credentials: "include",
@@ -455,8 +475,14 @@ export default function AdminModelEditPage() {
               });
               const body = await res.json();
               setLifeMessage(res.ok ? `已通过 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "审核失败");
+                    const __ok = res.ok;
               await reload();
-            }}
+                    return __ok;
+                    } catch {
+                      setLifeMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             通过
           </ConfirmButton>
@@ -467,6 +493,7 @@ export default function AdminModelEditPage() {
             title="确认拒绝模型"
             description="拒绝后不能发布，需要重新通过。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/models/review`, {
                 method: "POST",
                 credentials: "include",
@@ -475,8 +502,14 @@ export default function AdminModelEditPage() {
               });
               const body = await res.json();
               setLifeMessage(res.ok ? `已拒绝 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "拒绝失败");
+                    const __ok = res.ok;
               await reload();
-            }}
+                    return __ok;
+                    } catch {
+                      setLifeMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             拒绝
           </ConfirmButton>
@@ -486,6 +519,7 @@ export default function AdminModelEditPage() {
             title="确认发布模型"
             description="必须先审核通过。创建人不能发布自己建的模型。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/models/publish`, {
                 method: "POST",
                 credentials: "include",
@@ -494,8 +528,14 @@ export default function AdminModelEditPage() {
               });
               const body = await res.json();
               setLifeMessage(res.ok ? `已发布 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "发布失败");
+                    const __ok = res.ok;
               await reload();
-            }}
+                    return __ok;
+                    } catch {
+                      setLifeMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             发布
           </ConfirmButton>
@@ -506,6 +546,7 @@ export default function AdminModelEditPage() {
             title="确认弃用模型"
             description="只改状态，不删除历史映射和价格版本。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/models/deprecate`, {
                 method: "POST",
                 credentials: "include",
@@ -514,8 +555,14 @@ export default function AdminModelEditPage() {
               });
               const body = await res.json();
               setLifeMessage(res.ok ? `已弃用 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "弃用失败");
+                    const __ok = res.ok;
               await reload();
-            }}
+                    return __ok;
+                    } catch {
+                      setLifeMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             弃用此模型
           </ConfirmButton>

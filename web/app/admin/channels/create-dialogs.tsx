@@ -5,13 +5,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { CHANNEL_TYPES, ROLE_TYPES } from "@/lib/tenants";
 
 const selectClass =
@@ -80,7 +80,8 @@ export function CreateChannelDialog({
               title="确认创建渠道"
               description="不要拿种子渠道做实验。创建后只授权平台已启用模型，不能自建提供商。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/channels`, {
                   method: "POST",
                   credentials: "include",
@@ -90,13 +91,18 @@ export function CreateChannelDialog({
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "创建失败");
-                  return;
+                  return false;
                 }
                 form.reset({ code: "", type: "B", status: "active", brand_id: "" });
                 setMessage(`已创建 ${body.item?.id} ${body.item?.code} → ${body.item?.type} / ${body.item?.status}`);
                 await queryClient.invalidateQueries();
                 onOpenChange(false);
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建渠道
             </ConfirmButton>
@@ -161,7 +167,8 @@ export function CreatePartnerDialog({
               title="确认创建推广角色"
               description="层级只能是 agent → kol_l1 → kol_l2。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/acquisition-roles`, {
                   method: "POST",
                   credentials: "include",
@@ -175,12 +182,17 @@ export function CreatePartnerDialog({
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "创建角色失败");
-                  return;
+                  return false;
                 }
                 setMessage(`已创建角色 ${body.item?.id}（${body.item?.type}）`);
                 await queryClient.invalidateQueries();
                 onOpenChange(false);
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建推广角色
             </ConfirmButton>

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -16,7 +16,7 @@ import { ScrollTable } from "@/components/ui/scroll-table";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
@@ -76,7 +76,8 @@ export default function AdminPlansPage() {
     defaultValues: { subscription_id: "" },
   });
 
-  async function review(id: string, action: "approve" | "reject") {
+  async function review(id: string, action: "approve" | "reject"): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/plans/${id}/review`, {
       method: "POST",
       credentials: "include",
@@ -85,8 +86,14 @@ export default function AdminPlansPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已${action === "approve" ? "通过" : "拒绝"} ${body.item?.id}` : body.error?.message || "审核失败");
+    const __ok = res.ok;
     await queryClient.invalidateQueries({ queryKey: [path] });
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <AdminShell>
@@ -184,12 +191,13 @@ export default function AdminPlansPage() {
                 title="确认创建套餐"
                 description="平台套餐满 1 USD 会直接发布。"
                 validate={() => createForm.trigger()}
-                onConfirm={createForm.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(createForm.handleSubmit, async (values) => {
+                  try {
                   const price = parseUsdToMinor(values.price_usd);
                   const included = parseUsdToMinor(values.included_usd);
                   if (price == null || included == null) {
                     setWriteMessage("请填写有效的美元金额");
-                    return;
+                    return false;
                   }
                   const res = await fetch(`${apiBase}/admin/plans`, {
                     method: "POST",
@@ -210,13 +218,18 @@ export default function AdminPlansPage() {
                   const body = await res.json();
                   if (!res.ok) {
                     setWriteMessage(body.error?.message || "创建失败");
-                    return;
+                    return false;
                   }
                   createForm.reset();
                   setWriteMessage(`已创建 ${body.item?.id} ${body.item?.name} → ${body.item?.status}`);
                   setCreateOpen(false);
                   await queryClient.invalidateQueries();
-                })}
+                  return true;
+                  } catch {
+                    setWriteMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 创建套餐
               </ConfirmButton>
@@ -239,7 +252,8 @@ export default function AdminPlansPage() {
                 title="确认下架套餐"
                 description="不要下架 pln_echo_month。下架后历史订阅仍保留。"
                 validate={() => archiveForm.trigger()}
-                onConfirm={archiveForm.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(archiveForm.handleSubmit, async (values) => {
+                  try {
                   const res = await fetch(`${apiBase}/admin/plans/${values.plan_id}`, {
                     method: "PATCH",
                     credentials: "include",
@@ -249,12 +263,17 @@ export default function AdminPlansPage() {
                   const body = await res.json();
                   if (!res.ok) {
                     setWriteMessage(body.error?.message || "下架失败");
-                    return;
+                    return false;
                   }
                   setWriteMessage(`已下架 ${body.item?.id} → ${body.item?.status}`);
                   setArchiveOpen(false);
                   await queryClient.invalidateQueries();
-                })}
+                  return true;
+                  } catch {
+                    setWriteMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 下架套餐
               </ConfirmButton>

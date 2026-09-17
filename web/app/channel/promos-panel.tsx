@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { TextField } from "@/components/text-field";
@@ -46,7 +46,8 @@ export default function ChannelPromos() {
             title={t("confirmPromo")}
             description={t("confirmPromoD")}
             validate={() => form.trigger()}
-            onConfirm={form.handleSubmit(async (values) => {
+            onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+              try {
               const response = await fetch(`${apiBase}/channel/promotion-codes`, {
                 method: "POST",
                 credentials: "include",
@@ -56,12 +57,17 @@ export default function ChannelPromos() {
               const body = await response.json();
               if (!response.ok) {
                 setMessage(body.error?.message || tc("createFailed"));
-                return;
+                return false;
               }
               form.reset();
               await list.reload();
               setMessage(t("createdPromo", { code: body.item?.code || "" }));
-            })}
+              return true;
+              } catch {
+                setMessage(tc("listNetwork"));
+                return false;
+              }
+})}
           >
             {t("createPromo")}
           </ConfirmButton>

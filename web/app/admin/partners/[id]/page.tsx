@@ -7,13 +7,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminShell } from "../../shell";
 import { apiClient } from "@/lib/client";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { STATUS_OPTIONS, channelHref, isKOLType, roleTypeLabel } from "@/lib/tenants";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -76,7 +76,8 @@ export default function AdminPartnerDetailPage() {
                 title="确认保存角色"
                 description="只改状态。层级和所属租户创建后不可改。"
                 validate={() => form.trigger()}
-                onConfirm={form.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                  try {
                   const res = await fetch(`${apiBase}/admin/acquisition-roles/${id}`, {
                     method: "PATCH",
                     credentials: "include",
@@ -86,12 +87,17 @@ export default function AdminPartnerDetailPage() {
                   const body = await res.json();
                   if (!res.ok) {
                     setMessage(body.error?.message || "保存失败");
-                    return;
+                    return false;
                   }
                   setMessage(`已保存 ${body.item?.id} → ${body.item?.status}`);
                   setEditing(false);
                   await queryClient.invalidateQueries({ queryKey: ["/admin/acquisition-roles", id] });
-                })}
+                  return true;
+                  } catch {
+                    setMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 保存角色
               </ConfirmButton>

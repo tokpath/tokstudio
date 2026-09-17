@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { CreditCard } from "lucide-react";
 
 type Field = { key: string; label: string; secret?: boolean; required?: boolean };
@@ -267,7 +267,7 @@ export function PaymentLanesPanel() {
               </Button>
             ) : null}
             {step === 1 ? (
-              <ConfirmButton title="保存凭证" description="密钥加密存储，列表不会回显。" onConfirm={async () => { await saveCredentials(); }}>
+              <ConfirmButton title="保存凭证" description="密钥加密存储，列表不会回显。" onConfirm={saveCredentials}>
                 保存凭证
               </ConfirmButton>
             ) : null}
@@ -281,8 +281,9 @@ export function PaymentLanesPanel() {
                     title="上线生产"
                     description="生产通道会在用户充值页展示。请确认商户号和回调已在支付机构后台配好。"
                     onConfirm={async () => {
+                    try {
                       const ok = await testConn();
-                      if (!ok || !instanceID) return;
+                      if (!ok || !instanceID) return false;
                       const res = await fetch(`${apiBase}/channel/payments/instances/${instanceID}/go-live`, {
                         method: "POST",
                         credentials: "include",
@@ -291,11 +292,17 @@ export function PaymentLanesPanel() {
                       });
                       const body = await res.json();
                       setMessage(res.ok ? "已上线" : body.error?.message || "上线失败");
+                    const __ok = res.ok;
                       if (res.ok) {
                         setOpen(null);
                         await queryClient.invalidateQueries({ queryKey: ["/channel/payments/overview"] });
                       }
-                    }}
+                    return __ok;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
                   >
                     上线
                   </ConfirmButton>

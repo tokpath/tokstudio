@@ -12,7 +12,7 @@ import { SealConfirm } from "@/components/seal-confirm";
 import { IfCan } from "@/components/rbac/if-can";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { gapKey, pendingListPath, type UsageGap } from "@/lib/reconciliation";
 
 export default function AdminReconciliationPage() {
@@ -30,11 +30,12 @@ export default function AdminReconciliationPage() {
     queryFn: () => apiClient<{ items?: UsageGap[] }>("GET", listPath),
   });
 
-  async function resolve(ids: string[]) {
+  async function resolve(ids: string[]): Promise<boolean> {
+    try {
     const keys = ids.filter(Boolean);
     if (!keys.length) {
       setMessage(t("pendingNeedSelection"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/usage/pending/resolve`, {
       method: "POST",
@@ -44,12 +45,18 @@ export default function AdminReconciliationPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("pendingResolved", { n: keys.length }) : body.error?.message || t("pendingResolveFail"));
+    const __ok = res.ok;
     setPicked([]);
     if (res.ok) {
       setSelected(null);
       await listQuery.refetch();
     }
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   async function openGap(row: UsageGap) {
     setSelected(row);

@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminShell } from "../../shell";
@@ -19,7 +19,7 @@ import { ChannelModelsPanel } from "../models-panel";
 import { ChannelPaymentReadiness } from "../payment-readiness";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { CHANNEL_TYPES, STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/lib/tenants";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -79,7 +79,8 @@ export default function AdminChannelDetailPage() {
                 title="确认保存渠道"
                 description="停用后冻结新消费。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。"
                 validate={() => form.trigger()}
-                onConfirm={form.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                  try {
                   const res = await fetch(`${apiBase}/admin/channels/${id}`, {
                     method: "PATCH",
                     credentials: "include",
@@ -89,12 +90,17 @@ export default function AdminChannelDetailPage() {
                   const body = await res.json();
                   if (!res.ok) {
                     setMessage(body.error?.message || "保存失败");
-                    return;
+                    return false;
                   }
                   setMessage(`已保存 ${body.item?.id} → ${body.item?.status} / ${body.item?.type}`);
                   setEditing(false);
                   await queryClient.invalidateQueries({ queryKey: ["/admin/channels", id] });
-                })}
+                  return true;
+                  } catch {
+                    setMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 保存渠道
               </ConfirmButton>

@@ -576,7 +576,7 @@ export default function KeysPanel() {
     }
   }
 
-  async function act(id: string, action: "rotate" | "disable" | "expire") {
+  async function act(id: string, action: "rotate" | "disable" | "expire"): Promise<boolean> {
     try {
       const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/${action}`, {
         method: "POST",
@@ -587,12 +587,14 @@ export default function KeysPanel() {
       const body = await readResponseBody(response);
       if (!response.ok) {
         setMessage(errorMessageFromBody(body, t("actFail")));
-        return;
+        return false;
       }
       setMessage(t("acted", { action }));
       await list.reload();
+      return true;
     } catch {
       setMessage(tc("listNetwork"));
+      return false;
     }
   }
 

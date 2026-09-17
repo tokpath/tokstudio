@@ -114,11 +114,12 @@ export default function ChannelLedger() {
     setSourceType(defaultSource);
   }, [defaultSource]);
 
-  async function recordSupplier() {
+  async function recordSupplier(): Promise<boolean> {
+    try {
     const amount = usdToMinor(usd);
     if (!amount) {
       setMessage(t("amountRequiredUsd"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/channel/supplier-entries`, {
       method: "POST",
@@ -134,10 +135,17 @@ export default function ChannelLedger() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("recordedSupplier", { id: body.item?.id || "" }) : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) await refresh();
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
-  async function reverse(id: string) {
+  async function reverse(id: string): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/channel/supplier-entries/${encodeURIComponent(id)}/reverse`, {
       method: "POST",
       credentials: "include",
@@ -146,14 +154,21 @@ export default function ChannelLedger() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("reversedSupplier", { id: body.item?.id || "" }) : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) await refresh();
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
-  async function wholesale() {
+  async function wholesale(): Promise<boolean> {
+    try {
     const amount = usdToMinor(wholesaleUsd);
     if (!amount || !childID) {
       setMessage(t("wholesaleNeed"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/channel/quotas/grant`, {
       method: "POST",
@@ -163,14 +178,21 @@ export default function ChannelLedger() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("wholesaleDone", { id: childID, left: formatUsdMinor(body.quota?.available_minor) }) : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) await refresh();
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
-  async function createB() {
+  async function createB(): Promise<boolean> {
+    try {
     const code = bCode.trim();
     if (!code) {
       setMessage(t("codeRequired"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/channels`, {
       method: "POST",
@@ -180,11 +202,17 @@ export default function ChannelLedger() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("createdB", { id: body.item?.id || "", code: body.item?.code || code }) : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) {
       setBCode("");
       await refresh();
     }
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
   const metrics = [
     { k: t("pnlRecharge"), v: formatUsdMinor(pnl.recharge_minor) },

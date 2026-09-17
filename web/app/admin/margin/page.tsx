@@ -11,7 +11,7 @@ import { SealConfirm } from "@/components/seal-confirm";
 import { IfCan } from "@/components/rbac/if-can";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { UpstreamFactsBadge } from "@/components/upstream-facts-badge";
 import {
   COST_SOURCE,
@@ -40,11 +40,12 @@ export default function AdminMarginPage() {
   const summary = query.data?.item || {};
   const items = useMemo(() => query.data?.items || summary.items || [], [query.data, summary.items]);
 
-  async function fileCorrection(kind: "fill_cost" | "adjust_margin") {
+  async function fileCorrection(kind: "fill_cost" | "adjust_margin"): Promise<boolean> {
+    try {
     const requestID = selected?.request_id;
     if (!requestID) {
       setMessage(t("correctionNeedRow"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/margin/corrections`, {
       method: "POST",
@@ -59,8 +60,14 @@ export default function AdminMarginPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("correctionFiled", { id: body.item?.id || "" }) : body.error?.message || t("marginLead"));
+    const __ok = res.ok;
     if (res.ok) await query.refetch();
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   const stats = [
     { k: t("marginCost"), v: micro(summary.attempt_cost_minor) },

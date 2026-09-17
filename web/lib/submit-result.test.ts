@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { copyText, errorMessageFromBody } from "./submit-result";
+import { copyText, errorMessageFromBody, confirmJsonAction } from "./submit-result";
 
 describe("submit result helpers", () => {
   afterEach(() => {
@@ -30,5 +30,38 @@ describe("submit result helpers", () => {
       },
     });
     await expect(copyText("thk_secret")).resolves.toBe(false);
+  });
+
+  it("returns false for API and network failures", async () => {
+    const onError = vi.fn();
+    const onSuccess = vi.fn();
+    await expect(
+      confirmJsonAction({
+        request: async () =>
+          ({
+            ok: false,
+            json: async () => ({ error: { message: "创建失败" } }),
+          }) as Response,
+        onError,
+        onSuccess,
+        failFallback: "失败",
+        networkMessage: "网络不可用，请重试。",
+      }),
+    ).resolves.toBe(false);
+    expect(onError).toHaveBeenCalledWith("创建失败");
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    onError.mockClear();
+    await expect(
+      confirmJsonAction({
+        request: async () => {
+          throw new TypeError("Failed to fetch");
+        },
+        onError,
+        failFallback: "失败",
+        networkMessage: "网络不可用，请重试。",
+      }),
+    ).resolves.toBe(false);
+    expect(onError).toHaveBeenCalledWith("网络不可用，请重试。");
   });
 });

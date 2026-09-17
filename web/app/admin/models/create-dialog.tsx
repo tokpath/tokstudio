@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
 import { TextField } from "@/components/text-field";
 import { VendorCombobox } from "@/components/vendor-combobox";
@@ -13,7 +13,7 @@ import { Form } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { CATALOG_LABEL, slugifyCatalogId, suggestPublicId, suggestPublicIdFromDisplay } from "@/lib/catalog-copy";
 
 const createSchema = z
@@ -132,7 +132,8 @@ export function CreateModelDialog({
               title="确认创建模型"
               description="将创建为待审核草稿。请勿修改 tokenhub/echo-1。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 const created = await fetch(`${apiBase}/admin/models`, {
                   method: "POST",
                   credentials: "include",
@@ -146,7 +147,7 @@ export function CreateModelDialog({
                 const createdBody = await created.json();
                 if (!created.ok) {
                   setMessage(createdBody.error?.message || "创建失败");
-                  return;
+                  return false;
                 }
                 let extra = "";
                 if (values.provider_id && values.upstream_model_id) {
@@ -172,7 +173,12 @@ export function CreateModelDialog({
                 onOpenChange(false);
                 onCreated?.();
                 await queryClient.invalidateQueries();
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建模型
             </ConfirmButton>

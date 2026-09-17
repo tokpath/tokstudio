@@ -9,7 +9,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -70,7 +70,8 @@ export default function AdminCommissionPage() {
     setMessage(`已读取策略 ${p.version || p.id}`);
   }
 
-  async function savePolicy() {
+  async function savePolicy(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/commission-policy`, {
       method: "PATCH",
       credentials: "include",
@@ -85,7 +86,13 @@ export default function AdminCommissionPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已保存 ${body.policy?.version}，直接佣金 ${body.policy?.direct_bps} bps` : body.error?.message || "保存失败");
-  }
+    const __ok = res.ok;
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <AdminShell>
@@ -148,6 +155,7 @@ export default function AdminCommissionPage() {
               title="确认保存达线"
               description="只影响之后的达线和注册赠送。"
               onConfirm={async () => {
+                    try {
                 const res = await fetch(`${apiBase}/admin/eligibility-rules`, {
                   method: "PATCH",
                   credentials: "include",
@@ -160,7 +168,13 @@ export default function AdminCommissionPage() {
                 });
                 const body = await res.json();
                 setEligMessage(res.ok ? "已保存达线规则" : body.error?.message || "保存失败");
-              }}
+                    const __ok = res.ok;
+                    return __ok;
+                    } catch {
+                      setEligMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
             >
               保存达线
             </ConfirmButton>
@@ -185,6 +199,7 @@ export default function AdminCommissionPage() {
             title="确认重算佣金"
             description="用当时价格快照重算，不改历史账单单价。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/commissions/recalc`, {
                 method: "POST",
                 credentials: "include",
@@ -197,7 +212,12 @@ export default function AdminCommissionPage() {
                   ? `已重算 ${body.item?.id || body.item?.usage_event_id} → ${body.item?.status} / ${body.item?.policy_version}`
                   : body.error?.message || "重算失败",
               );
-            }}
+                    return true;
+                    } catch {
+                      setRecalcMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             重算佣金
           </ConfirmButton>
@@ -215,6 +235,7 @@ export default function AdminCommissionPage() {
             title="确认解冻佣金"
             description="按 usage 事件解冻已到期的冻结额。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/commissions/unfreeze`, {
                 method: "POST",
                 credentials: "include",
@@ -223,7 +244,13 @@ export default function AdminCommissionPage() {
               });
               const body = await res.json();
               setMessage(res.ok ? `已解冻 ${body.unfrozen} 条` : body.error?.message || "解冻失败");
-            }}
+                    const __ok = res.ok;
+                    return __ok;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             解冻佣金
           </ConfirmButton>
@@ -232,6 +259,7 @@ export default function AdminCommissionPage() {
             title="确认生成结算单"
             description="P0 只做人工结算，自动代付不在范围内。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/commissions/settle?ignore_minimum=1`, {
                 method: "POST",
                 credentials: "include",
@@ -240,7 +268,13 @@ export default function AdminCommissionPage() {
               });
               const body = await res.json();
               setMessage(res.ok ? `已生成 ${body.items?.length ?? 0} 张结算单` : body.error?.message || "结算失败");
-            }}
+                    const __ok = res.ok;
+                    return __ok;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             生成结算单
           </ConfirmButton>
@@ -253,6 +287,7 @@ export default function AdminCommissionPage() {
             title="确认人工打款"
             description="只记录人工打款凭证，不会自动代付。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/settlements/${settlementID}/payout`, {
                 method: "POST",
                 credentials: "include",
@@ -261,7 +296,13 @@ export default function AdminCommissionPage() {
               });
               const body = await res.json();
               setMessage(res.ok ? `已打款 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "打款失败");
-            }}
+                    const __ok = res.ok;
+                    return __ok;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             人工打款
           </ConfirmButton>

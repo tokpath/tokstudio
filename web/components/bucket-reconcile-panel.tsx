@@ -7,7 +7,7 @@ import { SealConfirm } from "@/components/seal-confirm";
 import { Button } from "@/components/ui/button";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { UpstreamFactsBadge } from "@/components/upstream-facts-badge";
 import {
   type DiffRow,
@@ -51,11 +51,12 @@ export function BucketReconcilePanel({
     setLoaded(true);
   }
 
-  async function flag(row: DiffRow) {
+  async function flag(row: DiffRow): Promise<boolean> {
+    try {
     const key = diffKey(row);
     if (!key) {
       setMessage(t("needRow"));
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}${flagPath(scope)}`, {
       method: "POST",
@@ -65,10 +66,16 @@ export function BucketReconcilePanel({
     });
     const body = await res.json();
     setMessage(res.ok ? t("flagged") : body.error?.message || t("flagFail"));
+    const __ok = res.ok;
     if (res.ok) {
       await refresh();
     }
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   useEffect(() => {
     if (initial) {

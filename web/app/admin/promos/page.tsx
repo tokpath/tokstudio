@@ -4,13 +4,13 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Form } from "@/components/ui/form";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -58,7 +58,8 @@ export default function AdminPromosPage() {
               title="确认创建推广角色"
               description="层级只能是 agent → kol_l1 → kol_l2。"
               validate={() => roleForm.trigger()}
-              onConfirm={roleForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(roleForm.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/acquisition-roles`, {
                   method: "POST",
                   credentials: "include",
@@ -68,14 +69,19 @@ export default function AdminPromosPage() {
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "创建角色失败");
-                  return;
+                  return false;
                 }
                 if (body.item?.id) {
                   promoForm.setValue("role_id", body.item.id);
                   promoForm.setValue("channel_id", values.channel_id);
                 }
                 setMessage(`已创建角色 ${body.item?.id}（${body.item?.type}）`);
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建推广角色
             </ConfirmButton>
@@ -97,7 +103,8 @@ export default function AdminPromosPage() {
               title="确认创建推广码"
               description="注册时会按这个码固化渠道和角色。"
               validate={() => promoForm.trigger()}
-              onConfirm={promoForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(promoForm.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/promotion-codes`, {
                   method: "POST",
                   credentials: "include",
@@ -110,7 +117,12 @@ export default function AdminPromosPage() {
                 });
                 const body = await res.json();
                 setMessage(res.ok ? `已创建推广码 ${body.item?.code}` : body.error?.message || "创建推广码失败");
-              })}
+                return res.ok;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建推广码
             </ConfirmButton>

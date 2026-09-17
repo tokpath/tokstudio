@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AdminSelectField } from "@/components/admin-select-field";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
 import { PublicModelCombobox } from "@/components/public-model-combobox";
 import { Form } from "@/components/ui/form";
@@ -17,7 +17,7 @@ import { ScrollTable } from "@/components/ui/scroll-table";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { IfCan } from "@/components/rbac/if-can";
 import { routeStatusLabel, routeStatusOptions, routeStrategyLabel, routeStrategyOptions } from "@/lib/catalog-admin";
 import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
@@ -233,7 +233,8 @@ export default function AdminRoutesPage() {
                 title="确认创建路由"
                 description="请勿修改 rg_echo。选路策略只决定走哪家提供商、谁优先。"
                 validate={() => createForm.trigger()}
-                onConfirm={createForm.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(createForm.handleSubmit, async (values) => {
+                  try {
                   const body: Record<string, unknown> = {
                     public_model_id: values.public_model_id,
                     strategy: values.strategy || "priority",
@@ -251,13 +252,18 @@ export default function AdminRoutesPage() {
                   const json = await res.json();
                   if (!res.ok) {
                     setMessage(json.error?.message || "创建失败");
-                    return;
+                    return false;
                   }
                   createForm.reset();
                   setMessage(`已创建 ${json.item?.id} → ${json.item?.strategy} / ${json.item?.status}`);
                   setCreateOpen(false);
                   await queryClient.invalidateQueries();
-                })}
+                  return true;
+                  } catch {
+                    setMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 创建路由
               </ConfirmButton>
@@ -294,7 +300,8 @@ export default function AdminRoutesPage() {
                 title="确认保存策略"
                 description="请勿修改 rg_echo。"
                 validate={() => patchForm.trigger()}
-                onConfirm={patchForm.handleSubmit(async (values) => {
+                onConfirm={confirmFormSubmit(patchForm.handleSubmit, async (values) => {
+                  try {
                   const res = await fetch(`${apiBase}/admin/routes/${values.route_id}`, {
                     method: "PATCH",
                     credentials: "include",
@@ -304,12 +311,17 @@ export default function AdminRoutesPage() {
                   const json = await res.json();
                   if (!res.ok) {
                     setMessage(json.error?.message || "保存失败");
-                    return;
+                    return false;
                   }
                   setMessage(`已保存 ${json.item?.id} → ${json.item?.strategy} / ${json.item?.status}`);
                   setEditOpen(false);
                   await queryClient.invalidateQueries();
-                })}
+                  return true;
+                  } catch {
+                    setMessage(confirmNetworkUnavailable);
+                    return false;
+                  }
+})}
               >
                 保存策略
               </ConfirmButton>

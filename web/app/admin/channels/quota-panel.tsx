@@ -5,7 +5,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { channelUsesQuota } from "@/lib/tenants";
 
@@ -26,7 +26,8 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
     setMessage(`可用额度 ${formatUsdMinor(body.quota?.available_minor)}，换算比 ${bps} BPS`);
   }
 
-  async function saveRatio() {
+  async function saveRatio(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/channel-quotas/${channelID}/issue-rule`, {
       method: "PATCH",
       credentials: "include",
@@ -35,13 +36,20 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
     });
     const body = await res.json();
     setMessage(res.ok ? `已保存换算比 ${body.rule?.issue_ratio_bps} BPS` : body.error?.message || "保存换算比失败");
-  }
+    const __ok = res.ok;
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
-  async function grant() {
+  async function grant(): Promise<boolean> {
+    try {
     const minor = parseUsdToMinor(amount);
     if (minor == null) {
       setMessage("请填写有效的美元金额");
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/channel-quotas/grant`, {
       method: "POST",
@@ -51,7 +59,13 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
     });
     const body = await res.json();
     setMessage(res.ok ? `已调整 ${channelID}，可用 ${formatUsdMinor(body.quota?.available_minor)}` : body.error?.message || "调整失败");
-  }
+    const __ok = res.ok;
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">

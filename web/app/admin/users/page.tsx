@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -32,7 +32,8 @@ export default function AdminUsersPage() {
   });
   const items = query.data?.items ?? [];
 
-  async function postAction(path: string, body: Record<string, string>, okText: string) {
+  async function postAction(path: string, body: Record<string, string>, okText: string): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}${path}`, {
       method: "POST",
       credentials: "include",
@@ -41,8 +42,14 @@ export default function AdminUsersPage() {
     });
     const payload = await res.json();
     setMessage(res.ok ? okText : payload.error?.message || "操作失败");
+    const __ok = res.ok;
     await queryClient.invalidateQueries({ queryKey: ["/admin/users"] });
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <AdminShell>

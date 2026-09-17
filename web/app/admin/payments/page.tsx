@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -24,10 +24,11 @@ export default function AdminPaymentsPage() {
   const [orderID, setOrderID] = useState("");
   const [message, setMessage] = useState("手工确认和退款都要带二次确认头。");
 
-  async function act(action: "confirm" | "refund") {
+  async function act(action: "confirm" | "refund"): Promise<boolean> {
+    try {
     if (!orderID) {
       setMessage("先填写支付单 ID");
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/payments/${orderID}/${action}`, {
       method: "POST",
@@ -37,7 +38,13 @@ export default function AdminPaymentsPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已${action === "confirm" ? "确认" : "退款"} ${body.item?.id} → ${body.item?.status}` : body.error?.message || "操作失败");
-  }
+    const __ok = res.ok;
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <AdminShell>

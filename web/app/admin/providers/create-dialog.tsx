@@ -7,12 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AdminSelectField } from "@/components/admin-select-field";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Form } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { protocolOptions, providerHref } from "@/lib/catalog-admin";
 import { CATALOG_LABEL, slugifyCatalogId, suggestProviderSlug } from "@/lib/catalog-copy";
 
@@ -106,7 +106,8 @@ export function CreateProviderDialog({
               title="确认接入提供商"
               description="密钥不会在这一步填写。创建后到详情页轮换凭据。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/providers`, {
                   method: "POST",
                   credentials: "include",
@@ -122,14 +123,19 @@ export function CreateProviderDialog({
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "创建失败");
-                  return;
+                  return false;
                 }
                 form.reset({ name: "", slug: "", kind: "direct", adapter: "openai", base_url: "" });
                 previousSlug.current = "";
                 await queryClient.invalidateQueries();
                 onOpenChange(false);
                 router.push(providerHref(String(body.item?.slug || body.item?.id || values.slug)));
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               创建
             </ConfirmButton>

@@ -12,7 +12,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { chartPalette, dailyChartOption, requestChartOption } from "@/lib/charts";
 import { type UsageEvent, groupUsageByDay, groupUsageByModel } from "@/lib/usage";
@@ -46,7 +46,8 @@ export default function AdminUsagePage() {
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("待对账必须按真实 usage 回放，禁止按估算扣款。");
 
-  async function replay() {
+  async function replay(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/usage/replay`, {
       method: "POST",
       credentials: "include",
@@ -58,7 +59,13 @@ export default function AdminUsagePage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已回放 ${body.item?.usage_event_id || requestID} → ${body.item?.state}` : body.error?.message || "回放失败");
-  }
+    const __ok = res.ok;
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   const listPath = statementListPath({
     apiKeyId: apiKeyID,

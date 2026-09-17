@@ -7,7 +7,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { canWrite } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
 
@@ -47,6 +47,7 @@ export function ChannelModelsPanel({ channelID }: { channelID: string }) {
               title="确认授权平台模型"
               description="只会开关平台目录中已有的模型，不会创建提供商或新模型。"
               onConfirm={async () => {
+                    try {
                 const res = await fetch(`${apiBase}/admin/channels/${channelID}/models`, {
                   method: "PATCH",
                   credentials: "include",
@@ -58,12 +59,17 @@ export function ChannelModelsPanel({ channelID }: { channelID: string }) {
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "保存失败");
-                  return;
+                  return false;
                 }
                 setMessage(`已按平台目录更新白名单，共 ${body.items?.length ?? 0} 个模型`);
                 setGranting(false);
                 await queryClient.invalidateQueries({ queryKey: ["/admin/channels", channelID, "models"] });
-              }}
+                    return true;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
             >
               保存白名单
             </ConfirmButton>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan, IfRoles } from "@/components/rbac/if-can";
 
@@ -78,7 +78,8 @@ export default function AdminSettingsPage() {
     setTotpMessage("已启用。共享管理员账户请立即关闭，否则后续写操作均需提供 TOTP。");
   }
 
-  async function disable2FA(code: string) {
+  async function disable2FA(code: string): Promise<boolean> {
+    try {
     const headers: Record<string, string> = { ...confirmHeaders };
     if (code) {
       headers["X-Tokenhub-TOTP"] = code;
@@ -92,14 +93,19 @@ export default function AdminSettingsPage() {
     const body = await res.json();
     if (!res.ok) {
       setTotpMessage(body.error?.message || "关闭失败");
-      return;
+      return false;
     }
     setTotpCode("");
     setTotpStatus(String(body.status || "disabled"));
     setTotpSecret("");
     setTotpURL("");
     setTotpMessage("已关闭 2FA。敏感写操作不再要 TOTP。");
-  }
+    return true;
+    } catch {
+      setTotpMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
   function setLocale(locale: string) {
     if (locale === "auto") {
       document.cookie = "NEXT_LOCALE=; path=/; max-age=0";
@@ -120,7 +126,8 @@ export default function AdminSettingsPage() {
     setPending(String(body.thresholds?.pending_count ?? 1));
     setMessage("已读取告警阈值");
   }
-  async function saveThresholds() {
+  async function saveThresholds(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/ops/thresholds`, {
       method: "PATCH",
       credentials: "include",
@@ -134,10 +141,15 @@ export default function AdminSettingsPage() {
     const body = await res.json();
     if (!res.ok) {
       setMessage(body.error?.message || "保存失败");
-      return;
+      return false;
     }
     setMessage(`已保存：成功率 < ${body.thresholds?.success_rate_min} 且请求 ≥ ${body.thresholds?.min_requests}`);
-  }
+    return true;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
@@ -426,6 +438,7 @@ export default function AdminSettingsPage() {
             title="确认签发证书"
             description="沙箱域名只标 issued。已配置 Cloudflare 的公网形态域名会登记 Custom Hostname。Pebble 仅本地演练 RFC 8555。"
             onConfirm={async () => {
+                    try {
               const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
                 method: "POST",
                 credentials: "include",
@@ -438,7 +451,12 @@ export default function AdminSettingsPage() {
                   ? `已签发 ${body.item?.id} → ${body.item?.tls_status} / ${body.item?.cname_target} / ${body.item?.tls_issuer || "sandbox"}`
                   : body.error?.message || "签发失败",
               );
-            }}
+                    return true;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
           >
             签发证书
           </ConfirmButton>

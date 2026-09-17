@@ -12,7 +12,7 @@ import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { CreateModelDialog } from "./create-dialog";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { type AdminModel, modelEditHref, vendorLabel } from "@/lib/catalog";
 import { catalogStatusTone, formatProviderSlugs, modelStatusLabel, syncStateLabel } from "@/lib/catalog-admin";
 import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
@@ -48,7 +48,8 @@ export default function AdminModelsPage() {
   });
   const items = query.data?.items ?? [];
 
-  async function review(id: string, action: "approve" | "reject") {
+  async function review(id: string, action: "approve" | "reject"): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/models/review`, {
       method: "POST",
       credentials: "include",
@@ -57,10 +58,17 @@ export default function AdminModelsPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已${action === "approve" ? "通过" : "拒绝"} ${body.item?.id}` : body.error?.message || "审核失败");
+    const __ok = res.ok;
     await queryClient.invalidateQueries();
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
-  async function publish(id: string) {
+  async function publish(id: string): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/models/publish`, {
       method: "POST",
       credentials: "include",
@@ -69,8 +77,14 @@ export default function AdminModelsPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已发布 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "发布失败");
+    const __ok = res.ok;
     await queryClient.invalidateQueries();
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   const createButton = (
     <IfCan action="models.write">

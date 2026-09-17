@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { fetchListItems } from "@/lib/list-resource";
 
 type ChannelKey = {
@@ -68,6 +68,7 @@ export default function ChannelKeys() {
                   title={t("confirmDisableKey")}
                   description={t("confirmDisableKeyD")}
                   onConfirm={async () => {
+                    try {
                     const response = await fetch(`${apiBase}/channel/api-keys/${item.id}/disable`, {
                       method: "POST",
                       credentials: "include",
@@ -77,11 +78,16 @@ export default function ChannelKeys() {
                     const body = await response.json();
                     if (!response.ok) {
                       setMessage(body.error?.message || t("needAdmin"));
-                      return;
+                      return false;
                     }
                     setMessage(t("disabledKey", { id: body.item?.id || item.id, status: body.item?.status || "disabled" }));
                     await list.reload();
-                  }}
+                    return true;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
                 >
                   {t("disableKey")}
                 </ConfirmButton>

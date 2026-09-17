@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ConfirmButton } from "@/components/confirm-button";
+import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { AdminShell } from "../../shell";
 import { ProbeCell } from "../probe-cell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { modelEditHref, vendorLabel } from "@/lib/catalog";
 import { CATALOG_LABEL } from "@/lib/catalog-copy";
 import { AdminH2 } from "@/components/admin-h2";
@@ -134,7 +134,8 @@ export default function AdminProviderDetailPage() {
                   title="确认保存提供商"
                   description="维护中会从路由拿掉。不要改 echo-primary / echo-backup / gemini-flash。"
                   validate={() => form.trigger()}
-                  onConfirm={form.handleSubmit(async (values) => {
+                  onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                    try {
                     const payload: Record<string, unknown> = {
                       name: values.name,
                       kind: values.kind,
@@ -156,12 +157,17 @@ export default function AdminProviderDetailPage() {
                     const body = await res.json();
                     if (!res.ok) {
                       setMessage(body.error?.message || "保存失败");
-                      return;
+                      return false;
                     }
                     setMessage(`已保存 ${body.item?.slug || body.item?.id} → ${providerStatusLabel(body.item?.status)}`);
                     setEditing(false);
                     await queryClient.invalidateQueries({ queryKey: ["/admin/providers", routeID] });
-                  })}
+                    return true;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+})}
                 >
                   保存提供商
                 </ConfirmButton>
@@ -348,6 +354,7 @@ function SyncProviderPanel({ providerID }: { providerID: string }) {
           title="确认同步上游"
           description="同步结果只进入 draft，不会自动上架。"
           onConfirm={async () => {
+                    try {
             const res = await fetch(`${apiBase}/admin/providers/${providerID}/sync`, {
               method: "POST",
               credentials: "include",
@@ -357,12 +364,17 @@ function SyncProviderPanel({ providerID }: { providerID: string }) {
             const body = await res.json();
             if (!res.ok) {
               setMessage(body.error?.message || "同步失败");
-              return;
+              return false;
             }
             const count = Array.isArray(body.item?.items) ? body.item.items.length : 0;
             setMessage(`已同步 ${count} 条草稿`);
             await queryClient.invalidateQueries();
-          }}
+                    return true;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
         >
           同步上游
         </ConfirmButton>
@@ -395,7 +407,8 @@ function RotateCredentialForm({ providerID }: { providerID: string }) {
               title="确认轮换凭据"
               description="旧密文立即标记 rotated。响应不会回显明文。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/providers/${providerID}/credentials`, {
                   method: "POST",
                   credentials: "include",
@@ -405,12 +418,17 @@ function RotateCredentialForm({ providerID }: { providerID: string }) {
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "轮换失败");
-                  return;
+                  return false;
                 }
                 form.reset({ secret: "" });
                 setMessage("已轮换，凭据状态变为已配置。");
                 await queryClient.invalidateQueries();
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               轮换凭据
             </ConfirmButton>
@@ -461,7 +479,8 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerID]);
 
-  async function patch(accountID: string, payload: Record<string, unknown>, okText: string) {
+  async function patch(accountID: string, payload: Record<string, unknown>, okText: string): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/providers/${providerID}/accounts/${accountID}`, {
       method: "PATCH",
       credentials: "include",
@@ -471,12 +490,17 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
     const body = await res.json();
     if (!res.ok) {
       setMessage(body.error?.message || "更新失败");
-      return;
+      return false;
     }
     await load();
     setMessage(`${okText} ${body.item?.fingerprint || accountID} → ${body.item?.status}`);
     await queryClient.invalidateQueries();
-  }
+    return true;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
@@ -536,7 +560,8 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
               title="确认添加账号"
               description="列表只显示指纹，不会回显密文。"
               validate={() => addForm.trigger()}
-              onConfirm={addForm.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(addForm.handleSubmit, async (values) => {
+                try {
                 const res = await fetch(`${apiBase}/admin/providers/${providerID}/accounts`, {
                   method: "POST",
                   credentials: "include",
@@ -546,16 +571,21 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "添加失败");
-                  return;
+                  return false;
                 }
                 if (body.item?.secret || body.item?.ciphertext) {
                   setMessage("添加响应泄漏了密文");
-                  return;
+                  return false;
                 }
                 addForm.reset({ label: "primary", secret: "" });
                 await load(providerID);
                 setMessage(`已添加，指纹 ${body.item?.fingerprint || ""}`);
-              })}
+                return true;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               添加账号
             </ConfirmButton>

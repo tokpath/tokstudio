@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Badge } from "@/components/ui/badge";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { useState } from "react";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -44,6 +44,7 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
         title="紧急停用在线支付"
         description="用户将看不到该渠道已开通的在线支付按钮。已填凭证保留。"
         onConfirm={async () => {
+                    try {
           const res = await fetch(`${apiBase}/admin/channels/${channelID}/payments/disable`, {
             method: "POST",
             credentials: "include",
@@ -52,7 +53,13 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
           });
           const body = await res.json();
           setMessage(res.ok ? "已停用该渠道在线支付" : body.error?.message || "操作失败");
-        }}
+                    const __ok = res.ok;
+                    return __ok;
+                    } catch {
+                      setMessage(confirmNetworkUnavailable);
+                      return false;
+                    }
+}}
       >
         紧急停用在线支付
       </ConfirmButton>

@@ -10,7 +10,7 @@ afterEach(() => {
 
 describe("SealConfirm", () => {
   it("keeps the trigger label and confirms with a seal, not a lightweight dialog", async () => {
-    const onConfirm = vi.fn();
+    const onConfirm = vi.fn(async () => true);
     render(
       withZh(
         <SealConfirm title="新牌价只约束之后的请求，已入账金额不会改写。" description="当前 published 会标成 superseded。" onConfirm={onConfirm}>
@@ -31,6 +31,7 @@ describe("SealConfirm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "盖章确认" }));
     await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText("SEAL")).toBeNull());
   });
 
   it("does not open the seal when validate fails", () => {

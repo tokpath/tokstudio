@@ -6,7 +6,7 @@ import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { IfCan } from "@/components/rbac/if-can";
 
 type Supplier = {
@@ -63,11 +63,12 @@ export function AdminSupplierPanel({ channelID }: { channelID?: string }) {
     setMessage(`供应商支出 ${next.length} 条`);
   }
 
-  async function record() {
+  async function record(): Promise<boolean> {
+    try {
     const amount = usdToMinor(usd);
     if (!amount) {
       setMessage("请填写正数金额（USD）");
-      return;
+      return false;
     }
     const res = await fetch(`${apiBase}/admin/supplier-entries`, {
       method: "POST",
@@ -83,10 +84,17 @@ export function AdminSupplierPanel({ channelID }: { channelID?: string }) {
     });
     const body = await res.json();
     setMessage(res.ok ? `已记账 ${body.item?.id}` : body.error?.message || "记账失败");
+    const __ok = res.ok;
     if (res.ok) await load();
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
-  async function reverse(id: string) {
+  async function reverse(id: string): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/supplier-entries/${encodeURIComponent(id)}/reverse`, {
       method: "POST",
       credentials: "include",
@@ -95,8 +103,14 @@ export function AdminSupplierPanel({ channelID }: { channelID?: string }) {
     });
     const body = await res.json();
     setMessage(res.ok ? `已冲正 ${body.item?.id}` : body.error?.message || "冲正失败");
+    const __ok = res.ok;
     if (res.ok) await load();
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">

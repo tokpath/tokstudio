@@ -6,7 +6,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
@@ -22,7 +22,8 @@ export default function AdminAlertsPage() {
   });
   const items = query.data?.items ?? [];
 
-  async function evaluate() {
+  async function evaluate(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/admin/ops/alerts/evaluate`, {
       method: "POST",
       credentials: "include",
@@ -30,8 +31,14 @@ export default function AdminAlertsPage() {
     });
     const body = await res.json();
     setMessage(res.ok ? `已评估 ${body.items?.length ?? 0} 条告警` : body.error?.message || "评估失败");
+    const __ok = res.ok;
     await queryClient.invalidateQueries({ queryKey: ["/admin/ops/alerts"] });
-  }
+    return __ok;
+    } catch {
+      setMessage(confirmNetworkUnavailable);
+      return false;
+    }
+}
 
   return (
     <AdminShell>

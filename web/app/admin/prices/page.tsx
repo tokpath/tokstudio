@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { confirmFormSubmit } from "@/components/confirm-button";
 import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
 import { Form } from "@/components/ui/form";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
@@ -90,7 +91,8 @@ export default function AdminPricesPage() {
               title="新牌价只约束之后的请求，已入账金额不会改写。"
               description="当前 published 会标成 superseded。历史版本保持只读快照。"
               validate={() => form.trigger()}
-              onConfirm={form.handleSubmit(async (values) => {
+              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
+                try {
                 let payload: Record<string, unknown>;
                 try {
                   payload = {
@@ -112,7 +114,7 @@ export default function AdminPricesPage() {
                   }
                 } catch (err) {
                   setMessage(err instanceof Error ? err.message : "单价无效");
-                  return;
+                  return false;
                 }
                 const res = await fetch(`${apiBase}/admin/price-books`, {
                   method: "POST",
@@ -122,7 +124,12 @@ export default function AdminPricesPage() {
                 });
                 const body = await res.json();
                 setMessage(res.ok ? `已发布 ${publishedPriceLabel(body.price, values.model)}` : body.error?.message || "发布失败");
-              })}
+                return res.ok;
+                } catch {
+                  setMessage(confirmNetworkUnavailable);
+                  return false;
+                }
+})}
             >
               发布价格
             </SealConfirm>

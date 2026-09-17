@@ -101,7 +101,8 @@ export default function ChannelRules() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function savePolicy() {
+  async function savePolicy(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/channel/commission-policy`, {
       method: "PATCH",
       credentials: "include",
@@ -116,10 +117,17 @@ export default function ChannelRules() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("savedPolicy", { v: body.policy?.version || "" }) : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) await refresh();
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
-  async function saveEligibility() {
+  async function saveEligibility(): Promise<boolean> {
+    try {
     const res = await fetch(`${apiBase}/channel/eligibility-rules`, {
       method: "PATCH",
       credentials: "include",
@@ -132,8 +140,14 @@ export default function ChannelRules() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("savedEligibility") : body.error?.message || t("needAdmin"));
+    const __ok = res.ok;
     if (res.ok) await refresh();
-  }
+    return __ok;
+    } catch {
+      setMessage(tc("listNetwork"));
+      return false;
+    }
+}
 
   if (!ready) {
     return <p className="text-sm text-ink-secondary">{t("rulesLoading")}</p>;

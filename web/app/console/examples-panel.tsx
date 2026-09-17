@@ -75,7 +75,7 @@ export default function ExamplesPanel({
   if (!catalogOk) {
     return (
       <div data-testid="model-entry-error" data-reason="catalog" role="alert">
-        <EmptyLedger title={t("examplesFail")} detail={catalogMessage} />
+        <EmptyLedger title={t("examplesFail")} detail={catalogMessage || t("examplesHint")} />
         <Button asChild variant="outline" size="sm" className="mt-3">
           <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
         </Button>

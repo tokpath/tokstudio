@@ -412,7 +412,7 @@ export default function MediaPanel({
         <div className="mb-3" data-testid="model-entry-error" data-reason={!catalogOk ? "catalog" : modelError} role="alert">
           <EmptyLedger
             title={!catalogOk ? tc("listFailed") : modelError === "unavailable" ? t("pgModelUnavailable") : t("pgModelMissing")}
-            detail={!catalogOk ? catalogMessage || tc("listNetwork") : modelError === "unavailable" ? t("pgModelUnavailableDetail", { id: initialModel }) : t("pgModelMissingDetail")}
+            detail={!catalogOk ? catalogMessage || tc("listNetwork") : modelError === "unavailable" ? t("pgModelUnavailableDetail", { id: initialModel || "" }) : t("pgModelMissingDetail")}
           />
           <Button asChild variant="outline" size="sm" className="mt-2">
             <Link href={catalogHref}>{t("pgBackCatalog")}</Link>

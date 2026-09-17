@@ -729,6 +729,12 @@ paths:
       responses:
         "200":
           description: current user media jobs
+  /v1/me/requests:
+    get:
+      operationId: listMyRequests
+      responses:
+        "200":
+          description: current-user gateway requests with billing overlay
   /v1/videos:
     post:
       operationId: createVideo

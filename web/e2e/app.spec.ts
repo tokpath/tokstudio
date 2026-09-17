@@ -181,12 +181,33 @@ test("usage summary carries filters into activity", async ({ page }) => {
       body: JSON.stringify({
         items: [
           {
-            id: "usg_fail",
+            id: "usg_ok",
+            request_id: "req_ok",
+            state: "confirmed",
+            public_model_id: "tokenhub/echo-1",
+            customer_amount_minor: 26,
+            occurred_at: "2026-09-16T00:00:00.000Z",
+          },
+        ],
+        keys: [],
+        models: [{ key: "tokenhub/echo-1" }],
+      }),
+    });
+  });
+  await page.route("**/v1/me/requests**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "req_fail",
             request_id: "req_fail",
-            state: "failed",
+            result: "failed",
+            error_code: "rate_limited",
             public_model_id: "tokenhub/echo-1",
             customer_amount_minor: 0,
-            occurred_at: "2026-09-16T01:00:00.000Z",
+            started_at: "2026-09-16T01:00:00.000Z",
           },
         ],
         keys: [],
@@ -199,50 +220,51 @@ test("usage summary carries filters into activity", async ({ page }) => {
   await expect(page.getByRole("link", { name: "查看请求明细" })).toHaveAttribute("href", "/app/activity?model=tokenhub%2Fecho-1");
   await page.getByRole("link", { name: "查看请求明细" }).click();
   await expect(page).toHaveURL(/\/app\/activity\?model=tokenhub%2Fecho-1/);
-  await expect(page.getByLabel("结果")).toBeVisible();
-  await page.getByLabel("结果").selectOption("failed");
-  await expect(page).toHaveURL(/status=failed/);
+  await expect(page.getByLabel("请求结果")).toBeVisible();
+  await expect(page.getByLabel("计费状态")).toBeVisible();
+  await page.getByLabel("请求结果").selectOption("failed");
+  await expect(page).toHaveURL(/result=failed/);
   await expect(page).toHaveURL(/model=tokenhub%2Fecho-1/);
   await page.getByRole("button", { name: "查看详情" }).first().click();
   await expect(page.getByText("req_fail")).toBeVisible();
-  await expect(page.getByText("这条记录没有单独的失败原因，只保留了结果状态。")).toBeVisible();
+  await expect(page.getByText("rate_limited").first()).toBeVisible();
 });
 
 test("activity failed load stays failed and does not look empty", async ({ page }) => {
-  await page.route("**/v1/me/usage**", async (route) => {
+  await page.route("**/v1/me/requests**", async (route) => {
     await route.fulfill({
       status: 500,
       contentType: "application/json",
-      body: JSON.stringify({ error: { message: "usage upstream timeout" } }),
+      body: JSON.stringify({ error: { message: "gateway list timeout" } }),
     });
   });
   await page.goto("/app/activity");
   await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "error");
   await expect(page.getByText("加载失败")).toBeVisible();
-  await expect(page.getByText("usage upstream timeout")).toBeVisible();
+  await expect(page.getByText("gateway list timeout")).toBeVisible();
   await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
   await expect(page.getByText("还没有请求记录")).toHaveCount(0);
 });
 
 test("activity session loss keeps the return path", async ({ page }) => {
-  await page.route("**/v1/me/usage**", async (route) => {
+  await page.route("**/v1/me/requests**", async (route) => {
     await route.fulfill({
       status: 401,
       contentType: "application/json",
       body: JSON.stringify({ error: { code: "authentication_error", message: "未登录" } }),
     });
   });
-  await page.goto("/app/activity?status=failed");
+  await page.goto("/app/activity?result=failed");
   await expect(page.getByTestId("list-resource")).toHaveAttribute("data-list-phase", "unauthorized");
   await expect(page.getByRole("link", { name: "重新登录" })).toHaveAttribute(
     "href",
-    "/login?next=%2Fapp%2Factivity%3Fstatus%3Dfailed",
+    "/login?next=%2Fapp%2Factivity%3Fresult%3Dfailed",
   );
   await expect(page.getByText("还没有请求记录")).toHaveCount(0);
 });
 
 test("activity forbidden stays on the page without a relogin link", async ({ page }) => {
-  await page.route("**/v1/me/usage**", async (route) => {
+  await page.route("**/v1/me/requests**", async (route) => {
     await route.fulfill({
       status: 403,
       contentType: "application/json",
@@ -621,6 +643,7 @@ async function stubEmptyUserLists(page: Page) {
   await page.route("**/v1/me/balance**", (route) => fulfillJSON(route, 200, { balance: { available: "12.00", reserved: "0" } }));
   await page.route("**/v1/me/api-keys**", (route) => fulfillJSON(route, 200, { items: [] }));
   await page.route("**/v1/me/usage**", (route) => fulfillJSON(route, 200, { items: [], keys: [], models: [] }));
+  await page.route("**/v1/me/requests**", (route) => fulfillJSON(route, 200, { items: [], keys: [], models: [] }));
 }
 
 test("user shell shows real available balance and profile dropdown", async ({ page }) => {

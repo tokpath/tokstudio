@@ -209,6 +209,8 @@ func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageVi
 	}
 	if in.RequestID != "" {
 		q = q.Where("request_id = ?", in.RequestID)
+	} else if len(in.RequestIDs) > 0 {
+		q = q.Where("request_id IN ?", in.RequestIDs)
 	}
 	if !in.Since.IsZero() {
 		q = q.Where("occurred_at >= ?", in.Since.UTC())

@@ -1,4 +1,4 @@
-/** 请求明细筛选：只写用户台 URL，再映射到 GET /v1/me/usage。 */
+/** 请求明细筛选：只写用户台 URL，再映射到 GET /v1/me/requests。 */
 
 export const ACTIVITY_PATH = "/app/activity";
 export const ACTIVITY_PAGE_SIZE = 100;
@@ -6,15 +6,33 @@ export const ACTIVITY_PAGE_SIZE = 100;
 export const ACTIVITY_RANGES = ["", "today", "7d", "30d", "custom"] as const;
 export type ActivityRange = (typeof ACTIVITY_RANGES)[number];
 
-export const ACTIVITY_STATES = ["failed", "confirmed", "pending", "voided", "pending_reconciliation"] as const;
+export const ACTIVITY_RESULTS = ["succeeded", "failed"] as const;
+export const ACTIVITY_BILLING_STATES = ["confirmed", "pending_reconciliation", "voided"] as const;
 
 export type ActivityQuery = {
   range?: ActivityRange;
   from?: string;
   to?: string;
   model?: string;
-  status?: string;
+  result?: string;
+  billing?: string;
   key?: string;
+};
+
+export type ActivityRequest = {
+  id: string;
+  request_id?: string;
+  public_model_id?: string;
+  api_key_id?: string;
+  result?: string;
+  billing_state?: string;
+  customer_amount_minor?: number;
+  error_code?: string;
+  http_status?: number;
+  started_at?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  reasoning_tokens?: number;
 };
 
 type SearchLike = { get: (name: string) => string | null };
@@ -22,12 +40,16 @@ type SearchLike = { get: (name: string) => string | null };
 export function parseActivitySearchParams(search: SearchLike): ActivityQuery {
   const rangeRaw = (search.get("range") || "").trim();
   const range = (ACTIVITY_RANGES as readonly string[]).includes(rangeRaw) ? (rangeRaw as ActivityRange) : "";
+  const legacy = textParam(search.get("status"));
+  const result = textParam(search.get("result")) || (isActivityResult(legacy) ? legacy : undefined);
+  const billing = textParam(search.get("billing")) || (isActivityBilling(legacy) ? legacy : undefined);
   return {
     range: range || undefined,
     from: dateParam(search.get("from")),
     to: dateParam(search.get("to")),
     model: textParam(search.get("model")),
-    status: textParam(search.get("status")),
+    result,
+    billing,
     key: textParam(search.get("key")),
   };
 }
@@ -38,14 +60,15 @@ export function activityHref(query: ActivityQuery = {}): string {
   if (query.from && query.range === "custom") params.set("from", query.from);
   if (query.to && query.range === "custom") params.set("to", query.to);
   if (query.model) params.set("model", query.model);
-  if (query.status) params.set("status", query.status);
+  if (query.result) params.set("result", query.result);
+  if (query.billing) params.set("billing", query.billing);
   if (query.key) params.set("key", query.key);
   const qs = params.toString();
   return qs ? `${ACTIVITY_PATH}?${qs}` : ACTIVITY_PATH;
 }
 
 export function hasActivityFilters(query: ActivityQuery): boolean {
-  return Boolean(query.range || query.from || query.to || query.model || query.status || query.key);
+  return Boolean(query.range || query.from || query.to || query.model || query.result || query.billing || query.key);
 }
 
 /** 模型 / API Key 下拉选项：合并维度汇总与当前页，去空去重，避免筛完只剩当前这一项。 */
@@ -95,7 +118,8 @@ export function activityApiQuery(query: ActivityQuery, now = new Date()): URLSea
   if (window.from) params.set("from", window.from);
   if (window.to) params.set("to", window.to);
   if (query.model) params.set("public_model_id", query.model);
-  if (query.status) params.set("state", query.status);
+  if (query.result) params.set("result", query.result);
+  if (query.billing) params.set("billing_state", query.billing);
   if (query.key) params.set("api_key_id", query.key);
   return params;
 }
@@ -119,4 +143,12 @@ function dateParam(raw: string | null): string | undefined {
 function textParam(raw: string | null): string | undefined {
   const value = (raw || "").trim();
   return value ? value : undefined;
+}
+
+function isActivityResult(value?: string): value is (typeof ACTIVITY_RESULTS)[number] {
+  return Boolean(value && (ACTIVITY_RESULTS as readonly string[]).includes(value));
+}
+
+function isActivityBilling(value?: string): value is (typeof ACTIVITY_BILLING_STATES)[number] {
+  return Boolean(value && (ACTIVITY_BILLING_STATES as readonly string[]).includes(value));
 }

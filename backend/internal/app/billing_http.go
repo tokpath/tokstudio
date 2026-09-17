@@ -250,6 +250,10 @@ func (a *App) getUsage(c *gin.Context) {
 	}
 	limit, _ := strconv.Atoi(c.Query("limit"))
 	in.Limit = limit
+	if state := strings.TrimSpace(c.Query("state")); state != "" && !billing.KnownUsageState(state) {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账务状态无效", false)
+		return
+	}
 	items, err := a.Billing.QueryUsage(c.Request.Context(), in)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)

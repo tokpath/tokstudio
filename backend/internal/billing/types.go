@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -98,6 +99,15 @@ const (
 	SupplierRecharge = "platform_recharge"
 	SupplierOther    = "other"
 )
+
+func KnownUsageState(state string) bool {
+	switch strings.TrimSpace(state) {
+	case UsageConfirmed, UsagePending, UsageVoided:
+		return true
+	default:
+		return false
+	}
+}
 
 type ReserveInput struct {
 	UserID         string          `json:"user_id"`
@@ -210,6 +220,7 @@ type QueryUsageInput struct {
 	ChannelOrgID  string
 	PublicModelID string
 	RequestID     string
+	RequestIDs    []string
 	State         string
 	Since         time.Time
 	Until         time.Time

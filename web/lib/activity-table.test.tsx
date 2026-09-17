@@ -34,30 +34,34 @@ describe("ActivityTable", () => {
         json: async () => ({
           items: [
             {
-              id: "usg_1",
+              id: "req_tiny",
               request_id: "req_tiny",
-              state: "confirmed",
+              result: "succeeded",
+              billing_state: "confirmed",
               customer_amount_minor: 26,
               public_model_id: "tokenhub/echo-1",
               api_key_id: "key_alpha",
               prompt_tokens: 12,
               completion_tokens: 4,
-              occurred_at: "2026-09-16T00:00:00.000Z",
+              started_at: "2026-09-16T00:00:00.000Z",
             },
             {
-              id: "usg_2",
+              id: "req_fail",
               request_id: "req_fail",
-              state: "failed",
+              result: "failed",
+              error_code: "rate_limited",
               customer_amount_minor: 0,
               public_model_id: "tokenhub/echo-1",
-              occurred_at: "2026-09-16T01:00:00.000Z",
+              started_at: "2026-09-16T01:00:00.000Z",
             },
             {
-              id: "usg_3",
-              request_id: "req_mystery",
-              state: "weird_internal_code",
-              customer_amount_minor: 1_000_000,
+              id: "req_void",
+              request_id: "req_void",
+              result: "succeeded",
+              billing_state: "voided",
+              customer_amount_minor: 0,
               public_model_id: "tokenhub/other",
+              started_at: "2026-09-16T02:00:00.000Z",
             },
           ],
         }),
@@ -65,30 +69,33 @@ describe("ActivityTable", () => {
     );
   });
 
-  it("keeps the default table to time, model, result, fee, and details", async () => {
+  it("keeps request result and billing state in separate columns", async () => {
     render(withZh(<ActivityTable />));
     await waitFor(() => expect(screen.getByText("小于 $0.01")).toBeTruthy());
     expect(screen.getByRole("columnheader", { name: "时间" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "模型" })).toBeTruthy();
-    expect(screen.getByRole("columnheader", { name: "结果" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "请求结果" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "计费状态" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "金额" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "失败原因" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "查看详情" })).toBeTruthy();
-    expect(screen.queryByRole("columnheader", { name: "输入" })).toBeNull();
-    expect(screen.queryByRole("columnheader", { name: "API Key" })).toBeNull();
-    expect(screen.getAllByText("已确认").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("成功").length).toBeGreaterThan(0);
     expect(screen.getAllByText("失败").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("未知状态（weird_internal_code）").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("已确认").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("已作废").length).toBeGreaterThan(0);
+    expect(screen.getByText("rate_limited")).toBeTruthy();
     expect(screen.queryByText("req_tiny")).toBeNull();
   });
 
-  it("writes status filters into the URL and opens failure details", async () => {
+  it("writes request-result filters into the URL and opens failure details", async () => {
     render(withZh(<ActivityTable />));
-    await waitFor(() => expect(screen.getByLabelText("结果")).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("结果"), { target: { value: "failed" } });
-    expect(nav.replace).toHaveBeenCalledWith("/app/activity?status=failed", { scroll: false });
+    await waitFor(() => expect(screen.getByLabelText("请求结果")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("请求结果"), { target: { value: "failed" } });
+    expect(nav.replace).toHaveBeenCalledWith("/app/activity?result=failed", { scroll: false });
     fireEvent.click(screen.getAllByRole("button", { name: "查看详情" })[1]);
     await waitFor(() => expect(screen.getByText("req_fail")).toBeTruthy());
-    expect(screen.getByText("这条记录没有单独的失败原因，只保留了结果状态。")).toBeTruthy();
+    expect(screen.getAllByText("rate_limited").length).toBeGreaterThan(0);
+    expect(screen.getByText("这次请求没有对应的账务事件。")).toBeTruthy();
     expect(screen.getByText("列表最多显示符合筛选的最近 100 条，不是完整周期账单。")).toBeTruthy();
   });
 
@@ -99,9 +106,10 @@ describe("ActivityTable", () => {
       json: async () => ({
         items: [
           {
-            id: "usg_3",
+            id: "req_other",
             request_id: "req_other",
-            state: "confirmed",
+            result: "succeeded",
+            billing_state: "confirmed",
             customer_amount_minor: 1_000_000,
             public_model_id: "tokenhub/other",
             api_key_id: "key_beta",
@@ -132,19 +140,22 @@ describe("ActivityTable", () => {
     expect(screen.getByText("4")).toBeTruthy();
   });
 
-  it("sends URL filters to the usage API", async () => {
-    nav.search = "status=failed&model=tokenhub%2Fecho-1";
+  it("sends URL filters to the requests API", async () => {
+    nav.search = "result=failed&billing=voided&model=tokenhub%2Fecho-1";
     render(withZh(<ActivityTable />));
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThan(0));
     const url = String(vi.mocked(fetch).mock.calls[0]?.[0]);
-    expect(url).toContain("state=failed");
+    expect(url).toContain("/v1/me/requests?");
+    expect(url).toContain("result=failed");
+    expect(url).toContain("billing_state=voided");
+    expect(url).not.toContain("state=failed");
     expect(url).toContain("public_model_id=tokenhub%2Fecho-1");
     expect(url).toContain("limit=100");
   });
 
   it("keeps activity filters on the relogin link after a 401", async () => {
-    nav.search = "status=failed";
-    window.history.replaceState({}, "", "/app/activity?status=failed");
+    nav.search = "result=failed";
+    window.history.replaceState({}, "", "/app/activity?result=failed");
     vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 401,
@@ -152,7 +163,7 @@ describe("ActivityTable", () => {
     } as Response);
     render(withZh(<ActivityTable />));
     const link = await waitFor(() => screen.getByRole("link", { name: "重新登录" }));
-    expect(link.getAttribute("href")).toBe("/login?next=%2Fapp%2Factivity%3Fstatus%3Dfailed");
+    expect(link.getAttribute("href")).toBe("/login?next=%2Fapp%2Factivity%3Fresult%3Dfailed");
     expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
   });
 

@@ -345,6 +345,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/v1/me/media"
   },
   {
+    "method": "GET",
+    "path": "/v1/me/requests"
+  },
+  {
     "method": "POST",
     "path": "/v1/videos"
   },

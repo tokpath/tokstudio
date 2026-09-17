@@ -1,17 +1,20 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
@@ -36,6 +39,7 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/chat/completions", a.requireAPIKey(), a.chatCompletions)
 	r.POST("/v1/responses", a.requireAPIKey(), a.responses)
 	r.POST("/v1/messages", a.requireAPIKey(), a.messages)
+	r.GET("/v1/me/requests", a.requireUserOrKey(), a.listMyRequests)
 	r.GET("/v1/requests/:id/attempts", a.requireAPIKey(), a.listAttempts)
 	r.GET("/admin/providers", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviders)
 	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
@@ -460,6 +464,149 @@ func anthropicContent(resp gateway.ChatResponse) []gin.H {
 			input = call.Function.Arguments
 		}
 		out = append(out, gin.H{"type": "tool_use", "id": call.ID, "name": call.Function.Name, "input": input})
+	}
+	return out
+}
+
+func (a *App) listMyRequests(c *gin.Context) {
+	userID, _ := a.billingUser(c)
+	if userID == "" {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+		return
+	}
+	result := strings.TrimSpace(c.Query("result"))
+	if result != "" && !gateway.KnownRequestResult(result) {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求结果无效", false)
+		return
+	}
+	billingState := strings.TrimSpace(c.Query("billing_state"))
+	if billingState != "" && !billing.KnownUsageState(billingState) {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账务状态无效", false)
+		return
+	}
+	in := gateway.QueryRequestsInput{
+		UserID:        userID,
+		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
+		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
+		Status:        result,
+		Since:         parseQueryTime(c.Query("from")),
+		Until:         parseQueryTime(c.Query("to")),
+	}
+	if k := a.currentAPIKey(c); k != nil {
+		in.UserID = k.UserID
+		in.APIKeyID = k.APIKeyID
+	}
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	in.Limit = limit
+	if billingState != "" {
+		usages, err := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
+			UserID:        in.UserID,
+			APIKeyID:      in.APIKeyID,
+			PublicModelID: in.PublicModelID,
+			State:         billingState,
+			Since:         in.Since,
+			Until:         in.Until,
+			Limit:         200,
+		})
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
+			return
+		}
+		ids := make([]string, 0, len(usages))
+		seen := map[string]struct{}{}
+		for _, usage := range usages {
+			if usage.RequestID == "" {
+				continue
+			}
+			if _, ok := seen[usage.RequestID]; ok {
+				continue
+			}
+			seen[usage.RequestID] = struct{}{}
+			ids = append(ids, usage.RequestID)
+		}
+		in.RequestIDs = ids
+	}
+	items, err := a.Gateway.ListRequests(c.Request.Context(), in)
+	if err != nil {
+		if errors.Is(err, gateway.ErrUserRequired) {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取请求失败", true)
+		return
+	}
+	receipts, err := a.attachRequestBilling(c.Request.Context(), in.UserID, in.APIKeyID, items)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取请求失败", true)
+		return
+	}
+	models, _ := a.Gateway.ListRequestFilterKeys(c.Request.Context(), in.UserID, in.APIKeyID, "model")
+	keys, _ := a.Gateway.ListRequestFilterKeys(c.Request.Context(), in.UserID, in.APIKeyID, "api_key")
+	httpx.OK(c, gin.H{
+		"items": receipts, "keys": dimKeys(keys), "models": dimKeys(models),
+		"request_id": c.GetString(httpx.ContextRequestID),
+	})
+}
+
+type requestReceiptView struct {
+	ID                  string    `json:"id"`
+	RequestID           string    `json:"request_id"`
+	PublicModelID       string    `json:"public_model_id"`
+	APIKeyID            string    `json:"api_key_id,omitempty"`
+	Result              string    `json:"result"`
+	BillingState        string    `json:"billing_state,omitempty"`
+	CustomerAmountMinor int64     `json:"customer_amount_minor"`
+	ErrorCode           string    `json:"error_code,omitempty"`
+	HTTPStatus          int       `json:"http_status,omitempty"`
+	StartedAt           time.Time `json:"started_at"`
+	PromptTokens        int64     `json:"prompt_tokens,omitempty"`
+	CompletionTokens    int64     `json:"completion_tokens,omitempty"`
+	ReasoningTokens     int64     `json:"reasoning_tokens,omitempty"`
+}
+
+func (a *App) attachRequestBilling(ctx context.Context, userID, apiKeyID string, items []gateway.RequestView) ([]requestReceiptView, error) {
+	out := make([]requestReceiptView, 0, len(items))
+	ids := make([]string, 0, len(items))
+	for _, item := range items {
+		ids = append(ids, item.RequestID)
+	}
+	usageByReq := map[string]billing.UsageView{}
+	if len(ids) > 0 {
+		usages, err := a.Billing.QueryUsage(ctx, billing.QueryUsageInput{
+			UserID: userID, APIKeyID: apiKeyID, RequestIDs: ids, Limit: 200,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, usage := range usages {
+			if _, ok := usageByReq[usage.RequestID]; ok {
+				continue
+			}
+			usageByReq[usage.RequestID] = usage
+		}
+	}
+	for _, item := range items {
+		row := requestReceiptView{
+			ID: item.RequestID, RequestID: item.RequestID, PublicModelID: item.PublicModelID,
+			APIKeyID: item.APIKeyID, Result: item.Status, ErrorCode: item.ErrorCode,
+			HTTPStatus: item.HTTPStatus, StartedAt: item.StartedAt,
+		}
+		if usage, ok := usageByReq[item.RequestID]; ok {
+			row.BillingState = usage.State
+			row.CustomerAmountMinor = usage.CustomerMinor
+			row.PromptTokens = usage.PromptTokens
+			row.CompletionTokens = usage.CompletionTokens
+			row.ReasoningTokens = usage.ReasoningTokens
+		}
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func dimKeys(keys []string) []gin.H {
+	out := make([]gin.H, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, gin.H{"key": key})
 	}
 	return out
 }

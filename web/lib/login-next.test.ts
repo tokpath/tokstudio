@@ -12,7 +12,7 @@ describe("safeNextPath", () => {
   });
 
   it("keeps list filters on the login return path", () => {
-    expect(pagePathWithSearch("/app/activity", "status=failed")).toBe("/app/activity?status=failed");
-    expect(loginHref("/app/activity?status=failed")).toBe("/login?next=%2Fapp%2Factivity%3Fstatus%3Dfailed");
+    expect(pagePathWithSearch("/app/activity", "result=failed")).toBe("/app/activity?result=failed");
+    expect(loginHref("/app/activity?result=failed")).toBe("/login?next=%2Fapp%2Factivity%3Fresult%3Dfailed");
   });
 });

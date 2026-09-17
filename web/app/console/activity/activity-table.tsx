@@ -16,10 +16,12 @@ import {
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { useListResource } from "@/hooks/use-list-resource";
 import {
+  ACTIVITY_BILLING_STATES,
   ACTIVITY_PAGE_SIZE,
-  ACTIVITY_STATES,
+  ACTIVITY_RESULTS,
   type ActivityQuery,
   type ActivityRange,
+  type ActivityRequest,
   activityApiQuery,
   activityHref,
   dimFilterKeys,
@@ -32,7 +34,7 @@ import type { ListLoadResult } from "@/lib/list-resource";
 import { formatUsdMinor } from "@/lib/money";
 import { statusLabelKey, statusTone } from "@/lib/status-copy";
 import { copyText } from "@/lib/submit-result";
-import { formatUsageTime, shortKeyRef, uniqueModels, usageTokens, type UsageEvent } from "@/lib/usage";
+import { formatUsageTime, shortKeyRef } from "@/lib/usage";
 
 const selectClass = "h-10 min-w-[10rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
 
@@ -50,14 +52,14 @@ function useStatusText() {
   };
 }
 
-async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageEvent>> {
+async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<ActivityRequest>> {
   try {
-    const response = await fetch(`${apiBase}/v1/me/usage?${activityApiQuery(query).toString()}`, { credentials: "include" });
+    const response = await fetch(`${apiBase}/v1/me/requests?${activityApiQuery(query).toString()}`, { credentials: "include" });
     const body: unknown = await response.json().catch(() => ({}));
     const record =
       body && typeof body === "object"
         ? (body as {
-            items?: UsageEvent[];
+            items?: ActivityRequest[];
             models?: Array<{ key?: string }>;
             keys?: Array<{ key?: string }>;
             error?: { message?: string; code?: string };
@@ -65,11 +67,8 @@ async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageE
         : {};
     const items = Array.isArray(record.items) ? record.items : [];
     const extras = {
-      models: mergeFilterValues(dimFilterKeys(record.models), uniqueModels(items)),
-      keys: mergeFilterValues(
-        dimFilterKeys(record.keys),
-        items.map((row) => row.api_key_id),
-      ),
+      models: mergeFilterValues(dimFilterKeys(record.models), items.map((row) => row.public_model_id)),
+      keys: mergeFilterValues(dimFilterKeys(record.keys), items.map((row) => row.api_key_id)),
     };
     return {
       ok: response.ok,
@@ -84,7 +83,7 @@ async function loadActivity(query: ActivityQuery): Promise<ListLoadResult<UsageE
   }
 }
 
-/** 请求明细：默认列可定位失败；筛选写在 URL。 */
+/** 请求明细：网关回单；请求结果与账务状态分开筛选。 */
 export function ActivityTable() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
@@ -92,11 +91,11 @@ export function ActivityTable() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = useMemo(() => parseActivitySearchParams(searchParams), [searchParams]);
-  const [selected, setSelected] = useState<UsageEvent | null>(null);
+  const [selected, setSelected] = useState<ActivityRequest | null>(null);
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [keyOptions, setKeyOptions] = useState<string[]>([]);
   const load = useCallback(() => loadActivity(query), [query]);
-  const list = useListResource<UsageEvent>({
+  const list = useListResource<ActivityRequest>({
     queryKey: activityHref(query),
     load,
     onAccepted: (result) => {
@@ -115,12 +114,6 @@ export function ActivityTable() {
 
   const models = mergeFilterValues(modelOptions, [query.model]);
   const keys = mergeFilterValues(keyOptions, [query.key]);
-  const states: string[] = [...ACTIVITY_STATES];
-  for (const row of list.snapshot.items) {
-    if (row.state && !states.includes(row.state)) {
-      states.push(row.state);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -182,17 +175,33 @@ export function ActivityTable() {
           </select>
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-ink-mute">{t("filterStatus")}</span>
+          <span className="text-ink-mute">{t("filterResult")}</span>
           <select
             className={selectClass}
-            aria-label={t("filterStatus")}
-            value={query.status || ""}
-            onChange={(e) => write({ ...query, status: e.target.value || undefined })}
+            aria-label={t("filterResult")}
+            value={query.result || ""}
+            onChange={(e) => write({ ...query, result: e.target.value || undefined })}
           >
-            <option value="">{t("allStatuses")}</option>
-            {states.map((state) => (
-              <option key={state} value={state}>
-                {statusText(state)}
+            <option value="">{t("allResults")}</option>
+            {ACTIVITY_RESULTS.map((value) => (
+              <option key={value} value={value}>
+                {statusText(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-ink-mute">{t("filterBilling")}</span>
+          <select
+            className={selectClass}
+            aria-label={t("filterBilling")}
+            value={query.billing || ""}
+            onChange={(e) => write({ ...query, billing: e.target.value || undefined })}
+          >
+            <option value="">{t("allBilling")}</option>
+            {ACTIVITY_BILLING_STATES.map((value) => (
+              <option key={value} value={value}>
+                {statusText(value)}
               </option>
             ))}
           </select>
@@ -235,7 +244,7 @@ export function ActivityTable() {
             {
               id: "time",
               header: t("colTime"),
-              cell: (row) => <span className="text-xs text-ink-mute">{formatUsageTime(row.occurred_at)}</span>,
+              cell: (row) => <span className="text-xs text-ink-mute">{formatUsageTime(row.started_at)}</span>,
             },
             {
               id: "model",
@@ -245,7 +254,12 @@ export function ActivityTable() {
             {
               id: "result",
               header: t("colResult"),
-              cell: (row) => <Badge tone={statusTone(row.state)}>{statusText(row.state)}</Badge>,
+              cell: (row) => <Badge tone={statusTone(row.result)}>{statusText(row.result)}</Badge>,
+            },
+            {
+              id: "billing",
+              header: t("colBilling"),
+              cell: (row) => <Badge tone={statusTone(row.billing_state)}>{statusText(row.billing_state)}</Badge>,
             },
             {
               id: "amount",
@@ -253,6 +267,11 @@ export function ActivityTable() {
               cell: (row) => (
                 <span className="font-mono tabular-nums">{formatUsdMinor(row.customer_amount_minor, tc("lessThanCent"))}</span>
               ),
+            },
+            {
+              id: "reason",
+              header: t("colFailReason"),
+              cell: (row) => <span className="font-mono text-xs">{row.error_code || "—"}</span>,
             },
             {
               id: "details",
@@ -276,16 +295,15 @@ function RequestDetailDialog({
   onClose,
   statusText,
 }: {
-  row: UsageEvent | null;
+  row: ActivityRequest | null;
   onClose: () => void;
   statusText: (status?: string) => string;
 }) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const [copied, setCopied] = useState(false);
-  const tokens = row ? usageTokens(row) : { prompt: 0, completion: 0, reasoning: 0 };
   const requestId = row?.request_id || row?.id || "";
-  const failed = statusTone(row?.state) === "warn";
+  const failed = row?.result === "failed";
 
   return (
     <Dialog open={Boolean(row)} onOpenChange={(open) => !open && onClose()}>
@@ -296,12 +314,14 @@ function RequestDetailDialog({
         </DialogHeader>
         {row ? (
           <dl className="grid gap-3 text-sm">
-            <Detail term={t("colTime")} value={formatUsageTime(row.occurred_at)} />
-            <Detail term={t("colResult")} value={<Badge tone={statusTone(row.state)}>{statusText(row.state)}</Badge>} />
+            <Detail term={t("colTime")} value={formatUsageTime(row.started_at)} />
+            <Detail term={t("colResult")} value={<Badge tone={statusTone(row.result)}>{statusText(row.result)}</Badge>} />
+            <Detail term={t("colBilling")} value={<Badge tone={statusTone(row.billing_state)}>{statusText(row.billing_state)}</Badge>} />
             <Detail term={t("colAmount")} value={formatUsdMinor(row.customer_amount_minor, tc("lessThanCent"))} />
-            <Detail term={t("actPromptTokens")} value={String(tokens.prompt)} />
-            <Detail term={t("actCompletionTokens")} value={String(tokens.completion)} />
-            {tokens.reasoning ? <Detail term={t("actReasoningTokens")} value={String(tokens.reasoning)} /> : null}
+            <Detail term={t("colFailReason")} value={row.error_code || "—"} />
+            <Detail term={t("actPromptTokens")} value={String(row.prompt_tokens ?? 0)} />
+            <Detail term={t("actCompletionTokens")} value={String(row.completion_tokens ?? 0)} />
+            {row.reasoning_tokens ? <Detail term={t("actReasoningTokens")} value={String(row.reasoning_tokens)} /> : null}
             <Detail term={t("filterApiKey")} value={<span className="font-mono">{row.api_key_id || "—"}</span>} />
             <div className="flex flex-wrap items-center gap-2">
               <dt className="text-ink-mute">{tc("requestNo")}</dt>
@@ -318,7 +338,8 @@ function RequestDetailDialog({
                 {copied ? tc("copied") : tc("copy")}
               </Button>
             </div>
-            {failed ? <p className="text-sm text-ink-secondary">{t("actNoFailReason")}</p> : null}
+            {failed && !row.error_code ? <p className="text-sm text-ink-secondary">{t("actNoFailReason")}</p> : null}
+            {!row.billing_state ? <p className="text-sm text-ink-secondary">{t("actNoBilling")}</p> : null}
           </dl>
         ) : null}
       </DialogContent>

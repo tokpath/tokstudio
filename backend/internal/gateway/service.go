@@ -34,7 +34,23 @@ var (
 	ErrProviderUnavailable = errors.New("provider unavailable")
 	ErrInsufficientBalance = errors.New("insufficient balance")
 	ErrChannelDisabled     = errors.New("channel is disabled")
+	ErrUserRequired        = errors.New("user id required")
 )
+
+const (
+	RequestStarted   = "started"
+	RequestSucceeded = "succeeded"
+	RequestFailed    = "failed"
+)
+
+func KnownRequestResult(status string) bool {
+	switch strings.TrimSpace(status) {
+	case RequestStarted, RequestSucceeded, RequestFailed:
+		return true
+	default:
+		return false
+	}
+}
 
 // ChannelGuard 由 identity 实现。网关只问渠道能不能接新消费，不读身份表。
 type ChannelGuard interface {
@@ -93,6 +109,31 @@ type AttemptView struct {
 	CompletionTokens *int              `json:"completion_tokens,omitempty"`
 	TotalTokens      *int              `json:"total_tokens,omitempty"`
 	Metadata         map[string]string `json:"metadata,omitempty"`
+}
+
+type QueryRequestsInput struct {
+	UserID        string
+	APIKeyID      string
+	PublicModelID string
+	Status        string
+	RequestIDs    []string
+	Since         time.Time
+	Until         time.Time
+	Limit         int
+}
+
+type RequestView struct {
+	ID            string     `json:"id"`
+	RequestID     string     `json:"request_id"`
+	UserID        string     `json:"user_id,omitempty"`
+	APIKeyID      string     `json:"api_key_id,omitempty"`
+	PublicModelID string     `json:"public_model_id"`
+	Protocol      string     `json:"protocol,omitempty"`
+	Status        string     `json:"status"`
+	StartedAt     time.Time  `json:"started_at"`
+	EndedAt       *time.Time `json:"ended_at,omitempty"`
+	ErrorCode     string     `json:"error_code,omitempty"`
+	HTTPStatus    int        `json:"http_status,omitempty"`
 }
 
 // Breaker 由 ops 实现。网关只问是否跳过、并回报成败，不读 ops 表。
@@ -405,6 +446,115 @@ func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]Attempt
 			var meta map[string]string
 			if json.Unmarshal(row.MetadataJSON, &meta) == nil {
 				view.Metadata = meta
+			}
+		}
+		out = append(out, view)
+	}
+	return out, nil
+}
+
+func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]RequestView, error) {
+	if strings.TrimSpace(in.UserID) == "" {
+		return nil, ErrUserRequired
+	}
+	if in.RequestIDs != nil && len(in.RequestIDs) == 0 {
+		return []RequestView{}, nil
+	}
+	if in.Limit <= 0 {
+		in.Limit = 20
+	}
+	if in.Limit > 200 {
+		in.Limit = 200
+	}
+	var rows []requestRow
+	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id = ?", in.UserID).Order("started_at DESC").Limit(in.Limit)
+	if in.APIKeyID != "" {
+		q = q.Where("api_key_id = ?", in.APIKeyID)
+	}
+	if in.PublicModelID != "" {
+		q = q.Where("public_model_id = ?", in.PublicModelID)
+	}
+	if in.Status != "" {
+		q = q.Where("status = ?", in.Status)
+	}
+	if len(in.RequestIDs) > 0 {
+		q = q.Where("request_id IN ?", in.RequestIDs)
+	}
+	if !in.Since.IsZero() {
+		q = q.Where("started_at >= ?", in.Since.UTC())
+	}
+	if !in.Until.IsZero() {
+		q = q.Where("started_at <= ?", in.Until.UTC())
+	}
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return s.attachLatestAttempts(ctx, rows)
+}
+
+func (s *Service) ListRequestFilterKeys(ctx context.Context, userID, apiKeyID, dimension string) ([]string, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, ErrUserRequired
+	}
+	column := "public_model_id"
+	if dimension == "api_key" {
+		column = "api_key_id"
+	}
+	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id = ?", userID)
+	if apiKeyID != "" {
+		q = q.Where("api_key_id = ?", apiKeyID)
+	}
+	if dimension == "api_key" {
+		q = q.Where("api_key_id IS NOT NULL AND api_key_id <> ''")
+	}
+	var keys []string
+	if err := q.Distinct(column).Order(column).Pluck(column, &keys).Error; err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if strings.TrimSpace(key) == "" {
+			continue
+		}
+		out = append(out, key)
+	}
+	return out, nil
+}
+
+func (s *Service) attachLatestAttempts(ctx context.Context, rows []requestRow) ([]RequestView, error) {
+	out := make([]RequestView, 0, len(rows))
+	if len(rows) == 0 {
+		return out, nil
+	}
+	pks := make([]string, 0, len(rows))
+	for _, row := range rows {
+		pks = append(pks, row.ID)
+	}
+	var attempts []attemptRow
+	if err := s.db.WithContext(ctx).Where("request_pk IN ?", pks).Order("attempt_no DESC").Find(&attempts).Error; err != nil {
+		return nil, err
+	}
+	latest := map[string]attemptRow{}
+	for _, row := range attempts {
+		if _, ok := latest[row.RequestPK]; ok {
+			continue
+		}
+		latest[row.RequestPK] = row
+	}
+	for _, row := range rows {
+		view := RequestView{
+			ID: row.ID, RequestID: row.RequestID, UserID: row.UserID,
+			PublicModelID: row.PublicModelID, Protocol: row.Protocol, Status: row.Status, StartedAt: row.StartedAt, EndedAt: row.EndedAt,
+		}
+		if row.APIKeyID != nil {
+			view.APIKeyID = *row.APIKeyID
+		}
+		if attempt, ok := latest[row.ID]; ok {
+			if attempt.ErrorCode != nil {
+				view.ErrorCode = *attempt.ErrorCode
+			}
+			if attempt.HTTPStatus != nil {
+				view.HTTPStatus = *attempt.HTTPStatus
 			}
 		}
 		out = append(out, view)

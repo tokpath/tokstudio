@@ -11,7 +11,10 @@ paths:
       summary: Immutable wallet ledger
   /v1/me/usage:
     get:
-      summary: Usage events with price snapshots
+      summary: Usage events with price snapshots; state is confirmed, pending_reconciliation, or voided
+  /v1/me/requests:
+    get:
+      summary: Current-user gateway requests with request result, billing state, fee, and failure reason
   /v1/topups:
     post:
       summary: Create a manual topup order (pending until finance confirms)

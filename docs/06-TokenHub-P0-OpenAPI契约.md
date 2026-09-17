@@ -117,7 +117,8 @@
 - `POST /v1/me/password`：校验当前密码后改密
 - `POST /v1/auth/logout`：吊销当前会话令牌并清除 HttpOnly cookie
 - `GET /v1/me/balance`：钱包视图。用户台顶栏余额钉 `balance.available`（可用 USD 字符串，对应 `available_minor`），失败不得写成假 `$0.00`
-- `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。
+- `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`state`（仅 `confirmed` / `pending_reconciliation` / `voided`）、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。不得把网关失败写成 `state=failed`。
+- `GET /v1/me/requests`：当前用户可见的网关请求回单。查询 `result`（`succeeded` / `failed` / `started`）、`billing_state`（账务三态）、`api_key_id`、`public_model_id`、`from`、`to`、`limit`。条目分开展示 `result`、`billing_state`、`customer_amount_minor`、`error_code`。始终按会话用户（或 API Key 所属用户+该 Key）过滤，不能读他人请求。
 - `GET /v1/me/ledger`
 - `GET /v1/plans`：公共站已发布的平台套餐；
 - `GET /v1/me/plans`：当前渠道可见的已发布套餐；

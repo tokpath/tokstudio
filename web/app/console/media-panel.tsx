@@ -412,8 +412,13 @@ export default function MediaPanel({
   }
 
   async function downloadJob(id: string, jobKind?: string) {
-    const cached = previewsRef.current[id];
-    const url = signedMediaUsable(cached) ? cached.url : await loadPreview(id, jobKind, true);
+    if (!signedMediaUsable(previewsRef.current[id])) {
+      await loadPreview(id, jobKind, true);
+    }
+    if (!signedMediaUsable(previewsRef.current[id])) {
+      await loadPreview(id, jobKind, true);
+    }
+    const url = previewsRef.current[id]?.url;
     if (!url) {
       return;
     }
@@ -445,6 +450,7 @@ export default function MediaPanel({
           setMessage("存储不可用");
           return "";
         }
+        previewsRef.current = { ...previewsRef.current, [id]: signed };
         setPreviews((current) => ({ ...current, [id]: signed }));
         setPreviewErrors((current) => {
           const next = { ...current };

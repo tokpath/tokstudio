@@ -43,9 +43,12 @@ import {
 } from "@/lib/media-job";
 import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
+import { EmptyLedger } from "@/components/console/empty-ledger";
+import Link from "next/link";
 
 const schema = z.object({
   prompt: z.string().min(1),
+  model: z.string().min(1),
   kind: z.enum(["video", "image"]),
   task_type: z.string().min(1),
   duration: z.coerce.number().int().min(1).max(60),
@@ -82,11 +85,27 @@ function jobLabel(job: MediaJob): string {
 }
 
 /** 媒体任务：默认先看列表；空态引导创建；顶栏筛选 / 刷新 / 新建（表单进 Dialog，对齐 Keys）。 */
-export default function MediaPanel() {
+export default function MediaPanel({
+  initialKind,
+  initialModel,
+  catalogHref = "/app/catalog",
+  catalogOk = true,
+  catalogMessage,
+  modelError,
+}: {
+  initialKind?: string;
+  initialModel?: string;
+  catalogHref?: string;
+  catalogOk?: boolean;
+  catalogMessage?: string;
+  modelError?: "missing" | "unavailable";
+} = {}) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const tCat = useTranslations("catalog");
-  const [kind, setKind] = useState("");
+  const seededKind: MediaFormValues["kind"] = initialKind === "video" ? "video" : "image";
+  const entryBlocked = Boolean(initialModel) && (!catalogOk || Boolean(modelError));
+  const [kind, setKind] = useState(initialKind === "video" || initialKind === "image" ? initialKind : "");
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [storage, setStorage] = useState<StorageSource | undefined>();
@@ -119,9 +138,17 @@ export default function MediaPanel() {
       }
     },
   });
+  function seedFormValues(): MediaFormValues {
+    return {
+      ...defaultMediaForm,
+      kind: seededKind,
+      task_type: defaultTaskForKind(seededKind),
+      model: initialModel || "",
+    };
+  }
   const form = useForm<MediaFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: defaultMediaForm,
+    defaultValues: seedFormValues(),
   });
   const currentKind = form.watch("kind");
   const currentTask = form.watch("task_type");
@@ -161,11 +188,21 @@ export default function MediaPanel() {
     .map((item) => item.id)
     .join(",");
 
+  useEffect(() => {
+    if (initialModel && !entryBlocked) {
+      form.reset(seedFormValues());
+      setCreateOpen(true);
+    }
+  }, [initialModel, entryBlocked]);
+
   function handleCreateOpenChange(open: boolean) {
+    if (open && entryBlocked) {
+      return;
+    }
     setCreateOpen(open);
     setCreateError("");
     if (!open) {
-      form.reset(defaultMediaForm);
+      form.reset(seedFormValues());
       setAdvancedOpen(false);
     }
   }
@@ -178,6 +215,16 @@ export default function MediaPanel() {
   }
 
   async function createJob(values: MediaFormValues) {
+    if (entryBlocked) {
+      setCreateError(
+        !catalogOk ? catalogMessage || tc("listFailed") : modelError === "unavailable" ? t("pgModelUnavailable") : t("pgModelMissing"),
+      );
+      return;
+    }
+    if (!values.model.trim()) {
+      setCreateError(t("mediaNeedModel"));
+      return;
+    }
     const payload = buildMediaPayload(values);
     const path = mediaCreatePath(values);
     setCreating(true);
@@ -361,6 +408,17 @@ export default function MediaPanel() {
 
   return (
     <Card>
+      {entryBlocked ? (
+        <div className="mb-3" data-testid="model-entry-error" data-reason={!catalogOk ? "catalog" : modelError} role="alert">
+          <EmptyLedger
+            title={!catalogOk ? tc("listFailed") : modelError === "unavailable" ? t("pgModelUnavailable") : t("pgModelMissing")}
+            detail={!catalogOk ? catalogMessage || tc("listNetwork") : modelError === "unavailable" ? t("pgModelUnavailableDetail", { id: initialModel }) : t("pgModelMissingDetail")}
+          />
+          <Button asChild variant="outline" size="sm" className="mt-2">
+            <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+          </Button>
+        </div>
+      ) : null}
       <LeadActions
         lead={
           <div className="flex flex-wrap items-center gap-3">
@@ -383,7 +441,7 @@ export default function MediaPanel() {
             <Button type="button" variant="outline" onClick={() => void list.reload()}>
               {t("refreshJobs")}
             </Button>
-            <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Button type="button" disabled={entryBlocked} onClick={() => handleCreateOpenChange(true)}>
               {t("createJob")}
             </Button>
           </>
@@ -395,7 +453,7 @@ export default function MediaPanel() {
         emptyTitle={t("mediaEmpty")}
         emptyDetail={t("mediaEmptyDetail")}
         emptyAction={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button type="button" disabled={entryBlocked} onClick={() => handleCreateOpenChange(true)}>
             {t("createJob")}
           </Button>
         }
@@ -501,6 +559,24 @@ export default function MediaPanel() {
                         </Button>
                       </div>
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("mediaModel")}</FormLabel>
+                    <FormControl>
+                      <input
+                        className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm text-ink"
+                        aria-label={t("mediaModel")}
+                        readOnly={Boolean(initialModel) && !modelError}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

@@ -34,6 +34,7 @@ describe("media-job", () => {
   it("builds image payload without fps or duration", () => {
     const payload = buildMediaPayload({
       prompt: "a river",
+      model: "bytedance/seedream",
       kind: "image",
       task_type: "generate",
       duration: 5,
@@ -49,6 +50,7 @@ describe("media-job", () => {
       source_job_id: "vid_1",
     });
     expect(payload).toEqual({
+      model: "bytedance/seedream",
       prompt: "a river",
       task_type: "generate",
       resolution: "720p",
@@ -57,6 +59,7 @@ describe("media-job", () => {
     expect(
       mediaCreatePath({
         prompt: "a river",
+        model: "bytedance/seedream",
         kind: "image",
         task_type: "generate",
         duration: 5,
@@ -86,6 +89,7 @@ describe("media-job", () => {
     });
     expect(form.prompt).toBe("dusk river");
     expect(form.kind).toBe("video");
+    expect(form.model).toBe("bytedance/seedance-1.0");
     expect(completedJobsOfKind([{ id: "vid_1", kind: "video", status: "completed", model: "m" }], "video")).toHaveLength(1);
   });
 
@@ -96,5 +100,27 @@ describe("media-job", () => {
     expect(mergeMediaJobs([{ id: "a", status: "queued", model: "m" }], { a: { id: "a", status: "completed", model: "m" } })[0].status).toBe(
       "completed",
     );
+  });
+
+  it("posts video jobs to /v1/videos with the selected model", () => {
+    const values = {
+      prompt: "dusk",
+      model: "bytedance/seedance",
+      kind: "video" as const,
+      task_type: "t2v",
+      duration: 5,
+      resolution: "720p",
+      aspect_ratio: "16:9",
+      fps: 24,
+      generate_audio: false,
+      first_frame: "",
+      last_frame: "",
+      images: "",
+      reference_video: "",
+      reference_audio: "",
+      source_job_id: "",
+    };
+    expect(buildMediaPayload(values).model).toBe("bytedance/seedance");
+    expect(mediaCreatePath(values)).toBe("/v1/videos");
   });
 });

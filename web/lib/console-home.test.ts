@@ -111,8 +111,10 @@ describe("resolveStartUsingHref", () => {
     );
   });
 
-  it("sends signed-in users to playground with the selected model", async () => {
+  it("sends signed-in users to media for an image model", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(true, { user: { roles: ["end_user"] } }));
-    await expect(resolveStartUsingHref("tokenhub/echo-1", fetcher)).resolves.toBe("/app/playground?model=tokenhub%2Fecho-1");
+    await expect(
+      resolveStartUsingHref({ id: "bytedance/seedream", kind: "image" }, fetcher),
+    ).resolves.toBe("/app/media?model=bytedance%2Fseedream&kind=image");
   });
 });

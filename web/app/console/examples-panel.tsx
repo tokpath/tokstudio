@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ActionRow } from "@/components/console/action-row";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 
 type DocsContext = {
@@ -16,7 +18,23 @@ type DocsContext = {
 
 type ExampleTab = "curl" | "python" | "node";
 
-export default function ExamplesPanel() {
+export default function ExamplesPanel({
+  catalogHref = "/app/catalog",
+  catalogOk = true,
+  catalogMessage,
+  requestedModel,
+  modelError,
+  focusCurl,
+  focusPath,
+}: {
+  catalogHref?: string;
+  catalogOk?: boolean;
+  catalogMessage?: string;
+  requestedModel?: string;
+  modelError?: "missing" | "unavailable";
+  focusCurl?: string;
+  focusPath?: string;
+} = {}) {
   const t = useTranslations("user");
   const [docs, setDocs] = useState<DocsContext>({});
   const [tab, setTab] = useState<ExampleTab>("curl");
@@ -51,16 +69,52 @@ export default function ExamplesPanel() {
   }
 
   const sample =
-    tab === "python" ? docs.examples?.python : tab === "node" ? docs.examples?.node : docs.examples?.curl;
+    focusCurl ||
+    (tab === "python" ? docs.examples?.python : tab === "node" ? docs.examples?.node : docs.examples?.curl);
+
+  if (!catalogOk) {
+    return (
+      <div data-testid="model-entry-error" data-reason="catalog" role="alert">
+        <EmptyLedger title={t("examplesFail")} detail={catalogMessage} />
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (modelError === "missing") {
+    return (
+      <div data-testid="model-entry-error" data-reason="missing" role="alert">
+        <EmptyLedger title={t("pgModelMissing")} detail={t("pgModelMissingDetail")} />
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (modelError === "unavailable") {
+    return (
+      <div data-testid="model-entry-error" data-reason="unavailable" role="alert">
+        <EmptyLedger title={t("pgModelUnavailable")} detail={t("pgModelUnavailableDetail", { id: requestedModel || "" })} />
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Card>
-      <p className="mb-3 text-sm text-ink-secondary">{t("examplesLead")}</p>
+      <p className="mb-3 text-sm text-ink-secondary">
+        {requestedModel ? t("examplesNoInteractive", { id: requestedModel, path: focusPath || "/v1" }) : t("examplesLead")}
+      </p>
       <ActionRow className="mb-3 gap-3">
         <Button variant="outline" onClick={() => void refresh()}>
           {t("refreshExamples")}
         </Button>
-        <Button variant="outline" onClick={() => void copy("curl", docs.examples?.curl)}>
+        <Button variant="outline" onClick={() => void copy("curl", focusCurl || docs.examples?.curl)}>
           {t("copyCurl")}
         </Button>
         <Button variant="outline" onClick={() => void copy("Python", docs.examples?.python)}>

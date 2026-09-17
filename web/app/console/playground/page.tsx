@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { loadCatalogPage } from "@/lib/catalog";
 import { PlaygroundClient } from "./playground-client";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 import { decodeModelId } from "@/lib/playground-session";
+import { modelEntry, useModelHref } from "@/lib/model-use";
 import { safeNextPath } from "@/lib/login-next";
 
 export default async function PlaygroundPage({
@@ -15,11 +17,20 @@ export default async function PlaygroundPage({
   const wanted = decodeModelId(model);
   const page = await loadCatalogPage(host, { limit: 100 });
   let items = page.items;
+  let catalogOk = page.ok;
+  let catalogMessage = page.message;
   if (page.ok && wanted && !items.some((item) => item.id === wanted)) {
     const extra = await loadCatalogPage(host, { id: wanted });
-    if (extra.ok) {
+    if (!extra.ok) {
+      catalogOk = false;
+      catalogMessage = extra.message;
+    } else {
       items = [...extra.items, ...items];
     }
+  }
+  const found = wanted ? items.find((item) => item.id === wanted) : undefined;
+  if (catalogOk && found && modelEntry(found) !== "chat") {
+    redirect(useModelHref(found, from));
   }
 
   return (
@@ -29,8 +40,8 @@ export default async function PlaygroundPage({
         models={items}
         initialModel={model}
         catalogHref={safeNextPath(from) || "/app/catalog"}
-        catalogOk={page.ok}
-        catalogMessage={page.message}
+        catalogOk={catalogOk}
+        catalogMessage={catalogMessage}
       />
     </div>
   );

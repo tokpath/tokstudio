@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { EmptyState } from "@/components/empty-state";
 import { iconForKind } from "@/lib/page-icons";
-import { playgroundHref } from "@/lib/console-home";
+import { useModelHref } from "@/lib/model-use";
 import {
   capabilityLabels,
   catalogHref,
@@ -238,7 +238,7 @@ export function ModelsCatalog({
               header: t("tryNow"),
               cell: (m) => (
                 <Link
-                  href={playgroundHref(m.id, catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined }))}
+                  href={useModelHref(m, catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined }))}
                   className="text-sm font-medium text-brand-emphasis no-underline hover:underline"
                 >
                   {t("tryNow")}
@@ -324,8 +324,8 @@ export function ModelsCatalog({
                       </p>
                       <Button asChild size="sm">
                         <Link
-                          href={playgroundHref(
-                            m.id,
+                          href={useModelHref(
+                            m,
                             catalogHref(basePath, { vendor: query.vendor, kind: query.kind, q: q.trim() || undefined }),
                           )}
                         >

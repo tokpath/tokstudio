@@ -92,7 +92,7 @@ export default async function ModelDetailPage({
             <Link href={`/models?kind=${kind}`}>{t("sameKind")}</Link>
           </Button>
           <Button asChild>
-            <StartUsingLink modelId={model.id}>{th("ctaStart")}</StartUsingLink>
+            <StartUsingLink model={model}>{th("ctaStart")}</StartUsingLink>
           </Button>
         </div>
       </header>

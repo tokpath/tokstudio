@@ -22,7 +22,7 @@ describe("StartUsingLink", () => {
       }),
     );
     render(
-      <StartUsingLink modelId="tokenhub/echo-1">开始使用</StartUsingLink>,
+      <StartUsingLink model={{ id: "tokenhub/echo-1", kind: "text" }}>开始使用</StartUsingLink>,
     );
     const link = screen.getByRole("link", { name: "开始使用" });
     expect(link.getAttribute("href")).toBe(loginHref(playgroundHref("tokenhub/echo-1")));
@@ -40,7 +40,7 @@ describe("StartUsingLink", () => {
       }),
     );
     render(
-      <StartUsingLink modelId="tokenhub/echo-1">开始使用</StartUsingLink>,
+      <StartUsingLink model={{ id: "tokenhub/echo-1", kind: "text" }}>开始使用</StartUsingLink>,
     );
     await waitFor(() => {
       expect(screen.getByRole("link", { name: "开始使用" }).getAttribute("href")).toBe(
@@ -59,7 +59,7 @@ describe("StartUsingLink", () => {
     );
     render(
       <Button asChild>
-        <StartUsingLink modelId="tokenhub/echo-1">开始使用</StartUsingLink>
+        <StartUsingLink model={{ id: "tokenhub/echo-1", kind: "text" }}>开始使用</StartUsingLink>
       </Button>,
     );
     expect(screen.getByRole("link", { name: "开始使用" }).className).toContain("bg-brand");

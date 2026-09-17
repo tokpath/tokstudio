@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { forwardRef, useEffect, useState, type ComponentPropsWithoutRef } from "react";
+import type { CatalogModel } from "@/lib/catalog";
 import { loginHref } from "@/lib/login-next";
-import { playgroundHref, resolveStartUsingHref } from "@/lib/console-home";
+import { resolveStartUsingHref } from "@/lib/console-home";
+import { useModelHref } from "@/lib/model-use";
 
-type Props = Omit<ComponentPropsWithoutRef<typeof Link>, "href"> & { modelId: string };
+type ModelRef = Pick<CatalogModel, "id"> & Partial<CatalogModel>;
+type Props = Omit<ComponentPropsWithoutRef<typeof Link>, "href"> & { model: ModelRef };
 
 export const StartUsingLink = forwardRef<HTMLAnchorElement, Props>(function StartUsingLink(
-  { modelId, children, ...props },
+  { model, children, ...props },
   ref,
 ) {
-  const guestHref = loginHref(playgroundHref(modelId));
+  const guestHref = loginHref(useModelHref(model));
   const [href, setHref] = useState(guestHref);
 
   useEffect(() => {
     let cancelled = false;
-    void resolveStartUsingHref(modelId).then((next) => {
+    void resolveStartUsingHref(model).then((next) => {
       if (!cancelled) {
         setHref(next);
       }
@@ -24,7 +27,7 @@ export const StartUsingLink = forwardRef<HTMLAnchorElement, Props>(function Star
     return () => {
       cancelled = true;
     };
-  }, [modelId]);
+  }, [model]);
 
   return (
     <Link ref={ref} href={href} {...props}>

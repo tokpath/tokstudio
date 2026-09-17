@@ -24,6 +24,7 @@ export type MediaJob = {
 
 export type MediaFormValues = {
   prompt: string;
+  model: string;
   kind: MediaKind;
   task_type: string;
   duration: number;
@@ -137,6 +138,7 @@ export function mediaModeFields(kind: string, task: string): MediaModeFields {
 
 export const defaultMediaForm: MediaFormValues = {
   prompt: "",
+  model: "",
   kind: "image",
   task_type: "generate",
   duration: 5,
@@ -163,6 +165,7 @@ export function jobToFormValues(job: MediaJob): MediaFormValues {
   const kind: MediaKind = job.kind === "image" ? "image" : "video";
   return {
     prompt: job.prompt?.trim() || "",
+    model: job.model?.trim() || "",
     kind,
     task_type: job.task_type || defaultTaskForKind(kind),
     duration: job.duration && job.duration > 0 ? job.duration : 5,
@@ -198,6 +201,7 @@ export function completedJobsOfKind(items: MediaJob[], kind: MediaKind): MediaJo
 export function buildMediaPayload(values: MediaFormValues): Record<string, unknown> {
   const fields = mediaModeFields(values.kind, values.task_type);
   const payload: Record<string, unknown> = {
+    model: values.model.trim(),
     prompt: values.prompt.trim(),
     task_type: values.task_type,
     resolution: values.resolution,

@@ -9,6 +9,7 @@ import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
 import { pickPlaygroundModel } from "@/lib/playground-session";
+import { catalogModelUsable, modelEntry, useModelHref } from "@/lib/model-use";
 import { copyText } from "@/lib/submit-result";
 
 type Turn = {
@@ -43,7 +44,8 @@ export function PlaygroundClient({
 }) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
-  const [model, setModel] = useState(() => pickPlaygroundModel(models, initialModel));
+  const pick = useMemo(() => pickPlaygroundModel(models, initialModel), [models, initialModel]);
+  const [model, setModel] = useState(pick.id);
   const [prompt, setPrompt] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -51,12 +53,10 @@ export function PlaygroundClient({
   const [message, setMessage] = useState(t("pgHint"));
   const abortRef = useRef<AbortController | null>(null);
 
-  const options = useMemo(() => {
-    if (model && !models.some((item) => item.id === model)) {
-      return [{ id: model, display_name: model, vendor: "" }, ...models];
-    }
-    return models;
-  }, [models, model]);
+  const options = useMemo(
+    () => models.filter((item) => catalogModelUsable(item) && modelEntry(item) === "chat"),
+    [models],
+  );
 
   const examples = [t("pgEx0"), t("pgEx1"), t("pgEx2")];
 
@@ -76,8 +76,8 @@ export function PlaygroundClient({
       setMessage(t("pgNeedMsg"));
       return;
     }
-    if (!model) {
-      setMessage(t("pgNoModels"));
+    if (!options.some((item) => item.id === model)) {
+      setMessage(t("pgModelMissing"));
       return;
     }
     const pending: Turn = {
@@ -158,7 +158,45 @@ export function PlaygroundClient({
     );
   }
 
-  if (models.length === 0 && !model) {
+  if (pick.error === "missing") {
+    return (
+      <div className="space-y-3" data-testid="model-entry-error" data-reason="missing" role="alert">
+        <Button asChild variant="outline" size="sm">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+        <EmptyLedger title={t("pgModelMissing")} detail={t("pgModelMissingDetail")} />
+      </div>
+    );
+  }
+
+  if (pick.error === "unavailable") {
+    return (
+      <div className="space-y-3" data-testid="model-entry-error" data-reason="unavailable" role="alert">
+        <Button asChild variant="outline" size="sm">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+        <EmptyLedger title={t("pgModelUnavailable")} detail={t("pgModelUnavailableDetail", { id: pick.id })} />
+      </div>
+    );
+  }
+
+  if (pick.error === "notChat") {
+    const found = models.find((item) => item.id === pick.id);
+    const href = found ? useModelHref(found, catalogHref) : catalogHref;
+    return (
+      <div className="space-y-3" data-testid="model-entry-error" data-reason="notChat" role="alert">
+        <Button asChild variant="outline" size="sm">
+          <Link href={catalogHref}>{t("pgBackCatalog")}</Link>
+        </Button>
+        <EmptyLedger title={t("pgModelNotChat")} detail={t("pgModelNotChatDetail")} />
+        <Button asChild size="sm">
+          <Link href={href}>{t("pgOpenMatching")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (options.length === 0) {
     return (
       <div className="space-y-3">
         <Button asChild variant="outline" size="sm">

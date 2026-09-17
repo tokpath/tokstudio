@@ -1,5 +1,7 @@
 import { apiBase } from "@/lib/api";
 import { loginHref, safeNextPath } from "@/lib/login-next";
+import { resolveStartUsingHref as resolveModelStartHref } from "@/lib/model-use";
+import type { CatalogModel } from "@/lib/catalog";
 
 /** 公共站「控制台」入口：未登录去登录，登录后按角色落到对应台。 */
 export const CONSOLE_ENTRY_PATH = "/enter";
@@ -73,12 +75,10 @@ export async function resolveConsoleHref(fetcher: typeof fetch = fetch): Promise
   }
 }
 
-export async function resolveStartUsingHref(modelId: string, fetcher: typeof fetch = fetch): Promise<string> {
-  const next = playgroundHref(modelId);
-  try {
-    const meRes = await fetcher(`${apiBase}/v1/me`, { credentials: "include" });
-    return meRes.ok ? next : loginHref(next);
-  } catch {
-    return loginHref(next);
-  }
+export async function resolveStartUsingHref(
+  model: (Pick<CatalogModel, "id"> & Partial<CatalogModel>) | string,
+  fetcher: typeof fetch = fetch,
+): Promise<string> {
+  const item = typeof model === "string" ? { id: model } : model;
+  return resolveModelStartHref(item, fetcher);
 }

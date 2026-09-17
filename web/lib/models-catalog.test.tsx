@@ -39,6 +39,50 @@ describe("ModelsCatalog", () => {
     expect(screen.getByText("适合短回复")).toBeTruthy();
   });
 
+  it("sends image models to media with the model id", () => {
+    render(
+      withZh(
+        <ModelsCatalog
+          basePath="/app/catalog"
+          query={{ kind: "image" }}
+          facets={{ kinds: [{ id: "image", count: 1 }], vendors: [{ id: "bytedance", count: 1 }] }}
+          models={[
+            {
+              id: "bytedance/seedream",
+              vendor: "bytedance",
+              display_name: "Seedream",
+              kind: "image",
+            },
+          ]}
+        />,
+      ),
+    );
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/media?model=bytedance%2Fseedream");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("kind=image");
+  });
+
+  it("sends video models to media with the model id", () => {
+    render(
+      withZh(
+        <ModelsCatalog
+          basePath="/app/catalog"
+          query={{ kind: "video" }}
+          facets={{ kinds: [{ id: "video", count: 1 }], vendors: [{ id: "bytedance", count: 1 }] }}
+          models={[
+            {
+              id: "bytedance/seedance",
+              vendor: "bytedance",
+              display_name: "Seedance",
+              kind: "video",
+            },
+          ]}
+        />,
+      ),
+    );
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/media?model=bytedance%2Fseedance");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("kind=video");
+  });
+
   it("does not show an empty catalog when loading failed", () => {
     render(
       withZh(

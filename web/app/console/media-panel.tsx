@@ -36,16 +36,24 @@ import {
   mediaCreatePath,
   mediaFormIssues,
   mediaIssueNeedsAdvanced,
+  mediaListPath,
   mediaModeFields,
   mediaStatusPath,
   mergeMediaJobs,
+  parseSignedMedia,
+  readMediaListPage,
+  signedMediaUsable,
   type MediaFormValues,
   type MediaJob,
+  type MediaKind,
+  type SignedMediaUrl,
 } from "@/lib/media-job";
 import { applyStorageFact, type StorageSource } from "@/lib/storage-source";
 import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import Link from "next/link";
+import { publicModelsPath } from "@/lib/catalog";
+import { catalogModelUsable } from "@/lib/model-use";
 
 const POLL_MS = 2500;
 
@@ -95,6 +103,55 @@ function jobLabel(job: MediaJob): string {
   return job.id;
 }
 
+function useCompletedMediaAssets(kind: MediaKind, enabled: boolean) {
+  const [items, setItems] = useState<MediaJob[]>([]);
+  const [cursor, setCursor] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const loadPage = useCallback(
+    async (from = "") => {
+      setLoading(true);
+      try {
+        const response = await fetch(`${apiBase}${mediaListPath({ kind, status: "completed", cursor: from || undefined })}`, {
+          credentials: "include",
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return;
+        }
+        const page = readMediaListPage(body);
+        setItems((current) => (from ? [...current, ...page.items] : page.items));
+        setCursor(page.nextCursor);
+      } catch {
+        return;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [kind],
+  );
+
+  useEffect(() => {
+    if (!enabled) {
+      setItems([]);
+      setCursor("");
+      return;
+    }
+    void loadPage("");
+  }, [enabled, loadPage]);
+
+  return {
+    items: completedJobsOfKind(items, kind),
+    hasMore: Boolean(cursor),
+    loading,
+    loadMore: () => {
+      if (cursor && !loading) {
+        void loadPage(cursor);
+      }
+    },
+  };
+}
+
 /** 媒体任务：默认先看列表；空态引导创建；顶栏筛选 / 刷新 / 新建（表单进 Dialog，对齐 Keys）。 */
 export default function MediaPanel({
   initialKind,
@@ -124,29 +181,34 @@ export default function MediaPanel({
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
   const [overlays, setOverlays] = useState<Record<string, MediaJob>>({});
-  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [moreItems, setMoreItems] = useState<MediaJob[]>([]);
+  const [listCursor, setListCursor] = useState("");
+  const [previews, setPreviews] = useState<Record<string, SignedMediaUrl>>({});
   const [previewErrors, setPreviewErrors] = useState<Record<string, string>>({});
+  const [pollFailed, setPollFailed] = useState(false);
   const list = useListResource<MediaJob>({
     queryKey: kind,
     load: async () => {
-      const query = kind ? `?kind=${encodeURIComponent(kind)}` : "";
       try {
-        const response = await fetch(`${apiBase}/v1/me/media${query}`, { credentials: "include" });
+        const response = await fetch(`${apiBase}${mediaListPath({ kind: kind || undefined })}`, { credentials: "include" });
         const body = await response.json().catch(() => ({}));
-        const extras = { storage: applyStorageFact(body, response.ok) };
+        const page = readMediaListPage(body);
+        const extras = { storage: applyStorageFact(body, response.ok), next_cursor: page.nextCursor };
         if (!response.ok) {
           return { ok: false, status: response.status, items: [], message: body.error?.message, code: body.error?.code, extras };
         }
-        return { ok: true, status: response.status, items: (body.items || []) as MediaJob[], extras };
+        return { ok: true, status: response.status, items: page.items, extras };
       } catch {
         return { ok: false, network: true, items: [] };
       }
     },
     onAccepted: (result) => {
-      const nextStorage = (result.extras as { storage?: StorageSource } | undefined)?.storage;
-      if (nextStorage) {
-        setStorage(nextStorage);
+      const extras = result.extras as { storage?: StorageSource; next_cursor?: string } | undefined;
+      if (extras?.storage) {
+        setStorage(extras.storage);
       }
+      setListCursor(result.ok ? extras?.next_cursor || "" : "");
+      setMoreItems([]);
     },
   });
   function seedFormValues(): MediaFormValues {
@@ -182,9 +244,11 @@ export default function MediaPanel({
   const currentKind = form.watch("kind");
   const currentTask = form.watch("task_type");
   const modeFields = mediaModeFields(currentKind, currentTask);
-  const jobs = mergeMediaJobs(list.snapshot.items, overlays);
-  const videoSources = useMemo(() => completedJobsOfKind(jobs, "video"), [jobs]);
-  const imageSources = useMemo(() => completedJobsOfKind(jobs, "image"), [jobs]);
+  const jobs = mergeMediaJobs([...list.snapshot.items, ...moreItems], overlays);
+  const imageAssets = useCompletedMediaAssets("image", createOpen);
+  const videoAssets = useCompletedMediaAssets("video", createOpen);
+  const videoSources = videoAssets.items;
+  const imageSources = imageAssets.items;
   const videoModes = useMemo(
     () => [
       { value: "t2v", label: t("t2v") },
@@ -207,6 +271,8 @@ export default function MediaPanel({
   const modes = currentKind === "image" ? imageModes : videoModes;
   const jobsRef = useRef(jobs);
   jobsRef.current = jobs;
+  const previewsRef = useRef(previews);
+  previewsRef.current = previews;
   const completedIds = jobs
     .filter((item) => isMediaSuccess(item.status))
     .map((item) => item.id)
@@ -236,11 +302,59 @@ export default function MediaPanel({
     }
   }
 
-  function openWithJob(job: MediaJob) {
-    form.reset(jobToFormValues(job));
+  async function openWithJob(job: MediaJob) {
+    const values = jobToFormValues(job);
+    form.reset(values);
     setAdvancedOpen(false);
     setCreateError("");
     setCreateOpen(true);
+    if (!values.model) {
+      form.setError("model", { type: "required", message: t("mediaNeedModel") });
+      return;
+    }
+    try {
+      const response = await fetch(`${apiBase}${publicModelsPath({ id: values.model })}`, { credentials: "include" });
+      const body = (await response.json().catch(() => ({}))) as { items?: { id: string; status?: string }[] };
+      if (!response.ok) {
+        form.setError("model", { type: "catalog", message: t("examplesFail") });
+        return;
+      }
+      const found = (body.items || []).find((item) => item.id === values.model);
+      if (!found) {
+        form.setError("model", { type: "missing", message: t("pgModelMissing") });
+        return;
+      }
+      if (!catalogModelUsable(found)) {
+        form.setError("model", { type: "unavailable", message: t("pgModelUnavailable") });
+      }
+    } catch {
+      form.setError("model", { type: "catalog", message: t("examplesFail") });
+    }
+  }
+
+  async function loadMoreJobs() {
+    if (!listCursor) {
+      return;
+    }
+    try {
+      const response = await fetch(`${apiBase}${mediaListPath({ kind: kind || undefined, cursor: listCursor })}`, {
+        credentials: "include",
+      });
+      const body = await response.json().catch(() => ({}));
+      const nextStorage = applyStorageFact(body, response.ok);
+      if (nextStorage) {
+        setStorage(nextStorage);
+      }
+      if (!response.ok) {
+        setMessage(body.error?.message || tc("listFailed"));
+        return;
+      }
+      const page = readMediaListPage(body);
+      setMoreItems((current) => [...current, ...page.items]);
+      setListCursor(page.nextCursor);
+    } catch {
+      setMessage(tc("listNetwork"));
+    }
   }
 
   async function createJob(values: MediaFormValues) {
@@ -284,6 +398,7 @@ export default function MediaPanel({
             prompt: created.prompt || values.prompt,
             kind: created.kind || values.kind,
             task_type: created.task_type || values.task_type,
+            model: created.model || values.model,
           },
         }));
       }
@@ -297,7 +412,8 @@ export default function MediaPanel({
   }
 
   async function downloadJob(id: string, jobKind?: string) {
-    const url = previews[id] || (await loadPreview(id, jobKind));
+    const cached = previewsRef.current[id];
+    const url = signedMediaUsable(cached) ? cached.url : await loadPreview(id, jobKind, true);
     if (!url) {
       return;
     }
@@ -305,7 +421,11 @@ export default function MediaPanel({
   }
 
   const loadPreview = useCallback(
-    async (id: string, jobKind?: string) => {
+    async (id: string, jobKind?: string, force = false) => {
+      const cached = previewsRef.current[id];
+      if (!force && signedMediaUsable(cached)) {
+        return cached.url;
+      }
       try {
         const response = await fetch(`${apiBase}${mediaContentPath(jobKind, id)}`, { credentials: "include" });
         const body = await readResponseBody(response);
@@ -319,19 +439,19 @@ export default function MediaPanel({
           setMessage(reason);
           return "";
         }
-        const url = typeof (body as { url?: string }).url === "string" ? (body as { url: string }).url : "";
-        if (!url) {
+        const signed = parseSignedMedia(body);
+        if (!signed) {
           setPreviewErrors((current) => ({ ...current, [id]: "存储不可用" }));
           setMessage("存储不可用");
           return "";
         }
-        setPreviews((current) => ({ ...current, [id]: url }));
+        setPreviews((current) => ({ ...current, [id]: signed }));
         setPreviewErrors((current) => {
           const next = { ...current };
           delete next[id];
           return next;
         });
-        return url;
+        return signed.url;
       } catch {
         setMessage(tc("listNetwork"));
         return "";
@@ -358,7 +478,7 @@ export default function MediaPanel({
 
   useEffect(() => {
     for (const job of jobsRef.current) {
-      if (!isMediaSuccess(job.status) || previews[job.id] || previewErrors[job.id] || previewInflight.current.has(job.id)) {
+      if (!isMediaSuccess(job.status) || signedMediaUsable(previewsRef.current[job.id]) || previewErrors[job.id] || previewInflight.current.has(job.id)) {
         continue;
       }
       previewInflight.current.add(job.id);
@@ -366,11 +486,12 @@ export default function MediaPanel({
         previewInflight.current.delete(job.id);
       });
     }
-  }, [completedIds, loadPreview, previewErrors, previews]);
+  }, [completedIds, loadPreview, previewErrors]);
 
   const pollRef = useRef(false);
   useEffect(() => {
     if (!liveIds) {
+      setPollFailed(false);
       return;
     }
     let cancelled = false;
@@ -381,17 +502,27 @@ export default function MediaPanel({
       pollRef.current = true;
       try {
         const active = jobsRef.current.filter((item) => !isMediaTerminal(item.status));
+        let failed = false;
         for (const job of active) {
-          const response = await fetch(`${apiBase}${mediaStatusPath(job.kind, job.id)}`, { credentials: "include" });
-          const body = await readResponseBody(response);
-          if (!response.ok || !body || typeof body !== "object") {
-            continue;
+          try {
+            const response = await fetch(`${apiBase}${mediaStatusPath(job.kind, job.id)}`, { credentials: "include" });
+            const body = await readResponseBody(response);
+            if (!response.ok || !body || typeof body !== "object") {
+              failed = true;
+              continue;
+            }
+            const next = body as MediaJob;
+            if (!next.id) {
+              failed = true;
+              continue;
+            }
+            setOverlays((current) => ({ ...current, [next.id]: { ...job, ...next } }));
+          } catch {
+            failed = true;
           }
-          const next = body as MediaJob;
-          if (!next.id) {
-            continue;
-          }
-          setOverlays((current) => ({ ...current, [next.id]: { ...job, ...next } }));
+        }
+        if (!cancelled) {
+          setPollFailed(failed);
         }
       } finally {
         pollRef.current = false;
@@ -506,16 +637,16 @@ export default function MediaPanel({
                   {item.resolution ? <span className="text-ink-mute">{item.resolution}</span> : null}
                   {item.duration ? <span className="text-ink-mute">{item.duration}s</span> : null}
                   {!isMediaTerminal(item.status) ? (
-                    <span className="text-ink-mute">{t("mediaAutoUpdate")}</span>
+                    <span className="text-ink-mute">{pollFailed ? t("mediaPollInterrupted") : t("mediaAutoUpdate")}</span>
                   ) : null}
                 </div>
                 {item.prompt ? <p className="mt-2 text-sm text-ink">{item.prompt}</p> : null}
-                {preview ? (
+                {preview?.url ? (
                   item.kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt="" className="mt-2 max-h-40 rounded-control border border-hairline object-contain" />
+                    <img src={preview.url} alt="" className="mt-2 max-h-40 rounded-control border border-hairline object-contain" />
                   ) : (
-                    <video src={preview} controls className="mt-2 max-h-40 w-full rounded-control border border-hairline" />
+                    <video src={preview.url} controls className="mt-2 max-h-40 w-full rounded-control border border-hairline" />
                   )
                 ) : null}
                 {failed ? (
@@ -546,6 +677,11 @@ export default function MediaPanel({
           })}
         </ul>
       </ListResourceView>
+      {listCursor ? (
+        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void loadMoreJobs()}>
+          {t("mediaLoadMore")}
+        </Button>
+      ) : null}
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
 
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
@@ -681,6 +817,11 @@ export default function MediaPanel({
                         </select>
                       </FormControl>
                       <FormMessage />
+                      {videoAssets.hasMore ? (
+                        <Button type="button" variant="outline" size="sm" onClick={videoAssets.loadMore} disabled={videoAssets.loading}>
+                          {t("mediaLoadMoreAssets")}
+                        </Button>
+                      ) : null}
                     </FormItem>
                   )}
                 />
@@ -694,6 +835,10 @@ export default function MediaPanel({
                   jobs={imageSources}
                   pickLabel={t("mediaPickCompleted")}
                   emptyLabel={t("mediaPickNone")}
+                  hasMore={imageAssets.hasMore}
+                  loadingMore={imageAssets.loading}
+                  loadMoreLabel={t("mediaLoadMoreAssets")}
+                  onLoadMore={imageAssets.loadMore}
                   onPick={(job) => void applyAssetUrl(job, "images")}
                 />
               ) : null}
@@ -705,6 +850,10 @@ export default function MediaPanel({
                   jobs={imageSources}
                   pickLabel={t("mediaPickCompleted")}
                   emptyLabel={t("mediaPickNone")}
+                  hasMore={imageAssets.hasMore}
+                  loadingMore={imageAssets.loading}
+                  loadMoreLabel={t("mediaLoadMoreAssets")}
+                  onLoadMore={imageAssets.loadMore}
                   onPick={(job) => void applyAssetUrl(job, "first_frame")}
                 />
               ) : null}
@@ -716,6 +865,10 @@ export default function MediaPanel({
                   jobs={imageSources}
                   pickLabel={t("mediaPickCompleted")}
                   emptyLabel={t("mediaPickNone")}
+                  hasMore={imageAssets.hasMore}
+                  loadingMore={imageAssets.loading}
+                  loadMoreLabel={t("mediaLoadMoreAssets")}
+                  onLoadMore={imageAssets.loadMore}
                   onPick={(job) => void applyAssetUrl(job, "last_frame")}
                 />
               ) : null}
@@ -727,6 +880,10 @@ export default function MediaPanel({
                   jobs={videoSources}
                   pickLabel={t("mediaPickCompleted")}
                   emptyLabel={t("mediaPickNone")}
+                  hasMore={videoAssets.hasMore}
+                  loadingMore={videoAssets.loading}
+                  loadMoreLabel={t("mediaLoadMoreAssets")}
+                  onLoadMore={videoAssets.loadMore}
                   onPick={(job) => void applyAssetUrl(job, "reference_video")}
                 />
               ) : null}
@@ -798,6 +955,10 @@ function AssetField({
   jobs,
   pickLabel,
   emptyLabel,
+  hasMore,
+  loadingMore,
+  loadMoreLabel,
+  onLoadMore,
   onPick,
 }: {
   control: ReturnType<typeof useForm<MediaFormValues>>["control"];
@@ -807,6 +968,10 @@ function AssetField({
   jobs: MediaJob[];
   pickLabel: string;
   emptyLabel: string;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  loadMoreLabel?: string;
+  onLoadMore?: () => void;
   onPick: (job: MediaJob) => void;
 }) {
   return (
@@ -831,6 +996,11 @@ function AssetField({
           </option>
         ))}
       </select>
+      {hasMore ? (
+        <Button type="button" variant="outline" size="sm" onClick={onLoadMore} disabled={loadingMore}>
+          {loadMoreLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

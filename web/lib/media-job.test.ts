@@ -11,8 +11,11 @@ import {
   jobToFormValues,
   mediaCreatePath,
   mediaFormIssues,
+  mediaListPath,
   mediaModeFields,
   mergeMediaJobs,
+  parseSignedMedia,
+  signedMediaUsable,
 } from "./media-job";
 
 describe("media-job", () => {
@@ -125,6 +128,15 @@ describe("media-job", () => {
     };
     expect(buildMediaPayload(values).model).toBe("bytedance/seedance");
     expect(mediaCreatePath(values)).toBe("/v1/videos");
+  });
+
+  it("treats signed media urls as stale before the 15-minute expiry", () => {
+    expect(signedMediaUsable({ url: "https://cdn.test/a.png", expiresAt: 1 }, 60_000)).toBe(false);
+    expect(signedMediaUsable({ url: "https://cdn.test/a.png", expiresAt: 120 }, 60_000)).toBe(true);
+    expect(parseSignedMedia({ url: "https://cdn.test/a.png", expires_at: 99 })?.expiresAt).toBe(99);
+    expect(mediaListPath({ kind: "image", status: "completed", cursor: "img_1" })).toBe(
+      "/v1/me/media?kind=image&status=completed&cursor=img_1",
+    );
   });
 
   it("validates only fields the current mode will send", () => {

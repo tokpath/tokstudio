@@ -232,4 +232,176 @@ describe("MediaPanel", () => {
     await waitFor(() => expect(within(dialog).getByText("请填写要生成的内容，不能只是空格。")).toBeTruthy());
     expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).includes("/v1/images"))).toBe(false);
   });
+
+  it("reuses a non-default model when creating again", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/public/models")) {
+        return json({ items: [{ id: "vendor/custom-1", status: "available", kind: "image" }] });
+      }
+      if (url.includes("/v1/me/media")) {
+        return json({
+          items: [
+            {
+              id: "img_done",
+              kind: "image",
+              task_type: "generate",
+              status: "completed",
+              model: "vendor/custom-1",
+              prompt: "sky",
+            },
+          ],
+        });
+      }
+      if (url.includes("/content")) {
+        return json({ url: "https://cdn.test/sky.png", expires_at: Math.floor(Date.now() / 1000) + 900 });
+      }
+      if (url.includes("/v1/images/generations") && init?.method === "POST") {
+        return json({ id: "img_2", kind: "image", status: "queued", model: "vendor/custom-1" });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByTestId("media-job-img_done")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "再次使用此配置" }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByLabelText("模型")).toHaveProperty("value", "vendor/custom-1"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建任务" }));
+    await waitFor(() => {
+      const create = fetchMock.mock.calls.find((call) => String(call[0]).includes("/v1/images/generations"));
+      expect(JSON.parse((create?.[1] as { body: string }).body).model).toBe("vendor/custom-1");
+    });
+  });
+
+  it("can pick an existing image while the job list is filtered to video", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media") && url.includes("kind=image")) {
+        return json({
+          items: [{ id: "img_ref", kind: "image", status: "completed", model: "m", prompt: "ref pic" }],
+        });
+      }
+      if (url.includes("/v1/me/media")) {
+        return json({
+          items: [{ id: "vid_only", kind: "video", status: "completed", model: "m", prompt: "clip" }],
+        });
+      }
+      if (url.includes("/content")) {
+        return json({ url: "https://cdn.test/ref.png", expires_at: Math.floor(Date.now() / 1000) + 900 });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByTestId("media-job-vid_only")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("筛选媒体类型"), { target: { value: "video" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("生成模式"), { target: { value: "edit" } });
+    const picker = await within(dialog).findByLabelText("从已完成任务选择素材");
+    await waitFor(() => expect(within(picker).getByRole("option", { name: "ref pic" })).toBeTruthy());
+    fireEvent.change(picker, { target: { value: "img_ref" } });
+    await waitFor(() => expect(within(dialog).getByLabelText("参考图")).toHaveProperty("value", "https://cdn.test/ref.png"));
+  });
+
+  it("can pick an asset from the next media page", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media") && url.includes("kind=image") && url.includes("cursor=img_a")) {
+        return json({
+          items: [{ id: "img_b", kind: "image", status: "completed", model: "m", prompt: "second page" }],
+        });
+      }
+      if (url.includes("/v1/me/media") && url.includes("kind=image")) {
+        return json({
+          items: [{ id: "img_a", kind: "image", status: "completed", model: "m", prompt: "first page" }],
+          next_cursor: "img_a",
+        });
+      }
+      if (url.includes("/v1/me/media")) {
+        return json({ items: [] });
+      }
+      if (url.includes("/content")) {
+        return json({ url: "https://cdn.test/b.png", expires_at: Math.floor(Date.now() / 1000) + 900 });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("暂无媒体任务")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("生成模式"), { target: { value: "edit" } });
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "加载更多素材" })).toBeTruthy());
+    fireEvent.click(within(dialog).getByRole("button", { name: "加载更多素材" }));
+    const picker = within(dialog).getByLabelText("从已完成任务选择素材");
+    await waitFor(() => expect(within(picker).getByRole("option", { name: "second page" })).toBeTruthy());
+    fireEvent.change(picker, { target: { value: "img_b" } });
+    await waitFor(() => expect(within(dialog).getByLabelText("参考图")).toHaveProperty("value", "https://cdn.test/b.png"));
+  });
+
+  it("refetches a signed download after expiry", async () => {
+    const open = vi.fn();
+    vi.stubGlobal("open", open);
+    let contentCalls = 0;
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media")) {
+        return json({
+          items: [
+            {
+              id: "img_done",
+              kind: "image",
+              task_type: "generate",
+              status: "completed",
+              model: "m",
+              prompt: "sky",
+            },
+          ],
+        });
+      }
+      if (url.includes("/content")) {
+        contentCalls += 1;
+        if (contentCalls === 1) {
+          return json({ url: "https://cdn.test/old.png", expires_at: 1 });
+        }
+        return json({ url: "https://cdn.test/new.png", expires_at: Math.floor(Date.now() / 1000) + 900 });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByRole("button", { name: "下载" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "下载" }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith("https://cdn.test/new.png", "_blank", "noopener,noreferrer"));
+  });
+
+  it("says status updates stopped after a poll failure", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media")) {
+        return json({
+          items: [
+            {
+              id: "vid_live",
+              kind: "video",
+              task_type: "t2v",
+              status: "in_progress",
+              model: "m",
+              prompt: "river",
+            },
+          ],
+        });
+      }
+      if (url.includes("/v1/videos/vid_live")) {
+        return json({ error: { message: "upstream down" } }, false, 502);
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("状态更新已中断，请刷新后再看。")).toBeTruthy());
+    expect(screen.queryByText("自动更新中")).toBeNull();
+  });
 });

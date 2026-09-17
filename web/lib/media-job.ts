@@ -318,3 +318,51 @@ export function mediaCreatePath(values: MediaFormValues): string {
   }
   return "/v1/videos";
 }
+
+export function mediaListPath(query: { kind?: string; status?: string; cursor?: string; limit?: number } = {}): string {
+  const params = new URLSearchParams();
+  if (query.kind) {
+    params.set("kind", query.kind);
+  }
+  if (query.status) {
+    params.set("status", query.status);
+  }
+  if (query.cursor) {
+    params.set("cursor", query.cursor);
+  }
+  if (query.limit) {
+    params.set("limit", String(query.limit));
+  }
+  const qs = params.toString();
+  return qs ? `/v1/me/media?${qs}` : "/v1/me/media";
+}
+
+export function readMediaListPage(body: unknown): { items: MediaJob[]; nextCursor: string } {
+  const record = body && typeof body === "object" ? (body as { items?: MediaJob[]; next_cursor?: unknown }) : {};
+  return {
+    items: Array.isArray(record.items) ? record.items : [],
+    nextCursor: typeof record.next_cursor === "string" ? record.next_cursor : "",
+  };
+}
+
+export type SignedMediaUrl = { url: string; expiresAt: number };
+
+const SIGN_TTL_SEC = 15 * 60;
+const SIGN_SKEW_MS = 30_000;
+
+export function parseSignedMedia(body: unknown, nowSec = Math.floor(Date.now() / 1000)): SignedMediaUrl | undefined {
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+  const url = (body as { url?: unknown }).url;
+  if (typeof url !== "string" || !url.trim()) {
+    return undefined;
+  }
+  const raw = Number((body as { expires_at?: unknown }).expires_at);
+  const expiresAt = Number.isFinite(raw) && raw > 0 ? raw : nowSec + SIGN_TTL_SEC;
+  return { url, expiresAt };
+}
+
+export function signedMediaUsable(entry: SignedMediaUrl | undefined, nowMs = Date.now()): boolean {
+  return Boolean(entry?.url && entry.expiresAt * 1000 - SIGN_SKEW_MS > nowMs);
+}

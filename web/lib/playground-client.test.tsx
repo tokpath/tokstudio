@@ -54,9 +54,11 @@ describe("PlaygroundClient", () => {
     fireEvent.change(screen.getByLabelText("试用消息"), { target: { value: "hello" } });
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0] as [string, { body: string }];
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toContain("/v1/chat/completions");
-    expect(JSON.parse(init.body).model).toBe("tokenhub/echo-1");
+    expect(JSON.parse(String(init.body)).model).toBe("tokenhub/echo-1");
+    expect(init.credentials).toBe("include");
+    expect(init.headers).not.toHaveProperty("Authorization");
   });
 
   it("does not send a non-chat catalog model through chat completions", () => {

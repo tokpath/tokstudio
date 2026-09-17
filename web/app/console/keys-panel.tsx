@@ -31,6 +31,8 @@ import { apiBase } from "@/lib/api";
 import type { CatalogModel } from "@/lib/catalog";
 import { optionalPositiveInt } from "@/lib/key-limits";
 import { fetchListItems } from "@/lib/list-resource";
+import { keyExampleFor, keyVerifyRequest } from "@/lib/key-example";
+import { useModelHref } from "@/lib/model-use";
 import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { statusLabelKey } from "@/lib/status-copy";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
@@ -365,7 +367,9 @@ export default function KeysPanel() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [models, setModels] = useState<CatalogModel[]>([]);
   const [endpoint, setEndpoint] = useState("");
-  const [exampleCurl, setExampleCurl] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
+  const [verifyMessage, setVerifyMessage] = useState("");
   const message = useToast((s) => s.message);
   const setMessage = useToast((s) => s.setMessage);
   const createSchema = useMemo(
@@ -413,8 +417,6 @@ export default function KeysPanel() {
       if (docsRes.ok) {
         const domain = ((docsBody as { brand?: { api_domain?: string } }).brand?.api_domain || host).replace(/\/$/, "");
         setEndpoint(`https://${domain}/v1`);
-        const curl = (docsBody as { examples?: { curl?: string } }).examples?.curl || "";
-        setExampleCurl(curl);
       } else {
         setEndpoint(`${window.location.origin}/v1`);
       }
@@ -431,6 +433,9 @@ export default function KeysPanel() {
     setDialogError("");
     setCopyFallback("");
     setAdvancedOpen(false);
+    setVerifying(false);
+    setVerifyOk(null);
+    setVerifyMessage("");
     form.reset(defaultForm);
   }
 
@@ -535,6 +540,42 @@ export default function KeysPanel() {
     }
   }
 
+  async function verifyCreatedKey() {
+    const secret = createdKey?.key;
+    if (!secret) {
+      setVerifyOk(false);
+      setVerifyMessage(t("verifyKeyNeedSecret"));
+      return;
+    }
+    const example = keyExampleFor(createdKey.allowlist, models, endpoint);
+    const req = keyVerifyRequest(example.model, example.path);
+    setVerifying(true);
+    try {
+      const response = await fetch(`${apiBase}${req.path}`, {
+        method: "POST",
+        credentials: "omit",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const body = await readResponseBody(response);
+      if (!response.ok) {
+        setVerifyOk(false);
+        setVerifyMessage(t("verifyKeyFail", { error: errorMessageFromBody(body, String(response.status)) }));
+        return;
+      }
+      setVerifyOk(true);
+      setVerifyMessage(t("verifyKeyOk"));
+    } catch {
+      setVerifyOk(false);
+      setVerifyMessage(tc("listNetwork"));
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function act(id: string, action: "rotate" | "disable" | "expire") {
     try {
       const response = await fetch(`${apiBase}/v1/me/api-keys/${id}/${action}`, {
@@ -558,6 +599,10 @@ export default function KeysPanel() {
   function toggleReveal(id: string) {
     setRevealedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   }
+
+  const createdExample = createdKey ? keyExampleFor(createdKey.allowlist, models, endpoint) : null;
+  const tryModel = createdExample ? models.find((item) => item.id === createdExample.model) : undefined;
+  const tryHref = tryModel ? useModelHref(tryModel) : "/app/playground";
 
   return (
     <Card>
@@ -617,7 +662,7 @@ export default function KeysPanel() {
                 <div>
                   <dt className="text-xs text-ink-mute">{t("secret")}</dt>
                   <dd className="mt-1 flex flex-col gap-2">
-                    <code className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
+                    <code data-testid="key-secret" className="th-code block overflow-x-auto whitespace-nowrap text-[13px] text-ink">
                       {createdKey.key || maskAPIKey(createdKey.prefix)}
                     </code>
                     <Button type="button" variant="outline" size="sm" onClick={() => void copySecret(createdKey.id, createdKey.key)}>
@@ -628,10 +673,8 @@ export default function KeysPanel() {
                 <div>
                   <dt className="text-xs text-ink-mute">{t("example")}</dt>
                   <dd className="mt-1 space-y-2">
-                    <pre className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-[12px] text-ink">
-                      {exampleCurl
-                        ? exampleCurl.replaceAll("$TOKENHUB_API_KEY", createdKey.key || "$TOKENHUB_API_KEY")
-                        : `curl ${(endpoint || "/v1")}/chat/completions \\\n  -H "Authorization: Bearer ${createdKey.key || "YOUR_KEY"}"`}
+                    <pre data-testid="key-example" className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-[12px] text-ink">
+                      {createdExample?.curl}
                     </pre>
                     <Button type="button" variant="outline" size="sm" asChild>
                       <Link href="/app/docs">{t("example")}</Link>
@@ -639,11 +682,24 @@ export default function KeysPanel() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-ink-mute">{t("verify")}</dt>
+                  <dt className="text-xs text-ink-mute">{t("tryModel")}</dt>
                   <dd className="mt-1">
-                    <Button type="button" size="sm" asChild>
-                      <Link href="/app/playground">{t("verifyCta")}</Link>
+                    <Button type="button" size="sm" variant="outline" asChild>
+                      <Link href={tryHref}>{t("verifyCta")}</Link>
                     </Button>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-mute">{t("verifyKey")}</dt>
+                  <dd className="mt-1 space-y-2">
+                    <Button type="button" size="sm" disabled={verifying} onClick={() => void verifyCreatedKey()}>
+                      {t("verifyKeyCta")}
+                    </Button>
+                    {verifyMessage ? (
+                      <p data-testid="key-verify-status" data-ok={verifyOk === true ? "true" : "false"} className="text-sm text-ink-secondary">
+                        {verifyMessage}
+                      </p>
+                    ) : null}
                   </dd>
                 </div>
               </dl>

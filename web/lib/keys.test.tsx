@@ -198,9 +198,98 @@ describe("KeysPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
     await waitFor(() => expect(screen.getByText("接入地址")).toBeTruthy());
     expect(screen.getByText("https://api.tokenhub.test/v1")).toBeTruthy();
-    expect(screen.getByText("thk_new1secret")).toBeTruthy();
-    expect(screen.getAllByText("接入示例").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("key-secret").textContent).toBe("thk_new1secret");
+    const sample = screen.getByTestId("key-example").textContent || "";
+    expect(sample).toContain("$TOKENHUB_API_KEY");
+    expect(sample).toContain("/v1/chat/completions");
+    expect(sample).toContain("Content-Type: application/json");
+    expect(sample).not.toContain("thk_new1secret");
     expect(screen.getByRole("link", { name: "去快速试用" }).getAttribute("href")).toBe("/app/playground");
+    expect(screen.getByRole("button", { name: "发送验证请求" })).toBeTruthy();
+  });
+
+  it("keeps a complete placeholder example when docs-context fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+          return {
+            ok: true,
+            json: async () => ({
+              item: { id: "key_9", name: "我的聊天客户端", prefix: "thk_new1", key: "thk_new1secret", status: "active" },
+            }),
+          };
+        }
+        if (url.includes("/v1/public/docs-context")) {
+          return { ok: false, json: async () => ({ error: { message: "docs down" } }) };
+        }
+        return { ok: true, json: async () => ({ items: [] }) };
+      }),
+    );
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getByRole("button", { name: "创建 API Key" }));
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "我的聊天客户端" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-example")).toBeTruthy());
+    const sample = screen.getByTestId("key-example").textContent || "";
+    expect(sample).toContain("$TOKENHUB_API_KEY");
+    expect(sample).toContain("/v1/chat/completions");
+    expect(sample).toContain('"model":');
+    expect(sample).not.toContain("thk_new1secret");
+  });
+
+  it("verifies with the created bearer key and does not treat a 403 as success", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+        return {
+          ok: true,
+          json: async () => ({
+            item: {
+              id: "key_9",
+              name: "受限",
+              prefix: "thk_new1",
+              key: "thk_new1secret",
+              status: "active",
+              allowlist: ["google/gemini-flash"],
+            },
+          }),
+        };
+      }
+      if (url.includes("/v1/public/models")) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              { id: "tokenhub/echo-1", kind: "text", status: "available" },
+              { id: "google/gemini-flash", kind: "text", status: "available" },
+            ],
+          }),
+        };
+      }
+      if (url.includes("/v1/public/docs-context")) {
+        return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+      }
+      if (url.includes("/v1/chat/completions")) {
+        return { ok: false, status: 403, json: async () => ({ error: { message: "model_not_allowed" } }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getByRole("button", { name: "创建 API Key" }));
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "受限" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-example").textContent).toContain("google/gemini-flash"));
+    expect(screen.getByTestId("key-example").textContent).not.toContain("tokenhub/echo-1");
+    fireEvent.click(screen.getByRole("button", { name: "发送验证请求" }));
+    await waitFor(() => expect(screen.getByTestId("key-verify-status").getAttribute("data-ok")).toBe("false"));
+    expect(screen.getByTestId("key-verify-status").textContent).toContain("model_not_allowed");
+    const verifyCall = fetchMock.mock.calls.find((call) => String(call[0]).includes("/v1/chat/completions"));
+    expect(verifyCall).toBeTruthy();
+    expect((verifyCall?.[1] as RequestInit).credentials).toBe("omit");
+    expect((verifyCall?.[1] as RequestInit).headers).toMatchObject({ Authorization: "Bearer thk_new1secret" });
   });
 
   it("does not claim copy success when clipboard write fails", async () => {

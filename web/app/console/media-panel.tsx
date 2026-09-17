@@ -1,10 +1,8 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { z } from "zod";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { TextField } from "@/components/text-field";
@@ -25,6 +23,7 @@ import { SubmitStatus } from "@/components/console/submit-status";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import {
+  applyMediaMode,
   buildMediaPayload,
   completedJobsOfKind,
   defaultMediaForm,
@@ -35,6 +34,8 @@ import {
   jobToFormValues,
   mediaContentPath,
   mediaCreatePath,
+  mediaFormIssues,
+  mediaIssueNeedsAdvanced,
   mediaModeFields,
   mediaStatusPath,
   mergeMediaJobs,
@@ -46,25 +47,35 @@ import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import Link from "next/link";
 
-const schema = z.object({
-  prompt: z.string().min(1),
-  model: z.string().min(1),
-  kind: z.enum(["video", "image"]),
-  task_type: z.string().min(1),
-  duration: z.coerce.number().int().min(1).max(60),
-  resolution: z.string().min(1),
-  aspect_ratio: z.string(),
-  fps: z.coerce.number().int().min(0).max(60),
-  generate_audio: z.boolean(),
-  first_frame: z.string(),
-  last_frame: z.string(),
-  images: z.string(),
-  reference_video: z.string(),
-  reference_audio: z.string(),
-  source_job_id: z.string(),
-});
-
 const POLL_MS = 2500;
+
+function mediaIssueMessage(
+  path: keyof MediaFormValues,
+  t: (key: string) => string,
+): string {
+  if (path === "prompt") {
+    return t("mediaNeedPrompt");
+  }
+  if (path === "model") {
+    return t("mediaNeedModel");
+  }
+  if (path === "duration") {
+    return t("mediaNeedDuration");
+  }
+  if (path === "source_job_id") {
+    return t("mediaNeedSource");
+  }
+  if (path === "images") {
+    return t("mediaNeedImages");
+  }
+  if (path === "fps") {
+    return t("mediaNeedFps");
+  }
+  if (path === "resolution") {
+    return t("mediaNeedResolution");
+  }
+  return t("mediaNeedAsset");
+}
 
 function jobStatusTone(status: string): "success" | "warn" | "neutral" {
   if (isMediaSuccess(status)) {
@@ -146,8 +157,26 @@ export default function MediaPanel({
       model: initialModel || "",
     };
   }
+  const formResolver = useMemo<Resolver<MediaFormValues>>(
+    () => (values) => {
+      const issues = mediaFormIssues(values);
+      if (issues.length === 0) {
+        return { values, errors: {} };
+      }
+      return {
+        values: {},
+        errors: Object.fromEntries(
+          issues.map((issue) => [
+            issue.path,
+            { type: issue.code, message: mediaIssueMessage(issue.path, t) },
+          ]),
+        ),
+      };
+    },
+    [t],
+  );
   const form = useForm<MediaFormValues>({
-    resolver: zodResolver(schema),
+    resolver: formResolver,
     defaultValues: seedFormValues(),
   });
   const currentKind = form.watch("kind");
@@ -526,7 +555,14 @@ export default function MediaPanel({
             <DialogDescription>{t("createJobLead")}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form className="grid gap-3" onSubmit={form.handleSubmit(createJob, () => setAdvancedOpen(true))}>
+            <form
+              className="grid gap-3"
+              onSubmit={form.handleSubmit(createJob, (errors) => {
+                if (Object.keys(errors).some((key) => mediaIssueNeedsAdvanced(key as keyof MediaFormValues))) {
+                  setAdvancedOpen(true);
+                }
+              })}
+            >
               <FormField
                 control={form.control}
                 name="kind"
@@ -540,8 +576,7 @@ export default function MediaPanel({
                           variant={field.value === "image" ? "default" : "outline"}
                           aria-pressed={field.value === "image"}
                           onClick={() => {
-                            field.onChange("image");
-                            form.setValue("task_type", defaultTaskForKind("image"));
+                            form.reset(applyMediaMode(form.getValues(), "image"));
                           }}
                         >
                           {t("mediaGenImage")}
@@ -551,8 +586,7 @@ export default function MediaPanel({
                           variant={field.value === "video" ? "default" : "outline"}
                           aria-pressed={field.value === "video"}
                           onClick={() => {
-                            field.onChange("video");
-                            form.setValue("task_type", defaultTaskForKind("video"));
+                            form.reset(applyMediaMode(form.getValues(), "video"));
                           }}
                         >
                           {t("mediaGenVideo")}
@@ -608,7 +642,10 @@ export default function MediaPanel({
                       <select
                         className="h-10 w-full rounded-control border border-hairline bg-canvas px-3 text-sm"
                         aria-label={t("mode")}
-                        {...field}
+                        value={field.value}
+                        onChange={(event) => {
+                          form.reset(applyMediaMode(form.getValues(), currentKind, event.target.value));
+                        }}
                       >
                         {modes.map((mode) => (
                           <option key={mode.value} value={mode.value}>
@@ -643,6 +680,7 @@ export default function MediaPanel({
                           ))}
                         </select>
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

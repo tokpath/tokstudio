@@ -198,6 +198,80 @@ export function completedJobsOfKind(items: MediaJob[], kind: MediaKind): MediaJo
   return items.filter((item) => (item.kind || "video") === kind && isMediaSuccess(item.status));
 }
 
+export function applyMediaMode(values: MediaFormValues, kind: MediaKind, taskType?: string): MediaFormValues {
+  const task_type = taskType || defaultTaskForKind(kind);
+  const fields = mediaModeFields(kind, task_type);
+  const duration = Number(values.duration);
+  const fps = Number(values.fps);
+  return {
+    ...values,
+    kind,
+    task_type,
+    duration: fields.duration && Number.isInteger(duration) && duration >= 1 && duration <= 60 ? duration : defaultMediaForm.duration,
+    fps: kind === "video" && Number.isFinite(fps) && fps >= 0 && fps <= 60 ? fps : defaultMediaForm.fps,
+    generate_audio: kind === "video" ? Boolean(values.generate_audio) : false,
+    images: fields.images ? values.images : "",
+    first_frame: fields.firstFrame ? values.first_frame : "",
+    last_frame: fields.lastFrame ? values.last_frame : "",
+    reference_video: fields.referenceVideo ? values.reference_video : "",
+    reference_audio: fields.referenceAudio ? values.reference_audio : "",
+    source_job_id: fields.sourceJob ? values.source_job_id : "",
+  };
+}
+
+export type MediaFormIssue = { path: keyof MediaFormValues; code: "required" | "invalid" };
+
+export function mediaFormIssues(values: MediaFormValues): MediaFormIssue[] {
+  const fields = mediaModeFields(values.kind, values.task_type);
+  const issues: MediaFormIssue[] = [];
+  if (!values.prompt.trim()) {
+    issues.push({ path: "prompt", code: "required" });
+  }
+  if (!values.model.trim()) {
+    issues.push({ path: "model", code: "required" });
+  }
+  if (fields.duration) {
+    const duration = Number(values.duration);
+    if (!Number.isInteger(duration) || duration < 1 || duration > 60) {
+      issues.push({ path: "duration", code: "invalid" });
+    }
+  }
+  if (values.kind === "video") {
+    const fps = Number(values.fps);
+    if (!Number.isFinite(fps) || fps < 0 || fps > 60) {
+      issues.push({ path: "fps", code: "invalid" });
+    }
+  }
+  if (!String(values.resolution || "").trim()) {
+    issues.push({ path: "resolution", code: "required" });
+  }
+  if (fields.images && splitMediaRefs(values.images).length === 0) {
+    issues.push({ path: "images", code: "required" });
+  }
+  if (fields.sourceJob && !values.source_job_id.trim()) {
+    issues.push({ path: "source_job_id", code: "required" });
+  }
+  if (fields.lastFrame && !values.last_frame.trim()) {
+    issues.push({ path: "last_frame", code: "required" });
+  }
+  if (fields.referenceVideo && !values.reference_video.trim()) {
+    issues.push({ path: "reference_video", code: "required" });
+  }
+  if (fields.referenceAudio && !values.reference_audio.trim()) {
+    issues.push({ path: "reference_audio", code: "required" });
+  }
+  if (fields.firstFrame && !fields.images && !values.first_frame.trim()) {
+    issues.push({ path: "first_frame", code: "required" });
+  }
+  return issues;
+}
+
+const ADVANCED_PATHS = new Set<keyof MediaFormValues>(["resolution", "aspect_ratio", "fps", "generate_audio"]);
+
+export function mediaIssueNeedsAdvanced(path: keyof MediaFormValues): boolean {
+  return ADVANCED_PATHS.has(path);
+}
+
 export function buildMediaPayload(values: MediaFormValues): Record<string, unknown> {
   const fields = mediaModeFields(values.kind, values.task_type);
   const payload: Record<string, unknown> = {

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyMediaMode,
   buildMediaPayload,
   completedJobsOfKind,
+  defaultMediaForm,
   defaultTaskForKind,
   isMediaFailed,
   isMediaSuccess,
   isMediaTerminal,
   jobToFormValues,
   mediaCreatePath,
+  mediaFormIssues,
   mediaModeFields,
   mergeMediaJobs,
 } from "./media-job";
@@ -122,5 +125,61 @@ describe("media-job", () => {
     };
     expect(buildMediaPayload(values).model).toBe("bytedance/seedance");
     expect(mediaCreatePath(values)).toBe("/v1/videos");
+  });
+
+  it("validates only fields the current mode will send", () => {
+    const blankVideo = {
+      ...defaultMediaForm,
+      kind: "video" as const,
+      task_type: "t2v",
+      prompt: "dusk",
+      model: "bytedance/seedance",
+      duration: 0,
+    };
+    expect(mediaFormIssues(blankVideo).map((item) => item.path)).toEqual(["duration"]);
+    const afterImage = applyMediaMode(blankVideo, "image");
+    expect(afterImage.kind).toBe("image");
+    expect(afterImage.task_type).toBe("generate");
+    expect(afterImage.duration).toBe(5);
+    expect(mediaFormIssues(afterImage)).toEqual([]);
+    expect(buildMediaPayload(afterImage)).not.toHaveProperty("duration");
+  });
+
+  it("drops image-edit assets when switching to generate", () => {
+    const edit = {
+      ...defaultMediaForm,
+      kind: "image" as const,
+      task_type: "edit",
+      prompt: "fix sky",
+      model: "bytedance/seedream",
+      images: "",
+    };
+    expect(mediaFormIssues(edit).map((item) => item.path)).toEqual(["images"]);
+    const generate = applyMediaMode(edit, "image", "generate");
+    expect(generate.images).toBe("");
+    expect(mediaFormIssues(generate)).toEqual([]);
+  });
+
+  it("requires a source job for video extend", () => {
+    expect(
+      mediaFormIssues({
+        ...defaultMediaForm,
+        kind: "video",
+        task_type: "extend",
+        prompt: "longer",
+        model: "bytedance/seedance",
+        duration: 5,
+      }).map((item) => item.path),
+    ).toEqual(["source_job_id"]);
+  });
+
+  it("rejects whitespace-only prompts", () => {
+    expect(
+      mediaFormIssues({
+        ...defaultMediaForm,
+        prompt: "   ",
+        model: "bytedance/seedream",
+      }).map((item) => item.path),
+    ).toEqual(["prompt"]);
   });
 });

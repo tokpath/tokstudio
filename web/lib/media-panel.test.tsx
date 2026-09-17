@@ -149,4 +149,87 @@ describe("MediaPanel", () => {
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/images") || String(call[0]).includes("/v1/videos"))).toBe(false);
   });
+
+  it("submits image generate after an invalid video duration", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media")) {
+        return json({ items: [] });
+      }
+      if (url.includes("/v1/images/generations")) {
+        return json({ id: "img_switch", kind: "image", task_type: "generate", status: "queued", model: "m" });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("暂无媒体任务")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "生成视频" }));
+    fireEvent.change(within(dialog).getByLabelText("时长"), { target: { value: "" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "生成图片" }));
+    fireEvent.change(within(dialog).getByLabelText("模型"), { target: { value: "bytedance/seedream" } });
+    fireEvent.change(within(dialog).getByLabelText("描述你想生成的内容"), { target: { value: "a river" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建任务" }));
+    await waitFor(() => {
+      const create = fetchMock.mock.calls.find((call) => String(call[0]).includes("/v1/images/generations"));
+      expect(create).toBeTruthy();
+      expect(JSON.parse((create?.[1] as { body: string }).body)).not.toHaveProperty("duration");
+    });
+  });
+
+  it("submits generate after leaving image edit without assets", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/me/media")) {
+        return json({ items: [] });
+      }
+      if (url.includes("/v1/images/generations")) {
+        return json({ id: "img_gen", kind: "image", task_type: "generate", status: "queued", model: "m" });
+      }
+      return json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("暂无媒体任务")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("生成模式"), { target: { value: "edit" } });
+    fireEvent.change(within(dialog).getByLabelText("模型"), { target: { value: "bytedance/seedream" } });
+    fireEvent.change(within(dialog).getByLabelText("描述你想生成的内容"), { target: { value: "fix sky" } });
+    fireEvent.change(within(dialog).getByLabelText("生成模式"), { target: { value: "generate" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建任务" }));
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/images/generations"))).toBe(true);
+      expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/images/edits"))).toBe(false);
+    });
+  });
+
+  it("shows a visible source error when extending without a job", async () => {
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("暂无媒体任务")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "生成视频" }));
+    fireEvent.change(within(dialog).getByLabelText("生成模式"), { target: { value: "extend" } });
+    fireEvent.change(within(dialog).getByLabelText("模型"), { target: { value: "bytedance/seedance" } });
+    fireEvent.change(within(dialog).getByLabelText("描述你想生成的内容"), { target: { value: "longer" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建任务" }));
+    await waitFor(() => expect(within(dialog).getByText("请选择要延长或编辑的源视频。")).toBeTruthy());
+    expect(within(dialog).getByLabelText("延长哪条已完成的视频")).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).includes("/v1/videos"))).toBe(false);
+  });
+
+  it("shows a visible prompt error for whitespace-only descriptions", async () => {
+    render(withZh(<MediaPanel />));
+    await waitFor(() => expect(screen.getByText("暂无媒体任务")).toBeTruthy());
+    fireEvent.click(screen.getAllByRole("button", { name: "新建任务" })[0]);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("模型"), { target: { value: "bytedance/seedream" } });
+    fireEvent.change(within(dialog).getByLabelText("描述你想生成的内容"), { target: { value: "   " } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建任务" }));
+    await waitFor(() => expect(within(dialog).getByText("请填写要生成的内容，不能只是空格。")).toBeTruthy());
+    expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).includes("/v1/images"))).toBe(false);
+  });
 });

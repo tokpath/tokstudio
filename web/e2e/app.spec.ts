@@ -302,6 +302,7 @@ test("user media page is list-first with create dialog", async ({ page }) => {
   await expect(page.getByRole("button", { name: "生成图片" })).toBeVisible();
   await expect(page.getByRole("button", { name: "生成视频" })).toBeVisible();
   await expect(page.getByLabel("描述你想生成的内容")).toBeVisible();
+  await expect(page.getByLabel("模型")).toBeVisible();
   await expect(page.getByLabel("帧率")).toHaveCount(0);
   await expect(page.getByLabel("时长")).toHaveCount(0);
   await page.getByRole("button", { name: "生成视频" }).click();
@@ -333,6 +334,7 @@ test("media create failure stays in the dialog", async ({ page }) => {
   });
   await page.goto("/app/media");
   await page.getByRole("button", { name: "新建任务" }).first().click();
+  await page.getByLabel("模型").fill("bytedance/seedream");
   await page.getByLabel("描述你想生成的内容").fill("a river at dusk");
   await page.getByRole("button", { name: "新建任务" }).last().click();
   await expect(page.getByTestId("submit-status")).toHaveText("上游创建失败");

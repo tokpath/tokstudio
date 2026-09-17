@@ -20,16 +20,16 @@ import {
   type KeyBucket,
   type UsageEvent,
   bucketsToMetricPoints,
-  dimToKeyBuckets,
   filterUsage,
+  groupUsageByAPIKey,
   keyLabel,
   summarizeUsage,
+  uniqueModels,
 } from "@/lib/usage";
 
 const selectClass = "h-10 min-w-[12rem] rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
 
 type UsageExtras = {
-  keysDim: DimMoney[];
   modelDims: DimMoney[];
   keyItems: APIKeyOption[];
 };
@@ -64,7 +64,6 @@ async function loadUsage(keyFilter: string, modelFilter: string): Promise<ListLo
       status: response.status,
       items: Array.isArray(record.items) ? record.items : [],
       extras: {
-        keysDim: Array.isArray(record.keys) ? record.keys : [],
         modelDims: Array.isArray(record.models) ? record.models : [],
         keyItems,
       } satisfies UsageExtras,
@@ -78,7 +77,6 @@ async function loadUsage(keyFilter: string, modelFilter: string): Promise<ListLo
 export default function UsagePanel() {
   const t = useTranslations("user");
   const tChart = useTranslations("charts");
-  const [keysDim, setKeysDim] = useState<DimMoney[]>([]);
   const [modelDims, setModelDims] = useState<DimMoney[]>([]);
   const [keys, setKeys] = useState<APIKeyOption[]>([]);
   const [keyFilter, setKeyFilter] = useState("");
@@ -92,7 +90,6 @@ export default function UsagePanel() {
         return;
       }
       const extras = result.extras as UsageExtras | undefined;
-      setKeysDim(extras?.keysDim ?? []);
       setModelDims(extras?.modelDims ?? []);
       if (extras?.keyItems) {
         setKeys(extras.keyItems);
@@ -106,10 +103,19 @@ export default function UsagePanel() {
     [usage, keyFilter, modelFilter],
   );
   const summary = summarizeUsage(filtered);
-  const models = modelDims.map((row) => row.key).filter(Boolean);
-  const byKey = keyFilter
-    ? dimToKeyBuckets(keysDim).filter((row) => row.api_key_id === keyFilter)
-    : dimToKeyBuckets(keysDim);
+  const byKey = groupUsageByAPIKey(filtered);
+  const models = useMemo(() => {
+    const names = new Set(uniqueModels(usage));
+    for (const row of modelDims) {
+      if (row.key) {
+        names.add(row.key);
+      }
+    }
+    if (modelFilter) {
+      names.add(modelFilter);
+    }
+    return [...names];
+  }, [usage, modelDims, modelFilter]);
   const usageOk = list.snapshot.phase === "empty" || list.snapshot.phase === "ready" || list.snapshot.phase === "stale";
 
   return (
@@ -173,14 +179,19 @@ export default function UsagePanel() {
       >
         <section className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t("usageTitle")}>
           {[
-            { k: t("statRequests"), v: usageOk ? String(summary.requests) : "—" },
+            { k: t("statRequests"), v: usageOk ? String(summary.requests) : "—", testId: "usage-stat-requests" },
             { k: t("statPrompt"), v: usageOk ? String(summary.prompt) : "—" },
             { k: t("statCompletion"), v: usageOk ? String(summary.completion) : "—" },
-            { k: t("statSpend"), v: usageOk ? formatUsdMinor(summary.amount) : "—" },
+            { k: t("statSpend"), v: usageOk ? formatUsdMinor(summary.amount) : "—", testId: "usage-stat-spend" },
           ].map((card) => (
             <div key={card.k} className="rounded-card border border-hairline bg-canvas p-4">
               <p className="th-eyebrow text-ink-mute">{card.k}</p>
-              <p className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight">{card.v}</p>
+              <p
+                className="mt-2 font-mono text-[22px] font-medium leading-none tabular-nums tracking-tight"
+                data-testid={"testId" in card ? card.testId : undefined}
+              >
+                {card.v}
+              </p>
             </div>
           ))}
         </section>
@@ -190,7 +201,6 @@ export default function UsagePanel() {
           breakdownTitle={tChart("byKey")}
         />
         <h3 className="mb-2 text-sm font-medium">{t("byApiKey")}</h3>
-        <p className="mb-2 text-sm text-ink-secondary">{t("usageByKeyScope")}</p>
         <ScrollTable
           density="ledger"
           className="mb-4 rounded-card border border-hairline"
@@ -222,7 +232,11 @@ export default function UsagePanel() {
             {
               id: "amount",
               header: t("colAmount"),
-              cell: (row) => <span className="font-mono tabular-nums">{row.amount}</span>,
+              cell: (row) => (
+                <span className="font-mono tabular-nums" data-testid={`usage-key-amount-${row.api_key_id || "none"}`}>
+                  {formatUsdMinor(row.amount)}
+                </span>
+              ),
             },
           ]}
         />

@@ -37,7 +37,11 @@ export function UsageCharts({
   );
 
   return (
-    <div className="mb-5 grid gap-4 lg:grid-cols-2">
+    <div
+      className="mb-5 grid gap-4 lg:grid-cols-2"
+      data-testid={`${testIdPrefix}-charts-scope`}
+      data-event-count={events.length}
+    >
       <div className="rounded-card border border-hairline bg-canvas p-4">
         <h3 className="mb-2 text-sm font-medium">{t("trend")}</h3>
         <EChart

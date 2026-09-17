@@ -1602,6 +1602,8 @@
     "verifyKeyOk": "この Key は選択したモデルを呼べます",
     "verifyKeyFail": "確認できませんでした：{error}",
     "verifyKeyNeedSecret": "完全な秘密鍵がないため確認できません",
+    "verifyKeyNeedCatalog": "モデル一覧の準備ができていないためオンライン確認できません。接続サンプルを使ってください。",
+    "verifyKeyUnsupported": "このプロトコルはオンライン確認できません。接続サンプルを使い、チャット API へは切り替えません。",
     "done": "完了",
     "colName": "名前",
     "colKey": "キー",

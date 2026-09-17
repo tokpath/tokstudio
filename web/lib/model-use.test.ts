@@ -89,6 +89,23 @@ describe("exampleCurl", () => {
       messages: [{ role: "user", content: "hi" }],
     });
   });
+
+  it("posts Responses and Messages bodies on their own paths", async () => {
+    const responses = await captureExampleCurl(exampleCurl("openai/gpt", "/v1/responses", "api.test"), "api.test");
+    expect(responses.method).toBe("POST");
+    expect(responses.url).toBe("/v1/responses");
+    expect(responses.auth).toBe(`Bearer ${virtualKey}`);
+    expect(JSON.parse(responses.body)).toEqual({ model: "openai/gpt", input: "hi" });
+
+    const messages = await captureExampleCurl(exampleCurl("anthropic/claude", "/v1/messages", "api.test"), "api.test");
+    expect(messages.url).toBe("/v1/messages");
+    expect(messages.auth).toBe(`Bearer ${virtualKey}`);
+    expect(JSON.parse(messages.body)).toEqual({
+      model: "anthropic/claude",
+      max_tokens: 32,
+      messages: [{ role: "user", content: "hi" }],
+    });
+  });
 });
 
 describe("guest start href", () => {

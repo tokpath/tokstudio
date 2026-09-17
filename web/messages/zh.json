@@ -1602,6 +1602,8 @@
     "verifyKeyOk": "这把密钥可以调用所选模型",
     "verifyKeyFail": "验证未通过：{error}",
     "verifyKeyNeedSecret": "没有完整密钥，无法验证",
+    "verifyKeyNeedCatalog": "模型目录未就绪，无法在线验证。请先用接入示例调用。",
+    "verifyKeyUnsupported": "该协议暂不支持在线验证。请用接入示例按该协议调用，不会改走聊天接口。",
     "done": "完成",
     "colName": "名称",
     "colKey": "密钥",

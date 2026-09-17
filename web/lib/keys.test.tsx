@@ -354,6 +354,161 @@ describe("KeysPanel", () => {
     expect(verifyCall).toBeTruthy();
     expect((verifyCall?.[1] as RequestInit).credentials).toBe("omit");
     expect((verifyCall?.[1] as RequestInit).headers).toMatchObject({ Authorization: "Bearer thk_new1secret" });
+    expect(JSON.parse(String((verifyCall?.[1] as RequestInit).body))).toEqual({
+      model: "google/gemini-flash",
+      messages: [{ role: "user", content: "ping" }],
+    });
+  });
+
+  it("verifies Responses and Messages on their own endpoints with the created bearer", async () => {
+    const cases = [
+      {
+        id: "openai/gpt",
+        endpoints: ["/v1/responses"],
+        path: "/v1/responses",
+        body: { model: "openai/gpt", input: "ping" },
+      },
+      {
+        id: "anthropic/claude",
+        endpoints: ["/v1/messages"],
+        path: "/v1/messages",
+        body: { model: "anthropic/claude", max_tokens: 32, messages: [{ role: "user", content: "ping" }] },
+      },
+    ];
+    for (const item of cases) {
+      const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+          return {
+            ok: true,
+            json: async () => ({
+              item: {
+                id: "key_9",
+                name: item.id,
+                prefix: "thk_new1",
+                key: "thk_new1secret",
+                status: "active",
+                allowlist: [item.id],
+              },
+            }),
+          };
+        }
+        if (url.includes("/v1/public/models")) {
+          return {
+            ok: true,
+            json: async () => ({
+              items: [{ id: item.id, kind: "text", status: "available", capabilities: { supported_endpoints: item.endpoints } }],
+            }),
+          };
+        }
+        if (url.includes("/v1/public/docs-context")) {
+          return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+        }
+        if (url.includes(item.path)) {
+          return { ok: true, json: async () => ({ id: "ok" }) };
+        }
+        return { ok: true, json: async () => ({ items: [] }) };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      cleanup();
+      render(withZh(<KeysPanel />));
+      fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+      fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: item.id } });
+      fireEvent.click(screen.getByRole("button", { name: "创建" }));
+      await waitFor(() => expect(screen.getByTestId("key-example").textContent).toContain(item.path));
+      fireEvent.click(screen.getByRole("button", { name: "发送验证请求" }));
+      await waitFor(() => expect(screen.getByTestId("key-verify-status").getAttribute("data-ok")).toBe("true"));
+      const verifyCall = fetchMock.mock.calls.find((call) => String(call[0]).includes(item.path) && call[1]?.method === "POST");
+      expect(verifyCall).toBeTruthy();
+      expect((verifyCall?.[1] as RequestInit).headers).toMatchObject({ Authorization: "Bearer thk_new1secret" });
+      expect(JSON.parse(String((verifyCall?.[1] as RequestInit).body))).toEqual(item.body);
+      expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/chat/completions"))).toBe(false);
+    }
+  });
+
+  it("does not send a default chat verify when the catalog is missing or the protocol is unverifiable", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+        return {
+          ok: true,
+          json: async () => ({
+            item: {
+              id: "key_9",
+              name: "视频",
+              prefix: "thk_new1",
+              key: "thk_new1secret",
+              status: "active",
+              allowlist: ["bytedance/seedance"],
+            },
+          }),
+        };
+      }
+      if (url.includes("/v1/public/models")) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                id: "bytedance/seedance",
+                kind: "video",
+                status: "available",
+                capabilities: { supported_endpoints: ["/v1/videos"] },
+              },
+            ],
+          }),
+        };
+      }
+      if (url.includes("/v1/public/docs-context")) {
+        return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "视频" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-example").textContent).toContain("/v1/videos"));
+    expect(screen.getByTestId("key-example").textContent).toContain('"prompt":"a river at dusk"');
+    expect(screen.getByTestId("key-example").textContent).not.toContain("/v1/chat/completions");
+    expect(screen.getByRole("button", { name: "发送验证请求" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "发送验证请求" }));
+    expect(screen.getByTestId("key-verify-status").textContent).toContain("该协议暂不支持在线验证");
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/chat/completions"))).toBe(false);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/videos") && call[1]?.method === "POST")).toBe(false);
+  });
+
+  it("does not invent echo-1 to verify while the catalog request is still open", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/me/api-keys") && init?.method === "POST") {
+        return {
+          ok: true,
+          json: async () => ({
+            item: { id: "key_9", name: "等待目录", prefix: "thk_new1", key: "thk_new1secret", status: "active" },
+          }),
+        };
+      }
+      if (url.includes("/v1/public/models")) {
+        return new Promise(() => undefined);
+      }
+      if (url.includes("/v1/public/docs-context")) {
+        return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" } }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "等待目录" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(screen.getByTestId("key-secret")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "发送验证请求" })).toHaveProperty("disabled", true);
+    expect(screen.getByTestId("key-verify-status").textContent).toContain("模型目录未就绪");
+    fireEvent.click(screen.getByRole("button", { name: "发送验证请求" }));
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/v1/chat/completions"))).toBe(false);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("tokenhub/echo-1"))).toBe(false);
   });
 
   it("does not claim copy success when clipboard write fails", async () => {

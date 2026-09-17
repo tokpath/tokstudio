@@ -1,7 +1,5 @@
 import type { CatalogModel } from "@/lib/catalog";
-import { catalogModelUsable, exampleCurl, examplePath, modelEntry } from "@/lib/model-use";
-
-const FALLBACK_MODEL = "tokenhub/echo-1";
+import { catalogModelUsable, exampleCurl, examplePath, modelEntry, protocolAllowsKeyVerify } from "@/lib/model-use";
 
 export function apiHostFromEndpoint(endpoint: string): string {
   const raw = endpoint.trim();
@@ -24,35 +22,48 @@ export function pickKeyExampleModel(allowlist: string[] | undefined, catalog: Ca
       const found = usable.find((item) => item.id === id);
       return found ? modelEntry(found) === "chat" : false;
     });
-    return chat || allowedUsable[0] || allowlist[0];
+    return chat || allowedUsable[0] || "";
   }
   const chat = usable.find((item) => modelEntry(item) === "chat");
-  return chat?.id || usable[0]?.id || FALLBACK_MODEL;
+  return chat?.id || usable[0]?.id || "";
 }
 
 export function keyExampleFor(
   allowlist: string[] | undefined,
   catalog: CatalogModel[],
   endpoint: string,
-): { model: string; path: string; curl: string } {
+): { model: string; path: string; curl: string; verifiable: boolean } {
   const model = pickKeyExampleModel(allowlist, catalog);
   const found = catalog.find((item) => item.id === model);
-  const path = examplePath(found || { id: model, kind: "text" });
-  return { model, path, curl: exampleCurl(model, path, apiHostFromEndpoint(endpoint)) };
+  const host = apiHostFromEndpoint(endpoint);
+  if (!found) {
+    return {
+      model: "",
+      path: "",
+      curl: exampleCurl("your-model", "/v1/chat/completions", host),
+      verifiable: false,
+    };
+  }
+  const path = examplePath(found);
+  return { model, path, curl: exampleCurl(model, path, host), verifiable: protocolAllowsKeyVerify(path) };
 }
 
-export function keyVerifyRequest(model: string, path: string): { path: string; body: Record<string, unknown> } {
-  if (path.startsWith("/v1/embeddings")) {
-    return { path: "/v1/embeddings", body: { model, input: "ping" } };
+export function keyVerifyRequest(model: string, path: string): { path: string; body: Record<string, unknown> } | null {
+  const id = model.trim();
+  if (!id || !protocolAllowsKeyVerify(path)) {
+    return null;
   }
-  if (path.startsWith("/v1/images")) {
-    return { path: "/v1/images/generations", body: { model, prompt: "ping" } };
+  if (path.startsWith("/v1/chat/completions")) {
+    return { path: "/v1/chat/completions", body: { model: id, messages: [{ role: "user" as const, content: "ping" }] } };
   }
-  if (path.startsWith("/v1/videos")) {
-    return { path: "/v1/videos", body: { model, prompt: "ping" } };
+  if (path.startsWith("/v1/responses")) {
+    return { path: "/v1/responses", body: { model: id, input: "ping" } };
   }
-  return {
-    path: "/v1/chat/completions",
-    body: { model, messages: [{ role: "user" as const, content: "ping" }] },
-  };
+  if (path.startsWith("/v1/messages")) {
+    return {
+      path: "/v1/messages",
+      body: { model: id, max_tokens: 32, messages: [{ role: "user" as const, content: "ping" }] },
+    };
+  }
+  return null;
 }

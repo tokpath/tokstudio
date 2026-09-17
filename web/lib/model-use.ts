@@ -59,19 +59,45 @@ export function examplePath(model: Partial<CatalogModel> | null | undefined): st
 /** Shell header that expands TOKENHUB_API_KEY. Single quotes would send the literal name. */
 export const CURL_BEARER_HEADER = `-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`;
 
+const VERIFY_PATHS = ["/v1/chat/completions", "/v1/responses", "/v1/messages"] as const;
+
+export function exampleJSONBody(modelId: string, path: string): Record<string, unknown> | null {
+  const id = modelId.trim() || "your-model";
+  if (path.startsWith("/v1/chat/completions")) {
+    return { model: id, messages: [{ role: "user", content: "hi" }] };
+  }
+  if (path.startsWith("/v1/responses")) {
+    return { model: id, input: "hi" };
+  }
+  if (path.startsWith("/v1/messages")) {
+    return { model: id, max_tokens: 32, messages: [{ role: "user", content: "hi" }] };
+  }
+  if (path.startsWith("/v1/embeddings")) {
+    return { model: id, input: "hello" };
+  }
+  if (path.startsWith("/v1/images")) {
+    return { model: id, prompt: "a river" };
+  }
+  if (path.startsWith("/v1/videos")) {
+    return { model: id, prompt: "a river at dusk" };
+  }
+  return null;
+}
+
+export function protocolAllowsKeyVerify(path: string): boolean {
+  return VERIFY_PATHS.some((item) => path === item || path.startsWith(`${item}/`));
+}
+
 export function exampleCurl(modelId: string, path: string, host = "localhost"): string {
   const id = modelId.trim() || "your-model";
   if (path.startsWith("/v1/audio")) {
     return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -F file=@audio.mp3 -F model=${id}`;
   }
-  const body = path.startsWith("/v1/embeddings")
-    ? `{"model":"${id}","input":"hello"}`
-    : path.startsWith("/v1/images")
-      ? `{"model":"${id}","prompt":"a river"}`
-      : path.startsWith("/v1/videos")
-        ? `{"model":"${id}","prompt":"a river at dusk"}`
-        : `{"model":"${id}","messages":[{"role":"user","content":"hi"}]}`;
-  return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -H "Content-Type: application/json" -d '${body}'`;
+  const body = exampleJSONBody(id, path);
+  if (!body) {
+    return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER}`;
+  }
+  return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -H "Content-Type: application/json" -d '${JSON.stringify(body)}'`;
 }
 
 export function useModelHref(model: Pick<CatalogModel, "id"> & Partial<CatalogModel>, from?: string): string {

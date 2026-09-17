@@ -401,6 +401,7 @@ export default function KeysPanel() {
   const [copyFallback, setCopyFallback] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [models, setModels] = useState<CatalogModel[]>([]);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const [endpoint, setEndpoint] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
@@ -440,6 +441,7 @@ export default function KeysPanel() {
     }
     const session = dialogSessionRef.current;
     let cancelled = false;
+    setModelsLoaded(false);
     async function loadSupport() {
       const host = window.location.host;
       const [modelsRes, docsRes] = await Promise.all([
@@ -455,6 +457,10 @@ export default function KeysPanel() {
       }
       if (modelsRes.ok) {
         setModels(((modelsBody as { items?: CatalogModel[] }).items || []) as CatalogModel[]);
+        setModelsLoaded(true);
+      } else {
+        setModels([]);
+        setModelsLoaded(false);
       }
       const docsBody = await readResponseBody(docsRes);
       if (cancelled || session !== dialogSessionRef.current) {
@@ -610,7 +616,17 @@ export default function KeysPanel() {
       return;
     }
     const example = keyExampleFor(createdKey.allowlist, models, endpoint);
+    if (!modelsLoaded || !models.some((item) => item.id === example.model)) {
+      setVerifyOk(false);
+      setVerifyMessage(t("verifyKeyNeedCatalog"));
+      return;
+    }
     const req = keyVerifyRequest(example.model, example.path);
+    if (!req) {
+      setVerifyOk(false);
+      setVerifyMessage(t("verifyKeyUnsupported"));
+      return;
+    }
     setVerifying(true);
     try {
       const response = await fetch(`${apiBase}${req.path}`, {
@@ -772,10 +788,14 @@ export default function KeysPanel() {
                 <div>
                   <dt className="text-xs text-ink-mute">{t("verifyKey")}</dt>
                   <dd className="mt-1 space-y-2">
-                    <Button type="button" size="sm" disabled={verifying} onClick={() => void verifyCreatedKey()}>
+                    <Button type="button" size="sm" disabled={verifying || !createdExample?.verifiable} onClick={() => void verifyCreatedKey()}>
                       {t("verifyKeyCta")}
                     </Button>
-                    {verifyMessage ? (
+                    {!createdExample?.verifiable ? (
+                      <p data-testid="key-verify-status" data-ok="false" className="text-sm text-ink-secondary">
+                        {modelsLoaded ? t("verifyKeyUnsupported") : t("verifyKeyNeedCatalog")}
+                      </p>
+                    ) : verifyMessage ? (
                       <p data-testid="key-verify-status" data-ok={verifyOk === true ? "true" : "false"} className="text-sm text-ink-secondary">
                         {verifyMessage}
                       </p>

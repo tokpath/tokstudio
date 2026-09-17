@@ -1602,6 +1602,8 @@
     "verifyKeyOk": "This key can call the selected model",
     "verifyKeyFail": "Verification failed: {error}",
     "verifyKeyNeedSecret": "The full secret is not available, so this key cannot be verified",
+    "verifyKeyNeedCatalog": "The model catalog is not ready, so this key cannot be verified online. Use the sample instead.",
+    "verifyKeyUnsupported": "This protocol cannot be verified online. Use the sample for this protocol; it will not silently call chat completions.",
     "done": "Done",
     "colName": "Name",
     "colKey": "Key",

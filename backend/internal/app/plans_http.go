@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -139,6 +141,11 @@ func (a *App) listMyEntitlements(c *gin.Context) {
 }
 
 func (a *App) createPaymentOrder(c *gin.Context) {
+	raw, _ := io.ReadAll(c.Request.Body)
+	if rec := a.replayIdempotency(c, raw); rec != nil {
+		return
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(raw))
 	var body struct {
 		Adapter     string `json:"adapter"`
 		AmountMinor int64  `json:"amount_minor"`
@@ -168,7 +175,9 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	httpx.Created(c, gin.H{"checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)})
+	payload := gin.H{"checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)}
+	a.rememberIdempotency(c, raw, http.StatusCreated, payload)
+	httpx.Created(c, payload)
 }
 
 func (a *App) getPaymentOrder(c *gin.Context) {

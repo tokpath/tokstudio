@@ -71,6 +71,67 @@ describe("CheckoutPay", () => {
     expect(screen.getByText("已到账 $13.99")).toBeTruthy();
   });
 
+  it("names processing, partial refund, and unknown instead of 待支付", () => {
+    const { rerender } = render(
+      withZh(<CheckoutPay checkout={{ order: { id: "pay_proc", status: "processing", amount_minor: 10000, currency: "CNY" }, sandbox: true }} />),
+    );
+    expect(screen.getByText("pay_proc").closest("[data-checkout-status]")?.getAttribute("data-checkout-status")).toBe("confirming");
+    rerender(
+      withZh(
+        <CheckoutPay
+          checkout={{ order: { id: "pay_part", status: "partially_refunded", amount_minor: 10000, currency: "CNY" }, sandbox: true }}
+        />,
+      ),
+    );
+    const partial = screen.getByText("pay_part").closest("[data-checkout-status]");
+    expect(partial?.getAttribute("data-checkout-status")).toBe("partially_refunded");
+    expect(partial?.textContent).toContain("已部分退款");
+    expect(partial?.textContent).not.toContain("待支付");
+    rerender(withZh(<CheckoutPay checkout={{ order: { id: "pay_unk", status: "mystery" }, sandbox: true }} />));
+    expect(screen.getByText("订单状态未知")).toBeTruthy();
+    expect(screen.getByText("pay_unk").closest("[data-checkout-status]")?.getAttribute("data-checkout-status")).toBe("unknown");
+  });
+
+  it("keeps the order due on the receipt itself", () => {
+    render(
+      withZh(
+        <CheckoutPay
+          checkout={{
+            order: { id: "pay_100", status: "pending", amount_minor: 10000, currency: "CNY", adapter: "alipay" },
+            sandbox: true,
+          }}
+        />,
+      ),
+    );
+    expect(screen.getByTestId("checkout-order-due").textContent).toContain("¥100.00");
+  });
+
+  it("shows a sync failure on the order instead of clearing it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "upstream timeout" } }),
+      })),
+    );
+    render(
+      withZh(
+        <CheckoutPay
+          checkout={{
+            order: { id: "pay_sync", status: "pending", amount_minor: 10000, currency: "CNY" },
+            qr_code: "weixin://wxpay/bizpayurl?pr=x",
+            sandbox: false,
+          }}
+        />,
+      ),
+    );
+    screen.getByRole("button", { name: "我已付款" }).click();
+    expect(await screen.findByText("upstream timeout")).toBeTruthy();
+    expect(screen.getByText("pay_sync")).toBeTruthy();
+    expect(screen.getByTestId("checkout-order-due").textContent).toContain("¥100.00");
+  });
+
   it("renders a qr surface for live native checkout", async () => {
     render(
       withZh(

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checkoutKind, checkoutOrderID, checkoutUiStatus } from "./checkout";
+import {
+  checkoutKind,
+  checkoutOrderID,
+  checkoutUiStatus,
+  formatOrderDue,
+  orderMatchesSelection,
+  stripeClientOutcome,
+} from "./checkout";
 
 describe("checkoutKind", () => {
   it("prefers live qr and stripe element over sandbox", () => {
@@ -24,5 +31,19 @@ describe("checkoutKind", () => {
     expect(checkoutUiStatus("expired")).toBe("expired");
     expect(checkoutUiStatus("paid", true)).toBe("paid");
     expect(checkoutUiStatus("refunded")).toBe("refunded");
+    expect(checkoutUiStatus("partially_refunded")).toBe("partially_refunded");
+    expect(checkoutUiStatus("processing")).toBe("confirming");
+    expect(checkoutUiStatus("mystery")).toBe("unknown");
+  });
+
+  it("never treats a Stripe SDK success as paid", () => {
+    expect(stripeClientOutcome({})).toBe("confirming");
+    expect(stripeClientOutcome({ error: { message: "card declined" } })).toBe("error");
+  });
+
+  it("compares an order to the current recharge selection", () => {
+    expect(orderMatchesSelection({ adapter: "alipay", currency: "CNY", amount_minor: 10000 }, "alipay", 100)).toBe(true);
+    expect(orderMatchesSelection({ adapter: "alipay", currency: "CNY", amount_minor: 10000 }, "alipay", 300)).toBe(false);
+    expect(formatOrderDue({ currency: "CNY", amount_minor: 10000 })).toBe("¥100.00");
   });
 });

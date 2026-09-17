@@ -12,10 +12,12 @@ import {
   checkoutNeedsFulfillment,
   checkoutOrderID,
   checkoutUiStatus,
+  formatOrderCredit,
+  formatOrderDue,
+  stripeClientOutcome,
   type CheckoutOrder,
   type CheckoutPayload,
 } from "@/lib/checkout";
-import { formatCreditMinor } from "@/lib/payment-quote";
 
 type Props = {
   checkout: CheckoutPayload;
@@ -29,7 +31,9 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   const [order, setOrder] = useState<CheckoutOrder>(checkout.order || { status: "pending" });
   const [qrSvg, setQrSvg] = useState("");
   const [busy, setBusy] = useState(false);
-  const ui = checkoutUiStatus(order.status, busy);
+  const [awaitingProvider, setAwaitingProvider] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const ui = checkoutUiStatus(order.status, busy || awaitingProvider);
   const open = checkoutIsOpen(ui);
   const paid = ui === "paid";
   const awaitingCredit = checkoutNeedsFulfillment(order);
@@ -38,6 +42,9 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
     (next?: CheckoutOrder) => {
       if (!next?.status) return;
       setOrder((prev) => ({ ...prev, ...next }));
+      if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunded" || next.status === "partially_refunded") {
+        setAwaitingProvider(false);
+      }
       if (next.status === "paid") onPaid?.();
     },
     [onPaid],
@@ -64,7 +71,7 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
   }, [kind, checkout.qr_code, open]);
 
   useEffect(() => {
-    if (!orderID || (paid && !awaitingCredit) || ui === "failed" || ui === "expired" || ui === "refunded") {
+    if (!orderID || (paid && !awaitingCredit) || ui === "failed" || ui === "expired" || ui === "refunded" || ui === "partially_refunded" || ui === "unknown") {
       return;
     }
     const timer = window.setInterval(() => {
@@ -75,16 +82,25 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
     return () => window.clearInterval(timer);
   }, [applyOrder, awaitingCredit, orderID, paid, ui]);
 
-  async function syncPaid() {
+  async function loadOrder(path: "get" | "sync") {
     if (!orderID) return;
     setBusy(true);
+    setSyncError("");
     try {
-      const response = await fetch(`${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}/sync`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const body = await response.json();
+      const response = await fetch(
+        path === "sync"
+          ? `${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}/sync`
+          : `${apiBase}/v1/payments/orders/${encodeURIComponent(orderID)}`,
+        { method: path === "sync" ? "POST" : "GET", credentials: "include" },
+      );
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setSyncError(body.error?.message || t("syncFailed"));
+        return;
+      }
       applyOrder(body.item as CheckoutOrder);
+    } catch {
+      setSyncError(t("syncFailed"));
     } finally {
       setBusy(false);
     }
@@ -95,16 +111,27 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
       if (awaitingCredit) {
         return t("paidPendingCredit");
       }
-      return t("paidCredited", { credit: formatCreditMinor(order.credit_minor) });
+      return t("paidCredited", { credit: formatOrderCredit(order) });
+    }
+    if (ui === "unknown") {
+      return t("unknownStatus");
     }
     return t(ui);
   }
 
   return (
-    <div className="mt-4 rounded-card border border-hairline bg-canvas p-4" data-checkout-status={ui}>
+    <div
+      className="mt-4 rounded-card border border-hairline bg-canvas p-4"
+      data-checkout-status={ui}
+      data-order-due={formatOrderDue(order)}
+    >
       <p className="th-eyebrow text-ink-mute">{t("orderEyebrow")}</p>
       <p className="mt-1 font-mono text-sm tabular-nums text-ink">{orderID || "—"}</p>
+      <p className="mt-1 text-sm text-ink-secondary" data-testid="checkout-order-due">
+        {t("orderDue", { money: formatOrderDue(order) })}
+      </p>
       <p className="mt-1 text-sm text-ink-secondary">{statusCopy()}</p>
+      {syncError ? <p className="mt-1 text-sm text-danger">{syncError}</p> : null}
       {kind === "sandbox" && open ? <p className="mt-3 text-sm text-ink-secondary">{t("sandboxHint")}</p> : null}
       {kind === "qr" && open ? (
         <div className="mt-3">
@@ -130,11 +157,14 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
         <StripeElementPay
           publishableKey={checkout.publishable_key}
           clientSecret={checkout.client_secret}
-          onPaid={() => applyOrder({ status: "paid" })}
+          onSubmitted={() => {
+            setAwaitingProvider(true);
+            void loadOrder("get");
+          }}
         />
       ) : null}
       {open && kind !== "sandbox" ? (
-        <Button type="button" variant="outline" className="mt-3" disabled={busy} onClick={() => void syncPaid()}>
+        <Button type="button" variant="outline" className="mt-3" disabled={busy} onClick={() => void loadOrder("sync")}>
           {busy ? t("checking") : t("paidCheck")}
         </Button>
       ) : null}
@@ -145,11 +175,11 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
 function StripeElementPay({
   publishableKey,
   clientSecret,
-  onPaid,
+  onSubmitted,
 }: {
   publishableKey: string;
   clientSecret: string;
-  onPaid: () => void;
+  onSubmitted: () => void;
 }) {
   const t = useTranslations("checkout");
   const hostRef = useRef<HTMLDivElement>(null);
@@ -186,11 +216,11 @@ function StripeElementPay({
       confirmParams: { return_url: window.location.href },
       redirect: "if_required",
     });
-    if (result.error?.message) {
-      setError(result.error.message);
+    if (stripeClientOutcome(result) === "error") {
+      setError(result.error?.message || t("failed"));
       return;
     }
-    onPaid();
+    onSubmitted();
   }
 
   return (

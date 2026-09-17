@@ -1,14 +1,27 @@
+import { formatCreditMinor, formatPayMinor } from "@/lib/payment-quote";
+
 export type CheckoutOrder = {
   id?: string;
   status?: string;
+  adapter?: string;
+  currency?: string;
+  amount_minor?: number;
   credit_minor?: number;
   fulfilled_at?: string | null;
 };
 
-export type CheckoutUiStatus = "pending" | "confirming" | "failed" | "expired" | "paid" | "refunded";
+export type CheckoutUiStatus =
+  | "pending"
+  | "confirming"
+  | "failed"
+  | "expired"
+  | "paid"
+  | "refunded"
+  | "partially_refunded"
+  | "unknown";
 
 export function checkoutUiStatus(status?: string, confirming = false): CheckoutUiStatus {
-  const value = (status || "pending").trim().toLowerCase();
+  const value = (status || "").trim().toLowerCase();
   if (value === "paid") {
     return "paid";
   }
@@ -21,10 +34,19 @@ export function checkoutUiStatus(status?: string, confirming = false): CheckoutU
   if (value === "refunded") {
     return "refunded";
   }
+  if (value === "partially_refunded" || value === "partial_refund") {
+    return "partially_refunded";
+  }
+  if (value === "processing" || value === "requires_action") {
+    return "confirming";
+  }
   if (confirming) {
     return "confirming";
   }
-  return "pending";
+  if (value === "pending" || value === "") {
+    return "pending";
+  }
+  return "unknown";
 }
 
 export function checkoutNeedsFulfillment(order?: CheckoutOrder | null): boolean {
@@ -36,6 +58,38 @@ export function checkoutNeedsFulfillment(order?: CheckoutOrder | null): boolean 
 
 export function checkoutIsOpen(ui: CheckoutUiStatus): boolean {
   return ui === "pending" || ui === "confirming";
+}
+
+export function stripeClientOutcome(result: { error?: { message?: string } | null }): "error" | "confirming" {
+  if (result.error?.message) {
+    return "error";
+  }
+  return "confirming";
+}
+
+export function orderMatchesSelection(order: CheckoutOrder | null | undefined, adapter: string, amount: number): boolean {
+  if (!order || !adapter || amount <= 0) {
+    return false;
+  }
+  if ((order.adapter || "").trim() !== adapter) {
+    return false;
+  }
+  const minor = Number(order.amount_minor) || 0;
+  if ((order.currency || "").toUpperCase() === "CNY") {
+    return minor === amount * 100;
+  }
+  return minor === amount * 1_000_000;
+}
+
+export function formatOrderDue(order?: CheckoutOrder | null): string {
+  if (!order || order.amount_minor == null) {
+    return "—";
+  }
+  return formatPayMinor(order.currency, order.amount_minor);
+}
+
+export function formatOrderCredit(order?: CheckoutOrder | null): string {
+  return formatCreditMinor(order?.credit_minor);
 }
 
 export type CheckoutPayload = {

@@ -10,6 +10,7 @@ import { CheckoutPay } from "@/components/checkout-pay";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import type { CheckoutPayload } from "@/lib/checkout";
+import { formatOrderCredit, formatOrderDue, orderMatchesSelection } from "@/lib/checkout";
 import { formatUsdMinor } from "@/lib/money";
 import {
   applyQuoteFetch,
@@ -52,8 +53,11 @@ export default function WalletPanel() {
   const [adapter, setAdapter] = useState("");
   const [quoteSnap, setQuoteSnap] = useState<QuoteSnapshot>(emptyQuoteSnapshot);
   const [creating, setCreating] = useState(false);
+  const [createUnknown, setCreateUnknown] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
+  const [quoteTick, setQuoteTick] = useState(0);
   const quoteGen = useRef(0);
+  const createKeyRef = useRef("");
   const methodsList = useListResource<Method>({
     load: async () => {
       try {
@@ -94,7 +98,6 @@ export default function WalletPanel() {
   }, []);
 
   useEffect(() => {
-    setCheckout(null);
     const generation = ++quoteGen.current;
     if (!adapter || amount <= 0) {
       setQuoteSnap(emptyQuoteSnapshot());
@@ -139,7 +142,14 @@ export default function WalletPanel() {
       }
     })();
     return () => controller.abort();
-  }, [adapter, amount, t]);
+  }, [adapter, amount, quoteTick, t]);
+
+  useEffect(() => {
+    if (creating || createUnknown) {
+      return;
+    }
+    createKeyRef.current = crypto.randomUUID();
+  }, [adapter, amount, creating, createUnknown]);
 
   async function redeem() {
     const response = await fetch(`${apiBase}/v1/topups/redeem`, {
@@ -154,26 +164,49 @@ export default function WalletPanel() {
   }
 
   async function pay() {
-    const quote = quoteSnap.quote;
-    if (creating || !quoteMatchesSelection(quote, adapter, amount)) {
+    if (creating) {
       return;
+    }
+    if (createUnknown) {
+      await submitOrder();
+      return;
+    }
+    const quote = quoteSnap.quote;
+    if (!quoteMatchesSelection(quote, adapter, amount)) {
+      return;
+    }
+    await submitOrder();
+  }
+
+  async function submitOrder() {
+    if (!createKeyRef.current) {
+      createKeyRef.current = crypto.randomUUID();
     }
     setCreating(true);
     try {
       const response = await fetch(`${apiBase}/v1/payments/orders`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": createKeyRef.current },
         body: JSON.stringify({ adapter, pay_major: amount }),
       });
       const body = await response.json().catch(() => ({}));
       if (response.ok) {
-        setCheckout(body.checkout || null);
+        const next = (body.checkout || null) as CheckoutPayload | null;
+        if (next?.order && !next.order.adapter) {
+          next.order.adapter = next.adapter;
+        }
+        setCheckout(next);
+        setCreateUnknown(false);
         setMessage(t("payOrderOk", { id: body.checkout?.order?.id }));
+        createKeyRef.current = crypto.randomUUID();
       } else {
-        setCheckout(null);
+        setCreateUnknown(false);
         setMessage(body.error?.message || t("payOrderFail"));
       }
+    } catch {
+      setCreateUnknown(true);
+      setMessage(t("payCreateUnconfirmed"));
     } finally {
       setCreating(false);
     }
@@ -181,25 +214,36 @@ export default function WalletPanel() {
 
   const selected = methods.find((m) => m.adapter === adapter);
   const payCurrency = selected?.pay_currency || quoteSnap.quote?.pay_currency;
-  const canPay = quoteSnap.phase === "ready" && quoteMatchesSelection(quoteSnap.quote, adapter, amount) && !creating;
+  const order = checkout?.order;
+  const showOrderSummary = orderMatchesSelection(order, adapter, amount);
+  const mismatch = Boolean(order && !showOrderSummary && quoteMatchesSelection(quoteSnap.quote, adapter, amount));
+  const selectionLocked = creating || createUnknown;
+  const canPay =
+    createUnknown || (quoteSnap.phase === "ready" && quoteMatchesSelection(quoteSnap.quote, adapter, amount) && !creating);
   const payLabel = creating
     ? t("creatingOrder")
-    : quoteSnap.phase === "loading"
-      ? t("quoteCalculating")
-      : canPay
-        ? t("payNow", { money: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor) })
-        : t("quoteUnavailable");
+    : createUnknown
+      ? t("recoverCreate")
+      : quoteSnap.phase === "loading"
+        ? t("quoteCalculating")
+        : canPay
+          ? t("payNow", { money: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor) })
+          : t("quoteUnavailable");
 
-  const dueText =
-    quoteSnap.phase === "ready" && quoteSnap.quote
+  const dueText = showOrderSummary
+    ? formatOrderDue(order)
+    : quoteSnap.phase === "ready" && quoteSnap.quote
       ? formatPayMinor(quoteSnap.quote.pay_currency, quoteSnap.quote.pay_minor)
       : "—";
   const feeText =
-    quoteSnap.phase === "ready" && quoteSnap.quote
+    !showOrderSummary && quoteSnap.phase === "ready" && quoteSnap.quote
       ? formatPayMinor(quoteSnap.quote.pay_currency, quoteSnap.quote.fee_minor)
       : "—";
-  const creditText =
-    quoteSnap.phase === "ready" && quoteSnap.quote ? formatCreditMinor(quoteSnap.quote.credit_minor) : "—";
+  const creditText = showOrderSummary
+    ? formatOrderCredit(order)
+    : quoteSnap.phase === "ready" && quoteSnap.quote
+      ? formatCreditMinor(quoteSnap.quote.credit_minor)
+      : "—";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -218,7 +262,14 @@ export default function WalletPanel() {
             <p className="th-eyebrow mb-3 text-ink-mute">{t("stepSelect")}</p>
             <ActionRow className="mb-4">
               {chips.map((n) => (
-                <Button key={n} type="button" size="sm" variant={amount === n ? "default" : "outline"} onClick={() => setAmount(n)}>
+                <Button
+                  key={n}
+                  type="button"
+                  size="sm"
+                  variant={amount === n ? "default" : "outline"}
+                  disabled={selectionLocked}
+                  onClick={() => setAmount(n)}
+                >
                   {formatAmountChip(payCurrency, n)}
                 </Button>
               ))}
@@ -230,6 +281,7 @@ export default function WalletPanel() {
                   type="button"
                   variant={adapter === method.adapter ? "default" : "outline"}
                   style={adapter === method.adapter ? { background: method.brand_color, borderColor: method.brand_color } : { color: method.brand_color, borderColor: method.brand_color }}
+                  disabled={selectionLocked}
                   onClick={() => setAdapter(method.adapter)}
                 >
                   {method.display_name || method.name || method.adapter}
@@ -244,6 +296,14 @@ export default function WalletPanel() {
               <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payAutoRenew")}</p>
             ) : null}
             <p className="th-eyebrow mb-3 text-ink-mute">{t("stepPay")}</p>
+            {mismatch ? (
+              <p className="mb-3 text-sm text-ink-secondary">
+                {t("orderQuoteMismatch", {
+                  order: formatOrderDue(order),
+                  quote: formatPayMinor(quoteSnap.quote?.pay_currency, quoteSnap.quote?.pay_minor),
+                })}
+              </p>
+            ) : null}
             <Button type="button" disabled={!canPay} onClick={() => void pay()} data-testid="wallet-pay">
               {payLabel}
             </Button>
@@ -266,13 +326,22 @@ export default function WalletPanel() {
         </ActionRow>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <aside className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24" data-testid="quote-summary" data-quote-phase={quoteSnap.phase}>
-        <p className="th-eyebrow mb-3 text-ink-mute">{t("stepQuote")}</p>
-        {quoteSnap.phase === "loading" ? (
+      <aside
+        className="h-fit rounded-card border border-hairline bg-canvas-raised p-6 lg:sticky lg:top-24"
+        data-testid="quote-summary"
+        data-quote-phase={showOrderSummary ? "order" : quoteSnap.phase}
+      >
+        <p className="th-eyebrow mb-3 text-ink-mute">{showOrderSummary ? t("orderSummary") : t("stepQuote")}</p>
+        {quoteSnap.phase === "loading" && !showOrderSummary ? (
           <p className="mb-3 text-sm text-ink-secondary">{t("quoteCalculating")}</p>
         ) : null}
-        {quoteSnap.phase === "error" ? (
-          <p className="mb-3 text-sm text-danger">{quoteSnap.message || t("quoteFailed")}</p>
+        {quoteSnap.phase === "error" && !showOrderSummary ? (
+          <div className="mb-3">
+            <p className="text-sm text-danger">{quoteSnap.message || t("quoteFailed")}</p>
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setQuoteTick((n) => n + 1)} data-testid="quote-retry">
+              {t("quoteRetry")}
+            </Button>
+          </div>
         ) : null}
         <ul className="divide-y divide-hairline text-sm">
           <li className="flex justify-between py-2">

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockViewer } from "./mock-viewer";
 
 const publicPaths = [
   "/",
@@ -72,6 +73,7 @@ test("public ofox replica pages render headings", async ({ page }) => {
 });
 
 test("user console main flow shows DESIGN.md hero cards", async ({ page }) => {
+  await mockViewer(page, { roles: ["end_user"] });
   await page.route("**/v1/me/balance**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -130,14 +132,18 @@ const consolePaths = [
 ];
 
 test("authenticated ofox replica pages render headings", async ({ page }) => {
+  await mockViewer(page, { roles: ["end_user"] });
   for (const path of consolePaths) {
     const response = await page.goto(path);
     expect(response?.ok(), path).toBeTruthy();
+    await expect(page.getByTestId("console-shell"), path).toBeVisible();
+    await expect(page.getByTestId("console-access"), path).toHaveCount(0);
     await expect(page.locator("h1"), path).toBeVisible();
   }
 });
 
 test("channel and partner consoles use grouped real routes", async ({ page }) => {
+  await mockViewer(page, { roles: ["channel_admin"] });
   await page.goto("/channel");
   const channelNav = page.getByRole("navigation", { name: "渠道控制台" });
   await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
@@ -165,6 +171,7 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await page.goto("/channel/rules");
   await expect(page.locator("h1")).toHaveText("分佣与达线");
 
+  await mockViewer(page, { roles: ["end_user"], partner: true });
   await page.goto("/partner");
   const partnerNav = page.getByRole("navigation", { name: "分销控制台" });
   await expect(partnerNav.getByRole("link", { name: "我的层级" })).toBeVisible();
@@ -173,6 +180,7 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
 });
 
 test("admin overview shows DESIGN.md hero stats", async ({ page }) => {
+  await mockViewer(page, { roles: ["platform_admin"] });
   await page.goto("/admin");
   const overview = page.getByLabel("管理总览");
   await expect(overview.getByText("待对账")).toBeVisible();
@@ -190,6 +198,7 @@ test("desktop landing lists tools without a fake installer", async ({ page }) =>
 });
 
 test("channel users page does not treat a failed load as empty", async ({ page }) => {
+  await mockViewer(page, { roles: ["channel_admin"] });
   await page.goto("/channel/users");
   await expect(page.locator("h1")).toHaveText("本渠道用户");
   await expect(page.getByText("暂无本渠道用户")).toHaveCount(0);
@@ -197,6 +206,7 @@ test("channel users page does not treat a failed load as empty", async ({ page }
 });
 
 test("channel users empty account explains next step", async ({ page }) => {
+  await mockViewer(page, { roles: ["channel_admin"] });
   await page.route("**/channel/users**", async (route) => {
     if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
       await route.continue();
@@ -211,6 +221,7 @@ test("channel users empty account explains next step", async ({ page }) => {
 });
 
 test("user console sidebar groups match ofox IA", async ({ page }) => {
+  await mockViewer(page, { roles: ["end_user"] });
   await page.goto("/app");
   const nav = page.getByRole("navigation", { name: "用户控制台" });
   await expect(nav.getByRole("link", { name: "总览" })).toBeVisible();

@@ -934,7 +934,7 @@
     "partnerSettlements": {
       "eyebrow": "SETTLEMENTS",
       "title": "Settlements in scope",
-      "description": "Appear after platform finance pays."
+      "description": "Review pending, registered and cancelled settlements. Contact finance to reconcile reversals after payment."
     },
     "channelHome": {
       "eyebrow": "CHANNEL",
@@ -1023,6 +1023,11 @@
     "settleableHint": "Unpaid settlement amount"
   },
   "partnerBoard": {
+    "receipt": "Payment reference",
+    "settlement_settled": "Awaiting payment registration",
+    "settlement_paid": "Payment registered",
+    "settlement_cancelled": "Cancelled after commission changes; remaining commissions can be settled again",
+    "paidReversal": "Commission reversed after payment: {amount} USD. Contact finance to reconcile recovery or offsets.",
     "hierarchy": "My tier",
     "users": "Users in scope",
     "commissions": "Commissions in scope",

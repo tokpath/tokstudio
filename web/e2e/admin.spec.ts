@@ -237,8 +237,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "代理商详情" })).toBeVisible();
   await expect(page.getByText("不能自建提供商或模型")).toBeVisible();
   await page.goto("/admin/commission");
-  await expect(page.getByRole("heading", { name: "手工结算" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "人工打款" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "佣金结算与打款登记" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成结算单" })).toBeVisible();
   await page.goto("/admin/settings");
   await expect(page.getByRole("heading", { name: "管理员 2FA" })).toBeVisible();
   await expect(page.getByRole("button", { name: "读取 2FA" })).toBeVisible();

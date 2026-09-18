@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"io/fs"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -406,6 +407,9 @@ func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
 
 // ReverseTx participates in the caller's charge refund transaction.
 func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
+	if err := lockSettlementLifecycle(tx); err != nil {
+		return err
+	}
 	if usageEventID == "" {
 		return nil
 	}
@@ -417,6 +421,11 @@ func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
 	now := time.Now().UTC()
 	for i := range rows {
 		origStatus := rows[i].Status
+		if rows[i].SettlementID != nil {
+			if err := s.cancelUnpaidSettlementTx(tx, *rows[i].SettlementID, rows[i].ID); err != nil {
+				return err
+			}
+		}
 		origAmt := rows[i].AmountMinor
 		rev := entryRow{
 			ID: id.New("cme"), UsageEventID: usageEventID, Kind: rows[i].Kind,
@@ -455,10 +464,20 @@ func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
 }
 
 func (s *Service) Unfreeze(ctx context.Context, now time.Time) (int, error) {
+	return s.UnfreezeUsage(ctx, now, "")
+}
+func (s *Service) UnfreezeUsage(ctx context.Context, now time.Time, usageEventID string) (int, error) {
 	n := 0
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
+		}
 		var rows []entryRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now).Find(&rows).Error; err != nil {
+		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now)
+		if usageEventID != "" {
+			q = q.Where("usage_event_id = ?", usageEventID)
+		}
+		if err := q.Find(&rows).Error; err != nil {
 			return err
 		}
 		for i := range rows {
@@ -525,6 +544,12 @@ func (s *Service) ForceAvailableAt(ctx context.Context, usageEventID string, at 
 		Update("available_at", at).Error
 }
 
+// Settlement transitions share a transaction-scoped lock. Monthly runs and manual
+// payout registration are infrequent; serialization also excludes concurrent refunds.
+func lockSettlementLifecycle(tx *gorm.DB) error {
+	return tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "commission-settlement-lifecycle").Error
+}
+
 func (s *Service) CreateMonthlySettlement(ctx context.Context, now time.Time, ignoreMinimum bool) ([]SettlementView, error) {
 	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 1, 0)
@@ -532,88 +557,155 @@ func (s *Service) CreateMonthlySettlement(ctx context.Context, now time.Time, ig
 	if err != nil {
 		return nil, err
 	}
-	type group struct {
-		ChannelOrgID      *string
-		BeneficiaryRoleID *string
-		Total             int64
-	}
-	var groups []group
-	if err := s.db.WithContext(ctx).Model(&entryRow{}).
-		Select("channel_org_id, beneficiary_role_id, COALESCE(SUM(amount_minor),0) AS total").
-		Where("status = ?", StatusAvailable).
-		Group("channel_org_id, beneficiary_role_id").
-		Scan(&groups).Error; err != nil {
-		return nil, err
-	}
-	out := make([]SettlementView, 0)
-	for _, g := range groups {
-		if !ignoreMinimum && g.Total < policy.MinSettleMinor {
-			continue
+	out := []SettlementView{}
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
 		}
-		row := settleRow{
-			ID: id.New("csl"), PeriodStart: start, PeriodEnd: end, AmountMinor: g.Total,
-			Status: StatusSettled, PolicyVersion: policy.Version, CreatedAt: now,
-			ChannelOrgID: g.ChannelOrgID, BeneficiaryRoleID: g.BeneficiaryRoleID,
+		var entries []entryRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("status = ?", StatusAvailable).Order("id").Find(&entries).Error; err != nil {
+			return err
 		}
-		if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		type group struct {
+			channel, role *string
+			amount        int64
+			ids           []string
+		}
+		groups := map[[2]string]*group{}
+		order := [][2]string{}
+		for _, e := range entries {
+			key := [2]string{}
+			if e.ChannelOrgID != nil {
+				key[0] = *e.ChannelOrgID
+			}
+			if e.BeneficiaryRoleID != nil {
+				key[1] = *e.BeneficiaryRoleID
+			}
+			if groups[key] == nil {
+				groups[key] = &group{channel: e.ChannelOrgID, role: e.BeneficiaryRoleID}
+				order = append(order, key)
+			}
+			g := groups[key]
+			g.amount += e.AmountMinor
+			g.ids = append(g.ids, e.ID)
+		}
+		for _, key := range order {
+			g := groups[key]
+			if g.amount <= 0 || (!ignoreMinimum && g.amount < policy.MinSettleMinor) {
+				continue
+			}
+			row := settleRow{ID: id.New("csl"), PeriodStart: start, PeriodEnd: end, AmountMinor: g.amount, Status: StatusSettled, PolicyVersion: policy.Version, CreatedAt: now, ChannelOrgID: g.channel, BeneficiaryRoleID: g.role}
 			if err := tx.Create(&row).Error; err != nil {
 				return err
 			}
-			q := tx.Model(&entryRow{}).Where("status = ?", StatusAvailable)
-			if g.ChannelOrgID != nil {
-				q = q.Where("channel_org_id = ?", *g.ChannelOrgID)
-			} else {
-				q = q.Where("channel_org_id IS NULL")
+			if err := tx.Model(&entryRow{}).Where("id IN ?", g.ids).Updates(map[string]any{"status": StatusSettled, "settlement_id": row.ID}).Error; err != nil {
+				return err
 			}
-			if g.BeneficiaryRoleID != nil {
-				q = q.Where("beneficiary_role_id = ?", *g.BeneficiaryRoleID)
-			} else {
-				q = q.Where("beneficiary_role_id IS NULL")
+			if _, err := s.outbox.EnqueueTx(tx, "commission.settlement.created", "commission_settlement", row.ID, map[string]any{"entry_ids": g.ids, "amount_minor": g.amount}); err != nil {
+				return err
 			}
-			return q.Updates(map[string]any{"status": StatusSettled, "settlement_id": row.ID}).Error
-		}); err != nil {
-			return nil, err
+			out = append(out, *settleView(row))
 		}
-		out = append(out, *settleView(row))
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
 
 func (s *Service) Payout(ctx context.Context, settlementID, method, reference, actor string) (*SettlementView, error) {
-	var row settleRow
-	if err := s.db.WithContext(ctx).Where("id = ?", settlementID).First(&row).Error; err != nil {
-		return nil, ErrNotFound
-	}
-	if row.Status == StatusPaid {
-		return settleView(row), nil
-	}
-	if row.Status != StatusSettled {
+	method, reference = strings.TrimSpace(method), strings.TrimSpace(reference)
+	if method != "manual" || reference == "" || len(reference) > 200 {
 		return nil, ErrInvalid
 	}
-	now := time.Now().UTC()
+	var out *SettlementView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		row.Status = StatusPaid
-		if err := tx.Save(&row).Error; err != nil {
+		if err := lockSettlementLifecycle(tx); err != nil {
 			return err
 		}
-		payout := payoutRow{
-			ID: id.New("cpo"), SettlementID: settlementID, Method: method, Status: StatusPaid, CreatedAt: now,
+		var row settleRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", settlementID).First(&row).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
 		}
-		if reference != "" {
-			payout.Reference = &reference
+		if row.Status == StatusPaid {
+			var paid payoutRow
+			if err := tx.Where("settlement_id = ?", settlementID).First(&paid).Error; err != nil {
+				return err
+			}
+			if paid.Method != method || paid.Reference == nil || *paid.Reference != reference {
+				return ErrConflict
+			}
+			out = settleView(row)
+			out.PayoutReference = reference
+			out.PayoutMethod = method
+			return nil
 		}
+		if row.Status != StatusSettled {
+			return ErrSettlementChanged
+		}
+		var entries []entryRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("settlement_id = ?", settlementID).Order("id").Find(&entries).Error; err != nil {
+			return err
+		}
+		var total int64
+		for _, e := range entries {
+			if e.Status != StatusSettled {
+				return ErrSettlementChanged
+			}
+			total += e.AmountMinor
+		}
+		if len(entries) == 0 || total <= 0 || total != row.AmountMinor {
+			return ErrSettlementChanged
+		}
+		payout := payoutRow{ID: id.New("cpo"), SettlementID: settlementID, Method: method, Reference: &reference, Status: StatusPaid, CreatedAt: time.Now().UTC()}
 		if actor != "" {
 			payout.ActorUserID = &actor
 		}
 		if err := tx.Create(&payout).Error; err != nil {
 			return err
 		}
-		return tx.Model(&entryRow{}).Where("settlement_id = ?", settlementID).Update("status", StatusPaid).Error
+		row.Status = StatusPaid
+		if err := tx.Save(&row).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&entryRow{}).Where("settlement_id = ? AND status = ?", settlementID, StatusSettled).Update("status", StatusPaid).Error; err != nil {
+			return err
+		}
+		out = settleView(row)
+		out.PayoutReference = reference
+		out.PayoutMethod = method
+		return nil
 	})
-	if err != nil {
-		return nil, err
+	return out, err
+}
+
+// Cancel the entire unpaid snapshot; unaffected entries can be settled afresh.
+// The creation/cancellation events retain original membership for reconciliation.
+func (s *Service) cancelUnpaidSettlementTx(tx *gorm.DB, settlementID, reversedEntryID string) error {
+	var row settleRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", settlementID).First(&row).Error; err != nil {
+		return err
 	}
-	return settleView(row), nil
+	if row.Status != StatusSettled {
+		return nil
+	}
+	var ids []string
+	if err := tx.Model(&entryRow{}).Where("settlement_id = ? AND status = ?", settlementID, StatusSettled).Pluck("id", &ids).Error; err != nil {
+		return err
+	}
+	row.Status = StatusCancelled
+	if err := tx.Save(&row).Error; err != nil {
+		return err
+	}
+	if err := tx.Model(&entryRow{}).Where("settlement_id = ? AND status = ?", settlementID, StatusSettled).Updates(map[string]any{"status": StatusAvailable, "settlement_id": nil}).Error; err != nil {
+		return err
+	}
+	_, err := s.outbox.EnqueueTx(tx, "commission.settlement.cancelled", "commission_settlement", row.ID, map[string]any{"entry_ids": ids, "reversed_entry_id": reversedEntryID, "reason": "commission_reversal"})
+	return err
 }
 
 func (s *Service) ListEntries(ctx context.Context, channelID string, roleIDs []string, usageEventID string) ([]EntryView, error) {
@@ -651,8 +743,42 @@ func (s *Service) ListSettlements(ctx context.Context, channelID string, roleIDs
 		return nil, err
 	}
 	out := make([]SettlementView, 0, len(rows))
+	if len(rows) == 0 {
+		return out, nil
+	}
+	ids := make([]string, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, *settleView(row))
+		ids = append(ids, row.ID)
+	}
+	var payouts []payoutRow
+	if err := s.db.WithContext(ctx).Where("settlement_id IN ?", ids).Find(&payouts).Error; err != nil {
+		return nil, err
+	}
+	paidByID := make(map[string]payoutRow, len(payouts))
+	for _, paid := range payouts {
+		paidByID[paid.SettlementID] = paid
+	}
+	var reversals []struct {
+		SettlementID string
+		AmountMinor  int64
+	}
+	if err := s.db.WithContext(ctx).Model(&entryRow{}).Where("settlement_id IN ? AND status = ? AND reversal_of IS NULL", ids, StatusReversed).Select("settlement_id, SUM(amount_minor) AS amount_minor").Group("settlement_id").Scan(&reversals).Error; err != nil {
+		return nil, err
+	}
+	reversedByID := make(map[string]int64, len(reversals))
+	for _, reversal := range reversals {
+		reversedByID[reversal.SettlementID] = reversal.AmountMinor
+	}
+	for _, row := range rows {
+		view := settleView(row)
+		if paid, ok := paidByID[row.ID]; ok {
+			view.PayoutMethod = paid.Method
+			if paid.Reference != nil {
+				view.PayoutReference = *paid.Reference
+			}
+		}
+		view.ReversedMinor = reversedByID[row.ID]
+		out = append(out, *view)
 	}
 	return out, nil
 }

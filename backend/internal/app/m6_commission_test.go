@@ -185,6 +185,9 @@ func TestM6CommissionDistribution(t *testing.T) {
 	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]string{"usage_event_id": u2}) != http.StatusConflict {
 		t.Fatal("unfreeze without confirm must be 409")
 	}
+	if err := application.Commission.ForceAvailableAt(ctx, u2, time.Now().Add(-time.Second)); err != nil {
+		t.Fatal(err)
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]any{"usage_event_id": u2})
 	settled := postJSONRaw(t, server.URL+"/admin/commissions/settle?ignore_minimum=1", "m6_admin", map[string]any{})
 	items, _ := settled["items"].([]any)

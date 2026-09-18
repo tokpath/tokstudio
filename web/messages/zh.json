@@ -934,7 +934,7 @@
     "partnerSettlements": {
       "eyebrow": "SETTLEMENTS",
       "title": "范围内结算",
-      "description": "平台财务打款后才会出现在这里。"
+      "description": "查看待登记、已登记打款及已撤销的结算单；发生打款后冲正时，请联系财务核对。"
     },
     "channelHome": {
       "eyebrow": "CHANNEL",
@@ -1023,6 +1023,11 @@
     "settleableHint": "结算单未打款金额"
   },
   "partnerBoard": {
+    "receipt": "打款凭证",
+    "settlement_settled": "待登记打款",
+    "settlement_paid": "已登记打款",
+    "settlement_cancelled": "佣金变更，结算单已撤销；剩余佣金可重新结算",
+    "paidReversal": "打款后佣金冲正 {amount} USD，请联系财务核对追回或抵扣安排。",
     "hierarchy": "我的层级",
     "users": "范围内用户",
     "commissions": "范围内佣金",

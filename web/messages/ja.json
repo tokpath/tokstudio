@@ -934,7 +934,7 @@
     "partnerSettlements": {
       "eyebrow": "SETTLEMENTS",
       "title": "範囲内精算",
-      "description": "プラットフォーム財務の入金後に出ます。"
+      "description": "支払登録待ち・登録済み・取消済みの精算書を確認できます。支払後の取消は経理に確認してください。"
     },
     "channelHome": {
       "eyebrow": "CHANNEL",
@@ -1023,6 +1023,11 @@
     "settleableHint": "未払いの精算額"
   },
   "partnerBoard": {
+    "receipt": "支払証憑",
+    "settlement_settled": "支払登録待ち",
+    "settlement_paid": "支払登録済み",
+    "settlement_cancelled": "コミッション変更により取消。残額は再精算できます",
+    "paidReversal": "支払後に {amount} USD が取消されました。返還・相殺について経理に確認してください。",
     "hierarchy": "自分の階層",
     "users": "範囲内ユーザー",
     "commissions": "範囲内手数料",

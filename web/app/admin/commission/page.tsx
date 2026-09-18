@@ -1,5 +1,7 @@
 "use client";
 
+import { formatUsdMinor } from "@/lib/money";
+import { SettlementPanel } from "./settlement-panel";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -30,7 +32,6 @@ type Eligibility = {
 };
 
 type Commission = { id: string; kind: string; status: string; amount_minor: number; channel_org_id?: string };
-type Settlement = { id: string; status: string; amount_minor: number; channel_org_id?: string };
 
 export default function AdminCommissionPage() {
   const [direct, setDirect] = useState("1500");
@@ -42,11 +43,8 @@ export default function AdminCommissionPage() {
   const [topup, setTopup] = useState("10");
   const [gift, setGift] = useState("1");
   const [eligMessage, setEligMessage] = useState("累计消费 / 单笔充值达线；无资格分享发注册赠送积分。金额是 USD。");
-  const [usageEventID, setUsageEventID] = useState("");
   const [recalcUsageID, setRecalcUsageID] = useState("");
   const [recalcMessage, setRecalcMessage] = useState("按 usage 上的价格快照冲正旧流水，再挂新冻结额。需要二次确认。");
-  const [settlementID, setSettlementID] = useState("");
-  const [payoutRef, setPayoutRef] = useState("manual-wire");
   const [message, setMessage] = useState("BPS 是万分比。直接+间接不能超过总佣金。保存、解冻、结算和打款都要二次确认。");
 
   const policyQuery = useQuery({
@@ -224,111 +222,18 @@ export default function AdminCommissionPage() {
           <p className="text-sm text-ink-secondary">{recalcMessage}</p>
         </div>
       </section>
-      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="manualSettle" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">P0 只做人工解冻、生成月结单和打款。自动代付不在范围内。</p>
-        <div className="mb-3 flex flex-wrap gap-2">
-          <Input className="w-64" value={usageEventID} onChange={(e) => setUsageEventID(e.target.value)} aria-label="usage 事件 ID" placeholder="usage_event_id" />
-          <ConfirmButton
-            size="sm"
-            variant="outline"
-            title="确认解冻佣金"
-            description="按 usage 事件解冻已到期的冻结额。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/commissions/unfreeze`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ usage_event_id: usageEventID }),
-              });
-              const body = await res.json();
-              setMessage(res.ok ? `已解冻 ${body.unfrozen} 条` : body.error?.message || "解冻失败");
-                    const __ok = res.ok;
-                    return __ok;
-                    } catch {
-                      setMessage(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            解冻佣金
-          </ConfirmButton>
-          <ConfirmButton
-            size="sm"
-            title="确认生成结算单"
-            description="P0 只做人工结算，自动代付不在范围内。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/commissions/settle?ignore_minimum=1`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: "{}",
-              });
-              const body = await res.json();
-              setMessage(res.ok ? `已生成 ${body.items?.length ?? 0} 张结算单` : body.error?.message || "结算失败");
-                    const __ok = res.ok;
-                    return __ok;
-                    } catch {
-                      setMessage(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            生成结算单
-          </ConfirmButton>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input className="w-64" value={settlementID} onChange={(e) => setSettlementID(e.target.value)} aria-label="结算单 ID" placeholder="csl_..." />
-          <Input className="w-40" value={payoutRef} onChange={(e) => setPayoutRef(e.target.value)} aria-label="打款凭证" placeholder="reference" />
-          <ConfirmButton
-            size="sm"
-            title="确认人工打款"
-            description="只记录人工打款凭证，不会自动代付。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/settlements/${settlementID}/payout`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ method: "manual", reference: payoutRef }),
-              });
-              const body = await res.json();
-              setMessage(res.ok ? `已打款 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "打款失败");
-                    const __ok = res.ok;
-                    return __ok;
-                    } catch {
-                      setMessage(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            人工打款
-          </ConfirmButton>
-        </div>
-      </section>
       </IfCan>
       <AdminListPanel<Commission>
         path="/admin/commissions"
         title="佣金明细"
         columns={[
-          { accessorKey: "kind", header: "Kind" },
-          { accessorKey: "status", header: "Status" },
-          { accessorKey: "amount_minor", header: "Amount" },
-          { accessorKey: "channel_org_id", header: "Channel" },
+          { accessorKey: "kind", header: "佣金类型", cell: ({ row }) => ({ direct: "直接佣金", indirect: "间接佣金" }[row.original.kind] || row.original.kind) },
+          { accessorKey: "status", header: "状态", cell: ({ row }) => ({ frozen: "冻结中", available: "可结算", held: "暂停结算", settled: "已生成结算单", paid: "已登记打款", reversed: "已冲正" }[row.original.status] || row.original.status) },
+          { accessorKey: "amount_minor", header: "金额（USD）", cell: ({ row }) => formatUsdMinor(row.original.amount_minor) },
+          { accessorKey: "channel_org_id", header: "渠道编号" },
         ]}
       />
-      <AdminListPanel<Settlement>
-        path="/admin/settlements"
-        title="结算单"
-        columns={[
-          { accessorKey: "id", header: "ID" },
-          { accessorKey: "status", header: "Status" },
-          { accessorKey: "amount_minor", header: "Amount" },
-          { accessorKey: "channel_org_id", header: "Channel" },
-        ]}
-      />
+      <SettlementPanel />
     </AdminShell>
   );
 }

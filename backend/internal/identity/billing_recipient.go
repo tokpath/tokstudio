@@ -65,3 +65,31 @@ func (s *Service) BillingChannelCodes(ctx context.Context, ids []string) (map[st
 	}
 	return out, err
 }
+
+// BillingRecipientsByRole projects the first beneficiary member, matching commission cash attribution.
+func (s *Service) BillingRecipientsByRole(ctx context.Context, roleIDs []string) (map[string]BillingRecipient, error) {
+	out := map[string]BillingRecipient{}
+	if len(roleIDs) == 0 {
+		return out, nil
+	}
+	var members []roleMemberRow
+	if err := s.db.WithContext(ctx).Where("acquisition_role_id IN ?", roleIDs).Order("created_at, user_id").Find(&members).Error; err != nil {
+		return nil, err
+	}
+	ids := []string{}
+	first := map[string]string{}
+	for _, m := range members {
+		if _, ok := first[m.AcquisitionRoleID]; !ok {
+			first[m.AcquisitionRoleID] = m.UserID
+			ids = append(ids, m.UserID)
+		}
+	}
+	users, err := s.BillingRecipientsByID(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for role, uid := range first {
+		out[role] = users[uid]
+	}
+	return out, nil
+}

@@ -262,7 +262,31 @@ func (a *App) adminListSettlements(c *gin.Context) {
 		})
 		return
 	}
-	httpx.OKPage(c, items, 100, func(item commission.SettlementView) string { return item.ID })
+	roleIDs, channelIDs := []string{}, []string{}
+	for _, item := range items {
+		roleIDs = append(roleIDs, item.BeneficiaryRoleID)
+		channelIDs = append(channelIDs, item.ChannelOrgID)
+	}
+	recipients, err := a.Identity.BillingRecipientsByRole(c.Request.Context(), roleIDs)
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取收款人失败，请重试。", true)
+		return
+	}
+	channels, err := a.Identity.BillingChannelCodes(c.Request.Context(), channelIDs)
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取渠道失败，请重试。", true)
+		return
+	}
+	type adminSettlement struct {
+		commission.SettlementView
+		Recipient   identity.BillingRecipient `json:"recipient"`
+		ChannelCode string                    `json:"channel_code"`
+	}
+	out := make([]adminSettlement, 0, len(items))
+	for _, item := range items {
+		out = append(out, adminSettlement{item, recipients[item.BeneficiaryRoleID], channels[item.ChannelOrgID]})
+	}
+	httpx.OKPage(c, out, 100, func(item adminSettlement) string { return item.ID })
 }
 
 func (a *App) channelListPromos(c *gin.Context) {
@@ -568,11 +592,15 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 		UsageEventID string `json:"usage_event_id"`
 		Now          bool   `json:"now"`
 	}
-	_ = c.ShouldBindJSON(&body)
-	if body.UsageEventID != "" {
-		_ = a.Commission.ForceAvailableAt(c.Request.Context(), body.UsageEventID, time.Now().UTC().Add(-time.Second))
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "解冻参数无效。", false)
+		return
 	}
-	n, err := a.Commission.Unfreeze(c.Request.Context(), time.Now().UTC())
+	if body.Now {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能解冻已到期佣金，不能跳过冻结期。", false)
+		return
+	}
+	n, err := a.Commission.UnfreezeUsage(c.Request.Context(), time.Now().UTC(), strings.TrimSpace(body.UsageEventID))
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "解冻失败", true)
 		return
@@ -609,13 +637,27 @@ func (a *App) adminPayout(c *gin.Context) {
 		Method    string `json:"method"`
 		Reference string `json:"reference"`
 	}
-	_ = c.ShouldBindJSON(&body)
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写有效的打款凭证。", false)
+		return
+	}
 	if body.Method == "" {
 		body.Method = "manual"
 	}
 	item, err := a.Commission.Payout(c.Request.Context(), c.Param("id"), body.Method, body.Reference, a.currentPrincipal(c).UserID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "打款失败", false)
+		switch {
+		case errors.Is(err, commission.ErrInvalid):
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写真实的线下打款凭证（1–200 字节）；仅支持人工登记。", false)
+		case errors.Is(err, commission.ErrConflict):
+			httpx.Abort(c, http.StatusConflict, "payout_conflict", "该结算单已登记其他凭证，请刷新核对，不要重复登记。", false)
+		case errors.Is(err, commission.ErrSettlementChanged):
+			httpx.Abort(c, http.StatusConflict, "settlement_changed", "结算单已因佣金变更失效，请刷新并重新生成结算单。", false)
+		case errors.Is(err, commission.ErrNotFound):
+			httpx.Abort(c, http.StatusNotFound, "not_found", "结算单不存在，请刷新列表。", false)
+		default:
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "尚未确认登记结果，请用原凭证重试，不会重复登记。", true)
+		}
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{

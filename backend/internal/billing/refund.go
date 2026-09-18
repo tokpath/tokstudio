@@ -42,16 +42,17 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 			return ErrNotFound
 		}
 		walletCredit, _, _ := chargeRefundAmounts(charge.AmountMinor, auth)
-		if walletCredit > 0 {
-			if err := creditWallet(tx, userID, walletCredit, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
-				return err
-			}
-		}
+
 		if err := s.reverseLegacyCommission(tx, charge.UsageEventID); err != nil {
 			return err
 		}
 		if s.commissioner != nil {
 			if err := s.commissioner.ReverseUsageTx(tx, charge.UsageEventID); err != nil {
+				return err
+			}
+		}
+		if walletCredit > 0 {
+			if err := creditWallet(tx, userID, walletCredit, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
 				return err
 			}
 		}

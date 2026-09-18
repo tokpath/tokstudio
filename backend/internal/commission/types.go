@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("commission record not found")
-	ErrInvalid      = errors.New("invalid commission request")
-	ErrBelowMinimum = errors.New("below minimum settlement")
+	ErrConflict          = errors.New("commission operation conflict")
+	ErrSettlementChanged = errors.New("settlement changed after commission reversal")
+	ErrNotFound          = errors.New("commission record not found")
+	ErrInvalid           = errors.New("invalid commission request")
+	ErrBelowMinimum      = errors.New("below minimum settlement")
 )
 
 const (
@@ -18,6 +20,7 @@ const (
 	KindChannel  = "channel"
 	KindTeam     = "team"
 
+	StatusCancelled = "cancelled"
 	StatusFrozen    = "frozen"
 	StatusAvailable = "available"
 	StatusHeld      = "held"
@@ -66,6 +69,9 @@ type EntryView struct {
 }
 
 type SettlementView struct {
+	PayoutReference   string    `json:"payout_reference,omitempty"`
+	PayoutMethod      string    `json:"payout_method,omitempty"`
+	ReversedMinor     int64     `json:"reversed_minor"`
 	ID                string    `json:"id"`
 	PeriodStart       time.Time `json:"period_start"`
 	PeriodEnd         time.Time `json:"period_end"`

@@ -148,7 +148,7 @@ curl -sf -X POST "$API_URL/admin/refunds" -H "Authorization: Bearer $ADMIN_TOKEN
   -d "{\"request_id\":\"$rid\"}" >/dev/null
 curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/commissions?usage_event_id=$uid" | grep -q reversed
 
-echo "== unfreeze, monthly settle, manual payout"
+echo "== unfreeze does not bypass the freeze period"
 email2="m6b-$RANDOM@example.test"
 reg2="$(curl -sf -X POST "$API_URL/v1/auth/register" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$email2\",\"password\":\"password1\",\"promotion_code\":\"THB-KOL2\"}")"
@@ -161,13 +161,11 @@ curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $k2" -
   -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"settle-xxxxxxxxxxxxxxxxxxxxxxxx"}]}' >/dev/null
 u2="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" \
   "$(curl -sf -H "Authorization: Bearer $s2" "$API_URL/v1/me/usage")")"
-curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
-  -d "{\"usage_event_id\":\"$u2\"}" >/dev/null
-batch="$(curl -sf -X POST "$API_URL/admin/commissions/settle?ignore_minimum=1" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' -d '{}')"
-echo "$batch" | grep -q amount_minor
-sid="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['items'][0]['id'])" "$batch")"
-curl -sf -X POST "$API_URL/admin/settlements/$sid/payout" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
-  -d '{"method":"manual","reference":"e2e-wire"}' | grep -q paid
+unfreeze="$(curl -sf -X POST "$API_URL/admin/commissions/unfreeze" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+  -d "{\"usage_event_id\":\"$u2\"}")"
+python3 -c 'import json,sys; assert json.loads(sys.argv[1])["unfrozen"] == 0' "$unfreeze"
+# Due-date advancement is an internal fixture in TestSettlementJourney, never a public API bypass.
+# That integration test covers concurrent settlement, payout retry, and refund reversal.
 
 echo "== channel quota cannot over-issue"
 q="$(curl -sf -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/channel-quotas/chn_reseller_b")"

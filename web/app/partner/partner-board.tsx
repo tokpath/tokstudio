@@ -18,7 +18,7 @@ type PartnerMe = {
 
 type PartnerUser = { email?: string; source_code?: string; status?: string };
 type Commission = { request_id?: string; reversal_of?: string; id?: string; kind?: string; status?: string; amount_minor?: number };
-type Settlement = { id?: string; status?: string; amount_minor?: number; payout_reference?: string; reversed_minor?: number };
+type Settlement = { id?: string; status?: string; amount_minor?: number; payout_reference?: string; reversed_minor?: number; recovery_tracked?: boolean; recovered_minor?: number; recovery_pending_minor?: number };
 
 export type PartnerSection = "all" | "scope" | "users" | "commissions" | "settlements";
 
@@ -148,7 +148,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
               emptyDetail={t("emptySettleDetail")}
               rows={settlements.snapshot.items.map((item) => ({
                 key: item.id || "settlement",
-                cells: [<div key="settlement" className="max-w-xs whitespace-normal break-all">{item.id || "—"}{item.payout_reference && <p>{t("receipt")}: {item.payout_reference}</p>}</div>, <div key="status" className="max-w-xs whitespace-normal">{["settled", "paid", "cancelled"].includes(item.status || "") ? t(`settlement_${item.status}`) : label(item.status)}{item.status === "paid" && (item.reversed_minor || 0) > 0 && <p className="mt-2 text-danger">{t("paidReversal", { amount: formatUsdMinor(item.reversed_minor) })}</p>}</div>, formatUsdMinor(item.amount_minor)],
+                cells: [<div key="settlement" className="max-w-xs whitespace-normal break-all">{item.id || "—"}{item.payout_reference && <p>{t("receipt")}: {item.payout_reference}</p>}</div>, <div key="status" className="max-w-xs whitespace-normal">{["settled", "paid", "cancelled"].includes(item.status || "") ? t(`settlement_${item.status}`) : label(item.status)}{item.status === "paid" && (item.reversed_minor || 0) > 0 && <p className="mt-2 text-danger">{item.recovery_tracked ? (item.recovery_pending_minor ? t("recoveryPartial", { received: String((item.recovered_minor || 0) / 1_000_000), remaining: String(item.recovery_pending_minor / 1_000_000) }) : t("recoveryClosed")) : t("paidReversal", { amount: formatUsdMinor(item.reversed_minor) })}</p>}</div>, formatUsdMinor(item.amount_minor)],
               }))}
             />
           </ListResourceView>

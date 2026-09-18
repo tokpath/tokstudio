@@ -33,6 +33,8 @@ func casbinPolicy() []policyRule {
 		p("platform_admin", "/channel/*", "*"),
 		p("platform_admin", "/v1/topups/:id/refund", "POST"),
 	}
+	rules = append(rules, grant("/admin/commission-recoveries", "GET", "finance_admin", "audit_readonly")...)
+	rules = append(rules, grant("/admin/commission-recoveries/:id/receipts", "POST", "finance_admin")...)
 	rules = append(rules, authenticatedRules()...)
 	rules = append(rules, financeRules()...)
 	rules = append(rules, opsRules()...)

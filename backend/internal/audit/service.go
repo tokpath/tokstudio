@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"time"
 
@@ -186,4 +187,27 @@ func toEntry(row logRow) Entry {
 		entry.RequestID = *row.RequestID
 	}
 	return entry
+}
+
+// RecordTx persists audit and its outbox event in the caller's transaction.
+func (s *Service) RecordTx(tx *gorm.DB, in RecordInput) (*Entry, error) {
+	scoped := *s
+	scoped.db = tx
+	scoped.events = nil
+	entry, err := scoped.Record(tx.Statement.Context, in)
+	if err != nil {
+		return nil, err
+	}
+	if s.events != nil {
+		publisher, ok := s.events.(interface {
+			EnqueueTx(*gorm.DB, string, string, string, any) (string, error)
+		})
+		if !ok {
+			return nil, errors.New("transactional audit publisher required")
+		}
+		if _, err := publisher.EnqueueTx(tx, "tokenhub.audit.recorded.v1", "audit_log", entry.ID, entry); err != nil {
+			return nil, err
+		}
+	}
+	return entry, nil
 }

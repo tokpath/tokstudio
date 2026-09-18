@@ -41,6 +41,7 @@ export type WriteAction =
   | "partners.view"
   | "brands.write"
   | "promos.write"
+  | "commission.recovery.read"
   | "commission.write"
   | "audit.probe"
   | "audit.outbox"
@@ -113,6 +114,7 @@ const WRITE_ACTION_ROLES: Record<WriteAction, readonly string[]> = {
   "partners.view": [P],
   "brands.write": [P],
   "promos.write": [P],
+  "commission.recovery.read": [P, F, A],
   "commission.write": [P, F],
   "audit.probe": [P],
   "audit.outbox": [P, T],

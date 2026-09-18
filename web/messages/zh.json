@@ -1056,7 +1056,9 @@
     "rolePromoter": "个人推广员",
     "roleChannel": "渠道管理员",
     "rolePlatform": "平台管理员",
-    "roleUnknown": "推广成员"
+    "roleUnknown": "推广成员",
+    "recoveryPartial": "已收回 {received} USD，仍待收回 {remaining} USD。可在钱包查看收款凭证。",
+    "recoveryClosed": "已全额收回。原打款与冲正记录保留，收款凭证可在钱包查看。"
   },
   "adminUi": {
     "opsBoard": "运营看板",
@@ -2230,5 +2232,17 @@
     "plansLoadError": "套餐加载失败，请点击“刷新套餐”重试。",
     "walletHelp": "限时赠送与套餐额度不包含在以上余额中。",
     "walletLink": "查看额度与有效期"
+  },
+  "recoveryHistory": {
+    "title": "佣金收回记录",
+    "detail": "仅记录财务确认已在线下收回的款项，不改变钱包余额。最多显示 100 条记录，待处理优先。",
+    "loading": "正在读取佣金收回记录…",
+    "empty": "暂无佣金收回记录",
+    "emptyDetail": "已打款佣金发生冲正时，可在这里查看财务核对与收回进度。",
+    "closed": "已结清",
+    "pending": "待收回",
+    "amounts": "原需收回 {original} · 已收回 {received} · 剩余 {remaining}",
+    "settlement": "结算单：{id}",
+    "receipt": "已收回 {amount} · 凭证：{reference} · {date}"
   }
 }

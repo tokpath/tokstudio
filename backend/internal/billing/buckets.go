@@ -171,6 +171,7 @@ func (s *Service) PayoutCommissionTx(tx *gorm.DB, entryID, settlementID string, 
 }
 
 type commissionRecoveryRow struct {
+	RecoveredMinor    int64     `gorm:"column:recovered_minor"`
 	ID                string    `gorm:"column:id;primaryKey"`
 	CommissionEntryID string    `gorm:"column:commission_entry_id"`
 	WalletID          string    `gorm:"column:wallet_id"`

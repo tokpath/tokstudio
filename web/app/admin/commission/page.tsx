@@ -1,6 +1,7 @@
 "use client";
 
 import { formatUsdMinor } from "@/lib/money";
+import { RecoveryPanel } from "./recovery-panel";
 import { SettlementPanel } from "./settlement-panel";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ type Eligibility = {
 type Commission = { id: string; kind: string; status: string; amount_minor: number; channel_org_id?: string };
 
 export default function AdminCommissionPage() {
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
   const [direct, setDirect] = useState("1500");
   const [indirect, setIndirect] = useState("500");
   const [total, setTotal] = useState("2500");
@@ -233,7 +235,8 @@ export default function AdminCommissionPage() {
           { accessorKey: "channel_org_id", header: "渠道编号" },
         ]}
       />
-      <SettlementPanel />
+      <SettlementPanel key={recoveryVersion} />
+      <IfCan action="commission.recovery.read"><RecoveryPanel onRecorded={() => setRecoveryVersion(v => v + 1)} /></IfCan>
     </AdminShell>
   );
 }

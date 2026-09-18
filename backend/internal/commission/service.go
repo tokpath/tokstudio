@@ -89,6 +89,7 @@ type payoutRow struct {
 func (payoutRow) TableName() string { return "commission_payouts" }
 
 type CashBook interface {
+	CommissionRecoveryTotals(ctx context.Context, ids []string) (map[string]billing.CommissionRecoveryTotals, error)
 	PayoutCommissionTx(tx *gorm.DB, entryID, settlementID string, amount int64) error
 	CreditCommissionTx(tx *gorm.DB, userID, entryID string, amount int64) error
 	ReverseCommissionTx(tx *gorm.DB, entryID string) error
@@ -828,6 +829,14 @@ func (s *Service) ListSettlements(ctx context.Context, channelID string, roleIDs
 	for _, row := range rows {
 		ids = append(ids, row.ID)
 	}
+	recoveryTotals := map[string]billing.CommissionRecoveryTotals{}
+	if s.cash != nil {
+		var err error
+		recoveryTotals, err = s.cash.CommissionRecoveryTotals(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var payouts []payoutRow
 	if err := s.db.WithContext(ctx).Where("settlement_id IN ?", ids).Find(&payouts).Error; err != nil {
 		return nil, err
@@ -856,6 +865,11 @@ func (s *Service) ListSettlements(ctx context.Context, channelID string, roleIDs
 			}
 		}
 		view.ReversedMinor = reversedByID[row.ID]
+		if recovery, ok := recoveryTotals[row.ID]; ok {
+			view.RecoveryTracked = true
+			view.RecoveredMinor = recovery.RecoveredMinor
+			view.RecoveryPendingMinor = recovery.AmountMinor - recovery.RecoveredMinor
+		}
 		out = append(out, *view)
 	}
 	return out, nil

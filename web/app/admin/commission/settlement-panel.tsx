@@ -10,7 +10,7 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { formatUsdMinor } from "@/lib/money";
 
-type Settlement = { id: string; amount_minor: number; status: string; period_start: string; period_end: string; channel_code?: string; channel_org_id?: string; beneficiary_role_id?: string; recipient?: { email: string; display_name: string }; payout_reference?: string; reversed_minor?: number };
+type Settlement = { id: string; amount_minor: number; status: string; period_start: string; period_end: string; channel_code?: string; channel_org_id?: string; beneficiary_role_id?: string; recipient?: { email: string; display_name: string }; payout_reference?: string; reversed_minor?: number; recovery_tracked?: boolean; recovered_minor?: number; recovery_pending_minor?: number };
 type Operation = { kind: "unfreeze"; ignoreMinimum: boolean } | { kind: "settle"; ignoreMinimum: boolean } | { kind: "payout"; item: Settlement; reference: string };
 const money = (amount: number) => `${formatUsdMinor(amount)} USD`;
 const statusName = (status: string) => ({ settled: "待登记打款", paid: "已登记打款", cancelled: "已撤销（佣金变更）" }[status] || status);
@@ -85,7 +85,7 @@ export function SettlementPanel() {
       <p className="mt-1 break-all text-ink-secondary">结算单：{item.id}</p>
       {item.payout_reference && <p className="mt-1 break-all">打款凭证：{item.payout_reference}</p>}
       {item.status === "cancelled" && <p className="mt-2">该单因佣金冲正已撤销。未冲正的佣金已恢复可结算，请重新生成结算单。</p>}
-      {item.status === "paid" && (item.reversed_minor || 0) > 0 && <p className="mt-2 text-danger">打款后佣金冲正 {money(item.reversed_minor!)}，请联系财务核对追回或抵扣安排；原打款记录保留。</p>}
+      {item.status === "paid" && (item.reversed_minor || 0) > 0 && <p className="mt-2 text-danger">{item.recovery_tracked ? (item.recovery_pending_minor ? `已收回 ${money(item.recovered_minor || 0)}，仍待收回 ${money(item.recovery_pending_minor)}。请在下方登记实际收回款项。` : "已全额收回，原打款与冲正记录保留。") : `打款后佣金冲正 ${money(item.reversed_minor!)}，请联系财务核对追回或抵扣安排；原打款记录保留。`}</p>}
       <IfCan action="commission.write">{item.status === "settled" && <Button className="mt-3" variant="outline" disabled={loading || !!loadError} onClick={() => { setSelected(item); setReference(""); setError(""); }}>登记此单打款</Button>}</IfCan>
     </li>)}</ul>
     <IfCan action="commission.write">{selected && <section aria-label="填写打款凭证" className="mt-4 rounded-control border border-hairline p-4">

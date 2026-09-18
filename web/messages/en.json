@@ -1056,7 +1056,9 @@
     "rolePromoter": "Personal promoter",
     "roleChannel": "Channel administrator",
     "rolePlatform": "Platform administrator",
-    "roleUnknown": "Referral member"
+    "roleUnknown": "Referral member",
+    "recoveryPartial": "Received {received} USD; {remaining} USD remains to recover. View receipts in your wallet.",
+    "recoveryClosed": "Fully recovered. Original payment and reversal records are retained; view receipts in your wallet."
   },
   "adminUi": {
     "opsBoard": "Ops board",
@@ -2230,5 +2232,17 @@
     "plansLoadError": "Could not load plans. Refresh plans to retry.",
     "walletHelp": "Time-limited bonus and plan credits are separate from the balances above.",
     "walletLink": "View credits and expiry"
+  },
+  "recoveryHistory": {
+    "title": "Commission recovery history",
+    "detail": "Records funds received externally and confirmed by finance. Wallet balances are unchanged. Up to 100 records, pending first.",
+    "loading": "Loading commission recovery history…",
+    "empty": "No commission recovery records",
+    "emptyDetail": "If a paid commission is reversed, its recovery progress will appear here.",
+    "closed": "Fully recovered",
+    "pending": "Recovery pending",
+    "amounts": "Original {original} · Received {received} · Remaining {remaining}",
+    "settlement": "Settlement: {id}",
+    "receipt": "Received {amount} · Reference: {reference} · {date}"
   }
 }

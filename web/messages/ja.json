@@ -1056,7 +1056,9 @@
     "rolePromoter": "個人紹介者",
     "roleChannel": "チャネル管理者",
     "rolePlatform": "プラットフォーム管理者",
-    "roleUnknown": "紹介メンバー"
+    "roleUnknown": "紹介メンバー",
+    "recoveryPartial": "{received} USD 回収済み、残額は {remaining} USD です。証憑はウォレットで確認できます。",
+    "recoveryClosed": "全額回収済み。支払と取消の記録は保持され、証憑はウォレットで確認できます。"
   },
   "adminUi": {
     "opsBoard": "運用ボード",
@@ -2230,5 +2232,17 @@
     "plansLoadError": "プランを読み込めませんでした。プランを更新して再試行してください。",
     "walletHelp": "期間限定ボーナスとプランのクレジットは上記残高と別に記録されます。",
     "walletLink": "クレジットと有効期限を確認"
+  },
+  "recoveryHistory": {
+    "title": "コミッション回収履歴",
+    "detail": "財務担当が外部での入金を確認した金額を記録します。ウォレット残高は変更されません。未回収を優先して最大100件表示します。",
+    "loading": "回収履歴を読み込み中…",
+    "empty": "回収記録はありません",
+    "emptyDetail": "支払済みコミッションが取り消された場合、回収の進捗をここで確認できます。",
+    "closed": "回収完了",
+    "pending": "回収待ち",
+    "amounts": "回収予定 {original} · 回収済み {received} · 残額 {remaining}",
+    "settlement": "精算番号：{id}",
+    "receipt": "回収済み {amount} · 証憑：{reference} · {date}"
   }
 }

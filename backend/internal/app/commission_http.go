@@ -17,6 +17,9 @@ import (
 )
 
 func (a *App) registerCommissionRoutes(r *gin.Engine) {
+	r.GET("/admin/commission-recoveries", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminCommissionRecoveries)
+	r.POST("/admin/commission-recoveries/:id/receipts", a.requireRoles("platform_admin", "finance_admin"), a.adminRecordCommissionRecovery)
+	r.GET("/v1/me/commission-recoveries", a.requireAnyUser(), a.myCommissionRecoveries)
 	r.GET("/v1/partner/me", a.requireAnyUser(), a.partnerMe)
 	r.GET("/v1/partner/users", a.requireAnyUser(), a.partnerUsers)
 	r.GET("/v1/partner/commissions", a.requireAnyUser(), a.partnerCommissions)

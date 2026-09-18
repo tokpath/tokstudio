@@ -164,7 +164,7 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 		AvailableUSD:             MinorToUSDString(wallet.AvailableMinor),
 		ReservedUSD:              MinorToUSDString(wallet.ReservedMinor),
 	}
-	if err := s.db.WithContext(ctx).Model(&commissionRecoveryRow{}).Where("wallet_id = ? AND status = ?", wallet.ID, "pending").Select("COALESCE(SUM(amount_minor),0)").Scan(&view.CommissionRecoveryMinor).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&commissionRecoveryRow{}).Where("wallet_id = ? AND status = ?", wallet.ID, "pending").Select("COALESCE(SUM(amount_minor - recovered_minor),0)").Scan(&view.CommissionRecoveryMinor).Error; err != nil {
 		return nil, err
 	}
 	if channelOrgID != "" && channelOrgID != identity.OfficialChannelID {

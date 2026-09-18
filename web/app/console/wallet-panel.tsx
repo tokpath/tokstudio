@@ -34,6 +34,7 @@ type Balance = {
   gift_minor?: number;
   purchased_minor?: number;
   commission_available_minor?: number;
+  commission_recovery_minor?: number;
 };
 
 type Method = {
@@ -268,6 +269,7 @@ export default function WalletPanel() {
           ))}
         </dl>
         <p className="mb-2 text-sm text-ink-secondary">{t("walletBucketsDetail")}</p>
+        {(balance?.commission_recovery_minor || 0) > 0 && <p role="status" className="mb-3 rounded-control border border-hairline p-3 text-sm text-danger">{t("commissionRecovery", { amount: formatUsdMinor(balance?.commission_recovery_minor) })}</p>}
         <p className="mb-4 text-sm text-ink-secondary">{te("walletHelp")} <Link className="text-primary underline" href="/app/plans">{te("walletLink")}</Link></p>
         <ListResourceView
           name="payments"

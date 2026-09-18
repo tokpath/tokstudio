@@ -647,6 +647,8 @@ func (a *App) adminPayout(c *gin.Context) {
 	item, err := a.Commission.Payout(c.Request.Context(), c.Param("id"), body.Method, body.Reference, a.currentPrincipal(c).UserID)
 	if err != nil {
 		switch {
+		case errors.Is(err, commission.ErrWalletMismatch):
+			httpx.Abort(c, http.StatusConflict, "commission_wallet_mismatch", "佣金钱包入账或余额与结算单不一致，未登记打款。请联系财务核对原佣金流水后再操作。", false)
 		case errors.Is(err, commission.ErrInvalid):
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写真实的线下打款凭证（1–200 字节）；仅支持人工登记。", false)
 		case errors.Is(err, commission.ErrConflict):

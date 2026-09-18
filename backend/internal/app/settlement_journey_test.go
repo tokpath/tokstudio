@@ -27,6 +27,9 @@ func TestSettlementJourney(t *testing.T) {
 	cfg.BootstrapUser = "settlement_journey_user"
 	cfg.EncryptionKey = "dev-only-32-byte-key-change-me!!"
 	application := mustApp(t, cfg)
+	// This test isolates settlement state using synthetic roles with no cash beneficiary.
+	// Real wallet payout and recovery are covered by TestCommissionPayoutAccounting.
+	application.Commission.SetCashier(nil)
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

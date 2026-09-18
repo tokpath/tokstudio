@@ -59,6 +59,7 @@ const (
 	EventUsageDebit       = "usage_debit"
 	EventRefund           = "refund"
 	EventAdjustment       = "adjustment"
+	EventCommissionPayout = "commission_payout"
 	EventCommissionDebit  = "commission_debit"
 	EventGiftCredit       = "gift_credit"
 	EventCommissionCredit = "commission_credit"
@@ -166,6 +167,7 @@ type BalanceView struct {
 	GiftMinor                int64  `json:"gift_minor"`
 	PurchasedMinor           int64  `json:"purchased_minor"`
 	CommissionAvailableMinor int64  `json:"commission_available_minor"`
+	CommissionRecoveryMinor  int64  `json:"commission_recovery_minor"`
 	ReservedMinor            int64  `json:"reserved_minor"`
 	AvailableUSD             string `json:"available"`
 	ReservedUSD              string `json:"reserved"`

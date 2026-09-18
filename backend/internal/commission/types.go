@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ErrWalletMismatch    = errors.New("commission wallet does not match settlement")
 	ErrConflict          = errors.New("commission operation conflict")
 	ErrSettlementChanged = errors.New("settlement changed after commission reversal")
 	ErrNotFound          = errors.New("commission record not found")

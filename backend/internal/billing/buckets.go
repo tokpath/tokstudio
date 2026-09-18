@@ -5,7 +5,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -81,6 +83,8 @@ func (s *Service) ReverseCommissionTx(tx *gorm.DB, entryID string) error {
 	var existing ledgerRow
 	if err := tx.Where("idempotency_key = ?", revIdem).First(&existing).Error; err == nil {
 		return nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
 	}
 	var credit ledgerRow
 	if err := tx.Where("idempotency_key = ?", idemCommissionCash+entryID).First(&credit).Error; err != nil {
@@ -92,6 +96,14 @@ func (s *Service) ReverseCommissionTx(tx *gorm.DB, entryID string) error {
 	amount := credit.AmountMinor
 	if amount <= 0 {
 		return nil
+	}
+	var payout ledgerRow
+	if err := tx.Where("idempotency_key = ?", "comm-cash-payout:"+entryID).First(&payout).Error; err == nil {
+		// Cash already left this wallet. Track recovery without charging the wallet twice.
+		recovery := commissionRecoveryRow{ID: id.New("ccr"), CommissionEntryID: entryID, WalletID: credit.WalletID, SettlementID: payout.ReferenceID, CreditLedgerID: credit.ID, PayoutLedgerID: payout.ID, AmountMinor: amount, Status: "pending", CreatedAt: time.Now().UTC()}
+		return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "commission_entry_id"}}, DoNothing: true}).Create(&recovery).Error
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
 	}
 	wallet, err := lockWalletByID(tx, credit.WalletID)
 	if err != nil {
@@ -108,3 +120,66 @@ func (s *Service) ReverseCommissionTx(tx *gorm.DB, entryID string) error {
 	}
 	return writeLedger(tx, wallet, EventCommissionDebit, -amount, "commission_entry", entryID, revIdem)
 }
+
+// PayoutCommissionTx records an actual manual payout against the original cash credit.
+// The caller commits the settlement receipt and this debit in the same transaction.
+func (s *Service) PayoutCommissionTx(tx *gorm.DB, entryID, settlementID string, amount int64) error {
+	if entryID == "" || settlementID == "" || amount <= 0 {
+		return ErrInvalidAmount
+	}
+	idem := "comm-cash-payout:" + entryID
+	var existing ledgerRow
+	if err := tx.Where("idempotency_key = ?", idem).First(&existing).Error; err == nil {
+		if existing.ReferenceID != settlementID || existing.AmountMinor != -amount {
+			return ErrConflict
+		}
+		return nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	var credit ledgerRow
+	if err := tx.Where("idempotency_key = ?", idemCommissionCash+entryID).First(&credit).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if credit.AmountMinor != amount {
+		return ErrConflict
+	}
+	var reversed int64
+	if err := tx.Model(&ledgerRow{}).Where("idempotency_key = ?", idemCommissionCashRev+entryID).Count(&reversed).Error; err != nil {
+		return err
+	}
+	if reversed > 0 {
+		return ErrConflict
+	}
+	wallet, err := lockWalletByID(tx, credit.WalletID)
+	if err != nil {
+		return err
+	}
+	if wallet.CommissionAvailableMinor < amount {
+		return ErrInsufficientBalance
+	}
+	wallet.CommissionAvailableMinor -= amount
+	wallet.Version++
+	wallet.UpdatedAt = time.Now().UTC()
+	if err := tx.Save(wallet).Error; err != nil {
+		return err
+	}
+	return writeLedger(tx, wallet, EventCommissionPayout, -amount, "commission_settlement", settlementID, idem)
+}
+
+type commissionRecoveryRow struct {
+	ID                string    `gorm:"column:id;primaryKey"`
+	CommissionEntryID string    `gorm:"column:commission_entry_id"`
+	WalletID          string    `gorm:"column:wallet_id"`
+	SettlementID      string    `gorm:"column:settlement_id"`
+	CreditLedgerID    string    `gorm:"column:credit_ledger_id"`
+	PayoutLedgerID    string    `gorm:"column:payout_ledger_id"`
+	AmountMinor       int64     `gorm:"column:amount_minor"`
+	Status            string    `gorm:"column:status"`
+	CreatedAt         time.Time `gorm:"column:created_at"`
+}
+
+func (commissionRecoveryRow) TableName() string { return "billing_commission_recoveries" }

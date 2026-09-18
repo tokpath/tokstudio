@@ -89,12 +89,13 @@ type payoutRow struct {
 func (payoutRow) TableName() string { return "commission_payouts" }
 
 type CashBook interface {
+	PayoutCommissionTx(tx *gorm.DB, entryID, settlementID string, amount int64) error
 	CreditCommissionTx(tx *gorm.DB, userID, entryID string, amount int64) error
 	ReverseCommissionTx(tx *gorm.DB, entryID string) error
 }
 
 type RoleUsers interface {
-	UserIDForRole(ctx context.Context, roleID string) string
+	UserIDForRoleTx(tx *gorm.DB, roleID string) (string, error)
 }
 
 type Service struct {
@@ -521,7 +522,10 @@ func (s *Service) unfreezeTx(tx *gorm.DB, now time.Time, usageEventID string, en
 			return n, err
 		}
 		if s.cash != nil && rows[i].AmountMinor > 0 {
-			uid := s.beneficiaryUser(tx.Statement.Context, rows[i])
+			uid, err := s.beneficiaryUser(tx, rows[i])
+			if err != nil {
+				return n, err
+			}
 			if uid != "" {
 				if err := s.cash.CreditCommissionTx(tx, uid, rows[i].ID, rows[i].AmountMinor); err != nil {
 					return n, err
@@ -532,6 +536,18 @@ func (s *Service) unfreezeTx(tx *gorm.DB, now time.Time, usageEventID string, en
 	}
 
 	return n, nil
+}
+
+// SetUserHoldTx participates in the same transaction as the identity status change.
+func (s *Service) SetUserHoldTx(tx *gorm.DB, userID string, held bool) error {
+	scoped := *s
+	scoped.db = tx
+	if held {
+		_, err := scoped.HoldUnsettledForUser(tx.Statement.Context, userID)
+		return err
+	}
+	_, err := scoped.ReleaseHeldForUser(tx.Statement.Context, userID)
+	return err
 }
 
 // HoldUnsettledForUser 把该用户产生的未结算佣金标成 held，封禁后不再进入结算。
@@ -713,6 +729,16 @@ func (s *Service) Payout(ctx context.Context, settlementID, method, reference, a
 		if len(entries) == 0 || total <= 0 || total != row.AmountMinor {
 			return ErrSettlementChanged
 		}
+		if s.cash != nil {
+			for _, entry := range entries {
+				if err := s.cash.PayoutCommissionTx(tx, entry.ID, settlementID, entry.AmountMinor); err != nil {
+					if errors.Is(err, billing.ErrNotFound) || errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrConflict) {
+						return ErrWalletMismatch
+					}
+					return err
+				}
+			}
+		}
 		payout := payoutRow{ID: id.New("cpo"), SettlementID: settlementID, Method: method, Reference: &reference, Status: StatusPaid, CreatedAt: time.Now().UTC()}
 		if actor != "" {
 			payout.ActorUserID = &actor
@@ -848,11 +874,11 @@ func (s *Service) RunUnfreeze(ctx context.Context) {
 	}
 }
 
-func (s *Service) beneficiaryUser(ctx context.Context, row entryRow) string {
+func (s *Service) beneficiaryUser(tx *gorm.DB, row entryRow) (string, error) {
 	if s.roles == nil || row.BeneficiaryRoleID == nil {
-		return ""
+		return "", nil
 	}
-	return s.roles.UserIDForRole(ctx, *row.BeneficiaryRoleID)
+	return s.roles.UserIDForRoleTx(tx, *row.BeneficiaryRoleID)
 }
 
 func entryView(row entryRow) *EntryView {

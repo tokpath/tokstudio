@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
@@ -913,21 +914,23 @@ func (a *App) setUserStatus(c *gin.Context, status, action string) {
 	}
 	_ = c.ShouldBindJSON(&body)
 	principal := a.currentPrincipal(c)
-	item, before, err := a.Identity.AdminSetUserStatus(c.Request.Context(), *principal, c.Param("id"), status, body.Reason)
+	var item *identity.UserView
+	var before string
+	var identityErr error
+	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		item, before, identityErr = a.Identity.AdminSetUserStatusTx(tx, *principal, c.Param("id"), status, body.Reason)
+		if identityErr != nil {
+			return identityErr
+		}
+		return a.Commission.SetUserHoldTx(tx, item.ID, status == identity.UserStatusBanned)
+	})
 	if err != nil {
-		a.writeAuthError(c, err)
+		if identityErr != nil {
+			a.writeAuthError(c, identityErr)
+		} else {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "用户状态与佣金处理未能同时完成，本次修改已回滚，请重试。", true)
+		}
 		return
-	}
-	if status == identity.UserStatusBanned {
-		if _, err := a.Commission.HoldUnsettledForUser(c.Request.Context(), item.ID); err != nil {
-			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "冻结未结算佣金失败", true)
-			return
-		}
-	} else {
-		if _, err := a.Commission.ReleaseHeldForUser(c.Request.Context(), item.ID); err != nil {
-			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "恢复未结算佣金失败", true)
-			return
-		}
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: principal.UserID, Action: action, ResourceType: "user", ResourceID: item.ID,

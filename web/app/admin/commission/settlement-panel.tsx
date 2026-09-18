@@ -63,11 +63,11 @@ export function SettlementPanel() {
     } catch { setError("连接中断，尚未确认结果。请按原操作重试；同一结算单及凭证不会重复登记。"); return false; }
   }
   const visible = items.filter(item => `${item.id} ${recipient(item)} ${item.channel_code || item.channel_org_id}`.toLowerCase().includes(filter.trim().toLowerCase()));
-  const description = operation?.kind === "payout" ? `${recipient(operation.item)}；渠道 ${operation.item.channel_code || operation.item.channel_org_id || "—"}；结算单 ${operation.item.id}；金额 ${money(operation.item.amount_minor)}；凭证 ${operation.reference}。请确认线下实际已完成打款。系统仅登记，不会转账。`
+  const description = operation?.kind === "payout" ? `${recipient(operation.item)}；渠道 ${operation.item.channel_code || operation.item.channel_org_id || "—"}；结算单 ${operation.item.id}；金额 ${money(operation.item.amount_minor)}；凭证 ${operation.reference}。请确认线下实际已完成打款。登记时同步扣减佣金钱包；系统不会执行转账。`
     : operation?.kind === "unfreeze" ? "只解冻冻结期已结束的佣金，不跳过冻结期，不执行打款。" : `按收款角色汇总当前可结算佣金。${operation?.kind === "settle" && operation.ignoreMinimum ? "本次明确忽略最低结算金额。" : "遵守最低结算金额，未达标佣金留待下次。"}佣金发生冲正后，受影响的未付款结算单会撤销，剩余佣金可重新生成结算单。`;
   return <section aria-label="佣金结算与打款登记" className="rounded-card border border-hairline bg-canvas-raised p-6">
     <h2 className="text-lg font-semibold">佣金结算与打款登记</h2>
-    <p className="my-3 text-sm text-ink-secondary">先解冻到期佣金，再生成结算单。线下完成转账后，选择对应结算单登记真实凭证；系统不会自动转账。</p>
+    <p className="my-3 text-sm text-ink-secondary">先解冻到期佣金，再生成结算单。线下完成转账后，选择对应结算单登记真实凭证；登记成功后扣减对应佣金钱包，系统不会自动转账。</p>
     <IfCan action="commission.write"><div className="mb-4 flex flex-wrap items-center gap-3">
       <Button variant="outline" onClick={() => review({ kind: "unfreeze", ignoreMinimum: false })}>解冻到期佣金</Button>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={ignoreMinimum} onChange={e => setIgnoreMinimum(e.target.checked)} />忽略最低结算金额</label>

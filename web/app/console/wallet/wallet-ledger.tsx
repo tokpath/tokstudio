@@ -19,7 +19,7 @@ type LedgerRow = {
 export function WalletLedger() {
   const t = useTranslations("user");
   const locale = useLocale();
-  const events = new Set(["topup", "authorization", "release", "usage_debit", "refund", "adjustment", "commission_debit", "gift_credit", "commission_credit"]);
+  const events = new Set(["topup", "authorization", "release", "usage_debit", "refund", "adjustment", "commission_debit", "commission_payout", "gift_credit", "commission_credit"]);
   const tc = useTranslations("common");
   const list = useListResource<LedgerRow>({
     load: () => fetchListItems(`${apiBase}/v1/me/ledger`),

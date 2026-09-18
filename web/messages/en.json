@@ -1908,6 +1908,7 @@
     "giftBalance": "Gift credits (USD)",
     "purchasedBalance": "Purchased credits (USD)",
     "commissionBalance": "Commission balance (USD)",
+    "commissionRecovery": "Paid commissions of {amount} USD require recovery review after a usage refund. This amount is tracked separately; neither your commission wallet nor API credits were charged again. Contact finance to reconcile.",
     "walletBucketsDetail": "API usage consumes gift credits before purchased credits. Gift credits are non-refundable. Commission is settled separately and cannot pay for API usage.",
     "ledColDate": "Time",
     "ledgerEvents": {
@@ -1917,6 +1918,7 @@
       "usage_debit": "API usage",
       "refund": "Refund",
       "adjustment": "Adjustment",
+      "commission_payout": "Commission paid out",
       "commission_debit": "Commission debit",
       "gift_credit": "Gift credits received",
       "commission_credit": "Commission received",

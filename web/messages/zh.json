@@ -1908,6 +1908,7 @@
     "giftBalance": "赠送积分（USD）",
     "purchasedBalance": "充值积分（USD）",
     "commissionBalance": "佣金余额（USD）",
+    "commissionRecovery": "已打款佣金中有 {amount} USD 因消费退款待财务核对追回。此金额单独记录，未再次扣减佣金钱包，也未扣除 API 积分；请联系财务核对处理。",
     "walletBucketsDetail": "API 消费优先使用赠送积分，再使用充值积分。赠送积分不可退款；佣金余额单独结算，不用于 API 消费。",
     "ledColDate": "时间",
     "ledgerEvents": {
@@ -1917,6 +1918,7 @@
       "usage_debit": "API 消费",
       "refund": "退款",
       "adjustment": "账务调整",
+      "commission_payout": "佣金打款出账",
       "commission_debit": "佣金扣减",
       "gift_credit": "赠送积分入账",
       "commission_credit": "佣金入账",

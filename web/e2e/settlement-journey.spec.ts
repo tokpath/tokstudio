@@ -23,7 +23,7 @@ test("finance verifies recipient and receipt, retries uncertain payment registra
   await expect(dialog).toContainText("alice@example.test");
   await expect(dialog).toContainText("$1.25 USD");
   await expect(dialog).toContainText("CHANNEL-A");
-  await expect(dialog).toContainText("系统仅登记，不会转账");
+  await expect(dialog).toContainText("登记时同步扣减佣金钱包");
   await dialog.getByRole("button", { name: "确认", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("同一结算单及凭证不会重复登记");
   await dialog.getByRole("button", { name: "确认", exact: true }).click();
@@ -60,4 +60,15 @@ test("audit sees cancellation and paid reversal evidence without mutation contro
   await expect(panel).toContainText("WIRE-789");
   await expect(panel.getByRole("button", { name: "生成结算单" })).toHaveCount(0);
   await expect(panel.getByRole("button", { name: "登记此单打款" })).toHaveCount(0);
+});
+
+test("wallet separates paid commission recovery from spendable balances", async ({ page }) => {
+  await mockViewer(page, { roles: ["end_user"] });
+  await page.route("**/v1/me/balance**", r => r.fulfill({ json: { balance: { available: "5", reserved: "0", purchased_minor: 5000000, gift_minor: 0, commission_available_minor: 0, commission_recovery_minor: 300000 } } }));
+  await page.route("**/v1/me/ledger**", r => r.fulfill({ json: { items: [{ id: "paid", event_type: "commission_payout", amount_minor: -300000, created_at: "2026-09-18T00:00:00Z" }] } }));
+  await page.goto("/app/wallet");
+  await expect(page.getByLabel("余额组成").getByText("$5.00")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "待财务核对追回" })).toContainText("$0.30 USD");
+  await expect(page.getByRole("status").filter({ hasText: "待财务核对追回" })).toContainText("未再次扣减佣金钱包");
+  await expect(page.getByRole("cell", { name: "佣金打款出账", exact: true })).toBeVisible();
 });

@@ -1908,6 +1908,7 @@
     "giftBalance": "付与クレジット（USD）",
     "purchasedBalance": "購入クレジット（USD）",
     "commissionBalance": "コミッション残高（USD）",
+    "commissionRecovery": "支払済みコミッション {amount} USD は利用返金に伴い返還確認待ちです。別途記録され、コミッション残高や API クレジットから再度差し引いていません。経理に確認してください。",
     "walletBucketsDetail": "API 利用は付与クレジット、購入クレジットの順に消費します。付与分は返金できません。コミッションは別途精算され、API 利用には使えません。",
     "ledColDate": "日時",
     "ledgerEvents": {
@@ -1917,6 +1918,7 @@
       "usage_debit": "API 利用",
       "refund": "返金",
       "adjustment": "調整",
+      "commission_payout": "コミッション支払出金",
       "commission_debit": "コミッション減額",
       "gift_credit": "付与クレジット入金",
       "commission_credit": "コミッション入金",

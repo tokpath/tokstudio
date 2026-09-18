@@ -34,6 +34,7 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.GET("/admin/usage/pending", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPendingUsage)
 	r.GET("/admin/usage/pending/:id", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminPendingUsageDetail)
 	r.POST("/admin/usage/pending/resolve", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.resolvePendingUsage)
+	r.GET("/admin/billing/users", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.billingRecipients)
 	r.GET("/admin/billing/report", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingReport)
 	r.GET("/admin/billing/export", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.billingExport)
 	r.GET("/admin/margin", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminMargin)
@@ -695,4 +696,18 @@ func (a *App) publishPrice(c *gin.Context) {
 		ResourceID: snap.VersionID, After: snap, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"price": snap, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) billingRecipients(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	if len([]rune(query)) < 2 || len(query) > 200 {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请输入至少 2 个字符，最多 200 字节的邮箱、姓名或用户编号", false)
+		return
+	}
+	items, err := a.Identity.SearchBillingRecipients(c.Request.Context(), query)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "搜索用户失败，请重试", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "limit": 20})
 }

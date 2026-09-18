@@ -769,7 +769,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "套餐",
-      "description": "订阅与权益。扣费顺序：赠送 → 套餐 → 现金。"
+      "description": "订阅与权益。扣费顺序：赠送额度 → 套餐额度 → 钱包余额。"
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -1695,8 +1695,8 @@
     "redeem": "兑换",
     "plansTitle": "套餐与权益",
     "plansHint": "登录后可查看套餐。沙箱支付走 Stripe webhook。",
-    "plansLead": "扣减顺序：即将过期的赠送 → 当期套餐 → 现金钱包。金额以美元显示。",
-    "plansRefreshed": "套餐与权益已刷新",
+    "plansLead": "扣减顺序：即将过期的赠送额度 → 当期套餐额度 → 钱包余额。金额以美元显示。",
+    "plansRefreshed": "套餐列表已刷新",
     "ordered": "已下单 {id}",
     "subFail": "订阅失败",
     "refreshPlans": "刷新套餐",
@@ -2193,5 +2193,30 @@
     "other": "其他",
     "emptyRewards": "暂无佣金记录",
     "emptyRewardsDetail": "获得分佣资格且受邀用户产生符合规则的 API 消费后，记录会显示在这里。"
+  },
+  "entitlements": {
+    "title": "我的额度与有效期",
+    "refresh": "刷新额度",
+    "help": "赠送与套餐额度优先抵扣 API 消费，与钱包余额分开记录；到期后不可使用。",
+    "loadError": "额度加载失败，请点击“刷新额度”重试。",
+    "loading": "正在读取额度…",
+    "empty": "暂无赠送或套餐额度。",
+    "bonus": "限时赠送额度",
+    "plan": "套餐额度",
+    "active": "可使用",
+    "expired": "已到期",
+    "exhausted": "已用完",
+    "reversed": "已撤回",
+    "remaining": "当前可用：{amount}",
+    "granted": "原始发放：{amount}",
+    "expiry": "到期时间：{time}",
+    "noExpiry": "长期有效",
+    "model": "适用模型：{model}",
+    "token": "Token",
+    "video_second": "视频秒",
+    "image_count": "张图片",
+    "plansLoadError": "套餐加载失败，请点击“刷新套餐”重试。",
+    "walletHelp": "限时赠送与套餐额度不包含在以上余额中。",
+    "walletLink": "查看额度与有效期"
   }
 }

@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("plan not found")
-	ErrInvalidPlan  = errors.New("invalid plan")
-	ErrNotPublished = errors.New("plan is not published")
-	ErrNotPending   = errors.New("plan is not pending review")
+	ErrBonusConflict = errors.New("bonus idempotency conflict")
+	ErrNotFound      = errors.New("plan not found")
+	ErrInvalidPlan   = errors.New("invalid plan")
+	ErrNotPublished  = errors.New("plan is not published")
+	ErrNotPending    = errors.New("plan is not pending review")
 )
 
 const (

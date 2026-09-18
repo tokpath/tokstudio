@@ -286,10 +286,16 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	rdb, err := redisx.Open(cfg.RedisURL)
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = rdb.Close() })
 	application := app.New(cfg, gdb, rdb, logx.New("error", os.Stdout))
 	// 测试专用：注入确定性上游，覆盖 CI 无 Provider Key 的场景。生产 app.New 不挂 harness。
 	application.Gateway.InstallTestHarness()

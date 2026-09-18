@@ -2,8 +2,11 @@ package plans
 
 import (
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"strconv"
 	"strings"
@@ -474,19 +477,34 @@ func (s *Service) Cancel(ctx context.Context, subID, userID string) (*Subscripti
 	return subView(row), nil
 }
 
-func (s *Service) GrantBonus(ctx context.Context, userID, unitType string, amount int64, expiresIn time.Duration) (*EntitlementView, error) {
-	if amount <= 0 || !validUnit(unitType) {
+// GrantBonus uses a deterministic primary key scoped to the actor and operation.
+// INSERT ON CONFLICT serializes concurrent retries in PostgreSQL; the entitlement
+// and ledger commit together. A fingerprint rejects changed payloads on replay.
+func (s *Service) GrantBonus(ctx context.Context, actorID, key, userID, unitType string, amount int64, expiresIn time.Duration) (*EntitlementView, error) {
+	if actorID == "" || key == "" || amount <= 0 || !validUnit(unitType) || expiresIn <= 0 {
 		return nil, ErrInvalidPlan
 	}
-	now := time.Now().UTC()
+	operation, _ := json.Marshal([]string{actorID, key})
+	payload, _ := json.Marshal([]string{userID, unitType, strconv.FormatInt(amount, 10), strconv.FormatInt(int64(expiresIn), 10)})
+	entID := fmt.Sprintf("ent_bonus_%x", sha256.Sum256(operation))
+	fingerprint := fmt.Sprintf("bonus:%x", sha256.Sum256(append(operation, payload...)))
+	now := time.Now().UTC().Truncate(time.Microsecond)
 	exp := now.Add(expiresIn)
-	ent := entRow{
-		ID: id.New("ent"), UserID: userID, SourceType: SourceBonus, SourceID: "bonus:" + id.New("bon"),
-		UnitType: unitType, Granted: amount, Status: EntActive, ExpiresAt: &exp, CreatedAt: now,
-	}
+	ent := entRow{ID: entID, UserID: userID, SourceType: SourceBonus, SourceID: fingerprint,
+		UnitType: unitType, Granted: amount, Status: EntActive, ExpiresAt: &exp, CreatedAt: now}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&ent).Error; err != nil {
-			return err
+		result := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoNothing: true}).Create(&ent)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			if err := tx.Where("id = ?", entID).First(&ent).Error; err != nil {
+				return err
+			}
+			if ent.SourceID != fingerprint {
+				return ErrBonusConflict
+			}
+			return nil
 		}
 		return writeEntLedger(tx, ent.ID, EventBonus, amount, "", "bonus:"+ent.ID)
 	}); err != nil {

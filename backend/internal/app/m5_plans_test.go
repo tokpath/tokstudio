@@ -81,10 +81,10 @@ func TestM5PlansPayments(t *testing.T) {
 	}) != http.StatusConflict {
 		t.Fatal("bonus without confirm must be 409")
 	}
-	_ = postJSONRaw(t, server.URL+"/admin/entitlements/bonus", "m5_admin", map[string]any{
+	_, _ = grantBonusRequest(t, server.URL+"/admin/entitlements/bonus", "m5_admin", "m5-first-"+userID, map[string]any{
 		"user_id": userID, "unit_type": plans.UnitUSDCredit, "amount": 2 * billing.MinorPerUSD, "expires_in_seconds": 3600,
 	})
-	_ = postJSONRaw(t, server.URL+"/admin/entitlements/bonus", "m5_admin", map[string]any{
+	_, _ = grantBonusRequest(t, server.URL+"/admin/entitlements/bonus", "m5_admin", "m5-second-"+userID, map[string]any{
 		"user_id": userID, "unit_type": plans.UnitUSDCredit, "amount": 3 * billing.MinorPerUSD, "expires_in_seconds": 86400,
 	})
 

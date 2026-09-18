@@ -769,7 +769,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "Plans",
-      "description": "Subscriptions and entitlements. Debit order: grants → plans → cash."
+      "description": "Subscriptions and credits. Debit order: bonus credits → plan credits → wallet balance."
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -1695,8 +1695,8 @@
     "redeem": "Redeem",
     "plansTitle": "Plans & entitlements",
     "plansHint": "Sign in to see plans. Sandbox payments go through Stripe webhooks.",
-    "plansLead": "Debit order: expiring grants → current plan → cash wallet. Amounts are shown in USD.",
-    "plansRefreshed": "Plans and entitlements refreshed",
+    "plansLead": "Debit order: expiring bonus credits → current plan credits → wallet balance. Amounts are shown in USD.",
+    "plansRefreshed": "Plan list refreshed",
     "ordered": "Ordered {id}.",
     "subFail": "Subscribe failed",
     "refreshPlans": "Refresh plans",
@@ -2193,5 +2193,30 @@
     "other": "Other",
     "emptyRewards": "No commission records yet",
     "emptyRewardsDetail": "Records appear after you qualify and referred users incur eligible API usage."
+  },
+  "entitlements": {
+    "title": "My credits and expiry",
+    "refresh": "Refresh credits",
+    "help": "Bonus and plan credits are used before wallet credit for API usage. Expired credits cannot be used.",
+    "loadError": "Could not load credits. Select Refresh credits to retry.",
+    "loading": "Loading credits…",
+    "empty": "No bonus or plan credits yet.",
+    "bonus": "Bonus credits",
+    "plan": "Plan credits",
+    "active": "Available",
+    "expired": "Expired",
+    "exhausted": "Used up",
+    "reversed": "Reversed",
+    "remaining": "Available: {amount}",
+    "granted": "Originally granted: {amount}",
+    "expiry": "Expires: {time}",
+    "noExpiry": "No expiry",
+    "model": "Model: {model}",
+    "token": "tokens",
+    "video_second": "video seconds",
+    "image_count": "images",
+    "plansLoadError": "Could not load plans. Refresh plans to retry.",
+    "walletHelp": "Time-limited bonus and plan credits are separate from the balances above.",
+    "walletLink": "View credits and expiry"
   }
 }

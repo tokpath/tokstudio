@@ -501,6 +501,10 @@ export const generatedOperations: GeneratedOperation[] = [
     "path": "/admin/refunds"
   },
   {
+    "method": "GET",
+    "path": "/admin/billing/users"
+  },
+  {
     "method": "POST",
     "path": "/admin/entitlements/bonus"
   },

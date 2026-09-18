@@ -86,7 +86,7 @@ curl -sf -X POST "$API_URL/admin/plans/$pid/review" -H "Authorization: Bearer $A
   -d '{"action":"approve","reason":"e2e"}' | grep -q published
 
 echo "== bonus then stripe subscribe"
-curl -sf -X POST "$API_URL/admin/entitlements/bonus" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' \
+curl -sf -X POST "$API_URL/admin/entitlements/bonus" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'X-Tokenhub-Confirm: 1' -H 'Content-Type: application/json' -H "Idempotency-Key: m5-bonus-$uid" \
   -d "{\"user_id\":\"$uid\",\"unit_type\":\"usd_credit\",\"amount\":2000000,\"expires_in_seconds\":3600}" >/dev/null
 sub="$(curl -sf -X POST "$API_URL/v1/me/subscriptions" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' \
   -d '{"plan_id":"pln_echo_month","adapter":"stripe","payment_method_ref":"pm_ok"}')"

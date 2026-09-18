@@ -1017,9 +1017,31 @@ paths:
       responses:
         "200":
           description: refunded charge or topup
+  /admin/billing/users:
+    get:
+      operationId: searchBillingRecipients
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 200
+      responses:
+        "200":
+          description: Up to 20 recipients (id, email, display_name, channel_code, status); platform, finance and ops only
   /admin/entitlements/bonus:
     post:
       operationId: grantBonus
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 128
+          description: Reuse for retries of the same operation. Different payload with same key returns 409.
       responses:
         "201":
           description: bonus entitlement

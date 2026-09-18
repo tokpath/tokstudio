@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export default function WalletPanel() {
   const tc = useTranslations("common");
   const [balance, setBalance] = useState<Balance | null>(null);
   const [code, setCode] = useState("");
+  const te = useTranslations("entitlements");
   const [message, setMessage] = useState(t("walletHint"));
   const [help, setHelp] = useState("");
   const [chips, setChips] = useState<number[]>([100, 300, 500, 1000]);
@@ -265,7 +267,8 @@ export default function WalletPanel() {
             </div>
           ))}
         </dl>
-        <p className="mb-4 text-sm text-ink-secondary">{t("walletBucketsDetail")}</p>
+        <p className="mb-2 text-sm text-ink-secondary">{t("walletBucketsDetail")}</p>
+        <p className="mb-4 text-sm text-ink-secondary">{te("walletHelp")} <Link className="text-primary underline" href="/app/plans">{te("walletLink")}</Link></p>
         <ListResourceView
           name="payments"
           snapshot={methodsList.snapshot}

@@ -2,12 +2,15 @@ package app
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
@@ -331,6 +334,24 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "赠送参数无效", false)
 		return
 	}
+	key := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if key == "" || len(key) > 128 {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "缺少有效的操作编号，请刷新后重试", false)
+		return
+	}
+	recipient, err := a.Identity.Me(c.Request.Context(), identity.Principal{UserID: body.UserID})
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "暂时无法核对用户，请重试", true)
+		return
+	}
+	if err != nil || recipient.Status != identity.UserStatusActive {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_recipient", "用户不存在或已停用，请重新选择", false)
+		return
+	}
+	if body.ExpiresIn < 0 || body.ExpiresIn > 31536000 {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "有效期应在 1 秒至 365 天之间", false)
+		return
+	}
 	if body.UnitType == "" {
 		body.UnitType = plans.UnitUSDCredit
 	}
@@ -338,9 +359,17 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 	if body.ExpiresIn > 0 {
 		exp = time.Duration(body.ExpiresIn) * time.Second
 	}
-	item, err := a.Plans.GrantBonus(c.Request.Context(), body.UserID, body.UnitType, body.Amount, exp)
+	item, err := a.Plans.GrantBonus(c.Request.Context(), a.currentPrincipal(c).UserID, key, body.UserID, body.UnitType, body.Amount, exp)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "发放赠送失败", false)
+		if errors.Is(err, plans.ErrBonusConflict) {
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "此操作编号已用于另一笔赠送，请核对原操作", false)
+			return
+		}
+		if errors.Is(err, plans.ErrInvalidPlan) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "赠送参数无效", false)
+		} else {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "暂未确认发放结果，请用原操作重试", true)
+		}
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{

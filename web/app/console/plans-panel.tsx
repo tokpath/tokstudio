@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { EntitlementsPanel } from "./entitlements-panel";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { CheckoutPay } from "@/components/checkout-pay";
 import { Button } from "@/components/ui/button";
@@ -17,14 +18,6 @@ type Plan = {
   items?: { unit_type: string; included_amount: number }[];
 };
 
-type Entitlement = {
-  id: string;
-  source_type: string;
-  unit_type: string;
-  remaining: number;
-  status: string;
-};
-
 type Method = {
   adapter: string;
   display_name?: string;
@@ -37,8 +30,8 @@ type Method = {
 export default function PlansPanel() {
   const t = useTranslations("user");
   const tc = useTranslations("common");
+  const te = useTranslations("entitlements");
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [ents, setEnts] = useState<Entitlement[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [message, setMessage] = useState(t("plansHint"));
   const [methods, setMethods] = useState<Method[]>([]);
@@ -46,29 +39,28 @@ export default function PlansPanel() {
   const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
 
   async function refresh() {
-    const [planRes, entRes, payRes] = await Promise.all([
-      fetch(`${apiBase}/v1/me/plans`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/me/entitlements`, { credentials: "include" }),
-      fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" }),
-    ]);
-    const planBody = await planRes.json();
-    const entBody = await entRes.json();
-    if (!planRes.ok) {
+    try {
+      const [planRes, payRes] = await Promise.all([
+        fetch(`${apiBase}/v1/me/plans`, { credentials: "include" }),
+        fetch(`${apiBase}/v1/payments/checkout`, { credentials: "include" }),
+      ]);
+      const planBody = await planRes.json();
+      if (!planRes.ok) {
+        setLoaded(true);
+        setMessage(planBody.error?.message || tc("notLoggedIn"));
+        return;
+      }
+      setPlans(planBody.items || []);
+      if (payRes.ok) {
+        const payBody = await payRes.json();
+        const list: Method[] = payBody.item?.methods || [];
+        setMethods(list);
+        const preferred = list.find((m) => m.adapter === "stripe") || list[0];
+        if (preferred) setAdapter(preferred.adapter);
+      }
       setLoaded(true);
-      setMessage(planBody.error?.message || tc("notLoggedIn"));
-      return;
-    }
-    setPlans(planBody.items || []);
-    setEnts(entBody.items || []);
-    if (payRes.ok) {
-      const payBody = await payRes.json();
-      const list: Method[] = payBody.item?.methods || [];
-      setMethods(list);
-      const preferred = list.find((m) => m.adapter === "stripe") || list[0];
-      if (preferred) setAdapter(preferred.adapter);
-    }
-    setLoaded(true);
-    setMessage(t("plansRefreshed"));
+      setMessage(t("plansRefreshed"));
+    } catch { setMessage(te("plansLoadError")); }
   }
 
   useEffect(() => {
@@ -93,7 +85,6 @@ export default function PlansPanel() {
     }
   }
 
-  const activeEnts = ents.filter((item) => item.status === "active").length;
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
@@ -138,7 +129,7 @@ export default function PlansPanel() {
           ))}
         </ul>
       )}
-      {loaded ? <p className="mt-4 text-sm text-ink-secondary">{t("ents", { n: activeEnts })}</p> : null}
+      <EntitlementsPanel />
       {checkout ? <CheckoutPay checkout={checkout} onPaid={() => void refresh()} /> : null}
       <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>

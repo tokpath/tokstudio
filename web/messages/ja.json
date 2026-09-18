@@ -769,7 +769,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "プラン",
-      "description": "購読と権利。引き落とし順：付与 → プラン → 現金。"
+      "description": "サブスクリプションとクレジット。控除順：ボーナス → プラン → ウォレット残高。"
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -1695,8 +1695,8 @@
     "redeem": "交換",
     "plansTitle": "プランと権利",
     "plansHint": "ログインするとプランを見られます。サンドボックス支払は Stripe webhook。",
-    "plansLead": "控除順：期限が近い付与 → 当期プラン → 現金。金額は米ドル表示。",
-    "plansRefreshed": "プランと権利を更新しました",
+    "plansLead": "控除順：期限が近いボーナス → 当期プラン → ウォレット残高。金額は米ドル表示。",
+    "plansRefreshed": "プラン一覧を更新しました",
     "ordered": "注文 {id}",
     "subFail": "購読に失敗しました",
     "refreshPlans": "プランを更新",
@@ -2193,5 +2193,30 @@
     "other": "その他",
     "emptyRewards": "コミッション履歴はありません",
     "emptyRewardsDetail": "資格取得後、招待ユーザーに対象となる API 利用が発生すると表示されます。"
+  },
+  "entitlements": {
+    "title": "保有クレジットと有効期限",
+    "refresh": "クレジットを更新",
+    "help": "ボーナスとプランのクレジットはウォレット残高より先に API 利用に充当されます。期限後は利用できません。",
+    "loadError": "読み込めませんでした。「クレジットを更新」で再試行してください。",
+    "loading": "読み込み中…",
+    "empty": "ボーナスまたはプランのクレジットはありません。",
+    "bonus": "ボーナスクレジット",
+    "plan": "プランクレジット",
+    "active": "利用可能",
+    "expired": "期限切れ",
+    "exhausted": "使用済み",
+    "reversed": "取り消し済み",
+    "remaining": "利用可能：{amount}",
+    "granted": "付与額：{amount}",
+    "expiry": "有効期限：{time}",
+    "noExpiry": "無期限",
+    "model": "対象モデル：{model}",
+    "token": "トークン",
+    "video_second": "動画秒",
+    "image_count": "画像",
+    "plansLoadError": "プランを読み込めませんでした。プランを更新して再試行してください。",
+    "walletHelp": "期間限定ボーナスとプランのクレジットは上記残高と別に記録されます。",
+    "walletLink": "クレジットと有効期限を確認"
   }
 }

@@ -198,3 +198,9 @@
 - 审计检索：`GET /admin/audit-logs?action=&resource_type=&q=`；`GET /admin/outbox/stats` 读 `pending`/`published`/`failed`；`POST /admin/audit-probes` 沙箱写 `audit.probe`（生产 403，不强制确认）；管理页 `/admin/audit` 可读取 Outbox 并写入探测。
 
 所有管理接口按角色授权；退款、手工加款、佣金调整、凭据修改、价格底线修改、usage 回放必须二次确认：请求头 `X-Tokenhub-Confirm: 1`（或 `confirm=1`），并记录 before/after 快照。缺少确认返回 `409 confirm_required`。健康探测、熔断与灰度设置不要求确认头。
+
+### 财务赠送额度验收补充
+
+- `GET /admin/billing/users?q=`：仅平台管理员、财务和运营可搜索收款用户；至少 2 个字符，最多返回 20 人。返回 `id/email/display_name/channel_code/status`，不开放用户管理或登录资料。
+- `POST /admin/entitlements/bonus`：除二次确认外，必须传 `Idempotency-Key`（最多 128 字节）。同一操作重试须复用原编号与参数；并发重试只创建一个权益账户和一笔权益流水，改变参数返回 409。收款用户必须存在且处于启用状态。
+- 手工赠送记录在限时权益账户，与钱包余额分开。用户在套餐页查看剩余额度、原始发放额和到期时间。

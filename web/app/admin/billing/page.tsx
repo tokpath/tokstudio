@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
+import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "../shell";
 import { apiBase } from "@/lib/api";
@@ -16,13 +18,15 @@ export default function AdminBillingPage() {
   const [requestID, setRequestID] = useState("");
   const [topupID, setTopupID] = useState("");
   const [userID, setUserID] = useState("");
-  const [bonus, setBonus] = useState("1000000");
+  const [bonus, setBonus] = useState("1");
   const [message, setMessage] = useState("退款、确认入账和赠送额度都要二次确认，并写入审计。");
   const query = useQuery({
     queryKey: ["billing-report"],
     queryFn: () => apiClient<{ report?: Record<string, number>; error?: { message?: string } }>("GET", "/admin/billing/report"),
   });
-  const report = query.data?.report || {};
+  const report = query.data?.report;
+  const bonusMinor = parseUsdToMinor(bonus);
+  const validBonus = bonusMinor !== null && bonusMinor > 0 && Boolean(userID.trim());
 
   async function post(path: string, body: Record<string, string | number>, okText: string): Promise<boolean> {
     try {
@@ -47,7 +51,7 @@ export default function AdminBillingPage() {
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="billing" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">按请求编号退消费账单会冲正佣金；按充值单退未使用充值。赠送默认是美元额度。</p>
+        <p className="mb-3 text-sm text-ink-secondary">按请求编号退消费账单会冲正佣金；按充值单退未使用充值。赠送金额按美元填写，有效期为发放后 24 小时。</p>
         <IfCan action="billing.refund">
           <div className="mb-3 flex flex-wrap gap-2">
             <Input className="w-64" value={requestID} onChange={(e) => setRequestID(e.target.value)} aria-label="账单 request_id" placeholder="request_id" />
@@ -68,13 +72,18 @@ export default function AdminBillingPage() {
         <IfCan action="billing.bonus">
           <div className="mb-3 flex flex-wrap gap-2">
             <Input className="w-64" value={userID} onChange={(e) => setUserID(e.target.value)} aria-label="用户 ID" placeholder="usr_..." />
-            <Input className="w-36" value={bonus} onChange={(e) => setBonus(e.target.value)} aria-label="赠送额度" placeholder="amount" />
+            <div>
+              <Label htmlFor="bonus-usd">赠送金额（USD）</Label>
+              <Input id="bonus-usd" className="w-40" inputMode="decimal" value={bonus} onChange={(e) => setBonus(e.target.value)} aria-describedby="bonus-help" />
+              <p id="bonus-help" className="mt-1 text-xs text-ink-secondary">大于 0，最多 6 位小数；24 小时后到期。</p>
+            </div>
             <ConfirmButton
               size="sm"
               title="确认赠送额度"
-              description="赠送默认美元额度，会写入审计。"
+              disabled={!validBonus}
+              description={`向用户 ${userID.trim()} 赠送 ${formatUsdMinor(bonusMinor)} USD，有效期 24 小时。操作会写入审计。`}
               onConfirm={() =>
-                post("/admin/entitlements/bonus", { user_id: userID, unit_type: "usd_credit", amount: Number(bonus), expires_in_seconds: 86400 }, `已赠送 ${bonus} 给 ${userID}`)
+                post("/admin/entitlements/bonus", { user_id: userID.trim(), unit_type: "usd_credit", amount: bonusMinor!, expires_in_seconds: 86400 }, `已向 ${userID.trim()} 赠送 ${formatUsdMinor(bonusMinor)} USD，24 小时后到期`)
               }
             >
               赠送额度
@@ -82,7 +91,20 @@ export default function AdminBillingPage() {
           </div>
         </IfCan>
         <p className="text-sm text-ink-secondary">{message}</p>
-        <pre className="mt-3 overflow-x-auto text-sm text-ink">{JSON.stringify(report, null, 2) || query.data?.error?.message}</pre>
+        <h3 className="mt-6 text-base font-semibold">账务汇总</h3>
+        {query.isLoading ? <p role="status">正在加载账务汇总…</p> : query.isError || !report ? (
+          <p role="alert" className="mt-3 text-danger">{query.data?.error?.message || "账务汇总加载失败，请刷新页面重试。"}</p>
+        ) : <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["revenue_minor", "客户收入"], ["upstream_cost_minor", "上游成本"],
+            ["wholesale_minor", "渠道批发金额"], ["commission_liability_minor", "待结算佣金"],
+            ["refund_minor", "退款金额"], ["gross_profit_minor", "毛利"],
+          ] as const).map(([key, label]) => <div key={key} className="rounded-control border border-hairline p-3">
+            <dt className="text-sm text-ink-secondary">{label}</dt>
+            <dd className="mt-1 font-mono tabular-nums">{formatUsdMinor(report[key])} USD</dd>
+          </div>)}
+          <div className="rounded-control border border-hairline p-3"><dt className="text-sm text-ink-secondary">待对账请求</dt><dd className="mt-1 font-mono">{report.pending_reconciliation_count ?? "—"}</dd></div>
+        </dl>}
       </section>
       <AdminSupplierPanel />
     </AdminShell>

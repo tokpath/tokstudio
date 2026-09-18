@@ -9,6 +9,8 @@ export type Viewer = {
   roles: string[];
   userId?: string;
   isPartner?: boolean;
+  error?: boolean;
+  partnerError?: boolean;
 };
 
 export const emptyViewer: Viewer = { signedIn: false, loading: true, roles: [] };

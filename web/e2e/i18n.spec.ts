@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockViewer } from "./mock-viewer";
 
 test("English Accept-Language uses the same URLs without a locale prefix", async ({ browser }) => {
   const context = await browser.newContext({
@@ -12,6 +13,7 @@ test("English Accept-Language uses the same URLs without a locale prefix", async
   await expect(page).not.toHaveURL(/\/en\//);
   await expect(page.getByRole("heading", { name: "Compare models" })).toBeVisible();
 
+  await mockViewer(page, { roles: ["end_user"] });
   await page.goto("/app/playground");
   await expect(page).toHaveURL(/\/app\/playground$/);
   await expect(page.getByRole("heading", { name: "Playground" })).toBeVisible();

@@ -501,6 +501,7 @@
     "listSessionExpired": "登录已失效",
     "listSessionExpiredDetail": "重新登录后会回到本页。",
     "listRelogin": "重新登录",
+    "returnConsole": "返回我的控制台",
     "listForbidden": "没有权限查看",
     "listUpdateFailed": "更新失败，仍显示上次的数据。",
     "listNetwork": "网络不可用，请重试。",

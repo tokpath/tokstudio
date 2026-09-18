@@ -1,4 +1,10 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { mockViewer } from "./mock-viewer";
+
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title.startsWith("public ")) return;
+  await mockViewer(page, { roles: [testInfo.title.startsWith("channel ") ? "channel_admin" : "end_user"], partner: testInfo.title.startsWith("partner ") });
+});
 
 test("public storefront shows models plans and topup", async ({ page }) => {
   await page.goto("/");

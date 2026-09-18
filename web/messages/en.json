@@ -501,6 +501,7 @@
     "listSessionExpired": "Sign-in expired",
     "listSessionExpiredDetail": "Sign in again to return to this page.",
     "listRelogin": "Sign in",
+    "returnConsole": "Return to my console",
     "listForbidden": "You do not have access",
     "listUpdateFailed": "Refresh failed. Showing the last loaded data.",
     "listNetwork": "Network unavailable. Retry.",

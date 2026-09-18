@@ -10,23 +10,27 @@ type MeBody = { user?: { id?: string; roles?: string[] } };
 
 async function loadViewer(): Promise<Viewer> {
   try {
-    const [meRes, partnerRes] = await Promise.all([
+    const [meRes, partnerRes] = await Promise.allSettled([
       fetch(`${apiBase}/v1/me`, { credentials: "include" }),
       fetch(`${apiBase}/v1/partner/me`, { credentials: "include" }),
     ]);
-    if (!meRes.ok) {
-      return { signedIn: false, loading: false, roles: [] };
+    if (meRes.status === "rejected") {
+      return { signedIn: false, loading: false, roles: [], error: true };
     }
-    const body = (await meRes.json()) as MeBody;
+    if (!meRes.value.ok) {
+      return { signedIn: false, loading: false, roles: [], error: meRes.value.status !== 401 };
+    }
+    const body = (await meRes.value.json()) as MeBody;
     return {
       signedIn: true,
       loading: false,
       roles: body.user?.roles ?? [],
       userId: body.user?.id,
-      isPartner: partnerRes.ok,
+      isPartner: partnerRes.status === "fulfilled" && partnerRes.value.ok,
+      partnerError: partnerRes.status === "rejected" || (partnerRes.status === "fulfilled" && !partnerRes.value.ok && ![401, 403].includes(partnerRes.value.status)),
     };
   } catch {
-    return { signedIn: false, loading: false, roles: [] };
+    return { signedIn: false, loading: false, roles: [], error: true };
   }
 }
 

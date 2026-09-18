@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { mockViewer } from "./mock-viewer";
 
-test("unsigned admin still shows the full P0 nav", async ({ page }) => {
+test("unsigned admin requires login without rendering protected menus", async ({ page }) => {
+  await page.route("**/v1/me", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
   await page.goto("/admin");
-  await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "用户/项目" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "审计日志" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "余额/充值" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "重新登录" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "提供商" })).toHaveCount(0);
 });
 
 test("finance admin sees ledger menus and not upstream keys", async ({ page }) => {

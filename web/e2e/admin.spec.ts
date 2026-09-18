@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { mockViewer } from "./mock-viewer";
+
+test.beforeEach(async ({ page }) => { await mockViewer(page, { roles: ["platform_admin"] }); });
 
 test("admin P0 nav renders", async ({ page }) => {
   await page.goto("/admin");

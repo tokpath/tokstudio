@@ -501,6 +501,7 @@
     "listSessionExpired": "ログインの期限が切れました",
     "listSessionExpiredDetail": "再ログイン後にこのページへ戻ります。",
     "listRelogin": "再ログイン",
+    "returnConsole": "自分のコンソールに戻る",
     "listForbidden": "見る権限がありません",
     "listUpdateFailed": "更新に失敗しました。前回読み込んだデータを表示しています。",
     "listNetwork": "ネットワークを利用できません。再試行してください。",

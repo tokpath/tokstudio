@@ -33,14 +33,23 @@ func (s *Service) Report(ctx context.Context) (*ReportView, error) {
 	`).Scan(&sums).Error; err != nil {
 		return nil, err
 	}
+	expense := sums.Commission
+	if s.commissioner != nil {
+		liability, totalExpense, err := s.commissioner.Totals(ctx)
+		if err != nil {
+			return nil, err
+		}
+		sums.Commission, expense = liability, totalExpense
+	}
 	return &ReportView{
-		RevenueMinor:     sums.Revenue,
-		UpstreamMinor:    sums.Upstream,
-		WholesaleMinor:   sums.Wholesale,
-		CommissionMinor:  sums.Commission,
-		RefundMinor:      sums.Refund,
-		GrossProfitMinor: sums.Revenue - sums.Upstream - sums.Commission,
-		PendingCount:     sums.Pending,
+		CommissionExpenseMinor: expense,
+		RevenueMinor:           sums.Revenue,
+		UpstreamMinor:          sums.Upstream,
+		WholesaleMinor:         sums.Wholesale,
+		CommissionMinor:        sums.Commission,
+		RefundMinor:            sums.Refund,
+		GrossProfitMinor:       sums.Revenue - sums.Upstream - expense,
+		PendingCount:           sums.Pending,
 	}, nil
 }
 

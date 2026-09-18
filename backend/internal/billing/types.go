@@ -27,6 +27,7 @@ var (
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
 type Commissioner interface {
+	Totals(ctx context.Context) (liability, expense int64, err error)
 	AccrueUsage(ctx context.Context, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
 	ReverseUsage(ctx context.Context, usageEventID string) error
 	ReverseUsageTx(tx *gorm.DB, usageEventID string) error
@@ -253,13 +254,14 @@ type TopupView struct {
 }
 
 type ReportView struct {
-	RevenueMinor     int64 `json:"revenue_minor"`
-	UpstreamMinor    int64 `json:"upstream_cost_minor"`
-	WholesaleMinor   int64 `json:"wholesale_minor"`
-	CommissionMinor  int64 `json:"commission_liability_minor"`
-	RefundMinor      int64 `json:"refund_minor"`
-	GrossProfitMinor int64 `json:"gross_profit_minor"`
-	PendingCount     int64 `json:"pending_reconciliation_count"`
+	CommissionExpenseMinor int64 `json:"commission_expense_minor"`
+	RevenueMinor           int64 `json:"revenue_minor"`
+	UpstreamMinor          int64 `json:"upstream_cost_minor"`
+	WholesaleMinor         int64 `json:"wholesale_minor"`
+	CommissionMinor        int64 `json:"commission_liability_minor"`
+	RefundMinor            int64 `json:"refund_minor"`
+	GrossProfitMinor       int64 `json:"gross_profit_minor"`
+	PendingCount           int64 `json:"pending_reconciliation_count"`
 }
 
 type DimMoneyView struct {

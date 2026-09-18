@@ -83,3 +83,16 @@ describe("usage grouping", () => {
     expect(groupUsageByModel(rows)[0]).toMatchObject({ key: "tokenhub/echo-1", requests: 2, revenue_minor: 80 });
   });
 });
+
+it("keeps actual usage but excludes refunded and unconfirmed spend in every grouping", () => {
+  const mixed = [
+    { ...rows[0], state: "confirmed" },
+    { ...rows[1], state: "voided" },
+    { ...rows[2], state: "pending_reconciliation" },
+  ];
+  expect(summarizeUsage(mixed)).toMatchObject({ requests: 3, prompt: 56, completion: 20, amount: 64 });
+  expect(groupUsageByAPIKey(mixed).map(r => r.amount)).toEqual([64, 0]);
+  expect(groupUsageByDay(mixed).map(r => r.revenue_minor)).toEqual([64, 0]);
+  expect(groupUsageByModel(mixed).map(r => r.revenue_minor)).toEqual([64, 0]);
+  expect(mixed[1].customer_amount_minor).toBe(16);
+});

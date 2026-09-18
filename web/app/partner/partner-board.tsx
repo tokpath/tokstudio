@@ -17,13 +17,15 @@ type PartnerMe = {
 };
 
 type PartnerUser = { email?: string; source_code?: string; status?: string };
-type Commission = { id?: string; kind?: string; status?: string; amount_minor?: number };
+type Commission = { request_id?: string; reversal_of?: string; id?: string; kind?: string; status?: string; amount_minor?: number };
 type Settlement = { id?: string; status?: string; amount_minor?: number };
 
 export type PartnerSection = "all" | "scope" | "users" | "commissions" | "settlements";
 
 export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) {
   const t = useTranslations("partnerBoard");
+ const reward = useTranslations("referral");
+ const label = (value?: string) => ["direct","indirect","frozen","available","held","settled","paid","reversed"].includes(value || "") ? reward(value!) : reward("other");
   const users = useListResource<PartnerUser>({
     enabled: section === "all" || section === "users",
     load: () => fetchListItems(`${apiBase}/v1/partner/users`),
@@ -112,6 +114,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
       {show("commissions") ? (
         <Card id="commissions">
           <CardTitle>{t("commissions")}</CardTitle>
+ <p className="mt-2 text-sm text-ink-secondary">{reward("reversalHelp")}</p>
           <ListResourceView
             snapshot={comms.snapshot}
             emptyTitle={t("emptyComms")}
@@ -119,12 +122,12 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
             onRetry={() => void comms.reload()}
           >
             <LedgerTable
-              columns={[t("colKind"), t("colStatus"), t("colAmount")]}
+              columns={[t("colKind"), t("colStatus"), reward("amount"), reward("request"), reward("entry")]}
               emptyTitle={t("emptyComms")}
               emptyDetail={t("emptyCommsDetail")}
               rows={comms.snapshot.items.map((item) => ({
                 key: item.id || `${item.kind}-${item.status}`,
-                cells: [item.kind || "—", item.status || "—", formatUsdMinor(item.amount_minor)],
+                cells: [item.reversal_of ? reward("reversal") : label(item.kind), label(item.status), formatUsdMinor(item.amount_minor), <span className="block max-w-56 whitespace-normal break-all" key="request">{item.request_id || "—"}</span>, <div className="max-w-xs whitespace-normal break-all" key="entry">{item.id || "—"}{item.reversal_of && <p className="mt-1 text-ink-secondary">{reward("original")}: {item.reversal_of}</p>}</div>],
               }))}
             />
           </ListResourceView>

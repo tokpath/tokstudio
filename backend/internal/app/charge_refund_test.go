@@ -45,6 +45,10 @@ func TestChargeRefundAtomicity(t *testing.T) {
 		t.Fatal(err)
 	}
 	key := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "refund-atomic"})["item"].(map[string]any)["key"].(string)
+	baselineReport, err := application.Billing.Report(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	postEchoUsage(t, server.URL+"/v1/chat/completions", key, "refund-atomic")
 	usage := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)[0].(map[string]any)
 	requestID, usageID := usage["request_id"].(string), usage["id"].(string)
@@ -68,6 +72,32 @@ func TestChargeRefundAtomicity(t *testing.T) {
 	// Include available commission cash, not just frozen accounting entries.
 	if _, err := application.Commission.Unfreeze(ctx, time.Now().AddDate(0, 0, 30)); err != nil {
 		t.Fatal(err)
+	}
+	// Exercise report status projection independently of the payout workflow.
+	var commissionTotal int64
+	for _, raw := range entries {
+		commissionTotal += int64(asInt(raw.(map[string]any)["amount_minor"]))
+	}
+	var previousProfit int64
+	for i, status := range []string{"frozen", "available", "held", "settled", "paid", "available"} {
+		if err := application.DB.Table("commission_entries").Where("usage_event_id = ?", usageID).Update("status", status).Error; err != nil {
+			t.Fatal(err)
+		}
+		report, err := application.Billing.Report(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantLiability := baselineReport.CommissionMinor + commissionTotal
+		if status == "paid" {
+			wantLiability = baselineReport.CommissionMinor
+		}
+		if report.CommissionMinor != wantLiability || report.CommissionExpenseMinor != baselineReport.CommissionExpenseMinor+commissionTotal {
+			t.Fatalf("commission report %s: %+v", status, report)
+		}
+		if i > 0 && report.GrossProfitMinor != previousProfit {
+			t.Fatal("payout/status change must not change profit")
+		}
+		previousProfit = report.GrossProfitMinor
 	}
 	tables := []string{"billing_wallets", "billing_ledger", "billing_authorizations", "billing_customer_charges", "billing_usage_events", "billing_quota_consumes", "billing_quota_allocations", "commission_entries", "commission_marketing_entries", "plans_entitlement_accounts", "plans_entitlement_ledger", "outbox_events"}
 	snapshot := func() map[string]string {
@@ -151,6 +181,26 @@ func TestChargeRefundAtomicity(t *testing.T) {
 	}
 	if count != int64(len(entries)) {
 		t.Fatalf("duplicate/missing commission reversals: %d", count)
+	}
+	report, err := application.Billing.Report(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.CommissionMinor != baselineReport.CommissionMinor || report.CommissionExpenseMinor != baselineReport.CommissionExpenseMinor {
+		t.Fatalf("refund must remove liability and expense: %+v", report)
+	}
+	reversed := getAuthJSON(t, server.URL+"/admin/commissions?usage_event_id="+usageID, cfg.BootstrapAdmin)["items"].([]any)
+	originals := map[string]bool{}
+	for _, raw := range entries {
+		originals[raw.(map[string]any)["id"].(string)] = true
+	}
+	for _, raw := range reversed {
+		row := raw.(map[string]any)
+		if asInt(row["amount_minor"]) < 0 {
+			if !originals[row["reversal_of"].(string)] || row["request_id"] != requestID {
+				t.Fatalf("missing original/request reference: %+v", row)
+			}
+		}
 	}
 	completed := snapshot()
 	if _, err := application.Billing.RefundCharge(ctx, requestID); err != nil {

@@ -50,6 +50,7 @@ type AccrueInput struct {
 }
 
 type EntryView struct {
+	ReversalOf        string     `json:"reversal_of,omitempty"`
 	ID                string     `json:"id"`
 	UsageEventID      string     `json:"usage_event_id"`
 	RequestID         string     `json:"request_id,omitempty"`

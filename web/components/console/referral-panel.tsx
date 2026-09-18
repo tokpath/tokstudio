@@ -16,7 +16,7 @@ type Referral = {
   invited_count: number;
   can_commission: boolean;
   rules: { spend_minor: number; topup_minor: number; gift_minor: number };
-  rewards: { id: string; kind: string; status: string; amount_minor: number; available_at?: string }[];
+  rewards: { request_id?: string; reversal_of?: string; id: string; kind: string; status: string; amount_minor: number; available_at?: string }[];
 };
 
 export function ReferralPanel() {
@@ -98,7 +98,7 @@ export function ReferralPanel() {
           <Card>
             <CardTitle>{t("rewards")}</CardTitle>
             <p className="my-2 text-sm text-ink-secondary">{t("rewardsDetail")}</p>
-            <LedgerTable columns={[t("kind"), t("status"), t("amount"), t("availableAt")]} emptyTitle={t("emptyRewards")} emptyDetail={t("emptyRewardsDetail")} rows={item.rewards.map(row => ({ key: row.id, cells: [labels[row.kind] || t("other"), labels[row.status] || t("other"), formatUsdMinor(row.amount_minor), row.available_at ? new Date(row.available_at).toLocaleDateString(locale) : "—"] }))} />
+            <LedgerTable columns={[t("kind"), t("status"), t("amount"), t("availableAt"), t("request"), t("entry")]} emptyTitle={t("emptyRewards")} emptyDetail={t("emptyRewardsDetail")} rows={item.rewards.map(row => ({ key: row.id, cells: [row.reversal_of ? t("reversal") : labels[row.kind] || t("other"), labels[row.status] || t("other"), formatUsdMinor(row.amount_minor), row.status === "frozen" && row.available_at ? new Date(row.available_at).toLocaleDateString(locale) : "—", <span className="block max-w-56 whitespace-normal break-all" key="request">{row.request_id || "—"}</span>, <div className="max-w-xs whitespace-normal break-all" key="entry">{row.id}{row.reversal_of && <p className="mt-1 text-ink-secondary">{t("original")}: {row.reversal_of}</p>}</div>] }))} />
           </Card>
         </div>}
       </ListResourceView>

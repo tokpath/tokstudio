@@ -9,6 +9,8 @@ import (
 )
 
 type referralReward struct {
+	RequestID   string     `json:"request_id,omitempty"`
+	ReversalOf  string     `json:"reversal_of,omitempty"`
 	ID          string     `json:"id"`
 	Kind        string     `json:"kind"`
 	Status      string     `json:"status"`
@@ -51,7 +53,7 @@ func (a *App) meReferral(c *gin.Context) {
 			return
 		}
 		for _, e := range entries {
-			rewards = append(rewards, referralReward{e.ID, e.Kind, e.Status, e.AmountMinor, e.AvailableAt})
+			rewards = append(rewards, referralReward{ID: e.ID, Kind: e.Kind, Status: e.Status, AmountMinor: e.AmountMinor, AvailableAt: e.AvailableAt, RequestID: e.RequestID, ReversalOf: e.ReversalOf})
 		}
 	}
 	codes := []string{}

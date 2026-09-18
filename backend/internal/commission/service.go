@@ -683,6 +683,9 @@ func entryView(row entryRow) *EntryView {
 		AmountMinor: row.AmountMinor, RawAmountMinor: row.RawAmountMinor,
 		Status: row.Status, PolicyVersion: row.PolicyVersion, AvailableAt: row.AvailableAt,
 	}
+	if row.ReversalOf != nil {
+		view.ReversalOf = *row.ReversalOf
+	}
 	if row.RequestID != nil {
 		view.RequestID = *row.RequestID
 	}
@@ -710,4 +713,17 @@ func settleView(row settleRow) *SettlementView {
 		view.BeneficiaryRoleID = *row.BeneficiaryRoleID
 	}
 	return view
+}
+
+// Totals separates outstanding liability from expense, which still includes paid commissions.
+func (s *Service) Totals(ctx context.Context) (liability, expense int64, err error) {
+	var totals struct {
+		Liability int64
+		Expense   int64
+	}
+	err = s.db.WithContext(ctx).Model(&entryRow{}).Select(`
+ COALESCE(SUM(CASE WHEN status IN ('frozen','available','held','settled') THEN amount_minor ELSE 0 END),0) AS liability,
+ COALESCE(SUM(CASE WHEN status <> 'reversed' THEN amount_minor ELSE 0 END),0) AS expense
+ `).Scan(&totals).Error
+	return totals.Liability, totals.Expense, err
 }

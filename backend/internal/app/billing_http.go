@@ -463,8 +463,8 @@ func (a *App) billingExport(c *gin.Context) {
 		return
 	}
 	c.Header("Content-Type", "text/csv")
-	c.String(http.StatusOK, "metric,amount_minor\nrevenue,%d\nupstream_cost,%d\ncommission,%d\ngross_profit,%d\npending_reconciliation,%d\n",
-		report.RevenueMinor, report.UpstreamMinor, report.CommissionMinor, report.GrossProfitMinor, report.PendingCount)
+	c.String(http.StatusOK, "metric,amount_minor\nrevenue,%d\nupstream_cost,%d\ncommission,%d\ncommission_expense,%d\ngross_profit,%d\npending_reconciliation,%d\n",
+		report.RevenueMinor, report.UpstreamMinor, report.CommissionMinor, report.CommissionExpenseMinor, report.GrossProfitMinor, report.PendingCount)
 }
 
 func (a *App) billingReport(c *gin.Context) {

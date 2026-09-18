@@ -129,7 +129,7 @@ describe("UsagePanel", () => {
     expect(screen.queryByText("999")).toBeNull();
     expect(screen.queryByText("999000000")).toBeNull();
     expect(screen.queryByText("$999.00")).toBeNull();
-    expect(screen.getByText("数字、图表和按密钥汇总都来自当前筛选下最近 100 条已加载记录，不是完整周期账单。")).toBeTruthy();
+    expect(screen.getByText(/数字、图表和按密钥汇总都来自当前筛选下最近 100 条已加载记录，不是完整周期账单。/)).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("按模型筛选"), { target: { value: "tokenhub/echo-1" } });
     await waitFor(() => expect(screen.getByTestId("usage-stat-spend").textContent).toBe("$100.00"));

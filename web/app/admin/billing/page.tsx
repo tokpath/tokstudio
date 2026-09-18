@@ -68,8 +68,8 @@ export default function AdminBillingPage() {
         ) : <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {([
             ["revenue_minor", "客户收入"], ["upstream_cost_minor", "上游成本"],
-            ["wholesale_minor", "渠道批发金额"], ["commission_liability_minor", "待结算佣金"],
-            ["refund_minor", "退款金额"], ["gross_profit_minor", "毛利"],
+            ["wholesale_minor", "渠道批发金额"], ["commission_liability_minor", "待结算佣金"], ["commission_expense_minor", "佣金成本（含已打款）"],
+            ["refund_minor", "已退消费账单金额"], ["gross_profit_minor", "毛利"],
           ] as const).map(([key, label]) => <div key={key} className="rounded-control border border-hairline p-3">
             <dt className="text-sm text-ink-secondary">{label}</dt>
             <dd className="mt-1 font-mono tabular-nums">{formatUsdMinor(report[key])} USD</dd>

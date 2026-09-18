@@ -45,3 +45,7 @@ func (b *commissionBridge) ReverseUsage(ctx context.Context, usageEventID string
 func (b *commissionBridge) ReverseUsageTx(tx *gorm.DB, usageEventID string) error {
 	return b.comm.ReverseTx(tx, usageEventID)
 }
+
+func (b *commissionBridge) Totals(ctx context.Context) (int64, int64, error) {
+	return b.comm.Totals(ctx)
+}

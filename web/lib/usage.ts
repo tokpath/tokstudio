@@ -51,6 +51,13 @@ export function usageTokens(row: UsageEvent) {
   };
 }
 
+// Keep real request/token counts, but only confirmed consumption contributes to spend.
+// Older projections without a state retain their historical amount semantics.
+export function usageSpend(row: UsageEvent, wholesaleFallback = false) {
+  if (row.state && row.state !== "confirmed") return 0;
+  return row.customer_amount_minor ?? (wholesaleFallback ? row.wholesale_amount_minor : 0) ?? 0;
+}
+
 export function summarizeUsage(rows: UsageEvent[] = []): UsageSummary {
   return rows.reduce<UsageSummary>(
     (acc, row) => {
@@ -59,7 +66,7 @@ export function summarizeUsage(rows: UsageEvent[] = []): UsageSummary {
       acc.prompt += tokens.prompt;
       acc.completion += tokens.completion;
       acc.reasoning += tokens.reasoning;
-      acc.amount += row.customer_amount_minor ?? 0;
+      acc.amount += usageSpend(row);
       return acc;
     },
     { requests: 0, prompt: 0, completion: 0, reasoning: 0, amount: 0 },
@@ -76,7 +83,7 @@ export function groupUsageByAPIKey(rows: UsageEvent[] = []): KeyBucket[] {
     cur.prompt += tokens.prompt;
     cur.completion += tokens.completion;
     cur.reasoning += tokens.reasoning;
-    cur.amount += row.customer_amount_minor ?? 0;
+    cur.amount += usageSpend(row);
     map.set(id, cur);
   }
   return [...map.values()].sort((a, b) => b.amount - a.amount || b.requests - a.requests);
@@ -157,7 +164,7 @@ export function groupUsageByDay(rows: UsageEvent[] = []) {
     const day = usageDayKey(row.occurred_at) || "—";
     const cur = map.get(day) ?? { day, requests: 0, revenue_minor: 0 };
     cur.requests += 1;
-    cur.revenue_minor += row.customer_amount_minor ?? row.wholesale_amount_minor ?? 0;
+    cur.revenue_minor += usageSpend(row, true);
     map.set(day, cur);
   }
   return [...map.values()].sort((a, b) => a.day.localeCompare(b.day));
@@ -169,7 +176,7 @@ export function groupUsageByModel(rows: UsageEvent[] = []) {
     const key = row.public_model_id || "—";
     const cur = map.get(key) ?? { key, requests: 0, revenue_minor: 0 };
     cur.requests += 1;
-    cur.revenue_minor += row.customer_amount_minor ?? row.wholesale_amount_minor ?? 0;
+    cur.revenue_minor += usageSpend(row, true);
     map.set(key, cur);
   }
   return [...map.values()].sort((a, b) => b.revenue_minor - a.revenue_minor || b.requests - a.requests);

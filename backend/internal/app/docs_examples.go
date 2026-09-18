@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -9,11 +11,33 @@ import (
 
 const curlBearerHeader = `-H "Authorization: Bearer ${TOKENHUB_API_KEY}"`
 
+// Local brands use the configured public listener, including its port. Public
+// brands keep their own HTTPS API domain rather than the control-plane origin.
+func docsAPIBase(apiDomain, publicBase string) string {
+	brandURL, err := url.Parse("https://" + strings.TrimSpace(apiDomain))
+	if err != nil || brandURL.Hostname() == "" {
+		return strings.TrimRight(publicBase, "/")
+	}
+	host := brandURL.Hostname()
+	local := host == "localhost" || strings.HasSuffix(host, ".localhost") || host == "127.0.0.1" || host == "::1"
+	configured, err := url.Parse(publicBase)
+	if local && err == nil && configured.Host != "" && (configured.Scheme == "http" || configured.Scheme == "https") {
+		brandURL.Scheme = configured.Scheme
+		if brandURL.Port() == "" && configured.Port() != "" {
+			brandURL.Host = net.JoinHostPort(host, configured.Port())
+		}
+	}
+	return strings.TrimRight(brandURL.String(), "/")
+}
+
 func docsExamples(apiDomain, model string) gin.H {
 	if model == "" {
 		model = "tokenhub/echo-1"
 	}
-	base := "https://" + apiDomain
+	base := strings.TrimRight(apiDomain, "/")
+	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
+		base = "https://" + base
+	}
 	chatBody := `{"model":"` + model + `","messages":[{"role":"user","content":"hi"}]}`
 	return gin.H{
 		"curl":     "curl -sS " + base + "/v1/chat/completions " + curlBearerHeader + ` -H "Content-Type: application/json" -d '` + chatBody + "'",

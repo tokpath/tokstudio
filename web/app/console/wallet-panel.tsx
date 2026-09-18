@@ -301,7 +301,7 @@ export default function WalletPanel() {
           </>
         </ListResourceView>
       </section>
-      <aside
+      {methodsUsable || showOrderSummary ? <aside
         className="h-fit min-w-0 rounded-card border border-hairline bg-canvas-raised p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-24"
         data-testid="quote-summary"
         data-quote-phase={showOrderSummary ? "order" : quoteSnap.phase}
@@ -332,7 +332,7 @@ export default function WalletPanel() {
             <span className="font-mono tabular-nums">{creditText}</span>
           </li>
         </ul>
-      </aside>
+      </aside> : null}
       <section className="min-w-0 rounded-card border border-hairline bg-canvas-raised p-6 lg:col-start-1">
         {methodsUsable ? (
           <>

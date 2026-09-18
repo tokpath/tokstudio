@@ -234,3 +234,25 @@ func envWithoutAPIKey() []string {
 	}
 	return out
 }
+
+func TestDocsAPIBaseUsesLocalListenerAndPreservesPublicBrand(t *testing.T) {
+	for _, tc := range []struct{ domain, public, want string }{
+		{"localhost", "http://localhost:9080", "http://localhost:9080"},
+		{"api.oem.localhost", "http://localhost:9080", "http://api.oem.localhost:9080"},
+		{"localhost:9443", "https://localhost:9443", "https://localhost:9443"},
+		{"api.customer.example", "http://localhost:9080", "https://api.customer.example"},
+		{"api.customer.example:8443", "https://platform.example", "https://api.customer.example:8443"},
+	} {
+		t.Run(tc.domain+tc.public, func(t *testing.T) {
+			base := docsAPIBase(tc.domain, tc.public)
+			if base != tc.want {
+				t.Fatalf("got %q, want %q", base, tc.want)
+			}
+			for _, language := range []string{"curl", "python", "node", "messages", "video"} {
+				if !strings.Contains(docsExamples(base, "test/model")[language].(string), tc.want+"/v1") {
+					t.Fatalf("%s example does not use configured public endpoint", language)
+				}
+			}
+		})
+	}
+}

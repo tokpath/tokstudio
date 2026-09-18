@@ -576,11 +576,12 @@ func (a *App) docsContext(c *gin.Context) {
 		ids = append(ids, model.ID)
 	}
 	httpx.OK(c, gin.H{
-		"brand":      brand,
-		"models":     ids,
-		"examples":   docsExamples(brand.APIDomain, firstModel(ids)),
-		"notes":      docsNotes(),
-		"request_id": c.GetString(httpx.ContextRequestID),
+		"brand":        brand,
+		"models":       ids,
+		"api_base_url": docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL),
+		"examples":     docsExamples(docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL), firstModel(ids)),
+		"notes":        docsNotes(),
+		"request_id":   c.GetString(httpx.ContextRequestID),
 	})
 }
 

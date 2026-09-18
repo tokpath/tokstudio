@@ -204,7 +204,7 @@ export function ConsoleShell({
             </div>
             <ConsoleOverflowMenu onCommand={onCommand} showBell={isUser} />
             {isUser ? <UserShellRightZone /> : null}
-            {isAdmin ? <UserShellRightZone variant="admin" /> : null}
+            {!isUser ? <UserShellRightZone variant="admin" /> : null}
           </div>
         </div>
       </header>

@@ -8,6 +8,7 @@ import { IconStamp } from "@/components/icon-stamp";
 import { PublicMain } from "@/components/public-section";
 
 type DocsContext = {
+  api_base_url?: string;
   brand?: { name: string; api_domain: string };
   models?: string[];
   examples?: { curl: string; python: string; node: string; messages?: string; video?: string };
@@ -53,7 +54,7 @@ export default async function DocsPage() {
             {t("title", { name: docs.brand?.name || "TokenHub" })}
           </h1>
           <p className="mt-5 text-base leading-relaxed text-ink-secondary">{t("lead")}</p>
-          <p className="mt-5 font-mono text-[13px] text-ink-mute">Base URL · {docs.brand?.api_domain || "api.tokenhub.local"}</p>
+          <p className="mt-5 font-mono text-[13px] text-ink-mute">Base URL · {docs.api_base_url || docs.brand?.api_domain || "—"}</p>
           <p className="mt-2 text-sm leading-relaxed text-ink">{t("models", { list: (docs.models || []).join("、") || "—" })}</p>
         </div>
         <section id="curl" className="scroll-mt-24 flex flex-col gap-3">

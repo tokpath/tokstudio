@@ -468,7 +468,8 @@ export default function KeysPanel() {
       }
       if (docsRes.ok) {
         const domain = ((docsBody as { brand?: { api_domain?: string } }).brand?.api_domain || host).replace(/\/$/, "");
-        setEndpoint(`https://${domain}/v1`);
+        const base = (docsBody as { api_base_url?: string }).api_base_url || `https://${domain}`;
+        setEndpoint(`${base.replace(/\/$/, "")}/v1`);
       } else {
         setEndpoint(`${window.location.origin}/v1`);
       }

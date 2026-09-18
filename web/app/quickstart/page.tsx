@@ -14,21 +14,21 @@ export default async function QuickstartPage() {
   const t = await getTranslations("quickstartUi");
   const th = await getTranslations("home");
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
-  let base = "api.tokenhub.local";
+  let base = "https://api.example.com";
   let model = "openai/gpt-5.6-sol";
   try {
-    const docs = await fetchAPI<{ brand?: { api_domain: string }; models?: string[] }>("/v1/public/docs-context", {
+    const docs = await fetchAPI<{ api_base_url?: string; brand?: { api_domain: string }; models?: string[] }>("/v1/public/docs-context", {
       host,
     });
-    base = docs.brand?.api_domain || base;
+    base = docs.api_base_url || (docs.brand?.api_domain ? `https://${docs.brand.api_domain}` : base);
     model = docs.models?.[0] || model;
   } catch {
     /* defaults — ofox 快照模型 id 仍可演示 */
   }
 
-  const curl = `curl https://${base}/v1/chat/completions \\\n  -H "Authorization: Bearer sk-...xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"ping"}]}'`;
-  const python = `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="https://${base}/v1",\n    api_key="sk-...xxxx",\n)\n\nr = client.chat.completions.create(\n    model="${model}",\n    messages=[{"role": "user", "content": "ping"}],\n)\nprint(r.choices[0].message.content)`;
-  const node = `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://${base}/v1",\n  apiKey: "sk-...xxxx",\n});\n\nconst r = await client.chat.completions.create({\n  model: "${model}",\n  messages: [{ role: "user", content: "ping" }],\n});\nconsole.log(r.choices[0].message.content);`;
+  const curl = `curl ${base}/v1/chat/completions \\\n  -H "Authorization: Bearer sk-...xxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"ping"}]}'`;
+  const python = `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="${base}/v1",\n    api_key="sk-...xxxx",\n)\n\nr = client.chat.completions.create(\n    model="${model}",\n    messages=[{"role": "user", "content": "ping"}],\n)\nprint(r.choices[0].message.content)`;
+  const node = `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "${base}/v1",\n  apiKey: "sk-...xxxx",\n});\n\nconst r = await client.chat.completions.create({\n  model: "${model}",\n  messages: [{ role: "user", content: "ping" }],\n});\nconsole.log(r.choices[0].message.content);`;
 
   return (
     <PublicMain>

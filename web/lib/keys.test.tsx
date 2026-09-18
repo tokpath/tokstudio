@@ -237,7 +237,10 @@ describe("KeysPanel", () => {
     );
   });
 
-  it("shows endpoint secret example and verify after create", async () => {
+  it.each([
+    { domain: "api.tokenhub.test", base: undefined, endpoint: "https://api.tokenhub.test/v1" },
+    { domain: "localhost", base: "http://localhost:9080", endpoint: "http://localhost:9080/v1" },
+  ])("shows endpoint secret example and verify after create: $endpoint", async ({ domain, base, endpoint }) => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -251,7 +254,7 @@ describe("KeysPanel", () => {
           };
         }
         if (url.includes("/v1/public/docs-context")) {
-          return { ok: true, json: async () => ({ brand: { api_domain: "api.tokenhub.test" }, examples: { curl: "curl https://api.tokenhub.test/v1" } }) };
+          return { ok: true, json: async () => ({ brand: { api_domain: domain }, api_base_url: base, examples: { curl: `curl ${endpoint}` } }) };
         }
         return { ok: true, json: async () => ({ items: [] }) };
       }),
@@ -261,7 +264,7 @@ describe("KeysPanel", () => {
     fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "我的聊天客户端" } });
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
     await waitFor(() => expect(screen.getByText("接入地址")).toBeTruthy());
-    expect(screen.getByText("https://api.tokenhub.test/v1")).toBeTruthy();
+    expect(screen.getByText(endpoint)).toBeTruthy();
     expect(screen.getByTestId("key-secret").textContent).toBe("thk_new1secret");
     const sample = screen.getByTestId("key-example").textContent || "";
     expect(sample).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);

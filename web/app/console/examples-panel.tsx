@@ -10,6 +10,7 @@ import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
 
 type DocsContext = {
+  api_base_url?: string;
   brand?: { name?: string; api_domain?: string };
   models?: string[];
   examples?: { curl?: string; python?: string; node?: string; messages?: string; video?: string };
@@ -53,7 +54,7 @@ export default function ExamplesPanel({
       return;
     }
     setDocs(body);
-    setMessage(t("examplesMeta", { host: body.brand?.api_domain || "localhost", models: (body.models || []).join("、") || t("examplesNone") }));
+    setMessage(t("examplesMeta", { host: body.api_base_url || `https://${body.brand?.api_domain || "localhost"}`, models: (body.models || []).join("、") || t("examplesNone") }));
   }
 
   useEffect(() => {

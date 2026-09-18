@@ -24,7 +24,7 @@ import { loadSite } from "@/lib/site-content";
 import { iconForHref, iconForTool, WHY_ICONS } from "@/lib/page-icons";
 import type { LucideIcon } from "lucide-react";
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
 
 export default async function PublicHome() {
   const host = (await headers()).get("x-tokenhub-host") || "localhost";
@@ -34,6 +34,8 @@ export default async function PublicHome() {
   const priceUnits = { perSec: tCat("perSec"), perImage: tCat("perImage") };
   const models = await loadCatalog(host);
   const site = await loadSite(host);
+  const docs = await fetchAPI<{ api_base_url?: string }>("/v1/public/docs-context", { host }).catch(() => ({} as { api_base_url?: string }));
+  const apiBase = docs.api_base_url || "https://api.example.com";
   let plans: { id: string; name: string; price_minor: number }[] = [];
   try {
     const data = await fetchAPI<{ items: { id: string; name: string; price_minor: number }[] }>("/v1/plans");

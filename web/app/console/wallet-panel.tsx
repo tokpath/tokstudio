@@ -30,6 +30,9 @@ type Balance = {
   reserved?: string;
   available_minor?: number;
   reserved_minor?: number;
+  gift_minor?: number;
+  purchased_minor?: number;
+  commission_available_minor?: number;
 };
 
 type Method = {
@@ -252,8 +255,17 @@ export default function WalletPanel() {
     <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="min-w-0 rounded-card border border-hairline bg-canvas-raised p-6">
         <p className="mb-4 text-sm text-ink-secondary">
-          {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "0" })}
+          {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "—" })}
         </p>
+        <dl className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label={t("walletBuckets")}>
+          {[["giftBalance", balance?.gift_minor], ["purchasedBalance", balance?.purchased_minor], ["commissionBalance", balance?.commission_available_minor]].map(([label, value]) => (
+            <div key={String(label)} className="rounded-control border border-hairline p-3">
+              <dt className="text-sm text-ink-secondary">{t(String(label))}</dt>
+              <dd className="mt-1 font-mono tabular-nums">{formatUsdMinor(value)}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mb-4 text-sm text-ink-secondary">{t("walletBucketsDetail")}</p>
         <ListResourceView
           name="payments"
           snapshot={methodsList.snapshot}

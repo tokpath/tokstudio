@@ -287,7 +287,8 @@
     "googleNeedEmail": "请填写 Google 邮箱",
     "googleFail": "Google 登录失败，请稍后重试",
     "googleReturning": "正在完成 Google 登录…",
-    "promoPh": "可选 · THA1 / THB1 / THC1"
+    "promoPh": "可选 · THA1 / THB1 / THC1",
+    "networkError": "连接失败，请检查网络后重试。填写的内容已保留。"
   },
   "home": {
     "holdBanner": "Seedance 2.5 公开价目可查 · 720p $0.24/秒起",
@@ -394,7 +395,7 @@
     "title": "我的账户",
     "lead": "总览展示余额、API Key、最近回单与用量趋势；筛选与按 Key 对账请前往用量页。渠道归属在注册时确定，此处不提供「切换渠道」。",
     "available": "可用余额",
-    "availableHint": "现金钱包可调用额度",
+    "availableHint": "可用于 API 消费的赠送与充值积分",
     "reserved": "预授权占用",
     "reservedHint": "HOLD 中的请求尚未结算",
     "keys": "API Key",
@@ -403,7 +404,7 @@
     "receiptHint": "最近一次 attempt 可解释",
     "createKey": "创建 API Key",
     "topup": "充值余额",
-    "footnote": "预授权会先锁定额度，结算后再从现金钱包扣除。充值、密钥和明细请从上方入口进入。",
+    "footnote": "请求开始时会预留额度，结算时优先使用赠送积分，再使用充值积分；佣金余额不参与 API 扣款。",
     "region": "总览",
     "hasReceipt": "有回单",
     "trendsTitle": "用量趋势",
@@ -793,7 +794,7 @@
     "referral": {
       "eyebrow": "REFERRAL",
       "title": "推荐计划",
-      "description": "登录后会显示你自己的推广码。未登录时只展示占位。"
+      "description": "分享专属链接，查看邀请人数、奖励规则和自己的佣金记录。"
     },
     "docs": {
       "eyebrow": "DOCS",
@@ -943,7 +944,7 @@
     "partnerHome": {
       "eyebrow": "PARTNER",
       "title": "我的推广范围",
-      "description": "这里按代理商 / 1 级 KOL / 2 级 KOL 分层。后端再校验角色树，前端隐藏不是安全边界。看不到 prompt，也不能改佣金比例。"
+      "description": "分享推广链接，查看邀请用户、佣金与结算进度。个人收益和推广范围汇总分别展示，便于核对。"
     }
   },
   "docsUi": {
@@ -1028,10 +1029,10 @@
     "settlements": "范围内结算",
     "refresh": "刷新范围",
     "emptyUsers": "暂无用户",
-    "hint": "代理商可查看整棵推广树；1 级 KOL 可查看本人及 2 级；2 级仅可查看直接引流。邮箱已脱敏。",
+    "hint": "这里只显示你有权限查看的推广范围，邮箱已脱敏。范围内汇总可能包含下级推广员，个人收益请看上方“我的佣金记录”。",
     "notPartner": "不是推广主体",
     "summary": "层级 {role} · 用户 {users} · 佣金 {comms} · 结算 {settlements}",
-    "currentLine": "当前 {role} · 渠道 {channel} · {scope}",
+    "currentLine": "当前身份：{role} · {scope}",
     "notLoggedIn": "未登录",
     "seesDownline": "可看下级汇总",
     "seesDirect": "只看直接引流",
@@ -1042,10 +1043,15 @@
     "colKind": "类型",
     "colAmount": "金额",
     "emptyComms": "暂无佣金",
-    "emptyCommsDetail": "冻结期满前不会出现可结算金额。",
+    "emptyCommsDetail": "符合规则的 API 消费确认后会产生佣金记录；冻结期满后才可结算。",
     "emptySettle": "暂无结算单",
-    "emptySettleDetail": "平台财务打款后才会出现在这里。",
-    "colSettle": "结算单"
+    "emptySettleDetail": "财务生成结算单后会显示在这里，是否已打款请查看状态。",
+    "colSettle": "结算单",
+    "roleAgent": "代理商",
+    "rolePromoter": "个人推广员",
+    "roleChannel": "渠道管理员",
+    "rolePlatform": "平台管理员",
+    "roleUnknown": "推广成员"
   },
   "adminUi": {
     "opsBoard": "运营看板",
@@ -1892,7 +1898,25 @@
     "mediaCompleted": "已完成",
     "mediaFailedStatus": "失败",
     "mediaCancelled": "已取消",
-    "mediaExpired": "已过期"
+    "mediaExpired": "已过期",
+    "walletBuckets": "余额组成",
+    "giftBalance": "赠送积分（USD）",
+    "purchasedBalance": "充值积分（USD）",
+    "commissionBalance": "佣金余额（USD）",
+    "walletBucketsDetail": "API 消费优先使用赠送积分，再使用充值积分。赠送积分不可退款；佣金余额单独结算，不用于 API 消费。",
+    "ledColDate": "时间",
+    "ledgerEvents": {
+      "topup": "充值入账",
+      "authorization": "预授权占用",
+      "release": "预授权释放",
+      "usage_debit": "API 消费",
+      "refund": "退款",
+      "adjustment": "账务调整",
+      "commission_debit": "佣金扣减",
+      "gift_credit": "赠送积分入账",
+      "commission_credit": "佣金入账",
+      "other": "其他变动"
+    }
   },
   "reconcile": {
     "lead": "三桶与同一窗口 usage 对账。匹配走绿色；差异只能送入待对账队列，不会按估算扣款。",
@@ -2124,5 +2148,50 @@
     "confirmEligD": "只影响之后的达线和注册赠送。",
     "saveElig": "保存达线",
     "savedEligibility": "已保存达线规则"
+  },
+  "referral": {
+    "title": "我的推广",
+    "share": "邀请好友",
+    "shareDetail": "好友通过此链接注册，推广码会自动填入。只有新注册账户会建立邀请关系。",
+    "code": "推广码",
+    "link": "推广链接",
+    "copyLink": "复制推广链接",
+    "copyCode": "复制推广码",
+    "copied": "已复制",
+    "copyFailed": "复制失败，请选中上方链接手动复制。",
+    "create": "生成我的推广链接",
+    "creating": "正在生成…",
+    "createFailed": "生成失败，请重试。",
+    "unavailable": "暂无可用推广链接",
+    "retryDetail": "请刷新重试；仍不可用时请联系渠道管理员。",
+    "invited": "已直接邀请 {count} 人注册",
+    "refresh": "刷新",
+    "rules": "奖励与资格",
+    "qualified": "已获得分佣资格",
+    "notQualified": "尚未获得分佣资格",
+    "commissionDetail": "受邀用户产生已确认的 API 消费后，按所属渠道规则计提直接或间接佣金，最多向上两层。充值本身不计佣。佣金经过冻结期后进入佣金钱包，不抵扣 API 消费；结算打款由财务处理。",
+    "giftDetail": "当前通过你的链接注册的新用户，可获得 {amount} 赠送积分，用于 API 消费且不可退款。积分发给受邀新用户，你当前不获得现金佣金。奖励以注册时的资格和渠道规则为准。",
+    "giftDisabled": "当前未启用邀请注册赠送积分，你也尚未获得现金分佣资格。",
+    "qualify": "满足以下任意一项，即可自动获得分佣资格：",
+    "spend": "累计消费达到 {amount}",
+    "topup": "单笔充值达到 {amount}",
+    "qualificationDisabled": "当前未开启自动获取分佣资格，请联系渠道管理员了解安排。",
+    "rewards": "我的佣金记录",
+    "rewardsDetail": "显示最近 200 条属于你的佣金记录，不含下级推广员的收益。受邀用户的赠送积分在其自己的钱包查看。",
+    "kind": "奖励类型",
+    "status": "状态",
+    "amount": "金额（USD）",
+    "availableAt": "预计解冻日期",
+    "direct": "直接邀请佣金",
+    "indirect": "间接邀请佣金",
+    "frozen": "冻结中",
+    "available": "可结算",
+    "held": "暂缓结算",
+    "settled": "已生成结算单",
+    "paid": "已打款",
+    "reversed": "已冲正",
+    "other": "其他",
+    "emptyRewards": "暂无佣金记录",
+    "emptyRewardsDetail": "获得分佣资格且受邀用户产生符合规则的 API 消费后，记录会显示在这里。"
   }
 }

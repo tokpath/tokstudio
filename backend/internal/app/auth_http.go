@@ -34,6 +34,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/auth/google/callback", a.googleCallbackRedirect)
 	r.POST("/v1/auth/google/callback", a.googleCallback)
 	r.GET("/v1/me", a.requireAnyUser(), a.me)
+	r.GET("/v1/me/referral", a.requireAnyUser(), a.meReferral)
+	r.POST("/v1/me/referral", a.requireAnyUser(), a.createMeReferral)
 	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
 	r.POST("/v1/me/password", a.requireAnyUser(), a.changePassword)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)

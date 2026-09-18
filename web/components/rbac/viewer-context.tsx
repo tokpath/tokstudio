@@ -21,12 +21,15 @@ async function loadViewer(): Promise<Viewer> {
       return { signedIn: false, loading: false, roles: [], error: meRes.value.status !== 401 };
     }
     const body = (await meRes.value.json()) as MeBody;
+    const partner = partnerRes.status === "fulfilled" && partnerRes.value.ok
+      ? await partnerRes.value.json().catch(() => ({})) : {};
     return {
       signedIn: true,
       loading: false,
       roles: body.user?.roles ?? [],
       userId: body.user?.id,
       isPartner: partnerRes.status === "fulfilled" && partnerRes.value.ok,
+      partnerRole: partner.role_type,
       partnerError: partnerRes.status === "rejected" || (partnerRes.status === "fulfilled" && !partnerRes.value.ok && ![401, 403].includes(partnerRes.value.status)),
     };
   } catch {

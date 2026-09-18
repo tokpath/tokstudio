@@ -75,8 +75,7 @@ export function PartnerBoard({ section = "all" }: { section?: PartnerSection }) 
           {me.snapshot.phase === "ready" ? (
             <p className="mb-3 text-sm text-ink-secondary">
               {t("currentLine", {
-                role: profile.role_type || t("notLoggedIn"),
-                channel: profile.channel_org_id || "—",
+                role: t(profile.role_type === "agent" ? "roleAgent" : ["promoter", "kol_l1", "kol_l2"].includes(profile.role_type || "") ? "rolePromoter" : profile.role_type === "channel_admin" ? "roleChannel" : profile.role_type === "platform" ? "rolePlatform" : "roleUnknown"),
                 scope: profile.sees_downline ? t("seesDownline") : t("seesDirect"),
               })}
             </p>

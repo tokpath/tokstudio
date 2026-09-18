@@ -9,6 +9,7 @@ export type Viewer = {
   roles: string[];
   userId?: string;
   isPartner?: boolean;
+  partnerRole?: string;
   error?: boolean;
   partnerError?: boolean;
 };

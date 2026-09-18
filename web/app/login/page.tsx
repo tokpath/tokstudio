@@ -44,14 +44,20 @@ function LoginForm() {
   const search = useSearchParams();
   const [message, setMessage] = useState("");
   const [errorBanner, setErrorBanner] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const invitation = (search.get("promotion_code") || search.get("promo") || "").trim();
+  const [mode, setMode] = useState<"login" | "register">(invitation ? "register" : "login");
   const [googleStatus, setGoogleStatus] = useState<GoogleAuthStatus | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "", promo: "" },
+    defaultValues: { email: "", password: "", promo: invitation },
   });
   const googleUI = googleButtonState(googleStatus, googleLoading);
+
+  useEffect(() => {
+    form.setValue("promo", invitation);
+    if (invitation) setMode("register");
+  }, [invitation, form]);
 
   useEffect(() => {
     const fromCallback = sanitizeOAuthError(search.get("oauth_error"), "");
@@ -159,6 +165,12 @@ function LoginForm() {
     }
   }
 
+  async function submit(values: z.infer<typeof schema>) {
+    setErrorBanner("");
+    try { await (mode === "login" ? login(values) : register(values)); }
+    catch { setMessage(""); setErrorBanner(t("networkError")); }
+  }
+
   function githubStart() {
     setErrorBanner(t("githubMissing"));
   }
@@ -216,16 +228,16 @@ function LoginForm() {
         </div>
 
         <Form {...form}>
-          <form className="flex w-full flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
+          <form className="flex w-full flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "register" ? (
               <TextField control={form.control} name="promo" label={t("promo")} placeholder={t("promoPh")} />
             ) : null}
             <Button
-              type="button"
+              type="submit"
               className="mt-1 w-full"
-              onClick={form.handleSubmit(mode === "login" ? login : register)}
+              disabled={form.formState.isSubmitting}
             >
               {mode === "login" ? (
                 <>
@@ -244,14 +256,14 @@ function LoginForm() {
               {mode === "login" ? (
                 <>
                   {t("noAccount")}{" "}
-                  <button type="button" className="text-brand-emphasis hover:underline" onClick={() => setMode("register")}>
+                  <button type="button" disabled={form.formState.isSubmitting} className="text-brand-emphasis hover:underline" onClick={() => setMode("register")}>
                     {t("goRegister")}
                   </button>
                 </>
               ) : (
                 <>
                   {t("hasAccount")}{" "}
-                  <button type="button" className="text-brand-emphasis hover:underline" onClick={() => setMode("login")}>
+                  <button type="button" disabled={form.formState.isSubmitting} className="text-brand-emphasis hover:underline" onClick={() => setMode("login")}>
                     {t("goLogin")}
                   </button>
                 </>

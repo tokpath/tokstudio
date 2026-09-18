@@ -287,7 +287,8 @@
     "googleNeedEmail": "Google メールを入力してください",
     "googleFail": "Google ログインに失敗しました。後でもう一度お試しください。",
     "googleReturning": "Google ログインを完了しています…",
-    "promoPh": "任意 · THA1 / THB1 / THC1"
+    "promoPh": "任意 · THA1 / THB1 / THC1",
+    "networkError": "接続に失敗しました。ネットワークを確認して再試行してください。入力内容は保持されています。"
   },
   "home": {
     "holdBanner": "Seedance 2.5 の公開価格 · 720p $0.24/秒から",
@@ -394,7 +395,7 @@
     "title": "マイアカウント",
     "lead": "概要は残高・Key・直近回単と利用量トレンド。絞り込みと Key 別集計は利用量ページへ。チャネル紐付けは登録時固定で切替はありません。",
     "available": "利用可能残高",
-    "availableHint": "現金ウォレットで使える枠",
+    "availableHint": "API 利用に使える付与・購入クレジット",
     "reserved": "事前承認の拘束",
     "reservedHint": "HOLD 中で未決済",
     "keys": "API Key",
@@ -403,7 +404,7 @@
     "receiptHint": "直近の attempt を説明できる",
     "createKey": "API Key を作成",
     "topup": "残高を足す",
-    "footnote": "仮押さえは先に枠をロックし、決済後に現金から引きます。チャージ・キー・明細は上の入口から。",
+    "footnote": "リクエスト開始時に残高を確保し、確定時に付与分、購入分の順で消費します。コミッションは API 支払いには使いません。",
     "region": "概要",
     "hasReceipt": "回単あり",
     "trendsTitle": "利用量トレンド",
@@ -793,7 +794,7 @@
     "referral": {
       "eyebrow": "REFERRAL",
       "title": "紹介",
-      "description": "ログイン後に自分のコード。未ログインは空の台帳。"
+      "description": "専用リンクを共有し、招待数・報酬規則・本人のコミッションを確認できます。"
     },
     "docs": {
       "eyebrow": "DOCS",
@@ -943,7 +944,7 @@
     "partnerHome": {
       "eyebrow": "PARTNER",
       "title": "紹介範囲",
-      "description": "代理 / 1 級 / 2 級。API がツリーを確認します。プロンプトは見えず、料率も変えられません。"
+      "description": "紹介リンクを共有し、招待ユーザー・コミッション・精算状況を確認できます。本人の収益と紹介範囲の集計は分けて表示します。"
     }
   },
   "docsUi": {
@@ -1028,10 +1029,10 @@
     "settlements": "範囲内精算",
     "refresh": "範囲を更新",
     "emptyUsers": "ユーザーはまだありません",
-    "hint": "代理は木全体。1 級 KOL は自分と 2 級。2 級は直接紹介のみ。メールはマスク済み。",
+    "hint": "権限のある紹介範囲のみ表示し、メールはマスクします。集計には下位紹介者を含む場合があります。本人の収益は上のコミッション履歴をご覧ください。",
     "notPartner": "紹介主体ではありません",
     "summary": "階層 {role} · ユーザー {users} · 手数料 {comms} · 精算 {settlements}",
-    "currentLine": "現在 {role} · チャネル {channel} · {scope}",
+    "currentLine": "役割：{role} · {scope}",
     "notLoggedIn": "未ログイン",
     "seesDownline": "配下集計を見られる",
     "seesDirect": "直接紹介のみ",
@@ -1042,10 +1043,15 @@
     "colKind": "種類",
     "colAmount": "金額",
     "emptyComms": "手数料はありません",
-    "emptyCommsDetail": "凍結が終わるまで精算可能額は出ません。",
+    "emptyCommsDetail": "対象の API 利用が確定すると記録され、凍結期間後に精算できます。",
     "emptySettle": "精算書はありません",
-    "emptySettleDetail": "プラットフォーム財務の入金後に出ます。",
-    "colSettle": "精算書"
+    "emptySettleDetail": "財務が精算書を作成すると表示されます。支払済みかどうかは状態をご確認ください。",
+    "colSettle": "精算書",
+    "roleAgent": "代理店",
+    "rolePromoter": "個人紹介者",
+    "roleChannel": "チャネル管理者",
+    "rolePlatform": "プラットフォーム管理者",
+    "roleUnknown": "紹介メンバー"
   },
   "adminUi": {
     "opsBoard": "運用ボード",
@@ -1892,7 +1898,25 @@
     "mediaCompleted": "完了",
     "mediaFailedStatus": "失敗",
     "mediaCancelled": "キャンセル",
-    "mediaExpired": "期限切れ"
+    "mediaExpired": "期限切れ",
+    "walletBuckets": "残高の内訳",
+    "giftBalance": "付与クレジット（USD）",
+    "purchasedBalance": "購入クレジット（USD）",
+    "commissionBalance": "コミッション残高（USD）",
+    "walletBucketsDetail": "API 利用は付与クレジット、購入クレジットの順に消費します。付与分は返金できません。コミッションは別途精算され、API 利用には使えません。",
+    "ledColDate": "日時",
+    "ledgerEvents": {
+      "topup": "チャージ",
+      "authorization": "事前承認保留",
+      "release": "保留解除",
+      "usage_debit": "API 利用",
+      "refund": "返金",
+      "adjustment": "調整",
+      "commission_debit": "コミッション減額",
+      "gift_credit": "付与クレジット入金",
+      "commission_credit": "コミッション入金",
+      "other": "その他の変動"
+    }
   },
   "reconcile": {
     "lead": "三バケットと同じ窓の usage を照合します。一致は緑。差分は照合待ちキューへ。見積り引落としは禁止です。",
@@ -2124,5 +2148,50 @@
     "confirmEligD": "以降の到達と登録ギフトに適用。",
     "saveElig": "到達線を保存",
     "savedEligibility": "到達線を保存しました"
+  },
+  "referral": {
+    "title": "自分の紹介",
+    "share": "友人を招待",
+    "shareDetail": "このリンクで紹介コードが自動入力されます。招待関係は新規登録時にのみ設定されます。",
+    "code": "紹介コード",
+    "link": "紹介リンク",
+    "copyLink": "紹介リンクをコピー",
+    "copyCode": "コードをコピー",
+    "copied": "コピーしました",
+    "copyFailed": "コピーできませんでした。上のリンクを選択して手動でコピーしてください。",
+    "create": "紹介リンクを作成",
+    "creating": "作成中…",
+    "createFailed": "作成できませんでした。再試行してください。",
+    "unavailable": "利用可能な紹介リンクがありません",
+    "retryDetail": "更新して再試行してください。解決しない場合はチャネル管理者にお問い合わせください。",
+    "invited": "直接招待した登録者：{count} 人",
+    "refresh": "更新",
+    "rules": "報酬と資格",
+    "qualified": "コミッション資格あり",
+    "notQualified": "コミッション資格はまだありません",
+    "commissionDetail": "招待されたユーザーの確定済み API 利用に対して、チャネル規則に基づき最大 2 階層の直接・間接コミッションが発生します。チャージ自体は対象外です。凍結期間後に専用ウォレットへ入り、API 利用には充当できません。精算と支払いは財務担当が行います。",
+    "giftDetail": "現在、このリンクから新規登録したユーザーには {amount} の返金不可の API クレジットが付与されます。受け取るのは招待された新規ユーザーで、あなたには現金コミッションは発生しません。登録時の資格とチャネル規則が適用されます。",
+    "giftDisabled": "現在、招待登録クレジットは無効で、現金コミッション資格もありません。",
+    "qualify": "次のいずれかを満たすと、自動的にコミッション資格を取得できます：",
+    "spend": "累計利用額が {amount} に達する",
+    "topup": "1 回のチャージが {amount} に達する",
+    "qualificationDisabled": "自動資格取得は現在無効です。チャネル管理者にお問い合わせください。",
+    "rewards": "自分のコミッション履歴",
+    "rewardsDetail": "あなたの直近 200 件を表示します。下位紹介者の収益は含みません。招待ユーザーの登録クレジットは本人のウォレットで確認できます。",
+    "kind": "種類",
+    "status": "状態",
+    "amount": "金額（USD）",
+    "availableAt": "凍結解除予定日",
+    "direct": "直接紹介",
+    "indirect": "間接紹介",
+    "frozen": "凍結中",
+    "available": "精算可能",
+    "held": "保留中",
+    "settled": "精算書作成済み",
+    "paid": "支払済み",
+    "reversed": "取消済み",
+    "other": "その他",
+    "emptyRewards": "コミッション履歴はありません",
+    "emptyRewardsDetail": "資格取得後、招待ユーザーに対象となる API 利用が発生すると表示されます。"
   }
 }

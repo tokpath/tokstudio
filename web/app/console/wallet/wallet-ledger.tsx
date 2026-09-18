@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,15 @@ import { formatUsdMinor } from "@/lib/money";
 
 type LedgerRow = {
   id: string;
-  entry_type?: string;
+  event_type?: string;
+  created_at?: string;
   amount_minor?: number;
 };
 
 export function WalletLedger() {
   const t = useTranslations("user");
+  const locale = useLocale();
+  const events = new Set(["topup", "authorization", "release", "usage_debit", "refund", "adjustment", "commission_debit", "gift_credit", "commission_credit"]);
   const tc = useTranslations("common");
   const list = useListResource<LedgerRow>({
     load: () => fetchListItems(`${apiBase}/v1/me/ledger`),
@@ -39,18 +42,19 @@ export function WalletLedger() {
         onRetry={() => void list.reload()}
       >
         <LedgerTable
-          columns={[t("ledColType"), t("ledColAmount")]}
+          columns={[t("ledColType"), t("ledColAmount"), t("ledColDate")]}
           emptyTitle={t("ledEmpty")}
           emptyDetail={t("ledEmptyDetail")}
           rows={list.snapshot.items.map((row) => ({
             key: row.id,
             cells: [
               <span key="type" className="font-mono text-ink-mute">
-                {row.entry_type || row.id}
+                {t(`ledgerEvents.${events.has(row.event_type || "") ? row.event_type : "other"}`)}
               </span>,
               <span key="amount" className="font-mono tabular-nums">
                 {formatUsdMinor(row.amount_minor)}
               </span>,
+              row.created_at ? new Date(row.created_at).toLocaleString(locale) : "—",
             ],
           }))}
         />

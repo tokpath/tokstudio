@@ -147,17 +147,21 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 		}).Error; err != nil {
 			return err
 		}
-		return tx.Create(&attributionRow{
+		if err := tx.Create(&attributionRow{
 			UserID:            user.ID,
 			ChannelOrgID:      resolved.ChannelID,
 			AcquisitionRoleID: resolved.AcquisitionRoleID,
 			SourceCode:        resolved.SourceCode,
 			AttributedAt:      now,
-		}).Error
+		}).Error; err != nil {
+			return err
+		}
+		scoped := *s
+		scoped.db = tx
+		return scoped.ensureUserPromo(ctx, user.ID, resolved.ChannelID, resolved.AcquisitionRoleID)
 	}); err != nil {
 		return nil, err
 	}
-	_ = s.ensureUserPromo(ctx, user.ID, resolved.ChannelID, resolved.AcquisitionRoleID)
 	return s.issueSession(ctx, user)
 }
 

@@ -287,7 +287,8 @@
     "googleNeedEmail": "Enter a Google email",
     "googleFail": "Google sign-in failed. Please try again later.",
     "googleReturning": "Finishing Google sign-in…",
-    "promoPh": "Optional · THA1 / THB1 / THC1"
+    "promoPh": "Optional · THA1 / THB1 / THC1",
+    "networkError": "Connection failed. Check your network and try again. Your entries have been kept."
   },
   "home": {
     "holdBanner": "Seedance 2.5 list price is public · 720p from $0.24/s",
@@ -394,7 +395,7 @@
     "title": "My account",
     "lead": "Overview shows balance, API keys, recent receipts, and usage trends. Filters and per-key reconciliation are on the usage page. Channel attribution is fixed at sign-up; there is no channel switcher here.",
     "available": "Available",
-    "availableHint": "Cash wallet you can spend",
+    "availableHint": "Gift and purchased credits available for API usage",
     "reserved": "Authorization hold",
     "reservedHint": "In-flight HOLD not yet settled",
     "keys": "API Key",
@@ -403,7 +404,7 @@
     "receiptHint": "Last attempt is explainable",
     "createKey": "Create API Key",
     "topup": "Add balance",
-    "footnote": "Holds lock quota first; settlement then debits cash. Use the shortcuts above for top-up, keys, and activity.",
+    "footnote": "Requests reserve credits first. Settlement uses gift credits before purchased credits; commission is not used for API charges.",
     "region": "Overview",
     "hasReceipt": "Has receipt",
     "trendsTitle": "Usage trends",
@@ -793,7 +794,7 @@
     "referral": {
       "eyebrow": "REFERRAL",
       "title": "Referral",
-      "description": "Your promo code after sign-in. Empty placeholder when signed out."
+      "description": "Share your personal link and track invitations, reward rules, and your own commission."
     },
     "docs": {
       "eyebrow": "DOCS",
@@ -943,7 +944,7 @@
     "partnerHome": {
       "eyebrow": "PARTNER",
       "title": "Your partner scope",
-      "description": "Agent / tier-1 / tier-2. The API checks the tree. No prompts, no rate edits."
+      "description": "Share referral links and track invited users, commissions, and settlements. Personal earnings are shown separately from referral-scope totals."
     }
   },
   "docsUi": {
@@ -1028,10 +1029,10 @@
     "settlements": "Settlements in scope",
     "refresh": "Refresh scope",
     "emptyUsers": "No users yet",
-    "hint": "Agents see the tree. Tier-1 KOLs see themselves and tier-2. Tier-2 sees direct referrals only. Emails are masked.",
+    "hint": "Only your permitted referral scope is shown; emails are masked. Totals may include downline promoters. See “My commission records” above for your own earnings.",
     "notPartner": "Not a promotion principal",
     "summary": "Tier {role} · users {users} · commissions {comms} · settlements {settlements}",
-    "currentLine": "Now {role} · channel {channel} · {scope}",
+    "currentLine": "Role: {role} · {scope}",
     "notLoggedIn": "Not signed in",
     "seesDownline": "Can see downline totals",
     "seesDirect": "Direct referrals only",
@@ -1042,10 +1043,15 @@
     "colKind": "Kind",
     "colAmount": "Amount",
     "emptyComms": "No commissions",
-    "emptyCommsDetail": "Nothing settleable until the freeze ends.",
+    "emptyCommsDetail": "Records appear after eligible API usage is confirmed. Settlement becomes available after the freeze period.",
     "emptySettle": "No settlements",
-    "emptySettleDetail": "Rows appear after platform finance pays out.",
-    "colSettle": "Settlement"
+    "emptySettleDetail": "Records appear when finance creates a settlement. Check its status to see whether it has been paid.",
+    "colSettle": "Settlement",
+    "roleAgent": "Agent",
+    "rolePromoter": "Personal promoter",
+    "roleChannel": "Channel administrator",
+    "rolePlatform": "Platform administrator",
+    "roleUnknown": "Referral member"
   },
   "adminUi": {
     "opsBoard": "Ops board",
@@ -1892,7 +1898,25 @@
     "mediaCompleted": "Completed",
     "mediaFailedStatus": "Failed",
     "mediaCancelled": "Cancelled",
-    "mediaExpired": "Expired"
+    "mediaExpired": "Expired",
+    "walletBuckets": "Balance breakdown",
+    "giftBalance": "Gift credits (USD)",
+    "purchasedBalance": "Purchased credits (USD)",
+    "commissionBalance": "Commission balance (USD)",
+    "walletBucketsDetail": "API usage consumes gift credits before purchased credits. Gift credits are non-refundable. Commission is settled separately and cannot pay for API usage.",
+    "ledColDate": "Time",
+    "ledgerEvents": {
+      "topup": "Top-up",
+      "authorization": "Authorization hold",
+      "release": "Hold released",
+      "usage_debit": "API usage",
+      "refund": "Refund",
+      "adjustment": "Adjustment",
+      "commission_debit": "Commission debit",
+      "gift_credit": "Gift credits received",
+      "commission_credit": "Commission received",
+      "other": "Other change"
+    }
   },
   "reconcile": {
     "lead": "Reconcile the three buckets with the same-window usage. Matches stay green. Mismatches only go to the pending queue — never estimate-debit.",
@@ -2124,5 +2148,50 @@
     "confirmEligD": "Applies to later eligibility and signup gifts.",
     "saveElig": "Save eligibility",
     "savedEligibility": "Eligibility saved"
+  },
+  "referral": {
+    "title": "My referrals",
+    "share": "Invite friends",
+    "shareDetail": "This link fills in your referral code automatically. Invitations apply to newly registered accounts only.",
+    "code": "Referral code",
+    "link": "Referral link",
+    "copyLink": "Copy referral link",
+    "copyCode": "Copy code",
+    "copied": "Copied",
+    "copyFailed": "Copy failed. Select the link above and copy it manually.",
+    "create": "Create my referral link",
+    "creating": "Creating…",
+    "createFailed": "Could not create the link. Please retry.",
+    "unavailable": "No referral link available",
+    "retryDetail": "Refresh to retry. Contact your channel administrator if the issue persists.",
+    "invited": "{count} direct registrations",
+    "refresh": "Refresh",
+    "rules": "Rewards and eligibility",
+    "qualified": "Eligible for commission",
+    "notQualified": "Not yet eligible for commission",
+    "commissionDetail": "Confirmed API usage by referred users earns direct or indirect commission under your channel rules, up to two levels. Top-ups do not earn commission. After the freeze period, commission enters your separate commission wallet and cannot pay for API usage. Finance handles settlement and payout.",
+    "giftDetail": "New users registering through your link currently receive {amount} in non-refundable API credits. These credits go to the invited user; you do not currently earn cash commission. Eligibility and channel rules at registration apply.",
+    "giftDisabled": "Referral signup credits are currently disabled, and you are not yet eligible for cash commission.",
+    "qualify": "Meet either condition to automatically qualify for commission:",
+    "spend": "Lifetime spending of {amount}",
+    "topup": "A single top-up of {amount}",
+    "qualificationDisabled": "Automatic qualification is currently disabled. Contact your channel administrator for details.",
+    "rewards": "My commission records",
+    "rewardsDetail": "Your latest 200 commission records, excluding earnings of other promoters. Invited users can view their signup credits in their own wallets.",
+    "kind": "Type",
+    "status": "Status",
+    "amount": "Amount (USD)",
+    "availableAt": "Expected release date",
+    "direct": "Direct referral",
+    "indirect": "Indirect referral",
+    "frozen": "Frozen",
+    "available": "Available for settlement",
+    "held": "On hold",
+    "settled": "Settlement created",
+    "paid": "Paid",
+    "reversed": "Reversed",
+    "other": "Other",
+    "emptyRewards": "No commission records yet",
+    "emptyRewardsDetail": "Records appear after you qualify and referred users incur eligible API usage."
   }
 }

@@ -118,3 +118,11 @@ describe("resolveStartUsingHref", () => {
     ).resolves.toBe("/app/media?model=bytedance%2Fseedream&kind=image");
   });
 });
+
+it("keeps automatically created personal promoters in their user workspace", async () => {
+  expect(consoleHomeForViewer({ roles: ["end_user"], isPartner: true, partnerRole: "promoter" })).toBe("/app");
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(jsonResponse(true, { user: { roles: ["end_user"] } }))
+    .mockResolvedValueOnce(jsonResponse(true, { role_type: "promoter" }));
+  await expect(resolveConsoleHref(fetcher)).resolves.toBe("/app");
+});

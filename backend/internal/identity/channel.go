@@ -96,6 +96,12 @@ func (s *Service) resolvePromotion(ctx context.Context, code string) (resolvedPr
 	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", promo.ChannelOrgID, "active").First(&channel).Error; err != nil {
 		return resolvedPromotion{}, ErrPromotionInvalid
 	}
+	if promo.AcquisitionRoleID != nil {
+		var role acquisitionRow
+		if err := s.db.WithContext(ctx).Where("id = ? AND channel_org_id = ? AND status = ?", *promo.AcquisitionRoleID, channel.ID, "active").First(&role).Error; err != nil {
+			return resolvedPromotion{}, ErrPromotionInvalid
+		}
+	}
 	return resolvedPromotion{
 		ChannelID:         channel.ID,
 		BrandID:           channel.BrandID,

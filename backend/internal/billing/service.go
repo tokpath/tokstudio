@@ -57,6 +57,25 @@ func (s *Service) Credit(ctx context.Context, userID, idempotencyKey string, amo
 		memo = "payment credit"
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Serialize the operation key across wallets as well as concurrent retries.
+		// The ledger alone cannot deduplicate a balance update that already happened.
+		key := "pay:" + idempotencyKey
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "billing-credit:"+key).Error; err != nil {
+			return err
+		}
+		var existing ledgerRow
+		if err := tx.Where("idempotency_key = ?", key).First(&existing).Error; err == nil {
+			var wallet walletRow
+			if err := tx.Where("id = ?", existing.WalletID).First(&wallet).Error; err != nil {
+				return err
+			}
+			if wallet.UserID != userID || existing.AmountMinor != amount || existing.EventType != EventTopup || existing.ReferenceType != "payment" || existing.ReferenceID != idempotencyKey {
+				return ErrConflict
+			}
+			return nil
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
 		return creditWallet(tx, userID, amount, EventTopup, "payment", idempotencyKey, "pay:"+idempotencyKey)
 	})
 	if err != nil {

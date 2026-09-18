@@ -139,32 +139,37 @@ func (s *Service) Redeem(ctx context.Context, userID, channelOrgID, code string)
 func (s *Service) RefundTopup(ctx context.Context, topupID string) (*TopupView, error) {
 	var view *TopupView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var row topupRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
-			return ErrNotFound
-		}
-		if row.Status == TopupRefunded {
-			view = topupView(row)
-			return nil
-		}
-		if row.Status != TopupPaid {
-			return ErrTopupNotPending
-		}
-		if err := debitAvailable(tx, row.UserID, row.AmountMinor, EventRefund, "topup", row.ID, "refund-topup:"+row.ID); err != nil {
-			return err
-		}
-		if err := reclaimAllocation(tx, "topup", row.ID); err != nil {
-			return err
-		}
-		row.Status = TopupRefunded
-		row.UpdatedAt = time.Now().UTC()
-		if err := tx.Save(&row).Error; err != nil {
-			return err
-		}
-		view = topupView(row)
-		return nil
+		var err error
+		view, err = s.RefundTopupTx(tx, topupID)
+		return err
 	})
 	return view, err
+}
+
+// RefundTopupTx participates in the caller's transaction; the caller must commit or roll back.
+func (s *Service) RefundTopupTx(tx *gorm.DB, topupID string) (*TopupView, error) {
+	var row topupRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
+		return nil, ErrNotFound
+	}
+	if row.Status == TopupRefunded {
+		return topupView(row), nil
+	}
+	if row.Status != TopupPaid {
+		return nil, ErrTopupNotPending
+	}
+	if err := debitAvailable(tx, row.UserID, row.AmountMinor, EventRefund, "topup", row.ID, "refund-topup:"+row.ID); err != nil {
+		return nil, err
+	}
+	if err := reclaimAllocation(tx, "topup", row.ID); err != nil {
+		return nil, err
+	}
+	row.Status = TopupRefunded
+	row.UpdatedAt = time.Now().UTC()
+	if err := tx.Save(&row).Error; err != nil {
+		return nil, err
+	}
+	return topupView(row), nil
 }
 
 func creditWallet(tx *gorm.DB, userID string, amount int64, event, refType, refID, idem string) error {

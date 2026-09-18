@@ -159,7 +159,7 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 
 func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderView, error) {
 	var rows []orderRow
-	q := s.db.WithContext(ctx).Order("created_at DESC").Limit(200)
+	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC").Limit(200)
 	if f.Status != "" {
 		q = q.Where("status = ?", f.Status)
 	}
@@ -169,20 +169,16 @@ func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderVi
 	if f.Adapter != "" {
 		q = q.Where("adapter = ?", f.Adapter)
 	}
+	if query := strings.TrimSpace(f.Query); query != "" {
+		pattern := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.ToLower(query)) + "%"
+		q = q.Where("LOWER(concat_ws(' ',id,user_id,adapter,status,channel_org_id,purpose)) LIKE ? OR user_id IN ?", pattern, f.MatchUserIDs)
+	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]OrderView, 0, len(rows))
 	for _, row := range rows {
-		view := orderView(row)
-		if f.Query != "" {
-			qstr := strings.ToLower(f.Query)
-			blob := strings.ToLower(view.ID + " " + view.UserID + " " + view.Adapter + " " + view.Status + " " + view.ChannelOrgID)
-			if !strings.Contains(blob, qstr) {
-				continue
-			}
-		}
-		out = append(out, *view)
+		out = append(out, *orderView(row))
 	}
 	return out, nil
 }
@@ -372,26 +368,7 @@ func (s *Service) ConfirmManual(ctx context.Context, orderID string) (*OrderView
 }
 
 func (s *Service) Refund(ctx context.Context, orderID string) (*OrderView, error) {
-	order, err := s.GetOrder(ctx, orderID, "")
-	if err != nil {
-		return nil, err
-	}
-	plugin, ok := s.plugin(order.Adapter)
-	if !ok {
-		return nil, ErrInvalidAdapter
-	}
-	in := RefundRequest{Order: order, Mode: ModeSandbox}
-	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
-		if !inst.RefundEnabled {
-			return nil, ErrRefundDisabled
-		}
-		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
-		in.Mode = inst.Mode
-	}
-	if _, err := plugin.Refund(ctx, in); err != nil {
-		return nil, err
-	}
-	if err := s.markRefunded(ctx, orderID); err != nil {
+	if err := s.refundOrder(ctx, orderID, true); err != nil {
 		return nil, err
 	}
 	return s.GetOrder(ctx, orderID, "")
@@ -541,8 +518,12 @@ func (s *Service) RunFulfillment(ctx context.Context) {
 }
 
 func (s *Service) markRefunded(ctx context.Context, orderID string) error {
-	var row orderRow
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return s.refundOrder(ctx, orderID, false)
+}
+
+func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider bool) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var row orderRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", orderID).First(&row).Error; err != nil {
 			return ErrNotFound
 		}
@@ -552,25 +533,49 @@ func (s *Service) markRefunded(ctx context.Context, orderID string) error {
 		if row.Status != StatusPaid {
 			return ErrOrderNotPending
 		}
+		// Reversal must succeed before asking a provider to refund. A failure rolls back
+		// both the local credits and the order status. The row lock serializes retries.
+		switch row.Purpose {
+		case PurposeWallet:
+			if row.ReferenceID != nil && s.billing != nil {
+				if _, err := s.billing.RefundTopupTx(tx, *row.ReferenceID); err != nil {
+					return err
+				}
+			}
+		case PurposeSubscription:
+			if row.ReferenceID != nil && s.plans != nil {
+				if err := s.plans.ReverseSourceTx(tx, *row.ReferenceID); err != nil {
+					return err
+				}
+			}
+		}
+		if callProvider {
+			plugin, ok := s.plugin(row.Adapter)
+			if !ok {
+				return ErrInvalidAdapter
+			}
+			in := RefundRequest{Order: orderView(row), Mode: ModeSandbox}
+			transactionService := *s
+			transactionService.db = tx
+			if inst := transactionService.firstReadyInstance(ctx, row.ChannelOrgID, row.Adapter); inst != nil {
+				if !inst.RefundEnabled {
+					return ErrRefundDisabled
+				}
+				var err error
+				in.Credentials, err = openCredentials(s.signKey, inst.CredentialsCiphertext)
+				if err != nil {
+					return err
+				}
+				in.Mode = inst.Mode
+			}
+			if _, err := plugin.Refund(ctx, in); err != nil {
+				return err
+			}
+		}
 		row.Status = StatusRefunded
 		row.UpdatedAt = time.Now().UTC()
 		return tx.Save(&row).Error
 	})
-	if err != nil {
-		return err
-	}
-	switch row.Purpose {
-	case PurposeSubscription:
-		if row.ReferenceID != nil && s.plans != nil {
-			return s.plans.ReverseSource(ctx, *row.ReferenceID)
-		}
-	case PurposeWallet:
-		if row.ReferenceID != nil && s.billing != nil {
-			_, err := s.billing.RefundTopup(ctx, *row.ReferenceID)
-			return err
-		}
-	}
-	return nil
 }
 
 // RenewCharger 给套餐续费 Worker 用：Stripe 沙箱可扣款；method_ref 含 fail 则模拟拒付。

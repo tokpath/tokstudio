@@ -247,3 +247,34 @@ func mustRSA(t *testing.T) (privPEM, pubPEM string) {
 	pub := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
 	return string(priv), string(pub)
 }
+
+func TestStripeRefundReusesOperationKey(t *testing.T) {
+	var keys []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/refunds" {
+			t.Errorf("path: %s", r.URL.Path)
+		}
+		keys = append(keys, r.Header.Get("Idempotency-Key"))
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		if r.Form.Get("payment_intent") != "pi_refund" {
+			t.Error("wrong payment intent")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"re_one","status":"succeeded"}`))
+	}))
+	defer srv.Close()
+	old := stripeAPIBase
+	stripeAPIBase = srv.URL
+	defer func() { stripeAPIBase = old }()
+	for i := 0; i < 2; i++ {
+		_, err := (stripeDriver{}).Refund(context.Background(), RefundRequest{Mode: ModeLive, Credentials: map[string]string{"secret_key": "sk_test"}, Order: &OrderView{ID: "pay_refund", TradeID: "pi_refund"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(keys) != 2 || keys[0] != "refund:pay_refund" || keys[1] != keys[0] {
+		t.Fatalf("unstable refund key: %v", keys)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
@@ -43,6 +44,12 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 	switch {
 	case errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInstanceNotFound):
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到支付配置或订单", false)
+	case errors.Is(err, payment.ErrOrderNotPending):
+		httpx.Abort(c, http.StatusConflict, "order_status_conflict", "订单状态已变化，请刷新后核对；仅已支付订单可退款", false)
+	case errors.Is(err, billing.ErrInsufficientBalance):
+		httpx.Abort(c, http.StatusConflict, "insufficient_balance", "用户可回收余额不足，退款未完成，请核对消费与预授权占用", false)
+	case errors.Is(err, billing.ErrTopupNotPending):
+		httpx.Abort(c, http.StatusConflict, "topup_status_conflict", "关联充值记录状态不允许此操作，请先核对入账情况", false)
 	case errors.Is(err, payment.ErrInvalidAdapter):
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "不支持的支付方式", false)
 	case errors.Is(err, payment.ErrInvalidAmount):

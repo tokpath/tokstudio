@@ -169,7 +169,7 @@ func (d stripeDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResu
 	}
 	form := url.Values{}
 	form.Set("payment_intent", in.Order.TradeID)
-	raw, code, err := stripeDo(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/refunds", form)
+	raw, code, err := stripeDoKeyed(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/refunds", form, "refund:"+in.Order.ID)
 	if err != nil || code >= 300 {
 		return nil, ErrProviderFailed
 	}

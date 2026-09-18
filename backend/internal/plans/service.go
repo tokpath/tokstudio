@@ -704,25 +704,27 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 }
 
 func (s *Service) ReverseSource(ctx context.Context, sourceID string) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var rows []entRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("source_id = ? AND status <> ?", sourceID, EntReversed).Find(&rows).Error; err != nil {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return s.ReverseSourceTx(tx, sourceID) })
+}
+
+func (s *Service) ReverseSourceTx(tx *gorm.DB, sourceID string) error {
+	var rows []entRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("source_id = ? AND status <> ?", sourceID, EntReversed).Find(&rows).Error; err != nil {
+		return err
+	}
+	for i := range rows {
+		left := rows[i].Granted - rows[i].Consumed
+		rows[i].Status = EntReversed
+		if err := tx.Save(&rows[i]).Error; err != nil {
 			return err
 		}
-		for i := range rows {
-			left := rows[i].Granted - rows[i].Consumed
-			rows[i].Status = EntReversed
-			if err := tx.Save(&rows[i]).Error; err != nil {
+		if left > 0 {
+			if err := writeEntLedger(tx, rows[i].ID, EventReversal, left, "", "revsrc:"+sourceID+":"+rows[i].ID); err != nil {
 				return err
 			}
-			if left > 0 {
-				if err := writeEntLedger(tx, rows[i].ID, EventReversal, left, "", "revsrc:"+sourceID+":"+rows[i].ID); err != nil {
-					return err
-				}
-			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func retryOffsets() []time.Duration {

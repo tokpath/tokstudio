@@ -380,8 +380,22 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 }
 
 func (a *App) adminListPayments(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	if len(query) > 200 {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "搜索内容过长", false)
+		return
+	}
+	var userIDs []string
+	var err error
+	if query != "" {
+		userIDs, err = a.Identity.MatchBillingUserIDs(c.Request.Context(), query)
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "搜索用户失败，请重试", true)
+			return
+		}
+	}
 	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
-		Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: c.Query("q"),
+		Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: query, MatchUserIDs: userIDs,
 	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取支付单失败", true)
@@ -393,7 +407,34 @@ func (a *App) adminListPayments(c *gin.Context) {
 		})
 		return
 	}
-	httpx.OKPage(c, items, 100, func(item payment.OrderView) string { return item.ID })
+	ids := make([]string, 0, len(items))
+	channelIDs := make([]string, 0, len(items))
+	for _, item := range items {
+		ids = append(ids, item.UserID)
+		channelIDs = append(channelIDs, item.ChannelOrgID)
+	}
+	users, err := a.Identity.BillingRecipientsByID(c.Request.Context(), ids)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取订单用户失败，请重试", true)
+		return
+	}
+	channels, err := a.Identity.BillingChannelCodes(c.Request.Context(), channelIDs)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取订单渠道失败，请重试", true)
+		return
+	}
+	type adminPayment struct {
+		payment.OrderView
+		UserEmail   string `json:"user_email"`
+		UserName    string `json:"user_name"`
+		ChannelCode string `json:"channel_code"`
+	}
+	result := make([]adminPayment, 0, len(items))
+	for _, item := range items {
+		u := users[item.UserID]
+		result = append(result, adminPayment{item, u.Email, u.DisplayName, channels[item.ChannelOrgID]})
+	}
+	httpx.OKPage(c, result, 100, func(item adminPayment) string { return item.ID })
 }
 
 func (a *App) adminConfirmPayment(c *gin.Context) {
@@ -401,8 +442,7 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 		return
 	}
 	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "确认支付失败", false)
+	if a.abortPaymentErr(c, err) {
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -417,8 +457,7 @@ func (a *App) adminRefundPayment(c *gin.Context) {
 		return
 	}
 	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "支付退款失败", false)
+	if a.abortPaymentErr(c, err) {
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{

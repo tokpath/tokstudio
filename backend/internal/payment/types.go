@@ -63,6 +63,7 @@ type CreateOrderInput struct {
 }
 
 type ListOrdersFilter struct {
+	MatchUserIDs []string
 	Status       string
 	ChannelOrgID string
 	Adapter      string

@@ -18,7 +18,7 @@ test("finance admin sees ledger menus and not upstream keys", async ({ page }) =
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "审计日志" })).toHaveCount(0);
   await page.goto("/admin/billing");
-  await expect(page.getByRole("button", { name: "退消费账单" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "查询退款账单" })).toBeVisible();
   await expect(page.getByRole("button", { name: "赠送额度" })).toBeVisible();
   await page.goto("/admin/channels");
   await expect(page.getByRole("button", { name: "新建渠道" })).toHaveCount(0);
@@ -54,7 +54,7 @@ test("audit readonly sees logs but no write buttons", async ({ page }) => {
   await expect(page.getByRole("button", { name: "写入探测" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "读取 Outbox" })).toHaveCount(0);
   await page.goto("/admin/billing");
-  await expect(page.getByRole("button", { name: "退消费账单" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "查询退款账单" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "赠送额度" })).toHaveCount(0);
 });
 
@@ -67,7 +67,7 @@ test("ops admin can grant models but cannot refund", async ({ page }) => {
   await expect(page.getByRole("link", { name: "审计日志" })).toHaveCount(0);
   await page.goto("/admin/billing");
   await expect(page.getByRole("button", { name: "赠送额度" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "退消费账单" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "查询退款账单" })).toHaveCount(0);
   await page.goto("/admin/channels/chn_reseller_b");
   await expect(page.getByRole("button", { name: "从平台目录授权" })).toBeVisible();
   await expect(page.getByRole("button", { name: "编辑" })).toHaveCount(0);

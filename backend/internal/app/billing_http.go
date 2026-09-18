@@ -28,6 +28,7 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 	r.POST("/v1/topups/:id/refund", a.requireRoles("platform_admin", "finance_admin"), a.refundTopup)
 
 	r.POST("/admin/topups/:id/confirm", a.requireRoles("platform_admin", "finance_admin"), a.confirmTopup)
+	r.GET("/admin/refunds/preview", a.requireRoles("platform_admin", "finance_admin"), a.previewChargeRefund)
 	r.POST("/admin/refunds", a.requireRoles("platform_admin", "finance_admin"), a.adminRefund)
 	r.GET("/admin/ledger", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminLedger)
 	r.GET("/admin/usage", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminUsage)
@@ -390,7 +391,11 @@ func (a *App) adminRefund(c *gin.Context) {
 	}
 	item, err := a.Billing.RefundCharge(c.Request.Context(), body.RequestID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账单退款失败", false)
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "not_found", "未找到已入账的消费账单，请核对请求编号。", false)
+		} else {
+			httpx.Abort(c, http.StatusInternalServerError, "refund_failed", "退款尚未确认完成，请按原请求编号重试，不会重复退回。", true)
+		}
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -710,4 +715,27 @@ func (a *App) billingRecipients(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "limit": 20})
+}
+
+func (a *App) previewChargeRefund(c *gin.Context) {
+	requestID := strings.TrimSpace(c.Query("request_id"))
+	if requestID == "" {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写消费请求编号。", false)
+		return
+	}
+	item, err := a.Billing.PreviewChargeRefund(c.Request.Context(), requestID)
+	if err != nil {
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "not_found", "未找到已入账的消费账单，请到用量/账单页核对请求编号。", false)
+		} else {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取账单失败，请重试。", true)
+		}
+		return
+	}
+	users, err := a.Identity.BillingRecipientsByID(c.Request.Context(), []string{item.UserID})
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取退款用户失败，请重试。", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "user": users[item.UserID]})
 }

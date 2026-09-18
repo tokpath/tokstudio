@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
@@ -400,60 +401,64 @@ func splitCommission(in AccrueInput, policy *PolicyView) []split {
 }
 
 func (s *Service) Reverse(ctx context.Context, usageEventID string) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return s.ReverseTx(tx, usageEventID) })
+}
+
+// ReverseTx participates in the caller's charge refund transaction.
+func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
 	if usageEventID == "" {
 		return nil
 	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var rows []entryRow
-		if err := tx.Where("usage_event_id = ? AND status <> ?", usageEventID, StatusReversed).Find(&rows).Error; err != nil {
+
+	var rows []entryRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("usage_event_id = ? AND status <> ?", usageEventID, StatusReversed).Find(&rows).Error; err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	for i := range rows {
+		origStatus := rows[i].Status
+		origAmt := rows[i].AmountMinor
+		rev := entryRow{
+			ID: id.New("cme"), UsageEventID: usageEventID, Kind: rows[i].Kind,
+			PolicyVersion: rows[i].PolicyVersion, BaseAmountMinor: rows[i].BaseAmountMinor,
+			RawAmountMinor: -rows[i].RawAmountMinor, AmountMinor: -rows[i].AmountMinor,
+			Status: StatusReversed, ReversalOf: &rows[i].ID,
+			IdempotencyKey: "cme-rev:" + rows[i].ID, CreatedAt: now,
+			ChannelOrgID: rows[i].ChannelOrgID, BeneficiaryRoleID: rows[i].BeneficiaryRoleID,
+			RequestID: rows[i].RequestID, UserID: rows[i].UserID,
+		}
+		if err := tx.Where("idempotency_key = ?", rev.IdempotencyKey).FirstOrCreate(&rev).Error; err != nil {
 			return err
 		}
-		now := time.Now().UTC()
-		for i := range rows {
-			origStatus := rows[i].Status
-			origAmt := rows[i].AmountMinor
-			rev := entryRow{
-				ID: id.New("cme"), UsageEventID: usageEventID, Kind: rows[i].Kind,
-				PolicyVersion: rows[i].PolicyVersion, BaseAmountMinor: rows[i].BaseAmountMinor,
-				RawAmountMinor: -rows[i].RawAmountMinor, AmountMinor: -rows[i].AmountMinor,
-				Status: StatusReversed, ReversalOf: &rows[i].ID,
-				IdempotencyKey: "cme-rev:" + rows[i].ID, CreatedAt: now,
-				ChannelOrgID: rows[i].ChannelOrgID, BeneficiaryRoleID: rows[i].BeneficiaryRoleID,
-				RequestID: rows[i].RequestID, UserID: rows[i].UserID,
-			}
-			if err := tx.Where("idempotency_key = ?", rev.IdempotencyKey).FirstOrCreate(&rev).Error; err != nil {
+		rows[i].Status = StatusReversed
+		if err := tx.Save(&rows[i]).Error; err != nil {
+			return err
+		}
+		ch := ""
+		if rows[i].ChannelOrgID != nil {
+			ch = *rows[i].ChannelOrgID
+		}
+		st := MarketingFrozen
+		if origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled {
+			st = MarketingIssued
+		}
+		if err := writeMarketing(tx, ch, MarketingKindCommission, st, origAmt, usageEventID, rev.ID, "reversal", rows[i].ID, "mkt-rev:"+rows[i].ID, &rows[i].ID); err != nil {
+			return err
+		}
+		if s.cash != nil && (origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled) {
+			if err := s.cash.ReverseCommissionTx(tx, rows[i].ID); err != nil {
 				return err
-			}
-			rows[i].Status = StatusReversed
-			if err := tx.Save(&rows[i]).Error; err != nil {
-				return err
-			}
-			ch := ""
-			if rows[i].ChannelOrgID != nil {
-				ch = *rows[i].ChannelOrgID
-			}
-			st := MarketingFrozen
-			if origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled {
-				st = MarketingIssued
-			}
-			if err := writeMarketing(tx, ch, MarketingKindCommission, st, origAmt, usageEventID, rev.ID, "reversal", rows[i].ID, "mkt-rev:"+rows[i].ID, &rows[i].ID); err != nil {
-				return err
-			}
-			if s.cash != nil && (origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled) {
-				if err := s.cash.ReverseCommissionTx(tx, rows[i].ID); err != nil {
-					return err
-				}
 			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (s *Service) Unfreeze(ctx context.Context, now time.Time) (int, error) {
 	n := 0
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var rows []entryRow
-		if err := tx.Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now).Find(&rows).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now).Find(&rows).Error; err != nil {
 			return err
 		}
 		for i := range rows {

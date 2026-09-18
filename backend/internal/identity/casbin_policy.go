@@ -71,6 +71,7 @@ func financeRules() []policyRule {
 		"/admin/me",
 		"/admin/me/2fa",
 		"/admin/ledger",
+		"/admin/refunds/preview",
 		"/admin/usage",
 		"/admin/usage/pending",
 		"/admin/usage/pending/:id",

@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -16,55 +17,59 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var charge chargeRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("request_id = ?", requestID).First(&charge).Error; err != nil {
-			return ErrNotFound
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
 		}
 		if charge.Status == ChargeReversed {
 			out = &Settlement{ChargeID: charge.ID, UsageEventID: charge.UsageEventID, AmountMinor: charge.AmountMinor, State: ChargeReversed, Currency: CurrencyUSD}
 			return nil
 		}
 		var auth authRow
-		_ = tx.Where("request_id = ?", requestID).First(&auth)
+		if err := tx.Where("request_id = ?", requestID).First(&auth).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
 		userID := auth.UserID
 		if userID == "" {
 			var usage usageRow
-			if err := tx.Where("id = ?", charge.UsageEventID).First(&usage).Error; err == nil {
-				userID = usage.UserID
+			if err := tx.Where("id = ?", charge.UsageEventID).First(&usage).Error; err != nil {
+				return err
 			}
+			userID = usage.UserID
 		}
 		if userID == "" {
 			return ErrNotFound
 		}
-		walletCredit := charge.AmountMinor
-		if auth.ID != "" {
-			keep := entitlementKeep(auth, charge.AmountMinor)
-			if walletCredit > keep {
-				walletCredit = charge.AmountMinor - keep
-			} else {
-				walletCredit = 0
-			}
-		}
-		if auth.ID != "" && auth.GiftSettledMinor > 0 {
-			if walletCredit > auth.GiftSettledMinor {
-				walletCredit -= auth.GiftSettledMinor
-			} else {
-				walletCredit = 0
-			}
-		}
+		walletCredit, _, _ := chargeRefundAmounts(charge.AmountMinor, auth)
 		if walletCredit > 0 {
 			if err := creditWallet(tx, userID, walletCredit, EventRefund, "customer_charge", charge.ID, "refund:"+requestID); err != nil {
 				return err
 			}
 		}
-		if err := s.reverseCommission(tx, charge.UsageEventID); err != nil {
+		if err := s.reverseLegacyCommission(tx, charge.UsageEventID); err != nil {
 			return err
+		}
+		if s.commissioner != nil {
+			if err := s.commissioner.ReverseUsageTx(tx, charge.UsageEventID); err != nil {
+				return err
+			}
+		}
+		if s.coverer != nil {
+			if err := s.coverer.ReverseByRequestTx(tx, requestID); err != nil {
+				return err
+			}
 		}
 		if err := reverseAllocationConsumes(tx, requestID); err != nil {
 			return err
 		}
 		var usage usageRow
-		if err := tx.Where("id = ?", charge.UsageEventID).First(&usage).Error; err == nil {
-			usage.State = UsageVoided
-			_ = tx.Save(&usage).Error
+		if err := tx.Where("id = ?", charge.UsageEventID).First(&usage).Error; err != nil {
+			return err
+		}
+		usage.State = UsageVoided
+		if err := tx.Save(&usage).Error; err != nil {
+			return err
 		}
 		charge.Status = ChargeReversed
 		if err := tx.Save(&charge).Error; err != nil {
@@ -73,7 +78,9 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		if auth.ID != "" {
 			auth.Status = AuthReversed
 			auth.UpdatedAt = time.Now().UTC()
-			_ = tx.Save(&auth).Error
+			if err := tx.Save(&auth).Error; err != nil {
+				return err
+			}
 		}
 		if _, err := s.outbox.EnqueueTx(tx, "billing.charge.reversed", "customer_charge", charge.ID, map[string]any{
 			"request_id": requestID, "amount_minor": charge.AmountMinor,
@@ -83,9 +90,6 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		out = &Settlement{ChargeID: charge.ID, UsageEventID: charge.UsageEventID, AmountMinor: charge.AmountMinor, State: ChargeReversed, Currency: CurrencyUSD}
 		return nil
 	})
-	if err == nil && s.coverer != nil {
-		_ = s.coverer.ReverseByRequest(ctx, requestID)
-	}
 	return out, err
 }
 
@@ -113,6 +117,16 @@ func (s *Service) accrueCommission(tx *gorm.DB, usage usageRow) error {
 }
 
 func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
+	if err := s.reverseLegacyCommission(tx, usageEventID); err != nil {
+		return err
+	}
+	if s.commissioner != nil {
+		return s.commissioner.ReverseUsage(tx.Statement.Context, usageEventID)
+	}
+	return nil
+}
+
+func (s *Service) reverseLegacyCommission(tx *gorm.DB, usageEventID string) error {
 	var rows []commissionRow
 	if err := tx.Where("usage_event_id = ? AND status <> ?", usageEventID, CommissionReversed).Find(&rows).Error; err != nil {
 		return err
@@ -133,9 +147,6 @@ func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
 		if err := tx.Save(&rows[i]).Error; err != nil {
 			return err
 		}
-	}
-	if s.commissioner != nil {
-		_ = s.commissioner.ReverseUsage(context.Background(), usageEventID)
 	}
 	return nil
 }
@@ -186,4 +197,54 @@ func (s *Service) ListCommissions(ctx context.Context, usageEventID string) ([]C
 		out = append(out, CommissionView{ID: row.ID, UsageEventID: row.UsageEventID, AmountMinor: row.AmountMinor, Status: row.Status, PolicyVersion: row.PolicyVersion})
 	}
 	return out, nil
+}
+
+// ChargeRefundPreview exposes the original consumption split, never external cash movement.
+type ChargeRefundPreview struct {
+	RequestID        string `json:"request_id"`
+	UserID           string `json:"user_id"`
+	ModelID          string `json:"model_id"`
+	State            string `json:"state"`
+	AmountMinor      int64  `json:"amount_minor"`
+	WalletMinor      int64  `json:"wallet_minor"`
+	EntitlementMinor int64  `json:"entitlement_minor"`
+	GiftMinor        int64  `json:"gift_minor"`
+}
+
+func chargeRefundAmounts(amount int64, auth authRow) (wallet, entitlement, gift int64) {
+	wallet = amount
+	if auth.ID == "" {
+		return
+	}
+	entitlement = entitlementKeep(auth, amount)
+	if entitlement > wallet {
+		entitlement = wallet
+	}
+	wallet -= entitlement
+	gift = auth.GiftSettledMinor
+	if gift > wallet {
+		gift = wallet
+	}
+	wallet -= gift
+	return
+}
+
+func (s *Service) PreviewChargeRefund(ctx context.Context, requestID string) (*ChargeRefundPreview, error) {
+	var charge chargeRow
+	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&charge).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	var auth authRow
+	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&auth).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	var usage usageRow
+	if err := s.db.WithContext(ctx).Where("id = ?", charge.UsageEventID).First(&usage).Error; err != nil {
+		return nil, err
+	}
+	wallet, entitlement, gift := chargeRefundAmounts(charge.AmountMinor, auth)
+	return &ChargeRefundPreview{RequestID: requestID, UserID: usage.UserID, ModelID: usage.PublicModelID, State: charge.Status, AmountMinor: charge.AmountMinor, WalletMinor: wallet, EntitlementMinor: entitlement, GiftMinor: gift}, nil
 }

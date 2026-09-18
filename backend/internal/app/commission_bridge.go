@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
@@ -39,4 +40,8 @@ func (b *commissionBridge) AccrueUsage(ctx context.Context, usageEventID, reques
 
 func (b *commissionBridge) ReverseUsage(ctx context.Context, usageEventID string) error {
 	return b.comm.Reverse(ctx, usageEventID)
+}
+
+func (b *commissionBridge) ReverseUsageTx(tx *gorm.DB, usageEventID string) error {
+	return b.comm.ReverseTx(tx, usageEventID)
 }

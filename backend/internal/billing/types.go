@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 var (
@@ -27,6 +29,7 @@ var (
 type Commissioner interface {
 	AccrueUsage(ctx context.Context, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
 	ReverseUsage(ctx context.Context, usageEventID string) error
+	ReverseUsageTx(tx *gorm.DB, usageEventID string) error
 }
 
 type ChannelPool interface {
@@ -42,6 +45,7 @@ type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)
 	ConsumeUSD(ctx context.Context, userID, requestID string, amount int64) (int64, error)
 	ReverseByRequest(ctx context.Context, requestID string) error
+	ReverseByRequestTx(tx *gorm.DB, requestID string) error
 	ReverseKeep(ctx context.Context, requestID string, keep int64) error
 }
 

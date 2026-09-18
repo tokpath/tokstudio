@@ -613,6 +613,21 @@ func (s *Service) ReverseByRequest(ctx context.Context, requestID string) error 
 	return s.ReverseKeep(ctx, requestID, 0)
 }
 
+// ReverseByRequestTx restores consumed entitlements in the charge refund transaction.
+func (s *Service) ReverseByRequestTx(tx *gorm.DB, requestID string) error {
+	if requestID == "" {
+		return nil
+	}
+	net, err := netConsumedTx(tx, requestID)
+	if err != nil {
+		return err
+	}
+	if net <= 0 {
+		return nil
+	}
+	return reverseAmountTx(tx, requestID, net)
+}
+
 // ReverseKeep 把该 request 上尚未冲正的权益扣减，恢复到只保留 keep 这么多。
 func (s *Service) ReverseKeep(ctx context.Context, requestID string, keep int64) error {
 	if requestID == "" {
@@ -666,9 +681,11 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 			break
 		}
 		var already int64
-		_ = tx.Model(&ledRow{}).
+		if err := tx.Model(&ledRow{}).
 			Where("account_id = ? AND request_id = ? AND event_type = ?", led.AccountID, requestID, EventReversal).
-			Select("COALESCE(SUM(amount),0)").Scan(&already).Error
+			Select("COALESCE(SUM(amount),0)").Scan(&already).Error; err != nil {
+			return err
+		}
 		left := -led.Amount - already
 		if left <= 0 {
 			continue
@@ -679,7 +696,7 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 		}
 		var ent entRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", led.AccountID).First(&ent).Error; err != nil {
-			continue
+			return err
 		}
 		ent.Consumed -= back
 		if ent.Consumed < 0 {
@@ -699,6 +716,9 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 			return err
 		}
 		remain -= back
+	}
+	if remain > 0 {
+		return errors.New("entitlement reversal is incomplete")
 	}
 	return nil
 }

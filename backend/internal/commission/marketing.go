@@ -48,7 +48,8 @@ func writeMarketing(tx *gorm.DB, channelID, kind, status string, amount int64, u
 	if entryID != "" {
 		row.CommissionEntryID = &entryID
 	}
-	return tx.Where("idempotency_key = ?", idem).FirstOrCreate(&row).Error
+	// Keep the generated primary key out of the lookup so retries find the original entry.
+	return tx.Where("idempotency_key = ?", idem).Attrs(row).FirstOrCreate(&marketingRow{}).Error
 }
 
 type MarketingTotals struct {

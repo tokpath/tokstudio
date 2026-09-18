@@ -450,11 +450,20 @@ func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
 		st := MarketingFrozen
 		if origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled {
 			st = MarketingIssued
+		} else if origStatus == StatusHeld {
+			// A hold does not undo a prior unfreeze. Preserve its original marketing bucket.
+			var issued int64
+			if err := tx.Model(&marketingRow{}).Where("idempotency_key = ?", "mkt-unfrz-iss:"+rows[i].ID).Count(&issued).Error; err != nil {
+				return err
+			}
+			if issued > 0 {
+				st = MarketingIssued
+			}
 		}
 		if err := writeMarketing(tx, ch, MarketingKindCommission, st, origAmt, usageEventID, rev.ID, "reversal", rows[i].ID, "mkt-rev:"+rows[i].ID, &rows[i].ID); err != nil {
 			return err
 		}
-		if s.cash != nil && (origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled) {
+		if s.cash != nil && (origStatus == StatusAvailable || origStatus == StatusPaid || origStatus == StatusSettled || origStatus == StatusHeld) {
 			if err := s.cash.ReverseCommissionTx(tx, rows[i].ID); err != nil {
 				return err
 			}
@@ -472,42 +481,57 @@ func (s *Service) UnfreezeUsage(ctx context.Context, now time.Time, usageEventID
 		if err := lockSettlementLifecycle(tx); err != nil {
 			return err
 		}
-		var rows []entryRow
-		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now)
-		if usageEventID != "" {
-			q = q.Where("usage_event_id = ?", usageEventID)
+		var err error
+		n, err = s.unfreezeTx(tx, now, usageEventID, nil)
+		return err
+	})
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// Caller holds the lifecycle lock; status, marketing transfer and cash credit commit together.
+func (s *Service) unfreezeTx(tx *gorm.DB, now time.Time, usageEventID string, entryIDs []string) (int, error) {
+	n := 0
+	var rows []entryRow
+	q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id").Where("status = ? AND available_at IS NOT NULL AND available_at <= ?", StatusFrozen, now)
+	if usageEventID != "" {
+		q = q.Where("usage_event_id = ?", usageEventID)
+	}
+	if len(entryIDs) > 0 {
+		q = q.Where("id IN ?", entryIDs)
+	}
+	if err := q.Find(&rows).Error; err != nil {
+		return n, err
+	}
+	for i := range rows {
+		rows[i].Status = StatusAvailable
+		if err := tx.Save(&rows[i]).Error; err != nil {
+			return n, err
 		}
-		if err := q.Find(&rows).Error; err != nil {
-			return err
+		ch := ""
+		if rows[i].ChannelOrgID != nil {
+			ch = *rows[i].ChannelOrgID
 		}
-		for i := range rows {
-			rows[i].Status = StatusAvailable
-			if err := tx.Save(&rows[i]).Error; err != nil {
-				return err
-			}
-			ch := ""
-			if rows[i].ChannelOrgID != nil {
-				ch = *rows[i].ChannelOrgID
-			}
-			if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingFrozen, rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-frz:"+rows[i].ID, nil); err != nil {
-				return err
-			}
-			if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingIssued, -rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-iss:"+rows[i].ID, nil); err != nil {
-				return err
-			}
-			if s.cash != nil && rows[i].AmountMinor > 0 {
-				uid := s.beneficiaryUser(ctx, rows[i])
-				if uid != "" {
-					if err := s.cash.CreditCommissionTx(tx, uid, rows[i].ID, rows[i].AmountMinor); err != nil {
-						return err
-					}
+		if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingFrozen, rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-frz:"+rows[i].ID, nil); err != nil {
+			return n, err
+		}
+		if err := writeMarketing(tx, ch, MarketingKindCommission, MarketingIssued, -rows[i].AmountMinor, rows[i].UsageEventID, rows[i].ID, "unfreeze", rows[i].ID, "mkt-unfrz-iss:"+rows[i].ID, nil); err != nil {
+			return n, err
+		}
+		if s.cash != nil && rows[i].AmountMinor > 0 {
+			uid := s.beneficiaryUser(tx.Statement.Context, rows[i])
+			if uid != "" {
+				if err := s.cash.CreditCommissionTx(tx, uid, rows[i].ID, rows[i].AmountMinor); err != nil {
+					return n, err
 				}
 			}
-			n++
 		}
-		return nil
-	})
-	return n, err
+		n++
+	}
+
+	return n, nil
 }
 
 // HoldUnsettledForUser 把该用户产生的未结算佣金标成 held，封禁后不再进入结算。
@@ -515,28 +539,56 @@ func (s *Service) HoldUnsettledForUser(ctx context.Context, userID string) (int,
 	if userID == "" {
 		return 0, nil
 	}
-	res := s.db.WithContext(ctx).Model(&entryRow{}).
-		Where("user_id = ? AND status IN ?", userID, []string{StatusFrozen, StatusAvailable}).
-		Updates(map[string]any{"status": StatusHeld})
-	return int(res.RowsAffected), res.Error
+	n := 0
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
+		}
+		res := tx.Model(&entryRow{}).Where("user_id = ? AND status IN ?", userID, []string{StatusFrozen, StatusAvailable}).Update("status", StatusHeld)
+		n = int(res.RowsAffected)
+		return res.Error
+	})
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
-// ReleaseHeldForUser 解封后按冻结截止时间把 held 恢复成 frozen 或 available。
+// Release only the held rows, then run the normal due-date and accounting transition.
+// Existing unfreeze/credit keys make an already credited hold safe to release again.
 func (s *Service) ReleaseHeldForUser(ctx context.Context, userID string) (int, error) {
 	if userID == "" {
 		return 0, nil
 	}
-	now := time.Now().UTC()
-	avail := s.db.WithContext(ctx).Model(&entryRow{}).
-		Where("user_id = ? AND status = ? AND available_at IS NOT NULL AND available_at <= ?", userID, StatusHeld, now).
-		Updates(map[string]any{"status": StatusAvailable})
-	if avail.Error != nil {
-		return 0, avail.Error
+	n := 0
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
+		}
+		var rows []entryRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ? AND status = ?", userID, StatusHeld).Order("id").Find(&rows).Error; err != nil {
+			return err
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		ids := make([]string, 0, len(rows))
+		for _, row := range rows {
+			ids = append(ids, row.ID)
+		}
+		if err := tx.Model(&entryRow{}).Where("id IN ?", ids).Update("status", StatusFrozen).Error; err != nil {
+			return err
+		}
+		if _, err := s.unfreezeTx(tx, time.Now().UTC(), "", ids); err != nil {
+			return err
+		}
+		n = len(rows)
+		return nil
+	})
+	if err != nil {
+		return 0, err
 	}
-	frozen := s.db.WithContext(ctx).Model(&entryRow{}).
-		Where("user_id = ? AND status = ?", userID, StatusHeld).
-		Updates(map[string]any{"status": StatusFrozen})
-	return int(avail.RowsAffected + frozen.RowsAffected), frozen.Error
+	return n, nil
 }
 
 func (s *Service) ForceAvailableAt(ctx context.Context, usageEventID string, at time.Time) error {

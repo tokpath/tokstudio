@@ -40,6 +40,8 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
 	r.POST("/v1/me/password", a.requireAnyUser(), a.changePassword)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
+	r.GET("/admin/channels/:id/admins", a.requireRoles("platform_admin"), a.listChannelAdmins)
+	r.POST("/admin/channels/:id/admins", a.requireRoles("platform_admin"), a.setChannelAdmin)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.createChannel)
 	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.getChannel)
@@ -744,7 +746,11 @@ func (a *App) createChannel(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
-	if err := a.Catalog.GrantDefaultModels(c.Request.Context(), item.ID); err != nil {
+	sourceChannel := identity.OfficialChannelID
+	if item.ParentID != "" {
+		sourceChannel = item.ParentID
+	}
+	if err := a.Catalog.GrantModelsFrom(c.Request.Context(), item.ID, sourceChannel); err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道默认模型失败", true)
 		return
 	}

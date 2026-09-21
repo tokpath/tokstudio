@@ -276,7 +276,7 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "核对佣金" })).toBeVisible();
   await page.goto("/admin/usage");
   await expect(page.getByRole("heading", { name: "用量回放" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "回放 usage" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "补录真实用量" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
   await expect(page.getByTestId("admin-usage-trend-chart")).toBeVisible();
   await expect(page.getByLabel("按 API Key 筛选")).toBeVisible();

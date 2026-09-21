@@ -9,7 +9,7 @@ import { apiBase } from "@/lib/api";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 
-type Audit = { id: string; action: string; resource_type: string; resource_id: string };
+type Audit = { id: string; action: string; resource_type: string; resource_id: string; actor_user_id?: string; created_at?: string; before?: unknown; after?: unknown; request_id?: string };
 
 export default function AdminAuditPage() {
   const queryClient = useQueryClient();
@@ -69,9 +69,12 @@ export default function AdminAuditPage() {
         path="/admin/audit-logs"
         title="审计日志"
         columns={[
-          { accessorKey: "action", header: "Action" },
-          { accessorKey: "resource_type", header: "Resource" },
-          { accessorKey: "resource_id", header: "ID" },
+          { accessorKey: "created_at", header: "时间", cell: ({row}) => row.original.created_at ? new Date(row.original.created_at).toLocaleString() : "—" },
+          { accessorKey: "actor_user_id", header: "操作人编号", cell: ({row}) => row.original.actor_user_id || "系统" },
+          { accessorKey: "action", header: "操作" },
+          { accessorKey: "resource_type", header: "对象类型" },
+          { accessorKey: "resource_id", header: "对象编号" },
+          { id: "details", header: "变更凭证", cell: ({row}) => <details><summary className="cursor-pointer text-brand-emphasis">查看详情</summary><p className="mt-2">请求编号：{row.original.request_id || "—"}</p><p className="mt-2 font-medium">变更前</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.before ?? {},null,2)}</pre><p className="mt-2 font-medium">变更后（含操作原因）</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.after ?? {},null,2)}</pre></details> },
         ]}
       />
     </AdminShell>

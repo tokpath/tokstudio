@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminShell } from "../../shell";
 import { AdminListPanel } from "../../list-panel";
+import { ChannelAdminsPanel } from "../admins-panel";
 import { ChannelQuotaPanel } from "../quota-panel";
 import { ChannelPnLPanel } from "../pnl-panel";
 import { AdminSupplierPanel } from "../../billing/supplier-panel";
@@ -211,6 +212,7 @@ export default function AdminChannelDetailPage() {
       </IfCan>
       <ChannelPnLPanel channelID={id} />
       <AdminSupplierPanel channelID={id} />
+      {item && item.type !== "A" ? <IfCan action="channels.write"><ChannelAdminsPanel channelID={id} code={item.code} /></IfCan> : null}
       <ChannelPaymentReadiness channelID={id} />
       <IfCan action="partners.view">
       <AdminListPanel<Role>

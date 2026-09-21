@@ -406,11 +406,15 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 
 // GrantDefaultModels 给新渠道复制官方已启用的模型白名单，用户才能聊天/做媒体。
 func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) error {
+	return s.GrantModelsFrom(ctx, channelOrgID, identity.OfficialChannelID)
+}
+
+func (s *Service) GrantModelsFrom(ctx context.Context, channelOrgID, sourceChannelID string) error {
 	if channelOrgID == "" || channelOrgID == identity.OfficialChannelID {
 		return nil
 	}
 	var src []channelPolicyRow
-	if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND enabled = true", identity.OfficialChannelID).Find(&src).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND enabled = true", sourceChannelID).Find(&src).Error; err != nil {
 		return err
 	}
 	for _, policy := range src {

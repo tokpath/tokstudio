@@ -622,24 +622,16 @@ test("partner console shows scoped downline cards", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "范围内结算" })).toBeVisible();
 });
 
-test("channel console shows scoped user list", async ({ page }) => {
+test("channel home directs operators to focused task pages", async ({ page }) => {
   await page.goto("/channel");
-  await expect(page.getByRole("heading", { name: "本渠道用户" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "本渠道模型" })).toBeVisible();
-  await expect(page.getByText("所有租户的模型资源都只能从平台目录出发。渠道不能自建提供商或模型，也不能引入目录外的模型。")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "本渠道套餐" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "创建渠道套餐" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "创建渠道套餐" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "推广链接" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "本渠道归因" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "本渠道用量" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "按日用量" })).toBeVisible();
-  await expect(page.getByTestId("usage-trend-chart")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "密钥汇总" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "本渠道结算" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "渠道额度与佣金" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "已发放额度" })).toBeVisible();
-  await expect(page.getByText(/换算比 .+ BPS/)).toBeVisible();
+  await expect(page.getByRole("region", {name:"渠道总览"})).toBeVisible();
+  await expect(page.getByRole("button", {name:"创建渠道套餐"})).toHaveCount(0);
+  await page.getByRole("main").getByRole("link").filter({hasText:"本渠道用户"}).click();
+  await expect(page).toHaveURL(/\/channel\/users$/);
+  await expect(page.getByRole("button", {name:"刷新用户"})).toBeVisible();
+  await page.goto("/channel/plans");
+  await expect(page.getByRole("heading", {name:"创建渠道套餐"})).toBeVisible();
+  await expect(page.getByRole("button", {name:"创建渠道套餐"})).toBeVisible();
 });
 
 async function fulfillJSON(route: Route, status: number, body: unknown) {

@@ -888,7 +888,7 @@
     },
     "channelAttribution": {
       "eyebrow": "ATTRIBUTION",
-      "title": "枠",
+      "title": "チャネルの帰属",
       "description": "プロモコードと階層で集計。他人の帰属は変えられません。"
     },
     "channelUsage": {
@@ -939,7 +939,7 @@
     "channelHome": {
       "eyebrow": "CHANNEL",
       "title": "このチャネル",
-      "description": "チャネル管理者は自分のユーザー、プラン、プロモ、帰属、使用量だけ見ます。モデルはプラットフォーム目録からのみ。テナントはプロバイダやモデルを追加できません。API が scope を再確認します。"
+      "description": "自分のチャネルのユーザー、プラン、紹介と会計を管理します。下から業務を選択してください。モデルはプラットフォームが許可したものに限られます。"
     },
     "partnerHome": {
       "eyebrow": "PARTNER",
@@ -1838,7 +1838,7 @@
     "refEmpty": "紹介記録はまだありません",
     "refEmptyDetail": "あなたのコードで登録した人はまだいません。人数は作りません。",
     "payOfflineTitle": "このチャネルではオンライン決済が未開通です",
-    "payOfflineDetail": "兑换コードを使うか、チャネルサポートへ。",
+    "payOfflineDetail": "交換コードを使用するか、チャネルのサポートにお問い合わせください。",
     "payMethodsFailed": "支払い方法の読み込みに失敗しました",
     "payNoAutoRenew": "自動更新非対応。期限後は手動更新が必要です。",
     "payAutoRenew": "期限で同じ支払い方法で更新。いつでもキャンセル可。",

@@ -130,8 +130,9 @@ export function CreateModelDialog({
             <ConfirmButton
               size="sm"
               title="确认创建模型"
-              description="将创建为待审核草稿。请勿修改 tokenhub/echo-1。"
-              validate={() => form.trigger()}
+              description={`模型 ${form.watch("display_name")}（${form.watch("public_id")}），原厂 ${vendor}。创建为待审核草稿，须由另一位管理员审核后才能发布。`}
+              error={message || undefined}
+              validate={() => { setMessage(""); return form.trigger(); }}
               onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                 try {
                 const created = await fetch(`${apiBase}/admin/models`, {

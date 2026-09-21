@@ -237,13 +237,6 @@ func (s *Service) DeprecateModel(ctx context.Context, publicID string) (*ModelVi
 		Update("status", "deprecated").Error; err != nil {
 		return nil, err
 	}
-	var prices int64
-	_ = s.db.WithContext(ctx).Model(&priceRow{}).Where("public_model_id = ?", model.ID).Count(&prices).Error
-	var maps int64
-	_ = s.db.WithContext(ctx).Model(&mappingRow{}).Where("public_model_id = ?", model.ID).Count(&maps).Error
-	if prices == 0 || maps == 0 {
-		return nil, ErrInvalidInput
-	}
 	model.Status = "deprecated"
 	return s.modelView(ctx, *model)
 }

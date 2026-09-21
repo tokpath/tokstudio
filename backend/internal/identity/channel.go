@@ -307,6 +307,9 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 	if err := ValidateChannelParent(parent.Type, in.Type); err != nil {
 		return nil, err
 	}
+	if parent.Type == ChannelTypeC {
+		in.BrandID = parent.BrandID
+	}
 	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC(), ParentID: &parentID}
 	if in.Type == ChannelTypeC {
 		// C 可后续配自有品牌；默认仍用传入 brand。

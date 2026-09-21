@@ -82,6 +82,7 @@ export default function AdminModelEditPage() {
   const queryClient = useQueryClient();
   const [attrMessage, setAttrMessage] = useState("只改客户看到的名字和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。");
   const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
+  const [lifeError, setLifeError] = useState("");
   const [lifeMessage, setLifeMessage] = useState("草稿需由另一位管理员审核后再单独发布。创建人不能审核或发布。弃用不删除历史映射和价格。");
   const [attachMessage, setAttachMessage] = useState("把这个公开模型接到一家提供商，并填写该提供商内部的上游模型标识。");
   const query = useQuery({
@@ -463,6 +464,8 @@ export default function AdminModelEditPage() {
           <ConfirmButton
             size="sm"
             disabled={!life.approve}
+            error={lifeError}
+            validate={() => { setLifeError(""); return true; }}
             title="确认通过模型"
             description="只标记审核通过，不会发布到客户目录。创建人不能审核自己建的模型。"
             onConfirm={async () => {
@@ -474,12 +477,12 @@ export default function AdminModelEditPage() {
                 body: JSON.stringify({ public_id: publicId, action: "approve" }),
               });
               const body = await res.json();
-              setLifeMessage(res.ok ? `已通过 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "审核失败");
+              if (res.ok) setLifeMessage(`已通过 ${body.item?.id} → ${body.item?.sync_state}`); else setLifeError(body.error?.message || "审核失败");
                     const __ok = res.ok;
-              await reload();
+              if (res.ok) void reload();
                     return __ok;
                     } catch {
-                      setLifeMessage(confirmNetworkUnavailable);
+                      setLifeError(confirmNetworkUnavailable);
                       return false;
                     }
 }}
@@ -490,6 +493,8 @@ export default function AdminModelEditPage() {
             size="sm"
             variant="outline"
             disabled={!life.reject}
+            error={lifeError}
+            validate={() => { setLifeError(""); return true; }}
             title="确认拒绝模型"
             description="拒绝后不能发布，需要重新通过。"
             onConfirm={async () => {
@@ -501,12 +506,12 @@ export default function AdminModelEditPage() {
                 body: JSON.stringify({ public_id: publicId, action: "reject" }),
               });
               const body = await res.json();
-              setLifeMessage(res.ok ? `已拒绝 ${body.item?.id} → ${body.item?.sync_state}` : body.error?.message || "拒绝失败");
+              if (res.ok) setLifeMessage(`已拒绝 ${body.item?.id} → ${body.item?.sync_state}`); else setLifeError(body.error?.message || "拒绝失败");
                     const __ok = res.ok;
-              await reload();
+              if (res.ok) void reload();
                     return __ok;
                     } catch {
-                      setLifeMessage(confirmNetworkUnavailable);
+                      setLifeError(confirmNetworkUnavailable);
                       return false;
                     }
 }}
@@ -516,6 +521,8 @@ export default function AdminModelEditPage() {
           <ConfirmButton
             size="sm"
             disabled={!life.publish}
+            error={lifeError}
+            validate={() => { setLifeError(""); return true; }}
             title="确认发布模型"
             description="必须先审核通过。创建人不能发布自己建的模型。"
             onConfirm={async () => {
@@ -527,12 +534,12 @@ export default function AdminModelEditPage() {
                 body: JSON.stringify({ public_id: publicId }),
               });
               const body = await res.json();
-              setLifeMessage(res.ok ? `已发布 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "发布失败");
+              if (res.ok) setLifeMessage(`已发布 ${body.item?.id} → ${body.item?.status}`); else setLifeError(body.error?.message || "发布失败");
                     const __ok = res.ok;
-              await reload();
+              if (res.ok) void reload();
                     return __ok;
                     } catch {
-                      setLifeMessage(confirmNetworkUnavailable);
+                      setLifeError(confirmNetworkUnavailable);
                       return false;
                     }
 }}
@@ -543,6 +550,8 @@ export default function AdminModelEditPage() {
             size="sm"
             variant="outline"
             disabled={!life.deprecate}
+            error={lifeError}
+            validate={() => { setLifeError(""); return true; }}
             title="确认弃用模型"
             description="只改状态，不删除历史映射和价格版本。"
             onConfirm={async () => {
@@ -554,12 +563,12 @@ export default function AdminModelEditPage() {
                 body: JSON.stringify({ public_id: publicId }),
               });
               const body = await res.json();
-              setLifeMessage(res.ok ? `已弃用 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "弃用失败");
+              if (res.ok) setLifeMessage(`已弃用 ${body.item?.id} → ${body.item?.status}`); else setLifeError(body.error?.message || "弃用失败");
                     const __ok = res.ok;
-              await reload();
+              if (res.ok) void reload();
                     return __ok;
                     } catch {
-                      setLifeMessage(confirmNetworkUnavailable);
+                      setLifeError(confirmNetworkUnavailable);
                       return false;
                     }
 }}

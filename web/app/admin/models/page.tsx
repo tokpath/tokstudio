@@ -36,6 +36,7 @@ export default function AdminModelsPage() {
   const [tab, setTab] = useState<Tab>("catalog");
   const [syncState, setSyncState] = useState("draft");
   const [createOpen, setCreateOpen] = useState(false);
+  const [operationError, setOperationError] = useState("");
   const [message, setMessage] = useState("待审核由另一人通过后再发布。创建人不能审核或发布自己建的模型。");
   const path = syncState ? `/admin/models?sync_state=${encodeURIComponent(syncState)}` : "/admin/models";
   const query = useQuery({
@@ -57,12 +58,13 @@ export default function AdminModelsPage() {
       body: JSON.stringify({ public_id: id, action }),
     });
     const body = await res.json();
-    setMessage(res.ok ? `已${action === "approve" ? "通过" : "拒绝"} ${body.item?.id}` : body.error?.message || "审核失败");
+    if (res.ok) setMessage(`已${action === "approve" ? "通过" : "拒绝"} ${body.item?.id}`);
+    else setOperationError(body.error?.message || "审核失败，请核对权限后重试。");
     const __ok = res.ok;
-    await queryClient.invalidateQueries();
+    if (res.ok) void queryClient.invalidateQueries();
     return __ok;
     } catch {
-      setMessage(confirmNetworkUnavailable);
+      setOperationError(confirmNetworkUnavailable);
       return false;
     }
 }
@@ -76,12 +78,13 @@ export default function AdminModelsPage() {
       body: JSON.stringify({ public_id: id }),
     });
     const body = await res.json();
-    setMessage(res.ok ? `已发布 ${body.item?.id} → ${body.item?.status}` : body.error?.message || "发布失败");
+    if (res.ok) setMessage(`已发布 ${body.item?.id}`);
+    else setOperationError(body.error?.message || "发布失败，请核对审核状态后重试。");
     const __ok = res.ok;
-    await queryClient.invalidateQueries();
+    if (res.ok) void queryClient.invalidateQueries();
     return __ok;
     } catch {
-      setMessage(confirmNetworkUnavailable);
+      setOperationError(confirmNetworkUnavailable);
       return false;
     }
 }
@@ -228,6 +231,8 @@ export default function AdminModelsPage() {
                       {item.sync_state === "draft" || !item.sync_state ? (
                         <>
                           <ConfirmButton
+                            error={operationError}
+                            validate={() => { setOperationError(""); return true; }}
                             size="sm"
                             title="确认通过模型"
                             description={`将通过 ${item.id}。创建人不能审核自己建的模型。`}
@@ -236,6 +241,8 @@ export default function AdminModelsPage() {
                             通过
                           </ConfirmButton>
                           <ConfirmButton
+                            error={operationError}
+                            validate={() => { setOperationError(""); return true; }}
                             size="sm"
                             variant="outline"
                             title="确认拒绝模型"
@@ -248,6 +255,8 @@ export default function AdminModelsPage() {
                       ) : null}
                       {item.sync_state === "reviewed" ? (
                         <ConfirmButton
+                            error={operationError}
+                            validate={() => { setOperationError(""); return true; }}
                           size="sm"
                           title="确认发布模型"
                           description={`将发布 ${item.id} 到客户目录。创建人不能发布自己建的模型。`}

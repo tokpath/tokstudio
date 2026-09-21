@@ -888,7 +888,7 @@
     },
     "channelAttribution": {
       "eyebrow": "ATTRIBUTION",
-      "title": "Quota",
+      "title": "Channel attribution",
       "description": "Counted by promo code and partner tier. You cannot reassign others."
     },
     "channelUsage": {
@@ -939,7 +939,7 @@
     "channelHome": {
       "eyebrow": "CHANNEL",
       "title": "This channel",
-      "description": "Channel admins only see their own users, plans, promos, attribution, and usage. Models come from the platform catalog; tenants cannot add providers or models. The API still checks scope."
+      "description": "Manage your channel’s users, plans, referrals and accounts. Choose a task below; models are limited to the platform-authorized catalog."
     },
     "partnerHome": {
       "eyebrow": "PARTNER",

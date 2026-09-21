@@ -22,7 +22,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   rowSelected,
   actions,
   emptyTitle = "暂无记录",
-  emptyDetail = "登录平台管理员后可以看到数据。",
+  emptyDetail = "当前条件下暂无记录，可调整筛选条件后重试。",
   stickyEnds = true,
   density = "admin",
 }: {
@@ -54,10 +54,11 @@ export function AdminListPanel<T extends Record<string, unknown>>({
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {actions}
           <Input
             className="w-44 sm:w-56"
+            aria-label="筛选列表"
             placeholder={tc("filter")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -65,7 +66,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || tc("needAdmin")}</p>
+        <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || "数据加载失败，请检查网络后刷新重试。"}</p>
       ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-[52rem] w-full text-left text-sm">
@@ -81,12 +82,14 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             ))}
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {query.isLoading ? (
+              <tr><td colSpan={Math.max(colCount, 1)} className="px-3 py-6"><p role="status">正在加载记录…</p></td></tr>
+            ) : data.length === 0 ? (
               <tr>
                 <td colSpan={Math.max(colCount, 1)} className="px-3 py-6">
                   <EmptyState
                     title={query.isError || query.data?.error ? "暂时看不到数据" : emptyTitle}
-                    detail={query.isError || query.data?.error ? tc("needAdmin") : emptyDetail}
+                    detail={query.isError || query.data?.error ? "请检查网络或联系管理员确认访问权限，然后刷新重试。" : emptyDetail}
                   />
                 </td>
               </tr>

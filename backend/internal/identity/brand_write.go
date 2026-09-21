@@ -60,7 +60,7 @@ func (s *Service) SetStore(store ObjectStore) {
 
 func (s *Service) ChannelIDByBrand(ctx context.Context, brandID string) (string, error) {
 	var row channelRow
-	err := s.db.WithContext(ctx).Where("brand_id = ?", brandID).Order("id").First(&row).Error
+	err := s.db.WithContext(ctx).Where("brand_id = ?", brandID).Order("CASE WHEN type = 'A' THEN 0 WHEN type = 'C' THEN 1 ELSE 2 END").Order("created_at").Order("id").First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return OfficialChannelID, nil

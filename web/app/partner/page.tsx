@@ -1,3 +1,4 @@
+import { TaskLinks } from "@/components/console/task-links";
 import { ReferralPanel } from "@/components/console/referral-panel";
 import { PartnerBoard } from "./partner-board";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
@@ -7,7 +8,8 @@ export default function PartnerConsole() {
     <div className="flex flex-col gap-8">
       <I18nConsoleHeader id="partnerHome" />
       <ReferralPanel />
-      <PartnerBoard section="all" />
+      <PartnerBoard section="scope" />
+      <TaskLinks items={[{id:"partnerUsers",href:"/partner/users"},{id:"partnerCommissions",href:"/partner/commissions"},{id:"partnerSettlements",href:"/partner/settlements"}]} />
     </div>
   );
 }

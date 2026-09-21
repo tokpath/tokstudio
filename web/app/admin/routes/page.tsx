@@ -68,6 +68,7 @@ function formatCandidates(candidates?: RouteCandidate[]): string {
 export default function AdminRoutesPage() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("创建与修改策略均需二次确认。请勿修改 rg_echo，该路由为文本网关默认路由。");
+  const [submitError,setSubmitError]=useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const createForm = useForm<z.infer<typeof createSchema>>({
@@ -231,8 +232,9 @@ export default function AdminRoutesPage() {
               <ConfirmButton
                 size="sm"
                 title="确认创建路由"
-                description="请勿修改 rg_echo。选路策略只决定走哪家提供商、谁优先。"
-                validate={() => createForm.trigger()}
+                description={`为模型 ${createForm.watch("public_model_id")} 创建路由；策略「${routeStrategyLabel(createForm.watch("strategy"))}」，状态「${routeStatusLabel(createForm.watch("status"))}」，提供商 ${createForm.watch("provider_id") || "未选择，路由尚不能承接请求"}。`}
+                error={submitError}
+                validate={() => {setSubmitError("");return createForm.trigger();}}
                 onConfirm={confirmFormSubmit(createForm.handleSubmit, async (values) => {
                   try {
                   const body: Record<string, unknown> = {
@@ -251,7 +253,7 @@ export default function AdminRoutesPage() {
                   });
                   const json = await res.json();
                   if (!res.ok) {
-                    setMessage(json.error?.message || "创建失败");
+                    setSubmitError(json.error?.message || "创建失败");
                     return false;
                   }
                   createForm.reset();
@@ -260,7 +262,7 @@ export default function AdminRoutesPage() {
                   await queryClient.invalidateQueries();
                   return true;
                   } catch {
-                    setMessage(confirmNetworkUnavailable);
+                    setSubmitError(confirmNetworkUnavailable);
                     return false;
                   }
 })}
@@ -298,8 +300,9 @@ export default function AdminRoutesPage() {
               <ConfirmButton
                 size="sm"
                 title="确认保存策略"
-                description="请勿修改 rg_echo。"
-                validate={() => patchForm.trigger()}
+                description={`路由 ${patchForm.watch("route_id")}；选路策略改为「${routeStrategyLabel(patchForm.watch("strategy"))}」；状态「${routeStatusLabel(patchForm.watch("status"))}」。保存后影响此路由的后续请求。`}
+                error={submitError}
+                validate={() => {setSubmitError("");return patchForm.trigger();}}
                 onConfirm={confirmFormSubmit(patchForm.handleSubmit, async (values) => {
                   try {
                   const res = await fetch(`${apiBase}/admin/routes/${values.route_id}`, {
@@ -310,7 +313,7 @@ export default function AdminRoutesPage() {
                   });
                   const json = await res.json();
                   if (!res.ok) {
-                    setMessage(json.error?.message || "保存失败");
+                    setSubmitError(json.error?.message || "保存失败");
                     return false;
                   }
                   setMessage(`已保存 ${json.item?.id} → ${json.item?.strategy} / ${json.item?.status}`);
@@ -318,7 +321,7 @@ export default function AdminRoutesPage() {
                   await queryClient.invalidateQueries();
                   return true;
                   } catch {
-                    setMessage(confirmNetworkUnavailable);
+                    setSubmitError(confirmNetworkUnavailable);
                     return false;
                   }
 })}

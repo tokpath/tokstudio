@@ -773,10 +773,15 @@ func (s *Service) attachAccountCounts(ctx context.Context, items []ProviderView)
 	}
 }
 
+var ErrProbeUnsupported = errors.New("active upstream probe not implemented")
+
 func (s *Service) Probe(ctx context.Context, providerID string) (string, error) {
 	var provider providerRow
 	if err := s.db.WithContext(ctx).Where("id = ?", providerID).First(&provider).Error; err != nil {
 		return "", err
+	}
+	if provider.Adapter != "test" {
+		return "", ErrProbeUnsupported
 	}
 	health := "available"
 	switch provider.TestBehavior {
@@ -785,7 +790,9 @@ func (s *Service) Probe(ctx context.Context, providerID string) (string, error) 
 	case "429", "degraded":
 		health = "degraded"
 	}
-	_ = s.MarkHealth(ctx, provider.ID, health)
+	if err := s.MarkHealth(ctx, provider.ID, health); err != nil {
+		return "", err
+	}
 	return health, nil
 }
 

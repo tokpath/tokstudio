@@ -18,6 +18,7 @@ import { useConfirmSession, type ConfirmResult } from "@/components/use-confirm-
 export type { ConfirmResult };
 
 export type ConfirmButtonProps = Omit<ButtonProps, "onClick" | "type"> & {
+  error?: string;
   title: string;
   description?: string;
   confirmLabel?: string;
@@ -126,6 +127,7 @@ export function ConfirmDialog({
 }
 
 export function ConfirmButton({
+  error,
   title,
   description,
   confirmLabel,
@@ -164,6 +166,7 @@ export function ConfirmButton({
         runConfirm={() => void runConfirm()}
         title={title}
         description={description}
+        error={error}
         confirmText={confirmText}
         cancelText={cancelText}
       />

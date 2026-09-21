@@ -6,12 +6,13 @@ import (
 )
 
 var (
-	ErrWalletMismatch    = errors.New("commission wallet does not match settlement")
-	ErrConflict          = errors.New("commission operation conflict")
-	ErrSettlementChanged = errors.New("settlement changed after commission reversal")
-	ErrNotFound          = errors.New("commission record not found")
-	ErrInvalid           = errors.New("invalid commission request")
-	ErrBelowMinimum      = errors.New("below minimum settlement")
+	ErrSnapshotUnavailable = errors.New("original commission snapshot unavailable")
+	ErrWalletMismatch      = errors.New("commission wallet does not match settlement")
+	ErrConflict            = errors.New("commission operation conflict")
+	ErrSettlementChanged   = errors.New("settlement changed after commission reversal")
+	ErrNotFound            = errors.New("commission record not found")
+	ErrInvalid             = errors.New("invalid commission request")
+	ErrBelowMinimum        = errors.New("below minimum settlement")
 )
 
 const (

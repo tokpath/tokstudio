@@ -27,9 +27,10 @@ var (
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
 type Commissioner interface {
+	LockLifecycleTx(tx *gorm.DB) error
 	Totals(ctx context.Context) (liability, expense int64, err error)
-	AccrueUsage(ctx context.Context, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
-	ReverseUsage(ctx context.Context, usageEventID string) error
+	AccrueUsageTx(tx *gorm.DB, usageEventID, requestID, userID, channelOrgID string, wholesaleMinor int64) error
+	RecalcUsageTx(tx *gorm.DB, usageEventID string, base int64) (*CommissionView, error)
 	ReverseUsageTx(tx *gorm.DB, usageEventID string) error
 }
 
@@ -330,6 +331,7 @@ type AllocationView struct {
 }
 
 type CommissionView struct {
+	Changed       bool   `json:"changed"`
 	ID            string `json:"id"`
 	UsageEventID  string `json:"usage_event_id"`
 	AmountMinor   int64  `json:"amount_minor"`

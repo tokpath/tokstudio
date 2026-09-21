@@ -3,6 +3,7 @@ package commission
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"strings"
@@ -40,24 +41,25 @@ type policyRow struct {
 func (policyRow) TableName() string { return "commission_policies" }
 
 type entryRow struct {
-	ID                string     `gorm:"column:id;primaryKey"`
-	UsageEventID      string     `gorm:"column:usage_event_id"`
-	RequestID         *string    `gorm:"column:request_id"`
-	UserID            *string    `gorm:"column:user_id"`
-	ChannelOrgID      *string    `gorm:"column:channel_org_id"`
-	BeneficiaryRoleID *string    `gorm:"column:beneficiary_role_id"`
-	Kind              string     `gorm:"column:kind"`
-	PolicyVersion     string     `gorm:"column:policy_version"`
-	BaseAmountMinor   int64      `gorm:"column:base_amount_minor"`
-	RawAmountMinor    int64      `gorm:"column:raw_amount_minor"`
-	AmountMinor       int64      `gorm:"column:amount_minor"`
-	Status            string     `gorm:"column:status"`
-	AvailableAt       *time.Time `gorm:"column:available_at"`
-	SettlementID      *string    `gorm:"column:settlement_id"`
-	SourceEntryID     *string    `gorm:"column:source_entry_id"`
-	ReversalOf        *string    `gorm:"column:reversal_of"`
-	IdempotencyKey    string     `gorm:"column:idempotency_key"`
-	CreatedAt         time.Time  `gorm:"column:created_at"`
+	PolicySnapshot    json.RawMessage `gorm:"column:policy_snapshot"`
+	ID                string          `gorm:"column:id;primaryKey"`
+	UsageEventID      string          `gorm:"column:usage_event_id"`
+	RequestID         *string         `gorm:"column:request_id"`
+	UserID            *string         `gorm:"column:user_id"`
+	ChannelOrgID      *string         `gorm:"column:channel_org_id"`
+	BeneficiaryRoleID *string         `gorm:"column:beneficiary_role_id"`
+	Kind              string          `gorm:"column:kind"`
+	PolicyVersion     string          `gorm:"column:policy_version"`
+	BaseAmountMinor   int64           `gorm:"column:base_amount_minor"`
+	RawAmountMinor    int64           `gorm:"column:raw_amount_minor"`
+	AmountMinor       int64           `gorm:"column:amount_minor"`
+	Status            string          `gorm:"column:status"`
+	AvailableAt       *time.Time      `gorm:"column:available_at"`
+	SettlementID      *string         `gorm:"column:settlement_id"`
+	SourceEntryID     *string         `gorm:"column:source_entry_id"`
+	ReversalOf        *string         `gorm:"column:reversal_of"`
+	IdempotencyKey    string          `gorm:"column:idempotency_key"`
+	CreatedAt         time.Time       `gorm:"column:created_at"`
 }
 
 func (entryRow) TableName() string { return "commission_entries" }
@@ -192,90 +194,40 @@ func validatePolicy(in PolicyView) error {
 }
 
 func (s *Service) UpdatePolicy(ctx context.Context, in PolicyView) (*PolicyView, error) {
-	if err := validatePolicy(in); err != nil {
-		return nil, err
-	}
-	var row policyRow
-	if err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "platform", "*").
-		Order("created_at DESC").First(&row).Error; err != nil {
-		return nil, ErrNotFound
-	}
-	row.DirectBPS = in.DirectBPS
-	if in.IndirectBPS > 0 {
-		row.IndirectBPS = in.IndirectBPS
-	} else {
-		row.IndirectBPS = in.OverrideBPS
-	}
-	row.OverrideBPS = row.IndirectBPS
-	row.ChannelBPS = 0
-	row.TeamBPS = 0
-	if in.TotalBPS > 0 {
-		row.TotalBPS = in.TotalBPS
-		row.CapBPS = in.TotalBPS
-	} else if in.CapBPS > 0 {
-		row.CapBPS = in.CapBPS
-		row.TotalBPS = in.CapBPS
-	}
-	if in.FreezeDays > 0 {
-		row.FreezeDays = in.FreezeDays
-	}
-	row.MinSettleMinor = in.MinSettleMinor
-	if in.Version != "" {
-		row.Version = in.Version
-	}
-	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
-		return nil, err
-	}
-	return policyView(row), nil
+	return s.savePolicyVersion(ctx, "platform", "*", in)
 }
-
 func (s *Service) UpdateChannelPolicy(ctx context.Context, channelID string, in PolicyView) (*PolicyView, error) {
 	if channelID == "" {
 		return nil, ErrInvalid
 	}
+	return s.savePolicyVersion(ctx, "channel", channelID, in)
+}
+func (s *Service) savePolicyVersion(ctx context.Context, scope, scopeID string, in PolicyView) (*PolicyView, error) {
 	if err := validatePolicy(in); err != nil {
 		return nil, err
 	}
-	now := time.Now().UTC()
-	var row policyRow
-	err := s.db.WithContext(ctx).Where("status = ? AND scope_type = ? AND scope_id = ?", "active", "channel", channelID).
-		Order("created_at DESC").First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		row = policyRow{
-			ID: id.New("plc"), ScopeType: "channel", ScopeID: channelID, Status: "active", CreatedAt: now,
+	indirect := in.IndirectBPS
+	if indirect == 0 {
+		indirect = in.OverrideBPS
+	}
+	total := in.TotalBPS
+	if total == 0 {
+		total = in.CapBPS
+	}
+	row := policyRow{ID: id.New("plc"), ScopeType: scope, ScopeID: scopeID, Version: in.Version, DirectBPS: in.DirectBPS, IndirectBPS: indirect, OverrideBPS: indirect, TotalBPS: total, CapBPS: total, FreezeDays: in.FreezeDays, MinSettleMinor: in.MinSettleMinor, Status: "active", CreatedAt: time.Now().UTC()}
+	if row.Version == "" {
+		row.Version = id.New("policy")
+	}
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "commission-policy:"+scope+":"+scopeID).Error; err != nil {
+			return err
 		}
-	} else if err != nil {
-		return nil, err
-	}
-	row.DirectBPS = in.DirectBPS
-	if in.IndirectBPS > 0 {
-		row.IndirectBPS = in.IndirectBPS
-	} else {
-		row.IndirectBPS = in.OverrideBPS
-	}
-	row.OverrideBPS = row.IndirectBPS
-	row.ChannelBPS = 0
-	row.TeamBPS = 0
-	if in.TotalBPS > 0 {
-		row.TotalBPS = in.TotalBPS
-		row.CapBPS = in.TotalBPS
-	} else if in.CapBPS > 0 {
-		row.CapBPS = in.CapBPS
-		row.TotalBPS = in.CapBPS
-	}
-	if in.FreezeDays > 0 {
-		row.FreezeDays = in.FreezeDays
-	}
-	row.MinSettleMinor = in.MinSettleMinor
-	if in.Version != "" {
-		row.Version = in.Version
-	} else if row.Version == "" {
-		row.Version = "c-" + channelID
-	}
-	if row.ID == "" {
-		row.ID = id.New("plc")
-	}
-	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		if err := tx.Model(&policyRow{}).Where("scope_type = ? AND scope_id = ? AND status = ?", scope, scopeID, "active").Update("status", "superseded").Error; err != nil {
+			return err
+		}
+		return tx.Create(&row).Error
+	})
+	if err != nil {
 		return nil, err
 	}
 	return policyView(row), nil
@@ -291,21 +243,44 @@ func (s *Service) RecordSignupCredit(ctx context.Context, channelID, userID stri
 }
 
 func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
+	var total int64
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var err error; total, err = s.AccrueTx(tx, in); return err })
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (s *Service) AccrueTx(tx *gorm.DB, in AccrueInput) (int64, error) {
+	if err := lockSettlementLifecycle(tx); err != nil {
+		return 0, err
+	}
+	scoped := *s
+	scoped.db = tx
+	return scoped.accrueLocked(tx.Statement.Context, in)
+}
+func (s *Service) accrueLocked(ctx context.Context, in AccrueInput) (int64, error) {
 	if in.UsageEventID == "" || in.WholesaleMinor <= 0 || in.RoleID == "" || !in.CanCommission {
 		return 0, nil
 	}
 	var existing []entryRow
-	if err := s.db.WithContext(ctx).Where("usage_event_id = ? AND status <> ?", in.UsageEventID, StatusReversed).Find(&existing).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("usage_event_id = ?", in.UsageEventID).Find(&existing).Error; err != nil {
 		return 0, err
 	}
 	if len(existing) > 0 {
 		var sum int64
 		for _, row := range existing {
-			sum += row.AmountMinor
+			if row.Status != StatusReversed {
+				sum += row.AmountMinor
+			}
 		}
 		return sum, nil
 	}
 	policy, err := s.PolicyFor(ctx, in.PolicyChannelID)
+	if err != nil {
+		return 0, err
+	}
+	snapshot, err := json.Marshal(policy)
 	if err != nil {
 		return 0, err
 	}
@@ -319,7 +294,7 @@ func (s *Service) Accrue(ctx context.Context, in AccrueInput) (int64, error) {
 				continue
 			}
 			row := entryRow{
-				ID: id.New("cme"), UsageEventID: in.UsageEventID, Kind: part.Kind,
+				ID: id.New("cme"), UsageEventID: in.UsageEventID, Kind: part.Kind, PolicySnapshot: snapshot,
 				PolicyVersion: policy.Version, BaseAmountMinor: in.WholesaleMinor,
 				RawAmountMinor: part.Raw, AmountMinor: part.Amount, Status: StatusFrozen,
 				AvailableAt: &avail, IdempotencyKey: "cme:" + in.UsageEventID + ":" + part.Kind,
@@ -431,7 +406,7 @@ func (s *Service) ReverseTx(tx *gorm.DB, usageEventID string) error {
 		origAmt := rows[i].AmountMinor
 		rev := entryRow{
 			ID: id.New("cme"), UsageEventID: usageEventID, Kind: rows[i].Kind,
-			PolicyVersion: rows[i].PolicyVersion, BaseAmountMinor: rows[i].BaseAmountMinor,
+			PolicyVersion: rows[i].PolicyVersion, PolicySnapshot: rows[i].PolicySnapshot, BaseAmountMinor: rows[i].BaseAmountMinor,
 			RawAmountMinor: -rows[i].RawAmountMinor, AmountMinor: -rows[i].AmountMinor,
 			Status: StatusReversed, ReversalOf: &rows[i].ID,
 			IdempotencyKey: "cme-rev:" + rows[i].ID, CreatedAt: now,
@@ -945,3 +920,6 @@ func (s *Service) Totals(ctx context.Context) (liability, expense int64, err err
  `).Scan(&totals).Error
 	return totals.Liability, totals.Expense, err
 }
+
+// LockLifecycleTx establishes a consistent lock order before billing wallet/usage rows.
+func (s *Service) LockLifecycleTx(tx *gorm.DB) error { return lockSettlementLifecycle(tx) }

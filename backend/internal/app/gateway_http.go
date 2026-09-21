@@ -635,6 +635,10 @@ func mappedPublicIDs(item catalog.ProviderView) string {
 func (a *App) healthCheckProvider(c *gin.Context) {
 	health, err := a.Catalog.Probe(c.Request.Context(), c.Param("id"))
 	if err != nil {
+		if errors.Is(err, catalog.ErrProbeUnsupported) {
+			httpx.Abort(c, http.StatusNotImplemented, "probe_not_supported", "此提供商尚不支持主动连通性探测，请完成真实上游联调；未修改路由健康标记。", false)
+			return
+		}
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "Provider 不存在", false)
 		return
 	}

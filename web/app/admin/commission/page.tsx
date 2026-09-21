@@ -1,6 +1,7 @@
 "use client";
 
 import { formatUsdMinor } from "@/lib/money";
+import { RecalcPanel } from "./recalc-panel";
 import { RecoveryPanel } from "./recovery-panel";
 import { SettlementPanel } from "./settlement-panel";
 import { useState } from "react";
@@ -45,8 +46,6 @@ export default function AdminCommissionPage() {
   const [topup, setTopup] = useState("10");
   const [gift, setGift] = useState("1");
   const [eligMessage, setEligMessage] = useState("累计消费 / 单笔充值达线；无资格分享发注册赠送积分。金额是 USD。");
-  const [recalcUsageID, setRecalcUsageID] = useState("");
-  const [recalcMessage, setRecalcMessage] = useState("按 usage 上的价格快照冲正旧流水，再挂新冻结额。需要二次确认。");
   const [message, setMessage] = useState("BPS 是万分比。直接+间接不能超过总佣金。保存、解冻、结算和打款都要二次确认。");
 
   const policyQuery = useQuery({
@@ -182,49 +181,7 @@ export default function AdminCommissionPage() {
         </div>
         <p className="mt-3 text-sm text-ink-secondary">{eligMessage}</p>
       </section>
-      <IfCan action="commission.write">
-      <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="recalc" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">用当时价格快照重算，不改历史账单单价。缺确认会 409。</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            className="w-72"
-            value={recalcUsageID}
-            onChange={(e) => setRecalcUsageID(e.target.value)}
-            aria-label="重算用 usage 事件 ID"
-            placeholder="重算用 usage_event_id"
-          />
-          <ConfirmButton
-            size="sm"
-            title="确认重算佣金"
-            description="用当时价格快照重算，不改历史账单单价。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/commissions/recalc`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ usage_event_id: recalcUsageID }),
-              });
-              const body = await res.json();
-              setRecalcMessage(
-                res.ok
-                  ? `已重算 ${body.item?.id || body.item?.usage_event_id} → ${body.item?.status} / ${body.item?.policy_version}`
-                  : body.error?.message || "重算失败",
-              );
-                    return true;
-                    } catch {
-                      setRecalcMessage(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            重算佣金
-          </ConfirmButton>
-          <p className="text-sm text-ink-secondary">{recalcMessage}</p>
-        </div>
-      </section>
-      </IfCan>
+      <IfCan action="commission.write"><RecalcPanel /></IfCan>
       <AdminListPanel<Commission>
         path="/admin/commissions"
         title="佣金明细"

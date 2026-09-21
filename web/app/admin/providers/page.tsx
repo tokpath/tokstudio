@@ -36,7 +36,7 @@ export default function AdminProvidersPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <p className="text-sm text-ink-secondary">{CATALOG_HELP.providers}</p>
+        <p className="text-sm text-ink-secondary">{CATALOG_HELP.providers} 当前健康值是路由记录，不代表已完成真实上游验证；沙箱探测仅验证模拟行为。</p>
       </section>
       <AdminListPanel<Provider>
         path="/admin/providers"

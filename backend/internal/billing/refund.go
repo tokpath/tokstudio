@@ -15,6 +15,11 @@ import (
 func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settlement, error) {
 	var out *Settlement
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if s.commissioner != nil {
+			if err := s.commissioner.LockLifecycleTx(tx); err != nil {
+				return err
+			}
+		}
 		var charge chargeRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("request_id = ?", requestID).First(&charge).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -96,7 +101,7 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 
 func (s *Service) accrueCommission(tx *gorm.DB, usage usageRow) error {
 	if s.commissioner != nil {
-		return s.commissioner.AccrueUsage(context.Background(), usage.ID, usage.RequestID, usage.UserID, stringPtr(usage.ChannelOrgID), usage.WholesaleAmountMinor)
+		return s.commissioner.AccrueUsageTx(tx, usage.ID, usage.RequestID, usage.UserID, stringPtr(usage.ChannelOrgID), usage.WholesaleAmountMinor)
 	}
 	var frozen commissionRow
 	if err := tx.Where("usage_event_id = ? AND status = ?", usage.ID, CommissionFrozen).First(&frozen).Error; err == nil {
@@ -122,7 +127,7 @@ func (s *Service) reverseCommission(tx *gorm.DB, usageEventID string) error {
 		return err
 	}
 	if s.commissioner != nil {
-		return s.commissioner.ReverseUsage(tx.Statement.Context, usageEventID)
+		return s.commissioner.ReverseUsageTx(tx, usageEventID)
 	}
 	return nil
 }
@@ -152,13 +157,32 @@ func (s *Service) reverseLegacyCommission(tx *gorm.DB, usageEventID string) erro
 	return nil
 }
 
+func (s *Service) RecalcCommissionTx(tx *gorm.DB, usageID string) (*CommissionView, error) {
+	scoped := *s
+	scoped.db = tx
+	return scoped.RecalcCommission(tx.Statement.Context, usageID)
+}
+
 // RecalcCommission 用 usage 上的价格快照重算佣金：先冲正旧流水，再按同一批发价基数挂新冻结额。
 func (s *Service) RecalcCommission(ctx context.Context, usageEventID string) (*CommissionView, error) {
 	var view *CommissionView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if s.commissioner != nil {
+			if err := s.commissioner.LockLifecycleTx(tx); err != nil {
+				return err
+			}
+		}
 		var usage usageRow
-		if err := tx.Where("id = ?", usageEventID).First(&usage).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? OR request_id = ?", usageEventID, usageEventID).First(&usage).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
 			return ErrNotFound
+		}
+		if s.commissioner != nil && usage.State == UsageConfirmed {
+			var err error
+			view, err = s.commissioner.RecalcUsageTx(tx, usage.ID, usage.WholesaleAmountMinor)
+			return err
 		}
 		if err := s.reverseCommission(tx, usage.ID); err != nil {
 			return err

@@ -446,6 +446,11 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 	var out *Settlement
 	var settleUser, settleChannel string
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if s.commissioner != nil {
+			if err := s.commissioner.LockLifecycleTx(tx); err != nil {
+				return err
+			}
+		}
 		var existing chargeRow
 		if err := tx.Where("request_id = ?", in.RequestID).First(&existing).Error; err == nil {
 			out = &Settlement{ChargeID: existing.ID, UsageEventID: existing.UsageEventID, AmountMinor: existing.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}

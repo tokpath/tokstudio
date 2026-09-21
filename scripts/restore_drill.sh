@@ -1,40 +1,49 @@
 #!/usr/bin/env bash
-# 恢复演练：解密最近一份加密备份到临时库（或至少验证密文可解开）。
+# Restore an encrypted backup into a newly created, isolated drill database.
+# Never drop an existing database or report a failed restore as successful.
 set -euo pipefail
-
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-
-if [[ -f .env ]]; then
+ENV_FILE="${TOKENHUB_ENV_FILE:-$ROOT/.env}"
+if [[ -f "$ENV_FILE" ]]; then
   set -a
-  # shellcheck disable=SC1091
-  source .env
+  source "$ENV_FILE"
   set +a
 fi
-
-KEY="${TOKENHUB_BACKUP_KEY:-dev-backup-key-change-me}"
+for tool in openssl createdb pg_restore psql; do
+  command -v "$tool" >/dev/null || { echo "required tool missing: $tool" >&2; exit 1; }
+done
+KEY="${TOKENHUB_BACKUP_KEY:?TOKENHUB_BACKUP_KEY required}"
 OFFSITE="${TOKENHUB_BACKUP_OFFSITE_DIR:-$ROOT/backups/offsite}"
-LATEST="$(ls -1t "$OFFSITE"/tokenhub-*.dump.enc 2>/dev/null | head -1 || true)"
+LATEST="${TOKENHUB_RESTORE_BACKUP_FILE:-}"
 if [[ -z "$LATEST" ]]; then
-  echo "no encrypted backup; run scripts/backup_encrypt.sh first" >&2
-  exit 1
+  LATEST="$(ls -1t "$OFFSITE"/tokenhub-*.dump.enc 2>/dev/null | head -1 || true)"
 fi
-
+[[ -f "$LATEST" ]] || { echo "no encrypted backup found" >&2; exit 1; }
+ADMIN_URL="${TOKENHUB_DATABASE_ADMIN_URL:?TOKENHUB_DATABASE_ADMIN_URL required}"
+case "$ADMIN_URL" in postgres://*|postgresql://*) ;; *) echo "admin URL must be a PostgreSQL URI" >&2; exit 1;; esac
+DRILL_DB="${TOKENHUB_RESTORE_DRILL_DB:-tokenhub_restore_drill_$(date -u +%Y%m%d%H%M%S)_$$}"
+[[ "$DRILL_DB" =~ ^tokenhub_restore_drill_[a-z0-9_]+$ && ${#DRILL_DB} -le 63 ]] || {
+  echo "drill database must have tokenhub_restore_drill_ prefix and at most 63 safe characters" >&2; exit 1;
+}
+BASE="${ADMIN_URL%%\?*}"
+TARGET="${BASE%/*}/$DRILL_DB"
+if [[ "$ADMIN_URL" == *\?* ]]; then TARGET="$TARGET?${ADMIN_URL#*\?}"; fi
 DEC="$(mktemp)"
 trap 'rm -f "$DEC"' EXIT
-openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$KEY" -in "$LATEST" -out "$DEC"
-# custom dump 文件头是 PGDMP
-if ! head -c 5 "$DEC" | grep -q PGDMP; then
-  echo "decrypted payload is not a pg_dump custom file" >&2
+# Pass the key through the environment rather than process command arguments.
+export TOKENHUB_DRILL_DECRYPT_KEY="$KEY"
+openssl enc -d -aes-256-cbc -pbkdf2 -pass env:TOKENHUB_DRILL_DECRYPT_KEY -in "$LATEST" -out "$DEC"
+unset TOKENHUB_DRILL_DECRYPT_KEY
+pg_restore --list "$DEC" >/dev/null
+# createdb must fail if the target already exists; never clean/drop it implicitly.
+createdb --maintenance-db="$ADMIN_URL" "$DRILL_DB"
+if ! pg_restore --exit-on-error --single-transaction --dbname="$TARGET" "$DEC"; then
+  echo "restore FAILED; isolated database retained for inspection: $DRILL_DB" >&2
   exit 1
 fi
-echo "restore drill decrypt ok: $LATEST"
-if command -v createdb >/dev/null && command -v pg_restore >/dev/null; then
-  DRILL_DB="${TOKENHUB_RESTORE_DRILL_DB:-tokenhub_restore_drill}"
-  ADMIN_URL="${TOKENHUB_DATABASE_ADMIN_URL:-postgres://tokenhub:tokenhub@127.0.0.1:5432/postgres?sslmode=disable}"
-  dropdb --if-exists --maintenance-db="$ADMIN_URL" "$DRILL_DB" 2>/dev/null || true
-  createdb --maintenance-db="$ADMIN_URL" "$DRILL_DB" || true
-  TARGET="${TOKENHUB_DATABASE_URL%/*}/$DRILL_DB"
-  pg_restore --dbname="$TARGET" --clean --if-exists "$DEC" || true
-  echo "optional pg_restore attempted on $DRILL_DB"
-fi
+psql "$TARGET" -v ON_ERROR_STOP=1 -Atc 'SELECT count(*) FROM schema_migrations' >/dev/null
+TABLES="$(psql "$TARGET" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
+[[ "$TABLES" -gt 0 ]] || { echo "restore FAILED: no application tables" >&2; exit 1; }
+echo "restore passed: $DRILL_DB ($TABLES public tables); retained for data verification"
+echo "This verifies this backup only; it does not prove PITR, offsite durability, or production RPO/RTO."

@@ -194,7 +194,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByTestId("ops-daily-chart")).toBeVisible();
   await page.goto("/admin/users");
   await expect(page.getByRole("heading", { name: "用户/项目" })).toBeVisible();
-  await expect(page.getByLabel("操作原因")).toBeVisible();
+  await expect(page.getByLabel("筛选用户")).toBeVisible();
+  await expect(page.getByLabel("操作原因")).toHaveCount(0);
   await page.goto("/admin/alerts");
   await expect(page.getByRole("heading", { name: "告警" })).toBeVisible();
   await expect(page.getByRole("button", { name: "评估告警" })).toBeVisible();
@@ -271,8 +272,8 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "改路由策略" })).toHaveCount(0);
   await page.goto("/admin/commission");
-  await expect(page.getByRole("heading", { name: "佣金重算" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "重算佣金" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "佣金核对与重算" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "核对佣金" })).toBeVisible();
   await page.goto("/admin/usage");
   await expect(page.getByRole("heading", { name: "用量回放" })).toBeVisible();
   await expect(page.getByRole("button", { name: "回放 usage" })).toBeVisible();

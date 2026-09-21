@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/commission"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
@@ -541,12 +543,36 @@ func (a *App) recalcCommission(c *gin.Context) {
 	var body struct {
 		UsageEventID string `json:"usage_event_id"`
 	}
-	_ = c.ShouldBindJSON(&body)
-	item, err := a.Billing.RecalcCommission(c.Request.Context(), body.UsageEventID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金重算失败", false)
+	if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.UsageEventID) == "" {
+		httpx.Abort(c, 400, "invalid_request", "请填写消费请求编号或用量编号。", false)
 		return
 	}
+	var item *billing.CommissionView
+	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		var err error
+		item, err = a.Billing.RecalcCommissionTx(tx, strings.TrimSpace(body.UsageEventID))
+		if err != nil {
+			return err
+		}
+		if item.Changed {
+			_, err = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "commission.recalculate", ResourceType: "usage_event", ResourceID: item.UsageEventID, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+		}
+		return err
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, billing.ErrNotFound):
+			httpx.Abort(c, 404, "not_found", "未找到该笔消费，请核对编号。", false)
+		case errors.Is(err, commission.ErrSnapshotUnavailable):
+			httpx.Abort(c, 409, "snapshot_unavailable", "该笔历史佣金缺少完整计算快照，请交财务人工核对；未修改任何记录。", false)
+		case errors.Is(err, commission.ErrConflict):
+			httpx.Abort(c, 409, "commission_conflict", "该笔佣金已进入解冻、暂停或结算流程，不能自动重算差额，请交财务核对。", false)
+		default:
+			httpx.Abort(c, 500, "internal_error", "核对未完成，请按原编号重试；失败不会部分修改佣金。", true)
+		}
+		return
+	}
+
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

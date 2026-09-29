@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
@@ -45,12 +46,14 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
 	r.GET("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.getProvider)
 	r.PATCH("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin"), a.patchProvider)
-	r.POST("/admin/providers/:id/credentials", a.requireRoles("platform_admin", "tech_admin"), a.rotateProviderCredential)
 	r.GET("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviderAccounts)
 	r.POST("/admin/providers/:id/accounts", a.requireRoles("platform_admin", "tech_admin"), a.addProviderAccount)
 	r.PATCH("/admin/providers/:id/accounts/:aid", a.requireRoles("platform_admin", "tech_admin"), a.patchProviderAccount)
+	r.GET("/admin/providers/:id/upstream-models", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviderModels)
+	r.POST("/admin/providers/:id/upstream-models/discover", a.requireRoles("platform_admin", "tech_admin"), a.discoverProviderModels)
+	r.PUT("/admin/providers/:id/upstream-models", a.requireRoles("platform_admin", "tech_admin"), a.saveProviderModel)
+	r.PATCH("/admin/providers/:id/upstream-models/status", a.requireRoles("platform_admin", "tech_admin"), a.setProviderModelStatus)
 	r.POST("/admin/providers/:id/health-check", a.requireRoles("platform_admin", "tech_admin"), a.healthCheckProvider)
-	r.POST("/admin/providers/:id/sync", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.syncProvider)
 	r.GET("/admin/models", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminModels)
 	r.POST("/admin/models", a.requireCatalogRoles("platform_admin", "ops_admin"), a.createAdminModel)
 	r.GET("/admin/models/*id", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.getAdminModel)
@@ -59,6 +62,7 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/admin/models/publish", a.requireCatalogRoles("platform_admin", "ops_admin"), a.publishAdminModel)
 	r.POST("/admin/models/deprecate", a.requireCatalogRoles("platform_admin", "ops_admin"), a.deprecateAdminModel)
 	r.GET("/admin/routes", a.requireCatalogRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listAdminRoutes)
+	r.GET("/admin/routes/:id", a.requireCatalogRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.getAdminRoute)
 	r.POST("/admin/routes", a.requireCatalogRoles("platform_admin", "tech_admin"), a.createAdminRoute)
 	r.PATCH("/admin/routes/:id", a.requireCatalogRoles("platform_admin", "tech_admin"), a.patchAdminRoute)
 	r.POST("/admin/models/attach", a.requireCatalogRoles("platform_admin", "ops_admin", "tech_admin"), a.attachModelProvider)
@@ -691,29 +695,86 @@ func (a *App) patchProvider(c *gin.Context) {
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) rotateProviderCredential(c *gin.Context) {
+func (a *App) listProviderModels(c *gin.Context) {
+	items, err := a.Catalog.ListProviderModels(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "提供商不存在", false)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) discoverProviderModels(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	items, err := a.Catalog.DiscoverProviderModels(c.Request.Context(), c.Param("id"), a.Config.EncryptionKey)
+	if err != nil {
+		if errors.Is(err, catalog.ErrDiscoveryUnavailable) {
+			httpx.Abort(c, http.StatusUnprocessableEntity, "discovery_unavailable", err.Error(), false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "探测上游模型失败", true)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.models.discover", ResourceType: "provider",
+		ResourceID: c.Param("id"), After: map[string]any{"count": len(items)},
+		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) saveProviderModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body catalog.ProviderModelInput
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "模型报价无效", false)
+		return
+	}
+	item, err := a.Catalog.SaveProviderModel(c.Request.Context(), c.Param("id"), body)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写上游模型标识和有效成本价", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.model.price", ResourceType: "provider_model",
+		ResourceID: item.ProviderID + "/" + item.UpstreamModelID,
+		After:      map[string]any{"unit_costs": item.UnitCosts},
+		IP:         c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) setProviderModelStatus(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
 	var body struct {
-		Secret string `json:"secret"`
+		UpstreamModelID string `json:"upstream_model_id"`
+		Enabled         *bool  `json:"enabled"`
 	}
-	_ = c.ShouldBindJSON(&body)
-	if strings.TrimSpace(body.Secret) == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "凭据不能为空", false)
+	if err := c.ShouldBindJSON(&body); err != nil || body.Enabled == nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请选择上游模型和状态", false)
 		return
 	}
-	ref, err := a.Catalog.RotateCredential(c.Request.Context(), c.Param("id"), body.Secret, a.Config.EncryptionKey)
+	item, err := a.Catalog.SetProviderModelEnabled(c.Request.Context(), c.Param("id"), body.UpstreamModelID, *body.Enabled)
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "轮换凭据失败", false)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			httpx.Abort(c, http.StatusNotFound, "invalid_request", "上游模型不存在", false)
+			return
+		}
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "更新上游模型状态失败", false)
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.credential.rotate", ResourceType: "provider",
-		ResourceID: c.Param("id"), After: map[string]string{"credential_ref": ref},
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.model.status", ResourceType: "provider_model",
+		ResourceID: item.ProviderID + "/" + item.UpstreamModelID,
+		After:      map[string]any{"status": item.Status}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
-	httpx.OK(c, gin.H{"credential_ref": ref, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) listProviderAccounts(c *gin.Context) {
@@ -785,7 +846,7 @@ func (a *App) createAdminModel(c *gin.Context) {
 	}
 	var body catalog.ModelInput
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.CreateModel(c.Request.Context(), body, a.currentPrincipal(c).UserID)
+	item, price, err := a.Catalog.CreateModel(c.Request.Context(), body, a.currentPrincipal(c).UserID)
 	if err != nil {
 		a.abortCatalogModelWrite(c, err, "创建模型失败", "创建模型失败")
 		return
@@ -794,6 +855,12 @@ func (a *App) createAdminModel(c *gin.Context) {
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.create", ResourceType: "model", ResourceID: item.ID,
 		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
+	if price != nil {
+		_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+			ActorUserID: a.currentPrincipal(c).UserID, Action: "catalog.price.publish", ResourceType: "price_version",
+			ResourceID: price.VersionID, After: price, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		})
+	}
 	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
@@ -844,6 +911,15 @@ func (a *App) listAdminRoutes(c *gin.Context) {
 	httpx.OKPage(c, items, 100, func(item catalog.RouteView) string { return item.ID })
 }
 
+func (a *App) getAdminRoute(c *gin.Context) {
+	item, err := a.Catalog.GetRoute(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		a.abortCatalogRouteWrite(c, err, "读取路由失败")
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) createAdminRoute(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
@@ -852,7 +928,7 @@ func (a *App) createAdminRoute(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.CreateRoute(c.Request.Context(), body)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建路由失败", false)
+		a.abortCatalogRouteWrite(c, err, "创建路由失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -870,7 +946,7 @@ func (a *App) patchAdminRoute(c *gin.Context) {
 	_ = c.ShouldBindJSON(&body)
 	item, err := a.Catalog.PatchRoute(c.Request.Context(), c.Param("id"), body)
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "路由不存在", false)
+		a.abortCatalogRouteWrite(c, err, "保存路由失败")
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -880,54 +956,8 @@ func (a *App) patchAdminRoute(c *gin.Context) {
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) syncProvider(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	result, err := a.Catalog.SyncProvider(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID)
-	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "同步 Provider 失败", false)
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "provider.sync", ResourceType: "provider",
-		ResourceID: c.Param("id"), After: map[string]string{"models": strings.Join(syncIDs(result), ",")},
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"item": result, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func syncIDs(result *catalog.SyncResult) []string {
-	if result == nil {
-		return nil
-	}
-	out := make([]string, 0, len(result.Items))
-	for _, item := range result.Items {
-		out = append(out, item.ID)
-	}
-	return out
-}
-
 func (a *App) reviewAdminModel(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	var body struct {
-		PublicID string `json:"public_id"`
-		Action   string `json:"action"`
-	}
-	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.ReviewModel(c.Request.Context(), body.PublicID, body.Action, a.currentPrincipal(c).UserID)
-	if err != nil {
-		a.abortCatalogModelWrite(c, err, "模型不存在", "审核模型失败")
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "model.review", ResourceType: "model",
-		ResourceID: item.ID, After: map[string]string{"sync_state": item.SyncState, "action": body.Action},
-		IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Abort(c, http.StatusGone, "invalid_request", "模型审核流程已移除，请完善模型后直接发布", false)
 }
 
 func (a *App) publishAdminModel(c *gin.Context) {
@@ -938,7 +968,7 @@ func (a *App) publishAdminModel(c *gin.Context) {
 		PublicID string `json:"public_id"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Catalog.PublishModel(c.Request.Context(), body.PublicID, a.currentPrincipal(c).UserID)
+	item, err := a.Catalog.PublishModel(c.Request.Context(), body.PublicID)
 	if err != nil {
 		a.abortCatalogModelWrite(c, err, "模型不存在", "发布模型失败")
 		return
@@ -996,16 +1026,31 @@ func (a *App) attachModelProvider(c *gin.Context) {
 
 func (a *App) abortCatalogModelWrite(c *gin.Context, err error, notFoundMsg, fallbackMsg string) {
 	switch {
-	case errors.Is(err, catalog.ErrSameActor):
-		httpx.Abort(c, http.StatusConflict, "permission_denied", "创建人不能审核或发布该模型", false)
-	case errors.Is(err, catalog.ErrNotReviewed):
-		httpx.Abort(c, http.StatusConflict, "invalid_request", "模型尚未审核通过", false)
-	case errors.Is(err, catalog.ErrRejected):
-		httpx.Abort(c, http.StatusConflict, "invalid_request", "已拒绝的模型不能发布", false)
+	case errors.Is(err, catalog.ErrModelIncomplete):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "请填写模型类型和对应售价", false)
+	case errors.Is(err, catalog.ErrModelExists):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "模型已存在，请编辑已有模型", false)
 	case errors.Is(err, catalog.ErrUnknownModel):
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", notFoundMsg, false)
 	case errors.Is(err, catalog.ErrInvalidInput):
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
+	default:
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
+	}
+}
+
+func (a *App) abortCatalogRouteWrite(c *gin.Context, err error, fallbackMsg string) {
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "模型或路由不存在", false)
+	case errors.Is(err, catalog.ErrRouteExists):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "该模型已有路由组", false)
+	case errors.Is(err, catalog.ErrRouteIncomplete):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "启用前请配置有效的提供商与上游模型标识", false)
+	case errors.Is(err, catalog.ErrProviderModelUnpriced):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "先在提供商详情配置该上游模型的成本价", false)
+	case errors.Is(err, catalog.ErrModelIncomplete):
+		httpx.Abort(c, http.StatusConflict, "invalid_request", "请先补齐模型类型和对应售价", false)
 	default:
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
 	}

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
-import { CreateProviderDialog } from "./create-dialog";
 import { ProbeCell } from "./probe-cell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ import {
   providerStatusLabel,
   catalogStatusTone,
 } from "@/lib/catalog-admin";
-import { CATALOG_HELP, CATALOG_LABEL } from "@/lib/catalog-copy";
+import { CATALOG_HELP } from "@/lib/catalog-copy";
 
 type Provider = {
   id: string;
@@ -31,8 +30,6 @@ type Provider = {
 };
 
 export default function AdminProvidersPage() {
-  const [createOpen, setCreateOpen] = useState(false);
-
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
@@ -46,18 +43,11 @@ export default function AdminProvidersPage() {
         rowHref={(row) => providerHref(String(row.slug || row.id))}
         actions={
           <IfCan action="providers.write">
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              新建提供商
-            </Button>
+            <Button asChild size="sm"><Link href="/admin/providers/new">新建提供商</Link></Button>
           </IfCan>
         }
         columns={[
           { accessorKey: "name", header: "名称" },
-          {
-            accessorKey: "slug",
-            header: CATALOG_LABEL.providerSlug,
-            cell: ({ row }) => <span className="font-mono text-[13px]">{row.original.slug}</span>,
-          },
           {
             accessorKey: "kind",
             header: "类型",
@@ -92,7 +82,6 @@ export default function AdminProvidersPage() {
           },
         ]}
       />
-      <CreateProviderDialog open={createOpen} onOpenChange={setCreateOpen} />
     </AdminShell>
   );
 }

@@ -689,12 +689,12 @@ func (a *App) adminListPrices(c *gin.Context) {
 	}
 	if httpx.WantCSV(c) {
 		httpx.WriteCSV(c, "price-books.csv",
-			[]string{"id", "public_id", "status", "effective_at", "upstream", "wholesale", "sell", "channel"},
+			[]string{"id", "public_id", "status", "effective_at", "sell"},
 			items, func(item catalog.PriceBookView) []string {
 				return []string{
 					item.ID, item.PublicID, item.Status,
 					item.EffectiveAt.UTC().Format("2006-01-02T15:04:05Z"),
-					item.Upstream, item.Wholesale, item.Sell, item.Channel,
+					item.Sell,
 				}
 			})
 		return

@@ -3,6 +3,54 @@ import { mockViewer } from "./mock-viewer";
 
 test.beforeEach(async ({ page }) => { await mockViewer(page, { roles: ["platform_admin"] }); });
 
+test("model creation saves information and first price without a manual ID", async ({ page }) => {
+  let created: Record<string, unknown> | undefined;
+  await page.route("**/api/admin/models", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    created = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: {
+      item: { id: "test/one-step", display_name: "One step", vendor: "test", status: "draft", capabilities: { kind: "text" } },
+    } });
+  });
+  await page.goto("/admin/models/new");
+  await expect(page.getByLabel("公开模型标识")).toHaveCount(0);
+  await page.getByLabel("名称", { exact: true }).fill("One step");
+  await page.getByLabel("原厂").fill("test");
+  await page.getByRole("button", { name: "创建模型" }).click();
+  await expect(page.getByText("请填写售价").first()).toBeVisible();
+  await page.getByLabel("输入售价").fill("2");
+  await page.getByLabel("输出售价").fill("4");
+  await page.getByRole("button", { name: "创建模型" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
+  await expect.poll(() => created).toMatchObject({
+    display_name: "One step", vendor: "test",
+    capabilities: { kind: "text" },
+    initial_price: { currency: "USD", customer_sell: { input: "0.000002", output: "0.000004" } },
+  });
+  expect(created).not.toHaveProperty("public_id");
+});
+
+test("model editor preserves historical capability metadata without switches", async ({ page }) => {
+  let saved: Record<string, unknown> | undefined;
+  await page.route("**/api/admin/models/test/alias", async (route) => {
+    const item = {
+      id: "test/alias", display_name: "Alias", vendor: "test", status: "draft", kind: "text",
+      capabilities: { kind: "text", supported_parameters: ["model", "messages", "tool_choice", "response_format"] },
+    };
+    if (route.request().method() === "PATCH") saved = route.request().postDataJSON();
+    await route.fulfill({ json: { item } });
+  });
+  await page.goto("/admin/models/test/alias");
+  await expect(page.getByRole("group", { name: "支持的文本能力" })).toHaveCount(0);
+  await page.getByLabel("名称", { exact: true }).fill("Alias updated");
+  await page.getByRole("button", { name: "保存模型" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
+  await expect.poll(() => saved).toMatchObject({
+    display_name: "Alias updated",
+    capabilities: { supported_parameters: ["model", "messages", "tool_choice", "response_format"] },
+  });
+});
+
 test("admin P0 nav renders", async ({ page }) => {
   await page.goto("/admin");
   await expect(page.getByRole("navigation", { name: "平台管理" })).toBeVisible();
@@ -136,27 +184,32 @@ test("admin providers list and detail", async ({ page }) => {
   await page.goto("/admin/providers");
   await expect(page.getByRole("heading", { name: "提供商", exact: true })).toBeVisible();
   await expect(page.getByText("提供商是进货渠道")).toBeVisible();
-  await expect(page.getByRole("button", { name: "新建提供商" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "新建提供商" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "账号池" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "已关联模型" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "RPM" })).toHaveCount(0);
-  await page.getByRole("button", { name: "新建提供商" }).click();
-  await expect(page.getByRole("heading", { name: "接入提供商" })).toBeVisible();
+  await page.getByRole("link", { name: "新建提供商" }).click();
+  await expect(page.getByRole("heading", { name: "新建提供商" })).toBeVisible();
   await expect(page.getByLabel("协议")).toBeVisible();
   await expect(page.getByLabel("协议")).not.toContainText("Bifrost");
   await expect(page.getByLabel("协议")).not.toContainText("沙箱回声");
-  await expect(page.getByRole("button", { name: "创建" })).toBeVisible();
-  await page.getByRole("button", { name: "关闭" }).click();
+  await expect(page.getByRole("button", { name: "创建提供商" })).toBeVisible();
+  await page.route("**/api/admin/providers/echo-primary", route => route.fulfill({ json: {
+    item: { id: "prd_echo", name: "Echo Primary", slug: "echo-primary", adapter: "sandbox", status: "active", health: "available", models: [] },
+  } }));
+  await page.route("**/api/admin/providers/prd_echo/accounts", route => route.fulfill({ json: { items: [] } }));
   await page.goto("/admin/providers/echo-primary");
   await expect(page.getByRole("heading", { name: "提供商详情" })).toBeVisible();
   await expect(page.getByRole("link", { name: "返回列表" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "提供商状态" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "接到的公开模型" })).toBeVisible();
-  await expect(page.getByText("更换该上游的 API Key")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "凭据轮换" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "轮换凭据" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "同步上游" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "凭据轮换" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "轮换凭据" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "账号池" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "读取账号" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "读取账号" })).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("已加载 0 个账号");
+  await expect(page.getByText("暂无账号，请在下方添加。")).toBeVisible();
   await page.getByRole("button", { name: "编辑" }).click();
   await expect(page.getByRole("button", { name: "保存提供商" })).toBeVisible();
 });
@@ -258,19 +311,17 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "签发证书" })).toBeVisible();
   await page.goto("/admin/routes");
   await expect(page.getByRole("heading", { name: "路由组" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "公开模型标识" }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "原厂" }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "提供商池" }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "选路策略" }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "创建路由" })).toBeVisible();
-  await page.getByRole("button", { name: "创建路由" }).click();
-  await expect(page.getByRole("heading", { name: "创建路由" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "公开模型" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "提供商" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "策略" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "创建路由组" })).toBeVisible();
+  await page.getByRole("link", { name: "创建路由组" }).click();
+  await expect(page.getByRole("heading", { name: "创建路由组" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "公开模型标识" })).toBeVisible();
   await expect(page.getByLabel("选路策略")).toHaveValue("priority");
-  await expect(page.getByLabel("路由状态")).toHaveValue("active");
+  await expect(page.getByLabel("状态")).toHaveValue("inactive");
+  await page.getByRole("button", { name: "添加提供商" }).click();
   await expect(page.getByRole("combobox", { name: "提供商" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "改路由策略" })).toHaveCount(0);
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "佣金核对与重算" })).toBeVisible();
   await expect(page.getByRole("button", { name: "核对佣金" })).toBeVisible();
@@ -294,49 +345,32 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByText("平台不再管理用户 API Key")).toBeVisible();
   await expect(page.getByRole("link", { name: "本渠道 API Key" })).toBeVisible();
   await page.goto("/admin/models");
-  await expect(page.getByRole("tab", { name: "目录" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "审核" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "创建模型" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "公开模型标识" }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "提供商池" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "创建模型" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "模型名称" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "调用 ID" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "接入" }).first()).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "原厂" }).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "同步上游" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "接到哪家提供商" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "弃用模型" })).toHaveCount(0);
-  await page.getByRole("tab", { name: "审核" }).click();
-  await expect(page.getByRole("heading", { name: "模型审核" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "待审核" })).toBeVisible();
+  await page.getByRole("link", { name: "创建模型" }).click();
+  await expect(page.getByRole("heading", { name: "模型信息" })).toBeVisible();
+  await expect(page.getByText("填写模型信息和首次售价，一次创建完整配置。")).toHaveCount(0);
+  await expect(page.getByLabel("名称")).toBeVisible();
+  await expect(page.getByLabel("原厂")).toBeVisible();
+  await expect(page.getByLabel("公开模型标识")).toHaveCount(0);
+  await expect(page.getByLabel("类型")).toHaveValue("text");
+  await expect(page.getByRole("heading", { name: "售价" })).toBeVisible();
+  await expect(page.getByLabel("输入售价")).toBeVisible();
+  await expect(page.getByLabel("输出售价")).toBeVisible();
   await expect(page.getByRole("button", { name: "创建模型" })).toBeVisible();
-  await page.getByRole("button", { name: "创建模型" }).click();
-  await expect(page.getByRole("heading", { name: "创建模型" })).toBeVisible();
-  await expect(page.getByLabel("显示名")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "原厂" })).toBeVisible();
-  await expect(page.getByLabel("公开模型标识")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "提供商" })).toBeVisible();
-  await expect(page.getByLabel("上游模型标识")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("heading", { name: "同步上游" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "接到哪家提供商" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "弃用模型" })).toHaveCount(0);
+  await page.route("**/api/admin/models/tokenhub/echo-1", route => route.fulfill({ json: {
+    item: { id: "tokenhub/echo-1", vendor: "tokenhub", display_name: "Echo", status: "published", kind: "text", capabilities: { kind: "text" }, sell_price: { input: "0.000001", output: "0.000002" } },
+  } }));
   await page.goto("/admin/models/tokenhub/echo-1");
-  await expect(page.getByRole("heading", { name: "客户怎么看到它" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存显示信息" })).toBeVisible();
-  const tokenizer = page.getByRole("combobox", { name: "分词器" });
-  await expect(tokenizer).toBeVisible();
-  await tokenizer.fill("qwe");
-  await expect(page.getByRole("option", { name: "qwen" })).toBeVisible();
-  await tokenizer.fill("new-tokenizer");
-  await expect(page.getByRole("option", { name: "new-tokenizer 新值" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "定价" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "模型信息" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存模型" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "售价" })).toBeVisible();
   await expect(page.getByRole("button", { name: "发布价格" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "接到哪家提供商" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "接到提供商" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "上架" })).toBeVisible();
-  // Playwright CI 只起 Next，没有目录 API；未加载模型时四个动作都应置灰。
-  await expect(page.getByRole("button", { name: "拒绝" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "通过" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "发布", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "弃用此模型" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "模型状态" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "配置路由" })).toBeVisible();
 });
 
 test("admin OEM brand download shows storage source and forbids a success check", async ({ page }) => {

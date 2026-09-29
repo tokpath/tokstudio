@@ -168,17 +168,15 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		t.Fatalf("health strategy should prefer available backup, got %+v", healthy)
 	}
 
-	cheap := []byte(`{"input":"0.0000001","upstream_cost_input":"0.0000001","output":"0.0000002","currency":"USD"}`)
-	priceID := "price_echo_backup_test_" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	if err := application.DB.Exec(
-		`INSERT INTO catalog_price_versions(id, public_model_id, provider_id, unit_prices_json, effective_at, status)
-		 VALUES (?, 'mdl_echo', 'prd_echo_backup', ?, NOW(), 'published')`,
-		priceID, cheap,
-	).Error; err != nil {
+	var previous string
+	if err := application.DB.Raw(`SELECT unit_costs_json FROM catalog_provider_models WHERE provider_id = 'prd_echo_backup' AND upstream_model_id = 'echo-upstream'`).Scan(&previous).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := application.DB.Exec(`UPDATE catalog_provider_models SET unit_costs_json = ? WHERE provider_id = 'prd_echo_backup' AND upstream_model_id = 'echo-upstream'`, `{"input":"0.0000001","output":"0.0000002"}`).Error; err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		_ = application.DB.Exec(`UPDATE catalog_price_versions SET status = 'superseded' WHERE id = ?`, priceID).Error
+		_ = application.DB.Exec(`UPDATE catalog_provider_models SET unit_costs_json = ? WHERE provider_id = 'prd_echo_backup' AND upstream_model_id = 'echo-upstream'`, previous).Error
 	}()
 	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "price"})
 	priced := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{

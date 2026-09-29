@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ParamError 表示请求带了模型或协议明确不支持的参数。
+// ParamError 表示请求带了协议明确不支持的参数。
 type ParamError struct {
 	Param string
 }
@@ -140,88 +140,15 @@ func firstToolName(raw json.RawMessage) string {
 	return "echo"
 }
 
-func asStringSlice(v any) []string {
-	switch items := v.(type) {
-	case []string:
-		return items
-	case []any:
-		out := make([]string, 0, len(items))
-		for _, item := range items {
-			out = append(out, strings.TrimSpace(fmtString(item)))
-		}
-		return out
-	default:
-		return nil
-	}
-}
-
-func fmtString(v any) string {
-	if v == nil {
-		return ""
-	}
-	if s, ok := v.(string); ok {
-		return s
-	}
-	b, _ := json.Marshal(v)
-	return strings.Trim(string(b), `"`)
-}
-
-func containsFold(list []string, want string) bool {
-	for _, item := range list {
-		if strings.EqualFold(strings.TrimSpace(item), want) {
-			return true
-		}
-	}
-	return false
-}
-
-func supportsParam(list []string, name string) bool {
-	aliases := map[string][]string{
-		"tools":     {"tools", "tool_choice"},
-		"json":      {"json", "json_schema", "response_format"},
-		"vision":    {"vision", "image"},
-		"reasoning": {"reasoning", "reasoning_effort"},
-	}
-	for _, alias := range aliases[name] {
-		if containsFold(list, alias) {
-			return true
-		}
-	}
-	return containsFold(list, name)
-}
-
 func presentRaw(raw json.RawMessage) bool {
 	s := strings.TrimSpace(string(raw))
 	return s != "" && s != "null" && s != "{}" && s != "[]"
 }
 
-// ValidateChat 按模型目录的支持/不支持参数做明确处理：能透传的留下，不能的结构化 4xx。
-func ValidateChat(req ChatRequest, caps map[string]any) error {
+// ValidateChat 只拒绝协议层明确不支持的参数；模型能力不作为选路前门禁。
+func ValidateChat(req ChatRequest) error {
 	if presentRaw(req.LogitBias) {
 		return ParamError{Param: "logit_bias"}
-	}
-	for _, name := range asStringSlice(caps["unsupported_parameters"]) {
-		if name == "logit_bias" && presentRaw(req.LogitBias) {
-			return ParamError{Param: name}
-		}
-	}
-	supported := asStringSlice(caps["supported_parameters"])
-	if len(supported) == 0 {
-		return nil
-	}
-	checks := []struct {
-		need bool
-		name string
-	}{
-		{presentRaw(req.Tools) || presentRaw(req.ToolChoice), "tools"},
-		{jsonMode(req.ResponseFormat), "json"},
-		{visionCount(req) > 0, "vision"},
-		{req.ReasoningEffort != "" || presentRaw(req.Reasoning), "reasoning"},
-	}
-	for _, check := range checks {
-		if check.need && !supportsParam(supported, check.name) {
-			return ParamError{Param: check.name}
-		}
 	}
 	return nil
 }

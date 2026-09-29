@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 )
@@ -129,27 +128,59 @@ func TestImportOfoxSnapshotPublishesReviewedCatalog(t *testing.T) {
 		t.Fatalf("preset price must be published, got %s", price.Status)
 	}
 
-	var policies []channelPolicyRow
-	if err := gdb.Where("public_model_id = ?", model.ID).Find(&policies).Error; err != nil {
-		t.Fatal(err)
-	}
-	seen := map[string]bool{}
-	for _, p := range policies {
-		seen[p.ChannelOrgID] = p.Enabled
-	}
-	if !seen[identity.OfficialChannelID] || !seen[identity.ResellerChannelID] {
-		t.Fatalf("official+reseller grants missing: %+v", seen)
-	}
-	if seen[identity.OEMChannelID] {
-		t.Fatal("ofox dump must not grant OEM")
-	}
-
 	again, err := New(gdb).ImportOfoxSnapshot(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if again.Imported != result.Imported {
 		t.Fatalf("re-import should stay idempotent: first=%+v second=%+v", result, again)
+	}
+}
+
+func TestOfoxImportDoesNotGrantOrOverwrite(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" {
+		t.Skip("integration test requires TOKENHUB_DATABASE_URL")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	gdb, err := db.Open(cfg.DatabaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	module, fs := Migrations()
+	if err := db.Apply(gdb, []db.ModuleMigrations{{Module: module, FS: fs}}); err != nil {
+		t.Fatal(err)
+	}
+	tx := gdb.Begin()
+	defer tx.Rollback()
+	item := OfoxModelSnapshot{ID: "test-import/no-auto-grant", DisplayName: "Imported", Kind: "text", SellPrice: map[string]any{"input": "1"}}
+	if _, _, err := upsertOfoxModel(tx, item); err != nil {
+		t.Fatal(err)
+	}
+	var model publicModelRow
+	if err := tx.Where("public_id = ?", item.ID).First(&model).Error; err != nil {
+		t.Fatal(err)
+	}
+	var grants int64
+	if err := tx.Model(&channelPolicyRow{}).Where("public_model_id = ?", model.ID).Count(&grants).Error; err != nil {
+		t.Fatal(err)
+	}
+	if grants != 0 {
+		t.Fatalf("import created %d channel grants", grants)
+	}
+	if err := tx.Model(&model).Update("display_name", "Edited").Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := upsertOfoxModel(tx, item); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Where("public_id = ?", item.ID).First(&model).Error; err != nil {
+		t.Fatal(err)
+	}
+	if model.DisplayName != "Edited" {
+		t.Fatalf("import overwrote edited model: %s", model.DisplayName)
 	}
 }
 

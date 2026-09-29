@@ -24,16 +24,14 @@ func TestChatMessageVisionAndTools(t *testing.T) {
 }
 
 func TestValidateChat(t *testing.T) {
-	caps := map[string]any{"supported_parameters": []string{"tools", "vision", "json", "reasoning"}, "unsupported_parameters": []string{"logit_bias"}}
-	if err := ValidateChat(ChatRequest{LogitBias: []byte(`{"1":1}`)}, caps); !errors.Is(err, ErrUnsupportedParam) {
+	if err := ValidateChat(ChatRequest{LogitBias: []byte(`{"1":1}`)}); !errors.Is(err, ErrUnsupportedParam) {
 		t.Fatalf("logit_bias should be unsupported: %v", err)
 	}
 	tools, _ := json.Marshal([]map[string]any{{"type": "function", "function": map[string]string{"name": "lookup"}}})
-	if err := ValidateChat(ChatRequest{Tools: tools}, caps); err != nil {
-		t.Fatal(err)
-	}
-	oem := map[string]any{"supported_parameters": []string{"messages", "model"}}
-	if err := ValidateChat(ChatRequest{Tools: tools}, oem); !errors.Is(err, ErrUnsupportedParam) {
-		t.Fatalf("oem should reject tools: %v", err)
+	if err := ValidateChat(ChatRequest{
+		Tools: tools, ResponseFormat: []byte(`{"type":"json_object"}`), ReasoningEffort: "high",
+		Messages: []ChatMessage{{Parts: []ContentPart{{Type: "image_url", ImageURL: []byte(`{"url":"https://example.test/a.png"}`)}}}},
+	}); err != nil {
+		t.Fatalf("model capabilities must not reject a request before routing: %v", err)
 	}
 }

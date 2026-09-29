@@ -66,10 +66,6 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "POST",
-    "path": "/admin/providers/{id}/sync"
-  },
-  {
-    "method": "POST",
     "path": "/admin/models/review"
   },
   {
@@ -535,10 +531,6 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "PATCH",
     "path": "/admin/channel-quotas/{channel_id}/issue-rule"
-  },
-  {
-    "method": "POST",
-    "path": "/admin/providers/{id}/credentials"
   },
   {
     "method": "POST",

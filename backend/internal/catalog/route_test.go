@@ -30,8 +30,8 @@ func TestApplyStrategy(t *testing.T) {
 		t.Fatalf("priority should keep lower priority number first: %+v", priority)
 	}
 
-	cheap := costMinor([]byte(`{"upstream_cost_input":"0.0000001"}`))
-	dear := costMinor([]byte(`{"upstream_cost_input":"0.0000004"}`))
+	cheap := costMinor([]byte(`{"input":"0.0000001"}`))
+	dear := costMinor([]byte(`{"input":"0.0000004"}`))
 	if cheap == 0 || cheap >= dear {
 		t.Fatalf("tiny USD prices must stay ordered: cheap=%d dear=%d", cheap, dear)
 	}

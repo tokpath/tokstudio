@@ -84,6 +84,11 @@ func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 		"name": "W1 Gemini Backup", "slug": slug, "adapter": "test",
 	})
 	prdID := prd["item"].(map[string]any)["id"].(string)
+	if code, body := doJSON(t, http.MethodPut, fx.server.URL+"/admin/providers/"+prdID+"/upstream-models", "wmeter2_admin", true, map[string]any{
+		"upstream_model_id": "echo-gemini-backup", "unit_costs": map[string]string{"input": "0.0000004", "output": "0.0000008"},
+	}); code != http.StatusOK {
+		t.Fatalf("provider cost: %d %+v", code, body)
+	}
 	_ = postJSONRaw(t, fx.server.URL+"/admin/models/attach", "wmeter2_admin", map[string]any{
 		"public_id": catalog.GeminiModelID, "provider_id": prdID, "upstream_model_id": "echo-gemini-backup",
 	})

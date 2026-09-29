@@ -117,8 +117,52 @@ func TestCatalogRouteContractNegatives(t *testing.T) {
 	if code := mustStatusJSONConfirm(t, http.MethodPost, server.URL+"/admin/models", "cat_admin", map[string]string{}); code != http.StatusBadRequest {
 		t.Fatalf("empty model create must be 400, got %d", code)
 	}
-	if code := mustStatusJSONConfirm(t, http.MethodPost, server.URL+"/admin/routes", "cat_admin", map[string]string{}); code != http.StatusBadRequest {
-		t.Fatalf("empty route create must be 400, got %d", code)
+	createdID := "contract/one-step-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	badReq, _ := http.NewRequest(http.MethodPost, server.URL+"/admin/models", bytes.NewReader(mustJSON(map[string]any{
+		"public_id": createdID, "vendor": "contract", "capabilities": map[string]any{"kind": "text"},
+		"initial_price": map[string]any{"customer_sell": map[string]any{"input": "0.000002"}},
+	})))
+	badReq.Header.Set("Authorization", "Bearer cat_admin")
+	badReq.Header.Set("Content-Type", "application/json")
+	badReq.Header.Set("X-Tokenhub-Confirm", "1")
+	badResp, err := http.DefaultClient.Do(badReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badResp.Body.Close()
+	if badResp.StatusCode != http.StatusConflict || mustStatusJSON(t, http.MethodGet, server.URL+"/admin/models/"+createdID, "cat_admin", nil) != http.StatusNotFound {
+		t.Fatalf("incomplete initial price must not create a draft, got %d", badResp.StatusCode)
+	}
+	created := postJSONRaw(t, server.URL+"/admin/models", "cat_admin", map[string]any{
+		"public_id": createdID, "display_name": "One step", "vendor": "contract",
+		"capabilities": map[string]any{"kind": "text"},
+		"initial_price": map[string]any{"currency": "USD", "customer_sell": map[string]any{
+			"input": "0.000002", "output": "0.000004",
+		}},
+	})
+	if item := created["item"].(map[string]any); item["status"] != "draft" || item["config_ready"] != true {
+		t.Fatalf("model and initial price should be ready in one create: %+v", item)
+	}
+	prices := getAuthJSON(t, server.URL+"/admin/price-books?q="+createdID, "cat_admin")
+	if rows, _ := prices["items"].([]any); len(rows) != 1 {
+		t.Fatalf("expected one initial price version: %+v", prices)
+	}
+	autoSuffix := strconv.FormatInt(time.Now().UnixNano(), 10)
+	autoName := "One Step Auto " + autoSuffix
+	auto := postJSONRaw(t, server.URL+"/admin/models", "cat_admin", map[string]any{
+		"display_name": autoName, "vendor": "contract", "capabilities": map[string]any{"kind": "text"},
+		"initial_price": map[string]any{"customer_sell": map[string]any{"input": "0.000002", "output": "0.000004"}},
+	})
+	if item := auto["item"].(map[string]any); item["id"] != "contract/one-step-auto-"+autoSuffix || item["config_ready"] != true {
+		t.Fatalf("server should generate a stable model call ID: %+v", item)
+	}
+	if code := mustStatusJSONConfirm(t, http.MethodPost, server.URL+"/admin/models", "cat_admin", map[string]string{
+		"display_name": autoName, "vendor": "contract",
+	}); code != http.StatusConflict {
+		t.Fatalf("duplicate generated model ID must be 409, got %d", code)
+	}
+	if code := mustStatusJSONConfirm(t, http.MethodPost, server.URL+"/admin/routes", "cat_admin", map[string]string{}); code != http.StatusNotFound {
+		t.Fatalf("route create without an existing model must be 404, got %d", code)
 	}
 	badChat := mustStatusBody(t, http.MethodPost, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "logit_bias": map[string]int{"1": 1}, "messages": []map[string]string{{"role": "user", "content": "x"}},

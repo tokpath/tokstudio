@@ -716,7 +716,9 @@ func (a *App) patchChannelModels(c *gin.Context) {
 		case errors.Is(err, catalog.ErrUnknownModel):
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能授权平台目录中已有的模型，租户不能自建提供商或模型", false)
 		case errors.Is(err, catalog.ErrInvalidInput):
-			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "模型授权无效", false)
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "模型授权需要有效的渠道结算价", false)
+		case errors.Is(err, catalog.ErrModelNotVisible):
+			httpx.Abort(c, http.StatusConflict, "invalid_request", "模型须先发布并启用路由，才能新增渠道授权", false)
 		default:
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道模型失败", true)
 		}

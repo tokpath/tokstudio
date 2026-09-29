@@ -6,10 +6,7 @@ export type PriceBook = {
   public_id: string;
   status: string;
   effective_at?: string;
-  upstream?: string;
-  wholesale?: string;
   sell?: string;
-  channel?: string;
   unit_prices?: Record<string, unknown>;
   [key: string]: unknown;
 };
@@ -29,10 +26,7 @@ export const priceBookColumns: ColumnDef<PriceBook, unknown>[] = [
     header: "Effective",
     cell: ({ row }) => <span className={tabular}>{row.original.effective_at || "—"}</span>,
   },
-  { accessorKey: "upstream", header: "Upstream /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.upstream)} /> },
-  { accessorKey: "wholesale", header: "Wholesale /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.wholesale)} /> },
   { accessorKey: "sell", header: "Sell /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.sell)} /> },
-  { accessorKey: "channel", header: "Channel /M", cell: ({ row }) => <PriceCell value={formatIOPerMillion(row.original.channel)} /> },
 ];
 
 export function publishedPriceLabel(

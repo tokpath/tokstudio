@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   filterPublicModelOptions,
   slugifyCatalogId,
-  suggestProviderSlug,
   suggestPublicId,
   suggestPublicIdFromDisplay,
 } from "./catalog-copy";
@@ -24,12 +23,6 @@ describe("catalog copy helpers", () => {
     expect(suggestPublicIdFromDisplay("alibaba", "Other", "alibaba/custom-id", "happyhorse-1.0")).toBe("alibaba/custom-id");
     expect(suggestPublicId("", "keep-me")).toBe("keep-me");
     expect(suggestPublicIdFromDisplay("", "HappyHorse 1.0", "", "")).toBe("");
-  });
-
-  it("fills provider slugs from names until the operator edits them", () => {
-    expect(suggestProviderSlug("OpenAI", "", "")).toBe("openai");
-    expect(suggestProviderSlug("OpenAI Direct", "openai", "openai")).toBe("openai-direct");
-    expect(suggestProviderSlug("Renamed", "keep-me", "openai")).toBe("keep-me");
   });
 
   it("filters public models by display name, vendor, or id", () => {

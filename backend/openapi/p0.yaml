@@ -150,21 +150,10 @@ paths:
           description: models; filter with status and sync_state before pagination
     post:
       operationId: createAdminModel
+      description: Creates a draft model. The public_id is generated from vendor and display_name when omitted. Optional initial_price publishes the first price version in the same transaction; it must contain the selected kind's required sell units.
       responses:
         "201":
-          description: created as draft
-  /admin/providers/{id}/sync:
-    post:
-      operationId: syncProvider
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: draft models from provider sync
+          description: created as draft, with initial price when supplied
   /admin/models/review:
     post:
       operationId: reviewAdminModel
@@ -1110,18 +1099,6 @@ paths:
       responses:
         "200":
           description: updated issue ratio; platform/finance only, requires confirm
-  /admin/providers/{id}/credentials:
-    post:
-      operationId: rotateProviderCredential
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: credential ref only, never plaintext
   /admin/providers/{id}/health-check:
     post:
       operationId: healthCheckProvider

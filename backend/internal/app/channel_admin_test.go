@@ -43,7 +43,7 @@ func TestChannelAdministratorHandoff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Catalog.SetChannelModels(context.Background(), parent.ID, []catalog.ChannelModelGrant{{PublicID: "tokenhub/echo-1", Enabled: true}}); err != nil {
+	if err := a.Catalog.SetChannelModels(context.Background(), parent.ID, []catalog.ChannelModelGrant{{PublicID: "tokenhub/echo-1", Enabled: true, Wholesale: map[string]string{"input": "0.0000007", "output": "0.0000014"}}}); err != nil {
 		t.Fatal(err)
 	}
 	payload, _ := json.Marshal(map[string]string{"code": "handoff-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "parent_id": parent.ID})

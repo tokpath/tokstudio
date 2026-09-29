@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -58,12 +59,9 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 	}
 
 	published := postJSONRaw(t, server.URL+"/admin/price-books", "wmeter_admin", map[string]any{
-		"model": catalog.EchoModelID,
-		"customer_sell":    map[string]any{"input": "0.000009", "output": "0.000011"},
-		"wholesale":        map[string]any{"input": "0.000006", "output": "0.000008"},
-		"upstream_cost":    map[string]any{"input": "0.000003", "output": "0.000004"},
-		"channel_override": map[string]any{"input": "0.000010", "output": "0.000012"},
-		"currency":         "USD",
+		"model":         catalog.EchoModelID,
+		"customer_sell": map[string]any{"input": "0.000009", "output": "0.000011"},
+		"currency":      "USD",
 	})
 	price, _ := published["price"].(map[string]any)
 	versionID, _ := price["version_id"].(string)
@@ -71,8 +69,8 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 		t.Fatalf("publish should return version: %+v", published)
 	}
 	raw, _ := price["unit_prices"].(map[string]any)
-	if raw["upstream_cost_input"] == nil || raw["wholesale_input"] == nil || raw["customer_sell_input"] == nil || raw["channel_customer_input"] == nil {
-		t.Fatalf("four prices missing on publish: %+v", raw)
+	if raw["customer_sell_input"] == nil || raw["upstream_cost_input"] != nil || raw["wholesale_input"] != nil {
+		t.Fatalf("model price must contain only the selling price: %+v", raw)
 	}
 
 	books := getAuthJSON(t, server.URL+"/admin/price-books?q="+catalog.EchoModelID, "wmeter_admin")
@@ -89,8 +87,8 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 	if live == nil || live["status"] != "published" || !hasEffectiveAt(live["effective_at"]) {
 		t.Fatalf("published version missing effective_at: %+v", books)
 	}
-	if fmtString(live["upstream"]) == "" || fmtString(live["wholesale"]) == "" || fmtString(live["sell"]) == "" || fmtString(live["channel"]) == "" {
-		t.Fatalf("list must expose four price columns: %+v", live)
+	if fmtString(live["sell"]) == "" {
+		t.Fatalf("list must expose the selling price: %+v", live)
 	}
 	if prior == nil || prior["status"] != "superseded" || !hasEffectiveAt(prior["effective_at"]) {
 		t.Fatalf("superseded chain missing effective_at: %+v", books)
@@ -98,7 +96,7 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 
 	csvBody := getAuthText(t, server.URL+"/admin/price-books?format=csv&q="+catalog.EchoModelID, "wmeter_admin")
 	header := strings.Split(strings.Split(csvBody, "\n")[0], ",")
-	for _, col := range []string{"id", "public_id", "status", "effective_at", "upstream", "wholesale", "sell", "channel"} {
+	for _, col := range []string{"id", "public_id", "status", "effective_at", "sell"} {
 		if !containsStr(header, col) {
 			t.Fatalf("csv missing %s: %s", col, csvBody)
 		}
@@ -106,8 +104,8 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 	if !strings.Contains(csvBody, versionID) || !strings.Contains(csvBody, "published") || !strings.Contains(csvBody, "superseded") {
 		t.Fatalf("csv missing version chain: %s", csvBody)
 	}
-	if !strings.Contains(csvBody, "0.000003/0.000004") || !strings.Contains(csvBody, "0.000006/0.000008") || !strings.Contains(csvBody, "0.000009/0.000011") {
-		t.Fatalf("csv missing four-price breakdown: %s", csvBody)
+	if !strings.Contains(csvBody, "0.000009/0.000011") {
+		t.Fatalf("csv missing selling price: %s", csvBody)
 	}
 
 	againItems := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)
@@ -132,11 +130,22 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 		t.Fatalf("expected new usage after publish, got %+v", afterItems)
 	}
 	rawFresh, _ := json.Marshal(fresh["unit_prices"])
-	if err := catalog.RequireFourPriceSnapshot(rawFresh, true); err != nil {
-		t.Fatalf("new usage must persist four-price snapshot: %v raw=%s", err, rawFresh)
+	if err := catalog.RequireFourPriceSnapshot(rawFresh, false); err != nil {
+		t.Fatalf("new usage must persist cost, wholesale, and sell: %v raw=%s", err, rawFresh)
 	}
 	up, wholesale, sell, channel := catalog.FourPriceDims(rawFresh)
-	if up != "0.000003/0.000004" || wholesale != "0.000006/0.000008" || sell != "0.000009/0.000011" || channel != "0.000010/0.000012" {
+	providerID, _ := fresh["provider_id"].(string)
+	upstreamID, _ := fresh["upstream_model_id"].(string)
+	configuredCost, err := application.Catalog.PricedProviderModel(context.Background(), providerID, upstreamID, "text")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var providerCosts map[string]string
+	if err := json.Unmarshal(configuredCost, &providerCosts); err != nil {
+		t.Fatal(err)
+	}
+	expectedUp := providerCosts["input"] + "/" + providerCosts["output"]
+	if up != expectedUp || wholesale != "0.0000007/0.0000014" || sell != "0.000009/0.000011" || channel != "" {
 		t.Fatalf("new usage snapshot dims upstream=%q wholesale=%q sell=%q channel=%q", up, wholesale, sell, channel)
 	}
 	if fresh["customer_amount_minor"] == oldAmount {

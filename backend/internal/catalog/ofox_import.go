@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -118,8 +117,8 @@ func ofoxPresetStatus(snapshotStatus string) string {
 }
 
 // ImportOfoxSnapshot 把 ofox 公开目录 dump 进 catalog 表。
-// 预置模型直接是已审核并已发布（status=published 或 deprecated，sync_state=published），
-// 创建人/审核人为空（系统目录，不做创建人互斥）。官方/分销可见，OEM 白名单不变。
+// 预置模型直接是已发布（status=published 或 deprecated，sync_state=published）。
+// 导入只补充目录；渠道授权和价格由管理员配置，重复导入不覆盖人工修改。
 func (s *Service) ImportOfoxSnapshot(ctx context.Context) (*OfoxImportResult, error) {
 	items, err := loadOfoxSnapshots()
 	if err != nil {
@@ -185,11 +184,7 @@ func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) (status string, skippe
 		CreatedByUserID:  "",
 		ReviewedByUserID: "",
 	}
-	if err = tx.Where("public_id = ?", publicID).Assign(map[string]any{
-		"vendor": model.Vendor, "display_name": model.DisplayName,
-		"capabilities_json": model.Capabilities, "status": model.Status, "sync_state": model.SyncState,
-		"created_by_user_id": "", "reviewed_by_user_id": "",
-	}).FirstOrCreate(&model).Error; err != nil {
+	if err = tx.Where("public_id = ?", publicID).FirstOrCreate(&model).Error; err != nil {
 		return "", false, err
 	}
 
@@ -206,18 +201,8 @@ func upsertOfoxModel(tx *gorm.DB, item OfoxModelSnapshot) (status string, skippe
 		ID: ofoxStableID("prc", publicID), PublicModelID: model.ID,
 		UnitPrices: pricesJSON, Status: "published", EffectiveAt: time.Now().UTC(),
 	}
-	if err := tx.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"unit_prices_json", "status", "public_model_id"}),
-	}).Create(&price).Error; err != nil {
+	if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoNothing: true}).Create(&price).Error; err != nil {
 		return "", false, err
-	}
-
-	for _, channelID := range []string{identity.OfficialChannelID, identity.ResellerChannelID} {
-		if err = tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, model.ID).
-			FirstOrCreate(&channelPolicyRow{ChannelOrgID: channelID, PublicModelID: model.ID, Enabled: true}).Error; err != nil {
-			return "", false, err
-		}
 	}
 	return status, false, nil
 }

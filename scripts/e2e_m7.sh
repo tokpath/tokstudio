@@ -305,20 +305,25 @@ if [[ "$code" != "409" ]]; then
 fi
 curl_has maintenance -X PATCH "$API_URL/admin/providers/$PROV_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"status":"maintenance","rpm_limit":30}'
-code="$(curl -s -o /tmp/m7-cred409.json -w '%{http_code}' -X POST "$API_URL/admin/providers/$PROV_ID/credentials" \
+code="$(curl -s -o /tmp/m7-account409.json -w '%{http_code}' -X POST "$API_URL/admin/providers/$PROV_ID/accounts" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"secret":"sk-no-confirm"}')"
 if [[ "$code" != "409" ]]; then
-  echo "expected 409 rotating credential without confirm, got $code" >&2
+  echo "expected 409 adding account without confirm, got $code" >&2
   exit 1
 fi
-CRED_JSON="$(curl -sf -X POST "$API_URL/admin/providers/$PROV_ID/credentials" -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-e2e-rotate-never-echo"}')"
-echo "$CRED_JSON" | grep -q credential_ref
-if echo "$CRED_JSON" | grep -q sk-e2e-rotate-never-echo; then
-  echo "rotate must not echo plaintext secret" >&2
+ACCOUNT_JSON="$(curl -sf -X POST "$API_URL/admin/providers/$PROV_ID/accounts" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{"secret":"sk-e2e-account-never-echo"}')"
+echo "$ACCOUNT_JSON" | grep -q fingerprint
+if echo "$ACCOUNT_JSON" | grep -q sk-e2e-account-never-echo; then
+  echo "account response must not echo plaintext secret" >&2
   exit 1
 fi
-curl_has provider.credential.rotate -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=provider.credential.rotate"
+curl_has provider.account.add -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/audit-logs?action=provider.account.add"
+for endpoint in credentials sync; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API_URL/admin/providers/$PROV_ID/$endpoint" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}')"
+  if [[ "$code" != "404" ]]; then echo "removed $endpoint endpoint should 404, got $code" >&2; exit 1; fi
+done
 curl_has prefix -H "Authorization: Bearer $ADMIN_TOKEN" "$API_URL/admin/api-keys"
 BAN_JSON="$(curl -sf -X POST "$API_URL/v1/me/api-keys" -H "Authorization: Bearer $session" -H 'Content-Type: application/json' -d '{"name":"admin-disable"}')"
 BAN_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['id'])" "$BAN_JSON")"
@@ -457,27 +462,6 @@ curl_has "$POOL_SLUG" -X POST "$API_URL/v1/chat/completions?provider.only=$POOL_
   -H 'Content-Type: application/json' -d '{"model":"tokenhub/echo-1","messages":[{"role":"user","content":"hot"}]}'
 code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $FINANCE_TOKEN" "$API_URL/admin/providers/$POOL_ID/accounts")"
 if [[ "$code" != "403" ]]; then echo "finance must not list accounts, got $code" >&2; exit 1; fi
-
-echo "== model sync draft review publish"
-SYNC="$(curl -sf -X POST "$API_URL/admin/providers/$POOL_ID/sync" -H "Authorization: Bearer $OPS_TOKEN" \
-  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' -d '{}')"
-echo "$SYNC" | grep -q '"status":"draft"'
-SYNC_ID="$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['item']['items'][0]['id'])" "$SYNC")"
-python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
-  "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
-curl_has reviewed -X POST "$API_URL/admin/models/review" -H "Authorization: Bearer $OPS_TOKEN" \
-  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\",\"action\":\"approve\"}"
-curl_has published -X POST "$API_URL/admin/models/publish" -H "Authorization: Bearer $OPS_TOKEN" \
-  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\"}"
-curl_has "$SYNC_ID" -H "Authorization: Bearer $key" "$API_URL/v1/models"
-curl_has deprecated -X POST "$API_URL/admin/models/deprecate" -H "Authorization: Bearer $OPS_TOKEN" \
-  -H 'Content-Type: application/json' -H 'X-Tokenhub-Confirm: 1' \
-  -d "{\"public_id\":\"$SYNC_ID\"}"
-python3 -c "import json,sys; ids=[i.get('id') for i in json.load(sys.stdin).get('data',[])]; assert sys.argv[1] not in ids" \
-  "$SYNC_ID" <<<"$(curl -sf -H "Authorization: Bearer $key" "$API_URL/v1/models")"
-curl_has "$SYNC_ID" -H "Authorization: Bearer $OPS_TOKEN" "$API_URL/admin/models?q=sync-"
 
 echo "== chat idempotency 24h"
 curl -sf -X POST "$API_URL/v1/chat/completions" -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \

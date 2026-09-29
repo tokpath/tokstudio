@@ -231,7 +231,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		return nil, ErrModelNotAllowed
 	}
-	if err := ValidateChat(in.Chat, model.Capabilities); err != nil {
+	if err := ValidateChat(in.Chat); err != nil {
 		return nil, err
 	}
 	if in.CanarySlug != "" {
@@ -246,7 +246,11 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	if err != nil {
 		return nil, err
 	}
-	quote, err := billing.ParseQuote(snapshot.VersionID, snapshot.Raw)
+	effectivePrices, err := s.catalog.PriceForChannel(ctx, in.Caller.ChannelOrgID, model.ID, snapshot.Raw)
+	if err != nil {
+		return nil, err
+	}
+	quote, err := billing.ParseQuote(snapshot.VersionID, effectivePrices)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +268,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
-		UnitPrices: snapshot.Raw, ReserveMinor: billing.EstimateReserveMinor(quote, promptHint, maxTokens),
+		UnitPrices: effectivePrices, ReserveMinor: billing.EstimateReserveMinor(quote, promptHint, maxTokens),
 	}); err != nil {
 		if errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrInsufficientQuota) {
 			return nil, ErrInsufficientBalance
@@ -402,13 +406,19 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			"total_tokens":      attempt.TotalTokens,
 			"metadata_json":     attempt.MetadataJSON,
 		})
-		_, _ = s.booker.Settle(ctx, billing.SettleInput{
+		settlePrices, priceErr := catalog.PriceWithProviderCosts(effectivePrices, cand.UnitCosts)
+		if priceErr != nil {
+			return nil, priceErr
+		}
+		if _, err := s.booker.Settle(ctx, billing.SettleInput{
 			RequestID: in.RequestID, AttemptID: attempt.ID, UserID: in.Caller.UserID,
 			APIKeyID: in.Caller.APIKeyID, ChannelOrgID: in.Caller.ChannelOrgID,
 			PublicModelID: model.ID, ProviderID: cand.ProviderID, UpstreamModelID: cand.UpstreamModelID,
-			Usage: usage, PriceVersionID: snapshot.VersionID, UnitPrices: snapshot.Raw,
+			Usage: usage, PriceVersionID: snapshot.VersionID, UnitPrices: settlePrices,
 			MissingUsage: missing, FactSource: factSource, IdempotencyKey: "usage:" + in.RequestID,
-		})
+		}); err != nil {
+			return nil, err
+		}
 		return out, nil
 	}
 	ended := time.Now().UTC()
@@ -660,12 +670,11 @@ func (s *Service) adapterFor(name string) Adapter {
 		}
 		return GeminiAdapter{Runtime: s.runtime}
 	case "bifrost", "openai", "anthropic", "openrouter", "google":
-		if s.runtime != nil && s.runtime.Client != nil {
-			return s.adapters["bifrost"]
-		}
-		// 仅测试 harness 可在无 Client 时顶上；生产 BifrostAdapter 不得伪装成功。
 		if a, ok := s.adapters["bifrost"].(HarnessAdapter); ok {
 			return a
+		}
+		if s.runtime != nil && s.runtime.Client != nil {
+			return s.adapters["bifrost"]
 		}
 		return UnavailableAdapter{AdapterName: name}
 	default:

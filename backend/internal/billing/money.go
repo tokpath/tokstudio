@@ -80,22 +80,34 @@ func MinorToUSDString(minor int64) string {
 
 // Quote 是结算用的价格快照。网关从 catalog 拿到 JSON 后交给账务，账务不再读 catalog 表。
 type Quote struct {
-	VersionID       string
-	Currency        string
-	Raw             json.RawMessage
-	InputSell       int64
-	OutputSell      int64
-	ReasoningSell   int64
-	InputCost       int64
-	OutputCost      int64
-	ReasoningCost   int64
-	InputWholesale  int64
-	OutputWholesale int64
-	VideoSecondSell int64
-	ImageCountSell  int64
-	AudioSecondSell int64
-	VideoSecondCost int64
-	ImageCountCost  int64
+	VersionID            string
+	Currency             string
+	Raw                  json.RawMessage
+	InputSell            int64
+	OutputSell           int64
+	ReasoningSell        int64
+	InputCost            int64
+	OutputCost           int64
+	ReasoningCost        int64
+	InputWholesale       int64
+	OutputWholesale      int64
+	VideoSecondSell      int64
+	ImageCountSell       int64
+	AudioSecondSell      int64
+	VideoSecondCost      int64
+	ImageCountCost       int64
+	AudioSecondCost      int64
+	VideoSecondWholesale int64
+	ImageCountWholesale  int64
+	AudioSecondWholesale int64
+	inputSellRate        string
+	outputSellRate       string
+	reasoningSellRate    string
+	inputCostRate        string
+	outputCostRate       string
+	reasoningCostRate    string
+	inputWholesaleRate   string
+	outputWholesaleRate  string
 }
 
 func ParseQuote(versionID string, raw []byte) (Quote, error) {
@@ -134,18 +146,6 @@ func ParseQuote(versionID string, raw []byte) (Quote, error) {
 	if q.OutputWholesale, err = ParseUSDToMinor(str("wholesale_output")); err != nil {
 		return q, err
 	}
-	if q.InputCost == 0 {
-		q.InputCost = q.InputSell * 4 / 10
-	}
-	if q.OutputCost == 0 {
-		q.OutputCost = q.OutputSell * 4 / 10
-	}
-	if q.InputWholesale == 0 {
-		q.InputWholesale = q.InputSell * 7 / 10
-	}
-	if q.OutputWholesale == 0 {
-		q.OutputWholesale = q.OutputSell * 7 / 10
-	}
 	if q.ReasoningSell, err = ParseUSDToMinor(str("reasoning", "reasoning_output")); err != nil {
 		return q, err
 	}
@@ -173,21 +173,68 @@ func ParseQuote(versionID string, raw []byte) (Quote, error) {
 	if q.ImageCountCost, err = ParseUSDToMinor(str("image_count_cost")); err != nil {
 		return q, err
 	}
-	if q.VideoSecondCost == 0 {
-		q.VideoSecondCost = q.VideoSecondSell * 4 / 10
+	if q.AudioSecondCost, err = ParseUSDToMinor(str("audio_second_cost")); err != nil {
+		return q, err
 	}
-	if q.ImageCountCost == 0 {
-		q.ImageCountCost = q.ImageCountSell * 4 / 10
+	if q.VideoSecondWholesale, err = ParseUSDToMinor(str("wholesale_video_second")); err != nil {
+		return q, err
 	}
+	if q.ImageCountWholesale, err = ParseUSDToMinor(str("wholesale_image_count")); err != nil {
+		return q, err
+	}
+	if q.AudioSecondWholesale, err = ParseUSDToMinor(str("wholesale_audio_second")); err != nil {
+		return q, err
+	}
+	q.inputSellRate, q.outputSellRate = str("input", "customer_sell_input"), str("output", "customer_sell_output")
+	q.reasoningSellRate = str("reasoning", "reasoning_output")
+	if q.reasoningSellRate == "" {
+		q.reasoningSellRate = q.outputSellRate
+	}
+	q.inputCostRate, q.outputCostRate = str("upstream_cost_input"), str("upstream_cost_output")
+	q.reasoningCostRate = str("upstream_cost_reasoning")
+	if q.reasoningCostRate == "" {
+		q.reasoningCostRate = q.outputCostRate
+	}
+	q.inputWholesaleRate, q.outputWholesaleRate = str("wholesale_input"), str("wholesale_output")
 	return q, nil
 }
 
 func (q Quote) CustomerMinor(prompt, completion int) int64 {
-	return int64(prompt)*q.InputSell + int64(completion)*q.OutputSell
+	return tokenAmountMinor(tokenPart{prompt, q.inputSellRate}, tokenPart{completion, q.outputSellRate})
 }
 
 func (q Quote) CostMinor(prompt, completion int) int64 {
-	return int64(prompt)*q.InputCost + int64(completion)*q.OutputCost
+	return tokenAmountMinor(tokenPart{prompt, q.inputCostRate}, tokenPart{completion, q.outputCostRate})
+}
+
+type tokenPart struct {
+	count int
+	rate  string
+}
+
+// Round once after multiplying all token counts. A $0.40/M rate would round
+// to zero if each token price were first converted to micro-USD.
+func tokenAmountMinor(parts ...tokenPart) int64 {
+	total := new(big.Rat)
+	for _, part := range parts {
+		if part.count <= 0 || part.rate == "" {
+			continue
+		}
+		rate, ok := new(big.Rat).SetString(part.rate)
+		if !ok {
+			continue
+		} // ParseQuote validated every rate.
+		total.Add(total, rate.Mul(rate, new(big.Rat).SetInt64(int64(part.count))))
+	}
+	total.Mul(total, new(big.Rat).SetInt64(MinorPerUSD))
+	quot, rem := new(big.Int).QuoRem(total.Num(), total.Denom(), new(big.Int))
+	if new(big.Int).Lsh(rem, 1).Cmp(total.Denom()) >= 0 {
+		quot.Add(quot, big.NewInt(1))
+	}
+	if !quot.IsInt64() {
+		return 0
+	}
+	return quot.Int64()
 }
 
 func resolutionFactor(resolution string) int64 {
@@ -206,7 +253,7 @@ func (q Quote) Charge(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := q.CustomerMinor(usage["prompt_tokens"], usage["completion_tokens"]) + int64(usage["reasoning_tokens"])*q.ReasoningSell
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputSellRate}, tokenPart{usage["completion_tokens"], q.outputSellRate}, tokenPart{usage["reasoning_tokens"], q.reasoningSellRate})
 	media := int64(usage["video_seconds"])*q.VideoSecondSell +
 		int64(usage["image_count"])*q.ImageCountSell +
 		int64(usage["audio_seconds"])*q.AudioSecondSell
@@ -219,13 +266,11 @@ func (q Quote) WholesaleCharge(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := int64(usage["prompt_tokens"])*q.InputWholesale +
-		int64(usage["completion_tokens"])*q.OutputWholesale +
-		int64(usage["reasoning_tokens"])*q.OutputWholesale
-	media := int64(usage["video_seconds"])*q.VideoSecondSell +
-		int64(usage["image_count"])*q.ImageCountSell +
-		int64(usage["audio_seconds"])*q.AudioSecondSell
-	amt += media * 7 / 10 * resolutionFactor(resolution) / 10
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputWholesaleRate}, tokenPart{usage["completion_tokens"], q.outputWholesaleRate}, tokenPart{usage["reasoning_tokens"], q.outputWholesaleRate})
+	media := int64(usage["video_seconds"])*q.VideoSecondWholesale +
+		int64(usage["image_count"])*q.ImageCountWholesale +
+		int64(usage["audio_seconds"])*q.AudioSecondWholesale
+	amt += media * resolutionFactor(resolution) / 10
 	return amt
 }
 
@@ -233,9 +278,10 @@ func (q Quote) MediaCost(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := q.CostMinor(usage["prompt_tokens"], usage["completion_tokens"]) + int64(usage["reasoning_tokens"])*q.ReasoningCost
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputCostRate}, tokenPart{usage["completion_tokens"], q.outputCostRate}, tokenPart{usage["reasoning_tokens"], q.reasoningCostRate})
 	media := int64(usage["video_seconds"])*q.VideoSecondCost +
-		int64(usage["image_count"])*q.ImageCountCost
+		int64(usage["image_count"])*q.ImageCountCost +
+		int64(usage["audio_seconds"])*q.AudioSecondCost
 	amt += media * resolutionFactor(resolution) / 10
 	return amt
 }

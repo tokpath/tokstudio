@@ -1,11 +1,77 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 )
+
+// PriceForChannel fixes channel terms at reservation time. The public price
+// version remains the catalog version; the effective terms are copied to usage.
+func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID string, raw json.RawMessage) (json.RawMessage, error) {
+	prices := map[string]any{}
+	if err := json.Unmarshal(raw, &prices); err != nil {
+		return nil, err
+	}
+	for key := range prices {
+		if strings.HasPrefix(key, "upstream_cost") || strings.HasPrefix(key, "wholesale") || strings.HasPrefix(key, "channel_customer") || strings.HasSuffix(key, "_cost") || key == "channel_override" || key == "channel_customer" {
+			delete(prices, key)
+		}
+	}
+	if channelID == "" {
+		return json.Marshal(prices)
+	}
+	var policy channelPolicyRow
+	err := s.db.WithContext(ctx).Table("catalog_channel_model_policies AS p").
+		Select("p.*").Joins("JOIN catalog_public_models AS m ON m.id = p.public_model_id").
+		Where("p.channel_org_id = ? AND m.public_id = ? AND p.enabled = true", channelID, publicID).First(&policy).Error
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range decodeCosts(policy.Wholesale) {
+		prices["wholesale_"+key] = value
+	}
+	for key, value := range decodeCosts(policy.Override) {
+		if key == "input" || key == "output" {
+			prices[key] = value
+			prices["customer_sell_"+key] = value
+		} else {
+			prices[key] = value
+		}
+	}
+	return json.Marshal(prices)
+}
+
+// PriceWithProviderCosts replaces the old model-wide estimate with the costs
+// of the provider/model that actually completed the request.
+func PriceWithProviderCosts(raw, costs json.RawMessage) (json.RawMessage, error) {
+	if len(costs) == 0 {
+		return nil, ErrProviderModelUnpriced
+	}
+	prices := map[string]any{}
+	if err := json.Unmarshal(raw, &prices); err != nil {
+		return nil, err
+	}
+	for _, key := range []string{"upstream_cost_input", "upstream_cost_output", "image_count_cost", "video_second_cost", "audio_second_cost"} {
+		delete(prices, key)
+	}
+	delete(prices, "upstream_cost")
+	var source map[string]string
+	if err := json.Unmarshal(costs, &source); err != nil {
+		return nil, err
+	}
+	for key, value := range source {
+		switch key {
+		case "input", "output":
+			prices["upstream_cost_"+key] = value
+		case "image_count", "video_second", "audio_second":
+			prices[key+"_cost"] = value
+		}
+	}
+	return json.Marshal(prices)
+}
 
 // PriceSnapshot 是账务模块允许看到的公开价格视图，不含内部 ORM。
 type PriceSnapshot struct {
@@ -21,17 +87,13 @@ type PriceBookView struct {
 	Status      string          `json:"status"`
 	UnitPrices  json.RawMessage `json:"unit_prices"`
 	EffectiveAt time.Time       `json:"effective_at"`
-	Upstream    string          `json:"upstream"`
-	Wholesale   string          `json:"wholesale"`
 	Sell        string          `json:"sell"`
-	Channel     string          `json:"channel,omitempty"`
 }
 
 var ErrEmptyUnitPrices = errors.New("unit prices required")
 
-// NormalizeUnitPrices 把发布体收成账务已认识的扁平键，并保留 docs/03 的维度对象。
-// 接受 nested upstream_cost / wholesale / customer_sell / channel_override，
-// 以及既有 input/output 与 *_input/*_output 别名。渠道覆盖未建模时可以缺省。
+// NormalizeUnitPrices only accepts the public selling price. Provider costs
+// and channel terms are configured on their own resources.
 func NormalizeUnitPrices(in map[string]any) (map[string]any, error) {
 	if in == nil {
 		return nil, ErrEmptyUnitPrices
@@ -39,12 +101,6 @@ func NormalizeUnitPrices(in map[string]any) (map[string]any, error) {
 	out := map[string]any{}
 
 	sellIn, sellOut := pickDim(in, "customer_sell", "customer_sell_input", "customer_sell_output", "input", "output")
-	costIn, costOut := pickDim(in, "upstream_cost", "upstream_cost_input", "upstream_cost_output")
-	wholeIn, wholeOut := pickDim(in, "wholesale", "wholesale_input", "wholesale_output")
-	chIn, chOut := pickDim(in, "channel_override", "channel_customer_input", "channel_customer_output")
-	if chIn == "" && chOut == "" {
-		chIn, chOut = pickDim(in, "channel_customer", "channel_customer_price_input", "channel_customer_price_output")
-	}
 
 	writeDim(out, "customer_sell", "customer_sell_input", "customer_sell_output", sellIn, sellOut)
 	if sellIn != "" {
@@ -53,19 +109,18 @@ func NormalizeUnitPrices(in map[string]any) (map[string]any, error) {
 	if sellOut != "" {
 		out["output"] = sellOut
 	}
-	writeDim(out, "upstream_cost", "upstream_cost_input", "upstream_cost_output", costIn, costOut)
-	writeDim(out, "wholesale", "wholesale_input", "wholesale_output", wholeIn, wholeOut)
-	writeDim(out, "channel_override", "channel_customer_input", "channel_customer_output", chIn, chOut)
 
 	if curr := stringifyPrice(in["currency"]); curr != "" {
+		if curr != "USD" {
+			return nil, ErrInvalidInput
+		}
 		out["currency"] = curr
 	} else {
 		out["currency"] = "USD"
 	}
 	for _, key := range []string{
 		"video_second", "image_count", "audio_second",
-		"video_second_cost", "image_count_cost",
-		"reasoning", "reasoning_output", "upstream_cost_reasoning",
+		"reasoning", "reasoning_output",
 	} {
 		if v := stringifyPrice(in[key]); v != "" {
 			out[key] = v
@@ -75,13 +130,21 @@ func NormalizeUnitPrices(in map[string]any) (map[string]any, error) {
 	if !hasPricedUnit(out) {
 		return nil, ErrEmptyUnitPrices
 	}
+	for _, key := range []string{"input", "output", "video_second", "image_count", "audio_second", "reasoning", "reasoning_output"} {
+		if value := stringifyPrice(out[key]); value != "" && !validPrice(value) {
+			return nil, ErrInvalidInput
+		}
+	}
 	return out, nil
 }
 
 func mergeUnitPrices(prev, incoming map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, v := range prev {
-		out[k] = v
+		switch k {
+		case "input", "output", "customer_sell", "customer_sell_input", "customer_sell_output", "currency", "video_second", "image_count", "audio_second", "reasoning", "reasoning_output":
+			out[k] = v
+		}
 	}
 	for k, v := range incoming {
 		out[k] = v
@@ -97,10 +160,7 @@ func priceBookFromRow(row priceRow, publicID string) PriceBookView {
 		Status:      row.Status,
 		UnitPrices:  json.RawMessage(row.UnitPrices),
 		EffectiveAt: row.EffectiveAt,
-		Upstream:    formatIO(dims["upstream_cost_input"], dims["upstream_cost_output"]),
-		Wholesale:   formatIO(dims["wholesale_input"], dims["wholesale_output"]),
 		Sell:        formatIO(firstNonEmpty(dims["input"], dims["customer_sell_input"]), firstNonEmpty(dims["output"], dims["customer_sell_output"])),
-		Channel:     formatIO(dims["channel_customer_input"], dims["channel_customer_output"]),
 	}
 }
 
@@ -192,9 +252,6 @@ func firstKey(m map[string]any, keys ...string) any {
 func hasPricedUnit(out map[string]any) bool {
 	for _, key := range []string{
 		"input", "output", "customer_sell_input", "customer_sell_output",
-		"upstream_cost_input", "upstream_cost_output",
-		"wholesale_input", "wholesale_output",
-		"channel_customer_input", "channel_customer_output",
 		"video_second", "image_count", "audio_second",
 	} {
 		if stringifyPrice(out[key]) != "" {

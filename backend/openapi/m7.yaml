@@ -56,9 +56,6 @@ paths:
       summary: Get one admin model including capabilities and sell price
     patch:
       summary: Update display name, vendor or capabilities; cannot publish via PATCH
-  /admin/providers/{id}/sync:
-    post:
-      summary: Sync provider models and prices into draft without reviewing
   /admin/models/review:
     post:
       summary: Approve or reject a draft; creator cannot review their own model

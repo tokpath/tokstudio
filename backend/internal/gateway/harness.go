@@ -93,17 +93,21 @@ func (a HarnessAdapter) Chat(ctx context.Context, providerSlug, behavior string,
 // InstallTestHarness 把可注入的测试上游挂到 Service 上。
 // 只影响当前进程内的 Service 实例；生产启动路径不得调用。
 // - test：始终替换为 HarnessAdapter（覆盖 catalog echo 种子）
-// - bifrost：仅在尚无 live Client 时替换，避免 CI 无 Key 时整条链路 503
+// - bifrost：测试显式注入后始终替换，避免测试库残留账号触发真实上游
 // - gemini：保持 live-only（无 Key 仍 503），满足「不得假装 live Google」契约
 func (s *Service) InstallTestHarness() {
 	if s == nil {
 		return
 	}
+	// Tests can share a database containing provider accounts. Shut down the
+	// live client so an explicit harness never calls or labels a real upstream.
+	if s.runtime != nil {
+		s.runtime.Close()
+		s.runtime = nil
+	}
 	if s.adapters == nil {
 		s.adapters = map[string]Adapter{}
 	}
 	s.adapters["test"] = HarnessAdapter{NameValue: "test"}
-	if s.runtime == nil || s.runtime.Client == nil {
-		s.adapters["bifrost"] = HarnessAdapter{NameValue: "bifrost"}
-	}
+	s.adapters["bifrost"] = HarnessAdapter{NameValue: "bifrost"}
 }

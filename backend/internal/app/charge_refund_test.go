@@ -99,7 +99,7 @@ func TestChargeRefundAtomicity(t *testing.T) {
 		}
 		previousProfit = report.GrossProfitMinor
 	}
-	tables := []string{"billing_wallets", "billing_ledger", "billing_authorizations", "billing_customer_charges", "billing_usage_events", "billing_quota_consumes", "billing_quota_allocations", "commission_entries", "commission_marketing_entries", "plans_entitlement_accounts", "plans_entitlement_ledger", "outbox_events"}
+	tables := []string{"billing_wallets", "billing_ledger", "billing_authorizations", "billing_customer_charges", "billing_usage_events", "billing_quota_consumes", "billing_quota_allocations", "commission_entries", "commission_marketing_entries", "plans_entitlement_accounts", "plans_entitlement_ledger"}
 	snapshot := func() map[string]string {
 		out := map[string]string{}
 		for _, table := range tables {
@@ -109,6 +109,13 @@ func TestChargeRefundAtomicity(t *testing.T) {
 			}
 			out[table] = value
 		}
+		var refundEvents string
+		if err := application.DB.Raw(`SELECT COALESCE(jsonb_agg(to_jsonb(r) ORDER BY r.id), '[]'::jsonb)::text
+			FROM outbox_events r WHERE r.event_type = 'billing.charge.reversed'
+			AND r.aggregate_id IN (SELECT id FROM billing_customer_charges WHERE request_id = ?)`, requestID).Scan(&refundEvents).Error; err != nil {
+			t.Fatal(err)
+		}
+		out["refund_outbox_events"] = refundEvents
 		return out
 	}
 	before := snapshot()
@@ -143,7 +150,7 @@ func TestChargeRefundAtomicity(t *testing.T) {
 				t.Fatalf("expected propagated failure, got %v", refundErr)
 			}
 			after := snapshot()
-			for _, table := range tables {
+			for _, table := range append(tables, "refund_outbox_events") {
 				if before[table] != after[table] {
 					t.Errorf("partial refund changed %s", table)
 				}

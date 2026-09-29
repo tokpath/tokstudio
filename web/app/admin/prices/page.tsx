@@ -22,12 +22,6 @@ const schema = z.object({
   model: z.string().trim().min(1, "请填写模型 ID"),
   input: z.string().trim().min(1, "请填写终端售价输入"),
   output: z.string().trim().min(1, "请填写终端售价输出"),
-  wholesale_input: z.string(),
-  wholesale_output: z.string(),
-  upstream_cost_input: z.string(),
-  upstream_cost_output: z.string(),
-  channel_input: z.string(),
-  channel_output: z.string(),
 });
 
 export default function AdminPricesPage() {
@@ -37,12 +31,6 @@ export default function AdminPricesPage() {
       model: "tokenhub/echo-1",
       input: "1",
       output: "2",
-      wholesale_input: "0.7",
-      wholesale_output: "1.4",
-      upstream_cost_input: "0.4",
-      upstream_cost_output: "0.8",
-      channel_input: "",
-      channel_output: "",
     },
   });
   const [message, setMessage] = useState("新价格只影响之后的请求。历史版本是只读快照，数字不会被改写。发布需要盖章确认。");
@@ -76,15 +64,9 @@ export default function AdminPricesPage() {
         <Form {...form}>
           <form className="mb-3 grid gap-2" onSubmit={(event) => event.preventDefault()}>
             <TextField control={form.control} name="model" label="模型 ID" placeholder="public model id" className="max-w-sm" />
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <TextField control={form.control} name="upstream_cost_input" label="成本 输入" suffix="美元/M" />
-              <TextField control={form.control} name="upstream_cost_output" label="成本 输出" suffix="美元/M" />
-              <TextField control={form.control} name="wholesale_input" label="批发 输入" suffix="美元/M" />
-              <TextField control={form.control} name="wholesale_output" label="批发 输出" suffix="美元/M" />
+            <div className="grid gap-2 sm:grid-cols-2">
               <TextField control={form.control} name="input" label="售价 输入" suffix="美元/M" />
               <TextField control={form.control} name="output" label="售价 输出" suffix="美元/M" />
-              <TextField control={form.control} name="channel_input" label="渠道覆盖 输入" suffix="美元/M" />
-              <TextField control={form.control} name="channel_output" label="渠道覆盖 输出" suffix="美元/M" />
             </div>
             <SealConfirm
               size="sm"
@@ -100,18 +82,6 @@ export default function AdminPricesPage() {
                     currency: "USD",
                     customer_sell: millionDim(values.input, values.output),
                   };
-                  const wholesale = millionDim(values.wholesale_input, values.wholesale_output);
-                  const upstream = millionDim(values.upstream_cost_input, values.upstream_cost_output);
-                  const channel = millionDim(values.channel_input, values.channel_output);
-                  if (wholesale) {
-                    payload.wholesale = wholesale;
-                  }
-                  if (upstream) {
-                    payload.upstream_cost = upstream;
-                  }
-                  if (channel) {
-                    payload.channel_override = channel;
-                  }
                 } catch (err) {
                   setMessage(err instanceof Error ? err.message : "单价无效");
                   return false;

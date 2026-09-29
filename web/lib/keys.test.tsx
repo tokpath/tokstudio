@@ -636,6 +636,8 @@ describe("KeysPanel", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);
     fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "密钥A" } });
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url, init]) =>
+      String(url).includes("/v1/me/api-keys") && init?.method === "POST")).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     await waitFor(() => expect(screen.queryByRole("heading", { name: "创建 API Key" })).toBeNull());
     fireEvent.click(screen.getAllByRole("button", { name: "创建 API Key" })[0]);

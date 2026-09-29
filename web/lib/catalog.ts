@@ -47,12 +47,14 @@ export type AdminModel = {
   vendor: string;
   display_name: string;
   status: string;
+  config_ready?: boolean;
   sync_state?: string;
   created_by_user_id?: string;
   reviewed_by_user_id?: string;
   capabilities?: Record<string, unknown>;
   sell_price?: Record<string, unknown>;
   providers?: string[];
+  kind?: string;
 };
 
 export function publicModelsPath(query: CatalogQuery = {}): string {

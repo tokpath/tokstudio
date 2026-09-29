@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   adapterLabel,
   catalogStatusTone,
-  formatCredentialRef,
   formatMappedModels,
   formatProviderSlugs,
   filterProviderOptions,
@@ -39,11 +38,9 @@ describe("admin catalog labels", () => {
     expect(statusWord("available")).toBe("AVAILABLE");
   });
 
-  it("explains empty rpm, credentials, and unmapped models", () => {
+  it("explains empty rpm and unmapped models", () => {
     expect(formatRpm(0)).toBe("未限制");
     expect(formatRpm(30)).toBe("30");
-    expect(formatCredentialRef("")).toBe("尚未配置");
-    expect(formatCredentialRef("crd_123")).toBe("已配置");
     expect(formatProviderSlugs([])).toBe("尚未接入提供商");
     expect(formatProviderSlugs(["ark-seedance", "openrouter-seedance"])).toBe(
       "ark-seedance · openrouter-seedance",
@@ -119,7 +116,7 @@ describe("admin catalog labels", () => {
   });
 
   it("maps sync states to review-queue labels", () => {
-    expect(syncStateLabel("draft")).toBe("待审核");
+    expect(syncStateLabel("draft")).toBe("草稿");
     expect(syncStateLabel("reviewed")).toBe("已通过");
     expect(syncStateLabel("rejected")).toBe("已拒绝");
     expect(syncStateLabel("published")).toBe("已发布");
@@ -132,7 +129,7 @@ describe("admin catalog labels", () => {
     expect(routeStatusOptions("paused")[0]).toEqual({ value: "paused", label: "paused" });
     expect(routeStrategyLabel("priority")).toBe("按指定顺序");
     expect(routeStatusLabel("active")).toBe("启用选路");
-    expect(modelStatusLabel("published")).toBe("已上架");
+    expect(modelStatusLabel("published")).toBe("已发布");
     expect(modelStatusLabel("draft")).toBe("草稿");
   });
 });

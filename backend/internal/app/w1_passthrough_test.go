@@ -19,9 +19,18 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 		"name": "W1 Bifrost", "slug": slug, "adapter": "bifrost",
 	})
 	prdID := prd["item"].(map[string]any)["id"].(string)
+	if code, body := doJSON(t, http.MethodPut, fx.server.URL+"/admin/providers/"+prdID+"/upstream-models", "wmeter2_admin", true, map[string]any{
+		"upstream_model_id": "echo-upstream", "unit_costs": map[string]string{"input": "0.0000004", "output": "0.0000008"},
+	}); code != http.StatusOK {
+		t.Fatalf("provider cost: %d %+v", code, body)
+	}
 	_ = postJSONRaw(t, fx.server.URL+"/admin/models/attach", "wmeter2_admin", map[string]any{
 		"public_id": catalog.EchoModelID, "provider_id": prdID, "upstream_model_id": "echo-upstream",
 	})
+	candidates, err := fx.app.Catalog.ResolveRoute(fx.ctx, catalog.EchoModelID, catalog.RouteHint{Only: []string{slug}})
+	if err != nil || len(candidates) != 1 {
+		t.Fatalf("priced provider must be routable: %+v %v", candidates, err)
+	}
 
 	chat := postJSONRaw(t, fx.server.URL+"/v1/chat/completions?provider.only="+slug, fx.apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "w1-pass"}},

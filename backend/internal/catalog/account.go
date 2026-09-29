@@ -167,10 +167,6 @@ func (s *Service) AddAccount(ctx context.Context, providerID, encKey string, in 
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(provider.CredentialRef) == "" {
-		_ = s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).
-			Update("credential_ref", row.ID).Error
-	}
 	view := accountView(row)
 	return &view, nil
 }

@@ -265,15 +265,10 @@ func TestM7OpsHardening(t *testing.T) {
 	if len(echoModels) < 2 {
 		t.Fatalf("echo-primary should map more than one public model: %+v", echoProvider)
 	}
-	if code := postStatus(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-no-confirm"}); code != http.StatusConflict {
-		t.Fatalf("rotate credential without confirm should be 409, got %d", code)
-	}
-	cred := postJSONRaw(t, server.URL+fmt.Sprintf("/admin/providers/%s/credentials", prov["id"]), "m7_admin", map[string]any{"secret": "sk-sandbox"})
-	if cred["credential_ref"] == nil {
-		t.Fatalf("rotate credential: %+v", cred)
-	}
-	if _, leaked := cred["secret"]; leaked {
-		t.Fatalf("rotate must not echo plaintext: %+v", cred)
+	for _, endpoint := range []string{"credentials", "sync"} {
+		if code := postStatusConfirm(t, server.URL+fmt.Sprintf("/admin/providers/%s/%s", prov["id"], endpoint), "m7_admin", map[string]any{"secret": "sk-sandbox"}); code != http.StatusNotFound {
+			t.Fatalf("removed provider %s endpoint should be 404, got %d", endpoint, code)
+		}
 	}
 	if code := postStatusConfirm(t, server.URL+"/admin/providers", "m7_admin", map[string]any{
 		"name": "ssrf", "slug": "ssrf-" + strconv.FormatInt(time.Now().UnixNano(), 10), "adapter": "openai", "base_url": "http://169.254.169.254/",
@@ -341,7 +336,7 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	modelPatched := patchJSONRaw(t, server.URL+"/admin/models/"+publicID, "m7_admin", map[string]any{
 		"display_name": "Ops Draft Edited",
-		"capabilities": map[string]any{"supported_parameters": []string{"stream", "tools"}},
+		"capabilities": map[string]any{"kind": "text", "supported_parameters": []string{"stream", "tools"}},
 	})
 	if modelPatched["item"].(map[string]any)["display_name"] != "Ops Draft Edited" {
 		t.Fatalf("patch model: %+v", modelPatched)
@@ -357,6 +352,21 @@ func TestM7OpsHardening(t *testing.T) {
 	if fmt.Sprint(sell["input"]) != "0.000003" {
 		t.Fatalf("sell price after publish: %+v", afterPrice)
 	}
+	if code := postStatusConfirm(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
+		"public_model_id": publicID, "status": "active", "candidates": []map[string]any{{"provider_id": "echo-primary", "upstream_model_id": "echo-upstream"}},
+	}); code != http.StatusConflict {
+		t.Fatalf("draft model must not be routed, got %d", code)
+	}
+	_ = postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin", map[string]any{"public_id": publicID})
+	unpriced := postJSONRaw(t, server.URL+"/admin/providers", "m7_admin", map[string]any{
+		"name": "Unpriced candidate", "slug": "unpriced-" + strconv.FormatInt(time.Now().UnixNano(), 10), "adapter": "test",
+	})
+	unpricedID := unpriced["item"].(map[string]any)["id"].(string)
+	if code := postStatusConfirm(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
+		"public_model_id": publicID, "status": "active", "candidates": []map[string]any{{"provider_id": unpricedID, "upstream_model_id": "unknown-upstream"}},
+	}); code != http.StatusConflict {
+		t.Fatalf("route must reject upstream models without provider cost, got %d", code)
+	}
 	if code := postStatus(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
 		"public_model_id": publicID, "strategy": "priority",
 	}); code != http.StatusConflict {
@@ -364,7 +374,7 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 	createdRoute := postJSONRaw(t, server.URL+"/admin/routes", "m7_admin", map[string]any{
 		"public_model_id": publicID, "strategy": "priority", "status": "active",
-		"candidates": []map[string]any{{"provider_id": "echo-primary", "priority": 1, "weight": 1}},
+		"candidates": []map[string]any{{"provider_id": "echo-primary", "upstream_model_id": "echo-upstream", "priority": 1, "weight": 1}},
 	})
 	routeItem := createdRoute["item"].(map[string]any)
 	routeID := routeItem["id"].(string)
@@ -590,8 +600,8 @@ func TestM7OpsHardening(t *testing.T) {
 	if getStatus(t, server.URL+"/admin/billing/export", finance) != http.StatusOK {
 		t.Fatal("finance should export billing")
 	}
-	if postStatusConfirm(t, server.URL+"/admin/providers/prd_echo_primary/credentials", finance, map[string]any{"secret": "sk-x"}) != http.StatusForbidden {
-		t.Fatal("finance must not rotate provider credentials")
+	if postStatusConfirm(t, server.URL+"/admin/providers/prd_echo_primary/accounts", finance, map[string]any{"secret": "sk-x"}) != http.StatusForbidden {
+		t.Fatal("finance must not add provider accounts")
 	}
 	if postStatusConfirm(t, server.URL+"/admin/refunds", opsTok, map[string]any{"request_id": "missing"}) != http.StatusForbidden {
 		t.Fatal("ops must not refund")
@@ -614,6 +624,11 @@ func TestM7OpsHardening(t *testing.T) {
 		"name": "Account Pool", "slug": poolSlug, "adapter": "test",
 	})
 	poolID := pool["item"].(map[string]any)["id"].(string)
+	if code, body := doJSON(t, http.MethodPut, server.URL+"/admin/providers/"+poolID+"/upstream-models", "m7_admin", true, map[string]any{
+		"upstream_model_id": "echo-upstream", "unit_costs": map[string]string{"input": "0.0000004", "output": "0.0000008"},
+	}); code != http.StatusOK {
+		t.Fatalf("provider cost: %d %+v", code, body)
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/models/attach", tech, map[string]any{
 		"public_id": catalog.EchoModelID, "provider_id": poolID, "upstream_model_id": "echo-upstream",
 	})
@@ -655,105 +670,37 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 
 	own := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
-		"public_id": "tokenhub/review-own-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Own Draft",
+		"public_id": "tokenhub/publish-own-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Own Draft",
 	})
 	ownID := own["item"].(map[string]any)["id"].(string)
 	if code := postStatusConfirm(t, server.URL+"/admin/models/review", "m7_admin", map[string]any{
 		"public_id": ownID, "action": "approve",
-	}); code != http.StatusConflict {
-		t.Fatalf("creator must not review own model, got %d", code)
-	}
-	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{
-		"public_id": ownID,
-	}); code != http.StatusConflict {
-		t.Fatalf("publish without review should 409, got %d", code)
-	}
-	pending := getAuthJSON(t, server.URL+"/admin/models?sync_state=draft&q="+ownID, "m7_admin-ops")
-	if len(pending["items"].([]any)) == 0 {
-		t.Fatalf("draft queue missing model: %+v", pending)
-	}
-	rej := postJSONRaw(t, server.URL+"/admin/models", "m7_admin", map[string]any{
-		"public_id": "tokenhub/review-rej-" + strconv.FormatInt(time.Now().UnixNano(), 10), "vendor": "tokenhub", "display_name": "Reject Me",
-	})
-	rejID := rej["item"].(map[string]any)["id"].(string)
-	rejected := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
-		"public_id": rejID, "action": "reject",
-	})
-	if rejected["item"].(map[string]any)["sync_state"] != catalog.SyncRejected {
-		t.Fatalf("reject: %+v", rejected)
-	}
-	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{
-		"public_id": rejID,
-	}); code != http.StatusConflict {
-		t.Fatalf("rejected model must not publish, got %d", code)
-	}
-	approvedOwn := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
-		"public_id": ownID, "action": "approve",
-	})
-	if approvedOwn["item"].(map[string]any)["sync_state"] != catalog.SyncReviewed {
-		t.Fatalf("ops review of admin draft: %+v", approvedOwn)
+	}); code != http.StatusGone {
+		t.Fatalf("obsolete review endpoint must be gone, got %d", code)
 	}
 	if code := postStatusConfirm(t, server.URL+"/admin/models/publish", "m7_admin", map[string]any{
 		"public_id": ownID,
 	}); code != http.StatusConflict {
-		t.Fatalf("creator must not publish own model, got %d", code)
+		t.Fatalf("publish without kind and price should 409, got %d", code)
 	}
-	publishedOwn := postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{"public_id": ownID})
-	if publishedOwn["item"].(map[string]any)["status"] != catalog.SyncPublished {
-		t.Fatalf("ops publish after review: %+v", publishedOwn)
+	pending := getAuthJSON(t, server.URL+"/admin/models?sync_state=draft&q="+ownID, "m7_admin-ops")
+	if len(pending["items"].([]any)) == 0 {
+		t.Fatalf("draft list missing model: %+v", pending)
 	}
-
-	synced := postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/sync", tech, map[string]any{})
-	syncItem := synced["item"].(map[string]any)
-	syncModels := syncItem["items"].([]any)
-	if len(syncModels) == 0 || syncModels[0].(map[string]any)["status"] != catalog.SyncDraft {
-		t.Fatalf("sync should create draft: %+v", synced)
-	}
-	syncPublic := syncModels[0].(map[string]any)["id"].(string)
-	visible := getAuthJSON(t, server.URL+"/v1/models", key)
-	for _, raw := range visible["data"].([]any) {
-		if raw.(map[string]any)["id"] == syncPublic {
-			t.Fatalf("draft model must not be in customer catalog: %+v", visible)
-		}
-	}
-	if code := postStatusConfirm(t, server.URL+"/admin/models/review", tech, map[string]any{
-		"public_id": syncPublic, "action": "approve",
-	}); code != http.StatusForbidden {
-		t.Fatalf("tech must not review models, got %d", code)
-	}
-	reviewed := postJSONRaw(t, server.URL+"/admin/models/review", "m7_admin-ops", map[string]any{
-		"public_id": syncPublic, "action": "approve",
+	_ = patchJSONRaw(t, server.URL+"/admin/models/"+ownID, "m7_admin", map[string]any{
+		"capabilities": map[string]any{"kind": "text", "supported_parameters": []string{"model", "messages"}},
 	})
-	if reviewed["item"].(map[string]any)["sync_state"] != catalog.SyncReviewed {
-		t.Fatalf("review: %+v", reviewed)
+	_ = postJSONRaw(t, server.URL+"/admin/price-books", "m7_admin", map[string]any{
+		"model": ownID, "input": "0.000001", "output": "0.000002", "currency": "USD",
+	})
+	publishedOwn := postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin", map[string]any{"public_id": ownID})
+	if publishedOwn["item"].(map[string]any)["status"] != catalog.SyncPublished {
+		t.Fatalf("creator can publish complete model: %+v", publishedOwn)
 	}
-	published := postJSONRaw(t, server.URL+"/admin/models/publish", "m7_admin-ops", map[string]any{"public_id": syncPublic})
-	if published["item"].(map[string]any)["status"] != catalog.SyncPublished {
-		t.Fatalf("publish: %+v", published)
-	}
-	after := getAuthJSON(t, server.URL+"/v1/models", key)
-	foundSync := false
-	for _, raw := range after["data"].([]any) {
-		if raw.(map[string]any)["id"] == syncPublic {
-			foundSync = true
+	for _, raw := range getAuthJSON(t, server.URL+"/v1/models", key)["data"].([]any) {
+		if raw.(map[string]any)["id"] == ownID {
+			t.Fatalf("published model without route/grant must stay hidden")
 		}
-	}
-	if !foundSync {
-		t.Fatalf("published sync model missing from catalog: %+v", after)
-	}
-	deprecated := postJSONRaw(t, server.URL+"/admin/models/deprecate", "m7_admin-ops", map[string]any{"public_id": syncPublic})
-	if deprecated["item"].(map[string]any)["status"] != "deprecated" {
-		t.Fatalf("deprecate: %+v", deprecated)
-	}
-	gone := getAuthJSON(t, server.URL+"/v1/models", key)
-	for _, raw := range gone["data"].([]any) {
-		if raw.(map[string]any)["id"] == syncPublic {
-			t.Fatalf("deprecated model still visible: %+v", gone)
-		}
-	}
-	adminStill := getAuthJSON(t, server.URL+"/admin/models?q=sync-", "m7_admin-ops")
-	if len(adminStill["items"].([]any)) == 0 {
-		t.Fatalf("deprecated model must remain in admin list: %+v", adminStill)
 	}
 
 	idem := "chat-idem-" + strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -777,6 +724,11 @@ func TestM7OpsHardening(t *testing.T) {
 		"name": "Bifrost Lab", "slug": slug, "adapter": "bifrost",
 	})
 	prdID := prd["item"].(map[string]any)["id"].(string)
+	if code, body := doJSON(t, http.MethodPut, server.URL+"/admin/providers/"+prdID+"/upstream-models", "m7_admin", true, map[string]any{
+		"upstream_model_id": "echo-upstream", "unit_costs": map[string]string{"input": "0.0000004", "output": "0.0000008"},
+	}); code != http.StatusOK {
+		t.Fatalf("bifrost provider cost: %d %+v", code, body)
+	}
 	_ = postJSONRaw(t, server.URL+"/admin/models/attach", tech, map[string]any{
 		"public_id": catalog.EchoModelID, "provider_id": prdID, "upstream_model_id": "echo-upstream",
 	})

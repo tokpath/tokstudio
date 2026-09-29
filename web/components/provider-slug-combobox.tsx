@@ -22,6 +22,7 @@ export function ProviderSlugCombobox<T extends FieldValues>({
   description?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const listId = `${String(name)}-list`;
 
   return (
@@ -29,7 +30,8 @@ export function ProviderSlugCombobox<T extends FieldValues>({
       control={control}
       name={name}
       render={({ field }) => {
-        const filtered = filterProviderOptions(options, String(field.value ?? ""));
+        const selected = options.find((item) => item.id === field.value || item.slug === field.value);
+        const filtered = filterProviderOptions(options, query);
         return (
           <FormItem>
             <FormLabel>{label}</FormLabel>
@@ -45,10 +47,12 @@ export function ProviderSlugCombobox<T extends FieldValues>({
                   aria-autocomplete="list"
                   autoComplete="off"
                   placeholder={placeholder ?? label}
-                  onFocus={() => setOpen(true)}
+                  value={open ? query : selected?.name || String(field.value ?? "")}
+                  onFocus={() => { setQuery(""); setOpen(true); }}
                   onBlur={() => setOpen(false)}
                   onChange={(event) => {
-                    field.onChange(event);
+                    setQuery(event.target.value);
+                    field.onChange("");
                     setOpen(true);
                   }}
                 />
@@ -68,12 +72,12 @@ export function ProviderSlugCombobox<T extends FieldValues>({
                             className="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-canvas"
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => {
-                              field.onChange(item.slug);
+                              field.onChange(item.id);
+                              setQuery("");
                               setOpen(false);
                             }}
                           >
                             <span>{item.name || item.slug}</span>
-                            <span className="font-mono text-xs text-ink-secondary">{item.slug}</span>
                           </button>
                         </li>
                       ))

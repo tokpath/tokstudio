@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"github.com/tokpath/tokstudio/backend/internal/app"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/logx"
 	"github.com/tokpath/tokstudio/backend/internal/platform/redisx"
 )
 
-func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
+func TestOfoxCatalogRequiresRouteAndKeepsOEMIsolated(t *testing.T) {
 	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
 		t.Skip("integration test requires TOKENHUB_DATABASE_URL and TOKENHUB_REDIS_URL")
 	}
@@ -43,26 +44,36 @@ func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
 	defer server.Close()
 
 	const ofoxID = "z-ai/glm-5.3-flash"
+	adminItems, err := application.Catalog.ListAdminModels(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(adminItems) < 100 {
+		t.Fatalf("admin catalog should retain ofox dump, got %d", len(adminItems))
+	}
+	adminFound := false
+	for _, row := range adminItems {
+		if row.ID == ofoxID {
+			adminFound = true
+			if row.Kind == "" && row.DisplayName == "" {
+				t.Fatalf("ofox row incomplete: %+v", row)
+			}
+		}
+	}
+	if !adminFound {
+		t.Fatalf("admin catalog missing %s", ofoxID)
+	}
+
 	official := getAuthJSON(t, server.URL+"/v1/public/models", "")
 	items, _ := official["items"].([]any)
-	if len(items) < 100 {
-		t.Fatalf("official catalog should include ofox dump, got %d", len(items))
-	}
-	found := false
 	for _, raw := range items {
 		row := raw.(map[string]any)
 		if _, ok := row["providers"]; ok {
 			t.Fatalf("public models must not leak providers: %+v", row)
 		}
 		if row["id"] == ofoxID {
-			found = true
-			if row["kind"] == "" && row["display_name"] == "" {
-				t.Fatalf("ofox row incomplete: %+v", row)
-			}
+			t.Fatalf("unrouted ofox model must stay out of public catalog: %+v", row)
 		}
-	}
-	if !found {
-		t.Fatalf("official /v1/public/models missing %s", ofoxID)
 	}
 
 	oem := getAuthJSON(t, server.URL+"/v1/public/models?host=oem.localhost", "")
@@ -79,14 +90,14 @@ func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
 		t.Fatalf("public site snapshot missing: %+v", site)
 	}
 
-	filtered := getAuthJSON(t, server.URL+"/v1/public/models?vendor=z-ai&kind=text", "")
+	filtered := getAuthJSON(t, server.URL+"/v1/public/models?vendor=tokenhub&kind=text", "")
 	filteredItems, _ := filtered["items"].([]any)
 	if len(filteredItems) == 0 {
-		t.Fatalf("vendor=z-ai&kind=text returned no items: %+v", filtered)
+		t.Fatalf("vendor=tokenhub&kind=text returned no items: %+v", filtered)
 	}
 	for _, raw := range filteredItems {
 		row := raw.(map[string]any)
-		if row["vendor"] != "z-ai" {
+		if row["vendor"] != "tokenhub" {
 			t.Fatalf("vendor filter leaked %v", row["vendor"])
 		}
 		if row["kind"] != "text" {
@@ -101,9 +112,13 @@ func TestOfoxCatalogDumpIsServedAndOEMIsolated(t *testing.T) {
 		t.Fatalf("total=%v items=%d", filtered["total"], len(filteredItems))
 	}
 
-	one := getAuthJSON(t, server.URL+"/v1/public/models?id="+url.QueryEscape(ofoxID), "")
+	one := getAuthJSON(t, server.URL+"/v1/public/models?id="+url.QueryEscape(catalog.EchoModelID), "")
 	oneItems, _ := one["items"].([]any)
-	if len(oneItems) != 1 || oneItems[0].(map[string]any)["id"] != ofoxID {
+	if len(oneItems) != 1 || oneItems[0].(map[string]any)["id"] != catalog.EchoModelID {
 		t.Fatalf("id filter: %+v", one)
+	}
+	unrouted := getAuthJSON(t, server.URL+"/v1/public/models?id="+url.QueryEscape(ofoxID), "")
+	if rows, _ := unrouted["items"].([]any); len(rows) != 0 {
+		t.Fatalf("id filter exposed unrouted model: %+v", unrouted)
 	}
 }

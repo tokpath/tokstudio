@@ -2,592 +2,273 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ProviderSlugCombobox } from "@/components/provider-slug-combobox";
-import { VendorCombobox } from "@/components/vendor-combobox";
-import { CheckPills } from "@/components/check-pills";
+import { AdminSelectField } from "@/components/admin-select-field";
 import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { SealConfirm } from "@/components/seal-confirm";
 import { TextField } from "@/components/text-field";
-import { TokenizerCombobox } from "@/components/tokenizer-combobox";
-import { AdminSelectField } from "@/components/admin-select-field";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { IfCan } from "@/components/rbac/if-can";
 import { AdminListPanel } from "../../list-panel";
 import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
-import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
+import { type AdminModel, modelEditHref } from "@/lib/catalog";
+import { catalogStatusTone, modelStatusLabel } from "@/lib/catalog-admin";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
-import {
-  type AdminModel,
-  capabilitiesToForm,
-  formToCapabilities,
-  formatSellPrice,
-  KNOWN_ENDPOINTS,
-  KNOWN_MODALITIES,
-  KNOWN_PARAMETERS,
-  optionUnion,
-  vendorLabel,
-} from "@/lib/catalog";
-import { catalogStatusTone, formatProviderSlugs, modelLifecycleEnabled, modelStatusLabel, syncStateLabel } from "@/lib/catalog-admin";
-import { CATALOG_LABEL } from "@/lib/catalog-copy";
-import { IfCan } from "@/components/rbac/if-can";
+import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
 
-const attrSchema = z.object({
-  display_name: z.string().trim().min(1, "请填写显示名"),
-  vendor: z.string().trim().min(1, "请选择原厂"),
-  supported_parameters: z.array(z.string()),
-  input_modalities: z.array(z.string()),
-  output_modalities: z.array(z.string()),
-  supported_endpoints: z.array(z.string()),
-  tokenizer: z.string(),
-  rest_json: z.string(),
+const kinds = [
+  { value: "text", label: "文本" }, { value: "image", label: "图片" },
+  { value: "video", label: "视频" }, { value: "audio", label: "音频" },
+  { value: "embedding", label: "向量" },
+];
+const modelSchema = z.object({
+  display_name: z.string().trim().min(1, "请填写名称"),
+  vendor: z.string().trim().min(1, "请填写原厂"),
+  kind: z.enum(["text", "image", "video", "audio", "embedding"]),
+  description: z.string(),
 });
-
 const priceSchema = z.object({
-  input: z.string(),
-  output: z.string(),
-  wholesale_input: z.string(),
-  wholesale_output: z.string(),
-  upstream_cost_input: z.string(),
-  upstream_cost_output: z.string(),
-  channel_input: z.string(),
-  channel_output: z.string(),
-  video_second: z.string(),
-  image_count: z.string(),
-  audio_second: z.string(),
-  currency: z.string().trim().min(1, "请填写币种"),
+  input: z.string(), output: z.string(), image_count: z.string(), video_second: z.string(), audio_second: z.string(),
+  currency: z.string().min(1),
 });
+type ModelFields = z.infer<typeof modelSchema>;
+type PriceFields = z.infer<typeof priceSchema>;
 
-const attachSchema = z.object({
-  provider_id: z.string().trim().min(1, "请选择提供商"),
-  upstream_model_id: z.string().trim().min(1, "请填写上游模型标识"),
-});
+function mergedCapabilities(model: AdminModel | undefined, values: ModelFields): Record<string, unknown> {
+  const caps = { ...(model?.capabilities ?? {}) };
+  caps.kind = values.kind;
+  caps.description = values.description.trim();
+  return caps;
+}
+
+function pricePayload(values: PriceFields): Record<string, unknown> {
+  const payload: Record<string, unknown> = { currency: values.currency };
+  const sell = millionDim(values.input, values.output);
+  if (sell) payload.customer_sell = sell;
+  for (const key of ["image_count", "video_second", "audio_second"] as const) {
+    if (values[key].trim()) payload[key] = values[key].trim();
+  }
+  return payload;
+}
 
 export default function AdminModelEditPage() {
   const params = useParams<{ id?: string | string[] }>();
-  const publicId = useMemo(() => {
-    const raw = params.id;
-    if (Array.isArray(raw)) {
-      return raw.join("/");
-    }
-    return raw || "";
-  }, [params.id]);
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [attrMessage, setAttrMessage] = useState("只改客户看到的名字和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。");
-  const [priceMessage, setPriceMessage] = useState("新价格只影响之后的请求，旧账单保持快照。");
+  const publicId = useMemo(() => Array.isArray(params.id) ? params.id.join("/") : params.id || "", [params.id]);
+  const isNew = publicId === "new";
+  const [message, setMessage] = useState("");
+  const [priceMessage, setPriceMessage] = useState("");
   const [lifeError, setLifeError] = useState("");
-  const [lifeMessage, setLifeMessage] = useState("草稿需由另一位管理员审核后再单独发布。创建人不能审核或发布。弃用不删除历史映射和价格。");
-  const [attachMessage, setAttachMessage] = useState("把这个公开模型接到一家提供商，并填写该提供商内部的上游模型标识。");
   const query = useQuery({
     queryKey: ["/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
-    enabled: publicId.length > 0,
+    enabled: !!publicId && !isNew,
   });
-  const providersQuery = useQuery({
-    queryKey: ["/admin/providers"],
-    queryFn: () => apiClient<{ items?: { id: string; name: string; slug: string }[] }>("GET", "/admin/providers"),
-  });
-  const providerOptions = providersQuery.data?.items ?? [];
   const model = query.data?.item;
-  const life = modelLifecycleEnabled(model?.status, model?.sync_state);
-  const attrForm = useForm<z.infer<typeof attrSchema>>({
-    resolver: zodResolver(attrSchema),
-    defaultValues: {
-      display_name: "",
-      vendor: "",
-      supported_parameters: [],
-      input_modalities: [],
-      output_modalities: [],
-      supported_endpoints: [],
-      tokenizer: "",
-      rest_json: "",
-    },
+  const modelForm = useForm<ModelFields>({
+    resolver: zodResolver(modelSchema),
+    defaultValues: { display_name: "", vendor: "", kind: "text", description: "" },
   });
-  const selectedParams = attrForm.watch("supported_parameters");
-  const selectedInputs = attrForm.watch("input_modalities");
-  const selectedOutputs = attrForm.watch("output_modalities");
-  const selectedEndpoints = attrForm.watch("supported_endpoints");
-  const priceForm = useForm<z.infer<typeof priceSchema>>({
+  const priceForm = useForm<PriceFields>({
     resolver: zodResolver(priceSchema),
     defaultValues: {
-      input: "",
-      output: "",
-      wholesale_input: "",
-      wholesale_output: "",
-      upstream_cost_input: "",
-      upstream_cost_output: "",
-      channel_input: "",
-      channel_output: "",
-      video_second: "",
-      image_count: "",
-      audio_second: "",
+      input: "", output: "", image_count: "", video_second: "", audio_second: "",
       currency: "USD",
     },
   });
-  const attachForm = useForm<z.infer<typeof attachSchema>>({
-    resolver: zodResolver(attachSchema),
-    defaultValues: { provider_id: "", upstream_model_id: "" },
-  });
+  const kind = modelForm.watch("kind");
 
   useEffect(() => {
-    if (!model) {
-      return;
-    }
-    attrForm.reset({
-      display_name: model.display_name || "",
-      vendor: model.vendor || "",
-      ...capabilitiesToForm(model.capabilities),
+    if (!model) return;
+    const caps = model.capabilities ?? {};
+    const kindValue = typeof caps.kind === "string" ? caps.kind : model.kind;
+    const storedKind = kinds.some((item) => item.value === kindValue) ? kindValue as ModelFields["kind"] : "text";
+    modelForm.reset({
+      display_name: model.display_name, vendor: model.vendor,
+      kind: storedKind, description: typeof caps.description === "string" ? caps.description : "",
     });
     priceForm.reset({
       input: perTokenToPerMillion(String(model.sell_price?.input ?? "")),
       output: perTokenToPerMillion(String(model.sell_price?.output ?? "")),
-      wholesale_input: "",
-      wholesale_output: "",
-      upstream_cost_input: "",
-      upstream_cost_output: "",
-      channel_input: "",
-      channel_output: "",
-      video_second: String(model.sell_price?.video_second ?? ""),
       image_count: String(model.sell_price?.image_count ?? ""),
+      video_second: String(model.sell_price?.video_second ?? ""),
       audio_second: String(model.sell_price?.audio_second ?? ""),
       currency: String(model.sell_price?.currency ?? "USD"),
     });
-  }, [model, attrForm, priceForm]);
+  }, [model, modelForm, priceForm]);
 
   async function reload() {
     await queryClient.invalidateQueries({ queryKey: ["/admin/models", publicId] });
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ queryKey: ["/admin/models"] });
+  }
+
+  async function saveModel(values: ModelFields): Promise<boolean> {
+    try {
+      const initialPrice = isNew ? pricePayload(priceForm.getValues()) : undefined;
+      const res = await fetch(`${apiBase}/admin/models${isNew ? "" : `/${publicId}`}`, {
+        method: isNew ? "POST" : "PATCH", credentials: "include", headers: confirmHeaders,
+        body: JSON.stringify({
+          display_name: values.display_name, vendor: values.vendor,
+          capabilities: mergedCapabilities(model, values),
+          ...(initialPrice ? { initial_price: initialPrice } : {}),
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setMessage(body.error?.message || "保存失败"); return false; }
+      if (isNew && !body.item?.id) { setMessage("已创建模型，但未收到调用 ID，请返回列表查看"); return false; }
+      setMessage(isNew ? "模型与首次售价已保存" : "已保存模型信息");
+      if (isNew) router.replace(modelEditHref(body.item.id));
+      else await reload();
+      return true;
+    } catch (err) { setMessage(err instanceof Error ? err.message : confirmNetworkUnavailable); return false; }
+  }
+
+  async function validateNewModel(): Promise<boolean> {
+    const [modelValid, priceValid] = await Promise.all([modelForm.trigger(), priceForm.trigger()]);
+    if (!modelValid || !priceValid) return false;
+    const values = priceForm.getValues();
+    const required: (keyof PriceFields)[] = kind === "text" ? ["input", "output"] :
+      kind === "embedding" ? ["input"] : kind === "image" ? ["image_count"] :
+      kind === "video" ? ["video_second"] : ["audio_second"];
+    let complete = true;
+    for (const key of required) {
+      const value = values[key].trim();
+      if (!value || !/^\d+(?:\.\d+)?$/.test(value)) {
+        priceForm.setError(key, { message: value ? "请输入非负数字" : "请填写售价" });
+        complete = false;
+      }
+    }
+    return complete;
+  }
+
+  async function lifecycle(action: "publish" | "deprecate"): Promise<boolean> {
+    try {
+      const res = await fetch(`${apiBase}/admin/models/${action}`, {
+        method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ public_id: publicId }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setLifeError(body.error?.message || "操作失败"); return false; }
+      setLifeError("");
+      await reload();
+      return true;
+    } catch { setLifeError(confirmNetworkUnavailable); return false; }
   }
 
   return (
     <AdminShell>
-      <p className="text-sm text-ink-secondary">
-        <Link className="text-brand-emphasis underline-offset-4 hover:underline" href="/admin/models">
-          返回模型列表
-        </Link>
-      </p>
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <p className="th-eyebrow text-ink-mute">MODEL</p>
-        <h2 className="mt-2 text-lg font-semibold tracking-tight">{model?.display_name || publicId || "模型详情"}</h2>
-        <p className="mt-1 font-mono text-sm text-ink-secondary">{publicId || "缺少公开模型标识"}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge tone={catalogStatusTone(model?.status)}>{modelStatusLabel(model?.status)}</Badge>
-          {model?.sync_state ? <Badge tone="neutral">{syncStateLabel(model.sync_state)}</Badge> : null}
-          {model?.vendor ? (
-            <span className="text-sm text-ink-secondary">
-              {CATALOG_LABEL.vendor} {vendorLabel(model.vendor)}
-            </span>
-          ) : null}
-          <span className="text-sm text-ink-secondary">
-            {CATALOG_LABEL.providerPool} {model ? formatProviderSlugs(model.providers) : "需要平台管理员登录后才能加载。"}
-          </span>
-          {model ? <span className="text-sm text-ink-secondary">{formatSellPrice(model.sell_price)}</span> : null}
-        </div>
-        {query.data?.error ? <p className="mt-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
-      </section>
+      <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/models">返回模型列表</Link>
+      {query.data?.error ? <p className="text-sm text-danger">{query.data.error.message}</p> : null}
+
       <IfCan action="models.write">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">客户怎么看到它</h2>
-        <p className="mt-1 text-sm text-ink-secondary">
-          改显示名、原厂和能力。{CATALOG_LABEL.publicModelId}创建后不能改。
-        </p>
-        <Form {...attrForm}>
-          <form className="mt-4 grid max-w-3xl gap-4" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={attrForm.control} name="display_name" label={CATALOG_LABEL.displayName} />
-            <VendorCombobox control={attrForm.control} name="vendor" extra={[model?.vendor || ""]} />
-            <CheckPills
-              control={attrForm.control}
-              name="supported_parameters"
-              label="支持参数"
-              hint="客户请求里能带的选项。点选即可，不必手打。"
-              options={optionUnion(KNOWN_PARAMETERS, selectedParams)}
-            />
-            <CheckPills
-              control={attrForm.control}
-              name="input_modalities"
-              label="能接收什么"
-              hint="客户能送进模型的内容类型。"
-              options={optionUnion(KNOWN_MODALITIES, selectedInputs)}
-            />
-            <CheckPills
-              control={attrForm.control}
-              name="output_modalities"
-              label="能返回什么"
-              hint="模型能产出的内容类型。"
-              options={optionUnion(KNOWN_MODALITIES, selectedOutputs)}
-            />
-            <CheckPills
-              control={attrForm.control}
-              name="supported_endpoints"
-              label="支持的调用方式"
-              hint="客户走哪类接口。不确定就保持现状。"
-              options={optionUnion(KNOWN_ENDPOINTS, selectedEndpoints)}
-            />
-            <TokenizerCombobox control={attrForm.control} name="tokenizer" />
-            <details className="rounded-control border border-hairline bg-canvas p-4">
-              <summary className="cursor-pointer text-sm font-medium">高级：其余能力字段</summary>
-              <FormField
-                control={attrForm.control}
-                name="rest_json"
-                render={({ field }) => (
-                  <FormItem className="mt-3">
-                    <FormLabel>其余能力字段</FormLabel>
-                    <p className="text-sm text-ink-secondary">
-                      只放上面勾选盖不住的键，例如 video_attributes。空白即可。
-                    </p>
-                    <FormControl>
-                      <textarea
-                        {...field}
-                        rows={6}
-                        spellCheck={false}
-                        aria-label="其余能力字段"
-                        placeholder="{}"
-                        className="min-h-24 w-full rounded-control border border-hairline bg-canvas-raised px-3 py-2 font-mono text-sm leading-normal text-ink placeholder:text-ink-mute focus:border-brand-emphasis"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </details>
-            <ConfirmButton
-              size="sm"
-              title="确认保存显示信息"
-              description="只改显示名、原厂和能力，不改公开模型标识。请勿修改 tokenhub/echo-1。"
-              validate={() => attrForm.trigger()}
-              onConfirm={confirmFormSubmit(attrForm.handleSubmit, async (values) => {
-                try {
-                let capabilities: Record<string, unknown>;
-                try {
-                  capabilities = formToCapabilities(values);
-                } catch {
-                  setAttrMessage("其余能力字段必须是 JSON 对象");
-                  return false;
-                }
-                const res = await fetch(`${apiBase}/admin/models/${publicId}`, {
-                  method: "PATCH",
-                  credentials: "include",
-                  headers: confirmHeaders,
-                  body: JSON.stringify({
-                    display_name: values.display_name,
-                    vendor: values.vendor,
-                    capabilities,
-                  }),
-                });
-                const body = await res.json();
-                if (!res.ok) {
-                  setAttrMessage(body.error?.message || "保存失败");
-                  return false;
-                }
-                setAttrMessage(`已保存 ${body.item?.id} → ${body.item?.display_name}`);
-                await reload();
-                return true;
-                } catch {
-                  setAttrMessage(confirmNetworkUnavailable);
-                  return false;
-                }
-})}
-            >
-              保存显示信息
-            </ConfirmButton>
-            <p className="text-sm text-ink-secondary">{attrMessage}</p>
-          </form>
-        </Form>
-      </section>
+        <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+          <h3 className="text-base font-semibold">模型信息</h3>
+          <Form {...modelForm}>
+            <form className="mt-4 grid max-w-2xl gap-4" onSubmit={(event) => event.preventDefault()}>
+              {!isNew ? <p className="text-sm text-ink-secondary">调用 ID <code className="ml-2 font-mono text-ink-primary">{publicId}</code></p> : null}
+              <TextField control={modelForm.control} name="display_name" label="名称" />
+              <TextField control={modelForm.control} name="vendor" label="原厂" placeholder="例如 alibaba" />
+              <AdminSelectField control={modelForm.control} name="kind" label="类型" options={kinds} />
+              <TextField control={modelForm.control} name="description" label="简介" />
+              {!isNew ? <ConfirmButton
+                size="sm" title="确认保存模型"
+                description="保存模型信息。公开模型标识创建后不可修改。"
+                validate={() => modelForm.trigger()}
+                onConfirm={confirmFormSubmit(modelForm.handleSubmit, saveModel)}
+              >保存模型</ConfirmButton> : null}
+              {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
+            </form>
+          </Form>
+        </section>
       </IfCan>
-      <IfCan action="prices.write">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">定价</h2>
-        <p className="mt-1 text-sm text-ink-secondary">
-          发布新价格只影响之后的请求，旧账单保持快照。空着的格子不会覆盖已有单价。Token 价按每百万 token 的美元填写，例如 2 表示 $2/M。
-        </p>
-        <Form {...priceForm}>
-          <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <TextField control={priceForm.control} name="upstream_cost_input" label="成本 输入" suffix="美元/M" />
-              <TextField control={priceForm.control} name="upstream_cost_output" label="成本 输出" suffix="美元/M" />
-              <TextField control={priceForm.control} name="wholesale_input" label="批发 输入" suffix="美元/M" />
-              <TextField control={priceForm.control} name="wholesale_output" label="批发 输出" suffix="美元/M" />
-              <TextField control={priceForm.control} name="input" label="售价 输入" suffix="美元/M" />
-              <TextField control={priceForm.control} name="output" label="售价 输出" suffix="美元/M" />
-              <TextField control={priceForm.control} name="channel_input" label="渠道覆盖 输入" suffix="美元/M" />
-              <TextField control={priceForm.control} name="channel_output" label="渠道覆盖 输出" suffix="美元/M" />
+
+      {(isNew || model) ? <>
+        <IfCan action="prices.write">
+          <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+            <h3 className="text-base font-semibold">售价</h3>
+            <p className="mt-1 text-sm text-ink-secondary">{isNew ? "首次售价随模型一起保存，之后可单独改价。" : "改价只影响之后的请求。"}</p>
+            <Form {...priceForm}>
+              <form className="mt-4 grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
+                {kind === "text" || kind === "embedding" ? <TextField control={priceForm.control} name="input" label="输入售价" suffix="美元/M token" /> : null}
+                {kind === "text" ? <TextField control={priceForm.control} name="output" label="输出售价" suffix="美元/M token" /> : null}
+                {kind === "image" ? <TextField control={priceForm.control} name="image_count" label="每张图片售价" suffix="美元/张" /> : null}
+                {kind === "video" ? <TextField control={priceForm.control} name="video_second" label="每秒视频售价" suffix="美元/秒" /> : null}
+                {kind === "audio" ? <TextField control={priceForm.control} name="audio_second" label="每秒音频售价" suffix="美元/秒" /> : null}
+                {(kind === "image" || kind === "video" || kind === "audio") && model?.sell_price?.media &&
+                  !model?.sell_price?.[kind === "image" ? "image_count" : kind === "video" ? "video_second" : "audio_second"] ?
+                  <p className="text-sm text-ink-secondary">旧价格 {String(model.sell_price.media)}／媒体单位，未标明当前计价单位。请确认后填写上方售价。</p> : null}
+                <AdminSelectField control={priceForm.control} name="currency" label="币种" options={[{ value: "USD", label: "美元 USD" }, { value: "CNY", label: "人民币 CNY" }]} />
+                {isNew ? <ConfirmButton
+                  size="sm" title="确认创建模型" description="模型信息和首次售价将一起保存；创建后可发布模型。"
+                  error={message} validate={validateNewModel}
+                  onConfirm={confirmFormSubmit(modelForm.handleSubmit, saveModel)}
+                >创建模型</ConfirmButton> : <SealConfirm
+                  size="sm" title="确认发布新价格" description="历史账单保持原价格快照。"
+                  validate={() => priceForm.trigger()}
+                  onConfirm={confirmFormSubmit(priceForm.handleSubmit, async (values) => {
+                    try {
+                      const payload = { ...pricePayload(values), model: publicId };
+                      const res = await fetch(`${apiBase}/admin/price-books`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify(payload) });
+                      const body = await res.json();
+                      if (!res.ok) { setPriceMessage(body.error?.message || "发布价格失败"); return false; }
+                      setPriceMessage(`已发布 ${publishedPriceLabel(body.price, publicId)}`);
+                      await reload();
+                      return true;
+                    } catch (err) { setPriceMessage(err instanceof Error ? err.message : confirmNetworkUnavailable); return false; }
+                  })}
+                >发布价格</SealConfirm>}
+                {priceMessage ? <p className="text-sm text-ink-secondary">{priceMessage}</p> : null}
+              </form>
+            </Form>
+          </section>
+        </IfCan>
+        {!isNew && model ? <IfCan action="models.write">
+          <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-base font-semibold">模型状态</h3>
+              <Badge tone={catalogStatusTone(model.status)}>{model.status === "published" && model.config_ready === false ? "待补配置" : modelStatusLabel(model.status)}</Badge>
             </div>
-            <TextField control={priceForm.control} name="video_second" label="视频秒单价" suffix="美元/秒" />
-            <TextField control={priceForm.control} name="image_count" label="图片次单价" suffix="美元/张" />
-            <TextField control={priceForm.control} name="audio_second" label="音频秒单价" suffix="美元/秒" />
-            <AdminSelectField
-              control={priceForm.control}
-              name="currency"
-              label="币种"
-              options={[
-                { value: "USD", label: "美元 USD" },
-                { value: "CNY", label: "人民币 CNY" },
-              ]}
-            />
-            <SealConfirm
-              size="sm"
-              title="新牌价只约束之后的请求，已入账金额不会改写。"
-              description="当前 published 会标成 superseded。历史版本保持只读快照。"
-              validate={() => priceForm.trigger()}
-              onConfirm={confirmFormSubmit(priceForm.handleSubmit, async (values) => {
-                try {
-                const payload: Record<string, unknown> = { model: publicId, currency: values.currency };
-                let sell: Record<string, string> | undefined;
-                let wholesale: Record<string, string> | undefined;
-                let upstream: Record<string, string> | undefined;
-                let channel: Record<string, string> | undefined;
-                try {
-                  sell = millionDim(values.input, values.output);
-                  wholesale = millionDim(values.wholesale_input, values.wholesale_output);
-                  upstream = millionDim(values.upstream_cost_input, values.upstream_cost_output);
-                  channel = millionDim(values.channel_input, values.channel_output);
-                } catch (err) {
-                  setPriceMessage(err instanceof Error ? err.message : "单价无效");
-                  return false;
-                }
-                if (sell) {
-                  payload.customer_sell = sell;
-                }
-                if (wholesale) {
-                  payload.wholesale = wholesale;
-                }
-                if (upstream) {
-                  payload.upstream_cost = upstream;
-                }
-                if (channel) {
-                  payload.channel_override = channel;
-                }
-                for (const key of ["video_second", "image_count", "audio_second"] as const) {
-                  if (values[key].trim()) {
-                    payload[key] = values[key].trim();
+            <p className="mt-1 text-sm text-ink-secondary">模型配置完整后可在路由组选择；发布本身不会启用路由或授权渠道。</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {model.status !== "published" ? <ConfirmButton
+                size="sm" title="确认发布模型" description="仅发布模型配置，不创建路由和渠道授权。"
+                error={lifeError} validate={() => {
+                  if (modelForm.formState.isDirty || priceForm.formState.isDirty) {
+                    setLifeError("请先保存模型信息或发布新价格");
+                    return false;
                   }
-                }
-                const res = await fetch(`${apiBase}/admin/price-books`, {
-                  method: "POST",
-                  credentials: "include",
-                  headers: confirmHeaders,
-                  body: JSON.stringify(payload),
-                });
-                const body = await res.json();
-                setPriceMessage(res.ok ? `已发布 ${publishedPriceLabel(body.price, publicId)}` : body.error?.message || "发布失败");
-                if (!res.ok) {
-                  return false;
-                }
-                  await reload();
-                return true;
-                } catch {
-                  setPriceMessage(confirmNetworkUnavailable);
-                  return false;
-                }
-})}
-            >
-              发布价格
-            </SealConfirm>
-            <p className="text-sm text-ink-secondary">{priceMessage}</p>
-          </form>
-        </Form>
-      </section>
-      </IfCan>
-      <IfCan action="models.attach">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">接到哪家提供商</h2>
-        <p className="mt-1 text-sm text-ink-secondary">
-          {CATALOG_LABEL.publicModelId}已锁定为 <span className="font-mono">{publicId || "缺少标识"}</span>。
-          {CATALOG_LABEL.upstreamModelId}可以不同。
-        </p>
-        <Form {...attachForm}>
-          <form className="mt-4 grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <ProviderSlugCombobox
-              control={attachForm.control}
-              name="provider_id"
-              label={CATALOG_LABEL.provider}
-              options={providerOptions}
-              placeholder="输入名称或标识筛选"
+                  setLifeError("");
+                  return true;
+                }} onConfirm={() => lifecycle("publish")}
+              >发布模型</ConfirmButton> : <>
+                {model.config_ready !== false ?
+                  <Button asChild size="sm" variant="outline"><Link href={`/admin/routes/new?model=${encodeURIComponent(publicId)}`}>配置路由</Link></Button> :
+                  <span className="self-center text-sm text-ink-secondary">补齐模型类型和售价后可配置路由</span>}
+                <ConfirmButton size="sm" variant="outline" title="确认弃用模型" description="弃用后客户目录隐藏，历史账单保留。" error={lifeError} onConfirm={() => lifecycle("deprecate")}>弃用模型</ConfirmButton>
+              </>}
+            </div>
+            {lifeError ? <p className="mt-3 text-sm text-danger">{lifeError}</p> : null}
+          </section>
+        </IfCan> : null}
+        {!isNew && model ? <details className="rounded-card border border-hairline bg-canvas-raised p-6">
+          <summary className="cursor-pointer text-sm font-medium">查看价格版本</summary>
+          <div className="mt-4">
+            <AdminListPanel<PriceBook>
+              path={`/admin/price-books?q=${encodeURIComponent(publicId)}`}
+              title="价格版本" columns={priceBookColumns} emptyTitle="还没有价格版本" emptyDetail="发布售价后会记录版本。"
             />
-            <TextField control={attachForm.control} name="upstream_model_id" label={CATALOG_LABEL.upstreamModelId} placeholder="这家提供商内部的模型名" />
-            <ConfirmButton
-              size="sm"
-              title="确认接到提供商"
-              description={`${CATALOG_LABEL.upstreamModelId}可以与${CATALOG_LABEL.publicModelId}不同。`}
-              validate={() => attachForm.trigger()}
-              onConfirm={confirmFormSubmit(attachForm.handleSubmit, async (values) => {
-                try {
-                const res = await fetch(`${apiBase}/admin/models/attach`, {
-                  method: "POST",
-                  credentials: "include",
-                  headers: confirmHeaders,
-                  body: JSON.stringify({
-                    public_id: publicId,
-                    provider_id: values.provider_id,
-                    upstream_model_id: values.upstream_model_id,
-                  }),
-                });
-                const body = await res.json();
-                if (!res.ok) {
-                  setAttachMessage(body.error?.message || "关联失败");
-                  return false;
-                }
-                attachForm.reset({ provider_id: "", upstream_model_id: "" });
-                setAttachMessage(`已关联 ${publicId} → ${values.provider_id}`);
-                await reload();
-                return true;
-                } catch {
-                  setAttachMessage(confirmNetworkUnavailable);
-                  return false;
-                }
-})}
-            >
-              接到提供商
-            </ConfirmButton>
-            <p className="text-sm text-ink-secondary">{attachMessage}</p>
-          </form>
-        </Form>
-      </section>
-      </IfCan>
-      <IfCan action="models.write">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="text-lg font-semibold tracking-tight">上架</h2>
-        <p className="mt-1 text-sm text-ink-secondary">
-          当前 {modelStatusLabel(model?.status)}
-          {model?.sync_state ? ` · ${syncStateLabel(model.sync_state)}` : ""}
-          。请勿修改 tokenhub/echo-1。已上架的模型不能再审核或重复发布。
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <ConfirmButton
-            size="sm"
-            disabled={!life.approve}
-            error={lifeError}
-            validate={() => { setLifeError(""); return true; }}
-            title="确认通过模型"
-            description="只标记审核通过，不会发布到客户目录。创建人不能审核自己建的模型。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/models/review`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ public_id: publicId, action: "approve" }),
-              });
-              const body = await res.json();
-              if (res.ok) setLifeMessage(`已通过 ${body.item?.id} → ${body.item?.sync_state}`); else setLifeError(body.error?.message || "审核失败");
-                    const __ok = res.ok;
-              if (res.ok) void reload();
-                    return __ok;
-                    } catch {
-                      setLifeError(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            通过
-          </ConfirmButton>
-          <ConfirmButton
-            size="sm"
-            variant="outline"
-            disabled={!life.reject}
-            error={lifeError}
-            validate={() => { setLifeError(""); return true; }}
-            title="确认拒绝模型"
-            description="拒绝后不能发布，需要重新通过。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/models/review`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ public_id: publicId, action: "reject" }),
-              });
-              const body = await res.json();
-              if (res.ok) setLifeMessage(`已拒绝 ${body.item?.id} → ${body.item?.sync_state}`); else setLifeError(body.error?.message || "拒绝失败");
-                    const __ok = res.ok;
-              if (res.ok) void reload();
-                    return __ok;
-                    } catch {
-                      setLifeError(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            拒绝
-          </ConfirmButton>
-          <ConfirmButton
-            size="sm"
-            disabled={!life.publish}
-            error={lifeError}
-            validate={() => { setLifeError(""); return true; }}
-            title="确认发布模型"
-            description="必须先审核通过。创建人不能发布自己建的模型。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/models/publish`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ public_id: publicId }),
-              });
-              const body = await res.json();
-              if (res.ok) setLifeMessage(`已发布 ${body.item?.id} → ${body.item?.status}`); else setLifeError(body.error?.message || "发布失败");
-                    const __ok = res.ok;
-              if (res.ok) void reload();
-                    return __ok;
-                    } catch {
-                      setLifeError(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            发布
-          </ConfirmButton>
-          <ConfirmButton
-            size="sm"
-            variant="outline"
-            disabled={!life.deprecate}
-            error={lifeError}
-            validate={() => { setLifeError(""); return true; }}
-            title="确认弃用模型"
-            description="只改状态，不删除历史映射和价格版本。"
-            onConfirm={async () => {
-                    try {
-              const res = await fetch(`${apiBase}/admin/models/deprecate`, {
-                method: "POST",
-                credentials: "include",
-                headers: confirmHeaders,
-                body: JSON.stringify({ public_id: publicId }),
-              });
-              const body = await res.json();
-              if (res.ok) setLifeMessage(`已弃用 ${body.item?.id} → ${body.item?.status}`); else setLifeError(body.error?.message || "弃用失败");
-                    const __ok = res.ok;
-              if (res.ok) void reload();
-                    return __ok;
-                    } catch {
-                      setLifeError(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-          >
-            弃用此模型
-          </ConfirmButton>
-        </div>
-        <p className="mt-3 text-sm text-ink-secondary">{lifeMessage}</p>
-      </section>
-      </IfCan>
-      {publicId ? (
-        <AdminListPanel<PriceBook>
-          path={`/admin/price-books?q=${encodeURIComponent(publicId)}`}
-          title="本模型价格版本"
-          columns={priceBookColumns}
-          emptyTitle="还没有价格版本"
-          emptyDetail="发布后会出现版本号、生效时间和四列单价。"
-        />
-      ) : null}
+          </div>
+        </details> : null}
+      </> : null}
     </AdminShell>
   );
 }

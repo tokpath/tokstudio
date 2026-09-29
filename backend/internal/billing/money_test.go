@@ -100,3 +100,20 @@ func TestParseQuoteKeepsFourPriceSnapshot(t *testing.T) {
 		t.Fatalf("ParseQuote must keep four-price raw snapshot: %v %s", err, snap.Raw)
 	}
 }
+
+func TestSubMicroTokenRatesRoundAfterUsage(t *testing.T) {
+	quote, err := ParseQuote("prc_fractional", []byte(`{"input":"0.0000004","output":"0.0000008","upstream_cost_input":"0.0000002","upstream_cost_output":"0.0000003","wholesale_input":"0.0000003","wholesale_output":"0.0000005"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	usage := map[string]int{"prompt_tokens": 1000, "completion_tokens": 500}
+	if got := quote.Charge(usage, ""); got != 800 {
+		t.Fatalf("customer=%d want 800", got)
+	}
+	if got := quote.WholesaleCharge(usage, ""); got != 550 {
+		t.Fatalf("wholesale=%d want 550", got)
+	}
+	if got := quote.MediaCost(usage, ""); got != 350 {
+		t.Fatalf("cost=%d want 350", got)
+	}
+}

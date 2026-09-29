@@ -74,7 +74,7 @@ export function routeStatusLabel(value?: string): string {
 export function modelStatusLabel(status?: string): string {
   switch ((status || "").trim().toLowerCase()) {
     case "published":
-      return "已上架";
+      return "已发布";
     case "draft":
       return "草稿";
     case "deprecated":
@@ -222,7 +222,7 @@ export function modelLifecycleEnabled(status?: string, syncState?: string): {
 export function syncStateLabel(state?: string): string {
   switch ((state || "").trim().toLowerCase()) {
     case "draft":
-      return "待审核";
+      return "草稿";
     case "reviewed":
       return "已通过";
     case "rejected":
@@ -239,10 +239,6 @@ export function formatRpm(limit?: number): string {
     return "未限制";
   }
   return String(limit);
-}
-
-export function formatCredentialRef(ref?: string): string {
-  return (ref || "").trim() ? "已配置" : "尚未配置";
 }
 
 export function formatProviderSlugs(providers?: string[]): string {

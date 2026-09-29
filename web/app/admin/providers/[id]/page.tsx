@@ -18,6 +18,7 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { modelEditHref, vendorLabel } from "@/lib/catalog";
+import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
 import { CATALOG_LABEL } from "@/lib/catalog-copy";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
@@ -26,7 +27,6 @@ import {
   adapterLabel,
   protocolOptions,
   catalogStatusTone,
-  formatCredentialRef,
   healthLabel,
   healthTone,
   modelStatusLabel,
@@ -48,7 +48,6 @@ type Provider = {
   health: string;
   status: string;
   timeout_ms?: number;
-  credential_ref?: string;
   models?: MappedPublicModel[];
 };
 
@@ -62,10 +61,6 @@ const patchSchema = z.object({
   base_url: z.string().trim(),
   status: z.string().trim().min(1, "请选择状态"),
   timeout_ms: z.string().trim(),
-});
-
-const rotateSchema = z.object({
-  secret: z.string().min(1, "请填写上游 API Key"),
 });
 
 const addAccountSchema = z.object({
@@ -118,7 +113,7 @@ export default function AdminProviderDetailPage() {
           </Link>
           <h2 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h2>
           <p className="mt-1 text-sm text-ink-secondary">
-            {item ? `${item.name} · ${item.slug} · ${providerKindLabel(item.kind)} · ${adapterLabel(item.adapter)}` : routeID}
+            {item ? `${item.name} · ${providerKindLabel(item.kind)} · ${adapterLabel(item.adapter)}` : routeID}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -264,10 +259,6 @@ export default function AdminProviderDetailPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-ink-secondary">凭据</dt>
-              <dd className="mt-1">{formatCredentialRef(item?.credential_ref)}</dd>
-            </div>
-            <div>
               <dt className="text-ink-secondary">上游超时</dt>
               <dd className="mt-1">{item?.timeout_ms ? `${item.timeout_ms} ms` : "默认 30000 ms"}</dd>
             </div>
@@ -281,11 +272,141 @@ export default function AdminProviderDetailPage() {
       </section>
 
       <MappedModelsPanel models={item?.models || []} />
-      <SyncProviderPanel providerID={providerID} />
-      <RotateCredentialForm providerID={providerID} />
+      {providerID ? <ProviderModelsPanel providerID={providerID} /> : null}
       <AccountPoolPanel providerID={providerID} />
     </AdminShell>
   );
+}
+
+type UpstreamModel = {
+  upstream_model_id: string;
+  display_name: string;
+  unit_costs: Record<string, string>;
+  price_source: string;
+  status: string;
+};
+
+function costSummary(costs: Record<string, string>) {
+  const parts: string[] = [];
+  if (costs.input) parts.push(`输入 ${perTokenToPerMillion(costs.input)} 美元/M`);
+  if (costs.output) parts.push(`输出 ${perTokenToPerMillion(costs.output)} 美元/M`);
+  if (costs.image_count) parts.push(`图片 ${costs.image_count} 美元/张`);
+  if (costs.video_second) parts.push(`视频 ${costs.video_second} 美元/秒`);
+  if (costs.audio_second) parts.push(`音频 ${costs.audio_second} 美元/秒`);
+  return parts.join(" · ") || "待补价";
+}
+
+function ProviderModelsPanel({ providerID }: { providerID: string }) {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [editingID, setEditingID] = useState<string | null>(null);
+  const [modelID, setModelID] = useState("");
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+  const [image, setImage] = useState("");
+  const [video, setVideo] = useState("");
+  const [audio, setAudio] = useState("");
+  const queryKey = ["/admin/providers", providerID, "upstream-models"];
+  const query = useQuery({
+    queryKey,
+    queryFn: () => apiClient<{ items?: UpstreamModel[] }>("GET", `/admin/providers/${providerID}/upstream-models`),
+  });
+  const models = (query.data?.items ?? []).filter((item) =>
+    `${item.upstream_model_id} ${item.display_name}`.toLowerCase().includes(search.toLowerCase()));
+
+  function edit(item?: UpstreamModel) {
+    setEditingID(item?.upstream_model_id ?? "");
+    setModelID(item?.upstream_model_id ?? "");
+    setInput(perTokenToPerMillion(item?.unit_costs.input ?? ""));
+    setOutput(perTokenToPerMillion(item?.unit_costs.output ?? ""));
+    setImage(item?.unit_costs.image_count ?? "");
+    setVideo(item?.unit_costs.video_second ?? "");
+    setAudio(item?.unit_costs.audio_second ?? "");
+    setMessage("");
+  }
+
+  async function discover() {
+    try {
+      const res = await fetch(`${apiBase}/admin/providers/${providerID}/upstream-models/discover`, {
+        method: "POST", credentials: "include", headers: confirmHeaders,
+      });
+      const body = await res.json();
+      if (!res.ok) { setMessage(body.error?.message || "上游不支持模型发现，请人工添加"); return; }
+      setMessage(`发现 ${body.items?.length ?? 0} 个上游模型；未返回报价的模型可人工补价。`);
+      await queryClient.invalidateQueries({ queryKey });
+    } catch { setMessage(confirmNetworkUnavailable); }
+  }
+
+  async function save() {
+    try {
+      const unitCosts = { ...millionDim(input, output) } as Record<string, string>;
+      if (image.trim()) unitCosts.image_count = image.trim();
+      if (video.trim()) unitCosts.video_second = video.trim();
+      if (audio.trim()) unitCosts.audio_second = audio.trim();
+      const res = await fetch(`${apiBase}/admin/providers/${providerID}/upstream-models`, {
+        method: "PUT", credentials: "include", headers: confirmHeaders,
+        body: JSON.stringify({ upstream_model_id: modelID.trim(), unit_costs: unitCosts }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setMessage(body.error?.message || "保存成本价失败"); return; }
+      setEditingID(null);
+      setMessage("已保存上游模型成本价");
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (err) { setMessage(err instanceof Error ? err.message : confirmNetworkUnavailable); }
+  }
+
+  async function setEnabled(item: UpstreamModel, enabled: boolean) {
+    try {
+      const res = await fetch(`${apiBase}/admin/providers/${providerID}/upstream-models/status`, {
+        method: "PATCH", credentials: "include", headers: confirmHeaders,
+        body: JSON.stringify({ upstream_model_id: item.upstream_model_id, enabled }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setMessage(body.error?.message || "更新状态失败"); return false; }
+      setMessage(enabled ? "上游模型已启用" : "上游模型已停用，后续请求不会选用它");
+      await queryClient.invalidateQueries({ queryKey });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/routes"] });
+      return true;
+    } catch { setMessage(confirmNetworkUnavailable); return false; }
+  }
+
+  const fieldClass = "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
+  return <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h3 className="text-lg font-semibold">支持的模型及价格</h3>
+      <IfCan action="providers.write"><div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={discover}>探测上游</Button>
+        <Button size="sm" variant="outline" onClick={() => edit()}>人工添加</Button>
+      </div></IfCan>
+    </div>
+    <p className="mb-3 text-sm text-ink-secondary">上游接口有报价则自动读取；没有报价时人工补齐成本价，路由组才能选择。</p>
+    <input className={`${fieldClass} mb-3 max-w-sm`} aria-label="搜索上游模型" placeholder="搜索上游模型" value={search} onChange={(event) => setSearch(event.target.value)} />
+    <div className="max-h-96 overflow-auto">
+      {models.length === 0 ? <p className="py-3 text-sm text-ink-secondary">暂无上游模型。可以探测或人工添加。</p> :
+        <table className="min-w-full text-left text-sm"><thead><tr className="border-b border-hairline text-ink-secondary">
+          <th className="px-2 py-2">上游模型</th><th className="px-2 py-2">成本价</th><th className="px-2 py-2">状态</th><th className="px-2 py-2">来源</th><th className="px-2 py-2">操作</th>
+        </tr></thead><tbody>{models.map((item) => <tr key={item.upstream_model_id} className="border-b border-hairline/80">
+          <td className="px-2 py-2"><span className="font-mono">{item.upstream_model_id}</span>{item.display_name && item.display_name !== item.upstream_model_id ? <span className="ml-2 text-ink-secondary">{item.display_name}</span> : null}</td>
+          <td className="px-2 py-2 font-mono">{costSummary(item.unit_costs)}</td>
+          <td className="px-2 py-2">{item.status === "inactive" ? "已停用" : "已启用"}</td>
+          <td className="px-2 py-2">{item.price_source === "manual" ? "人工" : item.price_source === "detected" ? "上游" : "待补价"}</td>
+          <td className="px-2 py-2"><IfCan action="providers.write"><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => edit(item)}>编辑报价</Button><ConfirmButton size="sm" variant="ghost" title={item.status === "inactive" ? "启用上游模型" : "停用上游模型"} description={item.status === "inactive" ? "启用后可重新参与符合条件的路由。" : "停用后新请求不再选用该上游模型。"} onConfirm={() => setEnabled(item, item.status === "inactive")}>{item.status === "inactive" ? "启用" : "停用"}</ConfirmButton></div></IfCan></td>
+        </tr>)}</tbody></table>}
+    </div>
+    {editingID !== null ? <div className="mt-4 grid max-w-3xl gap-3 rounded-control border border-hairline p-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">上游模型标识（调用时使用）<input className={fieldClass} value={modelID} disabled={!!editingID} onChange={(event) => setModelID(event.target.value)} /></label>
+        <label className="text-sm">输入成本（美元/M token）<input className={fieldClass} value={input} onChange={(event) => setInput(event.target.value)} /></label>
+        <label className="text-sm">输出成本（美元/M token）<input className={fieldClass} value={output} onChange={(event) => setOutput(event.target.value)} /></label>
+        <label className="text-sm">图片成本（美元/张）<input className={fieldClass} value={image} onChange={(event) => setImage(event.target.value)} /></label>
+        <label className="text-sm">视频成本（美元/秒）<input className={fieldClass} value={video} onChange={(event) => setVideo(event.target.value)} /></label>
+        <label className="text-sm">音频成本（美元/秒）<input className={fieldClass} value={audio} onChange={(event) => setAudio(event.target.value)} /></label>
+      </div>
+      <div className="flex gap-2"><Button size="sm" onClick={save}>保存报价</Button><Button size="sm" variant="outline" onClick={() => setEditingID(null)}>取消</Button></div>
+    </div> : null}
+    {message ? <p className="mt-3 text-sm text-ink-secondary">{message}</p> : null}
+  </section>;
 }
 
 function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
@@ -293,7 +414,7 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <AdminH2 k="mappedModels" className="mb-3 text-lg font-semibold tracking-tight" />
       <p className="mb-3 text-sm text-ink-secondary">
-        一家提供商可接到多个公开模型。左边是客户看到的公开模型标识，右边是该提供商内部的上游模型标识。增删请到模型页。
+        这里只读展示路由组使用此提供商的模型及上游标识。修改请到路由组。
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
@@ -309,7 +430,7 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
             {models.length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-ink-secondary" colSpan={4}>
-                  还没有接到公开模型。创建提供商不会自动带模型，请到模型页填写公开模型标识和上游模型标识。
+                  还没有接到公开模型。先发布模型，再到路由组配置。
                 </td>
               </tr>
             ) : (
@@ -340,110 +461,11 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
   );
 }
 
-function SyncProviderPanel({ providerID }: { providerID: string }) {
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState("同步只会生成待审核草稿，不会直接出现在客户目录。");
-  return (
-    <IfCan action="models.attach">
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <AdminH2 k="syncUpstream" className="mb-3 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">从这家提供商拉取可卖模型，结果进入待审核，不会直接上架。</p>
-        <ConfirmButton
-          size="sm"
-          variant="outline"
-          title="确认同步上游"
-          description="同步结果只进入 draft，不会自动上架。"
-          onConfirm={async () => {
-                    try {
-            const res = await fetch(`${apiBase}/admin/providers/${providerID}/sync`, {
-              method: "POST",
-              credentials: "include",
-              headers: confirmHeaders,
-              body: "{}",
-            });
-            const body = await res.json();
-            if (!res.ok) {
-              setMessage(body.error?.message || "同步失败");
-              return false;
-            }
-            const count = Array.isArray(body.item?.items) ? body.item.items.length : 0;
-            setMessage(`已同步 ${count} 条草稿`);
-            await queryClient.invalidateQueries();
-                    return true;
-                    } catch {
-                      setMessage(confirmNetworkUnavailable);
-                      return false;
-                    }
-}}
-        >
-          同步上游
-        </ConfirmButton>
-        <p className="mt-3 text-sm text-ink-secondary">{message}</p>
-      </section>
-    </IfCan>
-  );
-}
-
-function RotateCredentialForm({ providerID }: { providerID: string }) {
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState("旧 Key 立即作废。响应和列表只显示「已配置」，不会回显明文。");
-  const form = useForm<z.infer<typeof rotateSchema>>({
-    resolver: zodResolver(rotateSchema),
-    defaultValues: { secret: "" },
-  });
-
-  return (
-    <IfCan action="providers.write">
-      <Form {...form}>
-        <form className="rounded-card border border-hairline bg-canvas-raised p-6" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="rotateCreds" className="mb-3 text-lg font-semibold tracking-tight" />
-          <p className="mb-3 text-sm text-ink-secondary">
-            凭据轮换用于更换该上游的 API Key。旧密文将立即标记为 rotated，路由改用新 Key。此密钥不同于用户在 TokenHub 控制台使用的 API Key。请勿在生产主提供商上随意测试。
-          </p>
-          <div className="mb-3 flex max-w-xl flex-wrap items-end gap-2">
-            <TextField control={form.control} name="secret" label="新的上游 API Key" placeholder="不会回显明文" type="password" autoComplete="new-password" />
-            <ConfirmButton
-              size="sm"
-              title="确认轮换凭据"
-              description="旧密文立即标记 rotated。响应不会回显明文。"
-              validate={() => form.trigger()}
-              onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
-                try {
-                const res = await fetch(`${apiBase}/admin/providers/${providerID}/credentials`, {
-                  method: "POST",
-                  credentials: "include",
-                  headers: confirmHeaders,
-                  body: JSON.stringify({ secret: values.secret }),
-                });
-                const body = await res.json();
-                if (!res.ok) {
-                  setMessage(body.error?.message || "轮换失败");
-                  return false;
-                }
-                form.reset({ secret: "" });
-                setMessage("已轮换，凭据状态变为已配置。");
-                await queryClient.invalidateQueries();
-                return true;
-                } catch {
-                  setMessage(confirmNetworkUnavailable);
-                  return false;
-                }
-})}
-            >
-              轮换凭据
-            </ConfirmButton>
-          </div>
-          <p className="text-sm text-ink-secondary">{message}</p>
-        </form>
-      </Form>
-    </IfCan>
-  );
-}
-
 function AccountPoolPanel({ providerID }: { providerID: string }) {
   const queryClient = useQueryClient();
   const [items, setItems] = useState<Account[]>([]);
-  const [message, setMessage] = useState("列表只显示指纹，不回密文。冷却或停用后不会被路由选中。");
+  const [message, setMessage] = useState("正在加载账号…");
+  const [loading, setLoading] = useState(false);
   const addForm = useForm<z.infer<typeof addAccountSchema>>({
     resolver: zodResolver(addAccountSchema),
     defaultValues: { label: "primary", secret: "" },
@@ -453,21 +475,29 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
     if (!id) {
       return;
     }
-    const res = await fetch(`${apiBase}/admin/providers/${id}/accounts`, { credentials: "include" });
-    const body = await res.json();
-    if (!res.ok) {
-      setMessage(body.error?.message || "读取账号失败");
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/admin/providers/${encodeURIComponent(id)}/accounts`, { credentials: "include" });
+      const body = await res.json();
+      if (!res.ok) {
+        setMessage(body.error?.message || "加载账号失败");
+        setItems([]);
+        return;
+      }
+      const raw = JSON.stringify(body);
+      if (raw.includes("ciphertext") || raw.includes("\"secret\"")) {
+        setMessage("账号列表泄漏了密文，已拒绝展示");
+        setItems([]);
+        return;
+      }
+      setItems(body.items || []);
+      setMessage(`已加载 ${body.items?.length ?? 0} 个账号`);
+    } catch {
+      setMessage(confirmNetworkUnavailable);
       setItems([]);
-      return;
+    } finally {
+      setLoading(false);
     }
-    const raw = JSON.stringify(body);
-    if (raw.includes("ciphertext") || raw.includes("\"secret\"")) {
-      setMessage("账号列表泄漏了密文，已拒绝展示");
-      setItems([]);
-      return;
-    }
-    setItems(body.items || []);
-    setMessage(`已读取 ${body.items?.length ?? 0} 条，只含指纹`);
   }
 
   useEffect(() => {
@@ -508,11 +538,7 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
       <p className="mb-3 text-sm text-ink-secondary">
         一家提供商可以挂多把上游 Key，路由会挑还能用的那把。列表只显示指纹，不回密文。
       </p>
-      <div className="mb-3">
-        <Button size="sm" variant="outline" onClick={() => load()}>
-          读取账号
-        </Button>
-      </div>
+      <p role="status" className="mb-3 text-sm text-ink-secondary">{message}</p>
       <div className="mb-3 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
@@ -525,7 +551,13 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-2 py-3 text-ink-secondary">
+                  {loading ? "正在加载账号…" : "暂无账号，请在下方添加。"}
+                </td>
+              </tr>
+            ) : items.map((row) => (
               <tr key={row.id} className="border-b border-hairline/80">
                 <td className="px-2 py-2">{row.label}</td>
                 <td className="px-2 py-2 font-mono text-[13px]">{row.fingerprint}</td>
@@ -592,7 +624,6 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
           </form>
         </Form>
       </IfCan>
-      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
     </section>
   );
 }

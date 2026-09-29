@@ -50,7 +50,6 @@ type providerRow struct {
 	RPMLimit         int    `gorm:"column:rpm_limit"`
 	ConcurrencyLimit int    `gorm:"column:concurrency_limit"`
 	CapabilityTags   string `gorm:"column:capability_tags"`
-	CredentialRef    string `gorm:"column:credential_ref"`
 }
 
 func (providerRow) TableName() string { return "catalog_providers" }
@@ -113,6 +112,8 @@ type channelPolicyRow struct {
 	ChannelOrgID  string `gorm:"column:channel_org_id;primaryKey"`
 	PublicModelID string `gorm:"column:public_model_id;primaryKey"`
 	Enabled       bool   `gorm:"column:enabled"`
+	Wholesale     []byte `gorm:"column:wholesale_json"`
+	Override      []byte `gorm:"column:customer_override_json"`
 }
 
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
@@ -125,6 +126,7 @@ type ModelView struct {
 	SellPrice           map[string]any `json:"sell_price,omitempty"`
 	Providers           []string       `json:"providers"`
 	Status              string         `json:"status"`
+	ConfigReady         bool           `json:"config_ready"`
 	SyncState           string         `json:"sync_state,omitempty"`
 	CreatedByUserID     string         `json:"created_by_user_id,omitempty"`
 	ReviewedByUserID    string         `json:"reviewed_by_user_id,omitempty"`
@@ -136,11 +138,14 @@ type ModelView struct {
 
 // ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
 type ChannelModelView struct {
-	PublicID    string `json:"public_id"`
-	DisplayName string `json:"display_name"`
-	Vendor      string `json:"vendor"`
-	Status      string `json:"status"`
-	Enabled     bool   `json:"enabled"`
+	PublicID         string            `json:"public_id"`
+	DisplayName      string            `json:"display_name"`
+	Vendor           string            `json:"vendor"`
+	Kind             string            `json:"kind"`
+	Status           string            `json:"status"`
+	Enabled          bool              `json:"enabled"`
+	Wholesale        map[string]string `json:"wholesale,omitempty"`
+	CustomerOverride map[string]string `json:"customer_override,omitempty"`
 }
 
 type RouteCandidate struct {
@@ -154,6 +159,7 @@ type RouteCandidate struct {
 	Priority        int
 	Weight          int
 	CostMinor       int64
+	UnitCosts       json.RawMessage
 	AccountID       string
 	TimeoutMS       int
 }
@@ -188,17 +194,19 @@ func Migrations() (string, fs.FS) {
 
 func (s *Service) Seed(ctx context.Context) error {
 	caps, _ := json.Marshal(map[string]any{
+		"kind":                   "text",
 		"supported_parameters":   []string{"stream", "temperature", "max_tokens", "messages", "model", "system", "tools", "vision", "json", "reasoning", "response_format", "tool_choice"},
 		"unsupported_parameters": []string{"logit_bias"},
 	})
 	oemCaps, _ := json.Marshal(map[string]any{
+		"kind":                 "text",
 		"supported_parameters": []string{"stream", "messages", "model"},
 	})
 	price, _ := json.Marshal(map[string]any{
 		"input": "0.000001", "output": "0.000002", "currency": "USD",
-		"upstream_cost_input": "0.0000004", "upstream_cost_output": "0.0000008",
-		"wholesale_input": "0.0000007", "wholesale_output": "0.0000014",
 	})
+	textCost, _ := json.Marshal(map[string]string{"input": "0.0000004", "output": "0.0000008"})
+	textWholesale, _ := json.Marshal(map[string]string{"input": "0.0000007", "output": "0.0000014"})
 	mediaCaps, _ := json.Marshal(map[string]any{
 		"supported_parameters": []string{
 			"prompt", "duration", "resolution", "aspect_ratio", "fps", "generate_audio",
@@ -212,7 +220,6 @@ func (s *Service) Seed(ctx context.Context) error {
 	})
 	mediaPrice, _ := json.Marshal(map[string]any{
 		"currency": "USD", "video_second": "0.01", "image_count": "0.02", "audio_second": "0.002",
-		"video_second_cost": "0.004", "image_count_cost": "0.008",
 	})
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		providers := []providerRow{
@@ -236,6 +243,9 @@ func (s *Service) Seed(ctx context.Context) error {
 		if err := tx.Model(&publicModelRow{}).Where("public_id = ?", EchoModelID).Update("capabilities_json", caps).Error; err != nil {
 			return err
 		}
+		if err := tx.Model(&publicModelRow{}).Where("public_id = ?", OEMModelID).Update("capabilities_json", oemCaps).Error; err != nil {
+			return err
+		}
 		mappings := []mappingRow{
 			{ID: "map_echo_p", PublicModelID: "mdl_echo", ProviderID: "prd_echo_primary", UpstreamModelID: "echo-upstream", Status: "active", SyncState: SyncPublished},
 			{ID: "map_echo_b", PublicModelID: "mdl_echo", ProviderID: "prd_echo_backup", UpstreamModelID: "echo-upstream", Status: "active", SyncState: SyncPublished},
@@ -246,8 +256,20 @@ func (s *Service) Seed(ctx context.Context) error {
 				return err
 			}
 		}
+		if err := seedProviderModels(tx, []providerModelRow{
+			{ProviderID: "prd_echo_primary", UpstreamModelID: "echo-upstream", DisplayName: "Echo", UnitCosts: textCost},
+			{ProviderID: "prd_echo_backup", UpstreamModelID: "echo-upstream", DisplayName: "Echo", UnitCosts: textCost},
+			{ProviderID: "prd_echo_primary", UpstreamModelID: "oem-upstream", DisplayName: "OEM Demo", UnitCosts: textCost},
+		}); err != nil {
+			return err
+		}
 		if err := tx.Where("id = ?", "price_echo").FirstOrCreate(&priceRow{
 			ID: "price_echo", PublicModelID: "mdl_echo", UnitPrices: price, Status: "published", EffectiveAt: time.Now().UTC(),
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("id = ?", "price_oem").FirstOrCreate(&priceRow{
+			ID: "price_oem", PublicModelID: "mdl_oem", UnitPrices: price, Status: "published", EffectiveAt: time.Now().UTC(),
 		}).Error; err != nil {
 			return err
 		}
@@ -257,9 +279,13 @@ func (s *Service) Seed(ctx context.Context) error {
 		if err := tx.Where("id = ?", "rg_echo").FirstOrCreate(&routeGroupRow{ID: "rg_echo", PublicModelID: "mdl_echo", Strategy: "priority", Status: "active"}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("id = ?", "rg_oem").FirstOrCreate(&routeGroupRow{ID: "rg_oem", PublicModelID: "mdl_oem", Strategy: "priority", Status: "active"}).Error; err != nil {
+			return err
+		}
 		cands := []candidateRow{
 			{RouteGroupID: "rg_echo", ProviderID: "prd_echo_primary", Priority: 1},
 			{RouteGroupID: "rg_echo", ProviderID: "prd_echo_backup", Priority: 2},
+			{RouteGroupID: "rg_oem", ProviderID: "prd_echo_primary", Priority: 1},
 		}
 		for i := range cands {
 			if err := tx.Where("route_group_id = ? AND provider_id = ?", cands[i].RouteGroupID, cands[i].ProviderID).FirstOrCreate(&cands[i]).Error; err != nil {
@@ -267,15 +293,13 @@ func (s *Service) Seed(ctx context.Context) error {
 			}
 		}
 		policies := []channelPolicyRow{
-			{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_echo", Enabled: true},
-			{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_echo", Enabled: true},
-			{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_echo", Enabled: true},
-			{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_oem", Enabled: true},
+			{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_echo", Enabled: true, Wholesale: textWholesale},
+			{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_echo", Enabled: true, Wholesale: textWholesale},
+			{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_echo", Enabled: true, Wholesale: textWholesale},
+			{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_oem", Enabled: true, Wholesale: textWholesale},
 		}
-		for i := range policies {
-			if err := tx.Where("channel_org_id = ? AND public_model_id = ?", policies[i].ChannelOrgID, policies[i].PublicModelID).FirstOrCreate(&policies[i]).Error; err != nil {
-				return err
-			}
+		if err := seedChannelPolicies(tx, policies); err != nil {
+			return err
 		}
 		if err := seedMediaCatalog(tx, mediaCaps, mediaPrice); err != nil {
 			return err
@@ -291,7 +315,58 @@ func (s *Service) Seed(ctx context.Context) error {
 	return err
 }
 
+func seedProviderModels(tx *gorm.DB, rows []providerModelRow) error {
+	for _, row := range rows {
+		row.PriceSource = "manual"
+		if row.Status == "" {
+			row.Status = "active"
+		}
+		row.UpdatedAt = time.Now().UTC()
+		if err := tx.Where("provider_id = ? AND upstream_model_id = ?", row.ProviderID, row.UpstreamModelID).FirstOrCreate(&row).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func seedChannelPolicies(tx *gorm.DB, rows []channelPolicyRow) error {
+	for _, row := range rows {
+		var existing channelPolicyRow
+		err := tx.Where("channel_org_id = ? AND public_model_id = ?", row.ChannelOrgID, row.PublicModelID).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := tx.Create(&row).Error; err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else if len(decodeCosts(existing.Wholesale)) == 0 {
+			if err := tx.Model(&existing).Update("wholesale_json", row.Wholesale).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
+	videoCost, _ := json.Marshal(map[string]string{"video_second": "0.004"})
+	imageCost, _ := json.Marshal(map[string]string{"image_count": "0.008"})
+	videoWholesale, _ := json.Marshal(map[string]string{"video_second": "0.007"})
+	imageWholesale, _ := json.Marshal(map[string]string{"image_count": "0.014"})
+	var baseCaps map[string]any
+	if err := json.Unmarshal(caps, &baseCaps); err != nil {
+		return err
+	}
+	videoCaps := map[string]any{}
+	imageCaps := map[string]any{}
+	for key, value := range baseCaps {
+		videoCaps[key] = value
+		imageCaps[key] = value
+	}
+	videoCaps["kind"] = "video"
+	imageCaps["kind"] = "image"
+	videoJSON, _ := json.Marshal(videoCaps)
+	imageJSON, _ := json.Marshal(imageCaps)
 	providers := []providerRow{
 		{ID: "prd_ark", Name: "Volcengine Ark", Slug: ArkSeedanceProvider, Kind: "direct", Adapter: "ark", Status: "active", Health: "available", TestBehavior: "ok"},
 		{ID: "prd_or", Name: "OpenRouter Media", Slug: OpenRouterProvider, Kind: "aggregator", Adapter: "openrouter", Status: "active", Health: "available", TestBehavior: "ok"},
@@ -302,15 +377,18 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		}
 	}
 	models := []publicModelRow{
-		{ID: "mdl_seedance", PublicID: SeedanceModelID, Vendor: "bytedance", DisplayName: "Seedance", Capabilities: caps, Status: "published", SyncState: SyncPublished},
-		{ID: "mdl_image", PublicID: ImageModelID, Vendor: "tokenhub", DisplayName: "Image Demo", Capabilities: caps, Status: "published", SyncState: SyncPublished},
+		{ID: "mdl_seedance", PublicID: SeedanceModelID, Vendor: "bytedance", DisplayName: "Seedance", Capabilities: videoJSON, Status: "published", SyncState: SyncPublished},
+		{ID: "mdl_image", PublicID: ImageModelID, Vendor: "tokenhub", DisplayName: "Image Demo", Capabilities: imageJSON, Status: "published", SyncState: SyncPublished},
 	}
 	for i := range models {
 		if err := tx.Where("public_id = ?", models[i].PublicID).FirstOrCreate(&models[i]).Error; err != nil {
 			return err
 		}
 	}
-	if err := tx.Model(&publicModelRow{}).Where("public_id IN ?", []string{SeedanceModelID, ImageModelID}).Update("capabilities_json", caps).Error; err != nil {
+	if err := tx.Model(&publicModelRow{}).Where("public_id = ?", SeedanceModelID).Update("capabilities_json", videoJSON).Error; err != nil {
+		return err
+	}
+	if err := tx.Model(&publicModelRow{}).Where("public_id = ?", ImageModelID).Update("capabilities_json", imageJSON).Error; err != nil {
 		return err
 	}
 	mappings := []mappingRow{
@@ -322,6 +400,13 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		if err := tx.Where("id = ?", mappings[i].ID).FirstOrCreate(&mappings[i]).Error; err != nil {
 			return err
 		}
+	}
+	if err := seedProviderModels(tx, []providerModelRow{
+		{ProviderID: "prd_ark", UpstreamModelID: "seedance-1-0-ark", DisplayName: "Seedance", UnitCosts: videoCost},
+		{ProviderID: "prd_or", UpstreamModelID: "bytedance/seedance-1.0", DisplayName: "Seedance", UnitCosts: videoCost},
+		{ProviderID: "prd_ark", UpstreamModelID: "image-demo-ark", DisplayName: "Image Demo", UnitCosts: imageCost},
+	}); err != nil {
+		return err
 	}
 	if err := tx.Where("id = ?", "price_seedance").FirstOrCreate(&priceRow{ID: "price_seedance", PublicModelID: "mdl_seedance", UnitPrices: price, Status: "published"}).Error; err != nil {
 		return err
@@ -346,22 +431,19 @@ func seedMediaCatalog(tx *gorm.DB, caps, price []byte) error {
 		}
 	}
 	policies := []channelPolicyRow{
-		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_seedance", Enabled: true},
-		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_seedance", Enabled: true},
-		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_seedance", Enabled: true},
-		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_image", Enabled: true},
-		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_image", Enabled: true},
-		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_image", Enabled: true},
+		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_seedance", Enabled: true, Wholesale: videoWholesale},
+		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_seedance", Enabled: true, Wholesale: videoWholesale},
+		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_seedance", Enabled: true, Wholesale: videoWholesale},
+		{ChannelOrgID: identity.OfficialChannelID, PublicModelID: "mdl_image", Enabled: true, Wholesale: imageWholesale},
+		{ChannelOrgID: identity.ResellerChannelID, PublicModelID: "mdl_image", Enabled: true, Wholesale: imageWholesale},
+		{ChannelOrgID: identity.OEMChannelID, PublicModelID: "mdl_image", Enabled: true, Wholesale: imageWholesale},
 	}
-	for i := range policies {
-		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", policies[i].ChannelOrgID, policies[i].PublicModelID).FirstOrCreate(&policies[i]).Error; err != nil {
-			return err
-		}
-	}
-	return nil
+	return seedChannelPolicies(tx, policies)
 }
 
 func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
+	textCost, _ := json.Marshal(map[string]string{"input": "0.0000004", "output": "0.0000008"})
+	textWholesale, _ := json.Marshal(map[string]string{"input": "0.0000007", "output": "0.0000014"})
 	if err := tx.Where("slug = ?", GeminiProvider).FirstOrCreate(&providerRow{
 		ID: "prd_gemini", Name: "Google Gemini Flash", Slug: GeminiProvider, Kind: "direct",
 		Adapter: "gemini", Status: "active", Health: "available", TestBehavior: "ok",
@@ -375,10 +457,16 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 	}).Error; err != nil {
 		return err
 	}
+	if err := tx.Model(&publicModelRow{}).Where("public_id = ?", GeminiModelID).Update("capabilities_json", caps).Error; err != nil {
+		return err
+	}
 	if err := tx.Where("id = ?", "map_gemini").FirstOrCreate(&mappingRow{
 		ID: "map_gemini", PublicModelID: "mdl_gemini", ProviderID: "prd_gemini",
 		UpstreamModelID: "gemini-2.0-flash", Status: "active", SyncState: SyncPublished,
 	}).Error; err != nil {
+		return err
+	}
+	if err := seedProviderModels(tx, []providerModelRow{{ProviderID: "prd_gemini", UpstreamModelID: "gemini-2.0-flash", DisplayName: "Gemini Flash", UnitCosts: textCost}}); err != nil {
 		return err
 	}
 	if err := tx.Where("id = ?", "price_gemini").FirstOrCreate(&priceRow{
@@ -395,13 +483,11 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 		FirstOrCreate(&candidateRow{RouteGroupID: "rg_gemini", ProviderID: "prd_gemini", Priority: 1}).Error; err != nil {
 		return err
 	}
+	policies := []channelPolicyRow{}
 	for _, channelID := range []string{identity.OfficialChannelID, identity.ResellerChannelID, identity.OEMChannelID} {
-		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, "mdl_gemini").
-			FirstOrCreate(&channelPolicyRow{ChannelOrgID: channelID, PublicModelID: "mdl_gemini", Enabled: true}).Error; err != nil {
-			return err
-		}
+		policies = append(policies, channelPolicyRow{ChannelOrgID: channelID, PublicModelID: "mdl_gemini", Enabled: true, Wholesale: textWholesale})
 	}
-	return nil
+	return seedChannelPolicies(tx, policies)
 }
 
 // GrantDefaultModels 给新渠道复制官方已启用的模型白名单，用户才能聊天/做媒体。
@@ -418,7 +504,7 @@ func (s *Service) GrantModelsFrom(ctx context.Context, channelOrgID, sourceChann
 		return err
 	}
 	for _, policy := range src {
-		row := channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: policy.PublicModelID, Enabled: true}
+		row := channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: policy.PublicModelID, Enabled: true, Wholesale: policy.Wholesale, Override: policy.Override}
 		if err := s.db.WithContext(ctx).
 			Where("channel_org_id = ? AND public_model_id = ?", row.ChannelOrgID, row.PublicModelID).
 			FirstOrCreate(&row).Error; err != nil {
@@ -437,18 +523,23 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, in
 		PublicID    string `gorm:"column:public_id"`
 		DisplayName string `gorm:"column:display_name"`
 		Vendor      string `gorm:"column:vendor"`
+		Kind        string `gorm:"column:kind"`
 		Status      string `gorm:"column:status"`
 		Enabled     bool   `gorm:"column:enabled"`
+		HasPolicy   bool   `gorm:"column:has_policy"`
+		Wholesale   []byte `gorm:"column:wholesale_json"`
+		Override    []byte `gorm:"column:customer_override_json"`
 	}
 	var rows []row
 	q := s.db.WithContext(ctx)
 	if includeCatalog {
 		q = q.Table("catalog_public_models m").
-			Select("m.public_id, m.display_name, m.vendor, m.status, COALESCE(p.enabled, false) AS enabled").
-			Joins("LEFT JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.channel_org_id = ?", channelOrgID)
+			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, COALESCE(p.enabled, false) AS enabled, (p.public_model_id IS NOT NULL) AS has_policy, p.wholesale_json, p.customer_override_json").
+			Joins("LEFT JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.channel_org_id = ?", channelOrgID).
+			Where("(m.status = 'published' AND " + routeReadySQL + ") OR p.public_model_id IS NOT NULL")
 	} else {
 		q = q.Table("catalog_channel_model_policies p").
-			Select("m.public_id, m.display_name, m.vendor, m.status, p.enabled").
+			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, p.enabled, p.wholesale_json, p.customer_override_json").
 			Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
 			Where("p.channel_org_id = ?", channelOrgID)
 	}
@@ -457,8 +548,18 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, in
 	}
 	out := make([]ChannelModelView, 0, len(rows))
 	for _, item := range rows {
+		if includeCatalog && !item.HasPolicy {
+			var model publicModelRow
+			if err := s.db.WithContext(ctx).Where("public_id = ?", item.PublicID).First(&model).Error; err != nil {
+				return nil, err
+			}
+			if s.validateModelReady(ctx, model) != nil {
+				continue
+			}
+		}
 		out = append(out, ChannelModelView{
-			PublicID: item.PublicID, DisplayName: item.DisplayName, Vendor: item.Vendor, Status: item.Status, Enabled: item.Enabled,
+			PublicID: item.PublicID, DisplayName: item.DisplayName, Vendor: item.Vendor, Kind: item.Kind, Status: item.Status, Enabled: item.Enabled,
+			Wholesale: decodeCosts(item.Wholesale), CustomerOverride: decodeCosts(item.Override),
 		})
 	}
 	return out, nil
@@ -484,16 +585,53 @@ func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, gra
 			}
 			var existing channelPolicyRow
 			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled}).Error; err != nil {
+			lookupErr := err
+			wholesale := decodeCosts(existing.Wholesale)
+			if grant.Wholesale != nil {
+				var priceErr error
+				wholesale, priceErr = validateUnitCosts(grant.Wholesale)
+				if priceErr != nil {
+					return priceErr
+				}
+			}
+			override := decodeCosts(existing.Override)
+			if grant.CustomerOverride != nil {
+				var priceErr error
+				override, priceErr = validateUnitCosts(grant.CustomerOverride)
+				if priceErr != nil || (len(override) > 0 && !pricedForKind(override, modelKind(model))) {
+					return ErrInvalidInput
+				}
+			}
+			if grant.Enabled && !pricedForKind(wholesale, modelKind(model)) {
+				return ErrInvalidInput
+			}
+			wholeJSON, _ := json.Marshal(wholesale)
+			overrideJSON, _ := json.Marshal(override)
+			if grant.Enabled && (errors.Is(lookupErr, gorm.ErrRecordNotFound) || !existing.Enabled) {
+				if model.Status != SyncPublished {
+					return ErrModelNotVisible
+				}
+				if s.validateModelReady(ctx, model) != nil {
+					return ErrModelNotVisible
+				}
+				ready, readyErr := s.routeReady(ctx, model.ID)
+				if readyErr != nil {
+					return readyErr
+				}
+				if !ready {
+					return ErrModelNotVisible
+				}
+			}
+			if errors.Is(lookupErr, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled, Wholesale: wholeJSON, Override: overrideJSON}).Error; err != nil {
 					return err
 				}
 				continue
 			}
-			if err != nil {
-				return err
+			if lookupErr != nil {
+				return lookupErr
 			}
-			if err := tx.Model(&existing).Update("enabled", grant.Enabled).Error; err != nil {
+			if err := tx.Model(&existing).Updates(map[string]any{"enabled": grant.Enabled, "wholesale_json": wholeJSON, "customer_override_json": overrideJSON}).Error; err != nil {
 				return err
 			}
 		}
@@ -506,7 +644,8 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 	q := s.db.WithContext(ctx).Table("catalog_public_models m").
 		Select("m.*").
 		Joins("JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.enabled = true").
-		Where("m.status = ? AND p.channel_org_id = ?", "published", channelOrgID)
+		Where("m.status = ? AND p.channel_org_id = ?", "published", channelOrgID).
+		Where(routeReadySQL)
 	if len(allowlist) > 0 {
 		q = q.Where("m.public_id IN ?", allowlist)
 	}
@@ -518,6 +657,9 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		view, err := s.modelView(ctx, model)
 		if err != nil {
 			return nil, err
+		}
+		if !view.ConfigReady {
+			continue
 		}
 		out = append(out, *view)
 	}
@@ -544,6 +686,9 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
 		return nil, err
+	}
+	if model.Status != SyncPublished || s.validateModelReady(ctx, model) != nil {
+		return nil, ErrModelNotVisible
 	}
 	var group routeGroupRow
 	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", model.ID, "active").First(&group).Error; err != nil {
@@ -583,10 +728,14 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		if skipAccount {
 			continue
 		}
+		costs, costErr := pricedProviderModelTx(s.db.WithContext(ctx), provider.ID, mapping.UpstreamModelID, modelKind(model))
+		if costErr != nil {
+			continue
+		}
 		out = append(out, RouteCandidate{
 			ProviderID: provider.ID, ProviderSlug: provider.Slug, Adapter: provider.Adapter,
 			BaseURL: provider.BaseURL, UpstreamModelID: mapping.UpstreamModelID, TestBehavior: provider.TestBehavior, Health: provider.Health,
-			Priority: cand.Priority, Weight: weight, CostMinor: s.providerCost(ctx, model.ID, provider.ID),
+			Priority: cand.Priority, Weight: weight, CostMinor: costMinor(costs), UnitCosts: costs,
 			AccountID: accountID, TimeoutMS: provider.TimeoutMS,
 		})
 	}
@@ -595,23 +744,6 @@ func (s *Service) ResolveRoute(ctx context.Context, publicID string, hint RouteH
 		out = orderBy(out, hint.Order)
 	}
 	return out, nil
-}
-
-func (s *Service) providerCost(ctx context.Context, modelID, providerID string) int64 {
-	var price priceRow
-	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id = ? AND status = ?", modelID, providerID, "published").
-		Order("effective_at DESC").First(&price).Error; err == nil {
-		return costMinor(price.UnitPrices)
-	}
-	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", modelID, "published").
-		Order("effective_at DESC").First(&price).Error; err == nil {
-		return costMinor(price.UnitPrices)
-	}
-	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", modelID, "published").
-		Order("effective_at DESC").First(&price).Error; err == nil {
-		return costMinor(price.UnitPrices)
-	}
-	return 1 << 62
 }
 
 func (s *Service) PriceSnapshot(ctx context.Context, publicID string) (*PriceSnapshot, error) {
@@ -675,7 +807,7 @@ func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices 
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		merged := incoming
 		var current priceRow
-		if err := tx.Where("public_model_id = ? AND status = ?", model.ID, "published").
+		if err := tx.Where("public_model_id = ? AND provider_id IS NULL AND status = ?", model.ID, "published").
 			Order("effective_at DESC").First(&current).Error; err == nil {
 			prev := map[string]any{}
 			_ = json.Unmarshal(current.UnitPrices, &prev)
@@ -685,7 +817,7 @@ func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices 
 		if err != nil {
 			return err
 		}
-		if err := tx.Model(&priceRow{}).Where("public_model_id = ? AND status = ?", model.ID, "published").
+		if err := tx.Model(&priceRow{}).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", model.ID, "published").
 			Update("status", "superseded").Error; err != nil {
 			return err
 		}
@@ -730,7 +862,6 @@ type ProviderView struct {
 	RPMLimit         int               `json:"rpm_limit"`
 	ConcurrencyLimit int               `json:"concurrency_limit"`
 	CapabilityTags   string            `json:"capability_tags,omitempty"`
-	CredentialRef    string            `json:"credential_ref,omitempty"`
 	TestBehavior     string            `json:"test_behavior,omitempty"`
 	AccountCount     int               `json:"account_count"`
 	Models           []MappedModelView `json:"models"`
@@ -805,7 +936,8 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 	_ = json.Unmarshal(model.Capabilities, &caps)
 	var price priceRow
 	sell := map[string]any{}
-	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND status = ?", model.ID, "published").First(&price).Error; err == nil {
+	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", model.ID, "published").
+		Order("effective_at DESC").First(&price).Error; err == nil {
 		_ = json.Unmarshal(price.UnitPrices, &sell)
 	}
 	var slugs []string
@@ -814,16 +946,11 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		Joins("JOIN catalog_providers p ON p.id = m.provider_id").
 		Where("m.public_model_id = ? AND m.status = ?", model.ID, "active").
 		Scan(&slugs).Error
-	var mapping mappingRow
-	mappingState := ""
-	if err := s.db.WithContext(ctx).Where("public_model_id = ?", model.ID).Order("id").First(&mapping).Error; err == nil {
-		mappingState = mapping.SyncState
-	}
-	syncState := EffectiveSyncState(model.Status, firstNonEmpty(mappingState, model.SyncState))
+	syncState := EffectiveSyncState(model.Status, model.SyncState)
 	desc, kind, ctxLen, maxTok := extraFromCaps(caps)
 	view := &ModelView{
 		ID: model.PublicID, Vendor: model.Vendor, DisplayName: model.DisplayName, Capabilities: caps,
-		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, SyncState: syncState,
+		SellPrice: publicSell(sell), Providers: slugs, Status: model.Status, ConfigReady: modelConfigurationReady(model, caps, sell), SyncState: syncState,
 		CreatedByUserID: model.CreatedByUserID, ReviewedByUserID: model.ReviewedByUserID,
 		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}

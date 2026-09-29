@@ -68,11 +68,18 @@ func costMinor(raw []byte) int64 {
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return math.MaxInt64 / 4
 	}
-	for _, key := range []string{"upstream_cost_input", "input", "video_second_cost"} {
+	for _, key := range []string{"input"} {
 		if v, ok := body[key]; ok {
-			if n := parsePriceToken(v); n > 0 {
-				return n
+			cost := parsePriceToken(v)
+			if output, ok := body["output"]; ok {
+				cost += parsePriceToken(output)
 			}
+			return cost
+		}
+	}
+	for _, key := range []string{"video_second", "image_count", "audio_second"} {
+		if v, ok := body[key]; ok {
+			return parsePriceToken(v)
 		}
 	}
 	return math.MaxInt64 / 4

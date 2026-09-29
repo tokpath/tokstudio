@@ -4,7 +4,6 @@ export const CATALOG_LABEL = {
   displayName: "显示名",
   vendor: "原厂",
   provider: "提供商",
-  providerSlug: "提供商标识",
   providerPool: "提供商池",
   upstreamModelId: "上游模型标识",
   routeStrategy: "选路策略",
@@ -14,8 +13,8 @@ export const CATALOG_LABEL = {
 
 export const CATALOG_HELP = {
   providers: "提供商是进货渠道：协议、调用地址和密钥都在这里。客户看到的名字在模型页；选哪几家、谁优先在路由组。",
-  models: "客户看到的是公开模型。真正打到哪家上游，用提供商和上游模型标识决定。选路顺序在路由组。",
-  routes: "为已有公开模型排提供商池。上游模型标识在模型页配置，这里只决定走哪几家、谁优先。",
+  models: "配置公开模型的名称、类型、能力和售价。发布后才可在路由组接入上游。",
+  routes: "为已发布模型配置提供商、上游模型标识和选路策略；启用后再由渠道授权。",
 } as const;
 
 export type PublicModelOption = { id: string; display_name?: string; vendor?: string };
@@ -72,15 +71,6 @@ export function suggestPublicIdFromDisplay(
   const previousAuto = previousSlug ? `${nextVendor}/${previousSlug}` : `${nextVendor}/`;
   if (!value || value === `${nextVendor}/` || value === previousAuto) {
     return auto;
-  }
-  return value;
-}
-
-export function suggestProviderSlug(name: string, current: string, previousSlug = ""): string {
-  const next = slugifyCatalogId(name);
-  const value = current.trim();
-  if (!value || value === previousSlug) {
-    return next;
   }
   return value;
 }

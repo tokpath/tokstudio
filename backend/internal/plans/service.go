@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
@@ -35,12 +36,20 @@ type planRow struct {
 	Status           string    `gorm:"column:status"`
 	PolicyVersion    string    `gorm:"column:policy_version"`
 	AutoRenewAllowed bool      `gorm:"column:auto_renew_allowed"`
+	ChannelScope     string    `gorm:"column:channel_scope"`
 	ReviewReason     *string   `gorm:"column:review_reason"`
 	CreatedAt        time.Time `gorm:"column:created_at"`
 	UpdatedAt        time.Time `gorm:"column:updated_at"`
 }
 
 func (planRow) TableName() string { return "plans_product_plans" }
+
+type planChannelRow struct {
+	PlanID    string `gorm:"column:plan_id;primaryKey"`
+	ChannelID string `gorm:"column:channel_id;primaryKey"`
+}
+
+func (planChannelRow) TableName() string { return "plans_plan_channels" }
 
 type itemRow struct {
 	ID                string  `gorm:"column:id;primaryKey"`
@@ -105,10 +114,11 @@ func (ledRow) TableName() string { return "plans_entitlement_ledger" }
 type Service struct {
 	db     *gorm.DB
 	outbox *outbox.Service
+	audit  *audit.Service
 }
 
-func New(db *gorm.DB, publisher *outbox.Service) *Service {
-	return &Service{db: db, outbox: publisher}
+func New(db *gorm.DB, publisher *outbox.Service, recorder *audit.Service) *Service {
+	return &Service{db: db, outbox: publisher, audit: recorder}
 }
 
 func Migrations() (string, fs.FS) {
@@ -124,7 +134,7 @@ func (s *Service) Seed(ctx context.Context) error {
 		plan := planRow{
 			ID: "pln_echo_month", OwnerType: OwnerPlatform, OwnerID: identity.OfficialChannelID,
 			Name: "Echo Monthly", Currency: "USD", PriceMinor: 10 * billingMinor(),
-			BillingPeriod: PeriodMonthly, Status: StatusPublished, PolicyVersion: "m5-v1",
+			BillingPeriod: PeriodMonthly, Status: StatusPublished, PolicyVersion: "m5-v1", ChannelScope: ChannelScopeAll,
 			AutoRenewAllowed: true, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(),
 		}
 		if err := tx.Where("id = ?", plan.ID).FirstOrCreate(&plan).Error; err != nil {
@@ -148,7 +158,7 @@ func billingMinor() int64 { return 1_000_000 }
 
 func strPtr(s string) *string { return &s }
 
-func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput) (*PlanView, error) {
+func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audit.RecordInput) (*PlanView, error) {
 	if in.Name == "" || in.PriceMinor <= 0 || len(in.Items) == 0 {
 		return nil, ErrInvalidPlan
 	}
@@ -156,32 +166,55 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput) (*PlanView
 		in.OwnerType = OwnerPlatform
 	}
 	if in.BillingPeriod == "" {
-		in.BillingPeriod = PeriodMonthly
+		in.BillingPeriod = PeriodOnce
+	}
+	if (in.BillingPeriod != PeriodOnce && in.BillingPeriod != PeriodMonthly && in.BillingPeriod != PeriodQuarterly && in.BillingPeriod != PeriodYearly) || (in.BillingPeriod == PeriodOnce && in.AutoRenew) {
+		return nil, ErrInvalidPlan
+	}
+	if in.ChannelScope == "" {
+		in.ChannelScope = ChannelScopeAll
+	}
+	if in.ChannelScope != ChannelScopeAll && in.ChannelScope != ChannelScopeSelected {
+		return nil, ErrInvalidPlan
+	}
+	if in.ChannelScope == ChannelScopeSelected && len(in.ChannelIDs) == 0 {
+		return nil, ErrInvalidPlan
+	}
+	if in.ChannelScope == ChannelScopeAll && len(in.ChannelIDs) != 0 {
+		return nil, ErrInvalidPlan
 	}
 	if in.Currency == "" {
 		in.Currency = "USD"
 	}
-	status, reason := classifyPlan(in)
 	now := time.Now().UTC()
 	row := planRow{
 		ID: id.New("pln"), OwnerType: in.OwnerType, OwnerID: in.OwnerID, Name: in.Name,
 		Currency: in.Currency, PriceMinor: in.PriceMinor, BillingPeriod: in.BillingPeriod,
-		Status: status, PolicyVersion: "m5-v1", AutoRenewAllowed: in.AutoRenew,
+		Status: StatusPendingReview, PolicyVersion: "m5-v1", AutoRenewAllowed: in.AutoRenew, ChannelScope: in.ChannelScope,
 		CreatedAt: now, UpdatedAt: now,
-	}
-	if reason != "" {
-		row.ReviewReason = &reason
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&row).Error; err != nil {
 			return err
+		}
+		seenChannels := map[string]bool{}
+		for _, channelID := range in.ChannelIDs {
+			if channelID == "" || seenChannels[channelID] {
+				return ErrInvalidPlan
+			}
+			seenChannels[channelID] = true
+			if err := tx.Create(&planChannelRow{PlanID: row.ID, ChannelID: channelID}).Error; err != nil {
+				return err
+			}
 		}
 		for _, item := range in.Items {
 			if !validUnit(item.UnitType) || item.Included <= 0 {
 				return ErrInvalidPlan
 			}
 			expires := item.ExpiresIn
-			if expires <= 0 {
+			if in.BillingPeriod == PeriodOnce {
+				expires = 0
+			} else if expires <= 0 {
 				expires = 30 * 24 * 3600
 			}
 			ir := itemRow{
@@ -195,8 +228,13 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput) (*PlanView
 				return err
 			}
 		}
+		actor.Action, actor.ResourceType, actor.ResourceID = "plans.plan.create", "product_plan", row.ID
+		actor.After = map[string]any{"status": row.Status, "name": row.Name, "billing_period": row.BillingPeriod, "channel_scope": row.ChannelScope, "channel_ids": in.ChannelIDs}
+		if _, err := s.audit.RecordTx(tx, actor); err != nil {
+			return err
+		}
 		_, err := s.outbox.EnqueueTx(tx, "plans.plan.created", "product_plan", row.ID, map[string]any{
-			"status": status, "owner_type": in.OwnerType,
+			"status": row.Status, "owner_type": in.OwnerType,
 		})
 		return err
 	})
@@ -204,24 +242,6 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput) (*PlanView
 		return nil, err
 	}
 	return s.GetPlan(ctx, row.ID)
-}
-
-func classifyPlan(in CreatePlanInput) (status, reason string) {
-	if in.OwnerType == OwnerPlatform || in.OwnerType == "" {
-		return StatusPublished, ""
-	}
-	if in.PriceMinor < PriceFloor {
-		return StatusPendingReview, "below_price_floor"
-	}
-	for _, item := range in.Items {
-		if item.Included > 10_000_000 && item.UnitType != UnitToken {
-			return StatusPendingReview, "exceeds_entitlement_cap"
-		}
-		if item.UnitType == UnitVideoSecond && item.Included > 3600 {
-			return StatusPendingReview, "high_risk_media_quota"
-		}
-	}
-	return StatusPublished, ""
 }
 
 func validUnit(u string) bool {
@@ -241,19 +261,38 @@ func (s *Service) GetPlan(ctx context.Context, id string) (*PlanView, error) {
 }
 
 func (s *Service) ListPlans(ctx context.Context, channelOrgID, status string, publishedOnly bool) ([]PlanView, error) {
+	return s.ListPlansFiltered(ctx, ListPlanFilter{AudienceChannelID: channelOrgID, AudienceAncestors: []string{channelOrgID}, Status: status, PublishedOnly: publishedOnly})
+}
+
+func (s *Service) ListPlansFiltered(ctx context.Context, filter ListPlanFilter) ([]PlanView, error) {
 	var rows []planRow
 	q := s.db.WithContext(ctx).Order("created_at DESC")
-	if publishedOnly {
+	if filter.PublishedOnly {
 		q = q.Where("status = ?", StatusPublished)
 	}
-	if status != "" {
-		q = q.Where("status = ?", status)
+	if filter.Status != "" {
+		q = q.Where("status = ?", filter.Status)
 	}
-	if channelOrgID != "" {
-		q = q.Where("(owner_type = ? AND owner_id = ?) OR owner_type = ?", OwnerChannel, channelOrgID, OwnerPlatform)
-	} else if publishedOnly {
-		// 未登录公共目录只展示平台套餐，避免泄漏其他渠道的销售组合。
-		q = q.Where("owner_type = ?", OwnerPlatform)
+	if filter.Name != "" {
+		q = q.Where("name ILIKE ?", "%"+filter.Name+"%")
+	}
+	if filter.BillingPeriod != "" {
+		q = q.Where("billing_period = ?", filter.BillingPeriod)
+	}
+	if filter.AudienceChannelID != "" {
+		q = q.Where(planAudienceSQL, filter.AudienceChannelID, ChannelScopeAll, OwnerPlatform, ChannelScopeAll, OwnerChannel, filter.AudienceAncestors)
+	} else if filter.PublishedOnly {
+		q = q.Where("owner_type = ? AND channel_scope = ?", OwnerPlatform, ChannelScopeAll)
+	}
+	if filter.OwnerChannelID != "" {
+		visible := filter.VisibleChannelIDs
+		if len(visible) == 0 {
+			visible = []string{filter.OwnerChannelID}
+		}
+		q = q.Where("(owner_type = ? AND owner_id = ?) OR (owner_type = ? AND (channel_scope = ? OR EXISTS (SELECT 1 FROM plans_plan_channels pc WHERE pc.plan_id = plans_product_plans.id AND pc.channel_id IN ?)))", OwnerChannel, filter.OwnerChannelID, OwnerPlatform, ChannelScopeAll, visible)
+	}
+	if filter.TargetChannelID != "" {
+		q = q.Where(planAudienceSQL, filter.TargetChannelID, ChannelScopeAll, OwnerPlatform, ChannelScopeAll, OwnerChannel, filter.TargetAncestors)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -269,38 +308,49 @@ func (s *Service) ListPlans(ctx context.Context, channelOrgID, status string, pu
 	return out, nil
 }
 
-func (s *Service) ReviewPlan(ctx context.Context, planID, action, reason string) (*PlanView, error) {
-	var row planRow
-	if err := s.db.WithContext(ctx).Where("id = ?", planID).First(&row).Error; err != nil {
-		return nil, ErrNotFound
-	}
-	if row.Status != StatusPendingReview {
-		return nil, ErrNotPending
-	}
+const planAudienceSQL = `(EXISTS (SELECT 1 FROM plans_plan_channels pc WHERE pc.plan_id = plans_product_plans.id AND pc.channel_id = ?) OR (channel_scope = ? AND owner_type = ?) OR (channel_scope = ? AND owner_type = ? AND owner_id IN ?))`
+
+func (s *Service) ChangePlanStatus(ctx context.Context, planID, action string, actor audit.RecordInput) (*PlanView, error) {
+	var target string
 	switch action {
 	case "approve":
-		row.Status = StatusPublished
+		target = StatusPublished
 	case "reject":
-		row.Status = StatusRejected
+		target = StatusRejected
+	case "archive":
+		target = StatusArchived
 	default:
 		return nil, ErrInvalidPlan
 	}
-	row.UpdatedAt = time.Now().UTC()
-	if reason != "" {
-		row.ReviewReason = &reason
-	}
-	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
-		return nil, err
-	}
-	return s.viewPlan(ctx, row)
-}
-
-func (s *Service) ArchivePlan(ctx context.Context, planID string) (*PlanView, error) {
-	res := s.db.WithContext(ctx).Model(&planRow{}).Where("id = ?", planID).Updates(map[string]any{
-		"status": StatusArchived, "updated_at": time.Now().UTC(),
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var row planRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", planID).First(&row).Error; err != nil {
+			return ErrNotFound
+		}
+		allowed := (action == "approve" && (row.Status == StatusPendingReview || row.Status == StatusRejected || row.Status == StatusArchived)) ||
+			(action == "reject" && row.Status == StatusPendingReview) ||
+			(action == "archive" && row.Status == StatusPublished)
+		if !allowed {
+			return ErrInvalidState
+		}
+		before := row.Status
+		row.Status = target
+		row.ReviewReason = nil
+		row.UpdatedAt = time.Now().UTC()
+		if err := tx.Save(&row).Error; err != nil {
+			return err
+		}
+		auditAction := action
+		if auditAction == "approve" {
+			auditAction = "publish"
+		}
+		actor.Action, actor.ResourceType, actor.ResourceID = "plans.plan."+auditAction, "product_plan", row.ID
+		actor.Before, actor.After = map[string]any{"status": before}, map[string]any{"status": target}
+		_, err := s.audit.RecordTx(tx, actor)
+		return err
 	})
-	if res.RowsAffected != 1 {
-		return nil, ErrNotFound
+	if err != nil {
+		return nil, err
 	}
 	return s.GetPlan(ctx, planID)
 }
@@ -310,16 +360,26 @@ func (s *Service) viewPlan(ctx context.Context, row planRow) (*PlanView, error) 
 	if err := s.db.WithContext(ctx).Where("plan_id = ?", row.ID).Find(&items).Error; err != nil {
 		return nil, err
 	}
+	var channels []planChannelRow
+	if err := s.db.WithContext(ctx).Where("plan_id = ?", row.ID).Order("channel_id").Find(&channels).Error; err != nil {
+		return nil, err
+	}
 	view := &PlanView{
 		ID: row.ID, OwnerType: row.OwnerType, OwnerID: row.OwnerID, Name: row.Name,
 		PriceMinor: row.PriceMinor, Currency: row.Currency, BillingPeriod: row.BillingPeriod, Status: row.Status,
-		AutoRenewAllowed: row.AutoRenewAllowed,
+		AutoRenewAllowed: row.AutoRenewAllowed, ChannelScope: row.ChannelScope, ChannelIDs: []string{},
+	}
+	for _, ch := range channels {
+		view.ChannelIDs = append(view.ChannelIDs, ch.ChannelID)
 	}
 	if row.ReviewReason != nil {
 		view.ReviewReason = *row.ReviewReason
 	}
 	for _, item := range items {
 		in := PlanItemInput{UnitType: item.UnitType, Included: item.IncludedAmount, OverageMinor: item.OveragePriceMinor, ExpiresIn: item.ExpiresInSeconds}
+		if row.BillingPeriod == PeriodOnce {
+			in.ExpiresIn = 0
+		}
 		if item.PublicModelID != nil {
 			in.PublicModelID = *item.PublicModelID
 		}
@@ -328,7 +388,7 @@ func (s *Service) viewPlan(ctx context.Context, row planRow) (*PlanView, error) 
 	return view, nil
 }
 
-func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef string) (*SubscriptionView, error) {
+func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef string, channelAncestors []string) (*SubscriptionView, error) {
 	plan, err := s.GetPlan(ctx, planID)
 	if err != nil {
 		return nil, err
@@ -336,11 +396,11 @@ func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, pla
 	if plan.Status != StatusPublished {
 		return nil, ErrNotPublished
 	}
-	if plan.OwnerType == OwnerChannel && channelID != "" && plan.OwnerID != channelID {
+	if !planAvailableToChannel(plan, channelID, channelAncestors) {
 		return nil, ErrNotFound
 	}
 	renew := RenewManual
-	if adapter == "stripe" {
+	if plan.BillingPeriod != PeriodOnce && plan.AutoRenewAllowed && adapter == "stripe" {
 		renew = RenewAuto
 	}
 	now := time.Now().UTC()
@@ -361,6 +421,44 @@ func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, pla
 		return nil, err
 	}
 	return subView(row), nil
+}
+
+func planAvailableToChannel(plan *PlanView, channelID string, ancestors []string) bool {
+	if channelID == "" {
+		return plan.OwnerType == OwnerPlatform && plan.ChannelScope == ChannelScopeAll
+	}
+	if plan.ChannelScope == ChannelScopeSelected {
+		for _, selected := range plan.ChannelIDs {
+			if selected == channelID {
+				return true
+			}
+		}
+		return false
+	}
+	if plan.OwnerType == OwnerPlatform {
+		return true
+	}
+	for _, ancestor := range ancestors {
+		if ancestor == plan.OwnerID {
+			return true
+		}
+	}
+	return false
+}
+
+func periodEnd(start time.Time, period string) *time.Time {
+	var end time.Time
+	switch period {
+	case PeriodMonthly:
+		end = start.AddDate(0, 1, 0)
+	case PeriodQuarterly:
+		end = start.AddDate(0, 3, 0)
+	case PeriodYearly:
+		end = start.AddDate(1, 0, 0)
+	default:
+		return nil
+	}
+	return &end
 }
 
 func (s *Service) GetSubscription(ctx context.Context, id, userID string) (*SubscriptionView, error) {
@@ -394,14 +492,17 @@ func (s *Service) ActivatePaid(ctx context.Context, subID string, now time.Time)
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", subID).First(&row).Error; err != nil {
 			return ErrNotFound
 		}
-		if row.Status == SubActive && row.CurrentPeriodEnd != nil && row.CurrentPeriodEnd.After(now) {
+		if row.Status == SubActive && (row.CurrentPeriodEnd == nil || row.CurrentPeriodEnd.After(now)) {
 			view = subView(row)
 			return nil
 		}
-		end := now.AddDate(0, 1, 0)
+		var plan planRow
+		if err := tx.Where("id = ?", row.PlanID).First(&plan).Error; err != nil {
+			return ErrNotFound
+		}
 		row.Status = SubActive
 		row.CurrentPeriodStart = &now
-		row.CurrentPeriodEnd = &end
+		row.CurrentPeriodEnd = periodEnd(now, plan.BillingPeriod)
 		row.RetryCount = 0
 		row.NextRetryAt = nil
 		row.GraceUntil = nil
@@ -424,9 +525,9 @@ func grantPlanEntitlements(tx *gorm.DB, sub subRow, now time.Time) error {
 		return err
 	}
 	for _, item := range items {
-		exp := now.Add(time.Duration(item.ExpiresInSeconds) * time.Second)
+		var expiresAt *time.Time
 		if sub.CurrentPeriodEnd != nil {
-			exp = *sub.CurrentPeriodEnd
+			expiresAt = sub.CurrentPeriodEnd
 		}
 		idem := grantIdemKey(sub, item.ID)
 		var existing ledRow
@@ -436,7 +537,7 @@ func grantPlanEntitlements(tx *gorm.DB, sub subRow, now time.Time) error {
 		ent := entRow{
 			ID: id.New("ent"), UserID: sub.UserID, SourceType: SourcePlan, SourceID: sub.ID,
 			UnitType: item.UnitType, Granted: item.IncludedAmount, Status: EntActive,
-			ExpiresAt: &exp, CreatedAt: now, PublicModelID: item.PublicModelID,
+			ExpiresAt: expiresAt, CreatedAt: now, PublicModelID: item.PublicModelID,
 		}
 		if err := tx.Create(&ent).Error; err != nil {
 			return err
@@ -466,6 +567,15 @@ func (s *Service) Cancel(ctx context.Context, subID, userID string) (*Subscripti
 		return nil, ErrNotFound
 	}
 	if row.Status == SubCancelled {
+		return subView(row), nil
+	}
+	if row.CurrentPeriodEnd == nil {
+		row.Status = SubCancelled
+		row.RenewalPolicy = RenewManual
+		row.UpdatedAt = time.Now().UTC()
+		if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+			return nil, err
+		}
 		return subView(row), nil
 	}
 	row.Status = SubCancelAtPeriodEnd
@@ -817,10 +927,17 @@ func (s *Service) renewOne(ctx context.Context, row subRow, now time.Time, charg
 		if err := charger(row.ID, adapter, method); err != nil {
 			return s.markPastDue(tx, &row, now)
 		}
-		end := now.AddDate(0, 1, 0)
+		var plan planRow
+		if err := tx.Where("id = ?", row.PlanID).First(&plan).Error; err != nil {
+			return err
+		}
+		end := periodEnd(now, plan.BillingPeriod)
+		if end == nil {
+			return ErrInvalidPlan
+		}
 		row.Status = SubActive
 		row.CurrentPeriodStart = &now
-		row.CurrentPeriodEnd = &end
+		row.CurrentPeriodEnd = end
 		row.RetryCount = 0
 		row.NextRetryAt = nil
 		row.GraceUntil = nil

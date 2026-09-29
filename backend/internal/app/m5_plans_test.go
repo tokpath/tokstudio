@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/app"
+	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
@@ -65,6 +66,9 @@ func TestM5PlansPayments(t *testing.T) {
 	if cheapItem["status"] != plans.StatusPendingReview || cheapItem["owner_type"] != plans.OwnerChannel || cheapItem["owner_id"] != identity.ResellerChannelID {
 		t.Fatalf("channel low price should enter review for reseller: %+v", cheap)
 	}
+	if code := patchStatus(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin", map[string]any{"status": plans.StatusArchived}); code != http.StatusBadRequest {
+		t.Fatalf("pending plan cannot be archived, got %d", code)
+	}
 	pending := getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin")
 	if !hasPlan(pending, cheapItem["id"].(string)) {
 		t.Fatalf("admin review queue missing cheap plan: %+v", pending)
@@ -74,6 +78,42 @@ func TestM5PlansPayments(t *testing.T) {
 	})
 	if reviewed["item"].(map[string]any)["status"] != plans.StatusPublished {
 		t.Fatalf("review approve: %+v", reviewed)
+	}
+	entries, err := application.Audit.Search(ctx, audit.SearchQuery{ResourceType: "product_plan", ResourceID: cheapItem["id"].(string)})
+	if err != nil || len(entries) != 2 || entries[0].Action != "plans.plan.publish" || entries[1].Action != "plans.plan.create" {
+		t.Fatalf("plan create and publish audit: %+v %v", entries, err)
+	}
+	for _, entry := range entries {
+		if entry.ActorUserID == "" || entry.CreatedAt.IsZero() {
+			t.Fatalf("plan audit missing actor/time: %+v", entry)
+		}
+	}
+	archivedPlan := patchJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin", map[string]any{"status": plans.StatusArchived})
+	if archivedPlan["item"].(map[string]any)["status"] != plans.StatusArchived {
+		t.Fatalf("archive: %+v", archivedPlan)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{"action": "reject"}); code != http.StatusBadRequest {
+		t.Fatalf("archived plan cannot be rejected, got %d", code)
+	}
+	postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{"action": "approve"})
+	rejectedPlan := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
+		"name": "Rejected plan", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+	})
+	rejectedID := rejectedPlan["item"].(map[string]any)["id"].(string)
+	if rejectedPlan["item"].(map[string]any)["status"] != plans.StatusPendingReview {
+		t.Fatalf("platform plan should await review: %+v", rejectedPlan)
+	}
+	postJSONRaw(t, server.URL+"/admin/plans/"+rejectedID+"/review", "m5_admin", map[string]any{"action": "reject"})
+	postJSONRaw(t, server.URL+"/admin/plans/"+rejectedID+"/review", "m5_admin", map[string]any{"action": "approve"})
+	rejectedEntries, err := application.Audit.Search(ctx, audit.SearchQuery{ResourceType: "product_plan", ResourceID: rejectedID})
+	if err != nil || len(rejectedEntries) != 3 || rejectedEntries[1].Action != "plans.plan.reject" {
+		t.Fatalf("reject audit: %+v %v", rejectedEntries, err)
+	}
+	for _, entry := range rejectedEntries {
+		if entry.ActorUserID == "" || entry.CreatedAt.IsZero() {
+			t.Fatalf("plan audit missing actor/time: %+v", entry)
+		}
 	}
 
 	if mustStatusJSON(t, http.MethodPost, server.URL+"/admin/entitlements/bonus", "m5_admin", map[string]string{
@@ -200,6 +240,110 @@ func TestM5PlansPayments(t *testing.T) {
 	afterBal := asInt(getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"])
 	if afterBal-beforeBal != billing.MinorPerUSD {
 		t.Fatalf("wallet credit mismatch %d -> %d", beforeBal, afterBal)
+	}
+	onceOrder := postJSONRaw(t, server.URL+"/v1/me/subscriptions", session, map[string]any{
+		"plan_id": rejectedID, "adapter": payment.AdapterStripe, "payment_method_ref": "pm_ok",
+	})
+	onceSub := onceOrder["subscription"].(map[string]any)
+	if onceSub["renewal_policy"] != plans.RenewManual {
+		t.Fatalf("one-time plan must not auto-renew: %+v", onceSub)
+	}
+	oncePaymentID := onceOrder["checkout"].(map[string]any)["order"].(map[string]any)["id"].(string)
+	if code := webhook(t, server.URL, signKey, payment.AdapterStripe, "evt-once-"+strconv.FormatInt(time.Now().UnixNano(), 10), oncePaymentID, "paid").StatusCode; code != http.StatusOK {
+		t.Fatalf("one-time payment %d", code)
+	}
+	onceAfter := mustGetSub(t, application, onceSub["id"].(string))
+	if onceAfter.Status != plans.SubActive || onceAfter.PeriodEnd != nil {
+		t.Fatalf("one-time plan must have no renewal date: %+v", onceAfter)
+	}
+	entitlements, err := application.Plans.ListEntitlements(ctx, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundLifetime := false
+	for _, entitlement := range entitlements {
+		if entitlement.SourceID == onceSub["id"].(string) {
+			foundLifetime = true
+			if entitlement.ExpiresAt != nil {
+				t.Fatalf("one-time credit must remain valid: %+v", entitlement)
+			}
+		}
+	}
+	if !foundLifetime {
+		t.Fatal("one-time credit was not granted")
+	}
+
+	for _, tc := range []struct {
+		period string
+		months int
+	}{{plans.PeriodQuarterly, 3}, {plans.PeriodYearly, 12}} {
+		created := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
+			"name": "Period " + tc.period, "price_minor": 1_000_000, "billing_period": tc.period,
+			"auto_renew_allowed": true, "channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID},
+			"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+		})
+		planID := created["item"].(map[string]any)["id"].(string)
+		postJSONRaw(t, server.URL+"/admin/plans/"+planID+"/review", "m5_admin", map[string]any{"action": "approve"})
+		if hasPlan(getAuthJSON(t, server.URL+"/v1/me/plans", session), planID) {
+			t.Fatalf("official user sees reseller-only %s plan", tc.period)
+		}
+		if !hasPlan(getAuthJSON(t, server.URL+"/v1/me/plans", "m5_admin-agent"), planID) {
+			t.Fatalf("reseller user cannot see %s plan", tc.period)
+		}
+		if !hasPlan(getAuthJSON(t, server.URL+"/admin/plans?name=Period", "m5_channel"), planID) {
+			t.Fatalf("reseller admin cannot see %s plan", tc.period)
+		}
+		if code := postStatusConfirm(t, server.URL+"/v1/me/subscriptions", session, map[string]any{"plan_id": planID, "adapter": payment.AdapterStripe}); code != http.StatusBadRequest {
+			t.Fatalf("official user could buy reseller-only plan: %d", code)
+		}
+		if !hasPlan(getAuthJSON(t, server.URL+"/admin/plans?channel_id="+identity.ResellerChannelID+"&billing_period="+tc.period+"&name=Period", "m5_admin"), planID) {
+			t.Fatalf("admin filters omitted %s plan", tc.period)
+		}
+		start := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+		sub, err := application.Plans.CreateSubscription(ctx, userID, identity.ResellerChannelID, planID, payment.AdapterStripe, "pm_ok", []string{identity.ResellerChannelID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		active, err := application.Plans.ActivatePaid(ctx, sub.ID, start)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if active.PeriodEnd == nil || !active.PeriodEnd.Equal(start.AddDate(0, tc.months, 0)) {
+			t.Fatalf("%s period end: %+v", tc.period, active)
+		}
+	}
+	if code := postStatusConfirm(t, server.URL+"/channel/plans", "m5_channel", map[string]any{
+		"name": "Out of scope", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"channel_scope": "selected", "channel_ids": []string{identity.OEMChannelID},
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+	}); code != http.StatusBadRequest {
+		t.Fatalf("channel admin could target unrelated channel: %d", code)
+	}
+	child := postJSONRaw(t, server.URL+"/admin/channels", "m5_admin", map[string]any{
+		"code": "plan-scope-child-" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		"type": "B", "parent_id": identity.OEMChannelID,
+	})
+	childID := child["item"].(map[string]any)["id"].(string)
+	if hasPlan(getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin"), childID) {
+		t.Fatal("platform picker included a grandchild channel")
+	}
+	if oemTargets := getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin-c"); !hasPlan(oemTargets, childID) {
+		t.Fatalf("OEM picker omitted its direct child: %+v; principal: %+v", oemTargets, getAuthJSON(t, server.URL+"/admin/me", "m5_admin-c"))
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
+		"name": "Grandchild target", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"channel_scope": "selected", "channel_ids": []string{childID},
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+	}); code != http.StatusBadRequest {
+		t.Fatalf("platform could select another channel's direct child: %d", code)
+	}
+	multi := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
+		"name": "Multi-channel", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID, identity.OEMChannelID},
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
+	})
+	if targets, ok := multi["item"].(map[string]any)["channel_ids"].([]any); !ok || len(targets) != 2 {
+		t.Fatalf("multi-channel selection was not saved: %+v", multi)
 	}
 
 }

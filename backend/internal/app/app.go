@@ -65,7 +65,7 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	catalogSvc := catalog.New(gdb)
 	catalogSvc.SetURLPolicy(cfg.IsProduction(), cfg.UpstreamURLAllowlist)
 	billingSvc := billing.New(gdb, outboxSvc)
-	plansSvc := plans.New(gdb, outboxSvc)
+	plansSvc := plans.New(gdb, outboxSvc, auditSvc)
 	billingSvc.SetCoverer(plansSvc)
 	store := media.NewStore(media.Settings{
 		Endpoint:       cfg.S3Endpoint,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
@@ -19,6 +19,7 @@ import { fetchListItems } from "@/lib/list-resource";
 import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { ownerTypeLabelKey, statusLabelKey, statusTone } from "@/lib/status-copy";
 import { confirmJsonAction } from "@/lib/submit-result";
+import { listEligiblePlanChannels, type PlanChannel } from "@/lib/plan-channels";
 
 type Plan = { id?: string; name?: string; status?: string; owner_type?: string; owner_id?: string; price_minor?: number; review_reason?: string };
 
@@ -28,6 +29,10 @@ export function ChannelPlans() {
   const [createMessage, setCreateMessage] = useState(t("createHint"));
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [channels, setChannels] = useState<PlanChannel[]>([]);
+  const [channelScope, setChannelScope] = useState("all");
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [channelSearch, setChannelSearch] = useState("");
   const creatingRef = useRef(false);
   const submitGen = useRef(0);
   const list = useListResource<Plan>({
@@ -39,13 +44,18 @@ export function ChannelPlans() {
         name: z.string().trim().min(1, t("nameRequired")),
         price_usd: z.string().trim().min(1, t("priceRequired")),
         included_usd: z.string().trim().min(1, t("amountRequired")),
+        billing_period: z.enum(["once", "monthly", "quarterly", "yearly"]),
       }),
     [t],
   );
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", price_usd: "1", included_usd: "1" },
+    defaultValues: { name: "", price_usd: "1", included_usd: "1", billing_period: "once" },
   });
+
+  useEffect(() => {
+    void listEligiblePlanChannels().then(setChannels).catch(() => setChannels([]));
+  }, []);
 
   function statusText(status?: string) {
     const key = statusLabelKey(status);
@@ -67,6 +77,7 @@ export function ChannelPlans() {
       setCreateError(t("priceRequired"));
       return;
     }
+    if (channelScope === "selected" && selectedChannels.length === 0) { setCreateError("请选择至少一个渠道"); return; }
     const generation = ++submitGen.current;
     creatingRef.current = true;
     setCreating(true);
@@ -81,6 +92,10 @@ export function ChannelPlans() {
             body: JSON.stringify({
               name: values.name,
               price_minor: price,
+              billing_period: values.billing_period,
+              auto_renew_allowed: values.billing_period !== "once",
+              channel_scope: channelScope,
+              channel_ids: channelScope === "selected" ? selectedChannels : [],
               items: [{ unit_type: USD_CREDIT, included_amount: included }],
             }),
           }),
@@ -98,6 +113,9 @@ export function ChannelPlans() {
           }
           const item = (body as { item?: Plan }).item;
           form.reset();
+          setChannelScope("all");
+          setSelectedChannels([]);
+          setChannelSearch("");
           setCreateError("");
           setCreateMessage(
             t("createdPlan", {
@@ -131,6 +149,28 @@ export function ChannelPlans() {
             {t("planUnit")}：{t("planCreditUsd")}
           </p>
           <TextField control={form.control} name="included_usd" label={t("planAmount")} placeholder="1.00" suffix={tc("usd")} />
+          <label className="grid gap-1 text-sm" htmlFor="channel-plan-period">
+            {t("billingPeriod")}
+            <select id="channel-plan-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...form.register("billing_period")}>
+              <option value="once">{t("periodOnce")}</option>
+              <option value="monthly">{t("periodMonthly")}</option>
+              <option value="quarterly">{t("periodQuarterly")}</option>
+              <option value="yearly">{t("periodYearly")}</option>
+            </select>
+          </label>
+          <p className="text-xs text-ink-secondary">一次性额度长期有效；周期套餐每期补充额度。</p>
+          <fieldset className="grid gap-2 text-sm">
+            <legend>适用渠道</legend>
+            <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>
+            <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />指定渠道</label>
+            {channelScope === "selected" ? <div className="grid gap-2">
+              <input aria-label="查找适用渠道" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder="查找渠道" value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />
+              <div className="max-h-32 overflow-y-auto rounded-md border border-hairline p-2">
+                {channels.filter((channel) => channel.code.toLowerCase().includes(channelSearch.toLowerCase())).map((channel) => <label key={channel.id} className="flex items-center gap-2 py-1"><input type="checkbox" checked={selectedChannels.includes(channel.id)} onChange={(event) => setSelectedChannels(event.target.checked ? [...selectedChannels, channel.id] : selectedChannels.filter((id) => id !== channel.id))} />{channel.code}</label>)}
+              </div>
+              <span className="text-xs text-ink-secondary">已选 {selectedChannels.length} 个渠道</span>
+            </div> : null}
+          </fieldset>
           <Button size="sm" type="submit" disabled={creating}>
             {creating ? tc("submitting") : t("createPlan")}
           </Button>

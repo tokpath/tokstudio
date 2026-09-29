@@ -429,6 +429,51 @@ func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]Channel
 	return out, nil
 }
 
+// ListPlanSubchannels only returns direct children of the plan owner's channel.
+// Older bootstrap B/C channels have no stored parent but belong to the official A channel.
+func (s *Service) ListPlanSubchannels(ctx context.Context, ownerID string) ([]ChannelView, error) {
+	q := s.db.WithContext(ctx).Model(&channelRow{}).Where("status = ?", "active")
+	if ownerID == OfficialChannelID {
+		q = q.Where("parent_id = ? OR (parent_id IS NULL AND type IN ?)", ownerID, []string{ChannelTypeB, ChannelTypeC})
+	} else {
+		q = q.Where("parent_id = ?", ownerID)
+	}
+	var rows []channelRow
+	if err := q.Order("code").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]ChannelView, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, channelViewFrom(row))
+	}
+	return out, nil
+}
+
+// ChannelAncestors returns the channel and its parents for plan visibility.
+func (s *Service) ChannelAncestors(ctx context.Context, channelID string) ([]string, error) {
+	if channelID == "" {
+		return nil, nil
+	}
+	ids := []string{}
+	seen := map[string]bool{}
+	for channelID != "" {
+		if seen[channelID] {
+			return nil, ErrPromotionInvalid
+		}
+		seen[channelID] = true
+		row, err := s.lookupChannel(ctx, channelID)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, row.ID)
+		if row.ParentID == nil {
+			break
+		}
+		channelID = *row.ParentID
+	}
+	return ids, nil
+}
+
 func channelViewFrom(row channelRow) ChannelView {
 	view := ChannelView{ID: row.ID, Code: row.Code, Type: row.Type, Status: row.Status, BrandID: row.BrandID}
 	if row.ParentID != nil {

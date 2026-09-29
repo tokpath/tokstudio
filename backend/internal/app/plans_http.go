@@ -34,6 +34,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.GET("/channel/plans", a.requireRoles("channel_admin", "platform_admin", "ops_admin"), a.channelListPlans)
 	r.POST("/channel/plans", a.requireRoles("channel_admin"), a.adminCreatePlan)
 	r.GET("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin", "audit_readonly"), a.adminListPlans)
+	r.GET("/admin/plans/eligible-channels", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.adminPlanEligibleChannels)
 	r.POST("/admin/plans", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.adminCreatePlan)
 	r.PATCH("/admin/plans/:id", a.requireRoles("platform_admin", "ops_admin"), a.adminPatchPlan)
 	r.POST("/admin/plans/:id/review", a.requireRoles("platform_admin", "ops_admin"), a.adminReviewPlan)
@@ -56,7 +57,12 @@ func (a *App) listPublicPlans(c *gin.Context) {
 
 func (a *App) listMyPlans(c *gin.Context) {
 	_, channelID := a.billingUser(c)
-	items, err := a.Plans.ListPlans(c.Request.Context(), channelID, "", true)
+	ancestors, err := a.Identity.ChannelAncestors(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "渠道无效", false)
+		return
+	}
+	items, err := a.Plans.ListPlansFiltered(c.Request.Context(), plans.ListPlanFilter{AudienceChannelID: channelID, AudienceAncestors: ancestors, PublishedOnly: true})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取套餐失败", true)
 		return
@@ -88,7 +94,12 @@ func (a *App) createMySubscription(c *gin.Context) {
 		body.Adapter = payment.AdapterStripe
 	}
 	userID, channelID := a.billingUser(c)
-	sub, err := a.Plans.CreateSubscription(c.Request.Context(), userID, channelID, body.PlanID, body.Adapter, body.PaymentMethodRef)
+	ancestors, err := a.Identity.ChannelAncestors(c.Request.Context(), channelID)
+	if err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "渠道无效", false)
+		return
+	}
+	sub, err := a.Plans.CreateSubscription(c.Request.Context(), userID, channelID, body.PlanID, body.Adapter, body.PaymentMethodRef, ancestors)
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "无法订阅该套餐", false)
 		return
@@ -228,7 +239,22 @@ func (a *App) channelListPlans(c *gin.Context) {
 	if channelID == "" {
 		channelID = c.Query("channel_id")
 	}
-	items, err := a.Plans.ListPlans(c.Request.Context(), channelID, c.Query("status"), false)
+	filter := plans.ListPlanFilter{Status: c.Query("status"), OwnerChannelID: channelID}
+	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") {
+		channels, err := a.Identity.ListChannels(c.Request.Context(), *p)
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
+			return
+		}
+		for _, ch := range channels {
+			filter.VisibleChannelIDs = append(filter.VisibleChannelIDs, ch.ID)
+		}
+	}
+	if channelID == "" && c.Query("channel_id") != "" {
+		filter.TargetChannelID = c.Query("channel_id")
+		filter.TargetAncestors, _ = a.Identity.ChannelAncestors(c.Request.Context(), filter.TargetChannelID)
+	}
+	items, err := a.Plans.ListPlansFiltered(c.Request.Context(), filter)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取套餐失败", true)
 		return
@@ -237,11 +263,34 @@ func (a *App) channelListPlans(c *gin.Context) {
 }
 
 func (a *App) adminListPlans(c *gin.Context) {
-	channelID := ""
+	filter := plans.ListPlanFilter{Status: c.Query("status"), Name: strings.TrimSpace(c.Query("name")), BillingPeriod: c.Query("billing_period")}
 	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") {
-		channelID = p.ChannelOrgID
+		filter.OwnerChannelID = p.ChannelOrgID
+		channels, err := a.Identity.ListChannels(c.Request.Context(), *p)
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
+			return
+		}
+		for _, ch := range channels {
+			filter.VisibleChannelIDs = append(filter.VisibleChannelIDs, ch.ID)
+		}
 	}
-	items, err := a.Plans.ListPlans(c.Request.Context(), channelID, c.Query("status"), false)
+	if target := c.Query("channel_id"); target != "" {
+		if filter.OwnerChannelID != "" {
+			if _, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), target); err != nil {
+				httpx.Abort(c, http.StatusForbidden, "forbidden", "无权查看该渠道", false)
+				return
+			}
+		}
+		filter.TargetChannelID = target
+		var err error
+		filter.TargetAncestors, err = a.Identity.ChannelAncestors(c.Request.Context(), target)
+		if err != nil {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "渠道无效", false)
+			return
+		}
+	}
+	items, err := a.Plans.ListPlansFiltered(c.Request.Context(), filter)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取套餐失败", true)
 		return
@@ -255,6 +304,19 @@ func (a *App) adminListPlans(c *gin.Context) {
 	httpx.OKPage(c, items, 100, func(item plans.PlanView) string { return item.ID })
 }
 
+func (a *App) adminPlanEligibleChannels(c *gin.Context) {
+	ownerID := identity.OfficialChannelID
+	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+		ownerID = p.ChannelOrgID
+	}
+	channels, err := a.Identity.ListPlanSubchannels(c.Request.Context(), ownerID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取下属渠道失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": channels, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) adminCreatePlan(c *gin.Context) {
 	var in plans.CreatePlanInput
 	if err := c.ShouldBindJSON(&in); err != nil {
@@ -264,19 +326,39 @@ func (a *App) adminCreatePlan(c *gin.Context) {
 	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
 		in.OwnerType = plans.OwnerChannel
 		in.OwnerID = p.ChannelOrgID
+	} else {
+		in.OwnerType = plans.OwnerPlatform
+		in.OwnerID = identity.OfficialChannelID
 	}
 	if in.OwnerID == "" {
 		in.OwnerID = identity.OfficialChannelID
 	}
-	item, err := a.Plans.CreatePlan(c.Request.Context(), in)
+	if in.ChannelScope == plans.ChannelScopeSelected {
+		allowed, err := a.Identity.ListPlanSubchannels(c.Request.Context(), in.OwnerID)
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
+			return
+		}
+		valid := map[string]bool{}
+		for _, ch := range allowed {
+			if ch.Status == "active" {
+				valid[ch.ID] = true
+			}
+		}
+		for _, id := range in.ChannelIDs {
+			if !valid[id] {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "适用渠道无效", false)
+				return
+			}
+		}
+	}
+	item, err := a.Plans.CreatePlan(c.Request.Context(), in, audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建套餐失败", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "plans.plan.create", ResourceType: "product_plan", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
 	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
@@ -289,34 +371,36 @@ func (a *App) adminPatchPlan(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "目前只支持下架 archived", false)
 		return
 	}
-	item, err := a.Plans.ArchivePlan(c.Request.Context(), c.Param("id"))
+	item, err := a.Plans.ChangePlanStatus(c.Request.Context(), c.Param("id"), "archive", audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "套餐不存在", false)
+		status := http.StatusBadRequest
+		if errors.Is(err, plans.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		httpx.Abort(c, status, "invalid_request", "当前状态不能下架", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "plans.plan.archive", ResourceType: "product_plan", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminReviewPlan(c *gin.Context) {
 	var body struct {
 		Action string `json:"action"`
-		Reason string `json:"reason"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	item, err := a.Plans.ReviewPlan(c.Request.Context(), c.Param("id"), body.Action, body.Reason)
+	item, err := a.Plans.ChangePlanStatus(c.Request.Context(), c.Param("id"), body.Action, audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "审核失败", false)
+		status := http.StatusBadRequest
+		if errors.Is(err, plans.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		httpx.Abort(c, status, "invalid_request", "当前状态不能执行该操作", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "plans.plan.review", ResourceType: "product_plan", ResourceID: item.ID,
-		After: map[string]any{"action": body.Action, "status": item.Status, "reason": body.Reason},
-		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 

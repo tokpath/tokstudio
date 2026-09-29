@@ -14,6 +14,8 @@ type Plan = {
   id: string;
   name: string;
   price_minor: number;
+  billing_period: string;
+  auto_renew_allowed: boolean;
   status: string;
   items?: { unit_type: string; included_amount: number }[];
 };
@@ -105,11 +107,6 @@ export default function PlansPanel() {
           ))}
         </div>
       ) : null}
-      {methods.find((m) => m.adapter === adapter)?.auto_renew_supported ? (
-        <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payAutoRenew")}</p>
-      ) : methods.find((m) => m.adapter === adapter) ? (
-        <p className="mb-3 rounded-stamp bg-canvas px-3 py-2 text-sm text-ink-secondary">{t("payNoAutoRenew")}</p>
-      ) : null}
       <Button type="button" variant="outline" className="mb-4" onClick={() => void refresh()}>
         {t("refreshPlans")}
       </Button>
@@ -120,7 +117,8 @@ export default function PlansPanel() {
           {plans.map((plan) => (
             <li key={plan.id} className="flex items-center justify-between gap-3">
               <span>
-                {plan.name} · {formatUsdMinor(plan.price_minor)}
+                {plan.name} · {formatUsdMinor(plan.price_minor)} · {plan.billing_period === "monthly" ? t("planMonthly") : plan.billing_period === "quarterly" ? t("planQuarterly") : plan.billing_period === "yearly" ? t("planYearly") : t("planOnce")}
+                {plan.billing_period !== "once" ? ` · ${plan.auto_renew_allowed && adapter === "stripe" ? t("planAutoRenew") : t("planManualRenew")}` : ""}
               </span>
               <Button type="button" size="sm" onClick={() => subscribe(plan.id)}>
                 {t("subscribe")}

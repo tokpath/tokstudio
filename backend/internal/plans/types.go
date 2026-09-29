@@ -3,8 +3,6 @@ package plans
 import (
 	"errors"
 	"time"
-
-	"github.com/tokpath/tokstudio/backend/internal/billing"
 )
 
 var (
@@ -12,7 +10,7 @@ var (
 	ErrNotFound      = errors.New("plan not found")
 	ErrInvalidPlan   = errors.New("invalid plan")
 	ErrNotPublished  = errors.New("plan is not published")
-	ErrNotPending    = errors.New("plan is not pending review")
+	ErrInvalidState  = errors.New("plan status does not allow this action")
 )
 
 const (
@@ -53,9 +51,13 @@ const (
 	EventExpiry   = "expiry"
 	EventReversal = "reversal"
 
-	PeriodMonthly = "monthly"
-	PriceFloor    = billing.MinorPerUSD // 低于 1 USD 的渠道套餐进人工审核
-	GraceDays     = 7
+	PeriodMonthly        = "monthly"
+	PeriodQuarterly      = "quarterly"
+	PeriodYearly         = "yearly"
+	PeriodOnce           = "once"
+	ChannelScopeAll      = "all"
+	ChannelScopeSelected = "selected"
+	GraceDays            = 7
 )
 
 type PlanItemInput struct {
@@ -74,6 +76,8 @@ type CreatePlanInput struct {
 	Currency      string          `json:"currency"`
 	BillingPeriod string          `json:"billing_period"`
 	AutoRenew     bool            `json:"auto_renew_allowed"`
+	ChannelScope  string          `json:"channel_scope"`
+	ChannelIDs    []string        `json:"channel_ids"`
 	Items         []PlanItemInput `json:"items"`
 }
 
@@ -88,7 +92,22 @@ type PlanView struct {
 	Status           string          `json:"status"`
 	ReviewReason     string          `json:"review_reason,omitempty"`
 	AutoRenewAllowed bool            `json:"auto_renew_allowed"`
+	ChannelScope     string          `json:"channel_scope"`
+	ChannelIDs       []string        `json:"channel_ids"`
 	Items            []PlanItemInput `json:"items"`
+}
+
+type ListPlanFilter struct {
+	Status            string
+	Name              string
+	BillingPeriod     string
+	AudienceChannelID string
+	AudienceAncestors []string
+	TargetChannelID   string
+	TargetAncestors   []string
+	OwnerChannelID    string
+	VisibleChannelIDs []string
+	PublishedOnly     bool
 }
 
 type SubscriptionView struct {

@@ -218,17 +218,23 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/plans");
   await expect(page.getByRole("heading", { name: "套餐审核" })).toBeVisible();
   await expect(page.getByRole("button", { name: "待审核" })).toBeVisible();
+  await expect(page.getByLabel("按渠道筛选")).toBeVisible();
+  await expect(page.getByLabel("按套餐类型筛选")).toBeVisible();
+  await expect(page.getByLabel("按套餐名筛选")).toBeVisible();
   await expect(page.getByRole("button", { name: "创建套餐" })).toBeVisible();
   await page.getByRole("button", { name: "创建套餐" }).click();
   await expect(page.getByRole("heading", { name: "创建套餐" })).toBeVisible();
+  await expect(page.getByLabel("购买方式")).toHaveValue("once");
+  await expect(page.getByLabel("购买方式").locator("option")).toHaveCount(4);
+  await expect(page.getByText("一次性额度长期有效")).toBeVisible();
+  await expect(page.getByRole("group", { name: "适用渠道" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "下架套餐" })).toBeVisible();
-  await page.getByRole("button", { name: "下架套餐" }).click();
-  await expect(page.getByRole("heading", { name: "下架套餐" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("heading", { name: "续费扫描" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "强制到期" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "续费扫描" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "下架套餐" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "续费扫描" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "包括额度" })).toBeVisible();
+  const planHeaders = await page.getByRole("columnheader").allTextContents();
+  expect(planHeaders.indexOf("包括额度")).toBeLessThan(planHeaders.indexOf("适用渠道"));
+  await expect(page.getByRole("columnheader", { name: "原因" })).toHaveCount(0);
   await page.goto("/admin/commission");
   await expect(page.getByRole("heading", { name: "佣金策略" })).toBeVisible();
   await expect(page.getByRole("button", { name: "读取策略" })).toBeVisible();
@@ -371,6 +377,40 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("button", { name: "发布价格" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "模型状态" })).toBeVisible();
   await expect(page.getByRole("link", { name: "配置路由" })).toBeVisible();
+});
+
+test("admin creates a plan for multiple direct channels without a second confirmation", async ({ page }) => {
+  let created: Record<string, unknown> | undefined;
+  await page.route("**/api/admin/plans/eligible-channels", route => route.fulfill({ json: { items: [
+    { id: "chn_own_1", code: "own-1", status: "active" },
+    { id: "chn_own_2", code: "own-2", status: "active" },
+  ] } }));
+  await page.route("**/api/admin/channels?*", route => route.fulfill({ json: { items: [
+    { id: "chn_own_1", code: "own-1", status: "active" },
+    { id: "chn_own_2", code: "own-2", status: "active" },
+    { id: "chn_other", code: "other", status: "active" },
+  ] } }));
+  await page.route("**/api/admin/plans?*", route => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/admin/plans", async route => {
+    if (route.request().method() !== "POST") return route.continue();
+    created = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { item: { id: "pln_new", name: "Two channels" } } });
+  });
+  await page.goto("/admin/plans");
+  await page.getByRole("button", { name: "创建套餐" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("套餐名称").fill("Two channels");
+  await dialog.getByLabel("指定渠道").check();
+  await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+  await expect(dialog.getByText("other")).toHaveCount(0);
+  await dialog.getByLabel("own-1").check();
+  await dialog.getByLabel("own-2").check();
+  await dialog.getByRole("button", { name: "创建套餐" }).click();
+  await expect.poll(() => created).toMatchObject({
+    name: "Two channels", channel_scope: "selected", channel_ids: ["chn_own_1", "chn_own_2"],
+  });
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText("确认创建套餐")).toHaveCount(0);
 });
 
 test("admin OEM brand download shows storage source and forbids a success check", async ({ page }) => {

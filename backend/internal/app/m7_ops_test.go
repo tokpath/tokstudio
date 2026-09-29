@@ -420,9 +420,10 @@ func TestM7OpsHardening(t *testing.T) {
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})
 	planID, _ := createdPlan["item"].(map[string]any)["id"].(string)
-	if !strings.HasPrefix(planID, "pln_") || createdPlan["item"].(map[string]any)["status"] != "published" {
+	if !strings.HasPrefix(planID, "pln_") || createdPlan["item"].(map[string]any)["status"] != "pending_review" {
 		t.Fatalf("create platform plan: %+v", createdPlan)
 	}
+	postJSONRaw(t, server.URL+"/admin/plans/"+planID+"/review", "m7_admin", map[string]any{"action": "approve"})
 	archived := patchJSONRaw(t, server.URL+"/admin/plans/"+planID, "m7_admin", map[string]any{"status": "archived"})
 	if archived["item"].(map[string]any)["status"] != "archived" {
 		t.Fatalf("archive plan: %+v", archived)

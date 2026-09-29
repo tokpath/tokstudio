@@ -64,7 +64,7 @@ paths:
       operationId: createProvider
       responses:
         "201":
-          description: created
+          description: created in pending_review
   /admin/providers/{id}:
     get:
       operationId: getProvider
@@ -876,14 +876,23 @@ paths:
   /admin/plans:
     get:
       operationId: listAdminPlans
+      description: Filter by status, channel_id, name and billing_period (once/monthly/quarterly/yearly).
       responses:
         "200":
           description: plans including pending review
     post:
       operationId: createAdminPlan
+      description: Create a pending-review plan with channel_scope all or selected and direct child channel_ids when selected.
       responses:
         "201":
           description: created
+  /admin/plans/eligible-channels:
+    get:
+      operationId: listEligiblePlanChannels
+      description: List active direct child channels available to the current creator when channel_scope is selected.
+      responses:
+        "200":
+          description: eligible channels
   /admin/plans/{id}:
     patch:
       operationId: patchAdminPlan
@@ -895,7 +904,7 @@ paths:
             type: string
       responses:
         "200":
-          description: archived
+          description: published plan archived
   /admin/plans/{id}/review:
     post:
       operationId: reviewAdminPlan
@@ -907,7 +916,7 @@ paths:
             type: string
       responses:
         "200":
-          description: approved or rejected
+          description: plan published or rejected
   /admin/payments:
     get:
       operationId: listAdminPayments

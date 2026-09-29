@@ -46,12 +46,15 @@ paths:
       summary: Adapter webhook. HMAC of event_id|order_id|status. Idempotent on external_event_id.
   /admin/plans:
     get:
-      summary: Admin/channel plan list
+      summary: Admin/channel plan list; filter by status, channel_id, name and billing_period
     post:
-      summary: Create a plan. Channel plans below price floor or over media caps enter pending_review.
+      summary: Create a one-time, monthly, quarterly or yearly plan in pending_review, scoped to all or selected direct child channels.
+  /admin/plans/eligible-channels:
+    get:
+      summary: Active direct child channels eligible for the current creator's plan.
   /admin/plans/{id}/review:
     post:
-      summary: approve or reject a pending channel plan
+      summary: Publish a pending, rejected or archived plan; or reject a pending plan.
   /admin/entitlements/bonus:
     post:
       summary: Grant bonus entitlement

@@ -221,6 +221,7 @@ paths:
   /admin/channels:
     get:
       operationId: listChannels
+      description: managed=1 limits platform console to A and its direct B/C; OEM sees itself and direct B.
       responses:
         "200":
           description: channels
@@ -228,7 +229,7 @@ paths:
       operationId: createChannel
       responses:
         "201":
-          description: created
+          description: platform creates direct B or C; OEM creates direct B. B inherits brand; C requires an unused brand.
   /admin/channels/{id}:
     get:
       operationId: getChannel
@@ -251,7 +252,18 @@ paths:
             type: string
       responses:
         "200":
-          description: updated channel status type or brand; disabled freezes new chat and media with 403 channel_disabled
+          description: update status only; platform manages direct B/C, OEM manages direct B; type and brand are immutable
+  /admin/channels/{id}/admins:
+    get:
+      operationId: listChannelAdministrators
+      responses:
+        "200":
+          description: administrators of a direct child channel
+    post:
+      operationId: setChannelAdministrator
+      responses:
+        "200":
+          description: platform or OEM grants or revokes a direct child administrator
   /admin/channels/{id}/models:
     get:
       operationId: listChannelModels
@@ -263,7 +275,7 @@ paths:
             type: string
       responses:
         "200":
-          description: platform catalog models entitled to this tenant; tenants cannot add providers or models
+          description: current grants and effective state; OEM sees only models in its own grant scope for a direct child
     patch:
       operationId: patchChannelModels
       parameters:
@@ -274,13 +286,55 @@ paths:
             type: string
       responses:
         "200":
-          description: entitle or revoke existing platform catalog models for this tenant; unknown public_id is rejected; tenants cannot create providers or models
+          description: platform may grant direct B/C; OEM may grant or revoke its direct B within its active model scope
   /channel/models:
     get:
       operationId: listOwnChannelModels
       responses:
         "200":
-          description: models already entitled to the current tenant; channel admins cannot add providers or models
+          description: models granted to this tenant, including local and upstream availability
+    patch:
+      operationId: patchOwnChannelModelStatus
+      responses:
+        "200":
+          description: locally list or delist an already granted model; cannot override parent revocation
+  /channel/model-prices:
+    patch:
+      operationId: patchOwnBrandModelPrice
+      description: OEM brand platform sets one customer price shared by itself and its B channels
+      responses:
+        "200":
+          description: brand customer price updated
+  /channel/me:
+    get:
+      operationId: getOwnChannel
+      responses:
+        "200":
+          description: own channel identity and channel_type A/B/C
+  /channel/users:
+    get:
+      operationId: listOwnChannelUsers
+      responses:
+        "200":
+          description: own channel users
+  /channel/users/{id}/ban:
+    post:
+      operationId: banOwnChannelUser
+      responses:
+        "200":
+          description: ban own user; OEM may also manage a direct child B user
+  /channel/users/{id}/unban:
+    post:
+      operationId: unbanOwnChannelUser
+      responses:
+        "200":
+          description: restore own user; OEM may also manage a direct child B user
+  /channel/subchannels/{id}/users:
+    get:
+      operationId: listSubchannelUsers
+      responses:
+        "200":
+          description: OEM lists users of a direct child B
   /channel/attribution:
     get:
       operationId: listChannelAttribution
@@ -292,7 +346,7 @@ paths:
       operationId: listChannelPlans
       responses:
         "200":
-          description: scoped channel and platform plans
+          description: OEM brand plans; B is forbidden
     post:
       operationId: createChannelPlan
       responses:
@@ -876,13 +930,13 @@ paths:
   /admin/plans:
     get:
       operationId: listAdminPlans
-      description: Filter by status, channel_id, name and billing_period (once/monthly/quarterly/yearly).
+      description: A sees A brand plans; OEM sees its own brand plans; B is forbidden. Filter by status, channel_id, name and billing_period.
       responses:
         "200":
           description: plans including pending review
     post:
       operationId: createAdminPlan
-      description: Create a pending-review plan with channel_scope all or selected and direct child channel_ids when selected.
+      description: A or OEM creates its own brand plan in pending_review; selected channel_ids may contain only direct B.
       responses:
         "201":
           description: created
@@ -908,6 +962,7 @@ paths:
   /admin/plans/{id}/review:
     post:
       operationId: reviewAdminPlan
+      description: A or OEM publishes or rejects only its own brand plan.
       parameters:
         - name: id
           in: path

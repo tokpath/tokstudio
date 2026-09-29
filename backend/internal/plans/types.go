@@ -102,11 +102,9 @@ type ListPlanFilter struct {
 	Name              string
 	BillingPeriod     string
 	AudienceChannelID string
-	AudienceAncestors []string
+	BrandOwnerID      string
 	TargetChannelID   string
-	TargetAncestors   []string
 	OwnerChannelID    string
-	VisibleChannelIDs []string
 	PublishedOnly     bool
 }
 

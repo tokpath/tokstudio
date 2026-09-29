@@ -58,22 +58,44 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("public plans missing seed: %+v", publicPlans)
 	}
 
-	cheap := postJSONRaw(t, server.URL+"/channel/plans", "m5_channel", map[string]any{
+	if code := postStatusConfirm(t, server.URL+"/channel/plans", "m5_channel", map[string]any{
+		"name": "B cannot create", "price_minor": 1000,
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
+	}); code != http.StatusForbidden {
+		t.Fatalf("B channel could create a brand plan: %d", code)
+	}
+	legacyPlan, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
+		OwnerType: plans.OwnerChannel, OwnerID: identity.ResellerChannelID, Name: "Legacy B Plan", PriceMinor: 1000,
+		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
+	}, audit.RecordInput{ActorUserID: userID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+legacyPlan.ID+"/review", "m5_channel", map[string]any{"action": "approve"}); code != http.StatusForbidden {
+		t.Fatalf("B channel published a legacy plan: %d", code)
+	}
+	cheap := postJSONRaw(t, server.URL+"/channel/plans", "m5_admin-c", map[string]any{
 		"name": "Too Cheap", "price_minor": 1000, "owner_type": "platform", "owner_id": identity.OfficialChannelID,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
 	})
 	cheapItem := cheap["item"].(map[string]any)
-	if cheapItem["status"] != plans.StatusPendingReview || cheapItem["owner_type"] != plans.OwnerChannel || cheapItem["owner_id"] != identity.ResellerChannelID {
-		t.Fatalf("channel low price should enter review for reseller: %+v", cheap)
+	if cheapItem["status"] != plans.StatusPendingReview || cheapItem["owner_type"] != plans.OwnerChannel || cheapItem["owner_id"] != identity.OEMChannelID {
+		t.Fatalf("OEM plan should await publication: %+v", cheap)
 	}
-	if code := patchStatus(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin", map[string]any{"status": plans.StatusArchived}); code != http.StatusBadRequest {
+	if code := patchStatus(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin-c", map[string]any{"status": plans.StatusArchived}); code != http.StatusBadRequest {
 		t.Fatalf("pending plan cannot be archived, got %d", code)
 	}
-	pending := getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin")
-	if !hasPlan(pending, cheapItem["id"].(string)) {
-		t.Fatalf("admin review queue missing cheap plan: %+v", pending)
+	if hasPlan(getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin"), cheapItem["id"].(string)) {
+		t.Fatal("platform review queue included OEM plan")
 	}
-	reviewed := postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{
+	pending := getAuthJSON(t, server.URL+"/admin/plans?status=pending_review", "m5_admin-c")
+	if !hasPlan(pending, cheapItem["id"].(string)) {
+		t.Fatalf("OEM review queue missing its plan: %+v", pending)
+	}
+	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{"action": "approve"}); code != http.StatusForbidden {
+		t.Fatalf("platform published OEM plan: %d", code)
+	}
+	reviewed := postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin-c", map[string]any{
 		"action": "approve", "reason": "promo",
 	})
 	if reviewed["item"].(map[string]any)["status"] != plans.StatusPublished {
@@ -88,14 +110,32 @@ func TestM5PlansPayments(t *testing.T) {
 			t.Fatalf("plan audit missing actor/time: %+v", entry)
 		}
 	}
-	archivedPlan := patchJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin", map[string]any{"status": plans.StatusArchived})
+	archivedPlan := patchJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string), "m5_admin-c", map[string]any{"status": plans.StatusArchived})
 	if archivedPlan["item"].(map[string]any)["status"] != plans.StatusArchived {
 		t.Fatalf("archive: %+v", archivedPlan)
 	}
-	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{"action": "reject"}); code != http.StatusBadRequest {
+	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin-c", map[string]any{"action": "reject"}); code != http.StatusBadRequest {
 		t.Fatalf("archived plan cannot be rejected, got %d", code)
 	}
-	postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin", map[string]any{"action": "approve"})
+	postJSONRaw(t, server.URL+"/admin/plans/"+cheapItem["id"].(string)+"/review", "m5_admin-c", map[string]any{"action": "approve"})
+	if hasPlan(getJSON(t, server.URL+"/v1/plans", ""), cheapItem["id"].(string)) ||
+		hasPlan(getAuthJSON(t, server.URL+"/v1/me/plans", "m5_admin-agent"), cheapItem["id"].(string)) {
+		t.Fatal("OEM brand plan leaked to the official brand")
+	}
+	oemReq, _ := http.NewRequest(http.MethodGet, server.URL+"/v1/plans", nil)
+	oemReq.Host = "oem.localhost"
+	oemRes, err := http.DefaultClient.Do(oemReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var oemPublic map[string]any
+	if err := json.NewDecoder(oemRes.Body).Decode(&oemPublic); err != nil {
+		t.Fatal(err)
+	}
+	oemRes.Body.Close()
+	if oemRes.StatusCode != http.StatusOK || !hasPlan(oemPublic, cheapItem["id"].(string)) || !hasPlan(getAuthJSON(t, server.URL+"/v1/me/plans", "m5_admin-c"), cheapItem["id"].(string)) {
+		t.Fatalf("OEM brand must show its own plan: %d %+v", oemRes.StatusCode, oemPublic)
+	}
 	rejectedPlan := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
 		"name": "Rejected plan", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
@@ -290,8 +330,8 @@ func TestM5PlansPayments(t *testing.T) {
 		if !hasPlan(getAuthJSON(t, server.URL+"/v1/me/plans", "m5_admin-agent"), planID) {
 			t.Fatalf("reseller user cannot see %s plan", tc.period)
 		}
-		if !hasPlan(getAuthJSON(t, server.URL+"/admin/plans?name=Period", "m5_channel"), planID) {
-			t.Fatalf("reseller admin cannot see %s plan", tc.period)
+		if code := mustStatusJSON(t, http.MethodGet, server.URL+"/admin/plans?name=Period", "m5_channel", nil); code != http.StatusForbidden {
+			t.Fatalf("B admin could manage %s plan: %d", tc.period, code)
 		}
 		if code := postStatusConfirm(t, server.URL+"/v1/me/subscriptions", session, map[string]any{"plan_id": planID, "adapter": payment.AdapterStripe}); code != http.StatusBadRequest {
 			t.Fatalf("official user could buy reseller-only plan: %d", code)
@@ -300,7 +340,7 @@ func TestM5PlansPayments(t *testing.T) {
 			t.Fatalf("admin filters omitted %s plan", tc.period)
 		}
 		start := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
-		sub, err := application.Plans.CreateSubscription(ctx, userID, identity.ResellerChannelID, planID, payment.AdapterStripe, "pm_ok", []string{identity.ResellerChannelID})
+		sub, err := application.Plans.CreateSubscription(ctx, userID, identity.ResellerChannelID, planID, payment.AdapterStripe, "pm_ok", identity.OfficialChannelID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -316,14 +356,24 @@ func TestM5PlansPayments(t *testing.T) {
 		"name": "Out of scope", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
 		"channel_scope": "selected", "channel_ids": []string{identity.OEMChannelID},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
-	}); code != http.StatusBadRequest {
-		t.Fatalf("channel admin could target unrelated channel: %d", code)
+	}); code != http.StatusForbidden {
+		t.Fatalf("B admin could create a plan: %d", code)
 	}
-	child := postJSONRaw(t, server.URL+"/admin/channels", "m5_admin", map[string]any{
+	child := postJSONRaw(t, server.URL+"/admin/channels", "m5_admin-c", map[string]any{
 		"code": "plan-scope-child-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"type": "B", "parent_id": identity.OEMChannelID,
 	})
 	childID := child["item"].(map[string]any)["id"].(string)
+	if code, _ := doJSON(t, http.MethodPatch, server.URL+"/admin/channels/"+childID, "m5_admin", true, map[string]any{"status": "disabled"}); code != http.StatusForbidden {
+		t.Fatalf("platform changed OEM child status: %d", code)
+	}
+	if item := patchJSONRaw(t, server.URL+"/admin/channels/"+childID, "m5_admin-c", map[string]any{"status": "disabled"})["item"].(map[string]any); item["status"] != "disabled" {
+		t.Fatalf("OEM could not disable its child: %+v", item)
+	}
+	patchJSONRaw(t, server.URL+"/admin/channels/"+childID, "m5_admin-c", map[string]any{"status": "active"})
+	if code, _ := doJSON(t, http.MethodGet, server.URL+"/admin/channels/"+childID+"/admins", "m5_admin", false, nil); code != http.StatusForbidden {
+		t.Fatalf("platform managed OEM child administrators: %d", code)
+	}
 	if hasPlan(getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin"), childID) {
 		t.Fatal("platform picker included a grandchild channel")
 	}
@@ -337,9 +387,15 @@ func TestM5PlansPayments(t *testing.T) {
 	}); code != http.StatusBadRequest {
 		t.Fatalf("platform could select another channel's direct child: %d", code)
 	}
+	if hasPlan(getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin"), identity.OEMChannelID) {
+		t.Fatal("OEM brand appeared in platform plan audience")
+	}
+	secondB := postJSONRaw(t, server.URL+"/admin/channels", "m5_admin", map[string]any{
+		"code": "plan-second-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B",
+	})["item"].(map[string]any)["id"].(string)
 	multi := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
 		"name": "Multi-channel", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
-		"channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID, identity.OEMChannelID},
+		"channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID, secondB},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})
 	if targets, ok := multi["item"].(map[string]any)["channel_ids"].([]any); !ok || len(targets) != 2 {

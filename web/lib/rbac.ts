@@ -10,6 +10,7 @@ export type Viewer = {
   userId?: string;
   isPartner?: boolean;
   partnerRole?: string;
+  channelType?: string;
   error?: boolean;
   partnerError?: boolean;
 };
@@ -144,6 +145,16 @@ export function canAccessAdminConsole(roles: string[] | undefined | null): boole
 
 export function canAccessChannelPortal(roles: string[] | undefined | null): boolean {
   return hasAnyRole(roles, [P, "channel_admin"]);
+}
+
+export function canViewChannelHref(href: string, viewer: Viewer): boolean {
+  if (shouldBypassRbac(viewer) || viewer.roles.includes(P)) return true;
+  if (!viewer.roles.includes("channel_admin")) return false;
+  if (href.startsWith("/channel/subchannels")) return viewer.channelType === "C";
+  if (["/channel/plans", "/channel/brand", "/channel/rules"].some((path) => href === path || href.startsWith(`${path}/`))) {
+    return viewer.channelType === "C";
+  }
+  return true;
 }
 
 export function canAccessPartnerPortal(viewer: Viewer): boolean {

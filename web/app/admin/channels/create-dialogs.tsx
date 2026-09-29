@@ -20,9 +20,8 @@ const selectClass =
 const createChannelSchema = z.object({
   code: z.string().trim().min(1, "请填写渠道 code"),
   type: z.string().trim().min(1, "请选择渠道类型"),
-  status: z.string().trim().min(1, "请填写渠道状态"),
   brand_id: z.string().trim(),
-});
+}).refine((value) => value.type !== "C" || Boolean(value.brand_id), { path: ["brand_id"], message: "先创建 OEM 品牌并填写品牌 ID" });
 
 const createRoleSchema = z.object({
   channel_id: z.string().trim().min(1, "请填写所属租户 ID"),
@@ -38,10 +37,10 @@ export function CreateChannelDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("新建渠道会复制平台已启用模型白名单。租户不能自建提供商或模型。");
+  const [message, setMessage] = useState("新渠道默认没有模型授权，由上级按需授权。");
   const form = useForm<z.infer<typeof createChannelSchema>>({
     resolver: zodResolver(createChannelSchema),
-    defaultValues: { code: "", type: "B", status: "active", brand_id: "" },
+    defaultValues: { code: "", type: "B", brand_id: "" },
   });
 
   return (
@@ -49,7 +48,7 @@ export function CreateChannelDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>创建渠道</DialogTitle>
-          <DialogDescription>code 要唯一。类型 A/B/C 决定租户能力：A 官方、B 批发、C OEM。创建后用户仍只能靠推广码归因。</DialogDescription>
+          <DialogDescription>创建直属 B 渠道或 OEM 平台 C。B 自动继承上级品牌，创建后再授权模型。</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form className="grid gap-3" onSubmit={(event) => event.preventDefault()}>
@@ -62,7 +61,7 @@ export function CreateChannelDialog({
                   <FormLabel>租户类型</FormLabel>
                   <FormControl>
                     <select className={selectClass} aria-label="租户类型" {...field}>
-                      {CHANNEL_TYPES.map((item) => (
+                      {CHANNEL_TYPES.filter((item) => item.value !== "A").map((item) => (
                         <option key={item.value} value={item.value}>
                           {item.label}
                         </option>
@@ -73,8 +72,7 @@ export function CreateChannelDialog({
                 </FormItem>
               )}
             />
-            <TextField control={form.control} name="status" label="状态" placeholder="active" />
-            <TextField control={form.control} name="brand_id" label="品牌 ID" placeholder="默认 brd_official，C 可用 brd_oem" />
+            {form.watch("type") === "C" ? <TextField control={form.control} name="brand_id" label="品牌 ID" placeholder="例如 brd_oem" /> : null}
             <ConfirmButton
               size="sm"
               title="确认创建渠道"
@@ -86,14 +84,14 @@ export function CreateChannelDialog({
                   method: "POST",
                   credentials: "include",
                   headers: confirmHeaders,
-                  body: JSON.stringify(values),
+                  body: JSON.stringify({ ...values, status: "active" }),
                 });
                 const body = await res.json();
                 if (!res.ok) {
                   setMessage(body.error?.message || "创建失败");
                   return false;
                 }
-                form.reset({ code: "", type: "B", status: "active", brand_id: "" });
+                form.reset({ code: "", type: "B", brand_id: "" });
                 setMessage(`已创建 ${body.item?.id} ${body.item?.code} → ${body.item?.type} / ${body.item?.status}`);
                 await queryClient.invalidateQueries();
                 onOpenChange(false);

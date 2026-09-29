@@ -37,10 +37,9 @@ export default function AdminChannelsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">渠道租户</h2>
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">合作平台与直属渠道</h2>
         <p className="text-sm text-ink-secondary">
-          渠道组织是多租户边界（A 官方 / B 批发 / C OEM）。代理商和 KOL 是租户内推广角色，字段不同，不是同类主体。
-          所有租户的模型资源只能从平台目录出发，不能自己添加提供商和模型。新建渠道会复制平台已启用白名单。点进详情可编辑并保存渠道；B/C 租户详情可调整额度。
+          A 管理自己的直属 B 和 OEM 平台 C；C 自行管理其下属 B。B 继承所属品牌的套餐与价格，模型逐级授权。
         </p>
       </section>
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="分销主体类型">
@@ -59,11 +58,11 @@ export default function AdminChannelsPage() {
       </div>
       {kind === "channel" ? (
         <AdminListPanel<Channel>
-          path="/admin/channels"
-          title="渠道租户"
+          path="/admin/channels?managed=1"
+          title="直属渠道与 OEM"
           rowHref={(row) => channelHref(String(row.id))}
           emptyTitle="还没有渠道租户"
-          emptyDetail="点新建渠道，从平台目录复制模型白名单。"
+          emptyDetail="新建渠道后，在渠道详情授权模型。"
           actions={<IfCan action="channels.write"><OpenCreateButton label="新建渠道" onClick={() => setCreateChannel(true)} /></IfCan>}
           columns={[
             { accessorKey: "code", header: "Code" },

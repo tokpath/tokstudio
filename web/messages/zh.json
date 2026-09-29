@@ -176,6 +176,10 @@
   },
   "channelNav": {
     "channel": "本渠道",
+    "business": "平台经营",
+    "operations": "渠道运营",
+    "subordinate": "下属渠道",
+    "subchannels": "渠道管理",
     "ledger": "账本",
     "overview": "总览",
     "users": "本渠道用户",
@@ -854,7 +858,12 @@
     "channelModels": {
       "eyebrow": "MODELS",
       "title": "本渠道模型",
-      "description": "只能使用平台已授权的目录。不能自己添加提供商和模型。"
+      "description": "管理本渠道模型上下架。"
+    },
+    "channelSubchannels": {
+      "eyebrow": "CHANNELS",
+      "title": "下属渠道",
+      "description": "创建和管理下属渠道，配置模型授权与管理员。"
     },
     "channelBrand": {
       "eyebrow": "BRAND",

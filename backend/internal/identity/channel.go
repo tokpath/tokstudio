@@ -125,6 +125,15 @@ func (s *Service) AssertChannelConsumable(ctx context.Context, channelOrgID stri
 	if row.Status != "" && row.Status != "active" {
 		return ErrChannelDisabled
 	}
+	if row.ParentID != nil && *row.ParentID != "" {
+		var parent channelRow
+		if err := s.db.WithContext(ctx).Where("id = ?", *row.ParentID).First(&parent).Error; err != nil {
+			return err
+		}
+		if parent.Status != "" && parent.Status != "active" {
+			return ErrChannelDisabled
+		}
+	}
 	return nil
 }
 
@@ -289,6 +298,12 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 	if in.Status == "" {
 		in.Status = "active"
 	}
+	if in.Status != "active" && in.Status != "disabled" {
+		return nil, ErrPromotionInvalid
+	}
+	if in.Type == ChannelTypeC && (in.BrandID == "" || in.BrandID == OfficialBrandID) {
+		return nil, ErrPromotionInvalid
+	}
 	if in.BrandID == "" {
 		in.BrandID = OfficialBrandID
 	}
@@ -307,13 +322,25 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 	if err := ValidateChannelParent(parent.Type, in.Type); err != nil {
 		return nil, err
 	}
-	if parent.Type == ChannelTypeC {
+	if viewer.IsPlatformAdmin() && parent.Type == ChannelTypeC {
+		return nil, ErrChannelImmutable
+	}
+	if in.Type == ChannelTypeC {
+		var brandCount, ownerCount int64
+		if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", in.BrandID).Count(&brandCount).Error; err != nil {
+			return nil, err
+		}
+		if err := s.db.WithContext(ctx).Model(&channelRow{}).Where("brand_id = ? AND type IN ?", in.BrandID, []string{ChannelTypeA, ChannelTypeC}).Count(&ownerCount).Error; err != nil {
+			return nil, err
+		}
+		if brandCount != 1 || ownerCount != 0 {
+			return nil, ErrPromotionInvalid
+		}
+	}
+	if in.Type == ChannelTypeB {
 		in.BrandID = parent.BrandID
 	}
 	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC(), ParentID: &parentID}
-	if in.Type == ChannelTypeC {
-		// C 可后续配自有品牌；默认仍用传入 brand。
-	}
 	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
 		return nil, err
 	}
@@ -384,22 +411,40 @@ func (s *Service) GetChannel(ctx context.Context, viewer Principal, channelID st
 }
 
 func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID string, in ChannelInput) (*ChannelView, error) {
-	if !viewer.IsPlatformAdmin() {
-		return nil, ErrChannelImmutable
-	}
 	var row channelRow
 	if err := s.db.WithContext(ctx).Where("id = ?", channelID).First(&row).Error; err != nil {
 		return nil, mapNotFound(err)
 	}
+	if viewer.IsPlatformAdmin() && row.Type == ChannelTypeB && row.ParentID != nil {
+		parent, err := s.lookupChannel(ctx, *row.ParentID)
+		if err != nil {
+			return nil, err
+		}
+		if parent.Type == ChannelTypeC {
+			return nil, ErrChannelImmutable
+		}
+	}
+	if !viewer.IsPlatformAdmin() {
+		if !viewer.HasRole("channel_admin") || row.Type != ChannelTypeB || row.ParentID == nil || *row.ParentID != viewer.ChannelOrgID {
+			return nil, ErrChannelImmutable
+		}
+		parent, err := s.lookupChannel(ctx, viewer.ChannelOrgID)
+		if err != nil || parent.Type != ChannelTypeC {
+			return nil, ErrChannelImmutable
+		}
+	}
+	if in.Status != "" && in.Status != "active" && in.Status != "disabled" {
+		return nil, ErrPromotionInvalid
+	}
+	if in.Type != "" && in.Type != row.Type {
+		return nil, ErrChannelImmutable
+	}
+	if in.BrandID != "" && in.BrandID != row.BrandID {
+		return nil, ErrChannelImmutable
+	}
 	updates := map[string]any{}
 	if in.Status != "" {
 		updates["status"] = in.Status
-	}
-	if in.BrandID != "" {
-		updates["brand_id"] = in.BrandID
-	}
-	if in.Type != "" {
-		updates["type"] = in.Type
 	}
 	if len(updates) > 0 {
 		if err := s.db.WithContext(ctx).Model(&channelRow{}).Where("id = ?", channelID).Updates(updates).Error; err != nil {
@@ -432,9 +477,9 @@ func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]Channel
 // ListPlanSubchannels only returns direct children of the plan owner's channel.
 // Older bootstrap B/C channels have no stored parent but belong to the official A channel.
 func (s *Service) ListPlanSubchannels(ctx context.Context, ownerID string) ([]ChannelView, error) {
-	q := s.db.WithContext(ctx).Model(&channelRow{}).Where("status = ?", "active")
+	q := s.db.WithContext(ctx).Model(&channelRow{}).Where("status = ? AND type = ?", "active", ChannelTypeB)
 	if ownerID == OfficialChannelID {
-		q = q.Where("parent_id = ? OR (parent_id IS NULL AND type IN ?)", ownerID, []string{ChannelTypeB, ChannelTypeC})
+		q = q.Where("parent_id = ? OR parent_id IS NULL", ownerID)
 	} else {
 		q = q.Where("parent_id = ?", ownerID)
 	}
@@ -483,9 +528,22 @@ func channelViewFrom(row channelRow) ChannelView {
 }
 
 func (s *Service) ListUsers(ctx context.Context, viewer Principal) ([]UserView, error) {
+	return s.ListUsersForChannel(ctx, viewer, viewer.VisibleChannelID())
+}
+
+func (s *Service) ListUsersForChannel(ctx context.Context, viewer Principal, channelID string) ([]UserView, error) {
+	if channelID != "" {
+		if _, err := s.GetChannel(ctx, viewer, channelID); err != nil {
+			return nil, err
+		}
+	} else if viewer.VisibleChannelID() != "" {
+		return nil, ErrChannelImmutable
+	}
 	q := s.db.WithContext(ctx).Model(&userRow{})
-	if channelID := viewer.VisibleChannelID(); channelID != "" {
+	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
+	} else if viewer.IsPlatformAdmin() {
+		q = q.Where("channel_org_id IS NULL OR channel_org_id = ? OR channel_org_id IN (SELECT id FROM identity_channel_orgs WHERE type = 'B' AND (parent_id = ? OR parent_id IS NULL))", OfficialChannelID, OfficialChannelID)
 	}
 	var rows []userRow
 	if err := q.Order("created_at DESC").Limit(100).Find(&rows).Error; err != nil {
@@ -498,9 +556,26 @@ func (s *Service) ListUsers(ctx context.Context, viewer Principal) ([]UserView, 
 		if err := s.db.WithContext(ctx).Where("user_id = ?", row.ID).First(&attr).Error; err == nil {
 			source = attr.SourceCode
 		}
-		out = append(out, viewFromUser(row, nil, source))
+		principal, err := s.loadPrincipal(ctx, row)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, viewFromUser(row, principal.Roles, source))
 	}
 	return out, nil
+}
+
+// Platform staff manage A's customers and direct B channels. C owns its own
+// customers and the customers of its direct B channels.
+func (s *Service) platformManagesCustomerChannel(ctx context.Context, channelID string) (bool, error) {
+	if channelID == "" || channelID == OfficialChannelID {
+		return true, nil
+	}
+	row, err := s.lookupChannel(ctx, channelID)
+	if err != nil {
+		return false, err
+	}
+	return row.Type == ChannelTypeB && (row.ParentID == nil || *row.ParentID == OfficialChannelID), nil
 }
 
 func (s *Service) Me(ctx context.Context, viewer Principal) (*UserView, error) {
@@ -531,6 +606,12 @@ func (s *Service) AdminReattribute(ctx context.Context, actor Principal, userID,
 	var user userRow
 	if err := s.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error; err != nil {
 		return err
+	}
+	for _, channelID := range []string{deref(user.ChannelOrgID), resolved.ChannelID} {
+		allowed, err := s.platformManagesCustomerChannel(ctx, channelID)
+		if err != nil || !allowed {
+			return ErrChannelImmutable
+		}
 	}
 	before := map[string]string{"channel_org_id": deref(user.ChannelOrgID)}
 	after := map[string]string{"channel_org_id": resolved.ChannelID, "source_code": resolved.SourceCode}

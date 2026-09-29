@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import {
   adminGroups,
-  channelSections,
+  channelNavGroupsFor,
   consoleItemHref,
   partnerSections,
   portalLinks,
@@ -21,6 +21,7 @@ import { iconForHref } from "@/lib/page-icons";
 import {
   canAccessChannelPortal,
   canAccessPartnerPortal,
+  canViewChannelHref,
   filterAdminGroups,
   filterPortalHrefs,
   shouldBypassRbac,
@@ -138,7 +139,7 @@ export function CommandPalette({
     }));
     const channel =
       shouldBypassRbac(viewer) || canAccessChannelPortal(viewer.roles)
-        ? channelSections.map((item) => ({
+        ? channelNavGroupsFor(viewer.channelType).flatMap((group) => group.items).filter((item) => canViewChannelHref(item.href, viewer)).map((item) => ({
             href: consoleItemHref(item, "/channel"),
             label: tChannel(item.key),
             group: tChrome("groupChannel"),

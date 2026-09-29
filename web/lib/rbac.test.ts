@@ -5,6 +5,7 @@ import {
   canAccessChannelPortal,
   canAccessPartnerPortal,
   canViewAdminHref,
+  canViewChannelHref,
   canWrite,
   filterAdminGroups,
   filterPortalHrefs,
@@ -18,6 +19,14 @@ function signed(roles: string[], extra: Partial<Viewer> = {}): Viewer {
 const guest: Viewer = { signedIn: false, loading: false, roles: [] };
 
 describe("role menus", () => {
+  it("denies brand-level pages to B channel administrators", () => {
+    const b = signed(["channel_admin"], { channelType: "B" });
+    const c = signed(["channel_admin"], { channelType: "C" });
+    expect(canViewChannelHref("/channel/users", b)).toBe(true);
+    expect(canViewChannelHref("/channel/plans", b)).toBe(false);
+    expect(canViewChannelHref("/channel/subchannels", b)).toBe(false);
+    expect(canViewChannelHref("/channel/subchannels/chn_b", c)).toBe(true);
+  });
   it("lets unsigned viewers keep the full admin nav", () => {
     expect(filterAdminGroups(adminGroups, guest).flatMap((group) => group.items).length).toBe(
       adminGroups.flatMap((group) => group.items).length,

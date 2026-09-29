@@ -40,15 +40,17 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.PATCH("/v1/me", a.requireAnyUser(), a.patchMe)
 	r.POST("/v1/me/password", a.requireAnyUser(), a.changePassword)
 	r.POST("/v1/me/channel/switch", a.requireAnyUser(), a.switchChannel)
-	r.GET("/admin/channels/:id/admins", a.requireRoles("platform_admin"), a.listChannelAdmins)
-	r.POST("/admin/channels/:id/admins", a.requireRoles("platform_admin"), a.setChannelAdmin)
+	r.GET("/admin/channels/:id/admins", a.requireRoles("platform_admin", "channel_admin"), a.listChannelAdmins)
+	r.POST("/admin/channels/:id/admins", a.requireRoles("platform_admin", "channel_admin"), a.setChannelAdmin)
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.createChannel)
 	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.getChannel)
 	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.getChannelModels)
-	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin"), a.patchChannelModels)
-	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin"), a.patchChannel)
+	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.patchChannelModels)
+	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin"), a.patchChannel)
 	r.GET("/channel/models", a.requireRoles("channel_admin"), a.channelModels)
+	r.PATCH("/channel/models", a.requireRoles("channel_admin"), a.patchOwnChannelModel)
+	r.PATCH("/channel/model-prices", a.requireRoles("channel_admin"), a.patchOwnBrandModelPrice)
 	r.GET("/admin/me/2fa", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPStatus)
 	r.POST("/admin/me/2fa/setup", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPSetup)
 	r.POST("/admin/me/2fa/enable", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminTOTPEnable)
@@ -59,6 +61,9 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.POST("/admin/users/:id/attribution", a.requireRoles("platform_admin"), a.reattribute)
 	r.GET("/channel/me", a.requireRoles("channel_admin"), a.channelMe)
 	r.GET("/channel/users", a.requireRoles("channel_admin"), a.listUsersChannel)
+	r.GET("/channel/subchannels/:id/users", a.requireRoles("channel_admin"), a.listSubchannelUsers)
+	r.POST("/channel/users/:id/ban", a.requireRoles("channel_admin"), a.banUser)
+	r.POST("/channel/users/:id/unban", a.requireRoles("channel_admin"), a.unbanUser)
 	r.GET("/channel/attribution", a.requireRoles("channel_admin", "platform_admin"), a.channelAttribution)
 }
 
@@ -140,7 +145,7 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 	case errors.Is(err, identity.ErrSelfAction):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能对自己执行该操作", false)
 	case errors.Is(err, identity.ErrAdminProtected):
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能封禁平台管理员", false)
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作后台管理员", false)
 	default:
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "处理失败", true)
 	}
@@ -647,6 +652,15 @@ func (a *App) listChannels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
 		return
 	}
+	if c.Query("managed") == "1" && a.currentPrincipal(c).VisibleChannelID() == "" {
+		managed := make([]identity.ChannelView, 0, len(items))
+		for _, item := range items {
+			if item.ID == identity.OfficialChannelID || item.ParentID == identity.OfficialChannelID || (item.ParentID == "" && (item.Type == identity.ChannelTypeB || item.Type == identity.ChannelTypeC)) {
+				managed = append(managed, item)
+			}
+		}
+		items = managed
+	}
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]identity.ChannelView, 0, len(items))
 		for _, item := range items {
@@ -676,12 +690,18 @@ func (a *App) getChannel(c *gin.Context) {
 
 func (a *App) getChannelModels(c *gin.Context) {
 	principal := a.currentPrincipal(c)
-	if _, err := a.Identity.GetChannel(c.Request.Context(), *principal, c.Param("id")); err != nil {
+	target, err := a.Identity.GetChannel(c.Request.Context(), *principal, c.Param("id"))
+	if err != nil {
 		a.writeAuthError(c, err)
 		return
 	}
 	includeCatalog := principal.HasRole("platform_admin", "ops_admin")
-	items, err := a.Catalog.ListChannelModels(c.Request.Context(), c.Param("id"), includeCatalog)
+	var items []catalog.ChannelModelView
+	if !includeCatalog && target.ParentID == principal.ChannelOrgID && target.ID != principal.ChannelOrgID {
+		items, err = a.Catalog.ListDelegableChannelModels(c.Request.Context(), target.ID, principal.ChannelOrgID)
+	} else {
+		items, err = a.Catalog.ListChannelModels(c.Request.Context(), target.ID, includeCatalog)
+	}
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
 		return
@@ -700,18 +720,44 @@ func (a *App) channelModels(c *gin.Context) {
 }
 
 func (a *App) patchChannelModels(c *gin.Context) {
-	if !a.requireConfirm(c) {
+	principal := a.currentPrincipal(c)
+	target, err := a.Identity.GetChannel(c.Request.Context(), *principal, c.Param("id"))
+	if err != nil {
+		a.writeAuthError(c, err)
 		return
 	}
-	if _, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id")); err != nil {
-		a.writeAuthError(c, err)
+	parentID := ""
+	if principal.HasRole("channel_admin") && !principal.HasRole("platform_admin", "ops_admin") {
+		own, ownErr := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
+		if ownErr != nil || own.Type != identity.ChannelTypeC || target.ParentID != own.ID || target.ID == own.ID {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能授权自己的直属下属渠道", false)
+			return
+		}
+		parentID = own.ID
+	} else if target.ID != identity.OfficialChannelID && target.ParentID != identity.OfficialChannelID &&
+		!(target.ParentID == "" && (target.Type == identity.ChannelTypeB || target.Type == identity.ChannelTypeC)) {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "平台只授权直属渠道和 OEM", false)
+		return
+	}
+	if !a.requireConfirm(c) {
 		return
 	}
 	var body struct {
 		Items []catalog.ChannelModelGrant `json:"items"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	if err := a.Catalog.SetChannelModels(c.Request.Context(), c.Param("id"), body.Items); err != nil {
+	for _, grant := range body.Items {
+		if len(grant.CustomerOverride) != 0 {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "客户价格由品牌平台统一设置", false)
+			return
+		}
+	}
+	if parentID != "" {
+		err = a.Catalog.SetDelegatedChannelModels(c.Request.Context(), target.ID, parentID, body.Items)
+	} else {
+		err = a.Catalog.SetChannelModels(c.Request.Context(), target.ID, body.Items)
+	}
+	if err != nil {
 		switch {
 		case errors.Is(err, catalog.ErrUnknownModel):
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能授权平台目录中已有的模型，租户不能自建提供商或模型", false)
@@ -724,7 +770,12 @@ func (a *App) patchChannelModels(c *gin.Context) {
 		}
 		return
 	}
-	items, err := a.Catalog.ListChannelModels(c.Request.Context(), c.Param("id"), true)
+	var items []catalog.ChannelModelView
+	if parentID != "" {
+		items, err = a.Catalog.ListDelegableChannelModels(c.Request.Context(), target.ID, parentID)
+	} else {
+		items, err = a.Catalog.ListChannelModels(c.Request.Context(), target.ID, true)
+	}
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
 		return
@@ -737,6 +788,64 @@ func (a *App) patchChannelModels(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) patchOwnChannelModel(c *gin.Context) {
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID string `json:"public_id"`
+		Enabled  *bool  `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.PublicID) == "" || body.Enabled == nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "模型状态无效", false)
+		return
+	}
+	principal := a.currentPrincipal(c)
+	if err := a.Catalog.SetOwnChannelModelEnabled(c.Request.Context(), principal.ChannelOrgID, body.PublicID, *body.Enabled); err != nil {
+		if errors.Is(err, catalog.ErrModelNotVisible) {
+			httpx.Abort(c, http.StatusConflict, "model_not_allowed", "上级或平台已下架此模型", false)
+		} else {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "本渠道没有此模型授权", false)
+		}
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: "channel.model.status", ResourceType: "channel", ResourceID: principal.ChannelOrgID,
+		After: map[string]any{"public_id": body.PublicID, "enabled": *body.Enabled},
+		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"public_id": body.PublicID, "enabled": *body.Enabled, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) patchOwnBrandModelPrice(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	channel, err := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
+	if err != nil || channel.Type != identity.ChannelTypeC {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅品牌平台可设置客户价", false)
+		return
+	}
+	if !a.requireConfirm(c) {
+		return
+	}
+	var body struct {
+		PublicID string            `json:"public_id"`
+		Prices   map[string]string `json:"customer_price"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.PublicID) == "" || body.Prices == nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "客户价格无效", false)
+		return
+	}
+	if err := a.Catalog.SetOwnChannelCustomerPrices(c.Request.Context(), channel.ID, body.PublicID, body.Prices); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "客户价格无效或模型未授权", false)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
+		ActorUserID: principal.UserID, Action: "channel.model.customer_price", ResourceType: "channel", ResourceID: channel.ID,
+		After: map[string]any{"public_id": body.PublicID, "customer_price": body.Prices}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	httpx.OK(c, gin.H{"public_id": body.PublicID, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) createChannel(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
@@ -746,14 +855,6 @@ func (a *App) createChannel(c *gin.Context) {
 	item, err := a.Identity.CreateChannel(c.Request.Context(), *a.currentPrincipal(c), body)
 	if err != nil {
 		a.writeAuthError(c, err)
-		return
-	}
-	sourceChannel := identity.OfficialChannelID
-	if item.ParentID != "" {
-		sourceChannel = item.ParentID
-	}
-	if err := a.Catalog.GrantModelsFrom(c.Request.Context(), item.ID, sourceChannel); err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "写入渠道默认模型失败", true)
 		return
 	}
 	_ = a.Billing.EnsureChannelQuota(c.Request.Context(), item.ID)
@@ -861,6 +962,26 @@ func (a *App) listUsersChannel(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
+func (a *App) listSubchannelUsers(c *gin.Context) {
+	principal := a.currentPrincipal(c)
+	child, err := a.Identity.GetChannel(c.Request.Context(), *principal, c.Param("id"))
+	if err != nil || child.Type != identity.ChannelTypeB || child.ParentID != principal.ChannelOrgID {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能查看直属下属渠道用户", false)
+		return
+	}
+	parent, err := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
+	if err != nil || parent.Type != identity.ChannelTypeC {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 OEM 可查看下属渠道用户", false)
+		return
+	}
+	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *principal, child.ID)
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
 func (a *App) channelAttribution(c *gin.Context) {
 	items, err := a.Identity.ListChannelAttribution(c.Request.Context(), *a.currentPrincipal(c))
 	if err != nil {
@@ -872,8 +993,14 @@ func (a *App) channelAttribution(c *gin.Context) {
 
 func (a *App) channelMe(c *gin.Context) {
 	principal := a.currentPrincipal(c)
+	channel, err := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
 	httpx.OK(c, gin.H{
 		"channel_org_id": principal.ChannelOrgID,
+		"channel_type":   channel.Type,
 		"email":          principal.Email,
 		"roles":          principal.Roles,
 		"request_id":     c.GetString(httpx.ContextRequestID),

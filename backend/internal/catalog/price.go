@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 )
 
 // PriceForChannel fixes channel terms at reservation time. The public price
@@ -26,14 +28,37 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 	var policy channelPolicyRow
 	err := s.db.WithContext(ctx).Table("catalog_channel_model_policies AS p").
 		Select("p.*").Joins("JOIN catalog_public_models AS m ON m.id = p.public_model_id").
-		Where("p.channel_org_id = ? AND m.public_id = ? AND p.enabled = true", channelID, publicID).First(&policy).Error
+		Joins("JOIN identity_channel_orgs child ON child.id = p.channel_org_id").
+		Joins("LEFT JOIN identity_channel_orgs parent ON parent.id = child.parent_id").
+		Joins("LEFT JOIN catalog_channel_model_policies upstream ON upstream.channel_org_id = parent.id AND upstream.public_model_id = m.id").
+		Where("p.channel_org_id = ? AND m.public_id = ? AND m.status = 'published' AND p.enabled = true AND p.self_enabled = true", channelID, publicID).
+		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC).First(&policy).Error
 	if err != nil {
 		return nil, err
 	}
 	for key, value := range decodeCosts(policy.Wholesale) {
 		prices["wholesale_"+key] = value
 	}
-	for key, value := range decodeCosts(policy.Override) {
+	customerOverride := decodeCosts(policy.Override)
+	var channel struct{ Type string `gorm:"column:type"` }
+	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id = ?", channelID).Take(&channel).Error; err != nil {
+		return nil, err
+	}
+	if channel.Type == identity.ChannelTypeB {
+		customerOverride = nil
+		parentID, err := s.delegatingParent(ctx, channelID)
+		if err != nil {
+			return nil, err
+		}
+		if parentID != "" {
+			var parentPolicy channelPolicyRow
+			if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND public_model_id = ?", parentID, policy.PublicModelID).First(&parentPolicy).Error; err != nil {
+				return nil, err
+			}
+			customerOverride = decodeCosts(parentPolicy.Override)
+		}
+	}
+	for key, value := range customerOverride {
 		if key == "input" || key == "output" {
 			prices[key] = value
 			prices["customer_sell_"+key] = value
@@ -42,6 +67,28 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 		}
 	}
 	return json.Marshal(prices)
+}
+
+// SetOwnChannelCustomerPrices sets the selling terms for one OEM brand.
+// Child B policies never define a separate customer price.
+func (s *Service) SetOwnChannelCustomerPrices(ctx context.Context, channelID, publicID string, prices map[string]string) error {
+	var model publicModelRow
+	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
+		return err
+	}
+	validated, err := validateUnitCosts(prices)
+	if err != nil || (len(validated) > 0 && !pricedForKind(validated, modelKind(model))) {
+		return ErrInvalidInput
+	}
+	encoded, _ := json.Marshal(validated)
+	result := s.db.WithContext(ctx).Model(&channelPolicyRow{}).Where("channel_org_id = ? AND public_model_id = ? AND enabled = true", channelID, model.ID).Update("customer_override_json", encoded)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrModelNotVisible
+	}
+	return nil
 }
 
 // PriceWithProviderCosts replaces the old model-wide estimate with the costs

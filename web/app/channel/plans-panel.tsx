@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
+import { ConfirmButton } from "@/components/confirm-button";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { SubmitStatus } from "@/components/console/submit-status";
@@ -15,6 +16,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { fetchListItems } from "@/lib/list-resource";
 import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { ownerTypeLabelKey, statusLabelKey, statusTone } from "@/lib/status-copy";
@@ -33,6 +35,7 @@ export function ChannelPlans() {
   const [channelScope, setChannelScope] = useState("all");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [channelSearch, setChannelSearch] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
   const creatingRef = useRef(false);
   const submitGen = useRef(0);
   const list = useListResource<Plan>({
@@ -133,13 +136,36 @@ export function ChannelPlans() {
     }
   }
 
+  async function changeStatus(item: Plan, action: "approve" | "archive" | "reject"): Promise<boolean> {
+    if (!item.id) return false;
+    try {
+      const response = await fetch(`${apiBase}/admin/plans/${encodeURIComponent(item.id)}${action === "archive" ? "" : "/review"}`, {
+        method: action === "archive" ? "PATCH" : "POST", credentials: "include", headers: confirmHeaders,
+        body: JSON.stringify(action === "archive" ? { status: "archived" } : { action }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setActionMessage(body.error?.message || "操作失败");
+        return false;
+      }
+      setActionMessage(`已${action === "approve" ? "发布" : action === "archive" ? "下架" : "拒绝"} ${item.name}`);
+      await list.reload();
+      return true;
+    } catch {
+      setActionMessage(confirmNetworkUnavailable);
+      return false;
+    }
+  }
+
   return (
     <Card>
       <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
       <p className="mb-3 text-sm text-ink-secondary">{t("plansLead")}</p>
+      <p className="mb-3 text-sm text-ink-secondary">本品牌统一制定套餐和价格，适用于本平台及指定下属渠道。创建后在列表中发布。</p>
       <Button variant="outline" onClick={() => void list.reload()}>
         {t("refreshPlans")}
       </Button>
+      {actionMessage ? <p role="status" className="mt-2 text-sm text-ink-secondary">{actionMessage}</p> : null}
       <Form {...form}>
         <form className="mt-4 grid max-w-xl gap-2" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
           <h3 className="text-lg font-medium">{t("createPlan")}</h3>
@@ -185,7 +211,7 @@ export function ChannelPlans() {
         onRetry={() => void list.reload()}
       >
         <LedgerTable
-          columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice")]}
+          columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice"), "操作"]}
           emptyTitle={t("emptyPlans")}
           emptyDetail={t("emptyPlansDetail")}
           rows={list.snapshot.items.map((item) => ({
@@ -197,6 +223,11 @@ export function ChannelPlans() {
               </Badge>,
               ownerText(item.owner_type),
               formatUsdMinor(item.price_minor, tc("lessThanCent")),
+              <span key="actions" className="flex flex-wrap gap-1">
+                <ConfirmButton size="sm" disabled={!item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
+                <ConfirmButton size="sm" variant="outline" disabled={!item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
+                <ConfirmButton size="sm" variant="outline" disabled={!item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
+              </span>,
             ],
           }))}
         />

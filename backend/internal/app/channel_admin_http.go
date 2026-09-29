@@ -12,6 +12,9 @@ import (
 )
 
 func (a *App) listChannelAdmins(c *gin.Context) {
+	if !a.canManageChannelAdmins(c) {
+		return
+	}
 	items, err := a.Identity.ChannelAdmins(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		httpx.Abort(c, 500, "internal_error", "读取渠道管理员失败", true)
@@ -20,6 +23,9 @@ func (a *App) listChannelAdmins(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items})
 }
 func (a *App) setChannelAdmin(c *gin.Context) {
+	if !a.canManageChannelAdmins(c) {
+		return
+	}
 	if !a.requireConfirm(c) {
 		return
 	}
@@ -51,4 +57,29 @@ func (a *App) setChannelAdmin(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"changed": changed})
+}
+
+func (a *App) canManageChannelAdmins(c *gin.Context) bool {
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
+		return false
+	}
+	target, err := a.Identity.GetChannel(c.Request.Context(), *p, c.Param("id"))
+	if err != nil || target.Type == identity.ChannelTypeA {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "无权管理该渠道", false)
+		return false
+	}
+	if p.IsPlatformAdmin() {
+		if target.ParentID == identity.OfficialChannelID || target.ParentID == "" {
+			return true
+		}
+	} else if p.HasRole("channel_admin") && target.Type == identity.ChannelTypeB && target.ParentID == p.ChannelOrgID {
+		parent, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err == nil && parent.Type == identity.ChannelTypeC {
+			return true
+		}
+	}
+	httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能管理直属渠道的管理员", false)
+	return false
 }

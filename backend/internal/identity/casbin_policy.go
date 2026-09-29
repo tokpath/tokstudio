@@ -158,6 +158,7 @@ func opsRules() []policyRule {
 		"/admin/channels",
 		"/admin/channels/:id",
 		"/admin/channels/:id/models",
+		"/admin/channels/:id/admins",
 		"/admin/api-keys",
 		"/admin/providers",
 		"/admin/providers/:id",
@@ -299,6 +300,7 @@ func channelRules() []policyRule {
 		"/admin/channels",
 		"/admin/channels/:id",
 		"/admin/channels/:id/models",
+		"/admin/channels/:id/admins",
 		"/admin/plans",
 		"/admin/plans/eligible-channels",
 		"/admin/acquisition-roles",
@@ -313,6 +315,11 @@ func channelRules() []policyRule {
 		"/admin/promotion-codes",
 		"/admin/channels",
 	)...)
+	out = append(out, grant("/admin/channels/:id/admins", "POST", roles...)...)
+	out = append(out, grant("/admin/plans/:id/review", "POST", roles...)...)
+	out = append(out, grant("/admin/plans/:id", "PATCH", roles...)...)
+	out = append(out, grant("/admin/channels/:id/models", "PATCH", roles...)...)
+	out = append(out, grant("/admin/channels/:id", "PATCH", roles...)...)
 	out = append(out, grant("/admin/acquisition-roles/:id", "PATCH", roles...)...)
 	return out
 }

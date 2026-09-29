@@ -21,7 +21,7 @@ import { ChannelPaymentReadiness } from "../payment-readiness";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
-import { CHANNEL_TYPES, STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/lib/tenants";
+import { STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/lib/tenants";
 import { IfCan } from "@/components/rbac/if-can";
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
@@ -30,8 +30,6 @@ type ItemResponse = { item?: Channel; error?: { message?: string } };
 
 const patchSchema = z.object({
   status: z.string().trim().min(1, "请选择状态"),
-  type: z.string().trim().min(1, "请选择类型"),
-  brand_id: z.string().trim(),
 });
 
 const selectClass =
@@ -49,12 +47,11 @@ export default function AdminChannelDetailPage() {
     queryFn: () => apiClient<ItemResponse>("GET", `/admin/channels/${id}`),
   });
   const item = query.data?.item;
+  const managedByPlatform = !item || !item.parent_id || item.parent_id === "chn_official_a";
   const form = useForm<z.infer<typeof patchSchema>>({
     resolver: zodResolver(patchSchema),
     values: {
       status: item?.status || "active",
-      type: item?.type || "B",
-      brand_id: item?.brand_id || "",
     },
   });
 
@@ -69,7 +66,7 @@ export default function AdminChannelDetailPage() {
           <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <IfCan action="channels.write">
+          {managedByPlatform ? <IfCan action="channels.write">
           {editing ? (
             <>
               <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
@@ -111,7 +108,7 @@ export default function AdminChannelDetailPage() {
               编辑
             </Button>
           )}
-          </IfCan>
+          </IfCan> : null}
         </div>
       </div>
       {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
@@ -120,26 +117,7 @@ export default function AdminChannelDetailPage() {
         {editing ? (
           <Form {...form}>
             <form className="grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
-              <p className="text-sm text-ink-secondary">改状态、类型或品牌。code 创建后不可改。</p>
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>租户类型</FormLabel>
-                    <FormControl>
-                      <select className={selectClass} aria-label="租户类型" {...field}>
-                        {CHANNEL_TYPES.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <p className="text-sm text-ink-secondary">渠道类型和品牌创建后固定；这里只修改运行状态。</p>
               <FormField
                 control={form.control}
                 name="status"
@@ -154,19 +132,6 @@ export default function AdminChannelDetailPage() {
                           </option>
                         ))}
                       </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="brand_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>品牌 ID</FormLabel>
-                    <FormControl>
-                      <input className={selectClass} aria-label="品牌 ID" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,15 +169,15 @@ export default function AdminChannelDetailPage() {
         )}
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
-      <IfCan action="models.grant">
+      {item && (item.id === "chn_official_a" || !item.parent_id || item.parent_id === "chn_official_a") ? <IfCan action="models.grant">
         <ChannelModelsPanel channelID={id} />
-      </IfCan>
+      </IfCan> : null}
       <IfCan action="channels.quota">
         <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
       </IfCan>
       <ChannelPnLPanel channelID={id} />
       <AdminSupplierPanel channelID={id} />
-      {item && item.type !== "A" ? <IfCan action="channels.write"><ChannelAdminsPanel channelID={id} code={item.code} /></IfCan> : null}
+      {item && managedByPlatform && item.type !== "A" ? <IfCan action="channels.write"><ChannelAdminsPanel channelID={id} code={item.code} /></IfCan> : null}
       <ChannelPaymentReadiness channelID={id} />
       <IfCan action="partners.view">
       <AdminListPanel<Role>

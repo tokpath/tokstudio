@@ -176,6 +176,10 @@
   },
   "channelNav": {
     "channel": "このチャネル",
+    "business": "プラットフォーム運営",
+    "operations": "チャネル運営",
+    "subordinate": "下位チャネル",
+    "subchannels": "チャネル管理",
     "ledger": "台帳",
     "overview": "概要",
     "users": "チャネルユーザー",
@@ -854,7 +858,12 @@
     "channelModels": {
       "eyebrow": "MODELS",
       "title": "チャネルモデル",
-      "description": "プラットフォームが許可した目録のみ。テナントはプロバイダやモデルを追加できません。"
+      "description": "本チャネルのモデル公開を管理します。"
+    },
+    "channelSubchannels": {
+      "eyebrow": "CHANNELS",
+      "title": "下位チャネル",
+      "description": "下位チャネル、モデル権限、管理者を管理します。"
     },
     "channelBrand": {
       "eyebrow": "BRAND",

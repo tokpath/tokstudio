@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"gorm.io/gorm"
@@ -39,35 +38,16 @@ func TestChannelAdministratorHandoff(t *testing.T) {
 		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": name + "@tokenhub.local", "password": "password1"}))
 	}
 	admin := login("admin")
-	parent, err := a.Identity.CreateChannel(context.Background(), identity.Principal{Roles: []string{"platform_admin"}}, identity.ChannelInput{Code: "handoff-c-" + strconv.FormatInt(time.Now().UnixNano(), 10), Type: "C", BrandID: identity.OEMBrandID})
+	item, err := a.Identity.CreateChannel(context.Background(), identity.Principal{Roles: []string{"channel_admin"}, ChannelOrgID: identity.OEMChannelID}, identity.ChannelInput{Code: "handoff-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), Type: "B"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Catalog.SetChannelModels(context.Background(), parent.ID, []catalog.ChannelModelGrant{{PublicID: "tokenhub/echo-1", Enabled: true, Wholesale: map[string]string{"input": "0.0000007", "output": "0.0000014"}}}); err != nil {
-		t.Fatal(err)
-	}
-	payload, _ := json.Marshal(map[string]string{"code": "handoff-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "parent_id": parent.ID})
-	createReq, _ := http.NewRequest("POST", server.URL+"/admin/channels", bytes.NewReader(payload))
-	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("Authorization", "Bearer "+admin)
-	createReq.Header.Set("X-Tokenhub-Confirm", "1")
-	createRes, err := http.DefaultClient.Do(createReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var child map[string]any
-	json.NewDecoder(createRes.Body).Decode(&child)
-	createRes.Body.Close()
-	if createRes.StatusCode != 201 {
-		t.Fatalf("child %d %+v", createRes.StatusCode, child)
-	}
-	item := child["item"].(map[string]any)
-	if item["brand_id"] != identity.OEMBrandID {
+	if item.BrandID != identity.OEMBrandID {
 		t.Fatal("child lost OEM brand")
 	}
-	granted, err := a.Catalog.ListChannelModels(context.Background(), item["id"].(string), false)
-	if err != nil || len(granted) != 1 {
-		t.Fatalf("child model grants %+v %v", granted, err)
+	granted, err := a.Catalog.ListChannelModels(context.Background(), item.ID, false)
+	if err != nil || len(granted) != 0 {
+		t.Fatalf("new child must await explicit OEM authorization: %+v %v", granted, err)
 	}
 
 	brandChannel, err := a.Identity.ChannelIDByBrand(context.Background(), identity.OEMBrandID)
@@ -156,5 +136,14 @@ func TestChannelAdministratorHandoff(t *testing.T) {
 	}
 	if count() != 0 {
 		t.Fatal("role remains")
+	}
+	if code, _ := doJSON(t, http.MethodPost, server.URL+"/channel/users/"+uid+"/ban", login("channel.c"), true, map[string]any{"reason": "other brand"}); code != http.StatusForbidden {
+		t.Fatalf("OEM changed another brand's user: %d", code)
+	}
+	if code, _ := doJSON(t, http.MethodPost, server.URL+"/channel/users/"+uid+"/ban", channel, true, map[string]any{"reason": "fraud report"}); code != http.StatusOK {
+		t.Fatalf("B could not manage its own user: %d", code)
+	}
+	if code, _ := doJSON(t, http.MethodPost, server.URL+"/channel/users/"+uid+"/unban", channel, true, map[string]any{"reason": "review complete"}); code != http.StatusOK {
+		t.Fatalf("B could not restore its own user: %d", code)
 	}
 }

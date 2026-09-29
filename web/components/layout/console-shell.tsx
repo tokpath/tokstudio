@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   adminGroups,
-  channelNavGroups,
+  channelNavGroupsFor,
   isNavActive,
   navItemForPath,
   partnerNavGroups,
@@ -105,7 +105,7 @@ function ConsoleNav({
   return (
     <>
       {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} onNavigate={onNavigate} /> : null}
-      {showChannelNav ? <GroupedNav groups={channelNavGroups} pathname={pathname} t={tch} onNavigate={onNavigate} /> : null}
+      {showChannelNav ? <GroupedNav groups={channelNavGroupsFor(viewer.channelType)} pathname={pathname} t={tch} onNavigate={onNavigate} /> : null}
       {showPartnerNav ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} onNavigate={onNavigate} /> : null}
       {isAdmin ? (
         <GroupedNav groups={adminNav} pathname={pathname} t={ta} onNavigate={onNavigate} isActive={adminNavActive} />
@@ -147,7 +147,7 @@ export function ConsoleShell({
       return item ? tu(item.key) : title;
     }
     if (isChannel) {
-      const item = navItemForPath(pathname, channelNavGroups.flatMap((group) => group.items));
+      const item = navItemForPath(pathname, channelNavGroupsFor(viewer.channelType).flatMap((group) => group.items));
       return item ? tch(item.key) : title;
     }
     if (isPartner) {
@@ -159,7 +159,7 @@ export function ConsoleShell({
       return item ? ta(item.key) : title;
     }
     return title;
-  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu]);
+  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu, viewer.channelType]);
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col" data-testid="console-shell">

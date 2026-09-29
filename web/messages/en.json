@@ -176,6 +176,10 @@
   },
   "channelNav": {
     "channel": "This channel",
+    "business": "Platform business",
+    "operations": "Channel operations",
+    "subordinate": "Subchannels",
+    "subchannels": "Manage channels",
     "ledger": "Ledger",
     "overview": "Overview",
     "users": "Channel users",
@@ -854,7 +858,12 @@
     "channelModels": {
       "eyebrow": "MODELS",
       "title": "Channel models",
-      "description": "Only platform-entitled catalog models. Tenants cannot add providers or models."
+      "description": "Manage local model availability."
+    },
+    "channelSubchannels": {
+      "eyebrow": "CHANNELS",
+      "title": "Subchannels",
+      "description": "Create and manage child channels, model grants, and administrators."
     },
     "channelBrand": {
       "eyebrow": "BRAND",

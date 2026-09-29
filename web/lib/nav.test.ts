@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavKeys, availableNavItems, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, navItemForPath, userSections, userSettingsNav } from "./nav";
+import { adminNavKeys, availableNavItems, channelNavGroupsFor, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, navItemForPath, userSections, userSettingsNav } from "./nav";
 import { adminNavActive } from "./tenants";
 
 describe("adminNavKeys", () => {
@@ -31,6 +31,16 @@ describe("adminNavKeys", () => {
 });
 
 describe("channel keys nav", () => {
+  it("keeps brand management with OEM and user operations with B", () => {
+    const b = channelNavGroupsFor("B").flatMap((group) => group.items.map((item) => item.href));
+    const c = channelNavGroupsFor("C").flatMap((group) => group.items.map((item) => item.href));
+    expect(b).toContain("/channel/users");
+    expect(b).not.toContain("/channel/plans");
+    expect(b).not.toContain("/channel/brand");
+    expect(b).not.toContain("/channel/subchannels");
+    expect(c).toContain("/channel/plans");
+    expect(c).toContain("/channel/subchannels");
+  });
   it("lists channel API keys after users", () => {
     expect(channelSections.some((item) => item.href === "/channel/keys")).toBe(true);
   });

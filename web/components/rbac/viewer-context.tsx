@@ -21,12 +21,17 @@ async function loadViewer(): Promise<Viewer> {
       return { signedIn: false, loading: false, roles: [], error: meRes.value.status !== 401 };
     }
     const body = (await meRes.value.json()) as MeBody;
+    const roles = body.user?.roles ?? [];
+    const channel = roles.includes("channel_admin")
+      ? await fetch(`${apiBase}/channel/me`, { credentials: "include" }).then((response) => response.ok ? response.json() as Promise<{ channel_type?: string }> : null).catch(() => null)
+      : null;
     const partner = partnerRes.status === "fulfilled" && partnerRes.value.ok
       ? await partnerRes.value.json().catch(() => ({})) : {};
     return {
       signedIn: true,
       loading: false,
-      roles: body.user?.roles ?? [],
+      roles,
+      channelType: channel?.channel_type,
       userId: body.user?.id,
       isPartner: partnerRes.status === "fulfilled" && partnerRes.value.ok,
       partnerRole: partner.role_type,

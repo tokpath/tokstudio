@@ -114,6 +114,14 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/admin/channels/{id}/admins"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/channels/{id}/admins"
+  },
+  {
+    "method": "GET",
     "path": "/admin/channels/{id}/models"
   },
   {
@@ -123,6 +131,34 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/channel/models"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/models"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/model-prices"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/me"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/users"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/users/{id}/ban"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/users/{id}/unban"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/subchannels/{id}/users"
   },
   {
     "method": "GET",
@@ -427,6 +463,10 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/plans"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/plans/eligible-channels"
   },
   {
     "method": "PATCH",

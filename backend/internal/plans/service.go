@@ -260,10 +260,6 @@ func (s *Service) GetPlan(ctx context.Context, id string) (*PlanView, error) {
 	return s.viewPlan(ctx, row)
 }
 
-func (s *Service) ListPlans(ctx context.Context, channelOrgID, status string, publishedOnly bool) ([]PlanView, error) {
-	return s.ListPlansFiltered(ctx, ListPlanFilter{AudienceChannelID: channelOrgID, AudienceAncestors: []string{channelOrgID}, Status: status, PublishedOnly: publishedOnly})
-}
-
 func (s *Service) ListPlansFiltered(ctx context.Context, filter ListPlanFilter) ([]PlanView, error) {
 	var rows []planRow
 	q := s.db.WithContext(ctx).Order("created_at DESC")
@@ -279,20 +275,23 @@ func (s *Service) ListPlansFiltered(ctx context.Context, filter ListPlanFilter) 
 	if filter.BillingPeriod != "" {
 		q = q.Where("billing_period = ?", filter.BillingPeriod)
 	}
+	if filter.BrandOwnerID != "" {
+		if filter.BrandOwnerID == identity.OfficialChannelID {
+			q = q.Where("owner_type = ? AND owner_id = ?", OwnerPlatform, identity.OfficialChannelID)
+		} else {
+			q = q.Where("owner_type = ? AND owner_id = ?", OwnerChannel, filter.BrandOwnerID)
+		}
+	}
 	if filter.AudienceChannelID != "" {
-		q = q.Where(planAudienceSQL, filter.AudienceChannelID, ChannelScopeAll, OwnerPlatform, ChannelScopeAll, OwnerChannel, filter.AudienceAncestors)
+		q = q.Where(planAudienceSQL, filter.AudienceChannelID, ChannelScopeAll)
 	} else if filter.PublishedOnly {
-		q = q.Where("owner_type = ? AND channel_scope = ?", OwnerPlatform, ChannelScopeAll)
+		q = q.Where("channel_scope = ?", ChannelScopeAll)
 	}
 	if filter.OwnerChannelID != "" {
-		visible := filter.VisibleChannelIDs
-		if len(visible) == 0 {
-			visible = []string{filter.OwnerChannelID}
-		}
-		q = q.Where("(owner_type = ? AND owner_id = ?) OR (owner_type = ? AND (channel_scope = ? OR EXISTS (SELECT 1 FROM plans_plan_channels pc WHERE pc.plan_id = plans_product_plans.id AND pc.channel_id IN ?)))", OwnerChannel, filter.OwnerChannelID, OwnerPlatform, ChannelScopeAll, visible)
+		q = q.Where("owner_type = ? AND owner_id = ?", OwnerChannel, filter.OwnerChannelID)
 	}
 	if filter.TargetChannelID != "" {
-		q = q.Where(planAudienceSQL, filter.TargetChannelID, ChannelScopeAll, OwnerPlatform, ChannelScopeAll, OwnerChannel, filter.TargetAncestors)
+		q = q.Where(planAudienceSQL, filter.TargetChannelID, ChannelScopeAll)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -308,7 +307,7 @@ func (s *Service) ListPlansFiltered(ctx context.Context, filter ListPlanFilter) 
 	return out, nil
 }
 
-const planAudienceSQL = `(EXISTS (SELECT 1 FROM plans_plan_channels pc WHERE pc.plan_id = plans_product_plans.id AND pc.channel_id = ?) OR (channel_scope = ? AND owner_type = ?) OR (channel_scope = ? AND owner_type = ? AND owner_id IN ?))`
+const planAudienceSQL = `(EXISTS (SELECT 1 FROM plans_plan_channels pc WHERE pc.plan_id = plans_product_plans.id AND pc.channel_id = ?) OR channel_scope = ?)`
 
 func (s *Service) ChangePlanStatus(ctx context.Context, planID, action string, actor audit.RecordInput) (*PlanView, error) {
 	var target string
@@ -388,7 +387,7 @@ func (s *Service) viewPlan(ctx context.Context, row planRow) (*PlanView, error) 
 	return view, nil
 }
 
-func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef string, channelAncestors []string) (*SubscriptionView, error) {
+func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef, brandOwnerID string) (*SubscriptionView, error) {
 	plan, err := s.GetPlan(ctx, planID)
 	if err != nil {
 		return nil, err
@@ -396,7 +395,7 @@ func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, pla
 	if plan.Status != StatusPublished {
 		return nil, ErrNotPublished
 	}
-	if !planAvailableToChannel(plan, channelID, channelAncestors) {
+	if !planAvailableToChannel(plan, channelID, brandOwnerID) {
 		return nil, ErrNotFound
 	}
 	renew := RenewManual
@@ -423,9 +422,19 @@ func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, pla
 	return subView(row), nil
 }
 
-func planAvailableToChannel(plan *PlanView, channelID string, ancestors []string) bool {
+func planAvailableToChannel(plan *PlanView, channelID, brandOwnerID string) bool {
+	if brandOwnerID == "" {
+		brandOwnerID = identity.OfficialChannelID
+	}
+	if brandOwnerID == identity.OfficialChannelID {
+		if plan.OwnerType != OwnerPlatform || plan.OwnerID != identity.OfficialChannelID {
+			return false
+		}
+	} else if plan.OwnerType != OwnerChannel || plan.OwnerID != brandOwnerID {
+		return false
+	}
 	if channelID == "" {
-		return plan.OwnerType == OwnerPlatform && plan.ChannelScope == ChannelScopeAll
+		return plan.ChannelScope == ChannelScopeAll
 	}
 	if plan.ChannelScope == ChannelScopeSelected {
 		for _, selected := range plan.ChannelIDs {
@@ -435,15 +444,7 @@ func planAvailableToChannel(plan *PlanView, channelID string, ancestors []string
 		}
 		return false
 	}
-	if plan.OwnerType == OwnerPlatform {
-		return true
-	}
-	for _, ancestor := range ancestors {
-		if ancestor == plan.OwnerID {
-			return true
-		}
-	}
-	return false
+	return true
 }
 
 func periodEnd(start time.Time, period string) *time.Time {

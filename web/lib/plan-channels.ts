@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/client";
 
-export type PlanChannel = { id: string; code: string; status: string; parent_id?: string };
+export type PlanChannel = { id: string; code: string; type?: string; status: string; parent_id?: string };
 
 export async function listPlanChannels(): Promise<PlanChannel[]> {
   const items: PlanChannel[] = [];

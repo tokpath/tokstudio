@@ -101,7 +101,7 @@ export function consoleItemHref(item: { href: string }, hashPrefix: string) {
 
 export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {
-    titleKey: "channel",
+    titleKey: "business",
     items: [
       { href: "/channel", key: "overview" },
       { href: "/channel/users", key: "users" },
@@ -112,6 +112,10 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
       { href: "/channel/promos", key: "promos" },
       { href: "/channel/brand", key: "brand" },
     ],
+  },
+  {
+    titleKey: "subordinate",
+    items: [{ href: "/channel/subchannels", key: "subchannels" }],
   },
   {
     titleKey: "ledger",
@@ -126,6 +130,17 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
     ],
   },
 ];
+
+export function channelNavGroupsFor(channelType?: string) {
+  if (channelType !== "B") return channelNavGroups;
+  return channelNavGroups
+    .filter((group) => group.titleKey !== "subordinate")
+    .map((group) => ({
+      ...group,
+      titleKey: group.titleKey === "business" ? "operations" : group.titleKey,
+      items: group.items.filter((item) => !["plans", "brand", "rules"].includes(item.key)),
+    }));
+}
 
 export const partnerNavGroups: { titleKey: string; items: NavItem[] }[] = [
   {

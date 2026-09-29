@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useViewer } from "./viewer-context";
-import { canAccessChannelPortal, canViewAdminHref } from "@/lib/rbac";
+import { canAccessChannelPortal, canViewAdminHref, canViewChannelHref } from "@/lib/rbac";
 import { consoleHomeForViewer } from "@/lib/console-home";
 import { loginHref, pagePathWithSearch } from "@/lib/login-next";
 
@@ -21,7 +21,7 @@ export function ConsoleAccess({ children }: { children: ReactNode }) {
     pathname === "/admin" || pathname.startsWith("/admin/")
       ? canViewAdminHref(pathname, viewer)
       : pathname === "/channel" || pathname.startsWith("/channel/")
-        ? canAccessChannelPortal(viewer.roles)
+        ? canAccessChannelPortal(viewer.roles) && canViewChannelHref(pathname, viewer)
         : partner ? Boolean(viewer.isPartner) : true
   );
   if (!viewer.loading && !failed && allowed) return children;

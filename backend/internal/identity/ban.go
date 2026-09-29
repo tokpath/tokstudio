@@ -40,7 +40,7 @@ func (s *Service) AdminSetUserStatusTx(tx *gorm.DB, actor Principal, userID, sta
 }
 
 func (s *Service) setUserStatus(ctx context.Context, actor Principal, userID, status, reason string) (*UserView, string, error) {
-	if !actor.IsPlatformAdmin() {
+	if !actor.IsPlatformAdmin() && !actor.HasRole("channel_admin") {
 		return nil, "", ErrChannelImmutable
 	}
 	if strings.TrimSpace(reason) == "" {
@@ -56,17 +56,41 @@ func (s *Service) setUserStatus(ctx context.Context, actor Principal, userID, st
 	if err := s.db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", userID).First(&user).Error; err != nil {
 		return nil, "", err
 	}
-	before := user.Status
-	if before == status {
-		view := viewFromUser(user, nil, "")
-		return &view, before, nil
+	if actor.IsPlatformAdmin() {
+		allowed, err := s.platformManagesCustomerChannel(ctx, deref(user.ChannelOrgID))
+		if err != nil || !allowed {
+			return nil, "", ErrChannelImmutable
+		}
 	}
+	if !actor.IsPlatformAdmin() {
+		if user.ChannelOrgID == nil {
+			return nil, "", ErrChannelImmutable
+		}
+		if *user.ChannelOrgID != actor.ChannelOrgID {
+			parent, err := s.lookupChannel(ctx, actor.ChannelOrgID)
+			if err != nil || parent.Type != ChannelTypeC {
+				return nil, "", ErrChannelImmutable
+			}
+			target, err := s.lookupChannel(ctx, *user.ChannelOrgID)
+			if err != nil || target.Type != ChannelTypeB || target.ParentID == nil || *target.ParentID != actor.ChannelOrgID {
+				return nil, "", ErrChannelImmutable
+			}
+		}
+	}
+	before := user.Status
 	principal, err := s.loadPrincipal(ctx, user)
 	if err != nil {
 		return nil, "", err
 	}
 	if principal.IsPlatformAdmin() && status == UserStatusBanned {
 		return nil, "", ErrAdminProtected
+	}
+	if !actor.IsPlatformAdmin() && principal.HasRole("platform_admin", "channel_admin", "finance_admin", "ops_admin", "tech_admin", "audit_readonly") {
+		return nil, "", ErrAdminProtected
+	}
+	if before == status {
+		view := viewFromUser(user, principal.Roles, "")
+		return &view, before, nil
 	}
 	now := time.Now().UTC()
 	if err := s.db.WithContext(ctx).Model(&userRow{}).Where("id = ?", user.ID).Updates(map[string]any{

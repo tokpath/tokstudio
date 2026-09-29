@@ -755,6 +755,10 @@ func TestM7OpsHardening(t *testing.T) {
 		"code": frozenCode, "type": "B", "status": "active",
 	})
 	frozenID := frozenCh["item"].(map[string]any)["id"].(string)
+	_ = patchJSONRaw(t, server.URL+"/admin/channels/"+frozenID+"/models", "m7_admin", map[string]any{
+		"items": []map[string]any{{"public_id": catalog.EchoModelID, "enabled": true,
+			"wholesale": map[string]string{"input": "0.0000007", "output": "0.0000014"}}},
+	})
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m7_admin", map[string]any{
 		"channel_org_id": frozenID, "amount_minor": 100 * billing.MinorPerUSD,
 	})

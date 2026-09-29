@@ -1,9 +1,9 @@
 export type TenantListKind = "channel" | "agent" | "kol";
 
 export const CHANNEL_TYPES = [
-  { value: "A", label: "A 平台直推" },
-  { value: "B", label: "B 批发商" },
-  { value: "C", label: "C OEM" },
+  { value: "A", label: "A 平台" },
+  { value: "B", label: "B 渠道" },
+  { value: "C", label: "C OEM 平台" },
 ] as const;
 
 export const ROLE_TYPES = [

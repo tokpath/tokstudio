@@ -112,6 +112,7 @@ type channelPolicyRow struct {
 	ChannelOrgID  string `gorm:"column:channel_org_id;primaryKey"`
 	PublicModelID string `gorm:"column:public_model_id;primaryKey"`
 	Enabled       bool   `gorm:"column:enabled"`
+	SelfEnabled   bool   `gorm:"column:self_enabled;default:true"`
 	Wholesale     []byte `gorm:"column:wholesale_json"`
 	Override      []byte `gorm:"column:customer_override_json"`
 }
@@ -144,6 +145,9 @@ type ChannelModelView struct {
 	Kind             string            `json:"kind"`
 	Status           string            `json:"status"`
 	Enabled          bool              `json:"enabled"`
+	SelfEnabled      bool              `json:"self_enabled"`
+	ParentEnabled    bool              `json:"parent_enabled"`
+	EffectiveEnabled bool              `json:"effective_enabled"`
 	Wholesale        map[string]string `json:"wholesale,omitempty"`
 	CustomerOverride map[string]string `json:"customer_override,omitempty"`
 }
@@ -331,6 +335,7 @@ func seedProviderModels(tx *gorm.DB, rows []providerModelRow) error {
 
 func seedChannelPolicies(tx *gorm.DB, rows []channelPolicyRow) error {
 	for _, row := range rows {
+		row.SelfEnabled = true
 		var existing channelPolicyRow
 		err := tx.Where("channel_org_id = ? AND public_model_id = ?", row.ChannelOrgID, row.PublicModelID).First(&existing).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -490,30 +495,6 @@ func seedGeminiCatalog(tx *gorm.DB, caps, price []byte) error {
 	return seedChannelPolicies(tx, policies)
 }
 
-// GrantDefaultModels 给新渠道复制官方已启用的模型白名单，用户才能聊天/做媒体。
-func (s *Service) GrantDefaultModels(ctx context.Context, channelOrgID string) error {
-	return s.GrantModelsFrom(ctx, channelOrgID, identity.OfficialChannelID)
-}
-
-func (s *Service) GrantModelsFrom(ctx context.Context, channelOrgID, sourceChannelID string) error {
-	if channelOrgID == "" || channelOrgID == identity.OfficialChannelID {
-		return nil
-	}
-	var src []channelPolicyRow
-	if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND enabled = true", sourceChannelID).Find(&src).Error; err != nil {
-		return err
-	}
-	for _, policy := range src {
-		row := channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: policy.PublicModelID, Enabled: true, Wholesale: policy.Wholesale, Override: policy.Override}
-		if err := s.db.WithContext(ctx).
-			Where("channel_org_id = ? AND public_model_id = ?", row.ChannelOrgID, row.PublicModelID).
-			FirstOrCreate(&row).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // ListChannelModels 返回该租户的模型授权。includeCatalog 时带上平台目录里尚未授权的模型，供平台勾选；租户视角只看已有白名单。不含提供商凭据。
 func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, includeCatalog bool) ([]ChannelModelView, error) {
 	if channelOrgID == "" {
@@ -526,6 +507,7 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, in
 		Kind        string `gorm:"column:kind"`
 		Status      string `gorm:"column:status"`
 		Enabled     bool   `gorm:"column:enabled"`
+		SelfEnabled bool   `gorm:"column:self_enabled"`
 		HasPolicy   bool   `gorm:"column:has_policy"`
 		Wholesale   []byte `gorm:"column:wholesale_json"`
 		Override    []byte `gorm:"column:customer_override_json"`
@@ -534,17 +516,37 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, in
 	q := s.db.WithContext(ctx)
 	if includeCatalog {
 		q = q.Table("catalog_public_models m").
-			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, COALESCE(p.enabled, false) AS enabled, (p.public_model_id IS NOT NULL) AS has_policy, p.wholesale_json, p.customer_override_json").
+			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, COALESCE(p.enabled, false) AS enabled, COALESCE(p.self_enabled, true) AS self_enabled, (p.public_model_id IS NOT NULL) AS has_policy, p.wholesale_json, p.customer_override_json").
 			Joins("LEFT JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.channel_org_id = ?", channelOrgID).
 			Where("(m.status = 'published' AND " + routeReadySQL + ") OR p.public_model_id IS NOT NULL")
 	} else {
 		q = q.Table("catalog_channel_model_policies p").
-			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, p.enabled, p.wholesale_json, p.customer_override_json").
+			Select("m.public_id, m.display_name, m.vendor, m.capabilities_json->>'kind' AS kind, m.status, p.enabled, p.self_enabled, p.wholesale_json, p.customer_override_json").
 			Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
 			Where("p.channel_org_id = ?", channelOrgID)
 	}
 	if err := q.Order("m.public_id").Find(&rows).Error; err != nil {
 		return nil, err
+	}
+	parentID, err := s.delegatingParent(ctx, channelOrgID)
+	if err != nil {
+		return nil, err
+	}
+	parentGrants := map[string]bool{}
+	if parentID != "" {
+		var grants []struct {
+			PublicID    string `gorm:"column:public_id"`
+			Enabled     bool   `gorm:"column:enabled"`
+			SelfEnabled bool   `gorm:"column:self_enabled"`
+		}
+		if err := s.db.WithContext(ctx).Table("catalog_channel_model_policies p").
+			Select("m.public_id, p.enabled, p.self_enabled").Joins("JOIN catalog_public_models m ON m.id = p.public_model_id").
+			Where("p.channel_org_id = ?", parentID).Find(&grants).Error; err != nil {
+			return nil, err
+		}
+		for _, grant := range grants {
+			parentGrants[grant.PublicID] = grant.Enabled && grant.SelfEnabled
+		}
 	}
 	out := make([]ChannelModelView, 0, len(rows))
 	for _, item := range rows {
@@ -557,16 +559,78 @@ func (s *Service) ListChannelModels(ctx context.Context, channelOrgID string, in
 				continue
 			}
 		}
+		parentEnabled := parentID == "" || parentGrants[item.PublicID]
 		out = append(out, ChannelModelView{
 			PublicID: item.PublicID, DisplayName: item.DisplayName, Vendor: item.Vendor, Kind: item.Kind, Status: item.Status, Enabled: item.Enabled,
+			SelfEnabled: item.SelfEnabled, ParentEnabled: parentEnabled, EffectiveEnabled: item.Enabled && item.SelfEnabled && parentEnabled && item.Status == SyncPublished,
 			Wholesale: decodeCosts(item.Wholesale), CustomerOverride: decodeCosts(item.Override),
 		})
 	}
 	return out, nil
 }
 
+// An OEM's enabled policy is the ceiling for each direct B child. A's policy
+// controls A's own customers; platform publication is the ceiling for A's children.
+func (s *Service) delegatingParent(ctx context.Context, channelID string) (string, error) {
+	var row struct {
+		ParentID string `gorm:"column:parent_id"`
+		Type     string `gorm:"column:type"`
+	}
+	err := s.db.WithContext(ctx).Table("identity_channel_orgs child").
+		Select("COALESCE(parent.id, '') AS parent_id, COALESCE(parent.type, '') AS type").
+		Joins("LEFT JOIN identity_channel_orgs parent ON parent.id = child.parent_id").
+		Where("child.id = ?", channelID).Take(&row).Error
+	if err != nil {
+		return "", err
+	}
+	if row.Type == identity.ChannelTypeC {
+		return row.ParentID, nil
+	}
+	return "", nil
+}
+
+func (s *Service) ListDelegableChannelModels(ctx context.Context, childID, parentID string) ([]ChannelModelView, error) {
+	items, err := s.ListChannelModels(ctx, childID, true)
+	if err != nil {
+		return nil, err
+	}
+	parent, err := s.ListChannelModels(ctx, parentID, false)
+	if err != nil {
+		return nil, err
+	}
+	existing, err := s.ListChannelModels(ctx, childID, false)
+	if err != nil {
+		return nil, err
+	}
+	visible := map[string]bool{}
+	for _, item := range parent {
+		visible[item.PublicID] = true
+	}
+	for _, item := range existing {
+		visible[item.PublicID] = true
+	}
+	out := make([]ChannelModelView, 0, len(items))
+	for _, item := range items {
+		if visible[item.PublicID] {
+			out = append(out, item)
+		}
+	}
+	return out, nil
+}
+
 // SetChannelModels 只授权平台目录里已有的公开模型。不会创建提供商或新模型。
 func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, grants []ChannelModelGrant) error {
+	return s.setChannelModels(ctx, channelOrgID, "", grants)
+}
+
+func (s *Service) SetDelegatedChannelModels(ctx context.Context, channelOrgID, parentID string, grants []ChannelModelGrant) error {
+	if parentID == "" {
+		return ErrInvalidInput
+	}
+	return s.setChannelModels(ctx, channelOrgID, parentID, grants)
+}
+
+func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID string, grants []ChannelModelGrant) error {
 	if channelOrgID == "" || len(grants) == 0 {
 		return ErrInvalidInput
 	}
@@ -582,6 +646,15 @@ func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, gra
 					return ErrUnknownModel
 				}
 				return err
+			}
+			if grant.Enabled && parentID != "" {
+				var n int64
+				if err := tx.Model(&channelPolicyRow{}).Where("channel_org_id = ? AND public_model_id = ? AND enabled = true AND self_enabled = true", parentID, model.ID).Count(&n).Error; err != nil {
+					return err
+				}
+				if n == 0 {
+					return ErrModelNotVisible
+				}
 			}
 			var existing channelPolicyRow
 			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
@@ -623,7 +696,7 @@ func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, gra
 				}
 			}
 			if errors.Is(lookupErr, gorm.ErrRecordNotFound) {
-				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled, Wholesale: wholeJSON, Override: overrideJSON}).Error; err != nil {
+				if err := tx.Create(&channelPolicyRow{ChannelOrgID: channelOrgID, PublicModelID: model.ID, Enabled: grant.Enabled, SelfEnabled: true, Wholesale: wholeJSON, Override: overrideJSON}).Error; err != nil {
 					return err
 				}
 				continue
@@ -639,12 +712,53 @@ func (s *Service) SetChannelModels(ctx context.Context, channelOrgID string, gra
 	})
 }
 
+// SetOwnChannelModelEnabled changes an existing local grant. Re-enabling is
+// allowed only while the upstream OEM still grants the model.
+func (s *Service) SetOwnChannelModelEnabled(ctx context.Context, channelID, publicID string, enabled bool) error {
+	parentID, err := s.delegatingParent(ctx, channelID)
+	if err != nil {
+		return err
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var model publicModelRow
+		if err := tx.Where("public_id = ?", publicID).First(&model).Error; err != nil {
+			return err
+		}
+		var policy channelPolicyRow
+		if err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelID, model.ID).First(&policy).Error; err != nil {
+			return err
+		}
+		if !policy.Enabled {
+			return ErrModelNotVisible
+		}
+		if enabled {
+			if model.Status != SyncPublished || s.validateModelReady(ctx, model) != nil {
+				return ErrModelNotVisible
+			}
+			if parentID != "" {
+				var n int64
+				if err := tx.Model(&channelPolicyRow{}).Where("channel_org_id = ? AND public_model_id = ? AND enabled = true AND self_enabled = true", parentID, model.ID).Count(&n).Error; err != nil {
+					return err
+				}
+				if n == 0 {
+					return ErrModelNotVisible
+				}
+			}
+		}
+		return tx.Model(&policy).Update("self_enabled", enabled).Error
+	})
+}
+
 func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, allowlist []string) ([]ModelView, error) {
 	var models []publicModelRow
 	q := s.db.WithContext(ctx).Table("catalog_public_models m").
 		Select("m.*").
-		Joins("JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.enabled = true").
+		Joins("JOIN catalog_channel_model_policies p ON p.public_model_id = m.id AND p.enabled = true AND p.self_enabled = true").
+		Joins("JOIN identity_channel_orgs child ON child.id = p.channel_org_id").
+		Joins("LEFT JOIN identity_channel_orgs parent ON parent.id = child.parent_id").
+		Joins("LEFT JOIN catalog_channel_model_policies upstream ON upstream.channel_org_id = parent.id AND upstream.public_model_id = m.id").
 		Where("m.status = ? AND p.channel_org_id = ?", "published", channelOrgID).
+		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC).
 		Where(routeReadySQL)
 	if len(allowlist) > 0 {
 		q = q.Where("m.public_id IN ?", allowlist)

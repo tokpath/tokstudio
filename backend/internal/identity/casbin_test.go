@@ -80,6 +80,8 @@ func TestCasbinAllowMatrix(t *testing.T) {
 		{"channel_admin", "GET", "/channel/me", true},
 		{"channel_admin", "POST", "/channel/plans", true},
 		{"channel_admin", "GET", "/admin/channels", true},
+		{"channel_admin", "PATCH", "/admin/channels/chn_child/models", true},
+		{"channel_admin", "PATCH", "/channel/models", true},
 		{"channel_admin", "GET", "/admin/plans/eligible-channels", true},
 		{"channel_admin", "POST", "/admin/users/u1/ban", false},
 		{"channel_admin", "GET", "/admin/audit-logs", false},

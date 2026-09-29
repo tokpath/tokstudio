@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-export async function mockViewer(page: Page, input: { roles: string[]; partner?: boolean }) {
+export async function mockViewer(page: Page, input: { roles: string[]; partner?: boolean; channelType?: "B" | "C" }) {
   await page.route("**/v1/me", async (route) => {
     await route.fulfill({
       status: 200,
@@ -23,4 +23,11 @@ export async function mockViewer(page: Page, input: { roles: string[]; partner?:
       body: JSON.stringify({ error: { message: "不是推广主体" } }),
     });
   });
+  if (input.roles.includes("channel_admin")) {
+    await page.route("**/api/channel/me", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ channel_org_id: "chn_oem_c", channel_type: input.channelType ?? "C" }),
+    }));
+  }
 }

@@ -12,9 +12,9 @@ import {
 
 describe("tenant list helpers", () => {
   it("labels channel orgs and acquisition roles separately", () => {
-    expect(channelTypeLabel("A")).toBe("A 平台直推");
-    expect(channelTypeLabel("B")).toBe("B 批发商");
-    expect(channelTypeLabel("C")).toBe("C OEM");
+    expect(channelTypeLabel("A")).toBe("A 平台");
+    expect(channelTypeLabel("B")).toBe("B 渠道");
+    expect(channelTypeLabel("C")).toBe("C OEM 平台");
     expect(roleTypeLabel("agent")).toBe("代理商");
     expect(roleTypeLabel("kol_l1")).toBe("1 级 KOL");
     expect(roleTypeLabel("kol_l2")).toBe("2 级 KOL");

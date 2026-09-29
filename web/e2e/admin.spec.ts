@@ -264,13 +264,16 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "余额 / 充值 / 账务" })).toBeVisible();
   await expect(page.getByRole("button", { name: "赠送额度" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "供应商支出" })).toBeVisible();
+  await page.route("**/api/admin/channels/chn_reseller_b", (route) => route.fulfill({ json: {
+    item: { id: "chn_reseller_b", code: "reseller-b", type: "B", status: "active", brand_id: "brd_a", parent_id: "chn_official_a" },
+  } }));
   await page.goto("/admin/channels");
-  await expect(page.getByRole("heading", { name: "渠道租户" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "合作平台与直属渠道" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新建渠道" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "渠道" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "代理商" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "KOL" })).toBeVisible();
-  await expect(page.getByText("不能自己添加提供商和模型")).toBeVisible();
+  await expect(page.getByText("模型逐级授权。", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "新建渠道" }).click();
   await expect(page.getByRole("heading", { name: "创建渠道" })).toBeVisible();
   await expect(page.getByRole("button", { name: "创建渠道" })).toBeVisible();
@@ -283,9 +286,9 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await page.goto("/admin/channels/chn_reseller_b");
   await expect(page.getByRole("heading", { name: "渠道详情" })).toBeVisible();
   await expect(page.getByRole("link", { name: "返回列表" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "平台模型白名单" })).toBeVisible();
-  await expect(page.getByText("租户不能自己添加提供商和模型")).toBeVisible();
-  await expect(page.getByRole("button", { name: "从平台目录授权" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "渠道模型授权" })).toBeVisible();
+  await expect(page.getByText("只能授权平台已发布且路由已启用的模型", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "授权模型" })).toBeVisible();
   await expect(page.getByRole("link", { name: "模型" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "收款就绪" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "渠道盈亏" })).toBeVisible();

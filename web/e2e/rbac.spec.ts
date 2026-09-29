@@ -73,7 +73,10 @@ test("ops admin can grant models but cannot refund", async ({ page }) => {
   await page.goto("/admin/billing");
   await expect(page.getByRole("button", { name: "赠送额度" })).toBeVisible();
   await expect(page.getByRole("button", { name: "查询退款账单" })).toHaveCount(0);
+  await page.route("**/api/admin/channels/chn_reseller_b", (route) => route.fulfill({ json: {
+    item: { id: "chn_reseller_b", code: "reseller-b", type: "B", status: "active", brand_id: "brd_a", parent_id: "chn_official_a" },
+  } }));
   await page.goto("/admin/channels/chn_reseller_b");
-  await expect(page.getByRole("button", { name: "从平台目录授权" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "授权模型" })).toBeVisible();
   await expect(page.getByRole("button", { name: "编辑" })).toHaveCount(0);
 });

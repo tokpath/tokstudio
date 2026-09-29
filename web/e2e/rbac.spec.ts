@@ -29,7 +29,7 @@ test("finance admin sees ledger menus and not upstream keys", async ({ page }) =
   await expect(page.getByRole("heading", { name: "渠道额度" })).toBeVisible();
 });
 
-test("tech admin sees credentials and not refunds", async ({ page }) => {
+test("tech admin sees account pool and not refunds", async ({ page }) => {
   await mockViewer(page, { roles: ["tech_admin"] });
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "提供商" })).toBeVisible();
@@ -37,9 +37,14 @@ test("tech admin sees credentials and not refunds", async ({ page }) => {
   await expect(page.getByRole("link", { name: "余额/充值" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "佣金策略" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
+  await page.route("**/api/admin/providers/echo-primary", route => route.fulfill({ json: {
+    item: { id: "prd_echo", name: "Echo Primary", slug: "echo-primary", adapter: "sandbox", status: "active", health: "available", models: [] },
+  } }));
+  await page.route("**/api/admin/providers/prd_echo/accounts", route => route.fulfill({ json: { items: [] } }));
   await page.goto("/admin/providers/echo-primary");
-  await expect(page.getByRole("heading", { name: "凭据轮换" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "轮换凭据" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "账号池" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "添加账号" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "轮换凭据" })).toHaveCount(0);
 });
 
 test("audit readonly sees logs but no write buttons", async ({ page }) => {

@@ -167,10 +167,10 @@ services:
     depends_on:
       - api
 
-  # MinIO 官方 server 镜像接近 scratch，没有 curl；健康检查改由 minio-init 的 mc ready 完成。
+  # 使用从 MinIO 官方源码构建的固定镜像；健康检查由 minio-init 的 mc ready 完成。
   # MINIO_ROOT_* 必须与卷内既有配置一致：已有 /data 时 MinIO 会忽略新的环境变量。
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
@@ -179,7 +179,7 @@ services:
       - tokenhub_minio:/data
 
   minio-init:
-    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
     depends_on:
       - minio
     environment:

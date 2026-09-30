@@ -1371,3 +1371,67 @@ paths:
       responses:
         "201":
           description: created code
+  /channel/metrics:
+    get:
+      summary: OEM settled usage by model; customer revenue minus platform wholesale cost
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/media:
+    get:
+      summary: OEM media task metadata; self and direct B channels only
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/audit-logs:
+    get:
+      summary: OEM audit metadata without before/after secrets
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/alerts:
+    get:
+      summary: OEM pending reconciliation and recent failed media alerts
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/me/2fa:
+    get:
+      summary: Current OEM administrator two-factor status
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/me/2fa/setup:
+    post:
+      summary: Set up current OEM administrator authenticator
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/me/2fa/enable:
+    post:
+      summary: Enable current OEM administrator two-factor authentication
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel
+  /channel/me/2fa/disable:
+    post:
+      summary: Disable current OEM administrator two-factor authentication
+      responses:
+        "200":
+          description: success within OEM scope
+        "403":
+          description: non-OEM role or foreign channel

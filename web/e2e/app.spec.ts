@@ -580,6 +580,7 @@ test("channel OEM brand upload failure is grey 存储不可用", async ({ page }
 });
 
 test("channel reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {
+  await mockViewer(page, { roles: ["channel_admin"], channelType: "B" });
   await page.route("**/channel/reconciliation**", async (route) => {
     // 页面 URL 与账本 API 同路径；只 stub fetch，别把 document/RSC 导航盖成 JSON。
     if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
@@ -894,4 +895,3 @@ test("wallet and console chrome keep controls in view on 375 390 and desktop", a
     }
   }
 });
-

@@ -164,9 +164,9 @@ func (a *App) getChannelReconciliation(c *gin.Context) {
 	if !ok {
 		return
 	}
-	channelID := a.currentPrincipal(c).VisibleChannelID()
-	if channelID == "" {
-		channelID = strings.TrimSpace(c.Query("channel_id"))
+	channelID, ok := a.channelForQuery(c)
+	if !ok {
+		return
 	}
 	view, err := a.Billing.ReconcileWindow(c.Request.Context(), billing.ReconcileInput{
 		ChannelOrgID:  channelID,
@@ -187,9 +187,9 @@ func (a *App) flagChannelReconciliation(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	channelID := a.currentPrincipal(c).VisibleChannelID()
-	if channelID == "" {
-		channelID = strings.TrimSpace(c.Query("channel_id"))
+	channelID, ok := a.channelForQuery(c)
+	if !ok {
+		return
 	}
 	item, err := a.Billing.FlagPending(c.Request.Context(), billing.FlagPendingInput{
 		Key:          flagKey(c),

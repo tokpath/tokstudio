@@ -675,6 +675,38 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/admin/promotion-codes"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/metrics"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/media"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/audit-logs"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/alerts"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/me/2fa"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/me/2fa/setup"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/me/2fa/enable"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/me/2fa/disable"
   }
 ];
 

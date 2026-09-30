@@ -6,7 +6,8 @@
     "channel": "チャネル",
     "partner": "代理",
     "admin": "管理",
-    "login": "ログイン"
+    "login": "ログイン",
+    "oem": "OEM 管理コンソール"
   },
   "chrome": {
     "jump": "ジャンプ",
@@ -61,7 +62,14 @@
     "email": "メール",
     "loginMethod": "ログイン方法",
     "loginPassword": "メールとパスワード",
-    "loginGoogle": "Google"
+    "loginGoogle": "Google",
+    "rolePlatformAdmin": "プラットフォーム管理者",
+    "roleOEMAdmin": "OEM 管理者",
+    "roleChannelAdmin": "チャネル管理者",
+    "roleFinance": "財務",
+    "roleOps": "運営",
+    "roleTech": "技術",
+    "roleAudit": "読み取り専用監査"
   },
   "mega": {
     "models": "モデル",
@@ -2264,5 +2272,69 @@
     "amounts": "回収予定 {original} · 回収済み {received} · 残額 {remaining}",
     "settlement": "精算番号：{id}",
     "receipt": "回収済み {amount} · 証憑：{reference} · {date}"
+  },
+  "oem": {
+    "scope": "本ブランドと直属チャネルを管理します。",
+    "channel": "チャネル",
+    "allChannels": "全管理チャネル（自身を含む）",
+    "loadError": "読み込みに失敗しました。再試行してください。",
+    "loading": "読み込み中…",
+    "refresh": "更新",
+    "revenue": "顧客収入（USD）",
+    "cost": "プラットフォーム卸売費用（USD）",
+    "margin": "呼び出し粗利（USD）",
+    "requests": "確定済みリクエスト",
+    "pending": "照合待ち",
+    "models": "モデル別使用量",
+    "model": "モデル",
+    "marginHint": "確定済み呼び出しの顧客収入から卸売費用を引いた金額です。佣金とその他の経費は含みません。",
+    "empty": "記録なし",
+    "emptyUsage": "呼び出し確定後に使用量と金額が表示されます。",
+    "mediaTasks": "メディアタスク",
+    "id": "番号",
+    "kind": "種類",
+    "status": "状態",
+    "progress": "進捗（%）",
+    "time": "日時",
+    "auditLog": "監査ログ",
+    "actor": "操作者",
+    "action": "操作",
+    "resourceType": "対象種類",
+    "resource": "対象番号",
+    "businessAlerts": "業務アラート",
+    "view": "確認",
+    "noAlerts": "現在、業務アラートはありません。",
+    "runbooks": "対応手順を確認",
+    "commissions": "佣金明細",
+    "amount": "金額（USD）",
+    "appearance": "言語と表示",
+    "security": "アカウントセキュリティ",
+    "securityHint": "認証アプリで現在の管理者の二段階認証を設定します。",
+    "setup2fa": "認証アプリを設定",
+    "enable2fa": "二段階認証を有効化",
+    "disable2fa": "二段階認証を無効化",
+    "disableHint": "現在の管理者の二段階認証を無効化します。",
+    "otp": "6 桁コード",
+    "secret": "認証アプリのキー",
+    "saved": "保存しました",
+    "saveError": "保存に失敗しました。再試行してください。",
+    "runbook": {
+      "models": {
+        "title": "モデルが利用できない",
+        "body": "チャネルでモデルの許可と公開状態を確認し、影響を受けた許可を停止して技術サポートに連絡します。"
+      },
+      "users": {
+        "title": "不正利用",
+        "body": "ユーザーの所属を確認し、理由を記録して利用を停止します。問題解決後に再開します。"
+      },
+      "reconciliation": {
+        "title": "請求金額の差異",
+        "body": "リクエスト番号で使用量と請求を照合し、差異を記録して技術サポートに連絡します。不明な結果は照合待ちのままにします。"
+      },
+      "payments": {
+        "title": "入金が反映されない",
+        "body": "注文状態と支払い証明を確認し、決済サービスまたは技術サポートで確認した後に処理します。"
+      }
+    }
   }
 }

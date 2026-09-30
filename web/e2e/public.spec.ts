@@ -143,7 +143,7 @@ test("authenticated ofox replica pages render headings", async ({ page }) => {
 });
 
 test("channel and partner consoles use grouped real routes", async ({ page }) => {
-  await mockViewer(page, { roles: ["channel_admin"] });
+  await mockViewer(page, { roles: ["channel_admin"], channelType: "B" });
   await page.goto("/channel");
   const channelNav = page.getByRole("navigation", { name: "渠道控制台" });
   await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
@@ -151,7 +151,7 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(channelNav.getByRole("link", { name: "本渠道 API Key" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "进货" })).toBeVisible();
-  await expect(channelNav.getByRole("link", { name: "规则" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "规则" })).toHaveCount(0);
   await expect(channelNav.getByRole("link", { name: "对账", exact: true })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
   await channelNav.getByRole("link", { name: "收款" }).click();
@@ -169,7 +169,7 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await page.goto("/channel/ledger");
   await expect(page.locator("h1")).toHaveText("进货与记账");
   await page.goto("/channel/rules");
-  await expect(page.locator("h1")).toHaveText("分佣与达线");
+  await expect(page.getByTestId("console-access")).toBeVisible();
 
   await mockViewer(page, { roles: ["end_user"], partner: true });
   await page.goto("/partner");
@@ -198,7 +198,7 @@ test("desktop landing lists tools without a fake installer", async ({ page }) =>
 });
 
 test("channel users page does not treat a failed load as empty", async ({ page }) => {
-  await mockViewer(page, { roles: ["channel_admin"] });
+  await mockViewer(page, { roles: ["channel_admin"], channelType: "B" });
   await page.goto("/channel/users");
   await expect(page.locator("h1")).toHaveText("本渠道用户");
   await expect(page.getByText("暂无本渠道用户")).toHaveCount(0);

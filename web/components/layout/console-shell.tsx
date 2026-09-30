@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import {
   adminGroups,
   channelNavGroupsFor,
+  channelNavItemForPath,
   isNavActive,
   navItemForPath,
   partnerNavGroups,
@@ -105,7 +106,7 @@ function ConsoleNav({
   return (
     <>
       {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} onNavigate={onNavigate} /> : null}
-      {showChannelNav ? <GroupedNav groups={channelNavGroupsFor(viewer.channelType)} pathname={pathname} t={tch} onNavigate={onNavigate} /> : null}
+      {showChannelNav ? <GroupedNav groups={channelNavGroupsFor(viewer.channelType)} pathname={pathname} t={viewer.channelType === "C" ? ta : tch} onNavigate={onNavigate} isActive={(path, href) => channelNavItemForPath(path, viewer.channelType)?.href === href} /> : null}
       {showPartnerNav ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} onNavigate={onNavigate} /> : null}
       {isAdmin ? (
         <GroupedNav groups={adminNav} pathname={pathname} t={ta} onNavigate={onNavigate} isActive={adminNavActive} />
@@ -137,8 +138,8 @@ export function ConsoleShell({
   const isPartner = pathname.startsWith("/partner");
   const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";
   const portalKey = isAdmin ? "admin" : isChannel ? "channel" : isPartner ? "partner" : "app";
-  const title = t(portalKey);
   const viewer = useViewer();
+  const title = t(isChannel && viewer.channelType === "C" ? "oem" : portalKey);
   const adminNav = filterAdminGroups(adminGroups, viewer);
 
   const pageLabel = useMemo(() => {
@@ -147,8 +148,8 @@ export function ConsoleShell({
       return item ? tu(item.key) : title;
     }
     if (isChannel) {
-      const item = navItemForPath(pathname, channelNavGroupsFor(viewer.channelType).flatMap((group) => group.items));
-      return item ? tch(item.key) : title;
+      const item = channelNavItemForPath(pathname, viewer.channelType);
+      return item ? (viewer.channelType === "C" ? ta : tch)(item.key) : title;
     }
     if (isPartner) {
       const item = navItemForPath(pathname, partnerNavGroups.flatMap((group) => group.items));

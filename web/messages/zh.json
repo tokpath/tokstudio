@@ -6,7 +6,8 @@
     "channel": "渠道控制台",
     "partner": "分销控制台",
     "admin": "平台管理",
-    "login": "登录"
+    "login": "登录",
+    "oem": "OEM 管理控制台"
   },
   "chrome": {
     "jump": "跳转",
@@ -61,7 +62,14 @@
     "email": "邮箱",
     "loginMethod": "登录方式",
     "loginPassword": "邮箱密码",
-    "loginGoogle": "Google"
+    "loginGoogle": "Google",
+    "rolePlatformAdmin": "平台管理员",
+    "roleOEMAdmin": "OEM 管理员",
+    "roleChannelAdmin": "渠道管理员",
+    "roleFinance": "财务",
+    "roleOps": "运营",
+    "roleTech": "技术",
+    "roleAudit": "只读审计"
   },
   "mega": {
     "models": "模型",
@@ -2264,5 +2272,69 @@
     "amounts": "原需收回 {original} · 已收回 {received} · 剩余 {remaining}",
     "settlement": "结算单：{id}",
     "receipt": "已收回 {amount} · 凭证：{reference} · {date}"
+  },
+  "oem": {
+    "scope": "管理本品牌及其下属渠道。",
+    "channel": "渠道",
+    "allChannels": "全部直属渠道（含自身）",
+    "loadError": "加载失败，请重试。",
+    "loading": "正在读取…",
+    "refresh": "刷新",
+    "revenue": "客户收入（USD）",
+    "cost": "平台批发成本（USD）",
+    "margin": "调用毛利（USD）",
+    "requests": "已结算请求",
+    "pending": "待对账请求",
+    "models": "模型用量",
+    "model": "模型",
+    "marginHint": "按已结算请求计算：客户收入 − 平台批发成本。尚未扣除佣金与其他经营费用。",
+    "empty": "暂无记录",
+    "emptyUsage": "有已结算调用后会显示用量与金额。",
+    "mediaTasks": "媒体任务",
+    "id": "编号",
+    "kind": "类型",
+    "status": "状态",
+    "progress": "进度（%）",
+    "time": "时间",
+    "auditLog": "审计日志",
+    "actor": "操作人",
+    "action": "操作",
+    "resourceType": "对象类型",
+    "resource": "对象编号",
+    "businessAlerts": "业务告警",
+    "view": "查看",
+    "noAlerts": "当前无业务告警。",
+    "runbooks": "查看应急手册",
+    "commissions": "佣金明细",
+    "amount": "金额（USD）",
+    "appearance": "语言与外观",
+    "security": "账号安全",
+    "securityHint": "使用验证器绑定当前管理员的两步验证。",
+    "setup2fa": "绑定验证器",
+    "enable2fa": "启用两步验证",
+    "disable2fa": "关闭两步验证",
+    "disableHint": "关闭当前管理员的两步验证。",
+    "otp": "6 位验证码",
+    "secret": "验证器密钥",
+    "saved": "已保存",
+    "saveError": "保存失败，请重试。",
+    "runbook": {
+      "models": {
+        "title": "模型不可用",
+        "body": "在渠道租户中检查模型是否仍获授权、是否被自身或上级下架。先暂停受影响的授权，再联系技术支持排查调用。"
+      },
+      "users": {
+        "title": "异常用户或滥用",
+        "body": "在用户/项目中核对用户归属，封禁异常用户并记录原因。确认处理完成后解封。"
+      },
+      "reconciliation": {
+        "title": "账单金额存在差异",
+        "body": "按请求编号核对用量和账单，标记差异并交给技术支持核验。对未知上游结果保留待对账状态。"
+      },
+      "payments": {
+        "title": "支付未到账",
+        "body": "在支付订单中核对订单状态和支付凭证，联系支付服务或技术支持核验，再按核验结果处理。"
+      }
+    }
   }
 }

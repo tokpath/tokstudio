@@ -5,6 +5,14 @@ import type { ReactNode } from "react";
 import { ConsolePageHeader } from "@/components/console/page-header";
 import { PublicPageHero } from "@/components/public-section";
 import { iconForPublicPage } from "@/lib/page-icons";
+import { useViewer } from "@/components/rbac/viewer-context";
+
+const oemPageKeys: Record<string, string> = {
+  channelHome: "overview", channelUsers: "users", channelPlans: "plans",
+  channelPayments: "payments", channelPaymentOrders: "payments", channelPaymentRules: "payments",
+  channelLedger: "billing", channelUsage: "usage", channelReconciliation: "reconciliation",
+  channelPromos: "promos",
+};
 
 /** 公共站页头走 messages.public.<id>。URL 留在调用方，不写进 JSON。 */
 export function I18nPublicHero({
@@ -38,5 +46,9 @@ export function I18nPublicHero({
 /** 控制台页头走 messages.console.<id>。 */
 export function I18nConsoleHeader({ id, actions }: { id: string; actions?: ReactNode }) {
   const t = useTranslations(`console.${id}`);
-  return <ConsolePageHeader eyebrow={t("eyebrow")} title={t("title")} description={t("description")} actions={actions} />;
+  const ta = useTranslations("admin");
+  const to = useTranslations("oem");
+  const viewer = useViewer();
+  const isOEM = viewer.channelType === "C" && Boolean(oemPageKeys[id]);
+  return <ConsolePageHeader eyebrow={isOEM ? "OEM" : t("eyebrow")} title={isOEM ? ta(oemPageKeys[id]) : t("title")} description={isOEM ? to("scope") : t("description")} actions={actions} />;
 }

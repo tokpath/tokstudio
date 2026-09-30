@@ -43,10 +43,23 @@ export function avatarInitial(displayName?: string | null, email?: string | null
 }
 
 export function shellRole(roles?: string[] | null): "admin" | "user" {
-  if (roles?.some((role) => (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) {
+  if (roles?.some((role) => role === "channel_admin" || (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) {
     return "admin";
   }
   return "user";
+}
+
+/** Display the real administrative role without implying platform access. */
+export function shellRoleLabelKey(roles?: string[] | null, channelType?: string): string {
+  const labels: [string, string][] = [
+    ["platform_admin", "rolePlatformAdmin"],
+    ["channel_admin", channelType === "C" ? "roleOEMAdmin" : "roleChannelAdmin"],
+    ["finance_admin", "roleFinance"],
+    ["ops_admin", "roleOps"],
+    ["tech_admin", "roleTech"],
+    ["audit_readonly", "roleAudit"],
+  ];
+  return labels.find(([role]) => roles?.includes(role))?.[1] ?? "roleUser";
 }
 
 /** 头像菜单「平台管理」只给 platform_admin，不用 ADMIN_CONSOLE_ROLES。 */

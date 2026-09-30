@@ -26,6 +26,10 @@ describe("role menus", () => {
     expect(canViewChannelHref("/channel/plans", b)).toBe(false);
     expect(canViewChannelHref("/channel/subchannels", b)).toBe(false);
     expect(canViewChannelHref("/channel/subchannels/chn_b", c)).toBe(true);
+    for (const page of ["metrics", "media", "audit", "settings", "alerts", "runbooks", "commission", "margin"]) {
+      expect(canViewChannelHref(`/channel/${page}`, b)).toBe(false);
+      expect(canViewChannelHref(`/channel/${page}`, c)).toBe(true);
+    }
   });
   it("lets unsigned viewers keep the full admin nav", () => {
     expect(filterAdminGroups(adminGroups, guest).flatMap((group) => group.items).length).toBe(

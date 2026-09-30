@@ -11,6 +11,7 @@ import {
   profileDash,
   readNailedAvailable,
   shellRole,
+  shellRoleLabelKey,
 } from "./user-shell";
 
 describe("user-shell profile fields", () => {
@@ -31,7 +32,18 @@ describe("user-shell profile fields", () => {
     expect(shellRole(["end_user"])).toBe("user");
     expect(shellRole(["platform_admin"])).toBe("admin");
     expect(shellRole(["finance_admin", "end_user"])).toBe("admin");
+    expect(shellRole(["channel_admin"])).toBe("admin");
     expect(shellRole([])).toBe("user");
+  });
+
+  it("labels OEM and channel administrators without granting platform entry", () => {
+    expect(shellRoleLabelKey(["channel_admin"], "C")).toBe("roleOEMAdmin");
+    expect(shellRoleLabelKey(["channel_admin"], "B")).toBe("roleChannelAdmin");
+    expect(shellRoleLabelKey(["platform_admin", "end_user"])).toBe("rolePlatformAdmin");
+    expect(shellRoleLabelKey(["finance_admin"])).toBe("roleFinance");
+    expect(shellRoleLabelKey(["audit_readonly"])).toBe("roleAudit");
+    expect(shellRoleLabelKey(["end_user"])).toBe("roleUser");
+    expect(canSeePlatformAdmin(["channel_admin"])).toBe(false);
   });
 
   it("shows the platform admin menu only for platform_admin", () => {

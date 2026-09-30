@@ -113,7 +113,7 @@ export function CommandPalette({
       .filter((item) => allowedPortals.has(item.href))
       .map((item) => ({
         href: item.href,
-        label: tNav(item.key),
+        label: tNav(item.key === "channel" && viewer.channelType === "C" ? "oem" : item.key),
         group: tChrome("groupPortal"),
       }));
     const publicPages = PUBLIC_PAGE_SPECS.filter((p) => !p.auth).map((p) => {
@@ -141,8 +141,8 @@ export function CommandPalette({
       shouldBypassRbac(viewer) || canAccessChannelPortal(viewer.roles)
         ? channelNavGroupsFor(viewer.channelType).flatMap((group) => group.items).filter((item) => canViewChannelHref(item.href, viewer)).map((item) => ({
             href: consoleItemHref(item, "/channel"),
-            label: tChannel(item.key),
-            group: tChrome("groupChannel"),
+            label: (viewer.channelType === "C" ? tAdmin : tChannel)(item.key),
+            group: viewer.channelType === "C" ? tNav("oem") : tChrome("groupChannel"),
           }))
         : [];
     const partner =

@@ -235,6 +235,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerPaymentChannelRoutes(r)
 	a.registerCommissionRoutes(r)
 	a.registerOpsRoutes(r)
+	a.registerOEMManagementRoutes(r)
 	return r
 }
 

@@ -151,7 +151,7 @@ export function canViewChannelHref(href: string, viewer: Viewer): boolean {
   if (shouldBypassRbac(viewer) || viewer.roles.includes(P)) return true;
   if (!viewer.roles.includes("channel_admin")) return false;
   if (href.startsWith("/channel/subchannels")) return viewer.channelType === "C";
-  if (["/channel/plans", "/channel/brand", "/channel/rules"].some((path) => href === path || href.startsWith(`${path}/`))) {
+  if (["/channel/plans", "/channel/brand", "/channel/rules", "/channel/margin", "/channel/commission", "/channel/metrics", "/channel/media", "/channel/alerts", "/channel/runbooks", "/channel/audit", "/channel/settings"].some((path) => href === path || href.startsWith(`${path}/`))) {
     return viewer.channelType === "C";
   }
   return true;

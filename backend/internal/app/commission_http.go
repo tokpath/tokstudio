@@ -217,9 +217,9 @@ func (a *App) channelAllocations(c *gin.Context) {
 }
 
 func (a *App) channelUsage(c *gin.Context) {
-	channelID := a.currentPrincipal(c).VisibleChannelID()
-	if channelID == "" {
-		channelID = c.Query("channel_id")
+	channelID, ok := a.channelForQuery(c)
+	if !ok {
+		return
 	}
 	item, err := a.Billing.ChannelUsage(c.Request.Context(), channelID)
 	if err != nil {

@@ -29,9 +29,11 @@ type Scope = "user" | "channel";
 export function BucketReconcilePanel({
   scope,
   initial,
+  channelID,
 }: {
   scope: Scope;
   initial?: ReconcileView;
+  channelID?: string;
 }) {
   const t = useTranslations("reconcile");
   const [view, setView] = useState<ReconcileView>(initial ?? { items: [], pending: [] });
@@ -39,7 +41,8 @@ export function BucketReconcilePanel({
   const [loaded, setLoaded] = useState(Boolean(initial));
 
   async function refresh() {
-    const res = await fetch(`${apiBase}${listPath(scope)}`, { credentials: "include" });
+    const suffix = channelID ? `?channel_id=${encodeURIComponent(channelID)}` : "";
+    const res = await fetch(`${apiBase}${listPath(scope)}${suffix}`, { credentials: "include" });
     const body = await res.json();
     if (!res.ok) {
       setMessage(body.error?.message || t("needLogin"));
@@ -58,7 +61,8 @@ export function BucketReconcilePanel({
       setMessage(t("needRow"));
       return false;
     }
-    const res = await fetch(`${apiBase}${flagPath(scope)}`, {
+    const suffix = channelID ? `?channel_id=${encodeURIComponent(channelID)}` : "";
+    const res = await fetch(`${apiBase}${flagPath(scope)}${suffix}`, {
       method: "POST",
       credentials: "include",
       headers: confirmHeaders,
@@ -84,7 +88,7 @@ export function BucketReconcilePanel({
     void refresh();
     // 进入页面拉一次真实对账窗口。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope]);
+  }, [scope, channelID]);
 
   const items = view.items || [];
   const pending = view.pending || [];

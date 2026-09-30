@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminNavKeys, availableNavItems, channelNavGroupsFor, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, navItemForPath, userSections, userSettingsNav } from "./nav";
+import { adminGroups, adminNavKeys, availableNavItems, channelNavGroupsFor, channelNavItemForPath, channelSections, consoleItemHref, isAuthPath, isConsolePath, isNavActive, navItemForPath, userSections, userSettingsNav } from "./nav";
 import { adminNavActive } from "./tenants";
 
 describe("adminNavKeys", () => {
@@ -31,6 +31,15 @@ describe("adminNavKeys", () => {
 });
 
 describe("channel keys nav", () => {
+  it("derives OEM groups and labels from the platform except catalogue and OEM brands", () => {
+    const platform = adminGroups.filter((group) => group.titleKey !== "groupCatalog").map((group) => ({ titleKey: group.titleKey, keys: group.items.filter((item) => item.key !== "brands").map((item) => item.key) }));
+    expect(channelNavGroupsFor("C").map((group) => ({ titleKey: group.titleKey, keys: group.items.map((item) => item.key) }))).toEqual(platform);
+    expect(channelNavGroupsFor("C").flatMap((group) => group.items).every((item) => item.href.startsWith("/channel"))).toBe(true);
+    expect(channelNavItemForPath("/channel/models/model-1", "C")?.key).toBe("channels");
+    expect(channelNavItemForPath("/channel/keys", "C")?.key).toBe("users");
+    expect(channelNavItemForPath("/channel/brand", "C")?.key).toBe("settings");
+    expect(channelNavItemForPath("/channel/settlements", "C")?.key).toBe("commission");
+  });
   it("keeps brand management with OEM and user operations with B", () => {
     const b = channelNavGroupsFor("B").flatMap((group) => group.items.map((item) => item.href));
     const c = channelNavGroupsFor("C").flatMap((group) => group.items.map((item) => item.href));

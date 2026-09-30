@@ -11,6 +11,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
+vi.mock("@/components/rbac/viewer-context", () => ({ useViewer: () => ({ channelType: "C" }) }));
+
 function jsonResponse(ok: boolean, body: unknown, status = ok ? 200 : 503) {
   return {
     ok,
@@ -93,7 +95,7 @@ describe("UserShellRightZone", () => {
     fireEvent.click(screen.getByTestId("avatar-trigger"));
     expect(screen.getByTestId("menu-display-name").textContent).toBe("—");
     expect(screen.getByTestId("menu-email").textContent).toBe("—");
-    expect(screen.getByText("管理员")).toBeTruthy();
+    expect(screen.getByText("平台管理员")).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "平台管理" }).getAttribute("href")).toBe("/admin");
   });
 
@@ -139,7 +141,7 @@ describe("UserShellRightZone", () => {
       }),
     );
     render(withZh(<UserShellRightZone />));
-    await waitFor(() => expect(screen.getByText("管理员")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("财务")).toBeTruthy());
     fireEvent.click(screen.getByTestId("avatar-trigger"));
     expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();
     expect(screen.queryByRole("link", { name: "平台管理" })).toBeNull();
@@ -197,6 +199,16 @@ describe("UserShellRightZone admin variant", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("shows channel.c as an OEM administrator without a platform management link", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(true, { user: { email: "channel.c@tokenhub.local", roles: ["channel_admin"] } })));
+    render(withZh(<UserShellRightZone variant="admin" />));
+    await screen.findByText("OEM 管理员");
+    expect(screen.queryByText("用户", { exact: true })).toBeNull();
+    fireEvent.click(screen.getByTestId("avatar-trigger"));
+    expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
+    expect(screen.getByTestId("menu-email").textContent).toBe("channel.c@tokenhub.local");
   });
 
   it("shows avatar profile without balance or API keys, and links back to user console", async () => {

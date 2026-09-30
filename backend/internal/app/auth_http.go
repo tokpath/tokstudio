@@ -954,7 +954,11 @@ func (a *App) listUsersAdmin(c *gin.Context) {
 }
 
 func (a *App) listUsersChannel(c *gin.Context) {
-	items, err := a.Identity.ListUsers(c.Request.Context(), *a.currentPrincipal(c))
+	channelID, ok := a.channelForQuery(c)
+	if !ok {
+		return
+	}
+	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *a.currentPrincipal(c), channelID)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
 		return

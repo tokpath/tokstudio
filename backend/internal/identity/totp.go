@@ -64,7 +64,13 @@ func (s *Service) TOTPEnabled(ctx context.Context, userID string) bool {
 
 func (s *Service) SetupTOTP(ctx context.Context, user Principal, encKey, issuer string) (*TOTPSetup, error) {
 	if !user.HasRole("platform_admin", "finance_admin", "ops_admin", "tech_admin") {
-		return nil, ErrChannelImmutable
+		if !user.HasRole("channel_admin") {
+			return nil, ErrChannelImmutable
+		}
+		channel, err := s.GetChannel(ctx, user, user.ChannelOrgID)
+		if err != nil || channel.Type != ChannelTypeC {
+			return nil, ErrChannelImmutable
+		}
 	}
 	raw := make([]byte, 20)
 	if _, err := rand.Read(raw); err != nil {

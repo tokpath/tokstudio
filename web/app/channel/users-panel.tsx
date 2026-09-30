@@ -15,13 +15,14 @@ import { fetchListItems } from "@/lib/list-resource";
 
 type ChannelUser = { id?: string; email?: string; status?: string; source_code?: string; roles?: string[] };
 
-export default function ChannelUsers({ channelID }: { channelID?: string }) {
+export default function ChannelUsers({ channelID, managedChannelID }: { channelID?: string; managedChannelID?: string }) {
   const t = useTranslations("channelUi");
   const [selected, setSelected] = useState<ChannelUser | null>(null);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const list = useListResource<ChannelUser>({
-    load: () => fetchListItems(`${apiBase}${channelID ? `/channel/subchannels/${encodeURIComponent(channelID)}/users` : "/channel/users"}`),
+    queryKey: channelID || managedChannelID || "",
+    load: () => fetchListItems(`${apiBase}${channelID ? `/channel/subchannels/${encodeURIComponent(channelID)}/users` : `/channel/users${managedChannelID ? `?channel_id=${encodeURIComponent(managedChannelID)}` : ""}`}`),
   });
 
   async function changeStatus(): Promise<boolean> {

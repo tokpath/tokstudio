@@ -17,7 +17,7 @@ type Usage = {
   image_count?: number;
 };
 
-export default function ChannelUsage() {
+export default function ChannelUsage({ channelID }: { channelID?: string } = {}) {
   const t = useTranslations("channelUi");
   const tChart = useTranslations("charts");
   const [usage, setUsage] = useState<Usage>({});
@@ -30,6 +30,7 @@ export default function ChannelUsage() {
 
   async function refresh(nextKey = keyFilter, nextModel = modelFilter) {
     const params = new URLSearchParams();
+    if (channelID) params.set("channel_id", channelID);
     if (nextKey) params.set("api_key_id", nextKey);
     if (nextModel) params.set("public_model_id", nextModel);
     const qs = params.toString();
@@ -52,7 +53,7 @@ export default function ChannelUsage() {
     void refresh();
     // 进入页面拉一次真实 usage。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [channelID]);
 
   return (
     <Card>

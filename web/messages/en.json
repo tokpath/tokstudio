@@ -6,7 +6,8 @@
     "channel": "Channel",
     "partner": "Partners",
     "admin": "Admin",
-    "login": "Sign in"
+    "login": "Sign in",
+    "oem": "OEM Admin"
   },
   "chrome": {
     "jump": "Jump",
@@ -61,7 +62,14 @@
     "email": "Email",
     "loginMethod": "Sign-in method",
     "loginPassword": "Email password",
-    "loginGoogle": "Google"
+    "loginGoogle": "Google",
+    "rolePlatformAdmin": "Platform admin",
+    "roleOEMAdmin": "OEM admin",
+    "roleChannelAdmin": "Channel admin",
+    "roleFinance": "Finance",
+    "roleOps": "Operations",
+    "roleTech": "Technical",
+    "roleAudit": "Read-only auditor"
   },
   "mega": {
     "models": "Models",
@@ -2264,5 +2272,69 @@
     "amounts": "Original {original} · Received {received} · Remaining {remaining}",
     "settlement": "Settlement: {id}",
     "receipt": "Received {amount} · Reference: {reference} · {date}"
+  },
+  "oem": {
+    "scope": "Manage this brand and its direct reseller channels.",
+    "channel": "Channel",
+    "allChannels": "All managed channels (including self)",
+    "loadError": "Could not load data. Please retry.",
+    "loading": "Loading…",
+    "refresh": "Refresh",
+    "revenue": "Customer revenue (USD)",
+    "cost": "Platform wholesale cost (USD)",
+    "margin": "Call margin (USD)",
+    "requests": "Settled requests",
+    "pending": "Pending reconciliation",
+    "models": "Usage by model",
+    "model": "Model",
+    "marginHint": "Settled calls: customer revenue minus platform wholesale charges. Commissions and other operating expenses are excluded.",
+    "empty": "No records",
+    "emptyUsage": "Usage and amounts appear after calls are settled.",
+    "mediaTasks": "Media tasks",
+    "id": "ID",
+    "kind": "Type",
+    "status": "Status",
+    "progress": "Progress (%)",
+    "time": "Time",
+    "auditLog": "Audit log",
+    "actor": "Actor",
+    "action": "Action",
+    "resourceType": "Resource type",
+    "resource": "Resource ID",
+    "businessAlerts": "Business alerts",
+    "view": "View",
+    "noAlerts": "No active business alerts.",
+    "runbooks": "View runbooks",
+    "commissions": "Commission entries",
+    "amount": "Amount (USD)",
+    "appearance": "Language and appearance",
+    "security": "Account security",
+    "securityHint": "Use an authenticator to enable two-factor authentication for this administrator.",
+    "setup2fa": "Set up authenticator",
+    "enable2fa": "Enable 2FA",
+    "disable2fa": "Disable 2FA",
+    "disableHint": "Disable two-factor authentication for this administrator.",
+    "otp": "6-digit code",
+    "secret": "Authenticator secret",
+    "saved": "Saved",
+    "saveError": "Could not save. Please retry.",
+    "runbook": {
+      "models": {
+        "title": "Model unavailable",
+        "body": "Check model authorization and availability in Channels. Suspend affected grants and contact technical support."
+      },
+      "users": {
+        "title": "User abuse",
+        "body": "Verify user ownership in Users / Projects. Ban the user with a reason, then restore access after the incident is resolved."
+      },
+      "reconciliation": {
+        "title": "Billing discrepancy",
+        "body": "Compare usage and bills by request ID, flag discrepancies and contact technical support. Keep unknown upstream results pending."
+      },
+      "payments": {
+        "title": "Payment not credited",
+        "body": "Check the payment order and receipt. Contact the payment service or technical support to verify the result before taking action."
+      }
+    }
   }
 }

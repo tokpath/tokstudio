@@ -12,10 +12,11 @@ import {
   canSeePlatformAdmin,
   profileDash,
   readNailedAvailable,
-  shellRole,
+  shellRoleLabelKey,
   type BalanceLoadState,
   type MeProfile,
 } from "@/lib/user-shell";
+import { useViewer } from "@/components/rbac/viewer-context";
 
 type ShellMe = MeProfile & { id?: string };
 
@@ -41,6 +42,7 @@ export function UserShellBell() {
 export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVariant }) {
   const t = useTranslations("shell");
   const router = useRouter();
+  const viewer = useViewer();
   const isUserShell = variant === "user";
   const [me, setMe] = useState<ShellMe | null>(null);
   const [meReady, setMeReady] = useState(false);
@@ -123,8 +125,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
 
   const name = profileDash(me?.display_name);
   const email = profileDash(me?.email);
-  const role = shellRole(me?.roles);
-  const roleLabel = role === "admin" ? t("roleAdmin") : t("roleUser");
+  const roleLabel = meReady ? t(shellRoleLabelKey(me?.roles, viewer.channelType)) : "—";
   const initial = avatarInitial(me?.display_name, me?.email);
   const amount = balancePillText(balanceState, available);
   const showPlatformAdmin = isUserShell && canSeePlatformAdmin(me?.roles);

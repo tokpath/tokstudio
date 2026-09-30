@@ -132,6 +132,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
 ];
 
 export function channelNavGroupsFor(channelType?: string) {
+  if (channelType === "C") return oemNavGroups;
   if (channelType !== "B") return channelNavGroups;
   return channelNavGroups
     .filter((group) => group.titleKey !== "subordinate")
@@ -206,6 +207,39 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
 ];
 
 export const adminNavKeys = adminGroups.flatMap((group) => group.items.map((item) => item.key));
+
+// OEM shares the platform information architecture. Feature pages retain their
+// scoped /channel APIs; hiding the technical catalogue never grants admin access.
+const oemPaths: Record<string, string> = {
+  overview: "/channel",
+  billing: "/channel/ledger",
+  channels: "/channel/subchannels",
+};
+export const oemNavGroups = adminGroups
+  .filter((group) => group.titleKey !== "groupCatalog")
+  .map((group) => ({
+    titleKey: group.titleKey,
+    items: group.items
+      .filter((item) => item.key !== "brands")
+      .map((item) => ({ ...item, href: oemPaths[item.key] ?? item.href.replace("/admin", "/channel") })),
+  }));
+
+/** Secondary tools belong to their parent page instead of a second OEM sidebar. */
+export function channelNavItemForPath(pathname: string, channelType?: string) {
+  if (channelType === "C") {
+    const parent = [
+      ["/channel/models", "/channel/subchannels"],
+      ["/channel/keys", "/channel/users"],
+      ["/channel/brand", "/channel/settings"],
+      ["/channel/rules", "/channel/commission"],
+      ["/channel/commissions", "/channel/ledger"],
+      ["/channel/settlements", "/channel/commission"],
+      ["/channel/attribution", "/channel/promos"],
+    ].find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+    if (parent) pathname = parent[1];
+  }
+  return navItemForPath(pathname, channelNavGroupsFor(channelType).flatMap((group) => group.items));
+}
 
 export function isConsolePath(pathname: string) {
   return (

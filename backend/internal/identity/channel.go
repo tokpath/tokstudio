@@ -288,7 +288,7 @@ type ChannelInput struct {
 }
 
 func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in ChannelInput) (*ChannelView, error) {
-	if !viewer.IsPlatformAdmin() && !viewer.HasRole("channel_admin") {
+	if !viewer.IsPlatformAdmin() && !viewer.HasRole("channel_admin", "oem_ops") {
 		return nil, ErrChannelImmutable
 	}
 	in.Code = strings.TrimSpace(in.Code)
@@ -308,7 +308,7 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 		in.BrandID = OfficialBrandID
 	}
 	parentID := strings.TrimSpace(in.ParentID)
-	if viewer.HasRole("channel_admin") && !viewer.IsPlatformAdmin() {
+	if viewer.HasRole("channel_admin", "oem_ops") && !viewer.IsPlatformAdmin() {
 		parentID = viewer.ChannelOrgID
 		in.Type = ChannelTypeB
 	}
@@ -425,7 +425,7 @@ func (s *Service) PatchChannel(ctx context.Context, viewer Principal, channelID 
 		}
 	}
 	if !viewer.IsPlatformAdmin() {
-		if !viewer.HasRole("channel_admin") || row.Type != ChannelTypeB || row.ParentID == nil || *row.ParentID != viewer.ChannelOrgID {
+		if !viewer.HasRole("channel_admin", "oem_ops") || row.Type != ChannelTypeB || row.ParentID == nil || *row.ParentID != viewer.ChannelOrgID {
 			return nil, ErrChannelImmutable
 		}
 		parent, err := s.lookupChannel(ctx, viewer.ChannelOrgID)
@@ -539,7 +539,7 @@ func (s *Service) ListUsersForChannel(ctx context.Context, viewer Principal, cha
 	} else if viewer.VisibleChannelID() != "" {
 		return nil, ErrChannelImmutable
 	}
-	q := s.db.WithContext(ctx).Model(&userRow{})
+	q := s.db.WithContext(ctx).Model(&userRow{}).Where("id NOT IN (SELECT user_id FROM identity_staff_members)")
 	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
 	} else if viewer.IsPlatformAdmin() {
@@ -598,6 +598,13 @@ func (s *Service) AdminReattribute(ctx context.Context, actor Principal, userID,
 	}
 	if strings.TrimSpace(reason) == "" {
 		return ErrPromotionInvalid
+	}
+	var staffCount int64
+	if err := s.db.WithContext(ctx).Model(&staffRow{}).Where("user_id = ?", userID).Count(&staffCount).Error; err != nil {
+		return err
+	}
+	if staffCount > 0 {
+		return ErrAdminProtected
 	}
 	resolved, err := s.resolvePromotion(ctx, promotionCode)
 	if err != nil {

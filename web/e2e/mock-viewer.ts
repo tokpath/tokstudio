@@ -23,7 +23,7 @@ export async function mockViewer(page: Page, input: { roles: string[]; partner?:
       body: JSON.stringify({ error: { message: "不是推广主体" } }),
     });
   });
-  if (input.roles.includes("channel_admin")) {
+  if (input.roles.some((role) => ["channel_admin", "oem_ops", "oem_finance", "oem_audit"].includes(role))) {
     await page.route("**/api/channel/me", (route) => route.fulfill({
       status: 200,
       contentType: "application/json",

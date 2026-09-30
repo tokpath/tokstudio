@@ -28,6 +28,8 @@ export const ADMIN_CONSOLE_ROLES = [
   "audit_readonly",
 ] as const;
 
+export const OEM_CONSOLE_ROLES = ["channel_admin", "oem_ops", "oem_finance", "oem_audit"] as const;
+
 type MeBody = { user?: { roles?: string[] } };
 
 export function consoleHomeForRoles(roles: string[] | undefined | null): string {
@@ -35,7 +37,7 @@ export function consoleHomeForRoles(roles: string[] | undefined | null): string 
   if (list.some((role) => (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) {
     return "/admin";
   }
-  if (list.includes("channel_admin")) {
+  if (list.some((role) => (OEM_CONSOLE_ROLES as readonly string[]).includes(role))) {
     return "/channel";
   }
   return "/app";

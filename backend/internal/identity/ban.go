@@ -40,7 +40,7 @@ func (s *Service) AdminSetUserStatusTx(tx *gorm.DB, actor Principal, userID, sta
 }
 
 func (s *Service) setUserStatus(ctx context.Context, actor Principal, userID, status, reason string) (*UserView, string, error) {
-	if !actor.IsPlatformAdmin() && !actor.HasRole("channel_admin") {
+	if !actor.IsPlatformAdmin() && !actor.HasRole("channel_admin", "oem_ops") {
 		return nil, "", ErrChannelImmutable
 	}
 	if strings.TrimSpace(reason) == "" {
@@ -77,6 +77,13 @@ func (s *Service) setUserStatus(ctx context.Context, actor Principal, userID, st
 			}
 		}
 	}
+	var staffCount int64
+	if err := s.db.WithContext(ctx).Model(&staffRow{}).Where("user_id = ?", user.ID).Count(&staffCount).Error; err != nil {
+		return nil, "", err
+	}
+	if staffCount > 0 {
+		return nil, "", ErrAdminProtected
+	}
 	before := user.Status
 	principal, err := s.loadPrincipal(ctx, user)
 	if err != nil {
@@ -85,7 +92,7 @@ func (s *Service) setUserStatus(ctx context.Context, actor Principal, userID, st
 	if principal.IsPlatformAdmin() && status == UserStatusBanned {
 		return nil, "", ErrAdminProtected
 	}
-	if !actor.IsPlatformAdmin() && principal.HasRole("platform_admin", "channel_admin", "finance_admin", "ops_admin", "tech_admin", "audit_readonly") {
+	if !actor.IsPlatformAdmin() && principal.HasRole("platform_admin", "channel_admin", "finance_admin", "ops_admin", "tech_admin", "audit_readonly", "oem_ops", "oem_finance", "oem_audit") {
 		return nil, "", ErrAdminProtected
 	}
 	if before == status {

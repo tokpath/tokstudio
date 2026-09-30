@@ -41,6 +41,7 @@ func casbinPolicy() []policyRule {
 	rules = append(rules, techRules()...)
 	rules = append(rules, channelRules()...)
 	rules = append(rules, auditRules()...)
+	rules = append(rules, oemEmployeeRules()...)
 	return rules
 }
 

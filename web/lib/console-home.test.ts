@@ -28,6 +28,7 @@ describe("consoleHomeForRoles", () => {
 
   it("sends channel admins to the channel console", () => {
     expect(consoleHomeForRoles(["channel_admin"])).toBe("/channel");
+    for (const role of ["oem_ops", "oem_finance", "oem_audit"]) expect(consoleHomeForRoles([role])).toBe("/channel");
     expect(consoleHomeForRoles(["end_user", "channel_admin"])).toBe("/channel");
   });
 

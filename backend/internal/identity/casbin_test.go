@@ -146,3 +146,33 @@ func TestCasbinPolicyHasNoEmptyRules(t *testing.T) {
 		}
 	}
 }
+
+func TestOEMEmployeePolicy(t *testing.T) {
+	s := New(nil)
+	for _, role := range []string{"oem_ops", "oem_finance", "oem_audit"} {
+		p := &Principal{Roles: []string{role}, ChannelOrgID: "chn_c"}
+		if p.VisibleChannelID() != "chn_c" || p.HasRole("channel_admin") {
+			t.Fatal("scope widened")
+		}
+		for _, path := range []string{"/admin/staff", "/channel/staff", "/admin/providers", "/admin/payments", "/admin/audit-logs"} {
+			if s.Allow(p, path, "GET") {
+				t.Fatalf("%s can access %s", role, path)
+			}
+		}
+		if !s.Allow(p, "/channel/metrics", "GET") {
+			t.Fatal("scoped report denied")
+		}
+	}
+	audit := &Principal{Roles: []string{"oem_audit"}}
+	for _, path := range []string{"/channel/plans", "/channel/quotas/grant", "/channel/users/u/ban", "/admin/channels", "/channel/payments/orders/x/refund"} {
+		if s.Allow(audit, path, "POST") {
+			t.Fatalf("audit can mutate %s", path)
+		}
+	}
+	if s.Allow(&Principal{Roles: []string{"oem_ops"}}, "/channel/payments/orders/x/refund", "POST") {
+		t.Fatal("ops can refund")
+	}
+	if s.Allow(&Principal{Roles: []string{"oem_finance"}}, "/channel/users/u/ban", "POST") {
+		t.Fatal("finance can ban")
+	}
+}

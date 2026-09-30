@@ -1435,3 +1435,153 @@ paths:
           description: success within OEM scope
         "403":
           description: non-OEM role or foreign channel
+
+  /admin/staff:
+    get:
+      summary: Company-scoped staff get
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+    post:
+      summary: Create an internal account or add an existing company account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, roles]
+              properties:
+                email:
+                  type: string
+                  format: email
+                display_name:
+                  type: string
+                password:
+                  type: string
+                  writeOnly: true
+                  description: Required only for new accounts; never changes an existing password
+                roles:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+
+  /admin/staff/{id}:
+    patch:
+      summary: Company-scoped staff patch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+
+  /admin/staff/{id}/history:
+    get:
+      summary: Company-scoped staff history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+
+  /channel/staff:
+    get:
+      summary: Company-scoped staff get
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+    post:
+      summary: Create an internal account or add an existing company account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, roles]
+              properties:
+                email:
+                  type: string
+                  format: email
+                display_name:
+                  type: string
+                password:
+                  type: string
+                  writeOnly: true
+                  description: Required only for new accounts; never changes an existing password
+                roles:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+
+  /channel/staff/{id}:
+    patch:
+      summary: Company-scoped staff patch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator
+
+  /channel/staff/{id}/history:
+    get:
+      summary: Company-scoped staff history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success; company administrator only
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Conflicting account or last administrator

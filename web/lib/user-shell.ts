@@ -1,4 +1,4 @@
-import { ADMIN_CONSOLE_ROLES } from "@/lib/console-home";
+import { ADMIN_CONSOLE_ROLES, OEM_CONSOLE_ROLES } from "@/lib/console-home";
 
 /** 顶栏余额只读 GET /v1/me/balance 的这一项：可用 USD 字符串（available_minor 的展示）。不求和、不读 reserved/gift。 */
 export const BALANCE_PILL_FIELD = "available" as const;
@@ -43,7 +43,7 @@ export function avatarInitial(displayName?: string | null, email?: string | null
 }
 
 export function shellRole(roles?: string[] | null): "admin" | "user" {
-  if (roles?.some((role) => role === "channel_admin" || (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) {
+  if (roles?.some((role) => (OEM_CONSOLE_ROLES as readonly string[]).includes(role) || (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) {
     return "admin";
   }
   return "user";
@@ -58,6 +58,9 @@ export function shellRoleLabelKey(roles?: string[] | null, channelType?: string)
     ["ops_admin", "roleOps"],
     ["tech_admin", "roleTech"],
     ["audit_readonly", "roleAudit"],
+    ["oem_ops", "roleOEMOps"],
+    ["oem_finance", "roleOEMFinance"],
+    ["oem_audit", "roleOEMAudit"],
   ];
   return labels.find(([role]) => roles?.includes(role))?.[1] ?? "roleUser";
 }

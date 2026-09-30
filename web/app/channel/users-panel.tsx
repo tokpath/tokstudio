@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -16,6 +19,8 @@ import { fetchListItems } from "@/lib/list-resource";
 type ChannelUser = { id?: string; email?: string; status?: string; source_code?: string; roles?: string[] };
 
 export default function ChannelUsers({ channelID, managedChannelID }: { channelID?: string; managedChannelID?: string }) {
+  const permissionViewer = useViewer();
+  const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
   const [selected, setSelected] = useState<ChannelUser | null>(null);
   const [reason, setReason] = useState("");
@@ -70,7 +75,7 @@ export default function ChannelUsers({ channelID, managedChannelID }: { channelI
           emptyDetail={t("emptyUsersDetail")}
           rows={list.snapshot.items.map((item) => ({
             key: item.id || `${item.email}-${item.source_code}`,
-            cells: [item.email || "—", item.status || "—", item.source_code || "—", <Button key="action" size="sm" variant="outline" disabled={item.roles?.some((role) => role !== "end_user") || !item.id} onClick={() => { setSelected(item); setReason(""); setMessage(""); }}>{item.status === "banned" ? "解封" : "封禁"}</Button>],
+            cells: [item.email || "—", item.status || "—", item.source_code || "—", <Button key="action" size="sm" variant="outline" disabled={!canOperate || item.roles?.some((role) => role !== "end_user") || !item.id} onClick={() => { setSelected(item); setReason(""); setMessage(""); }}>{item.status === "banned" ? "解封" : "封禁"}</Button>],
           }))}
         />
       </ListResourceView>

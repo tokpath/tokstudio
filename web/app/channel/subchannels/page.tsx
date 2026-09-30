@@ -1,5 +1,7 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,7 @@ async function loadChannels(): Promise<PlanChannel[]> {
 
 export default function SubchannelsPage() {
   const queryClient = useQueryClient();
+  const viewer = useViewer();
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [creating, setCreating] = useState(false);
@@ -57,10 +60,10 @@ export default function SubchannelsPage() {
   }
 
   return <OEMPage page="channels">
-    <div className="flex flex-wrap items-center gap-4 text-sm"><Link href="/channel/models" className="text-brand-emphasis underline">本品牌模型授权</Link><span className="text-ink-secondary">下属渠道共用本品牌套餐与价格，模型按渠道授权。</span></div>
+    <div className="flex flex-wrap items-center gap-4 text-sm">{viewer.roles.some((role) => ["channel_admin", "oem_ops", "oem_audit"].includes(role)) ? <Link href="/channel/models" className="text-brand-emphasis underline">本品牌模型授权</Link> : null}<span className="text-ink-secondary">下属渠道共用本品牌套餐与价格，模型按渠道授权。</span></div>
     <section className="rounded-card border border-hairline bg-canvas-raised p-5">
       <h2 className="font-semibold">创建渠道</h2>
-      <div className="mt-3 flex max-w-lg gap-2"><Input aria-label="新渠道名称" placeholder="渠道名称" value={code} onChange={(event) => setCode(event.target.value)} /><Button disabled={!code.trim() || creating} onClick={() => void create()}>{creating ? "创建中…" : "创建"}</Button></div>
+      <div className="mt-3 flex max-w-lg gap-2"><Input aria-label="新渠道名称" placeholder="渠道名称" value={code} onChange={(event) => setCode(event.target.value)} /><Button disabled={!canChannelAction("operations", viewer) || !code.trim() || creating} onClick={() => void create()}>{creating ? "创建中…" : "创建"}</Button></div>
       {message ? <p role="status" className="mt-2 text-sm text-ink-secondary">{message}</p> : null}
     </section>
     <section className="rounded-card border border-hairline bg-canvas-raised p-5">

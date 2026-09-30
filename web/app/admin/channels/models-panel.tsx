@@ -51,7 +51,7 @@ export function ChannelModelsPanel({ channelID, delegated = false }: { channelID
     queryFn: () => apiClient<ModelsResponse>("GET", `/admin/channels/${channelID}/models`),
   });
   const items = modelsQuery.data?.items ?? [];
-  const canGrant = delegated ? viewer.roles.includes("channel_admin") : canWrite("models.grant", viewer);
+  const canGrant = delegated ? viewer.roles.some((role) => ["channel_admin", "oem_ops"].includes(role)) : canWrite("models.grant", viewer);
   const selected = useMemo(() => new Set(enabledIDs), [enabledIDs]);
 
   function startGrant() {

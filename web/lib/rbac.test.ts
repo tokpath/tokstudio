@@ -123,3 +123,24 @@ describe("role menus", () => {
     expect(canViewAdminHref("/admin/models/tokenhub/echo-1", signed(["ops_admin"]))).toBe(true);
   });
 });
+
+describe("OEM employee permissions", () => {
+  it("keeps OEM employees out of the platform and staff management", () => {
+    for (const role of ["oem_ops", "oem_finance", "oem_audit"]) {
+      const viewer = signed([role], { channelType: "C" });
+      expect(canAccessChannelPortal(viewer.roles)).toBe(true);
+      expect(canAccessAdminConsole(viewer.roles)).toBe(false);
+      expect(canViewAdminHref("/admin/staff", viewer)).toBe(false);
+      expect(canViewChannelHref("/channel/staff", viewer)).toBe(false);
+      expect(canViewChannelHref("/channel/metrics", viewer)).toBe(true);
+      expect(canViewChannelHref("/channel/payments/rules", viewer)).toBe(false);
+    }
+  });
+  it("separates operating, financial and audit work", () => {
+    expect(canViewChannelHref("/channel/users", signed(["oem_ops"], { channelType: "C" }))).toBe(true);
+    expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(false);
+    expect(canViewChannelHref("/channel/audit", signed(["oem_audit"], { channelType: "C" }))).toBe(true);
+    expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "C" }))).toBe(true);
+    expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "B" }))).toBe(false);
+  });
+});

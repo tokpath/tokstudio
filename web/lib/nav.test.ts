@@ -22,6 +22,7 @@ describe("adminNavKeys", () => {
       "reconciliation",
       "media",
       "users",
+      "staff",
       "alerts",
       "runbooks",
       "audit",

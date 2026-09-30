@@ -5,11 +5,13 @@ import (
 	"context"
 	"embed"
 	"io/fs"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/casbin/casbin/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
@@ -143,22 +145,25 @@ func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, bran
 		user.PasswordHash = &pwd
 	}
 
-	var role roleRow
-	if err := tx.Where("code = ?", roleCode).First(&role).Error; err != nil {
-		return err
-	}
-	if err := tx.Where("user_id = ? AND role_id = ?", user.ID, role.ID).First(&userRoleRow{}).Error; err != nil {
-		if err != gorm.ErrRecordNotFound {
+	var member staffRow
+	memberErr := tx.Where("user_id = ?", user.ID).First(&member).Error
+	if memberErr == nil {
+		if err := applyStaffRolesTx(tx, member); err != nil {
 			return err
 		}
-		if err := tx.Create(&userRoleRow{
-			UserID:    user.ID,
-			RoleID:    role.ID,
-			ScopeType: scopeType,
-			ScopeID:   scopeID,
-		}).Error; err != nil {
+		if member.Status != "active" {
+			return nil
+		}
+	} else if memberErr == gorm.ErrRecordNotFound {
+		var role roleRow
+		if err := tx.Where("code = ?", roleCode).First(&role).Error; err != nil {
 			return err
 		}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&userRoleRow{UserID: user.ID, RoleID: role.ID, ScopeType: scopeType, ScopeID: scopeID}).Error; err != nil {
+			return err
+		}
+	} else {
+		return memberErr
 	}
 
 	hash := crypto.HashToken(token)
@@ -206,6 +211,13 @@ func (s *Service) Authenticate(ctx context.Context, bearer string) (*Principal, 
 		}
 		return nil, err
 	}
+	disabled, err := s.staffDisabled(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if disabled {
+		return nil, nil
+	}
 	principal, err := s.loadPrincipal(ctx, user)
 	if err != nil {
 		return nil, err
@@ -231,8 +243,14 @@ func (s *Service) loadPrincipal(ctx context.Context, user userRow) (*Principal, 
 	roles := make([]string, 0, len(rows))
 	p := principalFromUser(user, nil)
 	for _, row := range rows {
+		if slices.Contains(platformStaffRoles, row.Code) && (row.ScopeType != "platform" || row.ScopeID != "*") {
+			continue
+		}
+		if (row.Code == "channel_admin" || strings.HasPrefix(row.Code, "oem_")) && (row.ScopeType != "channel" || row.ScopeID != p.ChannelOrgID) {
+			continue
+		}
 		roles = append(roles, row.Code)
-		if row.Code == "channel_admin" {
+		if row.Code == "channel_admin" || strings.HasPrefix(row.Code, "oem_") {
 			p.ScopeType = row.ScopeType
 			p.ScopeID = row.ScopeID
 			if p.ChannelOrgID == "" {

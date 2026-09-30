@@ -285,6 +285,13 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", row.UserID, UserStatusActive).First(&user).Error; err != nil {
 		return nil, nil
 	}
+	disabled, err := s.staffDisabled(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if disabled {
+		return nil, nil
+	}
 	principal, err := s.loadPrincipal(ctx, user)
 	if err != nil {
 		return nil, err

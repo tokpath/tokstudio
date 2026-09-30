@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -48,6 +51,7 @@ const stateTone: Record<string, "neutral" | "brand" | "success" | "warn"> = {
 };
 
 export function PaymentLanesPanel() {
+  const permissionViewer = useViewer();
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["/channel/payments/overview"],
@@ -188,7 +192,7 @@ export function PaymentLanesPanel() {
                   ? `还差：${lane.missing_fields.join("、")}`
                   : `已配置 ${lane.instance_count} 个商户。收款币种 ${lane.pay_currency}。`}
             </p>
-            <Button size="sm" onClick={() => resetWizard(lane)}>
+            <Button size="sm" disabled={!canChannelAction("paymentSettings", permissionViewer)} onClick={() => resetWizard(lane)}>
               {lane.state === "none" ? `开通${lane.display_name}` : "管理凭证"}
             </Button>
           </section>

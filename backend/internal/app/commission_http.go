@@ -74,7 +74,7 @@ func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, 
 	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") {
 		return "", nil, true
 	}
-	if p.HasRole("channel_admin") {
+	if p.IsChannelStaff() {
 		return p.ChannelOrgID, nil, true
 	}
 	mem, err := a.Identity.MemberRole(c.Request.Context(), p.UserID)
@@ -101,7 +101,7 @@ func (a *App) partnerMe(c *gin.Context) {
 		})
 		return
 	}
-	if p.HasRole("channel_admin") {
+	if p.IsChannelStaff() {
 		httpx.OK(c, gin.H{
 			"role_type": "channel_admin", "channel_org_id": p.ChannelOrgID, "scope_role_ids": []string{},
 			"sees_downline": true, "request_id": c.GetString(httpx.ContextRequestID),
@@ -307,7 +307,7 @@ func (a *App) channelListPromos(c *gin.Context) {
 
 func (a *App) adminListPromos(c *gin.Context) {
 	channelID := c.Query("channel_id")
-	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		channelID = p.ChannelOrgID
 	}
 	items, err := a.Identity.ListPromotionCodes(c.Request.Context(), channelID)
@@ -347,7 +347,7 @@ func (a *App) adminCreateRole(c *gin.Context) {
 		ParentID     string `json:"parent_id"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		body.ChannelOrgID = p.ChannelOrgID
 	}
 	item, err := a.Identity.CreateAcquisitionRole(c.Request.Context(), body.ChannelOrgID, body.Type, body.ParentID)
@@ -364,7 +364,7 @@ func (a *App) adminCreateRole(c *gin.Context) {
 
 func (a *App) adminListRoles(c *gin.Context) {
 	channelID := c.Query("channel_id")
-	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		channelID = p.ChannelOrgID
 	}
 	items, err := a.Identity.ListAcquisitionRoles(c.Request.Context(), channelID, c.Query("type"))
@@ -430,7 +430,7 @@ func (a *App) adminCreatePromo(c *gin.Context) {
 		Code              string `json:"code"`
 	}
 	_ = c.ShouldBindJSON(&body)
-	if p := a.currentPrincipal(c); p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		body.ChannelOrgID = p.ChannelOrgID
 	}
 	item, err := a.Identity.CreatePromotionCode(c.Request.Context(), body.ChannelOrgID, body.AcquisitionRoleID, body.Code)
@@ -509,6 +509,9 @@ func (a *App) channelGrantQuota(c *gin.Context) {
 }
 
 func (a *App) adminGetQuota(c *gin.Context) {
+	if !a.canReadChannelQuota(c, c.Param("channel_id")) {
+		return
+	}
 	item, err := a.Billing.ChannelQuota(c.Request.Context(), c.Param("channel_id"))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "渠道额度不存在", false)
@@ -523,7 +526,7 @@ func (a *App) canReadChannelQuota(c *gin.Context, channelID string) bool {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 		return false
 	}
-	if p.HasRole("channel_admin") && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") && p.ChannelOrgID != channelID {
+	if p.IsChannelStaff() && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") && p.ChannelOrgID != channelID {
 		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, channelID)
 		if err != nil || ch.ParentID != p.ChannelOrgID {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能查看本渠道额度", false)

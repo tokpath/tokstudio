@@ -727,7 +727,7 @@ func (a *App) patchChannelModels(c *gin.Context) {
 		return
 	}
 	parentID := ""
-	if principal.HasRole("channel_admin") && !principal.HasRole("platform_admin", "ops_admin") {
+	if principal.IsChannelStaff() && !principal.HasRole("platform_admin", "ops_admin") {
 		own, ownErr := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
 		if ownErr != nil || own.Type != identity.ChannelTypeC || target.ParentID != own.ID || target.ID == own.ID {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能授权自己的直属下属渠道", false)

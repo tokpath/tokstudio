@@ -168,6 +168,8 @@ export const HREF_ICONS: Record<string, LucideIcon> = {
   "/admin/metrics": Activity,
   "/admin/media": Clapperboard,
   "/admin/users": Users,
+  "/admin/staff": ShieldCheck,
+  "/channel/staff": ShieldCheck,
   "/admin/alerts": Bell,
   "/admin/runbooks": ScrollText,
   "/admin/audit": ClipboardList,

@@ -66,7 +66,7 @@ func (a *App) requirePlanPublisher(c *gin.Context) bool {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
 		return false
 	}
-	if !p.HasRole("channel_admin") || p.IsPlatformAdmin() || p.HasRole("ops_admin") {
+	if !p.IsChannelStaff() || p.IsPlatformAdmin() || p.HasRole("ops_admin") {
 		return true
 	}
 	ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
@@ -87,7 +87,7 @@ func (a *App) canManagePlan(c *gin.Context, planID string) bool {
 		return false
 	}
 	p := a.currentPrincipal(c)
-	allowed := p != nil && ((p.HasRole("channel_admin") && !p.IsPlatformAdmin() && item.OwnerType == plans.OwnerChannel && item.OwnerID == p.ChannelOrgID) ||
+	allowed := p != nil && ((p.IsChannelStaff() && !p.IsPlatformAdmin() && item.OwnerType == plans.OwnerChannel && item.OwnerID == p.ChannelOrgID) ||
 		(p.HasRole("platform_admin", "ops_admin") && item.OwnerType == plans.OwnerPlatform && item.OwnerID == identity.OfficialChannelID))
 	if !allowed {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能管理所属品牌的套餐", false)
@@ -298,7 +298,7 @@ func (a *App) channelListPlans(c *gin.Context) {
 		return
 	}
 	filter := plans.ListPlanFilter{Status: c.Query("status")}
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		filter.OwnerChannelID = p.ChannelOrgID
 	} else {
 		filter.BrandOwnerID = identity.OfficialChannelID
@@ -319,7 +319,7 @@ func (a *App) adminListPlans(c *gin.Context) {
 	if p := a.currentPrincipal(c); p != nil {
 		if p.HasRole("platform_admin", "ops_admin") {
 			filter.BrandOwnerID = identity.OfficialChannelID
-		} else if p.HasRole("channel_admin") {
+		} else if p.IsChannelStaff() {
 			filter.OwnerChannelID = p.ChannelOrgID
 		}
 	}
@@ -361,7 +361,7 @@ func (a *App) adminPlanEligibleChannels(c *gin.Context) {
 		return
 	}
 	ownerID := identity.OfficialChannelID
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		ownerID = p.ChannelOrgID
 	}
 	channels, err := a.Identity.ListPlanSubchannels(c.Request.Context(), ownerID)
@@ -381,7 +381,7 @@ func (a *App) adminCreatePlan(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "套餐字段无效", false)
 		return
 	}
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		in.OwnerType = plans.OwnerChannel
 		in.OwnerID = p.ChannelOrgID
 	} else {

@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,6 +23,8 @@ import { fetchListItems } from "@/lib/list-resource";
 type Promo = { id?: string; code?: string; status?: string; acquisition_role_id?: string };
 
 export default function ChannelPromos() {
+  const permissionViewer = useViewer();
+  const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
   const [message, setMessage] = useState(t("promosHint"));
@@ -42,6 +47,7 @@ export default function ChannelPromos() {
         <form className="mb-3 flex flex-wrap items-end gap-2" onSubmit={(event) => event.preventDefault()}>
           <TextField control={form.control} name="code" label={t("newCode")} placeholder={t("newCodePh")} showLabel={false} className="max-w-xs" />
           <ConfirmButton
+            disabled={!canOperate}
             variant="outline"
             title={t("confirmPromo")}
             description={t("confirmPromoD")}

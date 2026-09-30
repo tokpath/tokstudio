@@ -1,5 +1,7 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canViewChannelHref } from "@/lib/rbac";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -13,10 +15,11 @@ const items = [
 
 export function ChannelPaymentsNav() {
   const pathname = usePathname();
+  const viewer = useViewer();
   const t = useTranslations("channelPayments");
   return (
     <nav aria-label={t("nav")} className="flex flex-wrap gap-1 border-b border-hairline pb-3">
-      {items.map((item) => {
+      {items.filter((item) => canViewChannelHref(item.href, viewer)).map((item) => {
         const active = pathname === item.href;
         const Icon = iconForHref(item.href);
         return (

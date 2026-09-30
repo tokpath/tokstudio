@@ -32,7 +32,7 @@ import { LocaleSwitch } from "@/components/locale-switch";
 import { ConsoleOverflowMenu } from "@/components/layout/console-overflow-menu";
 import { UserShellBell, UserShellRightZone } from "@/components/layout/user-shell-menu";
 import { iconForHref } from "@/lib/page-icons";
-import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, shouldBypassRbac } from "@/lib/rbac";
+import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, filterChannelGroups, shouldBypassRbac } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
 
 const navLinkFocus =
@@ -106,7 +106,7 @@ function ConsoleNav({
   return (
     <>
       {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} onNavigate={onNavigate} /> : null}
-      {showChannelNav ? <GroupedNav groups={channelNavGroupsFor(viewer.channelType)} pathname={pathname} t={viewer.channelType === "C" ? ta : tch} onNavigate={onNavigate} isActive={(path, href) => channelNavItemForPath(path, viewer.channelType)?.href === href} /> : null}
+      {showChannelNav ? <GroupedNav groups={filterChannelGroups(channelNavGroupsFor(viewer.channelType), viewer)} pathname={pathname} t={viewer.channelType === "C" ? ta : tch} onNavigate={onNavigate} isActive={(path, href) => channelNavItemForPath(path, viewer.channelType)?.href === href} /> : null}
       {showPartnerNav ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} onNavigate={onNavigate} /> : null}
       {isAdmin ? (
         <GroupedNav groups={adminNav} pathname={pathname} t={ta} onNavigate={onNavigate} isActive={adminNavActive} />

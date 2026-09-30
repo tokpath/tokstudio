@@ -69,7 +69,10 @@
     "roleFinance": "財務",
     "roleOps": "運営",
     "roleTech": "技術",
-    "roleAudit": "読み取り専用監査"
+    "roleAudit": "読み取り専用監査",
+    "roleOEMOps": "OEM 運営",
+    "roleOEMFinance": "OEM 財務",
+    "roleOEMAudit": "OEM 読み取り専用監査"
   },
   "mega": {
     "models": "モデル",
@@ -257,7 +260,8 @@
     "heroCommissionHint": "未精算の流通",
     "heroHealth": "Provider 健全性",
     "heroHealthOk": "開いているサーキットなし",
-    "heroHealthBad": "遮断または低成功率"
+    "heroHealthBad": "遮断または低成功率",
+    "staff": "従業員と権限"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -2335,6 +2339,77 @@
         "title": "入金が反映されない",
         "body": "注文状態と支払い証明を確認し、決済サービスまたは技術サポートで確認した後に処理します。"
       }
+    }
+  },
+  "staff": {
+    "title": "従業員と権限",
+    "platformDescription": "社内従業員とプラットフォーム権限を管理します。",
+    "oemDescription": "自社ブランド内の従業員と権限を管理します。",
+    "create": "従業員を追加",
+    "createHint": "従業員アカウントを作成するか、自社本部の登録済みアカウントを追加します。",
+    "email": "メールアドレス",
+    "name": "氏名（任意）",
+    "password": "初期パスワード",
+    "passwordHint": "新規アカウントは8文字以上。登録済みの場合は空欄にし、現在のパスワードを使用します。",
+    "search": "氏名またはメールで検索",
+    "roleFilter": "役割で絞り込み",
+    "statusFilter": "状態で絞り込み",
+    "allRoles": "すべての役割",
+    "allStatuses": "すべての状態",
+    "refresh": "更新",
+    "loading": "読み込み中…",
+    "loadError": "読み込めませんでした。更新して再試行してください。",
+    "saveError": "保存できませんでした。再試行してください。",
+    "saving": "保存中…",
+    "saved": "従業員の権限を更新しました。",
+    "empty": "該当する従業員はいません。",
+    "employee": "従業員",
+    "role": "役割",
+    "status": "状態",
+    "updated": "最終操作",
+    "actions": "操作",
+    "active": "有効",
+    "disabled": "無効",
+    "editRoles": "役割を編集",
+    "disable": "無効化",
+    "enable": "有効化",
+    "history": "操作履歴",
+    "created": "追加日時",
+    "roles": {
+      "admin": "管理者",
+      "ops": "運営",
+      "finance": "財務",
+      "tech": "技術",
+      "audit": "読み取り専用監査"
+    },
+    "rolesHint": "役割の変更は既存のセッションに直ちに反映されます。",
+    "disableHint": "ログインを停止し、既存のセッションとAPIキーを無効にします。",
+    "enableHint": "有効化後は再ログインが必要です。",
+    "otp": "操作する管理者の2FA認証コード",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "noHistory": "追加後の操作履歴はありません。",
+    "permissions": {
+      "platform": {
+        "admin": "プラットフォームの全機能と従業員権限を管理。",
+        "ops": "カタログ、モデル、プランと日常の運営。",
+        "finance": "決済、会計、価格、枠と手数料。",
+        "tech": "プロバイダー、ルートと基盤の管理。",
+        "audit": "業務と監査記録の読み取り専用。"
+      },
+      "oem": {
+        "admin": "自社ブランドと配下チャネルの業務および従業員権限を管理。",
+        "ops": "プラン、顧客、モデル権限、チャネルとブランド情報。",
+        "finance": "自社の決済、会計、枠、顧客価格と手数料規則。",
+        "audit": "自社ブランドの業務と監査記録の読み取り専用。"
+      }
+    },
+    "historyActions": {
+      "staff_create": "従業員を追加",
+      "staff_roles_update": "役割を変更",
+      "staff_disable": "従業員を無効化",
+      "staff_enable": "従業員を有効化"
     }
   }
 }

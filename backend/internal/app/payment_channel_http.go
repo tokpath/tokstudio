@@ -105,7 +105,7 @@ func (a *App) paymentCallbackOrigin(c *gin.Context, channelOrgID string) string 
 func (a *App) channelPaymentOverview(c *gin.Context) {
 	p := a.currentPrincipal(c)
 	channelID := a.channelOrgForAdmin(c)
-	if channelID == "" && p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() {
+	if channelID == "" && p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未绑定渠道", false)
 		return
 	}
@@ -272,7 +272,7 @@ func (a *App) channelPatchPaymentSettings(c *gin.Context) {
 
 func (a *App) channelListPaymentOrders(c *gin.Context) {
 	channelID := a.channelOrgForAdmin(c)
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") {
 		channelID = p.ChannelOrgID
 	}
 	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
@@ -288,12 +288,16 @@ func (a *App) channelConfirmPayment(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	item, err := a.Payment.GetOrder(c.Request.Context(), c.Param("id"), "")
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作其他渠道订单", false)
+		return
+	}
+	item, err = a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	if a.abortPaymentErr(c, err) {
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -311,7 +315,7 @@ func (a *App) channelRefundPayment(c *gin.Context) {
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	if p := a.currentPrincipal(c); p != nil && p.HasRole("channel_admin") && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
+	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作其他渠道订单", false)
 		return
 	}

@@ -69,7 +69,10 @@
     "roleFinance": "Finance",
     "roleOps": "Operations",
     "roleTech": "Technical",
-    "roleAudit": "Read-only auditor"
+    "roleAudit": "Read-only auditor",
+    "roleOEMOps": "OEM operations",
+    "roleOEMFinance": "OEM finance",
+    "roleOEMAudit": "OEM read-only auditor"
   },
   "mega": {
     "models": "Models",
@@ -257,7 +260,8 @@
     "heroCommissionHint": "Unsettled distribution",
     "heroHealth": "Provider health",
     "heroHealthOk": "No open circuit breakers",
-    "heroHealthBad": "Open breaker or low success rate"
+    "heroHealthBad": "Open breaker or low success rate",
+    "staff": "Staff & permissions"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -2335,6 +2339,77 @@
         "title": "Payment not credited",
         "body": "Check the payment order and receipt. Contact the payment service or technical support to verify the result before taking action."
       }
+    }
+  },
+  "staff": {
+    "title": "Staff & permissions",
+    "platformDescription": "Manage internal staff and platform permissions.",
+    "oemDescription": "Manage internal staff and permissions within your brand.",
+    "create": "Add staff",
+    "createHint": "Create an account or add a registered account belonging to your company.",
+    "email": "Email",
+    "name": "Name (optional)",
+    "password": "Initial password",
+    "passwordHint": "At least 8 characters for a new account. Leave blank for an existing account.",
+    "search": "Search name or email",
+    "roleFilter": "Filter role",
+    "statusFilter": "Filter status",
+    "allRoles": "All roles",
+    "allStatuses": "All statuses",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "loadError": "Could not load. Please refresh.",
+    "saveError": "Could not save. Please retry.",
+    "saving": "Saving…",
+    "saved": "Staff permissions updated.",
+    "empty": "No matching staff.",
+    "employee": "Staff member",
+    "role": "Role",
+    "status": "Status",
+    "updated": "Last change",
+    "actions": "Actions",
+    "active": "Active",
+    "disabled": "Disabled",
+    "editRoles": "Edit roles",
+    "disable": "Disable",
+    "enable": "Reactivate",
+    "history": "History",
+    "created": "Added",
+    "roles": {
+      "admin": "Administrator",
+      "ops": "Operations",
+      "finance": "Finance",
+      "tech": "Technical",
+      "audit": "Read-only auditor"
+    },
+    "rolesHint": "Role changes apply to existing sessions immediately.",
+    "disableHint": "Disables login and revokes existing sessions and API keys.",
+    "enableHint": "A new login is required after reactivation.",
+    "otp": "Your administrator 2FA code",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "noHistory": "No subsequent changes.",
+    "permissions": {
+      "platform": {
+        "admin": "All platform functions and staff permissions.",
+        "ops": "Catalogue, models, plans and daily operations.",
+        "finance": "Payments, billing, prices, quotas and commissions.",
+        "tech": "Providers, routes and infrastructure.",
+        "audit": "Read-only business and audit records."
+      },
+      "oem": {
+        "admin": "All business and staff permissions for this brand and its channels.",
+        "ops": "Plans, customers, model grants, channels and brand settings.",
+        "finance": "Brand payments, billing, quotas, customer prices and commission rules.",
+        "audit": "Read-only business and audit records within this brand."
+      }
+    },
+    "historyActions": {
+      "staff_create": "Staff added",
+      "staff_roles_update": "Roles changed",
+      "staff_disable": "Staff disabled",
+      "staff_enable": "Staff reactivated"
     }
   }
 }

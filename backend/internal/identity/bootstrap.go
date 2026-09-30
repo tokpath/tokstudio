@@ -81,7 +81,10 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 				return err
 			}
 		}
-		return upsertBootUser(tx, "user@tokenhub.local", "end_user", userToken, "thusr_", OfficialChannelID, OfficialBrandID, "channel", OfficialChannelID)
+		if err := upsertBootUser(tx, "user@tokenhub.local", "end_user", userToken, "thusr_", OfficialChannelID, OfficialBrandID, "channel", OfficialChannelID); err != nil {
+			return err
+		}
+		return backfillStaffTx(tx)
 	})
 }
 

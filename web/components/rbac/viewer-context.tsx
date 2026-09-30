@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { apiBase } from "@/lib/api";
 import { emptyViewer, type Viewer } from "@/lib/rbac";
 
+import { OEM_CONSOLE_ROLES } from "@/lib/console-home";
+
 const ViewerContext = createContext<Viewer | null>(null);
 
 type MeBody = { user?: { id?: string; roles?: string[] } };
@@ -22,7 +24,7 @@ async function loadViewer(): Promise<Viewer> {
     }
     const body = (await meRes.value.json()) as MeBody;
     const roles = body.user?.roles ?? [];
-    const channel = roles.includes("channel_admin")
+    const channel = roles.some((role) => (OEM_CONSOLE_ROLES as readonly string[]).includes(role))
       ? await fetch(`${apiBase}/channel/me`, { credentials: "include" }).then((response) => response.ok ? response.json() as Promise<{ channel_type?: string }> : null).catch(() => null)
       : null;
     const partner = partnerRes.status === "fulfilled" && partnerRes.value.ok

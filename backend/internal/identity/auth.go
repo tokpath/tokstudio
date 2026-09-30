@@ -194,6 +194,13 @@ func (s *Service) SwitchChannel(_ context.Context, _ Principal, _ string) error 
 }
 
 func (s *Service) issueSession(ctx context.Context, user userRow) (*Session, error) {
+	disabled, err := s.staffDisabled(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if disabled {
+		return nil, ErrInvalidCredentials
+	}
 	raw, err := crypto.RandomToken("thses_")
 	if err != nil {
 		return nil, err

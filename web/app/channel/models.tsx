@@ -1,5 +1,6 @@
 "use client";
 
+import { canChannelAction } from "@/lib/rbac";
 import { useState } from "react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
@@ -110,14 +111,14 @@ export default function ChannelModels() {
             <span className="text-ink-secondary">
                 {item.vendor} · {item.status !== "published" ? "平台已下架" : !item.enabled ? "上级已取消授权" : item.parent_enabled === false ? "上级已下架" : item.self_enabled === false ? "本渠道已下架" : "可使用"}
             </span>
-            {item.enabled ? <ConfirmButton
+            {item.enabled && canChannelAction("operations", viewer) ? <ConfirmButton
               size="sm" variant="outline"
               disabled={item.status !== "published" || (item.parent_enabled === false && item.self_enabled === false)}
               title={item.self_enabled === false ? "确认上架模型" : "确认下架模型"}
               description={item.self_enabled === false ? "恢复本渠道及已获授权下属渠道的使用。" : "本渠道及已获授权下属渠道会立即停用此模型。"}
               onConfirm={() => changeOwnStatus(item, item.self_enabled === false)}
             >{item.self_enabled === false ? "上架" : "下架"}</ConfirmButton> : null}
-            {viewer.channelType === "C" && item.enabled ? <Button size="sm" variant="outline" onClick={() => startPrice(item)}>品牌客户价</Button> : null}
+            {viewer.channelType === "C" && item.enabled && canChannelAction("finance", viewer) ? <Button size="sm" variant="outline" onClick={() => startPrice(item)}>品牌客户价</Button> : null}
             {editingPrice === item.public_id ? <div className="mt-2 grid w-full gap-2 rounded-control border border-hairline p-3">
               {item.kind === "image" || item.kind === "video" || item.kind === "audio" ? <label className="grid gap-1">客户价（美元/单位）<Input aria-label="品牌客户单位价" value={priceUnit} onChange={(event) => setPriceUnit(event.target.value)} /></label> : <>
                 <label className="grid gap-1">输入（美元/M）<Input aria-label="品牌客户输入价" value={priceInput} onChange={(event) => setPriceInput(event.target.value)} /></label>

@@ -707,6 +707,38 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "POST",
     "path": "/channel/me/2fa/disable"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/staff"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/staff"
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/staff/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/staff/{id}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/staff"
+  },
+  {
+    "method": "POST",
+    "path": "/channel/staff"
+  },
+  {
+    "method": "PATCH",
+    "path": "/channel/staff/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/channel/staff/{id}/history"
   }
 ];
 

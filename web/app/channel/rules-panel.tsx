@@ -70,7 +70,7 @@ export default function ChannelRules() {
       const pBody = await pRes.json();
       const eBody = await eRes.json();
       const ch = (chBody.item || {}) as Channel;
-      setCanWrite(ch.type === "C");
+      setCanWrite(ch.type === "C" && Boolean(meBody.roles?.some((role: string) => ["channel_admin", "oem_finance"].includes(role))));
       if (pRes.ok) {
         const p = (pBody.policy || {}) as Policy;
         setDirect(String(p.direct_bps ?? 0));
@@ -159,11 +159,11 @@ export default function ChannelRules() {
         <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("policyTitle")}</CardTitle>
         <p className="mb-3 text-sm text-ink-secondary">{t("policyLead")}</p>
         <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3">
-          <Input value={direct} onChange={(e) => setDirect(e.target.value)} aria-label={t("directBps")} />
-          <Input value={indirect} onChange={(e) => setIndirect(e.target.value)} aria-label={t("indirectBps")} />
-          <Input value={total} onChange={(e) => setTotal(e.target.value)} aria-label={t("totalBps")} />
-          <Input value={freeze} onChange={(e) => setFreeze(e.target.value)} aria-label={t("freezeDays")} />
-          <Input value={minSettle} onChange={(e) => setMinSettle(e.target.value)} aria-label={t("minSettleUsd")} />
+          <Input disabled={!canWrite} value={direct} onChange={(e) => setDirect(e.target.value)} aria-label={t("directBps")} />
+          <Input disabled={!canWrite} value={indirect} onChange={(e) => setIndirect(e.target.value)} aria-label={t("indirectBps")} />
+          <Input disabled={!canWrite} value={total} onChange={(e) => setTotal(e.target.value)} aria-label={t("totalBps")} />
+          <Input disabled={!canWrite} value={freeze} onChange={(e) => setFreeze(e.target.value)} aria-label={t("freezeDays")} />
+          <Input disabled={!canWrite} value={minSettle} onChange={(e) => setMinSettle(e.target.value)} aria-label={t("minSettleUsd")} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
@@ -180,9 +180,9 @@ export default function ChannelRules() {
         <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("eligTitle")}</CardTitle>
         <p className="mb-3 text-sm text-ink-secondary">{inherited ? t("eligInherited") : t("eligLead")}</p>
         <div className="mb-3 grid max-w-3xl grid-cols-2 gap-2 md:grid-cols-3">
-          <Input value={spend} onChange={(e) => setSpend(e.target.value)} aria-label={t("spendUsd")} />
-          <Input value={topup} onChange={(e) => setTopup(e.target.value)} aria-label={t("topupUsd")} />
-          <Input value={gift} onChange={(e) => setGift(e.target.value)} aria-label={t("giftUsd")} />
+          <Input disabled={!canWrite} value={spend} onChange={(e) => setSpend(e.target.value)} aria-label={t("spendUsd")} />
+          <Input disabled={!canWrite} value={topup} onChange={(e) => setTopup(e.target.value)} aria-label={t("topupUsd")} />
+          <Input disabled={!canWrite} value={gift} onChange={(e) => setGift(e.target.value)} aria-label={t("giftUsd")} />
         </div>
         {canWrite ? (
           <ConfirmButton size="sm" title={t("confirmElig")} description={t("confirmEligD")} onConfirm={saveEligibility}>

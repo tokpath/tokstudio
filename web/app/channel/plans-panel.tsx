@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,6 +29,8 @@ import { listEligiblePlanChannels, type PlanChannel } from "@/lib/plan-channels"
 type Plan = { id?: string; name?: string; status?: string; owner_type?: string; owner_id?: string; price_minor?: number; review_reason?: string };
 
 export function ChannelPlans() {
+  const permissionViewer = useViewer();
+  const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
   const [createMessage, setCreateMessage] = useState(t("createHint"));
@@ -166,7 +171,7 @@ export function ChannelPlans() {
         {t("refreshPlans")}
       </Button>
       {actionMessage ? <p role="status" className="mt-2 text-sm text-ink-secondary">{actionMessage}</p> : null}
-      <Form {...form}>
+      {canOperate ? <Form {...form}>
         <form className="mt-4 grid max-w-xl gap-2" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
           <h3 className="text-lg font-medium">{t("createPlan")}</h3>
           <TextField control={form.control} name="name" label={t("planName")} />
@@ -202,7 +207,7 @@ export function ChannelPlans() {
           </Button>
           {createError ? <SubmitStatus error={createError} /> : <p className="text-sm text-ink-secondary">{createMessage}</p>}
         </form>
-      </Form>
+      </Form> : null}
       <ListResourceView
         snapshot={list.snapshot}
         loadingTitle={t("plansTitle")}
@@ -224,9 +229,9 @@ export function ChannelPlans() {
               ownerText(item.owner_type),
               formatUsdMinor(item.price_minor, tc("lessThanCent")),
               <span key="actions" className="flex flex-wrap gap-1">
-                <ConfirmButton size="sm" disabled={!item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
-                <ConfirmButton size="sm" variant="outline" disabled={!item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
-                <ConfirmButton size="sm" variant="outline" disabled={!item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
+                <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
+                <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
+                <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
               </span>,
             ],
           }))}

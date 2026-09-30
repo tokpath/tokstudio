@@ -1,5 +1,7 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -123,6 +125,7 @@ function OEMSecurity() {
 }
 
 export function OEMSettingsPage() {
+  const viewer = useViewer();
   const t = useTranslations("oem");
-  return <OEMPage page="settings"><section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="mb-3 font-semibold">{t("appearance")}</h2><div className="flex gap-3"><LocaleSwitch /><ThemeToggle /></div></section><OEMSecurity /><BrandEditor endpoint="/channel/brand" uploadEndpoint="/channel/brand/assets" /></OEMPage>;
+  return <OEMPage page="settings"><section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="mb-3 font-semibold">{t("appearance")}</h2><div className="flex gap-3"><LocaleSwitch /><ThemeToggle /></div></section><OEMSecurity /><BrandEditor readOnly={!canChannelAction("operations", viewer)} endpoint="/channel/brand" uploadEndpoint="/channel/brand/assets" /></OEMPage>;
 }

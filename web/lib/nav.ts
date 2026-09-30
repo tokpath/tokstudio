@@ -198,6 +198,7 @@ export const adminGroups: { titleKey: string; items: { href: string; key: string
       { href: "/admin/reconciliation", key: "reconciliation" },
       { href: "/admin/media", key: "media" },
       { href: "/admin/users", key: "users" },
+      { href: "/admin/staff", key: "staff" },
       { href: "/admin/alerts", key: "alerts" },
       { href: "/admin/runbooks", key: "runbooks" },
       { href: "/admin/audit", key: "audit" },

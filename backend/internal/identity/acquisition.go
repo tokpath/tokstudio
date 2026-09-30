@@ -347,7 +347,7 @@ func (s *Service) ListScopedUsers(ctx context.Context, viewer Principal, maskEma
 		q = q.Where("channel_org_id = ?", channelID)
 	}
 	roleIDs := []string{}
-	if !viewer.IsPlatformAdmin() && !viewer.HasRole("channel_admin", "finance_admin", "ops_admin") {
+	if !viewer.IsPlatformAdmin() && !viewer.HasRole("channel_admin", "finance_admin", "ops_admin") && !viewer.IsOEMStaff() {
 		mem, err := s.MemberRole(ctx, viewer.UserID)
 		if err != nil {
 			return nil, ErrChannelImmutable

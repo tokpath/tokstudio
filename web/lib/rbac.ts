@@ -1,4 +1,4 @@
-import { ADMIN_CONSOLE_ROLES } from "./console-home";
+import { ADMIN_CONSOLE_ROLES, OEM_CONSOLE_ROLES } from "./console-home";
 
 type NavGroupLike = { titleKey: string; items: { href: string; key: string }[] };
 
@@ -84,6 +84,7 @@ const ADMIN_PAGE_VIEW: Record<string, readonly string[]> = {
   "/admin/metrics": [P, F, O, T, A],
   "/admin/media": [P, O, T, A],
   "/admin/users": [P],
+  "/admin/staff": [P],
   "/admin/alerts": [P, O, T, A],
   "/admin/runbooks": [P, O, T, A],
   "/admin/audit": [P, A],
@@ -144,17 +145,35 @@ export function canAccessAdminConsole(roles: string[] | undefined | null): boole
 }
 
 export function canAccessChannelPortal(roles: string[] | undefined | null): boolean {
-  return hasAnyRole(roles, [P, "channel_admin"]);
+  return hasAnyRole(roles, [P, ...OEM_CONSOLE_ROLES]);
+}
+
+export type ChannelAction = "operations" | "finance" | "staff" | "paymentSettings";
+export function canChannelAction(action: ChannelAction, viewer: Viewer): boolean {
+  if (shouldBypassRbac(viewer) || viewer.roles.includes(P) || viewer.roles.includes("channel_admin")) return true;
+  return action === "operations" ? viewer.roles.includes("oem_ops") : action === "finance" ? viewer.roles.includes("oem_finance") : false;
 }
 
 export function canViewChannelHref(href: string, viewer: Viewer): boolean {
   if (shouldBypassRbac(viewer) || viewer.roles.includes(P)) return true;
-  if (!viewer.roles.includes("channel_admin")) return false;
-  if (href.startsWith("/channel/subchannels")) return viewer.channelType === "C";
-  if (["/channel/plans", "/channel/brand", "/channel/rules", "/channel/margin", "/channel/commission", "/channel/metrics", "/channel/media", "/channel/alerts", "/channel/runbooks", "/channel/audit", "/channel/settings"].some((path) => href === path || href.startsWith(`${path}/`))) {
-    return viewer.channelType === "C";
+  if (!hasAnyRole(viewer.roles, OEM_CONSOLE_ROLES)) return false;
+  const path = href.split("?")[0];
+  if (path === "/channel/staff" || path.startsWith("/channel/staff/")) return viewer.channelType === "C" && viewer.roles.includes("channel_admin");
+  if (path.startsWith("/channel/payments/rules")) return viewer.roles.includes("channel_admin");
+  if (viewer.roles.includes("channel_admin")) {
+    if (path.startsWith("/channel/subchannels")) return viewer.channelType === "C";
+    if (["/channel/plans", "/channel/brand", "/channel/rules", "/channel/margin", "/channel/commission", "/channel/metrics", "/channel/media", "/channel/alerts", "/channel/runbooks", "/channel/audit", "/channel/settings"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return viewer.channelType === "C";
+    return true;
   }
-  return true;
+  if (viewer.channelType !== "C") return false;
+  const common = ["/channel", "/channel/ledger", "/channel/usage", "/channel/margin", "/channel/metrics", "/channel/reconciliation", "/channel/commission", "/channel/commissions", "/channel/settlements", "/channel/alerts", "/channel/runbooks", "/channel/settings", "/channel/rules", "/channel/subchannels", "/channel/payments", "/channel/models"];
+  const operational = ["/channel/users", "/channel/keys", "/channel/models", "/channel/plans", "/channel/promos", "/channel/attribution", "/channel/media", "/channel/brand"];
+  const allowed = [...common, ...(hasAnyRole(viewer.roles, ["oem_ops", "oem_audit"]) ? operational : []), ...(viewer.roles.includes("oem_audit") ? ["/channel/audit"] : [])];
+  return allowed.some((prefix) => prefix === "/channel" ? path === prefix : path === prefix || path.startsWith(`${prefix}/`));
+}
+
+export function filterChannelGroups<T extends NavGroupLike>(groups: T[], viewer: Viewer): T[] {
+  return groups.map((group) => ({ ...group, items: group.items.filter((item) => canViewChannelHref(item.href, viewer)) })).filter((group) => group.items.length > 0) as T[];
 }
 
 export function canAccessPartnerPortal(viewer: Viewer): boolean {

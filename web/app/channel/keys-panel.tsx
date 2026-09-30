@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -30,6 +33,8 @@ function formatLastUsed(value?: string | null) {
 }
 
 export default function ChannelKeys() {
+  const permissionViewer = useViewer();
+  const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
   const [message, setMessage] = useState("");
   const list = useListResource<ChannelKey>({
@@ -63,6 +68,7 @@ export default function ChannelKeys() {
               formatLastUsed(item.last_used_at),
               item.id && item.status !== "disabled" ? (
                 <ConfirmButton
+                  disabled={!canOperate}
                   size="sm"
                   variant="outline"
                   title={t("confirmDisableKey")}

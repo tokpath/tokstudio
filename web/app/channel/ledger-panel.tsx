@@ -1,5 +1,8 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction } from "@/lib/rbac";
+
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -44,6 +47,9 @@ const selectClass =
   "h-10 min-h-10 w-full max-w-xs rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
 
 export default function ChannelLedger() {
+  const permissionViewer = useViewer();
+  const canOperate = canChannelAction("operations", permissionViewer);
+  const canFinance = canChannelAction("finance", permissionViewer);
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
   const [message, setMessage] = useState(t("ledgerHint"));
@@ -255,6 +261,7 @@ export default function ChannelLedger() {
           <Input value={memo} onChange={(e) => setMemo(e.target.value)} aria-label={t("memoLabel")} placeholder={t("memoPh")} />
         </div>
         <ConfirmButton
+          disabled={!canFinance}
           size="sm"
           title={t("confirmSupplier")}
           description={t("confirmSupplierD")}
@@ -279,6 +286,7 @@ export default function ChannelLedger() {
                 "—"
               ) : (
                 <ConfirmButton
+          disabled={!canFinance}
                   size="sm"
                   variant="outline"
                   title={t("confirmReverse")}
@@ -308,7 +316,7 @@ export default function ChannelLedger() {
                 ))}
               </select>
               <Input className="w-36" value={wholesaleUsd} onChange={(e) => setWholesaleUsd(e.target.value)} aria-label={t("usdLabel")} />
-              <ConfirmButton size="sm" title={t("confirmWholesale")} description={t("confirmWholesaleD")} onConfirm={wholesale}>
+              <ConfirmButton disabled={!canFinance} size="sm" title={t("confirmWholesale")} description={t("confirmWholesaleD")} onConfirm={wholesale}>
                 {t("grantWholesale")}
               </ConfirmButton>
             </div>
@@ -318,7 +326,7 @@ export default function ChannelLedger() {
             <p className="mb-3 text-sm text-ink-secondary">{t("createBLead")}</p>
             <div className="mb-3 flex flex-wrap gap-2">
               <Input className="w-56" value={bCode} onChange={(e) => setBCode(e.target.value)} aria-label={t("bCodeLabel")} placeholder="THC-B1" />
-              <ConfirmButton size="sm" title={t("confirmCreateB")} description={t("confirmCreateBD")} onConfirm={createB}>
+              <ConfirmButton disabled={!canOperate} size="sm" title={t("confirmCreateB")} description={t("confirmCreateBD")} onConfirm={createB}>
                 {t("createB")}
               </ConfirmButton>
             </div>

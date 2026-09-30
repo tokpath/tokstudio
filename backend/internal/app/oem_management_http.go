@@ -32,7 +32,7 @@ func (a *App) requireOEM() gin.HandlerFunc {
 // An explicit foreign channel fails closed instead of falling back to all data.
 func (a *App) oemScope(c *gin.Context) ([]string, bool) {
 	p := a.currentPrincipal(c)
-	if p == nil || !p.HasRole("channel_admin") {
+	if p == nil || !p.IsChannelStaff() {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 OEM 管理员可使用此功能", false)
 		return nil, false
 	}

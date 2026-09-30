@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -236,6 +237,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerCommissionRoutes(r)
 	a.registerOpsRoutes(r)
 	a.registerOEMManagementRoutes(r)
+	a.registerStaffRoutes(r)
 	return r
 }
 
@@ -362,7 +364,7 @@ func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth b
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
 			return
 		}
-		if !anyAuthenticated && len(roles) > 0 && !principal.HasRole(roles...) {
+		if !anyAuthenticated && len(roles) > 0 && !principal.HasRole(roles...) && !(principal.IsOEMStaff() && slices.Contains(roles, "channel_admin")) {
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
 			return
 		}

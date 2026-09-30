@@ -69,7 +69,10 @@
     "roleFinance": "财务",
     "roleOps": "运营",
     "roleTech": "技术",
-    "roleAudit": "只读审计"
+    "roleAudit": "只读审计",
+    "roleOEMOps": "OEM 运营",
+    "roleOEMFinance": "OEM 财务",
+    "roleOEMAudit": "OEM 只读审计"
   },
   "mega": {
     "models": "模型",
@@ -257,7 +260,8 @@
     "heroCommissionHint": "尚未结算的分销",
     "heroHealth": "Provider 健康",
     "heroHealthOk": "无未关闭熔断",
-    "heroHealthBad": "有熔断或低成功率"
+    "heroHealthBad": "有熔断或低成功率",
+    "staff": "员工与权限"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -2335,6 +2339,77 @@
         "title": "支付未到账",
         "body": "在支付订单中核对订单状态和支付凭证，联系支付服务或技术支持核验，再按核验结果处理。"
       }
+    }
+  },
+  "staff": {
+    "title": "员工与权限",
+    "platformDescription": "管理平台内部员工及岗位权限。",
+    "oemDescription": "管理自身品牌的内部员工及岗位权限。",
+    "create": "添加员工",
+    "createHint": "新建员工账号，或添加已注册的公司本部账号。",
+    "email": "邮箱",
+    "name": "姓名（选填）",
+    "password": "初始密码",
+    "passwordHint": "新账号至少 8 位；已有账号留空，沿用其原密码。",
+    "search": "按姓名或邮箱搜索",
+    "roleFilter": "按岗位筛选",
+    "statusFilter": "按状态筛选",
+    "allRoles": "所有岗位",
+    "allStatuses": "所有状态",
+    "refresh": "刷新",
+    "loading": "正在读取…",
+    "loadError": "读取失败，请刷新重试。",
+    "saveError": "保存失败，请重试。",
+    "saving": "保存中…",
+    "saved": "员工权限已更新。",
+    "empty": "暂无匹配的员工。",
+    "employee": "员工",
+    "role": "岗位",
+    "status": "状态",
+    "updated": "最近操作",
+    "actions": "操作",
+    "active": "正常",
+    "disabled": "已停用",
+    "editRoles": "编辑岗位",
+    "disable": "停用",
+    "enable": "恢复",
+    "history": "操作记录",
+    "created": "添加时间",
+    "roles": {
+      "admin": "管理员",
+      "ops": "运营",
+      "finance": "财务",
+      "tech": "技术",
+      "audit": "只读审计"
+    },
+    "rolesHint": "新岗位对现有会话立即生效。",
+    "disableHint": "停用后无法登录，现有会话和 API 密钥立即失效。",
+    "enableHint": "恢复后须重新登录。",
+    "otp": "当前管理员的 2FA 验证码",
+    "save": "保存",
+    "cancel": "取消",
+    "close": "关闭",
+    "noHistory": "暂无后续操作记录。",
+    "permissions": {
+      "platform": {
+        "admin": "管理全部平台功能和员工权限。",
+        "ops": "目录、模型、套餐及日常运营。",
+        "finance": "支付、账务、价格、额度及佣金。",
+        "tech": "提供商、路由及基础设施。",
+        "audit": "只读查看业务与审计记录。"
+      },
+      "oem": {
+        "admin": "管理本品牌及下属渠道全部业务和员工权限。",
+        "ops": "管理套餐、客户、模型授权、渠道和品牌信息。",
+        "finance": "管理本品牌支付、账务、额度、客户价及佣金规则。",
+        "audit": "只读查看本品牌业务与审计记录。"
+      }
+    },
+    "historyActions": {
+      "staff_create": "添加员工",
+      "staff_roles_update": "修改岗位",
+      "staff_disable": "停用员工",
+      "staff_enable": "恢复员工"
     }
   }
 }

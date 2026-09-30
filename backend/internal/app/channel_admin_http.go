@@ -41,13 +41,37 @@ func (a *App) setChannelAdmin(c *gin.Context) {
 	changed := false
 	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		var err error
-		changed, err = a.Identity.SetChannelAdminTx(tx, c.Param("id"), body.Email, *body.Enabled)
+		target, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), c.Param("id"))
+		if err != nil {
+			return err
+		}
+		changed, err = a.Identity.SetChannelAdminTx(tx, *a.currentPrincipal(c), c.Param("id"), body.Email, *body.Enabled)
 		if err != nil || !changed {
 			return err
 		}
 		_, err = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.admin.change", ResourceType: "channel", ResourceID: c.Param("id"), After: map[string]any{"email": strings.ToLower(strings.TrimSpace(body.Email)), "enabled": *body.Enabled, "reason": strings.TrimSpace(body.Reason)}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+		if err != nil {
+			return err
+		}
+		if target.Type == identity.ChannelTypeC {
+			// The scoped member includes no password or credential fields.
+			members, e := a.Identity.ListStaffTx(tx, identity.StaffScope{Type: "channel", ID: target.ID})
+			if e != nil {
+				return e
+			}
+			for _, member := range members {
+				if member.Email == strings.ToLower(strings.TrimSpace(body.Email)) {
+					_, err = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "staff.roles.update", ResourceType: "staff", ResourceID: member.UserID, After: member, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+					break
+				}
+			}
+		}
 		return err
 	})
+	if errors.Is(err, identity.ErrStaffLastAdmin) || errors.Is(err, identity.ErrSelfAction) || errors.Is(err, identity.ErrStaffTarget) {
+		a.abortStaffError(c, err)
+		return
+	}
 	if errors.Is(err, identity.ErrChannelAdminTarget) {
 		httpx.Abort(c, http.StatusConflict, "invalid_channel_admin", "目标必须是该 B/C 渠道已注册的用户；授权时账户和渠道须正常，且不能持有其他管理角色。未修改权限。", false)
 		return

@@ -13,11 +13,11 @@ describe("SettingsSubnav", () => {
     cleanup();
   });
 
-  it("keeps placeholder settings as labeled unavailable entries, not links", () => {
+  it("omits unfinished settings from the user task", () => {
     render(withZh(<SettingsSubnav />));
     expect(screen.getByRole("link", { name: "账户" }).getAttribute("href")).toBe("/app/settings");
     expect(screen.queryByRole("link", { name: /团队/ })).toBeNull();
-    expect(screen.getByText("团队").closest("[aria-disabled='true']")).toBeTruthy();
-    expect(screen.getAllByText("未开放").length).toBeGreaterThan(0);
+    expect(screen.queryByText("团队")).toBeNull();
+    expect(screen.queryByText("未开放")).toBeNull();
   });
 });

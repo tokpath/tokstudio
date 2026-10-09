@@ -267,6 +267,19 @@ func (s *Service) GetSupplier(ctx context.Context, entryID string) (*SupplierVie
 	return supplierView(row), nil
 }
 
+// SupplierOperation only returns the caller's own operation in its original book.
+func (s *Service) SupplierOperation(ctx context.Context, actorID, channelID, operationID string) (*SupplierView, error) {
+	var row supplierRow
+	err := s.db.WithContext(ctx).Where("actor_user_id = ? AND channel_org_id = ? AND idempotency_key = ?", actorID, channelID, operationID).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return supplierView(row), nil
+}
+
 func (s *Service) SupplierTotal(ctx context.Context, channelOrgID string) (int64, error) {
 	if channelOrgID == "" {
 		return 0, nil

@@ -84,6 +84,9 @@ func (a *App) adminChannelPnL(c *gin.Context) {
 }
 
 func (a *App) adminListSupplier(c *gin.Context) {
+	if a.supplierOperation(c) {
+		return
+	}
 	items, err := a.Billing.ListSupplier(c.Request.Context(), c.Query("channel_id"), 50)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取供应商支出失败", true)
@@ -93,6 +96,9 @@ func (a *App) adminListSupplier(c *gin.Context) {
 }
 
 func (a *App) channelListSupplier(c *gin.Context) {
+	if a.supplierOperation(c) {
+		return
+	}
 	channelID := a.actorBookChannelID(c)
 	items, err := a.Billing.ListSupplier(c.Request.Context(), channelID, 50)
 	if err != nil {
@@ -100,6 +106,29 @@ func (a *App) channelListSupplier(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) supplierOperation(c *gin.Context) bool {
+	operationID := strings.TrimSpace(c.Query("operation_id"))
+	if operationID == "" {
+		return false
+	}
+	p := a.currentPrincipal(c)
+	if p == nil {
+		httpx.Abort(c, http.StatusUnauthorized, "unauthorized", "请先登录", false)
+		return true
+	}
+	item, err := a.Billing.SupplierOperation(c.Request.Context(), p.UserID, a.actorBookChannelID(c), operationID)
+	if errors.Is(err, billing.ErrNotFound) {
+		httpx.OK(c, gin.H{"item": nil, "operation_status": "not_found"})
+		return true
+	}
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "原操作查询失败", true)
+		return true
+	}
+	httpx.OK(c, gin.H{"item": item, "operation_status": "recorded"})
+	return true
 }
 
 func (a *App) adminRecordSupplier(c *gin.Context) {

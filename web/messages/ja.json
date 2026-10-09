@@ -174,7 +174,7 @@
     "reconciliation": "照合",
     "activity": "リクエスト明細",
     "media": "メディア",
-    "referral": "紹介",
+    "referral": "招待と収益",
     "docs": "ドキュメント",
     "settings": "設定",
     "account": "アカウント",
@@ -183,7 +183,8 @@
     "billing": "請求プロフィール",
     "quotas": "クォータ",
     "apps": "接続済みアプリ",
-    "webhooks": "Webhook"
+    "webhooks": "Webhook",
+    "tools": "補助ツール"
   },
   "channelNav": {
     "channel": "このチャネル",
@@ -206,7 +207,8 @@
     "usage": "利用量",
     "reconciliation": "照合",
     "settlements": "精算",
-    "commissions": "手数料/精算"
+    "commissions": "手数料/精算",
+    "scope": "紹介"
   },
   "channelPayments": {
     "nav": "決済サブナビ",
@@ -248,7 +250,7 @@
     "settings": "設定",
     "refresh": "更新",
     "groupOverview": "概要",
-    "groupCatalog": "カタログとゲートウェイ",
+    "groupCatalog": "モデルとプラン",
     "groupBilling": "課金",
     "groupDistribution": "流通",
     "groupOps": "運用",
@@ -261,7 +263,14 @@
     "heroHealth": "Provider 健全性",
     "heroHealthOk": "開いているサーキットなし",
     "heroHealthBad": "遮断または低成功率",
-    "staff": "従業員と権限"
+    "staff": "従業員と権限",
+    "groupCustomers": "顧客とパートナー",
+    "groupFinance": "入金と精算",
+    "groupExceptions": "問題対応",
+    "groupReports": "経営分析",
+    "groupSettings": "設定と監査",
+    "groupTeam": "ブランドとチーム",
+    "brand": "ブランド設定"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -553,7 +562,10 @@
     "stPaid": "支払済み",
     "stUnknown": "不明な状態（{status}）",
     "ownerPlatform": "プラットフォーム",
-    "ownerChannel": "チャネル"
+    "ownerChannel": "チャネル",
+    "previousPage": "前のページ",
+    "nextPage": "次のページ",
+    "pageCount": "このページは {count} 件"
   },
   "public": {
     "compare": {
@@ -2340,7 +2352,8 @@
         "title": "入金が反映されない",
         "body": "注文状態と支払い証明を確認し、決済サービスまたは技術サポートで確認した後に処理します。"
       }
-    }
+    },
+    "invalidScope": "この絞り込みは管理範囲外です。リセットして対象を選択してください。"
   },
   "staff": {
     "title": "従業員と権限",

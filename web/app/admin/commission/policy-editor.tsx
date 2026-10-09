@@ -9,6 +9,7 @@ import { bpsToPercent, percentToBps } from "@/lib/commission-percent";
 import { parseUsdToMinor } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useViewer } from "@/components/rbac/viewer-context";
 import { ConfirmButton } from "@/components/confirm-button";
 
 type Policy = { version: string; direct_bps: number; indirect_bps: number; total_bps: number; freeze_days: number; min_settle_minor: number };
@@ -17,12 +18,13 @@ const emptyPolicy = { direct: "", indirect: "", total: "", freeze: "", minimum: 
 const emptyRule = { spend: "", topup: "", gift: "" };
 
 export function PolicyEditor({ prefix = "/admin", canEdit = false }: { prefix?: "/admin" | "/channel"; canEdit?: boolean }) {
+  const viewer = useViewer();
   const [policy, setPolicy] = useState(emptyPolicy);
   const [rule, setRule] = useState(emptyRule);
   const [version, setVersion] = useState("");
   const [message, setMessage] = useState("");
-  const policyQuery = useQuery({ queryKey: [prefix, "commission-policy"], queryFn: () => apiClient<{ policy?: Policy; error?: { message?: string } }>("GET", `${prefix}/commission-policy`), refetchOnWindowFocus: false });
-  const ruleQuery = useQuery({ queryKey: [prefix, "eligibility-rules"], queryFn: () => apiClient<{ rule?: Rule; error?: { message?: string } }>("GET", `${prefix}/eligibility-rules`), refetchOnWindowFocus: false });
+  const policyQuery = useQuery({ queryKey: [viewer.userId, prefix, "commission-policy"], queryFn: () => apiClient<{ policy?: Policy; error?: { message?: string } }>("GET", `${prefix}/commission-policy`), refetchOnWindowFocus: false });
+  const ruleQuery = useQuery({ queryKey: [viewer.userId, prefix, "eligibility-rules"], queryFn: () => apiClient<{ rule?: Rule; error?: { message?: string } }>("GET", `${prefix}/eligibility-rules`), refetchOnWindowFocus: false });
   useEffect(() => {
     const p = policyQuery.data?.policy;
     if (!p?.version) return;

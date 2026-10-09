@@ -122,6 +122,13 @@ func TestOverhaulSupplierRetryAndChangedPayload(t *testing.T) {
 	if _, e := a.Billing.RecordSupplier(ctx, "different-actor", input); !errors.Is(e, billing.ErrConflict) {
 		t.Fatalf("cross-actor operation reused: %v", e)
 	}
+	found, err := a.Billing.SupplierOperation(ctx, "overhaul-test", identity.OfficialChannelID, input.IdempotencyKey)
+	if err != nil || found.ID != original {
+		t.Fatalf("scoped recovery: %v", err)
+	}
+	if _, err := a.Billing.SupplierOperation(ctx, "different-actor", identity.OfficialChannelID, input.IdempotencyKey); !errors.Is(err, billing.ErrNotFound) {
+		t.Fatalf("operation leaked across actors: %v", err)
+	}
 	second := input
 	second.IdempotencyKey += "-another"
 	row, e := a.Billing.RecordSupplier(ctx, "overhaul-test", second)

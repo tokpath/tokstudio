@@ -5,6 +5,8 @@
 /* TokenHub Clearing 1.0：纸是 Light，碳是 Dark。组件只写这些语义变量，见 DESIGN.md。 */
 :root,
 html.light {
+  --font-sans: Inter, ui-sans-serif, system-ui;
+  --font-mono: "SFMono-Regular", Consolas;
   --canvas: #f4f1ea;
   --canvas-raised: #fffdf8;
   --ink: #141414;

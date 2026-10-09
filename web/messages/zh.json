@@ -174,7 +174,7 @@
     "reconciliation": "对账",
     "activity": "请求明细",
     "media": "媒体任务",
-    "referral": "推荐计划",
+    "referral": "邀请与收益",
     "docs": "文档",
     "settings": "设置",
     "account": "账户",
@@ -183,7 +183,8 @@
     "billing": "开票资料",
     "quotas": "用量配额",
     "apps": "已连接应用",
-    "webhooks": "Webhook"
+    "webhooks": "Webhook",
+    "tools": "辅助工具"
   },
   "channelNav": {
     "channel": "本渠道",
@@ -206,7 +207,8 @@
     "usage": "用量",
     "reconciliation": "对账",
     "settlements": "结算",
-    "commissions": "佣金/结算"
+    "commissions": "佣金/结算",
+    "scope": "推广"
   },
   "channelPayments": {
     "nav": "收款子导航",
@@ -248,7 +250,7 @@
     "settings": "系统设置",
     "refresh": "刷新",
     "groupOverview": "总览",
-    "groupCatalog": "目录与网关",
+    "groupCatalog": "模型与套餐",
     "groupBilling": "账务",
     "groupDistribution": "分销",
     "groupOps": "运营",
@@ -261,7 +263,14 @@
     "heroHealth": "Provider 健康",
     "heroHealthOk": "无未关闭熔断",
     "heroHealthBad": "有熔断或低成功率",
-    "staff": "员工与权限"
+    "staff": "员工与权限",
+    "groupCustomers": "客户与合作方",
+    "groupFinance": "资金与结算",
+    "groupExceptions": "异常处理",
+    "groupReports": "经营分析",
+    "groupSettings": "设置与审计",
+    "groupTeam": "品牌与团队",
+    "brand": "品牌配置"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -553,7 +562,10 @@
     "stPaid": "已支付",
     "stUnknown": "未知状态（{status}）",
     "ownerPlatform": "平台",
-    "ownerChannel": "渠道"
+    "ownerChannel": "渠道",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
+    "pageCount": "本页 {count} 条"
   },
   "public": {
     "compare": {
@@ -2340,7 +2352,8 @@
         "title": "支付未到账",
         "body": "在支付订单中核对订单状态和支付凭证，联系支付服务或技术支持核验，再按核验结果处理。"
       }
-    }
+    },
+    "invalidScope": "此筛选不属于当前经营范围，请重置后选择。"
   },
   "staff": {
     "title": "员工与权限",

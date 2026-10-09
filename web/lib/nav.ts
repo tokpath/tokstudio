@@ -27,37 +27,11 @@ export const PUBLIC_NAV_MORE = [
 
 /** 用户台侧栏分组：ofox 登录后 IA + DESIGN.md 账本入口。 */
 export const userNavGroups: { titleKey: string; items: NavItem[] }[] = [
-  {
-    titleKey: "start",
-    items: [
-      { href: "/app", key: "overview" },
-      { href: "/app/playground", key: "playground" },
-      { href: "/app/keys", key: "keys" },
-      { href: "/app/catalog", key: "catalog" },
-    ],
-  },
-  {
-    titleKey: "ledger",
-    items: [
-      { href: "/app/wallet", key: "wallet" },
-      { href: "/app/plans", key: "plans" },
-      { href: "/app/usage", key: "usage" },
-      { href: "/app/reconciliation", key: "reconciliation" },
-      { href: "/app/activity", key: "activity" },
-      { href: "/app/media", key: "media" },
-    ],
-  },
-  {
-    titleKey: "people",
-    items: [{ href: "/app/referral", key: "referral" }],
-  },
-  {
-    titleKey: "more",
-    items: [
-      { href: "/app/docs", key: "docs" },
-      { href: "/app/settings", key: "settings" },
-    ],
-  },
+  { titleKey: "start", items: [{ href: "/app/keys", key: "keys" }, { href: "/app/catalog", key: "catalog" }] },
+  { titleKey: "ledger", items: [{ href: "/app/usage", key: "usage" }, { href: "/app/wallet", key: "wallet" }] },
+  { titleKey: "people", items: [{ href: "/app/referral", key: "referral" }] },
+  { titleKey: "more", items: [{ href: "/app/settings", key: "settings" }] },
+  { titleKey: "tools", items: [{ href: "/app/playground", key: "playground" }, { href: "/app/media", key: "media" }] },
 ];
 
 /** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。未上线的入口只标注、不当成可用功能。 */
@@ -100,47 +74,15 @@ export function consoleItemHref(item: { href: string }, hashPrefix: string) {
 }
 
 export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
-  {
-    titleKey: "business",
-    items: [
-      { href: "/channel", key: "overview" },
-      { href: "/channel/users", key: "users" },
-      { href: "/channel/keys", key: "keys" },
-      { href: "/channel/models", key: "models" },
-      { href: "/channel/plans", key: "plans" },
-      { href: "/channel/payments", key: "payments" },
-      { href: "/channel/promos", key: "promos" },
-      { href: "/channel/brand", key: "brand" },
-    ],
-  },
-  {
-    titleKey: "subordinate",
-    items: [{ href: "/channel/subchannels", key: "subchannels" }],
-  },
-  {
-    titleKey: "ledger",
-    items: [
-      { href: "/channel/ledger", key: "books" },
-      { href: "/channel/rules", key: "rules" },
-      { href: "/channel/attribution", key: "attribution" },
-      { href: "/channel/usage", key: "usage" },
-      { href: "/channel/reconciliation", key: "reconciliation" },
-      { href: "/channel/settlements", key: "settlements" },
-      { href: "/channel/commissions", key: "commissions" },
-    ],
-  },
+  { titleKey: "business", items: [{ href: "/channel", key: "overview" }] },
+  { titleKey: "operations", items: [{ href: "/channel/users", key: "users" }] },
+  { titleKey: "scope", items: [{ href: "/channel/promos", key: "promos" }] },
+  { titleKey: "models", items: [{ href: "/channel/models", key: "models" }] },
+  { titleKey: "ledger", items: [{ href: "/channel/commissions", key: "commissions" }, { href: "/channel/settlements", key: "settlements" }] },
 ];
 
 export function channelNavGroupsFor(channelType?: string) {
-  if (channelType === "C") return oemNavGroups;
-  if (channelType !== "B") return channelNavGroups;
-  return channelNavGroups
-    .filter((group) => group.titleKey !== "subordinate")
-    .map((group) => ({
-      ...group,
-      titleKey: group.titleKey === "business" ? "operations" : group.titleKey,
-      items: group.items.filter((item) => !["plans", "brand", "rules", "payments", "books", "reconciliation"].includes(item.key)),
-    }));
+  return channelType === "C" ? oemNavGroups : channelNavGroups;
 }
 
 export const partnerNavGroups: { titleKey: string; items: NavItem[] }[] = [
@@ -160,79 +102,33 @@ export const channelSections: NavItem[] = channelNavGroups.flatMap((group) => gr
 export const partnerSections: NavItem[] = partnerNavGroups.flatMap((group) => group.items);
 
 export const adminGroups: { titleKey: string; items: { href: string; key: string }[] }[] = [
-  {
-    titleKey: "groupOverview",
-    items: [{ href: "/admin", key: "overview" }],
-  },
-  {
-    titleKey: "groupCatalog",
-    items: [
-      { href: "/admin/providers", key: "providers" },
-      { href: "/admin/models", key: "models" },
-      { href: "/admin/routes", key: "routes" },
-    ],
-  },
-  {
-    titleKey: "groupBilling",
-    items: [
-      { href: "/admin/plans", key: "plans" },
-      { href: "/admin/payments", key: "payments" },
-      { href: "/admin/billing", key: "billing" },
-      { href: "/admin/usage", key: "usage" },
-      { href: "/admin/margin", key: "margin" },
-    ],
-  },
-  {
-    titleKey: "groupDistribution",
-    items: [
-      { href: "/admin/channels", key: "channels" },
-      { href: "/admin/brands", key: "brands" },
-      { href: "/admin/promos", key: "promos" },
-      { href: "/admin/commission", key: "commission" },
-    ],
-  },
-  {
-    titleKey: "groupOps",
-    items: [
-      { href: "/admin/metrics", key: "metrics" },
-      { href: "/admin/reconciliation", key: "reconciliation" },
-      { href: "/admin/media", key: "media" },
-      { href: "/admin/users", key: "users" },
-      { href: "/admin/staff", key: "staff" },
-      { href: "/admin/alerts", key: "alerts" },
-      { href: "/admin/runbooks", key: "runbooks" },
-      { href: "/admin/audit", key: "audit" },
-      { href: "/admin/settings", key: "settings" },
-    ],
-  },
+  { titleKey: "groupOverview", items: [{ href: "/admin", key: "overview" }] },
+  { titleKey: "groupCustomers", items: [{ href: "/admin/users", key: "users" }, { href: "/admin/channels", key: "channels" }, { href: "/admin/promos", key: "promos" }] },
+  { titleKey: "groupCatalog", items: [{ href: "/admin/models", key: "models" }, { href: "/admin/plans", key: "plans" }, { href: "/admin/providers", key: "providers" }, { href: "/admin/routes", key: "routes" }] },
+  { titleKey: "groupFinance", items: [{ href: "/admin/payments", key: "payments" }, { href: "/admin/commission", key: "commission" }, { href: "/admin/billing", key: "billing" }] },
+  { titleKey: "groupExceptions", items: [{ href: "/admin/reconciliation", key: "reconciliation" }, { href: "/admin/usage", key: "usage" }, { href: "/admin/media", key: "media" }, { href: "/admin/alerts", key: "alerts" }] },
+  { titleKey: "groupReports", items: [{ href: "/admin/metrics", key: "metrics" }, { href: "/admin/margin", key: "margin" }] },
+  { titleKey: "groupSettings", items: [{ href: "/admin/brands", key: "brands" }, { href: "/admin/staff", key: "staff" }, { href: "/admin/audit", key: "audit" }, { href: "/admin/settings", key: "settings" }] },
 ];
+export const adminNavKeys = adminGroups.flatMap(group => group.items.map(item => item.key));
 
-export const adminNavKeys = adminGroups.flatMap((group) => group.items.map((item) => item.key));
-
-// OEM shares the platform information architecture. Feature pages retain their
-// scoped /channel APIs; hiding the technical catalogue never grants admin access.
-const oemPaths: Record<string, string> = {
-  overview: "/channel",
-  billing: "/channel/ledger",
-  channels: "/channel/subchannels",
-};
-export const oemNavGroups = adminGroups
-  .filter((group) => group.titleKey !== "groupCatalog")
-  .map((group) => ({
-    titleKey: group.titleKey,
-    items: group.items
-      .filter((item) => item.key !== "brands")
-      .map((item) => ({ ...item, href: oemPaths[item.key] ?? item.href.replace("/admin", "/channel") })),
-  }));
+/** OEM tasks are explicit and independent from platform technical administration. */
+export const oemNavGroups: { titleKey: string; items: NavItem[] }[] = [
+  { titleKey: "groupOverview", items: [{ href: "/channel", key: "overview" }] },
+  { titleKey: "groupCustomers", items: [{ href: "/channel/users", key: "users" }, { href: "/channel/subchannels", key: "channels" }, { href: "/channel/promos", key: "promos" }] },
+  { titleKey: "groupCatalog", items: [{ href: "/channel/models", key: "models" }, { href: "/channel/plans", key: "plans" }] },
+  { titleKey: "groupFinance", items: [{ href: "/channel/payments", key: "payments" }, { href: "/channel/commission", key: "commission" }, { href: "/channel/ledger", key: "billing" }] },
+  { titleKey: "groupExceptions", items: [{ href: "/channel/alerts", key: "alerts" }, { href: "/channel/usage", key: "usage" }, { href: "/channel/reconciliation", key: "reconciliation" }, { href: "/channel/media", key: "media" }] },
+  { titleKey: "groupReports", items: [{ href: "/channel/metrics", key: "metrics" }, { href: "/channel/margin", key: "margin" }] },
+  { titleKey: "groupTeam", items: [{ href: "/channel/brand", key: "brand" }, { href: "/channel/staff", key: "staff" }, { href: "/channel/settings", key: "settings" }, { href: "/channel/audit", key: "audit" }] },
+];
 
 /** Secondary tools belong to their parent page instead of a second OEM sidebar. */
 export function channelNavItemForPath(pathname: string, channelType?: string) {
   if (channelType === "C") {
     const parent = [
-      ["/channel/models", "/channel/subchannels"],
-      ["/channel/keys", "/channel/users"],
-      ["/channel/brand", "/channel/settings"],
-      ["/channel/rules", "/channel/commission"],
+            ["/channel/keys", "/channel/users"],
+            ["/channel/rules", "/channel/commission"],
       ["/channel/commissions", "/channel/ledger"],
       ["/channel/settlements", "/channel/commission"],
       ["/channel/attribution", "/channel/promos"],

@@ -174,7 +174,7 @@
     "reconciliation": "Reconciliation",
     "activity": "Activity",
     "media": "Media",
-    "referral": "Referral",
+    "referral": "Invitations and earnings",
     "docs": "Docs",
     "settings": "Settings",
     "account": "Account",
@@ -183,7 +183,8 @@
     "billing": "Billing profile",
     "quotas": "Quotas",
     "apps": "Connected apps",
-    "webhooks": "Webhook"
+    "webhooks": "Webhook",
+    "tools": "Tools"
   },
   "channelNav": {
     "channel": "This channel",
@@ -206,7 +207,8 @@
     "usage": "Usage",
     "reconciliation": "Reconciliation",
     "settlements": "Settlements",
-    "commissions": "Commissions"
+    "commissions": "Commissions",
+    "scope": "Promotion"
   },
   "channelPayments": {
     "nav": "Payments subnav",
@@ -248,7 +250,7 @@
     "settings": "Settings",
     "refresh": "Refresh",
     "groupOverview": "Overview",
-    "groupCatalog": "Catalog & gateway",
+    "groupCatalog": "Models and plans",
     "groupBilling": "Billing",
     "groupDistribution": "Distribution",
     "groupOps": "Operations",
@@ -261,7 +263,14 @@
     "heroHealth": "Provider health",
     "heroHealthOk": "No open circuit breakers",
     "heroHealthBad": "Open breaker or low success rate",
-    "staff": "Staff & permissions"
+    "staff": "Staff & permissions",
+    "groupCustomers": "Customers and partners",
+    "groupFinance": "Payments and settlements",
+    "groupExceptions": "Exceptions",
+    "groupReports": "Business reports",
+    "groupSettings": "Settings and audit",
+    "groupTeam": "Brand and team",
+    "brand": "Brand"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -553,7 +562,10 @@
     "stPaid": "Paid",
     "stUnknown": "Unknown status ({status})",
     "ownerPlatform": "Platform",
-    "ownerChannel": "Channel"
+    "ownerChannel": "Channel",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pageCount": "{count} records on this page"
   },
   "public": {
     "compare": {
@@ -2340,7 +2352,8 @@
         "title": "Payment not credited",
         "body": "Check the payment order and receipt. Contact the payment service or technical support to verify the result before taking action."
       }
-    }
+    },
+    "invalidScope": "This filter is outside your business scope. Reset it and select an allowed organization."
   },
   "staff": {
     "title": "Staff & permissions",

@@ -53,7 +53,7 @@ export function consoleHomeForViewer(input: {
     return home;
   }
   // Every registered user has a personal promotion role; keep their API workspace as home.
-  return input.isPartner && input.partnerRole !== "promoter" ? "/partner" : "/app";
+  return "/app";
 }
 
 export async function resolveConsoleHref(fetcher: typeof fetch = fetch): Promise<string> {
@@ -68,13 +68,7 @@ export async function resolveConsoleHref(fetcher: typeof fetch = fetch): Promise
     if (rbacHome !== "/app") {
       return rbacHome;
     }
-    try {
-      const partnerRes = await fetcher(`${apiBase}/v1/partner/me`, { credentials: "include" });
-      const partner = partnerRes.ok ? await partnerRes.json() : {};
-      return consoleHomeForViewer({ roles, isPartner: partnerRes.ok, partnerRole: partner.role_type });
-    } catch {
-      return "/app";
-    }
+    return "/app";
   } catch {
     return loginHref(CONSOLE_ENTRY_PATH);
   }

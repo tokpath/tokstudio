@@ -28,12 +28,13 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
   const [memo, setMemo] = useState("");
   const [when, setWhen] = useState(localTime);
   const [operation, setOperation] = useState<SavedOperation<Payload> | null>(null);
+  const [conflict, setConflict] = useState(false);
   const [message, setMessage] = useState("");
   const [reason, setReason] = useState("");
   const path = `${prefix}/supplier-entries${channelID ? `?channel_id=${encodeURIComponent(channelID)}` : ''}`;
-  const query = useQuery({ queryKey: [path], queryFn: () => apiClient<{ items?: Supplier[]; error?: { message?: string } }>("GET", path) });
+  const query = useQuery({ queryKey: [viewer.userId, path], queryFn: () => apiClient<{ items?: Supplier[]; error?: { message?: string } }>("GET", path) });
   useEffect(() => {
-    const saved = loadOperation<Payload>(storageKey); setOperation(saved);
+    const saved = loadOperation<Payload>(storageKey); setOperation(saved); setConflict(false);
     if (saved) {
       setUsd(String(saved.payload.amount_minor / 1_000_000)); setVendor(saved.payload.vendor_name); setSource(saved.payload.source_type); setMemo(saved.payload.memo);
       const date = new Date(saved.payload.occurred_at); setWhen(new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16));
@@ -50,6 +51,7 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
       const response = await fetch(`${apiBase}${prefix}/supplier-entries`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ ...pending.payload, idempotency_key: pending.id }) });
       const body = await response.json();
       if (!response.ok) {
+        if (response.status === 409) setConflict(true);
         if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 409) { finishOperation(storageKey); setOperation(null); }
         setMessage(body.error?.message || "登记失败，保留原操作与内容。"); return false;
       }
@@ -57,6 +59,20 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
       const result = await query.refetch();
       setMessage(`已登记支出 ${body.item?.id}。${result.isError || result.data?.error ? '流水回读失败，请刷新查询；本笔已登记。' : ''}`); return true;
     } catch { setMessage(pending ? `结果待确认，原操作 ${pending.id}。重试只查询/登记同一笔，不能修改金额或对象。` : "无法保存操作身份，尚未提交；请检查浏览器存储。"); return false; }
+  }
+  async function checkOriginal() {
+    if (!operation) return;
+    try {
+      const response = await fetch(`${apiBase}${prefix}/supplier-entries?operation_id=${encodeURIComponent(operation.id)}`, { credentials: 'include' });
+      const body = await response.json();
+      if (!response.ok) { setMessage(body.error?.message || '原操作查询失败，请重试。'); return; }
+      if (body.operation_status === 'recorded' && body.item) {
+        setMessage(`原操作已登记：${body.item.id}，${body.item.vendor_name || '—'}，${formatUsdMinor(body.item.amount_minor)} USD。请核对流水。`);
+        finishOperation(storageKey); setOperation(null); setConflict(false); await query.refetch();
+      } else if (body.operation_status === 'not_found' && conflict) {
+        finishOperation(storageKey); setOperation(null); setConflict(false); setMessage('已确认本账户没有该操作记录。原操作存在身份或参数冲突，可核对后登记新的实际交易。');
+      } else { setMessage('尚未查询到已完成记录，可重试同一原操作。'); }
+    } catch { setMessage('原操作查询结果未知，请保留当前操作重试。'); }
   }
   async function reverse(item: Supplier) {
     if (!reason.trim()) { setMessage("请填写本次冲正原因。"); return false; }
@@ -78,7 +94,8 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
         <label className="grid gap-1 text-sm">说明（可选）<Input aria-label="说明（可选）" value={memo} onChange={e => setMemo(e.target.value)} /></label>
       </fieldset>
       {operation ? <p role="status" className="mb-3 text-sm text-hold">待确认：{operation.payload.vendor_name}，{formatUsdMinor(operation.payload.amount_minor)} USD；原操作 {operation.id}。</p> : null}
-      <ConfirmButton size="sm" disabled={viewer.loading || !viewer.userId} title="登记已实际付款的支出" description={`付款对象 ${operation?.payload.vendor_name || vendor}，金额 ${formatUsdMinor(operation?.payload.amount_minor ?? parseUsdToMinor(usd))} USD；确认款项已经在线下支付，本次只登记。`} onConfirm={record}>{operation ? "查询/重试原操作" : "登记支出"}</ConfirmButton>
+      <ConfirmButton size="sm" disabled={viewer.loading || !viewer.userId} title="登记已实际付款的支出" description={`付款对象 ${operation?.payload.vendor_name || vendor}，金额 ${formatUsdMinor(operation?.payload.amount_minor ?? parseUsdToMinor(usd))} USD；确认款项已经在线下支付，本次只登记。`} onConfirm={record}>{operation ? "重试原操作" : "登记支出"}</ConfirmButton>
+      {operation ? <Button size="sm" variant="outline" className="ml-2" onClick={() => void checkOriginal()}>查询原操作结果</Button> : null}
     </> : null}
     <Button size="sm" variant="outline" className="ml-2" onClick={() => void query.refetch()}>刷新流水</Button>
     {query.isError || query.data?.error ? <p role="alert">流水读取失败，请重试。</p> : null}

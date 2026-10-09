@@ -32,13 +32,13 @@ test("channel admin console button opens channel console", async ({ page }) => {
   await expect(page).toHaveURL(/\/channel\/?$/);
 });
 
-test("partner console button opens partner console", async ({ page }) => {
+test("inviting user console button opens the same user account", async ({ page }) => {
   await mockViewer(page, { roles: ["end_user"], partner: true });
   await page.goto("/");
   const consoleLink = page.locator("header").first().getByRole("link", { name: "控制台" });
-  await expect(consoleLink).toHaveAttribute("href", "/partner");
+  await expect(consoleLink).toHaveAttribute("href", "/app");
   await consoleLink.click();
-  await expect(page).toHaveURL(/\/partner\/?$/);
+  await expect(page).toHaveURL(/\/app\/?$/);
 });
 
 test("end user console button opens user console", async ({ page }) => {

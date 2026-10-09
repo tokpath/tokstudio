@@ -49,8 +49,8 @@ describe("consoleHomeForViewer", () => {
     expect(consoleHomeForViewer({ roles: ["channel_admin"], isPartner: true })).toBe("/channel");
   });
 
-  it("sends acquisition partners to the partner console", () => {
-    expect(consoleHomeForViewer({ roles: ["end_user"], isPartner: true })).toBe("/partner");
+  it("keeps invitation earners in the same API account", () => {
+    expect(consoleHomeForViewer({ roles: ["end_user"], isPartner: true })).toBe("/app");
     expect(consoleHomeForViewer({ roles: ["end_user"], isPartner: false })).toBe("/app");
   });
 });
@@ -68,13 +68,13 @@ describe("resolveConsoleHref", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("checks partner/me for ordinary users", async () => {
+  it("does not require a separate partner lookup for ordinary users", async () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(true, { user: { roles: ["end_user"] } }))
       .mockResolvedValueOnce(jsonResponse(true, { role_type: "agent" }));
-    await expect(resolveConsoleHref(fetcher)).resolves.toBe("/partner");
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    await expect(resolveConsoleHref(fetcher)).resolves.toBe("/app");
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("keeps ordinary users on /app when they are not partners", async () => {

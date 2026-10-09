@@ -1,15 +1,14 @@
 export type TenantListKind = "channel" | "agent" | "kol";
 
 export const CHANNEL_TYPES = [
-  { value: "A", label: "A 平台" },
-  { value: "B", label: "B 渠道" },
-  { value: "C", label: "C OEM 平台" },
+  { value: "A", label: "平台" },
+  { value: "B", label: "渠道" },
+  { value: "C", label: "OEM" },
 ] as const;
 
 export const ROLE_TYPES = [
   { value: "agent", label: "代理商" },
-  { value: "kol_l1", label: "1 级 KOL" },
-  { value: "kol_l2", label: "2 级 KOL" },
+  { value: "promoter", label: "个人推广员" },
 ] as const;
 
 export const STATUS_OPTIONS = [
@@ -22,15 +21,16 @@ export function channelTypeLabel(type: string): string {
 }
 
 export function roleTypeLabel(type: string): string {
+  if (["kol_l1", "kol_l2"].includes(type)) return "个人推广员";
   return ROLE_TYPES.find((item) => item.value === type)?.label ?? type;
 }
 
 export function isKOLType(type: string): boolean {
-  return type === "kol_l1" || type === "kol_l2";
+  return type === "promoter" || type === "kol_l1" || type === "kol_l2";
 }
 
 export function channelUsesQuota(type: string): boolean {
-  return type === "B" || type === "C";
+  return type === "C";
 }
 
 export function channelHref(id: string): string {

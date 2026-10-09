@@ -105,12 +105,25 @@ func stripeWebhookEvent(payload map[string]any) *WebhookEvent {
 		ev.OrderID = asString(meta["order_id"])
 	}
 	switch typ {
-	case "payment_intent.succeeded", "charge.succeeded":
+	case "payment_intent.succeeded":
 		ev.Status = StatusPaid
+		ev.CheckPaidAmount = true
+		ev.PaidAmountMinor = callbackAmount(obj["amount_received"])
+		ev.Currency = strings.ToUpper(asString(obj["currency"]))
+	case "charge.succeeded":
+		if obj["paid"] == true && obj["captured"] == true {
+			ev.Status = StatusPaid
+		}
+		ev.CheckPaidAmount = true
+		ev.PaidAmountMinor = callbackAmount(obj["amount_captured"])
+		ev.Currency = strings.ToUpper(asString(obj["currency"]))
 	case "checkout.session.completed", "checkout.session.async_payment_succeeded":
 		if asString(obj["payment_status"]) == "paid" {
 			ev.Status = StatusPaid
 		}
+		ev.CheckPaidAmount = true
+		ev.PaidAmountMinor = callbackAmount(obj["amount_total"])
+		ev.Currency = strings.ToUpper(asString(obj["currency"]))
 		if ev.OrderID == "" {
 			ev.OrderID = asString(obj["client_reference_id"])
 		}

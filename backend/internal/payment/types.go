@@ -40,6 +40,7 @@ const (
 
 	StatusPending       = "pending"
 	StatusPaid          = "paid"
+	StatusPaymentReview = "payment_review"
 	StatusFailed        = "failed"
 	StatusRefunded      = "refunded"
 	StatusRefunding     = "refunding"
@@ -82,6 +83,7 @@ type ListOrdersFilter struct {
 }
 
 type OrderView struct {
+	PaymentIssue      string     `json:"payment_issue,omitempty"`
 	RefundStatus      string     `json:"refund_status,omitempty"`
 	RefundAmountMinor *int64     `json:"refund_amount_minor,omitempty"`
 	ReceivedAt        *time.Time `json:"received_at,omitempty"`

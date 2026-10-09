@@ -24,6 +24,14 @@ func callbackAmount(value any) *int64 {
 	return &amount
 }
 
+func paymentAmountMatches(adapter string, order *OrderView, amount *int64, currency string) bool {
+	expected := order.AmountMinor
+	if adapter == AdapterStripe {
+		expected = stripeCents(expected)
+	}
+	return amount != nil && *amount == expected && strings.ToUpper(order.Currency) == strings.ToUpper(currency)
+}
+
 func sameCallbackPayload(a, b []byte) bool {
 	var av, bv any
 	if json.Unmarshal(a, &av) != nil || json.Unmarshal(b, &bv) != nil {
@@ -91,6 +99,9 @@ func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers htt
 		}
 		if owned.OrderID != order.ID && !(owned.OrderID == "" && owned.TradeID != "" && owned.TradeID == order.TradeID) {
 			return nil, ErrInvalidEvent
+		}
+		if parsed.CheckPaidAmount && parsed.Status == StatusPaid && !paymentAmountMatches(adapter, order, parsed.PaidAmountMinor, parsed.Currency) {
+			parsed.Status = StatusPaymentReview
 		}
 		if parsed.CheckRefundAmount {
 			expected := order.AmountMinor
@@ -169,6 +180,8 @@ func (s *Service) applyWebhook(ctx context.Context, ev *WebhookEvent, order *Ord
 	switch ev.Status {
 	case StatusPaid:
 		return s.markPaid(ctx, ev.OrderID, ev.TradeID)
+	case StatusPaymentReview:
+		return s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ?", ev.OrderID).Update("payment_issue", "amount_or_currency_mismatch").Error
 	case StatusFailed:
 		return s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ? AND status = ?", ev.OrderID, StatusPending).Updates(map[string]any{"status": StatusFailed, "updated_at": time.Now().UTC()}).Error
 	case StatusRefunded:
@@ -213,7 +226,7 @@ func (s *Service) applyWebhook(ctx context.Context, ev *WebhookEvent, order *Ord
 // This never initiates another external payment or refund.
 func (s *Service) RetryUnappliedEvents(ctx context.Context) (int, error) {
 	var rows []eventRow
-	if err := s.db.WithContext(ctx).Where("signature_valid = true AND applied_at IS NULL AND order_id IS NOT NULL AND status <> '' AND processing_error = ?", "local_application_failed").Order("processed_at,id").Limit(50).Find(&rows).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("signature_valid = true AND applied_at IS NULL AND order_id IS NOT NULL AND status IN ?", []string{StatusPaid, StatusRefunded}).Order("processed_at,id").Limit(50).Find(&rows).Error; err != nil {
 		return 0, err
 	}
 	n := 0

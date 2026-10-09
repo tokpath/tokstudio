@@ -105,12 +105,16 @@ func TestHierarchicalModelAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var prices map[string]string
+	var prices map[string]any
 	if err := json.Unmarshal(quote, &prices); err != nil {
 		t.Fatal(err)
 	}
 	if prices["input"] != "0.000003" || prices["output"] != "0.000005" || prices["wholesale_input"] != "0.0000007" {
 		t.Fatalf("B did not inherit OEM customer price while keeping its settlement terms: %+v", prices)
+	}
+	sell, ok := prices["customer_sell"].(map[string]any)
+	if !ok || sell["input"] != prices["input"] || sell["output"] != prices["output"] {
+		t.Fatalf("nested and flat brand prices differ: %+v", prices)
 	}
 	grant(parent, cfg.BootstrapAdmin, false)
 	checkVisible(parent, false)

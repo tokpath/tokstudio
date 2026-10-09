@@ -2859,7 +2859,8 @@
     "refundReviewHint": "決済側の返金と内部会計の照合が必要です。新しい返金や入金を行う前に、元の注文と通知を確認してください。",
     "receivedEvent": "通知を受信",
     "appliedEvent": "内部処理完了",
-    "applicationPending": "内部処理の復旧待ち"
+    "applicationPending": "内部処理の復旧待ち",
+    "paymentReviewHint": "決済通知の金額または通貨が元の注文と一致しません。この通知による残高付与は行っていません。元の注文と決済記録を確認してください。"
   },
   "walletOperation": {
     "resume": "進行中のチャージがあります。元の操作を再開するか結果を確認してください。",

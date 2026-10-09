@@ -2859,7 +2859,8 @@
     "refundReviewHint": "退款回报与本地账务需要核对。请先核查原订单与支付回调，不要再次发起新退款或入账。",
     "receivedEvent": "已收到回调",
     "appliedEvent": "本地处理完成",
-    "applicationPending": "本地处理待恢复"
+    "applicationPending": "本地处理待恢复",
+    "paymentReviewHint": "支付回报金额或币种与原订单不符，未据此发放额度。请先核对原订单与支付机构记录。"
   },
   "walletOperation": {
     "resume": "已有一笔充值操作，请先继续原操作或确认结果。",

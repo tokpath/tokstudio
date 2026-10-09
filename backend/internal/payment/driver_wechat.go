@@ -133,7 +133,8 @@ func (d wechatDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryRe
 	if st == "CLOSED" || st == "PAYERROR" {
 		out = StatusFailed
 	}
-	return &QueryResult{Status: out, TradeID: asString(obj["transaction_id"])}, nil
+	amount, _ := obj["amount"].(map[string]any)
+	return &QueryResult{Status: out, TradeID: asString(obj["transaction_id"]), CheckPaidAmount: true, PaidAmountMinor: callbackAmount(amount["total"]), Currency: asString(amount["currency"])}, nil
 }
 
 func (d wechatDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResult, error) {

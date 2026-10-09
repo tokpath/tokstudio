@@ -23,6 +23,7 @@ import (
 var migrationFS embed.FS
 
 type orderRow struct {
+	PaymentIssue      string     `gorm:"column:payment_issue"`
 	ID                string     `gorm:"column:id;primaryKey"`
 	UserID            string     `gorm:"column:user_id"`
 	PayeeChannelOrgID string     `gorm:"column:payee_channel_org_id"`
@@ -260,8 +261,17 @@ func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) 
 	if err != nil {
 		return nil, err
 	}
+	if res == nil {
+		return nil, ErrInvalidEvent
+	}
 	switch res.Status {
 	case StatusPaid:
+		if res.CheckPaidAmount && !paymentAmountMatches(order.Adapter, order, res.PaidAmountMinor, res.Currency) {
+			if err := s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ?", order.ID).Update("payment_issue", "amount_or_currency_mismatch").Error; err != nil {
+				return nil, err
+			}
+			return s.GetOrder(ctx, order.ID, userID)
+		}
 		if err := s.markPaid(ctx, order.ID, res.TradeID); err != nil {
 			return nil, err
 		}
@@ -665,7 +675,7 @@ func (s *Service) plugin(id string) (Adapter, bool) {
 
 func orderView(row orderRow) *OrderView {
 	view := &OrderView{
-		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
+		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose, PaymentIssue: row.PaymentIssue,
 		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
 		FulfilledAt: row.FulfilledAt, PayeeChannelOrgID: row.PayeeChannelOrgID, ReceiptReference: row.ReceiptReference, RecordedBy: row.RecordedBy,
 		ReceivedAt: row.ReceivedAt, ReceiptNote: row.ReceiptNote,

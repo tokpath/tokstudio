@@ -140,6 +140,10 @@ func wechatWebhookEvent(outer, inner map[string]any) *WebhookEvent {
 		switch asString(inner["trade_state"]) {
 		case "SUCCESS":
 			ev.Status = StatusPaid
+			ev.CheckPaidAmount = true
+			amount, _ := inner["amount"].(map[string]any)
+			ev.PaidAmountMinor = callbackAmount(amount["total"])
+			ev.Currency = strings.ToUpper(asString(amount["currency"]))
 		case "CLOSED", "PAYERROR":
 			ev.Status = StatusFailed
 		}

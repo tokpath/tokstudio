@@ -155,7 +155,7 @@ func (d stripeDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryRe
 	case "canceled":
 		out = StatusFailed
 	}
-	return &QueryResult{Status: out, TradeID: asString(obj["id"])}, nil
+	return &QueryResult{Status: out, TradeID: asString(obj["id"]), CheckPaidAmount: true, PaidAmountMinor: callbackAmount(obj["amount_received"]), Currency: asString(obj["currency"])}, nil
 }
 
 func (d stripeDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResult, error) {

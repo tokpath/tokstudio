@@ -86,6 +86,8 @@ type WebhookRequest struct {
 }
 
 type WebhookEvent struct {
+	PaidAmountMinor *int64
+	CheckPaidAmount bool
 	// Official refund callbacks must match the original full cash amount before reversing credits.
 	RefundAmountMinor   *int64
 	OriginalAmountMinor *int64
@@ -106,8 +108,11 @@ type QueryRequest struct {
 }
 
 type QueryResult struct {
-	Status  string
-	TradeID string
+	CheckPaidAmount bool
+	PaidAmountMinor *int64
+	Currency        string
+	Status          string
+	TradeID         string
 }
 
 type RefundRequest struct {

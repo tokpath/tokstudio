@@ -230,6 +230,7 @@ func (a *App) Router() *gin.Engine {
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
 	a.registerCustomerRoutes(r)
+	a.registerPersonalRecordsRoutes(r)
 	a.registerBrandWriteRoutes(r)
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)

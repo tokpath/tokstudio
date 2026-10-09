@@ -9,7 +9,7 @@ vi.mock("next/navigation",()=>({usePathname:()=>"/app/plans",useSearchParams:()=
 vi.mock("@/components/rbac/viewer-context",()=>({useViewer:()=>({signedIn:true,loading:false,userId:state.userId,roles:["end_user"]})}));
 vi.mock("@/components/brand-context",()=>({useBrand:()=>({id:"brand-a"})}));
 vi.mock("./entitlements-panel",()=>({EntitlementsPanel:()=>null}));
-vi.mock("@/components/checkout-pay",()=>({CheckoutPay:({checkout,onPaid}:{checkout:{order:{id:string}},onPaid:()=>void})=><div><span>{checkout.order.id}</span><button onClick={onPaid}>confirm paid</button></div>}));
+vi.mock("@/components/checkout-pay",()=>({CheckoutPay:({checkout,onPaid,onResolved}:{checkout:{order:{id:string}},onPaid:(order:unknown)=>void,onResolved:(order:unknown)=>void})=><div><span>{checkout.order.id}</span><button onClick={()=>{const fact={id:checkout.order.id,status:"paid"};onResolved(fact);onPaid(fact);}}>confirm paid pending</button><button onClick={()=>{const fact={id:checkout.order.id,status:"paid",fulfilled_at:"2026-10-10"};onResolved(fact);onPaid(fact);}}>confirm paid</button></div>}));
 const plan={id:"monthly",name:"Monthly plan",price_minor:2_000_000,currency:"USD",billing_period:"monthly",auto_renew_allowed:true,items:[{unit_type:"usd_credit",included_amount:3_000_000,expires_in_seconds:86400*30}]};
 const json=(body:unknown,status=200)=>Promise.resolve({ok:status<400,status,json:async()=>body});
 function stub(post:(init?:RequestInit)=>ReturnType<typeof json>,recover:(url:string)=>ReturnType<typeof json>=()=>json({item:{id:"original-order",status:"pending"}})){
@@ -43,6 +43,9 @@ it("retains the original operation after a timeout and creates a fresh one after
   expect(requests[1].headers).toEqual(requests[0].headers);
   expect(requests[1].body).toBe(requests[0].body);
   expect(JSON.parse(String(requests[0].body)).auto_renew).toBe(false);
+  fireEvent.click(screen.getByRole("button",{name:"confirm paid pending"}));
+  expect(screen.getByRole("button",{name:"订阅"}).hasAttribute("disabled")).toBe(true);
+  expect(sessionStorage.getItem("tokenhub_plan_purchase:buyer-a:brand-a")).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"confirm paid"}));
   await waitFor(()=>expect(screen.getByRole("button",{name:"订阅"}).hasAttribute("disabled")).toBe(false));
   fireEvent.click(screen.getByRole("button",{name:"订阅"}));

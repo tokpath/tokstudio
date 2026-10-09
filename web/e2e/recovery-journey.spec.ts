@@ -17,9 +17,9 @@ test("receipt conflict stays visible and does not claim success",async({page})=>
 test("user retains closed receipts without a pending recovery warning", async ({ page }) => {
   await mockViewer(page, { roles: ["end_user"] });
   await page.route("**/v1/me/balance**", r => r.fulfill({ json: { balance: { available: "5", reserved: "0", purchased_minor: 5000000, gift_minor: 0, commission_available_minor: 0, commission_recovery_minor: 0 } } }));
-  await page.route("**/v1/me/commission-recoveries", r => r.fulfill({ json: { items: [{ ...recovery, status: "closed", recovered_minor: 300000, receipts: [{ id: "receipt", amount_minor: 300000, reference: "RETURN-CLOSED", created_at: "2026-09-18T00:00:00Z" }] }] } }));
-  await page.goto("/app/wallet");
-  await expect(page.getByLabel("余额组成").getByText("$5.00")).toBeVisible();
+  await page.route("**/v1/me/wallet-records?kind=recoveries**", r => r.fulfill({ json: { total:1,next_cursor:"",items: [{ ...recovery, status: "closed", recovered_minor: 300000, receipts: [{ id: "receipt", amount_minor: 300000, reference: "RETURN-CLOSED", created_at: "2026-09-18T00:00:00Z" }] }] } }));
+  await page.route("**/v1/me/referral**",r=>r.fulfill({json:{item:{codes:[],code_links:[],can_create:false,invited_count:0,can_commission:true,professional_customers:false,rules:{spend_minor:0,topup_minor:0,gift_minor:0},progress:{spend_minor:0,largest_topup_minor:0,gift_granted_minor:0,gift_remaining_minor:0},summary:{earned_minor:300000,frozen_minor:0,available_minor:0,held_minor:0,settled_minor:0,paid_minor:300000,reversed_minor:300000},rewards:[],settlements:[{id:"settlement_alice",status:"paid",amount_minor:300000,reversed_minor:300000,recovery_tracked:true,recovered_minor:300000,recovery_pending_minor:0}],pagination:{page:1,page_size:25,rewards_total:0,settlements_total:1}}}}));
+  await page.goto("/app/referral?tab=settlements");
   const history = page.getByRole("region", { name: "佣金收回记录" });
   await expect(history).toContainText("已结清");
   await expect(history).toContainText("RETURN-CLOSED");

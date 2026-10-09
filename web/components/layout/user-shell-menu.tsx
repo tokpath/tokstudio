@@ -16,6 +16,8 @@ import {
   type BalanceLoadState,
   type MeProfile,
 } from "@/lib/user-shell";
+import { useBrand } from "@/components/brand-context";
+import { subscribeWalletChanged } from "@/lib/wallet-events";
 import { useViewer } from "@/components/rbac/viewer-context";
 
 type ShellMe = MeProfile & { id?: string };
@@ -43,6 +45,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
   const t = useTranslations("shell");
   const router = useRouter();
   const viewer = useViewer();
+  const brand = useBrand();
   const isUserShell = variant === "user";
   const [me, setMe] = useState<ShellMe | null>(null);
   const [meReady, setMeReady] = useState(false);
@@ -54,6 +57,8 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
 
   useEffect(() => {
     let cancelled = false;
+    let balanceGeneration = 0;
+    setMe(null);setMeReady(false);setBalanceState("loading");setAvailable(undefined);
     async function loadMe() {
       try {
         const response = await fetch(`${apiBase}/v1/me`, { credentials: "include" });
@@ -77,22 +82,24 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
       }
     }
     async function loadBalance() {
+      const generation = ++balanceGeneration;
+      setBalanceState("loading");
       try {
         const response = await fetch(`${apiBase}/v1/me/balance`, { credentials: "include" });
         if (!response.ok) {
-          if (!cancelled) {
+          if (!cancelled && generation === balanceGeneration) {
             setBalanceState("error");
             setAvailable(undefined);
           }
           return;
         }
         const body = (await response.json()) as { balance?: { available?: string | number } };
-        if (!cancelled) {
+        if (!cancelled && generation === balanceGeneration) {
           setAvailable(readNailedAvailable(body));
           setBalanceState("ok");
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && generation === balanceGeneration) {
           setBalanceState("error");
           setAvailable(undefined);
         }
@@ -102,10 +109,11 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
     if (isUserShell) {
       void loadBalance();
     }
+    const unsubscribe = subscribeWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""},()=>{if(isUserShell)void loadBalance();});
     return () => {
-      cancelled = true;
+      cancelled = true; unsubscribe();
     };
-  }, [isUserShell]);
+  }, [isUserShell, viewer.userId, brand?.id]);
 
   useEffect(() => {
     if (!open) return;

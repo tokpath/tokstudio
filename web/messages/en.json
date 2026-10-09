@@ -486,7 +486,7 @@
   "checkout": {
     "orderEyebrow": "Order",
     "orderDue": "Due {money}",
-    "sandboxHint": "Sandbox order. Complete settlement via the channel webhook.",
+    "sandboxHint": "Sandbox test order. Awaiting test payment confirmation.",
     "scanQr": "Scan with the matching app to pay",
     "paidCheck": "I have paid",
     "checking": "Checking…",
@@ -504,7 +504,8 @@
     "stripePay": "Confirm payment",
     "stripeNeed": "Enter card or Link, then confirm.",
     "redirect": "Continue to pay",
-    "refunding": "Refund processing"
+    "refunding": "Refund processing",
+    "recoverDetails": "Payment details are unavailable. Resume the original operation or check this order."
   },
   "common": {
     "refresh": "Refresh",
@@ -799,7 +800,7 @@
     "wallet": {
       "eyebrow": "WALLET",
       "title": "Wallet",
-      "description": "Available balance can be spent. HOLD is in-flight. Codes and payments share one ledger."
+      "description": "Balance, credit purchases, plan allowances and your orders."
     },
     "plans": {
       "eyebrow": "PLANS",
@@ -829,7 +830,7 @@
     "referral": {
       "eyebrow": "REFERRAL",
       "title": "Invitations and earnings",
-      "description": "View invitations, gift credits, qualification progress and personal earnings in your API account."
+      "description": ""
     },
     "docs": {
       "eyebrow": "DOCS",
@@ -1739,9 +1740,9 @@
     "changePass": "Change password",
     "walletTitle": "Cash wallet",
     "walletHint": "Sign in to see balance. Redeem codes can top up the wallet.",
-    "walletMeta": "Available {available} USD, authorization hold {reserved} USD.",
+    "walletMeta": "Available {available} USD; in use {reserved} USD.",
     "walletRefreshed": "Balance refreshed",
-    "redeemOk": "Redeemed {amount}",
+    "redeemOk": "Redeemed and credited {amount} USD.",
     "redeemFail": "Redeem failed",
     "refreshBalance": "Refresh balance",
     "redeemCode": "Redeem code",
@@ -1883,8 +1884,8 @@
     "refAria": "Referral code",
     "refEmpty": "No referrals yet",
     "refEmptyDetail": "No one has signed up with your code. The ledger stays empty.",
-    "payOfflineTitle": "Online payments are not enabled for this channel",
-    "payOfflineDetail": "Use a redeem code or contact channel support.",
+    "payOfflineTitle": "No online payment methods",
+    "payOfflineDetail": "Use a redeem code or contact support for this site.",
     "payMethodsFailed": "Could not load payment methods",
     "payNoAutoRenew": "Auto-renew is not supported; renew manually when it expires.",
     "payAutoRenew": "Renews with the same method at expiry; cancel anytime.",
@@ -2292,7 +2293,7 @@
   },
   "recoveryHistory": {
     "title": "Commission recovery history",
-    "detail": "Records funds received externally and confirmed by finance. Wallet balances are unchanged. Up to 100 records, pending first.",
+    "detail": "Commission recoveries and confirmed receipts. These records do not debit the balance again.",
     "loading": "Loading commission recovery history…",
     "empty": "No commission recovery records",
     "emptyDetail": "If a paid commission is reversed, its recovery progress will appear here.",
@@ -3228,7 +3229,13 @@
     "selectAValidReferralCustomer": "Select a valid referral customer.",
     "modelSetupByBrandOwner": "No models authorized. Ask the brand administrator to grant access.",
     "adminSetupByBrandOwner": "The brand owner assigns administrators. Ask the brand administrator to complete the handoff.",
-    "channelFilterUnavailable": "Channel filters are unavailable. The list still follows your authorized scope."
+    "channelFilterUnavailable": "Channel filters are unavailable. The list still follows your authorized scope.",
+    "viewRequest": "View original request",
+    "requestStatus_succeeded": "Succeeded",
+    "requestStatus_failed": "Failed",
+    "requestStatus_pending": "Processing",
+    "requestStatus_running": "Processing",
+    "requestStatus_unknown": "Status unconfirmed"
   },
   "commissionWorkflow": {
     "workspace": "Commission workspace",
@@ -3337,5 +3344,38 @@
     "updated": "Updated",
     "cumulative": "Cumulative data",
     "loading": "Loading…"
+  },
+  "walletExperience": {
+    "tabs": "Wallet",
+    "recharge": "Add credit",
+    "plans": "Plans and allowances",
+    "records": "Orders and transactions",
+    "referralLink": "Invitations and earnings",
+    "balanceError": "Balance could not be refreshed. The previously shown balance may have changed. Retry.",
+    "paymentConfirmed": "Payment confirmed. Check the order for its credit status.",
+    "total": "{count} records",
+    "first": "First page",
+    "next": "Next page",
+    "ordersTitle": "My payment orders",
+    "refresh": "Refresh",
+    "noOrders": "No payment orders yet",
+    "noOrdersDetail": "Orders for credit and plans appear here.",
+    "orderPurpose": "Purpose",
+    "orderAmount": "Amount paid",
+    "credit": "Credit",
+    "status": "Status",
+    "created": "Created",
+    "orderId": "Order ID",
+    "purpose_wallet": "Add credit",
+    "purpose_subscription": "Plan purchase",
+    "purpose_renewal": "Plan renewal",
+    "purpose_other": "Other",
+    "status_pending": "Awaiting payment",
+    "status_paid": "Paid",
+    "status_failed": "Payment failed",
+    "status_expired": "Expired",
+    "status_refunded": "Refunded",
+    "status_partially_refunded": "Partially refunded",
+    "status_unknown": "Status unconfirmed"
   }
 }

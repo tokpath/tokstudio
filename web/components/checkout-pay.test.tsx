@@ -23,6 +23,22 @@ describe("CheckoutPay", () => {
     cleanup();
     vi.useRealTimers();
   });
+  it("reports a confirmed failed order without claiming payment",async()=>{
+    const resolved=vi.fn();const paid=vi.fn();
+    vi.stubGlobal("fetch",vi.fn(async()=>({ok:true,status:200,json:async()=>({item:{id:"pay_terminal",status:"failed"}})})));
+    render(withZh(<CheckoutPay checkout={qrOrder("pay_terminal",10000)} onResolved={resolved} onPaid={paid}/>));
+    screen.getByRole("button",{name:"我已付款"}).click();
+    await waitFor(()=>expect(resolved).toHaveBeenCalledWith({id:"pay_terminal",status:"failed"}));
+    expect(paid).not.toHaveBeenCalled();expect(screen.getByText("支付失败")).toBeTruthy();
+  });
+
+  it("does not invent sandbox capability for a recovered live order",()=>{
+    render(withZh(<CheckoutPay checkout={{order:{id:"live-recovered",status:"pending"},sandbox:false}}/>));
+    expect(screen.queryByText("沙箱测试订单，等待测试支付确认。")).toBeNull();
+    expect(screen.getByText("支付信息暂不可用，可继续原操作恢复或查询此订单。")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"我已付款"})).toBeTruthy();
+  });
+
   it("shows sandbox copy without a pay-check button", () => {
     render(
       withZh(
@@ -30,7 +46,7 @@ describe("CheckoutPay", () => {
       ),
     );
     expect(screen.getByText("pay_sandbox")).toBeTruthy();
-    expect(screen.getByText("沙箱订单，请通过渠道 Webhook 完成入账。")).toBeTruthy();
+    expect(screen.getByText("沙箱测试订单，等待测试支付确认。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "我已付款" })).toBeNull();
   });
 

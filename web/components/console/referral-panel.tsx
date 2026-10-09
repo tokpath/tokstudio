@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { useBrand } from "@/components/brand-context";
+import { I18nConsoleHeader } from "@/components/i18n-page-hero";
+import { RecoveryHistory } from "@/app/console/wallet/recovery-history";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -34,7 +36,7 @@ export function ReferralPanel() {
   const search = useSearchParams();
   const viewer = useViewer();
   const brand = useBrand();
-  const tab = ["commissions", "settlements", "users"].includes(search.get("tab") || "") ? search.get("tab")! : "overview";
+  const requestedTab = ["commissions", "settlements", "users"].includes(search.get("tab") || "") ? search.get("tab")! : "overview";
   const page = Math.max(1, Math.min(100000, Number(search.get("page")) || 1));
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState("");
@@ -49,6 +51,8 @@ export function ReferralPanel() {
     },
   });
   const item = resource.snapshot.items[0];
+  const showIncome=!!item && (item.can_commission || Object.values(item.summary).some(value=>value!==0) || item.pagination.rewards_total>0 || item.pagination.settlements_total>0);
+  const tab=!showIncome && ["commissions","settlements"].includes(requestedTab) ? "overview" : requestedTab;
   function shareURL(code: string) {
     return item?.code_links.find(link => link.code === code)?.share_url || "";
   }
@@ -70,16 +74,16 @@ export function ReferralPanel() {
   const href = (nextTab: string, nextPage = 1) => `/app/referral?tab=${nextTab}${nextPage > 1 ? `&page=${nextPage}` : ""}`;
   const total = item ? tab === "settlements" ? item.pagination.settlements_total : item.pagination.rewards_total : 0;
   return <section className="flex flex-col gap-4" aria-label={t("title")}>
-    <div className="flex justify-end"><Button variant="outline" disabled={resource.refreshing} onClick={() => void resource.reload()}>{t("refresh")}</Button></div>
+    <I18nConsoleHeader id="referral" actions={<Button variant="outline" disabled={resource.refreshing} onClick={() => void resource.reload()}>{t("refresh")}</Button>}/>
     <ListResourceView snapshot={resource.snapshot} emptyTitle={t("unavailable")} emptyDetail={t("retryDetail")} onRetry={() => void resource.reload()}>
       {item && <div className="flex flex-col gap-5">
         <nav aria-label={a("tabs")} className="flex flex-wrap gap-2">
-          {["overview", "commissions", "settlements", ...(item.professional_customers ? ["users"] : [])].map(key => <Button key={key} asChild variant={tab === key ? "default" : "outline"}><Link href={href(key)} aria-current={tab === key ? "page" : undefined}>{a(key)}</Link></Button>)}
+          {["overview", ...(showIncome ? ["commissions", "settlements"] : []), ...(item.professional_customers ? ["users"] : [])].map(key => <Button key={key} asChild variant={tab === key ? "default" : "outline"}><Link href={href(key)} aria-current={tab === key ? "page" : undefined}>{a(key)}</Link></Button>)}
         </nav>
         {tab === "overview" && <>
           <Card><CardTitle>{t("share")}</CardTitle>
-            <p className="my-3 text-sm text-ink-secondary">{a("shareDetail")}</p>
-            {item.codes.map(code => <div key={code} className="mb-4 space-y-2">
+
+            {item.codes.map(code => <div key={code} className="my-4 space-y-2">
               <label className="block text-sm font-medium" htmlFor={`ref-${code}`}>{t("code")}: <span className="break-all font-mono">{code}</span></label>
               <input id={`ref-${code}`} aria-label={t("link")} readOnly value={shareURL(code)} onFocus={e => e.currentTarget.select()} className="w-full min-w-0 rounded-control border border-hairline bg-canvas px-3 py-2 text-sm" />
               <div className="flex flex-wrap gap-2"><Button disabled={!shareURL(code)} onClick={() => void copy(shareURL(code))}>{t("copyLink")}</Button><Button variant="outline" onClick={() => void copy(code)}>{t("copyCode")}</Button></div>
@@ -98,10 +102,11 @@ export function ReferralPanel() {
               </div>
             </Card>
           </div>
-          <Card><CardTitle>{a("incomeTitle")}</CardTitle><dl className="my-4 grid gap-4 sm:grid-cols-3">{["earned", "frozen", "available", "held", "settled", "paid"].map(key => <div key={key}><dt className="text-sm text-ink-secondary">{a(`income_${key}`)}</dt><dd className="mt-1 font-mono text-xl">{formatUsdMinor(item.summary[`${key}_minor` as keyof Referral["summary"]])}</dd></div>)}</dl><p className="mb-3 text-sm text-ink-secondary">{a("incomeDetail")}</p><Link href={href("commissions")} className="text-sm text-brand-emphasis underline">{a("viewIncome")}</Link></Card>
+          {showIncome && <Card><CardTitle>{a("incomeTitle")}</CardTitle><dl className="my-4 grid gap-4 sm:grid-cols-3">{["earned", "frozen", "available", "held", "settled", "paid"].map(key => <div key={key}><dt className="text-sm text-ink-secondary">{a(`income_${key}`)}</dt><dd className="mt-1 font-mono text-xl">{formatUsdMinor(item.summary[`${key}_minor` as keyof Referral["summary"]])}</dd></div>)}</dl><p className="mb-3 text-sm text-ink-secondary">{a("incomeDetail")}</p><Link href={href("commissions")} className="text-sm text-brand-emphasis underline">{a("viewIncome")}</Link></Card>}
         </>}
         {tab === "commissions" && <Card><CardTitle>{a("commissions")}</CardTitle><p className="my-3 text-sm text-ink-secondary">{a("incomeDetail")} {t("reversalHelp")}</p><LedgerTable columns={[t("kind"), t("status"), t("amount"), t("availableAt"), t("request"), t("entry")]} emptyTitle={t("emptyRewards")} emptyDetail={t("emptyRewardsDetail")} rows={item.rewards.map(row => ({ key: row.id, cells: [row.reversal_of ? t("reversal") : labels[row.kind] || t("other"), labels[row.status] || t("other"), formatUsdMinor(row.amount_minor), row.status === "frozen" && row.available_at ? new Date(row.available_at).toLocaleDateString(locale) : "—", <span className="block max-w-56 whitespace-normal break-all" key="request">{row.request_id || "—"}</span>, <div className="max-w-xs whitespace-normal break-all" key="entry">{row.id}{row.reversal_of && <p className="mt-1 text-ink-secondary">{t("original")}: {row.reversal_of}</p>}</div>] }))} /></Card>}
         {tab === "settlements" && <Card><CardTitle>{a("settlements")}</CardTitle><p className="my-3 text-sm text-ink-secondary">{a("settlementDetail")}</p><LedgerTable columns={[partner("colSettle"), partner("colStatus"), t("amount")]} emptyTitle={partner("emptySettle")} emptyDetail={partner("emptySettleDetail")} rows={item.settlements.map(row => ({key: row.id, cells: [<div key="id" className="max-w-xs whitespace-normal break-all">{row.id}{row.payout_reference && <p className="mt-1 text-ink-secondary">{partner("receipt")}: {row.payout_reference}</p>}</div>, <div key="status">{["settled", "paid", "cancelled"].includes(row.status) ? partner(`settlement_${row.status}`) : labels[row.status] || t("other")}{row.status === "paid" && row.reversed_minor > 0 && <p className="mt-2 text-danger">{row.recovery_tracked ? row.recovery_pending_minor > 0 ? a("recovery", { received: formatUsdMinor(row.recovered_minor), pending: formatUsdMinor(row.recovery_pending_minor) }) : partner("recoveryClosed") : partner("paidReversal", {amount: formatUsdMinor(row.reversed_minor)})}</p>}</div>, formatUsdMinor(row.amount_minor)]}))} /></Card>}
+        {tab === "settlements" && <RecoveryHistory/>}
         {(tab === "commissions" || tab === "settlements") && <div className="flex items-center justify-between gap-3"><Button asChild variant="outline" disabled={page <= 1}><Link href={href(tab, Math.max(1, page-1))} aria-disabled={page <= 1}>{a("previous")}</Link></Button><p className="text-sm text-ink-secondary">{a("page", { page, total })}</p><Button asChild variant="outline" disabled={page*item.pagination.page_size >= total}><Link href={href(tab, page+1)} aria-disabled={page*item.pagination.page_size >= total}>{a("next")}</Link></Button></div>}
         {tab === "users" && (item.professional_customers ? <PartnerBoard section="users" /> : <Card><p>{a("noCustomerScope")}</p><Link className="mt-3 inline-block text-brand-emphasis underline" href={href("overview")}>{a("overview")}</Link></Card>)}
       </div>}

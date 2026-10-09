@@ -24,13 +24,16 @@ test("audit reads original payout and cancellation facts without mutation contro
  await mockViewer(page,{roles:["audit_readonly"]});await context(page);const cancelled={...item,status:"cancelled",payout_reference:"WIRE-789",reversed_minor:300000};await page.route("**/admin/commissions?**",r=>r.fulfill({json:{items:[{...cancelled,settlement_id:item.id}],total:1}}));await page.route("**/admin/settlements/cst_alice",r=>r.fulfill({json:{item:cancelled,entries:[]}}));await page.goto("/admin/commission?tab=all");await page.getByRole("button",{name:"查看详情"}).click();await expect(page.getByRole("dialog")).toContainText("已撤销");await expect(page.getByRole("dialog")).toContainText("$0.30 USD");await expect(page.getByRole("button",{name:"核对并登记"})).toHaveCount(0);await expect(page.getByRole("button",{name:"结算预览",exact:true})).toHaveCount(0);
 });
 
-test("wallet separates paid commission recovery from spendable balances", async ({ page }) => {
-  await mockViewer(page, { roles: ["end_user"] });
-  await page.route("**/v1/me/balance**", r => r.fulfill({ json: { balance: { available: "5", reserved: "0", purchased_minor: 5000000, gift_minor: 0, commission_available_minor: 0, commission_recovery_minor: 300000 } } }));
-  await page.route("**/v1/me/ledger**", r => r.fulfill({ json: { items: [{ id: "paid", event_type: "commission_payout", amount_minor: -300000, created_at: "2026-09-18T00:00:00Z" }] } }));
-  await page.goto("/app/wallet");
-  await expect(page.getByLabel("余额组成").getByText("$5.00")).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "待财务核对追回" })).toContainText("$0.30 USD");
-  await expect(page.getByRole("status").filter({ hasText: "待财务核对追回" })).toContainText("未再次扣减佣金钱包");
-  await expect(page.getByRole("cell", { name: "佣金打款出账", exact: true })).toBeVisible();
+test("wallet links to personal earnings and shows recovery only in referral history", async ({ page }) => {
+ await mockViewer(page,{roles:["end_user"]});
+ await page.route("**/v1/me/balance**",r=>r.fulfill({json:{balance:{available:"5",reserved:"0",purchased_minor:5000000,gift_minor:0,commission_available_minor:0,commission_recovery_minor:300000}}}));
+ await page.route("**/v1/me/wallet-records?kind=recoveries**",r=>r.fulfill({json:{items:[],total:0,next_cursor:""}}));
+ await page.route("**/v1/me/referral**",r=>r.fulfill({json:{item:{codes:[],code_links:[],can_create:false,invited_count:0,can_commission:true,professional_customers:false,rules:{spend_minor:0,topup_minor:0,gift_minor:0},progress:{spend_minor:0,largest_topup_minor:0,gift_granted_minor:0,gift_remaining_minor:0},summary:{earned_minor:300000,frozen_minor:0,available_minor:0,held_minor:0,settled_minor:0,paid_minor:300000,reversed_minor:300000},rewards:[],settlements:[{id:"settlement_alice",status:"paid",amount_minor:300000,reversed_minor:300000,recovery_tracked:true,recovered_minor:0,recovery_pending_minor:300000}],pagination:{page:1,page_size:25,rewards_total:0,settlements_total:1}}}}));
+ await page.goto("/app/wallet");
+ await expect(page.getByLabel("余额组成").getByText("$5.00")).toBeVisible();
+ await expect(page.getByText("佣金余额",{exact:true})).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"佣金收回记录"})).toHaveCount(0);
+ await page.getByRole("link",{name:"邀请与收益",exact:true}).last().click();
+ await page.getByRole("link",{name:"结算记录",exact:true}).click();
+ await expect(page.getByRole("cell").filter({hasText:"待收回"})).toContainText("$0.30");
 });

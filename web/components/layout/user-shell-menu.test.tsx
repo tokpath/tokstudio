@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
+import { notifyWalletChanged } from "@/lib/wallet-events";
 import { UserShellBell, UserShellRightZone } from "./user-shell-menu";
 
 const push = vi.fn();
@@ -11,7 +12,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
-vi.mock("@/components/rbac/viewer-context", () => ({ useViewer: () => ({ channelType: "C" }) }));
+vi.mock("@/components/rbac/viewer-context", () => ({ useViewer: () => ({ userId: "shell-user", channelType: "C" }) }));
+
+vi.mock("@/components/brand-context",()=>({useBrand:()=>({id:"wallet-brand"})}));
 
 function jsonResponse(ok: boolean, body: unknown, status = ok ? 200 : 503) {
   return {
@@ -53,6 +56,26 @@ describe("UserShellRightZone", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("refreshes only the current wallet and ignores a late old balance",async()=>{
+    let reads=0;let release!:(value:unknown)=>void;
+    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
+      if(String(input).includes("/v1/me/balance")){
+        reads++;if(reads===1)return await new Promise(resolve=>{release=resolve;});
+        return jsonResponse(true,{balance:{available:"10"}});
+      }
+      return jsonResponse(true,{user:{display_name:"Ada",roles:["end_user"]}});
+    }));
+    render(withZh(<UserShellRightZone/>));
+    await waitFor(()=>expect(reads).toBe(1));
+    act(()=>notifyWalletChanged({userId:"another-user",brandId:"wallet-brand"}));
+    expect(reads).toBe(1);
+    act(()=>notifyWalletChanged({userId:"shell-user",brandId:"foreign-brand"}));expect(reads).toBe(1);
+    act(()=>notifyWalletChanged({userId:"shell-user",brandId:"wallet-brand"}));
+    await waitFor(()=>expect(screen.getByTestId("balance-pill").textContent).toBe("$10.00"));
+    await act(async()=>release(jsonResponse(true,{balance:{available:"0"}})));
+    expect(screen.getByTestId("balance-pill").textContent).toBe("$10.00");
   });
 
   it("shows the nailed available field and real profile, never a fake key list", async () => {

@@ -134,7 +134,7 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 		if err := application.DB.Exec(`INSERT INTO commission_settlements (id,period_start,period_end,beneficiary_role_id,amount_minor,status,policy_version) VALUES (?,now()-interval '1 day',now(),?,15,'paid','test')`, id, role.ID).Error; err != nil {
 			t.Fatal(err)
 		}
-		if err := application.DB.Exec(`INSERT INTO commission_payouts (id,settlement_id,method,reference,status) VALUES (?,?,'offline','test reference','paid')`, id, id).Error; err != nil {
+		if err := application.DB.Exec(`INSERT INTO commission_payouts (id,settlement_id,method,reference,status) VALUES (?,?,'offline',?,'paid')`, id, id, "test-reference-"+id).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -142,7 +142,7 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 	if asInt(profile(tokenOf(first))["summary"].(map[string]any)["paid_minor"]) != 15 {
 		t.Fatal("paid amount must use actual settlement facts")
 	}
-	if len(settles) != 1 || settles[0].(map[string]any)["id"] != "ref-settle-"+userIDOf(first) || settles[0].(map[string]any)["payout_reference"] != "test reference" {
+	if len(settles) != 1 || settles[0].(map[string]any)["id"] != "ref-settle-"+userIDOf(first) || settles[0].(map[string]any)["payout_reference"] != "test-reference-ref-settle-"+userIDOf(first) {
 		t.Fatalf("settlement isolation: %+v", settles)
 	}
 	progress := profile(tokenOf(second))["progress"].(map[string]any)

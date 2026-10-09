@@ -486,7 +486,7 @@
   "checkout": {
     "orderEyebrow": "注文",
     "orderDue": "支払額 {money}",
-    "sandboxHint": "サンドボックス注文です。チャネル webhook で入金してください。",
+    "sandboxHint": "サンドボックスのテスト注文です。テスト決済の確認待ちです。",
     "scanQr": "対応アプリでスキャンして支払う",
     "paidCheck": "支払い済み",
     "checking": "照会中…",
@@ -504,7 +504,8 @@
     "stripePay": "支払いを確定",
     "stripeNeed": "カードまたは Link を入力して確定。",
     "redirect": "支払いページへ",
-    "refunding": "返金処理中"
+    "refunding": "返金処理中",
+    "recoverDetails": "決済情報を取得できません。元の操作を再開するか、この注文を確認してください。"
   },
   "common": {
     "refresh": "更新",
@@ -798,8 +799,8 @@
     },
     "wallet": {
       "eyebrow": "WALLET",
-      "title": "残高/入金",
-      "description": "利用可能残高はすぐ使えます。HOLD は未決済。コードと支払いは同じ台帳。"
+      "title": "ウォレット",
+      "description": "残高、チャージ、プラン利用枠、自分の注文を確認できます。"
     },
     "plans": {
       "eyebrow": "PLANS",
@@ -829,7 +830,7 @@
     "referral": {
       "eyebrow": "REFERRAL",
       "title": "招待と収益",
-      "description": "同じ API アカウントで招待人数、付与クレジット、報酬資格の進捗と個人収益を確認できます。"
+      "description": ""
     },
     "docs": {
       "eyebrow": "DOCS",
@@ -1739,9 +1740,9 @@
     "changePass": "パスワードを変更",
     "walletTitle": "現金ウォレット",
     "walletHint": "ログイン後に残高を確認できます。兑换コードでチャージできます。",
-    "walletMeta": "利用可能 {available} USD、与信拘束 {reserved} USD。",
+    "walletMeta": "利用可能 {available} USD、利用中 {reserved} USD。",
     "walletRefreshed": "残高を更新しました",
-    "redeemOk": "{amount} を交換しました",
+    "redeemOk": "{amount} USD を交換し、入金しました。",
     "redeemFail": "交換に失敗しました",
     "refreshBalance": "残高を更新",
     "redeemCode": "交換コード",
@@ -1883,8 +1884,8 @@
     "refAria": "紹介コード",
     "refEmpty": "紹介記録はまだありません",
     "refEmptyDetail": "あなたのコードで登録した人はまだいません。人数は作りません。",
-    "payOfflineTitle": "このチャネルではオンライン決済が未開通です",
-    "payOfflineDetail": "交換コードを使用するか、チャネルのサポートにお問い合わせください。",
+    "payOfflineTitle": "オンライン決済は利用できません",
+    "payOfflineDetail": "交換コードを使用するか、このサイトのサポートへお問い合わせください。",
     "payMethodsFailed": "支払い方法の読み込みに失敗しました",
     "payNoAutoRenew": "自動更新非対応。期限後は手動更新が必要です。",
     "payAutoRenew": "期限で同じ支払い方法で更新。いつでもキャンセル可。",
@@ -2292,7 +2293,7 @@
   },
   "recoveryHistory": {
     "title": "コミッション回収履歴",
-    "detail": "財務担当が外部での入金を確認した金額を記録します。ウォレット残高は変更されません。未回収を優先して最大100件表示します。",
+    "detail": "回収済みの報酬と確認済みの領収記録です。残高から再度引かれません。",
     "loading": "回収履歴を読み込み中…",
     "empty": "回収記録はありません",
     "emptyDetail": "支払済みコミッションが取り消された場合、回収の進捗をここで確認できます。",
@@ -3228,7 +3229,13 @@
     "selectAValidReferralCustomer": "有効な紹介顧客を選択してください。",
     "modelSetupByBrandOwner": "許可されたモデルがありません。ブランドの管理者に設定を依頼してください。",
     "adminSetupByBrandOwner": "管理権限はブランド運営者が付与します。ブランドの管理者に引き継ぎを依頼してください。",
-    "channelFilterUnavailable": "チャネルの絞り込みを利用できません。一覧は引き続き許可範囲のみを表示します。"
+    "channelFilterUnavailable": "チャネルの絞り込みを利用できません。一覧は引き続き許可範囲のみを表示します。",
+    "viewRequest": "元のリクエストを表示",
+    "requestStatus_succeeded": "成功",
+    "requestStatus_failed": "失敗",
+    "requestStatus_pending": "処理中",
+    "requestStatus_running": "処理中",
+    "requestStatus_unknown": "状態を確認中"
   },
   "commissionWorkflow": {
     "workspace": "コミッション管理",
@@ -3337,5 +3344,38 @@
     "updated": "更新時刻",
     "cumulative": "累積データ",
     "loading": "読み込み中…"
+  },
+  "walletExperience": {
+    "tabs": "ウォレット",
+    "recharge": "チャージ",
+    "plans": "プランと利用枠",
+    "records": "注文と取引履歴",
+    "referralLink": "招待と収益",
+    "balanceError": "残高を更新できません。以前の表示から変わった可能性があります。再試行してください。",
+    "paymentConfirmed": "支払いを確認しました。注文の入金状態をご確認ください。",
+    "total": "全 {count} 件",
+    "first": "最初のページ",
+    "next": "次のページ",
+    "ordersTitle": "自分の支払い注文",
+    "refresh": "更新",
+    "noOrders": "支払い注文はまだありません",
+    "noOrdersDetail": "チャージやプラン購入の注文がここに表示されます。",
+    "orderPurpose": "用途",
+    "orderAmount": "支払額",
+    "credit": "入金額",
+    "status": "状態",
+    "created": "作成日時",
+    "orderId": "注文番号",
+    "purpose_wallet": "チャージ",
+    "purpose_subscription": "プラン購入",
+    "purpose_renewal": "プラン更新",
+    "purpose_other": "その他",
+    "status_pending": "支払い待ち",
+    "status_paid": "支払い済み",
+    "status_failed": "支払い失敗",
+    "status_expired": "期限切れ",
+    "status_refunded": "返金済み",
+    "status_partially_refunded": "一部返金済み",
+    "status_unknown": "状態を確認中"
   }
 }

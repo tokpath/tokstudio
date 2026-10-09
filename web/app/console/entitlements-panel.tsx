@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiBase } from "@/lib/api";
 import { formatUsdMinor } from "@/lib/money";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { useBrand } from "@/components/brand-context";
+import { subscribeWalletChanged } from "@/lib/wallet-events";
 import { Button } from "@/components/ui/button";
 
 type Entitlement = { id: string; source_type: string; unit_type: string; granted: number; remaining: number; status: string; expires_at?: string; public_model_id?: string };
@@ -11,20 +14,22 @@ type Entitlement = { id: string; source_type: string; unit_type: string; granted
 export function EntitlementsPanel() {
   const t = useTranslations("entitlements");
   const locale = useLocale();
+  const viewer=useViewer();const brand=useBrand();
+  const scope=`${viewer.userId || ""}:${brand?.id || ""}`;const scopeRef=useRef(scope);scopeRef.current=scope;const generation=useRef(0);
   const [items, setItems] = useState<Entitlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   async function refresh() {
-    setLoading(true); setError("");
+    const seq=++generation.current;setLoading(true); setError("");
     try {
       const response = await fetch(`${apiBase}/v1/me/entitlements`, { credentials: "include" });
       const body = await response.json();
       if (!response.ok || !Array.isArray(body.items)) throw new Error();
-      setItems(body.items);
-    } catch { setError(t("loadError")); }
-    finally { setLoading(false); }
+      if(scopeRef.current===scope && seq===generation.current)setItems(body.items);
+    } catch { if(scopeRef.current===scope && seq===generation.current)setError(t("loadError")); }
+    finally { if(scopeRef.current===scope && seq===generation.current)setLoading(false); }
   }
-  useEffect(() => { void refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setItems([]);void refresh();return subscribeWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""},()=>void refresh()); }, [scope]); // eslint-disable-line react-hooks/exhaustive-deps
   function quantity(n: number, unit: string) {
     return unit === "usd_credit" ? `${formatUsdMinor(n)} USD` : `${n.toLocaleString(locale)} ${["token", "video_second", "image_count"].includes(unit) ? t(unit) : unit}`;
   }

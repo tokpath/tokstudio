@@ -13,8 +13,9 @@ import { useBrand } from "@/components/brand-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { apiBase } from "@/lib/api";
-import type { CheckoutPayload } from "@/lib/checkout";
-import { safeNextPath } from "@/lib/login-next";
+import type { CheckoutOrder, CheckoutPayload } from "@/lib/checkout";
+import { walletReturnPath, purchaseIsResolved } from "@/lib/wallet-context";
+import { notifyWalletChanged } from "@/lib/wallet-events";
 import { planPeriod, planPrice, type PublicPlan } from "@/lib/public-plans";
 import { formatUsdMinor } from "@/lib/money";
 import { newPurchaseOperation, restorePurchaseOperation, type PurchaseOperation } from "@/lib/purchase-operation";
@@ -31,7 +32,7 @@ export default function PlansPanel() {
   const viewer = useViewer();
   const brand = useBrand();
   const selected = search.get("plan") || "";
-  const next = safeNextPath(search.get("next"));
+  const next = walletReturnPath(search.get("next"));
   const [adapter, setAdapter] = useState("");
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -47,11 +48,11 @@ export default function PlansPanel() {
     enabled: !viewer.loading,
     queryKey: `${viewer.userId || ""}|${brand?.id || ""}`,
     load: async () => {
-      const [planRes,payRes] = await Promise.all([fetch(`${apiBase}/v1/me/plans`,{credentials:"include"}),fetch(`${apiBase}/v1/payments/checkout`,{credentials:"include"})]);
+      const [planRes,payRes] = await Promise.all([fetch(`${apiBase}/v1/me/plans`,{credentials:"include"}),fetch(`${apiBase}/v1/payments/checkout`,{credentials:"include"}).catch(()=>null)]);
       const planBody = await planRes.json();
       if (!planRes.ok) return {ok:false,status:planRes.status,items:[],message:planBody.error?.message,code:planBody.error?.code};
-      const payBody = await payRes.json().catch(()=>({}));
-      return {ok:true,status:planRes.status,items:[{plans:planBody.items || [],methods:payRes.ok ? payBody.item?.methods || [] : [],methodError:!payRes.ok}]};
+      const payBody = payRes ? await payRes.json().catch(()=>({})) : {};
+      return {ok:true,status:planRes.status,items:[{plans:planBody.items || [],methods:payRes?.ok ? payBody.item?.methods || [] : [],methodError:!payRes?.ok}]};
     },
   });
   const item = bundle.snapshot.items[0];
@@ -61,7 +62,7 @@ export default function PlansPanel() {
   }, [item,adapter]);
   useEffect(() => {
     busyRef.current=false;setBusy(false);
-    operation.current = null; setPending(null); setCheckout(null); setPaid(false);
+    operation.current = null; setPending(null); setCheckout(null); setPaid(false);setMessage("");
     try { const saved = restorePurchaseOperation(sessionStorage.getItem(storageKey)); operation.current = saved; setPending(saved); } catch { /* private mode */ }
   }, [storageKey]);
   function clearOperation() {
@@ -73,13 +74,14 @@ export default function PlansPanel() {
       const response = await fetch(`${apiBase}/v1/me/subscription-purchases/${encodeURIComponent(op.id)}`,{credentials:"include"});
       const body = await response.json();
       if (scopeRef.current !== storageKey) return;
-      if (response.ok && (!body.item || ["failed","expired","refunded","paid"].includes(body.item.status))) {
-        if (body.item?.status === "paid") setPaid(true);
-        clearOperation();
+      if(response.ok && body.item?.id){
+        setCheckout(previous=>({...previous,order:body.item,sandbox:previous?.sandbox || false}));
+        if(purchaseIsResolved(body.item))clearOperation();
+        if(body.item.status==="paid"){setPaid(!!body.item.fulfilled_at);notifyWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""});void bundle.reload();}
         return;
       }
     } catch { /* Unknown result retains the original operation. */ }
-    setPending(op);
+    if(scopeRef.current===storageKey)setPending(op);
   }
   async function subscribe(planId: string) {
     if (busyRef.current) return;
@@ -93,16 +95,19 @@ export default function PlansPanel() {
       if (scopeRef.current !== storageKey) return;
       if (!response.ok || !body.checkout?.order?.id) { setMessage(body.error?.message || t("subFail")); await checkPurchase(op); return; }
       setCheckout(body.checkout);setMessage(t("ordered",{id:body.checkout.order.id}));
+      if(purchaseIsResolved(body.checkout.order))clearOperation();
+      if(body.checkout.order.status==="paid"){setPaid(!!body.checkout.order.fulfilled_at);notifyWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""});void bundle.reload();}
     } catch {if(scopeRef.current === storageKey){setMessage(purchase("unknown"));await checkPurchase(op);}}
     finally {if(scopeRef.current === storageKey){busyRef.current=false;setBusy(false);}}
   }
-  function onPaid() {setPaid(true);clearOperation();void bundle.reload();}
+  function onPaid(fact:CheckoutOrder) {if(scopeRef.current!==storageKey)return;setPaid(!!fact.fulfilled_at);notifyWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""});void bundle.reload();}
+  function resolved(fact:CheckoutOrder){if(scopeRef.current!==storageKey || fact.id!==checkout?.order?.id)return;setCheckout(previous=>previous ? {...previous,order:{...previous.order,...fact}} : previous);if(purchaseIsResolved(fact))clearOperation();}
   return <section className="flex flex-col gap-5">
     {next && <Link className="self-start text-sm text-brand-emphasis underline" href={next}>{a("returnTask")}</Link>}
     <ListResourceView snapshot={bundle.snapshot} emptyTitle={t("plansEmpty")} emptyDetail={t("plansEmptyDetail")} onRetry={()=>void bundle.reload()}>
       {item && <>
         {selected && !item.plans.some(plan=>plan.id===selected) && <p role="alert" className="mb-4 text-danger">{a("planUnavailable")}</p>}
-        {pending && !checkout && <Card><p role="status">{purchase("resume")}</p><p className="mt-2 text-sm text-ink-secondary">{purchase("original",{plan:pending.planId,method:pending.adapter})}</p><Button className="mt-3" disabled={busy} onClick={()=>void subscribe(pending.planId)}>{purchase("retryOriginal")}</Button></Card>}
+        {pending && (!checkout || (checkout.order?.status==="pending" && !checkout.sandbox && !checkout.qr_code && !checkout.redirect_url && !checkout.client_secret)) && <Card><p role="status">{purchase("resume")}</p><p className="mt-2 text-sm text-ink-secondary">{purchase("original",{plan:pending.planId,method:pending.adapter})}</p><Button className="mt-3" disabled={busy} onClick={()=>void subscribe(pending.planId)}>{purchase("retryOriginal")}</Button></Card>}
         <div className="mb-4 flex flex-wrap gap-2">{item.methods.map(value=><Button key={value.adapter} variant={adapter===value.adapter ? "default":"outline"} disabled={busy || !!pending} onClick={()=>{setAdapter(value.adapter);}}>{value.display_name || value.name || value.adapter}{value.sandbox ? " · SANDBOX":""}</Button>)}</div>
         {item.methodError ? <p role="alert" className="mb-3 text-danger">{a("failedPaymentMethods")}</p> : !item.methods.length && <p role="status" className="mb-3">{a("noPaymentMethod")}</p>}
         <div className="grid gap-4 md:grid-cols-2">{item.plans.map(plan=>{
@@ -115,7 +120,7 @@ export default function PlansPanel() {
         <Button variant="outline" className="mt-4" disabled={busy} onClick={()=>void bundle.reload()}>{t("refreshPlans")}</Button>
       </>}
     </ListResourceView>
-    {checkout && <CheckoutPay checkout={checkout} onPaid={onPaid} />}
+    {checkout && <CheckoutPay checkout={checkout} onPaid={onPaid} onResolved={resolved} />}
     {checkout && pending && <Button className="self-start" variant="outline" disabled={busy} onClick={()=>void checkPurchase(pending)}>{purchase("checkOriginal")}</Button>}
     {paid && <p role="status">{purchase("paid")}</p>}
     {message && <p role="status" className="text-sm text-ink-secondary">{message}</p>}

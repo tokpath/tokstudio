@@ -6,7 +6,11 @@ import { withZh } from "./test-i18n";
 
 vi.mock("next/navigation", () => ({ useSearchParams:()=>new URLSearchParams(),
   usePathname: () => "/app/wallet",
+  useSearchParams: () => new URLSearchParams(),
 }));
+
+vi.mock("@/components/rbac/viewer-context",()=>({useViewer:()=>({userId:"wallet-user",loading:false,roles:["end_user"]})}));
+vi.mock("@/components/brand-context",()=>({useBrand:()=>({id:"wallet-brand"})}));
 
 function jsonResponse(status: number, body: unknown) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -45,6 +49,7 @@ function checkout(major: number, id: string) {
 describe("WalletPanel order vs quote", () => {
   afterEach(() => {
     cleanup();
+    sessionStorage.clear();
     vi.unstubAllGlobals();
   });
 
@@ -72,9 +77,10 @@ describe("WalletPanel order vs quote", () => {
           const major = Number(new URL(url, "http://local").searchParams.get("pay_major"));
           return jsonResponse(200, quote(major));
         }
+        if (url.endsWith("/v1/payments/orders/pay_100/sync") && init?.method === "POST") return jsonResponse(200,{item:{...checkout(100,"pay_100").checkout.order,status:"paid",fulfilled_at:"2026-10-10T00:00:00Z"}});
         if (url.includes("/v1/payments/orders") && init?.method === "POST") {
           await gate;
-          return jsonResponse(201, checkout(100, "pay_100"));
+          const original=checkout(100,"pay_100");return jsonResponse(201,{checkout:{...original.checkout,qr_code:"fixture-payment-qr"}});
         }
         return jsonResponse(200, {});
       }),
@@ -88,6 +94,9 @@ describe("WalletPanel order vs quote", () => {
     release();
     await waitFor(() => expect(screen.getByText("pay_100")).toBeTruthy());
     expect(screen.getByTestId("checkout-order-due").textContent).toContain("¥100.00");
+    expect((screen.getByRole("button", { name: "¥300" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button",{name:"我已付款"}));
+    await waitFor(()=>expect((screen.getByRole("button", { name: "¥300" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "¥300" }));
     await waitFor(() => expect(screen.getByTestId("wallet-pay").textContent).toBe("支付 ¥300.00"));
     expect(screen.getByTestId("checkout-order-due").textContent).toContain("¥100.00");
@@ -137,6 +146,30 @@ describe("WalletPanel order vs quote", () => {
     expect(keys[0]).toBeTruthy();
     expect(keys[1]).toBe(keys[0]);
     expect(screen.getByTestId("checkout-order-due").textContent).toContain("¥100.00");
+  });
+
+  it("keeps an already paid operation until fulfillment and then uses a new operation",async()=>{
+    let fulfilled=false;const createdKeys:string[]=[];
+    const original={id:"original-paid-op",adapter:"alipay",payMajor:100,orderId:"paid-order"};
+    sessionStorage.setItem("tokenhub_wallet_purchase:wallet-user:wallet-brand",JSON.stringify(original));
+    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const url=String(input);
+      if(url.includes("/v1/me/balance"))return jsonResponse(200,{balance:{available:"0",gift_minor:0,purchased_minor:0}});
+      if(url.includes("/v1/me/wallet-purchases"))return jsonResponse(200,{item:{...checkout(100,"paid-order").checkout.order,status:"paid",fulfilled_at:fulfilled ? "2026-10-10" : null}});
+      if(url.includes("/v1/payments/checkout"))return jsonResponse(200,{item:{methods:[{adapter:"alipay",pay_currency:"CNY"}],settings:{quick_amounts:[100,300]}}});
+      if(url.includes("/v1/payments/quote"))return jsonResponse(200,quote(100));
+      if(url.includes("/v1/payments/orders") && init?.method==="POST"){createdKeys.push(new Headers(init.headers).get("Idempotency-Key") || "");return jsonResponse(201,checkout(100,"new-order"));}
+      return jsonResponse(200,{});
+    }));
+    const mounted=render(withZh(<WalletPanel/>));
+    await waitFor(()=>expect(screen.getByText("已支付，额度入账处理中")).toBeTruthy());
+    expect((screen.getByRole("button",{name:"¥300"}) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByTestId("wallet-pay")).toBeNull();expect(createdKeys).toHaveLength(0);
+    expect(JSON.parse(sessionStorage.getItem("tokenhub_wallet_purchase:wallet-user:wallet-brand") || "null").id).toBe(original.id);
+    mounted.unmount();fulfilled=true;render(withZh(<WalletPanel/>));
+    await waitFor(()=>expect((screen.getByRole("button",{name:"¥300"}) as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(()=>expect(screen.getByTestId("wallet-pay").textContent).toBe("支付 ¥100.00"));
+    fireEvent.click(screen.getByTestId("wallet-pay"));await waitFor(()=>expect(createdKeys).toHaveLength(1));expect(createdKeys[0]).not.toBe(original.id);
   });
 
   it("retries a failed quote without changing the amount", async () => {

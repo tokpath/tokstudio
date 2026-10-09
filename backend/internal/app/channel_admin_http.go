@@ -34,8 +34,8 @@ func (a *App) setChannelAdmin(c *gin.Context) {
 		Enabled *bool  `json:"enabled"`
 		Reason  string `json:"reason"`
 	}
-	if c.ShouldBindJSON(&body) != nil || strings.TrimSpace(body.Email) == "" || body.Enabled == nil || strings.TrimSpace(body.Reason) == "" {
-		httpx.Abort(c, 400, "invalid_request", "请填写已注册的本渠道用户邮箱、操作和原因", false)
+	if c.ShouldBindJSON(&body) != nil || strings.TrimSpace(body.Email) == "" || body.Enabled == nil {
+		httpx.Abort(c, 400, "invalid_request", "请选择本组织已有用户和操作", false)
 		return
 	}
 	changed := false
@@ -73,7 +73,7 @@ func (a *App) setChannelAdmin(c *gin.Context) {
 		return
 	}
 	if errors.Is(err, identity.ErrChannelAdminTarget) {
-		httpx.Abort(c, http.StatusConflict, "invalid_channel_admin", "目标必须是该 B/C 渠道已注册的用户；授权时账户和渠道须正常，且不能持有其他管理角色。未修改权限。", false)
+		httpx.Abort(c, http.StatusConflict, "invalid_channel_admin", "目标必须是该组织已注册的用户；授权时账户和渠道须正常，且不能持有其他管理角色。未修改权限。", false)
 		return
 	}
 	if err != nil {

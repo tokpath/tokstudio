@@ -43,6 +43,7 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.PATCH("/admin/acquisition-roles/:id", a.requireRoles("platform_admin", "channel_admin"), a.adminPatchRole)
 	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
+	r.GET("/admin/channel-quotas/:channel_id/operations", a.requireRoles("platform_admin", "finance_admin"), a.adminQuotaOperation)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
 	r.POST("/channel/quotas/grant", a.requireRoles("channel_admin"), a.channelGrantQuota)
 	r.GET("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetIssueRule)
@@ -199,8 +200,12 @@ func (a *App) channelQuota(c *gin.Context) {
 		channelID = c.Query("channel_id")
 	}
 	item, err := a.Billing.ChannelQuota(c.Request.Context(), channelID)
+	if errors.Is(err, billing.ErrNotFound) {
+		httpx.Abort(c, 404, "not_found", "OEM 服务额度池尚未建立。", false)
+		return
+	}
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "渠道额度不存在", false)
+		httpx.Abort(c, 500, "read_failed", "读取额度失败。", true)
 		return
 	}
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
@@ -483,26 +488,51 @@ func (a *App) adminGrantQuota(c *gin.Context) {
 	var body struct {
 		ChannelOrgID string `json:"channel_org_id"`
 		AmountMinor  int64  `json:"amount_minor"`
+		OperationID  string `json:"operation_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.ChannelOrgID == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "额度参数无效", false)
+	if c.ShouldBindJSON(&body) != nil || body.ChannelOrgID == "" || body.OperationID == "" || body.AmountMinor == 0 {
+		httpx.Abort(c, 400, "invalid_request", "请填写组织、有效金额和原操作编号。", false)
 		return
 	}
 	ownerID, err := a.Identity.ResolvePaymentOwnerID(c.Request.Context(), body.ChannelOrgID)
-	if err != nil || ownerID != body.ChannelOrgID || ownerID == identity.OfficialChannelID {
+	if err != nil {
+		httpx.Abort(c, 500, "read_failed", "组织读取失败，未调整额度。", true)
+		return
+	}
+	if ownerID != body.ChannelOrgID || ownerID == identity.OfficialChannelID {
 		httpx.Abort(c, 403, "permission_denied", "仅向 OEM 服务额度池划拨，渠道客户由品牌方直接管理", false)
 		return
 	}
-	item, err := a.Billing.GrantChannelQuota(c.Request.Context(), body.ChannelOrgID, body.AmountMinor, a.currentPrincipal(c).UserID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "调整额度失败", false)
+	operation, err := a.Billing.AdjustQuota(c.Request.Context(), a.currentPrincipal(c).UserID, body.ChannelOrgID, body.OperationID, body.AmountMinor)
+	if errors.Is(err, billing.ErrConflict) {
+		httpx.Abort(c, 409, "operation_conflict", "该操作编号已绑定其他内容，请核对原记录。", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.quota.grant", ResourceType: "quota", ResourceID: body.ChannelOrgID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	if errors.Is(err, billing.ErrInsufficientQuota) || errors.Is(err, billing.ErrInvalidAmount) {
+		httpx.Abort(c, 400, "invalid_request", "金额无效或回收金额超过可用额度，未修改额度。", false)
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "result_unconfirmed", "调整结果待确认，请重试同一操作。", true)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.quota.grant", ResourceType: "quota_operation", ResourceID: operation.ID, After: operation, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"quota": operation.Quota, "operation": operation})
+}
+func (a *App) adminQuotaOperation(c *gin.Context) {
+	if !a.canReadChannelQuota(c, c.Param("channel_id")) {
+		return
+	}
+	item, err := a.Billing.QuotaOperation(c.Request.Context(), a.currentPrincipal(c).UserID, c.Param("channel_id"), c.Query("operation_id"))
+	if errors.Is(err, billing.ErrNotFound) {
+		httpx.Abort(c, 404, "not_found", "尚未查到该操作，请继续核对原操作。", false)
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "read_failed", "读取原操作失败。", true)
+		return
+	}
+	httpx.OK(c, gin.H{"operation": item})
 }
 
 func (a *App) channelGrantQuota(c *gin.Context) {

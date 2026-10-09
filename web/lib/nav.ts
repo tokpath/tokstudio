@@ -114,7 +114,7 @@ export const adminNavKeys = adminGroups.flatMap(group => group.items.map(item =>
 
 /** OEM tasks are explicit and independent from platform technical administration. */
 export const oemNavGroups: { titleKey: string; items: NavItem[] }[] = [
-  { titleKey: "groupOverview", items: [{ href: "/channel", key: "overview" }] },
+  { titleKey: "groupOverview", items: [{ href: "/channel", key: "overview" }, { href: "/channel/delivery", key: "delivery" }] },
   { titleKey: "groupCustomers", items: [{ href: "/channel/users", key: "users" }, { href: "/channel/subchannels", key: "channels" }, { href: "/channel/promos", key: "promos" }] },
   { titleKey: "groupCatalog", items: [{ href: "/channel/models", key: "models" }, { href: "/channel/plans", key: "plans" }] },
   { titleKey: "groupFinance", items: [{ href: "/channel/payments", key: "payments" }, { href: "/channel/commission", key: "commission" }, { href: "/channel/ledger", key: "billing" }] },

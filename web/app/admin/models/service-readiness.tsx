@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname, useSearchParams } from "next/navigation";
+import { appendReturnContext } from "@/lib/return-context";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useViewer } from "@/components/rbac/viewer-context";
@@ -8,6 +10,9 @@ import { perTokenToPerMillion } from "@/lib/token-price";
 import { type AdminModel } from "@/lib/catalog";
 
 export function ModelServicePanel({ model }: { model: AdminModel }) {
+  const path = usePathname();
+  const params = useSearchParams();
+  const modelReturn = `${path}${params.size ? `?${params}` : ""}`;
   const t = useTranslations("modelService");
   const viewer = useViewer();
   const state = model.service_readiness;
@@ -19,11 +24,11 @@ export function ModelServicePanel({ model }: { model: AdminModel }) {
     <p className="mt-1 text-sm text-ink-secondary">{t("healthHint")}</p>
     {state?.missing.length ? <ul className="my-3 list-inside list-disc text-sm">{state.missing.map(item => <li key={item}>{t(`missing.${item}`)}</li>)}</ul> : null}
     <div className="mt-4 flex flex-wrap gap-4 text-sm">
-      {canViewAdminHref(routeHref, viewer) ? <Link className="text-brand-emphasis underline" href={routeHref}>{state?.route_ids.length ? t("existingRoute") : t("newRoute")}</Link> : null}
+      {canViewAdminHref(routeHref, viewer) ? <Link className="text-brand-emphasis underline" href={appendReturnContext(routeHref, modelReturn)}>{state?.route_ids.length ? t("existingRoute") : t("newRoute")}</Link> : null}
       {canViewAdminHref("/admin/channels", viewer) ? <Link className="text-brand-emphasis underline" href={`/admin/channels?model=${encodeURIComponent(model.id)}`}>{t("authorize")}</Link> : null}
     </div>
     {state?.providers.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{state.providers.map(provider => <div key={`${provider.route_id}:${provider.provider_id}`} className="rounded-control border border-hairline p-3 text-sm">
-      {canViewAdminHref("/admin/providers", viewer) ? <Link className="break-all text-brand-emphasis underline" href={`/admin/providers/${encodeURIComponent(provider.provider_id)}?model=${encodeURIComponent(model.id)}`}>{provider.provider_id}</Link> : <span>{provider.provider_id}</span>}
+      {canViewAdminHref("/admin/providers", viewer) ? <Link className="break-all text-brand-emphasis underline" href={appendReturnContext(`/admin/providers/${encodeURIComponent(provider.provider_id)}?model=${encodeURIComponent(model.id)}`, modelReturn)}>{provider.provider_id}</Link> : <span>{provider.provider_id}</span>}
       <p className="my-1">{provider.upstream_model_id || "—"} · {t(`state.${provider.runtime_state}`)}</p>
       {provider.missing.map(item => <p key={item}>{t(`missing.${item}`)}</p>)}
       {provider.checked_at ? <p className="text-ink-secondary">{t("checkedAt", { time: new Date(provider.checked_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" }) + " (UTC+8)" })}</p> : null}

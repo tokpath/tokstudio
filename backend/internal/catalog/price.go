@@ -40,7 +40,9 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 		prices["wholesale_"+key] = value
 	}
 	customerOverride := decodeCosts(policy.Override)
-	var channel struct{ Type string `gorm:"column:type"` }
+	var channel struct {
+		Type string `gorm:"column:type"`
+	}
 	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id = ?", channelID).Take(&channel).Error; err != nil {
 		return nil, err
 	}
@@ -66,12 +68,28 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 			prices[key] = value
 		}
 	}
+	if _, ok := customerOverride["input"]; ok {
+		sell := map[string]any{}
+		for _, key := range []string{"input", "output"} {
+			if value, exists := prices[key]; exists {
+				sell[key] = value
+			}
+		}
+		prices["customer_sell"] = sell
+	}
 	return json.Marshal(prices)
 }
 
 // SetOwnChannelCustomerPrices sets the selling terms for one OEM brand.
 // Child B policies never define a separate customer price.
 func (s *Service) SetOwnChannelCustomerPrices(ctx context.Context, channelID, publicID string, prices map[string]string) error {
+	var organization struct{ Type string }
+	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id=?", channelID).Take(&organization).Error; err != nil {
+		return err
+	}
+	if organization.Type != identity.ChannelTypeC {
+		return ErrModelNotVisible
+	}
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
 		return err
@@ -339,4 +357,28 @@ func formatIO(input, output string) string {
 	default:
 		return input + "/" + output
 	}
+}
+
+// ValidateChannelPrice checks the effective brand sell and OEM settlement terms
+// without inspecting or changing historical snapshots.
+func (s *Service) ValidateChannelPrice(ctx context.Context, channelID, publicID string, raw json.RawMessage) error {
+	model, err := s.loadModel(ctx, publicID)
+	if err != nil {
+		return err
+	}
+	var units map[string]any
+	if json.Unmarshal(raw, &units) != nil {
+		return ErrInvalidInput
+	}
+	if !modelConfigurationReady(*model, map[string]any{"kind": modelKind(*model)}, units) {
+		return ErrModelIncomplete
+	}
+	wholesale := map[string]string{}
+	for _, key := range costKeys {
+		wholesale[key] = stringifyPrice(units["wholesale_"+key])
+	}
+	if !pricedForKind(wholesale, modelKind(*model)) {
+		return ErrModelIncomplete
+	}
+	return nil
 }

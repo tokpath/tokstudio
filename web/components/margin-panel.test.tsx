@@ -3,6 +3,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
+vi.mock("@/components/rbac/viewer-context", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/components/rbac/viewer-context")>()), useViewer: () => ({ signedIn: true, loading: false, roles: ["platform_admin"], userId: "test-authorized-viewer", channelType: "C" }) }));
+
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));

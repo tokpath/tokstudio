@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -36,17 +36,20 @@ const selectClass =
   "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
 
 export default function AdminChannelDetailPage() {
+  const router = useRouter();
+  const contextParams=useSearchParams();
   const params = useParams<{ id: string }>();
   const raw = params.id;
   const id = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw || "");
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState("停用后冻结新消费（聊天/媒体 403），余额和历史仍保留。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。");
+  const [message, setMessage] = useState("停用后冻结新消费，余额和历史仍保留。");
   const query = useQuery({
     queryKey: ["/admin/channels", id],
     queryFn: () => apiClient<ItemResponse>("GET", `/admin/channels/${id}`),
   });
   const item = query.data?.item;
+  useEffect(() => { if (item?.type === "C") router.replace(`/admin/oem-deliveries/${encodeURIComponent(id)}${contextParams.size?`?${contextParams}`:""}`); }, [item?.type, id, router, contextParams]);
   const managedByPlatform = !item || !item.parent_id || item.parent_id === "chn_official_a";
   const form = useForm<z.infer<typeof patchSchema>>({
     resolver: zodResolver(patchSchema),
@@ -75,7 +78,7 @@ export default function AdminChannelDetailPage() {
               <ConfirmButton
                 size="sm"
                 title="确认保存渠道"
-                description="停用后冻结新消费。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。"
+                description="停用后冻结新消费，历史账务保留。"
                 validate={() => form.trigger()}
                 onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                   try {

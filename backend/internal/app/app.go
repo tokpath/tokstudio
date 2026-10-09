@@ -239,6 +239,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerOpsRoutes(r)
 	a.registerOEMManagementRoutes(r)
 	a.registerStaffRoutes(r)
+	a.registerOEMDeliveryRoutes(r)
 	return r
 }
 

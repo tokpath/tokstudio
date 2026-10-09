@@ -8,6 +8,7 @@ export type CatalogModel = {
   capabilities?: Record<string, unknown>;
   sell_price?: Record<string, unknown>;
   status?: string;
+  service_status?: "available"|"unknown"|"degraded"|"unavailable";
   description?: string;
   context_length?: number;
   max_completion_tokens?: number;
@@ -114,7 +115,8 @@ function normalizeCatalogModel(m: CatalogModel): CatalogModel {
     display_name: m.display_name || m.id || "unknown",
     capabilities: m.capabilities,
     sell_price: m.sell_price,
-    status: m.status || "available",
+    status: m.service_status || (m.status === "published" ? "unknown" : m.status) || "unknown",
+    service_status:m.service_status,
     kind: m.kind || inferKind(m),
     description: m.description,
     context_length: m.context_length,

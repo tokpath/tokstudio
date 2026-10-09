@@ -1,128 +1,47 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
-import { CreateChannelDialog, CreatePartnerDialog, OpenCreateButton } from "./create-dialogs";
-import { Badge } from "@/components/ui/badge";
+import { CreateChannelDialog, OpenCreateButton } from "./create-dialogs";
+import { OEMCreateDialog } from "./oem-create-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  channelHref,
-  channelTypeLabel,
-  partnerHref,
-  roleTypeLabel,
-  type TenantListKind,
-} from "@/lib/tenants";
-import { canWrite } from "@/lib/rbac";
-import { useViewer } from "@/components/rbac/viewer-context";
 import { IfCan } from "@/components/rbac/if-can";
+import { modelEditHref } from "@/lib/catalog";
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
-type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; level?: number; status: string };
-
-const tabs: { kind: TenantListKind; label: string }[] = [
-  { kind: "channel", label: "渠道" },
-  { kind: "agent", label: "代理商" },
-  { kind: "kol", label: "KOL" },
-];
-
 export default function AdminChannelsPage() {
-  const [kind, setKind] = useState<TenantListKind>("channel");
+  const t = useTranslations("oemDelivery");
+  const [kind, setKind] = useState<"C" | "B">("C");
   const [createChannel, setCreateChannel] = useState(false);
-  const [createAgent, setCreateAgent] = useState(false);
-  const [createKOL, setCreateKOL] = useState(false);
-  const viewer = useViewer();
-  const showPartners = canWrite("partners.view", viewer);
-
-  return (
-    <AdminShell>
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">合作平台与直属渠道</h2>
-        <p className="text-sm text-ink-secondary">
-          A 管理自己的直属 B 和 OEM 平台 C；C 自行管理其下属 B。B 继承所属品牌的套餐与价格，模型逐级授权。
-        </p>
-      </section>
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="分销主体类型">
-        {(showPartners ? tabs : tabs.filter((tab) => tab.kind === "channel")).map((tab) => (
-          <Button
-            key={tab.kind}
-            size="sm"
-            role="tab"
-            aria-selected={kind === tab.kind}
-            variant={kind === tab.kind ? "default" : "outline"}
-            onClick={() => setKind(tab.kind)}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </div>
-      {kind === "channel" ? (
-        <AdminListPanel<Channel>
-          path="/admin/channels?managed=1"
-          title="直属渠道与 OEM"
-          rowHref={(row) => channelHref(String(row.id))}
-          emptyTitle="还没有渠道租户"
-          emptyDetail="新建渠道后，在渠道详情授权模型。"
-          actions={<IfCan action="channels.write"><OpenCreateButton label="新建渠道" onClick={() => setCreateChannel(true)} /></IfCan>}
-          columns={[
-            { accessorKey: "code", header: "Code" },
-            {
-              accessorKey: "type",
-              header: "租户类型",
-              cell: ({ row }) => channelTypeLabel(String(row.original.type)),
-            },
-            { accessorKey: "status", header: "状态" },
-            { accessorKey: "brand_id", header: "品牌" },
-            { accessorKey: "id", header: "ID" },
-          ]}
-        />
-      ) : null}
-      {kind === "agent" ? (
-        <AdminListPanel<Role>
-          path="/admin/acquisition-roles?type=agent"
-          title="代理商"
-          rowHref={(row) => partnerHref(String(row.id))}
-          emptyTitle="还没有代理商"
-          emptyDetail="代理商挂在某个渠道租户下，可发展 1 级 KOL。"
-          actions={<IfCan action="partners.write"><OpenCreateButton label="新建代理商" onClick={() => setCreateAgent(true)} /></IfCan>}
-          columns={[
-            { accessorKey: "id", header: "ID" },
-            { accessorKey: "channel_org_id", header: "所属租户" },
-            {
-              accessorKey: "type",
-              header: "角色",
-              cell: ({ row }) => roleTypeLabel(String(row.original.type)),
-            },
-            { accessorKey: "status", header: "状态" },
-            { accessorKey: "level", header: "层级" },
-          ]}
-        />
-      ) : null}
-      {kind === "kol" ? (
-        <AdminListPanel<Role>
-          path="/admin/acquisition-roles?type=kol"
-          title="KOL"
-          rowHref={(row) => partnerHref(String(row.id))}
-          emptyTitle="还没有 KOL"
-          emptyDetail="1 级可发展 2 级；2 级不能再发展下级。"
-          actions={<IfCan action="partners.write"><OpenCreateButton label="新建 KOL" onClick={() => setCreateKOL(true)} /></IfCan>}
-          columns={[
-            { accessorKey: "id", header: "ID" },
-            {
-              accessorKey: "type",
-              header: "层级",
-              cell: ({ row }) => <Badge tone="brand">{roleTypeLabel(String(row.original.type))}</Badge>,
-            },
-            { accessorKey: "channel_org_id", header: "所属租户" },
-            { accessorKey: "parent_id", header: "上级" },
-            { accessorKey: "status", header: "状态" },
-            { accessorKey: "level", header: "Level" },
-          ]}
-        />
-      ) : null}
-      <CreateChannelDialog open={createChannel} onOpenChange={setCreateChannel} />
-      <CreatePartnerDialog open={createAgent} onOpenChange={setCreateAgent} defaultType="agent" />
-      <CreatePartnerDialog open={createKOL} onOpenChange={setCreateKOL} defaultType="kol_l1" />
-    </AdminShell>
-  );
+  const [createOEM, setCreateOEM] = useState(false);
+  const model = useSearchParams().get("model");
+  return <AdminShell>
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+      <h2 className="text-lg font-semibold">{t("organizations")}</h2>
+      <p className="mt-2 text-sm text-ink-secondary">{t("organizationsHint")}</p>
+      {model ? <Link className="mt-3 block text-sm text-brand-emphasis underline" href={modelEditHref(model)}>{model}</Link> : null}
+    </section>
+    <div className="flex gap-2" role="tablist" aria-label={t("organizations")}>
+      {(["C", "B"] as const).map(type => <Button key={type} role="tab" aria-selected={kind === type} variant={kind === type ? "default" : "outline"} onClick={() => setKind(type)}>{t(type === "C" ? "oemList" : "channelList")}</Button>)}
+    </div>
+    <AdminListPanel<Channel>
+      key={kind}
+      path={`/admin/channels?managed=1&type=${kind}`}
+      title={t(kind === "C" ? "oemList" : "channelList")}
+      rowHref={row => `${row.type === "C" ? "/admin/oem-deliveries" : "/admin/channels"}/${encodeURIComponent(row.id)}${model ? `?model=${encodeURIComponent(model)}` : ""}`}
+      emptyTitle={t(kind === "C" ? "noOEM" : "noChannel")}
+      actions={<IfCan action="channels.write"><OpenCreateButton label={t(kind === "C" ? "createTitle" : "newChannel")} onClick={() => kind === "C" ? setCreateOEM(true) : setCreateChannel(true)} /></IfCan>}
+      columns={[
+        { accessorKey: "code", header: t("name") },
+        { accessorKey: "brand_id", header: t("brand") },
+        { accessorKey: "status", header: t("check.organization") },
+      ]}
+    />
+    <OEMCreateDialog open={createOEM} onOpenChange={setCreateOEM} />
+    <CreateChannelDialog open={createChannel} onOpenChange={setCreateChannel} />
+  </AdminShell>;
 }

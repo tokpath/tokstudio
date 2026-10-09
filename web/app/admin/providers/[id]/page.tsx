@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { safeReturnHref } from "@/lib/return-context";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -85,7 +86,9 @@ function accountKindLabel(kind?: string): string {
 export default function AdminProviderDetailPage() {
   const t = useTranslations("modelService");
   const viewer = useViewer();
-  const originModel = useSearchParams().get("model");
+  const searchParams = useSearchParams();
+  const originModel = searchParams.get("model");
+  const returnTo = searchParams.get("return_to");
   const params = useParams<{ id: string }>();
   const raw = params.id;
   const routeID = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw || "");
@@ -112,7 +115,7 @@ export default function AdminProviderDetailPage() {
 
   return (
     <AdminShell>
-      {originModel ? <Link className="text-brand-emphasis underline" href={modelEditHref(originModel)}>{t("returnModel")}</Link> : null}
+      {originModel ? <Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo, modelEditHref(originModel))}>{t("returnModel")}</Link> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/admin/providers" className="text-sm text-brand-emphasis no-underline hover:underline">

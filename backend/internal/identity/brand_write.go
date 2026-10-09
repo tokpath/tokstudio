@@ -71,6 +71,51 @@ func (s *Service) ChannelIDByBrand(ctx context.Context, brandID string) (string,
 }
 
 func (s *Service) CreateBrand(ctx context.Context, viewer Principal, in BrandInput) (*BrandView, error) {
+	var out *BrandView
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "brand-domains").Error; err != nil {
+			return err
+		}
+		service := *s
+		service.db = tx
+		var err error
+		out, err = service.createBrandTx(ctx, viewer, in)
+		return err
+	})
+	return out, err
+}
+func validBrandDomain(host string) bool {
+	if host == "" || len(host) > 253 {
+		return false
+	}
+	for _, label := range strings.Split(host, ".") {
+		if label == "" || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+			return false
+		}
+		for _, char := range label {
+			if !(char >= 'a' && char <= 'z' || char >= '0' && char <= '9' || char == '-') {
+				return false
+			}
+		}
+	}
+	return true
+}
+func (s *Service) assertAvailableBrandHosts(ctx context.Context, currentID string, hosts ...string) error {
+	for _, host := range hosts {
+		if !validBrandDomain(host) {
+			return ErrPromotionInvalid
+		}
+		var n int64
+		if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id<>? AND (primary_domain=? OR api_domain=? OR admin_domain=?)", currentID, host, host, host).Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrBrandDomainTaken
+		}
+	}
+	return nil
+}
+func (s *Service) createBrandTx(ctx context.Context, viewer Principal, in BrandInput) (*BrandView, error) {
 	if !viewer.IsPlatformAdmin() {
 		return nil, ErrChannelImmutable
 	}
@@ -88,8 +133,8 @@ func (s *Service) CreateBrand(ctx context.Context, viewer Principal, in BrandInp
 	if display := strings.TrimSpace(theme["display_name"]); display != "" {
 		in.Name = display
 	}
-	if s.KnownBrandHost(ctx, in.PrimaryDomain) || s.KnownBrandHost(ctx, in.APIDomain) || s.KnownBrandHost(ctx, in.AdminDomain) {
-		return nil, ErrBrandDomainTaken
+	if err := s.assertAvailableBrandHosts(ctx, "", in.PrimaryDomain, in.APIDomain, in.AdminDomain); err != nil {
+		return nil, err
 	}
 	row := brandRow{
 		ID: id.New("brd"), Name: in.Name, PrimaryDomain: in.PrimaryDomain,
@@ -103,6 +148,20 @@ func (s *Service) CreateBrand(ctx context.Context, viewer Principal, in BrandInp
 }
 
 func (s *Service) PatchBrand(ctx context.Context, brandID string, in BrandInput) (*BrandView, error) {
+	var out *BrandView
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "brand-domains").Error; err != nil {
+			return err
+		}
+		service := *s
+		service.db = tx
+		var err error
+		out, err = service.patchBrandTx(ctx, brandID, in)
+		return err
+	})
+	return out, err
+}
+func (s *Service) patchBrandTx(ctx context.Context, brandID string, in BrandInput) (*BrandView, error) {
 	var row brandRow
 	if err := s.db.WithContext(ctx).Where("id = ?", brandID).First(&row).Error; err != nil {
 		return nil, err
@@ -140,6 +199,13 @@ func (s *Service) PatchBrand(ctx context.Context, brandID string, in BrandInput)
 			updates["name"] = display
 		}
 		updates["theme_json"] = themeBytes(theme)
+	}
+	for _, key := range []string{"primary_domain", "api_domain", "admin_domain"} {
+		if host, ok := updates[key].(string); ok {
+			if err := s.assertAvailableBrandHosts(ctx, brandID, host); err != nil {
+				return nil, err
+			}
+		}
 	}
 	if len(updates) > 0 {
 		if err := s.db.WithContext(ctx).Model(&brandRow{}).Where("id = ?", brandID).Updates(updates).Error; err != nil {

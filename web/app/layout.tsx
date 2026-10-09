@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: brand?.name || "TokenHub",
     description: messages.chrome?.metaDescription || "一个 Key，可解释路由，账能复算。",
     icons: icon ? { icon } : undefined,
+    other: brand ? { "tokstudio-brand-id": brand.id } : undefined,
   };
 }
 

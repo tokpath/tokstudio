@@ -32,12 +32,10 @@ describe("role menus", () => {
       expect(canViewChannelHref(`/channel/${page}`, c)).toBe(true);
     }
   });
-  it("lets unsigned viewers keep the full admin nav", () => {
-    expect(filterAdminGroups(adminGroups, guest).flatMap((group) => group.items).length).toBe(
-      adminGroups.flatMap((group) => group.items).length,
-    );
-    expect(canViewAdminHref("/admin/providers", guest)).toBe(true);
-    expect(canWrite("providers.write", guest)).toBe(true);
+  it("hides protected menus and writes until authenticated", () => {
+    expect(filterAdminGroups(adminGroups, guest)).toEqual([]);
+    expect(canViewAdminHref("/admin/providers", guest)).toBe(false);
+    expect(canWrite("providers.write", guest)).toBe(false);
   });
 
   it("hides upstream keys and user bans from finance", () => {

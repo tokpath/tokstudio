@@ -128,6 +128,7 @@ type ModelView struct {
 	SellPrice           map[string]any         `json:"sell_price,omitempty"`
 	Providers           []string               `json:"providers"`
 	Status              string                 `json:"status"`
+	ServiceStatus       string                 `json:"service_status,omitempty"`
 	ConfigReady         bool                   `json:"config_ready"`
 	ServiceReadiness    *ModelServiceReadiness `json:"service_readiness,omitempty"`
 	SyncState           string                 `json:"sync_state,omitempty"`
@@ -760,8 +761,7 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		Joins("LEFT JOIN identity_channel_orgs parent ON parent.id = child.parent_id").
 		Joins("LEFT JOIN catalog_channel_model_policies upstream ON upstream.channel_org_id = parent.id AND upstream.public_model_id = m.id").
 		Where("m.status = ? AND p.channel_org_id = ?", "published", channelOrgID).
-		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC).
-		Where(routeReadySQL)
+		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC)
 	if len(allowlist) > 0 {
 		q = q.Where("m.public_id IN ?", allowlist)
 	}
@@ -776,6 +776,33 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		}
 		if !view.ConfigReady {
 			continue
+		}
+		snapshot, err := s.PriceSnapshot(ctx, model.PublicID)
+		if err != nil {
+			return nil, err
+		}
+		effective, err := s.PriceForChannel(ctx, channelOrgID, model.PublicID, snapshot.Raw)
+		if err != nil {
+			return nil, err
+		}
+		var prices map[string]any
+		if err := json.Unmarshal(effective, &prices); err != nil {
+			return nil, err
+		}
+		view.SellPrice = publicSell(prices)
+		readiness, err := s.ModelReadiness(ctx, model.PublicID)
+		if err != nil {
+			return nil, err
+		}
+		switch readiness.RuntimeState {
+		case "healthy":
+			view.ServiceStatus = "available"
+		case "degraded":
+			view.ServiceStatus = "degraded"
+		case "not_configured", "unavailable":
+			view.ServiceStatus = "unavailable"
+		default:
+			view.ServiceStatus = "unknown"
 		}
 		out = append(out, *view)
 	}

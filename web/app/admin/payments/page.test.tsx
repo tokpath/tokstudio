@@ -4,6 +4,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
 import Page from "./page";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+vi.mock("@/components/rbac/viewer-context", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/components/rbac/viewer-context")>()), useViewer: () => ({ signedIn: true, loading: false, roles: ["platform_admin"], userId: "test-authorized-viewer", channelType: "C" }) }));
+
 const order = { id: "pay_one", user_id: "usr_one", user_email: "alice@example.test", user_name: "Alice", channel_code: "official-a", adapter: "alipay", purpose: "wallet", status: "pending", currency: "CNY", amount_minor: 10000, credit_minor: 13986013, created_at: "2026-09-18T00:00:00Z" };
 it("shows human payment and credit amounts, then confirms the selected recipient", async () => {
   const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => ({ ok: true, json: async () => init?.method === "POST" ? { item: { ...order, status: "paid", fulfilled_at: "2026-09-18" } } : { items: [order] } }));

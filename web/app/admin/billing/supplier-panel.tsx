@@ -43,7 +43,8 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
   }, [storageKey]);
   function validateRecord() {
     if (operation) return true;
-    if (!parseUsdToMinor(usd) || !vendor.trim() || !when || !Number.isFinite(new Date(when).getTime())) { setMessage("请填写付款对象、正数 USD 金额和实际付款时间。"); return false; }
+    if ((parseUsdToMinor(usd) ?? 0) <= 0 || !vendor.trim() || !when || !Number.isFinite(new Date(when).getTime())) { setMessage("请填写付款对象、正数 USD 金额和实际付款时间。"); return false; }
+    setMessage("");
     return true;
   }
   async function record() {

@@ -305,7 +305,7 @@ export function ModelsCatalog({
                             {m.display_name}
                           </Link>
                         </h3>
-                        <span className="th-eyebrow text-success">{(m.status || "available").toUpperCase()}</span>
+                        <span className={`th-eyebrow ${m.status === "available" ? "text-success" : "text-ink-secondary"}`}>{t(`service.${m.status && ["available","unknown","degraded","unavailable"].includes(m.status) ? m.status : "unknown"}`)}</span>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
                         {m.description?.trim() || t("noDesc")}

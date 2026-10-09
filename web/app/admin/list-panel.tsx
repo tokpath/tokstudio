@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { apiClient } from "@/lib/client";
 import { stickyColumnClass, type ScrollTableDensity } from "@/lib/scroll-table";
 import { cn } from "@/lib/utils";
 import { useViewer } from "@/components/rbac/viewer-context";
+import { appendReturnContext } from "@/lib/return-context";
 import { Button } from "@/components/ui/button";
 
 type ListResponse<T> = { items?: T[]; next_cursor?: string; error?: { message?: string } };
@@ -42,6 +43,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   density?: ScrollTableDensity;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [locationSearch, setLocationSearch] = useState("");
+  const rowLink = (row:T) => appendReturnContext(rowHref!(row), `${pathname}${locationSearch}`);
   const tc = useTranslations("common");
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -51,6 +55,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const stateKey = path.split("?")[0].replaceAll("/", "_");
   useEffect(() => {
     const restore = () => {
+      setLocationSearch(window.location.search);
       const params = new URLSearchParams(window.location.search);
       const value = params.get(`${stateKey}_q`) || "";
       setQ(value); setSearch(value); setCursor(params.get(`${stateKey}_cursor`) || ""); setPrevious([]);
@@ -64,6 +69,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
       if (item) url.searchParams.set(key, item); else url.searchParams.delete(key);
     }
     window.history.replaceState(null, "", url.toString());
+    setLocationSearch(url.search);
   }
   const params = new URLSearchParams(path.split("?")[1]);
   if (search) params.set("q", search);
@@ -137,13 +143,13 @@ export function AdminListPanel<T extends Record<string, unknown>>({
                       return;
                     }
                     if (rowHref) {
-                      router.push(rowHref(row.original));
+                      router.push(rowLink(row.original));
                     }
                   }}
                 >
                   {row.getVisibleCells().map((cell, index) => (
                     <td key={cell.id} className={stickyColumnClass(index, colCount, { stickyEnds, density })}>
-                      {index === 0 && rowHref ? <Link href={rowHref(row.original)} onClick={event => event.stopPropagation()} className="text-brand-emphasis underline underline-offset-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</Link> : index === 0 && onRowSelect ? <Button size="sm" variant="ghost" onClick={event => { event.stopPropagation(); onRowSelect(row.original); }}>{tc("open")} · {flexRender(cell.column.columnDef.cell, cell.getContext())}</Button> : flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {index === 0 && rowHref ? <Link href={rowLink(row.original)} onClick={event => event.stopPropagation()} className="text-brand-emphasis underline underline-offset-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</Link> : index === 0 && onRowSelect ? <Button size="sm" variant="ghost" onClick={event => { event.stopPropagation(); onRowSelect(row.original); }}>{tc("open")} · {flexRender(cell.column.columnDef.cell, cell.getContext())}</Button> : flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>

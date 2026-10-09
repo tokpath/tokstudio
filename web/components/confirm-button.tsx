@@ -76,7 +76,7 @@ function ConfirmDialogView({
             <AlertTriangle className="size-4 text-hold" strokeWidth={1.75} aria-hidden />
             {title}
           </DialogTitle>
-          {description ? <DialogDescription>{description}</DialogDescription> : null}
+          {description ? <DialogDescription className="whitespace-pre-line">{description}</DialogDescription> : null}
         </DialogHeader>
         {error ? <SubmitStatus error={error} /> : null}
         <DialogFooter>

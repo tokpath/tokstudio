@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChannelPlans } from "@/app/channel/plans-panel";
 import { withZh } from "@/lib/test-i18n";
 
+vi.mock("@/components/rbac/viewer-context", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/components/rbac/viewer-context")>()), useViewer: () => ({ signedIn: true, loading: false, roles: ["channel_admin"], userId: "test-authorized-viewer", channelType: "C" }) }));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/channel/plans",
 }));

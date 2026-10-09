@@ -25,7 +25,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/tls-check", a.publicTLSCheck)
 	r.GET("/.well-known/acme-challenge/:token", a.acmeHTTP01)
 	r.GET("/v1/public/docs-context", a.docsContext)
-	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.listBrands)
+	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listBrands)
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
@@ -45,7 +45,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.createChannel)
 	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.getChannel)
-	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.getChannelModels)
+	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly", "channel_admin"), a.getChannelModels)
 	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.patchChannelModels)
 	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin"), a.patchChannel)
 	r.GET("/channel/models", a.requireRoles("channel_admin"), a.channelModels)
@@ -557,7 +557,7 @@ func publicModelCards(models []catalog.ModelView) []gin.H {
 		items = append(items, gin.H{
 			"id": model.ID, "vendor": model.Vendor, "display_name": model.DisplayName,
 			"capabilities": model.Capabilities, "sell_price": model.SellPrice,
-			"status":      catalog.PublicModelStatus(model.Status),
+			"status": model.ServiceStatus, "service_status": model.ServiceStatus,
 			"description": model.Description, "kind": model.Kind,
 			"context_length": model.ContextLength, "max_completion_tokens": model.MaxCompletionTokens,
 		})
@@ -660,6 +660,15 @@ func (a *App) listChannels(c *gin.Context) {
 			}
 		}
 		items = managed
+	}
+	if kind := c.Query("type"); kind != "" {
+		filtered := make([]identity.ChannelView, 0, len(items))
+		for _, item := range items {
+			if item.Type == kind {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
 	}
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]identity.ChannelView, 0, len(items))

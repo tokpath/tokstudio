@@ -194,6 +194,7 @@ func TestM6CommissionDistribution(t *testing.T) {
 	}
 
 	if code := postStatusConfirm(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": identity.ResellerChannelID, "amount_minor": 1,
 	}); code != http.StatusForbidden {
 		t.Fatalf("B cannot own a quota pool: %d", code)
@@ -280,10 +281,12 @@ func TestD82QuotaRatio(t *testing.T) {
 		application.Billing.SetIssueRule(context.Background(), channelID, billing.DefaultIssueRatioBPS)
 	})
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": channelID, "amount_minor": 100 * billing.MinorPerUSD,
 	})
 	promo := "THX-D82-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": channelID, "code": promo,
 	})
 
@@ -364,6 +367,7 @@ func TestD82QuotaRatio(t *testing.T) {
 	plainID := oneToOne["item"].(map[string]any)["id"].(string)
 	plainPromo := "THX-D82B-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": plainID, "code": plainPromo,
 	})
 	plainReg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{

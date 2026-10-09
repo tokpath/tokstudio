@@ -72,12 +72,13 @@ type BrandView struct {
 }
 
 type ChannelView struct {
-	ID       string `json:"id"`
-	Code     string `json:"code"`
-	Type     string `json:"type"`
-	Status   string `json:"status"`
-	BrandID  string `json:"brand_id"`
-	ParentID string `json:"parent_id,omitempty"`
+	BrandName string `json:"brand_name,omitempty"`
+	ID        string `json:"id"`
+	Code      string `json:"code"`
+	Type      string `json:"type"`
+	Status    string `json:"status"`
+	BrandID   string `json:"brand_id"`
+	ParentID  string `json:"parent_id,omitempty"`
 }
 
 type Session struct {

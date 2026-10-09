@@ -78,7 +78,7 @@ export default function AdminMarginPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <AdminH2 k="margin" className="mb-4 text-lg font-semibold tracking-tight" />
+        <AdminH2 level={1} k="margin" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">{t("marginLead")}</p>
         <dl aria-label={t("margin")} className="mb-4 grid gap-3 sm:grid-cols-3">
           {stats.map((item) => (

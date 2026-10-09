@@ -1,5 +1,5 @@
 import {describe,it,expect} from "vitest";
-import {usdToMinor,keyAllowsModel,keyState} from "./key-policy";
+import {usdToMinor,keyAllowsModel,keyState,preferredKeyModel} from "./key-policy";
 
 describe("logical Key limits",()=>{
  it("preserves exact USD micro units and rejects invalid or unsafe limits",()=>{
@@ -16,3 +16,5 @@ describe("logical Key limits",()=>{
   expect(keyState({status:"disabled",budget_limit_minor:100,budget_used_minor:100})).toBe("disabled");
  });
 });
+
+it("keeps a legal context or the unique allowed model in Key instructions",()=>{expect(preferredKeyModel({model_mode:"selected",allowlist:["chosen"]})).toBe("chosen");expect(preferredKeyModel({model_mode:"selected",allowlist:["chosen"]},"foreign")).toBe("chosen");expect(preferredKeyModel({model_mode:"selected",allowlist:["one","two"]},"two")).toBe("two");expect(preferredKeyModel({model_mode:"selected",allowlist:["one","two"]})).toBe("");});

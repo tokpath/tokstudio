@@ -2,7 +2,6 @@ package billing
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 )
 
@@ -25,14 +24,9 @@ func (s *Service) ReplayActualUsage(ctx context.Context, requestID string, usage
 		return nil, err
 	}
 	if gap.State == UsageConfirmed {
-		var prior map[string]int
-		if json.Unmarshal(gap.UnitUsage, &prior) != nil || len(prior) != len(usage) {
+		prompt, completion, reasoning := ParseUnitUsage(gap.UnitUsage)
+		if prompt != int64(usage["prompt_tokens"]) || completion != int64(usage["completion_tokens"]) || reasoning != int64(usage["reasoning_tokens"]) {
 			return nil, ErrConflict
-		}
-		for k, v := range usage {
-			if prior[k] != v {
-				return nil, ErrConflict
-			}
 		}
 		charges, err := s.ListChargesByRequest(ctx, requestID)
 		if err != nil {

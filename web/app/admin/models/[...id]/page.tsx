@@ -169,9 +169,11 @@ export default function AdminModelEditPage() {
     } catch { setLifeError(confirmNetworkUnavailable); return false; }
   }
 
-  if (!isNew && (query.isPending || query.isError || query.data?.error || !model)) return <AdminShell><section role={query.isPending ? "status" : "alert"}><p>{query.isPending ? "正在读取模型…" : "读取模型失败，未修改配置。"}</p>{!query.isPending ? <Button variant="outline" onClick={()=>void query.refetch()}>重试读取</Button>:null}</section></AdminShell>;
+  if (!isNew && (query.isPending || query.isError || query.data?.error || !model)) return <AdminShell>
+      <h1 className="text-2xl font-semibold">{model?.display_name || publicId}</h1><section role={query.isPending ? "status" : "alert"}><p>{query.isPending ? "正在读取模型…" : "读取模型失败，未修改配置。"}</p>{!query.isPending ? <Button variant="outline" onClick={()=>void query.refetch()}>重试读取</Button>:null}</section></AdminShell>;
   return (
     <AdminShell>
+      <h1 className="text-2xl font-semibold">{isNew ? "创建模型" : model?.display_name || publicId}</h1>
       <Link className="text-sm text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, "/admin/models")}>返回模型列表</Link>
       {query.data?.error ? <p className="text-sm text-danger">{query.data.error.message}</p> : null}
 

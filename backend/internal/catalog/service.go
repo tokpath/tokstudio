@@ -639,6 +639,11 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 		return ErrInvalidInput
 	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var target struct{ Type string }
+		if err := tx.Table("identity_channel_orgs").Select("type").Where("id = ?", channelOrgID).Take(&target).Error; err != nil {
+			return err
+		}
+		channelOnly := target.Type == identity.ChannelTypeB
 		for _, grant := range grants {
 			publicID := strings.TrimSpace(grant.PublicID)
 			if publicID == "" {
@@ -664,7 +669,7 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
 			lookupErr := err
 			wholesale := decodeCosts(existing.Wholesale)
-			if grant.Wholesale != nil {
+			if !channelOnly && grant.Wholesale != nil {
 				var priceErr error
 				wholesale, priceErr = validateUnitCosts(grant.Wholesale)
 				if priceErr != nil {
@@ -672,14 +677,14 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 				}
 			}
 			override := decodeCosts(existing.Override)
-			if grant.CustomerOverride != nil {
+			if !channelOnly && grant.CustomerOverride != nil {
 				var priceErr error
 				override, priceErr = validateUnitCosts(grant.CustomerOverride)
 				if priceErr != nil || (len(override) > 0 && !pricedForKind(override, modelKind(model))) {
 					return ErrInvalidInput
 				}
 			}
-			if grant.Enabled && !pricedForKind(wholesale, modelKind(model)) {
+			if !channelOnly && grant.Enabled && !pricedForKind(wholesale, modelKind(model)) {
 				return ErrInvalidInput
 			}
 			wholeJSON, _ := json.Marshal(wholesale)

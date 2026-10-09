@@ -47,7 +47,7 @@ export default function AdminAlertsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="alerts" className="mb-4 text-lg font-semibold tracking-tight" />
+        <AdminH2 level={1} k="alerts" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">按系统设置中的阈值检查当前运行情况，生成告警并保留审计记录。</p>
         <IfCan action="alerts.write">
         <ConfirmButton size="sm" title="确认评估告警" description="将按当前阈值重新评估运行情况并生成告警，不会自动修改上游配置或资金记录。" error={error} onConfirm={evaluate}>

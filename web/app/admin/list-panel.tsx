@@ -8,7 +8,8 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tan
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { useTranslations } from "next-intl";
-import { apiClient } from "@/lib/client";
+import { apiBase } from "@/lib/api";
+import { loginHref } from "@/lib/login-next";
 import { stickyColumnClass, type ScrollTableDensity } from "@/lib/scroll-table";
 import { cn } from "@/lib/utils";
 import { useViewer } from "@/components/rbac/viewer-context";
@@ -29,6 +30,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyDetail = "当前条件下暂无记录，可调整筛选条件后重试。",
   stickyEnds = true,
   density = "admin",
+  headingLevel = 2,
 }: {
   path: string;
   title: string;
@@ -41,6 +43,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyDetail?: string;
   stickyEnds?: boolean;
   density?: ScrollTableDensity;
+  headingLevel?: 1 | 2;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -77,16 +80,24 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   const href = `${path.split("?")[0]}${params.size ? `?${params}` : ""}`;
   const query = useQuery({
     queryKey: [viewer.userId, href],
-    queryFn: () => apiClient<ListResponse<T>>("GET", href),
+    queryFn: async () => {
+      const response=await fetch(`${apiBase}${href}`,{credentials:"include"});
+      const body=await response.json() as ListResponse<T>;
+      if(!response.ok || body.error)throw Object.assign(new Error(body.error?.message||tc("listFailed")),{status:response.status});
+      return body;
+    },
+    retry:false,
   });
-  const data = query.data?.items ?? [];
+  const data = query.isError ? [] : query.data?.items ?? [];
+  const failureStatus = (query.error as Error & {status?:number}|null)?.status;
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const colCount = columns.length;
+  const Heading = headingLevel === 1 ? "h1" : "h2";
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <Heading className={headingLevel === 1 ? "text-2xl font-semibold tracking-tight" : "text-lg font-semibold tracking-tight"}>{title}</Heading>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {actions}
           <form className="flex items-center gap-2" onSubmit={event => { event.preventDefault(); setSearch(q.trim()); setCursor(""); setPrevious([]); updateLocation(q.trim(), ""); }}><Input
@@ -100,7 +111,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || tc("listFailed")}</p>
+        <div role="alert" className="mb-3 space-y-2 text-sm"><p>{failureStatus===401?tc("listSessionExpiredDetail"):failureStatus===403?tc("listForbidden"):query.error?.message||query.data?.error?.message||tc("listFailed")}</p>{failureStatus===401?<Button asChild variant="outline"><Link href={loginHref(`${pathname}${locationSearch}`)}>{tc("listRelogin")}</Link></Button>:<Button variant="outline" onClick={()=>void query.refetch()}>{tc("listRetry")}</Button>}</div>
       ) : null}
       <div className="overflow-x-auto">
         <table className={cn("w-full text-left text-sm", colCount > 7 ? "min-w-[52rem]" : colCount > 4 ? "min-w-[34rem]" : "")}>

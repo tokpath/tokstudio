@@ -29,17 +29,13 @@
 
 ### `GET /v1/models`
 
-返回客户可见模型、厂商、能力、可用 Provider 状态和平台销售价；不返回上游密钥、内部成本和 Provider 独立价格。
+返回客户可见模型、厂商、真实协议/预算能力、安全服务状态和有效品牌终端价；不返回提供商、上游路由、管理人员或内部成本。
 
 ### `GET /v1/models/{model}`
 
-返回单个模型详情、支持参数、媒体规格、可用 Provider 和弃用状态。
+返回有权单个模型详情、支持参数、媒体规格、安全服务状态和弃用状态。
 
-请求可选 Provider 路由参数：
-
-- `provider.only`: 仅允许指定 Provider 列表；
-- `provider.ignore`: 排除指定 Provider；
-- `provider.order`: 指定 Provider 优先级。
+公开请求禁止 provider、router、route、账号等上游控制项，包括嵌套和其他大小写/协议边界的变体；返回结构化 4xx。选路只由有权内部配置决定。
 
 ## 3. 文本/多模态推理
 
@@ -49,11 +45,11 @@
 
 ### `POST /v1/responses`
 
-兼容 OpenAI Responses，响应中保留 `id`、`model`、`usage`、`output` 和 `request_id`。
+实现 OpenAI Responses 子集；支持范围按实际模型 supported_endpoints 与文档生成，不能声称完整 Responses 或 Codex 兼容。
 
 ### `POST /v1/messages`
 
-兼容 Anthropic Messages，支持 `stream`、system、tools、vision 和 usage 映射。
+实现 Anthropic Messages 子集，已支持的输入/输出与流式类型按实际契约验证；未实现参数明确拒绝，不声称完整 Claude Code 兼容。
 
 统一行为：
 
@@ -183,12 +179,12 @@
 - 渠道/代理：`GET/POST /admin/channels`、`GET/PATCH /admin/channels/{id}`、`GET/PATCH /admin/channels/{id}/models`、`GET/PATCH /channel/models`；A/C 是各自品牌的平台，B 是继承上级品牌的渠道；A 可建直属 B/C，C 只建直属 B，B 无下属。C 创建时须指定未分配的品牌，B 自动继承上级品牌，类型和品牌归属创建后固定；创建和改状态需二次确认；新渠道没有默认模型授权。平台只管理直属 B/C，OEM 管理自己的直属 B，并可转授权或撤销模型；`PATCH /channel/models` 只切换本渠道已有授权模型的本地下架状态，不恢复上级撤权，需二次确认。平台模型全局下架、上级撤权或上级本地下架都会立即阻止下属调用。租户不能自建提供商或模型；`disabled` 后聊天/媒体返回 `403 channel_disabled`，`GET /v1/me/balance` 与 usage 仍可读；
 - 用户治理：`GET /admin/users`、`POST /admin/users/{id}/ban|unban`、`POST /admin/users/{id}/attribution`；封禁后登录和旧 API Key 403，未结算佣金进入 `held`；改归因与封禁需二次确认并写审计；
 - 管理员 2FA：`GET /admin/me` 回当前角色；`GET /admin/me/2fa`、`POST /admin/me/2fa/setup|enable|disable`；启用后敏感写操作还要 `X-Tokenhub-TOTP`；管理页 `/admin/settings` 可读取/绑定/启用/关闭；关闭需确认，启用后再关闭还要 TOTP；不要在共享管理员上留下 `enabled`；
-- 用户 API Key（D38）：平台**不再**管理具体用户 Key。目标契约为渠道范围 `GET /channel/api-keys`（prefix/状态/最近使用等，无密文）、`POST /channel/api-keys/{id}/disable`（二次确认，仅本渠道用户）。终端用户仍用 `/v1/me/api-keys`。既有 `GET /admin/api-keys` 与 `POST /admin/api-keys/{id}/disable`、管理页 `/admin/keys` 视为待下线兼容面，实现 PR 删除前勿用于新产品验收；
+- 用户 API Key（D38）：平台**不再**管理具体用户 Key。目标契约为渠道范围 `GET /channel/api-keys`（prefix/状态/最近使用等，无密文）、`POST /channel/api-keys/{id}/disable`（二次确认，仅本渠道用户）。终端用户仍用 `/v1/me/api-keys`。旧平台用户 Key 管理 API 已停用（410），管理页 `/admin/keys` 退役；本人 Key 读写严格 user_id 所有权，管理角色不跳过所有权；
 - 推广：`GET/POST /admin/acquisition-roles`、`GET/PATCH /admin/acquisition-roles/{id}`、`GET/POST /admin/promotion-codes`、`GET/POST /channel/promotion-codes`；`type=agent|promoter` 分列表（历史 `kol` 仍可筛 `kol_l1`/`kol_l2`）；创建角色和推广码、改状态需二次确认并写审计；管理页 `/admin/channels` 分栏管理代理商/推广员，`/admin/promos` 管推广码；
-- 分销只读：`GET /v1/partner/me|users|commissions|settlements|export`（按邀请链过滤，邮箱脱敏，不含 prompt）；代理商看授权范围内用户，个人推广员看自己发展的下线；计佣两跳见 `docs/15`；
+- 邀请与收益：`GET /v1/me/referral` 返回本人邀请码/链接、邀请人数、积分与分佣资格进度、本人佣金和结算；普通用户在 `/app/referral` 使用同一账户。专业客户另按已有真实权限查询，不扩展普通用户下线财务读取；旧 `/partner` 页面重定向至本人收益；
 - 佣金：`GET /admin/commissions`、`GET/PATCH /admin/commission-policy`（改 BPS/冻结天数需二次确认）、`GET/PATCH /admin/eligibility-rules`（平台达线：累计消费 / 单笔充值，需确认）、`GET/PATCH /channel/eligibility-rules`（仅 C 可写，B 读平台规则）、`POST /admin/commissions/recalc`（按价格快照重算需确认）、`POST /admin/commissions/unfreeze`（解冻需确认并写审计）、`POST /admin/commissions/settle`、`POST /admin/settlements/{id}/payout`；管理页 `/admin/commission` 可重算、手工解冻、生成结算单和人工打款；
-- 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`（平台向 B/C 进货）、`POST /channel/quotas/grant`（仅 C 向其下属 B 划拨，扣 C 加 B，需确认）、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），B/C 不能改换算比；用户充值从**所属渠道自己的池**发放；渠道额度不足返回 `402 insufficient_quota`；
-- 渠道运营：`GET /channel/users`、`POST /channel/users/{id}/ban|unban`（B/C 管理本渠道用户，C 也可管理直属 B 用户）、`GET /channel/subchannels/{id}/users`（仅 C 可读直属 B）；`GET/POST /channel/plans` 仅 C 可用，创建本品牌统一套餐，B 不创建套餐或设置终端价格；`PATCH /channel/model-prices` 仅 C 可设置整个品牌共用的模型客户价；`GET /channel/usage`（合计 + `keys`/`models`/`items`，可按 `api_key_id` 筛，不含 prompt）、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；渠道 API Key 列表与禁用见上条；
+- 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`（平台向 OEM 发放服务额度；渠道目标拒绝）；旧 `POST /channel/quotas/grant` 停用，不创建 OEM→渠道采购、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），渠道不能改换算比；用户入账从**原所属品牌 OEM 池**发放；OEM 品牌额度不足返回 `402 insufficient_quota`；
+- 渠道运营：`GET /channel/users`、`POST /channel/users/{id}/ban|unban`（B/C 管理本渠道用户，C 也可管理直属 B 用户）、`GET /channel/subchannels/{id}/users`（仅 C 可读直属 B）；`GET/POST /channel/plans` 仅 C 可用，创建本品牌统一套餐，B 不创建套餐或设置终端价格；`PATCH /channel/model-prices` 仅 C 可设置整个品牌共用的模型客户价；`GET /channel/usage`（服务端完整搜索、cursor 明细）；`GET /channel/usage/summary`（同范围全量汇总与独立筛选 facets）；原请求详情再次范围鉴权，不含 prompt、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；渠道 API Key 列表与禁用见上条；
 - 套餐：`GET/POST /admin/plans` 由 A/C 分别管理本品牌套餐，创建后待发布；B 无权管理。指定渠道时，`GET /admin/plans/eligible-channels` 只返回本品牌直属 B，可多选。公开与登录后的套餐列表按品牌隔离，B 用户仅见上级品牌套餐。`POST /admin/plans/{id}/review` 的 `approve/reject` 执行发布/拒绝，`PATCH /admin/plans/{id}` 下架已发布套餐。创建、发布、下架、拒绝原子写入含操作人和时间的审计。A/C 各自在本品牌后台发布、下架或拒绝套餐，平台不代 OEM 审核；管理页可按渠道、套餐名和购买方式筛选，显示额度和状态操作；一次性额度长期有效，周期套餐按期发放；`POST /admin/subscriptions/{id}/force-period-end` 与 `POST /admin/subscriptions/process-renewals` 仅供沙箱运维测试，常规续费由 Worker 执行；
 - 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；发布需 `X-Tokenhub-Confirm`；body 可带 `upstream_cost` / `wholesale` / `customer_sell` 及可选 `channel_override`；`GET ?format=csv` 含 `effective_at` 与四列单价；管理面改价入口在模型详情与 `/admin/prices`，走盖章确认）；
 - 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；

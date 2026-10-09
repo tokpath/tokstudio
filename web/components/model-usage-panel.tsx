@@ -11,6 +11,7 @@ import { fetchKeyPages } from "@/lib/key-resources";
 import { keyVerifyRequest } from "@/lib/key-example";
 import { copyText, readResponseBody, errorMessageFromBody } from "@/lib/submit-result";
 import { useViewer } from "@/components/rbac/viewer-context";
+import { loginHref } from "@/lib/login-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 type Docs = {
@@ -150,7 +151,11 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     const protocolParams = new URLSearchParams(params);
     protocolParams.set("tab", "protocol");
     const protocolHref = `${typeof window !== "undefined" ? window.location.pathname : "/app/docs"}?${protocolParams}`;
-    const createHref = `/app/keys?create=1&${params}`;
+    const createParams = new URLSearchParams(params);
+    createParams.set("create", "1");
+    createParams.set("return_to", typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : returnHref);
+    const createTarget = `/app/keys?${createParams}`;
+    const createHref = viewer.signedIn ? createTarget : loginHref(createTarget);
     const editHref = `/app/keys?edit=${encodeURIComponent(selectedKey)}&${params}`;
     const walletHref = `/app/wallet?next=${encodeURIComponent(returnHref)}`;
     const requestsHref = `/app/usage?tab=requests&public_model_id=${encodeURIComponent(model.id)}${selectedKey ? `&api_key_id=${encodeURIComponent(selectedKey)}` : ""}`;
@@ -188,8 +193,8 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
                 setVerifying(false);
         }
     }
-    const recovery = verification?.code === "insufficient_balance" ? "wallet"
-        : ["key_invalid", "key_unusable", "key_expired", "key_budget_exceeded", "model_not_allowed"].includes(verification?.code ?? "") ? "key"
+    const recovery = verification?.ok ? "requests" : verification?.code === "insufficient_balance" ? "wallet"
+        : ["key_invalid", "key_unusable", "key_expired", "key_budget_exceeded", "key_budget_unbounded", "model_not_allowed"].includes(verification?.code ?? "") ? "key"
             : ["rate_limited", "request_outcome_unknown"].includes(verification?.code ?? "") ? "requests" : "protocol";
     return <Card><div className="grid gap-4">
   {models.length > 1 ? <label className="grid gap-1 text-sm">{t("chooseModel")}<select className="h-10 rounded-control border border-hairline bg-canvas px-2" value={model.id} onChange={event => {
@@ -234,10 +239,10 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
    <details><summary className="cursor-pointer text-sm">{t("errorsTitle")}</summary><p className="mt-2 text-sm text-ink-secondary">{t("errors")}</p></details>
   </> : <p>{t("noProtocol")}</p> : null}
   {docs && verifyRequest ? <div className="grid gap-2 border-t border-hairline pt-3"><p className="text-sm text-ink-secondary">{t("verifyCost")}</p><Button variant="outline" disabled={!canVerify || verifying} onClick={() => void verify()}>{verifying ? tc("submitting") : t("verify")}</Button></div> : null}
-  {verification ? <div data-testid="model-verify-status" role={verification.ok ? "status" : "alert"} className="grid gap-2 text-sm"><p>{verification.message}</p>{verification.requestID ? <code>{verification.requestID}</code> : null}<Link className="underline" onClick={event => { if (recovery === "protocol") {
+  {verification ? <div data-testid="model-verify-status" role={verification.ok ? "status" : "alert"} className="grid gap-2 text-sm"><p>{verification.code === "key_budget_unbounded" ? t("budgetUnsupported") : verification.message}</p>{verification.requestID ? <code>{verification.requestID}</code> : null}<Link className="underline" onClick={event => { if (recovery === "protocol") {
         event.preventDefault();
         context("protocol");
-    } }} href={recovery === "wallet" ? walletHref : recovery === "key" ? editHref : recovery === "protocol" ? protocolHref : requestsHref}>{recovery === "wallet" ? t("wallet") : recovery === "key" ? t("edit") : recovery === "protocol" ? t("protocol") : t("requests")}</Link></div> : null}
+    } }} href={recovery === "wallet" ? walletHref : recovery === "key" ? editHref : recovery === "protocol" ? protocolHref : verification?.requestID ? `/app/usage/requests/${encodeURIComponent(verification.requestID)}` : requestsHref}>{recovery === "wallet" ? t("wallet") : recovery === "key" ? t("edit") : recovery === "protocol" ? t("protocol") : t("requests")}</Link></div> : null}
   <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={createHref}>{t("create")}</Link></Button>{selectedKey ? <Button asChild variant="outline"><Link href={editHref}>{t("edit")}</Link></Button> : null}<Button asChild variant="outline"><Link href={walletHref}>{t("wallet")}</Link></Button><Button asChild variant="outline"><Link href={requestsHref}>{t("requests")}</Link></Button>{key?.key ? <Button variant="outline" onClick={() => {
                 void fetch(`${apiBase}/v1/me/api-keys/${encodeURIComponent(key.id)}/copy`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" }).then(response => { if (response.ok)
                     return copy(key.key!); throw new Error(); }).catch(() => setNotice(t("copyFailed")));

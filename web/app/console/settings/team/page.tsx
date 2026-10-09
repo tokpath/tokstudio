@@ -1,5 +1,2 @@
-import { UnavailableFeaturePage } from "@/components/console/unavailable-feature";
-
-export default function TeamSettingsPage() {
-  return <UnavailableFeaturePage id="team" />;
-}
+import { notFound } from "next/navigation";
+export default function RetiredSettingsPage() { notFound(); }

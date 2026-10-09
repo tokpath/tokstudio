@@ -191,6 +191,19 @@ export function canAccessUserPortal(viewer: Viewer): boolean {
   return shouldBypassRbac(viewer) || viewer.signedIn;
 }
 
+/** Employee accounts use their own security settings; management roles do not grant consumer funds. */
+export function canUseConsumerAccount(viewer: Pick<Viewer, "roles">): boolean {
+  return !hasAnyRole(viewer.roles, [...ADMIN_CONSOLE_ROLES, ...OEM_CONSOLE_ROLES]);
+}
+
+export function canViewUserHref(href: string, viewer: Viewer): boolean {
+  if (!viewer.signedIn || viewer.loading) return false;
+  const path = href.split(/[?#]/)[0].replace(/^\/console(?=\/|$)/, "/app");
+  if (canUseConsumerAccount(viewer)) return path === "/app" || path.startsWith("/app/");
+  if (["/app/settings", "/app/profile"].includes(path)) return true;
+  return hasAnyRole(viewer.roles, [P, T]) && ["/app", "/app/keys", "/app/docs", "/app/usage"].some(prefix => path === prefix || (prefix !== "/app" && path.startsWith(`${prefix}/`)));
+}
+
 function adminPageKey(href: string): string | undefined {
   const path = href.split(/[?#]/)[0].replace(/\/$/, "") || "/admin";
   if (path === "/admin") {

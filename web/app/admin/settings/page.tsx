@@ -153,7 +153,7 @@ export default function AdminSettingsPage() {
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
-        <AdminH2 k="settings" className="mb-4 text-lg font-semibold tracking-tight" />
+        <AdminH2 level={1} k="settings" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => setLocale("auto")}>

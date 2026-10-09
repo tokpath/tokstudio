@@ -496,6 +496,10 @@ func (a *App) replayUsage(c *gin.Context) {
 	}
 	item, err := a.Billing.ReplayActualUsage(c.Request.Context(), body.RequestID, body.Usage)
 	if err != nil {
+		if errors.Is(err, billing.ErrConflict) {
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "原请求已按另一份用量入账，不能改写原事实", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "usage 回放失败", false)
 		return
 	}

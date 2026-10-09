@@ -157,7 +157,7 @@ export default function AdminPlansPage() {
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <AdminH2 k="planReview" className="text-lg font-semibold tracking-tight" />
+            <AdminH2 level={1} k="planReview" className="text-lg font-semibold tracking-tight" />
             <p className="mt-1 text-sm text-ink-secondary">套餐创建后待审核，发布后才可购买。</p>
           </div>
           <IfCan action="plans.write">

@@ -73,15 +73,16 @@ type deliveryCheck struct {
 	Href           string `json:"href,omitempty"`
 }
 type deliveryProjection struct {
-	Delivery        *identity.DeliveryView             `json:"delivery"`
-	Channel         *identity.ChannelView              `json:"channel"`
-	Brand           *identity.BrandView                `json:"brand"`
-	Checks          []deliveryCheck                    `json:"checks"`
-	Ready           bool                               `json:"ready"`
-	CheckedAt       time.Time                          `json:"checked_at"`
-	Administrators  []identity.AdminLoginEvidence      `json:"administrators"`
-	RequestEvidence *gateway.SuccessfulRequestEvidence `json:"request_evidence,omitempty"`
-	RegistrationURL string                             `json:"registration_url,omitempty"`
+	Delivery                *identity.DeliveryView             `json:"delivery"`
+	Channel                 *identity.ChannelView              `json:"channel"`
+	Brand                   *identity.BrandView                `json:"brand"`
+	Checks                  []deliveryCheck                    `json:"checks"`
+	Ready                   bool                               `json:"ready"`
+	CheckedAt               time.Time                          `json:"checked_at"`
+	Administrators          []identity.AdminLoginEvidence      `json:"administrators"`
+	RequestEvidence         *gateway.SuccessfulRequestEvidence `json:"request_evidence,omitempty"`
+	RegistrationURL         string                             `json:"registration_url,omitempty"`
+	CustomerRegistrationURL string                             `json:"customer_registration_url,omitempty"`
 }
 
 func (a *App) deliveryProjection(ctx context.Context, p identity.Principal, channelID string) (*deliveryProjection, error) {
@@ -195,6 +196,16 @@ func (a *App) deliveryProjection(ctx context.Context, p identity.Principal, chan
 		return nil, err
 	}
 	for _, request := range requests {
+		customer, err := a.Identity.GetCustomer(ctx, identity.Principal{Roles: []string{"platform_admin"}}, request.UserID)
+		if errors.Is(err, identity.ErrNotFound) {
+			continue // An internal diagnostic call is not ordinary customer readiness.
+		}
+		if err != nil {
+			return nil, err
+		}
+		if customer.ChannelOrgID != channelID || customer.BrandID != brand.ID {
+			continue
+		}
 		usage, err := a.Billing.QueryUsage(ctx, billing.QueryUsageInput{ChannelOrgID: channelID, State: billing.UsageConfirmed, RequestID: request.RequestID, Limit: 1})
 		if err != nil {
 			return nil, err
@@ -205,7 +216,7 @@ func (a *App) deliveryProjection(ctx context.Context, p identity.Principal, chan
 			break
 		}
 	}
-	add("request", view.RequestEvidence != nil, "request_evidence_missing", "receiver", "")
+	add("request", view.RequestEvidence != nil, "request_evidence_missing", "customer", "")
 	codes, err := a.Identity.ListPromotionCodes(ctx, channelID)
 	if err != nil {
 		return nil, err
@@ -213,6 +224,7 @@ func (a *App) deliveryProjection(ctx context.Context, p identity.Principal, chan
 	for _, code := range codes {
 		if code.Status == "active" && code.AcquisitionRoleID == "" {
 			view.RegistrationURL = "https://" + brand.PrimaryDomain + "/login?" + url.Values{"promotion_code": {code.Code}, "next": {"/enter"}}.Encode()
+			view.CustomerRegistrationURL = "https://" + brand.PrimaryDomain + "/login?" + url.Values{"promotion_code": {code.Code}, "next": {"/app/keys"}}.Encode()
 			break
 		}
 	}
@@ -248,7 +260,7 @@ func (a *App) getOwnOEMDelivery(c *gin.Context) {
 		case "plans":
 			view.Checks[i].Href = "/channel/plans"
 		case "request":
-			view.Checks[i].Href = "/app/catalog"
+			view.Checks[i].Href = "" // Customer onboarding is shown separately; staff cannot consume.
 		}
 	}
 	httpx.OK(c, gin.H{"item": view})

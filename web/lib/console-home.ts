@@ -30,7 +30,16 @@ export const ADMIN_CONSOLE_ROLES = [
 
 export const OEM_CONSOLE_ROLES = ["channel_admin", "oem_ops", "oem_finance", "oem_audit"] as const;
 
-type MeBody = { user?: { roles?: string[] } };
+type MeBody = { user?: { id?: string; roles?: string[] } };
+
+const workspaceKey = (userID: string) => `console-workspace:${userID}`;
+export function rememberConsoleWorkspace(userID: string | undefined, path: string, roles: string[]) {
+  if (!userID || typeof window === "undefined") return;
+  const root = path.startsWith("/admin") ? "/admin" : path.startsWith("/channel") ? "/channel" : "/app";
+  if (root === "/admin" && !roles.some(role => (ADMIN_CONSOLE_ROLES as readonly string[]).includes(role))) return;
+  if (root === "/channel" && !roles.some(role => (OEM_CONSOLE_ROLES as readonly string[]).includes(role))) return;
+  try { window.localStorage.setItem(workspaceKey(userID), root); } catch { /* Private browsing can disallow storage. */ }
+}
 
 export function consoleHomeForRoles(roles: string[] | undefined | null): string {
   const list = roles ?? [];
@@ -56,19 +65,31 @@ export function consoleHomeForViewer(input: {
   return "/app";
 }
 
-export async function resolveConsoleHref(fetcher: typeof fetch = fetch): Promise<string> {
+export async function resolveConsoleHref(fetcher: typeof fetch = fetch, next?: string | null): Promise<string> {
   try {
     const meRes = await fetcher(`${apiBase}/v1/me`, { credentials: "include" });
     if (!meRes.ok) {
       return loginHref(CONSOLE_ENTRY_PATH);
     }
     const body = (await meRes.json()) as MeBody;
-    const roles = body.user?.roles;
-    const rbacHome = consoleHomeForRoles(roles);
-    if (rbacHome !== "/app") {
-      return rbacHome;
+    const roles = body.user?.roles ?? [];
+    let remembered: string | null = null;
+    if (body.user?.id && typeof window !== "undefined") {
+      try { remembered = window.localStorage.getItem(workspaceKey(body.user.id)); } catch { /* Storage is optional. */ }
     }
-    return "/app";
+    const { canViewAdminHref, canViewChannelHref, canViewUserHref } = await import("./rbac");
+    const viewer = { signedIn: true, loading: false, roles, userId: body.user?.id, channelType: undefined as string | undefined };
+    for (const candidate of [safeNextPath(next), safeNextPath(remembered)]) {
+      if (!candidate) continue;
+      if (candidate.startsWith("/admin") && canViewAdminHref(candidate, viewer)) return candidate;
+      if (candidate.startsWith("/channel") && roles.some(role => (OEM_CONSOLE_ROLES as readonly string[]).includes(role))) {
+        const response = await fetcher(`${apiBase}/channel/me`, { credentials: "include" });
+        if (response.ok) viewer.channelType = (await response.json()).channel_type;
+        if (viewer.channelType && canViewChannelHref(candidate, viewer)) return candidate;
+      }
+      if (candidate.startsWith("/app") && canViewUserHref(candidate, viewer)) return candidate;
+    }
+    return consoleHomeForRoles(roles);
   } catch {
     return loginHref(CONSOLE_ENTRY_PATH);
   }

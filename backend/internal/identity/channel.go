@@ -459,9 +459,25 @@ func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]Channel
 	if err := q.Order("code").Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	brandIDs := []string{}
+	for _, row := range rows {
+		brandIDs = append(brandIDs, row.BrandID)
+	}
+	var brands []brandRow
+	if len(brandIDs) > 0 {
+		if err := s.db.WithContext(ctx).Where("id IN ?", brandIDs).Find(&brands).Error; err != nil {
+			return nil, err
+		}
+	}
+	names := map[string]string{}
+	for _, b := range brands {
+		names[b.ID] = b.Name
+	}
 	out := make([]ChannelView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, channelViewFrom(row))
+		view := channelViewFrom(row)
+		view.BrandName = names[row.BrandID]
+		out = append(out, view)
 	}
 	return out, nil
 }

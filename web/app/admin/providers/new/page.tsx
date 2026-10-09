@@ -37,7 +37,7 @@ export default function NewProviderPage() {
   return <AdminShell>
     <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/providers">返回提供商列表</Link>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="text-lg font-semibold">新建提供商</h2>
+      <h1 className="text-lg font-semibold">新建提供商</h1>
       <p className="mt-1 text-sm text-ink-secondary">配置上游连接。创建后在同一详情维护密钥、账号和健康状态。</p>
     </section>
     <IfCan action="providers.write">

@@ -36,6 +36,7 @@ export default function AdminProvidersPage() {
         <p className="text-sm text-ink-secondary">{CATALOG_HELP.providers} 当前健康值是路由记录，不代表已完成真实上游验证；沙箱探测仅验证模拟行为。</p>
       </section>
       <AdminListPanel<Provider>
+        headingLevel={1}
         path="/admin/providers"
         title="提供商"
         emptyTitle="还没有提供商"

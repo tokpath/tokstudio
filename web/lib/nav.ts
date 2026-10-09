@@ -34,15 +34,9 @@ export const userNavGroups: { titleKey: string; items: NavItem[] }[] = [
   { titleKey: "tools", items: [{ href: "/app/playground", key: "playground" }, { href: "/app/media", key: "media" }] },
 ];
 
-/** 设置子页（ofox 用户菜单）；侧栏只高亮「设置」。未上线的入口只标注、不当成可用功能。 */
+/** Settings only contains implemented account tasks. */
 export const userSettingsNav: NavItem[] = [
   { href: "/app/settings", key: "account" },
-  { href: "/app/settings/team", key: "team", unavailable: true },
-  { href: "/app/settings/members", key: "members", unavailable: true },
-  { href: "/app/settings/billing", key: "billing" },
-  { href: "/app/settings/quotas", key: "quotas" },
-  { href: "/app/settings/apps", key: "apps", unavailable: true },
-  { href: "/app/settings/webhooks", key: "webhooks", unavailable: true },
 ];
 
 export const userSections: NavItem[] = userNavGroups.flatMap((group) => group.items);
@@ -78,7 +72,7 @@ export const channelNavGroups: { titleKey: string; items: NavItem[] }[] = [
   { titleKey: "operations", items: [{ href: "/channel/users", key: "users" }] },
   { titleKey: "scope", items: [{ href: "/channel/promos", key: "promos" }] },
   { titleKey: "models", items: [{ href: "/channel/models", key: "models" }] },
-  { titleKey: "ledger", items: [{ href: "/channel/commissions", key: "commissions" }, { href: "/channel/settlements", key: "settlements" }] },
+  { titleKey: "ledger", items: [{ href: "/channel/commissions", key: "commissions" }] },
 ];
 
 export function channelNavGroupsFor(channelType?: string) {

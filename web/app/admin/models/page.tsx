@@ -16,6 +16,7 @@ export default function AdminModelsPage() {
   return (
     <AdminShell>
       <AdminListPanel<AdminModel>
+        headingLevel={1}
         path="/admin/models"
         title={t("listTitle")}
         emptyTitle={t("emptyTitle")}

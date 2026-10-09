@@ -777,7 +777,7 @@ func (a *App) listChannels(c *gin.Context) {
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]identity.ChannelView, 0, len(items))
 		for _, item := range items {
-			if strings.Contains(strings.ToLower(item.Code+item.ID+item.Type+item.Status), q) {
+			if strings.Contains(strings.ToLower(item.Code+item.BrandName+item.ID+item.Type+item.Status), q) {
 				filtered = append(filtered, item)
 			}
 		}
@@ -819,7 +819,7 @@ func (a *App) getChannelModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"items": items, "channel_type": target.Type, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) channelModels(c *gin.Context) {
@@ -1100,9 +1100,17 @@ func (a *App) channelMe(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
+	brand, err := a.Identity.BrandByID(c.Request.Context(), channel.BrandID)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
 	httpx.OK(c, gin.H{
 		"channel_org_id": principal.ChannelOrgID,
 		"channel_type":   channel.Type,
+		"channel_name":   channel.Code,
+		"brand_name":     brand.Name,
+		"brand_id":       brand.ID,
 		"email":          principal.Email,
 		"roles":          principal.Roles,
 		"request_id":     c.GetString(httpx.ContextRequestID),

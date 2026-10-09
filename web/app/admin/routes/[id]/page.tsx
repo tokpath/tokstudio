@@ -171,7 +171,7 @@ export default function AdminRouteEditPage() {
   return <AdminShell>
     <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/routes">返回路由组</Link>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="text-lg font-semibold">{isNew ? "创建路由组" : `路由组 ${routeID}`}</h2>
+      <h1 className="text-lg font-semibold">{isNew ? "创建路由组" : `路由组 ${routeID}`}</h1>
       {canWrite("routes.write",viewer)?<p className="mt-1 text-sm text-ink-secondary">在这里把已发布模型接到上游，并决定选路顺序。保存为停用时不会接收请求。</p>:null}
       {routeQuery.data?.error ? <p className="mt-2 text-sm text-danger">{routeQuery.data.error.message}</p> : null}
     </section>

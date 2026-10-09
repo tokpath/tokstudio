@@ -99,15 +99,15 @@ func TestM3BillingInvariants(t *testing.T) {
 	usageID := first["id"].(string)
 
 	if postStatus(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	}) != http.StatusConflict {
 		t.Fatal("usage replay without confirm must be 409")
 	}
 	firstReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	})
 	secondReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	})
 	if firstReplay["item"].(map[string]any)["charge_id"] != secondReplay["item"].(map[string]any)["charge_id"] {
 		t.Fatalf("duplicate usage created a second charge")

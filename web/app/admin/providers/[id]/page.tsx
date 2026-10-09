@@ -121,7 +121,7 @@ export default function AdminProviderDetailPage() {
           <Link href="/admin/providers" className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h2>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h1>
           <p className="mt-1 text-sm text-ink-secondary">
             {item ? `${item.name} · ${providerKindLabel(item.kind)} · ${adapterLabel(item.adapter)}` : routeID}
           </p>

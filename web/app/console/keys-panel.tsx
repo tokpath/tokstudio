@@ -23,7 +23,7 @@ import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { statusLabelKey } from "@/lib/status-copy";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
-import { keyState, keyDocsHref, usdToMinor, type KeyPolicy } from "@/lib/key-policy";
+import { keyState, keyDocsHref, preferredKeyModel, usdToMinor, type KeyPolicy } from "@/lib/key-policy";
 export { optionalPositiveInt, parseAllowlist } from "@/lib/key-limits";
 export type APIKeyItem = KeyPolicy & {
     id: string;
@@ -198,7 +198,7 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
         return (await run?.(pending.item.id)) === true;
     }
     const menu = (item: APIKeyItem) => (<ActionRow>
- <Button size="sm" variant="outline" asChild><Link href={keyDocsHref(item.id)}>{tx("instructions")}</Link></Button>
+ <Button size="sm" variant="outline" asChild><Link href={keyDocsHref(item.id, preferredKeyModel(item))}>{tx("instructions")}</Link></Button>
  {onEdit ? <Button size="sm" variant="outline" onClick={() => onEdit(item)}>{tx("edit")}</Button> : null}
  {item.status === "disabled" && onEnable ? <Button size="sm" variant="outline" onClick={() => void onEnable(item.id)}>{tx("enable")}</Button> : null}
     <KeyMoreMenu item={item} onPick={pick} canRotate={Boolean(onRotate)} canDisable={Boolean(onDisable) && item.status !== "disabled"} canExpire={Boolean(onExpire)}/>
@@ -219,7 +219,7 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
                 </div>
                 <KeyStatusBadge item={item}/>
               </div>
-              <div className="mt-3"><KeyBudgetSummary item={item}/>{menu(item)}</div>
+              <div className="mt-3"><KeyBudgetSummary item={item}/><p className="mt-2 text-xs">{tx("models")}: {item.model_mode === "all" ? tx("all") : item.allowlist?.join(", ")} · {tx("expiry")}: {item.expires_at ? formatWhen(item.expires_at) : tx("permanent")}</p>{menu(item)}</div>
               <details className="mt-3">
                 <summary className="cursor-pointer text-sm text-brand-emphasis">{t("expandKeyDetails")}</summary>
                 <div className="mt-3 flex flex-col gap-3">
@@ -265,6 +265,11 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
                 cell: (item) => (<span className="text-ink-secondary">
                 {t("allowlistLine", { list: item.allowlist?.length ? item.allowlist.join(", ") : tc("unlimited") })}
               </span>),
+            },
+            {
+                id: "expiry",
+                header: tx("expiry"),
+                cell: item => <span>{item.expires_at ? formatWhen(item.expires_at) : tx("permanent")}</span>,
             },
             {
                 id: "lastUsed",
@@ -469,7 +474,7 @@ export default function KeysPanel() {
    <KeyBudgetSummary item={created}/>
    <code data-testid="key-secret" className="th-code block break-all p-3">{created.key ?? maskAPIKey(created.prefix)}</code>
    <Button variant="outline" onClick={() => void copy(created.id, created.key)}>{tc("copy")}</Button>
-   <ActionRow><Button variant="outline" asChild><Link href={keyDocsHref(created.id, contextModel, "agent")}>{tx("agent")}</Link></Button><Button variant="outline" asChild><Link href={keyDocsHref(created.id, contextModel)}>{tx("protocol")}</Link></Button></ActionRow>
+   <ActionRow><Button variant="outline" asChild><Link href={keyDocsHref(created.id, preferredKeyModel(created, contextModel), "agent")}>{tx("agent")}</Link></Button><Button variant="outline" asChild><Link href={keyDocsHref(created.id, preferredKeyModel(created, contextModel))}>{tx("protocol")}</Link></Button></ActionRow>
    <SubmitStatus error={error} selectable={fallback}/><DialogFooter><Button onClick={close}>{t("done")}</Button></DialogFooter>
   </> : <form onSubmit={save} className="grid gap-4"><fieldset disabled={unknownCreate || busy} className="grid gap-4">
    <label className="grid gap-1 text-sm">{t("nameLabel")}<input className="h-10 rounded-control border border-hairline bg-canvas px-3" value={form.name} onChange={e => update("name", e.target.value)} placeholder={t("namePh")}/></label>
@@ -504,5 +509,5 @@ function KeyBudgetSummary({ item }: {
     const used = item.budget_used_minor ?? 0;
     const reserved = item.budget_reserved_minor ?? 0;
     const limit = item.budget_limit_minor;
-    return <div className="space-y-1 text-xs text-ink-secondary"><p>{(item.model_mode ?? (item.allowlist?.length ? "selected" : "all")) === "all" ? tx("all") : item.allowlist?.join(", ") || tx("selectAtLeastOne")}</p><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{limit != null ? <p>{tx("remaining", { amount: (Math.max(0, limit - used - reserved) / 1e6).toFixed(6) })}</p> : null}<p>{item.expires_at ? formatWhen(item.expires_at) : tx("permanent")}</p></div>;
+    return <div className="space-y-1 text-xs text-ink-secondary"><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{limit != null ? <p>{tx("remaining", { amount: (Math.max(0, limit - used - reserved) / 1e6).toFixed(6) })}</p> : null}</div>;
 }

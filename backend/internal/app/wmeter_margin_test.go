@@ -112,7 +112,7 @@ func TestWMeter4CostFromTokenHubOnly(t *testing.T) {
 	}
 
 	_ = postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter4_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, fx.app.Billing, requestID),
 	})
 	again, err := fx.app.Billing.ListCostFactsByRequest(fx.ctx, requestID)
 	if err != nil {

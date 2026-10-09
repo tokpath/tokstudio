@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -40,6 +41,7 @@ const selectClass =
   "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
 
 export default function AdminChannelDetailPage() {
+  const tc = useTranslations("common");
   const router = useRouter();
   const viewer=useViewer();const brand=useBrand();const scope=`${viewer.userId || ""}:${brand?.id || ""}`;
   const contextParams=useSearchParams();
@@ -57,7 +59,7 @@ export default function AdminChannelDetailPage() {
   const item = query.data?.item;
   useEffect(()=>{setEditing(false);setMessage("");},[scope,id]);
   useEffect(() => { if (item?.type === "C") router.replace(`/admin/oem-deliveries/${encodeURIComponent(id)}${contextParams.size?`?${contextParams}`:""}`); }, [item?.type, id, router, contextParams]);
-  const managedByPlatform = !item || !item.parent_id || item.parent_id === "chn_official_a";
+  const managedByPlatform = !!item && ( !item.parent_id || item.parent_id === "chn_official_a");
   const form = useForm<z.infer<typeof patchSchema>>({
     resolver: zodResolver(patchSchema),
     values: {
@@ -65,6 +67,8 @@ export default function AdminChannelDetailPage() {
     },
   });
 
+  if(query.isPending) return <p role="status">{tc("listLoading")}</p>;
+  if(query.isError || !item) return <div role="alert"><p>{tc("listFailed")}</p><Button variant="outline" onClick={()=>void query.refetch()}>{tc("listRetry")}</Button></div>;
   return (
     <AdminShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,7 +76,7 @@ export default function AdminChannelDetailPage() {
           <Link href={customerReturnHref(contextParams.get("return_to"),"/admin/channels",scope)} className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h2>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h1>
           <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">

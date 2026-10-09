@@ -31,3 +31,9 @@ export function keyDocsHref(keyID: string, model = "", tab: "agent" | "protocol"
   if (model) params.set("model", model);
   return `/app/docs?${params}`;
 }
+
+/** Keep a legal model context, then the only allowed model, otherwise ask the user. */
+export function preferredKeyModel(key: KeyPolicy, context = ""): string {
+  if (context && keyAllowsModel(key, context)) return context;
+  return (key.model_mode ?? (key.allowlist?.length ? "selected" : "all")) === "selected" && key.allowlist?.length === 1 ? key.allowlist[0] : "";
+}

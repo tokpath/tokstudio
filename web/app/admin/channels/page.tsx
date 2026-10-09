@@ -12,16 +12,18 @@ import { Button } from "@/components/ui/button";
 import { IfCan } from "@/components/rbac/if-can";
 import { modelEditHref } from "@/lib/catalog";
 
-type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
+type Channel = { id: string; code: string; type: string; status: string; brand_id: string; brand_name?:string; parent_id?: string };
 export default function AdminChannelsPage() {
   const t = useTranslations("oemDelivery");
+  const tw = useTranslations("channelWorkbench");
+  const tc = useTranslations("common");
   const [kind, setKind] = useState<"C" | "B">("C");
   const [createChannel, setCreateChannel] = useState(false);
   const [createOEM, setCreateOEM] = useState(false);
   const model = useSearchParams().get("model");
   return <AdminShell>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="text-lg font-semibold">{t("organizations")}</h2>
+      <h1 className="text-2xl font-semibold">{t("organizations")}</h1>
       <p className="mt-2 text-sm text-ink-secondary">{t("organizationsHint")}</p>
       {model ? <Link className="mt-3 block text-sm text-brand-emphasis underline" href={modelEditHref(model)}>{model}</Link> : null}
     </section>
@@ -36,9 +38,9 @@ export default function AdminChannelsPage() {
       emptyTitle={t(kind === "C" ? "noOEM" : "noChannel")}
       actions={<IfCan action="channels.write"><OpenCreateButton label={t(kind === "C" ? "createTitle" : "newChannel")} onClick={() => kind === "C" ? setCreateOEM(true) : setCreateChannel(true)} /></IfCan>}
       columns={[
-        { accessorKey: "code", header: t("name") },
-        { accessorKey: "brand_id", header: t("brand") },
-        { accessorKey: "status", header: t("check.organization") },
+        { accessorKey: "code", header: tw("organization") },
+        { accessorKey: "brand_name", header: t("brand"), cell:({row})=><span>{row.original.brand_name||row.original.brand_id}</span> },
+        { accessorKey: "status", header: tw("status"), cell:({row})=>row.original.status==="active"?tc("stActive"):row.original.status==="disabled"?tc("stDisabled"):row.original.status },
       ]}
     />
     <OEMCreateDialog open={createOEM} onOpenChange={setCreateOEM} />

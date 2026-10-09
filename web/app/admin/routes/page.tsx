@@ -16,6 +16,7 @@ type Route = {
 export default function AdminRoutesPage() {
   return <AdminShell>
     <AdminListPanel<Route>
+        headingLevel={1}
       path="/admin/routes"
       title="路由组"
       emptyTitle="还没有路由组"

@@ -87,3 +87,10 @@ P0 采用嵌入 Bifrost Go SDK：TokenHub API 进程内 `bifrost.Init`，通过 
 - Prompt 默认不落盘，usage 和运维指标仍完整；
 - Seedance 异步任务重试不会重复提交上游任务；
 - 替换 Bifrost 或直连某一 Provider 不改变客户 API 契约和账务结果。
+
+
+### 当前公开能力与数据留存边界（2026-10-10）
+
+Chat Completions 按实际模型和已部署适配器提供协议；Responses 与 Messages 只支持已实现的子集，未知或未支持参数返回结构化错误。公开模型的 supported_endpoints 是选择调用方式的依据。当前支持的 Agent 配置见 docs/20；Codex、Claude Code 未完成协议验收，不列为已支持 Agent。图像生成按真实能力提供，图像编辑当前关闭，不以生成冒充编辑。
+
+请求与账务日志只记录必要元数据，不默认持久化 prompt/completion；例外是标准 API 的幂等响应缓存：为原操作重试，完整响应正文在 Redis 保存 24 小时，访问按原操作身份控制。媒体素材另按对象存储保留策略处理。

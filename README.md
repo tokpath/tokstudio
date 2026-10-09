@@ -1,10 +1,12 @@
 # TokenHub
 
-多模型 API 中转与分销平台。产品与架构以 `docs/` 为准；开发进度见 [docs/09-开发进度.md](docs/09-开发进度.md)。
+多模型 API 中转与分销平台。产品与架构以 `docs/` 为准；本轮整改实施见 [docs/21-整改实施记录.md](docs/21-整改实施记录.md)，验收边界由最终测试证据记录；docs/09 是历史开发进度。
 
 ## 当前里程碑
 
-**M0 基础工程与安全底座**：Go 控制面、PostgreSQL/Redis、Outbox Worker、结构化日志、OpenTelemetry、基础 RBAC、审计、Next.js 状态页。
+平台负责技术底座与 OEM 交付，OEM 经营自己的品牌；渠道只负责推广归属与收益。普通用户直接创建具有模型范围、累计 USD 上限和有效期的 Key，邀请与收益在同一账户。
+
+公开模型只展示真实协议与安全服务状态。Responses/Messages 为已实现子集；当前不承诺 Codex、Claude Code 或图像编辑支持。未配置真实上游、域名和商户前，本地测试不代表上线营业验收。
 
 ## 本地启动
 
@@ -72,8 +74,11 @@ Atlas 拥有编排：`release/v0.1.0` 分支 CI 全绿后，GitHub Actions SSH �
 
 `deploy-token` 只维护 nova Caddy 的 `test.tokpath.com`。本地可用 `make assert-deploy` 做 dry-run / grep 门禁。
 
-对象存储（W1-S3）是另一条 PR，不混进本预览路径。
+对象存储使用 S3 兼容接口，本地隔离测试使用 MinIO；真实生产存储仍须独立验证。
 
 ## 安全
 
 密钥只从环境变量或本地 `.env` 读取。`.env` 已加入 `.gitignore`。日志会脱敏 `password`、`secret`、`token`、`authorization`、`api_key` 等字段。
+
+
+请求与账务日志只记录必要元数据；标准 API 幂等重试例外会在 Redis 缓存完整响应正文 24 小时，媒体素材另按存储策略处理。

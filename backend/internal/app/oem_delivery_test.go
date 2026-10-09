@@ -131,6 +131,11 @@ func TestOverhaulOEMDeliveryAndBrandPriceFacts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// New channel grants need no procurement price; funds remain with the OEM.
+	code, grantBody := doJSON(t, http.MethodPatch, server.URL+"/admin/channels/"+child.ID+"/models", receiver.Token, true, map[string]any{"items": []map[string]any{{"public_id": catalog.EchoModelID, "enabled": true}}})
+	if code != 200 {
+		t.Fatalf("channel authorization required a procurement price: %d %+v", code, grantBody)
+	}
 	if err := a.Catalog.SetDelegatedChannelModels(ctx, child.ID, channel.ID, []catalog.ChannelModelGrant{{PublicID: catalog.EchoModelID, Enabled: true, Wholesale: wholesale, CustomerOverride: map[string]string{"input": "0.1", "output": "0.2"}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -210,6 +215,18 @@ func TestOverhaulOEMDeliveryAndBrandPriceFacts(t *testing.T) {
 	projection = body["item"].(map[string]any)
 	if projection["ready"] != true {
 		t.Fatalf("fixture not ready: %+v", projection["checks"])
+	}
+	// An otherwise successful billed request is insufficient when its user is
+	// a staff/diagnostic account. This mutation is only an isolated evidence fixture.
+	if err := a.DB.Table("gateway_requests").Where("request_id=?", requestID).Update("user_id", receiver.User.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	code, staffProof := doJSON(t, http.MethodGet, server.URL+"/admin/oem-deliveries/"+channel.ID, login.Token, false, nil)
+	if code != 200 || staffProof["item"].(map[string]any)["request_evidence"] != nil {
+		t.Fatalf("staff call counted as customer evidence: %+v", staffProof)
+	}
+	if err := a.DB.Table("gateway_requests").Where("request_id=?", requestID).Update("user_id", customer.User.ID).Error; err != nil {
+		t.Fatal(err)
 	}
 	version := int64(projection["delivery"].(map[string]any)["version"].(float64))
 	code, body = doJSON(t, http.MethodPost, server.URL+"/admin/oem-deliveries/"+channel.ID+"/handoff", login.Token, true, map[string]any{"expected_version": version, "receiver_user_id": receiver.User.ID})

@@ -6,6 +6,7 @@ import {
   consoleHomeForViewer,
   playgroundHref,
   resolveConsoleHref,
+  rememberConsoleWorkspace,
   resolveStartUsingHref,
 } from "./console-home";
 
@@ -126,4 +127,28 @@ it("keeps automatically created personal promoters in their user workspace", asy
     .mockResolvedValueOnce(jsonResponse(true, { user: { roles: ["end_user"] } }))
     .mockResolvedValueOnce(jsonResponse(true, { role_type: "promoter" }));
   await expect(resolveConsoleHref(fetcher)).resolves.toBe("/app");
+});
+
+
+describe("authorized workspace preference",()=>{
+ it("prioritizes a legal explicit target and rejects unauthorized saved roots",async()=>{
+  const values=new Map<string,string>();
+  vi.stubGlobal("window",{localStorage:{getItem:(key:string)=>values.get(key)||null,setItem:(key:string,value:string)=>values.set(key,value)}});
+  try {
+   const roles=["platform_admin","channel_admin"];
+   rememberConsoleWorkspace("user1","/channel/users",roles);
+   const fetcher=vi.fn().mockResolvedValueOnce(jsonResponse(true,{user:{id:"user1",roles}})).mockResolvedValueOnce(jsonResponse(true,{channel_type:"C"}));
+   expect(await resolveConsoleHref(fetcher)).toBe("/channel");
+   const explicit=vi.fn().mockResolvedValue(jsonResponse(true,{user:{id:"user1",roles}}));
+   expect(await resolveConsoleHref(explicit,"/admin/usage?user_id=alice")).toBe("/admin/usage?user_id=alice");
+   const changed=vi.fn().mockResolvedValue(jsonResponse(true,{user:{id:"user1",roles:["end_user"]}}));
+   expect(await resolveConsoleHref(changed)).toBe("/app");
+   const other=vi.fn().mockResolvedValue(jsonResponse(true,{user:{id:"user2",roles}}));
+   expect(await resolveConsoleHref(other)).toBe("/admin");
+  } finally { vi.unstubAllGlobals(); }
+ });
+ it("does not direct an audit employee into consumer funds",async()=>{
+  const fetcher=vi.fn().mockResolvedValue(jsonResponse(true,{user:{id:"audit",roles:["audit_readonly"]}}));
+  expect(await resolveConsoleHref(fetcher,"/app/wallet")).toBe("/admin");
+ });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { adminGroups, portalLinks } from "./nav";
 import {
   canChannelAction,
+  canViewUserHref, canUseConsumerAccount,
   canAccessAdminConsole,
   canAccessChannelPortal,
   canAccessPartnerPortal,
@@ -152,4 +153,14 @@ describe("brand payment authority", () => {
     expect(canChannelAction("paymentSettings", b)).toBe(false);
     expect(canChannelAction("operations", b)).toBe(true);
   });
+});
+
+
+it("keeps employee security and diagnostics separate from consumer funds",()=>{
+ const employee={signedIn:true,loading:false,roles:["end_user","audit_readonly"]};
+ expect(canUseConsumerAccount(employee)).toBe(false);expect(canViewUserHref("/app/wallet",employee)).toBe(false);
+ expect(canViewUserHref("/app/settings",employee)).toBe(true);expect(canViewUserHref("/app/keys",employee)).toBe(false);
+ expect(canViewUserHref("/app/keys",{...employee,roles:["tech_admin"]})).toBe(true);
+ expect(canViewUserHref("/app/media",{...employee,roles:["tech_admin"]})).toBe(false);
+ expect(canViewUserHref("/app/wallet",{...employee,roles:["end_user"]})).toBe(true);
 });

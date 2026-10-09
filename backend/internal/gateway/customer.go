@@ -18,9 +18,9 @@ type CustomerActivity struct {
 	Items []CustomerRequest `json:"items"`
 }
 
-func (s *Service) CustomerActivity(ctx context.Context, userID string) (*CustomerActivity, error) {
+func (s *Service) CustomerActivity(ctx context.Context, userID string, channelIDs []string) (*CustomerActivity, error) {
 	out := &CustomerActivity{Items: []CustomerRequest{}}
-	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id=?", userID)
+	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id=? AND COALESCE(channel_org_id, '') IN ?", userID, channelIDs)
 	if err := q.Count(&out.Count).Error; err != nil {
 		return nil, err
 	}

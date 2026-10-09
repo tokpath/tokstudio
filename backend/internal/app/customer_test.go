@@ -144,8 +144,8 @@ func TestCustomerSearchProjectionAndTotals(t *testing.T) {
 			if _, ok := user["roles"]; ok {
 				t.Fatal("finance received role projection")
 			}
-			if detail["permissions"].(map[string]any)["manage"] != false {
-				t.Fatal("finance got write action")
+			if detail["permissions"].(map[string]any)["manage"] != false || detail["permissions"].(map[string]any)["read_payments"] != true {
+				t.Fatal("finance permission projection")
 			}
 		}
 		if token == b {
@@ -167,12 +167,23 @@ func TestCustomerSearchProjectionAndTotals(t *testing.T) {
 	if partial["errors"].(map[string]any)["credit"] == nil || partial["usage"] == nil || partial["activity"] == nil || partial["credit"] != nil {
 		t.Fatalf("read failure disguised as zero or lost other sections %+v", partial)
 	}
+	// A customer's current attribution never authorizes foreign historical funds.
+	if err := a.DB.Exec(`INSERT INTO payment_orders(id,user_id,channel_org_id,payee_channel_org_id,adapter,purpose,amount_minor,credit_minor,status) VALUES (?,?,?,?,'alipay','wallet',1,1,'paid'),(?,?,?,?,'alipay','wallet',99,99,'paid')`, prefix+"-own-order", target, identity.ResellerChannelID, identity.OfficialChannelID, prefix+"-foreign-order", target, identity.OEMChannelID, identity.OEMChannelID).Error; err != nil {
+		t.Fatal(err)
+	}
+	limited := get("/admin/customers/"+target, fin)
+	if limited["orders"].(map[string]any)["count"] != float64(1) || limited["credit"] != nil || limited["entitlements"] != nil || limited["errors"].(map[string]any)["credit"] == nil {
+		t.Fatalf("foreign historical funds exposed %+v", limited)
+	}
+	if get("/admin/customers/"+target, admin)["credit"] == nil {
+		t.Fatal("platform full-domain legacy credit projection lost")
+	}
 	// Platform super-admin retains historical cross-OEM read capability, while
 	// finance does not receive an OEM customer or payment action.
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{"email": prefix + "-oem@example.test", "password": "password1", "promotion_code": "THC1"})
 	oemID := userIDOf(reg)
 	detail := get("/admin/customers/"+oemID, admin)
-	if detail["permissions"].(map[string]any)["record_payment"] != false || detail["permissions"].(map[string]any)["manage"] != false {
+	if detail["permissions"].(map[string]any)["record_payment"] != false || detail["permissions"].(map[string]any)["manage"] != false || detail["permissions"].(map[string]any)["read_payments"] != false || detail["orders"] != nil {
 		t.Fatal("platform cross-OEM write affordance")
 	}
 	if status, _ := doJSON(t, "GET", server.URL+"/admin/customers/"+oemID, fin, false, nil); status != 404 {
@@ -313,6 +324,26 @@ func TestProfessionalCustomerAndChannelOnboarding(t *testing.T) {
 		t.Fatalf("multi-role union lost a permitted projection %+v", permissions)
 	}
 	get("/admin/professional-customers/"+oemRoleID, unionToken)
+	// Simulate attribution committing while the creator waits for the user lock.
+	raceUser := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{"email": prefix + "-race@example.test", "password": "password1", "promotion_code": code})
+	raceID := userIDOf(raceUser)
+	raceCallback := "move_professional_customer_" + prefix
+	moved := false
+	if err := a.DB.Callback().Query().Before("gorm:query").Register(raceCallback, func(tx *gorm.DB) {
+		if !moved && tx.Statement.Table == "identity_users" {
+			if _, locked := tx.Statement.Clauses["FOR"]; locked {
+				moved = true
+				tx.Exec("UPDATE identity_users SET channel_org_id=?,brand_id=? WHERE id=?", identity.OEMChannelID, identity.OEMBrandID, raceID)
+			}
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	status, _ = create(admin, raceID, "agent", "")
+	a.DB.Callback().Query().Remove(raceCallback)
+	if !moved || status != 403 {
+		t.Fatalf("pre-lock owner authorized changed attribution: moved=%v status=%d", moved, status)
+	}
 	// An audit insertion failure atomically rolls back role/member/code creation.
 	rollbackUser := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{"email": prefix + "-rollback@example.test", "password": "password1", "promotion_code": code})
 	rollbackID := userIDOf(rollbackUser)

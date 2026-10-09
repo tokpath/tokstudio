@@ -53,6 +53,15 @@ func (s *Service) CreateProfessionalCustomerTx(tx *gorm.DB, p Principal, userID,
 			return nil, ErrAdminProtected
 		}
 	}
+	// Attribution can change while waiting for the user lock. Authorize the
+	// actual locked customer's owner, never the pre-lock ownership snapshot.
+	owner, err = scoped.ResolvePaymentOwnerID(tx.Statement.Context, user.ChannelOrgID)
+	if err != nil {
+		return nil, err
+	}
+	if (p.IsPlatformAdmin() && owner != OfficialChannelID) || (!p.IsPlatformAdmin() && (!p.HasRole("channel_admin") || owner != p.ChannelOrgID)) {
+		return nil, ErrChannelImmutable
+	}
 	if typ != AcqAgent && typ != AcqKOL1 && typ != AcqKOL2 {
 		return nil, ErrPromotionInvalid
 	}

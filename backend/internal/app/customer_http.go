@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"net/http"
@@ -86,6 +87,24 @@ func (a *App) customerDetail(c *gin.Context) {
 	if e == nil {
 		canRecord = (p.HasRole("platform_admin", "finance_admin") && owner == identity.OfficialChannelID) || (p.HasRole("channel_admin", "oem_finance") && owner == p.ChannelOrgID)
 	}
+	paymentOwner := identity.OfficialChannelID
+	readPayments := p.HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly")
+	if p.IsChannelStaff() && !p.IsPlatformAdmin() {
+		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		readPayments = err == nil && ch.Type == identity.ChannelTypeC
+		paymentOwner = p.ChannelOrgID
+	}
+	readPayments = readPayments && e == nil && owner == paymentOwner
+	channels, err := a.Identity.CustomerChannels(c.Request.Context(), *p, "")
+	if a.abortCustomerError(c, err) {
+		return
+	}
+	for _, id := range channels {
+		if id == identity.OfficialChannelID {
+			channels = append(channels, "")
+			break
+		}
+	}
 	canManage := (p.IsPlatformAdmin() && e == nil && owner == identity.OfficialChannelID) || (p.IsChannelStaff() && p.HasRole("channel_admin", "oem_ops"))
 	for _, role := range item.Roles {
 		if role != "end_user" {
@@ -99,39 +118,71 @@ func (a *App) customerDetail(c *gin.Context) {
 			canProfessional = false
 		}
 	}
-	out := gin.H{"item": item, "permissions": gin.H{"operations": operational, "finance": finance, "audit": p.HasRole("platform_admin", "audit_readonly", "oem_audit"), "manage": canManage, "professional_create": canProfessional, "attribution": p.IsPlatformAdmin() && e == nil && owner == identity.OfficialChannelID, "record_payment": canRecord}, "errors": gin.H{}}
+	out := gin.H{"item": item, "permissions": gin.H{"operations": operational, "finance": finance, "audit": p.HasRole("platform_admin", "audit_readonly", "oem_audit"), "manage": canManage, "professional_create": canProfessional, "attribution": p.IsPlatformAdmin() && e == nil && owner == identity.OfficialChannelID, "record_payment": canRecord, "read_payments": readPayments}, "errors": gin.H{}}
 	failures := out["errors"].(gin.H)
-	usage, e := a.Billing.CustomerUsage(c.Request.Context(), item.ID)
+	usage, e := a.Billing.CustomerUsage(c.Request.Context(), item.ID, channels)
 	if e != nil {
 		failures["usage"] = "消费统计暂不可用"
 	} else {
 		out["usage"] = usage
 	}
-	activity, e := a.Gateway.CustomerActivity(c.Request.Context(), item.ID)
+	activity, e := a.Gateway.CustomerActivity(c.Request.Context(), item.ID, channels)
 	if e != nil {
 		failures["activity"] = "请求记录暂不可用"
 	} else {
 		out["activity"] = activity
 	}
 	if finance {
-		credit, e := a.Billing.CustomerCredit(c.Request.Context(), item.ID)
-		if e != nil {
-			failures["credit"] = "余额暂不可用"
-		} else {
-			out["credit"] = credit
+		var scopeError error
+		if !p.IsPlatformAdmin() {
+			scopeError = a.Billing.CustomerCreditScope(c.Request.Context(), item.ID, channels)
 		}
-		orders, e := a.Payment.CustomerOrders(c.Request.Context(), item.ID)
-		if e != nil {
-			failures["orders"] = "订单统计暂不可用"
-		} else {
-			out["orders"] = orders
+		if !p.IsPlatformAdmin() && scopeError == nil {
+			inScope, e := a.Payment.CustomerOrdersInScope(c.Request.Context(), item.ID, paymentOwner)
+			if e != nil {
+				scopeError = e
+			} else if !inScope {
+				scopeError = billing.ErrCustomerCreditScope
+			}
+			if scopeError == nil {
+				inScope, e = a.Plans.CustomerSubscriptionsInScope(c.Request.Context(), item.ID, channels)
+				if e != nil {
+					scopeError = e
+				} else if !inScope {
+					scopeError = billing.ErrCustomerCreditScope
+				}
+			}
 		}
-		entitlements, e := a.Plans.ListEntitlements(c.Request.Context(), item.ID)
-		if e != nil {
-			failures["entitlements"] = "额度暂不可用"
+		if scopeError != nil {
+			failures["credit"] = "余额含其他品牌历史记录，当前权限无法读取"
+			failures["entitlements"] = "额度含其他品牌历史记录，当前权限无法读取"
+			if !errors.Is(scopeError, billing.ErrCustomerCreditScope) {
+				failures["credit"] = "余额范围校验暂不可用"
+				failures["entitlements"] = "额度范围校验暂不可用"
+			}
 		} else {
-			out["entitlements"] = entitlements
+			credit, e := a.Billing.CustomerCredit(c.Request.Context(), item.ID)
+			if e != nil {
+				failures["credit"] = "余额暂不可用"
+			} else {
+				out["credit"] = credit
+			}
+			entitlements, e := a.Plans.ListEntitlements(c.Request.Context(), item.ID)
+			if e != nil {
+				failures["entitlements"] = "额度暂不可用"
+			} else {
+				out["entitlements"] = entitlements
+			}
+		}
+		if readPayments {
+			orders, e := a.Payment.CustomerOrders(c.Request.Context(), item.ID, paymentOwner)
+			if e != nil {
+				failures["orders"] = "订单统计暂不可用"
+			} else {
+				out["orders"] = orders
+			}
 		}
 	}
+
 	httpx.OK(c, out)
 }

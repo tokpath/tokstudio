@@ -31,12 +31,14 @@ export function AppChrome({ brand, children }: { brand?: Brand; children: React.
   if (isConsolePath(pathname)) {
     return (
       <ViewerProvider>
-        <ConsoleAccess>
-          <ConsoleShell brand={brand} onCommand={() => setCommandOpen(true)}>
-            {children}
-          </ConsoleShell>
-          {palette}
-        </ConsoleAccess>
+        <BrandProvider brand={brand}>
+          <ConsoleAccess>
+            <ConsoleShell brand={brand} onCommand={() => setCommandOpen(true)}>
+              {children}
+            </ConsoleShell>
+            {palette}
+          </ConsoleAccess>
+        </BrandProvider>
       </ViewerProvider>
     );
   }

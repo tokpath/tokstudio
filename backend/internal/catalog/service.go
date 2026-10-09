@@ -121,23 +121,24 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID                  string                 `json:"id"`
-	Vendor              string                 `json:"vendor"`
-	DisplayName         string                 `json:"display_name"`
-	Capabilities        map[string]any         `json:"capabilities"`
-	SellPrice           map[string]any         `json:"sell_price,omitempty"`
-	Providers           []string               `json:"providers,omitempty"`
-	Status              string                 `json:"status"`
-	ServiceStatus       string                 `json:"service_status,omitempty"`
-	ConfigReady         bool                   `json:"config_ready"`
-	ServiceReadiness    *ModelServiceReadiness `json:"service_readiness,omitempty"`
-	SyncState           string                 `json:"sync_state,omitempty"`
-	CreatedByUserID     string                 `json:"created_by_user_id,omitempty"`
-	ReviewedByUserID    string                 `json:"reviewed_by_user_id,omitempty"`
-	Description         string                 `json:"description,omitempty"`
-	Kind                string                 `json:"kind,omitempty"`
-	ContextLength       int                    `json:"context_length,omitempty"`
-	MaxCompletionTokens int                    `json:"max_completion_tokens,omitempty"`
+	ID                       string                 `json:"id"`
+	Vendor                   string                 `json:"vendor"`
+	DisplayName              string                 `json:"display_name"`
+	Capabilities             map[string]any         `json:"capabilities"`
+	SellPrice                map[string]any         `json:"sell_price,omitempty"`
+	Providers                []string               `json:"providers,omitempty"`
+	Status                   string                 `json:"status"`
+	ServiceStatus            string                 `json:"service_status,omitempty"`
+	ConfigReady              bool                   `json:"config_ready"`
+	ServiceReadiness         *ModelServiceReadiness `json:"service_readiness,omitempty"`
+	SyncState                string                 `json:"sync_state,omitempty"`
+	CreatedByUserID          string                 `json:"created_by_user_id,omitempty"`
+	ReviewedByUserID         string                 `json:"reviewed_by_user_id,omitempty"`
+	Description              string                 `json:"description,omitempty"`
+	Kind                     string                 `json:"kind,omitempty"`
+	ContextLength            int                    `json:"context_length,omitempty"`
+	MaxCompletionTokens      int                    `json:"max_completion_tokens,omitempty"`
+	textBudgetRouteSupported bool
 }
 
 // ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
@@ -790,6 +791,7 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 			return nil, err
 		}
 		view.SellPrice = publicSell(prices)
+		setBudgetCapabilities(view)
 		readiness, err := s.ModelReadiness(ctx, model.PublicID)
 		if err != nil {
 			return nil, err
@@ -1133,8 +1135,7 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		}
 	}
 	caps["supported_endpoints"] = endpoints
-	sellJSON, _ := json.Marshal(sell)
-	supportsBudget := view.Kind == "text" && BudgetableTextPrices(sellJSON)
+	supportsBudget := view.Kind == "text"
 	cands, routeErr := s.ResolveRoute(ctx, model.PublicID, RouteHint{})
 	if routeErr != nil || len(cands) == 0 {
 		supportsBudget = false
@@ -1144,10 +1145,20 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 			supportsBudget = false
 		}
 	}
-	caps["text_budget_control_supported"] = supportsBudget
-	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
-	caps["budget_control_supported"] = supportsBudget || mediaBudget
+	view.textBudgetRouteSupported = supportsBudget
+	setBudgetCapabilities(view)
 	return view, nil
+}
+
+// Recompute after applying the customer's brand price. Route compatibility is
+// independent of the price, and stays internal to this projection.
+func setBudgetCapabilities(view *ModelView) {
+	sellJSON, _ := json.Marshal(view.SellPrice)
+	textBudget := view.textBudgetRouteSupported && BudgetableTextPrices(sellJSON)
+	endpoints, _ := view.Capabilities["supported_endpoints"].([]string)
+	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
+	view.Capabilities["text_budget_control_supported"] = textBudget
+	view.Capabilities["budget_control_supported"] = textBudget || mediaBudget
 }
 
 func ignored(list []string, slug string) bool {

@@ -39,7 +39,15 @@ func (a *App) commissionContext(c *gin.Context) {
 	if a.abortCommissionWorkflowError(c, err) {
 		return
 	}
-	httpx.OK(c, gin.H{"owner_id": scope.OwnerID, "owner_code": channels[scope.OwnerID], "channel_ids": scope.Channels, "channel_codes": channels})
+	owner, err := a.Identity.GetChannel(c.Request.Context(), *a.currentPrincipal(c), scope.OwnerID)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	brand, err := a.Identity.BrandByID(c.Request.Context(), owner.BrandID)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	httpx.OK(c, gin.H{"owner_id": scope.OwnerID, "owner_name": brand.Name, "owner_code": channels[scope.OwnerID], "channel_ids": scope.Channels, "channel_codes": channels})
 }
 func (a *App) commissionWorkflowScope(c *gin.Context) (commission.WorkflowScope, bool) {
 	owner, channels, ok := a.paymentSettlementScope(c)
@@ -145,6 +153,29 @@ func (a *App) settlementAdminViews(c *gin.Context, items []commission.Settlement
 	return out, nil
 }
 func (a *App) commissionSettlementDetail(c *gin.Context) {
+	p := a.currentPrincipal(c)
+	if p.IsChannelStaff() {
+		channel, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if a.abortCommissionWorkflowError(c, err) {
+			return
+		}
+		if channel.Type == identity.ChannelTypeB {
+			own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+			if a.abortCommissionWorkflowError(c, err) {
+				return
+			}
+			item, entries, err := a.Commission.SettlementDetailForRoles(c.Request.Context(), c.Param("id"), channel.ID, own.RoleIDs)
+			if a.abortCommissionWorkflowError(c, err) {
+				return
+			}
+			views, err := a.settlementAdminViews(c, []commission.SettlementView{*item})
+			if a.abortCommissionWorkflowError(c, err) {
+				return
+			}
+			httpx.OK(c, gin.H{"item": views[0], "entries": entries})
+			return
+		}
+	}
 	scope, ok := a.commissionWorkflowScope(c)
 	if !ok {
 		return

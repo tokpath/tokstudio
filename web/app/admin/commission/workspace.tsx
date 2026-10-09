@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { safeReturnHref } from "@/lib/return-context";
 import { useTranslations } from "next-intl";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { canChannelAction, canWrite } from "@/lib/rbac";
@@ -28,7 +30,7 @@ export function CommissionWorkspace({ oem = false }: { oem?: boolean }) {
   const writable = oem ? canChannelAction("finance", viewer) : canWrite("commission.write", viewer);
   const recoveryAllowed = oem ? viewer.roles.some(r => ["channel_admin", "oem_finance", "oem_audit", "platform_admin"].includes(r)) : canWrite("commission.recovery.read", viewer);
   const scope = context && viewer.userId ? `${viewer.userId}:${typeof window === "undefined" ? "" : window.location.host}:${context.owner_id}:${prefix}` : "";
-  const operation = useCommissionOperation(scope, () => setVersion(v => v + 1));
+  const operation = useCommissionOperation(scope, (payload, body) => { setVersion(v => v + 1); if(payload.kind==='settle'){const rows=body.items as {id:string}[];update({tab:'payout',q:'',status:'',cursor:'',settlement_id:rows?.length===1?rows[0].id:''});} });
   const tabValue = params.get("tab") || "pending";
   const tab = validTabs.includes(tabValue) ? tabValue : "pending";
   function update(values: Record<string, string>) {
@@ -55,8 +57,9 @@ export function CommissionWorkspace({ oem = false }: { oem?: boolean }) {
   const props: WorkspaceProps = { scope, context, prefix, params, update, writable, operation, version };
   const allowed = tab !== "recovery" || recoveryAllowed;
   return <div className="space-y-5">
+    {params.has("return_to") && <Link className="text-sm text-brand-emphasis underline" href={safeReturnHref(params.get("return_to"), `${prefix}/commission`)}>{t("returnTask")}</Link>}
     <nav aria-label={t("workspace")} className="flex flex-wrap gap-2">{validTabs.filter(key => (key !== "recovery" || recoveryAllowed) && (key !== "verify" || writable)).map(key => <Button key={key} variant={tab === key ? "default" : "outline"} aria-pressed={tab === key} onClick={() => update({ tab: key, status: "", cursor: "" })}>{t(`tab.${key}`)}</Button>)}</nav>
-    <div className="flex flex-wrap items-center gap-3 text-sm"><span>{t("brand")}: {context.owner_code || context.owner_id}</span><label>{t("attribution")} <select aria-label={t("attribution")} className="rounded-control border border-hairline bg-canvas p-2" value={params.get("channel_id") || ""} onChange={e => update({ channel_id: e.target.value, cursor: "" })}><option value="">{t("allAttributions")}</option>{context.channel_ids.map(id => <option key={id} value={id}>{context.channel_codes[id] || id}</option>)}</select></label></div>
+    <div className="flex flex-wrap items-center gap-3 text-sm"><span>{t("brand")}: {context.owner_name || context.owner_code || context.owner_id}</span><label>{t("attribution")} <select aria-label={t("attribution")} className="rounded-control border border-hairline bg-canvas p-2" value={params.get("channel_id") || ""} onChange={e => update({ channel_id: e.target.value, cursor: "" })}><option value="">{t("allAttributions")}</option>{context.channel_ids.filter(Boolean).map(id => <option key={id} value={id}>{context.channel_codes[id] || id}</option>)}</select></label></div>
     <OperationStatus operation={operation} />
     {!allowed || (tab === "verify" && !writable) ? <p role="alert">{t("forbidden")}</p> : <>
       {!['rules', 'verify'].includes(tab) && <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); update({ q: search.trim(), cursor: "" }); }}><Input className="max-w-lg" aria-label={t("search")} placeholder={t("searchHint")} value={search} onChange={e => setSearch(e.target.value)} /><Button variant="outline" type="submit">{t("search")}</Button></form>}

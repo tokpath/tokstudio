@@ -22,7 +22,7 @@ export function LegacyCommissionEntry({ entry }: { entry: "rules" | "commissions
   if (viewer.error) return <p role="alert">{t('loadFailed')}</p>;
   if (viewer.loading) return <p role="status">{t('loading')}</p>;
   if (!viewer.signedIn || !canAccessChannelPortal(viewer.roles)) return <p role="alert">{t('forbidden')}</p>;
-  if (viewer.channelType === 'B' && entry === 'commissions') return <ChannelCommissionRecords />;
-  if (viewer.channelType === 'B' && entry === 'settlements') return <ChannelCommissionRecords settlements />;
+  if (viewer.channelType === 'B' && entry === 'commissions') return <ChannelCommissionRecords key={viewer.userId} />;
+  if (viewer.channelType === 'B' && entry === 'settlements') return <ChannelCommissionRecords key={viewer.userId} settlements />;
   return <p role="status">{t('loading')}</p>;
 }

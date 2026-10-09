@@ -3326,7 +3326,10 @@
     "storageFailed": "The original operation could not be saved. Nothing was submitted. Enable session storage and retry.",
     "pendingOperation": "元の操作の結果を確認中",
     "checkOriginal": "元の操作を照会",
-    "retryOriginal": "元の操作を再試行"
+    "retryOriginal": "元の操作を再試行",
+    "settleRecorded": "精算 {count} 件を作成しました。合計 {amount} USD。",
+    "mySettlements": "自分の精算",
+    "returnTask": "元の作業に戻る"
   },
   "workbench": {
     "title": "ワークスペース",
@@ -3377,5 +3380,61 @@
     "status_refunded": "返金済み",
     "status_partially_refunded": "一部返金済み",
     "status_unknown": "状態を確認中"
+  },
+  "supplierWorkflow": {
+    "title": "仕入先への支出",
+    "record": "支出を登録",
+    "search": "支出を検索",
+    "searchHint": "支払先、記録番号、参照番号、登録者を検索",
+    "status": {
+      "recorded": "支出登録済み",
+      "reversed": "元の支出を訂正済み",
+      "reversal": "訂正仕訳"
+    },
+    "emptyHint": "実際に支払った記録を保存します。",
+    "original": "元の支出",
+    "opposite": "訂正記録",
+    "vendor": "支払先",
+    "amount": "実際の支払額（USD）",
+    "time": "実際の支払日時",
+    "category": "支払区分",
+    "source": {
+      "provider_invoice": "モデル提供者",
+      "platform_recharge": "技術プラットフォーム",
+      "other": "その他"
+    },
+    "happened": "実際の支払完了を確認しました",
+    "review": "支出を確認",
+    "recordConfirm": "完了した支払の記録のみです。送金は実行しません。",
+    "reason": "訂正理由",
+    "reverse": "支出を訂正",
+    "reverseConfirm": "元の記録を保存し、同額の反対仕訳を追加します。外部支払は取り消しません。"
+  },
+  "ledgerWorkflow": {
+    "title": "資金台帳",
+    "tab": {
+      "overview": "ブランド集計",
+      "issuance": "クレジット割当履歴",
+      "supplier": "仕入先への支出"
+    },
+    "goPayments": "注文でオフライン割当を行う",
+    "granted": "元の割当額",
+    "used": "消費済クレジット",
+    "remaining": "残りクレジット",
+    "status": {
+      "active": "有効",
+      "exhausted": "消費済み",
+      "reclaimed": "回収済み"
+    },
+    "basis": "API消費は確定した純請求の合計です。サービスプール残高とは別に表示します。",
+    "metric": {
+      "recharge_minor": "プール額（残高＋割当済み）",
+      "unconsumed_minor": "プール残高",
+      "consumed_minor": "実際の純API消費",
+      "marketing_minor": "マーケティング支出",
+      "supplier_minor": "仕入先への現金支出",
+      "pnl_minor": "消費＋マーケティング＋仕入先支出"
+    },
+    "poolMissing": "サービスプール未作成"
   }
 }

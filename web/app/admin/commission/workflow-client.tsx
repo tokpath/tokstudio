@@ -9,10 +9,11 @@ import { useListResource } from "@/hooks/use-list-resource";
 import type { ListLoadResult } from "@/lib/list-resource";
 import { initialListSnapshot } from "@/lib/list-resource";
 import { Button } from "@/components/ui/button";
+import { formatUsdMinor } from "@/lib/money";
 
 export type Person = { email?: string; display_name?: string };
-export type Context = { owner_id: string; owner_code?: string; channel_ids: string[]; channel_codes: Record<string, string> };
-export type WorkflowPayload = { kind: "settle" | "payout" | "recovery" | "unfreeze"; target: string; path: string; lookup: string; label: string; data: Record<string, unknown> };
+export type Context = { owner_id: string; owner_name?: string; owner_code?: string; channel_ids: string[]; channel_codes: Record<string, string> };
+export type WorkflowPayload = { kind: "settle" | "payout" | "recovery" | "unfreeze" | "supplier" | "supplier_reverse"; target: string; path: string; lookup: string; lookupQuery?: boolean; label: string; description?: string; data: Record<string, unknown> };
 export type Body = { item?: Record<string, unknown>; items?: unknown[]; unfrozen?: number; operation_id?: string; error?: { code?: string; message?: string } };
 export function person(item: { recipient?: Person; beneficiary_role_id?: string; user_id?: string }) {
   return item.recipient?.email ? `${item.recipient.display_name ? `${item.recipient.display_name} · ` : ""}${item.recipient.email}` : item.beneficiary_role_id || item.user_id || "—";
@@ -34,7 +35,13 @@ export function useCommissionPage<T>(scope: string, path: string) {
   return { ...list, snapshot: acceptedKey === `${scope}:${path}` ? list.snapshot : initialListSnapshot<T>(), page: acceptedKey === `${scope}:${path}` ? page : {} };
 }
 
-export function useCommissionOperation(scope: string, onRecorded: () => void) {
+function supplierMatches(op: SavedOperation<WorkflowPayload>, body: Body) {
+  const item=body.item;
+  if(typeof item?.id !== 'string' || item.idempotency_key !== op.id)return false;
+  if(op.payload.kind === 'supplier_reverse')return item.reversal_of===op.payload.target && item.memo===op.payload.data.reason;
+  return !item.reversal_of && item.amount_minor===-Number(op.payload.data.amount_minor) && item.vendor_name===op.payload.data.vendor_name;
+}
+export function useCommissionOperation(scope: string, onRecorded: (payload: WorkflowPayload, body: Body) => void) {
   const t = useTranslations("commissionWorkflow");
   const key = scope ? `commission-operation:${scope}` : "";
   const keyRef = useRef(key); keyRef.current = key;
@@ -44,11 +51,12 @@ export function useCommissionOperation(scope: string, onRecorded: () => void) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   useEffect(() => { setSaved(key ? loadOperation<WorkflowPayload>(key) : null); setError(""); setMessage(""); setBusy(false); }, [key]);
-  function complete(operationKey: string, op: SavedOperation<WorkflowPayload>) {
+  function complete(operationKey: string, op: SavedOperation<WorkflowPayload>, body: Body) {
     if (keyRef.current !== operationKey) return;
-    finishOperation(operationKey); setSaved(null); setError(""); setMessage(t("recorded", { label: op.payload.label }));
+    const rows = body.items as {amount_minor:number}[] | undefined;
+    finishOperation(operationKey); setSaved(null); setError(""); setMessage(op.payload.kind === 'settle' && rows ? t('settleRecorded', {count:rows.length,amount:formatUsdMinor(rows.reduce((sum,item)=>sum+item.amount_minor,0))}) : t("recorded", { label: op.payload.label }));
     // A subsequent refresh failure never changes this confirmed receipt.
-    recordedRef.current();
+    recordedRef.current(op.payload, body);
   }
   async function run(payload?: WorkflowPayload) {
     if (!key || busy) return false;
@@ -64,7 +72,7 @@ export function useCommissionOperation(scope: string, onRecorded: () => void) {
     } catch { setError(t("storageFailed")); return false; }
     setBusy(true); setError("");
     try {
-      const response = await fetch(`${apiBase}${op.payload.path}`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ ...op.payload.data, [op.payload.kind === "recovery" ? "idempotency_key" : "operation_id"]: op.id }) });
+      const response = await fetch(`${apiBase}${op.payload.path}`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ ...op.payload.data, [op.payload.kind === "recovery" || op.payload.kind === 'supplier' ? "idempotency_key" : "operation_id"]: op.id }) });
       const body: Body = await response.json();
       if (keyRef.current !== operationKey) return false;
       if (!response.ok) {
@@ -73,9 +81,9 @@ export function useCommissionOperation(scope: string, onRecorded: () => void) {
         if (!existed && [400, 409].includes(response.status)) { finishOperation(operationKey); setSaved(null); }
         setError(body.error?.message || t("unknown")); return false;
       }
-      const valid = op.payload.kind === "settle" ? Array.isArray(body.items) && body.operation_id === op.id : op.payload.kind === "unfreeze" ? typeof body.unfrozen === "number" : op.payload.kind === "payout" ? body.item?.id === op.payload.target && body.item?.status === "paid" : typeof body.item?.id === "string" && body.item.recovery_id === op.payload.target;
+      const valid = op.payload.kind === "settle" ? Array.isArray(body.items) && body.operation_id === op.id : op.payload.kind === "unfreeze" ? typeof body.unfrozen === "number" : op.payload.kind === "payout" ? body.item?.id === op.payload.target && body.item?.status === "paid" : op.payload.kind === 'supplier' || op.payload.kind === 'supplier_reverse' ? supplierMatches(op, body) : typeof body.item?.id === "string" && body.item.recovery_id === op.payload.target;
       if (!valid) { setError(t("unknown")); return false; }
-      complete(operationKey, op); return true;
+      complete(operationKey, op, body); return true;
     } catch { if (keyRef.current === operationKey) setError(t("unknown")); return false; }
     finally { if (keyRef.current === operationKey) setBusy(false); }
   }
@@ -84,12 +92,13 @@ export function useCommissionOperation(scope: string, onRecorded: () => void) {
     const operationKey = key, op = saved;
     setBusy(true); setError("");
     try {
-      const response = await fetch(`${apiBase}${op.payload.lookup}/${encodeURIComponent(op.id)}${op.payload.path.includes("?") ? `?${op.payload.path.split("?")[1]}` : ""}`, { credentials: "include" });
+      const response = await fetch(`${apiBase}${op.payload.lookup}${op.payload.lookupQuery ? `?operation_id=${encodeURIComponent(op.id)}` : `/${encodeURIComponent(op.id)}${op.payload.path.includes("?") ? `?${op.payload.path.split("?")[1]}` : ""}`}`, { credentials: "include" });
       const body: Body = await response.json();
       if (keyRef.current !== operationKey) return;
-      const valid = op.payload.kind === "recovery" ? typeof body.item?.id === "string" && body.operation_id === op.id && body.item.recovery_id === op.payload.target : body.item?.operation_id === op.id && body.item?.kind === op.payload.kind && body.item.result != null;
-      if (response.ok && valid) complete(operationKey, op);
-      else setError(response.status === 404 ? t("notFoundYet") : body.error?.message || t("unknown"));
+      const valid = op.payload.lookupQuery ? supplierMatches(op, body) : op.payload.kind === "recovery" ? typeof body.item?.id === "string" && body.operation_id === op.id && body.item.recovery_id === op.payload.target : body.item?.operation_id === op.id && body.item?.kind === op.payload.kind && body.item.result != null;
+      const result = !op.payload.lookupQuery && op.payload.kind !== 'recovery' ? op.payload.kind === 'settle' ? {items:body.item?.result as unknown[]} : op.payload.kind === 'unfreeze' ? body.item?.result as Body : {item:body.item?.result as Record<string,unknown>} : body;
+      if (response.ok && valid) complete(operationKey, op, result);
+      else setError(response.status === 404 || (body as Body & {operation_status?:string}).operation_status === 'not_found' ? t("notFoundYet") : body.error?.message || t("unknown"));
     } catch { if (keyRef.current === operationKey) setError(t("unknown")); }
     finally { if (keyRef.current === operationKey) setBusy(false); }
   }

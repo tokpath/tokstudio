@@ -419,6 +419,20 @@ func (s *Service) SettlementDetail(ctx context.Context, settlementID string, cha
 	}
 	return &views[0], entries, nil
 }
+
+func (s *Service) SettlementDetailForRoles(ctx context.Context, settlementID, channelID string, roles []string) (*SettlementView, []EntryView, error) {
+	if len(roles) == 0 {
+		return nil, nil, ErrNotFound
+	}
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&settleRow{}).Where("id=? AND channel_org_id=? AND beneficiary_role_id IN ?", settlementID, channelID, roles).Count(&count).Error; err != nil {
+		return nil, nil, err
+	}
+	if count != 1 {
+		return nil, nil, ErrNotFound
+	}
+	return s.SettlementDetail(ctx, settlementID, []string{channelID})
+}
 func (s *Service) createPreparedSettlementTx(tx *gorm.DB, now time.Time, prepared *preparedSettlement) ([]SettlementView, error) {
 	out := []SettlementView{}
 	for _, group := range prepared.groups {

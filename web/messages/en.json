@@ -3326,7 +3326,10 @@
     "storageFailed": "The original operation could not be saved. Nothing was submitted. Enable session storage and retry.",
     "pendingOperation": "Original result awaiting confirmation",
     "checkOriginal": "Check original operation",
-    "retryOriginal": "Retry original operation"
+    "retryOriginal": "Retry original operation",
+    "settleRecorded": "Created {count} settlements for {amount} USD.",
+    "mySettlements": "My settlements",
+    "returnTask": "Return to task"
   },
   "workbench": {
     "title": "Workspace",
@@ -3377,5 +3380,61 @@
     "status_refunded": "Refunded",
     "status_partially_refunded": "Partially refunded",
     "status_unknown": "Status unconfirmed"
+  },
+  "supplierWorkflow": {
+    "title": "Supplier expenses",
+    "record": "Record expense",
+    "search": "Search expenses",
+    "searchHint": "Search payee, record, reference or operator",
+    "status": {
+      "recorded": "Expense recorded",
+      "reversed": "Original expense reversed",
+      "reversal": "Reversal entry"
+    },
+    "emptyHint": "Completed payments remain recorded here.",
+    "original": "Original expense",
+    "opposite": "Reversal record",
+    "vendor": "Payee",
+    "amount": "Amount actually paid (USD)",
+    "time": "Actual payment time",
+    "category": "Payment category",
+    "source": {
+      "provider_invoice": "Model supplier",
+      "platform_recharge": "Technology platform",
+      "other": "Other"
+    },
+    "happened": "I confirm the payment has happened",
+    "review": "Review expense",
+    "recordConfirm": "Records a completed payment only. No transfer is initiated.",
+    "reason": "Reversal reason",
+    "reverse": "Reverse expense",
+    "reverseConfirm": "Adds an equal opposite entry and preserves the original. External payments are not recalled."
+  },
+  "ledgerWorkflow": {
+    "title": "Financial ledger",
+    "tab": {
+      "overview": "Brand business totals",
+      "issuance": "Credit allocation history",
+      "supplier": "Supplier expenses"
+    },
+    "goPayments": "Open orders for offline allocations",
+    "granted": "Originally allocated",
+    "used": "Consumed credit",
+    "remaining": "Remaining credit",
+    "status": {
+      "active": "Active",
+      "exhausted": "Exhausted",
+      "reclaimed": "Reclaimed"
+    },
+    "basis": "API consumption totals confirmed net bills. Pool credit and customer consumption are shown separately.",
+    "metric": {
+      "recharge_minor": "Pool credit (remaining + issued)",
+      "unconsumed_minor": "Remaining pool credit",
+      "consumed_minor": "Actual net API consumption",
+      "marketing_minor": "Marketing expense",
+      "supplier_minor": "Supplier cash expense",
+      "pnl_minor": "Consumption + marketing + suppliers"
+    },
+    "poolMissing": "Service pool not established"
   }
 }

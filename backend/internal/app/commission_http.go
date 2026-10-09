@@ -238,17 +238,35 @@ func (a *App) channelQuota(c *gin.Context) {
 }
 
 func (a *App) channelAllocations(c *gin.Context) {
-	channelID := a.currentPrincipal(c).ChannelOrgID
-	if a.currentPrincipal(c).IsPlatformAdmin() && c.Query("channel_id") != "" {
-		channelID = c.Query("channel_id")
-	}
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	items, err := a.Billing.ListAllocations(c.Request.Context(), channelID, limit)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取额度发放失败", true)
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	items, err := a.Billing.ListPoolAllocations(c.Request.Context(), scope.OwnerID, c.Query("channel_id"))
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	ids := []string{}
+	for _, item := range items {
+		ids = append(ids, item.UserID)
+	}
+	people, err := a.Identity.BillingRecipientsByID(c.Request.Context(), ids)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	type view struct {
+		billing.AllocationView
+		Recipient identity.BillingRecipient `json:"recipient"`
+	}
+	out := []view{}
+	q := strings.ToLower(strings.TrimSpace(c.Query("q")))
+	for _, item := range items {
+		row := view{item, people[item.UserID]}
+		if (c.Query("status") == "" || c.Query("status") == item.Status) && commissionMatches(row, q) {
+			out = append(out, row)
+		}
+	}
+	commissionPage(c, out, func(v view) string { return v.ID }, func(v view) time.Time { return v.CreatedAt })
 }
 
 func (a *App) channelUsage(c *gin.Context) { a.workflowUsage(c, "channel") }
@@ -285,7 +303,7 @@ func (a *App) channelSettlements(c *gin.Context) {
 	}
 	out := []commissionSettlementAdminView{}
 	for _, item := range views {
-		if (c.Query("status") == "" || item.Status == c.Query("status")) && commissionMatches(item, strings.ToLower(strings.TrimSpace(c.Query("q")))) {
+		if (c.Query("settlement_id") == "" || item.ID == c.Query("settlement_id")) && (c.Query("status") == "" || item.Status == c.Query("status")) && commissionMatches(item, strings.ToLower(strings.TrimSpace(c.Query("q")))) {
 			out = append(out, item)
 		}
 	}

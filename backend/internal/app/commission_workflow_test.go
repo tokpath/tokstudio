@@ -381,3 +381,55 @@ func TestCommissionWorkflowChannelOwnFactsOnly(t *testing.T) {
 		t.Fatalf("another recipient fact exposed %d %+v", code, body)
 	}
 }
+
+func TestCommissionWorkflowOwnSettlementDeepLink(t *testing.T) {
+	fx := newWMeterEnv(t)
+	a := fx.app
+	ctx := context.Background()
+	var user struct{ ID string }
+	if err := a.DB.Table("identity_users").Where("email=?", "channel.b@tokenhub.local").First(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	role, err := a.Identity.CreateAcquisitionRole(ctx, identity.ResellerChannelID, identity.AcqPromoter, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = a.Identity.BindRoleMember(ctx, user.ID, role.ID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { a.DB.Table("identity_role_members").Where("acquisition_role_id=?", role.ID).Delete(nil) })
+	prefix := id.New("ownsettlement")
+	for n := 0; n < 153; n++ {
+		if err := a.DB.Exec("INSERT INTO commission_settlements(id,period_start,period_end,channel_org_id,beneficiary_role_id,amount_minor,status,policy_version,created_at) VALUES (?,now(),now(),?,?,100,'settled','original-policy',?)", fmt.Sprintf("%s_%03d", prefix, n), identity.ResellerChannelID, role.ID, time.Now().UTC().Add(time.Duration(n)*time.Second)).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	original := prefix + "_000"
+	code, body := doJSON(t, http.MethodGet, fx.server.URL+"/channel/settlements?limit=30&q="+prefix, a.Config.BootstrapAdmin+"-b", false, nil)
+	if code != 200 || asInt(body["total"]) != 153 || len(body["items"].([]any)) != 30 {
+		t.Fatalf("own full history %d %+v", code, body)
+	}
+	for _, raw := range body["items"].([]any) {
+		if raw.(map[string]any)["id"] == original {
+			t.Fatal("fixture original unexpectedly in first page")
+		}
+	}
+	code, body = doJSON(t, http.MethodGet, fx.server.URL+"/channel/settlements/"+original, a.Config.BootstrapAdmin+"-b", false, nil)
+	if code != 200 || body["item"].(map[string]any)["id"] != original || body["entries"] == nil {
+		t.Fatalf("own original detail unavailable %d %+v", code, body)
+	}
+	code, body = doJSON(t, http.MethodGet, fx.server.URL+"/channel/settlements?settlement_id="+original, a.Config.BootstrapAdmin+"-b", false, nil)
+	if code != 200 || asInt(body["total"]) != 1 || body["items"].([]any)[0].(map[string]any)["id"] != original {
+		t.Fatalf("exact original not consumed %d %+v", code, body)
+	}
+	foreign := id.New("foreignsettlement")
+	if err := a.DB.Exec("INSERT INTO commission_settlements(id,period_start,period_end,channel_org_id,beneficiary_role_id,amount_minor,status,policy_version) VALUES (?,now(),now(),?,?,100,'settled','fixture')", foreign, identity.ResellerChannelID, identity.KOL2BRoleID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if code, _ := doJSON(t, http.MethodGet, fx.server.URL+"/channel/settlements/"+foreign, a.Config.BootstrapAdmin+"-b", false, nil); code != 404 {
+		t.Fatalf("other recipient exposed %d", code)
+	}
+	if code, _ := doJSON(t, http.MethodPost, fx.server.URL+"/channel/settlements/"+original+"/payout", a.Config.BootstrapAdmin+"-b", true, commission.PayoutInput{AmountMinor: 100, OperationID: id.New("op"), Method: "manual", OccurredAt: time.Now().Add(-time.Minute), Confirmed: true}); code != 403 {
+		t.Fatalf("B mutated own settlement %d", code)
+	}
+}

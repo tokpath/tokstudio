@@ -2,8 +2,10 @@ package app
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -51,61 +53,103 @@ func (a *App) actorBookChannelID(c *gin.Context) string {
 	return a.poolChannelID(c, id)
 }
 
-func (a *App) composePnL(c *gin.Context, channelID string) {
-	pool := a.poolChannelID(c, channelID)
-	if pool == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "缺少渠道", false)
+func (a *App) composePnL(c *gin.Context, selected string) {
+	owner, channels, ok := a.paymentSettlementScope(c)
+	if !ok {
 		return
 	}
-	mkt, err := a.Commission.MarketingTotals(c.Request.Context(), pool)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取营销汇总失败", true)
+	if selected != "" {
+		allowed := false
+		for _, channel := range channels {
+			if selected == channel {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			httpx.Abort(c, 403, "permission_denied", "该资金主体不在当前品牌范围。", false)
+			return
+		}
+	}
+	mkt, err := a.Commission.MarketingTotals(c.Request.Context(), owner)
+	if a.abortSupplierError(c, err) {
 		return
 	}
-	supplier, err := a.Billing.SupplierTotal(c.Request.Context(), pool)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取供应商汇总失败", true)
+	supplier, err := a.Billing.SupplierTotal(c.Request.Context(), owner)
+	if a.abortSupplierError(c, err) {
 		return
 	}
-	item, err := a.Billing.ChannelPnL(c.Request.Context(), pool, mkt.FrozenMinor, mkt.IssuedMinor, supplier)
-	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "渠道不存在", false)
+	item, err := a.Billing.ChannelPnL(c.Request.Context(), owner, mkt.FrozenMinor, mkt.IssuedMinor, supplier, channels)
+	if a.abortSupplierError(c, err) {
 		return
 	}
-	httpx.OK(c, gin.H{"pnl": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"pnl": item})
 }
+func (a *App) channelPnL(c *gin.Context)      { a.composePnL(c, c.Query("channel_id")) }
+func (a *App) adminChannelPnL(c *gin.Context) { a.composePnL(c, c.Param("id")) }
 
-func (a *App) channelPnL(c *gin.Context) {
-	a.composePnL(c, a.viewerChannelID(c))
-}
-
-func (a *App) adminChannelPnL(c *gin.Context) {
-	a.composePnL(c, c.Param("id"))
-}
-
-func (a *App) adminListSupplier(c *gin.Context) {
+func (a *App) adminListSupplier(c *gin.Context)   { a.listSupplierFacts(c) }
+func (a *App) channelListSupplier(c *gin.Context) { a.listSupplierFacts(c) }
+func (a *App) listSupplierFacts(c *gin.Context) {
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
+		return
+	}
 	if a.supplierOperation(c) {
 		return
 	}
-	items, err := a.Billing.ListSupplier(c.Request.Context(), c.Query("channel_id"), 50)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取供应商支出失败", true)
+	items, err := a.Billing.ListSupplier(c.Request.Context(), scope.OwnerID, 0)
+	if a.abortSupplierError(c, err) {
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	actorIDs := []string{}
+	for _, item := range items {
+		actorIDs = append(actorIDs, item.ActorUserID)
+	}
+	people, err := a.Identity.BillingRecipientsByID(c.Request.Context(), actorIDs)
+	if a.abortSupplierError(c, err) {
+		return
+	}
+	type view struct {
+		billing.SupplierView
+		ActorEmail string `json:"actor_email"`
+		Status     string `json:"status"`
+	}
+	out := []view{}
+	q := strings.ToLower(strings.TrimSpace(c.Query("q")))
+	for _, item := range items {
+		status := "recorded"
+		if item.ReversalOf != "" {
+			status = "reversal"
+		} else if item.ReversedBy != "" {
+			status = "reversed"
+		}
+		row := view{item, people[item.ActorUserID].Email, status}
+		if (c.Query("status") == "" || c.Query("status") == status) && commissionMatches(row, q) {
+			out = append(out, row)
+		}
+	}
+	commissionPage(c, out, func(v view) string { return v.ID }, func(v view) time.Time { return v.CreatedAt })
 }
-
-func (a *App) channelListSupplier(c *gin.Context) {
-	if a.supplierOperation(c) {
-		return
+func (a *App) abortSupplierError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
 	}
-	channelID := a.actorBookChannelID(c)
-	items, err := a.Billing.ListSupplier(c.Request.Context(), channelID, 50)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取供应商支出失败", true)
-		return
+	switch {
+	case errors.Is(err, billing.ErrNotFound):
+		httpx.Abort(c, 404, "not_found", "支出记录不存在，请核对。", false)
+	case errors.Is(err, billing.ErrConflict):
+		httpx.Abort(c, 409, "supplier_conflict", "原操作内容发生变化、参考号已登记或原流水已冲正，请查询原记录。", false)
+	case errors.Is(err, billing.ErrInvalidAmount), errors.Is(err, billing.ErrInventedCost):
+		httpx.Abort(c, 400, "invalid_request", "请核对真实付款金额、对象、时间及类别。", false)
+	default:
+		if c.Request.Method == http.MethodGet {
+			httpx.Abort(c, 500, "read_failed", "读取财务记录失败，请重试。", true)
+		} else {
+			httpx.Abort(c, 500, "result_unconfirmed", "结果尚未确认，请回查或重试原操作。", true)
+		}
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	return true
 }
 
 func (a *App) supplierOperation(c *gin.Context) bool {
@@ -118,7 +162,11 @@ func (a *App) supplierOperation(c *gin.Context) bool {
 		httpx.Abort(c, http.StatusUnauthorized, "unauthorized", "请先登录", false)
 		return true
 	}
-	item, err := a.Billing.SupplierOperation(c.Request.Context(), p.UserID, a.actorBookChannelID(c), operationID)
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
+		return true
+	}
+	item, err := a.Billing.SupplierOperation(c.Request.Context(), p.UserID, scope.OwnerID, operationID)
 	if errors.Is(err, billing.ErrNotFound) {
 		httpx.OK(c, gin.H{"item": nil, "operation_status": "not_found"})
 		return true
@@ -143,39 +191,35 @@ func (a *App) writeSupplier(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	p := a.currentPrincipal(c)
-	if p == nil {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
 		return
 	}
 	var body billing.SupplierInput
 	if err := c.ShouldBindJSON(&body); err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
+		httpx.Abort(c, 400, "invalid_request", "请求体无效。", false)
 		return
 	}
-	body.ChannelOrgID = a.actorBookChannelID(c)
-	if body.ChannelOrgID == "" || body.SourceType == "" || body.IdempotencyKey == "" || body.AmountMinor <= 0 {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "必填：amount_minor、source_type、idempotency_key", false)
+	body.ChannelOrgID = scope.OwnerID
+	if !body.Confirmed || body.OccurredAt.IsZero() || body.OccurredAt.After(time.Now().UTC().Add(5*time.Minute)) || strings.TrimSpace(body.VendorName) == "" || len(body.VendorName) > 200 || len(body.Memo) > 1000 || len(body.BankRef) > 200 || (body.Currency != "" && body.Currency != "USD") {
+		httpx.Abort(c, 400, "invalid_request", "请确认已实际支付，并填写付款对象、USD金额和实际付款时间；参考号可选。", false)
 		return
 	}
-	item, err := a.Billing.RecordSupplier(c.Request.Context(), p.UserID, body)
-	if err != nil {
-		if errors.Is(err, billing.ErrConflict) {
-			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "原操作内容不一致，请查询原记录", false)
-			return
+	var item *billing.SupplierView
+	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		var created bool
+		var e error
+		item, created, e = a.Billing.RecordSupplierTx(tx, scope.ActorUserID, body)
+		if e != nil || !created {
+			return e
 		}
-		if errors.Is(err, billing.ErrInventedCost) {
-			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "禁止估算 attempt 成本", false)
-			return
-		}
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "记供应商支出失败", false)
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: p.UserID, Action: "billing.supplier.record", ResourceType: "supplier_entry", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+		_, e = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: scope.ActorUserID, Action: "billing.supplier.record", ResourceType: "supplier_entry", ResourceID: item.ID, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+		return e
 	})
-	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	if a.abortSupplierError(c, err) {
+		return
+	}
+	httpx.Created(c, gin.H{"item": item})
 }
 
 func (a *App) adminReverseSupplier(c *gin.Context) {
@@ -186,48 +230,37 @@ func (a *App) channelReverseSupplier(c *gin.Context) {
 	a.reverseSupplier(c, a.actorBookChannelID(c))
 }
 
-func (a *App) reverseSupplier(c *gin.Context, scopedChannel string) {
+func (a *App) reverseSupplier(c *gin.Context, _ string) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	p := a.currentPrincipal(c)
-	if p == nil {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
 		return
 	}
 	var body struct {
-		Reason string `json:"reason"`
+		Reason      string `json:"reason"`
+		OperationID string `json:"operation_id"`
 	}
-	_ = c.ShouldBindJSON(&body)
-	if scopedChannel != "" {
-		orig, err := a.Billing.GetSupplier(c.Request.Context(), c.Param("id"))
-		if err != nil {
-			httpx.Abort(c, http.StatusNotFound, "invalid_request", "流水不存在", false)
-			return
-		}
-		if orig.ChannelOrgID != scopedChannel {
-			httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能冲正本渠道流水", false)
-			return
-		}
-	}
-	item, err := a.Billing.ReverseSupplier(c.Request.Context(), p.UserID, c.Param("id"), body.Reason)
-	if err != nil {
-		if errors.Is(err, billing.ErrNotFound) {
-			httpx.Abort(c, http.StatusNotFound, "invalid_request", "流水不存在", false)
-			return
-		}
-		if errors.Is(err, billing.ErrConflict) {
-			httpx.Abort(c, http.StatusConflict, "conflict", "冲正对象不合法", false)
-			return
-		}
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "冲正失败", false)
+	if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.Reason) == "" || body.OperationID == "" {
+		httpx.Abort(c, 400, "invalid_request", "请填写冲正原因并保留原操作编号。", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: p.UserID, Action: "billing.supplier.reverse", ResourceType: "supplier_entry", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	var item *billing.SupplierView
+	err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		var created bool
+		var e error
+		item, created, e = a.Billing.ReverseSupplierTx(tx, scope.ActorUserID, c.Param("id"), body.OperationID, body.Reason, scope.OwnerID)
+		if e != nil || !created {
+			return e
+		}
+		_, e = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: scope.ActorUserID, Action: "billing.supplier.reverse", ResourceType: "supplier_entry", ResourceID: item.ID, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+		return e
 	})
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	if a.abortSupplierError(c, err) {
+		return
+	}
+	httpx.OK(c, gin.H{"item": item})
 }
 
 func (a *App) channelPolicy(c *gin.Context) {

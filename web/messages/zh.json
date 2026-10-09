@@ -3326,7 +3326,10 @@
     "storageFailed": "无法保存原操作，尚未提交。请允许会话存储后重试。",
     "pendingOperation": "原操作结果待确认",
     "checkOriginal": "回查原操作",
-    "retryOriginal": "重试原操作"
+    "retryOriginal": "重试原操作",
+    "settleRecorded": "已生成 {count} 张结算单，共 {amount} USD。",
+    "mySettlements": "我的结算",
+    "returnTask": "返回原任务"
   },
   "workbench": {
     "title": "工作台",
@@ -3377,5 +3380,61 @@
     "status_refunded": "已退款",
     "status_partially_refunded": "部分退款",
     "status_unknown": "状态待核实"
+  },
+  "supplierWorkflow": {
+    "title": "供应商支出",
+    "record": "登记支出",
+    "search": "搜索支出",
+    "searchHint": "搜索对象、内部编号、参考号或登记人",
+    "status": {
+      "recorded": "已登记支出",
+      "reversed": "原支出已冲正",
+      "reversal": "冲正流水"
+    },
+    "emptyHint": "已实际付款的支出会在此保留记录。",
+    "original": "原支出",
+    "opposite": "冲正记录",
+    "vendor": "付款对象",
+    "amount": "实际付款金额（USD）",
+    "time": "实际付款时间",
+    "category": "付款类别",
+    "source": {
+      "provider_invoice": "付给模型商",
+      "platform_recharge": "付给技术平台",
+      "other": "其他"
+    },
+    "happened": "我确认款项已实际支付",
+    "review": "核对支出",
+    "recordConfirm": "本次只登记已完成的付款，不执行转账。",
+    "reason": "冲正原因",
+    "reverse": "冲正支出",
+    "reverseConfirm": "补记等额反向流水，保留原记录；不撤回外部付款。"
+  },
+  "ledgerWorkflow": {
+    "title": "资金流水",
+    "tab": {
+      "overview": "品牌经营汇总",
+      "issuance": "额度划拨记录",
+      "supplier": "供应商支出"
+    },
+    "goPayments": "前往订单办理线下划拨",
+    "granted": "原发放额度",
+    "used": "已消耗额度",
+    "remaining": "剩余额度",
+    "status": {
+      "active": "有效",
+      "exhausted": "已用完",
+      "reclaimed": "已收回"
+    },
+    "basis": "API 消费按已确认净账单汇总；服务池额度与客户消费分开显示。",
+    "metric": {
+      "recharge_minor": "服务池额度（剩余＋已发放）",
+      "unconsumed_minor": "服务池剩余额度",
+      "consumed_minor": "实际 API 净消费",
+      "marketing_minor": "营销支出",
+      "supplier_minor": "供应商现金支出",
+      "pnl_minor": "消费＋营销＋供应商支出"
+    },
+    "poolMissing": "服务池尚未建立"
   }
 }

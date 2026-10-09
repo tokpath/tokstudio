@@ -38,9 +38,10 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 	}
 
 	idem := "spe-docs15-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	actualTime := time.Now().UTC().Add(-time.Minute)
 	created := postJSONRaw(t, server.URL+"/admin/supplier-entries", "docs15_admin", map[string]any{
-		"amount_minor": 2 * billing.MinorPerUSD,
-		"source_type":  "provider_invoice", "idempotency_key": idem,
+		"occurred_at": actualTime, "confirmed": true, "amount_minor": 2 * billing.MinorPerUSD,
+		"source_type": "provider_invoice", "idempotency_key": idem,
 		"vendor_name": "Echo Labs", "invoice_no": "INV-1", "payment_method": "wire", "memo": "offline",
 	})
 	item := created["item"].(map[string]any)
@@ -51,7 +52,7 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 		t.Fatalf("admin supplier must auto-book official channel: %+v", item)
 	}
 	again := postJSONRaw(t, server.URL+"/admin/supplier-entries", "docs15_admin", map[string]any{
-		"channel_org_id": identity.ResellerChannelID, "amount_minor": 2 * billing.MinorPerUSD,
+		"occurred_at": actualTime, "confirmed": true, "channel_org_id": identity.ResellerChannelID, "amount_minor": 2 * billing.MinorPerUSD,
 		"source_type": "provider_invoice", "idempotency_key": idem,
 		"vendor_name": "Echo Labs", "invoice_no": "INV-1", "payment_method": "wire", "memo": "offline",
 	})
@@ -60,7 +61,7 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 	}
 
 	bEntry := postJSONRaw(t, server.URL+"/channel/supplier-entries", "docs15_admin-c", map[string]any{
-		"amount_minor": billing.MinorPerUSD, "source_type": "platform_recharge",
+		"occurred_at": actualTime, "confirmed": true, "vendor_name": "技术平台", "amount_minor": billing.MinorPerUSD, "source_type": "platform_recharge",
 		"idempotency_key": "spe-b-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 	})
 	if bEntry["item"].(map[string]any)["channel_org_id"] != identity.OEMChannelID {
@@ -75,7 +76,7 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 		t.Fatalf("pnl should include negative supplier: %+v", pnl)
 	}
 
-	rev := postJSONRaw(t, server.URL+"/admin/supplier-entries/"+item["id"].(string)+"/reverse", "docs15_admin", map[string]any{"reason": "void"})
+	rev := postJSONRaw(t, server.URL+"/admin/supplier-entries/"+item["id"].(string)+"/reverse", "docs15_admin", map[string]any{"reason": "void", "operation_id": idem + "-reverse"})
 	if asInt(rev["item"].(map[string]any)["amount_minor"]) != 2*billing.MinorPerUSD {
 		t.Fatalf("reverse must flip sign: %+v", rev)
 	}

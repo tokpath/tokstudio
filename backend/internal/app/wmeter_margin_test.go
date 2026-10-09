@@ -100,6 +100,7 @@ func TestWMeter4CostFromTokenHubOnly(t *testing.T) {
 		"amount_minor":    billing.MinorPerUSD,
 		"source_type":     "provider_invoice",
 		"idempotency_key": "spe-cash-" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		"vendor_name":     "Echo Labs", "occurred_at": time.Now().UTC().Add(-time.Minute), "confirmed": true,
 	})
 	afterCash := adminMarginOf(t, fx, requestID)
 	afterRow := findMarginRow(afterCash, attemptID)

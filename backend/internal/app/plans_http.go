@@ -1,9 +1,7 @@
 package app
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,6 +27,7 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.POST("/v1/me/subscriptions/:id/cancel", a.requireUserOrKey(), a.cancelMySubscription)
 	r.GET("/v1/me/entitlements", a.requireUserOrKey(), a.listMyEntitlements)
 	r.POST("/v1/payments/orders", a.requireUserOrKey(), a.createPaymentOrder)
+	r.GET("/v1/me/wallet-purchases/:operation", a.requireAnyUser(), a.getMyWalletPurchase)
 	r.POST("/v1/payments/orders/:id/sync", a.requireUserOrKey(), a.syncPaymentOrder)
 	r.GET("/v1/payments/orders/:id", a.requireUserOrKey(), a.getPaymentOrder)
 	r.POST("/v1/payments/:adapter/webhook", a.paymentWebhook)
@@ -228,11 +227,6 @@ func (a *App) listMyEntitlements(c *gin.Context) {
 }
 
 func (a *App) createPaymentOrder(c *gin.Context) {
-	raw, _ := io.ReadAll(c.Request.Body)
-	if rec := a.replayIdempotency(c, raw); rec != nil {
-		return
-	}
-	c.Request.Body = io.NopCloser(bytes.NewReader(raw))
 	var body struct {
 		Adapter     string `json:"adapter"`
 		AmountMinor int64  `json:"amount_minor"`
@@ -263,10 +257,18 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 		return
 	}
 	userID, channelID := a.billingUser(c)
-	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
+	operation := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if operation == "" {
+		operation = id.New("wallet_purchase")
+	}
+	order, err := a.Payment.CreateWalletPurchase(c.Request.Context(), payment.CreateOrderInput{
 		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: body.Purpose,
 		PayMajor: body.PayMajor,
-	})
+	}, operation)
+	if errors.Is(err, payment.ErrPurchaseConflict) {
+		httpx.Abort(c, 409, "idempotency_conflict", "此充值操作的金额或支付方式已改变，请回查原订单", false)
+		return
+	}
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -275,8 +277,20 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 		return
 	}
 	payload := gin.H{"checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)}
-	a.rememberIdempotency(c, raw, http.StatusCreated, payload)
 	httpx.Created(c, payload)
+}
+
+func (a *App) getMyWalletPurchase(c *gin.Context) {
+	order, err := a.Payment.GetWalletPurchase(c.Request.Context(), a.currentPrincipal(c).UserID, c.Param("operation"))
+	if errors.Is(err, payment.ErrNotFound) {
+		httpx.OK(c, gin.H{"item": nil})
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "充值结果尚未确认，请重试", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": order})
 }
 
 func (a *App) getPaymentOrder(c *gin.Context) {

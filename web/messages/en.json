@@ -2851,5 +2851,10 @@
     "refundPendingHint": "The provider has not confirmed completion. Retry this order with the original refund identity; no new refund is created.",
     "originalRefunded": "The original operation was recorded. Order {id} is now refunded; no credits were granted again.",
     "originalRefunding": "The original operation was recorded. Order {id} is processing a refund; no credits were granted again."
+  },
+  "walletOperation": {
+    "resume": "A topup is already in progress. Continue the original operation or confirm its result.",
+    "original": "Original topup amount: {amount}; payment method: {method}",
+    "order": "Original order created: {id}"
   }
 }

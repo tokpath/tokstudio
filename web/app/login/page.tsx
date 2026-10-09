@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { capturePublicInvitation, readPublicInvitation } from "@/lib/public-invitation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -58,9 +59,11 @@ function LoginForm() {
   const googleUI = googleButtonState(googleStatus, googleLoading);
 
   useEffect(() => {
-    form.setValue("promo", invitation);
-    if (invitation) setMode("register");
-  }, [invitation, form]);
+    let code=invitation;
+    try{capturePublicInvitation(sessionStorage,search,brand?.id || "");code=code || readPublicInvitation(sessionStorage,brand?.id || "");}catch{/* private mode */}
+    form.setValue("promo", code);
+    if (code) setMode("register");
+  }, [invitation, search,brand?.id, form]);
 
   useEffect(() => {
     const fromCallback = sanitizeOAuthError(search.get("oauth_error"), "");

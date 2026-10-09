@@ -2851,5 +2851,10 @@
     "refundPendingHint": "支付机构尚未确认退款完成；核对或重试使用原订单及同一退款身份，不新建退款。",
     "originalRefunded": "原操作已登记，订单 {id} 现已退款；未再次发放额度。",
     "originalRefunding": "原操作已登记，订单 {id} 现正处理退款；未再次发放额度。"
+  },
+  "walletOperation": {
+    "resume": "已有一笔充值操作，请先继续原操作或确认结果。",
+    "original": "原充值档位：{amount}；支付方式：{method}",
+    "order": "已创建原订单：{id}"
   }
 }

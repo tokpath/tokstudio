@@ -1,5 +1,23 @@
 import { expect, test } from "@playwright/test";
 import { mockViewer } from "./mock-viewer";
+import { createServer, type Server } from "node:http";
+
+let catalogServer: Server;
+test.beforeAll(async()=>{
+  // RSC fetches cannot be intercepted by page.route. Only the exact model lookup
+  // succeeds; the existing unavailable-home check remains a genuine failure.
+  catalogServer=createServer((request,response)=>{
+    const url=new URL(request.url || "/","http://127.0.0.1:8080");
+    response.setHeader("Content-Type","application/json");
+    if(url.pathname==="/v1/public/models" && url.searchParams.get("id")==="echo"){
+      response.end(JSON.stringify({items:[{id:"echo",vendor:"Fixture",display_name:"Browser echo",kind:"text",status:"available",capabilities:{supported_endpoints:["/v1/chat/completions"]}}]}));return;
+    }
+    if(url.pathname==="/v1/public/models"){response.statusCode=503;response.end("{}");return;}
+    response.end("{}");
+  });
+  await new Promise<void>(resolve=>catalogServer.listen(8080,"127.0.0.1",resolve));
+});
+test.afterAll(async()=>{await new Promise<void>((resolve,reject)=>catalogServer.close(error=>error ? reject(error):resolve()));});
 
 test("public API task keeps invitation and unavailable catalog has no sample models",async({page})=>{
   await page.route("**/v1/me",route=>route.fulfill({status:401,json:{error:{message:"signed out"}}}));
@@ -66,4 +84,24 @@ test("OAuth denial recovers server invitation and next when browser intent is ab
   await expect(page).toHaveURL(/\/login\?oauth_error=/);
   const url=new URL(page.url());expect(url.searchParams.get("next")).toBe("/app/plans?plan=monthly");expect(url.searchParams.get("promotion_code")).toBe("THU123");
   await expect(page.getByLabel("推广码",{exact:true})).toHaveValue("THU123");
+});
+
+test("home invitation survives public docs and model browsing with the original model task",async({page})=>{
+  await page.route("**/v1/me",route=>route.fulfill({status:401,json:{}}));
+  await page.route("**/v1/partner/me",route=>route.fulfill({status:401,json:{}}));
+  await page.route("**/v1/auth/google/status",route=>route.fulfill({json:{available:false}}));
+  await page.goto("/?promo=THU123");
+  const docs=page.locator('a[href="/docs?promotion_code=THU123"]:visible').first();
+  await docs.click();
+  await expect(page).toHaveURL(/\/docs\?promotion_code=THU123$/);
+  // The visitor can open a clean model URL after reading documentation. A
+  // stored same-brand intent survives even when this page's CTA lacks the code.
+  await page.goto("/models/echo");
+  await expect(page.getByRole("heading",{name:"Browser echo",exact:true})).toBeVisible();
+  const start=page.getByRole("link",{name:"开始使用",exact:true});
+  await start.click();
+  await expect(page).toHaveURL(/\/login\?next=/);
+  expect(new URL(page.url()).searchParams.get("next")).toBe("/app/playground?model=echo");
+  await expect(page.getByLabel("推广码",{exact:true})).toHaveValue("THU123");
+  await expect(page.getByRole("button",{name:"注册",exact:true})).toBeVisible();
 });

@@ -584,7 +584,7 @@ test("user shell shows real available balance and profile dropdown", async ({ pa
     });
   });
   await page.goto("/app");
-  await expect(page.getByTestId("shell-bell")).toBeDisabled();
+  await expect(page.getByTestId("shell-bell")).toHaveCount(0);
   const pill = page.getByTestId("balance-pill");
   await expect(pill).toHaveText("$12.50");
   await expect(pill).toHaveAttribute("data-field", "available");
@@ -606,12 +606,12 @@ test("user shell shows real available balance and profile dropdown", async ({ pa
   await expect(page.getByRole("main")).toContainText("ada@example.test");
   await expect(page.getByRole("button", { name: "修改密码", exact: true })).toBeVisible();
   await expect(page.getByLabel("所属渠道", { exact: true })).toHaveCount(0);
-  await page.goto("/app/profile");
-  await expect(page.getByRole("heading", { level: 1, name: "个人资料", exact: true })).toBeVisible();
-  await expect(page.getByTestId("profile-display-name")).toHaveText("Ada");
-  await expect(page.getByTestId("profile-email")).toHaveText("ada@example.test");
-  await expect(page.getByTestId("profile-login-methods").locator("[data-method=password]")).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存资料", exact: true })).toHaveCount(0);
+  await page.goto("/app/profile?source=legacy");
+  await expect(page).toHaveURL(/\/app\/settings\?source=legacy$/);
+  await expect(page.getByRole("heading", { level: 1, name: "账户", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "显示名", exact: true })).toHaveValue("Ada");
+  await expect(page.getByRole("main")).toContainText("ada@example.test");
+  await expect(page.getByRole("button", { name: "修改密码", exact: true })).toBeVisible();
 });
 
 test("user shell balance failure is — never fake $0.00", async ({ page }) => {

@@ -112,6 +112,8 @@ test("channel and OEM workspaces expose only their actual financial responsibili
   await mockViewer(page, { roles: ["channel_admin"], channelType: "C" });
   await page.goto("/channel");
   const oemNav = page.getByRole("navigation", { name: "OEM 管理控制台", exact: true });
+  await expect(oemNav.locator('a[href="/channel/payments"]')).not.toBeVisible();
+  await oemNav.getByRole("button", { name: "资金与结算", exact: true }).click();
   await expect(oemNav.locator('a[href="/channel/payments"]')).toBeVisible();
   await expect(oemNav.locator('a[href="/channel/ledger"]')).toBeVisible();
   await oemNav.locator('a[href="/channel/payments"]').click();

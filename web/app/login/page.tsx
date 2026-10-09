@@ -47,6 +47,8 @@ function LoginForm() {
   );
   const search = useSearchParams();
   const [message, setMessage] = useState("");
+  const [hydrated,setHydrated]=useState(false);
+  useEffect(()=>setHydrated(true),[]);
   const [errorBanner, setErrorBanner] = useState("");
   const invitation = authIntent(search).promotionCode;
   const [mode, setMode] = useState<"login" | "register">(invitation ? "register" : "login");
@@ -223,7 +225,8 @@ function LoginForm() {
         </>}
 
         <Form {...form}>
-          <form className="mt-7 flex w-full flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+          <form method="post" className="mt-7 flex w-full flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+            <fieldset disabled={!hydrated} className="contents">
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "register" ? (
@@ -232,7 +235,7 @@ function LoginForm() {
             <Button
               type="submit"
               className="mt-1 w-full"
-              disabled={form.formState.isSubmitting}
+              disabled={!hydrated || form.formState.isSubmitting}
             >
               {mode === "login" ? (
                 <>
@@ -264,6 +267,7 @@ function LoginForm() {
                 </>
               )}
             </p>
+            </fieldset>
           </form>
         </Form>
         <div className="mt-8 border-t border-hairline pt-5">

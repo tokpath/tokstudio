@@ -103,14 +103,13 @@ func (d wechatDriver) ParseWebhook(_ context.Context, in WebhookRequest) (*Webho
 		sig,
 		in.Body,
 	)
-	status, orderID, tradeID, eventID := wechatEventStatus(outer, inner)
-	if eventID == "" {
+	ev := wechatWebhookEvent(outer, inner)
+	if ev.ExternalEventID == "" {
 		return nil, ErrInvalidEvent
 	}
-	return &WebhookEvent{
-		ExternalEventID: eventID, OrderID: orderID, Status: status, TradeID: tradeID,
-		MerchantID: asString(inner["mchid"]), SignatureValid: valid,
-	}, nil
+	ev.MerchantID = asString(inner["mchid"])
+	ev.SignatureValid = valid
+	return ev, nil
 }
 
 func (d wechatDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryResult, error) {

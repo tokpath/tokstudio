@@ -2850,7 +2850,16 @@
     "retryRefund": "元の返金を確認",
     "refundPendingHint": "決済機関は返金完了をまだ確認していません。元の注文と返金IDで照会・再試行し、新しい返金を作成しません。",
     "originalRefunded": "元の操作は登録済みで、注文 {id} は返金済みです。残高は再付与していません。",
-    "originalRefunding": "元の操作は登録済みで、注文 {id} は返金処理中です。残高は再付与していません。"
+    "originalRefunding": "元の操作は登録済みで、注文 {id} は返金処理中です。残高は再付与していません。",
+    "refund_failed": "返金失敗",
+    "refund_partial": "一部返金を確認",
+    "refund_review": "返金額の確認が必要",
+    "refundState": "決済側の返金状態",
+    "actualRefund": "確認済み返金額",
+    "refundReviewHint": "決済側の返金と内部会計の照合が必要です。新しい返金や入金を行う前に、元の注文と通知を確認してください。",
+    "receivedEvent": "通知を受信",
+    "appliedEvent": "内部処理完了",
+    "applicationPending": "内部処理の復旧待ち"
   },
   "walletOperation": {
     "resume": "進行中のチャージがあります。元の操作を再開するか結果を確認してください。",

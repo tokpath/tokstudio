@@ -24,10 +24,13 @@ type OrderAllocation struct {
 	Status           string `json:"status"`
 }
 type OrderEvent struct {
-	ID             string    `json:"id"`
-	Adapter        string    `json:"adapter"`
-	SignatureValid bool      `json:"signature_valid"`
-	ProcessedAt    time.Time `json:"processed_at"`
+	Status          string     `json:"status,omitempty"`
+	AppliedAt       *time.Time `json:"applied_at,omitempty"`
+	ProcessingError string     `json:"processing_error,omitempty"`
+	ID              string     `json:"id"`
+	Adapter         string     `json:"adapter"`
+	SignatureValid  bool       `json:"signature_valid"`
+	ProcessedAt     time.Time  `json:"processed_at"`
 }
 
 func (s *Service) OrderFacts(ctx context.Context, orderID, ownerID string) (*OrderFinancialFacts, error) {
@@ -51,7 +54,7 @@ func (s *Service) OrderFacts(ctx context.Context, orderID, ownerID string) (*Ord
 		}
 		view.SubscriptionStatus = sub.Status
 	}
-	if err := s.db.WithContext(ctx).Table("payment_events").Select("id,adapter,signature_valid,processed_at").Where("order_id = ?", orderID).Order("processed_at,id").Scan(&view.Events).Error; err != nil {
+	if err := s.db.WithContext(ctx).Table("payment_events").Select("id,adapter,signature_valid,processed_at,status,applied_at,processing_error").Where("order_id = ?", orderID).Order("processed_at,id").Scan(&view.Events).Error; err != nil {
 		return nil, err
 	}
 	return view, nil
@@ -76,6 +79,10 @@ func (s *Service) PreviewRefund(ctx context.Context, orderID, ownerID string) (*
 		return nil, ErrNotFound
 	}
 	view := &RefundPreview{Order: order, Subscription: order.Purpose == PurposeSubscription}
+	if order.RefundStatus != "" {
+		view.BlockedReason = "refund_review"
+		return view, nil
+	}
 	if order.Status != StatusPaid {
 		view.BlockedReason = "order_status"
 		return view, nil
@@ -99,7 +106,7 @@ func (s *Service) PreviewRefund(ctx context.Context, orderID, ownerID string) (*
 			}
 		case PurposeSubscription:
 			if row.ReferenceID != nil && s.plans != nil {
-				if err := s.plans.ReverseSourceTx(tx, *row.ReferenceID); err != nil {
+				if err := s.plans.RefundSubscriptionTx(tx, *row.ReferenceID); err != nil {
 					return err
 				}
 			}

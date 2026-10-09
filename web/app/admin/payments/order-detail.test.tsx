@@ -16,3 +16,7 @@ it("refund confirmation loads actual cash and credit impacts before allowing the
 it("a failed preview cannot open a refund confirmation or show zero as an impact",async()=>{
  const fetcher=vi.fn(async(url)=>({ok:!String(url).endsWith("refund-preview"),json:async()=>String(url).endsWith("refund-preview")?{error:{message:"账务暂不可读"}}:detail}));vi.stubGlobal("fetch",fetcher);page();fireEvent.click(await screen.findByRole("button",{name:"登记线下退款"}));await screen.findByText("账务暂不可读");expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+it.each(["refund_failed","refund_partial","refund_review","refunded","refunding"])("keeps %s provider refund facts visible without offering another refund",async(state)=>{
+ const fetcher=vi.fn(async()=>({ok:true,json:async()=>({...detail,item:{...detail.item,order:{...order,refund_status:state,refund_amount_minor:2000},events:[{id:"ev1",adapter:"stripe",signature_valid:true,processed_at:"2026-10-10",status:state,processing_error:"local_application_failed"}]}})}));vi.stubGlobal("fetch",fetcher);page();await screen.findByText(/退款回报与本地账务需要核对/);expect(screen.queryByRole("button",{name:"登记线下退款"})).toBeNull();expect(screen.queryByRole("button",{name:"重试原退款"})).toBeNull();expect(await screen.findByText(/本地处理待恢复/)).toBeTruthy();
+});

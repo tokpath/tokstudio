@@ -117,30 +117,34 @@ func wechatDecryptResource(apiV3Key, ciphertext, nonce, associatedData string) (
 	return plain, nil
 }
 
-func wechatEventStatus(outer, inner map[string]any) (status, orderID, tradeID, eventID string) {
-	eventID = asString(outer["id"])
-	orderID = asString(inner["out_trade_no"])
-	tradeID = asString(inner["transaction_id"])
-	if tradeID == "" {
-		tradeID = asString(inner["refund_id"])
-	}
-	st := asString(inner["trade_state"])
-	if st == "" {
-		st = asString(inner["refund_status"])
-	}
+func wechatWebhookEvent(outer, inner map[string]any) *WebhookEvent {
+	ev := &WebhookEvent{ExternalEventID: asString(outer["id"]), OrderID: asString(inner["out_trade_no"]), TradeID: asString(inner["transaction_id"])}
 	typ := asString(outer["event_type"])
-	switch {
-	case st == "SUCCESS" || strings.Contains(typ, "TRANSACTION.SUCCESS"):
-		status = StatusPaid
-	case strings.Contains(st, "REFUND") || strings.Contains(typ, "REFUND"):
-		status = StatusRefunded
-	case st == "CLOSED" || st == "PAYERROR" || strings.Contains(typ, "FAIL"):
-		status = StatusFailed
+	if strings.HasPrefix(typ, "REFUND.") || asString(inner["refund_status"]) != "" {
+		ev.CheckRefundAmount = true
+		amount, _ := inner["amount"].(map[string]any)
+		ev.RefundAmountMinor = callbackAmount(amount["refund"])
+		ev.OriginalAmountMinor = callbackAmount(amount["total"])
+		ev.Currency = strings.ToUpper(asString(amount["currency"]))
+		switch asString(inner["refund_status"]) {
+		case "SUCCESS":
+			ev.Status = StatusRefunded
+		case "PROCESSING":
+			ev.Status = StatusRefunding
+		case "CLOSED", "ABNORMAL":
+			ev.Status = StatusRefundFailed
+		default:
+			ev.Status = StatusRefundReview
+		}
+	} else {
+		switch asString(inner["trade_state"]) {
+		case "SUCCESS":
+			ev.Status = StatusPaid
+		case "CLOSED", "PAYERROR":
+			ev.Status = StatusFailed
+		}
 	}
-	if eventID == "" {
-		eventID = tradeID
-	}
-	return status, orderID, tradeID, eventID
+	return ev
 }
 
 func wechatNotifyResource(body []byte) (outer map[string]any, resource map[string]any) {

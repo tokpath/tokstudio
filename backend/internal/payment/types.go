@@ -23,6 +23,7 @@ var (
 	ErrOnlineDisabled     = errors.New("channel online payments are disabled")
 	ErrNotTested          = errors.New("payment instance has not passed connectivity test")
 	ErrMethodUnavailable  = errors.New("payment method is not available for this channel")
+	ErrRefundNeedsReview  = errors.New("refund requires reconciliation")
 	ErrRefundDisabled     = errors.New("refunds are disabled for this instance")
 	ErrProviderFailed     = errors.New("payment provider request failed")
 )
@@ -37,12 +38,15 @@ const (
 	PurposeWallet       = "wallet"
 	PurposeRenewal      = "renewal"
 
-	StatusPending   = "pending"
-	StatusPaid      = "paid"
-	StatusFailed    = "failed"
-	StatusRefunded  = "refunded"
-	StatusRefunding = "refunding"
-	StatusExpired   = "expired"
+	StatusPending       = "pending"
+	StatusPaid          = "paid"
+	StatusFailed        = "failed"
+	StatusRefunded      = "refunded"
+	StatusRefunding     = "refunding"
+	StatusRefundFailed  = "refund_failed"
+	StatusRefundPartial = "refund_partial"
+	StatusRefundReview  = "refund_review"
+	StatusExpired       = "expired"
 
 	ModeSandbox = "sandbox"
 	ModeLive    = "live"
@@ -78,6 +82,8 @@ type ListOrdersFilter struct {
 }
 
 type OrderView struct {
+	RefundStatus      string     `json:"refund_status,omitempty"`
+	RefundAmountMinor *int64     `json:"refund_amount_minor,omitempty"`
 	ReceivedAt        *time.Time `json:"received_at,omitempty"`
 	ReceiptNote       string     `json:"receipt_note,omitempty"`
 	RefundedAt        *time.Time `json:"refunded_at,omitempty"`

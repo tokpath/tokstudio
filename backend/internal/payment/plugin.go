@@ -40,16 +40,16 @@ const (
 
 // AdapterSpec 是给渠道台/收银台用的静态描述，不含密钥。
 type AdapterSpec struct {
-	ID            string                `json:"id"`
-	DisplayName   string                `json:"display_name"`
-	Kind          AdapterKind           `json:"kind"`
-	PayCurrency   string                `json:"pay_currency"`
-	CheckoutMode  CheckoutMode          `json:"checkout_mode"`
-	BrandColor    string                `json:"brand_color,omitempty"`
-	AutoRenew     bool                  `json:"auto_renew_supported"`
-	UserFacing    bool                  `json:"user_facing"`
-	Credentials   []CredentialFieldView `json:"credentials"`
-	MerchantKeys  []string              `json:"merchant_keys,omitempty"`
+	ID           string                `json:"id"`
+	DisplayName  string                `json:"display_name"`
+	Kind         AdapterKind           `json:"kind"`
+	PayCurrency  string                `json:"pay_currency"`
+	CheckoutMode CheckoutMode          `json:"checkout_mode"`
+	BrandColor   string                `json:"brand_color,omitempty"`
+	AutoRenew    bool                  `json:"auto_renew_supported"`
+	UserFacing   bool                  `json:"user_facing"`
+	Credentials  []CredentialFieldView `json:"credentials"`
+	MerchantKeys []string              `json:"merchant_keys,omitempty"`
 }
 
 type TestInput struct {
@@ -86,12 +86,17 @@ type WebhookRequest struct {
 }
 
 type WebhookEvent struct {
-	ExternalEventID string
-	OrderID         string
-	Status          string
-	TradeID         string
-	MerchantID      string
-	SignatureValid  bool
+	// Official refund callbacks must match the original full cash amount before reversing credits.
+	RefundAmountMinor   *int64
+	OriginalAmountMinor *int64
+	Currency            string
+	CheckRefundAmount   bool
+	ExternalEventID     string
+	OrderID             string
+	Status              string
+	TradeID             string
+	MerchantID          string
+	SignatureValid      bool
 }
 
 type QueryRequest struct {

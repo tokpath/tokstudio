@@ -86,7 +86,9 @@ func TestOverhaulOfflineOperationsAndOrderFacts(t *testing.T) {
 		t.Fatalf("foreign order facts: %v", err)
 	}
 	var ledgerBefore, ledgerAfter int64
-	a.DB.Table("billing_ledger").Where("wallet_id IN (SELECT id FROM billing_wallets WHERE user_id = ?)", reg.User.ID).Count(&ledgerBefore)
+	if err := a.DB.Table("billing_ledger").Where("wallet_id IN (SELECT id FROM billing_wallets WHERE user_id = ?)", reg.User.ID).Count(&ledgerBefore).Error; err != nil {
+		t.Fatal(err)
+	}
 	preview, err := a.Payment.PreviewRefund(ctx, originalID, identity.OfficialChannelID)
 	if err != nil || !preview.CanRefund || preview.CreditReclaimMinor != input.CreditMinor {
 		t.Fatalf("refund preview %+v %v", preview, err)
@@ -95,7 +97,9 @@ func TestOverhaulOfflineOperationsAndOrderFacts(t *testing.T) {
 	if err != nil || unchanged.AvailableMinor != after.AvailableMinor {
 		t.Fatal("preview changed wallet")
 	}
-	a.DB.Table("billing_ledger").Where("wallet_id IN (SELECT id FROM billing_wallets WHERE user_id = ?)", reg.User.ID).Count(&ledgerAfter)
+	if err := a.DB.Table("billing_ledger").Where("wallet_id IN (SELECT id FROM billing_wallets WHERE user_id = ?)", reg.User.ID).Count(&ledgerAfter).Error; err != nil {
+		t.Fatal(err)
+	}
 	if ledgerBefore != ledgerAfter {
 		t.Fatal("preview wrote a ledger entry")
 	}

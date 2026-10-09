@@ -2850,7 +2850,16 @@
     "retryRefund": "核对原退款",
     "refundPendingHint": "支付机构尚未确认退款完成；核对或重试使用原订单及同一退款身份，不新建退款。",
     "originalRefunded": "原操作已登记，订单 {id} 现已退款；未再次发放额度。",
-    "originalRefunding": "原操作已登记，订单 {id} 现正处理退款；未再次发放额度。"
+    "originalRefunding": "原操作已登记，订单 {id} 现正处理退款；未再次发放额度。",
+    "refund_failed": "退款失败",
+    "refund_partial": "部分退款已发生",
+    "refund_review": "退款金额待核对",
+    "refundState": "退款回报",
+    "actualRefund": "已确认退回金额",
+    "refundReviewHint": "退款回报与本地账务需要核对。请先核查原订单与支付回调，不要再次发起新退款或入账。",
+    "receivedEvent": "已收到回调",
+    "appliedEvent": "本地处理完成",
+    "applicationPending": "本地处理待恢复"
   },
   "walletOperation": {
     "resume": "已有一笔充值操作，请先继续原操作或确认结果。",

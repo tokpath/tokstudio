@@ -89,14 +89,12 @@ func (d stripeDriver) ParseWebhook(_ context.Context, in WebhookRequest) (*Webho
 		if payload == nil {
 			return nil, ErrInvalidEvent
 		}
-		status, orderID, tradeID, eventID := stripeEventStatus(payload)
-		if eventID == "" {
+		ev := stripeWebhookEvent(payload)
+		if ev.ExternalEventID == "" {
 			return nil, ErrInvalidEvent
 		}
-		return &WebhookEvent{
-			ExternalEventID: eventID, OrderID: orderID, Status: status, TradeID: tradeID,
-			SignatureValid: valid,
-		}, nil
+		ev.SignatureValid = valid
+		return ev, nil
 	}
 	return d.sandboxDriver.ParseWebhook(context.Background(), in)
 }
@@ -169,6 +167,7 @@ func (d stripeDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResu
 	}
 	form := url.Values{}
 	form.Set("payment_intent", in.Order.TradeID)
+	form.Set("metadata[order_id]", in.Order.ID)
 	raw, code, err := stripeDoKeyed(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/refunds", form, "refund:"+in.Order.ID)
 	if err != nil || code >= 300 {
 		return nil, ErrProviderFailed

@@ -95,24 +95,65 @@ func verifyStripeSignature(secret, header string, body []byte) bool {
 	return false
 }
 
-func stripeEventStatus(payload map[string]any) (status, orderID, tradeID, eventID string) {
-	eventID = asString(payload["id"])
+func stripeWebhookEvent(payload map[string]any) *WebhookEvent {
+	ev := &WebhookEvent{ExternalEventID: asString(payload["id"])}
 	typ := asString(payload["type"])
 	data, _ := payload["data"].(map[string]any)
 	obj, _ := data["object"].(map[string]any)
-	tradeID = asString(obj["id"])
+	ev.TradeID = asString(obj["id"])
 	if meta, ok := obj["metadata"].(map[string]any); ok {
-		orderID = asString(meta["order_id"])
+		ev.OrderID = asString(meta["order_id"])
 	}
-	switch {
-	case strings.HasPrefix(typ, "payment_intent.succeeded"), typ == "checkout.session.completed", typ == "charge.succeeded":
-		status = StatusPaid
-	case strings.Contains(typ, "failed"):
-		status = StatusFailed
-	case strings.Contains(typ, "refund"):
-		status = StatusRefunded
+	switch typ {
+	case "payment_intent.succeeded", "charge.succeeded":
+		ev.Status = StatusPaid
+	case "checkout.session.completed", "checkout.session.async_payment_succeeded":
+		if asString(obj["payment_status"]) == "paid" {
+			ev.Status = StatusPaid
+		}
+		if ev.OrderID == "" {
+			ev.OrderID = asString(obj["client_reference_id"])
+		}
+		ev.TradeID = stripeObjectID(obj["payment_intent"])
+	case "payment_intent.payment_failed", "checkout.session.async_payment_failed", "charge.failed":
+		ev.Status = StatusFailed
+	case "refund.created", "refund.updated", "refund.failed", "charge.refund.updated":
+		ev.CheckRefundAmount = true
+		ev.TradeID = stripeObjectID(obj["payment_intent"])
+		ev.RefundAmountMinor = callbackAmount(obj["amount"])
+		ev.Currency = strings.ToUpper(asString(obj["currency"]))
+		switch asString(obj["status"]) {
+		case "succeeded":
+			ev.Status = StatusRefunded
+		case "pending", "requires_action":
+			ev.Status = StatusRefunding
+		case "failed", "canceled":
+			ev.Status = StatusRefundFailed
+		default:
+			ev.Status = StatusRefundReview
+		}
+	case "charge.refunded":
+		ev.CheckRefundAmount = true
+		ev.TradeID = stripeObjectID(obj["payment_intent"])
+		ev.OriginalAmountMinor = callbackAmount(obj["amount"])
+		ev.RefundAmountMinor = callbackAmount(obj["amount_refunded"])
+		ev.Currency = strings.ToUpper(asString(obj["currency"]))
+		ev.Status = StatusRefundPartial
+		if obj["refunded"] == true && ev.OriginalAmountMinor != nil && ev.RefundAmountMinor != nil && *ev.OriginalAmountMinor > 0 && *ev.RefundAmountMinor == *ev.OriginalAmountMinor {
+			ev.Status = StatusRefunded
+		}
 	}
-	return status, orderID, tradeID, eventID
+	if typ == "charge.succeeded" || typ == "charge.failed" {
+		ev.TradeID = stripeObjectID(obj["payment_intent"])
+	}
+	return ev
+}
+
+func stripeObjectID(value any) string {
+	if obj, ok := value.(map[string]any); ok {
+		return asString(obj["id"])
+	}
+	return asString(value)
 }
 
 func decodeJSONMap(raw []byte) map[string]any {

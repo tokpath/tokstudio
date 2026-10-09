@@ -80,6 +80,8 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 		httpx.Abort(c, http.StatusConflict, "insufficient_quota", "OEM 服务额度不足，划拨未完成", false)
 	case errors.Is(err, identity.ErrNotFound), errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInstanceNotFound):
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到支付配置或订单", false)
+	case errors.Is(err, payment.ErrRefundNeedsReview):
+		httpx.Abort(c, 409, "refund_needs_review", "退款回报需要核对，请检查原订单和支付回调", false)
 	case errors.Is(err, payment.ErrOrderNotPending):
 		httpx.Abort(c, http.StatusConflict, "order_status_conflict", "订单状态已变化，请刷新后核对；仅已支付订单可退款", false)
 	case errors.Is(err, billing.ErrInsufficientBalance):

@@ -1,6 +1,23 @@
 import { expect,test } from "@playwright/test";
 import { mockViewer } from "./mock-viewer";
 
+test("mobile navigation stays beneath its title and restores trigger focus after Escape",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await mockViewer(page,{roles:["platform_admin"]});
+ await page.goto("/admin");
+ const trigger=page.getByRole("button",{name:"打开导航",exact:true});
+ await trigger.click();
+ const drawer=page.getByRole("dialog");
+ await expect(drawer).toBeVisible();
+ const heading=await drawer.getByRole("heading").boundingBox();
+ const nav=await drawer.getByRole("navigation").boundingBox();
+ expect(heading).not.toBeNull();expect(nav).not.toBeNull();
+ expect(nav!.y-(heading!.y+heading!.height)).toBeLessThan(48);
+ await page.keyboard.press("Escape");
+ await expect(drawer).not.toBeVisible();
+ await expect(trigger).toBeFocused();
+});
+
 test("customer administration requires a deliberate reason and keeps failure inside review",async({page})=>{
  await mockViewer(page,{roles:["platform_admin"]});
  await page.route("**/api/admin/customers/alice",r=>r.fulfill({json:{item:{id:"alice",email:"alice@example.test",channel_org_id:"A",status:"active",created_at:"2026-10-10"},permissions:{manage:true},errors:{}}}));

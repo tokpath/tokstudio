@@ -2846,6 +2846,7 @@
     "refund_review": "退款金额待核对",
     "refundState": "退款回报",
     "actualRefund": "已确认退回金额",
+    "registeredRefundAmount": "已登记线下退款金额",
     "refundReviewHint": "退款回报与本地账务需要核对。请先核查原订单与支付回调，不要再次发起新退款或入账。",
     "receivedEvent": "已收到回调",
     "appliedEvent": "本地处理完成",

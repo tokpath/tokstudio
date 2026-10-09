@@ -2846,6 +2846,7 @@
     "refund_review": "返金額の確認が必要",
     "refundState": "決済側の返金状態",
     "actualRefund": "確認済み返金額",
+    "registeredRefundAmount": "登録済み店外返金額",
     "refundReviewHint": "決済側の返金と内部会計の照合が必要です。新しい返金や入金を行う前に、元の注文と通知を確認してください。",
     "receivedEvent": "通知を受信",
     "appliedEvent": "内部処理完了",

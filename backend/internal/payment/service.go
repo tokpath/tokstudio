@@ -701,6 +701,21 @@ func orderView(row orderRow) *OrderView {
 	if row.ProviderTradeID != nil {
 		view.TradeID = *row.ProviderTradeID
 	}
+	// Older manual refunds recorded the actor and actual time before storing
+	// refund amount/status. Manual refunds are full refunds of the original cash
+	// payment; project that registered fact without rewriting historical rows.
+	if row.Adapter == AdapterManual && row.Status == StatusRefunded && row.AmountMinor > 0 &&
+		row.RefundedAt != nil && !row.RefundedAt.IsZero() && strings.TrimSpace(row.RefundRecordedBy) != "" &&
+		(row.RefundStatus == "" || row.RefundStatus == StatusRefunded) &&
+		(row.RefundAmountMinor == nil || *row.RefundAmountMinor == row.AmountMinor) {
+		if view.RefundAmountMinor == nil {
+			amount := row.AmountMinor
+			view.RefundAmountMinor = &amount
+		}
+		if view.RefundStatus == "" {
+			view.RefundStatus = StatusRefunded
+		}
+	}
 	return view
 }
 

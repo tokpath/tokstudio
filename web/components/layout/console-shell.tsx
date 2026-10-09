@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -138,6 +138,7 @@ export function ConsoleShell({
   const tp = useTranslations("partnerNav");
   const tc = useTranslations("chrome");
   const [navOpen, setNavOpen] = useState(false);
+  const navTrigger = useRef<HTMLButtonElement>(null);
   const isAdmin = pathname.startsWith("/admin");
   const isUser = pathname.startsWith("/app") || pathname.startsWith("/console");
   const isChannel = pathname.startsWith("/channel");
@@ -174,6 +175,7 @@ export function ConsoleShell({
       <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
         <div className="flex h-16 min-w-0 items-center gap-2 px-3 md:gap-4 md:px-6">
           <Button
+            ref={navTrigger}
             type="button"
             variant="ghost"
             size="icon"
@@ -218,7 +220,8 @@ export function ConsoleShell({
       <Dialog open={navOpen} onOpenChange={setNavOpen}>
         <DialogContent
           id="console-nav-drawer"
-          className="left-0 top-0 h-dvh max-h-dvh w-[min(18rem,85vw)] max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none"
+          className="left-0 top-0 h-dvh max-h-dvh w-[min(18rem,85vw)] max-w-none translate-x-0 translate-y-0 content-start overflow-y-auto rounded-none"
+          onCloseAutoFocus={(event) => { event.preventDefault(); navTrigger.current?.focus(); }}
         >
           <DialogHeader className="text-left">
             <DialogTitle>{title}</DialogTitle>

@@ -2846,6 +2846,7 @@
     "refund_review": "Refund amount needs review",
     "refundState": "Provider refund status",
     "actualRefund": "Confirmed refunded amount",
+    "registeredRefundAmount": "Recorded offline refund amount",
     "refundReviewHint": "The provider refund and local accounting need review. Check this order and its callbacks before initiating another refund or credit.",
     "receivedEvent": "Callback received",
     "appliedEvent": "Local application complete",

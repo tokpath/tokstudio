@@ -579,8 +579,13 @@ test("channel OEM brand upload failure is grey 存储不可用", async ({ page }
   await expect(page.getByText("已上传")).toHaveCount(0);
 });
 
-test("channel reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {
-  await mockViewer(page, { roles: ["channel_admin"], channelType: "B" });
+test("channel OEM reconciliation page matches user structure and forbids estimate debit", async ({ page }) => {
+  await mockViewer(page, { roles: ["channel_admin"], channelType: "C" });
+  await page.route("**/api/admin/channels?**", (route) => route.fulfill({ json: { items: [
+    { id: "chn_oem_c", code: "oem-c", type: "C", parent_id: "chn_official_a" },
+    { id: "chn_oem_child", code: "oem-child", type: "B", parent_id: "chn_oem_c" },
+    { id: "chn_reseller_b", code: "reseller-b", type: "B", parent_id: "chn_official_a" },
+  ] } }));
   await page.route("**/channel/reconciliation**", async (route) => {
     // 页面 URL 与账本 API 同路径；只 stub fetch，别把 document/RSC 导航盖成 JSON。
     if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {
@@ -603,8 +608,12 @@ test("channel reconciliation page matches user structure and forbids estimate de
   await page.goto("/channel/reconciliation");
   await expect(page.getByRole("heading", { level: 1, name: "对账" })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "待对账", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "对账", exact: true })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "渠道控制台" }).getByRole("link", { name: "成本/毛利" })).toHaveCount(0);
+  const nav = page.getByRole("navigation", { name: "OEM 管理控制台", exact: true });
+  await expect(nav.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "成本/毛利" })).toBeVisible();
+  const scope = page.getByRole("combobox", { name: "渠道", exact: true });
+  await expect(scope).toHaveValue("chn_oem_c");
+  await expect(scope.locator("option")).toHaveText(["oem-c", "oem-child"]);
   const channelBuckets = page.getByLabel("三桶");
   await expect(channelBuckets.getByText("余额", { exact: true })).toBeVisible();
   await expect(channelBuckets.getByText("冻结", { exact: true })).toBeVisible();

@@ -23,10 +23,22 @@ test("finance admin sees ledger menus and not upstream keys", async ({ page }) =
   await page.goto("/admin/channels");
   await expect(page.getByRole("button", { name: "新建渠道" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "代理商" })).toHaveCount(0);
+  await page.route("**/api/admin/channels/chn_reseller_b", route => route.fulfill({ json: {
+    item: { id: "chn_reseller_b", code: "reseller-b", type: "B", status: "active", brand_id: "brd_a", parent_id: "chn_official_a" },
+  } }));
   await page.goto("/admin/channels/chn_reseller_b");
+  await expect(page.getByText("reseller-b · B 渠道", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "编辑" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "从平台目录授权" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "渠道额度" })).toHaveCount(0);
+  await page.route("**/api/admin/channels/chn_oem_c", route => route.fulfill({ json: {
+    item: { id: "chn_oem_c", code: "oem-c", type: "C", status: "active", brand_id: "brd_c", parent_id: "chn_official_a" },
+  } }));
+  await page.goto("/admin/channels/chn_oem_c");
   await expect(page.getByRole("heading", { name: "渠道额度" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "调整额度" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "编辑", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "渠道模型授权" })).toHaveCount(0);
 });
 
 test("tech admin sees account pool and not refunds", async ({ page }) => {

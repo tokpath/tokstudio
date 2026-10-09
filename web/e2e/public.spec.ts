@@ -149,16 +149,11 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(channelNav.getByRole("link", { name: "总览" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "本渠道用户" })).toBeVisible();
   await expect(channelNav.getByRole("link", { name: "本渠道 API Key" })).toBeVisible();
-  await expect(channelNav.getByRole("link", { name: "收款" })).toBeVisible();
-  await expect(channelNav.getByRole("link", { name: "进货" })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "收款" })).toHaveCount(0);
+  await expect(channelNav.getByRole("link", { name: "进货" })).toHaveCount(0);
   await expect(channelNav.getByRole("link", { name: "规则" })).toHaveCount(0);
-  await expect(channelNav.getByRole("link", { name: "对账", exact: true })).toBeVisible();
+  await expect(channelNav.getByRole("link", { name: "对账", exact: true })).toHaveCount(0);
   await expect(channelNav.getByRole("link", { name: "待对账", exact: true })).toHaveCount(0);
-  await channelNav.getByRole("link", { name: "收款" }).click();
-  await expect(page).toHaveURL(/\/channel\/payments/);
-  await expect(page.locator("h1")).toHaveText("收款");
-  await expect(page.getByRole("navigation", { name: "收款子导航" })).toBeVisible();
-  await page.goto("/channel");
   await channelNav.getByRole("link", { name: "本渠道用户" }).click();
   await expect(page).toHaveURL(/\/channel\/users/);
   await expect(page.locator("h1")).toHaveText("本渠道用户");
@@ -166,10 +161,25 @@ test("channel and partner consoles use grouped real routes", async ({ page }) =>
   await expect(page.locator("h1")).toHaveText("本渠道 API Key");
   await expect(page.getByText("暂无本渠道 API Key")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "重试" }).or(page.getByRole("link", { name: "重新登录" }))).toBeVisible();
-  await page.goto("/channel/ledger");
-  await expect(page.locator("h1")).toHaveText("进货与记账");
-  await page.goto("/channel/rules");
-  await expect(page.getByTestId("console-access")).toBeVisible();
+  for (const path of ["/channel/payments", "/channel/payments/lanes", "/channel/payments/rules", "/channel/ledger", "/channel/reconciliation", "/channel/rules"]) {
+    await page.goto(path);
+    await expect(page.getByTestId("console-access"), path).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "支付管理" }), path).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "线下收款划拨", exact: true }), path).toHaveCount(0);
+  }
+
+  await mockViewer(page, { roles: ["channel_admin"], channelType: "C" });
+  await page.goto("/channel");
+  const oemNav = page.getByRole("navigation", { name: "OEM 管理控制台", exact: true });
+  await oemNav.getByRole("link", { name: "支付", exact: true }).click();
+  await expect(page).toHaveURL(/\/channel\/payments$/);
+  await expect(page.getByRole("heading", { name: "支付", level: 1, exact: true })).toBeVisible();
+  const paymentsNav = page.getByRole("navigation", { name: "支付管理", exact: true });
+  await expect(paymentsNav.getByRole("link")).toHaveText(["支付订单", "支付通道", "收银台规则"]);
+  await expect(page.getByRole("button", { name: "线下收款划拨", exact: true })).toBeVisible();
+  await oemNav.getByRole("link", { name: "余额/充值", exact: true }).click();
+  await expect(page).toHaveURL(/\/channel\/ledger$/);
+  await expect(page.getByRole("heading", { name: "余额/充值", level: 1, exact: true })).toBeVisible();
 
   await mockViewer(page, { roles: ["end_user"], partner: true });
   await page.goto("/partner");

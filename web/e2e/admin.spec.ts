@@ -290,12 +290,19 @@ test("admin plan review and commission pages render", async ({ page }) => {
   await expect(page.getByText("只能授权平台已发布且路由已启用的模型", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "授权模型" })).toBeVisible();
   await expect(page.getByRole("link", { name: "模型" }).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "收款就绪" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收款就绪" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "渠道额度" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "渠道盈亏" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "供应商支出" })).toBeVisible();
   await expect(page.getByText("停用后冻结新消费")).toBeVisible();
   await page.getByRole("button", { name: "编辑" }).click();
   await expect(page.getByRole("button", { name: "保存渠道" })).toBeVisible();
+  await page.route("**/api/admin/channels/chn_oem_c", (route) => route.fulfill({ json: {
+    item: { id: "chn_oem_c", code: "oem-c", type: "C", status: "active", brand_id: "brd_c", parent_id: "chn_official_a" },
+  } }));
+  await page.goto("/admin/channels/chn_oem_c");
+  await expect(page.getByRole("heading", { name: "收款就绪" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "渠道额度" })).toBeVisible();
   await page.goto("/admin/partners/acr_b_agent");
   await expect(page.getByRole("heading", { name: "代理商详情" })).toBeVisible();
   await expect(page.getByText("不能自建提供商或模型")).toBeVisible();

@@ -1,0 +1,4 @@
+UPDATE billing_authorizations a SET api_key_id=j.api_key_id, public_model_id=j.public_model_id FROM media_jobs j WHERE a.request_id=j.request_id AND a.api_key_id IS NULL AND j.api_key_id IS NOT NULL;
+UPDATE billing_usage_events u SET api_key_id=j.api_key_id FROM media_jobs j WHERE u.request_id=j.request_id AND u.api_key_id IS NULL AND j.api_key_id IS NOT NULL;
+UPDATE billing_authorizations SET key_reserved_minor=amount_minor WHERE api_key_id IS NOT NULL AND key_reserved_minor=0 AND status IN ('reserved','pending_reconciliation');
+UPDATE identity_api_keys k SET budget_used_minor=COALESCE((SELECT sum(c.amount_minor) FROM billing_customer_charges c JOIN billing_usage_events u ON u.id=c.usage_event_id WHERE u.api_key_id=k.id AND c.status='committed'),0), budget_reserved_minor=COALESCE((SELECT sum(a.key_reserved_minor) FROM billing_authorizations a WHERE a.api_key_id=k.id AND a.status IN ('reserved','pending_reconciliation')),0);

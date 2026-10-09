@@ -125,6 +125,9 @@ type redeemRow struct {
 func (redeemRow) TableName() string { return "billing_redeem_codes" }
 
 type authRow struct {
+	PublicModelID       string    `gorm:"column:public_model_id"`
+	APIKeyID            *string   `gorm:"column:api_key_id"`
+	KeyReservedMinor    int64     `gorm:"column:key_reserved_minor"`
 	ID                  string    `gorm:"column:id;primaryKey"`
 	WalletID            string    `gorm:"column:wallet_id"`
 	UserID              string    `gorm:"column:user_id"`

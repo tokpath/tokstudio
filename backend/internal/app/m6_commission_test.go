@@ -387,7 +387,7 @@ func TestD82QuotaRatio(t *testing.T) {
 func postEchoUsage(t *testing.T, url, token, content string) map[string]any {
 	t.Helper()
 	payload := map[string]any{
-		"model":    catalog.EchoModelID,
+		"model": catalog.EchoModelID, "max_tokens": 32,
 		"messages": []map[string]string{{"role": "user", "content": content + strings.Repeat("x", 48)}},
 	}
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))

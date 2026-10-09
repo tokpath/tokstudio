@@ -152,12 +152,19 @@ func (a RemoteAdapter) createArk(ctx context.Context, in SubmitInput) (SubmitRes
 	}
 	raw, code, err := a.doJSON(ctx, http.MethodPost, "/contents/generations/tasks", body)
 	if err != nil {
-		return SubmitResult{}, err
+		return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
+	}
+	if code == 408 || code >= 500 {
+		return SubmitResult{}, fmt.Errorf("%w: upstream HTTP %d", ErrOutcomeUnknown, code)
 	}
 	if code >= 300 {
 		return SubmitResult{}, fmt.Errorf("ark create %d: %s", code, truncate(raw, 240))
 	}
-	return parseCreateResult(raw)
+	result, err := parseCreateResult(raw)
+	if err != nil {
+		return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
+	}
+	return result, nil
 }
 
 func (a RemoteAdapter) createOpenRouter(ctx context.Context, in SubmitInput) (SubmitResult, error) {
@@ -181,12 +188,19 @@ func (a RemoteAdapter) createOpenRouter(ctx context.Context, in SubmitInput) (Su
 	}
 	raw, code, err := a.doJSON(ctx, http.MethodPost, "/videos", body)
 	if err != nil {
-		return SubmitResult{}, err
+		return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
+	}
+	if code == 408 || code >= 500 {
+		return SubmitResult{}, fmt.Errorf("%w: upstream HTTP %d", ErrOutcomeUnknown, code)
 	}
 	if code >= 300 {
 		return SubmitResult{}, fmt.Errorf("openrouter create %d: %s", code, truncate(raw, 240))
 	}
-	return parseCreateResult(raw)
+	result, err := parseCreateResult(raw)
+	if err != nil {
+		return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
+	}
+	return result, nil
 }
 
 func (a RemoteAdapter) createImage(ctx context.Context, in SubmitInput) (SubmitResult, error) {
@@ -194,7 +208,10 @@ func (a RemoteAdapter) createImage(ctx context.Context, in SubmitInput) (SubmitR
 	body := map[string]any{"model": model, "prompt": in.Prompt, "n": 1}
 	raw, code, err := a.doJSON(ctx, http.MethodPost, "/images/generations", body)
 	if err != nil {
-		return SubmitResult{}, err
+		return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
+	}
+	if code == 408 || code >= 500 {
+		return SubmitResult{}, fmt.Errorf("%w: upstream HTTP %d", ErrOutcomeUnknown, code)
 	}
 	if code >= 300 {
 		return SubmitResult{}, fmt.Errorf("%s image %d: %s", a.NameValue, code, truncate(raw, 240))
@@ -223,7 +240,7 @@ func (a RemoteAdapter) createImage(ctx context.Context, in SubmitInput) (SubmitR
 	if b64 != "" {
 		decoded, err := base64.StdEncoding.DecodeString(b64)
 		if err != nil {
-			return SubmitResult{}, err
+			return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
 		}
 		result.Content = decoded
 		return result, nil
@@ -231,7 +248,7 @@ func (a RemoteAdapter) createImage(ctx context.Context, in SubmitInput) (SubmitR
 	if fileURL != "" {
 		body, ctype, err := a.getBytes(ctx, fileURL)
 		if err != nil {
-			return SubmitResult{}, err
+			return SubmitResult{}, fmt.Errorf("%w: %v", ErrOutcomeUnknown, err)
 		}
 		result.Content = body
 		if ctype != "" {
@@ -239,7 +256,7 @@ func (a RemoteAdapter) createImage(ctx context.Context, in SubmitInput) (SubmitR
 		}
 		return result, nil
 	}
-	return SubmitResult{}, fmt.Errorf("%s image missing output", a.NameValue)
+	return SubmitResult{}, fmt.Errorf("%w: image missing output", ErrOutcomeUnknown)
 }
 
 func parseCreateResult(raw []byte) (SubmitResult, error) {

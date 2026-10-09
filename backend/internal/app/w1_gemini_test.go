@@ -26,7 +26,7 @@ func TestW1GeminiWithoutKeyIsUnavailable(t *testing.T) {
 	}
 
 	// 只钉住种子 gemini：共享库上可能残留测试挂上的 active backup，否则会先 503 再回落到 harness echo。
-	code, body := doJSON(t, http.MethodPost, fx.server.URL+"/v1/chat/completions?provider.only="+catalog.GeminiProvider, fx.apiKey, true, map[string]any{
+	code, body := doDiagnosticJSON(t, http.MethodPost, fx.server.URL+"/v1/chat/completions?provider.only="+catalog.GeminiProvider, fx.apiKey, map[string]any{
 		"model": catalog.GeminiModelID, "messages": []map[string]string{{"role": "user", "content": "w1-gemini-echo"}},
 	})
 	if code != http.StatusServiceUnavailable && code != http.StatusBadGateway && code != http.StatusOK {
@@ -46,7 +46,7 @@ func TestW1GeminiWithoutKeyIsUnavailable(t *testing.T) {
 		if requestID == "" {
 			t.Fatalf("expected failure without echo: %+v", body)
 		}
-		attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
+		attempts := getDiagnosticJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
 		items, _ := attempts["items"].([]any)
 		for _, item := range items {
 			atm := item.(map[string]any)
@@ -111,7 +111,7 @@ func TestW1GeminiCatalogCandidatesSingleLayerFallback(t *testing.T) {
 	if fb["provider"] == catalog.GeminiProvider {
 		t.Fatalf("429 must leave gemini via catalog fallback: %+v", fb)
 	}
-	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+fbID+"/attempts", fx.apiKey)
+	attempts := getDiagnosticJSON(t, fx.server.URL+"/v1/requests/"+fbID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)
 	if len(items) < 2 {
 		t.Fatalf("429 fallback must record sequential catalog attempts: %+v", attempts)
@@ -170,7 +170,7 @@ func TestW1GeminiLiveHitsRealUpstreamWhenKeyPresent(t *testing.T) {
 		t.Fatalf("live+Key must not echo: %+v", chat)
 	}
 
-	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
+	attempts := getDiagnosticJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)
 	if len(items) < 1 {
 		t.Fatalf("live need attempt: %+v", attempts)
@@ -223,6 +223,7 @@ func forceFailGeminiChat(t *testing.T, url, token, provider string) map[string]a
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Force-Fail", provider)
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -245,6 +246,7 @@ func omitGeminiChat(t *testing.T, base, key, content string) map[string]any {
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Omit-Usage", "1")
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

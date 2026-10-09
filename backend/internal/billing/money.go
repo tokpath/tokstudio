@@ -253,7 +253,7 @@ func (q Quote) Charge(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputSellRate}, tokenPart{usage["completion_tokens"], q.outputSellRate}, tokenPart{usage["reasoning_tokens"], q.reasoningSellRate})
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputSellRate}, tokenPart{billableVisibleCompletion(usage), q.outputSellRate}, tokenPart{usage["reasoning_tokens"], q.reasoningSellRate})
 	media := int64(usage["video_seconds"])*q.VideoSecondSell +
 		int64(usage["image_count"])*q.ImageCountSell +
 		int64(usage["audio_seconds"])*q.AudioSecondSell
@@ -261,12 +261,25 @@ func (q Quote) Charge(usage map[string]int, resolution string) int64 {
 	return amt
 }
 
+// New native facts mark reasoning already included in completion. Historical
+// unmarked facts retain their original separate-dimension interpretation.
+func billableVisibleCompletion(usage map[string]int) int {
+	n := usage["completion_tokens"]
+	if usage["completion_includes_reasoning"] == 1 {
+		n -= usage["reasoning_tokens"]
+		if n < 0 {
+			n = 0
+		}
+	}
+	return n
+}
+
 // WholesaleCharge 用价格快照里的批发价，而不是客户价打七折。
 func (q Quote) WholesaleCharge(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputWholesaleRate}, tokenPart{usage["completion_tokens"], q.outputWholesaleRate}, tokenPart{usage["reasoning_tokens"], q.outputWholesaleRate})
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputWholesaleRate}, tokenPart{billableVisibleCompletion(usage), q.outputWholesaleRate}, tokenPart{usage["reasoning_tokens"], q.outputWholesaleRate})
 	media := int64(usage["video_seconds"])*q.VideoSecondWholesale +
 		int64(usage["image_count"])*q.ImageCountWholesale +
 		int64(usage["audio_seconds"])*q.AudioSecondWholesale
@@ -278,7 +291,7 @@ func (q Quote) MediaCost(usage map[string]int, resolution string) int64 {
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputCostRate}, tokenPart{usage["completion_tokens"], q.outputCostRate}, tokenPart{usage["reasoning_tokens"], q.reasoningCostRate})
+	amt := tokenAmountMinor(tokenPart{usage["prompt_tokens"], q.inputCostRate}, tokenPart{billableVisibleCompletion(usage), q.outputCostRate}, tokenPart{usage["reasoning_tokens"], q.reasoningCostRate})
 	media := int64(usage["video_seconds"])*q.VideoSecondCost +
 		int64(usage["image_count"])*q.ImageCountCost +
 		int64(usage["audio_seconds"])*q.AudioSecondCost
@@ -317,4 +330,15 @@ func EstimateReserveMinor(q Quote, promptHint, maxTokens int) int64 {
 		buf = 100
 	}
 	return base + buf
+}
+
+// Both visible completion and separately reported reasoning are conservatively
+// reserved at their own rates. The adapter contract must cap each at maxOutput.
+func EstimateBoundedTextReserveMinor(q Quote, maxInput, maxOutput int) int64 {
+	base := q.Charge(map[string]int{"prompt_tokens": maxInput, "completion_tokens": maxOutput, "reasoning_tokens": maxOutput}, "")
+	buffer := base / 5
+	if buffer < 100 {
+		buffer = 100
+	}
+	return base + buffer
 }

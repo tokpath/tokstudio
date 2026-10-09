@@ -31,17 +31,14 @@ func TestDocsExamplesUseBrandAndPlaceholderKey(t *testing.T) {
 	if !strings.Contains(python, `os.environ["TOKENHUB_API_KEY"]`) || strings.Contains(python, "api_key='...'") {
 		t.Fatalf("python: %s", python)
 	}
-	if !strings.Contains(python, "pip install openai") || !strings.Contains(python, "python chat.py") {
+	if !strings.Contains(python, "仅标准库") || !strings.Contains(python, "python3 chat.py") {
 		t.Fatalf("python run comments: %s", python)
 	}
 	node, _ := examples["node"].(string)
-	if !strings.Contains(node, "process.env.TOKENHUB_API_KEY") || !strings.Contains(node, "async function main()") {
+	if !strings.Contains(node, "process.env.TOKENHUB_API_KEY") || !strings.Contains(node, "await fetch(") {
 		t.Fatalf("node: %s", node)
 	}
-	if strings.Contains(node, "\nawait ") {
-		t.Fatalf("top-level await is not valid CommonJS: %s", node)
-	}
-	if !strings.Contains(node, "npm install openai") || !strings.Contains(node, "node chat.cjs") {
+	if !strings.Contains(node, "node chat.mjs") {
 		t.Fatalf("node run comments: %s", node)
 	}
 	messages, _ := examples["messages"].(string)
@@ -93,7 +90,7 @@ func TestDocsCurlExpandsEnvAndPostsJSON(t *testing.T) {
 	if !strings.HasPrefix(got.ctype, "application/json") {
 		t.Fatalf("content-type %q", got.ctype)
 	}
-	if got.body != `{"model":"tokenhub/oem-demo","messages":[{"role":"user","content":"hi"}]}` {
+	if !strings.Contains(got.body, `"model":"tokenhub/oem-demo"`) || !strings.Contains(got.body, `"max_tokens":32`) {
 		t.Fatalf("body %q", got.body)
 	}
 }
@@ -138,42 +135,13 @@ func runDocsSDKExample(t *testing.T, kind string) {
 		if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		venv := filepath.Join(dir, "venv")
-		py := lookPath(t, "python3", "python")
-		if out, err := exec.Command(py, "-m", "venv", venv).CombinedOutput(); err != nil {
-			t.Fatalf("venv %v: %s", err, out)
-		}
-		pip := filepath.Join(venv, "bin", "pip")
-		if _, err := os.Stat(pip); err != nil {
-			pip = filepath.Join(venv, "Scripts", "pip.exe")
-		}
-		pipCmd := exec.Command(pip, "install", "openai")
-		pipCmd.Env = env
-		if out, err := pipCmd.CombinedOutput(); err != nil {
-			t.Fatalf("pip install openai %v: %s", err, out)
-		}
-		bin := filepath.Join(venv, "bin", "python")
-		if _, err := os.Stat(bin); err != nil {
-			bin = filepath.Join(venv, "Scripts", "python.exe")
-		}
-		cmd = exec.Command(bin, script)
+		cmd = exec.Command(lookPath(t, "python3", "python"), script)
 	case "node":
 		src, _ := examples["node"].(string)
 		src = strings.ReplaceAll(src, "https://api.oem.localhost", srv.URL)
-		script := filepath.Join(dir, "chat.cjs")
+		script := filepath.Join(dir, "chat.mjs")
 		if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
 			t.Fatal(err)
-		}
-		pkg := filepath.Join(dir, "package.json")
-		if err := os.WriteFile(pkg, []byte(`{"private":true}`), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		npm := lookPath(t, "npm")
-		install := exec.Command(npm, "install", "openai")
-		install.Dir = dir
-		install.Env = env
-		if out, err := install.CombinedOutput(); err != nil {
-			t.Fatalf("npm install openai %v: %s", err, out)
 		}
 		cmd = exec.Command(lookPath(t, "node"), script)
 		cmd.Dir = dir
@@ -248,7 +216,7 @@ func TestDocsAPIBaseUsesLocalListenerAndPreservesPublicBrand(t *testing.T) {
 			if base != tc.want {
 				t.Fatalf("got %q, want %q", base, tc.want)
 			}
-			for _, language := range []string{"curl", "python", "node", "messages", "video"} {
+			for _, language := range []string{"curl", "python", "node", "messages"} {
 				if !strings.Contains(docsExamples(base, "test/model")[language].(string), tc.want+"/v1") {
 					t.Fatalf("%s example does not use configured public endpoint", language)
 				}

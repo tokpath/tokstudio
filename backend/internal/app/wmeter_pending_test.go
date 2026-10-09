@@ -263,6 +263,7 @@ func omitChat(t *testing.T, base, key, content string) map[string]any {
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Omit-Usage", "1")
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

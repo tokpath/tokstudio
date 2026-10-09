@@ -620,10 +620,16 @@ func (a *App) publicModels(c *gin.Context) {
 		Kind:   c.Query("kind"),
 		Q:      c.Query("q"),
 		ID:     c.Query("id"),
-		Limit:  catalog.ParseLimit(c.Query("limit")),
+		Limit:  0,
 	})
+	items := page.Items
+	next := ""
+	if limit := catalog.ParseLimit(c.Query("limit")); limit > 0 {
+		items, next = httpx.Paginate(items, limit, c.Query("cursor"), func(item catalog.ModelView) string { return item.ID })
+	}
 	httpx.OK(c, gin.H{
-		"items": publicModelCards(page.Items), "total": page.Total, "facets": page.Facets,
+		"next_cursor": next,
+		"items":       publicModelCards(items), "total": page.Total, "facets": page.Facets,
 		"brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -658,18 +664,33 @@ func (a *App) docsContext(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
 		return
 	}
-	models, _ := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	models, err := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	if err != nil {
+		httpx.Abort(c, http.StatusServiceUnavailable, "catalog_unavailable", "模型说明暂不可用", true)
+		return
+	}
 	ids := make([]string, 0, len(models))
 	for _, model := range models {
 		ids = append(ids, model.ID)
+	}
+	examples := gin.H{}
+	endpoints := []string{}
+	wanted := c.Query("model")
+	for _, model := range models {
+		if model.ID == wanted {
+			for _, path := range docsEndpointList(model.Capabilities) {
+				endpoints = append(endpoints, path)
+			}
+			examples = docsExamplesFor(docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL), wanted, endpoints)
+		}
 	}
 	httpx.OK(c, gin.H{
 		"brand":        brand,
 		"models":       ids,
 		"api_base_url": docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL),
-		"examples":     docsExamples(docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL), firstModel(ids)),
-		"notes":        docsNotes(),
-		"request_id":   c.GetString(httpx.ContextRequestID),
+		"examples":     examples, "supported_endpoints": endpoints, "model": wanted,
+		"notes":      docsNotes(),
+		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 

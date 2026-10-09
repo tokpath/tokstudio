@@ -51,23 +51,23 @@ describe("modelEntry", () => {
 });
 
 describe("useModelHref", () => {
-  it("routes chat image video and docs separately", () => {
-    expect(useModelHref({ id: "tokenhub/echo-1", kind: "text" })).toBe("/app/playground?model=tokenhub%2Fecho-1");
+  it("keeps every model on its instructions entry before optional billable calls", () => {
+    expect(useModelHref({ id: "tokenhub/echo-1", kind: "text" })).toBe("/app/docs?model=tokenhub%2Fecho-1&tab=agent");
     expect(useModelHref({ id: "bytedance/seedream", kind: "image" })).toBe(
-      "/app/media?model=bytedance%2Fseedream&kind=image",
+      "/app/docs?model=bytedance%2Fseedream&tab=protocol",
     );
     expect(useModelHref({ id: "bytedance/seedance", kind: "video" })).toBe(
-      "/app/media?model=bytedance%2Fseedance&kind=video",
+      "/app/docs?model=bytedance%2Fseedance&tab=protocol",
     );
     expect(useModelHref({ id: "openai/text-embedding-3", kind: "embedding" })).toBe(
-      "/app/docs?model=openai%2Ftext-embedding-3",
+      "/app/docs?model=openai%2Ftext-embedding-3&tab=protocol",
     );
   });
 });
 
 describe("exampleCurl", () => {
   it("points embeddings at /v1/embeddings instead of chat", () => {
-    const path = examplePath({ kind: "embedding", id: "openai/text-embedding-3" });
+    const path = examplePath({kind:"embedding",id:"openai/text-embedding-3",capabilities:{supported_endpoints:["/v1/embeddings"]}});
     expect(path).toBe("/v1/embeddings");
     expect(exampleCurl("openai/text-embedding-3", path, "api.test")).toContain("/v1/embeddings");
     expect(exampleCurl("openai/text-embedding-3", path, "api.test")).toContain('"model":"openai/text-embedding-3"');
@@ -85,7 +85,7 @@ describe("exampleCurl", () => {
     expect(captured.auth).not.toContain("$TOKENHUB_API_KEY");
     expect(captured.contentType).toMatch(/application\/json/);
     expect(JSON.parse(captured.body)).toEqual({
-      model: "google/gemini-flash",
+      model: "google/gemini-flash",max_tokens:32,
       messages: [{ role: "user", content: "hi" }],
     });
   });
@@ -95,7 +95,7 @@ describe("exampleCurl", () => {
     expect(responses.method).toBe("POST");
     expect(responses.url).toBe("/v1/responses");
     expect(responses.auth).toBe(`Bearer ${virtualKey}`);
-    expect(JSON.parse(responses.body)).toEqual({ model: "openai/gpt", input: "hi" });
+    expect(JSON.parse(responses.body)).toEqual({ model: "openai/gpt",max_output_tokens:32, input: "hi" });
 
     const messages = await captureExampleCurl(exampleCurl("anthropic/claude", "/v1/messages", "api.test"), "api.test");
     expect(messages.url).toBe("/v1/messages");

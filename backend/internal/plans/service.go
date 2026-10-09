@@ -674,6 +674,25 @@ func (s *Service) consume(ctx context.Context, userID, requestID, unit string, a
 	}
 	var took int64
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var err error
+		took, err = s.consumeTx(tx, userID, requestID, unit, amount)
+		return err
+	})
+	return took, err
+}
+
+// ConsumeUSDTx binds entitlement coverage to the same atomic authorization as
+// the Key budget and wallet, so a failed reserve never reverses another request.
+func (s *Service) ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error) {
+	return s.consumeTx(tx, userID, requestID, UnitUSDCredit, amount)
+}
+
+func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount int64) (int64, error) {
+	if amount <= 0 {
+		return 0, nil
+	}
+	var took int64
+	err := func() error {
 		if requestID != "" {
 			net, err := netConsumedTx(tx, requestID)
 			if err != nil {
@@ -720,7 +739,7 @@ func (s *Service) consume(ctx context.Context, userID, requestID, unit string, a
 			took += use
 		}
 		return nil
-	})
+	}()
 	return took, err
 }
 
@@ -751,7 +770,16 @@ func (s *Service) ReverseKeep(ctx context.Context, requestID string, keep int64)
 	if keep < 0 {
 		keep = 0
 	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return s.ReverseKeepTx(tx, requestID, keep) })
+}
+func (s *Service) ReverseKeepTx(tx *gorm.DB, requestID string, keep int64) error {
+	if requestID == "" {
+		return nil
+	}
+	if keep < 0 {
+		keep = 0
+	}
+	return func() error {
 		net, err := netConsumedTx(tx, requestID)
 		if err != nil {
 			return err
@@ -761,7 +789,7 @@ func (s *Service) ReverseKeep(ctx context.Context, requestID string, keep int64)
 			return nil
 		}
 		return reverseAmountTx(tx, requestID, need)
-	})
+	}()
 }
 
 func netConsumedTx(tx *gorm.DB, requestID string) (int64, error) {

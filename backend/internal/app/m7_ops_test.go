@@ -126,12 +126,12 @@ func TestM7OpsHardening(t *testing.T) {
 		"success_rate_min": 0.5, "min_requests": 5, "pending_count": 1,
 	})
 	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "timeout"})
-	timed := postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+	status, timed := doJSON(t, "POST", server.URL+"/v1/chat/completions", key, true, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "timeout-probe"}},
 	})
 	_ = patchJSONRaw(t, server.URL+"/admin/providers/prd_echo_primary", "m7_admin", map[string]any{"test_behavior": "ok"})
-	if timed["provider"] != catalog.BackupProvider {
-		t.Fatalf("timeout should fallback: %+v", timed)
+	if status != 504 || timed["error"].(map[string]any)["code"] != "request_outcome_unknown" {
+		t.Fatalf("timeout should remain unknown with its original reserve: %d %+v", status, timed)
 	}
 	afterTO := getAuthJSON(t, server.URL+"/admin/ops/dashboard", "m7_admin")["dashboard"].(map[string]any)["totals"].(map[string]any)
 	if asInt(afterTO["timeouts"]) < 1 {
@@ -166,7 +166,7 @@ func TestM7OpsHardening(t *testing.T) {
 	}
 
 	_ = postJSONRaw(t, server.URL+"/admin/ops/circuit/prd_echo_primary", "m7_admin", map[string]any{"action": "trip"})
-	afterTrip := postJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
+	afterTrip := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "after-trip"}},
 	})
 	if afterTrip["provider"] != catalog.BackupProvider {
@@ -647,7 +647,7 @@ func TestM7OpsHardening(t *testing.T) {
 	_ = patchJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/accounts/"+coolID, tech, map[string]any{
 		"cooldown_seconds": 120,
 	})
-	if code := postStatusHeader(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
+	if code := postDiagnosticStatus(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "cool"}},
 	}, nil); code != http.StatusServiceUnavailable {
 		t.Fatalf("cooldown-only pool should 503, got %d", code)
@@ -655,7 +655,7 @@ func TestM7OpsHardening(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/providers/"+poolID+"/accounts", tech, map[string]any{
 		"secret": "sk-hot", "label": "hot",
 	})
-	viaPool := postJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
+	viaPool := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+poolSlug, key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hot"}},
 	})
 	if viaPool["provider"] != poolSlug {
@@ -733,7 +733,7 @@ func TestM7OpsHardening(t *testing.T) {
 	_ = postJSONRaw(t, server.URL+"/admin/models/attach", tech, map[string]any{
 		"public_id": catalog.EchoModelID, "provider_id": prdID, "upstream_model_id": "echo-upstream",
 	})
-	viaBifrost := postJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+slug, key, map[string]any{
+	viaBifrost := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions?provider.only="+slug, key, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "sidecar"}},
 	})
 	content, _ := firstContentOf(viaBifrost)
@@ -954,6 +954,7 @@ func doChatHeader(t *testing.T, url, token string, payload map[string]any, heade
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

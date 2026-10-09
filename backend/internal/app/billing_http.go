@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -52,6 +54,9 @@ func (a *App) registerBillingRoutes(r *gin.Engine) {
 
 func (a *App) requireUserOrKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if a.rejectPublicControls(c) {
+			return
+		}
 		principal, err := a.Identity.Authenticate(c.Request.Context(), a.tokenFromRequest(c))
 		if err != nil {
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "身份校验失败", true)
@@ -69,6 +74,13 @@ func (a *App) requireUserOrKey() gin.HandlerFunc {
 		token := a.tokenFromRequest(c)
 		key, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), trimBearer(token))
 		if err != nil {
+			if errors.Is(err, identity.ErrKeyExpired) {
+				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，请延长有效期", false)
+				return
+			}
+			if abortKeyBudget(c, err) {
+				return
+			}
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "API Key 校验失败", true)
 			return
 		}
@@ -82,7 +94,15 @@ func (a *App) requireUserOrKey() gin.HandlerFunc {
 		}
 		c.Set("principal", &key.Principal)
 		c.Set("api_key", key)
+		if !a.enforceAPIKeyLimits(c, key.APIKeyID, key.RPMLimit, key.ConcurrencyLimit) {
+			return
+		}
 		c.Next()
+		if release, ok := c.Get("release_conc"); ok {
+			if fn, ok := release.(func()); ok {
+				fn()
+			}
+		}
 	}
 }
 
@@ -255,10 +275,6 @@ func (a *App) getUsage(c *gin.Context) {
 		Since:         since,
 		Until:         until,
 	}
-	if a.currentPrincipal(c) != nil && a.currentPrincipal(c).HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly") && c.Query("all") == "1" {
-		in.UserID = ""
-		in.ChannelOrgID = strings.TrimSpace(c.Query("channel_id"))
-	}
 	if k := a.currentAPIKey(c); k != nil {
 		in.UserID = k.UserID
 		in.APIKeyID = k.APIKeyID
@@ -277,7 +293,7 @@ func (a *App) getUsage(c *gin.Context) {
 	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", in.UserID, in.ChannelOrgID)
 	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", in.UserID, in.ChannelOrgID)
 	httpx.OK(c, gin.H{
-		"items": items, "keys": keys, "models": models,
+		"items": publicUsageItems(items), "keys": publicUsageDimensions(keys), "models": publicUsageDimensions(models),
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -728,4 +744,27 @@ func (a *App) previewChargeRefund(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"item": item, "user": users[item.UserID]})
+}
+
+func publicUsageItems(items []billing.UsageView) []gin.H {
+	result := make([]gin.H, 0, len(items))
+	for _, item := range items {
+		var prices map[string]json.RawMessage
+		_ = json.Unmarshal(item.UnitPrices, &prices)
+		for field := range prices {
+			if strings.HasPrefix(field, "upstream") || strings.HasPrefix(field, "wholesale") || strings.HasSuffix(field, "_cost") {
+				delete(prices, field)
+			}
+		}
+		result = append(result, gin.H{"id": item.ID, "request_id": item.RequestID, "api_key_id": item.APIKeyID, "public_model_id": item.PublicModelID, "prompt_tokens": item.PromptTokens, "completion_tokens": item.CompletionTokens, "reasoning_tokens": item.ReasoningTokens, "unit_usage": item.UnitUsage, "unit_prices": prices, "price_version_id": item.PriceVersionID, "customer_amount_minor": item.CustomerMinor, "state": item.State, "occurred_at": item.OccurredAt, "currency": "USD"})
+	}
+	return result
+}
+
+func publicUsageDimensions(items []billing.DimMoneyView) []gin.H {
+	result := make([]gin.H, 0, len(items))
+	for _, v := range items {
+		result = append(result, gin.H{"key": v.Key, "requests": v.Requests, "usage_minor": v.RevenueMinor, "revenue_minor": v.RevenueMinor, "prompt_tokens": v.PromptTokens, "completion_tokens": v.CompletionTokens, "reasoning_tokens": v.ReasoningTokens, "video_seconds": v.VideoSeconds, "image_count": v.ImageCount, "audio_seconds": v.AudioSeconds})
+	}
+	return result
 }

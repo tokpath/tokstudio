@@ -27,6 +27,11 @@ import (
 func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/me/api-keys", a.requireAnyUser(), a.createAPIKey)
 	r.GET("/v1/me/api-keys", a.requireAnyUser(), a.listAPIKeys)
+	r.PUT("/v1/me/api-keys/:id/limits", a.requireAnyUser(), a.updateAPIKeyLimits)
+	r.POST("/v1/me/api-keys/:id/enable", a.requireAnyUser(), a.enableAPIKey)
+	r.POST("/admin/diagnostics/chat/completions", a.requireRoles("platform_admin", "tech_admin"), a.diagnosticKey(), a.chatCompletions)
+	r.POST("/admin/diagnostics/responses", a.requireRoles("platform_admin", "tech_admin"), a.diagnosticKey(), a.responses)
+	r.POST("/admin/diagnostics/messages", a.requireRoles("platform_admin", "tech_admin"), a.diagnosticKey(), a.messages)
 	r.POST("/v1/me/api-keys/:id/rotate", a.requireAnyUser(), a.rotateAPIKey)
 	r.POST("/v1/me/api-keys/:id/disable", a.requireAnyUser(), a.disableAPIKey)
 	r.POST("/v1/me/api-keys/:id/expire", a.requireAnyUser(), a.expireAPIKey)
@@ -42,6 +47,7 @@ func (a *App) registerGatewayRoutes(r *gin.Engine) {
 	r.POST("/v1/messages", a.requireAPIKey(), a.messages)
 	r.GET("/v1/me/requests", a.requireUserOrKey(), a.listMyRequests)
 	r.GET("/v1/requests/:id/attempts", a.requireAPIKey(), a.listAttempts)
+	r.GET("/admin/diagnostics/requests/:id/attempts", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listDiagnosticAttempts)
 	r.GET("/admin/providers", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.listProviders)
 	r.POST("/admin/providers", a.requireRoles("platform_admin", "tech_admin"), a.createProvider)
 	r.GET("/admin/providers/:id", a.requireRoles("platform_admin", "tech_admin", "ops_admin", "audit_readonly"), a.getProvider)
@@ -79,6 +85,9 @@ func (a *App) currentAPIKey(c *gin.Context) *identity.APIKeyPrincipal {
 
 func (a *App) requireAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if a.rejectPublicControls(c) {
+			return
+		}
 		token := strings.TrimSpace(strings.TrimPrefix(a.tokenFromRequest(c), "Bearer "))
 		if token == "" {
 			httpx.Abort(c, http.StatusUnauthorized, "authentication_error", "未登录", false)
@@ -86,11 +95,18 @@ func (a *App) requireAPIKey() gin.HandlerFunc {
 		}
 		principal, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), token)
 		if err != nil {
+			if errors.Is(err, identity.ErrKeyExpired) {
+				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，请延长有效期", false)
+				return
+			}
+			if abortKeyBudget(c, err) {
+				return
+			}
 			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "API Key 校验失败", true)
 			return
 		}
 		if principal == nil {
-			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+			httpx.Abort(c, http.StatusForbidden, "key_invalid", "API Key 无效，请检查或创建 Key", false)
 			return
 		}
 		c.Set("api_key", principal)
@@ -107,18 +123,24 @@ func (a *App) requireAPIKey() gin.HandlerFunc {
 }
 
 func (a *App) createAPIKey(c *gin.Context) {
-	var body struct {
-		Name             string   `json:"name"`
-		Allowlist        []string `json:"allowlist"`
-		RPMLimit         int      `json:"rpm_limit"`
-		ConcurrencyLimit int      `json:"concurrency_limit"`
+	var body identity.APIKeyLimits
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "Key 限制无效", false)
+		return
 	}
-	_ = c.ShouldBindJSON(&body)
 	if body.Name == "" {
 		body.Name = "default"
 	}
-	key, err := a.Identity.CreateAPIKey(c.Request.Context(), *a.currentPrincipal(c), body.Name, a.Config.EncryptionKey, body.Allowlist, body.RPMLimit, body.ConcurrencyLimit)
+	key, err := a.Identity.CreateAPIKeyWithLimits(c.Request.Context(), *a.currentPrincipal(c), a.Config.EncryptionKey, body)
 	if err != nil {
+		if errors.Is(err, identity.ErrKeyCreationConflict) {
+			httpx.Abort(c, http.StatusConflict, "key_operation_conflict", "此次创建操作的参数不一致，请恢复原操作", false)
+			return
+		}
+		if errors.Is(err, identity.ErrInvalidKeyLimits) {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择指定模型或有效的 USD 上限", false)
+			return
+		}
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "创建 Key 失败", true)
 		return
 	}
@@ -274,6 +296,10 @@ func (a *App) adminDisableAPIKey(c *gin.Context) {
 
 func (a *App) listModels(c *gin.Context) {
 	caller := a.currentAPIKey(c)
+	if caller.ModelMode == "selected" && len(caller.Allowlist) == 0 {
+		httpx.OK(c, gin.H{"data": []any{}})
+		return
+	}
 	items, err := a.Catalog.ListVisibleModels(c.Request.Context(), caller.ChannelOrgID, caller.Allowlist)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取模型失败", true)
@@ -284,6 +310,10 @@ func (a *App) listModels(c *gin.Context) {
 
 func (a *App) getModel(c *gin.Context) {
 	caller := a.currentAPIKey(c)
+	if !caller.AllowsModel(c.Param("model")) {
+		httpx.Abort(c, http.StatusForbidden, "model_not_allowed", "该 Key 不允许此模型", false)
+		return
+	}
 	item, err := a.Catalog.GetVisibleModel(c.Request.Context(), caller.ChannelOrgID, c.Param("model"), caller.Allowlist)
 	if err != nil {
 		if errors.Is(err, catalog.ErrUnknownModel) {
@@ -300,17 +330,7 @@ func (a *App) chatCompletions(c *gin.Context) {
 	a.executeProtocol(c, "openai.chat")
 }
 
-func (a *App) responses(c *gin.Context) {
-	out := a.executeProtocol(c, "openai.responses")
-	if out == nil {
-		return
-	}
-	payload := gin.H{
-		"id": out.Response.ID, "model": out.Response.Model, "usage": out.Response.Usage,
-		"output": out.Response.Choices, "request_id": c.GetString(httpx.ContextRequestID), "provider": out.Response.Provider,
-	}
-	c.JSON(http.StatusOK, payload)
-}
+func (a *App) responses(c *gin.Context) { a.executeProtocol(c, "openai.responses") }
 
 func (a *App) messages(c *gin.Context) {
 	a.executeProtocol(c, "anthropic.messages")
@@ -340,6 +360,88 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 			chat.Model = model
 		}
 	}
+	if protocol != "openai.chat" && chat.Stream {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "该协议暂不支持 stream，请使用 Chat Completions", false)
+		return nil
+	}
+	if protocol == "openai.responses" {
+		if _, ok := raw["input"].(string); !ok {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Responses 当前支持字符串 input", false)
+			return nil
+		}
+		for _, field := range []string{"tools", "previous_response_id", "conversation", "include", "store"} {
+			if _, ok := raw[field]; ok {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Responses 暂不支持参数 "+field, false)
+				return nil
+			}
+		}
+		if text, ok := raw["input"].(string); ok {
+			chat.Messages = []gateway.ChatMessage{{Role: "user", Content: text}}
+		}
+		if n, ok := raw["max_output_tokens"].(float64); ok {
+			v := int(n)
+			chat.MaxTokens = &v
+		}
+	}
+	if protocol == "anthropic.messages" {
+		for _, field := range []string{"tool_choice", "thinking", "betas"} {
+			if _, ok := raw[field]; ok {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages 暂不支持参数 "+field+"；工具调用请使用 Chat Completions", false)
+				return nil
+			}
+		}
+		if value, exists := raw["tools"]; exists {
+			tools, ok := value.([]any)
+			if !ok {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages tools 无效", false)
+				return nil
+			}
+			converted := make([]map[string]any, 0, len(tools))
+			for _, item := range tools {
+				tool, ok := item.(map[string]any)
+				if !ok {
+					httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages tool 无效", false)
+					return nil
+				}
+				name, _ := tool["name"].(string)
+				schema, ok := tool["input_schema"].(map[string]any)
+				if name == "" || !ok {
+					httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages tool 需要 name/input_schema", false)
+					return nil
+				}
+				converted = append(converted, map[string]any{"type": "function", "function": map[string]any{"name": name, "description": tool["description"], "parameters": schema}})
+			}
+			chat.Tools, _ = json.Marshal(converted)
+		}
+		rows, ok := raw["messages"].([]any)
+		if !ok || len(rows) == 0 {
+			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages 需要消息列表", false)
+			return nil
+		}
+		chat.Messages = nil
+		if system, exists := raw["system"]; exists {
+			text, ok := system.(string)
+			if !ok {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages system 当前支持字符串", false)
+				return nil
+			}
+			chat.Messages = append(chat.Messages, gateway.ChatMessage{Role: "system", Content: text})
+		}
+		for _, item := range rows {
+			row, ok := item.(map[string]any)
+			if !ok {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages 消息无效", false)
+				return nil
+			}
+			role, _ := row["role"].(string)
+			text, ok := row["content"].(string)
+			if !ok || (role != "user" && role != "assistant") {
+				httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Messages 当前支持 user/assistant 字符串内容；内容块与工具结果请使用 Chat Completions", false)
+				return nil
+			}
+			chat.Messages = append(chat.Messages, gateway.ChatMessage{Role: role, Content: text})
+		}
+	}
 	if len(chat.Messages) == 0 {
 		if msgs, ok := raw["messages"].([]any); ok {
 			for _, msg := range msgs {
@@ -363,7 +465,14 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		Chat:        chat,
 	})
 	if err != nil {
+		if abortKeyBudget(c, err) {
+			return nil
+		}
 		switch {
+		case errors.Is(err, billing.ErrConflict):
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "请求与原预留不一致或已处理，请查询原请求", false)
+		case errors.Is(err, gateway.ErrRequestUnknown):
+			httpx.Abort(c, http.StatusGatewayTimeout, "request_outcome_unknown", "请求结果未知，预留额度保留；请查询原请求", true)
 		case errors.Is(err, gateway.ErrUnsupportedParam):
 			msg := "不支持的参数"
 			var pe gateway.ParamError
@@ -382,9 +491,12 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		case errors.Is(err, ops.ErrRateLimited):
 			httpx.Abort(c, http.StatusTooManyRequests, "rate_limited", "API Key 超过限额", false)
 		default:
-			httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "没有可用提供商", true)
+			httpx.Abort(c, http.StatusServiceUnavailable, "provider_unavailable", "该模型暂不可用", true)
 		}
 		return nil
+	}
+	if !c.GetBool("internal_diagnostic") {
+		out.Response.Provider = ""
 	}
 	if chat.Stream && protocol == "openai.chat" {
 		c.Header("Content-Type", "text/event-stream")
@@ -396,13 +508,16 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		return out
 	}
 	if protocol == "openai.responses" {
+		payload := gin.H{"id": out.Response.ID, "model": out.Response.Model, "usage": protocolUsage(out.Response.Usage), "object": "response", "status": "completed", "output": []gin.H{{"type": "message", "role": "assistant", "content": []gin.H{{"type": "output_text", "text": gatewayResponseText(out.Response)}}}}, "request_id": c.GetString(httpx.ContextRequestID)}
+		a.rememberIdempotency(c, rawBody, http.StatusOK, payload)
+		c.JSON(http.StatusOK, payload)
 		return out
 	}
 	if protocol == "anthropic.messages" {
 		payload := gin.H{
 			"id": out.Response.ID, "type": "message", "role": "assistant", "model": out.Response.Model,
 			"content": anthropicContent(out.Response),
-			"usage":   out.Response.Usage, "request_id": c.GetString(httpx.ContextRequestID), "provider": out.Response.Provider,
+			"usage":   protocolUsage(out.Response.Usage), "request_id": c.GetString(httpx.ContextRequestID),
 		}
 		a.rememberIdempotency(c, rawBody, http.StatusOK, payload)
 		c.JSON(http.StatusOK, payload)
@@ -593,6 +708,19 @@ func dimKeys(keys []string) []gin.H {
 }
 
 func (a *App) listAttempts(c *gin.Context) {
+	key := a.currentAPIKey(c)
+	items, err := a.Gateway.ListOwnedAttempts(c.Request.Context(), c.Param("id"), key.UserID, key.APIKeyID)
+	if err != nil {
+		httpx.Abort(c, http.StatusNotFound, "invalid_request", "请求不存在", false)
+		return
+	}
+	safe := make([]gin.H, 0, len(items))
+	for _, item := range items {
+		safe = append(safe, gin.H{"id": item.ID, "request_id": item.RequestID, "attempt_no": item.AttemptNo, "status": item.Status, "http_status": item.HTTPStatus, "error_code": item.ErrorCode, "latency_ms": item.LatencyMS, "prompt_tokens": item.PromptTokens, "completion_tokens": item.CompletionTokens, "total_tokens": item.TotalTokens})
+	}
+	httpx.OK(c, gin.H{"items": safe, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+func (a *App) listDiagnosticAttempts(c *gin.Context) {
 	items, err := a.Gateway.ListAttempts(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "请求不存在", false)
@@ -1054,4 +1182,22 @@ func (a *App) abortCatalogRouteWrite(c *gin.Context, err error, fallbackMsg stri
 	default:
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", fallbackMsg, false)
 	}
+}
+
+func gatewayResponseText(resp gateway.ChatResponse) string {
+	if len(resp.Choices) == 0 {
+		return ""
+	}
+	return resp.Choices[0].Message.Content
+}
+
+func protocolUsage(usage map[string]int) gin.H {
+	if len(usage) == 0 {
+		return gin.H{}
+	}
+	result := gin.H{"input_tokens": usage["prompt_tokens"], "output_tokens": usage["completion_tokens"], "total_tokens": usage["total_tokens"]}
+	if n := usage["reasoning_tokens"]; n > 0 {
+		result["output_tokens_details"] = gin.H{"reasoning_tokens": n}
+	}
+	return result
 }

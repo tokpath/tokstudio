@@ -35,6 +35,7 @@ var (
 	ErrInsufficientBalance = errors.New("insufficient balance")
 	ErrChannelDisabled     = errors.New("channel is disabled")
 	ErrUserRequired        = errors.New("user id required")
+	ErrRequestUnknown      = errors.New("request outcome unknown")
 )
 
 const (
@@ -224,12 +225,18 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			return nil, err
 		}
 	}
+	if !in.Caller.AllowsModel(in.Chat.Model) {
+		return nil, ErrModelNotAllowed
+	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		if errors.Is(err, catalog.ErrUnknownModel) {
 			return nil, catalog.ErrUnknownModel
 		}
 		return nil, ErrModelNotAllowed
+	}
+	if model.Kind != "text" {
+		return nil, ParamError{Param: "model protocol"}
 	}
 	if err := ValidateChat(in.Chat); err != nil {
 		return nil, err
@@ -254,28 +261,53 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	if err != nil {
 		return nil, err
 	}
-	promptHint := 0
-	for _, msg := range in.Chat.Messages {
-		promptHint += (len(msg.Content) + 3) / 4
+	// Always send an output ceiling upstream; a default estimate alone is not a limit.
+	if in.Chat.MaxTokens == nil {
+		n := 256
+		in.Chat.MaxTokens = &n
 	}
-	maxTokens := 256
-	if in.Chat.MaxTokens != nil && *in.Chat.MaxTokens > 0 {
-		maxTokens = *in.Chat.MaxTokens
+	if *in.Chat.MaxTokens <= 0 || *in.Chat.MaxTokens > 1_000_000 {
+		return nil, ParamError{Param: "max_tokens"}
 	}
-	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
-		maxTokens += 64
+	raw, _ := json.Marshal(in.Chat)
+	// Text tokenizers cannot emit more tokens than serialized input bytes plus
+	// framing. Images/audio and unbounded reasoning require a verified adapter bound.
+	promptHint := len(raw) + 128*(len(in.Chat.Messages)+1)
+	maxTokens := *in.Chat.MaxTokens
+	bounded := visionCount(in.Chat) == 0 && catalog.BudgetableTextPrices(effectivePrices)
+	// A generic MaxTokens field does not prove hidden reasoning is bounded.
+	// The deployed adapter must honor a platform-verified total output contract.
+	for _, cand := range cands {
+		switch s.adapterFor(cand.Adapter).(type) {
+		case HarnessAdapter:
+		case BifrostAdapter:
+			if !catalog.TextBudgetCandidate(cand) {
+				bounded = false
+			}
+		default:
+			bounded = false
+		}
 	}
-	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
+
+	reserve := billing.EstimateReserveMinor(quote, promptHint, maxTokens)
+	if bounded {
+		reserve = billing.EstimateBoundedTextReserveMinor(quote, promptHint, maxTokens)
+	}
+	reservation, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
-		UnitPrices: effectivePrices, ReserveMinor: billing.EstimateReserveMinor(quote, promptHint, maxTokens),
-	}); err != nil {
+		UnitPrices: effectivePrices, ReserveMinor: reserve, BudgetBounded: bounded,
+	})
+	if err != nil {
 		if errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrInsufficientQuota) {
 			return nil, ErrInsufficientBalance
 		}
 		return nil, err
 	}
 
+	if reservation.Replayed {
+		return nil, billing.ErrConflict
+	}
 	now := time.Now().UTC()
 	req := requestRow{
 		ID: id.New("grq"), RequestID: in.RequestID, UserID: in.Caller.UserID,
@@ -365,6 +397,13 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
 			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
+			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || (err != nil && result.HTTPStatus == 0) {
+				_, settleErr := s.booker.Settle(context.WithoutCancel(ctx), billing.SettleInput{RequestID: in.RequestID, UserID: in.Caller.UserID, APIKeyID: in.Caller.APIKeyID, PublicModelID: model.ID, MissingUsage: true})
+				if settleErr != nil {
+					return nil, settleErr
+				}
+				return out, ErrRequestUnknown
+			}
 			if streamStarted {
 				break
 			}
@@ -425,6 +464,15 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	_ = s.db.WithContext(ctx).Model(&requestRow{}).Where("id = ?", req.ID).Updates(map[string]any{"status": "failed", "ended_at": ended})
 	_ = s.booker.Release(ctx, in.RequestID)
 	return out, ErrProviderUnavailable
+}
+
+// ListOwnedAttempts restricts public receipts to this logical Key and owner.
+func (s *Service) ListOwnedAttempts(ctx context.Context, requestID, userID, keyID string) ([]AttemptView, error) {
+	var req requestRow
+	if err := s.db.WithContext(ctx).Where("request_id = ? AND user_id = ? AND api_key_id = ?", requestID, userID, keyID).First(&req).Error; err != nil {
+		return nil, err
+	}
+	return s.ListAttempts(ctx, requestID)
 }
 
 func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]AttemptView, error) {

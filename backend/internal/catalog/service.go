@@ -1116,6 +1116,37 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}
 	view.Kind = InferKind(*view)
+	// Protocols reflect the deployed adapter contract, never the vendor's name.
+	var adapters []string
+	if err := s.db.WithContext(ctx).Table("catalog_provider_model_mappings m").Select("DISTINCT p.adapter").Joins("JOIN catalog_providers p ON p.id=m.provider_id").Where("m.public_model_id = ? AND m.status = ? AND p.status = ?", model.ID, "active", "active").Scan(&adapters).Error; err != nil {
+		return nil, err
+	}
+	endpoints := []string{}
+	for _, adapter := range adapters {
+		switch {
+		case view.Kind == "text" && (adapter == "bifrost" || adapter == "gemini" || adapter == "test"):
+			endpoints = []string{"/v1/chat/completions", "/v1/responses", "/v1/messages"}
+		case view.Kind == "image" && (adapter == "ark" || adapter == "openrouter"):
+			endpoints = []string{"/v1/images/generations"}
+		case view.Kind == "video" && (adapter == "ark" || adapter == "openrouter"):
+			endpoints = []string{"/v1/videos"}
+		}
+	}
+	caps["supported_endpoints"] = endpoints
+	sellJSON, _ := json.Marshal(sell)
+	supportsBudget := view.Kind == "text" && BudgetableTextPrices(sellJSON)
+	cands, routeErr := s.ResolveRoute(ctx, model.PublicID, RouteHint{})
+	if routeErr != nil || len(cands) == 0 {
+		supportsBudget = false
+	}
+	for _, cand := range cands {
+		if !TextBudgetCandidate(cand) {
+			supportsBudget = false
+		}
+	}
+	caps["text_budget_control_supported"] = supportsBudget
+	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
+	caps["budget_control_supported"] = supportsBudget || mediaBudget
 	return view, nil
 }
 

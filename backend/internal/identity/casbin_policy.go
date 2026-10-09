@@ -248,7 +248,7 @@ func opsRules() []policyRule {
 
 func techRules() []policyRule {
 	roles := []string{"tech_admin"}
-	out := []policyRule{}
+	out := grant("/admin/diagnostics/*", "*", "tech_admin")
 	out = append(out, grantMany("GET", roles,
 		"/admin/me",
 		"/admin/me/2fa",

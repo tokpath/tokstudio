@@ -45,10 +45,10 @@ type Qualifier interface {
 // EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
 type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)
-	ConsumeUSD(ctx context.Context, userID, requestID string, amount int64) (int64, error)
+	ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
 	ReverseByRequest(ctx context.Context, requestID string) error
 	ReverseByRequestTx(tx *gorm.DB, requestID string) error
-	ReverseKeep(ctx context.Context, requestID string, keep int64) error
+	ReverseKeepTx(tx *gorm.DB, requestID string, keep int64) error
 }
 
 const (
@@ -124,10 +124,12 @@ type ReserveInput struct {
 	PublicModelID  string          `json:"public_model_id"`
 	PriceVersionID string          `json:"price_version_id"`
 	UnitPrices     json.RawMessage `json:"unit_prices"`
+	BudgetBounded  bool            `json:"budget_bounded"`
 	ReserveMinor   int64           `json:"reserve_minor"`
 }
 
 type Reservation struct {
+	Replayed    bool   `json:"replayed,omitempty"`
 	ID          string `json:"id"`
 	RequestID   string `json:"request_id"`
 	AmountMinor int64  `json:"amount_minor"`

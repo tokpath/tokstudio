@@ -70,6 +70,7 @@ func contextString(ctx context.Context, key ctxKey) string {
 
 // Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面（仅 live，禁止 sandbox echo plugin）。
 type Runtime struct {
+	settings     Settings
 	Client       *bifrost.Bifrost
 	Sandbox      bool // 恒为 false；保留字段避免调用方大面积改动。
 	GeminiAPIKey string
@@ -126,7 +127,7 @@ func Start(ctx context.Context, in Settings) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{Client: client, Sandbox: false, GeminiAPIKey: in.GeminiAPIKey}, nil
+	return &Runtime{Client: client, Sandbox: false, GeminiAPIKey: in.GeminiAPIKey, settings: in}, nil
 }
 
 // BifrostAdapter 在进程内调用 Bifrost SDK。client 为空时返回 503。
@@ -140,6 +141,9 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if a.Runtime == nil || a.Runtime.Client == nil {
 		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, fmt.Errorf("bifrost unavailable")
 	}
+	if resolveBifrostProvider(providerSlug) == schemas.OpenRouter {
+		return a.openRouterChat(ctx, req)
+	}
 	messages := toBifrostMessages(req.Messages)
 	if len(messages) == 0 {
 		messages = []schemas.ChatMessage{{
@@ -147,7 +151,7 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("")},
 		}}
 	}
-	ctx = withProviderChatURL(ctx)
+	ctx = withProviderProtocolURL(ctx, providerSlug)
 	bctx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 	bctx.SetValue(bifrostProviderSlugKey, providerSlug)
 	resp, berr := a.Runtime.Client.ChatCompletionRequest(bctx, &schemas.BifrostChatRequest{
@@ -283,13 +287,14 @@ func (a *envAccount) GetConfigForProvider(provider schemas.ModelProvider) (*sche
 
 func toBifrostMessages(in []ChatMessage) []schemas.ChatMessage {
 	out := make([]schemas.ChatMessage, 0, len(in))
-	for _, msg := range in {
-		item := schemas.ChatMessage{
-			Role:    schemas.ChatMessageRole(msg.Role),
-			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr(msg.Content)},
+	for _, message := range in {
+		if message.Role == "" {
+			message.Role = "user"
 		}
-		if item.Role == "" {
-			item.Role = schemas.ChatMessageRoleUser
+		raw, _ := json.Marshal(message)
+		var item schemas.ChatMessage
+		if err := json.Unmarshal(raw, &item); err != nil {
+			continue
 		}
 		out = append(out, item)
 	}
@@ -370,14 +375,16 @@ func fromBifrostChat(resp *schemas.BifrostChatResponse) AdapterResult {
 			"total_tokens":      resp.Usage.TotalTokens,
 		}
 	}
+	if resp.Usage != nil && resp.Usage.CompletionTokensDetails != nil && resp.Usage.CompletionTokensDetails.ReasoningTokens > 0 {
+		out.Usage["reasoning_tokens"] = resp.Usage.CompletionTokensDetails.ReasoningTokens
+		out.Usage["completion_includes_reasoning"] = 1
+	}
 	for _, choice := range resp.Choices {
 		msg := ChatMessage{Role: "assistant"}
 		if choice.ChatNonStreamResponseChoice != nil && choice.ChatNonStreamResponseChoice.Message != nil {
 			src := choice.ChatNonStreamResponseChoice.Message
-			msg.Role = string(src.Role)
-			if src.Content != nil && src.Content.ContentStr != nil {
-				msg.Content = *src.Content.ContentStr
-			}
+			raw, _ := json.Marshal(src)
+			_ = json.Unmarshal(raw, &msg)
 		}
 		out.Choices = append(out.Choices, struct {
 			Index   int         `json:"index"`
@@ -431,6 +438,24 @@ func mapBifrostError(berr *schemas.BifrostError) AdapterResult {
 		class = "provider_unavailable"
 	}
 	return AdapterResult{HTTPStatus: status, ErrorClass: class}
+}
+
+func withProviderProtocolURL(ctx context.Context, providerSlug string) context.Context {
+	if resolveBifrostProvider(providerSlug) != schemas.Anthropic {
+		return withProviderChatURL(ctx)
+	}
+	base := strings.TrimRight(strings.TrimSpace(contextString(ctx, ctxProviderBaseURLKey)), "/")
+	if base == "" {
+		return ctx
+	}
+	if !strings.HasSuffix(base, "/messages") {
+		if strings.HasSuffix(base, "/v1") {
+			base += "/messages"
+		} else {
+			base += "/v1/messages"
+		}
+	}
+	return context.WithValue(ctx, schemas.BifrostContextKeyURLPath, base)
 }
 
 func withProviderChatURL(ctx context.Context) context.Context {

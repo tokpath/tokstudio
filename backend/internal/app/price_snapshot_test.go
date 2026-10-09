@@ -58,6 +58,7 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 		t.Fatalf("publish without confirm should be 409, got %d", code)
 	}
 
+	isolateEchoPrice(t, application)
 	published := postJSONRaw(t, server.URL+"/admin/price-books", "wmeter_admin", map[string]any{
 		"model":         catalog.EchoModelID,
 		"customer_sell": map[string]any{"input": "0.000009", "output": "0.000011"},
@@ -129,13 +130,17 @@ func TestWMeterPriceSnapshot(t *testing.T) {
 	if fresh == nil {
 		t.Fatalf("expected new usage after publish, got %+v", afterItems)
 	}
-	rawFresh, _ := json.Marshal(fresh["unit_prices"])
+	facts, err := application.Billing.QueryUsage(context.Background(), billing.QueryUsageInput{RequestID: fresh["request_id"].(string)})
+	if err != nil || len(facts) != 1 {
+		t.Fatalf("private usage facts %+v %v", facts, err)
+	}
+	rawFresh := []byte(facts[0].UnitPrices)
 	if err := catalog.RequireFourPriceSnapshot(rawFresh, false); err != nil {
 		t.Fatalf("new usage must persist cost, wholesale, and sell: %v raw=%s", err, rawFresh)
 	}
 	up, wholesale, sell, channel := catalog.FourPriceDims(rawFresh)
-	providerID, _ := fresh["provider_id"].(string)
-	upstreamID, _ := fresh["upstream_model_id"].(string)
+	providerID := facts[0].ProviderID
+	upstreamID := facts[0].UpstreamModelID
 	configuredCost, err := application.Catalog.PricedProviderModel(context.Background(), providerID, upstreamID, "text")
 	if err != nil {
 		t.Fatal(err)

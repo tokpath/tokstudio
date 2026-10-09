@@ -105,18 +105,18 @@ describe("playgroundHref", () => {
 });
 
 describe("resolveStartUsingHref", () => {
-  it("sends guests to login with playground as next", async () => {
+  it("sends guests to model instructions after login", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(false, { error: { message: "未授权" } }));
     await expect(resolveStartUsingHref("tokenhub/echo-1", fetcher)).resolves.toBe(
-      loginHref("/app/playground?model=tokenhub%2Fecho-1"),
+      loginHref("/app/docs?model=tokenhub%2Fecho-1&tab=agent"),
     );
   });
 
-  it("sends signed-in users to media for an image model", async () => {
+  it("sends signed-in users to the actual image protocol", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(true, { user: { roles: ["end_user"] } }));
     await expect(
       resolveStartUsingHref({ id: "bytedance/seedream", kind: "image" }, fetcher),
-    ).resolves.toBe("/app/media?model=bytedance%2Fseedream&kind=image");
+    ).resolves.toBe("/app/docs?model=bytedance%2Fseedream&tab=protocol");
   });
 });
 

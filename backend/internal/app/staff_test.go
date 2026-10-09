@@ -158,7 +158,7 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	if getStatus(t, server.URL+"/channel/metrics", finToken) != 403 {
 		t.Fatal("disabled session active")
 	}
-	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); err != nil || key != nil {
+	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); (err != nil && !errors.Is(err, identity.ErrKeyNotUsable)) || key != nil {
 		t.Fatal("disabled staff API key active")
 	}
 	if code, _ := doJSON(t, http.MethodPost, server.URL+"/v1/auth/login", "", false, map[string]string{"email": financeEmail, "password": "password1"}); code != 403 {
@@ -173,7 +173,7 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	if getStatus(t, server.URL+"/channel/metrics", login(financeEmail)) != 200 {
 		t.Fatal("reactivated login fails")
 	}
-	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); err != nil || key != nil {
+	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); (err != nil && !errors.Is(err, identity.ErrKeyNotUsable)) || key != nil {
 		t.Fatal("reactivation resurrected API key")
 	}
 	history := getAuthJSON(t, server.URL+"/channel/staff/"+financeID+"/history", oem)

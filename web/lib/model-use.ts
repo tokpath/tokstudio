@@ -39,21 +39,7 @@ export function examplePath(model: Partial<CatalogModel> | null | undefined): st
   if (endpoints[0]) {
     return endpoints[0];
   }
-  const entry = modelEntry(model);
-  if (entry === "image") {
-    return "/v1/images/generations";
-  }
-  if (entry === "video") {
-    return "/v1/videos";
-  }
-  const kind = inferKind(model || {});
-  if (kind === "embedding") {
-    return "/v1/embeddings";
-  }
-  if (kind === "audio") {
-    return "/v1/audio/transcriptions";
-  }
-  return "/v1/chat/completions";
+  return "";
 }
 
 /** Shell header that expands TOKENHUB_API_KEY. Single quotes would send the literal name. */
@@ -64,10 +50,10 @@ const VERIFY_PATHS = ["/v1/chat/completions", "/v1/responses", "/v1/messages"] a
 export function exampleJSONBody(modelId: string, path: string): Record<string, unknown> | null {
   const id = modelId.trim() || "your-model";
   if (path.startsWith("/v1/chat/completions")) {
-    return { model: id, messages: [{ role: "user", content: "hi" }] };
+    return { model: id, max_tokens: 32, messages: [{ role: "user", content: "hi" }] };
   }
   if (path.startsWith("/v1/responses")) {
-    return { model: id, input: "hi" };
+    return { model: id, max_output_tokens: 32, input: "hi" };
   }
   if (path.startsWith("/v1/messages")) {
     return { model: id, max_tokens: 32, messages: [{ role: "user", content: "hi" }] };
@@ -79,25 +65,27 @@ export function exampleJSONBody(modelId: string, path: string): Record<string, u
     return { model: id, prompt: "a river" };
   }
   if (path.startsWith("/v1/videos")) {
-    return { model: id, prompt: "a river at dusk" };
+    return { model: id, prompt: "a river at dusk", duration: 5, resolution: "720p" };
   }
   return null;
 }
 
 export function protocolAllowsKeyVerify(path: string): boolean {
-  return VERIFY_PATHS.some((item) => path === item || path.startsWith(`${item}/`));
+  return VERIFY_PATHS.some((item) => path === item || false);
 }
 
-export function exampleCurl(modelId: string, path: string, host = "localhost"): string {
-  const id = modelId.trim() || "your-model";
+export function exampleCurl(modelId: string, path: string, host = ""): string {
+  if (!host || !path || !modelId.trim()) return "";
+  const base = (host.includes("://") ? host : `https://${host}`).replace(/\/$/, "").replace(/\/v1$/, "");
+  const id = modelId.trim();
   if (path.startsWith("/v1/audio")) {
-    return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -F file=@audio.mp3 -F model=${id}`;
+    return `curl -sS ${base}${path} ${CURL_BEARER_HEADER} -F file=@audio.mp3 -F model=${id}`;
   }
   const body = exampleJSONBody(id, path);
   if (!body) {
-    return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER}`;
+    return `curl -sS ${base}${path} ${CURL_BEARER_HEADER}`;
   }
-  return `curl -sS https://${host}${path} ${CURL_BEARER_HEADER} -H "Content-Type: application/json" -d '${JSON.stringify(body)}'`;
+  return `curl -sS ${base}${path} ${CURL_BEARER_HEADER} -H "Content-Type: application/json" -d '${JSON.stringify(body).replaceAll("'", "'\"'\"'")}'`;
 }
 
 export function useModelHref(model: Pick<CatalogModel, "id"> & Partial<CatalogModel>, from?: string): string {
@@ -110,20 +98,8 @@ export function useModelHref(model: Pick<CatalogModel, "id"> & Partial<CatalogMo
   if (catalog) {
     params.set("from", catalog);
   }
-  const entry = modelEntry(model);
-  if (entry === "image") {
-    params.set("kind", "image");
-    return `/app/media?${params.toString()}`;
-  }
-  if (entry === "video") {
-    params.set("kind", "video");
-    return `/app/media?${params.toString()}`;
-  }
-  if (entry === "docs") {
-    return `/app/docs?${params.toString()}`;
-  }
-  const qs = params.toString();
-  return qs ? `/app/playground?${qs}` : "/app/playground";
+  params.set("tab",modelEntry(model)==="chat"?"agent":"protocol");
+  return `/app/docs?${params}`;
 }
 
 export async function resolveStartUsingHref(

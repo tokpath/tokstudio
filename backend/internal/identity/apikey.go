@@ -2,9 +2,14 @@ package identity
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
@@ -14,18 +19,22 @@ var ErrChannelRequired = errors.New("channel org required")
 var ErrAPIKeyNotInChannel = errors.New("api key not in channel")
 
 type apiKeyRow struct {
-	ID               string     `gorm:"column:id;primaryKey"`
-	UserID           string     `gorm:"column:user_id"`
-	Name             string     `gorm:"column:name"`
-	Prefix           string     `gorm:"column:prefix"`
-	SecretHash       string     `gorm:"column:secret_hash"`
-	SecretCiphertext string     `gorm:"column:secret_ciphertext"`
-	Status           string     `gorm:"column:status"`
-	RPMLimit         int        `gorm:"column:rpm_limit"`
-	ConcurrencyLimit int        `gorm:"column:concurrency_limit"`
-	ExpiresAt        *time.Time `gorm:"column:expires_at"`
-	LastUsedAt       *time.Time `gorm:"column:last_used_at"`
-	CreatedAt        time.Time  `gorm:"column:created_at"`
+	ID                  string     `gorm:"column:id;primaryKey"`
+	UserID              string     `gorm:"column:user_id"`
+	Name                string     `gorm:"column:name"`
+	Prefix              string     `gorm:"column:prefix"`
+	SecretHash          string     `gorm:"column:secret_hash"`
+	SecretCiphertext    string     `gorm:"column:secret_ciphertext"`
+	Status              string     `gorm:"column:status"`
+	RPMLimit            int        `gorm:"column:rpm_limit"`
+	ConcurrencyLimit    int        `gorm:"column:concurrency_limit"`
+	ModelMode           string     `gorm:"column:model_mode"`
+	BudgetLimitMinor    *int64     `gorm:"column:budget_limit_minor"`
+	BudgetUsedMinor     int64      `gorm:"column:budget_used_minor"`
+	BudgetReservedMinor int64      `gorm:"column:budget_reserved_minor"`
+	ExpiresAt           *time.Time `gorm:"column:expires_at"`
+	LastUsedAt          *time.Time `gorm:"column:last_used_at"`
+	CreatedAt           time.Time  `gorm:"column:created_at"`
 }
 
 func (apiKeyRow) TableName() string { return "identity_api_keys" }
@@ -39,19 +48,23 @@ type apiKeyPolicyRow struct {
 func (apiKeyPolicyRow) TableName() string { return "identity_api_key_model_policies" }
 
 type APIKeyView struct {
-	ID               string     `json:"id"`
-	UserID           string     `json:"user_id,omitempty"`
-	UserEmail        string     `json:"user_email,omitempty"`
-	Name             string     `json:"name"`
-	Prefix           string     `json:"prefix"`
-	Secret           string     `json:"key,omitempty"`
-	Status           string     `json:"status"`
-	RPMLimit         int        `json:"rpm_limit,omitempty"`
-	ConcurrencyLimit int        `json:"concurrency_limit,omitempty"`
-	Allowlist        []string   `json:"allowlist,omitempty"`
-	ExpiresAt        *time.Time `json:"expires_at,omitempty"`
-	LastUsedAt       *time.Time `json:"last_used_at,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
+	ID                  string     `json:"id"`
+	UserID              string     `json:"user_id,omitempty"`
+	UserEmail           string     `json:"user_email,omitempty"`
+	Name                string     `json:"name"`
+	Prefix              string     `json:"prefix"`
+	Secret              string     `json:"key,omitempty"`
+	Status              string     `json:"status"`
+	RPMLimit            int        `json:"rpm_limit,omitempty"`
+	ConcurrencyLimit    int        `json:"concurrency_limit,omitempty"`
+	Allowlist           []string   `json:"allowlist"`
+	ModelMode           string     `json:"model_mode"`
+	BudgetLimitMinor    *int64     `json:"budget_limit_minor"`
+	BudgetUsedMinor     int64      `json:"budget_used_minor"`
+	BudgetReservedMinor int64      `json:"budget_reserved_minor"`
+	ExpiresAt           *time.Time `json:"expires_at,omitempty"`
+	LastUsedAt          *time.Time `json:"last_used_at,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
 }
 
 func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error) {
@@ -63,7 +76,9 @@ func (s *Service) ListAPIKeySummaries(ctx context.Context) ([]APIKeyView, error)
 	for _, row := range rows {
 		out = append(out, viewFromRow(row, ""))
 	}
-	s.attachAllowlists(ctx, out)
+	if err := s.attachAllowlists(ctx, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -101,7 +116,9 @@ func (s *Service) ListAPIKeySummariesForChannel(ctx context.Context, channelOrgI
 		view.UserEmail = emailByUser[row.UserID]
 		out = append(out, view)
 	}
-	s.attachAllowlists(ctx, out)
+	if err := s.attachAllowlists(ctx, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -129,19 +146,91 @@ func (s *Service) DisableChannelAPIKey(ctx context.Context, channelOrgID, keyID 
 	view := viewFromRow(row, "")
 	view.Status = "disabled"
 	view.UserEmail = user.Email
-	view = s.withAllowlist(ctx, view)
-	return &view, nil
+	return s.withAllowlist(ctx, view)
 }
 
 type APIKeyPrincipal struct {
 	Principal
 	APIKeyID         string
+	ModelMode        string
+	BudgetLimitMinor *int64
 	Allowlist        []string
 	RPMLimit         int
 	ConcurrencyLimit int
 }
 
+type APIKeyLimits struct {
+	OperationID      string     `json:"operation_id,omitempty"`
+	Name             string     `json:"name"`
+	ModelMode        string     `json:"model_mode"`
+	Allowlist        []string   `json:"allowlist"`
+	BudgetLimitMinor *int64     `json:"budget_limit_minor"`
+	ExpiresAt        *time.Time `json:"expires_at"`
+	RPMLimit         int        `json:"rpm_limit"`
+	ConcurrencyLimit int        `json:"concurrency_limit"`
+}
+
+var ErrKeyCreationConflict = errors.New("api key creation operation conflict")
+
+type apiKeyCreationRow struct {
+	UserID      string `gorm:"primaryKey"`
+	OperationID string `gorm:"primaryKey"`
+	APIKeyID    string
+	Fingerprint string
+	CreatedAt   time.Time
+}
+
+func (apiKeyCreationRow) TableName() string { return "identity_api_key_creations" }
+
+var ErrInvalidKeyLimits = errors.New("invalid key limits")
+var ErrKeyBudgetExceeded = errors.New("api key budget exceeded")
+var ErrKeyBudgetUnbounded = errors.New("cannot safely reserve api key budget")
+var ErrKeyExpired = errors.New("api key expired")
+var ErrKeyNotUsable = errors.New("api key disabled or expired")
+var ErrKeyModelNotAllowed = errors.New("api key model not allowed")
+
+func normalizeKeyLimits(in APIKeyLimits) (APIKeyLimits, error) {
+	in.Name = strings.TrimSpace(in.Name)
+	in.OperationID = strings.TrimSpace(in.OperationID)
+	if len(in.OperationID) > 128 {
+		return in, ErrInvalidKeyLimits
+	}
+	in.Allowlist = normalizeAllowlist(in.Allowlist)
+	// Old clients omitted the mode. Preserve their historical interpretation.
+	if in.ModelMode == "" {
+		in.ModelMode = "all"
+		if len(in.Allowlist) > 0 {
+			in.ModelMode = "selected"
+		}
+	}
+	if in.Name == "" || (in.ModelMode != "all" && in.ModelMode != "selected") || (in.ModelMode == "selected" && len(in.Allowlist) == 0) || (in.BudgetLimitMinor != nil && *in.BudgetLimitMinor <= 0) || in.RPMLimit < 0 || in.ConcurrencyLimit < 0 {
+		return in, ErrInvalidKeyLimits
+	}
+	if in.ModelMode == "all" {
+		in.Allowlist = []string{}
+	}
+	if in.RPMLimit == 0 {
+		in.RPMLimit = 60
+	}
+	if in.ConcurrencyLimit == 0 {
+		in.ConcurrencyLimit = 5
+	}
+	if in.ExpiresAt != nil {
+		utc := in.ExpiresAt.UTC()
+		in.ExpiresAt = &utc
+	}
+	return in, nil
+}
+
 func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey string, allowlist []string, rpm, concurrency int) (*APIKeyView, error) {
+	return s.CreateAPIKeyWithLimits(ctx, user, encKey, APIKeyLimits{Name: name, Allowlist: allowlist, RPMLimit: rpm, ConcurrencyLimit: concurrency})
+}
+
+func (s *Service) CreateAPIKeyWithLimits(ctx context.Context, user Principal, encKey string, in APIKeyLimits) (*APIKeyView, error) {
+	in, err := normalizeKeyLimits(in)
+	if err != nil {
+		return nil, err
+	}
 	raw, err := crypto.RandomToken("thk_")
 	if err != nil {
 		return nil, err
@@ -150,32 +239,167 @@ func (s *Service) CreateAPIKey(ctx context.Context, user Principal, name, encKey
 	if err != nil {
 		return nil, err
 	}
-	if rpm <= 0 {
-		rpm = 60
-	}
-	if concurrency <= 0 {
-		concurrency = 5
-	}
-	allowlist = normalizeAllowlist(allowlist)
-	row := apiKeyRow{
-		ID:               id.New("key"),
-		UserID:           user.UserID,
-		Name:             name,
-		Prefix:           raw[:8],
-		SecretHash:       crypto.HashToken(raw),
-		SecretCiphertext: cipher,
-		Status:           "active",
-		RPMLimit:         rpm,
-		ConcurrencyLimit: concurrency,
-		CreatedAt:        time.Now().UTC(),
-	}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+	row := apiKeyRow{ID: id.New("key"), UserID: user.UserID, Name: in.Name, Prefix: raw[:8], SecretHash: crypto.HashToken(raw), SecretCiphertext: cipher, Status: "active", ModelMode: in.ModelMode, BudgetLimitMinor: in.BudgetLimitMinor, ExpiresAt: in.ExpiresAt, RPMLimit: in.RPMLimit, ConcurrencyLimit: in.ConcurrencyLimit, CreatedAt: time.Now().UTC()}
+	canonical := in
+	canonical.OperationID = ""
+	canonical.Allowlist = append([]string{}, in.Allowlist...)
+	sort.Strings(canonical.Allowlist)
+	fingerprintBytes, _ := json.Marshal(canonical)
+	fingerprint := crypto.HashToken(string(fingerprintBytes))
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if in.OperationID != "" {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "key.create:"+user.UserID+":"+in.OperationID).Error; err != nil {
+				return err
+			}
+			var operation apiKeyCreationRow
+			err := tx.Where("user_id=? AND operation_id=?", user.UserID, in.OperationID).First(&operation).Error
+			if err == nil {
+				if operation.Fingerprint != fingerprint {
+					return ErrKeyCreationConflict
+				}
+				var existing apiKeyRow
+				if err := tx.Where("id=? AND user_id=?", operation.APIKeyID, user.UserID).First(&existing).Error; err != nil {
+					return err
+				}
+				row = existing
+				raw, err = crypto.Open(encKey, row.SecretCiphertext)
+				return err
+			}
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+		}
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		if err := replaceKeyPolicies(tx, row.ID, in.Allowlist); err != nil {
+			return err
+		}
+		if in.OperationID != "" {
+			return tx.Create(&apiKeyCreationRow{UserID: user.UserID, OperationID: in.OperationID, APIKeyID: row.ID, Fingerprint: fingerprint, CreatedAt: time.Now().UTC()}).Error
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	for _, model := range allowlist {
-		_ = s.db.WithContext(ctx).Create(&apiKeyPolicyRow{APIKeyID: row.ID, PublicModelID: model, Allowed: true}).Error
+	return s.withAllowlist(ctx, viewFromRow(row, raw))
+}
+
+func replaceKeyPolicies(tx *gorm.DB, keyID string, allowlist []string) error {
+	if err := tx.Where("api_key_id = ?", keyID).Delete(&apiKeyPolicyRow{}).Error; err != nil {
+		return err
 	}
-	return &APIKeyView{ID: row.ID, Name: row.Name, Prefix: row.Prefix, Secret: raw, Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit, Allowlist: allowlist, CreatedAt: row.CreatedAt}, nil
+	for _, model := range allowlist {
+		if err := tx.Create(&apiKeyPolicyRow{APIKeyID: keyID, PublicModelID: model, Allowed: true}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) UpdateAPIKeyLimits(ctx context.Context, user Principal, keyID string, in APIKeyLimits) (*APIKeyView, error) {
+	in, err := normalizeKeyLimits(in)
+	if err != nil {
+		return nil, err
+	}
+	var row apiKeyRow
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", keyID, user.UserID).First(&row).Error; err != nil {
+			return err
+		}
+		if in.BudgetLimitMinor != nil && *in.BudgetLimitMinor < row.BudgetUsedMinor+row.BudgetReservedMinor {
+			return ErrKeyBudgetExceeded
+		}
+		if err := replaceKeyPolicies(tx, row.ID, in.Allowlist); err != nil {
+			return err
+		}
+		row.Name = in.Name
+		row.ModelMode = in.ModelMode
+		row.BudgetLimitMinor = in.BudgetLimitMinor
+		row.ExpiresAt = in.ExpiresAt
+		row.RPMLimit = in.RPMLimit
+		row.ConcurrencyLimit = in.ConcurrencyLimit
+		return tx.Save(&row).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	view := viewFromRow(row, "")
+	view.Allowlist = in.Allowlist
+	return &view, nil
+}
+
+func (s *Service) EnableAPIKey(ctx context.Context, user Principal, keyID string) (*APIKeyView, error) {
+	row, err := s.ownedKey(ctx, user, keyID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ? AND user_id = ?", keyID, user.UserID).Update("status", "active").Error; err != nil {
+		return nil, err
+	}
+	row.Status = "active"
+	return s.withAllowlist(ctx, viewFromRow(*row, ""))
+}
+
+// ReserveAPIKeyBudgetTx rechecks mutable policy while holding the same row lock
+// used by edits. The caller's transaction also contains wallet authorization.
+func ReserveAPIKeyBudgetTx(tx *gorm.DB, keyID, userID, modelID string, amount int64, bounded bool) error {
+	if keyID == "" {
+		return nil
+	}
+	var row apiKeyRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", keyID, userID).First(&row).Error; err != nil {
+		return err
+	}
+	if row.Status != "active" || (row.ExpiresAt != nil && !row.ExpiresAt.After(time.Now().UTC())) {
+		return ErrKeyNotUsable
+	}
+	if row.ModelMode == "selected" {
+		var n int64
+		if err := tx.Model(&apiKeyPolicyRow{}).Where("api_key_id = ? AND public_model_id = ? AND allowed = true", keyID, modelID).Count(&n).Error; err != nil {
+			return err
+		}
+		if n == 0 {
+			return ErrKeyModelNotAllowed
+		}
+	}
+	if row.BudgetLimitMinor != nil {
+		if !bounded {
+			return ErrKeyBudgetUnbounded
+		}
+		if amount > *row.BudgetLimitMinor-row.BudgetUsedMinor-row.BudgetReservedMinor {
+			return ErrKeyBudgetExceeded
+		}
+	}
+	return tx.Model(&apiKeyRow{}).Where("id = ?", keyID).Update("budget_reserved_minor", row.BudgetReservedMinor+amount).Error
+}
+
+// Every transition is called once under the authorization/charge lifecycle lock.
+func AdjustAPIKeyBudgetTx(tx *gorm.DB, keyID string, usedDelta, reservedDelta int64) error {
+	if keyID == "" {
+		return nil
+	}
+	var row apiKeyRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", keyID).First(&row).Error; err != nil {
+		return err
+	}
+	if row.BudgetUsedMinor+usedDelta < 0 || row.BudgetReservedMinor+reservedDelta < 0 {
+		return ErrInvalidKeyLimits
+	}
+	return tx.Model(&apiKeyRow{}).Where("id = ?", keyID).Updates(map[string]any{"budget_used_minor": row.BudgetUsedMinor + usedDelta, "budget_reserved_minor": row.BudgetReservedMinor + reservedDelta}).Error
+}
+
+func (p APIKeyPrincipal) AllowsModel(model string) bool {
+	if p.ModelMode != "selected" {
+		return true
+	}
+	for _, id := range p.Allowlist {
+		if id == model {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) ListAPIKeys(ctx context.Context, user Principal, encKey string) ([]APIKeyView, error) {
@@ -188,7 +412,9 @@ func (s *Service) ListAPIKeys(ctx context.Context, user Principal, encKey string
 		secret, _ := crypto.Open(encKey, row.SecretCiphertext)
 		out = append(out, viewFromRow(row, secret))
 	}
-	s.attachAllowlists(ctx, out)
+	if err := s.attachAllowlists(ctx, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -202,10 +428,7 @@ func (s *Service) ConfirmOwnedKey(ctx context.Context, user Principal, keyID str
 
 func (s *Service) ownedKey(ctx context.Context, user Principal, keyID string) (*apiKeyRow, error) {
 	var row apiKeyRow
-	q := s.db.WithContext(ctx).Where("id = ?", keyID)
-	if !user.IsPlatformAdmin() && !user.HasRole("tech_admin") {
-		q = q.Where("user_id = ?", user.UserID)
-	}
+	q := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", keyID, user.UserID)
 	if err := q.First(&row).Error; err != nil {
 		return nil, err
 	}
@@ -226,15 +449,13 @@ func (s *Service) RotateAPIKey(ctx context.Context, user Principal, keyID, encKe
 		return nil, err
 	}
 	if err := s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Updates(map[string]any{
-		"prefix": raw[:8], "secret_hash": crypto.HashToken(raw), "secret_ciphertext": cipher, "status": "active",
+		"prefix": raw[:8], "secret_hash": crypto.HashToken(raw), "secret_ciphertext": cipher,
 	}).Error; err != nil {
 		return nil, err
 	}
 	view := viewFromRow(*row, raw)
 	view.Prefix = raw[:8]
-	view.Status = "active"
-	view = s.withAllowlist(ctx, view)
-	return &view, nil
+	return s.withAllowlist(ctx, view)
 }
 
 func (s *Service) DisableAPIKey(ctx context.Context, user Principal, keyID string) (*APIKeyView, error) {
@@ -247,8 +468,7 @@ func (s *Service) DisableAPIKey(ctx context.Context, user Principal, keyID strin
 	}
 	view := viewFromRow(*row, "")
 	view.Status = "disabled"
-	view = s.withAllowlist(ctx, view)
-	return &view, nil
+	return s.withAllowlist(ctx, view)
 }
 
 func (s *Service) ExpireAPIKey(ctx context.Context, user Principal, keyID string, when time.Time) (*APIKeyView, error) {
@@ -264,8 +484,7 @@ func (s *Service) ExpireAPIKey(ctx context.Context, user Principal, keyID string
 	}
 	view := viewFromRow(*row, "")
 	view.ExpiresAt = &when
-	view = s.withAllowlist(ctx, view)
-	return &view, nil
+	return s.withAllowlist(ctx, view)
 }
 
 func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPrincipal, error) {
@@ -273,11 +492,17 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 		return nil, nil
 	}
 	var row apiKeyRow
-	if err := s.db.WithContext(ctx).Where("secret_hash = ? AND status = ?", crypto.HashToken(raw), "active").First(&row).Error; err != nil {
-		return nil, nil
+	if err := s.db.WithContext(ctx).Where("secret_hash = ?", crypto.HashToken(raw)).First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if row.Status != "active" {
+		return nil, ErrKeyNotUsable
 	}
 	if row.ExpiresAt != nil && !row.ExpiresAt.After(time.Now().UTC()) {
-		return nil, nil
+		return nil, ErrKeyExpired
 	}
 	now := time.Now().UTC()
 	_ = s.db.WithContext(ctx).Model(&apiKeyRow{}).Where("id = ?", row.ID).Update("last_used_at", now).Error
@@ -297,18 +522,20 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 		return nil, err
 	}
 	var policies []apiKeyPolicyRow
-	_ = s.db.WithContext(ctx).Where("api_key_id = ? AND allowed = true", row.ID).Find(&policies).Error
+	if err := s.db.WithContext(ctx).Where("api_key_id = ? AND allowed = true", row.ID).Find(&policies).Error; err != nil {
+		return nil, err
+	}
 	allow := make([]string, 0, len(policies))
 	for _, policy := range policies {
 		allow = append(allow, policy.PublicModelID)
 	}
-	return &APIKeyPrincipal{Principal: *principal, APIKeyID: row.ID, Allowlist: allow, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit}, nil
+	return &APIKeyPrincipal{Principal: *principal, APIKeyID: row.ID, ModelMode: row.ModelMode, BudgetLimitMinor: row.BudgetLimitMinor, Allowlist: allow, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit}, nil
 }
 
 func viewFromRow(row apiKeyRow, secret string) APIKeyView {
 	return APIKeyView{
 		ID: row.ID, UserID: row.UserID, Name: row.Name, Prefix: row.Prefix, Secret: secret,
-		Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit,
+		ModelMode: row.ModelMode, BudgetLimitMinor: row.BudgetLimitMinor, BudgetUsedMinor: row.BudgetUsedMinor, BudgetReservedMinor: row.BudgetReservedMinor, Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit,
 		ExpiresAt: row.ExpiresAt, LastUsedAt: row.LastUsedAt, CreatedAt: row.CreatedAt,
 	}
 }
@@ -330,35 +557,47 @@ func normalizeAllowlist(in []string) []string {
 	return out
 }
 
-func (s *Service) loadAllowlists(ctx context.Context, keyIDs []string) map[string][]string {
+func (s *Service) loadAllowlists(ctx context.Context, keyIDs []string) (map[string][]string, error) {
 	out := map[string][]string{}
 	if len(keyIDs) == 0 {
-		return out
+		return out, nil
 	}
 	var policies []apiKeyPolicyRow
 	if err := s.db.WithContext(ctx).Where("api_key_id IN ? AND allowed = true", keyIDs).Order("public_model_id ASC").Find(&policies).Error; err != nil {
-		return out
+		return nil, err
 	}
 	for _, policy := range policies {
 		out[policy.APIKeyID] = append(out[policy.APIKeyID], policy.PublicModelID)
 	}
-	return out
+	return out, nil
 }
 
-func (s *Service) attachAllowlists(ctx context.Context, views []APIKeyView) {
+func (s *Service) attachAllowlists(ctx context.Context, views []APIKeyView) error {
 	ids := make([]string, 0, len(views))
 	for _, view := range views {
 		ids = append(ids, view.ID)
 	}
-	lists := s.loadAllowlists(ctx, ids)
+	lists, err := s.loadAllowlists(ctx, ids)
+	if err != nil {
+		return err
+	}
 	for i := range views {
 		views[i].Allowlist = lists[views[i].ID]
+		if views[i].Allowlist == nil {
+			views[i].Allowlist = []string{}
+		}
 	}
+	return nil
 }
 
-func (s *Service) withAllowlist(ctx context.Context, view APIKeyView) APIKeyView {
-	if list := s.loadAllowlists(ctx, []string{view.ID})[view.ID]; len(list) > 0 {
-		view.Allowlist = list
+func (s *Service) withAllowlist(ctx context.Context, view APIKeyView) (*APIKeyView, error) {
+	lists, err := s.loadAllowlists(ctx, []string{view.ID})
+	if err != nil {
+		return nil, err
 	}
-	return view
+	view.Allowlist = lists[view.ID]
+	if view.Allowlist == nil {
+		view.Allowlist = []string{}
+	}
+	return &view, nil
 }

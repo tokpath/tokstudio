@@ -16,16 +16,16 @@ export type DashboardTotals = {
 export type DashboardAlert = { kind?: string };
 
 /** DESIGN.md 管理台英雄：待对账、毛利、佣金负债、Provider 健康。不是营销大英雄区。 */
-export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: DashboardAlert[] }) {
+export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: DashboardAlert[]; provider_health?: { state?: string } }) {
   const totals = dashboard.totals || {};
   const alerts = dashboard.alerts || [];
-  const healthKnown = Array.isArray(dashboard.alerts);
-  const circuit = alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
+  const healthKnown = dashboard.provider_health?.state === "healthy";
+  const circuit = dashboard.provider_health?.state === "degraded" || alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
   return [
     { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—"), href: "/admin/reconciliation" },
     { key: "heroProfit", hintKey: "heroProfitHint", v: formatUsdMinor(totals.gross_profit_minor), href: undefined },
     { key: "heroCommission", hintKey: "heroCommissionHint", v: formatUsdMinor(totals.commission_liability_minor), href: undefined },
-    { key: "heroHealth", hintKey: !healthKnown ? "heroHealthUnknown" : circuit ? "heroHealthBad" : "heroHealthOk", v: !healthKnown ? "UNKNOWN" : circuit ? "DEGRADED" : "READY", href: undefined },
+    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : !healthKnown ? "heroHealthUnknown" : "heroHealthOk", v: circuit ? "DEGRADED" : !healthKnown ? "UNKNOWN" : "READY", href: undefined },
   ];
 }
 

@@ -48,6 +48,7 @@ export type AdminModel = {
   display_name: string;
   status: string;
   config_ready?: boolean;
+  service_readiness?: { configuration_ready: boolean; callable: boolean; runtime_state: string; route_ids: string[]; missing: string[]; providers: {provider_id: string; route_id: string; upstream_model_id: string; missing: string[]; runtime_state: string; checked_at?: string}[] };
   sync_state?: string;
   created_by_user_id?: string;
   reviewed_by_user_id?: string;

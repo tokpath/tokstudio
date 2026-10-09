@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import type { FieldValues, UseFormHandleSubmit } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
@@ -53,6 +54,7 @@ function ConfirmDialogView({
   error,
   confirmText,
   cancelText,
+  returnFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,10 +66,11 @@ function ConfirmDialogView({
   error?: string;
   confirmText: string;
   cancelText: string;
+  returnFocus?: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={returnFocus ? event => { event.preventDefault(); returnFocus(); } : undefined}>
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <AlertTriangle className="size-4 text-hold" strokeWidth={1.75} aria-hidden />
@@ -139,6 +142,7 @@ export function ConfirmButton({
   ...buttonProps
 }: ConfirmButtonProps) {
   const t = useTranslations("common");
+  const trigger = useRef<HTMLButtonElement>(null);
   const confirmText = confirmLabel ?? t("confirm");
   const cancelText = cancelLabel ?? t("cancel");
   const { open, pending, handleOpenChange, dismiss, runConfirm } = useConfirmSession(onConfirm);
@@ -155,7 +159,7 @@ export function ConfirmButton({
 
   return (
     <>
-      <Button type="button" disabled={disabled || pending} onClick={openDialog} {...buttonProps}>
+      <Button ref={trigger} type="button" disabled={disabled || pending} onClick={openDialog} {...buttonProps}>
         {children}
       </Button>
       <ConfirmDialogView
@@ -169,6 +173,7 @@ export function ConfirmButton({
         error={error}
         confirmText={confirmText}
         cancelText={cancelText}
+        returnFocus={() => trigger.current?.focus()}
       />
     </>
   );

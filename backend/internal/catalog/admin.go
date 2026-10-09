@@ -202,6 +202,10 @@ func (s *Service) ListAdminModels(ctx context.Context) ([]ModelView, error) {
 		if err != nil {
 			return nil, err
 		}
+		view.ServiceReadiness, err = s.ModelReadiness(ctx, model.PublicID)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, *view)
 	}
 	return out, nil
@@ -212,7 +216,12 @@ func (s *Service) GetAdminModel(ctx context.Context, publicID string) (*ModelVie
 	if err != nil {
 		return nil, err
 	}
-	return s.modelView(ctx, *model)
+	view, err := s.modelView(ctx, *model)
+	if err != nil {
+		return nil, err
+	}
+	view.ServiceReadiness, err = s.ModelReadiness(ctx, model.PublicID)
+	return view, err
 }
 
 func (s *Service) CreateModel(ctx context.Context, in ModelInput, actorUserID string) (*ModelView, *PriceSnapshot, error) {
@@ -700,7 +709,7 @@ func normalizeProvider(in ProviderInput) ProviderInput {
 func providerView(row providerRow) *ProviderView {
 	return &ProviderView{
 		ID: row.ID, Name: row.Name, Slug: row.Slug, Kind: row.Kind, Adapter: row.Adapter,
-		BaseURL: row.BaseURL, Region: row.Region, Health: row.Health, Status: row.Status,
+		BaseURL: row.BaseURL, Region: row.Region, Health: row.Health, HealthCheckedAt: row.HealthCheckedAt, Status: row.Status,
 		Priority: row.Priority, Weight: row.Weight, TimeoutMS: row.TimeoutMS, RetryMax: row.RetryMax,
 		RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit, CapabilityTags: row.CapabilityTags,
 		TestBehavior: row.TestBehavior, Models: []MappedModelView{},

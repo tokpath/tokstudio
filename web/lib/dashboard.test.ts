@@ -12,6 +12,8 @@ describe("dashboardSummaryParams", () => {
   });
 
   it("keeps missing health and totals unknown", () => {
+    expect(dashboardHero({alerts: []})[3]).toMatchObject({ v: "UNKNOWN" });
+    expect(dashboardHero({provider_health:{state:"healthy"}})[3]).toMatchObject({v:"READY"});
     expect(dashboardHero({})[3]).toMatchObject({ v: "UNKNOWN", hintKey: "heroHealthUnknown" });
     expect(dashboardSummaryParams({})).toMatchObject({ pending: "—", revenue: "—", rate: "—", alerts: "—" });
   });

@@ -41,6 +41,11 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
       setMessage("有一笔支出结果待确认，请核对原操作并重试查询。");
     } else { setUsd(""); setVendor(""); setMemo(""); setWhen(localTime()); setMessage(""); }
   }, [storageKey]);
+  function validateRecord() {
+    if (operation) return true;
+    if (!parseUsdToMinor(usd) || !vendor.trim() || !when || !Number.isFinite(new Date(when).getTime())) { setMessage("请填写付款对象、正数 USD 金额和实际付款时间。"); return false; }
+    return true;
+  }
   async function record() {
     const amount = parseUsdToMinor(usd);
     if (!operation && (!amount || !vendor.trim() || !when || !Number.isFinite(new Date(when).getTime()))) { setMessage("请填写付款对象、正数 USD 金额和实际付款时间。"); return false; }
@@ -94,7 +99,7 @@ export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID
         <label className="grid gap-1 text-sm">说明（可选）<Input aria-label="说明（可选）" value={memo} onChange={e => setMemo(e.target.value)} /></label>
       </fieldset>
       {operation ? <p role="status" className="mb-3 text-sm text-hold">待确认：{operation.payload.vendor_name}，{formatUsdMinor(operation.payload.amount_minor)} USD；原操作 {operation.id}。</p> : null}
-      <ConfirmButton size="sm" disabled={viewer.loading || !viewer.userId} title="登记已实际付款的支出" description={`付款对象 ${operation?.payload.vendor_name || vendor}，金额 ${formatUsdMinor(operation?.payload.amount_minor ?? parseUsdToMinor(usd))} USD；确认款项已经在线下支付，本次只登记。`} onConfirm={record}>{operation ? "重试原操作" : "登记支出"}</ConfirmButton>
+      <ConfirmButton size="sm" disabled={viewer.loading || !viewer.userId} title="登记已实际付款的支出" description={`付款对象 ${operation?.payload.vendor_name || vendor}，金额 ${formatUsdMinor(operation?.payload.amount_minor ?? parseUsdToMinor(usd))} USD；确认款项已经在线下支付，本次只登记。`} validate={validateRecord} onConfirm={record}>{operation ? "重试原操作" : "登记支出"}</ConfirmButton>
       {operation ? <Button size="sm" variant="outline" className="ml-2" onClick={() => void checkOriginal()}>查询原操作结果</Button> : null}
     </> : null}
     <Button size="sm" variant="outline" className="ml-2" onClick={() => void query.refetch()}>刷新流水</Button>

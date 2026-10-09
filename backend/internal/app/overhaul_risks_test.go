@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commission"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
@@ -134,5 +135,63 @@ func TestOverhaulSupplierRetryAndChangedPayload(t *testing.T) {
 	row, e := a.Billing.RecordSupplier(ctx, "overhaul-test", second)
 	if e != nil || row.ID == original {
 		t.Fatalf("same note for another actual transaction: %v", e)
+	}
+}
+
+func TestOverhaulModelReadinessNeedsObservedHealth(t *testing.T) {
+	if os.Getenv("TOKENHUB_DATABASE_URL") == "" || os.Getenv("TOKENHUB_REDIS_URL") == "" {
+		t.Skip("isolated postgres and redis required")
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := mustApp(t, cfg)
+	ctx := context.Background()
+	provider, err := a.Catalog.CreateProvider(ctx, catalog.ProviderInput{Name: "Readiness test", Adapter: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model, _, err := a.Catalog.CreateModel(ctx, catalog.ModelInput{Vendor: "readiness", DisplayName: "Model " + time.Now().Format("150405.000000000"), Capabilities: map[string]any{"kind": "text"}, InitialPrice: map[string]any{"input": "0.000001", "output": "0.000002", "currency": "USD"}}, cfg.BootstrapAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial, err := a.Catalog.ModelReadiness(ctx, model.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if initial.Callable || len(initial.RouteIDs) != 0 || initial.RuntimeState != "not_configured" {
+		t.Fatalf("draft should be incomplete: %+v", initial)
+	}
+	if _, err = a.Catalog.PublishModel(ctx, model.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Catalog.SaveProviderModel(ctx, provider.ID, catalog.ProviderModelInput{UpstreamModelID: "readiness/upstream", UnitCosts: map[string]string{"input": "0.0000004", "output": "0.0000008"}}); err != nil {
+		t.Fatal(err)
+	}
+	route, err := a.Catalog.CreateRoute(ctx, catalog.RouteInput{PublicModelID: model.ID, Strategy: "priority", Status: "active", Candidates: []catalog.RouteCandidateIn{{ProviderID: provider.ID, UpstreamModelID: "readiness/upstream", Priority: 1, Weight: 1}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready, err := a.Catalog.ModelReadiness(ctx, model.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ready.Callable || ready.RuntimeState != "unknown" || len(ready.RouteIDs) != 1 || ready.RouteIDs[0] != route.ID {
+		t.Fatalf("defaults must not imply observed health: %+v", ready)
+	}
+	if _, err = a.Catalog.Probe(ctx, provider.ID); err != nil {
+		t.Fatal(err)
+	}
+	ready, err = a.Catalog.ModelReadiness(ctx, model.ID)
+	if err != nil || ready.RuntimeState != "healthy" {
+		t.Fatalf("actual controlled probe: %+v %v", ready, err)
+	}
+	if _, err = a.Catalog.SetProviderModelEnabled(ctx, provider.ID, "readiness/upstream", false); err != nil {
+		t.Fatal(err)
+	}
+	ready, err = a.Catalog.ModelReadiness(ctx, model.ID)
+	if err != nil || ready.Callable {
+		t.Fatalf("disabled cost model must block calls: %+v %v", ready, err)
 	}
 }

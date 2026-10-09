@@ -565,7 +565,8 @@
     "ownerChannel": "渠道",
     "previousPage": "上一页",
     "nextPage": "下一页",
-    "pageCount": "本页 {count} 条"
+    "pageCount": "本页 {count} 条",
+    "firstPage": "回到第一页"
   },
   "public": {
     "compare": {
@@ -2425,5 +2426,48 @@
       "staff_disable": "停用员工",
       "staff_enable": "恢复员工"
     }
+  },
+  "modelService": {
+    "healthHint": "配置齐备允许发起调用；健康仅依据近期实际检查，保存配置不会自动发起计费验证。",
+    "existingRoute": "查看原路由",
+    "newRoute": "创建路由",
+    "authorize": "查看授权组织",
+    "checkedAt": "最近检查：{time}",
+    "price": "查看当前品牌售价",
+    "state": {
+      "unknown": "运行状态未知",
+      "not_configured": "接入配置未齐",
+      "healthy": "近期检查正常",
+      "degraded": "服务降级",
+      "unavailable": "当前不可用"
+    },
+    "missing": {
+      "model_or_price": "补齐模型信息、类型和对应单位售价",
+      "publish": "发布模型",
+      "route": "尚无路由，创建一条路由",
+      "route_candidates": "启用路由并补齐至少一个可用候选",
+      "provider_disabled": "启用提供商",
+      "mapping": "选择对应上游模型",
+      "upstream_cost": "填写该上游模型真实成本",
+      "account": "添加或恢复适用的上游账户"
+    },
+    "listTitle": "模型",
+    "emptyTitle": "还没有模型",
+    "emptyDetail": "创建模型并完成售价、上游和路由配置。",
+    "create": "创建模型",
+    "modelName": "模型名称",
+    "callID": "调用 ID",
+    "vendor": "原厂",
+    "status": "发布状态",
+    "access": "服务状态",
+    "draft": "待发布",
+    "ready": "已发布",
+    "input": "输入（USD / 百万 Token）",
+    "output": "输出（USD / 百万 Token）",
+    "image_count": "图片（USD / 张）",
+    "video_second": "视频（USD / 秒）",
+    "audio_second": "音频（USD / 秒）",
+    "returnModel": "返回原模型",
+    "providerHint": "停用或维护中的上游不参与新请求；历史请求与账务保留。"
   }
 }

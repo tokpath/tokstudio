@@ -33,23 +33,24 @@ const (
 )
 
 type providerRow struct {
-	ID               string `gorm:"column:id;primaryKey"`
-	Name             string `gorm:"column:name"`
-	Slug             string `gorm:"column:slug"`
-	Kind             string `gorm:"column:kind"`
-	Adapter          string `gorm:"column:adapter"`
-	BaseURL          string `gorm:"column:base_url"`
-	Region           string `gorm:"column:region"`
-	Status           string `gorm:"column:status"`
-	Health           string `gorm:"column:health"`
-	TestBehavior     string `gorm:"column:test_behavior"`
-	Priority         int    `gorm:"column:priority"`
-	Weight           int    `gorm:"column:weight"`
-	TimeoutMS        int    `gorm:"column:timeout_ms"`
-	RetryMax         int    `gorm:"column:retry_max"`
-	RPMLimit         int    `gorm:"column:rpm_limit"`
-	ConcurrencyLimit int    `gorm:"column:concurrency_limit"`
-	CapabilityTags   string `gorm:"column:capability_tags"`
+	ID               string     `gorm:"column:id;primaryKey"`
+	Name             string     `gorm:"column:name"`
+	Slug             string     `gorm:"column:slug"`
+	Kind             string     `gorm:"column:kind"`
+	Adapter          string     `gorm:"column:adapter"`
+	BaseURL          string     `gorm:"column:base_url"`
+	Region           string     `gorm:"column:region"`
+	Status           string     `gorm:"column:status"`
+	Health           string     `gorm:"column:health"`
+	HealthCheckedAt  *time.Time `gorm:"column:health_checked_at"`
+	TestBehavior     string     `gorm:"column:test_behavior"`
+	Priority         int        `gorm:"column:priority"`
+	Weight           int        `gorm:"column:weight"`
+	TimeoutMS        int        `gorm:"column:timeout_ms"`
+	RetryMax         int        `gorm:"column:retry_max"`
+	RPMLimit         int        `gorm:"column:rpm_limit"`
+	ConcurrencyLimit int        `gorm:"column:concurrency_limit"`
+	CapabilityTags   string     `gorm:"column:capability_tags"`
 }
 
 func (providerRow) TableName() string { return "catalog_providers" }
@@ -120,21 +121,22 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID                  string         `json:"id"`
-	Vendor              string         `json:"vendor"`
-	DisplayName         string         `json:"display_name"`
-	Capabilities        map[string]any `json:"capabilities"`
-	SellPrice           map[string]any `json:"sell_price,omitempty"`
-	Providers           []string       `json:"providers"`
-	Status              string         `json:"status"`
-	ConfigReady         bool           `json:"config_ready"`
-	SyncState           string         `json:"sync_state,omitempty"`
-	CreatedByUserID     string         `json:"created_by_user_id,omitempty"`
-	ReviewedByUserID    string         `json:"reviewed_by_user_id,omitempty"`
-	Description         string         `json:"description,omitempty"`
-	Kind                string         `json:"kind,omitempty"`
-	ContextLength       int            `json:"context_length,omitempty"`
-	MaxCompletionTokens int            `json:"max_completion_tokens,omitempty"`
+	ID                  string                 `json:"id"`
+	Vendor              string                 `json:"vendor"`
+	DisplayName         string                 `json:"display_name"`
+	Capabilities        map[string]any         `json:"capabilities"`
+	SellPrice           map[string]any         `json:"sell_price,omitempty"`
+	Providers           []string               `json:"providers"`
+	Status              string                 `json:"status"`
+	ConfigReady         bool                   `json:"config_ready"`
+	ServiceReadiness    *ModelServiceReadiness `json:"service_readiness,omitempty"`
+	SyncState           string                 `json:"sync_state,omitempty"`
+	CreatedByUserID     string                 `json:"created_by_user_id,omitempty"`
+	ReviewedByUserID    string                 `json:"reviewed_by_user_id,omitempty"`
+	Description         string                 `json:"description,omitempty"`
+	Kind                string                 `json:"kind,omitempty"`
+	ContextLength       int                    `json:"context_length,omitempty"`
+	MaxCompletionTokens int                    `json:"max_completion_tokens,omitempty"`
 }
 
 // ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
@@ -948,7 +950,7 @@ func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices 
 }
 
 func (s *Service) MarkHealth(ctx context.Context, providerID, health string) error {
-	return s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).Update("health", health).Error
+	return s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).Updates(map[string]any{"health": health, "health_checked_at": time.Now().UTC()}).Error
 }
 
 type MappedModelView struct {
@@ -968,6 +970,7 @@ type ProviderView struct {
 	BaseURL          string            `json:"base_url,omitempty"`
 	Region           string            `json:"region,omitempty"`
 	Health           string            `json:"health"`
+	HealthCheckedAt  *time.Time        `json:"health_checked_at,omitempty"`
 	Status           string            `json:"status"`
 	Priority         int               `json:"priority"`
 	Weight           int               `json:"weight"`

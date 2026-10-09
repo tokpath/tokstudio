@@ -18,6 +18,7 @@ type DashboardBody = {
   dashboard?: {
     totals?: Record<string, number>;
     alerts?: { kind?: string }[];
+    provider_health?: { state?: string };
     dimensions?: Record<string, { key: string; requests?: number; revenue_minor?: number; success_rate?: number }[]>;
   };
   error?: { message?: string };

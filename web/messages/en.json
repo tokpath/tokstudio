@@ -565,7 +565,8 @@
     "ownerChannel": "Channel",
     "previousPage": "Previous page",
     "nextPage": "Next page",
-    "pageCount": "{count} records on this page"
+    "pageCount": "{count} records on this page",
+    "firstPage": "Back to first page"
   },
   "public": {
     "compare": {
@@ -2425,5 +2426,48 @@
       "staff_disable": "Staff disabled",
       "staff_enable": "Staff reactivated"
     }
+  },
+  "modelService": {
+    "healthHint": "Complete configuration allows a request. Health requires a recent observed check; saving does not run a billable probe.",
+    "existingRoute": "View existing route",
+    "newRoute": "Create route",
+    "authorize": "View authorized organizations",
+    "checkedAt": "Last check: {time}",
+    "price": "View current brand prices",
+    "state": {
+      "unknown": "Runtime status unknown",
+      "not_configured": "Configuration incomplete",
+      "healthy": "Recent check healthy",
+      "degraded": "Service degraded",
+      "unavailable": "Currently unavailable"
+    },
+    "missing": {
+      "model_or_price": "Complete model details, kind and unit prices",
+      "publish": "Publish the model",
+      "route": "Create a route",
+      "route_candidates": "Enable a route with at least one usable candidate",
+      "provider_disabled": "Enable the provider",
+      "mapping": "Select the upstream model",
+      "upstream_cost": "Set the real upstream unit costs",
+      "account": "Add or restore a matching upstream account"
+    },
+    "listTitle": "Models",
+    "emptyTitle": "No models yet",
+    "emptyDetail": "Create a model and complete prices, upstream and routing configuration.",
+    "create": "Create model",
+    "modelName": "Model name",
+    "callID": "Model ID",
+    "vendor": "Vendor",
+    "status": "Publication",
+    "access": "Service status",
+    "draft": "Unpublished",
+    "ready": "Published",
+    "input": "Input (USD / million tokens)",
+    "output": "Output (USD / million tokens)",
+    "image_count": "Images (USD / image)",
+    "video_second": "Video (USD / second)",
+    "audio_second": "Audio (USD / second)",
+    "returnModel": "Return to original model",
+    "providerHint": "Disabled providers are excluded from new requests. Request and billing history is retained."
   }
 }

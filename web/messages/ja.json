@@ -565,7 +565,8 @@
     "ownerChannel": "チャネル",
     "previousPage": "前のページ",
     "nextPage": "次のページ",
-    "pageCount": "このページは {count} 件"
+    "pageCount": "このページは {count} 件",
+    "firstPage": "最初のページへ"
   },
   "public": {
     "compare": {
@@ -2425,5 +2426,48 @@
       "staff_disable": "従業員を無効化",
       "staff_enable": "従業員を有効化"
     }
+  },
+  "modelService": {
+    "healthHint": "設定が揃うと呼び出しできます。稼働状態は最近の実測に基づきます。保存で課金される検証は実行されません。",
+    "existingRoute": "既存ルートを見る",
+    "newRoute": "ルートを作成",
+    "authorize": "許可済み組織を見る",
+    "checkedAt": "最終確認：{time}",
+    "price": "現在のブランド価格",
+    "state": {
+      "unknown": "稼働状態は未確認",
+      "not_configured": "接続設定が未完了",
+      "healthy": "最近の確認は正常",
+      "degraded": "サービス低下",
+      "unavailable": "現在利用不可"
+    },
+    "missing": {
+      "model_or_price": "モデル情報、種別と単価を設定",
+      "publish": "モデルを公開",
+      "route": "ルートを作成",
+      "route_candidates": "利用可能な候補を設定してルートを有効化",
+      "provider_disabled": "プロバイダーを有効化",
+      "mapping": "上流モデルを選択",
+      "upstream_cost": "実際の上流単価を設定",
+      "account": "対応する上流アカウントを追加・復旧"
+    },
+    "listTitle": "モデル",
+    "emptyTitle": "モデルはまだありません",
+    "emptyDetail": "モデルを作成し、価格・上流・ルーティングの設定を完了してください。",
+    "create": "モデルを作成",
+    "modelName": "モデル名",
+    "callID": "モデル ID",
+    "vendor": "ベンダー",
+    "status": "公開状態",
+    "access": "サービス状態",
+    "draft": "未公開",
+    "ready": "公開済み",
+    "input": "入力（USD / 100万トークン）",
+    "output": "出力（USD / 100万トークン）",
+    "image_count": "画像（USD / 枚）",
+    "video_second": "動画（USD / 秒）",
+    "audio_second": "音声（USD / 秒）",
+    "returnModel": "元のモデルに戻る",
+    "providerHint": "停止中の上流は新しいリクエストに使用しません。リクエストと会計の履歴は保持されます。"
   }
 }

@@ -97,7 +97,16 @@ func (a *App) adminDashboard(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取看板失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"dashboard": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	health, err := a.Catalog.ProviderHealthSummary(c.Request.Context())
+	if err != nil {
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取服务状态失败", true)
+		return
+	}
+	view := struct {
+		*ops.Dashboard
+		ProviderHealth map[string]any `json:"provider_health"`
+	}{item, health}
+	httpx.OK(c, gin.H{"dashboard": view, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminAlerts(c *gin.Context) {

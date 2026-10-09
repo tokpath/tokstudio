@@ -20,6 +20,8 @@ import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
+import { ModelServicePanel } from "../service-readiness";
+import { useViewer } from "@/components/rbac/viewer-context";
 import { type AdminModel, modelEditHref } from "@/lib/catalog";
 import { catalogStatusTone, modelStatusLabel } from "@/lib/catalog-admin";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
@@ -61,6 +63,7 @@ function pricePayload(values: PriceFields): Record<string, unknown> {
 }
 
 export default function AdminModelEditPage() {
+  const viewer = useViewer();
   const params = useParams<{ id?: string | string[] }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -70,7 +73,7 @@ export default function AdminModelEditPage() {
   const [priceMessage, setPriceMessage] = useState("");
   const [lifeError, setLifeError] = useState("");
   const query = useQuery({
-    queryKey: ["/admin/models", publicId],
+    queryKey: [viewer.userId, "/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
     enabled: !!publicId && !isNew,
   });
@@ -108,8 +111,8 @@ export default function AdminModelEditPage() {
   }, [model, modelForm, priceForm]);
 
   async function reload() {
-    await queryClient.invalidateQueries({ queryKey: ["/admin/models", publicId] });
-    await queryClient.invalidateQueries({ queryKey: ["/admin/models"] });
+    await query.refetch();
+    await queryClient.invalidateQueries({ predicate: query => query.queryKey.includes("/admin/models") });
   }
 
   async function saveModel(values: ModelFields): Promise<boolean> {
@@ -169,6 +172,7 @@ export default function AdminModelEditPage() {
       <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/models">返回模型列表</Link>
       {query.data?.error ? <p className="text-sm text-danger">{query.data.error.message}</p> : null}
 
+      {!isNew && model ? <ModelServicePanel model={model} /> : null}
       <IfCan action="models.write">
         <section className="rounded-card border border-hairline bg-canvas-raised p-6">
           <h3 className="text-base font-semibold">模型信息</h3>
@@ -250,9 +254,6 @@ export default function AdminModelEditPage() {
                   return true;
                 }} onConfirm={() => lifecycle("publish")}
               >发布模型</ConfirmButton> : <>
-                {model.config_ready !== false ?
-                  <Button asChild size="sm" variant="outline"><Link href={`/admin/routes/new?model=${encodeURIComponent(publicId)}`}>配置路由</Link></Button> :
-                  <span className="self-center text-sm text-ink-secondary">补齐模型类型和售价后可配置路由</span>}
                 <ConfirmButton size="sm" variant="outline" title="确认弃用模型" description="弃用后客户目录隐藏，历史账单保留。" error={lifeError} onConfirm={() => lifecycle("deprecate")}>弃用模型</ConfirmButton>
               </>}
             </div>

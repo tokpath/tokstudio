@@ -8,10 +8,10 @@ test("English Accept-Language uses the same URLs without a locale prefix", async
   });
   const page = await context.newPage();
 
-  await page.goto("/compare");
-  await expect(page).toHaveURL(/\/compare$/);
+  await page.goto("/models");
+  await expect(page).toHaveURL(/\/models$/);
   await expect(page).not.toHaveURL(/\/en\//);
-  await expect(page.getByRole("heading", { name: "Compare models" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Model catalog", exact: true })).toBeVisible();
 
   await mockViewer(page, { roles: ["end_user"] });
   await page.goto("/app/playground");
@@ -30,10 +30,10 @@ test("Japanese Accept-Language keeps pathnames unchanged", async ({ browser }) =
     extraHTTPHeaders: { "Accept-Language": "ja-JP,ja;q=0.9" },
   });
   const page = await context.newPage();
-  await page.goto("/desktop");
-  await expect(page).toHaveURL(/\/desktop$/);
+  await page.goto("/models");
+  await expect(page).toHaveURL(/\/models$/);
   await expect(page).not.toHaveURL(/\/ja\//);
-  await expect(page.getByRole("heading", { name: "手元のコーディングツールを一つの口座で" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "モデルカタログ", exact: true })).toBeVisible();
   await context.close();
 });
 
@@ -46,8 +46,8 @@ test("English public pages keep the same URLs and translate body copy", async ({
 
   await page.goto("/");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "Why TokenHub" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Start reconciling" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Access available models with one API account", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create API key", exact: true }).first()).toHaveAttribute("href", "/login?next=%2Fapp%2Fkeys");
   await expect(page.locator("header").getByRole("link", { name: "Console" })).toBeVisible();
 
   await page.goto("/models");
@@ -63,12 +63,14 @@ test("language switch cookie overrides Accept-Language without changing the URL"
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   });
   const page = await context.newPage();
-  await page.goto("/compare");
-  await expect(page.getByRole("heading", { name: "Compare models" })).toBeVisible();
+  await page.goto("/models");
+  await expect(page.getByRole("heading", { name: "Model catalog", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Language" }).click();
   await page.getByRole("menuitemradio", { name: "日本語" }).click();
-  await expect(page).toHaveURL(/\/compare$/);
+  await expect(page).toHaveURL(/\/models$/);
   await expect(page).not.toHaveURL(/\/ja\//);
-  await expect(page.getByRole("heading", { name: "モデル比較" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "モデルカタログ", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "モデルカタログ", exact: true })).toBeVisible();
   await context.close();
 });

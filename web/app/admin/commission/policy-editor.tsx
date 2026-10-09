@@ -17,14 +17,14 @@ type Rule = { spend_minor: number; topup_minor: number; gift_minor: number };
 const emptyPolicy = { direct: "", indirect: "", total: "", freeze: "", minimum: "" };
 const emptyRule = { spend: "", topup: "", gift: "" };
 
-export function PolicyEditor({ prefix = "/admin", canEdit = false }: { prefix?: "/admin" | "/channel"; canEdit?: boolean }) {
+export function PolicyEditor({ prefix = "/admin", canEdit = false, scope = "", ownerLabel = "" }: { scope?: string; ownerLabel?: string; prefix?: "/admin" | "/channel"; canEdit?: boolean }) {
   const viewer = useViewer();
   const [policy, setPolicy] = useState(emptyPolicy);
   const [rule, setRule] = useState(emptyRule);
   const [version, setVersion] = useState("");
   const [message, setMessage] = useState("");
-  const policyQuery = useQuery({ queryKey: [viewer.userId, prefix, "commission-policy"], queryFn: () => apiClient<{ policy?: Policy; error?: { message?: string } }>("GET", `${prefix}/commission-policy`), refetchOnWindowFocus: false });
-  const ruleQuery = useQuery({ queryKey: [viewer.userId, prefix, "eligibility-rules"], queryFn: () => apiClient<{ rule?: Rule; error?: { message?: string } }>("GET", `${prefix}/eligibility-rules`), refetchOnWindowFocus: false });
+  const policyQuery = useQuery({ queryKey: [viewer.userId, scope, prefix, "commission-policy"], queryFn: () => apiClient<{ policy?: Policy; error?: { message?: string } }>("GET", `${prefix}/commission-policy`), refetchOnWindowFocus: false });
+  const ruleQuery = useQuery({ queryKey: [viewer.userId, scope, prefix, "eligibility-rules"], queryFn: () => apiClient<{ rule?: Rule; error?: { message?: string } }>("GET", `${prefix}/eligibility-rules`), refetchOnWindowFocus: false });
   useEffect(() => {
     const p = policyQuery.data?.policy;
     if (!p?.version) return;
@@ -71,7 +71,7 @@ export function PolicyEditor({ prefix = "/admin", canEdit = false }: { prefix?: 
       <fieldset disabled={!canEdit || !policyReady} className="my-4 grid max-w-3xl gap-3 sm:grid-cols-3">
         {([{ key: "direct", label: "直接佣金（%）" }, { key: "indirect", label: "间接佣金（%）" }, { key: "total", label: "总佣金（%）" }, { key: "freeze", label: "冻结天数" }, { key: "minimum", label: "最低结算额（USD）" }] as const).map(field => <label key={field.key} className="grid gap-1 text-sm"><span>{field.label}</span><Input aria-label={field.label} value={policy[field.key]} onChange={e => setPolicy(p => ({ ...p, [field.key]: e.target.value }))} inputMode="decimal" /></label>)}
       </fieldset>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void policyQuery.refetch()}>重新读取策略</Button>{canEdit ? <ConfirmButton size="sm" disabled={!policyReady} title="保存分佣策略" description={`直接 ${policy.direct}%、间接 ${policy.indirect}%、总佣金 ${policy.total}%；以版本 ${version} 为基础，仅影响新消费。`} onConfirm={savePolicy}>保存策略</ConfirmButton> : null}</div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void policyQuery.refetch()}>重新读取策略</Button>{canEdit ? <ConfirmButton size="sm" disabled={!policyReady} title="保存分佣策略" description={`当前品牌 ${ownerLabel || "当前授权范围"}；版本 ${version}。直接 ${bpsToPercent(policyQuery.data?.policy?.direct_bps || 0)}% → ${policy.direct}%；间接 ${bpsToPercent(policyQuery.data?.policy?.indirect_bps || 0)}% → ${policy.indirect}%；总佣金 ${bpsToPercent(policyQuery.data?.policy?.total_bps || 0)}% → ${policy.total}%；冻结 ${policyQuery.data?.policy?.freeze_days} → ${policy.freeze} 天；最低结算 ${Number(policyQuery.data?.policy?.min_settle_minor || 0) / 1_000_000} → ${policy.minimum} USD。保存成功后影响新消费，历史快照保留。`} onConfirm={savePolicy}>保存策略</ConfirmButton> : null}</div>
     </section>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label="邀请分佣资格">
       <h2 className="text-lg font-semibold">邀请分佣资格</h2>

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -65,27 +64,31 @@ type entryRow struct {
 func (entryRow) TableName() string { return "commission_entries" }
 
 type settleRow struct {
-	ID                string    `gorm:"column:id;primaryKey"`
-	PeriodStart       time.Time `gorm:"column:period_start"`
-	PeriodEnd         time.Time `gorm:"column:period_end"`
-	ChannelOrgID      *string   `gorm:"column:channel_org_id"`
-	BeneficiaryRoleID *string   `gorm:"column:beneficiary_role_id"`
-	AmountMinor       int64     `gorm:"column:amount_minor"`
-	Status            string    `gorm:"column:status"`
-	PolicyVersion     string    `gorm:"column:policy_version"`
-	CreatedAt         time.Time `gorm:"column:created_at"`
+	EntryIDsJSON      json.RawMessage `gorm:"column:entry_ids_json"`
+	ID                string          `gorm:"column:id;primaryKey"`
+	PeriodStart       time.Time       `gorm:"column:period_start"`
+	PeriodEnd         time.Time       `gorm:"column:period_end"`
+	ChannelOrgID      *string         `gorm:"column:channel_org_id"`
+	BeneficiaryRoleID *string         `gorm:"column:beneficiary_role_id"`
+	AmountMinor       int64           `gorm:"column:amount_minor"`
+	Status            string          `gorm:"column:status"`
+	PolicyVersion     string          `gorm:"column:policy_version"`
+	CreatedAt         time.Time       `gorm:"column:created_at"`
 }
 
 func (settleRow) TableName() string { return "commission_settlements" }
 
 type payoutRow struct {
-	ID           string    `gorm:"column:id;primaryKey"`
-	SettlementID string    `gorm:"column:settlement_id"`
-	Method       string    `gorm:"column:method"`
-	Reference    *string   `gorm:"column:reference"`
-	ActorUserID  *string   `gorm:"column:actor_user_id"`
-	Status       string    `gorm:"column:status"`
-	CreatedAt    time.Time `gorm:"column:created_at"`
+	ID           string     `gorm:"column:id;primaryKey"`
+	SettlementID string     `gorm:"column:settlement_id"`
+	Method       string     `gorm:"column:method"`
+	Reference    *string    `gorm:"column:reference"`
+	ActorUserID  *string    `gorm:"column:actor_user_id"`
+	Status       string     `gorm:"column:status"`
+	CreatedAt    time.Time  `gorm:"column:created_at"`
+	OccurredAt   *time.Time `gorm:"column:occurred_at"`
+	Note         string     `gorm:"column:note"`
+	ScopeID      string     `gorm:"column:scope_id"`
 }
 
 func (payoutRow) TableName() string { return "commission_payouts" }
@@ -219,6 +222,9 @@ func (s *Service) savePolicyVersion(ctx context.Context, scope, scopeID string, 
 		row.Version = id.New("policy")
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
+		}
 		if scope == "channel" && in.ExpectedVersion != "" {
 			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "commission-policy:platform:*").Error; err != nil {
 				return err
@@ -624,71 +630,19 @@ func (s *Service) CreateBrandSettlement(ctx context.Context, now time.Time, igno
 }
 
 func (s *Service) createMonthlySettlement(ctx context.Context, now time.Time, ignoreMinimum bool, ownerID string, channels []string) ([]SettlementView, error) {
-	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	end := start.AddDate(0, 1, 0)
-	policy, err := s.PolicyFor(ctx, ownerID)
-	if err != nil {
-		return nil, err
-	}
-	out := []SettlementView{}
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	var out []SettlementView
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := lockSettlementLifecycle(tx); err != nil {
 			return err
 		}
-		var entries []entryRow
-		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("status = ?", StatusAvailable).Order("id")
-		if channels != nil {
-			q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
-		}
-		if err := q.Find(&entries).Error; err != nil {
+		prepared, err := s.prepareSettlementTx(tx, now, ignoreMinimum, ownerID, channels)
+		if err != nil {
 			return err
 		}
-		type group struct {
-			channel, role *string
-			amount        int64
-			ids           []string
-		}
-		groups := map[[2]string]*group{}
-		order := [][2]string{}
-		for _, e := range entries {
-			key := [2]string{}
-			if e.ChannelOrgID != nil {
-				key[0] = *e.ChannelOrgID
-			}
-			if e.BeneficiaryRoleID != nil {
-				key[1] = *e.BeneficiaryRoleID
-			}
-			if groups[key] == nil {
-				groups[key] = &group{channel: e.ChannelOrgID, role: e.BeneficiaryRoleID}
-				order = append(order, key)
-			}
-			g := groups[key]
-			g.amount += e.AmountMinor
-			g.ids = append(g.ids, e.ID)
-		}
-		for _, key := range order {
-			g := groups[key]
-			if g.amount <= 0 || (!ignoreMinimum && g.amount < policy.MinSettleMinor) {
-				continue
-			}
-			row := settleRow{ID: id.New("csl"), PeriodStart: start, PeriodEnd: end, AmountMinor: g.amount, Status: StatusSettled, PolicyVersion: policy.Version, CreatedAt: now, ChannelOrgID: g.channel, BeneficiaryRoleID: g.role}
-			if err := tx.Create(&row).Error; err != nil {
-				return err
-			}
-			if err := tx.Model(&entryRow{}).Where("id IN ?", g.ids).Updates(map[string]any{"status": StatusSettled, "settlement_id": row.ID}).Error; err != nil {
-				return err
-			}
-			if _, err := s.outbox.EnqueueTx(tx, "commission.settlement.created", "commission_settlement", row.ID, map[string]any{"entry_ids": g.ids, "amount_minor": g.amount}); err != nil {
-				return err
-			}
-			out = append(out, *settleView(row))
-		}
-		return nil
+		out, err = s.createPreparedSettlementTx(tx, now, prepared)
+		return err
 	})
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+	return out, err
 }
 
 func (s *Service) Payout(ctx context.Context, settlementID, method, reference, actor string) (*SettlementView, error) {
@@ -701,84 +655,11 @@ func (s *Service) PayoutForChannels(ctx context.Context, settlementID, method, r
 	return s.payout(ctx, settlementID, method, reference, actor, channels)
 }
 func (s *Service) payout(ctx context.Context, settlementID, method, reference, actor string, channels []string) (*SettlementView, error) {
-	method, reference = strings.TrimSpace(method), strings.TrimSpace(reference)
-	if method != "manual" || reference == "" || len(reference) > 200 {
-		return nil, ErrInvalid
-	}
 	var out *SettlementView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := lockSettlementLifecycle(tx); err != nil {
-			return err
-		}
-		var row settleRow
-		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", settlementID)
-		if channels != nil {
-			q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
-		}
-		if err := q.First(&row).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrNotFound
-			}
-			return err
-		}
-		if row.Status == StatusPaid {
-			var paid payoutRow
-			if err := tx.Where("settlement_id = ?", settlementID).First(&paid).Error; err != nil {
-				return err
-			}
-			if paid.Method != method || paid.Reference == nil || *paid.Reference != reference {
-				return ErrConflict
-			}
-			out = settleView(row)
-			out.PayoutReference = reference
-			out.PayoutMethod = method
-			return nil
-		}
-		if row.Status != StatusSettled {
-			return ErrSettlementChanged
-		}
-		var entries []entryRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("settlement_id = ?", settlementID).Order("id").Find(&entries).Error; err != nil {
-			return err
-		}
-		var total int64
-		for _, e := range entries {
-			if e.Status != StatusSettled {
-				return ErrSettlementChanged
-			}
-			total += e.AmountMinor
-		}
-		if len(entries) == 0 || total <= 0 || total != row.AmountMinor {
-			return ErrSettlementChanged
-		}
-		if s.cash != nil {
-			for _, entry := range entries {
-				if err := s.cash.PayoutCommissionTx(tx, entry.ID, settlementID, entry.AmountMinor); err != nil {
-					if errors.Is(err, billing.ErrNotFound) || errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrConflict) {
-						return ErrWalletMismatch
-					}
-					return err
-				}
-			}
-		}
-		payout := payoutRow{ID: id.New("cpo"), SettlementID: settlementID, Method: method, Reference: &reference, Status: StatusPaid, CreatedAt: time.Now().UTC()}
-		if actor != "" {
-			payout.ActorUserID = &actor
-		}
-		if err := tx.Create(&payout).Error; err != nil {
-			return err
-		}
-		row.Status = StatusPaid
-		if err := tx.Save(&row).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(&entryRow{}).Where("settlement_id = ? AND status = ?", settlementID, StatusSettled).Update("status", StatusPaid).Error; err != nil {
-			return err
-		}
-		out = settleView(row)
-		out.PayoutReference = reference
-		out.PayoutMethod = method
-		return nil
+		var err error
+		out, err = s.payoutRecordTx(tx, settlementID, PayoutInput{Method: method, Reference: reference}, actor, "legacy:"+settlementID, channels, channels)
+		return err
 	})
 	return out, err
 }
@@ -818,7 +699,7 @@ func (s *Service) ListBrandEntries(ctx context.Context, channels []string, usage
 	return s.listEntries(ctx, "", nil, usageID, channels)
 }
 func (s *Service) listEntries(ctx context.Context, channelID string, roleIDs []string, usageEventID string, channels []string) ([]EntryView, error) {
-	q := s.db.WithContext(ctx).Model(&entryRow{}).Order("created_at DESC").Limit(200)
+	q := s.db.WithContext(ctx).Model(&entryRow{}).Order("created_at DESC, id DESC")
 	if channels != nil {
 		q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
 	}
@@ -828,7 +709,7 @@ func (s *Service) listEntries(ctx context.Context, channelID string, roleIDs []s
 	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
 	}
-	if len(roleIDs) > 0 {
+	if roleIDs != nil {
 		q = q.Where("beneficiary_role_id IN ?", roleIDs)
 	}
 	var rows []entryRow
@@ -852,14 +733,14 @@ func (s *Service) ListBrandSettlements(ctx context.Context, channels []string) (
 	return s.listSettlements(ctx, "", nil, channels)
 }
 func (s *Service) listSettlements(ctx context.Context, channelID string, roleIDs, channels []string) ([]SettlementView, error) {
-	q := s.db.WithContext(ctx).Model(&settleRow{}).Order("created_at DESC").Limit(100)
+	q := s.db.WithContext(ctx).Model(&settleRow{}).Order("created_at DESC, id DESC")
 	if channels != nil {
 		q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
 	}
 	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
 	}
-	if len(roleIDs) > 0 {
+	if roleIDs != nil {
 		q = q.Where("beneficiary_role_id IN ?", roleIDs)
 	}
 	var rows []settleRow
@@ -909,6 +790,10 @@ func (s *Service) settlementViews(ctx context.Context, rows []settleRow) ([]Sett
 		view := settleView(row)
 		if paid, ok := paidByID[row.ID]; ok {
 			view.PayoutMethod = paid.Method
+			view.PayoutID = paid.ID
+			view.PayoutOccurredAt = paid.OccurredAt
+			view.PayoutRecordedAt = &paid.CreatedAt
+			view.PayoutNote = paid.Note
 			if paid.Reference != nil {
 				view.PayoutReference = *paid.Reference
 			}
@@ -946,7 +831,8 @@ func (s *Service) beneficiaryUser(tx *gorm.DB, row entryRow) (string, error) {
 
 func entryView(row entryRow) *EntryView {
 	view := &EntryView{
-		ID: row.ID, UsageEventID: row.UsageEventID, Kind: row.Kind,
+		CreatedAt: row.CreatedAt,
+		ID:        row.ID, UsageEventID: row.UsageEventID, Kind: row.Kind,
 		AmountMinor: row.AmountMinor, RawAmountMinor: row.RawAmountMinor,
 		Status: row.Status, PolicyVersion: row.PolicyVersion, AvailableAt: row.AvailableAt,
 	}
@@ -971,7 +857,7 @@ func entryView(row entryRow) *EntryView {
 func settleView(row settleRow) *SettlementView {
 	view := &SettlementView{
 		ID: row.ID, PeriodStart: row.PeriodStart, PeriodEnd: row.PeriodEnd,
-		AmountMinor: row.AmountMinor, Status: row.Status, PolicyVersion: row.PolicyVersion,
+		AmountMinor: row.AmountMinor, Status: row.Status, PolicyVersion: row.PolicyVersion, CreatedAt: row.CreatedAt, EntriesSnapshotComplete: len(row.EntryIDsJSON) > 0,
 	}
 	if row.ChannelOrgID != nil {
 		view.ChannelOrgID = *row.ChannelOrgID

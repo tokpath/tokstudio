@@ -54,6 +54,10 @@ func TestCommissionRecoveryReceipts(t *testing.T) {
 	before := balance()
 	usage := "recovery-receipt-" + suffix
 	channel := "recovery-channel-" + suffix
+	if err := a.DB.Exec("INSERT INTO identity_channel_orgs(id,code,type,parent_id,status,brand_id) SELECT ?,?,type,parent_id,status,brand_id FROM identity_channel_orgs WHERE id=?", channel, channel, identity.ResellerChannelID).Error; err != nil {
+		t.Fatal(err)
+	}
+
 	amount, err := a.Commission.Accrue(ctx, commission.AccrueInput{UsageEventID: usage, RoleID: identity.KOL2BRoleID, ChannelOrgID: channel, WholesaleMinor: 2000000, CanCommission: true})
 	if err != nil || amount <= 0 {
 		t.Fatalf("accrue %d %v", amount, err)
@@ -88,7 +92,7 @@ func TestCommissionRecoveryReceipts(t *testing.T) {
 		t.Fatal(err)
 	}
 	url := server.URL + "/admin/commission-recoveries/" + claim.ID + "/receipts"
-	in := billing.RecoveryReceiptInput{AmountMinor: amount / 3, Reference: "RECOVERY-PART1-" + suffix, Note: "internal receipt note", IdempotencyKey: "recovery-first-" + suffix}
+	in := billing.RecoveryReceiptInput{OccurredAt: time.Now().UTC().Add(-time.Minute), Confirmed: true, AmountMinor: amount / 3, Reference: "RECOVERY-PART1-" + suffix, Note: "internal receipt note", IdempotencyKey: "recovery-first-" + suffix}
 	call := func(token string, confirm bool, payload billing.RecoveryReceiptInput, want int) {
 		t.Helper()
 		code, body := doJSON(t, "POST", url, token, confirm, payload)
@@ -150,7 +154,7 @@ func TestCommissionRecoveryReceipts(t *testing.T) {
 	bad.AmountMinor = amount + 1
 	call(finance, true, bad, 400)
 	bad = in
-	bad.Reference = " "
+	bad.OccurredAt = time.Time{}
 	call(finance, true, bad, 400)
 	// Receipt, running total, audit, and audit outbox must roll back as one unit.
 	for _, table := range []string{"audit_logs", "outbox_events"} {
@@ -198,7 +202,7 @@ func TestCommissionRecoveryReceipts(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			last := billing.RecoveryReceiptInput{AmountMinor: amount - in.AmountMinor, Reference: "RECOVERY-LAST-" + suffix + strconv.Itoa(i), IdempotencyKey: "recovery-last-" + suffix + strconv.Itoa(i)}
+			last := billing.RecoveryReceiptInput{OccurredAt: time.Now().UTC().Add(-time.Minute), Confirmed: true, AmountMinor: amount - in.AmountMinor, Reference: "RECOVERY-LAST-" + suffix + strconv.Itoa(i), IdempotencyKey: "recovery-last-" + suffix + strconv.Itoa(i)}
 			code, _ := doJSON(t, "POST", url, finance, true, last)
 			codes <- code
 		}(i)

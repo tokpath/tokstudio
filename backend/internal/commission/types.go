@@ -55,6 +55,7 @@ type AccrueInput struct {
 }
 
 type EntryView struct {
+	CreatedAt         time.Time  `json:"created_at"`
 	ReversalOf        string     `json:"reversal_of,omitempty"`
 	ID                string     `json:"id"`
 	UsageEventID      string     `json:"usage_event_id"`
@@ -71,20 +72,26 @@ type EntryView struct {
 }
 
 type SettlementView struct {
-	RecoveryTracked      bool      `json:"recovery_tracked"`
-	RecoveredMinor       int64     `json:"recovered_minor"`
-	RecoveryPendingMinor int64     `json:"recovery_pending_minor"`
-	PayoutReference      string    `json:"payout_reference,omitempty"`
-	PayoutMethod         string    `json:"payout_method,omitempty"`
-	ReversedMinor        int64     `json:"reversed_minor"`
-	ID                   string    `json:"id"`
-	PeriodStart          time.Time `json:"period_start"`
-	PeriodEnd            time.Time `json:"period_end"`
-	ChannelOrgID         string    `json:"channel_org_id,omitempty"`
-	BeneficiaryRoleID    string    `json:"beneficiary_role_id,omitempty"`
-	AmountMinor          int64     `json:"amount_minor"`
-	Status               string    `json:"status"`
-	PolicyVersion        string    `json:"policy_version"`
+	EntriesSnapshotComplete bool       `json:"entries_snapshot_complete"`
+	PayoutID                string     `json:"payout_id,omitempty"`
+	PayoutOccurredAt        *time.Time `json:"payout_occurred_at,omitempty"`
+	PayoutRecordedAt        *time.Time `json:"payout_recorded_at,omitempty"`
+	PayoutNote              string     `json:"payout_note,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+	RecoveryTracked         bool       `json:"recovery_tracked"`
+	RecoveredMinor          int64      `json:"recovered_minor"`
+	RecoveryPendingMinor    int64      `json:"recovery_pending_minor"`
+	PayoutReference         string     `json:"payout_reference,omitempty"`
+	PayoutMethod            string     `json:"payout_method,omitempty"`
+	ReversedMinor           int64      `json:"reversed_minor"`
+	ID                      string     `json:"id"`
+	PeriodStart             time.Time  `json:"period_start"`
+	PeriodEnd               time.Time  `json:"period_end"`
+	ChannelOrgID            string     `json:"channel_org_id,omitempty"`
+	BeneficiaryRoleID       string     `json:"beneficiary_role_id,omitempty"`
+	AmountMinor             int64      `json:"amount_minor"`
+	Status                  string     `json:"status"`
+	PolicyVersion           string     `json:"policy_version"`
 }
 
 type PolicyView struct {

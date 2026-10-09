@@ -1,65 +1,27 @@
 import { expect, test } from "@playwright/test";
 import { mockViewer } from "./mock-viewer";
-
-const item = { id: "cst_alice", status: "settled", amount_minor: 1250000, period_start: "2026-09-01", recipient: { email: "alice@example.test", display_name: "Alice" }, channel_code: "CHANNEL-A" };
-test("finance verifies recipient and receipt, retries uncertain payment registration without changing the operation", async ({ page }) => {
-  await mockViewer(page, { roles: ["finance_admin"] });
-  let paid = false;
-  await page.route("**/admin/settlements", r => r.fulfill({ json: { items: [{ ...item, status: paid ? "paid" : "settled", payout_reference: paid ? "WIRE-123" : "" }] } }));
-  let sends = 0;
-  await page.route("**/admin/settlements/cst_alice/payout", async r => {
-    expect(r.request().postDataJSON()).toEqual({ method: "manual", reference: "WIRE-123" });
-    expect(r.request().headers()["x-tokenhub-confirm"]).toBe("1");
-    if (++sends === 1) await r.abort(); else { paid = true; await r.fulfill({ json: { item: { ...item, status: "paid" } } }); }
-  });
-  await page.goto("/admin/commission");
-  const panel = page.getByRole("region", { name: "佣金结算与打款登记" });
-  await expect(panel.getByLabel("忽略最低结算金额")).not.toBeChecked();
-  await panel.getByRole("button", { name: "登记此单打款" }).click();
-  await expect(panel.getByRole("button", { name: "核对并登记" })).toBeDisabled();
-  await panel.getByLabel("线下打款凭证").fill(" WIRE-123 ");
-  await panel.getByRole("button", { name: "核对并登记" }).click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("alice@example.test");
-  await expect(dialog).toContainText("$1.25 USD");
-  await expect(dialog).toContainText("CHANNEL-A");
-  await expect(dialog).toContainText("登记时同步扣减佣金钱包");
-  await dialog.getByRole("button", { name: "确认", exact: true }).click();
-  await expect(dialog.getByRole("alert")).toContainText("同一结算单及凭证不会重复登记");
-  await dialog.getByRole("button", { name: "确认", exact: true }).click();
-  await expect(dialog).toHaveCount(0);
-  await expect(panel).toContainText("打款凭证：WIRE-123");
-  await expect(panel.getByRole("button", { name: "登记此单打款" })).toHaveCount(0);
-  expect(sends).toBe(2);
+const item = { id: "cst_alice", status: "settled", amount_minor: 1250000, created_at: "2026-10-10T00:00:00Z", period_start: "2026-10-01", period_end: "2026-11-01", recipient: { email: "alice@example.test", display_name: "Alice" }, channel_code: "CHANNEL-A", entries_snapshot_complete: true };
+async function context(page: import("@playwright/test").Page) {
+ await page.route("**/admin/commission-context",r=>r.fulfill({json:{owner_id:"platform",owner_code:"平台",channel_ids:["channel-a"],channel_codes:{"channel-a":"CHANNEL-A"}}}));
+}
+test("finance records actual payout and retains the exact operation after reload",async({page})=>{
+ await mockViewer(page,{roles:["finance_admin"]});await context(page);
+ await page.route("**/admin/settlements?**",r=>r.fulfill({json:{items:[item],total:1,next_cursor:""}}));
+ await page.route("**/admin/settlements/cst_alice",r=>r.fulfill({json:{item,entries:[]}}));
+ await page.route("**/admin/commission-operations/*",r=>r.fulfill({status:404,json:{error:{code:"not_found"}}}));
+ const payloads:unknown[]=[];
+ await page.route("**/admin/settlements/cst_alice/payout",async r=>{const body=r.request().postDataJSON();payloads.push(body);expect(body).toMatchObject({method:"manual",amount_minor:1250000,confirmed:true,reference:"",note:""});expect(body.operation_id).toBeTruthy();expect(body.occurred_at).toBeTruthy();expect(r.request().headers()["x-tokenhub-confirm"]).toBe("1");if(payloads.length===1)await r.abort();else await r.fulfill({json:{item:{...item,status:"paid",payout_id:"payout-original"}}});});
+ await page.goto("/admin/commission?tab=payout");await page.getByRole("button",{name:"登记此单打款",exact:true}).click();const drawer=page.getByRole("dialog");await expect(drawer).toContainText("alice@example.test");await expect(drawer.getByRole("button",{name:"核对并登记"})).toBeDisabled();await drawer.getByLabel("我确认这笔打款已实际完成").check();await drawer.getByRole("button",{name:"核对并登记"}).click();await page.getByRole("dialog").last().getByRole("button",{name:"确认",exact:true}).click();await expect(page.getByRole("dialog").last()).toContainText("结果尚未确认");await page.reload();const original=page.getByLabel("原操作结果待确认");await original.getByRole("button",{name:"回查原操作"}).click();await expect(page.getByText(/暂未查到原记录/)).toBeVisible();await original.getByRole("button",{name:"重试原操作"}).click();await expect(page.getByText(/已确认登记：Alice/)).toBeVisible();expect(payloads).toHaveLength(2);expect(payloads[0]).toEqual(payloads[1]);
 });
-
-test("due-only unfreeze and monthly generation preserve the minimum by default", async ({ page }) => {
-  await mockViewer(page, { roles: ["finance_admin"] });
-  await page.route("**/admin/settlements", r => r.fulfill({ json: { items: [] } }));
-  let unfreezes = 0, batches = 0;
-  await page.route("**/admin/commissions/unfreeze", r => { expect(r.request().postDataJSON()).toEqual({}); unfreezes++; return r.fulfill({ json: { unfrozen: 0 } }); });
-  await page.route("**/admin/commissions/settle*", r => { expect(new URL(r.request().url()).search).toBe(""); batches++; return r.fulfill({ json: { items: [] } }); });
-  await page.goto("/admin/commission");
-  await page.getByRole("button", { name: "解冻到期佣金", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
-  await expect(page.getByText("当前没有已到期且可解冻的佣金，未提前解冻任何记录。")).toBeVisible();
-  await page.getByRole("button", { name: "生成结算单", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("遵守最低结算金额");
-  await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
-  await expect(page.getByText("没有符合本次条件的可结算佣金，未生成空结算单。")).toBeVisible();
-  expect(unfreezes).toBe(1); expect(batches).toBe(1);
+test("settlement preview preserves the minimum and submits the original candidate snapshot",async({page})=>{
+ await mockViewer(page,{roles:["finance_admin"]});await context(page);await page.route("**/admin/commissions?**",r=>r.fulfill({json:{items:[],total:0}}));
+ await page.route("**/admin/commissions/unfreeze",r=>{expect(r.request().postDataJSON().operation_id).toBeTruthy();return r.fulfill({json:{unfrozen:0}});});
+ await page.route("**/admin/commissions/settlement-preview?**",r=>{expect(new URL(r.request().url()).searchParams.get("ignore_minimum")).toBeNull();return r.fulfill({json:{preview:{id:"preview-one",period_start:"2026-10-01",period_end:"2026-11-01",entry_count:3,recipient_count:1,settlement_count:1,amount_minor:1250000,min_settle_minor:1000000,ignore_minimum:false,policy_version:"version-one",groups:[],excluded:{frozen:{entry_count:2,amount_minor:100000}},expires_at:"2026-10-10T12:00:00Z"},recipients:{},channel_codes:{}}});});
+ await page.route("**/admin/commissions/settle",r=>{const body=r.request().postDataJSON();expect(body.preview_id).toBe("preview-one");expect(body.operation_id).toBeTruthy();return r.fulfill({json:{items:[item],operation_id:body.operation_id}});});
+ await page.goto("/admin/commission");await page.getByRole("button",{name:"解冻到期佣金",exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"确认",exact:true}).click();await expect(page.getByText(/已确认登记：解冻到期佣金/)).toBeVisible();await page.getByRole("button",{name:"结算预览",exact:true}).click();const drawer=page.getByRole("dialog");await expect(drawer.getByLabel("本次忽略最低结算额")).not.toBeChecked();await expect(drawer).toContainText("3 条佣金 · 1 位收款人");await expect(drawer).toContainText("冻结中 · 2");await drawer.getByRole("button",{name:"生成结算单",exact:true}).click();await page.getByRole("dialog").last().getByRole("button",{name:"确认",exact:true}).click();await expect(page.getByText(/已确认登记：生成结算单/)).toBeVisible();
 });
-
-test("audit sees cancellation and paid reversal evidence without mutation controls", async ({ page }) => {
-  await mockViewer(page, { roles: ["audit_readonly"] });
-  await page.route("**/admin/settlements", r => r.fulfill({ json: { items: [{ ...item, status: "cancelled" }, { ...item, id: "cst_paid", status: "paid", payout_reference: "WIRE-789", reversed_minor: 300000 }] } }));
-  await page.goto("/admin/commission");
-  const panel = page.getByRole("region", { name: "佣金结算与打款登记" });
-  await expect(panel).toContainText("未冲正的佣金已恢复可结算");
-  await expect(panel).toContainText("打款后佣金冲正 $0.30 USD");
-  await expect(panel).toContainText("WIRE-789");
-  await expect(panel.getByRole("button", { name: "生成结算单" })).toHaveCount(0);
-  await expect(panel.getByRole("button", { name: "登记此单打款" })).toHaveCount(0);
+test("audit reads original payout and cancellation facts without mutation controls",async({page})=>{
+ await mockViewer(page,{roles:["audit_readonly"]});await context(page);const cancelled={...item,status:"cancelled",payout_reference:"WIRE-789",reversed_minor:300000};await page.route("**/admin/commissions?**",r=>r.fulfill({json:{items:[{...cancelled,settlement_id:item.id}],total:1}}));await page.route("**/admin/settlements/cst_alice",r=>r.fulfill({json:{item:cancelled,entries:[]}}));await page.goto("/admin/commission?tab=all");await page.getByRole("button",{name:"查看详情"}).click();await expect(page.getByRole("dialog")).toContainText("已撤销");await expect(page.getByRole("dialog")).toContainText("$0.30 USD");await expect(page.getByRole("button",{name:"核对并登记"})).toHaveCount(0);await expect(page.getByRole("button",{name:"结算预览",exact:true})).toHaveCount(0);
 });
 
 test("wallet separates paid commission recovery from spendable balances", async ({ page }) => {

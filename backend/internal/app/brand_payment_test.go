@@ -274,12 +274,15 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if err != nil || len(bEntries) == 0 || bEntries[0].Status != commission.StatusFrozen {
 		t.Fatalf("OEM unfroze platform commission: %+v %v", bEntries, err)
 	}
-	settlements := postJSONRaw(t, server.URL+"/channel/commissions/settle?ignore_minimum=1", oem, map[string]any{})
+	preview := getAuthJSON(t, server.URL+"/channel/commissions/settlement-preview?ignore_minimum=1", oem)
+	settlements := postJSONRaw(t, server.URL+"/channel/commissions/settle", oem, map[string]any{"operation_id": marker + "-settle", "preview_id": preview["preview"].(map[string]any)["id"]})
 	sid := ""
+	amount := int64(0)
 	for _, raw := range settlements["items"].([]any) {
 		item := raw.(map[string]any)
 		if item["channel_org_id"] == child.ID {
 			sid = item["id"].(string)
+			amount = asInt(item["amount_minor"])
 		}
 		if item["channel_org_id"] == identity.ResellerChannelID {
 			t.Fatal("OEM settled a platform commission")
@@ -291,10 +294,10 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if hasPlan(getAuthJSON(t, server.URL+"/admin/settlements", cfg.BootstrapAdmin), sid) {
 		t.Fatal("OEM settlement leaked to platform payment list")
 	}
-	if status, _ := doJSON(t, http.MethodPost, server.URL+"/admin/settlements/"+sid+"/payout", cfg.BootstrapAdmin, true, map[string]any{"method": "manual", "reference": marker + "-wrong"}); status != 404 {
+	if status, _ := doJSON(t, http.MethodPost, server.URL+"/admin/settlements/"+sid+"/payout", cfg.BootstrapAdmin, true, map[string]any{"method": "manual", "reference": marker + "-wrong", "operation_id": marker + "-wrong-op", "amount_minor": amount, "occurred_at": time.Now().Add(-time.Minute), "confirmed": true}); status != 404 {
 		t.Fatalf("platform recorded OEM payout: %d", status)
 	}
-	postJSONRaw(t, server.URL+"/channel/settlements/"+sid+"/payout", oem, map[string]any{"method": "manual", "reference": marker + "-payout"})
+	postJSONRaw(t, server.URL+"/channel/settlements/"+sid+"/payout", oem, map[string]any{"method": "manual", "reference": marker + "-payout", "operation_id": marker + "-payout-op", "amount_minor": amount, "occurred_at": time.Now().Add(-time.Minute), "confirmed": true})
 	var payout struct {
 		ActorUserID string
 		CreatedAt   time.Time

@@ -866,6 +866,10 @@ func (s *Service) listSettlements(ctx context.Context, channelID string, roleIDs
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	return s.settlementViews(ctx, rows)
+}
+
+func (s *Service) settlementViews(ctx context.Context, rows []settleRow) ([]SettlementView, error) {
 	out := make([]SettlementView, 0, len(rows))
 	if len(rows) == 0 {
 		return out, nil

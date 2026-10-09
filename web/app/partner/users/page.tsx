@@ -1,11 +1,5 @@
-import { PartnerBoard } from "../partner-board";
-import { I18nConsoleHeader } from "@/components/i18n-page-hero";
+import { redirect } from "next/navigation";
 
-export default function PartnerUsersPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <I18nConsoleHeader id="partnerUsers" />
-      <PartnerBoard section="users" />
-    </div>
-  );
+export default function LegacyPartnerPage() {
+  redirect("/app/referral?tab=users");
 }

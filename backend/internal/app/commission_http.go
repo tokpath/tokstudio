@@ -93,6 +93,23 @@ func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, 
 	return mem.ChannelOrgID, ids, true
 }
 
+// Financial results in the account belong to its own memberships. Customer
+// visibility retains the existing professional/management scope separately.
+func (a *App) partnerIncomeScope(c *gin.Context) (string, []string, bool) {
+	p := a.currentPrincipal(c)
+	if p == nil {
+		return "", nil, false
+	}
+	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") || p.IsChannelStaff() {
+		return a.partnerScope(c)
+	}
+	own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+	if err != nil || len(own.RoleIDs) == 0 {
+		return "", nil, false
+	}
+	return "", own.RoleIDs, true
+}
+
 func (a *App) partnerMe(c *gin.Context) {
 	p := a.currentPrincipal(c)
 	if p == nil {
@@ -133,6 +150,13 @@ func (a *App) partnerMe(c *gin.Context) {
 
 func (a *App) partnerUsers(c *gin.Context) {
 	p := a.currentPrincipal(c)
+	if !p.IsPlatformAdmin() && !p.HasRole("finance_admin", "ops_admin") && !p.IsChannelStaff() {
+		mem, err := a.Identity.MemberRole(c.Request.Context(), p.UserID)
+		if err != nil || mem.Status != "active" || mem.Type == identity.AcqPromoter {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "此账户没有专业推广客户查看权限", false)
+			return
+		}
+	}
 	if _, _, ok := a.partnerScope(c); !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -147,7 +171,7 @@ func (a *App) partnerUsers(c *gin.Context) {
 }
 
 func (a *App) partnerCommissions(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -161,7 +185,7 @@ func (a *App) partnerCommissions(c *gin.Context) {
 }
 
 func (a *App) partnerSettlements(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -175,7 +199,7 @@ func (a *App) partnerSettlements(c *gin.Context) {
 }
 
 func (a *App) partnerExport(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return

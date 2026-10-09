@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"net/http"
@@ -166,14 +167,76 @@ func TestOpenAIChatToolRoundTripActualOutbound(t *testing.T) {
 	adapter := BifrostAdapter{Runtime: runtime}
 	ctx = context.WithValue(ctx, ctxProviderBaseURLKey, upstream.URL+"/v1")
 	cap := 32
-	request := ChatRequest{Model: "gpt-4.1-mini", MaxTokens: &cap, Messages: []ChatMessage{{Role: "user", Content: "read a.txt"}}, Tools: json.RawMessage(`[{"type":"function","function":{"name":"read_file","parameters":{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}}}]`)}
+	request := ChatRequest{Stream: true, Model: "gpt-4.1-mini", MaxTokens: &cap, Messages: []ChatMessage{{Role: "user", Content: "read a.txt"}}, Tools: json.RawMessage(`[{"type":"function","function":{"name":"read_file","parameters":{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}}}]`)}
 	first, err := adapter.Chat(ctx, "openai", "", request)
 	if err != nil || len(first.Body.Choices) != 1 || len(first.Body.Choices[0].Message.ToolCalls) != 1 {
 		t.Fatalf("tool output lost %+v %v", first, err)
+	}
+	if len(first.Stream) != 3 {
+		t.Fatalf("missing tool SSE chunks %+v", first.Stream)
+	}
+	var chunk map[string]any
+	if err := json.Unmarshal([]byte(first.Stream[0]), &chunk); err != nil {
+		t.Fatal(err)
+	}
+	delta := chunk["choices"].([]any)[0].(map[string]any)["delta"].(map[string]any)
+	call := delta["tool_calls"].([]any)[0].(map[string]any)
+	if call["index"] != float64(0) || call["id"] != "call_local" || call["function"].(map[string]any)["arguments"] != `{"path":"a.txt"}` {
+		t.Fatalf("tool SSE identity lost %+v", chunk)
+	}
+	if err := json.Unmarshal([]byte(first.Stream[1]), &chunk); err != nil {
+		t.Fatal(err)
+	}
+	if chunk["choices"].([]any)[0].(map[string]any)["finish_reason"] != "tool_calls" {
+		t.Fatalf("tool SSE finish lost %+v", chunk)
 	}
 	request.Messages = append(request.Messages, first.Body.Choices[0].Message, ChatMessage{Role: "tool", ToolCallID: "call_local", Content: "file contents"})
 	second, err := adapter.Chat(ctx, "openai", "", request)
 	if err != nil || second.Body.Choices[0].Message.Content != "done" || calls != 2 {
 		t.Fatalf("tool result %+v %v", second, err)
+	}
+}
+
+func TestRealAdapterUnknownAndMissingUsage(t *testing.T) {
+	tiny := 1
+	if _, err := (BifrostAdapter{}).openRouterChat(context.Background(), ChatRequest{MaxTokens: &tiny}); err == nil {
+		t.Fatal("small ceiling raised to provider minimum instead of rejecting")
+	}
+	for _, code := range []int{0, 500, 502, 503} {
+		var status *int
+		if code != 0 {
+			value := code
+			status = &value
+		}
+		out := mapBifrostError(&schemas.BifrostError{StatusCode: status})
+		if out.ErrorClass != "outcome_unknown" {
+			t.Fatalf("SDK error silently treated as known failure: %+v", out)
+		}
+	}
+	for _, fixture := range []struct {
+		status int
+		body   string
+	}{{502, `{"error":{"message":"upstream failed after acceptance"}}`}, {200, `{"id":"chat_no_usage","choices":[{"index":0,"message":{"role":"assistant","content":"done"}}]}`}} {
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(fixture.status)
+			_, _ = w.Write([]byte(fixture.body))
+		}))
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		runtime := &Runtime{settings: Settings{OpenRouterAPIKey: "sk-local-unknown"}}
+		ctx = context.WithValue(ctx, ctxProviderBaseURLKey, upstream.URL+"/v1")
+		cap := 32
+		out, err := (BifrostAdapter{Runtime: runtime}).openRouterChat(ctx, ChatRequest{Model: "openai/gpt-4.1-mini", MaxTokens: &cap, Messages: []ChatMessage{{Role: "user", Content: "ping"}}})
+		cancel()
+		upstream.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fixture.status >= 500 && out.ErrorClass != "outcome_unknown" {
+			t.Fatalf("5xx discarded accepted request fact: %+v", out)
+		}
+		if fixture.status == 200 && out.Body.Usage != nil {
+			t.Fatalf("invented missing usage: %+v", out.Body.Usage)
+		}
 	}
 }

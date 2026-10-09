@@ -269,6 +269,11 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	if *in.Chat.MaxTokens <= 0 || *in.Chat.MaxTokens > 1_000_000 {
 		return nil, ParamError{Param: "max_tokens"}
 	}
+	for _, cand := range cands {
+		if _, real := s.adapterFor(cand.Adapter).(BifrostAdapter); real && string(resolveBifrostProvider(cand.ProviderSlug)) == "openrouter" && *in.Chat.MaxTokens < 16 {
+			return nil, ParamError{Param: "max_tokens (OpenRouter minimum 16)"}
+		}
+	}
 	raw, _ := json.Marshal(in.Chat)
 	// Text tokenizers cannot emit more tokens than serialized input bytes plus
 	// framing. Images/audio and unbounded reasoning require a verified adapter bound.
@@ -397,7 +402,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
 			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
-			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || (err != nil && result.HTTPStatus == 0) {
+			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || result.ErrorClass == "outcome_unknown" || (err != nil && result.HTTPStatus == 0) {
 				_, settleErr := s.booker.Settle(context.WithoutCancel(ctx), billing.SettleInput{RequestID: in.RequestID, UserID: in.Caller.UserID, APIKeyID: in.Caller.APIKeyID, PublicModelID: model.ID, MissingUsage: true})
 				if settleErr != nil {
 					return nil, settleErr
@@ -422,7 +427,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		result.Body.RequestID = in.RequestID
 		result.Body.Model = in.Chat.Model
 		out.Response = result.Body
-		out.Stream = result.Stream
+		out.Stream = publicChatStreamChunks(result.Stream, in.Chat.Model)
 		if in.Chat.Stream {
 			streamStarted = true
 		}

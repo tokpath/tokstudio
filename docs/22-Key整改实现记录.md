@@ -16,6 +16,7 @@
 - 用户保留本人请求、用量及计费状态查询，公开响应和回单不包含内部提供商、上游、路由及成本；详细诊断保留在内部授权入口。
 - 公共模型目录提供按公开 ID 稳定排序的游标分页；实际 HTTP 103 个发布、定价、路由、授权模型已验证两页完整无重复。Key 模型选项完整读取，保留已选但下架 ID，加载失败不当零模型。
 - 模型说明共用 `ModelUsagePanel`：当前品牌真实 Base URL、公开模型 ID、实际适配能力、价格及安全服务状态。协议/Agent/Key/模型上下文与充值回程保留；无 Key 或未登录也可阅读。Key 列表读取失败显示重试，不显示假空列表或原始失效 Key ID。
+- 缺失或畸形品牌 API 域名返回明确不可用，不回退平台地址；只接受 host[:port]，拒绝 URL scheme、userinfo、路径、query、fragment 及无效端口。真实 OEM 与本地监听地址保留。协议能力覆盖运行时的明确 text adapter 别名（含 openai/openrouter），不按模型 vendor 推断；实际 ModelView 与独立能力回归均覆盖。
 - `/docs`、`/docs/integrations`、公共模型详情与 `/app/docs` 复用真实说明，`/integrations` 进入同一公开入口；从用户目录详情进入同一说明。代码仅使用环境变量 Key，秘密不进入 URL 或示例。
 - cURL、Python 标准库 urllib 与 Node 原生 fetch 示例直接执行本地 HTTP 验证，不安装 SDK、不以字符串快照充当执行验证。
 
@@ -29,13 +30,17 @@
 
 当前不承诺任意第三方 OpenAI-compatible URL、原生 Gemini、OpenRouter Gemini 或动态 router 的硬上限。这些模型仍可按已有正常协议使用不设单独 USD 上限的 Key，并受账户额度约束。配置必须由平台将实际已验证路径接入；本工作流未读取或验证生产供应账户，不声称部署后的每个模型都支持限额。
 
-依据：[OpenAI Chat 参数](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)、[Anthropic thinking 与输出上限](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)、[OpenRouter reasoning](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)。OpenRouter SDK 固定 origin 拼接问题由其公开 HTTP 适配替代，真实本地出站测试同时验证路径、鉴权、上限与用量解析。
+依据：[OpenAI Chat 参数](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)、[Anthropic thinking 与输出上限](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)。[OpenRouter Chat 参数](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion) 明确 `max_completion_tokens`，将 `max_tokens` 标为弃用；[OpenRouter reasoning](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens) 说明两者共享可见输出与推理预算，并单列 Anthropic 总输出须高于 reasoning budget 的约束。这里只适用于上述明确模型族，不扩展到所有兼容服务。OpenRouter 最小输出可能为 16，平台拒绝低于 16 的请求，不自动提高用户上限。
+
+Bifrost 当前 OpenRouter SDK 把 URLPath 拼到固定 origin，不能正确执行配置的完整 Base URL；本批使用其官方 Chat HTTP 契约替代这一调用，继续经过 TokenHub 原预授权/请求/attempt/结算。实际 localhost 测试只证明实现发送路径、鉴权、参数并正确解析用量，供应商会如何执行上限的依据仍为官方协议，不以 mock 当供应商证明。文档有 Token 边界小幅超报示例，因此上限控制不是对违约上游的无限保证；测量超过预授权保留全量事实并进入待对账。
 
 ## Agent 与协议边界
 
 可复制说明提供通用 OpenAI-compatible 字段与 Cline 的实际设置位置、兼容类型、品牌 `/v1` 地址和公开模型 ID。真实 OpenAI HTTP 上游两轮测试已验证 tools、assistant tool_calls、tool_call_id 与工具结果内容不丢失。依据：[Cline 官方配置](https://docs.cline.bot/provider-config/openai-compatible)。
 
-**提交核心批次时，Chat SSE 的工具 delta/index/finish/usage 补齐在进行；尚未宣称完成 Cline 客户端端到端验收。** 当前桥接为上游响应完成后输出 SSE，不是实时逐 Token 透传。后续必要修复独立提交并记录验证结果。
+核心提交 `d7b71ab` 时 Chat SSE 的工具保真仍在进行。后续必要批次已补 delta 中 tool_calls 的 index、ID、函数名和参数，finish_reason 与 usage chunk；真实 OpenAI 本地 HTTP 两轮工具往返及 SSE 数据断言通过。网关将 SSE 的 model 投影为原请求公开模型 ID，不泄漏实际上游模型。当前桥接为上游响应完成后输出 SSE，不是实时逐 Token 透传。尚未宣称完成安装的 Cline 客户端端到端验收。
+
+SDK 没有明确 HTTP status 或返回真实 5xx，OpenRouter 返回 5xx/超时/无法解析结果，均标为结果未知并保留原请求与待对账占用；成功响应无用量不造计量。确定的参数拒绝/429 仍可按既有失败规则处理。测试覆盖真实适配器未知分类、空用量与低于最小输出拒绝。
 
 Responses 当前支持字符串 input、非流式文本 JSON 输出、输出上限及用量；高级输入、会话续接、工具生命周期、存储和事件流明确拒绝，未实现检索/取消等完整生命周期。Messages 当前支持字符串消息/system、工具定义转换及工具输出；原生内容块、工具结果往返、thinking 与 Messages 事件流未实现并明确拒绝。它们是部分协议能力，不能据简易 POST 成功宣称完整 Agent 接通。
 
@@ -55,6 +60,7 @@ Codex 与 Claude Code 未列为正常可用 Agent 选项，说明分别指出 Re
 ## 验证状态与剩余项
 
 - 隔离 Go 容器执行 `go test ./... -count=1` 全通过（2026-10-10 核心批次），包括独立 PostgreSQL、Redis DB2 与 MinIO 的真实对象存储分支。
+- 必要收尾批次定向执行 catalog/gateway/app：协议别名与实际 ModelView、真实 HTTP 两轮工具 SSE、公开模型 ID、未知 5xx/空用量/小输出拒绝、品牌地址与未知计费占用回归通过；核心全量结果仍为上述批次。
 - 离线 Node 容器执行 `npm test`：79 文件、408 用例通过；`tsc --noEmit` 通过。未删计费断言；旧内部控制测试迁至独立诊断，公共安全另验证。旧超预留夹具改为正常有界调用，超额事实由专门回归保护。
 - G20/G26/G27/G29：零余额创建、原子模型策略、并发限额/套餐、编辑占用边界、到期/停用/轮换、未知/重复/冲正、全公开入口内部控制和正确恢复动作均有自动化证据；G18 创建未知复用同操作、成功后回读失败与旧对象晚响应有回归。
 - G09 原预授权品牌/用户/Key/模型/价格快照及实际候选成本保存；G14 真品牌地址与可执行示例；真实 HTTP >100 模型目录有专门回归。

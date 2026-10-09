@@ -164,11 +164,8 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 		return mapBifrostError(berr), fmt.Errorf("%s", berr.GetErrorString())
 	}
 	out := fromBifrostChat(resp)
-	if req.Stream && len(out.Body.Choices) > 0 {
-		text := out.Body.Choices[0].Message.Content
-		out.Stream = []string{
-			`{"id":"` + out.Body.ID + `","object":"chat.completion.chunk","choices":[{"delta":{"content":"` + jsonEscape(text) + `"}}]}`,
-		}
+	if req.Stream {
+		out.Stream = chatStreamChunks(out.Body)
 	}
 	return out, nil
 }
@@ -424,10 +421,13 @@ func echoedMetaFromExtra(extra schemas.BifrostResponseExtraFields) map[string]st
 }
 
 func mapBifrostError(berr *schemas.BifrostError) AdapterResult {
-	status := 502
+	status := 0
 	class := "upstream_error"
 	if berr != nil && berr.StatusCode != nil && *berr.StatusCode > 0 {
 		status = *berr.StatusCode
+	}
+	if status == 0 || status >= 500 {
+		return AdapterResult{HTTPStatus: status, ErrorClass: "outcome_unknown"}
 	}
 	switch status {
 	case 408:

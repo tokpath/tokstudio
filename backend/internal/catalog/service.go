@@ -1123,17 +1123,7 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 	if err := s.db.WithContext(ctx).Table("catalog_provider_model_mappings m").Select("DISTINCT p.adapter").Joins("JOIN catalog_providers p ON p.id=m.provider_id").Where("m.public_model_id = ? AND m.status = ? AND p.status = ?", model.ID, "active", "active").Scan(&adapters).Error; err != nil {
 		return nil, err
 	}
-	endpoints := []string{}
-	for _, adapter := range adapters {
-		switch {
-		case view.Kind == "text" && (adapter == "bifrost" || adapter == "gemini" || adapter == "test"):
-			endpoints = []string{"/v1/chat/completions", "/v1/responses", "/v1/messages"}
-		case view.Kind == "image" && (adapter == "ark" || adapter == "openrouter"):
-			endpoints = []string{"/v1/images/generations"}
-		case view.Kind == "video" && (adapter == "ark" || adapter == "openrouter"):
-			endpoints = []string{"/v1/videos"}
-		}
-	}
+	endpoints := modelSupportedEndpoints(view.Kind, adapters)
 	caps["supported_endpoints"] = endpoints
 	supportsBudget := view.Kind == "text"
 	cands, routeErr := s.ResolveRoute(ctx, model.PublicID, RouteHint{})
@@ -1159,6 +1149,30 @@ func setBudgetCapabilities(view *ModelView) {
 	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
 	view.Capabilities["text_budget_control_supported"] = textBudget
 	view.Capabilities["budget_control_supported"] = textBudget || mediaBudget
+}
+
+func modelSupportedEndpoints(kind string, adapters []string) []string {
+	for _, raw := range adapters {
+		adapter := strings.ToLower(strings.TrimSpace(raw))
+		switch kind {
+		case "text":
+			// These names are the explicit text adapter aliases accepted by
+			// gateway.Service.adapterFor. Vendor names do not establish a protocol.
+			switch adapter {
+			case "bifrost", "openai", "anthropic", "openrouter", "google", "gemini", "test":
+				return []string{"/v1/chat/completions", "/v1/responses", "/v1/messages"}
+			}
+		case "image":
+			if adapter == "ark" || adapter == "openrouter" {
+				return []string{"/v1/images/generations"}
+			}
+		case "video":
+			if adapter == "ark" || adapter == "openrouter" {
+				return []string{"/v1/videos"}
+			}
+		}
+	}
+	return []string{}
 }
 
 func ignored(list []string, slug string) bool {

@@ -659,6 +659,11 @@ func (a *App) docsContext(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
 	}
+	apiBase := docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL)
+	if apiBase == "" {
+		httpx.Abort(c, http.StatusServiceUnavailable, "brand_api_unavailable", "品牌 API 地址尚未配置，请联系管理员", false)
+		return
+	}
 	channelID, err := a.Identity.ChannelIDByBrand(c.Request.Context(), brand.ID)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
@@ -681,13 +686,13 @@ func (a *App) docsContext(c *gin.Context) {
 			for _, path := range docsEndpointList(model.Capabilities) {
 				endpoints = append(endpoints, path)
 			}
-			examples = docsExamplesFor(docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL), wanted, endpoints)
+			examples = docsExamplesFor(apiBase, wanted, endpoints)
 		}
 	}
 	httpx.OK(c, gin.H{
 		"brand":        brand,
 		"models":       ids,
-		"api_base_url": docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL),
+		"api_base_url": apiBase,
 		"examples":     examples, "supported_endpoints": endpoints, "model": wanted,
 		"notes":      docsNotes(),
 		"request_id": c.GetString(httpx.ContextRequestID),

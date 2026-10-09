@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -557,5 +558,55 @@ func TestPublicModelsHTTPPagination(t *testing.T) {
 	}
 	if len(seen) != 103 {
 		t.Fatalf("lost models %d", len(seen))
+	}
+}
+
+func TestBrandDocsRejectMissingEndpointAndUseRegisteredProtocols(t *testing.T) {
+	fx := newWMeterEnv(t)
+	var originalDomain string
+	if err := fx.app.DB.Raw("SELECT api_domain FROM identity_brands WHERE id=?", identity.OEMBrandID).Scan(&originalDomain).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := fx.app.DB.Exec("UPDATE identity_brands SET api_domain=? WHERE id=?", originalDomain, identity.OEMBrandID).Error; err != nil {
+			t.Error(err)
+		}
+	})
+	for _, domain := range []string{"", "https://api.customer.example", "user@api.customer.example", "api.customer.example/path", "api.customer.example?key=value", "api.customer.example#part", "api.customer.example", "api.oem.localhost"} {
+		if err := fx.app.DB.Exec("UPDATE identity_brands SET api_domain=? WHERE id=?", domain, identity.OEMBrandID).Error; err != nil {
+			t.Fatal(err)
+		}
+		code, body := doJSON(t, http.MethodGet, fx.server.URL+"/v1/public/docs-context?host=oem.localhost&model="+url.QueryEscape(catalog.OEMModelID), "", false, nil)
+		if domain == "api.customer.example" || domain == "api.oem.localhost" {
+			if code != 200 || !strings.Contains(body["api_base_url"].(string), domain) {
+				t.Fatalf("brand %q lost its own endpoint: %d %+v", domain, code, body)
+			}
+		} else if code != 503 || body["error"].(map[string]any)["code"] != "brand_api_unavailable" || body["examples"] != nil {
+			t.Fatalf("invalid brand endpoint generated copyable docs: %q %d %+v", domain, code, body)
+		}
+	}
+	var originalAdapters []struct{ ID, Adapter string }
+	if err := fx.app.DB.Table("catalog_providers").Select("id, adapter").Where("id IN ?", []string{"prd_echo_primary", "prd_echo_backup"}).Scan(&originalAdapters).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		for _, row := range originalAdapters {
+			if err := fx.app.DB.Exec("UPDATE catalog_providers SET adapter=? WHERE id=?", row.Adapter, row.ID).Error; err != nil {
+				t.Error(err)
+			}
+		}
+	})
+	for _, adapter := range []string{"openai", "openrouter"} {
+		if err := fx.app.DB.Exec("UPDATE catalog_providers SET adapter=? WHERE id IN ('prd_echo_primary','prd_echo_backup')", adapter).Error; err != nil {
+			t.Fatal(err)
+		}
+		model, err := fx.app.Catalog.GetAdminModel(fx.ctx, catalog.EchoModelID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		endpoints, ok := model.Capabilities["supported_endpoints"].([]string)
+		if !ok || len(endpoints) != 3 || endpoints[0] != "/v1/chat/completions" {
+			t.Fatalf("actual modelView adapter %q lacks implemented protocols: %+v", adapter, model.Capabilities)
+		}
 	}
 }

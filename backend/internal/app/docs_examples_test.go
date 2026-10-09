@@ -208,6 +208,7 @@ func TestDocsAPIBaseUsesLocalListenerAndPreservesPublicBrand(t *testing.T) {
 		{"localhost", "http://localhost:9080", "http://localhost:9080"},
 		{"api.oem.localhost", "http://localhost:9080", "http://api.oem.localhost:9080"},
 		{"localhost:9443", "https://localhost:9443", "https://localhost:9443"},
+		{"[::1]:9443", "https://localhost:9443", "https://[::1]:9443"},
 		{"api.customer.example", "http://localhost:9080", "https://api.customer.example"},
 		{"api.customer.example:8443", "https://platform.example", "https://api.customer.example:8443"},
 	} {
@@ -220,6 +221,20 @@ func TestDocsAPIBaseUsesLocalListenerAndPreservesPublicBrand(t *testing.T) {
 				if !strings.Contains(docsExamples(base, "test/model")[language].(string), tc.want+"/v1") {
 					t.Fatalf("%s example does not use configured public endpoint", language)
 				}
+			}
+		})
+	}
+}
+
+func TestDocsAPIBaseRejectsMissingAndMalformedBrandDomain(t *testing.T) {
+	for _, domain := range []string{"", " ", "https://api.customer.example", "http://api.customer.example", "user:password@api.customer.example", "api.customer.example/path", "api.customer.example/", "api.customer.example?x=1", "api.customer.example?", "api.customer.example#part", "api.customer.example#", "api.customer.example:bad", "api.customer.example:0", "api.customer.example:65536", "api.customer.example:", ":::::", "https://https://api.customer.example", "api.customer.example\\path"} {
+		t.Run(domain, func(t *testing.T) {
+			base := docsAPIBase(domain, "https://platform.example")
+			if base != "" {
+				t.Fatalf("malformed brand endpoint became copyable: %q", base)
+			}
+			if examples := docsExamplesFor(base, "test/model", []string{"/v1/chat/completions"}); len(examples) != 0 {
+				t.Fatalf("missing endpoint generated examples: %+v", examples)
 			}
 		})
 	}

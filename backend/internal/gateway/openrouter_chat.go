@@ -14,6 +14,9 @@ import (
 // documented OpenAI-compatible HTTP contract so an account's actual BaseURL is
 // honored, with the total max_completion_tokens ceiling preserved.
 func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (AdapterResult, error) {
+	if req.MaxTokens != nil && *req.MaxTokens < 16 {
+		return AdapterResult{HTTPStatus: 400, ErrorClass: "invalid_request"}, ParamError{Param: "max_tokens (OpenRouter minimum 16)"}
+	}
 	secret := contextString(ctx, ctxAccountSecretKey)
 	if secret == "" {
 		secret = a.Runtime.settings.OpenRouterAPIKey
@@ -71,6 +74,9 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 	result := AdapterResult{HTTPStatus: response.StatusCode}
 	if response.StatusCode >= 400 {
 		result.ErrorClass = "upstream_error"
+		if response.StatusCode >= 500 {
+			result.ErrorClass = "outcome_unknown"
+		}
 		if response.StatusCode == 408 {
 			result.ErrorClass = "timeout"
 		}
@@ -110,9 +116,8 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 			result.Body.Usage["completion_includes_reasoning"] = 1
 		}
 	}
-	if req.Stream && len(result.Body.Choices) > 0 {
-		chunk, _ := json.Marshal(map[string]any{"id": result.Body.ID, "object": "chat.completion.chunk", "choices": []any{map[string]any{"delta": map[string]string{"content": result.Body.Choices[0].Message.Content}}}})
-		result.Stream = []string{string(chunk)}
+	if req.Stream {
+		result.Stream = chatStreamChunks(result.Body)
 	}
 	return result, nil
 }

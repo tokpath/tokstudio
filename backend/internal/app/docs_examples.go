@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -15,11 +16,29 @@ const curlBearerHeader = `-H "Authorization: Bearer ${TOKENHUB_API_KEY}"`
 // Local brands use the configured public listener, including its port. Public
 // brands keep their own HTTPS API domain rather than the control-plane origin.
 func docsAPIBase(apiDomain, publicBase string) string {
-	brandURL, err := url.Parse("https://" + strings.TrimSpace(apiDomain))
-	if err != nil || brandURL.Hostname() == "" {
-		return strings.TrimRight(publicBase, "/")
+	domain := strings.TrimSpace(apiDomain)
+	// Brand API domains are host[:port], not URLs. Never substitute a platform
+	// address when a brand is missing its own endpoint.
+	if domain == "" || strings.ContainsAny(domain, "/@?#\\") {
+		return ""
+	}
+	brandURL, err := url.Parse("https://" + domain)
+	if err != nil || brandURL.Hostname() == "" || brandURL.User != nil || brandURL.Path != "" || brandURL.RawQuery != "" || brandURL.Fragment != "" {
+		return ""
 	}
 	host := brandURL.Hostname()
+	if net.ParseIP(host) == nil && strings.ContainsAny(host, ":[] \t\r\n") {
+		return ""
+	}
+	if strings.HasSuffix(domain, ":") {
+		return ""
+	}
+	if port := brandURL.Port(); port != "" {
+		number, err := strconv.Atoi(port)
+		if err != nil || number < 1 || number > 65535 {
+			return ""
+		}
+	}
 	local := host == "localhost" || strings.HasSuffix(host, ".localhost") || host == "127.0.0.1" || host == "::1"
 	configured, err := url.Parse(publicBase)
 	if local && err == nil && configured.Host != "" && (configured.Scheme == "http" || configured.Scheme == "https") {
@@ -43,6 +62,9 @@ func docsExamples(apiDomain, model string) gin.H {
 }
 func docsExamplesFor(apiDomain, model string, endpoints []string) gin.H {
 	base := strings.TrimRight(apiDomain, "/")
+	if base == "" {
+		return gin.H{}
+	}
 	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
 		base = "https://" + base
 	}

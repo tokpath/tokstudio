@@ -126,7 +126,7 @@ type ModelView struct {
 	DisplayName         string                 `json:"display_name"`
 	Capabilities        map[string]any         `json:"capabilities"`
 	SellPrice           map[string]any         `json:"sell_price,omitempty"`
-	Providers           []string               `json:"providers"`
+	Providers           []string               `json:"providers,omitempty"`
 	Status              string                 `json:"status"`
 	ServiceStatus       string                 `json:"service_status,omitempty"`
 	ConfigReady         bool                   `json:"config_ready"`
@@ -804,6 +804,11 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		default:
 			view.ServiceStatus = "unknown"
 		}
+		view.Providers = nil
+		view.SyncState = ""
+		view.CreatedByUserID = ""
+		view.ReviewedByUserID = ""
+		view.ServiceReadiness = nil
 		out = append(out, *view)
 	}
 	return out, nil
@@ -813,7 +818,19 @@ func (s *Service) GetVisibleModel(ctx context.Context, channelOrgID, publicID st
 	if _, err := s.loadModel(ctx, publicID); err != nil {
 		return nil, err
 	}
-	models, err := s.ListVisibleModels(ctx, channelOrgID, allowlist)
+	if len(allowlist) > 0 {
+		allowed := false
+		for _, id := range allowlist {
+			if id == publicID {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, ErrModelNotVisible
+		}
+	}
+	models, err := s.ListVisibleModels(ctx, channelOrgID, []string{publicID})
 	if err != nil {
 		return nil, err
 	}

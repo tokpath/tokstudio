@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"embed"
+	"errors"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -26,6 +27,10 @@ type orderRow struct {
 	UserID            string     `gorm:"column:user_id"`
 	PayeeChannelOrgID string     `gorm:"column:payee_channel_org_id"`
 	ReceiptReference  string     `gorm:"column:receipt_reference"`
+	ReceiptNote       string     `gorm:"column:receipt_note"`
+	ReceivedAt        *time.Time `gorm:"column:received_at"`
+	RefundedAt        *time.Time `gorm:"column:refunded_at"`
+	RefundRecordedBy  string     `gorm:"column:refund_recorded_by"`
 	RecordedBy        string     `gorm:"column:recorded_by"`
 	ChannelOrgID      string     `gorm:"column:channel_org_id"`
 	Adapter           string     `gorm:"column:adapter"`
@@ -172,7 +177,13 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 
 func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderView, error) {
 	var rows []orderRow
-	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC").Limit(200)
+	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC")
+	if f.Limit > 0 {
+		q = q.Limit(f.Limit + 1)
+	}
+	if f.Cursor != "" {
+		q = q.Where("(created_at,id) < (SELECT created_at,id FROM payment_orders WHERE id = ? AND payee_channel_org_id = ?)", f.Cursor, f.PayeeChannelOrgID)
+	}
 	if f.Status != "" {
 		q = q.Where("status = ?", f.Status)
 	}
@@ -206,7 +217,10 @@ func (s *Service) GetOrder(ctx context.Context, id, userID string) (*OrderView, 
 		q = q.Where("user_id = ?", userID)
 	}
 	if err := q.First(&row).Error; err != nil {
-		return nil, ErrNotFound
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
 	}
 	return orderView(row), nil
 }
@@ -216,7 +230,7 @@ func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) 
 	if err != nil {
 		return nil, err
 	}
-	if order.Status == StatusPaid || order.Status == StatusRefunded {
+	if order.Status == StatusPaid || order.Status == StatusRefunding || order.Status == StatusRefunded {
 		return order, nil
 	}
 	plugin, ok := s.plugin(order.Adapter)
@@ -590,7 +604,7 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 		if row.Status == StatusRefunded {
 			return nil
 		}
-		if row.Status != StatusPaid {
+		if row.Status != StatusPaid && row.Status != StatusRefunding {
 			return ErrOrderNotPending
 		}
 		// Reversal must succeed before asking a provider to refund. A failure rolls back
@@ -609,6 +623,7 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 				}
 			}
 		}
+		refundStatus := StatusRefunded
 		if callProvider {
 			plugin, ok := s.plugin(row.Adapter)
 			if !ok {
@@ -628,11 +643,19 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 				}
 				in.Mode = inst.Mode
 			}
-			if _, err := plugin.Refund(ctx, in); err != nil {
+			result, err := plugin.Refund(ctx, in)
+			if err != nil {
 				return err
 			}
+			if result == nil || result.Status != StatusRefunded {
+				refundStatus = StatusRefunding
+			}
 		}
-		row.Status = StatusRefunded
+		row.Status = refundStatus
+		if refundStatus == StatusRefunded && row.RefundedAt == nil {
+			now := time.Now().UTC()
+			row.RefundedAt = &now
+		}
 		row.UpdatedAt = time.Now().UTC()
 		return tx.Save(&row).Error
 	})
@@ -729,6 +752,8 @@ func orderView(row orderRow) *OrderView {
 		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
 		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
 		FulfilledAt: row.FulfilledAt, PayeeChannelOrgID: row.PayeeChannelOrgID, ReceiptReference: row.ReceiptReference, RecordedBy: row.RecordedBy,
+		ReceivedAt: row.ReceivedAt, ReceiptNote: row.ReceiptNote,
+		RefundedAt: row.RefundedAt, RefundRecordedBy: row.RefundRecordedBy,
 	}
 	if row.ReferenceType != nil {
 		view.ReferenceType = *row.ReferenceType

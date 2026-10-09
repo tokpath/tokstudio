@@ -181,7 +181,7 @@ func TestOverhaulOEMDeliveryAndBrandPriceFacts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.Payment.RecordOfflineReceipt(ctx, channel.ID, payment.OfflineReceiptInput{UserID: customer.User.ID, AmountMinor: billing.MinorPerUSD, CreditMinor: billing.MinorPerUSD, Currency: "USD", Reference: marker + "-controlled-receipt"}, a.Audit, audit.RecordInput{ActorUserID: actor.UserID}); err != nil {
+	if _, err := a.Payment.RecordOfflineReceipt(ctx, channel.ID, payment.OfflineReceiptInput{OperationID: marker + "-op", OccurredAt: time.Now().UTC(), ExpectedIssueRatioBPS: billing.DefaultIssueRatioBPS, UserID: customer.User.ID, AmountMinor: billing.MinorPerUSD, CreditMinor: billing.MinorPerUSD, Currency: "USD", Reference: marker + "-controlled-receipt"}, a.Audit, audit.RecordInput{ActorUserID: actor.UserID}); err != nil {
 		t.Fatal(err)
 	}
 	principal := identity.Principal{UserID: customer.User.ID, ChannelOrgID: channel.ID, BrandID: channel.BrandID, Roles: customer.User.Roles}

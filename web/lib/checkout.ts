@@ -16,6 +16,7 @@ export type CheckoutUiStatus =
   | "failed"
   | "expired"
   | "paid"
+  | "refunding"
   | "refunded"
   | "partially_refunded"
   | "unknown";
@@ -31,6 +32,7 @@ export function checkoutUiStatus(status?: string, confirming = false): CheckoutU
   if (value === "expired") {
     return "expired";
   }
+  if (value === "refunding") return "refunding";
   if (value === "refunded") {
     return "refunded";
   }

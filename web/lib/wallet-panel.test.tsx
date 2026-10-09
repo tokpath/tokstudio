@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import WalletPanel from "../app/console/wallet-panel";
 import { withZh } from "./test-i18n";
 
-vi.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({ useSearchParams:()=>new URLSearchParams(),
   usePathname: () => "/app/wallet",
 }));
 

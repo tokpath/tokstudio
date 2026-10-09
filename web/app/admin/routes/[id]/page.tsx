@@ -172,7 +172,7 @@ export default function AdminRouteEditPage() {
     <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/routes">返回路由组</Link>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <h2 className="text-lg font-semibold">{isNew ? "创建路由组" : `路由组 ${routeID}`}</h2>
-      <p className="mt-1 text-sm text-ink-secondary">在这里把已发布模型接到上游，并决定选路顺序。保存为停用时不会接收请求。</p>
+      {canWrite("routes.write",viewer)?<p className="mt-1 text-sm text-ink-secondary">在这里把已发布模型接到上游，并决定选路顺序。保存为停用时不会接收请求。</p>:null}
       {routeQuery.data?.error ? <p className="mt-2 text-sm text-danger">{routeQuery.data.error.message}</p> : null}
     </section>
     {!isNew && routeQuery.data?.item ? <section className="rounded-card border border-hairline bg-canvas-raised p-6"><p>模型：<Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo, modelEditHref(routeQuery.data.item.public_model_id))}>{routeQuery.data.item.public_model_id}</Link></p><p>状态：{routeQuery.data.item.status} · 策略：{routeQuery.data.item.strategy}</p><ul className="mt-3">{routeQuery.data.item.candidates?.map(candidate=><li key={candidate.provider_id}>{candidate.provider_slug || candidate.provider_id} · {candidate.upstream_model_id}</li>)}</ul></section> : null}

@@ -572,7 +572,13 @@ func (a *App) adminListPayments(c *gin.Context) {
 			return
 		}
 	}
+	limit, cursor := httpx.Page(c, 20)
+	if httpx.WantCSV(c) {
+		limit = 0
+		cursor = ""
+	}
 	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
+		Limit: limit, Cursor: cursor,
 		PayeeChannelOrgID: ownerID, Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: query, MatchUserIDs: userIDs,
 	})
 	if err != nil {
@@ -612,7 +618,12 @@ func (a *App) adminListPayments(c *gin.Context) {
 		u := users[item.UserID]
 		result = append(result, adminPayment{item, u.Email, u.DisplayName, channels[item.ChannelOrgID]})
 	}
-	httpx.OKPage(c, result, 100, func(item adminPayment) string { return item.ID })
+	next := ""
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+		next = result[len(result)-1].ID
+	}
+	httpx.OK(c, gin.H{"items": result, "next_cursor": next, "limit": limit})
 }
 
 func (a *App) adminConfirmPayment(c *gin.Context) {
@@ -622,7 +633,14 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "请填写实际收款时间", false)
+		return
+	}
+	item, err := a.Payment.ConfirmRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -640,7 +658,14 @@ func (a *App) adminRefundPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "退款信息无效", false)
+		return
+	}
+	item, err := a.Payment.RefundRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}

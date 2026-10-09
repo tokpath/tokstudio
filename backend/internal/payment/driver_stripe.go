@@ -174,5 +174,12 @@ func (d stripeDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResu
 		return nil, ErrProviderFailed
 	}
 	obj := decodeJSONMap(raw)
-	return &RefundResult{Status: StatusRefunded, TradeID: asString(obj["id"])}, nil
+	status := StatusRefunding
+	switch asString(obj["status"]) {
+	case "succeeded":
+		status = StatusRefunded
+	case "failed", "canceled":
+		return nil, ErrProviderFailed
+	}
+	return &RefundResult{Status: status, TradeID: asString(obj["id"])}, nil
 }

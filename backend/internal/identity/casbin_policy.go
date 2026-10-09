@@ -51,6 +51,11 @@ func casbinPolicy() []policyRule {
 	rules = append(rules, channelRules()...)
 	rules = append(rules, auditRules()...)
 	rules = append(rules, oemEmployeeRules()...)
+	rules = append(rules, grantMany("GET", []string{"platform_admin", "finance_admin"}, "/admin/payments/offline/operations/:operation_id", "/admin/payments/offline/preview", "/admin/payments/:id/refund-preview")...)
+	rules = append(rules, grantMany("GET", []string{"platform_admin", "finance_admin", "ops_admin", "audit_readonly"}, "/admin/payments/:id")...)
+	rules = append(rules, grantMany("GET", []string{"channel_admin", "oem_ops", "oem_finance", "oem_audit"}, "/channel/payments/orders/:id")...)
+	rules = append(rules, grantMany("GET", []string{"channel_admin", "oem_finance"}, "/channel/payments/offline/operations/:operation_id", "/channel/payments/offline/preview", "/channel/payments/orders/:id/refund-preview")...)
+
 	return rules
 }
 

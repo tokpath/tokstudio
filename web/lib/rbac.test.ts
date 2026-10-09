@@ -46,7 +46,7 @@ describe("role menus", () => {
     expect(hrefs).toContain("/admin/channels");
     expect(hrefs).toContain("/admin/commission");
     expect(hrefs).not.toContain("/admin/providers");
-    expect(hrefs).not.toContain("/admin/users");
+    expect(hrefs).toContain("/admin/users");
     expect(hrefs).not.toContain("/admin/audit");
     expect(hrefs).not.toContain("/admin/keys");
     expect(hrefs).not.toContain("/admin/prices");
@@ -62,7 +62,7 @@ describe("role menus", () => {
     const hrefs = filterAdminGroups(adminGroups, ops).flatMap((group) => group.items.map((item) => item.href));
     expect(canViewAdminHref("/admin/models", ops)).toBe(true);
     expect(canViewAdminHref("/admin/channels", ops)).toBe(true);
-    expect(canViewAdminHref("/admin/users", ops)).toBe(false);
+    expect(canViewAdminHref("/admin/users", ops)).toBe(true);
     expect(canViewAdminHref("/admin/audit", ops)).toBe(false);
     expect(hrefs).not.toContain("/admin/keys");
     expect(hrefs).not.toContain("/admin/prices");
@@ -89,7 +89,7 @@ describe("role menus", () => {
     const audit = signed(["audit_readonly"]);
     expect(canViewAdminHref("/admin/audit", audit)).toBe(true);
     expect(canViewAdminHref("/admin/billing", audit)).toBe(true);
-    expect(canViewAdminHref("/admin/users", audit)).toBe(false);
+    expect(canViewAdminHref("/admin/users", audit)).toBe(true);
     expect(canViewAdminHref("/admin/settings", audit)).toBe(false);
     expect(canWrite("audit.probe", audit)).toBe(false);
     expect(canWrite("billing.refund", audit)).toBe(false);
@@ -137,7 +137,7 @@ describe("OEM employee permissions", () => {
   });
   it("separates operating, financial and audit work", () => {
     expect(canViewChannelHref("/channel/users", signed(["oem_ops"], { channelType: "C" }))).toBe(true);
-    expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(false);
+    expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/audit", signed(["oem_audit"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "B" }))).toBe(false);

@@ -66,7 +66,7 @@ func TestPaymentFinanceJourney(t *testing.T) {
 	if adapter.calls.Load() != 0 {
 		t.Fatal("called provider before validating status")
 	}
-	confirmed := postJSONRaw(t, server.URL+"/admin/payments/"+order.ID+"/confirm", "payjourney_admin-finance", map[string]any{})["item"].(map[string]any)
+	confirmed := postJSONRaw(t, server.URL+"/admin/payments/"+order.ID+"/confirm", "payjourney_admin-finance", map[string]any{"occurred_at": time.Now().UTC()})["item"].(map[string]any)
 	if confirmed["fulfilled_at"] == nil {
 		t.Fatal("missing fulfillment")
 	}

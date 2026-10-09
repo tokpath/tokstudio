@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrReceiptConflict    = errors.New("offline receipt conflicts with existing receipt")
+	ErrPreviewChanged     = errors.New("offline receipt preview has changed")
 	ErrCollectorRequired  = errors.New("only brand owners may collect payments")
 	ErrNotFound           = errors.New("payment order not found")
 	ErrInvalidAdapter     = errors.New("unsupported payment adapter")
@@ -36,11 +37,12 @@ const (
 	PurposeWallet       = "wallet"
 	PurposeRenewal      = "renewal"
 
-	StatusPending  = "pending"
-	StatusPaid     = "paid"
-	StatusFailed   = "failed"
-	StatusRefunded = "refunded"
-	StatusExpired  = "expired"
+	StatusPending   = "pending"
+	StatusPaid      = "paid"
+	StatusFailed    = "failed"
+	StatusRefunded  = "refunded"
+	StatusRefunding = "refunding"
+	StatusExpired   = "expired"
 
 	ModeSandbox = "sandbox"
 	ModeLive    = "live"
@@ -65,6 +67,8 @@ type CreateOrderInput struct {
 }
 
 type ListOrdersFilter struct {
+	Cursor            string
+	Limit             int
 	PayeeChannelOrgID string
 	MatchUserIDs      []string
 	Status            string
@@ -74,6 +78,10 @@ type ListOrdersFilter struct {
 }
 
 type OrderView struct {
+	ReceivedAt        *time.Time `json:"received_at,omitempty"`
+	ReceiptNote       string     `json:"receipt_note,omitempty"`
+	RefundedAt        *time.Time `json:"refunded_at,omitempty"`
+	RefundRecordedBy  string     `json:"refund_recorded_by,omitempty"`
 	PayeeChannelOrgID string     `json:"payee_channel_org_id"`
 	ReceiptReference  string     `json:"receipt_reference,omitempty"`
 	RecordedBy        string     `json:"recorded_by,omitempty"`

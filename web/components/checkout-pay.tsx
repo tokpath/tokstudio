@@ -47,7 +47,7 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
         return;
       }
       setOrder((prev) => ({ ...prev, ...next }));
-      if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunded" || next.status === "partially_refunded") {
+      if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunding" || next.status === "refunded" || next.status === "partially_refunded") {
         setAwaitingProvider(false);
       }
       if (next.status === "paid") onPaid?.();

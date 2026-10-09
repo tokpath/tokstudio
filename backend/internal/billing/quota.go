@@ -82,8 +82,12 @@ func (s *Service) ChannelQuota(ctx context.Context, channelOrgID string) (*Quota
 	view := &QuotaView{
 		OwnerID: quota.OwnerID, AvailableMinor: quota.AvailableMinor,
 		ReservedMinor: quota.ReservedMinor, UnitType: quota.UnitType,
-		IssueRatioBPS: loadIssueRatioBPS(s.db.WithContext(ctx), channelOrgID),
 	}
+	ratio, err := loadIssueRatioBPS(s.db.WithContext(ctx), channelOrgID)
+	if err != nil {
+		return nil, err
+	}
+	view.IssueRatioBPS = ratio
 	var sum struct {
 		Issued   int64
 		Consumed int64
@@ -250,18 +254,21 @@ func (s *Service) TransferChannelQuota(ctx context.Context, fromID, toID string,
 	return s.ChannelQuota(ctx, toID)
 }
 
-func loadIssueRatioBPS(db *gorm.DB, channelOrgID string) int64 {
+func loadIssueRatioBPS(db *gorm.DB, channelOrgID string) (int64, error) {
 	if channelOrgID == "" {
-		return DefaultIssueRatioBPS
+		return DefaultIssueRatioBPS, nil
 	}
 	var row issueRuleRow
 	if err := db.Where("channel_org_id = ?", channelOrgID).First(&row).Error; err != nil {
-		return DefaultIssueRatioBPS
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return DefaultIssueRatioBPS, nil
+		}
+		return 0, err
 	}
 	if ValidateIssueRatioBPS(row.IssueRatioBPS) != nil {
-		return DefaultIssueRatioBPS
+		return 0, ErrInvalidIssueRatio
 	}
-	return row.IssueRatioBPS
+	return row.IssueRatioBPS, nil
 }
 
 func (s *Service) IssueRule(ctx context.Context, channelOrgID string) (*IssueRuleView, error) {
@@ -290,6 +297,9 @@ func (s *Service) SetIssueRule(ctx context.Context, channelOrgID string, bps int
 	}
 	now := time.Now().UTC()
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "quota-issue-rule:"+channelOrgID).Error; err != nil {
+			return err
+		}
 		var row issueRuleRow
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("channel_org_id = ?", channelOrgID).First(&row).Error
@@ -333,7 +343,14 @@ func (s *Service) issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType,
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	grant, err := ConvertQuota(amount, loadIssueRatioBPS(tx, poolID))
+	if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "quota-issue-rule:"+poolID).Error; err != nil {
+		return err
+	}
+	ratio, err := loadIssueRatioBPS(tx, poolID)
+	if err != nil {
+		return err
+	}
+	grant, err := ConvertQuota(amount, ratio)
 	if err != nil {
 		return err
 	}

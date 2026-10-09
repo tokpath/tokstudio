@@ -156,5 +156,12 @@ func (d wechatDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResu
 		return nil, ErrProviderFailed
 	}
 	obj := decodeJSONMap(raw)
-	return &RefundResult{Status: StatusRefunded, TradeID: asString(obj["refund_id"])}, nil
+	status := StatusRefunding
+	switch asString(obj["status"]) {
+	case "SUCCESS":
+		status = StatusRefunded
+	case "CLOSED", "ABNORMAL":
+		return nil, ErrProviderFailed
+	}
+	return &RefundResult{Status: status, TradeID: asString(obj["refund_id"])}, nil
 }

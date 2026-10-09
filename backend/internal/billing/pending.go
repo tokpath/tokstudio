@@ -42,11 +42,15 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 
 // GetUsageGap 按 usage id 或 request_id 打开缺口详情。
 func (s *Service) GetUsageGap(ctx context.Context, key string) (*UsageGapView, error) {
+	return s.GetUsageGapScoped(ctx, key, QueryUsageInput{})
+}
+
+func (s *Service) GetUsageGapScoped(ctx context.Context, key string, scope QueryUsageInput) (*UsageGapView, error) {
 	if key == "" {
 		return nil, ErrNotFound
 	}
 	var row usageRow
-	if err := s.db.WithContext(ctx).Where("id = ? OR request_id = ?", key, key).First(&row).Error; err != nil {
+	if err := applyUsageFilters(s.db.WithContext(ctx).Model(&usageRow{}), scope).Where("(id = ? OR request_id = ?)", key, key).First(&row).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		}
@@ -64,13 +68,17 @@ func (s *Service) GetUsageGap(ctx context.Context, key string) (*UsageGapView, e
 
 // ResolvePending 标记已解：作废 pending usage、释放预授权。已结算的账单拒绝，禁止估算扣款。
 func (s *Service) ResolvePending(ctx context.Context, in ResolvePendingInput) (*ResolvePendingResult, error) {
+	return s.ResolvePendingScoped(ctx, in, QueryUsageInput{})
+}
+
+func (s *Service) ResolvePendingScoped(ctx context.Context, in ResolvePendingInput, scope QueryUsageInput) (*ResolvePendingResult, error) {
 	keys := uniqueNonEmpty(append(append([]string{}, in.IDs...), in.RequestIDs...))
 	if len(keys) == 0 {
 		return nil, ErrInvalidAmount
 	}
 	out := &ResolvePendingResult{Items: make([]UsageGapView, 0, len(keys)), Results: make([]PendingResolution, 0, len(keys))}
 	for _, key := range keys {
-		item, err := s.resolveOne(ctx, key)
+		item, err := s.resolveOne(ctx, key, scope)
 		if err != nil {
 			code := "read_error"
 			if errors.Is(err, ErrNotFound) {
@@ -90,11 +98,11 @@ func (s *Service) ResolvePending(ctx context.Context, in ResolvePendingInput) (*
 	return out, nil
 }
 
-func (s *Service) resolveOne(ctx context.Context, key string) (*UsageGapView, error) {
+func (s *Service) resolveOne(ctx context.Context, key string, scope QueryUsageInput) (*UsageGapView, error) {
 	var out *UsageGapView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row usageRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? OR request_id = ?", key, key).First(&row).Error; err != nil {
+		if err := applyUsageFilters(tx.Model(&usageRow{}), scope).Clauses(clause.Locking{Strength: "UPDATE"}).Where("(id = ? OR request_id = ?)", key, key).First(&row).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrNotFound
 			}

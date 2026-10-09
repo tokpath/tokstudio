@@ -3040,7 +3040,24 @@
     "commissionRole": "Original recipient role",
     "policy": "Original commission policy",
     "amountMismatch": "Payment needs review",
-    "succeeded": "Succeeded"
+    "succeeded": "Succeeded",
+    "noCommission": "This request did not generate commission.",
+    "identifier": "Show and copy ID",
+    "pendingQueue": "Requests to reconcile",
+    "queueHelp": "Open the original request to check execution and billing. Record actual usage, or release the reservation when no charge is due.",
+    "releaseHelp": "Release these reservations and close their pending records. Charged bills remain unchanged.",
+    "releaseSelected": "Release selected reservations",
+    "retryOriginal": "Retry original operation",
+    "storageFailed": "Cannot save the operation. Allow session storage for this site and retry.",
+    "needSelection": "Select pending requests first.",
+    "resolvedCounts": "Closed {resolved}; {failed} remain unresolved.",
+    "originalOperation": "The original operation is not confirmed. These requests remain fixed; check the result or retry the same operation.",
+    "alreadyCharged": "Already charged; cannot release",
+    "missing": "Missing or outside your scope",
+    "emptyPending": "No pending requests in this scope",
+    "select": "Select",
+    "openRequest": "Open original request",
+    "platformReview": "Review the original request and ask an authorized platform operator to reconcile its reservation or bill."
   },
   "customerExperience": {
     "customers": "Customers",
@@ -3303,5 +3320,22 @@
     "pendingOperation": "Original result awaiting confirmation",
     "checkOriginal": "Check original operation",
     "retryOriginal": "Retry original operation"
+  },
+  "workbench": {
+    "title": "Workspace",
+    "tasks": "Tasks and actions",
+    "readFailed": "Could not load",
+    "retry": "Retry",
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "unknown": "Not yet verified",
+    "models": "Models and availability",
+    "delivery": "OEM setup and handoff",
+    "payments": "Receipts and refunds",
+    "requests": "Requests and billing",
+    "partialFailure": "Some data could not load. Available results remain usable; retry to refresh.",
+    "updated": "Updated",
+    "cumulative": "Cumulative data",
+    "loading": "Loading…"
   }
 }

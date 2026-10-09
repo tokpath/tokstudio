@@ -64,13 +64,21 @@ func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
 		RefundMinor: item.RefundMinor, GrossProfitMinor: item.GrossProfitMinor,
 		PendingCount: item.PendingCount,
 	}
-	if risk, err := b.billing.Risk(ctx); err == nil && risk != nil {
+	risk, err := b.billing.Risk(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if risk != nil {
 		view.LowBalanceWallets = risk.LowBalanceWallets
 		view.ReservedMinor = risk.ReservedMinor
 		view.ChannelSpendMinor = risk.ChannelSpendMinor
 		view.PreauthFailed = risk.PreauthFailed
 	}
-	if units, err := b.billing.UsageUnits(ctx); err == nil && units != nil {
+	units, err := b.billing.UsageUnits(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if units != nil {
 		view.PromptTokens = units.PromptTokens
 		view.CompletionTokens = units.CompletionTokens
 		view.ReasoningTokens = units.ReasoningTokens

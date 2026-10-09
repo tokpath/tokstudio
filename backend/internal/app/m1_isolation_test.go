@@ -245,8 +245,18 @@ func TestM1IdentityIsolation(t *testing.T) {
 		t.Fatalf("B channel could manage plans: %d", code)
 	}
 	usage := getAuthJSON(t, server.URL+"/channel/usage", "m1_channel_token")
-	if usage["usage"] == nil {
+	if usage["items"] == nil {
 		t.Fatalf("channel usage missing: %+v", usage)
+	}
+	for _, raw := range usage["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["channel_org_id"] != nil && row["channel_org_id"] != identity.ResellerChannelID {
+			t.Fatalf("channel usage leaked another channel: %+v", row)
+		}
+	}
+	summary := getAuthJSON(t, server.URL+"/channel/usage/summary", "m1_channel_token")
+	if summary["totals"] == nil {
+		t.Fatalf("channel full-scope usage summary missing: %+v", summary)
 	}
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/channel/attribution", "", nil) != http.StatusForbidden {
 		t.Fatal("unauth channel attribution must be 403")

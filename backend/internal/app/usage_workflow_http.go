@@ -29,9 +29,14 @@ func (a *App) registerUsageWorkflowRoutes(r *gin.Engine) {
 	r.GET("/v1/me/requests/:id", a.requireUserOrKey(), func(c *gin.Context) { a.workflowRequestDetail(c, "user") })
 	r.GET("/admin/requests/:id", a.requireRoles(admin...), func(c *gin.Context) { a.workflowRequestDetail(c, "admin") })
 	r.GET("/channel/requests/:id", a.requireRoles(channel...), func(c *gin.Context) { a.workflowRequestDetail(c, "channel") })
+	r.GET("/channel/usage/pending", a.requireRoles(channel...), func(c *gin.Context) { a.workflowPendingUsage(c, "channel") })
+	r.GET("/channel/usage/pending/:id", a.requireRoles(channel...), func(c *gin.Context) { a.workflowPendingDetail(c, "channel") })
 }
 
 func (a *App) usageWorkflowInput(c *gin.Context, surface string) (billing.QueryUsageInput, string, bool) {
+	return a.usageWorkflowInputForAction(c, surface, "read")
+}
+func (a *App) usageWorkflowInputForAction(c *gin.Context, surface, action string) (billing.QueryUsageInput, string, bool) {
 	var in billing.QueryUsageInput
 	zone := strings.TrimSpace(c.Query("time_zone"))
 	if zone == "" {
@@ -95,7 +100,31 @@ func (a *App) usageWorkflowInput(c *gin.Context, surface string) (billing.QueryU
 			in.ChannelOrgIDs = []string{selected}
 		}
 	} else {
-		in.ChannelOrgID = strings.TrimSpace(c.Query("channel_id"))
+		p := a.currentPrincipal(c)
+		wide := p.IsPlatformAdmin() || action == "read" && p.HasRole("ops_admin", "audit_readonly") || action == "reconcile" && p.HasRole("ops_admin")
+		if p.HasRole("finance_admin") && !wide {
+			ids, err := a.Identity.BrandChannelIDs(c.Request.Context(), identity.OfficialChannelID)
+			if err != nil {
+				httpx.Abort(c, 500, "internal_error", "读取财务范围失败", true)
+				return in, zone, false
+			}
+			if selected := strings.TrimSpace(c.Query("channel_id")); selected != "" {
+				found := false
+				for _, id := range ids {
+					if selected == id {
+						found = true
+					}
+				}
+				if !found {
+					httpx.Abort(c, 403, "permission_denied", "无权查看该品牌财务", false)
+					return in, zone, false
+				}
+				ids = []string{selected}
+			}
+			in.ChannelOrgIDs = ids
+		} else {
+			in.ChannelOrgID = strings.TrimSpace(c.Query("channel_id"))
+		}
 	}
 	in.Limit = 50
 	if n, err := strconv.Atoi(c.Query("limit")); err == nil && n > 0 && n <= 100 {
@@ -146,7 +175,26 @@ func (a *App) usageSummary(c *gin.Context, surface string) {
 		httpx.Abort(c, 500, "internal_error", "读取用量汇总失败，请重试", true)
 		return
 	}
-	httpx.OK(c, result)
+	facets, facetsErr := a.Billing.UsageFacets(c.Request.Context(), in)
+	keys := []string{}
+	if facets != nil {
+		keys = facets.Keys
+	}
+
+	labels, labelErr := a.Identity.APIKeyLabels(c.Request.Context(), keys)
+	projection := gin.H{"totals": result.Totals, "daily": result.Daily, "keys": result.Keys, "models": result.Models, "time_zone": result.TimeZone, "generated_at": result.GeneratedAt, "since": result.Since, "until": result.Until, "key_labels": labels, "facets": facets}
+	if facetsErr != nil {
+		projection["facets_status"] = "read_error"
+	}
+	if labelErr != nil {
+		projection["labels_status"] = "read_error"
+	}
+	if in.UserID != "" && surface != "user" {
+		if customer, err := a.Identity.GetCustomer(c.Request.Context(), *a.currentPrincipal(c), in.UserID); err == nil {
+			projection["customer"] = gin.H{"id": customer.ID, "email": customer.Email, "display_name": customer.DisplayName}
+		}
+	}
+	httpx.OK(c, projection)
 }
 func (a *App) workflowRequests(c *gin.Context, surface string) {
 	in, _, ok := a.usageWorkflowInput(c, surface)
@@ -221,6 +269,9 @@ func (a *App) workflowRequestDetail(c *gin.Context, surface string) {
 	projection := gin.H{"request": receipts[0], "attempts": safeAttempts, "authorization": facts.Authorization, "usage": publicUsageItems(facts.Usages), "charges": facts.Charges}
 	if surface != "user" {
 		projection["customer_id"] = items[0].UserID
+		if customer, err := a.Identity.GetCustomer(c.Request.Context(), *a.currentPrincipal(c), items[0].UserID); err == nil {
+			projection["customer"] = gin.H{"id": customer.ID, "email": customer.Email, "display_name": customer.DisplayName}
+		}
 		projection["commission_status"] = "unavailable"
 		if service, ok := any(a.Commission).(interface {
 			RequestFacts(context.Context, string) ([]commission.EntryView, error)
@@ -229,8 +280,36 @@ func (a *App) workflowRequestDetail(c *gin.Context, surface string) {
 			if err != nil {
 				projection["commission_status"] = "read_error"
 			} else {
-				projection["commission_status"] = "ready"
-				projection["commissions"] = entries
+				p := a.currentPrincipal(c)
+				if surface == "channel" && p.IsChannelStaff() {
+					ch, chErr := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+					if chErr != nil {
+						projection["commission_status"] = "read_error"
+						entries = nil
+					} else if ch.Type == identity.ChannelTypeB {
+						own, ownErr := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+						if ownErr != nil {
+							projection["commission_status"] = "read_error"
+							entries = nil
+						} else {
+							allowed := map[string]bool{}
+							for _, id := range own.RoleIDs {
+								allowed[id] = true
+							}
+							filtered := []commission.EntryView{}
+							for _, entry := range entries {
+								if allowed[entry.BeneficiaryRoleID] {
+									filtered = append(filtered, entry)
+								}
+							}
+							entries = filtered
+						}
+					}
+				}
+				if projection["commission_status"] != "read_error" {
+					projection["commission_status"] = "ready"
+					projection["commissions"] = entries
+				}
 			}
 		}
 		if p := a.currentPrincipal(c); surface == "admin" && p.HasRole("platform_admin", "ops_admin", "audit_readonly") {
@@ -279,7 +358,8 @@ func (a *App) workflowUsage(c *gin.Context, surface string) {
 	}
 }
 
-func (a *App) reconcileRequestUsage(c *gin.Context) {
+func (a *App) reconcileRequestUsage(c *gin.Context) { a.workflowReconcileRequest(c, "admin") }
+func (a *App) workflowReconcileRequest(c *gin.Context, surface string) {
 	if !a.requireConfirm(c) {
 		return
 	}
@@ -288,6 +368,14 @@ func (a *App) reconcileRequestUsage(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&body) != nil {
 		httpx.Abort(c, 400, "invalid_request", "需要本次真实用量", false)
+		return
+	}
+	scope, _, ok := a.usageWorkflowInputForAction(c, surface, "reconcile")
+	if !ok {
+		return
+	}
+	if _, err := a.Billing.GetUsageGapScoped(c.Request.Context(), c.Param("id"), scope); err != nil {
+		httpx.Abort(c, 404, "not_found", "请求不存在或无权核对", false)
 		return
 	}
 	item, err := a.Billing.ReplayActualUsage(c.Request.Context(), c.Param("id"), body.Usage)
@@ -301,4 +389,21 @@ func (a *App) reconcileRequestUsage(c *gin.Context) {
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.usage.reconcile", ResourceType: "usage_event", ResourceID: item.UsageEventID, After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
 	httpx.OK(c, gin.H{"item": item})
+}
+
+func (a *App) authorizeUsageFact(c *gin.Context, surface, key, action string) bool {
+	scope, _, ok := a.usageWorkflowInputForAction(c, surface, action)
+	if !ok {
+		return false
+	}
+	_, err := a.Billing.GetUsageGapScoped(c.Request.Context(), key, scope)
+	if err != nil {
+		if errors.Is(err, billing.ErrNotFound) {
+			httpx.Abort(c, 404, "not_found", "记录不存在或无权操作", false)
+		} else {
+			httpx.Abort(c, 500, "internal_error", "读取账务范围失败，请重试", true)
+		}
+		return false
+	}
+	return true
 }

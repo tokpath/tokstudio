@@ -121,14 +121,16 @@ type MoneyView struct {
 }
 
 type Dashboard struct {
-	Version    string               `json:"version"`
-	Totals     MoneyView            `json:"totals"`
-	Dimensions map[string][]DimStat `json:"dimensions"`
-	Alerts     []AlertView          `json:"alerts"`
-	Canary     *CanaryView          `json:"canary,omitempty"`
-	LastDrill  *DrillView           `json:"last_backup_drill,omitempty"`
-	Runbooks   []RunbookView        `json:"runbooks"`
-	Thresholds *Thresholds          `json:"thresholds,omitempty"`
+	ModuleErrors map[string]string    `json:"module_errors"`
+	GeneratedAt  time.Time            `json:"generated_at"`
+	Version      string               `json:"version"`
+	Totals       MoneyView            `json:"totals"`
+	Dimensions   map[string][]DimStat `json:"dimensions"`
+	Alerts       []AlertView          `json:"alerts"`
+	Canary       *CanaryView          `json:"canary,omitempty"`
+	LastDrill    *DrillView           `json:"last_backup_drill,omitempty"`
+	Runbooks     []RunbookView        `json:"runbooks"`
+	Thresholds   *Thresholds          `json:"thresholds,omitempty"`
 }
 
 type Thresholds struct {

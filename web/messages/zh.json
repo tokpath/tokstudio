@@ -3040,7 +3040,24 @@
     "commissionRole": "原收款角色",
     "policy": "原计佣规则",
     "amountMismatch": "支付事实待核对",
-    "succeeded": "成功"
+    "succeeded": "成功",
+    "noCommission": "此请求未产生佣金。",
+    "identifier": "查看并复制编号",
+    "pendingQueue": "待核对请求",
+    "queueHelp": "先打开原请求核对执行与计费。有真实用量时补齐账单；确认无需扣费时释放预授权。",
+    "releaseHelp": "释放以下请求的预授权并关闭待核对记录；已扣费账单不会被改写。",
+    "releaseSelected": "释放所选预授权",
+    "retryOriginal": "重试原操作",
+    "storageFailed": "无法保存原操作，请允许此站点使用会话存储后重试。",
+    "needSelection": "请先选择待核对请求。",
+    "resolvedCounts": "已关闭 {resolved} 条，未完成 {failed} 条。",
+    "originalOperation": "原操作尚未确认完成。以下请求保持固定，可核对结果或按原操作重试。",
+    "alreadyCharged": "已扣费，不能释放",
+    "missing": "未找到或无权读取",
+    "emptyPending": "当前范围没有待核对请求",
+    "select": "选择",
+    "openRequest": "打开原请求",
+    "platformReview": "请核对原请求并交平台有权岗位处理预授权或补齐账单。"
   },
   "customerExperience": {
     "customers": "客户",
@@ -3303,5 +3320,22 @@
     "pendingOperation": "原操作结果待确认",
     "checkOriginal": "回查原操作",
     "retryOriginal": "重试原操作"
+  },
+  "workbench": {
+    "title": "工作台",
+    "tasks": "待办与常用任务",
+    "readFailed": "读取失败",
+    "retry": "重试",
+    "healthy": "正常",
+    "degraded": "异常",
+    "unknown": "尚未确认",
+    "models": "模型与可用性",
+    "delivery": "OEM 开通与交付",
+    "payments": "收款与退款",
+    "requests": "查看请求与账单",
+    "partialFailure": "部分数据读取失败。已成功读取的结果仍可使用，请重试更新。",
+    "updated": "更新于",
+    "cumulative": "累计数据",
+    "loading": "正在读取…"
   }
 }

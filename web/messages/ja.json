@@ -3040,7 +3040,24 @@
     "commissionRole": "元の受取役割",
     "policy": "元の報酬ルール",
     "amountMismatch": "支払事実の確認待ち",
-    "succeeded": "成功"
+    "succeeded": "成功",
+    "noCommission": "このリクエストではコミッションは発生していません。",
+    "identifier": "IDを表示・コピー",
+    "pendingQueue": "照合が必要なリクエスト",
+    "queueHelp": "元のリクエストで実行と請求を確認してください。実際の使用量を記録するか、請求不要と確認した場合に予約額を解放します。",
+    "releaseHelp": "以下の予約額を解放して保留中の照合を閉じます。確定済みの請求は変更されません。",
+    "releaseSelected": "選択した予約額を解放",
+    "retryOriginal": "元の操作を再試行",
+    "storageFailed": "操作を保存できません。このサイトのセッションストレージを有効にして再試行してください。",
+    "needSelection": "まず照合待ちのリクエストを選択してください。",
+    "resolvedCounts": "{resolved} 件を終了しました。{failed} 件は未完了です。",
+    "originalOperation": "元の操作はまだ確定していません。対象リクエストは固定されています。結果を確認するか同じ操作を再試行してください。",
+    "alreadyCharged": "請求確定済みのため解放できません",
+    "missing": "見つからないか権限外です",
+    "emptyPending": "この範囲に照合待ちのリクエストはありません",
+    "select": "選択",
+    "openRequest": "元のリクエストを開く",
+    "platformReview": "元のリクエストを確認し、権限を持つプラットフォーム担当者に予約額や請求の照合を依頼してください。"
   },
   "customerExperience": {
     "customers": "顧客",
@@ -3303,5 +3320,22 @@
     "pendingOperation": "元の操作の結果を確認中",
     "checkOriginal": "元の操作を照会",
     "retryOriginal": "元の操作を再試行"
+  },
+  "workbench": {
+    "title": "ワークスペース",
+    "tasks": "タスクと操作",
+    "readFailed": "読み込みに失敗しました",
+    "retry": "再試行",
+    "healthy": "正常",
+    "degraded": "異常",
+    "unknown": "未確認",
+    "models": "モデルと稼働状況",
+    "delivery": "OEMの設定と引き渡し",
+    "payments": "入金と返金",
+    "requests": "リクエストと請求",
+    "partialFailure": "一部のデータを読み込めませんでした。取得できた結果は利用できます。更新を再試行してください。",
+    "updated": "更新時刻",
+    "cumulative": "累積データ",
+    "loading": "読み込み中…"
   }
 }

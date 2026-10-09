@@ -23,9 +23,9 @@ export function dashboardHero(dashboard: { totals?: DashboardTotals; alerts?: Da
   const circuit = dashboard.provider_health?.state === "degraded" || alerts.some((a) => a.kind === "provider_circuit_open" || a.kind === "low_success_rate");
   return [
     { key: "heroPending", hintKey: "heroPendingHint", v: String(totals.pending_reconciliation_count ?? "—"), href: "/admin/reconciliation" },
-    { key: "heroProfit", hintKey: "heroProfitHint", v: formatUsdMinor(totals.gross_profit_minor), href: undefined },
-    { key: "heroCommission", hintKey: "heroCommissionHint", v: formatUsdMinor(totals.commission_liability_minor), href: undefined },
-    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : !healthKnown ? "heroHealthUnknown" : "heroHealthOk", v: circuit ? "DEGRADED" : !healthKnown ? "UNKNOWN" : "READY", href: undefined },
+    { key: "heroProfit", hintKey: "heroProfitHint", v: formatUsdMinor(totals.gross_profit_minor), href: "/admin/margin" },
+    { key: "heroCommission", hintKey: "heroCommissionHint", v: formatUsdMinor(totals.commission_liability_minor), href: "/admin/commission?tab=payout" },
+    { key: "heroHealth", hintKey: circuit ? "heroHealthBad" : !healthKnown ? "heroHealthUnknown" : "heroHealthOk", v: circuit ? "degraded" : !healthKnown ? "unknown" : "healthy", href: "/admin/providers" },
   ];
 }
 

@@ -270,7 +270,8 @@ func (a *App) createTopup(c *gin.Context) {
 func (a *App) getTopup(c *gin.Context) {
 	userID, _ := a.billingUser(c)
 	if a.currentPrincipal(c) != nil && a.currentPrincipal(c).HasRole("platform_admin", "finance_admin") {
-		userID = ""
+		httpx.Abort(c, 410, "unsupported_operation", "请从原支付订单读取收款、额度发放与退款记录", false)
+		return
 	}
 	item, err := a.Billing.GetTopup(c.Request.Context(), c.Param("id"), userID)
 	if err != nil {
@@ -320,20 +321,14 @@ func (a *App) adminRefund(c *gin.Context) {
 	}
 	_ = c.ShouldBindJSON(&body)
 	if body.TopupID != "" {
-		item, err := a.Billing.RefundTopup(c.Request.Context(), body.TopupID)
-		if err != nil {
-			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "充值退款失败", false)
-			return
-		}
-		_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-			ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.topup.refund", ResourceType: "topup", ResourceID: item.ID,
-			After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-		})
-		httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+		httpx.Abort(c, 410, "unsupported_operation", "充值退款必须通过原支付订单登记实际退款", false)
 		return
 	}
 	if body.RequestID == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 request_id 或 topup_id", false)
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要原消费 request_id", false)
+		return
+	}
+	if !a.authorizeUsageFact(c, "admin", body.RequestID, "refund") {
 		return
 	}
 	item, err := a.Billing.RefundCharge(c.Request.Context(), body.RequestID)
@@ -496,7 +491,10 @@ func (a *App) replayUsage(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 request_id", false)
 		return
 	}
-	item, err := a.Billing.Settle(c.Request.Context(), body)
+	if !a.authorizeUsageFact(c, "admin", body.RequestID, "reconcile") {
+		return
+	}
+	item, err := a.Billing.ReplayActualUsage(c.Request.Context(), body.RequestID, body.Usage)
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "usage 回放失败", false)
 		return
@@ -509,8 +507,9 @@ func (a *App) replayUsage(c *gin.Context) {
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) adminPendingUsage(c *gin.Context) {
-	in, _, ok := a.usageWorkflowInput(c, "admin")
+func (a *App) adminPendingUsage(c *gin.Context) { a.workflowPendingUsage(c, "admin") }
+func (a *App) workflowPendingUsage(c *gin.Context, surface string) {
+	in, _, ok := a.usageWorkflowInput(c, surface)
 	if !ok {
 		return
 	}
@@ -534,8 +533,13 @@ func (a *App) adminPendingUsage(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items, "next_cursor": next, "limit": limit})
 }
 
-func (a *App) adminPendingUsageDetail(c *gin.Context) {
-	item, err := a.Billing.GetUsageGap(c.Request.Context(), c.Param("id"))
+func (a *App) adminPendingUsageDetail(c *gin.Context) { a.workflowPendingDetail(c, "admin") }
+func (a *App) workflowPendingDetail(c *gin.Context, surface string) {
+	scope, _, ok := a.usageWorkflowInput(c, surface)
+	if !ok {
+		return
+	}
+	item, err := a.Billing.GetUsageGapScoped(c.Request.Context(), c.Param("id"), scope)
 	if err != nil {
 		if errors.Is(err, billing.ErrNotFound) {
 			httpx.Abort(c, http.StatusNotFound, "invalid_request", "待对账记录不存在", false)
@@ -547,8 +551,13 @@ func (a *App) adminPendingUsageDetail(c *gin.Context) {
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) resolvePendingUsage(c *gin.Context) {
+func (a *App) resolvePendingUsage(c *gin.Context) { a.workflowResolvePending(c, "admin") }
+func (a *App) workflowResolvePending(c *gin.Context, surface string) {
 	if !a.requireConfirm(c) {
+		return
+	}
+	scope, _, ok := a.usageWorkflowInputForAction(c, surface, "reconcile")
+	if !ok {
 		return
 	}
 	var body billing.ResolvePendingInput
@@ -556,7 +565,7 @@ func (a *App) resolvePendingUsage(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 ids 或 request_ids", false)
 		return
 	}
-	item, err := a.Billing.ResolvePending(c.Request.Context(), body)
+	item, err := a.Billing.ResolvePendingScoped(c.Request.Context(), body, scope)
 	if err != nil {
 		if errors.Is(err, billing.ErrAlreadyCharged) {
 			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "已结算账单不能标记已解，禁止估算扣款", false)
@@ -660,6 +669,9 @@ func (a *App) previewChargeRefund(c *gin.Context) {
 	requestID := strings.TrimSpace(c.Query("request_id"))
 	if requestID == "" {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写消费请求编号。", false)
+		return
+	}
+	if !a.authorizeUsageFact(c, "admin", requestID, "refund") {
 		return
 	}
 	item, err := a.Billing.PreviewChargeRefund(c.Request.Context(), requestID)

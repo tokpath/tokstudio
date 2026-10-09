@@ -36,29 +36,31 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 	if err != nil {
 		return nil, err
 	}
-	for key, value := range decodeCosts(policy.Wholesale) {
-		prices["wholesale_"+key] = value
-	}
+	wholesale := decodeCosts(policy.Wholesale)
 	customerOverride := decodeCosts(policy.Override)
 	var channel struct {
-		Type string `gorm:"column:type"`
+		Type     string `gorm:"column:type"`
+		ParentID string `gorm:"column:parent_id"`
 	}
-	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id = ?", channelID).Take(&channel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type,parent_id").Where("id = ?", channelID).Take(&channel).Error; err != nil {
 		return nil, err
 	}
 	if channel.Type == identity.ChannelTypeB {
-		customerOverride = nil
-		parentID, err := s.delegatingParent(ctx, channelID)
-		if err != nil {
+		// A promotion organization has no purchasing layer. Both prices come
+		// from the original brand's financial owner, ignoring legacy B terms.
+		owner := channel.ParentID
+		if owner == "" {
+			owner = identity.OfficialChannelID
+		}
+		var brandPolicy channelPolicyRow
+		if err := s.db.WithContext(ctx).Where("channel_org_id=? AND public_model_id=? AND enabled=true AND self_enabled=true", owner, policy.PublicModelID).First(&brandPolicy).Error; err != nil {
 			return nil, err
 		}
-		if parentID != "" {
-			var parentPolicy channelPolicyRow
-			if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND public_model_id = ?", parentID, policy.PublicModelID).First(&parentPolicy).Error; err != nil {
-				return nil, err
-			}
-			customerOverride = decodeCosts(parentPolicy.Override)
-		}
+		wholesale = decodeCosts(brandPolicy.Wholesale)
+		customerOverride = decodeCosts(brandPolicy.Override)
+	}
+	for key, value := range wholesale {
+		prices["wholesale_"+key] = value
 	}
 	for key, value := range customerOverride {
 		if key == "input" || key == "output" {

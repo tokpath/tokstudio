@@ -12,9 +12,9 @@ describe("dashboardSummaryParams", () => {
   });
 
   it("keeps missing health and totals unknown", () => {
-    expect(dashboardHero({alerts: []})[3]).toMatchObject({ v: "UNKNOWN" });
-    expect(dashboardHero({provider_health:{state:"healthy"}})[3]).toMatchObject({v:"READY"});
-    expect(dashboardHero({})[3]).toMatchObject({ v: "UNKNOWN", hintKey: "heroHealthUnknown" });
+    expect(dashboardHero({alerts: []})[3]).toMatchObject({ v: "unknown" });
+    expect(dashboardHero({provider_health:{state:"healthy"}})[3]).toMatchObject({v:"healthy"});
+    expect(dashboardHero({})[3]).toMatchObject({ v: "unknown", hintKey: "heroHealthUnknown" });
     expect(dashboardSummaryParams({})).toMatchObject({ pending: "—", revenue: "—", rate: "—", alerts: "—" });
   });
 
@@ -27,6 +27,6 @@ describe("dashboardSummaryParams", () => {
     expect(cards[0].v).toBe("2");
     expect(cards[0].href).toBe("/admin/reconciliation");
     expect(cards[1].v).toBe("$4.00");
-    expect(cards[3].v).toBe("DEGRADED");
+    expect(cards[3].v).toBe("degraded");
   });
 });

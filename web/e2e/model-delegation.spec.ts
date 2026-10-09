@@ -8,10 +8,9 @@ test.beforeEach(async ({ page }) => {
 test("OEM sees its children and can delist only its own model", async ({ page }) => {
   let change: Record<string, unknown> | undefined;
   await page.route("**/api/channel/me", route => route.fulfill({ json: { channel_org_id: "chn_oem_c", channel_type: "C" } }));
-  await page.route("**/api/admin/channels?*", route => route.fulfill({ json: { items: [
-    { id: "chn_oem_c", code: "oem-c", type: "C", status: "active" },
+  await page.route("**/api/channel/subchannels?*", route => route.fulfill({ json: { items: [
     { id: "chn_child", code: "child-b", type: "B", status: "active", parent_id: "chn_oem_c" },
-  ] } }));
+  ], total: 1, next_cursor: "" } }));
   await page.route("**/api/channel/models", async route => {
     if (route.request().method() === "PATCH") {
       change = route.request().postDataJSON();
@@ -23,7 +22,13 @@ test("OEM sees its children and can delist only its own model", async ({ page })
     ] } });
   });
   await page.goto("/channel/subchannels");
-  await expect(page.getByRole("link", { name: "管理 →", exact: true }).first()).toHaveAttribute("href", "/channel/subchannels/chn_child");
+  const childRow = page.getByRole("listitem").filter({ hasText: "child-b" });
+  const child = childRow.locator('a[href^="/channel/subchannels/chn_child"]');
+  await expect(child).toBeVisible();
+  const target = new URL(await child.getAttribute("href") as string, "https://brand.test");
+  expect(target.pathname).toBe("/channel/subchannels/chn_child");
+  expect(target.searchParams.get("return_to")).toContain("/channel/subchannels?viewer_scope=usr_rbac");
+  await expect(page.getByRole("link", { name: "oem-c", exact: true })).toHaveCount(0);
   await page.goto("/channel/models");
   await page.getByRole("button", { name: "下架", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
@@ -40,18 +45,21 @@ test("OEM grants a model from its own scope to a child", async ({ page }) => {
     if (route.request().method() === "PATCH") {
       change = route.request().postDataJSON();
     }
-    await route.fulfill({ json: { items: [
+    await route.fulfill({ json: { channel_type: "B", items: [
       { public_id: "tokenhub/echo-1", display_name: "Echo", vendor: "TokenHub", kind: "text", status: "published", enabled: false, parent_enabled: true },
+      { public_id: "tokenhub/blocked", display_name: "Outside parent scope", vendor: "TokenHub", kind: "text", status: "published", enabled: false, parent_enabled: false },
     ] } });
   });
   await page.goto("/channel/subchannels/chn_child");
-  await page.getByRole("button", { name: "授权模型" }).click();
-  await page.getByRole("checkbox", { name: "授权 tokenhub/echo-1" }).check();
-  await page.getByLabel("渠道结算价 输入（美元/M）").fill("0.7");
-  await page.getByLabel("渠道结算价 输出（美元/M）").fill("1.4");
-  await page.getByRole("button", { name: "保存授权" }).click();
+  await page.getByRole("button", { name: "编辑授权", exact: true }).click();
+  await page.getByRole("checkbox", { name: /Echo tokenhub\/echo-1/ }).check();
+  await expect(page.getByRole("checkbox", { name: /Outside parent scope/ })).toBeDisabled();
+  await expect(page.getByLabel(/渠道结算价/)).toHaveCount(0);
+  await expect(page.getByLabel("输入（USD / 百万 Token）", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("输出（USD / 百万 Token）", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "保存变更", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
-  await expect.poll(() => change).toMatchObject({ items: [
-    { public_id: "tokenhub/echo-1", enabled: true, wholesale: { input: "0.0000007", output: "0.0000014" } },
+  await expect.poll(() => change).toEqual({ items: [
+    { public_id: "tokenhub/echo-1", enabled: true },
   ] });
 });

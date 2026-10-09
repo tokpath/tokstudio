@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useBrand } from "@/components/brand-context";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { apiClient } from "@/lib/client";
+import { HttpResponseError } from "@/lib/http-response";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { appendReturnContext } from "@/lib/return-context";
 import type { Customer, CustomerScope } from "@/lib/customer";
@@ -45,8 +46,8 @@ export function CreateChannelDialog({ open, onOpenChange }: Props) {
         router.push(appendReturnContext(`/admin/channels/${encodeURIComponent(body.item.id)}`, pathname + (search.size ? `?${search}` : "")));
         return true;
     }
-    catch {
-        setMessage(confirmNetworkUnavailable);
+    catch (error) {
+        setMessage(error instanceof HttpResponseError && error.status >= 400 && error.status < 500 ? error.message : confirmNetworkUnavailable);
         return false;
     } }
     return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>{t("createDirectChannel")}</DialogTitle><DialogDescription>{t("inheritsThePlatformBrandPlansAndUnifiedPrices")}</DialogDescription></DialogHeader><label className="space-y-2">{t("channelName")}<Input aria-label={t("channelName")} value={code} onChange={e => setCode(e.target.value)} maxLength={80}/></label><ConfirmButton disabled={!code.trim()} title={t("confirmDirectChannelCreation")} description={t("channelInheritsThePlatformBrandWithoutSeparatePayment", { value0: code.trim() })} onConfirm={create}>{t("createAndContinueSetup")}</ConfirmButton>{message && <p role="status">{message}</p>}</DialogContent></Dialog>;
@@ -108,8 +109,8 @@ export function CreatePartnerDialog({ open, onOpenChange, defaultType, defaultCu
         router.push(appendReturnContext(surface === "admin" ? `/admin/partners/${encodeURIComponent(body.item.id)}` : `/channel/users/${encodeURIComponent(customer.id)}/promotion?role_id=${encodeURIComponent(body.item.id)}`, pathname + (search.size ? `?${search}` : "")));
         return true;
     }
-    catch {
-        setMessage(confirmNetworkUnavailable);
+    catch (error) {
+        setMessage(error instanceof HttpResponseError && error.status >= 400 && error.status < 500 ? error.message : confirmNetworkUnavailable);
         return false;
     } }
     const selectedParent = parents.data?.items.find(item => item.id === parent);

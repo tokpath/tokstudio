@@ -13,6 +13,9 @@ test.beforeAll(async()=>{
       response.end(JSON.stringify({items:[{id:"echo",vendor:"Fixture",display_name:"Browser echo",kind:"text",status:"available",capabilities:{supported_endpoints:["/v1/chat/completions"]}}]}));return;
     }
     if(url.pathname==="/v1/public/models"){response.statusCode=503;response.end("{}");return;}
+    if(url.pathname==="/v1/public/docs-context" && url.searchParams.get("model")==="echo"){
+      response.end(JSON.stringify({model:"echo",api_base_url:"http://127.0.0.1:3000",supported_endpoints:["/v1/chat/completions"],examples:{"/v1/chat/completions":{curl:"curl http://127.0.0.1:3000/v1/chat/completions",python:"import urllib.request",node:"await fetch()"}}}));return;
+    }
     response.end("{}");
   });
   await new Promise<void>(resolve=>catalogServer.listen(8080,"127.0.0.1",resolve));
@@ -98,10 +101,14 @@ test("home invitation survives public docs and model browsing with the original 
   // stored same-brand intent survives even when this page's CTA lacks the code.
   await page.goto("/models/echo");
   await expect(page.getByRole("heading",{name:"Browser echo",exact:true})).toBeVisible();
-  const start=page.getByRole("link",{name:"开始使用",exact:true});
+  await page.getByRole("tab",{name:"调用协议",exact:true}).click();
+  await expect(page.getByTestId("model-protocol-example")).toBeVisible();
+  const start=page.getByRole("link",{name:"创建 Key",exact:true});
   await start.click();
   await expect(page).toHaveURL(/\/login\?next=/);
-  expect(new URL(page.url()).searchParams.get("next")).toBe("/app/playground?model=echo");
+  const keyTarget=new URL(new URL(page.url()).searchParams.get("next")!,"https://brand.test");
+  expect(keyTarget.pathname).toBe("/app/keys");expect(keyTarget.searchParams.get("create")).toBe("1");expect(keyTarget.searchParams.get("model")).toBe("echo");expect(keyTarget.searchParams.get("tab")).toBe("protocol");
+  const original=new URL(keyTarget.searchParams.get("return_to")!,"https://brand.test");expect(original.pathname).toBe("/models/echo");expect(original.searchParams.get("tab")).toBe("protocol");
   await expect(page.getByLabel("推广码",{exact:true})).toHaveValue("THU123");
   await expect(page.getByRole("button",{name:"注册",exact:true})).toBeVisible();
 });

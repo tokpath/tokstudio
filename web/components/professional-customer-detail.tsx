@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
 import { apiClient } from "@/lib/client";
+import { HttpResponseError } from "@/lib/http-response";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { customerReturnHref, type Customer } from "@/lib/customer";
 import { appendReturnContext } from "@/lib/return-context";
@@ -68,8 +69,8 @@ export function ProfessionalCustomerDetail({ id, surface = "admin" }: {
         setMessage(result.isError ? t("statusSavedButDetailsCouldNotRefreshRetry") : t("referralStatusSaved"));
         return true;
     }
-    catch {
-        setMessage(confirmNetworkUnavailable);
+    catch (error) {
+        setMessage(error instanceof HttpResponseError && error.status >= 400 && error.status < 500 ? error.message : confirmNetworkUnavailable);
         return false;
     } }
     return <div className="space-y-6"><header className="flex flex-wrap justify-between gap-3"><div><Link className="text-brand-emphasis underline" href={back}>{t("backToList")}</Link><h1 className="mt-3 text-2xl font-semibold">{item?.members[0]?.display_name || item?.members[0]?.email || t("professionalReferralCustomer")}</h1><p className="mt-1 text-ink-secondary">{labels[item?.role.type || ""] || t("referralRelationship")}</p></div>{item && query.data?.manage && <><ConfirmButton disabled={query.isFetching || query.isError} title={t("confirmReferralAction", { value0: item.role.status === "active" ? t("disable") : t("enable") })} description={t("disablingPreventsNewRegistrationsWithThisRelationshipS")} onConfirm={change}>{item.role.status === "active" ? t("disableReferralRelationship") : t("enableReferralRelationship")}</ConfirmButton></>}</header>

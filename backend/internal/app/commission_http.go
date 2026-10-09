@@ -102,8 +102,27 @@ func (a *App) partnerIncomeScope(c *gin.Context) (string, []string, bool) {
 	if p == nil {
 		return "", nil, false
 	}
-	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") || p.IsChannelStaff() {
+	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") {
 		return a.partnerScope(c)
+	}
+	if p.IsChannelStaff() {
+		channel, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err != nil {
+			return "", nil, false
+		}
+		if channel.Type == identity.ChannelTypeC {
+			return a.partnerScope(c)
+		}
+		if channel.Type != identity.ChannelTypeB {
+			return "", nil, false
+		}
+		own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+		if err != nil {
+			return "", nil, false
+		}
+		// Empty membership is an empty financial scope, never all recipients.
+		roles := append([]string{}, own.RoleIDs...)
+		return channel.ID, roles, true
 	}
 	own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
 	if err != nil || len(own.RoleIDs) == 0 {

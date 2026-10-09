@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -587,62 +586,7 @@ func anthropicContent(resp gateway.ChatResponse) []gin.H {
 	return out
 }
 
-func (a *App) listMyRequests(c *gin.Context) {
-	userID, _ := a.billingUser(c)
-	if userID == "" {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
-		return
-	}
-	result := strings.TrimSpace(c.Query("result"))
-	if result != "" && !gateway.KnownRequestResult(result) {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求结果无效", false)
-		return
-	}
-	billingState := strings.TrimSpace(c.Query("billing_state"))
-	if billingState != "" && !billing.KnownUsageState(billingState) {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账务状态无效", false)
-		return
-	}
-	since, until, ok := queryWindowOrAbort(c)
-	if !ok {
-		return
-	}
-	in := gateway.QueryRequestsInput{
-		UserID:        userID,
-		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
-		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
-		Status:        result,
-		Since:         since,
-		Until:         until,
-	}
-	if k := a.currentAPIKey(c); k != nil {
-		in.UserID = k.UserID
-		in.APIKeyID = k.APIKeyID
-	}
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	in.Limit = limit
-	in.BillingState = billingState
-	items, err := a.Gateway.ListRequests(c.Request.Context(), in)
-	if err != nil {
-		if errors.Is(err, gateway.ErrUserRequired) {
-			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
-			return
-		}
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取请求失败", true)
-		return
-	}
-	receipts, err := a.attachRequestBilling(c.Request.Context(), in.UserID, in.APIKeyID, items)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取请求失败", true)
-		return
-	}
-	models, _ := a.Gateway.ListRequestFilterKeys(c.Request.Context(), in.UserID, in.APIKeyID, "model")
-	keys, _ := a.Gateway.ListRequestFilterKeys(c.Request.Context(), in.UserID, in.APIKeyID, "api_key")
-	httpx.OK(c, gin.H{
-		"items": receipts, "keys": dimKeys(keys), "models": dimKeys(models),
-		"request_id": c.GetString(httpx.ContextRequestID),
-	})
-}
+func (a *App) listMyRequests(c *gin.Context) { a.workflowRequests(c, "user") }
 
 type requestReceiptView struct {
 	ID                  string    `json:"id"`
@@ -669,7 +613,7 @@ func (a *App) attachRequestBilling(ctx context.Context, userID, apiKeyID string,
 	usageByReq := map[string]billing.UsageView{}
 	if len(ids) > 0 {
 		usages, err := a.Billing.QueryUsage(ctx, billing.QueryUsageInput{
-			UserID: userID, APIKeyID: apiKeyID, RequestIDs: ids, Limit: 200,
+			UserID: userID, APIKeyID: apiKeyID, RequestIDs: ids, Unlimited: true,
 		})
 		if err != nil {
 			return nil, err

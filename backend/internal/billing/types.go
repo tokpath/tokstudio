@@ -228,6 +228,10 @@ type QueryUsageInput struct {
 	UserID        string
 	APIKeyID      string
 	ChannelOrgID  string
+	ChannelOrgIDs []string // non-nil empty scope returns no records
+	Cursor        string
+	Query         string
+	Unlimited     bool // trusted internal export/fact queries only
 	PublicModelID string
 	RequestID     string
 	RequestIDs    []string
@@ -243,8 +247,14 @@ type ResolvePendingInput struct {
 	RequestIDs []string `json:"request_ids"`
 }
 
+type PendingResolution struct {
+	Key    string `json:"key"`
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+}
 type ResolvePendingResult struct {
-	Items []UsageGapView `json:"items"`
+	Results []PendingResolution `json:"results"`
+	Items   []UsageGapView      `json:"items"`
 }
 
 type TopupView struct {

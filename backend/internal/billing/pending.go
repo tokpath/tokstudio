@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,7 +19,7 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 	if in.Limit > 200 {
 		in.Limit = 200
 	}
-	q := s.db.WithContext(ctx).Model(&usageRow{}).Order("occurred_at DESC").Limit(in.Limit)
+	q := s.db.WithContext(ctx).Model(&usageRow{}).Order("occurred_at DESC,id DESC").Limit(in.Limit)
 	q = applyUsageFilters(q, in)
 	switch in.State {
 	case "", UsagePending:
@@ -26,6 +28,10 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 		q = q.Where("state IN ?", []string{UsagePending, UsageVoided})
 	default:
 		q = q.Where("state = ?", in.State)
+	}
+	q, err := usageCursor(q, in.Cursor)
+	if err != nil {
+		return nil, err
 	}
 	var rows []usageRow
 	if err := q.Find(&rows).Error; err != nil {
@@ -62,12 +68,23 @@ func (s *Service) ResolvePending(ctx context.Context, in ResolvePendingInput) (*
 	if len(keys) == 0 {
 		return nil, ErrInvalidAmount
 	}
-	out := &ResolvePendingResult{Items: make([]UsageGapView, 0, len(keys))}
+	out := &ResolvePendingResult{Items: make([]UsageGapView, 0, len(keys)), Results: make([]PendingResolution, 0, len(keys))}
 	for _, key := range keys {
 		item, err := s.resolveOne(ctx, key)
 		if err != nil {
-			return out, err
+			code := "read_error"
+			if errors.Is(err, ErrNotFound) {
+				code = "not_found"
+			} else if errors.Is(err, ErrAlreadyCharged) {
+				code = "already_charged"
+			}
+			out.Results = append(out.Results, PendingResolution{Key: key, Status: "failed", Error: code})
+			if len(keys) == 1 {
+				return out, err
+			}
+			continue
 		}
+		out.Results = append(out.Results, PendingResolution{Key: key, Status: "resolved"})
 		out.Items = append(out.Items, *item)
 	}
 	return out, nil
@@ -143,6 +160,13 @@ func applyUsageFilters(q *gorm.DB, in QueryUsageInput) *gorm.DB {
 	if in.ChannelOrgID != "" {
 		q = q.Where("channel_org_id = ?", in.ChannelOrgID)
 	}
+	if in.ChannelOrgIDs != nil {
+		q = q.Where("channel_org_id IN ?", in.ChannelOrgIDs)
+	}
+	if in.Query != "" {
+		term := "%" + strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(in.Query, "\\", "\\\\"), "%", "\\%"), "_", "\\_") + "%"
+		q = q.Where("request_id ILIKE ? OR id ILIKE ? OR public_model_id ILIKE ? OR api_key_id ILIKE ?", term, term, term, term)
+	}
 	if in.PublicModelID != "" {
 		q = q.Where("public_model_id = ?", in.PublicModelID)
 	}
@@ -203,3 +227,15 @@ func uniqueNonEmpty(in []string) []string {
 	}
 	return out
 }
+
+func usageCursor(q *gorm.DB, raw string) (*gorm.DB, error) {
+	if raw == "" {
+		return q, nil
+	}
+	at, key, err := page.Decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	return q.Where("(occurred_at,id) < (?,?)", at, key), nil
+}
+func UsageCursor(item UsageView) string { return page.Encode(item.OccurredAt, item.ID) }

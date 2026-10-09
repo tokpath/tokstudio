@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 // Booker 是账务模块暴露给网关的预授权接口。网关不得直连 billing 表。
@@ -113,6 +114,9 @@ type AttemptView struct {
 }
 
 type QueryRequestsInput struct {
+	ChannelOrgIDs []string
+	Cursor        string
+	Query         string
 	UserID        string
 	APIKeyID      string
 	PublicModelID string
@@ -521,6 +525,12 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 	if strings.TrimSpace(in.UserID) == "" {
 		return nil, ErrUserRequired
 	}
+	return s.ListScopedRequests(ctx, in)
+}
+
+// ListScopedRequests is used only after the HTTP layer derives the authorized
+// management scope. The ordinary method above still requires the owner.
+func (s *Service) ListScopedRequests(ctx context.Context, in QueryRequestsInput) ([]RequestView, error) {
 	if in.RequestIDs != nil && len(in.RequestIDs) == 0 {
 		return []RequestView{}, nil
 	}
@@ -531,7 +541,24 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 		in.Limit = 200
 	}
 	var rows []requestRow
-	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id = ?", in.UserID).Order("started_at DESC").Limit(in.Limit)
+	q := s.db.WithContext(ctx).Model(&requestRow{}).Order("started_at DESC,id DESC").Limit(in.Limit)
+	if in.UserID != "" {
+		q = q.Where("user_id = ?", in.UserID)
+	}
+	if in.ChannelOrgIDs != nil {
+		q = q.Where("channel_org_id IN ?", in.ChannelOrgIDs)
+	}
+	if in.Query != "" {
+		term := "%" + strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(in.Query, "\\", "\\\\"), "%", "\\%"), "_", "\\_") + "%"
+		q = q.Where("request_id ILIKE ? OR public_model_id ILIKE ? OR api_key_id ILIKE ?", term, term, term)
+	}
+	if in.Cursor != "" {
+		at, key, err := page.Decode(in.Cursor)
+		if err != nil {
+			return nil, err
+		}
+		q = q.Where("(started_at,id) < (?,?)", at, key)
+	}
 	if in.APIKeyID != "" {
 		q = q.Where("api_key_id = ?", in.APIKeyID)
 	}
@@ -545,8 +572,8 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 		q = q.Where("request_id IN ?", in.RequestIDs)
 	}
 	if in.BillingState != "" {
-		args := []any{in.UserID, in.BillingState}
-		clause := `EXISTS (SELECT 1 FROM billing_usage_events u WHERE u.request_id = gateway_requests.request_id AND u.user_id = ? AND u.state = ?`
+		args := []any{in.BillingState}
+		clause := `EXISTS (SELECT 1 FROM billing_usage_events u WHERE u.request_id = gateway_requests.request_id AND u.user_id = gateway_requests.user_id AND u.state = ?`
 		if in.APIKeyID != "" {
 			clause += ` AND u.api_key_id = ?`
 			args = append(args, in.APIKeyID)
@@ -767,3 +794,5 @@ func ParseHint(only, ignore, order string) catalog.RouteHint {
 	}
 	return catalog.RouteHint{Only: split(only), Ignore: split(ignore), Order: split(order)}
 }
+
+func RequestCursor(item RequestView) string { return page.Encode(item.StartedAt, item.ID) }

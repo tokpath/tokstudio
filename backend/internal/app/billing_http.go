@@ -261,42 +261,7 @@ func (a *App) respondFlagPending(c *gin.Context, item *billing.UsageGapView, err
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) getUsage(c *gin.Context) {
-	since, until, ok := queryWindowOrAbort(c)
-	if !ok {
-		return
-	}
-	userID, _ := a.billingUser(c)
-	in := billing.QueryUsageInput{
-		UserID:        userID,
-		APIKeyID:      strings.TrimSpace(c.Query("api_key_id")),
-		PublicModelID: strings.TrimSpace(c.Query("public_model_id")),
-		State:         strings.TrimSpace(c.Query("state")),
-		Since:         since,
-		Until:         until,
-	}
-	if k := a.currentAPIKey(c); k != nil {
-		in.UserID = k.UserID
-		in.APIKeyID = k.APIKeyID
-	}
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	in.Limit = limit
-	if state := strings.TrimSpace(c.Query("state")); state != "" && !billing.KnownUsageState(state) {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "账务状态无效", false)
-		return
-	}
-	items, err := a.Billing.QueryUsage(c.Request.Context(), in)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
-		return
-	}
-	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", in.UserID, in.ChannelOrgID)
-	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", in.UserID, in.ChannelOrgID)
-	httpx.OK(c, gin.H{
-		"items": publicUsageItems(items), "keys": publicUsageDimensions(keys), "models": publicUsageDimensions(models),
-		"request_id": c.GetString(httpx.ContextRequestID),
-	})
-}
+func (a *App) getUsage(c *gin.Context) { a.workflowUsage(c, "user") }
 
 func (a *App) createTopup(c *gin.Context) {
 	httpx.Abort(c, http.StatusGone, "unsupported_operation", "请通过支付订单操作收款、划拨和退款", false)
@@ -402,41 +367,7 @@ func (a *App) adminLedger(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) adminUsage(c *gin.Context) {
-	since, until, ok := queryWindowOrAbort(c)
-	if !ok {
-		return
-	}
-	limit, _ := httpx.Page(c, 50)
-	items, err := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
-		UserID:        c.Query("user_id"),
-		APIKeyID:      c.Query("api_key_id"),
-		ChannelOrgID:  c.Query("channel_id"),
-		PublicModelID: c.Query("public_model_id"),
-		State:         strings.TrimSpace(c.Query("state")),
-		Since:         since,
-		Until:         until,
-		Limit:         limit,
-	})
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取 usage 失败", true)
-		return
-	}
-	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "usage.csv",
-			[]string{"id", "request_id", "user_id", "api_key_id", "public_model_id", "provider_id", "prompt_tokens", "completion_tokens", "reasoning_tokens", "customer_amount_minor", "wholesale_amount_minor", "state", "occurred_at"},
-			items, func(item billing.UsageView) []string {
-				return []string{
-					item.ID, item.RequestID, item.UserID, item.APIKeyID, item.PublicModelID, item.ProviderID,
-					strconv.FormatInt(item.PromptTokens, 10), strconv.FormatInt(item.CompletionTokens, 10),
-					strconv.FormatInt(item.ReasoningTokens, 10), strconv.FormatInt(item.CustomerMinor, 10),
-					strconv.FormatInt(item.WholesaleMinor, 10), item.State, item.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"),
-				}
-			})
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})
-}
+func (a *App) adminUsage(c *gin.Context) { a.workflowUsage(c, "admin") }
 
 func (a *App) billingExport(c *gin.Context) {
 	report, err := a.Billing.Report(c.Request.Context())
@@ -579,26 +510,28 @@ func (a *App) replayUsage(c *gin.Context) {
 }
 
 func (a *App) adminPendingUsage(c *gin.Context) {
-	since, until, ok := queryWindowOrAbort(c)
+	in, _, ok := a.usageWorkflowInput(c, "admin")
 	if !ok {
 		return
 	}
-	limit, _ := httpx.Page(c, 50)
-	items, err := a.Billing.ListPendingReconciliation(c.Request.Context(), billing.QueryUsageInput{
-		UserID:        c.Query("user_id"),
-		APIKeyID:      c.Query("api_key_id"),
-		ChannelOrgID:  c.Query("channel_id"),
-		PublicModelID: c.Query("public_model_id"),
-		State:         strings.TrimSpace(c.Query("status")),
-		Since:         since,
-		Until:         until,
-		Limit:         limit,
-	})
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取待对账失败", true)
+	in.State = strings.TrimSpace(c.Query("status"))
+	if in.State != "" && in.State != "all" && in.State != billing.UsagePending && in.State != billing.UsageVoided {
+		httpx.Abort(c, 400, "invalid_request", "核对状态无效", false)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "limit": limit, "request_id": c.GetString(httpx.ContextRequestID)})
+	limit := in.Limit
+	in.Limit++
+	items, err := a.Billing.ListPendingReconciliation(c.Request.Context(), in)
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取待核对记录失败", true)
+		return
+	}
+	next := ""
+	if len(items) > limit {
+		items = items[:limit]
+		next = billing.UsageCursor(items[len(items)-1].UsageView)
+	}
+	httpx.OK(c, gin.H{"items": items, "next_cursor": next, "limit": limit})
 }
 
 func (a *App) adminPendingUsageDetail(c *gin.Context) {

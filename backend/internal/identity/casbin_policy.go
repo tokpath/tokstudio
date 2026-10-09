@@ -44,6 +44,7 @@ func casbinPolicy() []policyRule {
 	rules = append(rules, grantMany("GET", []string{"audit_readonly"}, "/admin/brands", "/admin/brands/:id")...)
 	rules = append(rules, grant("/admin/oem-deliveries/:id/domains/check", "POST", "tech_admin")...)
 	rules = append(rules, grant("/channel/delivery", "GET", "channel_admin", "oem_ops", "oem_finance", "oem_audit")...)
+	rules = append(rules, usageWorkflowRules()...)
 	rules = append(rules, authenticatedRules()...)
 	rules = append(rules, financeRules()...)
 	rules = append(rules, opsRules()...)

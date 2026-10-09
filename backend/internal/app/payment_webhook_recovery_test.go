@@ -348,6 +348,36 @@ func TestOverhaulWebhookPaymentMismatchAndCrashGap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The original verified transaction can resolve an exception. Its abnormal
+	// event remains in the audit history, and another transaction cannot replace it.
+	recoveredOrder, err := a.Payment.CreateOrder(ctx, payment.CreateOrderInput{UserID: reg.User.ID, ChannelOrgID: identity.OfficialChannelID, Adapter: payment.AdapterManual, Purpose: payment.PurposeWallet, AmountMinor: billing.MinorPerUSD, Currency: "USD"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.DB.Table("payment_orders").Where("id = ?", recoveredOrder.ID).Updates(map[string]any{"provider_trade_id": "known-original", "payment_issue": "amount_or_currency_mismatch"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	callbackPayment := func(suffix, trade string) error {
+		event := marker + "-resolve-" + suffix
+		body, _ := json.Marshal(map[string]any{"event_id": event, "order_id": recoveredOrder.ID, "status": "paid", "trade_id": trade, "payment_amount": billing.MinorPerUSD, "currency": "USD"})
+		_, err := a.Payment.HandleWebhook(ctx, payment.AdapterManual, http.Header{"X-Tokenhub-Payment-Signature": {payment.SignWebhook(a.Payment.SignKey(), event, recoveredOrder.ID, payment.StatusPaid)}}, body)
+		return err
+	}
+	if err := callbackPayment("other", "different-transaction"); !errors.Is(err, payment.ErrInvalidEvent) {
+		t.Fatalf("another transaction replaced original: %v", err)
+	}
+	if err := callbackPayment("original", "known-original"); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := a.Payment.GetOrder(ctx, recoveredOrder.ID, "")
+	if err != nil || resolved.Status != payment.StatusPaid || resolved.PaymentIssue != "" || resolved.TradeID != "known-original" {
+		t.Fatalf("verified original could not resolve review: %+v %v", resolved, err)
+	}
+	// Remove this independent test credit so the crash-gap assertions below still
+	// compare the original wallet balance.
+	if _, err := a.Payment.Refund(ctx, recoveredOrder.ID); err != nil {
+		t.Fatal(err)
+	}
 	// These are the exact durable facts at the commit boundary before applyWebhook.
 	// Neither event has a processing_error because the process never reached application.
 	for i, state := range []string{payment.StatusPaid, payment.StatusRefunded} {

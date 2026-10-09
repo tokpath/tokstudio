@@ -217,32 +217,16 @@ func (s *Service) QueryUsage(ctx context.Context, in QueryUsageInput) ([]UsageVi
 		in.Limit = 200
 	}
 	var rows []usageRow
-	q := s.db.WithContext(ctx).Order("occurred_at DESC").Limit(in.Limit)
-	if in.UserID != "" {
-		q = q.Where("user_id = ?", in.UserID)
-	}
-	if in.APIKeyID != "" {
-		q = q.Where("api_key_id = ?", in.APIKeyID)
-	}
-	if in.ChannelOrgID != "" {
-		q = q.Where("channel_org_id = ?", in.ChannelOrgID)
-	}
-	if in.PublicModelID != "" {
-		q = q.Where("public_model_id = ?", in.PublicModelID)
+	q := applyUsageFilters(s.db.WithContext(ctx).Model(&usageRow{}), in).Order("occurred_at DESC,id DESC")
+	if !in.Unlimited {
+		q = q.Limit(in.Limit)
 	}
 	if in.State != "" {
 		q = q.Where("state = ?", in.State)
 	}
-	if in.RequestID != "" {
-		q = q.Where("request_id = ?", in.RequestID)
-	} else if len(in.RequestIDs) > 0 {
-		q = q.Where("request_id IN ?", in.RequestIDs)
-	}
-	if !in.Since.IsZero() {
-		q = q.Where("occurred_at >= ?", in.Since.UTC())
-	}
-	if !in.Until.IsZero() {
-		q = q.Where("occurred_at < ?", in.Until.UTC())
+	q, err := usageCursor(q, in.Cursor)
+	if err != nil {
+		return nil, err
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err

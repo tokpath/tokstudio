@@ -249,29 +249,7 @@ func (a *App) channelAllocations(c *gin.Context) {
 	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) channelUsage(c *gin.Context) {
-	channelID, ok := a.channelForQuery(c)
-	if !ok {
-		return
-	}
-	item, err := a.Billing.ChannelUsage(c.Request.Context(), channelID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道用量失败", true)
-		return
-	}
-	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", "", channelID)
-	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", "", channelID)
-	items, _ := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
-		ChannelOrgID:  channelID,
-		APIKeyID:      c.Query("api_key_id"),
-		PublicModelID: c.Query("public_model_id"),
-		Limit:         50,
-	})
-	httpx.OK(c, gin.H{
-		"usage": item, "keys": keys, "models": models, "items": items,
-		"request_id": c.GetString(httpx.ContextRequestID),
-	})
-}
+func (a *App) channelUsage(c *gin.Context) { a.workflowUsage(c, "channel") }
 
 func (a *App) channelSettlements(c *gin.Context) {
 	if p := a.currentPrincipal(c); p.IsChannelStaff() {

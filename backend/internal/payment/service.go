@@ -412,7 +412,16 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", orderID).First(&row).Error; err != nil {
 			return ErrNotFound
 		}
+		// A later verified success may resolve an amount/currency exception, but
+		// cannot replace the original provider transaction with another payment.
+		if row.ProviderTradeID != nil && *row.ProviderTradeID != "" && tradeID != "" && *row.ProviderTradeID != tradeID {
+			return ErrInvalidEvent
+		}
 		if row.Status == StatusPaid || row.Status == StatusRefunded || row.Status == StatusRefunding {
+			if row.PaymentIssue != "" {
+				row.PaymentIssue = ""
+				return tx.Save(&row).Error
+			}
 			return nil
 		}
 		if row.Status != StatusPending {
@@ -420,6 +429,7 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 		}
 		now := time.Now().UTC()
 		row.Status = StatusPaid
+		row.PaymentIssue = ""
 		row.UpdatedAt = now
 		if tradeID != "" {
 			row.ProviderTradeID = &tradeID

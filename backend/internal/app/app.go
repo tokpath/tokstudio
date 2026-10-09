@@ -232,6 +232,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerBrandWriteRoutes(r)
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)
+	a.registerUsageWorkflowRoutes(r)
 	a.registerMediaRoutes(r)
 	a.registerPlanRoutes(r)
 	a.registerPaymentChannelRoutes(r)

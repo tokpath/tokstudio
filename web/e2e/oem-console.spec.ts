@@ -35,7 +35,7 @@ test("OEM seven task groups expose their authorized routes and keep the current 
   for (const href of ["/admin/providers", "/admin/routes", "/channel/runbooks", "/admin/brands"]) await expect(sidebar.locator(`a[href="${href}"]`)).toHaveCount(0);
   for (const [group, label, href] of [
     ["总览", "交付与营业", "/channel/delivery"],
-    ["客户与合作方", "OEM 与渠道", "/channel/subchannels"],
+    ["客户与合作方", "渠道", "/channel/subchannels"],
     ["模型与套餐", "模型", "/channel/models"],
   ]) {
     const button = sidebar.getByRole("button", { name: group, exact: true });

@@ -41,7 +41,7 @@ func TestPersonalWalletRecordsCompleteAndScoped(t *testing.T) {
 	if err := a.DB.Exec(`INSERT INTO billing_commission_recoveries(id,wallet_id,settlement_id,commission_entry_id,credit_ledger_id,payout_ledger_id,amount_minor,recovered_minor,status,created_at) SELECT ?||'-claim-'||lpad(n::text,3,'0'),?,?||'-settlement-'||n,?||'-entry-'||n,?||'-ledger-001',?||'-ledger-001',1,1,'closed','2026-10-10T00:00:00Z'::timestamptz FROM generate_series(1,151)n`, prefix, wallet.ID, prefix, prefix, prefix, prefix).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := a.DB.Exec(`INSERT INTO billing_commission_recovery_receipts(id,recovery_id,amount_minor,reference,note,actor_user_id,idempotency_key) VALUES (?,?,1,'OWN-RECEIPT','private internal note','private-actor',?)`, prefix+"-receipt", prefix+"-claim-151", prefix+"-receipt").Error; err != nil {
+	if err := a.DB.Exec(`INSERT INTO billing_commission_recovery_receipts(id,recovery_id,amount_minor,reference,note,actor_user_id,idempotency_key) VALUES (?,?,1,?,'private internal note','private-actor',?)`, prefix+"-receipt", prefix+"-claim-151", prefix+"-receipt-reference", prefix+"-receipt").Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, kind := range []string{"ledger", "orders", "recoveries"} {
@@ -69,6 +69,9 @@ func TestPersonalWalletRecordsCompleteAndScoped(t *testing.T) {
 				if kind == "recoveries" {
 					for _, rawReceipt := range item["receipts"].([]any) {
 						receipt := rawReceipt.(map[string]any)
+						if receipt["reference"] != prefix+"-receipt-reference" {
+							t.Fatalf("original receipt reference missing %+v", receipt)
+						}
 						if receipt["actor_user_id"] != nil || receipt["note"] != "" {
 							t.Fatalf("private recovery metadata leaked %+v", receipt)
 						}

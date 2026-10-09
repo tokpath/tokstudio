@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { publicRedirectHref, type PublicRedirectSearch } from "@/lib/public-redirect";
 
-export default function LegacyPublicPage() {
-  redirect("/models");
+export default async function LegacyPublicPage({ searchParams }: { searchParams: Promise<PublicRedirectSearch> }) {
+  redirect(publicRedirectHref("/models", await searchParams));
 }

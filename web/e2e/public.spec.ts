@@ -17,18 +17,11 @@ const publicPaths = [
   "/vibe-coding",
   "/video",
   "/image",
-  "/leaderboards/models",
-  "/leaderboards/apps",
-  "/leaderboards/labs",
-  "/vs/openrouter",
   "/compare",
   "/promo",
-  "/promo/august",
   "/desktop",
   "/verify",
-  "/awesome-ofox",
   "/pricing",
-  "/blog",
   "/terms",
   "/privacy",
   "/login",
@@ -41,7 +34,8 @@ test("model catalog vendor query stays on the models path", async ({ page }) => 
   await expect(page.getByRole("link", { name: "全部厂商" })).toBeVisible();
 });
 
-test("login page has no ofox copy", async ({ page }) => {
+test("login page shows only available authentication methods", async ({ page }) => {
+  await page.route("**/v1/auth/google/status", (route) => route.fulfill({ json: { available: false } }));
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "注册 / 登录" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/ofox/i);
@@ -50,10 +44,7 @@ test("login page has no ofox copy", async ({ page }) => {
   await expect(page.locator("footer")).toHaveCount(0);
   await expect(page.getByText("发送验证码")).toHaveCount(0);
   await expect(page.getByText("用验证码登录")).toHaveCount(0);
-  const google = page.getByRole("button", { name: "使用 Google 登录" });
-  await expect(google).toBeVisible();
-  await expect(google).toBeDisabled();
-  await expect(page.getByText("Google 登录暂未启用")).toBeVisible();
+  await expect(page.getByRole("button", { name: "使用 Google 登录" })).toHaveCount(0);
 });
 
 test("google oauth callback without code returns to login", async ({ page }) => {
@@ -64,7 +55,7 @@ test("google oauth callback without code returns to login", async ({ page }) => 
   await expect(page.getByText("绑定成功")).toHaveCount(0);
 });
 
-test("public ofox replica pages render headings", async ({ page }) => {
+test("available public pages render headings", async ({ page }) => {
   for (const path of publicPaths) {
     const response = await page.goto(path);
     expect(response?.ok(), path).toBeTruthy();
@@ -199,12 +190,11 @@ test("admin overview shows DESIGN.md hero stats", async ({ page }) => {
   await expect(overview.getByText("Provider 健康")).toBeVisible();
 });
 
-test("desktop landing lists tools without a fake installer", async ({ page }) => {
+test("desktop compatibility path opens actual integration documentation", async ({ page }) => {
   await page.goto("/desktop");
-  await expect(page.getByRole("heading", { name: "本机编程工具，一个账户接入" })).toBeVisible();
-  await expect(page.getByText("Claude Code", { exact: true })).toBeVisible();
-  await expect(page.getByText("未发布")).toBeVisible();
-  await expect(page.getByRole("link", { name: "看接入片段" })).toBeVisible();
+  await expect(page).toHaveURL(/\/docs\/integrations$/);
+  await expect(page.locator("h1")).toBeVisible();
+  await expect(page.getByRole("link", { name: /下载安装|下载客户端/ })).toHaveCount(0);
 });
 
 test("channel users page does not treat a failed load as empty", async ({ page }) => {

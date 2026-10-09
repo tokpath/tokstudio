@@ -46,6 +46,7 @@ func casbinPolicy() []policyRule {
 	rules = append(rules, grant("/channel/delivery", "GET", "channel_admin", "oem_ops", "oem_finance", "oem_audit")...)
 	rules = append(rules, usageWorkflowRules()...)
 	rules = append(rules, authenticatedRules()...)
+	rules = append(rules, customerRules()...)
 	rules = append(rules, financeRules()...)
 	rules = append(rules, opsRules()...)
 	rules = append(rules, techRules()...)

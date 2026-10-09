@@ -229,6 +229,7 @@ func (a *App) Router() *gin.Engine {
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
+	a.registerCustomerRoutes(r)
 	a.registerBrandWriteRoutes(r)
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)

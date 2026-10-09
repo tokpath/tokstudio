@@ -1054,18 +1054,7 @@ func (a *App) adminTOTPDisable(c *gin.Context) {
 }
 
 func (a *App) listUsersAdmin(c *gin.Context) {
-	items, err := a.Identity.ListUsers(c.Request.Context(), *a.currentPrincipal(c))
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "users.csv", []string{"id", "email", "status", "channel_org_id", "source_code"}, items, func(item identity.UserView) []string {
-			return []string{item.ID, item.Email, item.Status, item.ChannelOrgID, item.SourceCode}
-		})
-		return
-	}
-	httpx.OKPage(c, items, 100, func(item identity.UserView) string { return item.ID })
+	a.writeCustomerPage(c, a.customerQueryInput(c))
 }
 
 func (a *App) listUsersChannel(c *gin.Context) {
@@ -1073,12 +1062,9 @@ func (a *App) listUsersChannel(c *gin.Context) {
 	if !ok {
 		return
 	}
-	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *a.currentPrincipal(c), channelID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	in := a.customerQueryInput(c)
+	in.ChannelID = channelID
+	a.writeCustomerPage(c, in)
 }
 
 func (a *App) listSubchannelUsers(c *gin.Context) {
@@ -1093,12 +1079,9 @@ func (a *App) listSubchannelUsers(c *gin.Context) {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 OEM 可查看下属渠道用户", false)
 		return
 	}
-	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *principal, child.ID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	in := a.customerQueryInput(c)
+	in.ChannelID = child.ID
+	a.writeCustomerPage(c, in)
 }
 
 func (a *App) channelAttribution(c *gin.Context) {

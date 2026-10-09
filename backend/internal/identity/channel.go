@@ -341,7 +341,15 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 		in.BrandID = parent.BrandID
 	}
 	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC(), ParentID: &parentID}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return s.createChannelInvitationTx(tx, row)
+	}); err != nil {
+		if recovered, recoverErr := s.recoverCreatedChannel(ctx, row); recoverErr == nil {
+			return recovered, nil
+		}
 		return nil, err
 	}
 	view := channelViewFrom(row)

@@ -55,10 +55,15 @@ test("OEM financial staff see only their business menu and cannot manage employe
   await mockViewer(page, { roles: ["oem_finance"], channelType: "C" });
   await page.goto("/channel/metrics");
   const sidebar = page.getByRole("navigation", { name: "OEM 管理控制台", exact: true });
-  await expect(sidebar.getByRole("link", { name: "员工与权限" })).toHaveCount(0);
-  await expect(sidebar.getByRole("link", { name: "用户/项目" })).toHaveCount(0);
-  await expect(sidebar.getByRole("link", { name: "余额/充值" })).toBeVisible();
+  await expect(sidebar.locator('a[href="/channel/staff"]')).toHaveCount(0);
+  await sidebar.getByRole("button", { name: "客户与合作方", exact: true }).click();
+  await expect(sidebar.getByRole("link", { name: "客户", exact: true })).toBeVisible();
+  await sidebar.getByRole("button", { name: "资金与结算", exact: true }).click();
+  await expect(sidebar.getByRole("link", { name: "余额/充值", exact: true })).toBeVisible();
+  await expect(sidebar.locator('a[href="/channel/promos"]')).toHaveCount(0);
+  await expect(sidebar.locator('a[href="/channel/brand"]')).toHaveCount(0);
   await page.goto("/channel/staff");
   await expect(page.getByTestId("console-access")).toBeVisible();
   await expect(page.getByRole("button", { name: "添加员工" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "编辑岗位" })).toHaveCount(0);
 });

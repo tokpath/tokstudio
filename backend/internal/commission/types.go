@@ -88,15 +88,16 @@ type SettlementView struct {
 }
 
 type PolicyView struct {
-	ID             string `json:"id"`
-	Version        string `json:"version"`
-	DirectBPS      int    `json:"direct_bps"`
-	IndirectBPS    int    `json:"indirect_bps"`
-	OverrideBPS    int    `json:"override_bps,omitempty"`
-	ChannelBPS     int    `json:"channel_bps,omitempty"`
-	TeamBPS        int    `json:"team_bps,omitempty"`
-	CapBPS         int    `json:"cap_bps"`
-	TotalBPS       int    `json:"total_bps"`
-	FreezeDays     int    `json:"freeze_days"`
-	MinSettleMinor int64  `json:"min_settle_minor"`
+	ExpectedVersion string `json:"expected_version,omitempty"`
+	ID              string `json:"id"`
+	Version         string `json:"version"`
+	DirectBPS       int    `json:"direct_bps"`
+	IndirectBPS     int    `json:"indirect_bps"`
+	OverrideBPS     int    `json:"override_bps,omitempty"`
+	ChannelBPS      int    `json:"channel_bps,omitempty"`
+	TeamBPS         int    `json:"team_bps,omitempty"`
+	CapBPS          int    `json:"cap_bps"`
+	TotalBPS        int    `json:"total_bps"`
+	FreezeDays      int    `json:"freeze_days"`
+	MinSettleMinor  int64  `json:"min_settle_minor"`
 }

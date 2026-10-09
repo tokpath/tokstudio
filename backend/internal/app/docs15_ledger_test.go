@@ -53,6 +53,7 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 	again := postJSONRaw(t, server.URL+"/admin/supplier-entries", "docs15_admin", map[string]any{
 		"channel_org_id": identity.ResellerChannelID, "amount_minor": 2 * billing.MinorPerUSD,
 		"source_type": "provider_invoice", "idempotency_key": idem,
+		"vendor_name": "Echo Labs", "invoice_no": "INV-1", "payment_method": "wire", "memo": "offline",
 	})
 	if again["item"].(map[string]any)["id"] != item["id"] {
 		t.Fatalf("supplier idempotency: %+v", again)

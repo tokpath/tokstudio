@@ -1,177 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
 import { LedgerTable } from "@/components/console/ledger-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction, canWrite } from "@/lib/rbac";
 import { apiBase } from "@/lib/api";
-import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
-import { IfCan } from "@/components/rbac/if-can";
+import { apiClient } from "@/lib/client";
+import { confirmHeaders } from "@/lib/confirm";
+import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
+import { beginOperation, finishOperation, loadOperation, type SavedOperation } from "@/lib/stable-operation";
 
-type Supplier = {
-  id?: string;
-  channel_org_id?: string;
-  amount_minor?: number;
-  source_type?: string;
-  vendor_name?: string;
-  memo?: string;
-  reversal_of?: string;
-  created_at?: string;
-};
+type Supplier = { id: string; channel_org_id: string; amount_minor: number; source_type: string; vendor_name?: string; memo?: string; reversal_of?: string; occurred_at?: string };
+type Payload = { amount_minor: number; currency: string; source_type: string; vendor_name: string; memo: string; occurred_at: string };
+const localTime = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16);
 
-function micro(n: unknown) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return `$${(v / 1_000_000).toFixed(2)}`;
-}
-
-function usdToMinor(raw: string) {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.round(n * 1_000_000);
-}
-
-const selectClass =
-  "h-10 min-h-10 w-full max-w-xs rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
-
-export function AdminSupplierPanel({ channelID }: { channelID?: string }) {
-  const [items, setItems] = useState<Supplier[]>([]);
-  const [usd, setUsd] = useState("10");
-  const [sourceType, setSourceType] = useState("provider_invoice");
+export function AdminSupplierPanel({ channelID, prefix = "/admin" }: { channelID?: string; prefix?: "/admin" | "/channel" }) {
+  const viewer = useViewer();
+  const canEdit = !channelID && (prefix === "/channel" ? canChannelAction("finance", viewer) : canWrite("billing.refund", viewer));
+  const storageKey = `supplier:${prefix}:${viewer.userId || 'loading'}:${channelID || 'own-brand'}`;
+  const [usd, setUsd] = useState("");
+  const [source, setSource] = useState(prefix === "/channel" ? "platform_recharge" : "provider_invoice");
   const [vendor, setVendor] = useState("");
   const [memo, setMemo] = useState("");
-  const [message, setMessage] = useState(
-    channelID
-      ? "这里只看该渠道账本。记一笔会记在当前登录人自己的账上（平台记官方渠道）。"
-      : "线下已付给模型商，线上只记账。金额按正数填写，入库为负。记在官方渠道。",
-  );
-
-  const listPath = channelID
-    ? `/admin/supplier-entries?channel_id=${encodeURIComponent(channelID)}`
-    : "/admin/supplier-entries";
-
-  async function load() {
-    const res = await fetch(`${apiBase}${listPath}`, { credentials: "include" });
-    const body = await res.json();
-    if (!res.ok) {
-      setMessage(body.error?.message || "读取供应商支出失败");
-      return;
-    }
-    const next = Array.isArray(body.items) ? (body.items as Supplier[]) : [];
-    setItems(next);
-    setMessage(`供应商支出 ${next.length} 条`);
+  const [when, setWhen] = useState(localTime);
+  const [operation, setOperation] = useState<SavedOperation<Payload> | null>(null);
+  const [message, setMessage] = useState("");
+  const [reason, setReason] = useState("");
+  const path = `${prefix}/supplier-entries${channelID ? `?channel_id=${encodeURIComponent(channelID)}` : ''}`;
+  const query = useQuery({ queryKey: [path], queryFn: () => apiClient<{ items?: Supplier[]; error?: { message?: string } }>("GET", path) });
+  useEffect(() => {
+    const saved = loadOperation<Payload>(storageKey); setOperation(saved);
+    if (saved) {
+      setUsd(String(saved.payload.amount_minor / 1_000_000)); setVendor(saved.payload.vendor_name); setSource(saved.payload.source_type); setMemo(saved.payload.memo);
+      const date = new Date(saved.payload.occurred_at); setWhen(new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16));
+      setMessage("有一笔支出结果待确认，请核对原操作并重试查询。");
+    } else { setUsd(""); setVendor(""); setMemo(""); setWhen(localTime()); setMessage(""); }
+  }, [storageKey]);
+  async function record() {
+    const amount = parseUsdToMinor(usd);
+    if (!operation && (!amount || !vendor.trim() || !when || !Number.isFinite(new Date(when).getTime()))) { setMessage("请填写付款对象、正数 USD 金额和实际付款时间。"); return false; }
+    let pending = operation;
+    try {
+      pending = beginOperation<Payload>(storageKey, { amount_minor: amount!, currency: "USD", source_type: source, vendor_name: vendor.trim(), memo: memo.trim(), occurred_at: new Date(when).toISOString() });
+      setOperation(pending);
+      const response = await fetch(`${apiBase}${prefix}/supplier-entries`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ ...pending.payload, idempotency_key: pending.id }) });
+      const body = await response.json();
+      if (!response.ok) {
+        if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 409) { finishOperation(storageKey); setOperation(null); }
+        setMessage(body.error?.message || "登记失败，保留原操作与内容。"); return false;
+      }
+      finishOperation(storageKey); setOperation(null); setUsd(""); setVendor(""); setMemo(""); setWhen(localTime());
+      const result = await query.refetch();
+      setMessage(`已登记支出 ${body.item?.id}。${result.isError || result.data?.error ? '流水回读失败，请刷新查询；本笔已登记。' : ''}`); return true;
+    } catch { setMessage(pending ? `结果待确认，原操作 ${pending.id}。重试只查询/登记同一笔，不能修改金额或对象。` : "无法保存操作身份，尚未提交；请检查浏览器存储。"); return false; }
   }
-
-  async function record(): Promise<boolean> {
+  async function reverse(item: Supplier) {
+    if (!reason.trim()) { setMessage("请填写本次冲正原因。"); return false; }
     try {
-    const amount = usdToMinor(usd);
-    if (!amount) {
-      setMessage("请填写正数金额（USD）");
-      return false;
-    }
-    const res = await fetch(`${apiBase}/admin/supplier-entries`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({
-        amount_minor: amount,
-        source_type: sourceType,
-        idempotency_key: `spe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        vendor_name: vendor || undefined,
-        memo: memo || undefined,
-      }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? `已记账 ${body.item?.id}` : body.error?.message || "记账失败");
-    const __ok = res.ok;
-    if (res.ok) await load();
-    return __ok;
-    } catch {
-      setMessage(confirmNetworkUnavailable);
-      return false;
-    }
-}
-
-  async function reverse(id: string): Promise<boolean> {
-    try {
-    const res = await fetch(`${apiBase}/admin/supplier-entries/${encodeURIComponent(id)}/reverse`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({ reason: "void" }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? `已冲正 ${body.item?.id}` : body.error?.message || "冲正失败");
-    const __ok = res.ok;
-    if (res.ok) await load();
-    return __ok;
-    } catch {
-      setMessage(confirmNetworkUnavailable);
-      return false;
-    }
-}
-
-  return (
-    <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="mb-4 text-lg font-semibold tracking-tight">供应商支出</h2>
-      <p className="mb-3 text-sm text-ink-secondary">
-        {channelID
-          ? "列表按渠道过滤。新建仍记在平台官方账本，不会记到被查看的渠道。"
-          : "A 记付给模型商。必填金额、来源类型；幂等键自动生成。"}
-      </p>
-      {!channelID ? (
-        <IfCan action="billing.refund">
-          <div className="mb-3 grid max-w-xl gap-2">
-            <Input value={usd} onChange={(e) => setUsd(e.target.value)} aria-label="金额 USD" placeholder="10" />
-            <select className={selectClass} aria-label="来源类型" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
-              <option value="provider_invoice">付给模型商</option>
-              <option value="platform_recharge">其他上游付款</option>
-              <option value="other">其他</option>
-            </select>
-            <Input value={vendor} onChange={(e) => setVendor(e.target.value)} aria-label="对方名称" placeholder="厂商名" />
-            <Input value={memo} onChange={(e) => setMemo(e.target.value)} aria-label="备注" placeholder="线下付款备忘" />
-            <ConfirmButton size="sm" title="确认记供应商支出" description="线下已付，线上只记账。金额入库为负。" onConfirm={record}>
-              记一笔
-            </ConfirmButton>
-          </div>
-        </IfCan>
-      ) : null}
-      <Button size="sm" variant="outline" onClick={() => void load()}>
-        刷新流水
-      </Button>
-      <LedgerTable
-        columns={["时间", "金额", "来源", "渠道", "操作"]}
-        emptyTitle="暂无供应商支出"
-        emptyDetail="点刷新后可看到线下付款记账。"
-        rows={items.map((item) => ({
-          key: item.id || "spe",
-          cells: [
-            item.created_at ? String(item.created_at).slice(0, 19) : "—",
-            <span key="a" className="font-mono tabular-nums">
-              {micro(item.amount_minor)}
-            </span>,
-            item.source_type || "—",
-            item.channel_org_id || "—",
-            item.reversal_of ? (
-              "—"
-            ) : (
-              <IfCan key="r" action="billing.refund">
-                <ConfirmButton
-                  size="sm"
-                  variant="outline"
-                  title="确认冲正"
-                  description="成对补记，不删原流水。"
-                  onConfirm={() => reverse(String(item.id))}
-                >
-                  冲正
-                </ConfirmButton>
-              </IfCan>
-            ),
-          ],
-        }))}
-      />
-      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
-    </section>
-  );
+      const response = await fetch(`${apiBase}${prefix}/supplier-entries/${encodeURIComponent(item.id)}/reverse`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ reason: reason.trim() }) });
+      const body = await response.json();
+      if (!response.ok) { setMessage(body.error?.message || "冲正失败"); return false; }
+      const result = await query.refetch(); setMessage(`已冲正 ${item.id}，原流水保留。${result.isError ? '流水回读失败，请刷新。' : ''}`); return true;
+    } catch { setMessage(`冲正结果待确认，请查询原支出 ${item.id}；重试仍使用该原记录。`); return false; }
+  }
+  return <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label="供应商支出">
+    <h2 className="mb-3 text-lg font-semibold">供应商支出</h2>
+    {canEdit ? <>
+      <fieldset disabled={Boolean(operation)} className="mb-3 grid max-w-xl gap-3">
+        <label className="grid gap-1 text-sm">付款对象<Input aria-label="付款对象" value={vendor} onChange={e => setVendor(e.target.value)} /></label>
+        <label className="grid gap-1 text-sm">实际付款金额（USD）<Input aria-label="实际付款金额（USD）" inputMode="decimal" value={usd} onChange={e => setUsd(e.target.value)} /></label>
+        <label className="grid gap-1 text-sm">实际付款时间<Input aria-label="实际付款时间" type="datetime-local" value={when} onChange={e => setWhen(e.target.value)} /></label>
+        <label className="grid gap-1 text-sm">付款类别<select className="h-10 rounded-control border border-hairline bg-canvas-raised px-3" aria-label="付款类别" value={source} onChange={e => setSource(e.target.value)}><option value="provider_invoice">付给模型商</option><option value="platform_recharge">付给技术平台</option><option value="other">其他</option></select></label>
+        <label className="grid gap-1 text-sm">说明（可选）<Input aria-label="说明（可选）" value={memo} onChange={e => setMemo(e.target.value)} /></label>
+      </fieldset>
+      {operation ? <p role="status" className="mb-3 text-sm text-hold">待确认：{operation.payload.vendor_name}，{formatUsdMinor(operation.payload.amount_minor)} USD；原操作 {operation.id}。</p> : null}
+      <ConfirmButton size="sm" disabled={viewer.loading || !viewer.userId} title="登记已实际付款的支出" description={`付款对象 ${operation?.payload.vendor_name || vendor}，金额 ${formatUsdMinor(operation?.payload.amount_minor ?? parseUsdToMinor(usd))} USD；确认款项已经在线下支付，本次只登记。`} onConfirm={record}>{operation ? "查询/重试原操作" : "登记支出"}</ConfirmButton>
+    </> : null}
+    <Button size="sm" variant="outline" className="ml-2" onClick={() => void query.refetch()}>刷新流水</Button>
+    {query.isError || query.data?.error ? <p role="alert">流水读取失败，请重试。</p> : null}
+    {canEdit ? <label className="my-3 grid max-w-xl gap-1 text-sm">冲正原因<Input aria-label="冲正原因" value={reason} onChange={e => setReason(e.target.value)} /></label> : null}
+    <LedgerTable columns={["时间", "对象", "金额（USD）", "说明", "操作"]} emptyDetail="已实际付款的支出会在此保留记录。" emptyTitle={query.isLoading ? "正在读取流水…" : query.isError ? "流水暂不可用" : "暂无供应商支出"} rows={(query.data?.items || []).map(item => ({ key: item.id, cells: [item.occurred_at ? new Date(item.occurred_at).toLocaleString() : '—', item.vendor_name || '—', formatUsdMinor(item.amount_minor), item.memo || '—', item.reversal_of || !canEdit ? '—' : <ConfirmButton key={item.id} size="sm" variant="outline" title="冲正供应商支出" description={`原记录 ${item.id}，${formatUsdMinor(item.amount_minor)} USD；补记反向流水，保留原记录。`} onConfirm={() => reverse(item)}>冲正</ConfirmButton>] }))} />
+    {message ? <p role="status" className="mt-3 text-sm">{message}</p> : null}
+  </section>;
 }

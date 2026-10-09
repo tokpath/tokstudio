@@ -1,8 +1,9 @@
 "use client";
 
+import { formatUsdMinor } from "@/lib/money";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
@@ -11,7 +12,6 @@ import { AdminH2 } from "@/components/admin-h2";
 import { SealConfirm } from "@/components/seal-confirm";
 import { IfCan } from "@/components/rbac/if-can";
 import { apiBase } from "@/lib/api";
-import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { gapKey, pendingListPath, type UsageGap } from "@/lib/reconciliation";
 
@@ -25,10 +25,7 @@ export default function AdminReconciliationPage() {
   const [message, setMessage] = useState(t("pendingLead"));
 
   const listPath = useMemo(() => pendingListPath({ status, from, to }), [status, from, to]);
-  const listQuery = useQuery({
-    queryKey: ["admin-pending", listPath],
-    queryFn: () => apiClient<{ items?: UsageGap[] }>("GET", listPath),
-  });
+  const queryClient = useQueryClient();
 
   async function resolve(ids: string[]): Promise<boolean> {
     try {
@@ -49,7 +46,7 @@ export default function AdminReconciliationPage() {
     setPicked([]);
     if (res.ok) {
       setSelected(null);
-      await listQuery.refetch();
+      await queryClient.invalidateQueries({ predicate: query => query.queryKey.some(key => typeof key === "string" && (key.includes("/admin/usage/pending") || key.includes("dashboard") || key.includes("balance"))) });
     }
     return __ok;
     } catch {
@@ -153,7 +150,7 @@ export default function AdminReconciliationPage() {
           { accessorKey: "api_key_id", header: "API Key" },
           { accessorKey: "public_model_id", header: t("colModel") },
           { accessorKey: "channel_org_id", header: t("colChannel") },
-          { accessorKey: "reserved_minor", header: t("colReserved") },
+          { accessorKey: "reserved_minor", header: t("colReserved"), cell: ({ row }) => formatUsdMinor(row.original.reserved_minor) },
           { accessorKey: "state", header: t("colState") },
         ]}
       />
@@ -175,7 +172,7 @@ export default function AdminReconciliationPage() {
             </div>
             <div>
               <dt className="text-ink-mute">{t("colReserved")}</dt>
-              <dd className="font-mono tabular-nums">{selected.reserved_minor ?? 0}</dd>
+              <dd className="font-mono tabular-nums">{formatUsdMinor(selected.reserved_minor)}</dd>
             </div>
             <div>
               <dt className="text-ink-mute">API Key</dt>
@@ -192,7 +189,7 @@ export default function AdminReconciliationPage() {
               <SealConfirm
                 size="sm"
                 title={t("markResolvedTitle")}
-                description={t("markResolvedDesc")}
+                description={`${t("markResolvedDesc")} ${formatUsdMinor(selected.reserved_minor)} USD`}
                 onConfirm={() => resolve([gapKey(selected)])}
               >
                 {t("markResolved")}

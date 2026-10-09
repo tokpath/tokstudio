@@ -131,6 +131,10 @@ func (a *App) writeSupplier(c *gin.Context) {
 	}
 	item, err := a.Billing.RecordSupplier(c.Request.Context(), p.UserID, body)
 	if err != nil {
+		if errors.Is(err, billing.ErrConflict) {
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "原操作内容不一致，请查询原记录", false)
+			return
+		}
 		if errors.Is(err, billing.ErrInventedCost) {
 			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "禁止估算 attempt 成本", false)
 			return
@@ -224,7 +228,7 @@ func (a *App) channelPatchPolicy(c *gin.Context) {
 	}
 	ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
 	if err != nil || ch.Type != identity.ChannelTypeC {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 C 渠道可改分佣比例", false)
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 OEM 可改分佣比例", false)
 		return
 	}
 	var body commission.PolicyView
@@ -235,6 +239,10 @@ func (a *App) channelPatchPolicy(c *gin.Context) {
 	before, _ := a.Commission.PolicyFor(c.Request.Context(), ch.ID)
 	item, err := a.Commission.UpdateChannelPolicy(c.Request.Context(), ch.ID, body)
 	if err != nil {
+		if errors.Is(err, commission.ErrConflict) {
+			httpx.Abort(c, http.StatusConflict, "version_conflict", "策略已被更新，请重新读取并核对差异", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金策略不合法：直接+间接不能超过总佣金", false)
 		return
 	}

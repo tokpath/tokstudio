@@ -23,7 +23,7 @@ import {
   storeLoginNext,
 } from "@/lib/google-oauth";
 import { KeyRound, LogIn, Mail, UserPlus } from "lucide-react";
-import { GitHubMark, GoogleMark } from "@/components/oauth-marks";
+import { GoogleMark } from "@/components/oauth-marks";
 import { useTranslations } from "next-intl";
 
 type AuthError = { code?: string; message?: string; retryable?: boolean };
@@ -171,9 +171,7 @@ function LoginForm() {
     catch { setMessage(""); setErrorBanner(t("networkError")); }
   }
 
-  function githubStart() {
-    setErrorBanner(t("githubMissing"));
-  }
+
 
   return (
     <main className="flex min-h-svh w-full flex-col items-center justify-center px-6 py-12">
@@ -201,10 +199,7 @@ function LoginForm() {
         ) : null}
 
         <div className="mt-8 flex w-full flex-col gap-3">
-          <Button type="button" variant="outline" className="w-full" onClick={githubStart}>
-            <GitHubMark />
-            {t("github")}
-          </Button>
+
           <Button
             type="button"
             variant="outline"

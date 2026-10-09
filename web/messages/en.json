@@ -1124,11 +1124,11 @@
     "pendingEmpty": "No pending reconciliation",
     "pendingEmptyDetail": "The queue stays empty. No placeholder charts.",
     "pendingNeedSelection": "Select receipts first.",
-    "pendingResolved": "Marked {n} resolved",
+    "pendingResolved": "Voided {n} requests and released reserved credit",
     "pendingResolveFail": "Could not mark resolved",
     "pendingToReplay": "Replay real tokens on the usage page",
-    "markResolved": "Mark resolved",
-    "markResolvedTitle": "Seal mark resolved",
+    "markResolved": "Void and release reserved credit",
+    "markResolvedTitle": "Confirm void and release",
     "markResolvedDesc": "Voids the pending receipt and releases the hold. Never estimate-debits.",
     "gapDetail": "Usage gap",
     "gapMissing": "HOLD: upstream sent no usage; authorization still reserved.",
@@ -1176,7 +1176,8 @@
     "alerts": "Alerts",
     "media": "Media jobs",
     "metrics": "Metrics",
-    "adminOverview": "Admin overview"
+    "adminOverview": "Admin overview",
+    "heroHealthUnknown": "Health check unavailable"
   },
   "theme": {
     "label": "Theme",

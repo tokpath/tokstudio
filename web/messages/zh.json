@@ -1124,11 +1124,11 @@
     "pendingEmpty": "暂无待对账",
     "pendingEmptyDetail": "没有缺口时这里保持空白，不画假图。",
     "pendingNeedSelection": "请先勾选需要标记已解的回单。",
-    "pendingResolved": "已标记 {n} 条已解",
+    "pendingResolved": "已作废 {n} 条并释放预留额度",
     "pendingResolveFail": "标记已解失败",
     "pendingToReplay": "去用量页回放真实 Token",
-    "markResolved": "标记已解",
-    "markResolvedTitle": "确认标记已解",
+    "markResolved": "作废并释放预留额度",
+    "markResolvedTitle": "确认作废并释放预留额度",
     "markResolvedDesc": "只作废待对账回单并释放预授权，不会按估算扣款。",
     "gapDetail": "用量缺口",
     "gapMissing": "HOLD：上游未回 usage，预授权仍扣住。",
@@ -1176,7 +1176,8 @@
     "alerts": "告警",
     "media": "媒体任务",
     "metrics": "指标",
-    "adminOverview": "管理总览"
+    "adminOverview": "管理总览",
+    "heroHealthUnknown": "尚未取得健康检查结果"
   },
   "theme": {
     "label": "主题",

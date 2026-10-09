@@ -717,6 +717,10 @@ func (a *App) adminPatchPolicy(c *gin.Context) {
 	before, _ := a.Commission.ActivePolicy(c.Request.Context())
 	item, err := a.Commission.UpdatePolicy(c.Request.Context(), body)
 	if err != nil {
+		if errors.Is(err, commission.ErrConflict) {
+			httpx.Abort(c, http.StatusConflict, "version_conflict", "策略已被更新，请重新读取并核对差异", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金策略不合法：各档 BPS 之和不能超过上限", false)
 		return
 	}

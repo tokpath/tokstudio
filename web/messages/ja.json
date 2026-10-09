@@ -1124,11 +1124,11 @@
     "pendingEmpty": "未照合はありません",
     "pendingEmptyDetail": "缺口がなければ空のまま。仮のチャートは出しません。",
     "pendingNeedSelection": "先に行を選んでください。",
-    "pendingResolved": "{n} 件を解除しました",
+    "pendingResolved": "{n} 件を無効化して予約枠を解放しました",
     "pendingResolveFail": "解除に失敗しました",
     "pendingToReplay": "利用量ページで実トークンを再生",
-    "markResolved": "解除する",
-    "markResolvedTitle": "印章で解除する",
+    "markResolved": "無効化して予約枠を解放",
+    "markResolvedTitle": "無効化と予約枠の解放を確認",
     "markResolvedDesc": "未照合伝票を無効化し与信を解放します。推定課金はしません。",
     "gapDetail": "usage ギャップ",
     "gapMissing": "HOLD：上流が usage を返しておらず、与信は拘束中です。",
@@ -1176,7 +1176,8 @@
     "alerts": "アラート",
     "media": "メディアジョブ",
     "metrics": "指標",
-    "adminOverview": "管理概要"
+    "adminOverview": "管理概要",
+    "heroHealthUnknown": "健全性の確認結果がありません"
   },
   "theme": {
     "label": "テーマ",

@@ -11,6 +11,11 @@ describe("dashboardSummaryParams", () => {
     ).toMatchObject({ pending: 1, revenue: "$0.00001", profit: "$0.000004", rate: "100", risk: 2, alerts: 1 });
   });
 
+  it("keeps missing health and totals unknown", () => {
+    expect(dashboardHero({})[3]).toMatchObject({ v: "UNKNOWN", hintKey: "heroHealthUnknown" });
+    expect(dashboardSummaryParams({})).toMatchObject({ pending: "—", revenue: "—", rate: "—", alerts: "—" });
+  });
+
   it("exposes DESIGN.md admin hero stats", () => {
     const cards = dashboardHero({
       totals: { pending_reconciliation_count: 2, gross_profit_minor: 4_000_000, commission_liability_minor: 500_000 },

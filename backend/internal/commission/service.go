@@ -219,8 +219,26 @@ func (s *Service) savePolicyVersion(ctx context.Context, scope, scopeID string, 
 		row.Version = id.New("policy")
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if scope == "channel" && in.ExpectedVersion != "" {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "commission-policy:platform:*").Error; err != nil {
+				return err
+			}
+		}
 		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "commission-policy:"+scope+":"+scopeID).Error; err != nil {
 			return err
+		}
+		if in.ExpectedVersion != "" {
+			var current policyRow
+			err := tx.Where("scope_type = ? AND scope_id = ? AND status = ?", scope, scopeID, "active").First(&current).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) && scope == "channel" {
+				err = tx.Where("scope_type = ? AND scope_id = ? AND status = ?", "platform", "*", "active").First(&current).Error
+			}
+			if err != nil {
+				return err
+			}
+			if current.Version != in.ExpectedVersion {
+				return ErrConflict
+			}
 		}
 		if err := tx.Model(&policyRow{}).Where("scope_type = ? AND scope_id = ? AND status = ?", scope, scopeID, "active").Update("status", "superseded").Error; err != nil {
 			return err

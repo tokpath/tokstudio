@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -137,7 +138,11 @@ func (s *Service) RecordSupplier(ctx context.Context, actorUserID string, in Sup
 		return nil, ErrInventedCost
 	}
 	if s.pool != nil {
-		if pool, err := s.pool.ResolvePoolChannelID(ctx, in.ChannelOrgID); err == nil && pool != "" {
+		pool, err := s.pool.ResolvePoolChannelID(ctx, in.ChannelOrgID)
+		if err != nil {
+			return nil, err
+		}
+		if pool != "" {
 			in.ChannelOrgID = pool
 		}
 	}
@@ -147,15 +152,26 @@ func (s *Service) RecordSupplier(ctx context.Context, actorUserID string, in Sup
 	if in.Currency == "" {
 		in.Currency = CurrencyUSD
 	}
-	if in.OccurredAt.IsZero() {
+	explicitTime := !in.OccurredAt.IsZero()
+	if !explicitTime {
 		in.OccurredAt = time.Now().UTC()
 	}
 	var out *SupplierView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "supplier-operation:"+in.IdempotencyKey).Error; err != nil {
+			return err
+		}
 		var existing supplierRow
-		if err := tx.Where("idempotency_key = ?", in.IdempotencyKey).First(&existing).Error; err == nil {
+		err := tx.Where("idempotency_key = ?", in.IdempotencyKey).First(&existing).Error
+		if err == nil {
+			if existing.ActorUserID != actorUserID || existing.ChannelOrgID != in.ChannelOrgID || existing.AmountMinor != -in.AmountMinor || existing.Currency != in.Currency || existing.SourceType != in.SourceType || (explicitTime && !existing.OccurredAt.Equal(in.OccurredAt)) || !sameSupplierOptional(existing, in) {
+				return ErrConflict
+			}
 			out = supplierView(existing)
 			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
 		row := supplierRow{
 			ID: id.New("spe"), ChannelOrgID: in.ChannelOrgID, AmountMinor: -in.AmountMinor,
@@ -172,6 +188,16 @@ func (s *Service) RecordSupplier(ctx context.Context, actorUserID string, in Sup
 		return nil
 	})
 	return out, err
+}
+
+func sameSupplierOptional(row supplierRow, in SupplierInput) bool {
+	value := func(v *string) string {
+		if v == nil {
+			return ""
+		}
+		return *v
+	}
+	return value(row.SourceID) == strings.TrimSpace(in.SourceID) && value(row.ProviderID) == strings.TrimSpace(in.ProviderID) && value(row.VendorName) == strings.TrimSpace(in.VendorName) && value(row.InvoiceNo) == strings.TrimSpace(in.InvoiceNo) && value(row.PaymentMethod) == strings.TrimSpace(in.PaymentMethod) && value(row.BankRef) == strings.TrimSpace(in.BankRef) && value(row.Counterparty) == strings.TrimSpace(in.Counterparty) && value(row.Memo) == strings.TrimSpace(in.Memo) && value(row.AttachmentURL) == strings.TrimSpace(in.AttachmentURL)
 }
 
 func (s *Service) ReverseSupplier(ctx context.Context, actorUserID, entryID, reason string) (*SupplierView, error) {

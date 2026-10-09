@@ -3,6 +3,7 @@
 import { ChannelHero } from "./channel-hero";
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 import { TaskLinks } from "@/components/console/task-links";
+import { canViewChannelHref } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
 export default function ChannelConsole() {
   const viewer = useViewer();
@@ -12,5 +13,5 @@ export default function ChannelConsole() {
     {id:"channelPayments",href:"/channel/payments"},
     {id:"channelLedger",href:"/channel/ledger"}, {id:"channelPromos",href:"/channel/promos"},
     {id:"channelUsage",href:"/channel/usage"}, {id:"channelSettlements",href:"/channel/settlements"},
-  ]} /></div>;
+  ].filter(item => canViewChannelHref(item.href, viewer))} /></div>;
 }

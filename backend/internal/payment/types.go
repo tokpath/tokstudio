@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	ErrReceiptConflict    = errors.New("offline receipt conflicts with existing receipt")
+	ErrCollectorRequired  = errors.New("only brand owners may collect payments")
 	ErrNotFound           = errors.New("payment order not found")
 	ErrInvalidAdapter     = errors.New("unsupported payment adapter")
 	ErrInvalidSignature   = errors.New("invalid payment signature")
@@ -63,28 +65,32 @@ type CreateOrderInput struct {
 }
 
 type ListOrdersFilter struct {
-	MatchUserIDs []string
-	Status       string
-	ChannelOrgID string
-	Adapter      string
-	Query        string
+	PayeeChannelOrgID string
+	MatchUserIDs      []string
+	Status            string
+	ChannelOrgID      string
+	Adapter           string
+	Query             string
 }
 
 type OrderView struct {
-	ID            string     `json:"id"`
-	UserID        string     `json:"user_id"`
-	ChannelOrgID  string     `json:"channel_org_id,omitempty"`
-	Adapter       string     `json:"adapter"`
-	Purpose       string     `json:"purpose"`
-	ReferenceType string     `json:"reference_type,omitempty"`
-	ReferenceID   string     `json:"reference_id,omitempty"`
-	AmountMinor   int64      `json:"amount_minor"`
-	CreditMinor   int64      `json:"credit_minor"`
-	Currency      string     `json:"currency"`
-	Status        string     `json:"status"`
-	TradeID       string     `json:"provider_trade_id,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	FulfilledAt   *time.Time `json:"fulfilled_at,omitempty"`
+	PayeeChannelOrgID string     `json:"payee_channel_org_id"`
+	ReceiptReference  string     `json:"receipt_reference,omitempty"`
+	RecordedBy        string     `json:"recorded_by,omitempty"`
+	ID                string     `json:"id"`
+	UserID            string     `json:"user_id"`
+	ChannelOrgID      string     `json:"channel_org_id,omitempty"`
+	Adapter           string     `json:"adapter"`
+	Purpose           string     `json:"purpose"`
+	ReferenceType     string     `json:"reference_type,omitempty"`
+	ReferenceID       string     `json:"reference_id,omitempty"`
+	AmountMinor       int64      `json:"amount_minor"`
+	CreditMinor       int64      `json:"credit_minor"`
+	Currency          string     `json:"currency"`
+	Status            string     `json:"status"`
+	TradeID           string     `json:"provider_trade_id,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	FulfilledAt       *time.Time `json:"fulfilled_at,omitempty"`
 }
 
 type EventView struct {

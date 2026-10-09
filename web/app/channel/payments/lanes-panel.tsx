@@ -1,7 +1,7 @@
 "use client";
 
 import { useViewer } from "@/components/rbac/viewer-context";
-import { canChannelAction } from "@/lib/rbac";
+import { canChannelAction, canWrite } from "@/lib/rbac";
 
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,13 +50,14 @@ const stateTone: Record<string, "neutral" | "brand" | "success" | "warn"> = {
   disabled: "warn",
 };
 
-export function PaymentLanesPanel() {
+export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "admin" }) {
+  const basePath = `/${scope}/payments`;
   const permissionViewer = useViewer();
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["/channel/payments/overview"],
+    queryKey: [`${basePath}/overview`],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/channel/payments/overview`, { credentials: "include" });
+      const res = await fetch(`${apiBase}${basePath}/overview`, { credentials: "include" });
       const body = (await res.json()) as Overview & { error?: { message?: string } };
       if (!res.ok) {
         throw new Error(body.error?.message || `加载失败（${res.status}）`);
@@ -100,7 +101,7 @@ export function PaymentLanesPanel() {
   }
 
   async function createDraft(): Promise<string> {
-    const res = await fetch(`${apiBase}/channel/payments/instances`, {
+    const res = await fetch(`${apiBase}${basePath}/instances`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -119,7 +120,7 @@ export function PaymentLanesPanel() {
   async function saveCredentials() {
     const id = instanceID || (await createDraft());
     if (!id) return false;
-    const res = await fetch(`${apiBase}/channel/payments/instances/${id}`, {
+    const res = await fetch(`${apiBase}${basePath}/instances/${id}`, {
       method: "PATCH",
       credentials: "include",
       headers: confirmHeaders,
@@ -135,7 +136,7 @@ export function PaymentLanesPanel() {
   }
 
   async function testConn() {
-    const res = await fetch(`${apiBase}/channel/payments/instances/${instanceID}/test`, {
+    const res = await fetch(`${apiBase}${basePath}/instances/${instanceID}/test`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -159,7 +160,7 @@ export function PaymentLanesPanel() {
       <EmptyState
         icon={CreditCard}
         title="无法加载支付通道"
-        detail={`${detail}。通道卡来自后端插件目录，并非页面写死配置。请使用渠道管理员账号打开，或确认 API 已发布 payment 插件。`}
+        detail={`${detail}。请刷新重试。`}
       />
     );
   }
@@ -168,7 +169,7 @@ export function PaymentLanesPanel() {
       <EmptyState
         icon={CreditCard}
         title="还没有支付插件"
-        detail="支付宝 / 微信 / Stripe 由 api 进程里的 Registry 注册。这里空着说明当前 api 没有挂上内置 driver。"
+        detail="当前未配置可用的支付方式。"
       />
     );
   }
@@ -192,7 +193,7 @@ export function PaymentLanesPanel() {
                   ? `还差：${lane.missing_fields.join("、")}`
                   : `已配置 ${lane.instance_count} 个商户。收款币种 ${lane.pay_currency}。`}
             </p>
-            <Button size="sm" disabled={!canChannelAction("paymentSettings", permissionViewer)} onClick={() => resetWizard(lane)}>
+            <Button size="sm" disabled={!(scope === "admin" ? canWrite("payments.write", permissionViewer) : canChannelAction("paymentSettings", permissionViewer))} onClick={() => resetWizard(lane)}>
               {lane.state === "none" ? `开通${lane.display_name}` : "管理凭证"}
             </Button>
           </section>
@@ -288,7 +289,7 @@ export function PaymentLanesPanel() {
                     try {
                       const ok = await testConn();
                       if (!ok || !instanceID) return false;
-                      const res = await fetch(`${apiBase}/channel/payments/instances/${instanceID}/go-live`, {
+                      const res = await fetch(`${apiBase}${basePath}/instances/${instanceID}/go-live`, {
                         method: "POST",
                         credentials: "include",
                         headers: confirmHeaders,
@@ -299,7 +300,7 @@ export function PaymentLanesPanel() {
                     const __ok = res.ok;
                       if (res.ok) {
                         setOpen(null);
-                        await queryClient.invalidateQueries({ queryKey: ["/channel/payments/overview"] });
+                        await queryClient.invalidateQueries({ queryKey: [`${basePath}/overview`] });
                       }
                     return __ok;
                     } catch {
@@ -316,7 +317,7 @@ export function PaymentLanesPanel() {
                       const ok = await testConn();
                       if (ok) {
                         setOpen(null);
-                        await queryClient.invalidateQueries({ queryKey: ["/channel/payments/overview"] });
+                        await queryClient.invalidateQueries({ queryKey: [`${basePath}/overview`] });
                       }
                     }}
                   >

@@ -19,7 +19,7 @@ import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { formatUsdMinor } from "@/lib/money";
 import ChannelRules from "./rules-panel";
-import ChannelSettlements from "./settlements-panel";
+import { SettlementPanel } from "@/app/admin/commission/settlement-panel";
 
 type Channel = { id: string; code: string; type: string; parent_id?: string };
 type Totals = { requests: number; revenue_minor: number; cost_minor: number; margin_minor: number; pending: number };
@@ -100,7 +100,7 @@ export function OEMRunbooksPage() {
 
 export function OEMCommissionPage() {
   const t = useTranslations("oem");
-  return <OEMPage page="commission"><ChannelRules /><AdminListPanel path="/channel/commissions" title={t("commissions")} columns={[{ accessorKey: "kind", header: t("kind") }, { accessorKey: "status", header: t("status") }, { accessorKey: "amount_minor", header: t("amount"), cell: ({ row }) => formatUsdMinor(Number(row.original.amount_minor)) }, { accessorKey: "usage_event_id", header: t("resource") }]} /><ChannelSettlements /></OEMPage>;
+  return <OEMPage page="commission"><ChannelRules /><AdminListPanel path="/channel/commissions" title={t("commissions")} columns={[{ accessorKey: "kind", header: t("kind") }, { accessorKey: "status", header: t("status") }, { accessorKey: "amount_minor", header: t("amount"), cell: ({ row }) => formatUsdMinor(Number(row.original.amount_minor)) }, { accessorKey: "usage_event_id", header: t("resource") }]} /><SettlementPanel oem /></OEMPage>;
 }
 
 function OEMSecurity() {

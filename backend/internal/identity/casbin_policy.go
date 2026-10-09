@@ -35,6 +35,10 @@ func casbinPolicy() []policyRule {
 	}
 	rules = append(rules, grant("/admin/commission-recoveries", "GET", "finance_admin", "audit_readonly")...)
 	rules = append(rules, grant("/admin/commission-recoveries/:id/receipts", "POST", "finance_admin")...)
+	rules = append(rules, grantMany("GET", []string{"finance_admin"}, "/admin/payments/overview", "/admin/payments/instances", "/admin/payments/settings", "/admin/payments/recipients")...)
+	rules = append(rules, grantMany("POST", []string{"finance_admin"}, "/admin/payments/offline", "/admin/payments/instances", "/admin/payments/instances/:id/test", "/admin/payments/instances/:id/go-live")...)
+	rules = append(rules, grantMany("PATCH", []string{"finance_admin"}, "/admin/payments/instances/:id", "/admin/payments/settings")...)
+	rules = append(rules, grantMany("GET", []string{"ops_admin", "audit_readonly"}, "/admin/payments/overview")...)
 	rules = append(rules, authenticatedRules()...)
 	rules = append(rules, financeRules()...)
 	rules = append(rules, opsRules()...)

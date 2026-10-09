@@ -759,9 +759,6 @@ func TestM7OpsHardening(t *testing.T) {
 		"items": []map[string]any{{"public_id": catalog.EchoModelID, "enabled": true,
 			"wholesale": map[string]string{"input": "0.0000007", "output": "0.0000014"}}},
 	})
-	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m7_admin", map[string]any{
-		"channel_org_id": frozenID, "amount_minor": 100 * billing.MinorPerUSD,
-	})
 	promo := "THX-FZ-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "m7_admin", map[string]any{
 		"channel_org_id": frozenID, "code": promo,

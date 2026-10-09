@@ -109,7 +109,6 @@ func (s *Service) Seed(ctx context.Context) error {
 			}
 		}
 		quotas := []quotaRow{
-			{ID: "qta_reseller", OwnerType: "channel", OwnerID: identity.ResellerChannelID, UnitType: "usd_credit", AvailableMinor: 1_000_000 * MinorPerUSD},
 			{ID: "qta_oem", OwnerType: "channel", OwnerID: identity.OEMChannelID, UnitType: "usd_credit", AvailableMinor: 1_000_000 * MinorPerUSD},
 		}
 		for i := range quotas {
@@ -167,9 +166,13 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 	if err := s.db.WithContext(ctx).Model(&commissionRecoveryRow{}).Where("wallet_id = ? AND status = ?", wallet.ID, "pending").Select("COALESCE(SUM(amount_minor - recovered_minor),0)").Scan(&view.CommissionRecoveryMinor).Error; err != nil {
 		return nil, err
 	}
-	if channelOrgID != "" && channelOrgID != identity.OfficialChannelID {
+	poolID, err := s.quotaOwner(ctx, channelOrgID)
+	if err != nil {
+		return nil, err
+	}
+	if !skipChannelQuota(poolID) {
 		var quota quotaRow
-		if err := s.db.WithContext(ctx).Where("owner_type = ? AND owner_id = ?", "channel", channelOrgID).First(&quota).Error; err == nil {
+		if err := s.db.WithContext(ctx).Where("owner_type = ? AND owner_id = ?", "channel", poolID).First(&quota).Error; err == nil {
 			view.ChannelQuota = quota.AvailableMinor
 		}
 		view.AllocationRemaining = allocationRemaining(s.db.WithContext(ctx), userID, channelOrgID)

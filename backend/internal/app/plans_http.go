@@ -152,6 +152,10 @@ func (a *App) createMySubscription(c *gin.Context) {
 	if body.Adapter == "" {
 		body.Adapter = payment.AdapterStripe
 	}
+	if body.Adapter == payment.AdapterManual {
+		httpx.Abort(c, 403, "permission_denied", "线下收款由品牌财务登记", false)
+		return
+	}
 	userID, channelID := a.billingUser(c)
 	ownerID, err := a.planBrandOwnerID(c, channelID)
 	if err != nil {
@@ -174,7 +178,7 @@ func (a *App) createMySubscription(c *gin.Context) {
 		AmountMinor: plan.PriceMinor, Currency: plan.Currency,
 	})
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建支付单失败", false)
+		a.abortPaymentErr(c, err)
 		return
 	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
@@ -182,7 +186,7 @@ func (a *App) createMySubscription(c *gin.Context) {
 		After: map[string]any{"plan_id": body.PlanID, "adapter": body.Adapter, "order_id": order.ID},
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
-	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL)
+	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.paymentCallbackOrigin(c, order.PayeeChannelOrgID))
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -233,18 +237,30 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 	if body.Adapter == "" {
 		body.Adapter = payment.AdapterStripe
 	}
+	if body.Adapter == payment.AdapterManual {
+		httpx.Abort(c, 403, "permission_denied", "线下收款由品牌财务登记", false)
+		return
+	}
 	if body.Purpose == "" {
 		body.Purpose = payment.PurposeWallet
+	}
+	if body.Purpose != payment.PurposeWallet {
+		httpx.Abort(c, 400, "invalid_request", "请从套餐页面购买套餐", false)
+		return
+	}
+	if body.PayMajor <= 0 {
+		httpx.Abort(c, 400, "invalid_request", "请填写充值金额，由收银台计算到账额度", false)
+		return
 	}
 	userID, channelID := a.billingUser(c)
 	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
 		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: body.Purpose,
-		AmountMinor: body.AmountMinor, PayMajor: body.PayMajor, Currency: body.Currency,
+		PayMajor: body.PayMajor,
 	})
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.Config.PublicBaseURL)
+	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.paymentCallbackOrigin(c, order.PayeeChannelOrgID))
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -528,6 +544,10 @@ func (a *App) adminGrantBonus(c *gin.Context) {
 }
 
 func (a *App) adminListPayments(c *gin.Context) {
+	ownerID, ok := a.requireChannelOrg(c)
+	if !ok {
+		return
+	}
 	query := strings.TrimSpace(c.Query("q"))
 	if len(query) > 200 {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "搜索内容过长", false)
@@ -543,7 +563,7 @@ func (a *App) adminListPayments(c *gin.Context) {
 		}
 	}
 	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
-		Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: query, MatchUserIDs: userIDs,
+		PayeeChannelOrgID: ownerID, Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: query, MatchUserIDs: userIDs,
 	})
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取支付单失败", true)
@@ -589,6 +609,9 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
+	if !a.canManagePayment(c) {
+		return
+	}
 	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
 	if a.abortPaymentErr(c, err) {
 		return
@@ -602,6 +625,9 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 
 func (a *App) adminRefundPayment(c *gin.Context) {
 	if !a.requireConfirm(c) {
+		return
+	}
+	if !a.canManagePayment(c) {
 		return
 	}
 	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))

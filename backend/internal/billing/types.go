@@ -246,6 +246,7 @@ type ResolvePendingResult struct {
 }
 
 type TopupView struct {
+	ChannelOrgID  string    `json:"channel_org_id,omitempty"`
 	ID            string    `json:"id"`
 	UserID        string    `json:"user_id"`
 	AmountMinor   int64     `json:"amount_minor"`

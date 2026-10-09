@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { adminGroups, portalLinks } from "./nav";
 import {
+  canChannelAction,
   canAccessAdminConsole,
   canAccessChannelPortal,
   canAccessPartnerPortal,
@@ -133,7 +134,7 @@ describe("OEM employee permissions", () => {
       expect(canViewAdminHref("/admin/staff", viewer)).toBe(false);
       expect(canViewChannelHref("/channel/staff", viewer)).toBe(false);
       expect(canViewChannelHref("/channel/metrics", viewer)).toBe(true);
-      expect(canViewChannelHref("/channel/payments/rules", viewer)).toBe(false);
+      expect(canViewChannelHref("/channel/payments/rules", viewer)).toBe(role === "oem_finance");
     }
   });
   it("separates operating, financial and audit work", () => {
@@ -142,5 +143,15 @@ describe("OEM employee permissions", () => {
     expect(canViewChannelHref("/channel/audit", signed(["oem_audit"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "B" }))).toBe(false);
+  });
+});
+
+describe("brand payment authority", () => {
+  it("prevents B from entering payment and funding pages", () => {
+    const b = signed(["channel_admin"], { channelType: "B" });
+    for (const path of ["/channel/payments", "/channel/payments/rules", "/channel/payments/orders", "/channel/ledger", "/channel/reconciliation"]) expect(canViewChannelHref(path, b)).toBe(false);
+    expect(canChannelAction("finance", b)).toBe(false);
+    expect(canChannelAction("paymentSettings", b)).toBe(false);
+    expect(canChannelAction("operations", b)).toBe(true);
   });
 });

@@ -32,10 +32,10 @@ func TestChannelPaymentPluggable(t *testing.T) {
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 
-	if mustStatusJSON(t, http.MethodGet, server.URL+"/channel/payments/overview", "", nil) != http.StatusForbidden {
+	if mustStatusJSON(t, http.MethodGet, server.URL+"/admin/payments/overview", "", nil) != http.StatusForbidden {
 		t.Fatal("anon overview must 403")
 	}
-	over := getAuthJSON(t, server.URL+"/channel/payments/overview", "pay_channel")
+	over := getAuthJSON(t, server.URL+"/admin/payments/overview", "pay_admin")
 	item := over["item"].(map[string]any)
 	lanes := item["lanes"].([]any)
 	if len(lanes) < 3 {
@@ -54,15 +54,15 @@ func TestChannelPaymentPluggable(t *testing.T) {
 		t.Fatalf("lanes: %s", joined)
 	}
 
-	adminOver := getAuthJSON(t, server.URL+"/channel/payments/overview", "pay_admin")
+	adminOver := getAuthJSON(t, server.URL+"/admin/payments/overview", "pay_admin")
 	adminItem, _ := adminOver["item"].(map[string]any)
 	adminLanes, _ := adminItem["lanes"].([]any)
 	if len(adminLanes) < 3 {
 		t.Fatalf("platform admin should still see plugin lanes, got %+v", adminOver)
 	}
 
-	created := postJSONRaw(t, server.URL+"/channel/payments/instances", "pay_channel", map[string]any{
-		"adapter": "alipay", "name": "B 支付宝沙箱", "mode": "sandbox",
+	created := postJSONRaw(t, server.URL+"/admin/payments/instances", "pay_admin", map[string]any{
+		"adapter": "alipay", "name": "平台支付宝沙箱", "mode": "sandbox",
 		"credentials": map[string]string{
 			"app_id": "202100000", "app_private_key": "BEGIN SECRET", "alipay_public_key": "BEGIN PUB",
 		},
@@ -76,13 +76,13 @@ func TestChannelPaymentPluggable(t *testing.T) {
 		t.Fatalf("public app_id: %+v", inst)
 	}
 
-	tested := postJSONRaw(t, server.URL+"/channel/payments/instances/"+inst["id"].(string)+"/test", "pay_channel", map[string]any{})
+	tested := postJSONRaw(t, server.URL+"/admin/payments/instances/"+inst["id"].(string)+"/test", "pay_admin", map[string]any{})
 	if tested["item"].(map[string]any)["last_test_ok"] != true {
 		t.Fatalf("test: %+v", tested)
 	}
 
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
-		"email": "payb-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
+		"email":    "payb-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
 		"password": "password1", "promotion_code": "THB1",
 	})
 	session := tokenOf(reg)
@@ -107,7 +107,7 @@ func TestChannelPaymentPluggable(t *testing.T) {
 		t.Fatalf("order channel: %+v", order)
 	}
 
-	listed := getAuthJSON(t, server.URL+"/channel/payments/orders", "pay_channel")
+	listed := getAuthJSON(t, server.URL+"/admin/payments", "pay_admin")
 	if !hasPlan(listed, ord["id"].(string)) {
 		t.Fatalf("channel orders missing: %+v", listed)
 	}
@@ -116,7 +116,7 @@ func TestChannelPaymentPluggable(t *testing.T) {
 		t.Fatalf("admin payments missing channel order: %+v", adminPays)
 	}
 
-	lights := getAuthJSON(t, server.URL+"/admin/channels/"+identity.ResellerChannelID+"/payments", "pay_admin")
+	lights := getAuthJSON(t, server.URL+"/admin/channels/"+identity.OfficialChannelID+"/payments", "pay_admin")
 	found := false
 	for _, raw := range lights["item"].(map[string]any)["lanes"].([]any) {
 		lane := raw.(map[string]any)

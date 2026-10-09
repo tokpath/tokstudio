@@ -857,7 +857,9 @@ func (a *App) createChannel(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
-	_ = a.Billing.EnsureChannelQuota(c.Request.Context(), item.ID)
+	if item.Type == identity.ChannelTypeC {
+		_ = a.Billing.EnsureChannelQuota(c.Request.Context(), item.ID)
+	}
 	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
 		ActorUserID: a.currentPrincipal(c).UserID, Action: "channel.create", ResourceType: "channel", ResourceID: item.ID,
 		After: map[string]string{"code": item.Code, "type": item.Type},

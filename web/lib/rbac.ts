@@ -150,8 +150,9 @@ export function canAccessChannelPortal(roles: string[] | undefined | null): bool
 
 export type ChannelAction = "operations" | "finance" | "staff" | "paymentSettings";
 export function canChannelAction(action: ChannelAction, viewer: Viewer): boolean {
+  if (viewer.channelType === "B" && (action === "finance" || action === "paymentSettings")) return false;
   if (shouldBypassRbac(viewer) || viewer.roles.includes(P) || viewer.roles.includes("channel_admin")) return true;
-  return action === "operations" ? viewer.roles.includes("oem_ops") : action === "finance" ? viewer.roles.includes("oem_finance") : false;
+  return action === "operations" ? viewer.roles.includes("oem_ops") : (action === "finance" || action === "paymentSettings") ? viewer.roles.includes("oem_finance") : false;
 }
 
 export function canViewChannelHref(href: string, viewer: Viewer): boolean {
@@ -159,7 +160,8 @@ export function canViewChannelHref(href: string, viewer: Viewer): boolean {
   if (!hasAnyRole(viewer.roles, OEM_CONSOLE_ROLES)) return false;
   const path = href.split("?")[0];
   if (path === "/channel/staff" || path.startsWith("/channel/staff/")) return viewer.channelType === "C" && viewer.roles.includes("channel_admin");
-  if (path.startsWith("/channel/payments/rules")) return viewer.roles.includes("channel_admin");
+  if (viewer.channelType === "B" && ["/channel/payments", "/channel/ledger", "/channel/reconciliation"].some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return false;
+  if (path.startsWith("/channel/payments/rules")) return viewer.channelType === "C" && hasAnyRole(viewer.roles, ["channel_admin", "oem_finance"]);
   if (viewer.roles.includes("channel_admin")) {
     if (path.startsWith("/channel/subchannels")) return viewer.channelType === "C";
     if (["/channel/plans", "/channel/brand", "/channel/rules", "/channel/margin", "/channel/commission", "/channel/metrics", "/channel/media", "/channel/alerts", "/channel/runbooks", "/channel/audit", "/channel/settings"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return viewer.channelType === "C";

@@ -48,38 +48,12 @@ func (s *Service) ConfirmTopup(ctx context.Context, topupID, actorUserID string)
 	var view *TopupView
 	var channelID string
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var row topupRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
-			return ErrNotFound
+		var err error
+		view, err = s.ConfirmTopupTx(tx, topupID, actorUserID)
+		if view != nil {
+			channelID = view.ChannelOrgID
 		}
-		if row.ChannelOrgID != nil {
-			channelID = *row.ChannelOrgID
-		}
-		if row.Status == TopupPaid {
-			view = topupView(row)
-			return nil
-		}
-		if row.Status != TopupPending {
-			return ErrTopupNotPending
-		}
-		if err := creditWallet(tx, row.UserID, row.AmountMinor, EventTopup, "topup", row.ID, "topup:"+row.ID); err != nil {
-			return err
-		}
-		if err := s.issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
-			return err
-		}
-		row.Status = TopupPaid
-		row.UpdatedAt = time.Now().UTC()
-		if err := tx.Save(&row).Error; err != nil {
-			return err
-		}
-		if _, err := s.outbox.EnqueueTx(tx, "billing.topup.paid", "topup", row.ID, map[string]any{
-			"user_id": row.UserID, "amount_minor": row.AmountMinor, "actor": actorUserID,
-		}); err != nil {
-			return err
-		}
-		view = topupView(row)
-		return nil
+		return err
 	})
 	if err == nil && view != nil {
 		s.considerEligibility(ctx, view.UserID, channelID, view.AmountMinor)
@@ -204,12 +178,58 @@ func debitAvailable(tx *gorm.DB, userID string, amount int64, event, refType, re
 }
 
 func topupView(row topupRow) *TopupView {
+	channelID := ""
+	if row.ChannelOrgID != nil {
+		channelID = *row.ChannelOrgID
+	}
 	view := &TopupView{
-		ID: row.ID, UserID: row.UserID, AmountMinor: row.AmountMinor, Currency: row.Currency,
+		ID: row.ID, UserID: row.UserID, ChannelOrgID: channelID, AmountMinor: row.AmountMinor, Currency: row.Currency,
 		PaymentMethod: row.PaymentMethod, Status: row.Status, CreatedAt: row.CreatedAt,
 	}
 	if row.RedeemCode != nil {
 		view.RedeemCode = *row.RedeemCode
 	}
 	return view
+}
+
+// ConfirmTopupTx lets payment receipts and their audit commit with the wallet.
+func (s *Service) ConfirmTopupTx(tx *gorm.DB, topupID, actorUserID string) (*TopupView, error) {
+	channelID := ""
+	var row topupRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
+		return nil, ErrNotFound
+	}
+	if row.ChannelOrgID != nil {
+		channelID = *row.ChannelOrgID
+	}
+	if row.Status == TopupPaid {
+		return topupView(row), nil
+	}
+	if row.Status != TopupPending {
+		return nil, ErrTopupNotPending
+	}
+	if err := creditWallet(tx, row.UserID, row.AmountMinor, EventTopup, "topup", row.ID, "topup:"+row.ID); err != nil {
+		return nil, err
+	}
+	if err := s.issueAllocation(tx, row.UserID, channelID, "topup", row.ID, row.AmountMinor); err != nil {
+		return nil, err
+	}
+	row.Status = TopupPaid
+	row.UpdatedAt = time.Now().UTC()
+	if err := tx.Save(&row).Error; err != nil {
+		return nil, err
+	}
+	if _, err := s.outbox.EnqueueTx(tx, "billing.topup.paid", "topup", row.ID, map[string]any{
+		"user_id": row.UserID, "amount_minor": row.AmountMinor, "actor": actorUserID,
+	}); err != nil {
+		return nil, err
+	}
+	return topupView(row), nil
+
+}
+
+func (s *Service) CreateTopupTx(tx *gorm.DB, userID, channelID string, amount int64, method string) (*TopupView, error) {
+	scoped := *s
+	scoped.db = tx
+	return scoped.CreateTopup(tx.Statement.Context, userID, channelID, amount, method)
 }

@@ -62,8 +62,6 @@ export default function ChannelLedger() {
   const [sourceType, setSourceType] = useState("platform_recharge");
   const [vendor, setVendor] = useState("");
   const [memo, setMemo] = useState("");
-  const [childID, setChildID] = useState("");
-  const [wholesaleUsd, setWholesaleUsd] = useState("10");
   const [bCode, setBCode] = useState("");
 
   const isC = channel.type === "C";
@@ -107,7 +105,6 @@ export default function ChannelLedger() {
       (item) => item.parent_id === id && item.type === "B",
     );
     setChildren(kids);
-    if (!childID && kids[0]?.id) setChildID(String(kids[0].id));
     setMessage(t("ledgerCount", { n: items.length, quota: formatUsdMinor(qBody.quota?.available_minor) }));
   }
 
@@ -160,30 +157,6 @@ export default function ChannelLedger() {
     });
     const body = await res.json();
     setMessage(res.ok ? t("reversedSupplier", { id: body.item?.id || "" }) : body.error?.message || t("needAdmin"));
-    const __ok = res.ok;
-    if (res.ok) await refresh();
-    return __ok;
-    } catch {
-      setMessage(tc("listNetwork"));
-      return false;
-    }
-}
-
-  async function wholesale(): Promise<boolean> {
-    try {
-    const amount = usdToMinor(wholesaleUsd);
-    if (!amount || !childID) {
-      setMessage(t("wholesaleNeed"));
-      return false;
-    }
-    const res = await fetch(`${apiBase}/channel/quotas/grant`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({ channel_org_id: childID, amount_minor: amount }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? t("wholesaleDone", { id: childID, left: formatUsdMinor(body.quota?.available_minor) }) : body.error?.message || t("needAdmin"));
     const __ok = res.ok;
     if (res.ok) await refresh();
     return __ok;
@@ -303,24 +276,6 @@ export default function ChannelLedger() {
 
       {isC ? (
         <>
-          <Card>
-            <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("wholesaleTitle")}</CardTitle>
-            <p className="mb-3 text-sm text-ink-secondary">{t("wholesaleLead")}</p>
-            <div className="mb-3 flex flex-wrap gap-2">
-              <select className={selectClass} aria-label={t("childLabel")} value={childID} onChange={(e) => setChildID(e.target.value)}>
-                <option value="">{t("childNone")}</option>
-                {children.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code} ({item.id})
-                  </option>
-                ))}
-              </select>
-              <Input className="w-36" value={wholesaleUsd} onChange={(e) => setWholesaleUsd(e.target.value)} aria-label={t("usdLabel")} />
-              <ConfirmButton disabled={!canFinance} size="sm" title={t("confirmWholesale")} description={t("confirmWholesaleD")} onConfirm={wholesale}>
-                {t("grantWholesale")}
-              </ConfirmButton>
-            </div>
-          </Card>
           <Card>
             <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("createBTitle")}</CardTitle>
             <p className="mb-3 text-sm text-ink-secondary">{t("createBLead")}</p>

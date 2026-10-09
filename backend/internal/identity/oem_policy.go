@@ -7,9 +7,9 @@ func oemEmployeeRules() []policyRule {
 	out := grantMany("GET", all,
 		"/channel/models", "/channel/me", "/channel/metrics", "/channel/alerts", "/channel/quota",
 		"/channel/allocations", "/channel/usage", "/channel/reconciliation",
-		"/channel/pnl", "/channel/commissions", "/channel/settlements",
+		"/channel/pnl", "/channel/commissions", "/channel/settlements", "/channel/settlements/manage",
 		"/channel/eligibility-rules", "/channel/commission-policy", "/channel/supplier-entries",
-		"/channel/payments/overview", "/channel/payments/orders", "/channel/brand", "/channel/me/2fa",
+		"/channel/payments/overview", "/channel/payments/orders", "/channel/payments/recipients", "/channel/brand", "/channel/me/2fa",
 		"/admin/channels", "/admin/channels/:id", "/admin/channels/:id/models",
 		"/admin/channel-quotas/:channel_id", "/admin/channel-quotas/:channel_id/issue-rule",
 	)
@@ -27,8 +27,10 @@ func oemEmployeeRules() []policyRule {
 		"/channel/models", "/channel/brand", "/admin/plans/:id", "/admin/channels/:id",
 		"/admin/channels/:id/models", "/admin/acquisition-roles/:id",
 	)...)
-	out = append(out, grantMany("POST", []string{"oem_finance"},
-		"/channel/payments/orders/:id/confirm", "/channel/payments/orders/:id/refund",
+	out = append(out, grantMany("GET", []string{"oem_finance"}, "/channel/payments/settings", "/channel/payments/instances")...)
+	out = append(out, grantMany("PATCH", []string{"oem_finance"}, "/channel/payments/settings", "/channel/payments/instances/:id")...)
+	out = append(out, grantMany("POST", []string{"oem_finance"}, "/channel/payments/instances", "/channel/payments/instances/:id/test", "/channel/payments/instances/:id/go-live",
+		"/channel/commissions/settle", "/channel/commissions/unfreeze", "/channel/settlements/:id/payout", "/channel/payments/offline", "/channel/payments/orders/:id/confirm", "/channel/payments/orders/:id/refund",
 		"/channel/reconciliation/flag", "/channel/quotas/grant", "/channel/supplier-entries", "/channel/supplier-entries/:id/reverse",
 	)...)
 	out = append(out, grantMany("PATCH", []string{"oem_finance"},

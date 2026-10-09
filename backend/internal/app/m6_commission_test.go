@@ -49,25 +49,16 @@ func TestM6CommissionDistribution(t *testing.T) {
 	if channelOf(reg) != identity.ResellerChannelID {
 		t.Fatalf("kol2 should bind reseller: %+v", reg)
 	}
-	quotaBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
-	availBefore := asInt(quotaBefore["available_minor"])
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", session, map[string]any{"code": billing.RedeemE2E})
-	quotaIssued := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
-	if asInt(quotaIssued["available_minor"]) != availBefore-10*billing.MinorPerUSD {
-		t.Fatalf("redeem should issue 1:1 from channel available: before=%d after=%v", availBefore, quotaIssued)
-	}
-	if asInt(quotaIssued["issued_minor"]) < 10*billing.MinorPerUSD {
-		t.Fatalf("quota should record issued allocation: %+v", quotaIssued)
+	balance := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)
+	if asInt(balance["available_minor"]) < 10*billing.MinorPerUSD {
+		t.Fatal("platform B redemption did not credit customer")
 	}
 	apiKey := postJSONRaw(t, server.URL+"/v1/me/api-keys", session, map[string]any{"name": "m6"})["item"].(map[string]any)["key"].(string)
 	chat := postEchoUsage(t, server.URL+"/v1/chat/completions", apiKey, "kol2-usage")
-	quotaAfterChat := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
-	if asInt(quotaAfterChat["available_minor"]) != asInt(quotaIssued["available_minor"]) {
-		t.Fatalf("chat must not deduct channel available again: issued=%v after=%v", quotaIssued, quotaAfterChat)
-	}
 	allocs := getAuthJSON(t, server.URL+"/channel/allocations?channel_id="+identity.ResellerChannelID, "m6_admin")["items"].([]any)
-	if len(allocs) == 0 {
-		t.Fatal("channel allocations should list the issued grant")
+	if len(allocs) != 0 {
+		t.Fatal("platform B must not have independently funded allocations")
 	}
 	usage := getAuthJSON(t, server.URL+"/v1/me/usage", session)["items"].([]any)
 	if len(usage) == 0 {
@@ -202,32 +193,19 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatalf("payout: %+v", paid)
 	}
 
-	q := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.ResellerChannelID, "m6_admin")["quota"].(map[string]any)
-	avail := asInt(q["available_minor"])
-	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
-		"channel_org_id": identity.ResellerChannelID, "amount_minor": -(avail - 1),
-	})
+	if code := postStatusConfirm(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
+		"channel_org_id": identity.ResellerChannelID, "amount_minor": 1,
+	}); code != http.StatusForbidden {
+		t.Fatalf("B cannot own a quota pool: %d", code)
+	}
 	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{
 		UserID: userIDOf(reg2), ChannelOrgID: identity.ResellerChannelID,
-		RequestID:     "quota-" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		RequestID:     "brand-quota-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		PublicModelID: catalog.EchoModelID, ReserveMinor: 100,
 		UnitPrices: []byte(`{"input":"0.000001","output":"0.000002"}`),
-	}); err == nil {
-		t.Fatal("channel quota should block over-issue")
-	} else if err != billing.ErrInsufficientQuota {
-		t.Fatalf("expected insufficient quota, got %v", err)
+	}); err != nil {
+		t.Fatalf("platform B customer should use the platform balance: %v", err)
 	}
-	regBlocked := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
-		"email":    "quota-block-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
-		"password": "password1", "promotion_code": identity.PromoKOL2B,
-	})
-	blocked := mustStatusBody(t, http.MethodPost, server.URL+"/v1/topups/redeem", tokenOf(regBlocked), map[string]any{"code": billing.RedeemE2E})
-	if blocked.status != http.StatusPaymentRequired {
-		t.Fatalf("empty channel quota should reject redeem with 402, got %d %+v", blocked.status, blocked.body)
-	}
-	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
-		"channel_org_id": identity.ResellerChannelID, "amount_minor": avail - 1,
-	})
 
 	policy := getAuthJSON(t, server.URL+"/admin/commission-policy", "m6_admin")["policy"].(map[string]any)
 	if asInt(policy["direct_bps"]) != commission.DefaultDirect {
@@ -297,10 +275,10 @@ func TestD82QuotaRatio(t *testing.T) {
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 
-	created := postJSONRaw(t, server.URL+"/admin/channels", "d82_admin", map[string]any{
-		"code": "d82-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "status": "active",
+	channelID := identity.OEMChannelID
+	t.Cleanup(func() {
+		application.Billing.SetIssueRule(context.Background(), channelID, billing.DefaultIssueRatioBPS)
 	})
-	channelID := created["item"].(map[string]any)["id"].(string)
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
 		"channel_org_id": channelID, "amount_minor": 100 * billing.MinorPerUSD,
 	})
@@ -379,13 +357,11 @@ func TestD82QuotaRatio(t *testing.T) {
 		t.Fatalf("allocation granted should be 12 USD: %+v", allocs)
 	}
 
-	oneToOne := postJSONRaw(t, server.URL+"/admin/channels", "d82_admin", map[string]any{
+	patchJSONRaw(t, server.URL+"/admin/channel-quotas/"+channelID+"/issue-rule", "d82_admin", map[string]any{"issue_ratio_bps": billing.DefaultIssueRatioBPS})
+	oneToOne := postJSONRaw(t, server.URL+"/admin/channels", "d82_admin-c", map[string]any{
 		"code": "d82-1to1-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B", "status": "active",
 	})
 	plainID := oneToOne["item"].(map[string]any)["id"].(string)
-	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
-		"channel_org_id": plainID, "amount_minor": 100 * billing.MinorPerUSD,
-	})
 	plainPromo := "THX-D82B-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
 		"channel_org_id": plainID, "code": plainPromo,
@@ -394,9 +370,9 @@ func TestD82QuotaRatio(t *testing.T) {
 		"email":    "d82b-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
 		"password": "password1", "promotion_code": plainPromo,
 	})
-	plainBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+plainID, "d82_admin")["quota"].(map[string]any)
+	plainBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID, "d82_admin")["quota"].(map[string]any)
 	_ = postJSONRaw(t, server.URL+"/v1/topups/redeem", tokenOf(plainReg), map[string]any{"code": billing.RedeemE2E})
-	plainAfter := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+plainID, "d82_admin")["quota"].(map[string]any)
+	plainAfter := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+channelID, "d82_admin")["quota"].(map[string]any)
 	if asInt(plainAfter["available_minor"]) != asInt(plainBefore["available_minor"])-10*billing.MinorPerUSD {
 		t.Fatalf("unset rule must stay 1:1: before=%v after=%v", plainBefore, plainAfter)
 	}

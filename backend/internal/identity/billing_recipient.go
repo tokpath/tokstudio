@@ -15,6 +15,10 @@ type BillingRecipient struct {
 }
 
 func (s *Service) SearchBillingRecipients(ctx context.Context, query string) ([]BillingRecipient, error) {
+	return s.searchBillingRecipients(ctx, query, "")
+}
+
+func (s *Service) searchBillingRecipients(ctx context.Context, query, ownerID string) ([]BillingRecipient, error) {
 	query = strings.TrimSpace(query)
 	out := []BillingRecipient{}
 	if len([]rune(query)) < 2 || len(query) > 200 {
@@ -22,11 +26,19 @@ func (s *Service) SearchBillingRecipients(ctx context.Context, query string) ([]
 	}
 	// Literal substring search: '%' and '_' must not enumerate all users.
 	pattern := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(query) + "%"
-	err := s.db.WithContext(ctx).Table("identity_users AS u").
+	q := s.db.WithContext(ctx).Table("identity_users AS u").
 		Select("u.id, u.email, u.display_name, u.status, COALESCE(c.code, '') AS channel_code").
 		Joins("LEFT JOIN identity_channel_orgs AS c ON c.id = u.channel_org_id").
-		Where("u.id = ? OR u.email ILIKE ? OR u.display_name ILIKE ?", query, pattern, pattern).
-		Order("u.email ASC, u.id ASC").Limit(20).Scan(&out).Error
+		Where("u.id = ? OR u.email ILIKE ? OR u.display_name ILIKE ?", query, pattern, pattern)
+	if ownerID != "" {
+		q = q.Where("u.status = ? AND u.id NOT IN (SELECT user_id FROM identity_staff_members)", "active")
+		if ownerID == OfficialChannelID {
+			q = q.Where("u.channel_org_id IS NULL OR u.channel_org_id = ? OR (c.type = ? AND (c.parent_id = ? OR c.parent_id IS NULL))", ownerID, ChannelTypeB, ownerID)
+		} else {
+			q = q.Where("u.channel_org_id = ? OR (c.type = ? AND c.parent_id = ?)", ownerID, ChannelTypeB, ownerID)
+		}
+	}
+	err := q.Order("u.email ASC, u.id ASC").Limit(20).Scan(&out).Error
 	return out, err
 }
 

@@ -22,21 +22,24 @@ import (
 var migrationFS embed.FS
 
 type orderRow struct {
-	ID              string     `gorm:"column:id;primaryKey"`
-	UserID          string     `gorm:"column:user_id"`
-	ChannelOrgID    string     `gorm:"column:channel_org_id"`
-	Adapter         string     `gorm:"column:adapter"`
-	Purpose         string     `gorm:"column:purpose"`
-	ReferenceType   *string    `gorm:"column:reference_type"`
-	ReferenceID     *string    `gorm:"column:reference_id"`
-	AmountMinor     int64      `gorm:"column:amount_minor"`
-	CreditMinor     int64      `gorm:"column:credit_minor"`
-	Currency        string     `gorm:"column:currency"`
-	Status          string     `gorm:"column:status"`
-	ProviderTradeID *string    `gorm:"column:provider_trade_id"`
-	FulfilledAt     *time.Time `gorm:"column:fulfilled_at"`
-	CreatedAt       time.Time  `gorm:"column:created_at"`
-	UpdatedAt       time.Time  `gorm:"column:updated_at"`
+	ID                string     `gorm:"column:id;primaryKey"`
+	UserID            string     `gorm:"column:user_id"`
+	PayeeChannelOrgID string     `gorm:"column:payee_channel_org_id"`
+	ReceiptReference  string     `gorm:"column:receipt_reference"`
+	RecordedBy        string     `gorm:"column:recorded_by"`
+	ChannelOrgID      string     `gorm:"column:channel_org_id"`
+	Adapter           string     `gorm:"column:adapter"`
+	Purpose           string     `gorm:"column:purpose"`
+	ReferenceType     *string    `gorm:"column:reference_type"`
+	ReferenceID       *string    `gorm:"column:reference_id"`
+	AmountMinor       int64      `gorm:"column:amount_minor"`
+	CreditMinor       int64      `gorm:"column:credit_minor"`
+	Currency          string     `gorm:"column:currency"`
+	Status            string     `gorm:"column:status"`
+	ProviderTradeID   *string    `gorm:"column:provider_trade_id"`
+	FulfilledAt       *time.Time `gorm:"column:fulfilled_at"`
+	CreatedAt         time.Time  `gorm:"column:created_at"`
+	UpdatedAt         time.Time  `gorm:"column:updated_at"`
 }
 
 func (orderRow) TableName() string { return "payment_orders" }
@@ -98,8 +101,12 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	if in.ChannelOrgID == "" {
 		in.ChannelOrgID = identity.OfficialChannelID
 	}
+	payeeID, err := identity.New(s.db).ResolvePaymentOwnerID(ctx, in.ChannelOrgID)
+	if err != nil {
+		return nil, err
+	}
 	if in.Purpose != PurposeRenewal {
-		if err := s.methodAllowed(ctx, in.ChannelOrgID, in.Adapter); err != nil {
+		if err := s.methodAllowed(ctx, payeeID, in.Adapter); err != nil {
 			return nil, err
 		}
 	}
@@ -131,7 +138,7 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	}
 	now := time.Now().UTC()
 	row := orderRow{
-		ID: id.New("pay"), UserID: in.UserID, ChannelOrgID: in.ChannelOrgID,
+		ID: id.New("pay"), UserID: in.UserID, ChannelOrgID: in.ChannelOrgID, PayeeChannelOrgID: payeeID,
 		Adapter: strings.ToLower(in.Adapter), Purpose: in.Purpose,
 		AmountMinor: in.AmountMinor, CreditMinor: credit, Currency: in.Currency,
 		Status: StatusPending, CreatedAt: now, UpdatedAt: now,
@@ -142,16 +149,22 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 	if in.ReferenceID != "" {
 		row.ReferenceID = &in.ReferenceID
 	}
-	if in.Purpose == PurposeWallet && s.billing != nil {
-		top, err := s.billing.CreateTopup(ctx, in.UserID, in.ChannelOrgID, credit, in.Adapter)
-		if err != nil {
-			return nil, err
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if in.Purpose == PurposeWallet && s.billing != nil {
+			top, err := s.billing.CreateTopupTx(tx, in.UserID, in.ChannelOrgID, credit, in.Adapter)
+			if err != nil {
+				return err
+			}
+			refType := "topup"
+			row.ReferenceType = &refType
+			row.ReferenceID = &top.ID
 		}
-		refType := "topup"
-		row.ReferenceType = &refType
-		row.ReferenceID = &top.ID
-	}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	return orderView(row), nil
@@ -165,6 +178,9 @@ func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderVi
 	}
 	if f.ChannelOrgID != "" {
 		q = q.Where("channel_org_id = ?", f.ChannelOrgID)
+	}
+	if f.PayeeChannelOrgID != "" {
+		q = q.Where("payee_channel_org_id = ?", f.PayeeChannelOrgID)
 	}
 	if f.Adapter != "" {
 		q = q.Where("adapter = ?", f.Adapter)
@@ -208,8 +224,16 @@ func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) 
 		return nil, ErrInvalidAdapter
 	}
 	in := QueryRequest{Order: order, Mode: ModeSandbox}
-	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
-		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
+	inst := s.firstReadyInstance(ctx, order.PayeeChannelOrgID, order.Adapter)
+	if inst == nil && plugin.Spec().Kind != KindManual {
+		return nil, ErrMethodUnavailable
+	}
+	if inst != nil {
+		var err error
+		in.Credentials, err = openCredentials(s.signKey, inst.CredentialsCiphertext)
+		if err != nil {
+			return nil, err
+		}
 		in.Mode = inst.Mode
 	}
 	res, err := plugin.QueryOrder(ctx, in)
@@ -248,8 +272,16 @@ func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase str
 	view.AutoRenew = spec.AutoRenew
 	view.Mode = spec.CheckoutMode
 	in := CheckoutRequest{Order: order, PublicBase: base, SignKey: s.signKey, Mode: ModeSandbox}
-	if inst := s.firstReadyInstance(ctx, order.ChannelOrgID, order.Adapter); inst != nil {
-		in.Credentials, _ = openCredentials(s.signKey, inst.CredentialsCiphertext)
+	inst := s.firstReadyInstance(ctx, order.PayeeChannelOrgID, order.Adapter)
+	if inst == nil && spec.Kind != KindManual {
+		return nil, ErrMethodUnavailable
+	}
+	if inst != nil {
+		var err error
+		in.Credentials, err = openCredentials(s.signKey, inst.CredentialsCiphertext)
+		if err != nil {
+			return nil, err
+		}
 		in.Mode = inst.Mode
 	}
 	sess, err := plugin.CreateCheckout(ctx, in)
@@ -283,11 +315,39 @@ func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers htt
 	if err != nil {
 		return nil, err
 	}
+	if parsed == nil {
+		return nil, ErrInvalidEvent
+	}
+	if !parsed.SignatureValid {
+		return nil, ErrInvalidSignature
+	}
 	eventID := parsed.ExternalEventID
 	orderID := parsed.OrderID
 	status := parsed.Status
 	tradeID := parsed.TradeID
 	valid := parsed.SignatureValid
+	if orderID != "" {
+		order, err := s.GetOrder(ctx, orderID, "")
+		if err != nil || order.Adapter != adapter {
+			return nil, ErrInvalidEvent
+		}
+		inst := s.firstReadyInstance(ctx, order.PayeeChannelOrgID, adapter)
+		if inst == nil && adapter != AdapterManual {
+			return nil, ErrMethodUnavailable
+		}
+		creds := map[string]string{}
+		if inst != nil {
+			creds, err = openCredentials(s.signKey, inst.CredentialsCiphertext)
+			if err != nil {
+				return nil, err
+			}
+		}
+		owned, err := plugin.ParseWebhook(ctx, WebhookRequest{Adapter: adapter, Headers: headers, Body: body, SignKey: s.signKey, Credentials: creds})
+		if err != nil || owned == nil || !owned.SignatureValid || owned.OrderID != orderID {
+			return nil, ErrInvalidSignature
+		}
+		valid = owned.SignatureValid
+	}
 	now := time.Now().UTC()
 	view := &EventView{Adapter: adapter, ExternalEventID: eventID, OrderID: orderID, SignatureValid: valid}
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -415,7 +475,7 @@ func (s *Service) webhookCredentialSets(ctx context.Context, adapter string, bod
 	}
 	if oid := peekPaymentOrderID(body); oid != "" {
 		if order, err := s.GetOrder(ctx, oid, ""); err == nil {
-			add(s.firstReadyInstance(ctx, order.ChannelOrgID, adapter))
+			add(s.firstReadyInstance(ctx, order.PayeeChannelOrgID, adapter))
 		}
 	}
 	rows := s.instancesForAdapter(ctx, adapter)
@@ -449,7 +509,7 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 	if err != nil {
 		return err
 	}
-	s.touchLastPaid(ctx, row.ChannelOrgID, row.Adapter)
+	s.touchLastPaid(ctx, row.PayeeChannelOrgID, row.Adapter)
 	return s.fulfill(ctx, row)
 }
 
@@ -557,7 +617,7 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 			in := RefundRequest{Order: orderView(row), Mode: ModeSandbox}
 			transactionService := *s
 			transactionService.db = tx
-			if inst := transactionService.firstReadyInstance(ctx, row.ChannelOrgID, row.Adapter); inst != nil {
+			if inst := transactionService.firstReadyInstance(ctx, row.PayeeChannelOrgID, row.Adapter); inst != nil {
 				if !inst.RefundEnabled {
 					return ErrRefundDisabled
 				}
@@ -608,17 +668,30 @@ func (s *Service) ChargeRenewal(ctx context.Context, subID, adapter, methodRef s
 	if sub.ChannelOrgID != "" {
 		channelID = sub.ChannelOrgID
 	}
+	payeeID, err := identity.New(s.db).ResolvePaymentOwnerID(ctx, channelID)
+	if err != nil {
+		return err
+	}
+	if err := s.methodAllowed(ctx, payeeID, adapter); err != nil {
+		return err
+	}
 	now := time.Now().UTC()
 	refType := PurposeSubscription
 	row := orderRow{
-		ID: id.New("pay"), UserID: sub.UserID, ChannelOrgID: channelID, Adapter: adapter, Purpose: PurposeRenewal,
+		ID: id.New("pay"), UserID: sub.UserID, ChannelOrgID: channelID, PayeeChannelOrgID: payeeID, Adapter: adapter, Purpose: PurposeRenewal,
 		ReferenceType: &refType, ReferenceID: &subID, AmountMinor: plan.PriceMinor, CreditMinor: plan.PriceMinor,
 		Currency: plan.Currency, Status: StatusPaid, CreatedAt: now, UpdatedAt: now, FulfilledAt: &now,
 	}
 	trade := "sandbox-renew:" + subID
-	if inst := s.firstReadyInstance(ctx, channelID, adapter); inst != nil && inst.Mode == ModeLive {
+	if inst := s.firstReadyInstance(ctx, payeeID, adapter); inst != nil && inst.Mode == ModeLive {
 		creds, err := openCredentials(s.signKey, inst.CredentialsCiphertext)
-		if err == nil && officialLive(inst.Mode, creds, "secret_key") {
+		if err != nil {
+			return err
+		}
+		if !officialLive(inst.Mode, creds, "secret_key") {
+			return ErrInstanceIncomplete
+		}
+		if officialLive(inst.Mode, creds, "secret_key") {
 			id, err := stripeDriver{}.ChargeOffSession(ctx, OffSessionCharge{
 				Order:            orderView(row),
 				Credentials:      creds,
@@ -655,7 +728,7 @@ func orderView(row orderRow) *OrderView {
 	view := &OrderView{
 		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
 		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
-		FulfilledAt: row.FulfilledAt,
+		FulfilledAt: row.FulfilledAt, PayeeChannelOrgID: row.PayeeChannelOrgID, ReceiptReference: row.ReceiptReference, RecordedBy: row.RecordedBy,
 	}
 	if row.ReferenceType != nil {
 		view.ReferenceType = *row.ReferenceType

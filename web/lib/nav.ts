@@ -139,7 +139,7 @@ export function channelNavGroupsFor(channelType?: string) {
     .map((group) => ({
       ...group,
       titleKey: group.titleKey === "business" ? "operations" : group.titleKey,
-      items: group.items.filter((item) => !["plans", "brand", "rules"].includes(item.key)),
+      items: group.items.filter((item) => !["plans", "brand", "rules", "payments", "books", "reconciliation"].includes(item.key)),
     }));
 }
 

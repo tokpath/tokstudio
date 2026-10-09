@@ -14,6 +14,8 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/app"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/logx"
@@ -304,6 +306,35 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	ctx := context.Background()
 	if err := application.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
+	}
+	// Explicit sandbox merchants are test fixtures; unconfigured production brands cannot take orders.
+	for _, owner := range []string{identity.OfficialChannelID, identity.OEMChannelID} {
+		for adapter, creds := range map[string]map[string]string{
+			"stripe": {"secret_key": "sk_test_fixture", "publishable_key": "pk_test_fixture", "webhook_secret": "whsec_fixture", "currency": "USD"},
+			"alipay": {"app_id": "fixture", "app_private_key": "fixture", "alipay_public_key": "fixture"},
+			"wechat": {"app_id": "fixture", "mch_id": "fixture", "api_v3_key": "fixture", "cert_serial": "fixture", "merchant_api_private_key": "fixture", "public_key_id": "fixture", "wechat_public_key": "fixture"},
+		} {
+			instances, err := application.Payment.ListInstances(ctx, owner, adapter)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fixtureID := ""
+			for _, instance := range instances {
+				if instance.Name == "Test sandbox" {
+					fixtureID = instance.ID
+				}
+			}
+			if fixtureID == "" {
+				if _, err := application.Payment.CreateInstance(ctx, owner, payment.InstanceInput{Adapter: adapter, Name: "Test sandbox", Mode: payment.ModeSandbox, Credentials: creds}); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				enabled := true
+				if _, err := application.Payment.PatchInstance(ctx, owner, fixtureID, payment.InstanceInput{Mode: payment.ModeSandbox, Enabled: &enabled, Credentials: creds}); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
 	}
 	// 共享 Postgres/Redis 上一次失败会把种子 Provider 熔断成 unavailable，
 	// ResolveRoute 会直接跳过，破坏 fallback/无 Key 契约。每个 mustApp 重置一次。

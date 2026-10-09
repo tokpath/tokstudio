@@ -34,7 +34,7 @@ func newWMeter3Env(t *testing.T) *wmeterEnv {
 
 	promo := "THA1"
 	if strings.Contains(t.Name(), "Channel") {
-		promo = "THB1"
+		promo = "THC1"
 	}
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
 		"email":    "wmeter3-" + t.Name() + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test",
@@ -148,7 +148,7 @@ func TestWMeter3ChannelReconcileIsomorphic(t *testing.T) {
 	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter3-channel")
 	requestID := omit["request_id"].(string)
 
-	channelTok := "wmeter3_admin-b"
+	channelTok := "wmeter3_admin-c"
 	body := getAuthJSON(t, fx.server.URL+"/channel/reconciliation", channelTok)
 	item, _ := body["item"].(map[string]any)
 	if item == nil {

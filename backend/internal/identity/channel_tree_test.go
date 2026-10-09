@@ -21,11 +21,11 @@ func TestValidateChannelParent(t *testing.T) {
 }
 
 func TestPoolChannelID(t *testing.T) {
-	if got := PoolChannelID(ChannelTypeB, "b1", "c1", ChannelTypeC); got != "b1" {
-		t.Fatalf("B under C keeps own pool: %s", got)
+	if got := PoolChannelID(ChannelTypeB, "b1", "c1", ChannelTypeC); got != "c1" {
+		t.Fatalf("B under C uses brand pool: %s", got)
 	}
-	if got := PoolChannelID(ChannelTypeB, "b1", OfficialChannelID, ChannelTypeA); got != "b1" {
-		t.Fatalf("B under A keeps own pool: %s", got)
+	if got := PoolChannelID(ChannelTypeB, "b1", OfficialChannelID, ChannelTypeA); got != OfficialChannelID {
+		t.Fatalf("B under A uses platform pool: %s", got)
 	}
 }
 

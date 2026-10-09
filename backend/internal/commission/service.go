@@ -595,9 +595,20 @@ func lockSettlementLifecycle(tx *gorm.DB) error {
 }
 
 func (s *Service) CreateMonthlySettlement(ctx context.Context, now time.Time, ignoreMinimum bool) ([]SettlementView, error) {
+	return s.createMonthlySettlement(ctx, now, ignoreMinimum, "", nil)
+}
+
+func (s *Service) CreateBrandSettlement(ctx context.Context, now time.Time, ignoreMinimum bool, ownerID string, channels []string) ([]SettlementView, error) {
+	if len(channels) == 0 {
+		return nil, ErrInvalid
+	}
+	return s.createMonthlySettlement(ctx, now, ignoreMinimum, ownerID, channels)
+}
+
+func (s *Service) createMonthlySettlement(ctx context.Context, now time.Time, ignoreMinimum bool, ownerID string, channels []string) ([]SettlementView, error) {
 	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 1, 0)
-	policy, err := s.ActivePolicy(ctx)
+	policy, err := s.PolicyFor(ctx, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -607,7 +618,11 @@ func (s *Service) CreateMonthlySettlement(ctx context.Context, now time.Time, ig
 			return err
 		}
 		var entries []entryRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("status = ?", StatusAvailable).Order("id").Find(&entries).Error; err != nil {
+		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("status = ?", StatusAvailable).Order("id")
+		if channels != nil {
+			q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
+		}
+		if err := q.Find(&entries).Error; err != nil {
 			return err
 		}
 		type group struct {
@@ -659,6 +674,15 @@ func (s *Service) CreateMonthlySettlement(ctx context.Context, now time.Time, ig
 }
 
 func (s *Service) Payout(ctx context.Context, settlementID, method, reference, actor string) (*SettlementView, error) {
+	return s.payout(ctx, settlementID, method, reference, actor, nil)
+}
+func (s *Service) PayoutForChannels(ctx context.Context, settlementID, method, reference, actor string, channels []string) (*SettlementView, error) {
+	if len(channels) == 0 {
+		return nil, ErrInvalid
+	}
+	return s.payout(ctx, settlementID, method, reference, actor, channels)
+}
+func (s *Service) payout(ctx context.Context, settlementID, method, reference, actor string, channels []string) (*SettlementView, error) {
 	method, reference = strings.TrimSpace(method), strings.TrimSpace(reference)
 	if method != "manual" || reference == "" || len(reference) > 200 {
 		return nil, ErrInvalid
@@ -669,7 +693,11 @@ func (s *Service) Payout(ctx context.Context, settlementID, method, reference, a
 			return err
 		}
 		var row settleRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", settlementID).First(&row).Error; err != nil {
+		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", settlementID)
+		if channels != nil {
+			q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
+		}
+		if err := q.First(&row).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrNotFound
 			}
@@ -763,7 +791,19 @@ func (s *Service) cancelUnpaidSettlementTx(tx *gorm.DB, settlementID, reversedEn
 }
 
 func (s *Service) ListEntries(ctx context.Context, channelID string, roleIDs []string, usageEventID string) ([]EntryView, error) {
+	return s.listEntries(ctx, channelID, roleIDs, usageEventID, nil)
+}
+func (s *Service) ListBrandEntries(ctx context.Context, channels []string, usageID string) ([]EntryView, error) {
+	if len(channels) == 0 {
+		return nil, ErrInvalid
+	}
+	return s.listEntries(ctx, "", nil, usageID, channels)
+}
+func (s *Service) listEntries(ctx context.Context, channelID string, roleIDs []string, usageEventID string, channels []string) ([]EntryView, error) {
 	q := s.db.WithContext(ctx).Model(&entryRow{}).Order("created_at DESC").Limit(200)
+	if channels != nil {
+		q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
+	}
 	if usageEventID != "" {
 		q = q.Where("usage_event_id = ?", usageEventID)
 	}
@@ -785,7 +825,19 @@ func (s *Service) ListEntries(ctx context.Context, channelID string, roleIDs []s
 }
 
 func (s *Service) ListSettlements(ctx context.Context, channelID string, roleIDs []string) ([]SettlementView, error) {
+	return s.listSettlements(ctx, channelID, roleIDs, nil)
+}
+func (s *Service) ListBrandSettlements(ctx context.Context, channels []string) ([]SettlementView, error) {
+	if len(channels) == 0 {
+		return nil, ErrInvalid
+	}
+	return s.listSettlements(ctx, "", nil, channels)
+}
+func (s *Service) listSettlements(ctx context.Context, channelID string, roleIDs, channels []string) ([]SettlementView, error) {
 	q := s.db.WithContext(ctx).Model(&settleRow{}).Order("created_at DESC").Limit(100)
+	if channels != nil {
+		q = q.Where("COALESCE(channel_org_id, '') IN ?", channels)
+	}
 	if channelID != "" {
 		q = q.Where("channel_org_id = ?", channelID)
 	}
@@ -923,3 +975,30 @@ func (s *Service) Totals(ctx context.Context) (liability, expense int64, err err
 
 // LockLifecycleTx establishes a consistent lock order before billing wallet/usage rows.
 func (s *Service) LockLifecycleTx(tx *gorm.DB) error { return lockSettlementLifecycle(tx) }
+
+func (s *Service) UnfreezeForChannels(ctx context.Context, now time.Time, usageID string, channels []string) (int, error) {
+	if len(channels) == 0 {
+		return 0, ErrInvalid
+	}
+	n := 0
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockSettlementLifecycle(tx); err != nil {
+			return err
+		}
+		var ids []string
+		q := tx.Model(&entryRow{}).Where("COALESCE(channel_org_id, '') IN ? AND status = ? AND available_at <= ?", channels, StatusFrozen, now)
+		if usageID != "" {
+			q = q.Where("usage_event_id = ?", usageID)
+		}
+		if err := q.Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return nil
+		}
+		var err error
+		n, err = s.unfreezeTx(tx, now, usageID, ids)
+		return err
+	})
+	return n, err
+}

@@ -175,4 +175,12 @@ func TestOEMEmployeePolicy(t *testing.T) {
 	if s.Allow(&Principal{Roles: []string{"oem_finance"}}, "/channel/users/u/ban", "POST") {
 		t.Fatal("finance can ban")
 	}
+	for _, role := range []string{"oem_finance", "oem_ops", "oem_audit"} {
+		p := &Principal{Roles: []string{role}}
+		for _, path := range []string{"/channel/payments/offline", "/channel/payments/instances", "/channel/commissions/settle", "/channel/settlements/s/payout"} {
+			if s.Allow(p, path, "POST") != (role == "oem_finance") {
+				t.Fatalf("unexpected %s financial permission: %s", role, path)
+			}
+		}
+	}
 }

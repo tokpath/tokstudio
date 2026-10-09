@@ -1,13 +1,4 @@
 import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 import { ChannelPaymentsNav } from "./payments-nav";
-import { PaymentLanesPanel } from "./lanes-panel";
-
-export default function ChannelPaymentsPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <I18nConsoleHeader id="channelPayments" />
-      <ChannelPaymentsNav />
-      <PaymentLanesPanel />
-    </div>
-  );
-}
+import { PaymentOrdersPanel } from "@/app/admin/payments/orders-panel";
+export default function Page() { return <div className="space-y-6"><I18nConsoleHeader id="channelPayments" /><ChannelPaymentsNav active="orders" /><PaymentOrdersPanel oem /></div>; }

@@ -64,6 +64,9 @@ type adapterFlagRow struct {
 func (adapterFlagRow) TableName() string { return "payment_adapter_flags" }
 
 func (s *Service) CreateInstance(ctx context.Context, channelOrgID string, in InstanceInput) (*InstanceView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	if channelOrgID == "" {
 		return nil, ErrInstanceNotFound
 	}
@@ -123,6 +126,9 @@ func (s *Service) CreateInstance(ctx context.Context, channelOrgID string, in In
 }
 
 func (s *Service) PatchInstance(ctx context.Context, channelOrgID, instanceID string, in InstanceInput) (*InstanceView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	var row instanceRow
 	q := s.db.WithContext(ctx).Where("id = ?", instanceID)
 	if channelOrgID != "" {
@@ -174,6 +180,9 @@ func (s *Service) PatchInstance(ctx context.Context, channelOrgID, instanceID st
 }
 
 func (s *Service) TestInstance(ctx context.Context, channelOrgID, instanceID string) (*InstanceView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	var row instanceRow
 	q := s.db.WithContext(ctx).Where("id = ?", instanceID)
 	if channelOrgID != "" {
@@ -207,6 +216,9 @@ func (s *Service) TestInstance(ctx context.Context, channelOrgID, instanceID str
 }
 
 func (s *Service) GoLiveInstance(ctx context.Context, channelOrgID, instanceID string) (*InstanceView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	var row instanceRow
 	q := s.db.WithContext(ctx).Where("id = ?", instanceID)
 	if channelOrgID != "" {
@@ -233,6 +245,9 @@ func (s *Service) GoLiveInstance(ctx context.Context, channelOrgID, instanceID s
 }
 
 func (s *Service) ListInstances(ctx context.Context, channelOrgID, adapter string) ([]InstanceView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	var rows []instanceRow
 	q := s.db.WithContext(ctx).Where("channel_org_id = ?", channelOrgID).Order("adapter, sort_order, created_at")
 	if adapter != "" {
@@ -263,6 +278,9 @@ func (s *Service) GetSettings(ctx context.Context, channelOrgID string) (*Settin
 }
 
 func (s *Service) PatchSettings(ctx context.Context, channelOrgID string, in SettingsInput) (*SettingsView, error) {
+	if err := s.requireCollector(ctx, channelOrgID); err != nil {
+		return nil, err
+	}
 	row, err := s.ensureSettings(ctx, channelOrgID)
 	if err != nil {
 		return nil, err
@@ -398,9 +416,11 @@ func (s *Service) Overview(ctx context.Context, channelOrgID, callbackOrigin str
 }
 
 func (s *Service) UserCheckout(ctx context.Context, channelOrgID string) (*UserCheckoutView, error) {
-	if channelOrgID == "" {
-		channelOrgID = identity.OfficialChannelID
+	payeeID, err := identity.New(s.db).ResolvePaymentOwnerID(ctx, channelOrgID)
+	if err != nil {
+		return nil, err
 	}
+	channelOrgID = payeeID
 	settings, err := s.GetSettings(ctx, channelOrgID)
 	if err != nil {
 		return nil, err
@@ -451,6 +471,11 @@ func (s *Service) UserCheckout(ctx context.Context, channelOrgID string) (*UserC
 }
 
 func (s *Service) QuoteForChannel(ctx context.Context, channelOrgID, adapter string, payMajor int64) (*QuoteView, error) {
+	ownerID, err := identity.New(s.db).ResolvePaymentOwnerID(ctx, channelOrgID)
+	if err != nil {
+		return nil, err
+	}
+	channelOrgID = ownerID
 	settings, err := s.GetSettings(ctx, channelOrgID)
 	if err != nil {
 		return nil, err
@@ -519,8 +544,7 @@ func (s *Service) methodAllowed(ctx context.Context, channelOrgID, adapter strin
 		return err
 	}
 	if n == 0 {
-		// 还没配商户时保留沙箱下单，避免打断现有套餐/webhook 测试。
-		return nil
+		return ErrMethodUnavailable
 	}
 	var rows []instanceRow
 	if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND adapter = ? AND enabled = ?", channelOrgID, adapter, true).Find(&rows).Error; err != nil {
@@ -706,4 +730,15 @@ func CallbackOrigin(publicBase, apiDomain string) string {
 		scheme = "http"
 	}
 	return scheme + "://" + apiDomain
+}
+
+func (s *Service) requireCollector(ctx context.Context, channelID string) error {
+	owner, err := identity.New(s.db).ResolvePaymentOwnerID(ctx, channelID)
+	if err != nil {
+		return err
+	}
+	if channelID == "" || owner != channelID {
+		return ErrCollectorRequired
+	}
+	return nil
 }

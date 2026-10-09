@@ -10,6 +10,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
@@ -31,6 +32,19 @@ func (a *App) registerPaymentChannelRoutes(r *gin.Engine) {
 	r.POST("/channel/payments/orders/:id/confirm", a.requireRoles("channel_admin", "finance_admin"), a.channelConfirmPayment)
 	r.POST("/channel/payments/orders/:id/refund", a.requireRoles("channel_admin", "finance_admin"), a.channelRefundPayment)
 
+	r.GET("/admin/payments/overview", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.channelPaymentOverview)
+	r.GET("/admin/payments/instances", a.requireRoles("platform_admin", "finance_admin"), a.channelListPaymentInstances)
+	r.POST("/admin/payments/instances", a.requireRoles("platform_admin", "finance_admin"), a.channelCreatePaymentInstance)
+	r.PATCH("/admin/payments/instances/:id", a.requireRoles("platform_admin", "finance_admin"), a.channelPatchPaymentInstance)
+	r.POST("/admin/payments/instances/:id/test", a.requireRoles("platform_admin", "finance_admin"), a.channelTestPaymentInstance)
+	r.POST("/admin/payments/instances/:id/go-live", a.requireRoles("platform_admin", "finance_admin"), a.channelGoLivePaymentInstance)
+	r.GET("/admin/payments/settings", a.requireRoles("platform_admin", "finance_admin"), a.channelPaymentSettings)
+	r.PATCH("/admin/payments/settings", a.requireRoles("platform_admin", "finance_admin"), a.channelPatchPaymentSettings)
+	r.GET("/admin/payments/recipients", a.requireRoles("platform_admin", "finance_admin"), a.paymentRecipients)
+	r.POST("/admin/payments/offline", a.requireRoles("platform_admin", "finance_admin"), a.recordOfflinePayment)
+	r.GET("/channel/payments/recipients", a.requireRoles("channel_admin"), a.paymentRecipients)
+	r.POST("/channel/payments/offline", a.requireRoles("channel_admin"), a.recordOfflinePayment)
+
 	r.GET("/admin/channels/:id/payments", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminChannelPayments)
 	r.POST("/admin/channels/:id/payments/disable", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.adminDisableChannelPayments)
 	r.GET("/admin/payment-adapters", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "tech_admin"), a.adminPaymentAdapters)
@@ -42,6 +56,12 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 		return false
 	}
 	switch {
+	case errors.Is(err, payment.ErrReceiptConflict):
+		httpx.Abort(c, http.StatusConflict, "receipt_conflict", "该凭证已用于另一笔收款，请核对原订单", false)
+	case errors.Is(err, payment.ErrCollectorRequired), errors.Is(err, identity.ErrChannelImmutable):
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能管理所属品牌的收款和额度", false)
+	case errors.Is(err, billing.ErrInsufficientQuota):
+		httpx.Abort(c, http.StatusConflict, "insufficient_quota", "OEM 服务额度不足，划拨未完成", false)
 	case errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInstanceNotFound):
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到支付配置或订单", false)
 	case errors.Is(err, payment.ErrOrderNotPending):
@@ -83,30 +103,83 @@ func (a *App) channelOrgForAdmin(c *gin.Context) string {
 
 func (a *App) requireChannelOrg(c *gin.Context) (string, bool) {
 	p := a.currentPrincipal(c)
-	if p == nil || p.ChannelOrgID == "" {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未绑定渠道", false)
-		return "", false
+	if p != nil && !p.IsChannelStaff() && p.HasRole("platform_admin", "finance_admin", "ops_admin", "audit_readonly") {
+		return identity.OfficialChannelID, true
 	}
-	return p.ChannelOrgID, true
+	if p != nil && p.IsChannelStaff() {
+		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err == nil && ch.Type == identity.ChannelTypeC {
+			return ch.ID, true
+		}
+	}
+	httpx.Abort(c, http.StatusForbidden, "permission_denied", "收款与额度由所属品牌管理", false)
+	return "", false
 }
 
-func (a *App) paymentCallbackOrigin(c *gin.Context, channelOrgID string) string {
+func (a *App) canManagePayment(c *gin.Context) bool {
+	ownerID, ok := a.requireChannelOrg(c)
+	if !ok {
+		return false
+	}
+	item, err := a.Payment.GetOrder(c.Request.Context(), c.Param("id"), "")
+	if a.abortPaymentErr(c, err) {
+		return false
+	}
+	if item.PayeeChannelOrgID != ownerID {
+		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作其他品牌的订单", false)
+		return false
+	}
+	return true
+}
+
+func (a *App) paymentRecipients(c *gin.Context) {
+	ownerID, ok := a.requireChannelOrg(c)
+	if !ok {
+		return
+	}
+	items, err := a.Identity.SearchBrandBillingRecipients(c.Request.Context(), c.Query("q"), ownerID)
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取客户失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items})
+}
+
+func (a *App) recordOfflinePayment(c *gin.Context) {
+	ownerID, ok := a.requireChannelOrg(c)
+	if !ok || !a.requireConfirm(c) {
+		return
+	}
+	var in payment.OfflineReceiptInput
+	if err := c.ShouldBindJSON(&in); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "收款信息无效", false)
+		return
+	}
+	item, err := a.Payment.RecordOfflineReceipt(c.Request.Context(), ownerID, in, a.Audit, audit.RecordInput{
+		ActorUserID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
+	})
+	if a.abortPaymentErr(c, err) {
+		return
+	}
+	httpx.Created(c, gin.H{"item": item})
+}
+
+func (a *App) paymentCallbackOrigin(c *gin.Context, ownerID string) string {
 	origin := a.Config.PublicBaseURL
-	p := a.currentPrincipal(c)
-	if p == nil {
+	if ownerID == identity.OfficialChannelID {
 		return origin
 	}
-	if brand, _, err := a.Identity.ChannelBrand(c.Request.Context(), *p); err == nil && brand != nil {
-		return payment.CallbackOrigin(a.Config.PublicBaseURL, brand.APIDomain)
+	brand, _, err := a.Identity.ChannelBrand(c.Request.Context(), identity.Principal{ChannelOrgID: ownerID})
+	if err == nil && brand != nil && !strings.Contains(brand.APIDomain, "localhost") {
+		return payment.CallbackOrigin(origin, brand.APIDomain)
 	}
 	return origin
 }
 
 func (a *App) channelPaymentOverview(c *gin.Context) {
 	p := a.currentPrincipal(c)
-	channelID := a.channelOrgForAdmin(c)
-	if channelID == "" && p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未绑定渠道", false)
+	channelID, ok := a.requireChannelOrg(c)
+	if !ok {
 		return
 	}
 	origin := a.paymentCallbackOrigin(c, channelID)
@@ -129,11 +202,11 @@ func (a *App) channelPaymentOverview(c *gin.Context) {
 func paymentHint(channelType string) string {
 	switch channelType {
 	case "B":
-		return "资金进入本渠道商户。用户仍在 TokenHub 域名付款，系统按用户归属选你的通道。"
+		return "资金进入所属品牌的商户。渠道只负责推广和用户管理。"
 	case "C":
-		return "资金进入本渠道商户。回调和收银台走你的品牌域名。"
+		return "用户付款直接进入 OEM 商户，包括下属渠道的客户。"
 	default:
-		return "资金进入本渠道（平台）商户。用户在官网充值。"
+		return "用户付款直接进入平台商户，包括直属渠道的客户。"
 	}
 }
 
@@ -270,33 +343,16 @@ func (a *App) channelPatchPaymentSettings(c *gin.Context) {
 	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) channelListPaymentOrders(c *gin.Context) {
-	channelID := a.channelOrgForAdmin(c)
-	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && !p.HasRole("finance_admin") {
-		channelID = p.ChannelOrgID
-	}
-	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
-		Status: c.Query("status"), ChannelOrgID: channelID, Adapter: c.Query("adapter"), Query: c.Query("q"),
-	})
-	if a.abortPaymentErr(c, err) {
-		return
-	}
-	httpx.OKPage(c, items, 100, func(item payment.OrderView) string { return item.ID })
-}
+func (a *App) channelListPaymentOrders(c *gin.Context) { a.adminListPayments(c) }
 
 func (a *App) channelConfirmPayment(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	item, err := a.Payment.GetOrder(c.Request.Context(), c.Param("id"), "")
-	if a.abortPaymentErr(c, err) {
+	if !a.canManagePayment(c) {
 		return
 	}
-	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作其他渠道订单", false)
-		return
-	}
-	item, err = a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -311,15 +367,10 @@ func (a *App) channelRefundPayment(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	item, err := a.Payment.GetOrder(c.Request.Context(), c.Param("id"), "")
-	if a.abortPaymentErr(c, err) {
+	if !a.canManagePayment(c) {
 		return
 	}
-	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() && item.ChannelOrgID != p.ChannelOrgID {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不能操作其他渠道订单", false)
-		return
-	}
-	item, err = a.Payment.Refund(c.Request.Context(), c.Param("id"))
+	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
 	if a.abortPaymentErr(c, err) {
 		return
 	}

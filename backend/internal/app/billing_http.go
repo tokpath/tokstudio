@@ -283,21 +283,7 @@ func (a *App) getUsage(c *gin.Context) {
 }
 
 func (a *App) createTopup(c *gin.Context) {
-	var body struct {
-		AmountMinor int64  `json:"amount_minor"`
-		Method      string `json:"payment_method"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.AmountMinor <= 0 {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "充值金额无效", false)
-		return
-	}
-	userID, channelID := a.billingUser(c)
-	item, err := a.Billing.CreateTopup(c.Request.Context(), userID, channelID, body.AmountMinor, body.Method)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建充值失败", false)
-		return
-	}
-	httpx.Created(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Abort(c, http.StatusGone, "unsupported_operation", "请通过支付订单操作收款、划拨和退款", false)
 }
 
 func (a *App) getTopup(c *gin.Context) {
@@ -336,33 +322,11 @@ func (a *App) redeemTopup(c *gin.Context) {
 }
 
 func (a *App) confirmTopup(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	principal := a.currentPrincipal(c)
-	item, err := a.Billing.ConfirmTopup(c.Request.Context(), c.Param("id"), principal.UserID)
-	if err != nil {
-		if errors.Is(err, billing.ErrInsufficientQuota) {
-			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_quota", "渠道可用额度不足，无法发放服务额度", false)
-			return
-		}
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "确认入账失败", false)
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: principal.UserID, Action: "billing.topup.confirm", ResourceType: "topup", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Abort(c, http.StatusGone, "unsupported_operation", "请通过支付订单操作收款、划拨和退款", false)
 }
 
 func (a *App) refundTopup(c *gin.Context) {
-	item, err := a.Billing.RefundTopup(c.Request.Context(), c.Param("id"))
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "充值退款失败", false)
-		return
-	}
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Abort(c, http.StatusGone, "unsupported_operation", "请通过支付订单操作收款、划拨和退款", false)
 }
 
 func (a *App) adminRefund(c *gin.Context) {

@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,12 +58,12 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 		t.Fatalf("supplier idempotency: %+v", again)
 	}
 
-	bEntry := postJSONRaw(t, server.URL+"/channel/supplier-entries", "docs15_channel", map[string]any{
+	bEntry := postJSONRaw(t, server.URL+"/channel/supplier-entries", "docs15_admin-c", map[string]any{
 		"amount_minor": billing.MinorPerUSD, "source_type": "platform_recharge",
 		"idempotency_key": "spe-b-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 	})
-	if bEntry["item"].(map[string]any)["channel_org_id"] != identity.ResellerChannelID {
-		t.Fatalf("B channel must auto-book self: %+v", bEntry)
+	if bEntry["item"].(map[string]any)["channel_org_id"] != identity.OEMChannelID {
+		t.Fatalf("OEM must auto-book self: %+v", bEntry)
 	}
 
 	pnl := getAuthJSON(t, server.URL+"/admin/channels/"+identity.OfficialChannelID+"/pnl", "docs15_admin")["pnl"].(map[string]any)
@@ -189,14 +190,18 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 	}
 	cBefore := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.OEMChannelID, "docs15_admin-c")["quota"].(map[string]any)
 	sold := 5 * billing.MinorPerUSD
-	toB := postJSONRaw(t, server.URL+"/channel/quotas/grant", "docs15_admin-c", map[string]any{
+	if status := postStatusConfirm(t, server.URL+"/channel/quotas/grant", "docs15_admin-c", map[string]any{
 		"channel_org_id": childID, "amount_minor": sold,
-	})
-	if asInt(toB["quota"].(map[string]any)["available_minor"]) != sold {
-		t.Fatalf("child B pool should receive transfer: %+v", toB)
+	}); status != http.StatusGone {
+		t.Fatalf("legacy C-to-B transfer must be retired: %d", status)
 	}
 	cAfter := getAuthJSON(t, server.URL+"/admin/channel-quotas/"+identity.OEMChannelID, "docs15_admin-c")["quota"].(map[string]any)
-	if asInt(cAfter["available_minor"]) != asInt(cBefore["available_minor"])-sold {
-		t.Fatalf("C pool should debit wholesale: before=%v after=%v", cBefore, cAfter)
+	if asInt(cAfter["available_minor"]) != asInt(cBefore["available_minor"]) {
+		t.Fatal("retired transfer changed the OEM pool")
 	}
+	owner, err := application.Identity.ResolvePoolChannelID(context.Background(), childID)
+	if err != nil || owner != identity.OEMChannelID {
+		t.Fatalf("OEM B must use the OEM pool: %s %v", owner, err)
+	}
+
 }

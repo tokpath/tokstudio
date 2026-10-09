@@ -357,23 +357,7 @@ func (s *Service) lookupChannel(ctx context.Context, channelID string) (channelR
 }
 
 func (s *Service) ResolvePoolChannelID(ctx context.Context, channelID string) (string, error) {
-	if channelID == "" {
-		return "", nil
-	}
-	row, err := s.lookupChannel(ctx, channelID)
-	if err != nil {
-		return "", err
-	}
-	parentType := ""
-	parentID := ""
-	if row.ParentID != nil && *row.ParentID != "" {
-		parent, err := s.lookupChannel(ctx, *row.ParentID)
-		if err == nil {
-			parentType = parent.Type
-			parentID = parent.ID
-		}
-	}
-	return PoolChannelID(row.Type, row.ID, parentID, parentType), nil
+	return s.ResolvePaymentOwnerID(ctx, channelID)
 }
 
 func (s *Service) ResolveMarketChannelID(ctx context.Context, channelID string) (string, error) {

@@ -369,6 +369,76 @@ paths:
       responses:
         "201":
           description: asset stored
+  /admin/payments/overview:
+    get:
+      operationId: getPlatformPaymentOverview
+      responses:
+        "200":
+          description: pluggable payment lanes for this channel
+  /admin/payments/adapters:
+    get:
+      operationId: listPlatformPaymentAdapters
+      responses:
+        "200":
+          description: registered payment plugins
+  /admin/payments/instances:
+    get:
+      operationId: listPlatformPaymentInstances
+      responses:
+        "200":
+          description: merchant instances without secrets
+    post:
+      operationId: createPlatformPaymentInstance
+      responses:
+        "201":
+          description: instance created
+  /admin/payments/instances/{id}:
+    patch:
+      operationId: patchPlatformPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: instance updated
+  /admin/payments/instances/{id}/test:
+    post:
+      operationId: testPlatformPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: connectivity tested
+  /admin/payments/instances/{id}/go-live:
+    post:
+      operationId: goLivePlatformPaymentInstance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: instance live
+  /admin/payments/settings:
+    get:
+      operationId: getPlatformPaymentSettings
+      responses:
+        "200":
+          description: checkout rules
+    patch:
+      operationId: patchPlatformPaymentSettings
+      responses:
+        "200":
+          description: rules saved
   /channel/payments/overview:
     get:
       operationId: getChannelPaymentOverview
@@ -444,13 +514,119 @@ paths:
       operationId: listChannelPaymentOrders
       responses:
         "200":
-          description: orders for this channel
+          description: Orders collected by this OEM, including its direct B customers
+  /admin/payments/recipients:
+    get:
+      operationId: searchPlatformBillingRecipients
+      description: Active customers of this brand and its direct B channels; excludes company employees.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: Scoped customer search results
+        "403":
+          description: Only platform or OEM staff may manage funds
+  /admin/payments/offline:
+    post:
+      operationId: recordPlatformOfflineReceipt
+      description: Record money already received offline and atomically allocate permanent USD credits. A receipt reference is unique within its payee brand; identical retries return the original order. Requires X-Tokenhub-Confirm=1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, amount_minor, credit_minor, currency, reference]
+              properties:
+                user_id:
+                  type: string
+                amount_minor:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  description: Actual funds received; CNY fen or USD microdollars
+                credit_minor:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  description: Permanent credits in USD microdollars
+                currency:
+                  type: string
+                  enum: [CNY, USD]
+                reference:
+                  type: string
+                  maxLength: 200
+      responses:
+        "201":
+          description: Paid and fulfilled receipt with channel attribution, payee_channel_org_id, receipt_reference, recorded_by and timestamps
+        "403":
+          description: Brand mismatch or reseller channel
+        "409":
+          description: Receipt conflict, insufficient OEM quota or missing confirmation
+  /channel/payments/recipients:
+    get:
+      operationId: searchOEMBillingRecipients
+      description: Active customers of this brand and its direct B channels; excludes company employees.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: Scoped customer search results
+        "403":
+          description: Only platform or OEM staff may manage funds
+  /channel/payments/offline:
+    post:
+      operationId: recordOEMOfflineReceipt
+      description: Record money already received offline and atomically allocate permanent USD credits. A receipt reference is unique within its payee brand; identical retries return the original order. Requires X-Tokenhub-Confirm=1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, amount_minor, credit_minor, currency, reference]
+              properties:
+                user_id:
+                  type: string
+                amount_minor:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  description: Actual funds received; CNY fen or USD microdollars
+                credit_minor:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  description: Permanent credits in USD microdollars
+                currency:
+                  type: string
+                  enum: [CNY, USD]
+                reference:
+                  type: string
+                  maxLength: 200
+      responses:
+        "201":
+          description: Paid and fulfilled receipt with channel attribution, payee_channel_org_id, receipt_reference, recorded_by and timestamps
+        "403":
+          description: Brand mismatch or reseller channel
+        "409":
+          description: Receipt conflict, insufficient OEM quota or missing confirmation
   /v1/payments/checkout:
     get:
       operationId: getUserPaymentCheckout
       responses:
         "200":
-          description: methods resolved from the caller's channel
+          description: Methods configured by the caller's platform or OEM brand
   /v1/payments/quote:
     get:
       operationId: quoteUserPayment

@@ -173,12 +173,12 @@ export default function AdminChannelDetailPage() {
         <ChannelModelsPanel channelID={id} />
       </IfCan> : null}
       <IfCan action="channels.quota">
-        <ChannelQuotaPanel channelID={id} channelType={item?.type || ""} />
+        {item?.type === "C" ? <ChannelQuotaPanel channelID={id} channelType={item.type} /> : null}
       </IfCan>
       <ChannelPnLPanel channelID={id} />
       <AdminSupplierPanel channelID={id} />
       {item && managedByPlatform && item.type !== "A" ? <IfCan action="channels.write"><ChannelAdminsPanel channelID={id} code={item.code} /></IfCan> : null}
-      <ChannelPaymentReadiness channelID={id} />
+      {item?.type === "C" ? <ChannelPaymentReadiness channelID={id} /> : null}
       <IfCan action="partners.view">
       <AdminListPanel<Role>
         path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=agent`}

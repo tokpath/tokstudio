@@ -69,17 +69,18 @@ type quotaLedgerRow struct {
 func (quotaLedgerRow) TableName() string { return "billing_quota_ledger" }
 
 type allocationRow struct {
-	ID            string     `gorm:"column:id;primaryKey"`
-	UserID        string     `gorm:"column:user_id"`
-	ChannelOrgID  string     `gorm:"column:channel_org_id"`
-	SourceType    string     `gorm:"column:source_type"`
-	SourceID      string     `gorm:"column:source_id"`
-	GrantedMinor  int64      `gorm:"column:granted_minor"`
-	ConsumedMinor int64      `gorm:"column:consumed_minor"`
-	Status        string     `gorm:"column:status"`
-	ExpiresAt     *time.Time `gorm:"column:expires_at"`
-	CreatedAt     time.Time  `gorm:"column:created_at"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at"`
+	PoolChannelOrgID string     `gorm:"column:pool_channel_org_id"`
+	ID               string     `gorm:"column:id;primaryKey"`
+	UserID           string     `gorm:"column:user_id"`
+	ChannelOrgID     string     `gorm:"column:channel_org_id"`
+	SourceType       string     `gorm:"column:source_type"`
+	SourceID         string     `gorm:"column:source_id"`
+	GrantedMinor     int64      `gorm:"column:granted_minor"`
+	ConsumedMinor    int64      `gorm:"column:consumed_minor"`
+	Status           string     `gorm:"column:status"`
+	ExpiresAt        *time.Time `gorm:"column:expires_at"`
+	CreatedAt        time.Time  `gorm:"column:created_at"`
+	UpdatedAt        time.Time  `gorm:"column:updated_at"`
 }
 
 func (allocationRow) TableName() string { return "billing_quota_allocations" }

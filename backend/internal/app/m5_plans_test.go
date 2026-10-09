@@ -270,7 +270,7 @@ func TestM5PlansPayments(t *testing.T) {
 	_ = beforeRefund
 
 	walletOrder := postJSONRaw(t, server.URL+"/v1/payments/orders", session, map[string]any{
-		"adapter": payment.AdapterWechat, "amount_minor": billing.MinorPerUSD, "purpose": payment.PurposeWallet,
+		"adapter": payment.AdapterWechat, "pay_major": 100, "purpose": payment.PurposeWallet,
 	})
 	wOrder := walletOrder["checkout"].(map[string]any)["order"].(map[string]any)
 	beforeBal := asInt(getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"])
@@ -278,7 +278,7 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("wechat wallet paid %d", code)
 	}
 	afterBal := asInt(getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"])
-	if afterBal-beforeBal != billing.MinorPerUSD {
+	if afterBal-beforeBal != asInt(wOrder["credit_minor"]) {
 		t.Fatalf("wallet credit mismatch %d -> %d", beforeBal, afterBal)
 	}
 	onceOrder := postJSONRaw(t, server.URL+"/v1/me/subscriptions", session, map[string]any{

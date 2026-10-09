@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -372,6 +373,17 @@ func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth b
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "权限不足", false)
 			return
 		}
+		if principal.IsChannelStaff() && !principal.IsPlatformAdmin() {
+			ch, err := a.Identity.GetChannel(c.Request.Context(), *principal, principal.ChannelOrgID)
+			if err != nil {
+				httpx.Abort(c, 403, "permission_denied", "管理归属无效", false)
+				return
+			}
+			if ch.Type == identity.ChannelTypeB && resellerFinancialPath(c.Request.URL.Path) {
+				httpx.Abort(c, 403, "permission_denied", "渠道只负责推广和用户管理，资金由品牌方管理", false)
+				return
+			}
+		}
 		c.Set("principal", principal)
 		c.Next()
 	}
@@ -437,4 +449,13 @@ func (a *App) outboxStats(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, gin.H{"stats": stats, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func resellerFinancialPath(path string) bool {
+	for _, prefix := range []string{"/channel/payments", "/channel/quota", "/channel/quotas", "/channel/allocations", "/channel/pnl", "/channel/supplier-entries", "/channel/eligibility-rules", "/channel/commission-policy", "/channel/model-prices", "/admin/channel-quotas", "/channel/reconciliation"} {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }

@@ -24,15 +24,26 @@ func skipChannelQuota(channelOrgID string) bool {
 // reserveChannelQuota 只做风险帽检查：渠道 remaining 必须盖住本次预授权。
 // 额度已在用户充值发放时从 available 扣过，这里不再 available→reserved，避免同一请求双扣。
 func (s *Service) reserveChannelQuota(tx *gorm.DB, userID, channelOrgID, requestID string, amount, allocationNeed int64) error {
-	if skipChannelQuota(channelOrgID) {
+	poolID, err := s.quotaOwner(tx.Statement.Context, channelOrgID)
+	if err != nil {
+		return err
+	}
+	if skipChannelQuota(poolID) {
 		return nil
 	}
 	if err := checkAllocationRemaining(tx, userID, channelOrgID, allocationNeed); err != nil {
 		return err
 	}
+	var allocations int64
+	if err := tx.Model(&allocationRow{}).Where("user_id = ? AND channel_org_id = ?", userID, channelOrgID).Count(&allocations).Error; err != nil {
+		return err
+	}
+	if allocations > 0 {
+		return nil
+	} // Already allocated stock must remain usable even when the pool is empty.
 	var quota quotaRow
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", channelOrgID, "usd_credit").
+	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", poolID, "usd_credit").
 		First(&quota).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -76,7 +87,7 @@ func (s *Service) ChannelQuota(ctx context.Context, channelOrgID string) (*Quota
 	}
 	_ = s.db.WithContext(ctx).Model(&allocationRow{}).
 		Select("COALESCE(SUM(granted_minor),0) AS issued, COALESCE(SUM(consumed_minor),0) AS consumed, COUNT(*) AS count").
-		Where("channel_org_id = ?", channelOrgID).
+		Where("pool_channel_org_id = ?", channelOrgID).
 		Scan(&sum).Error
 	view.IssuedMinor = sum.Issued
 	view.ConsumedMinor = sum.Consumed
@@ -91,7 +102,7 @@ func (s *Service) ListAllocations(ctx context.Context, channelOrgID string, limi
 	var rows []allocationRow
 	q := s.db.WithContext(ctx).Order("created_at DESC").Limit(limit)
 	if channelOrgID != "" {
-		q = q.Where("channel_org_id = ?", channelOrgID)
+		q = q.Where("channel_org_id = ? OR pool_channel_org_id = ?", channelOrgID, channelOrgID)
 	}
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -297,11 +308,12 @@ func (s *Service) issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType,
 	if skipChannelQuota(channelOrgID) || amount <= 0 || userID == "" {
 		return nil
 	}
-	poolID := channelOrgID
-	if s.pool != nil {
-		if p, err := s.pool.ResolvePoolChannelID(context.Background(), channelOrgID); err == nil && p != "" {
-			poolID = p
-		}
+	poolID, err := s.quotaOwner(tx.Statement.Context, channelOrgID)
+	if err != nil {
+		return err
+	}
+	if skipChannelQuota(poolID) {
+		return nil
 	}
 	var existing allocationRow
 	if err := tx.Where("source_type = ? AND source_id = ?", sourceType, sourceID).First(&existing).Error; err == nil {
@@ -333,7 +345,7 @@ func (s *Service) issueAllocation(tx *gorm.DB, userID, channelOrgID, sourceType,
 	}
 	now := time.Now().UTC()
 	row := allocationRow{
-		ID: id.New("qal"), UserID: userID, ChannelOrgID: channelOrgID,
+		ID: id.New("qal"), UserID: userID, ChannelOrgID: channelOrgID, PoolChannelOrgID: poolID,
 		SourceType: sourceType, SourceID: sourceID, GrantedMinor: grant,
 		Status: AllocActive, CreatedAt: now, UpdatedAt: now,
 	}
@@ -435,7 +447,7 @@ func reclaimAllocation(tx *gorm.DB, sourceType, sourceID string) error {
 	if remaining > 0 {
 		var quota quotaRow
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", alloc.ChannelOrgID, "usd_credit").
+			Where("owner_type = ? AND owner_id = ? AND unit_type = ?", "channel", alloc.PoolChannelOrgID, "usd_credit").
 			First(&quota).Error; err != nil {
 			return err
 		}
@@ -517,4 +529,11 @@ func writeQuotaLedger(tx *gorm.DB, accountID, event string, amount int64, refTyp
 		ID: id.New("qld"), AccountID: accountID, EventType: event, AmountMinor: amount,
 		ReferenceType: refType, ReferenceID: refID, IdempotencyKey: idem,
 	}).Error
+}
+
+func (s *Service) quotaOwner(ctx context.Context, channelID string) (string, error) {
+	if s.pool == nil {
+		return channelID, nil
+	}
+	return s.pool.ResolvePoolChannelID(ctx, channelID)
 }

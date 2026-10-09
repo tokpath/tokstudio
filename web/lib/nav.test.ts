@@ -46,6 +46,8 @@ describe("channel keys nav", () => {
     const c = channelNavGroupsFor("C").flatMap((group) => group.items.map((item) => item.href));
     expect(b).toContain("/channel/users");
     expect(b).not.toContain("/channel/plans");
+    expect(b).not.toContain("/channel/payments");
+    expect(b).not.toContain("/channel/ledger");
     expect(b).not.toContain("/channel/brand");
     expect(b).not.toContain("/channel/subchannels");
     expect(c).toContain("/channel/plans");

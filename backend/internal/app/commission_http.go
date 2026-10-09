@@ -25,6 +25,10 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.GET("/v1/partner/commissions", a.requireAnyUser(), a.partnerCommissions)
 	r.GET("/v1/partner/settlements", a.requireAnyUser(), a.partnerSettlements)
 	r.GET("/v1/partner/export", a.requireAnyUser(), a.partnerExport)
+	r.GET("/channel/settlements/manage", a.requireRoles("channel_admin"), a.adminListSettlements)
+	r.POST("/channel/commissions/settle", a.requireRoles("channel_admin"), a.adminSettle)
+	r.POST("/channel/commissions/unfreeze", a.requireRoles("channel_admin"), a.adminUnfreeze)
+	r.POST("/channel/settlements/:id/payout", a.requireRoles("channel_admin"), a.adminPayout)
 	r.GET("/channel/quota", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelQuota)
 	r.GET("/channel/allocations", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelAllocations)
 	r.GET("/channel/commissions", a.requireRoles("channel_admin", "platform_admin", "finance_admin"), a.channelCommissions)
@@ -241,6 +245,13 @@ func (a *App) channelUsage(c *gin.Context) {
 }
 
 func (a *App) channelSettlements(c *gin.Context) {
+	if p := a.currentPrincipal(c); p.IsChannelStaff() {
+		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err == nil && ch.Type == identity.ChannelTypeC {
+			a.adminListSettlements(c)
+			return
+		}
+	}
 	channelID := a.currentPrincipal(c).VisibleChannelID()
 	if channelID == "" {
 		channelID = c.Query("channel_id")
@@ -254,7 +265,11 @@ func (a *App) channelSettlements(c *gin.Context) {
 }
 
 func (a *App) adminListSettlements(c *gin.Context) {
-	items, err := a.Commission.ListSettlements(c.Request.Context(), c.Query("channel_id"), nil)
+	_, scopeIDs, ok := a.paymentSettlementScope(c)
+	if !ok {
+		return
+	}
+	items, err := a.Commission.ListBrandSettlements(c.Request.Context(), scopeIDs)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取结算单失败", true)
 		return
@@ -328,6 +343,22 @@ func (a *App) channelCommissions(c *gin.Context) {
 	channelID := a.currentPrincipal(c).VisibleChannelID()
 	if channelID == "" {
 		channelID = c.Query("channel_id")
+	}
+	if p := a.currentPrincipal(c); p.IsChannelStaff() {
+		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err == nil && ch.Type == identity.ChannelTypeC {
+			channels, ok := a.oemScope(c)
+			if !ok {
+				return
+			}
+			items, err := a.Commission.ListBrandEntries(c.Request.Context(), channels, c.Query("usage_event_id"))
+			if err != nil {
+				httpx.Abort(c, 500, "internal_error", "读取佣金失败", true)
+				return
+			}
+			httpx.OK(c, gin.H{"items": items})
+			return
+		}
 	}
 	items, err := a.Commission.ListEntries(c.Request.Context(), channelID, nil, "")
 	if err != nil {
@@ -457,6 +488,11 @@ func (a *App) adminGrantQuota(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "额度参数无效", false)
 		return
 	}
+	ownerID, err := a.Identity.ResolvePaymentOwnerID(c.Request.Context(), body.ChannelOrgID)
+	if err != nil || ownerID != body.ChannelOrgID || ownerID == identity.OfficialChannelID {
+		httpx.Abort(c, 403, "permission_denied", "仅向 OEM 服务额度池划拨，渠道客户由品牌方直接管理", false)
+		return
+	}
 	item, err := a.Billing.GrantChannelQuota(c.Request.Context(), body.ChannelOrgID, body.AmountMinor, a.currentPrincipal(c).UserID)
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "调整额度失败", false)
@@ -470,42 +506,7 @@ func (a *App) adminGrantQuota(c *gin.Context) {
 }
 
 func (a *App) channelGrantQuota(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	p := a.currentPrincipal(c)
-	if p == nil || p.ChannelOrgID == "" {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
-		return
-	}
-	parent, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
-	if err != nil || parent.Type != identity.ChannelTypeC {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 C 渠道可向下属 B 划拨积分", false)
-		return
-	}
-	var body struct {
-		ChannelOrgID string `json:"channel_org_id"`
-		AmountMinor  int64  `json:"amount_minor"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.ChannelOrgID == "" || body.AmountMinor <= 0 {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "额度参数无效", false)
-		return
-	}
-	child, err := a.Identity.GetChannel(c.Request.Context(), *p, body.ChannelOrgID)
-	if err != nil || child.Type != identity.ChannelTypeB || child.ParentID != parent.ID {
-		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能划给本 C 下的 B", false)
-		return
-	}
-	item, err := a.Billing.TransferChannelQuota(c.Request.Context(), parent.ID, child.ID, body.AmountMinor, p.UserID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "划拨失败", false)
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: p.UserID, Action: "billing.quota.wholesale", ResourceType: "quota", ResourceID: child.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Abort(c, http.StatusGone, "unsupported_operation", "渠道不持有额度池，请在支付页面直接给客户划拨额度", false)
 }
 
 func (a *App) adminGetQuota(c *gin.Context) {
@@ -554,6 +555,11 @@ func (a *App) adminPatchIssueRule(c *gin.Context) {
 		return
 	}
 	channelID := c.Param("channel_id")
+	ownerID, err := a.Identity.ResolvePaymentOwnerID(c.Request.Context(), channelID)
+	if err != nil || ownerID != channelID || ownerID == identity.OfficialChannelID {
+		httpx.Abort(c, 403, "permission_denied", "仅 OEM 有服务额度换算规则", false)
+		return
+	}
 	var body struct {
 		IssueRatioBPS int64 `json:"issue_ratio_bps"`
 	}
@@ -606,7 +612,11 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能解冻已到期佣金，不能跳过冻结期。", false)
 		return
 	}
-	n, err := a.Commission.UnfreezeUsage(c.Request.Context(), time.Now().UTC(), strings.TrimSpace(body.UsageEventID))
+	_, channels, ok := a.paymentSettlementScope(c)
+	if !ok {
+		return
+	}
+	n, err := a.Commission.UnfreezeForChannels(c.Request.Context(), time.Now().UTC(), strings.TrimSpace(body.UsageEventID), channels)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "解冻失败", true)
 		return
@@ -623,7 +633,14 @@ func (a *App) adminSettle(c *gin.Context) {
 	if !a.requireConfirm(c) {
 		return
 	}
-	items, err := a.Commission.CreateMonthlySettlement(c.Request.Context(), time.Now().UTC(), c.Query("ignore_minimum") == "1")
+	ownerID, channels, ok := a.paymentSettlementScope(c)
+	if !ok {
+		return
+	}
+	if ownerID == identity.OfficialChannelID {
+		ownerID = ""
+	}
+	items, err := a.Commission.CreateBrandSettlement(c.Request.Context(), time.Now().UTC(), c.Query("ignore_minimum") == "1", ownerID, channels)
 	if err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "生成结算单失败", false)
 		return
@@ -650,7 +667,11 @@ func (a *App) adminPayout(c *gin.Context) {
 	if body.Method == "" {
 		body.Method = "manual"
 	}
-	item, err := a.Commission.Payout(c.Request.Context(), c.Param("id"), body.Method, body.Reference, a.currentPrincipal(c).UserID)
+	_, channels, ok := a.paymentSettlementScope(c)
+	if !ok {
+		return
+	}
+	item, err := a.Commission.PayoutForChannels(c.Request.Context(), c.Param("id"), body.Method, body.Reference, a.currentPrincipal(c).UserID, channels)
 	if err != nil {
 		switch {
 		case errors.Is(err, commission.ErrWalletMismatch):
@@ -782,4 +803,17 @@ func (a *App) channelPatchEligibility(c *gin.Context) {
 		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	httpx.OK(c, gin.H{"rule": item, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) paymentSettlementScope(c *gin.Context) (string, []string, bool) {
+	ownerID, ok := a.requireChannelOrg(c)
+	if !ok {
+		return "", nil, false
+	}
+	channels, err := a.Identity.BrandChannelIDs(c.Request.Context(), ownerID)
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取结算范围失败", true)
+		return "", nil, false
+	}
+	return ownerID, channels, true
 }

@@ -46,7 +46,7 @@ func TestNewGoogleExchangeUsesTokenAndProfile(t *testing.T) {
 			http.Error(w, "missing bearer", http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"sub": "google-sub-1", "email": "Ada@Example.Test"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"sub": "google-sub-1", "email": "Ada@Example.Test", "email_verified": true})
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
@@ -115,5 +115,25 @@ func TestNewGoogleExchangeRequiresTriad(t *testing.T) {
 	ex := NewGoogleExchange(GoogleOAuthConfig{ClientID: "only-id"})
 	if _, err := ex(context.Background(), "code"); !errors.Is(err, ErrGoogleUnavailable) {
 		t.Fatalf("incomplete triad: %v", err)
+	}
+}
+
+func TestNewGoogleExchangeRejectsUnverifiedEmail(t *testing.T) {
+	for _, verified := range []any{false, nil, "true"} {
+		t.Run("unverified", func(t *testing.T) {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+				json.NewEncoder(w).Encode(map[string]string{"access_token": "synthetic"})
+			})
+			mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+				json.NewEncoder(w).Encode(map[string]any{"sub": "subject", "email": "existing@example.test", "email_verified": verified})
+			})
+			server := httptest.NewServer(mux)
+			defer server.Close()
+			exchange := NewGoogleExchange(GoogleOAuthConfig{ClientID: "client", ClientSecret: "secret", RedirectURL: "https://brand.example/login/oauth/google", TokenURL: server.URL + "/token", UserInfoURL: server.URL + "/userinfo", HTTPClient: server.Client()})
+			if profile, err := exchange(context.Background(), "synthetic"); !errors.Is(err, ErrGoogleExchange) || profile.Email != "" {
+				t.Fatalf("unverified email accepted: %+v %v", profile, err)
+			}
+		})
 	}
 }

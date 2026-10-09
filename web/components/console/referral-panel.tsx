@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { useBrand } from "@/components/brand-context";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -16,7 +18,7 @@ import { formatUsdMinor } from "@/lib/money";
 type Reward = { request_id?: string; reversal_of?: string; id: string; kind: string; status: string; amount_minor: number; available_at?: string };
 type Settlement = { id: string; status: string; amount_minor: number; payout_reference?: string; reversed_minor: number; recovery_tracked: boolean; recovered_minor: number; recovery_pending_minor: number };
 export type Referral = {
-  codes: string[]; can_create: boolean; invited_count: number; can_commission: boolean; professional_customers: boolean;
+  codes: string[]; code_links: { code: string; share_url: string }[]; can_create: boolean; invited_count: number; can_commission: boolean; professional_customers: boolean;
   rules: { spend_minor: number; topup_minor: number; gift_minor: number };
   progress: { spend_minor: number; largest_topup_minor: number; gift_granted_minor: number; gift_remaining_minor: number };
   summary: { earned_minor: number; frozen_minor: number; available_minor: number; held_minor: number; settled_minor: number; paid_minor: number; reversed_minor: number };
@@ -30,13 +32,16 @@ export function ReferralPanel() {
   const partner = useTranslations("partnerBoard");
   const locale = useLocale();
   const search = useSearchParams();
+  const viewer = useViewer();
+  const brand = useBrand();
   const tab = ["commissions", "settlements", "users"].includes(search.get("tab") || "") ? search.get("tab")! : "overview";
   const page = Math.max(1, Math.min(100000, Number(search.get("page")) || 1));
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState("");
   const [mutationError, setMutationError] = useState("");
   const resource = useListResource<Referral>({
-    queryKey: String(page),
+    queryKey: `${viewer.userId || "anonymous"}|${brand?.id || ""}|${page}`,
+    enabled: !viewer.loading,
     load: async () => {
       const res = await fetch(`${apiBase}/v1/me/referral?page=${page}`, { credentials: "include" });
       const body = await res.json();
@@ -45,9 +50,7 @@ export function ReferralPanel() {
   });
   const item = resource.snapshot.items[0];
   function shareURL(code: string) {
-    const url = new URL("/login", window.location.origin);
-    url.searchParams.set("promotion_code", code);
-    return url.toString();
+    return item?.code_links.find(link => link.code === code)?.share_url || "";
   }
   async function copy(value: string) {
     setNotice("");
@@ -79,14 +82,14 @@ export function ReferralPanel() {
             {item.codes.map(code => <div key={code} className="mb-4 space-y-2">
               <label className="block text-sm font-medium" htmlFor={`ref-${code}`}>{t("code")}: <span className="break-all font-mono">{code}</span></label>
               <input id={`ref-${code}`} aria-label={t("link")} readOnly value={shareURL(code)} onFocus={e => e.currentTarget.select()} className="w-full min-w-0 rounded-control border border-hairline bg-canvas px-3 py-2 text-sm" />
-              <div className="flex flex-wrap gap-2"><Button onClick={() => void copy(shareURL(code))}>{t("copyLink")}</Button><Button variant="outline" onClick={() => void copy(code)}>{t("copyCode")}</Button></div>
+              <div className="flex flex-wrap gap-2"><Button disabled={!shareURL(code)} onClick={() => void copy(shareURL(code))}>{t("copyLink")}</Button><Button variant="outline" onClick={() => void copy(code)}>{t("copyCode")}</Button></div>
             </div>)}
             {!item.codes.length && (item.can_create ? <Button disabled={creating} onClick={() => void create()}>{creating ? t("creating") : t("create")}</Button> : <p>{t("unavailable")}</p>)}
             {notice && <p role="status" className="mt-2 text-sm">{notice}</p>}{mutationError && <p role="alert" className="mt-2 text-sm text-danger">{mutationError}</p>}
             <p className="mt-4 font-medium">{t("invited", { count: item.invited_count })}</p>
           </Card>
           <div className="grid gap-5 md:grid-cols-2">
-            <Card><CardTitle>{a("giftTitle")}</CardTitle><dl className="mt-3 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt>{a("giftGranted")}</dt><dd>{formatUsdMinor(item.progress.gift_granted_minor)}</dd></div><div className="flex justify-between gap-3"><dt>{a("giftRemaining")}</dt><dd>{formatUsdMinor(item.progress.gift_remaining_minor)}</dd></div></dl><p className="mt-3 text-sm text-ink-secondary">{a("giftDetail")}</p>{item.rules.gift_minor > 0 && <p className="mt-2 text-sm">{a("inviteeGift", { amount: formatUsdMinor(item.rules.gift_minor) })}</p>}</Card>
+            <Card><CardTitle>{a("giftTitle")}</CardTitle><dl className="mt-3 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt>{a("giftGranted")}</dt><dd>{formatUsdMinor(item.progress.gift_granted_minor)}</dd></div><div className="flex justify-between gap-3"><dt>{a("giftRemaining")}</dt><dd>{formatUsdMinor(item.progress.gift_remaining_minor)}</dd></div></dl><p className="mt-3 text-sm text-ink-secondary">{a("giftDetail")}</p>{!item.can_commission && item.rules.gift_minor > 0 && <p className="mt-2 text-sm">{a("inviteeGift", { amount: formatUsdMinor(item.rules.gift_minor) })}</p>}</Card>
             <Card><CardTitle>{t("rules")}</CardTitle><p className="mt-3 font-medium">{item.can_commission ? t("qualified") : t("notQualified")}</p><p className="mt-2 text-sm text-ink-secondary">{a(item.can_commission ? "qualifiedDetail" : "qualifyDetail")}</p>
               <div className="mt-4 space-y-4">
                 {item.rules.spend_minor > 0 && <Progress label={a("spendProgress")} value={item.progress.spend_minor} target={item.rules.spend_minor} />}

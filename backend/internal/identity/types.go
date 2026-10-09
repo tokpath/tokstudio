@@ -81,12 +81,15 @@ type ChannelView struct {
 }
 
 type Session struct {
+	NextPath  string    `json:"next,omitempty"`
 	Token     string    `json:"token"`
 	User      UserView  `json:"user"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type RegisterInput struct {
+	googleSubject string
+	BrandID       string
 	Email         string
 	Password      string
 	PromotionCode string

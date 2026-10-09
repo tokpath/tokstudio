@@ -71,7 +71,7 @@ func (a *App) meReferral(c *gin.Context) {
 		codes = append(codes, code.Code)
 	}
 	httpx.OK(c, gin.H{"item": gin.H{
-		"codes": codes, "can_create": len(own.RoleIDs) == 0,
+		"codes": codes, "code_links": own.Links, "can_create": len(own.RoleIDs) == 0,
 		"invited_count": own.InvitedCount, "can_commission": me.CanCommission,
 		"rules":   gin.H{"spend_minor": rule.SpendMinor, "topup_minor": rule.TopupMinor, "gift_minor": rule.GiftMinor},
 		"rewards": rewards, "settlements": facts.Settlements, "summary": facts.Summary,

@@ -46,6 +46,14 @@ func (s *Service) PersonalPage(ctx context.Context, roleIDs []string, page int) 
 	COALESCE(SUM(CASE WHEN reversal_of IS NOT NULL THEN amount_minor ELSE 0 END), 0) AS reversed_minor`).Scan(&out.Summary).Error; err != nil {
 		return nil, err
 	}
+	// Paid and pending payout amounts are settlement facts, including paid
+	// settlements whose commission entries were later reversed.
+	if err := s.db.WithContext(ctx).Model(&settleRow{}).Where("beneficiary_role_id IN ? AND status = ?", roleIDs, "paid").Select("COALESCE(SUM(amount_minor),0)").Scan(&out.Summary.PaidMinor).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.WithContext(ctx).Model(&settleRow{}).Where("beneficiary_role_id IN ? AND status = ?", roleIDs, "settled").Select("COALESCE(SUM(amount_minor),0)").Scan(&out.Summary.SettledMinor).Error; err != nil {
+		return nil, err
+	}
 	if err := q.Count(&out.EntriesTotal).Error; err != nil {
 		return nil, err
 	}

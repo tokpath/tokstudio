@@ -1,44 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { PUBLIC_PAGE_SPECS } from "./public-site";
+import { FOOTER_GROUPS, PUBLIC_PAGE_SPECS } from "./public-site";
+import { MEGA_MENUS } from "./mega-nav";
 
-describe("ofox public page map", () => {
-  it("covers public and authenticated main-flow pages", () => {
-    const hrefs = PUBLIC_PAGE_SPECS.map((p) => p.href);
-    for (const required of [
-      "/",
-      "/models",
-      "/quickstart",
-      "/docs",
-      "/docs/integrations",
-      "/enterprise",
-      "/trust",
-      "/best-value",
-      "/model-finder",
-      "/vibe-coding",
-      "/video",
-      "/image",
-      "/leaderboards/models",
-      "/leaderboards/apps",
-      "/leaderboards/labs",
-      "/awesome-ofox",
-      "/compare",
-      "/pricing",
-      "/blog",
-      "/login",
-      "/app",
-      "/app/playground",
-      "/app/keys",
-      "/app/catalog",
-      "/app/usage",
-      "/app/activity",
-      "/app/wallet",
-      "/app/referral",
-      "/app/settings",
-      "/app/settings/webhooks",
-    ]) {
-      expect(hrefs).toContain(required);
-    }
-    expect(PUBLIC_PAGE_SPECS.filter((p) => p.auth).map((p) => p.href)).toContain("/app");
-    expect(PUBLIC_PAGE_SPECS.filter((p) => p.auth).map((p) => p.href)).toContain("/app/keys");
+describe("maintained public tasks", () => {
+  it("keeps model and documentation access public and the API account together", () => {
+    const pages=new Map(PUBLIC_PAGE_SPECS.map(page=>[page.href,page]));
+    for(const path of ["/models","/docs","/docs/integrations","/pricing","/promo"]) expect(pages.get(path)?.auth).not.toBe(true);
+    for(const path of ["/app","/app/keys","/app/wallet","/app/referral"]) expect(pages.get(path)?.auth).toBe(true);
+  });
+  it("advertises only maintained routes without hardcoded model or demo links", () => {
+    const allowed=new Set(PUBLIC_PAGE_SPECS.map(page=>page.href));
+    const links=[...FOOTER_GROUPS.flatMap(group=>group.links),...MEGA_MENUS.flatMap(menu=>menu.columns.flatMap(column=>column.links))];
+    for(const link of links) expect(allowed.has(link.href.split("?")[0])).toBe(true);
+    expect(links.some(link=>link.href.startsWith("/models/"))).toBe(false);
   });
 });

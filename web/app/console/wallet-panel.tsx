@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/login-next";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +51,9 @@ type Method = {
 
 export default function WalletPanel() {
   const t = useTranslations("user");
+  const intent = useTranslations("publicExperience");
+  const search = useSearchParams();
+  const returnPath = safeNextPath(search.get("next"));
   const tc = useTranslations("common");
   const [balance, setBalance] = useState<Balance | null>(null);
   const [code, setCode] = useState("");
@@ -270,7 +275,8 @@ export default function WalletPanel() {
         </dl>
         <p className="mb-2 text-sm text-ink-secondary">{t("walletBucketsDetail")}</p>
         {(balance?.commission_recovery_minor || 0) > 0 && <p role="status" className="mb-3 rounded-control border border-hairline p-3 text-sm text-danger">{t("commissionRecovery", { amount: formatUsdMinor(balance?.commission_recovery_minor) })}</p>}
-        <p className="mb-4 text-sm text-ink-secondary">{te("walletHelp")} <Link className="text-primary underline" href="/app/plans">{te("walletLink")}</Link></p>
+        {returnPath && <Link className="mb-4 inline-block text-sm text-brand-emphasis underline" href={returnPath}>{intent("returnTask")}</Link>}
+        <p className="mb-4 text-sm text-ink-secondary">{te("walletHelp")} <Link className="text-primary underline" href={returnPath ? `/app/plans?next=${encodeURIComponent(returnPath)}` : "/app/plans"}>{te("walletLink")}</Link></p>
         <ListResourceView
           name="payments"
           snapshot={methodsList.snapshot}

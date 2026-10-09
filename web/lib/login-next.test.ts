@@ -7,6 +7,8 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/app")).toBe("/app");
     expect(safeNextPath("//evil.example")).toBe("");
     expect(safeNextPath("https://evil.example")).toBe("");
+    for (const raw of ["/\\evil.example", "/%5cevil.example", "/%2f%2fevil.example", "/%255cevil.example", "/\n/evil.example", "/%0d%0aLocation:evil", "/%invalid"]) expect(safeNextPath(raw)).toBe("");
+    expect(safeNextPath("/models/openai/gpt?tab=agent&next=%2Fapp")).toBe("/models/openai/gpt?tab=agent&next=%2Fapp");
     expect(loginHref("/")).toBe("/login?next=%2F");
     expect(loginHref("/enter")).toBe("/login?next=%2Fenter");
   });

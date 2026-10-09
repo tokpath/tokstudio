@@ -58,7 +58,7 @@ func (d stripeDriver) CreateCheckout(ctx context.Context, in CheckoutRequest) (*
 	form.Set("currency", currency)
 	form.Set("metadata[order_id]", in.Order.ID)
 	form.Set("automatic_payment_methods[enabled]", "true")
-	raw, code, err := stripeDo(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/payment_intents", form)
+	raw, code, err := stripeDoKeyed(ctx, cred(in.Credentials, "secret_key"), "POST", "/v1/payment_intents", form, "checkout:"+in.Order.ID)
 	if err != nil || code >= 300 {
 		return nil, ErrProviderFailed
 	}

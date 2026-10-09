@@ -121,6 +121,9 @@ func (c GoogleOAuthConfig) exchange(ctx context.Context, code string) (GooglePro
 	if infoResp.StatusCode >= 300 || info.Subject == "" || !strings.Contains(info.Email, "@") {
 		return GoogleProfile{}, NewGoogleExchangeError("empty_profile")
 	}
+	if !info.EmailVerified {
+		return GoogleProfile{}, NewGoogleExchangeError("email_unverified")
+	}
 	return GoogleProfile{Subject: info.Subject, Email: normalizeEmail(info.Email)}, nil
 }
 
@@ -131,6 +134,7 @@ type googleTokenResponse struct {
 }
 
 type googleUserInfo struct {
-	Subject string `json:"sub"`
-	Email   string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Subject       string `json:"sub"`
+	Email         string `json:"email"`
 }

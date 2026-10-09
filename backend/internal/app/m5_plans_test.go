@@ -169,7 +169,7 @@ func TestM5PlansPayments(t *testing.T) {
 	})
 
 	subResp := postJSONRaw(t, server.URL+"/v1/me/subscriptions", session, map[string]any{
-		"plan_id": "pln_echo_month", "adapter": payment.AdapterStripe, "payment_method_ref": "pm_ok",
+		"plan_id": "pln_echo_month", "adapter": payment.AdapterStripe,
 	})
 	sub := subResp["subscription"].(map[string]any)
 	checkout := subResp["checkout"].(map[string]any)
@@ -242,11 +242,17 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("alipay must not auto-renew, got %s", aliAfter.Status)
 	}
 
-	failSubResp := postJSONRaw(t, server.URL+"/v1/me/subscriptions", session, map[string]any{
-		"plan_id": "pln_echo_month", "adapter": payment.AdapterStripe, "payment_method_ref": "pm_fail",
-	})
-	failSub := failSubResp["subscription"].(map[string]any)
-	failOrder := failSubResp["checkout"].(map[string]any)["order"].(map[string]any)["id"].(string)
+	// A synthetic, previously authorized historical subscription keeps its renewal behavior.
+	failSubView, err := application.Plans.CreateSubscription(ctx, userID, identity.OfficialChannelID, "pln_echo_month", payment.AdapterStripe, "pm_fail", identity.OfficialChannelID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failSub := map[string]any{"id": failSubView.ID}
+	failOrderView, err := application.Payment.CreateOrder(ctx, payment.CreateOrderInput{UserID: userID, ChannelOrgID: identity.OfficialChannelID, Adapter: payment.AdapterStripe, Purpose: payment.PurposeSubscription, ReferenceType: payment.PurposeSubscription, ReferenceID: failSubView.ID, AmountMinor: 10 * billing.MinorPerUSD, Currency: "USD"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failOrder := failOrderView.ID
 	if code := webhook(t, server.URL, signKey, payment.AdapterStripe, "evt-fail-"+strconv.FormatInt(time.Now().UnixNano(), 10), failOrder, "paid").StatusCode; code != http.StatusOK {
 		t.Fatalf("stripe first period %d", code)
 	}
@@ -282,7 +288,7 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("wallet credit mismatch %d -> %d", beforeBal, afterBal)
 	}
 	onceOrder := postJSONRaw(t, server.URL+"/v1/me/subscriptions", session, map[string]any{
-		"plan_id": rejectedID, "adapter": payment.AdapterStripe, "payment_method_ref": "pm_ok",
+		"plan_id": rejectedID, "adapter": payment.AdapterStripe,
 	})
 	onceSub := onceOrder["subscription"].(map[string]any)
 	if onceSub["renewal_policy"] != plans.RenewManual {

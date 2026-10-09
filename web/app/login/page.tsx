@@ -10,11 +10,13 @@ import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { apiBase } from "@/lib/api";
+import { useViewer } from "@/components/rbac/viewer-context";
 import { useBrand } from "@/components/brand-context";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
+import { authIntent, storeAuthIntent } from "@/lib/auth-intent";
 import { safeNextPath } from "@/lib/login-next";
 import {
   type GoogleAuthStatus,
@@ -31,6 +33,7 @@ type AuthError = { code?: string; message?: string; retryable?: boolean };
 function LoginForm() {
   const t = useTranslations("login");
   const brand = useBrand();
+  const viewer = useViewer();
   const siteName = brand?.name || "TokenHub";
   const schema = useMemo(
     () =>
@@ -44,7 +47,7 @@ function LoginForm() {
   const search = useSearchParams();
   const [message, setMessage] = useState("");
   const [errorBanner, setErrorBanner] = useState("");
-  const invitation = (search.get("promotion_code") || search.get("promo") || "").trim();
+  const invitation = authIntent(search).promotionCode;
   const [mode, setMode] = useState<"login" | "register">(invitation ? "register" : "login");
   const [googleStatus, setGoogleStatus] = useState<GoogleAuthStatus | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -96,6 +99,11 @@ function LoginForm() {
     window.location.href = await resolveConsoleHref();
   }
 
+  useEffect(() => {
+    if (!viewer.loading && viewer.signedIn) void goNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewer.loading, viewer.signedIn, search]);
+
   function showAuthFailure(body: { error?: AuthError }, fallback: string) {
     const text = sanitizeOAuthError(body.error?.message, fallback);
     setErrorBanner(text);
@@ -142,9 +150,15 @@ function LoginForm() {
     }
     setGoogleLoading(true);
     setErrorBanner("");
-    storeLoginNext(typeof sessionStorage === "undefined" ? null : sessionStorage, safeNextPath(search.get("next")));
+    const storage = typeof sessionStorage === "undefined" ? null : sessionStorage;
+    const next = safeNextPath(search.get("next"));
     const promo = form.getValues("promo");
-    const query = promo ? `?promotion_code=${encodeURIComponent(promo)}` : "";
+    storeLoginNext(storage, next);
+    storeAuthIntent(storage, { next, promotionCode: promo });
+    const params = new URLSearchParams();
+    if (promo) params.set("promotion_code", promo);
+    if (next) params.set("next", next);
+    const query = params.size ? `?${params}` : "";
     try {
       const response = await fetch(`${apiBase}/v1/auth/google/start${query}`, { credentials: "include" });
       const body = await response.json();
@@ -198,32 +212,15 @@ function LoginForm() {
           </div>
         ) : null}
 
-        <div className="mt-8 flex w-full flex-col gap-3">
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={googleUI.disabled}
-            aria-disabled={googleUI.disabled}
-            onClick={googleStart}
-          >
-            <GoogleMark />
-            {t(googleUI.labelKey)}
-          </Button>
-          {googleUI.showUnconfigured ? (
-            <p className="text-[13px] leading-relaxed text-ink-mute">{t("googleUnconfigured")}</p>
-          ) : null}
-        </div>
-
-        <div className="my-7 flex items-center gap-3 text-[13px] text-ink-mute">
-          <span className="h-px flex-1 bg-hairline" />
-          {t("or")}
-          <span className="h-px flex-1 bg-hairline" />
-        </div>
+        {googleStatus?.available && <>
+          <div className="mt-8 flex w-full flex-col gap-3">
+            <Button type="button" variant="outline" className="w-full" disabled={googleUI.disabled} aria-disabled={googleUI.disabled} onClick={googleStart}><GoogleMark />{t(googleUI.labelKey)}</Button>
+          </div>
+          <div className="my-7 flex items-center gap-3 text-[13px] text-ink-mute"><span className="h-px flex-1 bg-hairline" />{t("or")}<span className="h-px flex-1 bg-hairline" /></div>
+        </>}
 
         <Form {...form}>
-          <form className="flex w-full flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
+          <form className="mt-7 flex w-full flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
             {mode === "register" ? (

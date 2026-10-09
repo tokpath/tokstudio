@@ -388,6 +388,10 @@ func (s *Service) viewPlan(ctx context.Context, row planRow) (*PlanView, error) 
 }
 
 func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef, brandOwnerID string) (*SubscriptionView, error) {
+	return s.createSubscription(ctx, userID, channelID, planID, adapter, methodRef, brandOwnerID, true)
+}
+
+func (s *Service) createSubscription(ctx context.Context, userID, channelID, planID, adapter, methodRef, brandOwnerID string, autoRenew bool) (*SubscriptionView, error) {
 	plan, err := s.GetPlan(ctx, planID)
 	if err != nil {
 		return nil, err
@@ -399,7 +403,7 @@ func (s *Service) CreateSubscription(ctx context.Context, userID, channelID, pla
 		return nil, ErrNotFound
 	}
 	renew := RenewManual
-	if plan.BillingPeriod != PeriodOnce && plan.AutoRenewAllowed && adapter == "stripe" {
+	if autoRenew && plan.BillingPeriod != PeriodOnce && plan.AutoRenewAllowed && adapter == "stripe" {
 		renew = RenewAuto
 	}
 	now := time.Now().UTC()

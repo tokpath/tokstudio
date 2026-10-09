@@ -1,5 +1,3 @@
-import fixture from "@/lib/fixtures/ofox-site.json";
-import { fetchAPI } from "@/lib/api";
 
 export type LeaderboardRow = {
   rank: string;
@@ -42,17 +40,7 @@ export type SiteContent = {
   discounts?: Record<string, unknown>;
 };
 
-const FALLBACK = fixture as SiteContent;
-
-/** 优先读服务端 dump 的 ofox 公开站内容，API 不可达时用快照。 */
-export async function loadSite(host: string): Promise<SiteContent> {
-  try {
-    const data = await fetchAPI<{ site?: SiteContent }>("/v1/public/site", { host });
-    if (data.site?.leaderboards || data.site?.blog) {
-      return { ...FALLBACK, ...data.site };
-    }
-  } catch {
-    /* fall through */
-  }
-  return FALLBACK;
+/** External snapshots are not evidence of this brand’s capabilities or usage. */
+export async function loadSite(_host: string): Promise<SiteContent> {
+  return {};
 }

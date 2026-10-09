@@ -45,6 +45,10 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 		t.Fatalf("new profile: %+v", a)
 	}
 	code := a["codes"].([]any)[0].(string)
+	links := a["code_links"].([]any)
+	if len(links) != 1 || links[0].(map[string]any)["share_url"] != "http://localhost/login?promotion_code="+code {
+		t.Fatalf("canonical brand invitation: %+v", links)
+	}
 	second := register(code)
 	attr, err := application.Identity.GetAttribution(context.Background(), userIDOf(second))
 	if err != nil {
@@ -135,6 +139,9 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 		}
 	}
 	settles := profile(tokenOf(first))["settlements"].([]any)
+	if asInt(profile(tokenOf(first))["summary"].(map[string]any)["paid_minor"]) != 15 {
+		t.Fatal("paid amount must use actual settlement facts")
+	}
 	if len(settles) != 1 || settles[0].(map[string]any)["id"] != "ref-settle-"+userIDOf(first) || settles[0].(map[string]any)["payout_reference"] != "test reference" {
 		t.Fatalf("settlement isolation: %+v", settles)
 	}

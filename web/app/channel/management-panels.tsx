@@ -132,7 +132,7 @@ function OEMSecurity() {
       await query.refetch();
       setMessage(t("saved"));
       return true;
-    } catch { setMessage(t("saveError")); return false; }
+    } catch (error) { setMessage(error instanceof Error && "status" in error && Number(error.status) >= 400 && Number(error.status) < 500 ? error.message : t("saveError")); return false; }
   }
   return <section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="font-semibold">{t("security")}</h2><p className="mt-3 text-sm text-ink-secondary">{t("securityHint")}</p>{query.isError ? <p role="alert">{t("loadError")}</p> : <p className="mt-3">{t("status")}: {query.data?.item.status ?? "—"}</p>}<div className="mt-4 flex max-w-xl flex-wrap gap-3">{query.data?.item.status !== "enabled" ? <Button variant="outline" disabled={!query.data} onClick={() => void mutate("setup")}>{t("setup2fa")}</Button> : null}{query.data?.item.status === "pending" || query.data?.item.status === "enabled" ? <><Input aria-label={t("otp")} placeholder={t("otp")} className="max-w-48" value={code} onChange={(e) => setCode(e.target.value)} />{query.data?.item.status === "pending" ? <Button disabled={!/^\d{6}$/.test(code)} onClick={() => void mutate("enable")}>{t("enable2fa")}</Button> : <ConfirmButton disabled={!/^\d{6}$/.test(code)} title={t("disable2fa")} description={t("disableHint")} onConfirm={() => mutate("disable")}>{t("disable2fa")}</ConfirmButton>}</> : null}</div>{secret ? <p className="mt-3 break-all font-mono text-sm">{t("secret")}: {secret}</p> : null}{message ? <p role="status" className="mt-3 text-sm">{message}</p> : null}</section>;
 }

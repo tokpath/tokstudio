@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { safeReturnHref } from "@/lib/return-context";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ type Review = { item: Preview; user: { email: string; display_name: string } };
 const money = (value: number) => `${formatUsdMinor(value)} USD`;
 
 export function ChargeRefundPanel({ onRefund }: { onRefund: () => void }) {
+  const context = useSearchParams();
   const [requestID, setRequestID] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const [searching, setSearching] = useState(false);
@@ -21,12 +24,18 @@ export function ChargeRefundPanel({ onRefund }: { onRefund: () => void }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const version = useRef(0);
+  const contextRequest = context?.get("request_id") || "";
+  useEffect(() => {
+    setRequestID(contextRequest); setReview(null); setError(""); setMessage("");
+    if(contextRequest) void lookup(contextRequest);
+    return () => { version.current++; };
+  }, [contextRequest]);
 
-  async function lookup() {
+  async function lookup(target = requestID) {
     const current = ++version.current;
     setSearching(true); setReview(null); setError(""); setMessage("");
     try {
-      const response = await fetch(`${apiBase}/admin/refunds/preview?request_id=${encodeURIComponent(requestID.trim())}`, { credentials: "include" });
+      const response = await fetch(`${apiBase}/admin/refunds/preview?request_id=${encodeURIComponent(target.trim())}`, { credentials: "include" });
       const body = await response.json();
       if (current !== version.current) return;
       if (!response.ok) throw new Error(body.error?.message || "读取账单失败，请重试。");
@@ -57,6 +66,7 @@ export function ChargeRefundPanel({ onRefund }: { onRefund: () => void }) {
   const person = review ? `${review.user.display_name || "用户"} · ${review.user.email || review.item.user_id}` : "";
   return <section aria-label="消费退款" className="mb-5 rounded-control border border-hairline p-4">
     <h3 className="font-semibold">消费退款</h3>
+    {context?.has("return_to") ? <Link href={safeReturnHref(context?.get("return_to"),"/admin/usage?tab=requests")} className="my-2 inline-block text-sm underline">返回原请求</Link> : null}
     <p className="my-2 text-sm text-ink-secondary">将已扣的充值积分退回用户钱包，并恢复原套餐/限时额度、冲正相关佣金。钱包赠送积分不退回；此操作不向银行卡或支付账户转账。</p>
     <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); if (requestID.trim() && !searching) void lookup(); }}>
       <label className="min-w-0 flex-1 text-sm">消费请求编号

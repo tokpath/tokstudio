@@ -20,7 +20,7 @@ function stubFetch(result: {ok: boolean; error?: {code: string; message: string}
 async function show(path = "/v1/chat/completions", result: {ok: boolean; error?: {code: string; message: string}} = {ok: true}, base = "https://brand.example") {
  const mock = stubFetch(result, path, base);
  render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));
- await waitFor(() => expect(screen.getByTestId("model-protocol-example")).toBeTruthy());return mock;
+ await waitFor(() => expect(screen.getByTestId("model-protocol-example")).toBeTruthy());await screen.findByRole("option",{name:/Work/});return mock;
 }
 describe("model instructions and optional test", () => {
  beforeEach(() => {window.history.replaceState(null,"","/app/docs?model=openai%2Ftest-text&key_id=key_a");});
@@ -49,7 +49,7 @@ describe("model instructions and optional test", () => {
   {code:"insufficient_balance",label:"账户余额 / 充值"}, {code:"rate_limited",label:"查看请求"}, {code:"request_outcome_unknown",label:"查看请求"},
  ])("keeps $code distinct with a recovery action",async({code,label})=>{
   stubFetch({ok:false,error:{code,message:`failure:${code}`}});render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));
-  await waitFor(()=>expect(screen.getByTestId("model-protocol-example")).toBeTruthy());fireEvent.click(screen.getByRole("button",{name:"发送站内测试请求"}));
+  await waitFor(()=>expect(screen.getByTestId("model-protocol-example")).toBeTruthy());await screen.findByRole("option",{name:/Work/});fireEvent.click(screen.getByRole("button",{name:"发送站内测试请求"}));
   await waitFor(()=>expect(screen.getByTestId("model-verify-status").textContent).toContain(`failure:${code}`));
   expect(screen.getByTestId("model-verify-status").querySelector("a")?.textContent).toBe(label);expect(screen.queryByText(/站内调用成功/)).toBeNull();
  });
@@ -86,7 +86,7 @@ describe("model instructions and optional test", () => {
    if(init?.method==="POST")return pending as never;
    return {ok:true,json:async()=>String(input).includes("docs-context")?docs():{items:[key,{...key,id:"key_b",name:"B",key:"thk_secret_b"}]}};
   });
-  render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));await waitFor(()=>expect(screen.getByTestId("model-protocol-example")).toBeTruthy());fireEvent.click(screen.getByRole("button",{name:"发送站内测试请求"}));
+  render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));await waitFor(()=>expect(screen.getByTestId("model-protocol-example")).toBeTruthy());await screen.findByRole("option",{name:/Work/});fireEvent.click(screen.getByRole("button",{name:"发送站内测试请求"}));
   fireEvent.change(screen.getByLabelText("当前 Key"),{target:{value:"key_b"}});resolve({ok:true,json:async()=>({request_id:"req_a"})});
   await waitFor(()=>expect(screen.getByLabelText("当前 Key")).toHaveProperty("value","key_b"));expect(screen.queryByTestId("model-verify-status")).toBeNull();expect(window.location.href).not.toContain(key.key);
  });

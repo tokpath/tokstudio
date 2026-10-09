@@ -45,7 +45,7 @@ export default function AdminPromosPage() {
       <IfCan action="partners.write">
       <Form {...roleForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
-          <AdminH2 k="promoRoles" className="mb-4 text-lg font-semibold tracking-tight" />
+          <AdminH2 level={1} k="promoRoles" className="mb-4 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">
             层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。主体列表在「渠道租户」分栏管理。
           </p>

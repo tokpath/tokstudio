@@ -113,8 +113,9 @@
 - `POST /v1/me/password`：校验当前密码后改密
 - `POST /v1/auth/logout`：吊销当前会话令牌并清除 HttpOnly cookie
 - `GET /v1/me/balance`：钱包视图。用户台顶栏余额钉 `balance.available`（可用 USD 字符串，对应 `available_minor`），失败不得写成假 `$0.00`
-- `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`state`（仅 `confirmed` / `pending_reconciliation` / `voided`）、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。不得把网关失败写成 `state=failed`。
-- `GET /v1/me/requests`：当前用户可见的网关请求回单。查询 `result`（`succeeded` / `failed` / `started`）、`billing_state`（账务三态）、`api_key_id`、`public_model_id`、`from`、`to`、`limit`。`from`/`to` 为半开区间（`>= from` 且 `< to`）。RFC3339 按瞬间解析；仅 `YYYY-MM-DD` 时按 UTC 自然日，`to` 取次日 00:00（不含）。无效时间或起点不早于终点返回 400。用户台日历按浏览器本地时区换算成 RFC3339 再查询。条目分开展示 `result`、`billing_state`、`customer_amount_minor`、`error_code`。始终按会话用户（或 API Key 所属用户+该 Key）过滤，不能读他人请求。
+- `GET /v1/me/usage`：当前用户账本。查询 `api_key_id`、`public_model_id`、`state`（仅 `confirmed` / `pending_reconciliation` / `voided`）、`cursor`、`limit`。条目含 `api_key_id`、`prompt_tokens`、`completion_tokens`、`reasoning_tokens`、金额。另返回 `keys` / `models`（该用户按 API Key / 模型的 DimMoney 汇总）。用 API Key 鉴权时只返回这把 Key 的明细。不得把网关失败写成 `state=failed`。
+- `GET /v1/me/requests`：当前用户可见的网关请求回单。查询 `result`（`succeeded` / `failed` / `started`）、`billing_state`（账务三态）、`api_key_id`、`public_model_id`、`from`、`to`、`limit`。`from`/`to` 为半开区间（`>= from` 且 `< to`）。RFC3339 按瞬间解析；仅 `YYYY-MM-DD` 时按 UTC 自然日，`to` 取次日 00:00（不含）。无效时间或起点不早于终点返回 400。任务用量接口支持明确time_zone；页面固定Asia/Shanghai，以展示时区解析日期，不依赖运行机器时区。条目分开展示 `result`、`billing_state`、`customer_amount_minor`、`error_code`。始终按会话用户（或 API Key 所属用户+该 Key）过滤，不能读他人请求。
+- `GET /v1/me/usage/summary`：同一授权/日期/时区过滤下全量汇总，含total/daily/keys/models/facets，不按明细首屏估算。管理对应`/admin/usage/summary`与`/channel/usage/summary`；请求详情`.../requests/{id}`按原对象鉴权，普通面隐藏提供商/路由和成本。
 - `GET /v1/me/ledger`
 - `GET /v1/plans`：公共站已发布的平台套餐；
 - `GET /v1/me/plans`：当前渠道可见的已发布套餐；
@@ -123,7 +124,7 @@
 - `GET /v1/me/subscriptions`
 - `POST /v1/me/subscriptions/{id}/cancel`
 - `GET /v1/me/api-keys`：列表回带 `allowlist` 与 `rpm_limit`；完整 Key 仅创建者可见。
-- `POST /v1/me/api-keys`：接受 `name`、`allowlist`、`rpm_limit`、`concurrency_limit`。空白名单不限制模型；非空时聊天或列模型不在名单内返回 `403 model_not_allowed`。RPM 默认 60，并发默认 5；占满并发槽返回 `429 rate_limited`。
+- `POST /v1/me/api-keys`：接受 `name`、`model_mode`、`allowlist`、`budget_limit_minor`、`expires_at`，RPM/并发为高级项。创建持久operation_id复用原操作。`model_mode=all`使用所有可用模型，selected必须有非空白名单；`PATCH /v1/me/api-keys/{id}`编辑限制，同样严格本人所有。USD累计预算原子预留/结算/释放/冲正，轮换不重置；有限额Key只支持有可靠费用上界的模型/参数，不支持返回key_budget_unbounded。模型与品牌授权、有效期和账户余额独立生效。
 - `POST /v1/me/api-keys/{id}/rotate`
 - `POST /v1/me/api-keys/{id}/disable`
 - `POST /v1/me/api-keys/{id}/copy`：复制完整 Key，只写审计不改密文
@@ -132,9 +133,9 @@
 
 ## 6. 充值与支付
 
-- `POST /v1/topups`：创建充值订单；
+- `POST /v1/topups`：旧创建入口410；新充值使用持久原操作的Payment订单；
 - `GET /v1/topups/{id}`：查询订单；
-- `POST /v1/topups/{id}/refund`：按权限申请退款；
+- `POST /v1/topups/{id}/refund`：旧退款入口410；管理topup读取也410，必须通过原支付订单校验收款主体和实际退款；
 - `POST /v1/payments/orders`：创建钱包充值支付单。`channel_org_id` 由登录用户归属写入；可传 `pay_major` 由服务端按插件币种报价。
 - `GET /v1/payments/checkout`：按用户 `channel_org_id` 返回已开通通道。空列表不要写成「支付功能未启用」。
 - `GET /v1/payments/quote`：应付 / 手续费 / 钱包入账 / 发放额度。BPS 只读。
@@ -143,9 +144,9 @@
 - 渠道收款：`GET /channel/payments/overview|adapters|instances|settings|orders`；`POST /channel/payments/instances`；`PATCH /channel/payments/instances/{id}`（改凭证需确认）；`POST .../test`、`POST .../go-live`（确认）。通道卡来自支付插件注册表，新增本地支付只需注册 Adapter。
 - 平台：`GET /admin/channels/{id}/payments` 就绪灯（无密钥）；`POST .../disable` 紧急停用；`GET/PATCH /admin/payment-adapters` 插件总开关。
 - `POST /v1/topups/redeem`：兑换码入账（M3 沙箱码 `THE2E` / `THCREDIT10`）。
-- `POST /admin/topups/{id}/confirm`：财务确认人工充值。
-- `POST /admin/refunds`：按 `request_id` 或 `topup_id` 退款并冲正佣金。
-- `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。管理页 `/admin/usage` 可按 request_id 补真实 Token。
+- `POST /admin/topups/{id}/confirm`：旧入口410；通过原Payment线下订单登记实际收款。
+- `POST /admin/refunds`：仅按原`request_id`消费账单冲正；`topup_id`兼容写410，充值退款必须原Payment订单。
+- `POST /admin/usage/replay`：幂等回放 usage / 完成待对账。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`，并写审计 `billing.usage.replay`。兼容入口只按原请求冻结事实恢复；明确真实用量核对在`/admin/requests/{id}/reconcile`，页面为原请求详情。OEM只读/报待核对，不新增释放预授权或补用量写权。
 - `GET /admin/usage/pending`：待对账工作队列。`status`（默认 `pending_reconciliation`，`voided` / `all`）、`from` / `to`、以及 API Key / 模型 / 渠道筛选。管理页 `/admin/reconciliation`。
 - `GET /v1/me/reconciliation`：用户台 W-meter ③。三桶（`available` / `reserved` / `commission_available`）+ 同一窗口 usage 合计 + 差异表。只问 TokenHub billing（Balance / QueryUsage / ListChargesByRequest / ListLedger）。
 - `POST /v1/me/reconciliation/flag`：把差异行送进 `pending_reconciliation`。匹配行 `409`。缺 `X-Tokenhub-Confirm` 返回 `409 confirm_required`。**禁止估算扣款**。
@@ -163,7 +164,7 @@
 - `GET /admin/media`：管理端媒体任务列表；`?format=csv` 导出且不含 prompt。
 - `GET /v1/public/tls-check?domain=`：Caddy on-demand TLS 询问；仅已登记品牌域名返回 200。
 - `GET /admin/brands`、`POST /admin/brands/{id}/tls/issue`：OEM CNAME 目标与证书状态（`tls_issuer`/`tls_directory`/`tls_expires_at`）；签发需二次确认。空目录或 `.localhost` 只标沙箱 `issued`。配齐 `TOKENHUB_CLOUDFLARE_API_TOKEN` + `ZONE_ID` 后，公网形态域名登记 Cloudflare Custom Hostname（`tls_issuer=cloudflare`，证书未 active 时 `tls_status=pending`）；失败 `502 provider_unavailable`。未登记域名 `GET /v1/public/tls-check` 仍 404。配置 `TOKENHUB_ACME_DIRECTORY` 后本地仍可对公网形态域名走 RFC 8555（Pebble）；**不自建公网 Let's Encrypt**。`GET /.well-known/acme-challenge/{token}` 承接 HTTP-01。管理页 `/admin/settings`「OEM 证书」可读取并签发。
-- `POST /admin/brands`、`GET/PATCH /admin/brands/{id}`、`POST /admin/brands/{id}/assets`：创建/改品牌、上传 Logo 等资源。`GET/PATCH /channel/brand`、`POST /channel/brand/assets`：C 渠道自助换皮；B 渠道 `403 brand_not_customizable`。`GET /v1/public/brand-assets/{id}`：公开读当前资源，无签名、不过期。Logo ≤128KiB，短边 64–1024px；Favicon ≤64KiB 且 32/48 方图；超限 `400 asset_*`。管理页 `/admin/brands`，渠道页 `/channel/brand`。
+- `POST /admin/brands`、`GET/PATCH /admin/brands/{id}`、`POST /admin/brands/{id}/assets`：创建/改品牌、上传 Logo 等资源。`GET/PATCH /channel/brand`、`POST /channel/brand/assets`：OEM自助品牌配置；渠道 `403 brand_not_customizable`。`GET /v1/public/brand-assets/{id}`：公开读当前资源，无签名、不过期。Logo ≤128KiB，短边 64–1024px；Favicon ≤64KiB 且 32/48 方图；超限 `400 asset_*`。管理页 `/admin/brands`，渠道页 `/channel/brand`。
 - `POST /admin/commissions/recalc`：按价格快照重算佣金；管理页 `/admin/commission`「佣金重算」可操作。
 - `POST /admin/price-books`：发布新价格版本，不影响历史账单。
 
@@ -186,7 +187,7 @@
 - 渠道额度：`GET /channel/quota`、`GET /channel/allocations`、`GET /admin/channel-quotas/{channel_id}`、`POST /admin/channel-quotas/grant`（平台向 OEM 发放服务额度；渠道目标拒绝）；旧 `POST /channel/quotas/grant` 停用，不创建 OEM→渠道采购、`GET/PATCH /admin/channel-quotas/{channel_id}/issue-rule`；`quota` 含 `issued_minor`/`consumed_minor`/`allocation_count`/`issue_ratio_bps`；换算比默认 `10000` BPS = 1:1，平台/财务可改（需二次确认），渠道不能改换算比；用户入账从**原所属品牌 OEM 池**发放；OEM 品牌额度不足返回 `402 insufficient_quota`；
 - 渠道运营：`GET /channel/users`、`POST /channel/users/{id}/ban|unban`（B/C 管理本渠道用户，C 也可管理直属 B 用户）、`GET /channel/subchannels/{id}/users`（仅 C 可读直属 B）；`GET/POST /channel/plans` 仅 C 可用，创建本品牌统一套餐，B 不创建套餐或设置终端价格；`PATCH /channel/model-prices` 仅 C 可设置整个品牌共用的模型客户价；`GET /channel/usage`（服务端完整搜索、cursor 明细）；`GET /channel/usage/summary`（同范围全量汇总与独立筛选 facets）；原请求详情再次范围鉴权，不含 prompt、`GET /channel/attribution`、`GET /channel/settlements`、`GET /channel/commissions`；渠道 API Key 列表与禁用见上条；
 - 套餐：`GET/POST /admin/plans` 由 A/C 分别管理本品牌套餐，创建后待发布；B 无权管理。指定渠道时，`GET /admin/plans/eligible-channels` 只返回本品牌直属 B，可多选。公开与登录后的套餐列表按品牌隔离，B 用户仅见上级品牌套餐。`POST /admin/plans/{id}/review` 的 `approve/reject` 执行发布/拒绝，`PATCH /admin/plans/{id}` 下架已发布套餐。创建、发布、下架、拒绝原子写入含操作人和时间的审计。A/C 各自在本品牌后台发布、下架或拒绝套餐，平台不代 OEM 审核；管理页可按渠道、套餐名和购买方式筛选，显示额度和状态操作；一次性额度长期有效，周期套餐按期发放；`POST /admin/subscriptions/{id}/force-period-end` 与 `POST /admin/subscriptions/process-renewals` 仅供沙箱运维测试，常规续费由 Worker 执行；
-- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；发布需 `X-Tokenhub-Confirm`；body 可带 `upstream_cost` / `wholesale` / `customer_sell` 及可选 `channel_override`；`GET ?format=csv` 含 `effective_at` 与四列单价；管理面改价入口在模型详情与 `/admin/prices`，走盖章确认）；
+- 价格书 API：`GET/POST /admin/price-books`（新版本不改历史账单；发布需 `X-Tokenhub-Confirm`；body 可带 `upstream_cost` / `wholesale` / `customer_sell` 及历史兼容 `channel_override`（不参与新渠道定价）；`GET ?format=csv` 含 `effective_at` 与四列单价；管理面改价入口在模型详情与 `/admin/prices`，走对象、金额、后果明确的二次确认）；
 - 权益：`POST /admin/entitlements/bonus`（手工赠送需二次确认）；管理页 `/admin/billing` 可退消费账单、确认/退充值和赠送额度；
 - 支付：`GET /admin/payments`、`POST /admin/payments/{id}/confirm`、`POST /admin/payments/{id}/refund`；
 - 财务：充值、退款、额度调整、佣金结算和对账；
@@ -200,7 +201,7 @@
 
 - `GET /admin/billing/users?q=`：仅平台管理员、财务和运营可搜索收款用户；至少 2 个字符，最多返回 20 人。返回 `id/email/display_name/channel_code/status`，不开放用户管理或登录资料。
 - `POST /admin/entitlements/bonus`：除二次确认外，必须传 `Idempotency-Key`（最多 128 字节）。同一操作重试须复用原编号与参数；并发重试只创建一个权益账户和一笔权益流水，改变参数返回 409。收款用户必须存在且处于启用状态。
-- 手工赠送记录在限时权益账户，与钱包余额分开。用户在套餐页查看剩余额度、原始发放额和到期时间。
+- 手工赠送记录在限时权益账户，与钱包余额分开。用户在钱包权益页查看剩余额度、原始发放额和到期时间。
 
 ### 财务订单操作验收补充
 

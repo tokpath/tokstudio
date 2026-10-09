@@ -6,12 +6,12 @@ describe("i18n", () => {
     expect(resolveLocale("nope")).toBe("zh");
     expect(messagesFor("en").admin.overview).toBe("Overview");
     expect(messagesFor("ja").admin.overview).toBe("概要");
-    expect(translate("zh", "admin.title")).toContain("平台管理");
-    expect(messagesFor("zh").admin.plans).toBe("套餐审核");
+    expect(translate("zh", "admin.title")).toBe("平台工作台");
+    expect(messagesFor("zh").admin.plans).toBe("套餐");
     expect(messagesFor("zh").admin.prices).toBe("价格");
     expect(messagesFor("zh").charts.trend).toBe("按日用量");
     expect(messagesFor("en").charts.empty).toContain("No usage");
-    expect(messagesFor("en").admin.commission).toBe("Commission");
+    expect(messagesFor("en").admin.commission).toBe("Commissions and settlements");
   });
 
   it("parses Accept-Language by quality and prefix", () => {

@@ -35,6 +35,7 @@ describe("tenant list helpers", () => {
     expect(adminNavActive("/admin/channels", "/admin")).toBe(false);
     expect(adminNavActive("/admin/channels/chn_oem_c", "/admin/channels")).toBe(true);
     expect(adminNavActive("/admin/partners/acr_b_kol1", "/admin/channels")).toBe(true);
+    expect(adminNavActive("/admin/oem-deliveries/oem-1", "/admin/channels")).toBe(true);
     expect(adminNavActive("/admin/providers", "/admin/channels")).toBe(false);
     expect(adminNavActive("/admin/providers/echo-primary", "/admin/providers")).toBe(true);
   });

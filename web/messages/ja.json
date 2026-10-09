@@ -258,12 +258,12 @@
     "groupDistribution": "流通",
     "groupOps": "運用",
     "heroPending": "未照合",
-    "heroPendingHint": "pending_reconciliation",
+    "heroPendingHint": "確認待ちのリクエストと確保中の額",
     "heroProfit": "顧客利用額とサービス費用の差額",
     "heroProfitHint": "全ブランドの顧客利用額 − サービス費用 − 報酬。プラットフォームの入金収入ではありません",
     "heroCommission": "手数料負債",
     "heroCommissionHint": "未精算の流通",
-    "heroHealth": "Provider 健全性",
+    "heroHealth": "サービス状態",
     "heroHealthOk": "開いているサーキットなし",
     "heroHealthBad": "遮断または低成功率",
     "staff": "従業員と権限",
@@ -275,7 +275,8 @@
     "groupTeam": "ブランドとチーム",
     "brand": "ブランド設定",
     "delivery": "引継ぎと営業",
-    "heroHealthUnknown": "健全性の確認結果がありません"
+    "heroHealthUnknown": "健全性の確認結果がありません",
+    "oemChannels": "チャネル"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -900,7 +901,7 @@
     "channelBrand": {
       "eyebrow": "BRAND",
       "title": "チャネルブランド",
-      "description": "C チャネルはサイト名、章の色、Logo を変更できます。ファイルサイズと画素は上限があります。"
+      "description": "ブランド名、色、ロゴを設定します。"
     },
     "channelPlans": {
       "eyebrow": "PLANS",
@@ -2136,7 +2137,7 @@
     "pnlSupplier": "仕入",
     "pnlResult": "損益",
     "supplierTitle": "仕入を記帳",
-    "supplierLead": "C と A 配下の B はプラットフォーム払い。C 配下の B はその C 払い。チャネル ID は送りません。",
+    "supplierLead": "このブランドからプラットフォームへの実際の支払いを記録します。チャネルには仕入れや支払いの操作はありません。",
     "usdLabel": "金額 USD",
     "sourceLabel": "ソース種別",
     "sourcePlatform": "プラットフォーム / 上位 C へ支払",
@@ -2172,7 +2173,7 @@
     "wholesaleDone": "{id} へ振替済み。残 {left}",
     "createBTitle": "配下 B を作成",
     "createBLead": "C は B のみ作成できます。新しい B は独自プールを持ちます。",
-    "bCodeLabel": "B チャネル code",
+    "bCodeLabel": "チャネル名",
     "confirmCreateB": "配下 B を作成しますか",
     "confirmCreateBD": "プラットフォームのモデル許可を複製します。テナントは Provider を追加できません。",
     "createB": "B を作成",
@@ -2849,7 +2850,17 @@
     "receivedEvent": "通知を受信",
     "appliedEvent": "内部処理完了",
     "applicationPending": "内部処理の復旧待ち",
-    "paymentReviewHint": "決済通知の金額または通貨が元の注文と一致しません。この通知による残高付与は行っていません。元の注文と決済記録を確認してください。"
+    "paymentReviewHint": "決済通知の金額または通貨が元の注文と一致しません。この通知による残高付与は行っていません。元の注文と決済記録を確認してください。",
+    "reclaimed": "元の付与額を回収済み",
+    "refundRecordedBy": "返金記録者",
+    "refundDone": "注文 {id} の返金と元の付与額の回収が完了しました。",
+    "refundRequested": "注文 {id} の返金を申請しました。元の返金結果を確認してください。",
+    "recordIDs": "記録番号を確認",
+    "copyID": "番号をコピー",
+    "copiedID": "番号をコピーしました。",
+    "copyIDFallback": "コピーできませんでした。番号を選択してください：{id}",
+    "lanesTitle": "支払方法",
+    "rulesTitle": "決済ルール"
   },
   "walletOperation": {
     "resume": "進行中のチャージがあります。元の操作を再開するか結果を確認してください。",
@@ -3469,7 +3480,8 @@
     "customerCall": "このブランドの一般顧客アカウントで Key を作成し、呼び出しを成功させてください。従業員の引き継ぎログインと顧客の利用は別々に確認します。",
     "customerEntryLink": "顧客登録リンクをコピー",
     "customerEntryMissing": "顧客登録リンクが利用できません。先に紹介入口を確認してください。",
-    "organization": "組織名"
+    "organization": "組織名",
+    "deliveryHint": "このブランドの引き渡しチェックと未完了項目を確認します。"
   },
   "billingOverview": {
     "taskHint": "利用料金の取消は元のアカウントのポイントを戻します。実際の入金・返金は元の決済注文で処理してください。",

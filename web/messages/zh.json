@@ -258,12 +258,12 @@
     "groupDistribution": "分销",
     "groupOps": "运营",
     "heroPending": "待对账",
-    "heroPendingHint": "pending_reconciliation",
+    "heroPendingHint": "待核对的请求与额度占用",
     "heroProfit": "终端消费与成本差额",
     "heroProfitHint": "全平台各品牌终端消费 − 服务成本 − 佣金；不代表平台收款收入",
     "heroCommission": "佣金负债",
     "heroCommissionHint": "尚未结算的分销",
-    "heroHealth": "Provider 健康",
+    "heroHealth": "服务健康",
     "heroHealthOk": "无未关闭熔断",
     "heroHealthBad": "有熔断或低成功率",
     "staff": "员工与权限",
@@ -275,7 +275,8 @@
     "groupTeam": "品牌与团队",
     "brand": "品牌配置",
     "delivery": "交付与营业",
-    "heroHealthUnknown": "尚未取得健康检查结果"
+    "heroHealthUnknown": "尚未取得健康检查结果",
+    "oemChannels": "渠道"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -900,7 +901,7 @@
     "channelBrand": {
       "eyebrow": "BRAND",
       "title": "本渠道品牌",
-      "description": "C 渠道可改站点名、章颜色，并上传 Logo。文件体积和像素有硬上限，不合格会直接拒绝。"
+      "description": "设置本品牌的名称、颜色与 Logo。"
     },
     "channelPlans": {
       "eyebrow": "PLANS",
@@ -2136,7 +2137,7 @@
     "pnlSupplier": "供应商支出",
     "pnlResult": "盈亏",
     "supplierTitle": "记一笔进货",
-    "supplierLead": "C 和挂 A 的 B 记付给平台；C 下的 B 记付给该 C。不要填渠道 ID。",
+    "supplierLead": "登记本品牌实际付给平台的款项。渠道没有采购或付款步骤。",
     "usdLabel": "金额 USD",
     "sourceLabel": "来源类型",
     "sourcePlatform": "付给平台 / 上级 C",
@@ -2172,7 +2173,7 @@
     "wholesaleDone": "已划给 {id}，本池剩余 {left}",
     "createBTitle": "新建下属 B",
     "createBLead": "C 只能建 B，不能再建 C。新建后该 B 自有积分池。",
-    "bCodeLabel": "B 渠道 code",
+    "bCodeLabel": "渠道名称",
     "confirmCreateB": "确认创建下属 B",
     "confirmCreateBD": "创建后只授权平台已启用模型，不能自建提供商。",
     "createB": "创建 B",
@@ -2849,7 +2850,17 @@
     "receivedEvent": "已收到回调",
     "appliedEvent": "本地处理完成",
     "applicationPending": "本地处理待恢复",
-    "paymentReviewHint": "支付回报金额或币种与原订单不符，未据此发放额度。请先核对原订单与支付机构记录。"
+    "paymentReviewHint": "支付回报金额或币种与原订单不符，未据此发放额度。请先核对原订单与支付机构记录。",
+    "reclaimed": "已收回原额度",
+    "refundRecordedBy": "退款登记人",
+    "refundDone": "订单 {id} 已退款，原额度已收回。",
+    "refundRequested": "订单 {id} 已请求退款，请核对原退款的实际结果。",
+    "recordIDs": "查看记录编号",
+    "copyID": "复制编号",
+    "copiedID": "编号已复制。",
+    "copyIDFallback": "未能复制，请手动选择编号：{id}",
+    "lanesTitle": "支付方式",
+    "rulesTitle": "收银台规则"
   },
   "walletOperation": {
     "resume": "已有一笔充值操作，请先继续原操作或确认结果。",
@@ -3469,7 +3480,8 @@
     "customerCall": "请使用本品牌普通客户账号创建 Key 并完成一次成功调用。管理员接手登录与客户调用分别核验。",
     "customerEntryLink": "复制客户注册链接",
     "customerEntryMissing": "本品牌客户注册链接暂不可用，请先检查推广入口。",
-    "organization": "组织名称"
+    "organization": "组织名称",
+    "deliveryHint": "查看本品牌交付检查与待处理项。"
   },
   "billingOverview": {
     "taskHint": "消费冲正退回原账户积分。实际收款和退款请到支付订单处理。",

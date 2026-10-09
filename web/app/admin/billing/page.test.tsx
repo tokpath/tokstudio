@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
 import AdminBillingPage from "./page";
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: { report: { revenue_minor: 2500000, pending_reconciliation_count: 2 } }, refetch: vi.fn() }) }));
+vi.mock("next/navigation",()=>({useSearchParams:()=>new URLSearchParams()}));
 vi.mock("./supplier-panel", () => ({ AdminSupplierPanel: () => null }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.unstubAllGlobals(); });
 vi.mock("@/components/rbac/viewer-context", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/components/rbac/viewer-context")>()), useViewer: () => ({ signedIn: true, loading: false, roles: ["platform_admin"], userId: "test-authorized-viewer", channelType: "C" }) }));

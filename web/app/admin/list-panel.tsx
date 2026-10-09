@@ -171,7 +171,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         {cursor ? <Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => { const next = previous.at(-1) || ""; setPrevious(items => items.slice(0, -1)); setCursor(next); updateLocation(search, next); }}>{tc(previous.length ? "previousPage" : "firstPage")}</Button> : null}
-        <span>{query.isFetching ? tc("listLoading") : tc("pageCount", { count: data.length })}</span>
+        <span>{query.isFetching ? tc("listLoading") : query.isError || !query.data ? "—" : tc("pageCount", { count: data.length })}</span>
         {query.data?.next_cursor ? <Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => { const next = query.data?.next_cursor || ""; setPrevious(items => [...items, cursor]); setCursor(next); updateLocation(search, next); }}>{tc("nextPage")}</Button> : null}
       </div>
     </section>

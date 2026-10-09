@@ -30,7 +30,7 @@ import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ConsoleOverflowMenu } from "@/components/layout/console-overflow-menu";
-import { UserShellBell, UserShellRightZone } from "@/components/layout/user-shell-menu";
+import { UserShellRightZone } from "@/components/layout/user-shell-menu";
 import { iconForHref } from "@/lib/page-icons";
 import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, filterChannelGroups, shouldBypassRbac, canViewUserHref } from "@/lib/rbac";
 import { rememberConsoleWorkspace } from "@/lib/console-home";
@@ -62,7 +62,7 @@ function GroupedNav({
       {groups.map((group) => (
         <div key={group.titleKey} className={collapsible ? "mb-2" : "mb-3"}>
           {collapsible ? <button type="button" aria-expanded={expanded === group.titleKey} className={`flex min-h-11 w-full items-center justify-between rounded-control px-3 text-left text-sm font-medium text-ink ${navLinkFocus}`} onClick={() => setExpanded(current => current === group.titleKey ? undefined : group.titleKey)}>{t(group.titleKey)}<ChevronDown aria-hidden className={`size-4 transition-transform ${expanded === group.titleKey ? "rotate-180" : ""}`} /></button> : group.titleKey === "tools" ? <p className="th-eyebrow mb-2 px-3 text-ink-mute">{t(group.titleKey)}</p> : null}
-          <ul hidden={collapsible && expanded !== group.titleKey} className="flex flex-col gap-0.5">
+          <ul hidden={collapsible && expanded !== group.titleKey} className={collapsible && expanded !== group.titleKey ? "hidden" : "flex flex-col gap-0.5"}>
             {group.items.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = iconForHref(item.href);
@@ -163,7 +163,7 @@ export function ConsoleShell({
       return item ? tp(item.key) : title;
     }
     if (isAdmin) {
-      const item = navItemForPath(pathname, adminNav.flatMap((group) => group.items));
+      const item = adminNav.flatMap((group) => group.items).find(item => adminNavActive(pathname, item.href) && item.href !== "/admin") || navItemForPath(pathname, adminNav.flatMap((group) => group.items));
       return item ? ta(item.key) : title;
     }
     return title;
@@ -185,7 +185,7 @@ export function ConsoleShell({
             <Menu />
             <span className="sr-only">{tc("openNav")}</span>
           </Button>
-          <Link href={portalHref} className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
+          <Link href={portalHref} aria-label={brand?.name || title} className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
             <BrandLogo brand={brand} />
             <span className="hidden text-lg font-semibold tracking-tight md:inline">{brand?.name || title}</span>
           </Link>
@@ -197,7 +197,6 @@ export function ConsoleShell({
           </p>
           <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
             <div className="hidden items-center gap-1 md:flex" data-testid="console-chrome-inline">
-              {isUser ? <UserShellBell /> : null}
               <LocaleSwitch />
               <ThemeToggle />
               <Button variant="ghost" size="sm" onClick={onCommand}>
@@ -210,7 +209,7 @@ export function ConsoleShell({
                 </Button>
               ) : null}
             </div>
-            <ConsoleOverflowMenu onCommand={onCommand} showBell={isUser} />
+            <ConsoleOverflowMenu onCommand={onCommand} />
             {isUser ? <UserShellRightZone /> : null}
             {!isUser ? <UserShellRightZone variant="admin" /> : null}
           </div>

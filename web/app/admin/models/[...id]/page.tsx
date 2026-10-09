@@ -202,7 +202,7 @@ export default function AdminModelEditPage() {
 
       {(isNew || model) ? <>
         <IfCan action="prices.write">
-          <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+          <section id="prices" className="scroll-mt-20 rounded-card border border-hairline bg-canvas-raised p-6">
             <h3 className="text-base font-semibold">售价</h3>
             <p className="mt-1 text-sm text-ink-secondary">{isNew ? "首次售价随模型一起保存，之后可单独改价。" : "改价只影响之后的请求。"}</p>
             <Form {...priceForm}>

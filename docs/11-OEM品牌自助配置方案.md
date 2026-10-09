@@ -45,7 +45,7 @@
 
 `user.display_name` 是用户自己的昵称（Alice），**不是**站点品牌名。改昵称已经有 `PATCH /v1/me`，和换皮无关。
 
-所以「每个租户自定义品牌」= **每个 C 渠道有一条 `identity_brands`，按访问域名生效**。不是给每个钱包、每个 API Key 做皮肤。
+所以「每个租户自定义品牌」= **每个 OEM有一条 `identity_brands`，按访问域名生效**。不是给每个钱包、每个 API Key 做皮肤。
 
 ---
 
@@ -79,7 +79,7 @@
 
 - OEM 可以配：站点名、Logo、Favicon、默认浅/深/跟随系统、**一枚章的颜色**。
 - OEM **不能**改：纸/碳背景、圆角、字号、渐变、成功/冻结/危险/降级色。
-- B 渠道继承直属上级 A/C 的品牌，不写自己的 `theme_json`。
+- 渠道继承直属上级 A/C 的品牌，不写自己的 `theme_json`。
 - 浅色/深色/跟随系统三档必须保留，OEM 只能建议默认档，不能关掉其中一档。
 - 换主色必须过对比度：正文/链字/章上白字不达标则拒绝发布。
 - 页面上 Logo 固定高 **24px**（字标旁），标记 20–24px，Favicon 同标记。上传源图必须更大，供视网膜屏，但**展示尺寸不随源图变大**。
@@ -90,7 +90,7 @@
 
 ### 4.1 做：把 OEM 换皮补成可运营能力（含上传）
 
-目标：平台管理员能创建品牌并绑到 C 渠道；该渠道的 `channel_admin` 能改自己的名、配色，并**上传** Logo / Favicon（以及下方白名单里的其它品牌资源）；用户打开 OEM 域名立刻看到新皮。
+目标：平台管理员能创建品牌并绑到 OEM；该渠道的 `channel_admin` 能改自己的名、配色，并**上传** Logo / Favicon（以及下方白名单里的其它品牌资源）；用户打开 OEM 域名立刻看到新皮。
 
 品牌记录仍用 `identity_brands` + `channel_org.brand_id`。品牌资源**另建一张表**，不塞进媒体任务表。
 
@@ -252,7 +252,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 
 ## 6. API（建议补这些，不动现有读接口语义）
 
-权限原则：前端藏按钮不是安全边界。渠道管理员只能改**自己渠道的 `brand_id`**。平台管理员可以创建品牌、改任何品牌、把品牌绑到 C 渠道。
+权限原则：前端藏按钮不是安全边界。OEM管理员只能编辑当前所属品牌，不能修改组织品牌归属或他人品牌。平台管理员可以创建品牌、改任何品牌、把品牌绑到 OEM。
 
 | 方法 | 路径 | 谁 | 作用 |
 | --- | --- | --- | --- |
@@ -263,7 +263,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 | `PATCH` | `/admin/brands/{id}` | `platform_admin` | **新增。** 改名/域名/theme。改域名需二次确认 |
 | `POST` | `/admin/brands/{id}/assets` | `platform_admin` | **新增。** multipart 上传；字段 `kind` + `file` |
 | `GET` | `/channel/brand` | `channel_admin` | **新增。** 读本渠道品牌 + 当前资源 |
-| `PATCH` | `/channel/brand` | `channel_admin` 且 type=C | **新增。** 改 name / theme_json。B 渠道 `403 brand_not_customizable` |
+| `PATCH` | `/channel/brand` | `channel_admin` 且 type=C | **新增。** 改 name / theme_json。渠道 `403 brand_not_customizable` |
 | `POST` | `/channel/brand/assets` | `channel_admin` 且 type=C | **新增。** 与管理端同一套体积/像素门禁 |
 | `POST` | `/admin/brands/{id}/tls/issue` | 已有 | 不变 |
 
@@ -297,10 +297,10 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 | 400 | `asset_too_large` | 超过该 kind 的 KiB 上限或表单 600 KiB |
 | 400 | `asset_dimension` | 像素或宽高比不在表内 |
 | 400 | `asset_svg` | SVG 含脚本/外链/无 viewBox |
-| 403 | `brand_not_customizable` | B 渠道或改别人的品牌 |
+| 403 | `brand_not_customizable` | 渠道或改别人的品牌 |
 | 429 | `rate_limited` | 每品牌每小时超过 20 次 |
 
-`POST /admin/channels` 已能带 `brand_id`。创建 C 渠道时：若没带品牌，平台应先 `POST /admin/brands`，再把新 `brand_id` 写进渠道。不要静默复用官方品牌，否则 OEM 用户会看到 TokenHub。
+`POST /admin/channels` 已能带 `brand_id`。创建 OEM时：若没带品牌，平台应先 `POST /admin/brands`，再把新 `brand_id` 写进渠道。不要静默复用官方品牌，否则 OEM 用户会看到 TokenHub。
 
 写操作一律：
 
@@ -321,7 +321,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 4. **上传控件。** 渠道台 `/channel/brand` 与管理台品牌页：每个 kind 一块「选择文件 / 看预览 / 看当前体积与像素」。控件旁写死数字，例如「Logo：PNG/WebP/SVG，≤128KiB，短边 64–1024px，宽高比 1:1～4:1，页上高 24px」。选文件后**先在浏览器做一遍同样的检查**，不通过不发请求；服务端再查一次。
 5. **不做裁切器、不做在线压缩。** 不合格就告诉差多少（「现在 800×200，宽高比 4.0 已到上限；请改成不超过 4:1」）。
 6. **平台管理**还可创建品牌、改域名、看对比度失败原因。
-7. **B 渠道**品牌页只读：「使用上级品牌」。
+7. **渠道**品牌页只读：「使用上级品牌」。
 8. **种子 theme 迁移。** 官方改为 DESIGN 默认钴蓝；Aurora OEM 改为对比度合格的琥珀金，去掉 `background`。
 
 `next-themes` 继续管纸/碳。OEM 的 `default_theme` 只在用户**从未选过**时生效，不能覆盖用户已保存在 `tokenhub-theme` 里的选择。
@@ -332,7 +332,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 
 `publicModels` / `docsContext` 现在用 `if brand.ID == brd_oem` 决定渠道。第三条 OEM 会错。
 
-改为：`channel_org` 按 `brand_id` 查找（一个品牌只绑一个 C 渠道）。公开模型、文档示例、注册落地页都走这条查找，禁止再写死种子 ID。
+改为：`channel_org` 按 `brand_id` 查找（一个品牌只绑一个 OEM）。公开模型、文档示例、注册落地页都走这条查找，禁止再写死种子 ID。
 
 ---
 
@@ -342,7 +342,7 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 
 - 创建第二条 OEM（不是种子 `brd_oem`），Host 命中后 `GET /v1/public/brand` 返回新 name/logo/theme。
 - 该 Host 的 `/v1/public/models` 与 `/v1/public/docs-context` 绑到新渠道，不泄漏官方模型策略。
-- C 渠道管理员可 PATCH 自己的品牌并上传 `logo`；B 渠道 403；其它渠道的管理员改不到这条品牌。
+- OEM管理员可 PATCH 自己的品牌并上传 `logo`；渠道 403；其它渠道的管理员改不到这条品牌。
 - `theme_json` 含 `paper` / `success` / 非法 hex → 400。
 - 白字叠在浅黄主色上对比度不够 → 400。
 - **体积：** 129 KiB 的文件当 `logo` → `400 asset_too_large`；65 KiB 当 `favicon` → 同样拒绝。
@@ -383,9 +383,9 @@ OEM 换色不是「随便填一个好看的」。章是实心按钮，链字是�
 
 | 编号 | 选项 | 建议 |
 | --- | --- | --- |
-| **A** | C 渠道可改名 / **上传** Logo 等白名单资源 / 章颜色；尺寸按 §5.4 硬门禁；B 不换皮；终端用户不换皮 | **推荐（已含上传）** |
+| **A** | OEM可改名 / **上传** Logo 等白名单资源 / 章颜色；尺寸按 §5.4 硬门禁；B 不换皮；终端用户不换皮 | **推荐（已含上传）** |
 | **B** | 只要平台管理员能改和上传，渠道自己不能改 | 能上线，但 OEM 每次换 Logo 都要工单 |
-| **C** | 还要给 B 渠道独立品牌 | 渠道没有独立资金池与支付商户，终端价统一继承所属平台/OEM 品牌；见 `docs/15` |
+| **C** | 还要给 渠道独立品牌 | 渠道没有独立资金池与支付商户，终端价统一继承所属平台/OEM 品牌；见 `docs/15` |
 | **D** | 还要每个终端用户/工作区换皮 | 不建议 |
 | **E** | 改 §5.4 的数字（例如 Logo 改成 ≤128KiB，或允许 1024px） | 可以，请直接给出新数字 |
 | **F** | 暂缓 | 不能支撑真实 OEM 签约 |

@@ -48,7 +48,7 @@ func (a *App) paymentOrderDetail(c *gin.Context) {
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	users, err := a.Identity.BillingRecipientsByID(c.Request.Context(), []string{item.Order.UserID})
+	users, err := a.Identity.BillingRecipientsByID(c.Request.Context(), []string{item.Order.UserID, item.Order.RecordedBy, item.Order.RefundRecordedBy})
 	if err != nil {
 		httpx.Abort(c, 500, "internal_error", "读取订单客户失败，请重试", true)
 		return
@@ -58,7 +58,12 @@ func (a *App) paymentOrderDetail(c *gin.Context) {
 		httpx.Abort(c, 500, "internal_error", "读取原归属失败，请重试", true)
 		return
 	}
-	httpx.OK(c, gin.H{"item": item, "customer": users[item.Order.UserID], "channel_codes": channels})
+	channelNames, err := a.Identity.BillingBrandNames(c.Request.Context(), []string{item.Order.PayeeChannelOrgID})
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取原收款品牌失败，请重试", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item, "customer": users[item.Order.UserID], "channel_codes": channels, "channel_names": channelNames, "recorded_by": users[item.Order.RecordedBy], "refund_recorded_by": users[item.Order.RefundRecordedBy]})
 }
 func (a *App) paymentRefundPreview(c *gin.Context) {
 	owner, ok := a.requireChannelOrg(c)

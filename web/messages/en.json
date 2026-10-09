@@ -258,12 +258,12 @@
     "groupDistribution": "Distribution",
     "groupOps": "Operations",
     "heroPending": "Pending recon",
-    "heroPendingHint": "pending_reconciliation",
+    "heroPendingHint": "Requests and reserved credit awaiting review",
     "heroProfit": "Retail usage less service costs",
     "heroProfitHint": "All brands: retail usage less service costs and commissions; not platform cash revenue",
     "heroCommission": "Commission liability",
     "heroCommissionHint": "Unsettled distribution",
-    "heroHealth": "Provider health",
+    "heroHealth": "Service health",
     "heroHealthOk": "No open circuit breakers",
     "heroHealthBad": "Open breaker or low success rate",
     "staff": "Staff & permissions",
@@ -275,7 +275,8 @@
     "groupTeam": "Brand and team",
     "brand": "Brand",
     "delivery": "Delivery and operations",
-    "heroHealthUnknown": "Health check unavailable"
+    "heroHealthUnknown": "Health check unavailable",
+    "oemChannels": "Channels"
   },
   "login": {
     "eyebrow": "Sign in",
@@ -900,7 +901,7 @@
     "channelBrand": {
       "eyebrow": "BRAND",
       "title": "Channel brand",
-      "description": "Type C can change the site name, stamp color, and upload a logo. File size and pixels are hard limits."
+      "description": "Set this brand’s name, colors and logo."
     },
     "channelPlans": {
       "eyebrow": "PLANS",
@@ -2136,7 +2137,7 @@
     "pnlSupplier": "Supplier spend",
     "pnlResult": "PnL",
     "supplierTitle": "Record a purchase",
-    "supplierLead": "C and B under A book pay-to-platform. B under C books pay-to-that-C. Do not send a channel id.",
+    "supplierLead": "Record this brand’s actual payments to the platform. Channels do not purchase or make payments.",
     "usdLabel": "Amount USD",
     "sourceLabel": "Source type",
     "sourcePlatform": "Paid to platform / parent C",
@@ -2172,7 +2173,7 @@
     "wholesaleDone": "Transferred to {id}. Remaining {left}",
     "createBTitle": "Create a child B",
     "createBLead": "C can only create B, never another C. The new B gets its own credit pool.",
-    "bCodeLabel": "B channel code",
+    "bCodeLabel": "Channel name",
     "confirmCreateB": "Create child B?",
     "confirmCreateBD": "Copies the platform model whitelist. Tenants cannot add providers.",
     "createB": "Create B",
@@ -2849,7 +2850,17 @@
     "receivedEvent": "Callback received",
     "appliedEvent": "Local application complete",
     "applicationPending": "Local application needs recovery",
-    "paymentReviewHint": "The payment amount or currency does not match this order. No credit was granted from that callback. Review the original order and provider record."
+    "paymentReviewHint": "The payment amount or currency does not match this order. No credit was granted from that callback. Review the original order and provider record.",
+    "reclaimed": "Original credit reclaimed",
+    "refundRecordedBy": "Refund recorded by",
+    "refundDone": "Order {id} refunded and original credit reclaimed.",
+    "refundRequested": "Refund requested for order {id}. Check the original refund result.",
+    "recordIDs": "Record IDs",
+    "copyID": "Copy ID",
+    "copiedID": "ID copied.",
+    "copyIDFallback": "Copy failed. Select this ID manually: {id}",
+    "lanesTitle": "Payment methods",
+    "rulesTitle": "Checkout rules"
   },
   "walletOperation": {
     "resume": "A topup is already in progress. Continue the original operation or confirm its result.",
@@ -3469,7 +3480,8 @@
     "customerCall": "Use an ordinary customer account for this brand to create a Key and complete a successful call. Staff acceptance and customer usage are checked separately.",
     "customerEntryLink": "Copy customer registration link",
     "customerEntryMissing": "The customer registration link is unavailable. Check promotion entry points first.",
-    "organization": "Organization"
+    "organization": "Organization",
+    "deliveryHint": "Review delivery checks and remaining tasks for this brand."
   },
   "billingOverview": {
     "taskHint": "Usage reversals restore the original account credits. Manage money received or refunded on the original payment order.",

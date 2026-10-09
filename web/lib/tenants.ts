@@ -50,7 +50,7 @@ export function adminNavActive(pathname: string, href: string): boolean {
     return pathname === "/admin";
   }
   if (href === "/admin/channels") {
-    return pathname === href || pathname.startsWith("/admin/channels/") || pathname.startsWith("/admin/partners/");
+    return pathname === href || pathname.startsWith("/admin/channels/") || pathname.startsWith("/admin/partners/") || pathname.startsWith("/admin/oem-deliveries/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

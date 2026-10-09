@@ -105,3 +105,20 @@ func (s *Service) BillingRecipientsByRole(ctx context.Context, roleIDs []string)
 	}
 	return out, nil
 }
+
+// BillingBrandNames projects names only for the already-authorized original payment owner IDs.
+func (s *Service) BillingBrandNames(ctx context.Context, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		ID   string
+		Name string
+	}
+	err := s.db.WithContext(ctx).Table("identity_channel_orgs AS c").Select("c.id, b.name").Joins("JOIN identity_brands AS b ON b.id = c.brand_id").Where("c.id IN ?", ids).Scan(&rows).Error
+	for _, row := range rows {
+		out[row.ID] = row.Name
+	}
+	return out, err
+}

@@ -2,8 +2,11 @@
 # - 宿主机 80/443 仍由 gashub Caddy（www.tokpath.com）占用
 # - TokenHub 自己的 edge 只在 compose 内网听 80，并加入 gashub 网络
 # - 公网入口是 https://test.tokpath.com，由 gashub Caddy 反代到 tokstudio-edge
+# 长期运行的服务在 Docker / 服务器重启后自动恢复；主动停止后保持停止。
+# minio-init、catalog-seed 是一次性任务，Pebble 只用于本地 TLS 演练。
 services:
   edge:
+    restart: unless-stopped
     container_name: tokstudio-edge
     networks:
       - default
@@ -12,10 +15,38 @@ services:
       - ./deploy/Caddyfile.preview:/etc/caddy/Caddyfile:ro
 
   api:
+    restart: unless-stopped
     environment:
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://test.tokpath.com}
       TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-https://test.tokpath.com/login/oauth/google}
+
+  web:
+    restart: unless-stopped
+
+  worker:
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  minio:
+    restart: unless-stopped
+
+  backup:
+    restart: unless-stopped
+
+  otel-collector:
+    restart: unless-stopped
+
+  prometheus:
+    restart: unless-stopped
+
+  grafana:
+    restart: unless-stopped
 
 networks:
   gashub:

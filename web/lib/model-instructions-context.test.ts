@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {instructionsQuery} from "./model-instructions-context";
+import {instructionsHref, instructionsQuery} from "./model-instructions-context";
 
 describe("model instructions entry context",()=>{
   it("keeps the selected model, Key, tool, language and invitation when choosing a model",()=>{
@@ -8,5 +8,11 @@ describe("model instructions entry context",()=>{
   });
   it.each(["https://evil.example/","//evil.example/","/\\evil.example/","/%2f%2fevil.example/"])("drops an invalid return target %s",return_to=>{
     expect(instructionsQuery({return_to},"model","protocol").has("return_to")).toBe(false);
+  });
+  it.each(["/docs", "/docs/integrations", "/app/docs", "/models/vendor/text"])("provides the actual initial location at %s", pathname=>{
+    const href=instructionsHref(pathname,{key_id:"key-a",tool:"aider",language:"python_sdk",promo:"invite",return_to:"/models?q=text"},"vendor/text","protocol");
+    const location=new URL(href,"https://brand.example");
+    expect(location.pathname).toBe(pathname);
+    expect(Object.fromEntries(location.searchParams)).toEqual({model:"vendor/text",tab:"protocol",key_id:"key-a",tool:"aider",language:"python_sdk",promo:"invite",return_to:"/models?q=text"});
   });
 });

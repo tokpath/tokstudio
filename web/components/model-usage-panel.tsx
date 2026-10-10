@@ -11,7 +11,8 @@ import { fetchKeyPages } from "@/lib/key-resources";
 import { keyVerifyRequest } from "@/lib/key-example";
 import { copyText, readResponseBody, errorMessageFromBody } from "@/lib/submit-result";
 import { useViewer } from "@/components/rbac/viewer-context";
-import { loginHref } from "@/lib/login-next";
+import { loginHref, pagePathWithSearch, safeNextPath } from "@/lib/login-next";
+import { instructionsHref } from "@/lib/model-instructions-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 type Docs = {
@@ -33,16 +34,19 @@ const agentSources = {
     claude: "https://code.claude.com/docs/en/llm-gateway",
     codex: "https://developers.openai.com/codex/config-reference",
 };
-export function ModelUsagePanel({ model, models = [model], keyID = "", initialTab = "protocol" }: {
+export function ModelUsagePanel({ model, models = [model], keyID = "", initialTab = "protocol", initialHref }: {
     model: CatalogModel;
     models?: CatalogModel[];
     keyID?: string;
     initialTab?: Tab;
+    initialHref?: string;
 }) {
     const t = useTranslations("keyUX");
     const tc = useTranslations("common");
     const viewer = useViewer();
     const scope = `${viewer.userId ?? ""}:${typeof window === "undefined" ? "" : window.location.host}`;
+    const initialLocation = new URL(safeNextPath(initialHref) || instructionsHref("/app/docs", {key_id: keyID}, model.id, initialTab), "https://instructions.invalid");
+    const [locationHref, setLocationHref] = useState(() => initialLocation.pathname + initialLocation.search);
     const [tab, setTab] = useState<Tab>(initialTab);
     const [docs, setDocs] = useState<Docs | null>(null);
     const [error, setError] = useState("");
@@ -51,17 +55,21 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     const [keysError, setKeysError] = useState("");
     const [keysRevision, setKeysRevision] = useState(0);
     const [selectedKey, setSelectedKey] = useState(keyID);
-    const [path, setPath] = useState("");
-    const [language, setLanguage] = useState("curl");
-    const [agent, setAgent] = useState<"cline" | "aider">("cline");
+    const [path, setPath] = useState(() => initialLocation.searchParams.get("protocol") || "");
+    const [language, setLanguage] = useState(() => {
+        const value = initialLocation.searchParams.get("language");
+        return ["curl", "python", "node", "python_sdk", "node_sdk"].includes(value ?? "") ? value! : "curl";
+    });
+    const [agent, setAgent] = useState<"cline" | "aider">(() => initialLocation.searchParams.get("tool") === "aider" ? "aider" : "cline");
     useEffect(() => {
+        setLocationHref(pagePathWithSearch(window.location.pathname, window.location.search));
         const params = new URLSearchParams(window.location.search);
         const tab = params.get("tab");
         if (tab === "agent" || tab === "protocol" || tab === "overview") setTab(tab);
         if (params.get("tool") === "aider") setAgent("aider");
         const value = params.get("language");
         if (["curl", "python", "node", "python_sdk", "node_sdk"].includes(value ?? "")) setLanguage(value!);
-    }, []);
+    }, [initialHref]);
     const [notice, setNotice] = useState("");
     const [fallback, setFallback] = useState("");
     const [revision, setRevision] = useState(0);
@@ -73,7 +81,7 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
         const controller = new AbortController();
         setDocs(null);
         setError("");
-        setPath("");
+        setPath(new URLSearchParams(window.location.search).get("protocol") || "");
         const params = new URLSearchParams({ host: window.location.host, model: model.id });
         void fetch(`${apiBase}/v1/public/docs-context?${params}`, { credentials: "include", signal: controller.signal }).then(async (response) => {
             const body = await readResponseBody(response);
@@ -137,11 +145,13 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
         else
             url.searchParams.delete("key_id");
         window.history.replaceState(null, "", url.pathname + url.search);
+        setLocationHref(url.pathname + url.search);
     }
     function choose(name: "tool" | "protocol" | "language", value: string) {
         const url = new URL(window.location.href);
         url.searchParams.set(name, value);
         window.history.replaceState(null, "", url.pathname + url.search);
+        setLocationHref(url.pathname + url.search);
         if (name === "tool") setAgent(value === "aider" ? "aider" : "cline");
         if (name === "protocol") setPath(value);
         if (name === "language") setLanguage(value);
@@ -163,11 +173,12 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     const apiURL = apiRoot ? `${apiRoot}/v1` : "";
     const examples = docs?.examples?.[path] as Record<string, string> | undefined;
     const languages = ["curl", "python_sdk", "node_sdk", "python", "node"].filter(value => !!examples?.[value]);
-    const effectiveLanguage = languages.includes(language) ? language : "curl";
+    const effectiveLanguage = docs === null || languages.includes(language) ? language : "curl";
     const snippet = examples?.[effectiveLanguage] ?? "";
     const sdkExample = effectiveLanguage.endsWith("_sdk");
     const languageLabel = (value: string) => value === "python_sdk" ? "Python · OpenAI SDK" : value === "node_sdk" ? "Node.js · OpenAI SDK" : value === "python" ? t("pythonHTTP") : value === "node" ? t("nodeHTTP") : "curl";
-    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+    const location = new URL(locationHref, "https://instructions.invalid");
+    const params = new URLSearchParams(location.search);
     params.set("model", model.id);
     params.set("tab", tab);
     params.set("tool", agent);
@@ -176,14 +187,14 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     if (selectedKey)
         params.set("key_id", selectedKey);
     else params.delete("key_id");
-    const currentPath = typeof window === "undefined" ? "/app/docs" : window.location.pathname;
+    const currentPath = location.pathname;
     const returnHref = `${currentPath}?${params}`;
     const protocolParams = new URLSearchParams(params);
     protocolParams.set("tab", "protocol");
-    const protocolHref = `${typeof window !== "undefined" ? window.location.pathname : "/app/docs"}?${protocolParams}`;
+    const protocolHref = `${currentPath}?${protocolParams}`;
     const createParams = new URLSearchParams(params);
     createParams.set("create", "1");
-    createParams.set("return_to", typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : returnHref);
+    createParams.set("return_to", locationHref);
     const createTarget = `/app/keys?${createParams}`;
     const createHref = viewer.signedIn ? createTarget : loginHref(createTarget);
     const editHref = `/app/keys?edit=${encodeURIComponent(selectedKey)}&${params}`;
@@ -230,7 +241,7 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
   {models.length > 1 ? <label className="grid gap-1 text-sm">{t("chooseModel")}<select aria-label={t("chooseModel")} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={model.id} onChange={event => {
                 const next = new URLSearchParams(params);
                 next.set("model", event.target.value);
-                window.location.assign(`/app/docs?${next}`);
+                window.location.assign(`${currentPath}?${next}`);
             }}>{models.map(item => <option key={item.id} value={item.id}>{item.display_name} · {item.id}</option>)}</select></label> : null}
   <div role="tablist" aria-label={t("instructions")} className="flex flex-wrap gap-2">{(["overview", "agent", "protocol"] as const).map(value => <Button key={value} role="tab" aria-selected={tab === value} variant={tab === value ? "default" : "outline"} onClick={() => context(value)}>{t(value)}</Button>)}</div>
   <label className="grid gap-1 text-sm">{t("chooseKey")}<select aria-label={t("chooseKey")} disabled={keysState === "loading" || keysState === "error"} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={selectedKey} onChange={event => context(tab, event.target.value)}>

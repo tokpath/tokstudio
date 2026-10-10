@@ -11,3 +11,9 @@ export function instructionsQuery(query: InstructionsQuery, model: string, tab: 
   if (back) params.set("return_to", back);
   return params;
 }
+
+/** Server-provided location keeps the first client render identical to the HTML. */
+export function instructionsHref(pathname: string, query: InstructionsQuery, model: string, tab: string): string {
+  const path = (safeNextPath(pathname) || "/app/docs").split(/[?#]/)[0];
+  return `${path}?${instructionsQuery(query, model, tab)}`;
+}

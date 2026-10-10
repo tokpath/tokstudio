@@ -64,8 +64,8 @@ docker run --rm --network tokpath-ux-20261010 \
   -v /private/tmp/tokpath-guide-sdk:/sdk:ro \
   -v tokpath-ux-gocache-20261010:/root/.cache/go-build -w /src \
   -e TOKENHUB_ENV=test -e GIN_MODE=release -e GOPROXY=off \
-  -e DATABASE_URL='postgres://tokenhub:tokenhub@postgres:5432/tokpath_referral?sslmode=disable' \
-  -e REDIS_URL=redis://redis:6379/4 -e TOKENHUB_DOCS_SDK_DIR=/sdk \
+  -e TOKENHUB_DATABASE_URL='postgres://tokenhub:tokenhub@postgres:5432/tokpath_referral?sslmode=disable' \
+  -e TOKENHUB_REDIS_URL=redis://redis:6379/4 -e TOKENHUB_DOCS_SDK_DIR=/sdk \
   tokpath-ux-go-test:20261010 go test ./internal/app -run '^TestDocs' -count=1
 ```
 
@@ -86,3 +86,11 @@ docker run --rm --network none \
 初次浏览器验收定位包含复制按钮的字段时使用了不匹配的精确文本，后改按真实字段定位；协议选择器也补明确的可访问名称。读取链接属性遗漏 `await` 的测试缺陷已修。没有通过延长超时、删除上下文断言或触发真实调用规避问题。
 
 未验证：真实付费上游、外部 Cline/Aider 实际 Agent 会话、Codex/Claude Code 原生客户端联调。运营主体资料仍由主线处理，不阻塞本批说明交付。
+
+## 首次渲染与返回目标修复
+
+2026-10-10 集成预览发现公开 `/docs` 刷新时，创建 Key 与钱包链接的服务端返回目标是 `/app/docs`，客户端首次渲染却读取浏览器 `/docs`，产生 hydration 属性不一致。说明入口现由服务端传真实路径与模型、Key、工具、协议、语言、邀请码及合法返回查询；组件首次渲染使用同一上下文，浏览器位置只在挂载后读取。公共说明、集成说明、模型详情和 `/app/docs` 均接入，切换工具/标签仍同步链接与 URL。
+
+验证：**36/36 Vitest PASS**，其中四个入口先在 `window` 未定义时 `renderToString`，核对 HTML 的 Key/钱包返回目标，再 `hydrateRoot` 捕获 recoverable error 与属性不一致错误。独立快照生产构建和构建后 `tsc --noEmit` **PASS**。定向 Playwright **4/4 PASS（3.5s）**：复制/恢复原流程，加三个公开入口禁 JavaScript 时的原始 SSR 链接检查，以及启用 JavaScript 后首次打开、刷新时的 hydration/页面错误捕获。模型详情已有 Next loading 边界，禁 JavaScript 时直接读取流式 SSR 隐藏容器中的链接属性，不等待客户端显露内容。
+
+单测补充命令：`npm test -- lib/model-usage.test.tsx lib/model-usage-hydration.test.tsx lib/model-instructions-context.test.ts lib/public-model-instructions.test.tsx`；构建、类型与浏览器沿用上文 runner 命令，临时快照为 `/private/tmp/tokpath-instructions-hydration/web`。本次没有更改网关、Key 预算或品牌财务；全组回归由 root 执行。上文 Go 复现命令同时修正为项目实际读取的 `TOKENHUB_DATABASE_URL` / `TOKENHUB_REDIS_URL`。

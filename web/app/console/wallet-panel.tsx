@@ -310,6 +310,7 @@ export default function WalletPanel() {
         <p className="mb-4 text-sm text-ink-secondary">
           {t("walletMeta", { available: balance?.available ?? "—", reserved: balance?.reserved ?? "—" })}
         </p>
+        {balance && (balance.available_minor ?? 0) < 0 && <p role="status" className="mb-4 text-sm text-warning">{w("negativeBalance")}</p>}
         <dl className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label={t("walletBuckets")}>
           {[["giftBalance", balance?.gift_minor], ["purchasedBalance", balance?.purchased_minor]].map(([label, value]) => (
             <div key={String(label)} className="rounded-control border border-hairline p-3">

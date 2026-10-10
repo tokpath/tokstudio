@@ -184,7 +184,6 @@ func (apiKeyCreationRow) TableName() string { return "identity_api_key_creations
 
 var ErrInvalidKeyLimits = errors.New("invalid key limits")
 var ErrKeyBudgetExceeded = errors.New("api key budget exceeded")
-var ErrKeyBudgetUnbounded = errors.New("cannot safely reserve api key budget")
 var ErrKeyExpired = errors.New("api key expired")
 var ErrKeyNotUsable = errors.New("api key disabled or expired")
 var ErrKeyModelNotAllowed = errors.New("api key model not allowed")
@@ -308,9 +307,8 @@ func (s *Service) UpdateAPIKeyLimits(ctx context.Context, user Principal, keyID 
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", keyID, user.UserID).First(&row).Error; err != nil {
 			return err
 		}
-		if in.BudgetLimitMinor != nil && *in.BudgetLimitMinor < row.BudgetUsedMinor+row.BudgetReservedMinor {
-			return ErrKeyBudgetExceeded
-		}
+		// A limit controls future admission. Lowering it never rewrites actual
+		// usage or prevents an already admitted request from settling.
 		if err := replaceKeyPolicies(tx, row.ID, in.Allowlist); err != nil {
 			return err
 		}
@@ -344,7 +342,7 @@ func (s *Service) EnableAPIKey(ctx context.Context, user Principal, keyID string
 
 // ReserveAPIKeyBudgetTx rechecks mutable policy while holding the same row lock
 // used by edits. The caller's transaction also contains wallet authorization.
-func ReserveAPIKeyBudgetTx(tx *gorm.DB, keyID, userID, modelID string, amount int64, bounded bool) error {
+func ReserveAPIKeyBudgetTx(tx *gorm.DB, keyID, userID, modelID string, amount int64) error {
 	if keyID == "" {
 		return nil
 	}
@@ -365,9 +363,6 @@ func ReserveAPIKeyBudgetTx(tx *gorm.DB, keyID, userID, modelID string, amount in
 		}
 	}
 	if row.BudgetLimitMinor != nil {
-		if !bounded {
-			return ErrKeyBudgetUnbounded
-		}
 		if amount > *row.BudgetLimitMinor-row.BudgetUsedMinor-row.BudgetReservedMinor {
 			return ErrKeyBudgetExceeded
 		}

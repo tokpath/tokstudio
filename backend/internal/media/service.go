@@ -52,6 +52,8 @@ type jobRow struct {
 	RequestID         string     `gorm:"column:request_id"`
 	PublicModelID     string     `gorm:"column:public_model_id"`
 	ProviderID        *string    `gorm:"column:provider_id"`
+	SupplierCosts     []byte     `gorm:"column:supplier_costs_json"`
+	UpstreamModelID   string     `gorm:"column:upstream_model_id"`
 	UpstreamJobID     *string    `gorm:"column:upstream_job_id"`
 	JobKind           string     `gorm:"column:job_kind"`
 	Status            string     `gorm:"column:status"`
@@ -297,6 +299,9 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 	if err != nil {
 		return nil, err
 	}
+	if !catalog.BudgetableMediaPrices(snapshot.Raw) {
+		return nil, billing.ErrPriceEstimateUnavailable
+	}
 	images := 0
 	if in.Kind == KindImage {
 		images = 1
@@ -309,10 +314,13 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 		seconds = in.Duration
 	}
 	reserve := billing.EstimateMediaReserveMinor(quote, seconds, images, in.Resolution, in.Audio)
+	// Some configured media prices also charge prompt/output tokens. Include
+	// those known dimensions in admission; never turn this estimate into usage.
+	reserve += quote.Charge(map[string]int{"prompt_tokens": (len(in.Prompt)+2)/3 + 1024*len(in.Images), "completion_tokens": 256, "reasoning_tokens": 256}, "")
 	reservation, err := s.billing.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
-		UnitPrices: snapshot.Raw, ReserveMinor: reserve, BudgetBounded: catalog.BudgetableMediaPrices(snapshot.Raw) && quote.InputSell == 0 && quote.OutputSell == 0 && quote.ReasoningSell == 0 && (in.Kind == KindImage || in.TaskType == TaskT2V || in.TaskType == TaskI2V || in.TaskType == TaskFirstFrame || in.TaskType == TaskFirstLastFrame),
+		UnitPrices: snapshot.Raw, ReserveMinor: reserve,
 	})
 	if err != nil {
 		return nil, err
@@ -335,7 +343,7 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 		TaskType: in.TaskType, FirstFrame: in.FirstFrame, LastFrame: in.LastFrame,
 		ReferenceVideo: in.ReferenceVideo, ReferenceAudio: in.ReferenceAudio,
 		SourceJobID: in.SourceJobID, ImagesJSON: imagesJSON,
-		UsageJSON: []byte(`{}`), ExpiresAt: &exp, CreatedAt: now, UpdatedAt: now,
+		UsageJSON: []byte(`{}`), SupplierCosts: []byte(`{}`), ExpiresAt: &exp, CreatedAt: now, UpdatedAt: now,
 	}
 	if in.Kind == KindImage {
 		job.ID = id.New("img")
@@ -384,11 +392,15 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 			last = err
 			if errors.Is(err, ErrOutcomeUnknown) {
 				job.ProviderID = &cand.ProviderID
+				job.SupplierCosts = cand.UnitCosts
+				job.UpstreamModelID = cand.UpstreamModelID
 				return s.pending(context.WithoutCancel(ctx), job, "request_outcome_unknown")
 			}
 			continue
 		}
 		job.ProviderID = &cand.ProviderID
+		job.SupplierCosts = cand.UnitCosts
+		job.UpstreamModelID = cand.UpstreamModelID
 		job.UpstreamJobID = &result.UpstreamID
 		job.Status = StatusInProgress
 		job.Progress = result.Progress
@@ -397,7 +409,7 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 			return nil, err
 		}
 		if result.Status == StatusCompleted {
-			if err := s.finish(ctx, job, result, snapshot); err != nil {
+			if err := s.finish(ctx, job, result); err != nil {
 				return nil, err
 			}
 		}
@@ -543,10 +555,6 @@ func (s *Service) HandleCallback(ctx context.Context, eventID, jobID, sig string
 	if job.Status == StatusCancelled {
 		return nil
 	}
-	snapshot, err := s.catalog.PriceSnapshot(ctx, job.PublicModelID)
-	if err != nil {
-		return err
-	}
 	if usage == nil {
 		usage = map[string]int{}
 	}
@@ -554,7 +562,7 @@ func (s *Service) HandleCallback(ctx context.Context, eventID, jobID, sig string
 	if job.JobKind == KindImage {
 		result.ContentType = "image/png"
 	}
-	return s.finish(ctx, job, result, snapshot)
+	return s.finish(ctx, job, result)
 }
 
 func (s *Service) Object(key, sig string, exp int64) ([]byte, error) {
@@ -641,20 +649,7 @@ func (s *Service) refreshJob(ctx context.Context, job jobRow) error {
 		return nil
 	}
 	if result.Status == StatusCompleted {
-		if result.Usage == nil {
-			result.Usage = map[string]int{}
-		}
-		if job.JobKind == KindVideo && result.Usage["video_seconds"] == 0 {
-			result.Usage["video_seconds"] = job.DurationSeconds
-		}
-		if job.JobKind == KindImage && result.Usage["image_count"] == 0 {
-			result.Usage["image_count"] = 1
-		}
-		snapshot, err := s.catalog.PriceSnapshot(ctx, job.PublicModelID)
-		if err != nil {
-			return err
-		}
-		return s.finish(ctx, job, result, snapshot)
+		return s.finish(ctx, job, result)
 	}
 	if result.Status == StatusCancelled {
 		job.Status = StatusCancelled
@@ -669,19 +664,23 @@ func (s *Service) refreshJob(ctx context.Context, job jobRow) error {
 	return nil
 }
 
-func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, snapshot *catalog.PriceSnapshot) error {
+func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult) error {
+	quote, err := s.billing.AuthorizationQuote(ctx, job.RequestID)
+	if err != nil {
+		return err
+	}
 	usage := result.Usage
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	if job.JobKind == KindVideo && usage["video_seconds"] == 0 {
-		usage["video_seconds"] = job.DurationSeconds
-	}
-	if job.JobKind == KindImage && usage["image_count"] == 0 {
-		usage["image_count"] = 1
-	}
-	if job.GenerateAudio && usage["audio_seconds"] == 0 && job.JobKind == KindVideo {
-		usage["audio_seconds"] = job.DurationSeconds
+	_, videoKnown := usage["video_seconds"]
+	_, imageKnown := usage["image_count"]
+	_, audioKnown := usage["audio_seconds"]
+	missingUsage := len(usage) == 0 || (job.JobKind == KindVideo && !videoKnown) || (job.JobKind == KindImage && !imageKnown) || (job.GenerateAudio && !audioKnown) || !quote.TokenUsageComplete(usage)
+	for _, amount := range usage {
+		if amount < 0 {
+			missingUsage = true
+		}
 	}
 	wrote := false
 	var usageJSON []byte
@@ -725,11 +724,20 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 		s.DeliverCustomerCallbacks(ctx)
 	}
 	// 已完成的任务再收到回调时只做幂等结算，不重复写资产。
-	_, err := s.billing.Settle(ctx, billing.SettleInput{
+	var costPrices json.RawMessage
+	if len(job.SupplierCosts) > 0 && string(job.SupplierCosts) != "{}" {
+		var err error
+		costPrices, err = catalog.PriceWithProviderCosts(json.RawMessage(`{}`), job.SupplierCosts)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = s.billing.Settle(ctx, billing.SettleInput{
 		RequestID: job.RequestID, UserID: job.UserID, PublicModelID: job.PublicModelID,
 		Usage: usage, APIKeyID: stringPtr(job.APIKeyID), ChannelOrgID: stringPtr(job.ChannelOrgID),
 		IdempotencyKey: "usage:" + job.RequestID, Resolution: job.Resolution,
-		MissingUsage: len(usage) == 0,
+		MissingUsage: missingUsage,
+		ProviderID:   stringPtr(job.ProviderID), AttemptID: "media:" + job.ID + ":accepted", UpstreamModelID: job.UpstreamModelID, UnitPrices: costPrices,
 	})
 	return err
 }

@@ -11,18 +11,19 @@ import (
 )
 
 var (
-	ErrInsufficientBalance = errors.New("insufficient balance")
-	ErrInsufficientQuota   = errors.New("insufficient channel quota")
-	ErrNotFound            = errors.New("billing record not found")
-	ErrConflict            = errors.New("idempotency conflict")
-	ErrInvalidAmount       = errors.New("invalid amount")
-	ErrInvalidIssueRatio   = errors.New("invalid issue ratio")
-	ErrRedeemUnavailable   = errors.New("redeem code unavailable")
-	ErrTopupNotPending     = errors.New("topup is not pending")
-	ErrAuthNotReserved     = errors.New("authorization not reserved")
-	ErrAlreadyCharged      = errors.New("usage already charged")
-	ErrAlreadyMatched      = errors.New("usage already matched")
-	ErrInventedCost        = errors.New("supplier/attempt cost must come from TokenHub facts")
+	ErrInsufficientBalance      = errors.New("insufficient balance")
+	ErrInsufficientQuota        = errors.New("insufficient channel quota")
+	ErrNotFound                 = errors.New("billing record not found")
+	ErrConflict                 = errors.New("idempotency conflict")
+	ErrInvalidAmount            = errors.New("invalid amount")
+	ErrPriceEstimateUnavailable = errors.New("price estimate unavailable")
+	ErrInvalidIssueRatio        = errors.New("invalid issue ratio")
+	ErrRedeemUnavailable        = errors.New("redeem code unavailable")
+	ErrTopupNotPending          = errors.New("topup is not pending")
+	ErrAuthNotReserved          = errors.New("authorization not reserved")
+	ErrAlreadyCharged           = errors.New("usage already charged")
+	ErrAlreadyMatched           = errors.New("usage already matched")
+	ErrInventedCost             = errors.New("supplier/attempt cost must come from TokenHub facts")
 )
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
@@ -45,7 +46,9 @@ type Qualifier interface {
 // EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
 type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)
+	AvailableUSDTx(tx *gorm.DB, userID string) (int64, error)
 	ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
+	ExtendUSDUsageTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
 	ReverseByRequest(ctx context.Context, requestID string) error
 	ReverseByRequestTx(tx *gorm.DB, requestID string) error
 	ReverseKeepTx(tx *gorm.DB, requestID string, keep int64) error
@@ -124,7 +127,6 @@ type ReserveInput struct {
 	PublicModelID  string          `json:"public_model_id"`
 	PriceVersionID string          `json:"price_version_id"`
 	UnitPrices     json.RawMessage `json:"unit_prices"`
-	BudgetBounded  bool            `json:"budget_bounded"`
 	ReserveMinor   int64           `json:"reserve_minor"`
 }
 

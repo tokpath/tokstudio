@@ -645,6 +645,20 @@ func (s *Service) AvailableUSD(ctx context.Context, userID string) (int64, error
 	return s.available(ctx, userID, UnitUSDCredit)
 }
 
+// Lock the same eligible USD entitlements consumed by the authorization. Other
+// unit types and expired entitlements cannot cover an API admission estimate.
+func (s *Service) AvailableUSDTx(tx *gorm.DB, userID string) (int64, error) {
+	var rows []entRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ? AND unit_type = ? AND status = ? AND granted > consumed AND (expires_at IS NULL OR expires_at > ?)", userID, UnitUSDCredit, EntActive, time.Now().UTC()).Order("id").Find(&rows).Error; err != nil {
+		return 0, err
+	}
+	var available int64
+	for _, row := range rows {
+		available += row.Granted - row.Consumed
+	}
+	return available, nil
+}
+
 func (s *Service) available(ctx context.Context, userID, unit string) (int64, error) {
 	var rows []entRow
 	now := time.Now().UTC()
@@ -675,7 +689,7 @@ func (s *Service) consume(ctx context.Context, userID, requestID, unit string, a
 	var took int64
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var err error
-		took, err = s.consumeTx(tx, userID, requestID, unit, amount)
+		took, err = s.consumeTx(tx, userID, requestID, unit, amount, false)
 		return err
 	})
 	return took, err
@@ -684,10 +698,16 @@ func (s *Service) consume(ctx context.Context, userID, requestID, unit string, a
 // ConsumeUSDTx binds entitlement coverage to the same atomic authorization as
 // the Key budget and wallet, so a failed reserve never reverses another request.
 func (s *Service) ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error) {
-	return s.consumeTx(tx, userID, requestID, UnitUSDCredit, amount)
+	return s.consumeTx(tx, userID, requestID, UnitUSDCredit, amount, false)
 }
 
-func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount int64) (int64, error) {
+// Extend coverage only for an admitted request's reliable actual usage. Existing
+// request debits and other requests' occupied entitlements remain distinct.
+func (s *Service) ExtendUSDUsageTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error) {
+	return s.consumeTx(tx, userID, requestID, UnitUSDCredit, amount, true)
+}
+
+func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount int64, extend bool) (int64, error) {
 	if amount <= 0 {
 		return 0, nil
 	}
@@ -700,7 +720,9 @@ func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount 
 			}
 			if net > 0 {
 				took = net
-				return nil
+				if !extend || net >= amount {
+					return nil
+				}
 			}
 		}
 		var rows []entRow
@@ -712,7 +734,7 @@ func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount 
 			Find(&rows).Error; err != nil {
 			return err
 		}
-		remain := amount
+		remain := amount - took
 		for i := range rows {
 			if remain <= 0 {
 				break
@@ -732,7 +754,11 @@ func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount 
 			if err := tx.Save(&rows[i]).Error; err != nil {
 				return err
 			}
-			if err := writeEntLedger(tx, rows[i].ID, EventDebit, -use, requestID, "debit:"+requestID+":"+rows[i].ID); err != nil {
+			ledgerKey := "debit:" + requestID + ":" + rows[i].ID
+			if extend {
+				ledgerKey = "settle-" + ledgerKey
+			}
+			if err := writeEntLedger(tx, rows[i].ID, EventDebit, -use, requestID, ledgerKey); err != nil {
 				return err
 			}
 			remain -= use
@@ -819,17 +845,29 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 		return err
 	}
 	remain := amount
+	// Reservation and final settlement can debit the same entitlement twice.
+	// Reverse the net total per account, rather than subtracting all previous
+	// reversals from each individual debit and losing the reservation portion.
+	debits := make(map[string]int64)
+	for _, led := range leds {
+		debits[led.AccountID] -= led.Amount
+	}
+	seen := make(map[string]bool)
 	for _, led := range leds {
 		if remain <= 0 {
 			break
 		}
+		if seen[led.AccountID] {
+			continue
+		}
+		seen[led.AccountID] = true
 		var already int64
 		if err := tx.Model(&ledRow{}).
 			Where("account_id = ? AND request_id = ? AND event_type = ?", led.AccountID, requestID, EventReversal).
 			Select("COALESCE(SUM(amount),0)").Scan(&already).Error; err != nil {
 			return err
 		}
-		left := -led.Amount - already
+		left := debits[led.AccountID] - already
 		if left <= 0 {
 			continue
 		}
@@ -841,20 +879,17 @@ func reverseAmountTx(tx *gorm.DB, requestID string, amount int64) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", led.AccountID).First(&ent).Error; err != nil {
 			return err
 		}
-		ent.Consumed -= back
-		if ent.Consumed < 0 {
-			ent.Consumed = 0
+		if ent.Consumed < back {
+			return errors.New("entitlement reversal exceeds actual consumption")
 		}
+		ent.Consumed -= back
 		if ent.Status == EntExhausted && ent.Consumed < ent.Granted {
 			ent.Status = EntActive
 		}
 		if err := tx.Save(&ent).Error; err != nil {
 			return err
 		}
-		idem := "reverse:" + led.IdempotencyKey
-		if already > 0 {
-			idem = "reverse:" + led.IdempotencyKey + ":" + strings.ReplaceAll(led.ID, ":", "")
-		}
+		idem := "reverse:" + requestID + ":" + led.AccountID + ":" + strconv.FormatInt(already, 10)
 		if err := writeEntLedger(tx, ent.ID, EventReversal, back, requestID, idem); err != nil {
 			return err
 		}

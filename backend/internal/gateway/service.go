@@ -278,34 +278,28 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			return nil, ParamError{Param: "max_tokens (OpenRouter minimum 16)"}
 		}
 	}
-	raw, _ := json.Marshal(in.Chat)
-	// Text tokenizers cannot emit more tokens than serialized input bytes plus
-	// framing. Images/audio and unbounded reasoning require a verified adapter bound.
-	promptHint := len(raw) + 128*(len(in.Chat.Messages)+1)
-	maxTokens := *in.Chat.MaxTokens
-	bounded := visionCount(in.Chat) == 0 && catalog.BudgetableTextPrices(effectivePrices)
-	// A generic MaxTokens field does not prove hidden reasoning is bounded.
-	// The deployed adapter must honor a platform-verified total output contract.
-	for _, cand := range cands {
-		switch s.adapterFor(cand.Adapter).(type) {
-		case HarnessAdapter:
-		case BifrostAdapter:
-			if !catalog.TextBudgetCandidate(cand) {
-				bounded = false
+	if !catalog.BudgetableTextPrices(effectivePrices) {
+		return nil, billing.ErrPriceEstimateUnavailable
+	}
+	// Estimate serialized text/tool framing and image input separately. Remote
+	// image bytes and hidden reasoning can differ; actual upstream usage settles.
+	inputBytes := len(in.Chat.Tools) + len(in.Chat.ResponseFormat)
+	for _, message := range in.Chat.Messages {
+		inputBytes += len(message.Content) + len(message.Name) + len(message.ToolCallID)
+		calls, _ := json.Marshal(message.ToolCalls)
+		inputBytes += len(calls)
+		for _, part := range message.Parts {
+			if part.Type != "text" && part.Type != "image" && part.Type != "image_url" {
+				return nil, ParamError{Param: "content type " + part.Type}
 			}
-		default:
-			bounded = false
 		}
 	}
-
-	reserve := billing.EstimateReserveMinor(quote, promptHint, maxTokens)
-	if bounded {
-		reserve = billing.EstimateBoundedTextReserveMinor(quote, promptHint, maxTokens)
-	}
+	promptHint := (inputBytes+2)/3 + 16*(len(in.Chat.Messages)+1) + 1024*visionCount(in.Chat)
+	reserve := billing.EstimateReserveMinor(quote, promptHint, *in.Chat.MaxTokens)
 	reservation, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
-		UnitPrices: effectivePrices, ReserveMinor: reserve, BudgetBounded: bounded,
+		UnitPrices: effectivePrices, ReserveMinor: reserve,
 	})
 	if err != nil {
 		if errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrInsufficientQuota) {
@@ -444,7 +438,14 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		usage = resolveAttemptUsage(usageAdapterName(cand.Adapter, s.runtime), mode, in.Chat, completionText(result.Body), usage)
 		result.Body.Usage = usage
 		out.Response.Usage = usage
-		missing := mode == UsageOmit || len(usage) == 0
+		_, promptKnown := usage["prompt_tokens"]
+		_, outputKnown := usage["completion_tokens"]
+		missing := mode == UsageOmit || !promptKnown || !outputKnown
+		for _, amount := range usage {
+			if amount < 0 {
+				missing = true
+			}
+		}
 		factSource := attemptFactSource(cand.Adapter, result, s.runtime)
 		applyAttemptFacts(&attempt, usage, factSource, passthroughMeta(in, attemptID, model.ID, result, factSource))
 		_ = s.db.WithContext(ctx).Model(&attemptRow{}).Where("id = ?", attempt.ID).Updates(map[string]any{

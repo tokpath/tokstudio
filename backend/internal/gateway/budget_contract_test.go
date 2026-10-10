@@ -42,7 +42,7 @@ func TestOpenAITextBudgetActualOutbound(t *testing.T) {
 	}
 	body := <-captured
 	if body["max_completion_tokens"] != float64(cap) || body["max_tokens"] != nil {
-		t.Fatalf("actual output ceiling absent/wrong: %+v", body)
+		t.Fatalf("actual output parameter absent/wrong: %+v", body)
 	}
 	quote, err := billing.ParseQuote("local", []byte(`{"input":"0.000001","output":"0.000002","reasoning":"0.000003"}`))
 	if err != nil {
@@ -56,12 +56,12 @@ func TestOpenAITextBudgetActualOutbound(t *testing.T) {
 	if actual <= 0 || actual > reserve {
 		t.Fatalf("measured=%d bound=%d usage=%+v", actual, reserve, out.Body.Usage)
 	}
-	if !catalog.OpenAIChatBudgetCandidate(catalog.RouteCandidate{Adapter: "bifrost", ProviderSlug: "openai", BaseURL: "https://api.openai.com/v1"}) {
-		t.Fatal("verified concrete contract unavailable")
+	if !catalog.TextBudgetCandidate(catalog.RouteCandidate{Adapter: "bifrost", ProviderSlug: "openai", BaseURL: "https://api.openai.com/v1"}) {
+		t.Fatal("supported adapter estimate unavailable")
 	}
 	for _, candidate := range []catalog.RouteCandidate{{Adapter: "bifrost", ProviderSlug: "openai", BaseURL: "https://compatible.example/v1"}, {Adapter: "bifrost", ProviderSlug: "anthropic", BaseURL: ""}, {Adapter: "gemini", ProviderSlug: "google"}} {
-		if catalog.OpenAIChatBudgetCandidate(candidate) {
-			t.Fatalf("unverified path admitted %+v", candidate)
+		if !catalog.TextBudgetCandidate(candidate) {
+			t.Fatalf("estimable supported path blocked %+v", candidate)
 		}
 	}
 }
@@ -111,23 +111,23 @@ func TestOtherVerifiedTextBudgetActualOutbound(t *testing.T) {
 			}
 			body := <-captured
 			if body[fixture.capField] != float64(cap) {
-				t.Fatalf("actual upper-bound missing %+v", body)
+				t.Fatalf("actual output parameter missing %+v", body)
 			}
 			if out.Body.Usage["prompt_tokens"] != 7 || out.Body.Usage["completion_tokens"] != 9 {
 				t.Fatalf("usage including thinking lost %+v", out.Body.Usage)
 			}
 			q, _ := billing.ParseQuote("local", []byte(`{"input":"0.000001","output":"0.000002","reasoning":"0.000003"}`))
 			if q.Charge(out.Body.Usage, "") > billing.EstimateBoundedTextReserveMinor(q, 512, cap) {
-				t.Fatal("actual charge exceeds bound")
+				t.Fatal("fixture actual charge unexpectedly exceeds estimate")
 			}
 			if !catalog.TextBudgetCandidate(catalog.RouteCandidate{Adapter: "bifrost", ProviderSlug: fixture.slug, UpstreamModelID: fixture.model}) {
-				t.Fatal("verified path missing")
+				t.Fatal("supported adapter missing")
 			}
 		})
 	}
 	for _, c := range []catalog.RouteCandidate{{Adapter: "bifrost", ProviderSlug: "openrouter", UpstreamModelID: "google/gemini-3-flash-preview"}, {Adapter: "bifrost", ProviderSlug: "openrouter", UpstreamModelID: "openrouter/auto"}, {Adapter: "bifrost", ProviderSlug: "anthropic", BaseURL: "https://custom.example/v1"}} {
-		if catalog.TextBudgetCandidate(c) {
-			t.Fatalf("unverified contract %+v", c)
+		if !catalog.TextBudgetCandidate(c) {
+			t.Fatalf("estimable compatible contract %+v", c)
 		}
 	}
 }

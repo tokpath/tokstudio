@@ -2886,7 +2886,7 @@
     "budget": "USD spending limit",
     "unlimited": "No separate limit",
     "limited": "Set cumulative limit",
-    "budgetHint": "Cumulative brand retail API usage includes gifts and plans. Top-ups and rotation do not reset usage.",
+    "budgetHint": "Tracks actual usage at your brand price. Requests reserve an estimate; actual charges may exceed the limit. Lower limits affect new requests. Topups and rotation do not reset usage.",
     "expiry": "Expiry",
     "permanent": "No expiry",
     "expires": "Set expiry",
@@ -2952,9 +2952,9 @@
     "loading": "Loading model instructions…",
     "recoverCreate": "Recover this creation",
     "modelsLoading": "Loading model catalog…",
-    "finiteCompatibility": "With a limit, only models supporting Key USD limits can be called.",
-    "finiteModels": "Models in this scope supporting USD limits: {models}",
-    "noneBudgetable": "None yet; the Key can be created, but cannot call this scope",
+    "finiteCompatibility": "Admission checks estimated cost. Actual charges for admitted requests may exceed the limit.",
+    "finiteModels": "Selected models with cost estimates: {models}",
+    "noneBudgetable": "None yet; contact your brand support to complete model pricing",
     "keysFailed": "Could not load your Keys. Retry; model instructions remain available.",
     "keysLoading": "Loading Keys…",
     "keyUnavailable": "This Key is not in your list; select another",
@@ -3383,7 +3383,8 @@
     "status_expired": "Expired",
     "status_refunded": "Refunded",
     "status_partially_refunded": "Partially refunded",
-    "status_unknown": "Status unconfirmed"
+    "status_unknown": "Status unconfirmed",
+    "negativeBalance": "Actual usage has been settled. A topup will cover the balance shortfall."
   },
   "supplierWorkflow": {
     "title": "Supplier expenses",

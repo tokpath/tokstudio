@@ -509,5 +509,5 @@ function KeyBudgetSummary({ item }: {
     const used = item.budget_used_minor ?? 0;
     const reserved = item.budget_reserved_minor ?? 0;
     const limit = item.budget_limit_minor;
-    return <div className="space-y-1 text-xs text-ink-secondary"><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{limit != null ? <p>{tx("remaining", { amount: (Math.max(0, limit - used - reserved) / 1e6).toFixed(6) })}</p> : null}</div>;
+    return <div className="space-y-1 text-xs text-ink-secondary"><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{limit != null ? <p>{tx("remaining", { amount: ((limit - used - reserved) / 1e6).toFixed(6) })}</p> : null}</div>;
 }

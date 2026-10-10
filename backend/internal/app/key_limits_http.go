@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/audit"
+	"github.com/tokpath/tokstudio/backend/internal/billing"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
@@ -89,8 +90,6 @@ func (a *App) updateAPIKeyLimits(c *gin.Context) {
 		switch {
 		case errors.Is(err, identity.ErrInvalidKeyLimits):
 			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择模型范围、有效的 USD 上限和有效期", false)
-		case errors.Is(err, identity.ErrKeyBudgetExceeded):
-			httpx.Abort(c, http.StatusConflict, "key_budget_below_usage", "USD 上限不得低于已用与处理中占用之和", false)
 		default:
 			httpx.Abort(c, http.StatusNotFound, "key_not_found", "API Key 不存在或暂不可编辑", false)
 		}
@@ -112,8 +111,8 @@ func abortKeyBudget(c *gin.Context, err error) bool {
 	switch {
 	case errors.Is(err, identity.ErrKeyBudgetExceeded):
 		httpx.Abort(c, http.StatusPaymentRequired, "key_budget_exceeded", "该 Key 的 USD 上限不足；可编辑上限或等待处理中请求完成", false)
-	case errors.Is(err, identity.ErrKeyBudgetUnbounded):
-		httpx.Abort(c, http.StatusBadRequest, "key_budget_unbounded", "此调用暂无法可靠预留 USD 上限；请使用支持额度控制的调用方式", false)
+	case errors.Is(err, billing.ErrPriceEstimateUnavailable):
+		httpx.Abort(c, http.StatusBadRequest, "price_estimate_unavailable", "此模型的定价暂无法预估，请联系当前品牌支持", false)
 	case errors.Is(err, identity.ErrKeyNotUsable):
 		httpx.Abort(c, http.StatusForbidden, "key_unusable", "该 Key 已停用或过期", false)
 	case errors.Is(err, identity.ErrKeyModelNotAllowed):

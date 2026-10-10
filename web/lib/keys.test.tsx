@@ -60,6 +60,13 @@ describe("KeysList", () => {
     expect(screen.getByText("暂无 API 密钥")).toBeTruthy();
   });
 
+  it("shows actual usage above the limit and signed remaining after occupancy", () => {
+    render(withZh(<KeysList items={[{...sampleKey, budget_limit_minor:100000, budget_used_minor:120000, budget_reserved_minor:30000}]} />));
+    expect(screen.getAllByText(/已用 0.120000 USD/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/剩余 -0.050000 USD/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/占用 0.030000 USD/).length).toBeGreaterThan(0);
+  });
+
   it("reveals the full secret when asked", () => {
     render(withZh(<KeysList items={[sampleKey]} revealedIds={["key_1"]} />));
     expect(screen.getAllByText("thk_abcdsecret").length).toBeGreaterThan(0);

@@ -40,3 +40,14 @@ it("retains a confirmed order ID when recovery lookup fails",async()=>{
   await screen.findByText("已创建原订单：known-wallet-order");
   await waitFor(()=>expect(JSON.parse(sessionStorage.getItem(key)!).orderId).toBe("known-wallet-order"));
 });
+it("preserves negative available and purchased balances alongside positive gift funds",async()=>{
+  vi.stubGlobal("fetch",vi.fn((input:RequestInfo|URL)=>{
+    if(String(input).endsWith("/v1/me/balance"))return response({balance:{available:"-0.100000",reserved:"0.000000",available_minor:-100000,purchased_minor:-400000,gift_minor:300000}});
+    return response({items:[],item:{methods:[],settings:{}}});
+  }));
+  render(withZh(<WalletPanel/>));
+  await screen.findByText("实际用量已结算，充值将补齐余额差额。");
+  expect(screen.getByText(/-0.100000/)).toBeTruthy();
+  expect(screen.getByText("-$0.40")).toBeTruthy();
+  expect(screen.getByText("$0.30")).toBeTruthy();
+});

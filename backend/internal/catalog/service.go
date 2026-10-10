@@ -1154,6 +1154,7 @@ func setBudgetCapabilities(view *ModelView) {
 	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
 	view.Capabilities["text_budget_control_supported"] = textBudget
 	view.Capabilities["budget_control_supported"] = textBudget || mediaBudget
+	view.Capabilities["budget_estimate_supported"] = textBudget || mediaBudget
 }
 
 func modelSupportedEndpoints(kind string, adapters []string) []string {

@@ -59,7 +59,7 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	}
 	prices := json.RawMessage(`{"currency":"USD","input":"0.000001","output":"0.000002"}`)
 	reserve := func(request string, amount int64) (*billing.Reservation, error) {
-		return application.Billing.Reserve(ctx, billing.ReserveInput{UserID: principal.UserID, ChannelOrgID: principal.ChannelOrgID, APIKeyID: key.ID, RequestID: request, PublicModelID: catalog.EchoModelID, ReserveMinor: amount, BudgetBounded: true, UnitPrices: prices})
+		return application.Billing.Reserve(ctx, billing.ReserveInput{UserID: principal.UserID, ChannelOrgID: principal.ChannelOrgID, APIKeyID: key.ID, RequestID: request, PublicModelID: catalog.EchoModelID, ReserveMinor: amount, UnitPrices: prices})
 	}
 	var wg sync.WaitGroup
 	results := make(chan struct {
@@ -101,10 +101,16 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	low := int64(59)
 	edited := limits
 	edited.BudgetLimitMinor = &low
-	if _, err := application.Identity.UpdateAPIKeyLimits(ctx, *principal, key.ID, edited); !errors.Is(err, identity.ErrKeyBudgetExceeded) {
-		t.Fatalf("lower than occupancy: %v", err)
+	if _, err := application.Identity.UpdateAPIKeyLimits(ctx, *principal, key.ID, edited); err != nil {
+		t.Fatalf("lowering admission limit must remain editable: %v", err)
 	}
-	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{UserID: principal.UserID, APIKeyID: key.ID, RequestID: accepted, PublicModelID: catalog.OEMModelID, ReserveMinor: 60, UnitPrices: prices, BudgetBounded: true}); !errors.Is(err, billing.ErrConflict) {
+	if _, err := reserve(id.New("req"), 1); !errors.Is(err, identity.ErrKeyBudgetExceeded) {
+		t.Fatalf("lower limit admitted another call: %v", err)
+	}
+	if _, err := application.Identity.UpdateAPIKeyLimits(ctx, *principal, key.ID, limits); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{UserID: principal.UserID, APIKeyID: key.ID, RequestID: accepted, PublicModelID: catalog.OEMModelID, ReserveMinor: 60, UnitPrices: prices}); !errors.Is(err, billing.ErrConflict) {
 		t.Fatalf("idempotency binding: %v", err)
 	}
 	// Unknown results remain held across duplicate callbacks, edits, and reaping.
@@ -148,7 +154,7 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 		}
 	}
 	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 0, 0)
-	// A measured excess stays pending with its full usage and occupied budget.
+	// Reliable excess settles in full and blocks subsequent admissions.
 	excess := id.New("req")
 	if _, err := reserve(excess, 60); err != nil {
 		t.Fatal(err)
@@ -157,10 +163,10 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	application.DB.Table("billing_wallets").Where("user_id=?", principal.UserID).First(&walletBefore)
 	excessInput := billing.SettleInput{RequestID: excess, APIKeyID: key.ID, PublicModelID: catalog.EchoModelID, Usage: map[string]int{"prompt_tokens": 120}}
 	result, err := application.Billing.Settle(ctx, excessInput)
-	if err != nil || result.State != billing.UsagePending || result.AmountMinor != 120 {
+	if err != nil || result.State != billing.UsageConfirmed || result.AmountMinor != 120 {
 		t.Fatalf("excess clipped: %+v %v", result, err)
 	}
-	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 0, 120)
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
 	if replay, err := application.Billing.Settle(ctx, excessInput); err != nil || replay.UsageEventID != result.UsageEventID {
 		t.Fatalf("excess replay %+v %v", replay, err)
 	}
@@ -170,21 +176,31 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	}
 	var walletAfter struct{ AvailableMinor, GiftMinor, ReservedMinor int64 }
 	application.DB.Table("billing_wallets").Where("user_id=?", principal.UserID).First(&walletAfter)
-	if walletBefore != walletAfter {
-		t.Fatalf("excess added an unapproved wallet debit: %+v -> %+v", walletBefore, walletAfter)
+	if walletAfter.AvailableMinor != walletBefore.AvailableMinor-60 || walletAfter.ReservedMinor != 0 || walletAfter.GiftMinor != walletBefore.GiftMinor {
+		t.Fatalf("actual excess did not settle the complete wallet debit: %+v -> %+v", walletBefore, walletAfter)
 	}
 	var pendingCount int64
 	application.DB.Table("outbox_events").Where("event_type=? AND aggregate_id=?", "usage.reconciliation.requested", result.UsageEventID).Count(&pendingCount)
-	if pendingCount != 1 {
-		t.Fatalf("excess reconciliation count %d", pendingCount)
+	if pendingCount != 0 {
+		t.Fatalf("reliable excess must not be pending: %d", pendingCount)
 	}
-	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 0, 120)
+	var charges int64
+	application.DB.Table("billing_customer_charges").Where("request_id=? AND status=?", excess, billing.ChargeCommitted).Count(&charges)
+	if charges != 1 {
+		t.Fatalf("actual charge count %d", charges)
+	}
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
 	if _, err := reserve(id.New("req"), 1); !errors.Is(err, identity.ErrKeyBudgetExceeded) {
 		t.Fatalf("over reserve must block new calls: %v", err)
 	}
 	if err := application.Billing.Release(ctx, excess); err != nil {
 		t.Fatal(err)
 	}
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
+	if _, err := application.Billing.RefundCharge(ctx, excess); err != nil {
+		t.Fatal(err)
+	}
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 0, 0)
 	// Expiry becomes visible pending usage and keeps occupancy; an explicit known
 	// failure disposition releases it later.
 	expiredRequest := id.New("req")
@@ -408,7 +424,7 @@ func TestKeyConcurrentOperationAndOriginalSettlement(t *testing.T) {
 	}
 	prices := json.RawMessage(`{"input":"0.000001","output":"0.000002","wholesale_input":"0.0000005"}`)
 	request := id.New("req")
-	reserve := billing.ReserveInput{UserID: p.UserID, ChannelOrgID: p.ChannelOrgID, APIKeyID: key.ID, PublicModelID: catalog.EchoModelID, RequestID: request, ReserveMinor: 60, BudgetBounded: true, UnitPrices: prices}
+	reserve := billing.ReserveInput{UserID: p.UserID, ChannelOrgID: p.ChannelOrgID, APIKeyID: key.ID, PublicModelID: catalog.EchoModelID, RequestID: request, ReserveMinor: 60, UnitPrices: prices}
 	results := make(chan *billing.Reservation, 2)
 	failures = make(chan error, 2)
 	for i := 0; i < 2; i++ {

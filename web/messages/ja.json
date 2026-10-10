@@ -2886,7 +2886,7 @@
     "budget": "USD 利用上限",
     "unlimited": "個別上限なし",
     "limited": "累計上限を設定",
-    "budgetHint": "ブランドの販売価格で累計します。特典やプランによる充当も含み、入金や Key 更新ではリセットされません。",
+    "budgetHint": "ブランド価格で実使用量を累計します。実費は事前見積りや上限を超える場合があります。上限引き下げは新規リクエストに適用され、チャージやキー更新で使用量はリセットされません。",
     "expiry": "有効期限",
     "permanent": "期限なし",
     "expires": "有効期限を指定",
@@ -2952,9 +2952,9 @@
     "loading": "利用方法を読み込み中…",
     "recoverCreate": "今回の作成を復旧",
     "modelsLoading": "モデル一覧を読み込み中…",
-    "finiteCompatibility": "上限設定時は、Key の USD 上限に対応するモデルのみ呼び出せます。",
-    "finiteModels": "この範囲で USD 上限に対応するモデル：{models}",
-    "noneBudgetable": "現在ありません。Key は作成できますが、この範囲の呼び出しはできません。",
+    "finiteCompatibility": "実行前に見積り額を確認します。許可済みリクエストの実費は上限を超える場合があります。",
+    "finiteModels": "選択範囲で費用を見積れるモデル：{models}",
+    "noneBudgetable": "未対応。モデル価格の設定についてブランドサポートにお問い合わせください",
     "keysFailed": "Key 一覧を読み込めません。再試行してください。モデルの説明は閲覧できます。",
     "keysLoading": "Key を読み込み中…",
     "keyUnavailable": "この Key は本人の一覧にありません。選び直してください。",
@@ -3383,7 +3383,8 @@
     "status_expired": "期限切れ",
     "status_refunded": "返金済み",
     "status_partially_refunded": "一部返金済み",
-    "status_unknown": "状態を確認中"
+    "status_unknown": "状態を確認中",
+    "negativeBalance": "実使用量の精算済みです。チャージで残高不足を補います。"
   },
   "supplierWorkflow": {
     "title": "仕入先への支出",

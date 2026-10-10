@@ -203,6 +203,41 @@ func (q Quote) CustomerMinor(prompt, completion int) int64 {
 	return tokenAmountMinor(tokenPart{prompt, q.inputSellRate}, tokenPart{completion, q.outputSellRate})
 }
 
+// Media can also have token charges. Every explicitly priced token dimension
+// must be reported; absence cannot be treated as a free, actual zero count.
+func (q Quote) TokenUsageComplete(usage map[string]int) bool {
+	var prices map[string]any
+	if err := json.Unmarshal(q.Raw, &prices); err != nil {
+		return false
+	}
+	for _, dimension := range []struct {
+		fields []string
+		usage  string
+	}{
+		{[]string{"input", "customer_sell_input"}, "prompt_tokens"},
+		{[]string{"output", "customer_sell_output"}, "completion_tokens"},
+		{[]string{"reasoning", "reasoning_output"}, "reasoning_tokens"},
+	} {
+		for _, field := range dimension.fields {
+			value, found := prices[field]
+			if !found {
+				continue
+			}
+			rate, ok := new(big.Rat).SetString(fmt.Sprint(value))
+			if !ok || rate.Sign() < 0 {
+				return false
+			}
+			if rate.Sign() > 0 {
+				if _, known := usage[dimension.usage]; !known {
+					return false
+				}
+			}
+			break
+		}
+	}
+	return true
+}
+
 func (q Quote) CostMinor(prompt, completion int) int64 {
 	return tokenAmountMinor(tokenPart{prompt, q.inputCostRate}, tokenPart{completion, q.outputCostRate})
 }
@@ -324,7 +359,9 @@ func EstimateReserveMinor(q Quote, promptHint, maxTokens int) int64 {
 	if maxTokens <= 0 {
 		maxTokens = 256
 	}
-	base := q.CustomerMinor(promptHint, maxTokens)
+	// Reasoning may be reported separately. Include it in the estimate even
+	// without an explicit reasoning parameter; this is not an absolute ceiling.
+	base := q.Charge(map[string]int{"prompt_tokens": promptHint, "completion_tokens": maxTokens, "reasoning_tokens": maxTokens}, "")
 	buf := base / 5
 	if buf < 100 {
 		buf = 100
@@ -332,8 +369,8 @@ func EstimateReserveMinor(q Quote, promptHint, maxTokens int) int64 {
 	return base + buf
 }
 
-// Both visible completion and separately reported reasoning are conservatively
-// reserved at their own rates. The adapter contract must cap each at maxOutput.
+// Retained for internal callers; it estimates both output dimensions, without
+// promising that an upstream will never exceed the reservation.
 func EstimateBoundedTextReserveMinor(q Quote, maxInput, maxOutput int) int64 {
 	base := q.Charge(map[string]int{"prompt_tokens": maxInput, "completion_tokens": maxOutput, "reasoning_tokens": maxOutput}, "")
 	buffer := base / 5

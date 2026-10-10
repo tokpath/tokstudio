@@ -151,9 +151,6 @@ func (s *Service) Balance(ctx context.Context, userID, channelOrgID string) (*Ba
 		return nil, err
 	}
 	gift := wallet.GiftMinor
-	if gift > wallet.AvailableMinor {
-		gift = wallet.AvailableMinor
-	}
 	view := &BalanceView{
 		UserID: userID, Currency: wallet.Currency,
 		AvailableMinor:           wallet.AvailableMinor,
@@ -297,15 +294,24 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		if !errors.Is(findErr, gorm.ErrRecordNotFound) {
 			return findErr
 		}
-		if err := identity.ReserveAPIKeyBudgetTx(tx, in.APIKeyID, in.UserID, in.PublicModelID, in.ReserveMinor, in.BudgetBounded); err != nil {
+		if err := identity.ReserveAPIKeyBudgetTx(tx, in.APIKeyID, in.UserID, in.PublicModelID, in.ReserveMinor); err != nil {
 			return err
 		}
 		walletNeed := in.ReserveMinor
+		wallet, err := lockWallet(tx, in.UserID)
+		if err != nil {
+			return err
+		}
 		var covered int64
 		if s.coverer != nil {
-			avail, err := s.coverer.AvailableUSD(ctx, in.UserID)
+			avail, err := s.coverer.AvailableUSDTx(tx, in.UserID)
 			if err != nil {
 				return err
+			}
+			// Existing cash debt participates in the same account total. Do not
+			// clamp it to zero before checking valid entitlement coverage.
+			if wallet.AvailableMinor < in.ReserveMinor-avail {
+				return ErrInsufficientBalance
 			}
 			if avail > 0 {
 				cover := avail
@@ -322,10 +328,8 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 				}
 				walletNeed = in.ReserveMinor - covered
 			}
-		}
-		wallet, err := lockWallet(tx, in.UserID)
-		if err != nil {
-			return err
+		} else if wallet.AvailableMinor < walletNeed {
+			return ErrInsufficientBalance
 		}
 		if err := s.reserveChannelQuota(tx, in.UserID, in.ChannelOrgID, in.RequestID, in.ReserveMinor, walletNeed); err != nil {
 			return err
@@ -418,6 +422,16 @@ func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err e
 	}).Error
 }
 
+// AuthorizationQuote is an internal service read of the original admitted
+// terms. Media completion must not depend on a currently published catalog.
+func (s *Service) AuthorizationQuote(ctx context.Context, requestID string) (Quote, error) {
+	var auth authRow
+	if err := s.db.WithContext(ctx).Where("request_id = ?", requestID).First(&auth).Error; err != nil {
+		return Quote{}, err
+	}
+	return ParseQuote(stringPtr(auth.PriceVersionID), auth.UnitPrices)
+}
+
 func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, error) {
 	if in.RequestID == "" {
 		return nil, ErrInvalidAmount
@@ -433,9 +447,22 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 				return err
 			}
 		}
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "billing.settle:"+in.RequestID).Error; err != nil {
+			return err
+		}
 		var existing chargeRow
 		existingErr := tx.Where("request_id = ?", in.RequestID).First(&existing).Error
 		if existingErr == nil {
+			if !in.MissingUsage && len(in.Usage) > 0 {
+				var fact usageRow
+				if err := tx.Where("id = ?", existing.UsageEventID).First(&fact).Error; err != nil {
+					return err
+				}
+				actual, _ := json.Marshal(in.Usage)
+				if !sameJSON(fact.UnitUsage, actual) {
+					return ErrConflict
+				}
+			}
 			out = &Settlement{ChargeID: existing.ID, UsageEventID: existing.UsageEventID, AmountMinor: existing.AmountMinor, State: UsageConfirmed, Currency: CurrencyUSD}
 			var prior authRow
 			if tx.Where("request_id = ?", in.RequestID).First(&prior).Error == nil {
@@ -547,45 +574,16 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			if measured.CustomerAmountMinor != customer || !sameJSON(measured.UnitUsage, usageJSON) {
 				return ErrConflict
 			}
-			out = &Settlement{UsageEventID: measured.ID, AmountMinor: measured.CustomerAmountMinor, State: UsagePending, Currency: CurrencyUSD}
-			return nil
+			// Previously deferred measured excess can now settle, preserving its
+			// first actual fact. A conflicting later report remains a conflict.
+			prices = measured.UnitPrices
+			quote, err = ParseQuote(stringPtr(auth.PriceVersionID), prices)
+			if err != nil {
+				return err
+			}
 		}
-		if !errors.Is(measuredErr, gorm.ErrRecordNotFound) {
+		if measuredErr != nil && !errors.Is(measuredErr, gorm.ErrRecordNotFound) {
 			return measuredErr
-		}
-		if customer > auth.AmountMinor {
-			// Preserve measured usage and the original wallet reserve. No business rule
-			// authorizes automatic debt collection or silently clipping the charge.
-			if customer > auth.KeyReservedMinor {
-				if err := identity.AdjustAPIKeyBudgetTx(tx, stringPtr(auth.APIKeyID), 0, customer-auth.KeyReservedMinor); err != nil {
-					return err
-				}
-				auth.KeyReservedMinor = customer
-			}
-			auth.Status = AuthPendingReconciliation
-			auth.UpdatedAt = time.Now().UTC()
-			if err := tx.Save(&auth).Error; err != nil {
-				return err
-			}
-			usageJSON, _ := json.Marshal(in.Usage)
-			row := usageRow{ID: id.New("usg"), RequestID: in.RequestID, UserID: auth.UserID, PublicModelID: in.PublicModelID, UnitUsage: usageJSON, UnitPrices: quote.Raw, PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: customer, UpstreamCostMinor: quote.MediaCost(in.Usage, in.Resolution), WholesaleAmountMinor: quote.WholesaleCharge(in.Usage, in.Resolution), Currency: CurrencyUSD, State: UsagePending, IdempotencyKey: "usage:" + in.RequestID + ":over-reserve", OccurredAt: time.Now().UTC()}
-			copySettleRefs(&row, in)
-			inserted := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "idempotency_key"}}, DoNothing: true}).Create(&row)
-			if inserted.Error != nil {
-				return inserted.Error
-			}
-			var saved usageRow
-			if err := tx.Where("idempotency_key = ?", row.IdempotencyKey).First(&saved).Error; err != nil {
-				return err
-			}
-			row = saved
-			if inserted.RowsAffected > 0 {
-				if _, err := s.outbox.EnqueueTx(tx, "usage.reconciliation.requested", "usage_event", row.ID, map[string]any{"request_id": in.RequestID, "reason": "usage_exceeds_authorization", "measured_minor": customer, "authorized_minor": auth.AmountMinor}); err != nil {
-					return err
-				}
-			}
-			out = &Settlement{UsageEventID: row.ID, AmountMinor: customer, State: UsagePending, Currency: CurrencyUSD}
-			return nil
 		}
 		walletReserved := auth.WalletReservedMinor
 		if walletReserved > auth.AmountMinor {
@@ -595,24 +593,6 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if covered < 0 {
 			covered = 0
 		}
-		entitlementUsed := customer
-		if entitlementUsed > covered {
-			entitlementUsed = covered
-		}
-		walletUsed := customer - entitlementUsed
-		walletRelease := walletReserved - walletUsed
-		if walletRelease < 0 {
-			walletRelease = 0
-		}
-		giftReserved := auth.GiftReservedMinor
-		if giftReserved > walletReserved {
-			giftReserved = walletReserved
-		}
-		giftUsed := walletUsed
-		if giftUsed > giftReserved {
-			giftUsed = giftReserved
-		}
-		giftRestore := giftReserved - giftUsed
 		if err := identity.AdjustAPIKeyBudgetTx(tx, stringPtr(auth.APIKeyID), customer, -auth.KeyReservedMinor); err != nil {
 			return err
 		}
@@ -620,6 +600,29 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if err != nil {
 			return err
 		}
+		if s.coverer != nil && customer > covered {
+			covered, err = s.coverer.ExtendUSDUsageTx(tx, auth.UserID, in.RequestID, customer)
+			if err != nil {
+				return err
+			}
+		}
+		entitlementUsed := customer
+		if entitlementUsed > covered {
+			entitlementUsed = covered
+		}
+		walletUsed := customer - entitlementUsed
+		// A negative release is the actual excess over the wallet reservation.
+		// Admission checked the estimate; settlement records all reliable usage.
+		walletRelease := walletReserved - walletUsed
+		giftReserved := auth.GiftReservedMinor
+		if giftReserved > walletReserved {
+			giftReserved = walletReserved
+		}
+		giftUsed := walletUsed
+		if giftUsed > giftReserved+wallet.GiftMinor {
+			giftUsed = giftReserved + wallet.GiftMinor
+		}
+		giftRestore := giftReserved - giftUsed
 		now := time.Now().UTC()
 		wallet.ReservedMinor -= walletReserved
 		wallet.AvailableMinor += walletRelease
@@ -672,12 +675,19 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if err := tx.Create(&charge).Error; err != nil {
 			return err
 		}
+		// Preserve prior unknown/legacy measured facts as history. The reliable
+		// confirmed charge removes this request from the pending work queue.
+		if err := tx.Model(&usageRow{}).Where("request_id = ? AND state = ?", in.RequestID, UsagePending).Update("state", UsageVoided).Error; err != nil {
+			return err
+		}
 		if in.AttemptID != "" && in.ProviderID != "" {
-			_ = tx.Where("attempt_id = ?", in.AttemptID).FirstOrCreate(&costRow{
+			if err := tx.Where("attempt_id = ?", in.AttemptID).FirstOrCreate(&costRow{
 				ID: id.New("cst"), RequestID: in.RequestID, AttemptID: in.AttemptID, ProviderID: in.ProviderID,
 				AmountMinor: quote.MediaCost(in.Usage, in.Resolution), Currency: CurrencyUSD,
 				UnitUsage: usageJSON, UnitPrices: quote.Raw, CreatedAt: now,
-			}).Error
+			}).Error; err != nil {
+				return err
+			}
 		}
 		if err := s.accrueCommission(tx, row); err != nil {
 			return err
@@ -685,6 +695,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		auth.Status = AuthSettled
 		auth.SettledMinor = customer
 		auth.GiftSettledMinor = giftUsed
+		auth.EntitlementSettledMinor = entitlementUsed
 		auth.UpdatedAt = now
 		if err := tx.Save(&auth).Error; err != nil {
 			return err
@@ -709,6 +720,9 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 }
 
 func entitlementKeep(auth authRow, customer int64) int64 {
+	if auth.Status == AuthSettled || auth.Status == AuthReversed {
+		return auth.EntitlementSettledMinor
+	}
 	walletReserved := auth.WalletReservedMinor
 	if walletReserved > auth.AmountMinor {
 		walletReserved = auth.AmountMinor

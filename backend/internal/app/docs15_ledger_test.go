@@ -72,8 +72,8 @@ func TestChannelSupplierPnLAndSignupGift(t *testing.T) {
 	if asInt(pnl["supplier_minor"]) > -2*billing.MinorPerUSD {
 		t.Fatalf("supplier total missing: %+v", pnl)
 	}
-	if asInt(pnl["pnl_minor"]) > asInt(pnl["consumed_minor"]) {
-		t.Fatalf("pnl should include negative supplier: %+v", pnl)
+	if asInt(pnl["pnl_minor"]) != asInt(pnl["margin_minor"])+asInt(pnl["marketing_minor"]) {
+		t.Fatalf("cash supplier payments must not be charged a second time as API costs: %+v", pnl)
 	}
 
 	rev := postJSONRaw(t, server.URL+"/admin/supplier-entries/"+item["id"].(string)+"/reverse", "docs15_admin", map[string]any{"reason": "void", "operation_id": idem + "-reverse"})

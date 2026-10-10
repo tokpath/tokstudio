@@ -1,0 +1,30 @@
+/** @vitest-environment jsdom */
+import {afterEach,expect,it,vi} from "vitest";
+import {cleanup,fireEvent,render,screen,within} from "@testing-library/react";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import {withZh} from "@/lib/test-i18n";
+import {OEMPurchasesPanel} from "./oem-purchases";
+vi.mock("@/components/rbac/viewer-context",()=>({useViewer:()=>({userId:"finance",signedIn:true,loading:false,roles:["finance_admin"]})}));
+afterEach(()=>{cleanup();sessionStorage.clear();vi.unstubAllGlobals()});
+const json=(body:unknown,status=200)=>({ok:status<400,status,json:async()=>body});
+function page(){return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>{withZh(<OEMPurchasesPanel ownerID="oem-one" allowCreate/>)}</QueryClientProvider>)}
+function fill(){fireEvent.change(screen.getByLabelText("实际收款金额"),{target:{value:"1000"}});fireEvent.change(screen.getByLabelText("划入服务额度（USD）"),{target:{value:"900"}});fireEvent.click(screen.getByLabelText("我确认款项已实际收到"))}
+it("keeps original CNY cash separate from the agreed USD sale and delivered credits",async()=>{
+ let sent:Record<string,unknown>={};vi.stubGlobal("fetch",vi.fn(async(_url,init)=>{if(init?.method==="POST"){sent=JSON.parse(init.body);return json({item:{id:"purchase-original",...sent,completed_at:"2026-10-10"}})}return json({items:[]})}));page();
+ fireEvent.change(screen.getByLabelText("实际收款币种"),{target:{value:"CNY"}});fireEvent.change(screen.getByLabelText("实际收款金额"),{target:{value:"700"}});fireEvent.change(screen.getByLabelText("协议销售金额（USD）"),{target:{value:"100"}});fireEvent.change(screen.getByLabelText("划入服务额度（USD）"),{target:{value:"120"}});fireEvent.click(screen.getByLabelText("我确认款项已实际收到"));fireEvent.click(screen.getByRole("button",{name:"登记收款并划入额度"}));const dialog=await screen.findByRole("dialog");expect(dialog.textContent).toContain("¥700.00 CNY");expect(dialog.textContent).toContain("$100.00 USD");expect(dialog.textContent).toContain("$120.00 USD");fireEvent.click(within(dialog).getByRole("button",{name:"确认",exact:true}));await screen.findByText(/purchase-original 已完成/);expect(sent).toMatchObject({cash_amount_minor:70000,cash_currency:"CNY",sale_amount_minor:100000000,quota_amount_minor:120000000,confirmed:true});expect(sent.operation_id).toBeTruthy();
+});
+it("retains a submitted purchase across reload and an empty lookup, then retries exactly once with its original identity",async()=>{
+ const bodies:string[]=[];let succeed=false;
+ vi.stubGlobal("fetch",vi.fn(async(url,init)=>{if(init?.method==="POST"){bodies.push(init.body);if(!succeed)throw new Error("response lost");return json({item:{id:"purchase-original",...JSON.parse(init.body)}})}return String(url).includes("/operations?")?json({error:{message:"尚未查到原交易"}},404):json({items:[]})}));
+ const view=page();fill();fireEvent.click(screen.getByRole("button",{name:"登记收款并划入额度"}));fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认",exact:true}));await screen.findByRole("alert",{name:""});view.unmount();page();const retry=await screen.findByRole("button",{name:"重试原交易"});expect(screen.queryByLabelText("实际收款金额")).toBeNull();fireEvent.click(screen.getByRole("button",{name:"核对原交易"}));await screen.findByText("尚未查到原交易");expect(screen.getByRole("button",{name:"重试原交易"})).toBeTruthy();succeed=true;fireEvent.click(retry);fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认",exact:true}));await screen.findByText(/purchase-original 已完成/);expect(bodies).toHaveLength(2);expect(bodies[0]).toBe(bodies[1]);
+});
+it("does not open a financial confirmation before actual receipt has been confirmed",async()=>{
+ const f=vi.fn(async()=>json({items:[]}));vi.stubGlobal("fetch",f);page();fireEvent.click(screen.getByRole("button",{name:"登记收款并划入额度"}));await screen.findByText(/请填写有效实收金额/);expect(screen.queryByRole("dialog")).toBeNull();expect(f.mock.calls.every((args:any[])=>!args[1]?.method)).toBe(true);
+});
+it("shows the original transaction for a definite external reference conflict and requires explicit closure",async()=>{
+ vi.stubGlobal("fetch",vi.fn(async(_url,init)=>init?.method==="POST"?json({error:{code:"external_reference_conflict",message:"本次没有新增交易",param:{item:{id:"existing-purchase",oem_channel_org_id:"oem-one",cash_amount_minor:1000000000,cash_currency:"USD",sale_amount_minor:1000000000,quota_amount_minor:900000000,occurred_at:"2026-10-10T00:00:00Z"}}}},409):json({items:[]})));
+ page();fill();fireEvent.click(screen.getByRole("button",{name:"登记收款并划入额度"}));fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认",exact:true}));await screen.findByText("已登记原交易：existing-purchase");expect(screen.queryByRole("button",{name:"重试原交易"})).toBeNull();expect(screen.queryByLabelText("实际收款金额")).toBeNull();fireEvent.click(screen.getByRole("button",{name:"结束已拒绝的操作"}));fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认",exact:true}));await screen.findByLabelText("实际收款金额");expect(sessionStorage.getItem("oem-purchase:finance:oem-one")).toBeNull();
+});
+it("does not treat an operation lookup with different amounts as confirmation",async()=>{
+ const f=vi.fn(async(url,init)=>{if(init?.method==="POST")throw new Error("lost response");if(String(url).includes("/operations?")){const saved=JSON.parse(sessionStorage.getItem("oem-purchase:finance:oem-one")!);return json({item:{id:"different",operation_id:saved.id,...saved.payload,quota_amount_minor:1}})}return json({items:[]})});vi.stubGlobal("fetch",f);page();fill();fireEvent.click(screen.getByRole("button",{name:"登记收款并划入额度"}));fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认",exact:true}));await screen.findByRole("alert");fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"取消",exact:true}));fireEvent.click(await screen.findByRole("button",{name:"核对原交易"}));await screen.findByText(/查到的记录与本次待确认内容不一致/);expect(sessionStorage.getItem("oem-purchase:finance:oem-one")).not.toBeNull();expect(screen.queryByText(/different 已完成/)).toBeNull();
+});

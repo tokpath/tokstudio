@@ -13,6 +13,7 @@ import { useViewer } from "@/components/rbac/viewer-context";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import { AdminSupplierPanel } from "./supplier-panel";
+import { OEMPurchasesPanel } from "@/components/oem-purchases";
 
 export default function AdminBillingPage() {
   const t=useTranslations("billingOverview");
@@ -45,9 +46,8 @@ export default function AdminBillingPage() {
           <div role="alert" className="mt-3"><p className="text-danger">{query.error?.message || t("failed")}</p><Button variant="outline" className="mt-2" onClick={()=>void query.refetch()}>{t("retry")}</Button></div>
         ) : <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {([
-            ["revenue_minor", "terminalConsumption"], ["upstream_cost_minor", "serviceCost"],
-            ["wholesale_minor", "brandSettlement"], ["commission_liability_minor", "commissionPending"], ["commission_expense_minor", "commissionCost"],
-            ["refund_minor", "reversed"], ["gross_profit_minor", "technicalDifference"],
+            ["revenue_minor", "platformRevenue"], ["self_revenue_minor", "selfRevenue"], ["oem_sales_minor", "oemSales"], ["upstream_cost_minor", "serviceCost"],
+            ["commission_liability_minor", "commissionPending"], ["gross_profit_minor", "grossMargin"], ["marketing_minor", "marketing"], ["operating_profit_minor", "operatingProfit"],
           ] as const).map(([key, label]) => <div key={key} className="rounded-control border border-hairline p-3">
             <dt className="text-sm text-ink-secondary">{t(label)}</dt>
             <dd className="mt-1 font-mono tabular-nums">{formatUsdMinor(report[key])} USD</dd>
@@ -56,6 +56,7 @@ export default function AdminBillingPage() {
         </dl>}
       </section>
       <AdminSupplierPanel />
+      <OEMPurchasesPanel />
     </AdminShell>
   );
 }

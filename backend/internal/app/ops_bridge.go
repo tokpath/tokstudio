@@ -54,7 +54,7 @@ type moneyBridge struct {
 }
 
 func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
-	item, err := b.billing.Report(ctx)
+	item, err := b.billing.PlatformReport(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (b *moneyBridge) Money(ctx context.Context) (*ops.MoneyView, error) {
 }
 
 func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.DimStat, error) {
-	rows, err := b.billing.DimMoney(ctx, dimension)
+	rows, err := b.billing.PlatformDimMoney(ctx, dimension)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (b *moneyBridge) DimMoney(ctx context.Context, dimension string) ([]ops.Dim
 }
 
 func (b *moneyBridge) DailySeries(ctx context.Context, since time.Time) ([]ops.DailyMoney, error) {
-	rows, err := b.billing.DailySeries(ctx, since)
+	rows, err := b.billing.PlatformDailySeries(ctx, since)
 	if err != nil {
 		return nil, err
 	}

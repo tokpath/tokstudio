@@ -41,11 +41,15 @@ func TestOEMManagementScope(t *testing.T) {
 		if err := a.DB.Exec(`INSERT INTO billing_usage_events (id, request_id, user_id, channel_org_id, public_model_id, unit_usage_json, unit_prices_json, customer_amount_minor, upstream_cost_minor, wholesale_amount_minor, state, idempotency_key) VALUES (?, ?, ?, ?, ?, '{}', '{}', 100, 3, 40, 'confirmed', ?)`, key, key, userIDOf(cLogin), channel, marker, key).Error; err != nil {
 			t.Fatal(err)
 		}
+		if err := a.DB.Exec(`INSERT INTO billing_customer_charges (id,request_id,usage_event_id,amount_minor,status) VALUES (?,?,?,100,'committed')`, key, key, key).Error; err != nil {
+			t.Fatal(err)
+		}
 		if err := a.DB.Exec(`INSERT INTO media_jobs (id, request_id, user_id, channel_org_id, public_model_id, job_kind, task_type, status, prompt) VALUES (?, ?, ?, ?, ?, 'video', 'generate', 'failed', 'private prompt')`, key, key, userIDOf(cLogin), channel, marker).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
 	t.Cleanup(func() {
+		a.DB.Exec("DELETE FROM billing_customer_charges WHERE usage_event_id IN (SELECT id FROM billing_usage_events WHERE public_model_id=?)", marker)
 		a.DB.Exec("DELETE FROM billing_usage_events WHERE public_model_id = ?", marker)
 		a.DB.Exec("DELETE FROM media_jobs WHERE public_model_id = ?", marker)
 	})

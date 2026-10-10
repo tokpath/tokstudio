@@ -190,7 +190,7 @@ func TestSupplierWorkflowFullPaginationAndBrandPnL(t *testing.T) {
 		t.Fatalf("brand PnL %d %+v", code, body)
 	}
 	pnl := body["pnl"].(map[string]any)
-	if asInt(pnl["consumed_minor"]) != expected.RevenueMinor || asInt(pnl["pnl_minor"]) != expected.RevenueMinor+asInt(pnl["marketing_minor"])+asInt(pnl["supplier_minor"]) {
+	if asInt(pnl["consumed_minor"]) != expected.RevenueMinor || asInt(pnl["pnl_minor"]) != asInt(pnl["margin_minor"])+asInt(pnl["marketing_minor"]) {
 		t.Fatalf("not full net actual consumption %+v expected %+v", pnl, expected)
 	}
 	if code, _ := doJSON(t, http.MethodGet, fx.server.URL+"/admin/channels/"+identity.OEMChannelID+"/pnl", a.Config.BootstrapAdmin, false, nil); code != 403 {

@@ -11,6 +11,7 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders } from "@/lib/confirm";
 import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
 import { beginOperation, finishOperation, loadOperation, type SavedOperation } from "@/lib/stable-operation";
+import { OEMPurchasesPanel } from "@/components/oem-purchases";
 
 type Quota = { available_minor: number; issued_minor: number; consumed_minor: number };
 type Payload = { channel_org_id: string; amount_minor: number; preview_before_minor: number };
@@ -73,10 +74,10 @@ export function ChannelQuotaPanel({ channelID, channelType }: { channelID: strin
     try { const response = await fetch(`${apiBase}${path}/issue-rule`, { method: "PATCH", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ issue_ratio_bps: bps }) }); const body = await response.json(); if (!response.ok) { setMessage(body.error?.message || t("readFailed")); return false; } await rule.refetch(); setMessage(t("ruleSaved")); return true; } catch { setMessage(t("unconfirmed")); return false; }
   }
   if (channelType !== "C") return null;
-  return <section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="text-lg font-semibold">{t("title")}</h2><p className="mt-2 text-sm text-ink-secondary">{t("hint")}</p>
+  return <div className="space-y-5"><OEMPurchasesPanel ownerID={channelID} allowCreate/><details className="rounded-card border border-hairline bg-canvas-raised p-6"><summary className="text-lg font-semibold">{t("title")}</summary><p className="mt-2 text-sm text-ink-secondary">{t("hint")}</p>
     {message ? <p role="status" className="mt-3 text-sm">{message}</p> : null}
     {query.isPending ? <p role="status">{t("loading")}</p> : query.isError ? <p role="alert">{t("readFailed")}</p> : <p className="my-3">{t("available", { amount: formatUsdMinor(current) })}{!query.data?.exists ? ` · ${t("newPool")}` : ""}</p>}
     <div className="my-3 flex flex-wrap gap-3"><Input disabled={Boolean(operation)} aria-label={t("amount")} placeholder={t("amount")} value={amount} onChange={event => setAmount(event.target.value)} /><Button variant="outline" onClick={() => void query.refetch()}>{t("refresh")}</Button><ConfirmButton disabled={viewer.loading || (!operation && (query.isPending || query.isError))} title={t("adjust")} description={t("confirm", { amount: formatUsdMinor(minor), before: formatUsdMinor(operation?.payload.preview_before_minor ?? current), after: formatUsdMinor((operation?.payload.preview_before_minor ?? current) != null && minor != null ? (operation?.payload.preview_before_minor ?? current)! + minor : undefined) })} validate={validate} onConfirm={adjust}>{operation ? t("retry") : t("adjust")}</ConfirmButton>{operation ? <Button variant="outline" onClick={() => void lookup()}>{t("lookup")}</Button> : null}</div>
     <details className="mt-4"><summary>{t("ratioTitle")}</summary><p className="my-3 text-sm">{t("ratioHint")}</p>{rule.isError ? <p role="alert">{t("readFailed")}</p> : null}<div className="flex gap-3"><Input disabled={rule.isPending || rule.isError} aria-label={t("ratio")} value={ratio} onChange={event => setRatio(event.target.value)} /><ConfirmButton disabled={rule.isPending || rule.isError} title={t("saveRatio")} description={t("ratioConfirm", { before: rule.data ? rule.data.issue_ratio_bps / 100 : "—", after: ratio || "—" })} validate={() => Boolean(rule.data) && Number(ratio)>=10 && Number(ratio)<=1000 && /^\d+(\.\d{1,2})?$/.test(ratio.trim())} onConfirm={saveRatio}>{t("saveRatio")}</ConfirmButton></div></details>
-  </section>;
+  </details></div>;
 }

@@ -365,7 +365,7 @@ func (a *App) adminLedger(c *gin.Context) {
 func (a *App) adminUsage(c *gin.Context) { a.workflowUsage(c, "admin") }
 
 func (a *App) billingExport(c *gin.Context) {
-	report, err := a.Billing.Report(c.Request.Context())
+	report, err := a.Billing.PlatformReport(c.Request.Context())
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "导出失败", true)
 		return
@@ -376,7 +376,7 @@ func (a *App) billingExport(c *gin.Context) {
 }
 
 func (a *App) billingReport(c *gin.Context) {
-	report, err := a.Billing.Report(c.Request.Context())
+	report, err := a.Billing.PlatformReport(c.Request.Context())
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取报表失败", true)
 		return

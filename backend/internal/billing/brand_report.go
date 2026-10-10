@@ -4,6 +4,8 @@ import "context"
 
 // BrandReport describes the OEM's customer business. Its cost is the platform
 // wholesale charge, never the platform's supplier invoice or attempt cost.
+// Only an original committed/reversed charge proves settled consumption. Voided
+// measurements that were superseded during reconciliation are not another cost.
 type BrandReport struct {
 	Requests     int64 `json:"requests"`
 	RevenueMinor int64 `json:"revenue_minor"`
@@ -23,11 +25,11 @@ func (s *Service) BrandReport(ctx context.Context, channelIDs []string) (*BrandR
 	if len(channelIDs) == 0 {
 		return total, items, nil
 	}
-	err := s.db.WithContext(ctx).Table("billing_usage_events").
+	err := s.db.WithContext(ctx).Table("billing_usage_events AS u").
 		Select(`public_model_id AS model,
 		COUNT(*) FILTER (WHERE state = 'confirmed') AS requests,
 		COALESCE(SUM(customer_amount_minor) FILTER (WHERE state = 'confirmed'), 0) AS revenue_minor,
-		COALESCE(SUM(wholesale_amount_minor) FILTER (WHERE state = 'confirmed'), 0) AS cost_minor,
+		COALESCE(SUM(wholesale_amount_minor) FILTER (WHERE state IN ('confirmed','voided') AND EXISTS (SELECT 1 FROM billing_customer_charges c WHERE c.usage_event_id=u.id AND c.status IN ('committed','reversed'))), 0) AS cost_minor,
 		COUNT(*) FILTER (WHERE state = 'pending_reconciliation') AS pending`).
 		Where("channel_org_id IN ?", channelIDs).Group("public_model_id").Order("public_model_id").Scan(&items).Error
 	if err != nil {

@@ -71,7 +71,7 @@ func (a *App) composePnL(c *gin.Context, selected string) {
 			return
 		}
 	}
-	mkt, err := a.Commission.MarketingTotals(c.Request.Context(), owner)
+	_, _, marketing, err := a.Commission.BusinessTotals(c.Request.Context(), channels)
 	if a.abortSupplierError(c, err) {
 		return
 	}
@@ -79,7 +79,7 @@ func (a *App) composePnL(c *gin.Context, selected string) {
 	if a.abortSupplierError(c, err) {
 		return
 	}
-	item, err := a.Billing.ChannelPnL(c.Request.Context(), owner, mkt.FrozenMinor, mkt.IssuedMinor, supplier, channels)
+	item, err := a.Billing.ChannelPnL(c.Request.Context(), owner, 0, marketing, supplier, channels)
 	if a.abortSupplierError(c, err) {
 		return
 	}

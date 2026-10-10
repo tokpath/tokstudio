@@ -16,13 +16,14 @@ import { DASHBOARD_HERO_ICONS } from "@/lib/page-icons";
 type Body={dashboard:{totals?:Record<string,number>;generated_at?:string;module_errors?:Record<string,string>;alerts?:{kind?:string}[];provider_health?:{state?:string};dimensions?:Record<string,{key:string;requests?:number;revenue_minor?:number;success_rate?:number}[]>}};
 type Series={items:{day:string;requests?:number;revenue_minor?:number;success_rate?:number}[]};
 export default function AdminDashboard(){
+ const tb=useTranslations("billingOverview");
  const t=useTranslations("admin"),td=useTranslations("dashboard"),tw=useTranslations("workbench"),tc=useTranslations("charts"),viewer=useViewer();
  const {resolvedTheme}=useTheme();const[dimension,setDimension]=useState("model");
  const query=useQuery({queryKey:[viewer.userId,"dashboard"],queryFn:()=>readUsage<Body>("/admin/ops/dashboard"),enabled:viewer.signedIn,retry:false});
  const series=useQuery({queryKey:[viewer.userId,"metrics-series"],queryFn:()=>readUsage<Series>("/admin/metrics/series?days=7"),enabled:viewer.signedIn,retry:false});
  const dash=query.isError?undefined:query.data?.dashboard,errors=dash?.module_errors||{};
- const palette=useMemo(()=>chartPalette(resolvedTheme==="dark"),[resolvedTheme]),labels=useMemo(()=>({requests:tc("requests"),revenue:tc("spend")}),[tc]);
- const dims=dash?.dimensions?.[dimension];
+ const palette=useMemo(()=>chartPalette(resolvedTheme==="dark"),[resolvedTheme]),labels=useMemo(()=>({requests:tc("requests"),revenue:tb("platformRevenue")}),[tc,tb]);
+ const dims=dash?.dimensions?.[dimension]?.map(row=>({...row,key:row.key==="oem_service_sales"?tb("oemSales"):row.key}));
  const dimOption=useMemo(()=>dims?.length?requestChartOption(dims,labels,palette):null,[dims,labels,palette]);
  const dayOption=useMemo(()=>series.data?.items.length?dailyChartOption(series.data.items,labels,palette):null,[series.data,labels,palette]);
  const cards=dashboardHero(dash||{});const dimFailed=!!errors[`dimensions.${dimension}`];

@@ -86,13 +86,13 @@ func TestActualKeyCashExcessAdmissionAndRefund(t *testing.T) {
 	}
 	charge := ""
 	for r := range results {
-		if r.State != billing.UsageConfirmed || r.AmountMinor != 120000 || (charge != "" && charge != r.ChargeID) {
+		if r.State != billing.UsageConfirmed || r.AmountMinor != 100000 || (charge != "" && charge != r.ChargeID) {
 			t.Fatalf("actual/replay %+v", r)
 		}
 		charge = r.ChargeID
 	}
-	accountingBalance(t, fx, p, -20000, 0, 0)
-	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 120000, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
+	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 50000, 0)
 	var entries int64
 	if err := fx.app.DB.Table("commission_entries").Where("request_id=?", request).Count(&entries).Error; err != nil {
 		t.Fatal(err)
@@ -101,8 +101,8 @@ func TestActualKeyCashExcessAdmissionAndRefund(t *testing.T) {
 		t.Fatal("reliable excess did not accrue normal commission")
 	}
 	code, body := doJSON(t, http.MethodGet, fx.server.URL+"/v1/me/balance", session, false, nil)
-	if code != 200 || body["balance"].(map[string]any)["available"] != "-0.02" {
-		t.Fatalf("negative HTTP balance %d %+v", code, body)
+	if code != 200 || body["balance"].(map[string]any)["available"] != "0" {
+		t.Fatalf("cash balance must stop at zero %d %+v", code, body)
 	}
 	in.Usage["prompt_tokens"] = 120001
 	if _, err := fx.app.Billing.Settle(fx.ctx, in); !errors.Is(err, billing.ErrConflict) {
@@ -118,9 +118,9 @@ func TestActualKeyCashExcessAdmissionAndRefund(t *testing.T) {
 	if err := fx.app.Billing.Credit(fx.ctx, p.UserID, id.New("credit"), 30000, ""); err != nil {
 		t.Fatal(err)
 	}
-	accountingBalance(t, fx, p, 10000, 0, 0)
-	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 120000, 0)
-	held := accountingReserve(t, fx, p, key, 10000, accountingPrices)
+	accountingBalance(t, fx, p, 30000, 0, 0)
+	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 50000, 0)
+	held := accountingReserve(t, fx, p, key, 30000, accountingPrices)
 	if _, err := fx.app.Billing.Reserve(fx.ctx, billing.ReserveInput{UserID: p.UserID, ChannelOrgID: p.ChannelOrgID, APIKeyID: key.ID, RequestID: id.New("req"), PublicModelID: catalog.EchoModelID, ReserveMinor: 1, UnitPrices: accountingPrices}); !errors.Is(err, billing.ErrInsufficientBalance) {
 		t.Fatalf("occupied balance reused: %v", err)
 	}
@@ -158,16 +158,16 @@ func TestActualKeyGiftExcessDoesNotStealOtherReservations(t *testing.T) {
 				t.Fatal(err)
 			}
 			if concurrent {
-				accountingBalance(t, fx, p, -400000, 0, 300000)
+				accountingBalance(t, fx, p, 0, 0, 300000)
 				if auth.GiftSettledMinor != 700000 {
 					t.Fatalf("stole occupied gift %d", auth.GiftSettledMinor)
 				}
 				if err := fx.app.Billing.Release(fx.ctx, other); err != nil {
 					t.Fatal(err)
 				}
-				accountingBalance(t, fx, p, -100000, 300000, 0)
+				accountingBalance(t, fx, p, 300000, 300000, 0)
 			} else {
-				accountingBalance(t, fx, p, -100000, 0, 0)
+				accountingBalance(t, fx, p, 0, 0, 0)
 				if auth.GiftSettledMinor != 1000000 {
 					t.Fatalf("did not consume free gift %d", auth.GiftSettledMinor)
 				}
@@ -198,25 +198,18 @@ func TestActualKeyEntitlementExcessAndDebtNetAdmission(t *testing.T) {
 	in := billing.SettleInput{RequestID: request, Usage: map[string]int{"prompt_tokens": 1100000, "completion_tokens": 0}}
 	for i := 0; i < 2; i++ {
 		r, err := fx.app.Billing.Settle(fx.ctx, in)
-		if err != nil || r.State != billing.UsageConfirmed || r.AmountMinor != 1100000 {
+		if err != nil || r.State != billing.UsageConfirmed || r.AmountMinor != 1000000 {
 			t.Fatalf("plan actual %+v %v", r, err)
 		}
 	}
-	accountingBalance(t, fx, p, -100000, 0, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
 	avail, err := fx.app.Plans.AvailableUSD(fx.ctx, p.UserID)
 	if err != nil || avail != 0 {
-		t.Fatalf("plan unused/invalid coverage %d %v", avail, err)
-	}
-	if err := fx.app.Billing.Credit(fx.ctx, p.UserID, id.New("credit"), 50000, ""); err != nil {
-		t.Fatal(err)
+		t.Fatalf("bonus coverage left over %d %v", avail, err)
 	}
 	grant("usd_credit", 40000)
-	if _, err := fx.app.Billing.Reserve(fx.ctx, billing.ReserveInput{UserID: p.UserID, ChannelOrgID: p.ChannelOrgID, APIKeyID: key.ID, RequestID: id.New("req"), PublicModelID: catalog.EchoModelID, ReserveMinor: 1, UnitPrices: accountingPrices}); !errors.Is(err, billing.ErrInsufficientBalance) {
-		t.Fatalf("negative cash was clamped before plan coverage: %v", err)
-	}
-	grant("usd_credit", 20000)
 	held := accountingReserve(t, fx, p, key, 5000, accountingPrices)
-	accountingBalance(t, fx, p, -50000, 0, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
 	if err := fx.app.Billing.Release(fx.ctx, held); err != nil {
 		t.Fatal(err)
 	}
@@ -225,9 +218,9 @@ func TestActualKeyEntitlementExcessAndDebtNetAdmission(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	accountingBalance(t, fx, p, 50000, 0, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
 	avail, err = fx.app.Plans.AvailableUSD(fx.ctx, p.UserID)
-	if err != nil || avail != 1060000 {
+	if err != nil || avail != 1040000 {
 		t.Fatalf("actual plan coverage refund %d %v", avail, err)
 	}
 	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 0, 0)
@@ -291,11 +284,11 @@ func TestActualKeyOEMBrandPriceAndUnknownUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 	r, err := fx.app.Billing.Settle(fx.ctx, billing.SettleInput{RequestID: request, UserID: "other", ChannelOrgID: identity.OfficialChannelID, APIKeyID: "other", Usage: map[string]int{"prompt_tokens": 60000, "completion_tokens": 0}, UnitPrices: json.RawMessage(`{"input":"100","output":"100"}`)})
-	if err != nil || r.State != billing.UsageConfirmed || r.AmountMinor != 120000 {
+	if err != nil || r.State != billing.UsageConfirmed || r.AmountMinor != 100000 {
 		t.Fatalf("original OEM charge %+v %v", r, err)
 	}
-	accountingBalance(t, fx, p, -20000, 0, 0)
-	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 120000, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
+	assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 100000, 0)
 	facts, err := fx.app.Billing.QueryUsage(fx.ctx, billing.QueryUsageInput{RequestID: request})
 	if err != nil || len(facts) != 2 {
 		t.Fatalf("unknown history %+v %v", facts, err)
@@ -575,7 +568,7 @@ func TestActualKeyAccountReservationsAcrossKeysAndPlanSources(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A may extend to the free 600000 credits, but B's 300000 stays its own.
-	accountingBalance(t, fx, p, -300000, 0, 0)
+	accountingBalance(t, fx, p, 0, 0, 0)
 	var source struct{ EntitlementSettledMinor int64 }
 	if err := fx.app.DB.Table("billing_authorizations").Where("request_id=?", a).First(&source).Error; err != nil {
 		t.Fatal(err)
@@ -595,5 +588,25 @@ func TestActualKeyAccountReservationsAcrossKeysAndPlanSources(t *testing.T) {
 	accountingBalance(t, fx, p, 100000, 0, 0)
 	if remaining, err := fx.app.Plans.AvailableUSD(fx.ctx, p.UserID); err != nil || remaining != 1000000 {
 		t.Fatalf("actual plan refund %d %v", remaining, err)
+	}
+}
+
+func TestActualPurchasedPlanOverageZeroesPlanAndKeepsCash(t *testing.T) {
+	fx := newWMeterEnv(t)
+	p, key, _ := accountingUser(t, fx, "", "THA1", 1000000)
+	if err := fx.app.Billing.Credit(fx.ctx, p.UserID, id.New("credit"), 500000, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := fx.app.DB.Exec(`INSERT INTO plans_entitlement_accounts (id, user_id, source_type, source_id, unit_type, granted, consumed, status, created_at) VALUES (?, ?, 'plan', ?, 'usd_credit', 100000, 0, 'active', NOW())`, id.New("ent"), p.UserID, id.New("sub")).Error; err != nil {
+		t.Fatal(err)
+	}
+	request := accountingReserve(t, fx, p, key, 80000, accountingPrices)
+	result, err := fx.app.Billing.Settle(fx.ctx, billing.SettleInput{RequestID: request, Usage: map[string]int{"prompt_tokens": 150000, "completion_tokens": 0}})
+	if err != nil || result == nil || result.AmountMinor != 100000 {
+		t.Fatalf("purchased plan wipe %+v %v", result, err)
+	}
+	accountingBalance(t, fx, p, 500000, 0, 0)
+	if remaining, err := fx.app.Plans.AvailableUSD(fx.ctx, p.UserID); err != nil || remaining != 0 {
+		t.Fatalf("purchased plan remaining %d %v", remaining, err)
 	}
 }

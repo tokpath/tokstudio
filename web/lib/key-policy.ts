@@ -4,6 +4,7 @@ export type KeyPolicy = {
   budget_limit_minor?: number | null;
   budget_used_minor?: number;
   budget_reserved_minor?: number;
+  budget_period?: "lifetime" | "month" | "quarter" | "year" | "";
   status?: string;
   expires_at?: string | null;
 };
@@ -25,6 +26,15 @@ export function keyState(key: KeyPolicy, now = Date.now()): "active" | "disabled
     if (used + (key.budget_reserved_minor ?? 0) >= key.budget_limit_minor) return "occupied";
   }
   return "active";
+}
+
+/** 余量用完就是 0，不显示负数。 */
+export function keyRemainingMinor(key: KeyPolicy): number | null {
+  if (key.budget_limit_minor == null) {
+    return null;
+  }
+  const left = key.budget_limit_minor - (key.budget_used_minor ?? 0) - (key.budget_reserved_minor ?? 0);
+  return left > 0 ? left : 0;
 }
 export function keyDocsHref(keyID: string, model = "", tab: "agent" | "protocol" = "protocol"): string {
   const params = new URLSearchParams({ key_id: keyID, tab });

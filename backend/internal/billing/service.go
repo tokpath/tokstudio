@@ -593,26 +593,56 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		if covered < 0 {
 			covered = 0
 		}
-		if err := identity.AdjustAPIKeyBudgetTx(tx, stringPtr(auth.APIKeyID), customer, -auth.KeyReservedMinor); err != nil {
-			return err
-		}
 		wallet, err := lockWalletByID(tx, auth.WalletID)
 		if err != nil {
 			return err
 		}
-		if s.coverer != nil && customer > covered {
-			covered, err = s.coverer.ExtendUSDUsageTx(tx, auth.UserID, in.RequestID, customer)
+		planLeft := int64(0)
+		wipePlan := false
+		if s.coverer != nil {
+			planLeft, err = s.coverer.PurchasedUSDRemainingTx(tx, auth.UserID)
 			if err != nil {
 				return err
 			}
+			// 实际费用超过购买套餐的剩余额度时，套餐归零，账户现金不扣。
+			if planLeft > 0 && customer > covered+planLeft {
+				wipePlan = true
+				zeroed, zeroErr := s.coverer.ZeroPurchasedUSDTx(tx, auth.UserID, in.RequestID)
+				if zeroErr != nil {
+					return zeroErr
+				}
+				covered += zeroed
+			} else if customer > covered {
+				covered, err = s.coverer.ExtendUSDUsageTx(tx, auth.UserID, in.RequestID, customer)
+				if err != nil {
+					return err
+				}
+			}
 		}
-		entitlementUsed := customer
-		if entitlementUsed > covered {
-			entitlementUsed = covered
+		entitlementUsed := covered
+		if !wipePlan && entitlementUsed > customer {
+			entitlementUsed = customer
 		}
-		walletUsed := customer - entitlementUsed
-		// A negative release is the actual excess over the wallet reservation.
-		// Admission checked the estimate; settlement records all reliable usage.
+		walletAvailable := wallet.AvailableMinor
+		if walletAvailable < 0 {
+			walletAvailable = 0
+		}
+		walletUsed := int64(0)
+		if !wipePlan {
+			walletUsed = customer - entitlementUsed
+			if walletUsed < 0 {
+				walletUsed = 0
+			}
+			// 现金最多扣到零，不能把可用余额扣成负数。
+			maxWallet := walletReserved + walletAvailable
+			if walletUsed > maxWallet {
+				walletUsed = maxWallet
+			}
+		}
+		billed := entitlementUsed + walletUsed
+		if err := identity.AdjustAPIKeyBudgetTx(tx, stringPtr(auth.APIKeyID), billed, -auth.KeyReservedMinor); err != nil {
+			return err
+		}
 		walletRelease := walletReserved - walletUsed
 		giftReserved := auth.GiftReservedMinor
 		if giftReserved > walletReserved {
@@ -649,7 +679,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		row := usageRow{
 			ID: id.New("usg"), RequestID: in.RequestID, UserID: auth.UserID,
 			PublicModelID: in.PublicModelID, UnitUsage: usageJSON, UnitPrices: quote.Raw,
-			PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: customer,
+			PriceVersionID: auth.PriceVersionID, CustomerAmountMinor: billed,
 			UpstreamCostMinor:    quote.MediaCost(in.Usage, in.Resolution),
 			WholesaleAmountMinor: quote.WholesaleCharge(in.Usage, in.Resolution),
 			Currency:             CurrencyUSD, State: UsageConfirmed, IdempotencyKey: in.IdempotencyKey,
@@ -669,7 +699,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 		}
 		charge := chargeRow{
 			ID: id.New("chg"), RequestID: in.RequestID, UsageEventID: row.ID,
-			AuthorizationID: &auth.ID, AmountMinor: customer, PriceVersionID: row.PriceVersionID,
+			AuthorizationID: &auth.ID, AmountMinor: billed, PriceVersionID: row.PriceVersionID,
 			Status: ChargeCommitted, CreatedAt: now,
 		}
 		if err := tx.Create(&charge).Error; err != nil {
@@ -693,7 +723,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			return err
 		}
 		auth.Status = AuthSettled
-		auth.SettledMinor = customer
+		auth.SettledMinor = billed
 		auth.GiftSettledMinor = giftUsed
 		auth.EntitlementSettledMinor = entitlementUsed
 		auth.UpdatedAt = now
@@ -701,11 +731,11 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			return err
 		}
 		if _, err := s.outbox.EnqueueTx(tx, "billing.charge.committed", "customer_charge", charge.ID, map[string]any{
-			"request_id": in.RequestID, "amount_minor": customer, "usage_event_id": row.ID,
+			"request_id": in.RequestID, "amount_minor": billed, "usage_event_id": row.ID,
 		}); err != nil {
 			return err
 		}
-		out = &Settlement{ChargeID: charge.ID, UsageEventID: row.ID, AmountMinor: customer, State: UsageConfirmed, Currency: CurrencyUSD}
+		out = &Settlement{ChargeID: charge.ID, UsageEventID: row.ID, AmountMinor: billed, State: UsageConfirmed, Currency: CurrencyUSD}
 		if s.coverer != nil {
 			if err := s.coverer.ReverseKeepTx(tx, in.RequestID, entitlementUsed); err != nil {
 				return err

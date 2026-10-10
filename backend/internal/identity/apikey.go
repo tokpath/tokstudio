@@ -32,6 +32,8 @@ type apiKeyRow struct {
 	BudgetLimitMinor    *int64     `gorm:"column:budget_limit_minor"`
 	BudgetUsedMinor     int64      `gorm:"column:budget_used_minor"`
 	BudgetReservedMinor int64      `gorm:"column:budget_reserved_minor"`
+	BudgetPeriod        string     `gorm:"column:budget_period"`
+	BudgetWindowStart   *time.Time `gorm:"column:budget_window_start"`
 	ExpiresAt           *time.Time `gorm:"column:expires_at"`
 	LastUsedAt          *time.Time `gorm:"column:last_used_at"`
 	CreatedAt           time.Time  `gorm:"column:created_at"`
@@ -62,6 +64,7 @@ type APIKeyView struct {
 	BudgetLimitMinor    *int64     `json:"budget_limit_minor"`
 	BudgetUsedMinor     int64      `json:"budget_used_minor"`
 	BudgetReservedMinor int64      `json:"budget_reserved_minor"`
+	BudgetPeriod        string     `json:"budget_period"`
 	ExpiresAt           *time.Time `json:"expires_at,omitempty"`
 	LastUsedAt          *time.Time `json:"last_used_at,omitempty"`
 	CreatedAt           time.Time  `json:"created_at"`
@@ -165,6 +168,7 @@ type APIKeyLimits struct {
 	ModelMode        string     `json:"model_mode"`
 	Allowlist        []string   `json:"allowlist"`
 	BudgetLimitMinor *int64     `json:"budget_limit_minor"`
+	BudgetPeriod     string     `json:"budget_period,omitempty"`
 	ExpiresAt        *time.Time `json:"expires_at"`
 	RPMLimit         int        `json:"rpm_limit"`
 	ConcurrencyLimit int        `json:"concurrency_limit"`
@@ -202,6 +206,11 @@ func normalizeKeyLimits(in APIKeyLimits) (APIKeyLimits, error) {
 			in.ModelMode = "selected"
 		}
 	}
+	period, err := normalizeBudgetPeriod(in.BudgetPeriod, in.BudgetLimitMinor != nil)
+	if err != nil {
+		return in, err
+	}
+	in.BudgetPeriod = period
 	if in.Name == "" || (in.ModelMode != "all" && in.ModelMode != "selected") || (in.ModelMode == "selected" && len(in.Allowlist) == 0) || (in.BudgetLimitMinor != nil && *in.BudgetLimitMinor <= 0) || in.RPMLimit < 0 || in.ConcurrencyLimit < 0 {
 		return in, ErrInvalidKeyLimits
 	}
@@ -238,9 +247,16 @@ func (s *Service) CreateAPIKeyWithLimits(ctx context.Context, user Principal, en
 	if err != nil {
 		return nil, err
 	}
-	row := apiKeyRow{ID: id.New("key"), UserID: user.UserID, Name: in.Name, Prefix: raw[:8], SecretHash: crypto.HashToken(raw), SecretCiphertext: cipher, Status: "active", ModelMode: in.ModelMode, BudgetLimitMinor: in.BudgetLimitMinor, ExpiresAt: in.ExpiresAt, RPMLimit: in.RPMLimit, ConcurrencyLimit: in.ConcurrencyLimit, CreatedAt: time.Now().UTC()}
+	now := time.Now().UTC()
+	row := apiKeyRow{ID: id.New("key"), UserID: user.UserID, Name: in.Name, Prefix: raw[:8], SecretHash: crypto.HashToken(raw), SecretCiphertext: cipher, Status: "active", ModelMode: in.ModelMode, BudgetLimitMinor: in.BudgetLimitMinor, BudgetPeriod: in.BudgetPeriod, ExpiresAt: in.ExpiresAt, RPMLimit: in.RPMLimit, ConcurrencyLimit: in.ConcurrencyLimit, CreatedAt: now}
+	if start := budgetPeriodStart(now, in.BudgetPeriod); !start.IsZero() {
+		row.BudgetWindowStart = &start
+	}
 	canonical := in
 	canonical.OperationID = ""
+	if canonical.BudgetPeriod == BudgetPeriodLifetime {
+		canonical.BudgetPeriod = ""
+	}
 	canonical.Allowlist = append([]string{}, in.Allowlist...)
 	sort.Strings(canonical.Allowlist)
 	fingerprintBytes, _ := json.Marshal(canonical)
@@ -298,6 +314,7 @@ func replaceKeyPolicies(tx *gorm.DB, keyID string, allowlist []string) error {
 }
 
 func (s *Service) UpdateAPIKeyLimits(ctx context.Context, user Principal, keyID string, in APIKeyLimits) (*APIKeyView, error) {
+	keepPeriod := strings.TrimSpace(in.BudgetPeriod) == ""
 	in, err := normalizeKeyLimits(in)
 	if err != nil {
 		return nil, err
@@ -315,6 +332,15 @@ func (s *Service) UpdateAPIKeyLimits(ctx context.Context, user Principal, keyID 
 		row.Name = in.Name
 		row.ModelMode = in.ModelMode
 		row.BudgetLimitMinor = in.BudgetLimitMinor
+		if keepPeriod && row.BudgetPeriod != "" {
+			in.BudgetPeriod = row.BudgetPeriod
+		}
+		row.BudgetPeriod = in.BudgetPeriod
+		if in.BudgetPeriod == BudgetPeriodLifetime {
+			row.BudgetWindowStart = nil
+		} else if start := budgetPeriodStart(time.Now().UTC(), in.BudgetPeriod); !start.IsZero() {
+			row.BudgetWindowStart = &start
+		}
 		row.ExpiresAt = in.ExpiresAt
 		row.RPMLimit = in.RPMLimit
 		row.ConcurrencyLimit = in.ConcurrencyLimit
@@ -362,12 +388,14 @@ func ReserveAPIKeyBudgetTx(tx *gorm.DB, keyID, userID, modelID string, amount in
 			return ErrKeyModelNotAllowed
 		}
 	}
+	rollKeyBudget(&row, time.Now().UTC())
 	if row.BudgetLimitMinor != nil {
 		if amount > *row.BudgetLimitMinor-row.BudgetUsedMinor-row.BudgetReservedMinor {
 			return ErrKeyBudgetExceeded
 		}
 	}
-	return tx.Model(&apiKeyRow{}).Where("id = ?", keyID).Update("budget_reserved_minor", row.BudgetReservedMinor+amount).Error
+	row.BudgetReservedMinor += amount
+	return tx.Save(&row).Error
 }
 
 // Every transition is called once under the authorization/charge lifecycle lock.
@@ -379,10 +407,9 @@ func AdjustAPIKeyBudgetTx(tx *gorm.DB, keyID string, usedDelta, reservedDelta in
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", keyID).First(&row).Error; err != nil {
 		return err
 	}
-	if row.BudgetUsedMinor+usedDelta < 0 || row.BudgetReservedMinor+reservedDelta < 0 {
-		return ErrInvalidKeyLimits
-	}
-	return tx.Model(&apiKeyRow{}).Where("id = ?", keyID).Updates(map[string]any{"budget_used_minor": row.BudgetUsedMinor + usedDelta, "budget_reserved_minor": row.BudgetReservedMinor + reservedDelta}).Error
+	rollKeyBudget(&row, time.Now().UTC())
+	row.BudgetUsedMinor, row.BudgetReservedMinor = applyKeyBudget(row.BudgetUsedMinor, row.BudgetReservedMinor, usedDelta, reservedDelta, row.BudgetLimitMinor)
+	return tx.Save(&row).Error
 }
 
 func (p APIKeyPrincipal) AllowsModel(model string) bool {
@@ -530,7 +557,7 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (*APIKeyPr
 func viewFromRow(row apiKeyRow, secret string) APIKeyView {
 	return APIKeyView{
 		ID: row.ID, UserID: row.UserID, Name: row.Name, Prefix: row.Prefix, Secret: secret,
-		ModelMode: row.ModelMode, BudgetLimitMinor: row.BudgetLimitMinor, BudgetUsedMinor: row.BudgetUsedMinor, BudgetReservedMinor: row.BudgetReservedMinor, Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit,
+		ModelMode: row.ModelMode, BudgetLimitMinor: row.BudgetLimitMinor, BudgetUsedMinor: row.BudgetUsedMinor, BudgetReservedMinor: row.BudgetReservedMinor, BudgetPeriod: row.BudgetPeriod, Status: row.Status, RPMLimit: row.RPMLimit, ConcurrencyLimit: row.ConcurrencyLimit,
 		ExpiresAt: row.ExpiresAt, LastUsedAt: row.LastUsedAt, CreatedAt: row.CreatedAt,
 	}
 }

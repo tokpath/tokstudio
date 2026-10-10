@@ -456,11 +456,11 @@ func TestActualKeyMediaExcessAndMissingUsage(t *testing.T) {
 				assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, 0, reserve)
 			} else {
 				actual := quote.Charge(usage, "720p")
-				if actual <= reserve || facts[0].State != billing.UsageConfirmed || facts[0].CustomerMinor != actual || facts[0].UpstreamMinor <= 0 {
+				if actual <= reserve || facts[0].State != billing.UsageConfirmed || facts[0].CustomerMinor != reserve || facts[0].UpstreamMinor <= 0 {
 					t.Fatalf("actual media charge/cost %+v estimate=%d actual=%d", facts[0], reserve, actual)
 				}
-				accountingBalance(t, fx, p, reserve-actual, 0, 0)
-				assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, actual, 0)
+				accountingBalance(t, fx, p, 0, 0, 0)
+				assertBudget(t, fx.app.Identity, fx.ctx, *p, fx.app.Config.EncryptionKey, key.ID, reserve, 0)
 				if _, err := fx.app.Billing.RefundCharge(fx.ctx, saved.RequestID); err != nil {
 					t.Fatal(err)
 				}

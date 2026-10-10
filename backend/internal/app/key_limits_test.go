@@ -154,7 +154,7 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 		}
 	}
 	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 0, 0)
-	// Reliable excess settles in full and blocks subsequent admissions.
+	// Reliable excess is collected from cash, but Key used stops at the limit.
 	excess := id.New("req")
 	if _, err := reserve(excess, 60); err != nil {
 		t.Fatal(err)
@@ -166,7 +166,7 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	if err != nil || result.State != billing.UsageConfirmed || result.AmountMinor != 120 {
 		t.Fatalf("excess clipped: %+v %v", result, err)
 	}
-	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, limit, 0)
 	if replay, err := application.Billing.Settle(ctx, excessInput); err != nil || replay.UsageEventID != result.UsageEventID {
 		t.Fatalf("excess replay %+v %v", replay, err)
 	}
@@ -189,14 +189,14 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 	if charges != 1 {
 		t.Fatalf("actual charge count %d", charges)
 	}
-	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, limit, 0)
 	if _, err := reserve(id.New("req"), 1); !errors.Is(err, identity.ErrKeyBudgetExceeded) {
 		t.Fatalf("over reserve must block new calls: %v", err)
 	}
 	if err := application.Billing.Release(ctx, excess); err != nil {
 		t.Fatal(err)
 	}
-	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, 120, 0)
+	assertBudget(t, application.Identity, ctx, *principal, cfg.EncryptionKey, key.ID, limit, 0)
 	if _, err := application.Billing.RefundCharge(ctx, excess); err != nil {
 		t.Fatal(err)
 	}

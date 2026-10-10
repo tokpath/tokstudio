@@ -86,6 +86,13 @@ func (a HarnessAdapter) Chat(ctx context.Context, providerSlug, behavior string,
 			`{"id":"` + resp.ID + `","object":"chat.completion.chunk","choices":[{"delta":{"content":"` + text + `"}}]}`,
 			`{"id":"` + resp.ID + `","object":"chat.completion.chunk","choices":[{"delta":{"content":" via ` + providerSlug + `"}}]}`,
 		}
+		if sink := StreamSinkFrom(ctx); sink != nil {
+			for _, chunk := range result.Stream {
+				if err := sink.Emit(chunk); err != nil {
+					return result, err
+				}
+			}
+		}
 	}
 	return result, nil
 }

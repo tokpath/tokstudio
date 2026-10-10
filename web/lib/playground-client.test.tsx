@@ -56,9 +56,39 @@ describe("PlaygroundClient", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toContain("/v1/chat/completions");
-    expect(JSON.parse(String(init.body)).model).toBe("tokenhub/echo-1");
+    const sent = JSON.parse(String(init.body)) as { model?: string; stream?: boolean };
+    expect(sent.model).toBe("tokenhub/echo-1");
+    expect(sent.stream).toBe(true);
     expect(init.credentials).toBe("include");
     expect(init.headers).not.toHaveProperty("Authorization");
+  });
+
+  it("shows each SSE token before the upstream finishes", async () => {
+    let push: ((value: Uint8Array) => void) | undefined;
+    let close: (() => void) | undefined;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        push = (value) => controller.enqueue(value);
+        close = () => controller.close();
+      },
+    });
+    const encoder = new TextEncoder();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => (name === "content-type" ? "text/event-stream" : null) },
+      body: stream,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<PlaygroundClient models={[echo]} initialModel="tokenhub/echo-1" />));
+    fireEvent.change(screen.getByLabelText("试用消息"), { target: { value: "hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    push!(encoder.encode('data: {"choices":[{"delta":{"content":"He"}}]}\n\n'));
+    await waitFor(() => expect(screen.getByText("He")).toBeTruthy());
+    expect(screen.queryByText("Hello")).toBeNull();
+    push!(encoder.encode('data: {"choices":[{"delta":{"content":"llo"}}]}\n\ndata: [DONE]\n\n'));
+    close!();
+    await waitFor(() => expect(screen.getByText("Hello")).toBeTruthy());
   });
 
   it("does not send a non-chat catalog model through chat completions", () => {

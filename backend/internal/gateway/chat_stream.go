@@ -1,9 +1,13 @@
 package gateway
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
-// The current adapter buffers the upstream response, then emits valid Chat SSE
-// chunks. Tool deltas must retain call identity and arguments for the next turn.
+// chatStreamChunks 只用于上游没有逐 token 流、只给了完整 JSON 的兼容回退。
+// 真正的实时路径在 consumeOpenAIStream / chatStream：每个上游事件立刻 Emit。
+// 工具增量必须保留 call 的 index、id、函数名和参数，下一轮才能对上。
 func chatStreamChunks(response ChatResponse) []string {
 	chunks := make([]string, 0, len(response.Choices)*2+1)
 	appendChunk := func(choices []any, usage map[string]int) {
@@ -40,14 +44,23 @@ func chatStreamChunks(response ChatResponse) []string {
 func publicChatStreamChunks(chunks []string, publicModel string) []string {
 	out := make([]string, len(chunks))
 	for i, chunk := range chunks {
-		var body map[string]any
-		if err := json.Unmarshal([]byte(chunk), &body); err != nil {
-			out[i] = chunk
-			continue
-		}
-		body["model"] = publicModel
-		raw, _ := json.Marshal(body)
-		out[i] = string(raw)
+		out[i] = rewriteChunkModel(chunk, publicModel)
 	}
 	return out
+}
+
+func rewriteChunkModel(chunk, publicModel string) string {
+	if strings.TrimSpace(publicModel) == "" {
+		return chunk
+	}
+	var body map[string]any
+	if err := json.Unmarshal([]byte(chunk), &body); err != nil {
+		return chunk
+	}
+	body["model"] = publicModel
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return chunk
+	}
+	return string(raw)
 }

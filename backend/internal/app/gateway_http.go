@@ -452,7 +452,13 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		}
 	}
 	hint := gateway.ParseHint(c.Query("provider.only"), c.Query("provider.ignore"), c.Query("provider.order"))
-	out, err := a.Gateway.Execute(c.Request.Context(), gateway.ExecuteInput{
+	execCtx := c.Request.Context()
+	var live *sseWriter
+	if chat.Stream && protocol == "openai.chat" {
+		live = &sseWriter{c: c}
+		execCtx = gateway.WithStreamSink(execCtx, live)
+	}
+	out, err := a.Gateway.Execute(execCtx, gateway.ExecuteInput{
 		Caller:      *a.currentAPIKey(c),
 		RequestID:   c.GetString(httpx.ContextRequestID),
 		Protocol:    protocol,
@@ -464,6 +470,9 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		Chat:        chat,
 	})
 	if err != nil {
+		if live != nil && live.started {
+			return out
+		}
 		if abortKeyBudget(c, err) {
 			return nil
 		}
@@ -498,12 +507,19 @@ func (a *App) executeProtocol(c *gin.Context, protocol string) *gateway.ExecuteO
 		out.Response.Provider = ""
 	}
 	if chat.Stream && protocol == "openai.chat" {
-		c.Header("Content-Type", "text/event-stream")
-		for _, chunk := range out.Stream {
-			_, _ = c.Writer.WriteString("data: " + chunk + "\n\n")
+		if live == nil {
+			live = &sseWriter{c: c}
 		}
-		_, _ = c.Writer.WriteString("data: [DONE]\n\n")
-		c.Writer.Flush()
+		if !live.started {
+			for _, chunk := range out.Stream {
+				if err := live.Emit(chunk); err != nil {
+					return out
+				}
+			}
+		}
+		if _, err := c.Writer.WriteString("data: [DONE]\n\n"); err == nil {
+			c.Writer.Flush()
+		}
 		return out
 	}
 	if protocol == "openai.responses" {

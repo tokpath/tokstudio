@@ -104,6 +104,11 @@ func TestWMeterSentinelReplayIdempotent(t *testing.T) {
 	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-replay")
 	requestID := omit["request_id"].(string)
 	requireChargeCount(t, fx.app.Billing, requestID, 0, "omit must not estimate-debit before replay")
+	// Make the retained old gap sort before the future confirmed fact. Replay
+	// must follow the charge's fact, rather than whichever usage ID sorts first.
+	if err := fx.app.DB.Table("billing_usage_events").Where("request_id=? AND state=?", requestID, billing.UsagePending).Update("id", "000-pending-"+requestID).Error; err != nil {
+		t.Fatal(err)
+	}
 
 	r1 := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
 		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
@@ -130,6 +135,12 @@ func TestWMeterSentinelReplayIdempotent(t *testing.T) {
 	}
 	if n := usageDebitCount(t, fx.app.Billing, fx.userID, requestID); n > 1 {
 		t.Fatalf("same usage replay wrote %d usage_debit rows", n)
+	}
+	code, _ := doJSON(t, http.MethodPost, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", true, map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 9, "completion_tokens": 4},
+	})
+	if code != http.StatusConflict || balanceMinor(t, fx.server.URL, fx.session) != afterFirst {
+		t.Fatalf("changed actual usage must conflict without moving funds: %d", code)
 	}
 }
 

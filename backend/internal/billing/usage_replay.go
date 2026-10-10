@@ -23,17 +23,20 @@ func (s *Service) ReplayActualUsage(ctx context.Context, requestID string, usage
 	if err != nil {
 		return nil, err
 	}
-	if gap.State == UsageConfirmed {
-		prompt, completion, reasoning := ParseUnitUsage(gap.UnitUsage)
-		if prompt != int64(usage["prompt_tokens"]) || completion != int64(usage["completion_tokens"]) || reasoning != int64(usage["reasoning_tokens"]) {
-			return nil, ErrConflict
-		}
-		charges, err := s.ListChargesByRequest(ctx, requestID)
+	charges, err := s.ListChargesByRequest(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if len(charges) > 0 {
+		// A completed reconciliation retains its voided gap as history. Its
+		// random ID must not decide which fact a later replay compares against.
+		gap, err = s.GetUsageGap(ctx, charges[0].UsageEventID)
 		if err != nil {
 			return nil, err
 		}
-		if len(charges) == 0 {
-			return nil, ErrNotFound
+		prompt, completion, reasoning := ParseUnitUsage(gap.UnitUsage)
+		if prompt != int64(usage["prompt_tokens"]) || completion != int64(usage["completion_tokens"]) || reasoning != int64(usage["reasoning_tokens"]) {
+			return nil, ErrConflict
 		}
 		return &charges[0], nil
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -358,8 +359,15 @@ func TestActualKeyProtocolEstimatesIncludingVisionAndStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
+	streamBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if response.StatusCode != 200 {
-		t.Fatalf("finite stream %d", response.StatusCode)
+		t.Fatalf("finite stream %d %s", response.StatusCode, streamBody)
+	}
+	if !strings.Contains(string(streamBody), "data: [DONE]") {
+		t.Fatalf("stream body = %s", streamBody)
 	}
 	facts, err := fx.app.Billing.QueryUsage(fx.ctx, billing.QueryUsageInput{UserID: p.UserID})
 	if err != nil || len(facts) != 4 {

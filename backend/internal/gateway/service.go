@@ -365,6 +365,11 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				callCtx = context.WithValue(callCtx, ctxAccountSecretKey, secret)
 			}
 		}
+		var relay *publicModelSink
+		if in.Chat.Stream {
+			relay = &publicModelSink{model: in.Chat.Model, next: StreamSinkFrom(callCtx)}
+			callCtx = WithStreamSink(callCtx, relay)
+		}
 		result, err := adapter.Chat(callCtx, cand.ProviderSlug, behavior, callReq)
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			if result.HTTPStatus < 400 {
@@ -386,6 +391,10 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		}
 		status := result.HTTPStatus
 		attempt.HTTPStatus = &status
+		if relay != nil && relay.started {
+			streamStarted = true
+			out.Stream = append([]string(nil), relay.chunks...)
+		}
 		if err != nil || result.HTTPStatus >= 400 {
 			attempt.Status = "failed"
 			code := result.ErrorClass
@@ -400,15 +409,19 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
 			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
-			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || result.ErrorClass == "outcome_unknown" || (err != nil && result.HTTPStatus == 0) {
+			if streamStarted {
 				_, settleErr := s.booker.Settle(context.WithoutCancel(ctx), billing.SettleInput{RequestID: in.RequestID, UserID: in.Caller.UserID, APIKeyID: in.Caller.APIKeyID, PublicModelID: model.ID, MissingUsage: true})
 				if settleErr != nil {
 					return nil, settleErr
 				}
 				return out, ErrRequestUnknown
 			}
-			if streamStarted {
-				break
+			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || result.ErrorClass == "outcome_unknown" || (err != nil && result.HTTPStatus == 0) {
+				_, settleErr := s.booker.Settle(context.WithoutCancel(ctx), billing.SettleInput{RequestID: in.RequestID, UserID: in.Caller.UserID, APIKeyID: in.Caller.APIKeyID, PublicModelID: model.ID, MissingUsage: true})
+				if settleErr != nil {
+					return nil, settleErr
+				}
+				return out, ErrRequestUnknown
 			}
 			if result.HTTPStatus == 408 || result.HTTPStatus == 429 || result.HTTPStatus >= 500 || result.ErrorClass == "timeout" {
 				continue
@@ -425,7 +438,9 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		result.Body.RequestID = in.RequestID
 		result.Body.Model = in.Chat.Model
 		out.Response = result.Body
-		out.Stream = publicChatStreamChunks(result.Stream, in.Chat.Model)
+		if relay == nil || !relay.started {
+			out.Stream = publicChatStreamChunks(result.Stream, in.Chat.Model)
+		}
 		if in.Chat.Stream {
 			streamStarted = true
 		}

@@ -7,6 +7,7 @@ import { ActionRow } from "@/components/console/action-row";
 import { Button } from "@/components/ui/button";
 import { EmptyLedger } from "@/components/console/empty-ledger";
 import { apiBase } from "@/lib/api";
+import { deltaText, streamError, takeSSEEvents } from "@/lib/chat-sse";
 import type { CatalogModel } from "@/lib/catalog";
 import { pickPlaygroundModel } from "@/lib/playground-session";
 import { catalogModelUsable, modelEntry, useModelHref } from "@/lib/model-use";
@@ -22,6 +23,37 @@ type Turn = {
 };
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+async function readChatStream(response: Response, onDelta: (text: string) => void): Promise<void> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("missing stream");
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = takeSSEEvents(buffer);
+    buffer = parsed.rest;
+    for (const event of parsed.events) {
+      const failure = streamError(event);
+      if (failure) {
+        throw new Error(failure);
+      }
+      if (event === "[DONE]") {
+        return;
+      }
+      const piece = deltaText(event);
+      if (piece) {
+        onDelta(piece);
+      }
+    }
+  }
+}
 
 function extractReply(body: Record<string, unknown>): string {
   const choices = body.choices as { message?: { content?: unknown } }[] | undefined;
@@ -100,11 +132,11 @@ export function PlaygroundClient({
         method: "POST",
         credentials: "include",
         signal: controller.signal,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages: payload }),
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+        body: JSON.stringify({ model, messages: payload, stream: true }),
       });
-      const body = (await response.json()) as Record<string, unknown> & { error?: { message?: string } };
       if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
         const error = body.error?.message || t("pgFail", { status: response.status });
         setTurns((current) =>
           current.map((item) => (item.id === pending.id ? { ...item, status: "fail", error } : item)),
@@ -112,7 +144,20 @@ export function PlaygroundClient({
         setMessage(error);
         return;
       }
-      const reply = extractReply(body);
+      const contentType = response.headers?.get?.("content-type") ?? "";
+      let reply = "";
+      if (contentType.includes("text/event-stream") && response.body) {
+        await readChatStream(response, (piece) => {
+          reply += piece;
+          const next = reply;
+          setTurns((current) =>
+            current.map((item) => (item.id === pending.id ? { ...item, reply: next } : item)),
+          );
+        });
+      } else {
+        const body = (await response.json()) as Record<string, unknown>;
+        reply = extractReply(body);
+      }
       setTurns((current) =>
         current.map((item) => (item.id === pending.id ? { ...item, status: "ok", reply } : item)),
       );
@@ -291,7 +336,13 @@ export function PlaygroundClient({
               <li key={item.id} className="rounded-control border border-hairline bg-canvas px-3 py-3 text-sm">
                 <p className="text-ink">{item.prompt}</p>
                 {item.status === "pending" ? (
-                  <p className="mt-2 text-ink-mute">{t("pgWaiting")}</p>
+                  item.reply ? (
+                    <pre className="th-scrollbar mt-2 max-h-60 overflow-auto whitespace-pre-wrap font-mono text-[13px] text-ink">
+                      {item.reply}
+                    </pre>
+                  ) : (
+                    <p className="mt-2 text-ink-mute">{t("pgWaiting")}</p>
+                  )
                 ) : item.status === "fail" ? (
                   <p className="mt-2 text-danger">{item.error}</p>
                 ) : (

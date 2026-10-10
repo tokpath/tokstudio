@@ -153,6 +153,9 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if resolveBifrostProvider(providerSlug) == schemas.OpenRouter {
 		return a.openRouterChat(ctx, req)
 	}
+	if req.Stream {
+		return a.chatStream(ctx, providerSlug, req)
+	}
 	messages := toBifrostMessages(req.Messages)
 	if len(messages) == 0 {
 		messages = []schemas.ChatMessage{{
@@ -172,11 +175,7 @@ func (a BifrostAdapter) Chat(ctx context.Context, providerSlug, _ string, req Ch
 	if berr != nil {
 		return mapBifrostError(berr), fmt.Errorf("%s", berr.GetErrorString())
 	}
-	out := fromBifrostChat(resp)
-	if req.Stream {
-		out.Stream = chatStreamChunks(out.Body)
-	}
-	return out, nil
+	return fromBifrostChat(resp), nil
 }
 
 type envAccount struct {

@@ -141,19 +141,34 @@ func TestOpenAIChatToolRoundTripActualOutbound(t *testing.T) {
 		}
 		calls++
 		messages := body["messages"].([]any)
-		w.Header().Set("Content-Type", "application/json")
+		if body["stream"] != true {
+			t.Errorf("stream request was buffered as a full completion: %+v", body["stream"])
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher := w.(http.Flusher)
+		write := func(payload string) {
+			_, _ = w.Write([]byte("data: " + payload + "\n\n"))
+			flusher.Flush()
+		}
 		if calls == 1 {
 			if body["tools"] == nil {
 				t.Error("tool definitions dropped")
 			}
-			_, _ = w.Write([]byte(`{"id":"chat_tool","object":"chat.completion","model":"gpt-4.1-mini","choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"id":"call_local","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`))
+			write(`{"id":"chat_tool","object":"chat.completion.chunk","model":"gpt-4.1-mini","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_local","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]},"finish_reason":null}]}`)
+			write(`{"id":"chat_tool","object":"chat.completion.chunk","model":"gpt-4.1-mini","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}`)
+			write(`{"id":"chat_tool","object":"chat.completion.chunk","model":"gpt-4.1-mini","choices":[],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16}}`)
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+			flusher.Flush()
 		} else {
 			assistant := messages[len(messages)-2].(map[string]any)
 			tool := messages[len(messages)-1].(map[string]any)
 			if assistant["tool_calls"] == nil || tool["tool_call_id"] != "call_local" || tool["content"] != "file contents" {
 				t.Errorf("tool roundtrip lost %+v", messages)
 			}
-			_, _ = w.Write([]byte(`{"id":"chat_done","object":"chat.completion","model":"gpt-4.1-mini","choices":[{"index":0,"message":{"role":"assistant","content":"done"},"finish_reason":"stop"}],"usage":{"prompt_tokens":17,"completion_tokens":4,"total_tokens":21}}`))
+			write(`{"id":"chat_done","object":"chat.completion.chunk","model":"gpt-4.1-mini","choices":[{"index":0,"delta":{"content":"done"},"finish_reason":"stop"}]}`)
+			write(`{"id":"chat_done","object":"chat.completion.chunk","model":"gpt-4.1-mini","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":4,"total_tokens":21}}`)
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+			flusher.Flush()
 		}
 	}))
 	defer upstream.Close()
@@ -172,23 +187,36 @@ func TestOpenAIChatToolRoundTripActualOutbound(t *testing.T) {
 	if err != nil || len(first.Body.Choices) != 1 || len(first.Body.Choices[0].Message.ToolCalls) != 1 {
 		t.Fatalf("tool output lost %+v %v", first, err)
 	}
-	if len(first.Stream) != 3 {
+	if len(first.Stream) < 2 {
 		t.Fatalf("missing tool SSE chunks %+v", first.Stream)
 	}
-	var chunk map[string]any
-	if err := json.Unmarshal([]byte(first.Stream[0]), &chunk); err != nil {
-		t.Fatal(err)
+	var sawCall, sawFinish bool
+	for _, raw := range first.Stream {
+		var chunk map[string]any
+		if err := json.Unmarshal([]byte(raw), &chunk); err != nil {
+			t.Fatal(err)
+		}
+		choices, _ := chunk["choices"].([]any)
+		if len(choices) == 0 {
+			continue
+		}
+		choice := choices[0].(map[string]any)
+		if choice["finish_reason"] == "tool_calls" {
+			sawFinish = true
+		}
+		delta, _ := choice["delta"].(map[string]any)
+		calls, _ := delta["tool_calls"].([]any)
+		if len(calls) == 0 {
+			continue
+		}
+		call := calls[0].(map[string]any)
+		fn, _ := call["function"].(map[string]any)
+		if call["index"] == float64(0) && call["id"] == "call_local" && fn["name"] == "read_file" && fn["arguments"] == `{"path":"a.txt"}` {
+			sawCall = true
+		}
 	}
-	delta := chunk["choices"].([]any)[0].(map[string]any)["delta"].(map[string]any)
-	call := delta["tool_calls"].([]any)[0].(map[string]any)
-	if call["index"] != float64(0) || call["id"] != "call_local" || call["function"].(map[string]any)["arguments"] != `{"path":"a.txt"}` {
-		t.Fatalf("tool SSE identity lost %+v", chunk)
-	}
-	if err := json.Unmarshal([]byte(first.Stream[1]), &chunk); err != nil {
-		t.Fatal(err)
-	}
-	if chunk["choices"].([]any)[0].(map[string]any)["finish_reason"] != "tool_calls" {
-		t.Fatalf("tool SSE finish lost %+v", chunk)
+	if !sawCall || !sawFinish {
+		t.Fatalf("tool SSE identity lost call=%v finish=%v %+v", sawCall, sawFinish, first.Stream)
 	}
 	request.Messages = append(request.Messages, first.Body.Choices[0].Message, ChatMessage{Role: "tool", ToolCallID: "call_local", Content: "file contents"})
 	second, err := adapter.Chat(ctx, "openai", "", request)

@@ -65,7 +65,10 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 	}
 	delete(body, "max_tokens")
 	body["max_completion_tokens"] = req.MaxTokens
-	body["stream"] = false
+	body["stream"] = req.Stream
+	if req.Stream {
+		body["stream_options"] = map[string]any{"include_usage": true}
+	}
 	if req.ReasoningEffort != "" {
 		delete(body, "reasoning_effort")
 		body["reasoning"] = map[string]any{"effort": req.ReasoningEffort}
@@ -102,6 +105,9 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 		}
 		return result, nil
 	}
+	if req.Stream && strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
+		return consumeOpenAIStream(ctx, response.Body)
+	}
 	responseBody, err := io.ReadAll(io.LimitReader(response.Body, 16<<20+1))
 	if err != nil || len(responseBody) > 16<<20 {
 		return AdapterResult{ErrorClass: "timeout"}, fmt.Errorf("openrouter outcome unknown")
@@ -135,6 +141,11 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 	}
 	if req.Stream {
 		result.Stream = chatStreamChunks(result.Body)
+		for _, chunk := range result.Stream {
+			if err := emitChunk(ctx, chunk); err != nil {
+				return result, err
+			}
+		}
 	}
 	return result, nil
 }

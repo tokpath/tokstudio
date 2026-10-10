@@ -208,7 +208,7 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
     }
     const revealed = new Set(revealedIds);
     return (<>
-      <ul className="flex flex-col gap-3 md:hidden">
+      <ul data-testid="key-cards" className="flex flex-col gap-3 xl:hidden">
         {items.map((item) => {
             const isRevealed = revealed.has(item.id);
             return (<li key={item.id} className="rounded-card border border-hairline bg-canvas-raised p-4">
@@ -238,7 +238,7 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
             </li>);
         })}
       </ul>
-      <ScrollTable density="ledger" className="hidden rounded-card border border-hairline md:block" minWidthClassName="min-w-[52rem]" getRowId={(item) => item.id} rows={items} columns={[
+      <ScrollTable density="ledger" className="hidden rounded-card border border-hairline xl:block" minWidthClassName="min-w-[52rem]" getRowId={(item) => item.id} rows={items} columns={[
             {
                 id: "name",
                 header: t("colName"),

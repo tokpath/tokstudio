@@ -79,7 +79,7 @@ export function formatAvailableBalance(available: unknown): string {
   if (!Number.isFinite(n)) {
     return MISSING_PROFILE;
   }
-  return `$${n.toFixed(2)}`;
+  return `${n < 0 ? "-" : ""}$${Math.abs(n).toFixed(2)}`;
 }
 
 export function balancePillText(state: BalanceLoadState, available: unknown): string {

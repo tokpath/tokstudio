@@ -9,7 +9,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestDocsExamplesUseBrandAndPlaceholderKey(t *testing.T) {
@@ -52,6 +55,145 @@ func TestDocsExamplesUseBrandAndPlaceholderKey(t *testing.T) {
 	auth, _ := notes["auth"].(string)
 	if !strings.Contains(auth, "export TOKENHUB_API_KEY") || !strings.Contains(auth, "${TOKENHUB_API_KEY}") {
 		t.Fatalf("auth note: %s", auth)
+	}
+}
+
+func TestDocsToolAndSDKExamplesFollowActualEndpoints(t *testing.T) {
+	for _, path := range []string{"/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/videos", "/v1/images/generations"} {
+		examples := docsExamplesFor("http://api.brand.localhost:9080", "vendor/a'b", []string{path})
+		entry := examples[path].(gin.H)
+		_, sdk := entry["python_sdk"]
+		if sdk != (path == "/v1/chat/completions" || path == "/v1/responses") {
+			t.Fatalf("wrong SDK support for %s", path)
+		}
+		_, aider := entry["aider"]
+		if aider != (path == "/v1/chat/completions") {
+			t.Fatalf("wrong Agent support for %s", path)
+		}
+		for _, language := range []string{"python_sdk", "node_sdk"} {
+			if source, ok := entry[language].(string); ok {
+				if !strings.Contains(source, "http://api.brand.localhost:9080/v1") || !strings.Contains(source, "TOKENHUB_API_KEY") || strings.Contains(source, "api.openai.com") {
+					t.Fatalf("wrong brand/secret in %s: %s", language, source)
+				}
+				if path == "/v1/responses" && (strings.Contains(source, "store=") || strings.Contains(source, "stream=") || strings.Contains(source, "previous_response_id")) {
+					t.Fatalf("unsupported Responses lifecycle in example: %s", source)
+				}
+			}
+		}
+	}
+	if strings.Contains(docsNotes()["errors"].(string), "key_budget_unbounded") || !strings.Contains(docsNotes()["errors"].(string), "price_estimate_unavailable") {
+		t.Fatal("outdated budget errors")
+	}
+}
+
+func TestDocsAiderCommandKeepsBrandAndFullModelID(t *testing.T) {
+	dir := t.TempDir()
+	// This stub checks shell argument/env encoding, not Agent integration.
+	stub := filepath.Join(dir, "aider")
+	if err := os.WriteFile(stub, []byte("#!/bin/sh\nprintf '%s\\n' \"$OPENAI_API_BASE\" \"$OPENAI_API_KEY\" \"$1\" \"$2\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	model := "vendor/quote'$(bad-command) model"
+	source := docsExamplesFor("http://api.brand.localhost:9080", model, []string{"/v1/chat/completions"})["/v1/chat/completions"].(gin.H)["aider"].(string)
+	command := exec.Command("sh", "-c", source)
+	command.Env = append(envWithoutAPIKey(), "PATH="+dir+":"+os.Getenv("PATH"))
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("shell: %v %s", err, output)
+	}
+	want := "http://api.brand.localhost:9080/v1\nPASTE_YOUR_KEY\n--model\nopenai/" + model + "\n"
+	if string(output) != want {
+		t.Fatalf("got %q, want %q", output, want)
+	}
+}
+
+// Opt-in SDK dependencies live outside the repository. This exercises the real
+// SDK packages against a local server and never sends a paid model request.
+func TestDocsOfficialSDKsExecuteLocally(t *testing.T) {
+	sdkDir := os.Getenv("TOKENHUB_DOCS_SDK_DIR")
+	if sdkDir == "" {
+		t.Skip("set TOKENHUB_DOCS_SDK_DIR to isolated official Node/Python SDK dependencies")
+	}
+	for _, language := range []string{"python_sdk", "node_sdk"} {
+		for _, path := range []string{"/v1/chat/completions", "/v1/responses"} {
+			for _, status := range []int{http.StatusOK, http.StatusServiceUnavailable, 0} {
+				t.Run(language+path+http.StatusText(status), func(t *testing.T) {
+					var count atomic.Int32
+					requests := make(chan capturedChat, 4)
+					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						count.Add(1)
+						body, _ := io.ReadAll(r.Body)
+						requests <- capturedChat{method: r.Method, path: r.URL.Path, auth: r.Header.Get("Authorization"), body: string(body)}
+						if status == 0 {
+							conn, _, err := w.(http.Hijacker).Hijack()
+							if err == nil {
+								_ = conn.Close()
+							}
+							return
+						}
+						w.Header().Set("Content-Type", "application/json")
+						w.Header().Set("x-request-id", "req-guide")
+						w.WriteHeader(status)
+						if status != http.StatusOK {
+							_, _ = w.Write([]byte(`{"error":{"code":"provider_unavailable","message":"temporary","request_id":"req-guide"}}`))
+						} else if path == "/v1/responses" {
+							_, _ = w.Write([]byte(`{"id":"resp-local","object":"response","status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"ok"}]}],"request_id":"req-guide"}`))
+						} else {
+							_, _ = w.Write([]byte(`{"id":"chat-local","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"request_id":"req-guide"}`))
+						}
+					}))
+					defer server.Close()
+					model := "vendor/quoted'\" model"
+					source := docsExamplesFor(server.URL, model, []string{path})[path].(gin.H)[language].(string)
+					dir := t.TempDir()
+					var command *exec.Cmd
+					if language == "python_sdk" {
+						file := filepath.Join(dir, "chat.py")
+						if err := os.WriteFile(file, []byte(source), 0o600); err != nil {
+							t.Fatal(err)
+						}
+						command = exec.Command(lookPath(t, "python3"), file)
+					} else {
+						file := filepath.Join(dir, "chat.mjs")
+						if err := os.WriteFile(file, []byte(source), 0o600); err != nil {
+							t.Fatal(err)
+						}
+						if err := os.Symlink(filepath.Join(sdkDir, "node_modules"), filepath.Join(dir, "node_modules")); err != nil {
+							t.Fatal(err)
+						}
+						command = exec.Command(lookPath(t, "node"), file)
+					}
+					command.Env = append(envWithoutAPIKey(), "TOKENHUB_API_KEY=virtual-guide-key", "PYTHONPATH="+filepath.Join(sdkDir, "python"))
+					output, err := command.CombinedOutput()
+					if status == http.StatusOK && (err != nil || !strings.Contains(string(output), "ok") || !strings.Contains(string(output), "req-guide")) {
+						t.Fatalf("example failed: %v %s", err, output)
+					}
+					if status != http.StatusOK && err == nil {
+						t.Fatal("HTTP error treated as success")
+					}
+					if count.Load() != 1 {
+						t.Fatalf("unexpected automatic retry: %d: %s", count.Load(), output)
+					}
+					got := <-requests
+					if got.method != "POST" || got.path != path || got.auth != "Bearer virtual-guide-key" {
+						t.Fatalf("wrong request: %+v", got)
+					}
+					var body map[string]any
+					if err := json.Unmarshal([]byte(got.body), &body); err != nil {
+						t.Fatal(err)
+					}
+					if body["model"] != model {
+						t.Fatalf("model changed: %s", got.body)
+					}
+					if path == "/v1/responses" && (body["input"] != "hi" || body["max_output_tokens"] != float64(32)) {
+						t.Fatalf("Responses: %s", got.body)
+					}
+					if path == "/v1/chat/completions" && body["max_tokens"] != float64(32) {
+						t.Fatalf("Chat: %s", got.body)
+					}
+				})
+			}
+		}
 	}
 }
 
@@ -102,6 +244,40 @@ func TestDocsPythonAndNodeExamplesPostJSON(t *testing.T) {
 	t.Run("node", func(t *testing.T) {
 		runDocsSDKExample(t, "node")
 	})
+}
+
+func TestDocsHTTPExamplesKeepFailureCodeAndRequestID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error":{"code":"price_estimate_unavailable","message":"cannot estimate","request_id":"req-example-error"}}`))
+	}))
+	defer server.Close()
+	entry := docsExamplesFor(server.URL, "vendor/text", []string{"/v1/chat/completions"})["/v1/chat/completions"].(gin.H)
+	for _, language := range []string{"curl", "python", "node"} {
+		t.Run(language, func(t *testing.T) {
+			var command *exec.Cmd
+			if language == "curl" {
+				command = exec.Command("sh", "-c", entry[language].(string))
+			} else {
+				file := filepath.Join(t.TempDir(), "chat.py")
+				binary := "python3"
+				if language == "node" {
+					file = strings.TrimSuffix(file, ".py") + ".mjs"
+					binary = "node"
+				}
+				if err := os.WriteFile(file, []byte(entry[language].(string)), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				command = exec.Command(lookPath(t, binary), file)
+			}
+			command.Env = append(envWithoutAPIKey(), "TOKENHUB_API_KEY=virtual-guide-key")
+			output, err := command.CombinedOutput()
+			if err == nil || !strings.Contains(string(output), "price_estimate_unavailable") || !strings.Contains(string(output), "req-example-error") {
+				t.Fatalf("failure hidden or counted as success: %v %s", err, output)
+			}
+		})
+	}
 }
 
 type capturedChat struct {

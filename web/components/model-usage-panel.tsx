@@ -29,6 +29,7 @@ type Verification = {
 };
 const agentSources = {
     cline: "https://docs.cline.bot/provider-config/openai-compatible",
+    aider: "https://aider.chat/docs/llms/openai-compat.html",
     claude: "https://code.claude.com/docs/en/llm-gateway",
     codex: "https://developers.openai.com/codex/config-reference",
 };
@@ -52,7 +53,15 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     const [selectedKey, setSelectedKey] = useState(keyID);
     const [path, setPath] = useState("");
     const [language, setLanguage] = useState("curl");
-    const agent = "cline";
+    const [agent, setAgent] = useState<"cline" | "aider">("cline");
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab");
+        if (tab === "agent" || tab === "protocol" || tab === "overview") setTab(tab);
+        if (params.get("tool") === "aider") setAgent("aider");
+        const value = params.get("language");
+        if (["curl", "python", "node", "python_sdk", "node_sdk"].includes(value ?? "")) setLanguage(value!);
+    }, []);
     const [notice, setNotice] = useState("");
     const [fallback, setFallback] = useState("");
     const [revision, setRevision] = useState(0);
@@ -80,7 +89,8 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
                 return;
             }
             setDocs(result);
-            setPath(result.supported_endpoints?.[0] ?? "");
+            const requested = new URLSearchParams(window.location.search).get("protocol");
+            setPath(result.supported_endpoints?.includes(requested ?? "") ? requested! : result.supported_endpoints?.[0] ?? "");
         }).catch(() => { if (!cancelled)
             setError(t("docsFailed")); });
         return () => { cancelled = true; controller.abort(); };
@@ -128,6 +138,14 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
             url.searchParams.delete("key_id");
         window.history.replaceState(null, "", url.pathname + url.search);
     }
+    function choose(name: "tool" | "protocol" | "language", value: string) {
+        const url = new URL(window.location.href);
+        url.searchParams.set(name, value);
+        window.history.replaceState(null, "", url.pathname + url.search);
+        if (name === "tool") setAgent(value === "aider" ? "aider" : "cline");
+        if (name === "protocol") setPath(value);
+        if (name === "language") setLanguage(value);
+    }
     async function copy(value: string) {
         if (await copyText(value)) {
             setNotice(t("copied"));
@@ -143,11 +161,23 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
     const endpoints = docs?.supported_endpoints ?? [];
     const apiRoot = docs?.api_base_url?.replace(/\/$/, "");
     const apiURL = apiRoot ? `${apiRoot}/v1` : "";
-    const snippet = (docs?.examples?.[path] as Record<string, string> | undefined)?.[language] ?? "";
-    const params = new URLSearchParams({ model: model.id, tab });
+    const examples = docs?.examples?.[path] as Record<string, string> | undefined;
+    const languages = ["curl", "python_sdk", "node_sdk", "python", "node"].filter(value => !!examples?.[value]);
+    const effectiveLanguage = languages.includes(language) ? language : "curl";
+    const snippet = examples?.[effectiveLanguage] ?? "";
+    const sdkExample = effectiveLanguage.endsWith("_sdk");
+    const languageLabel = (value: string) => value === "python_sdk" ? "Python · OpenAI SDK" : value === "node_sdk" ? "Node.js · OpenAI SDK" : value === "python" ? t("pythonHTTP") : value === "node" ? t("nodeHTTP") : "curl";
+    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+    params.set("model", model.id);
+    params.set("tab", tab);
+    params.set("tool", agent);
+    if (path) params.set("protocol", path);
+    params.set("language", effectiveLanguage);
     if (selectedKey)
         params.set("key_id", selectedKey);
-    const returnHref = `/app/docs?${params}`;
+    else params.delete("key_id");
+    const currentPath = typeof window === "undefined" ? "/app/docs" : window.location.pathname;
+    const returnHref = `${currentPath}?${params}`;
     const protocolParams = new URLSearchParams(params);
     protocolParams.set("tab", "protocol");
     const protocolHref = `${typeof window !== "undefined" ? window.location.pathname : "/app/docs"}?${protocolParams}`;
@@ -194,16 +224,16 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
         }
     }
     const recovery = verification?.ok ? "requests" : verification?.code === "insufficient_balance" ? "wallet"
-        : ["key_invalid", "key_unusable", "key_expired", "key_budget_exceeded", "key_budget_unbounded", "model_not_allowed"].includes(verification?.code ?? "") ? "key"
+        : ["key_invalid", "key_unusable", "key_expired", "key_budget_exceeded", "model_not_allowed"].includes(verification?.code ?? "") ? "key"
             : ["rate_limited", "request_outcome_unknown"].includes(verification?.code ?? "") ? "requests" : "protocol";
     return <Card><div className="grid gap-4">
-  {models.length > 1 ? <label className="grid gap-1 text-sm">{t("chooseModel")}<select className="h-10 rounded-control border border-hairline bg-canvas px-2" value={model.id} onChange={event => {
+  {models.length > 1 ? <label className="grid gap-1 text-sm">{t("chooseModel")}<select aria-label={t("chooseModel")} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={model.id} onChange={event => {
                 const next = new URLSearchParams(params);
                 next.set("model", event.target.value);
                 window.location.assign(`/app/docs?${next}`);
             }}>{models.map(item => <option key={item.id} value={item.id}>{item.display_name} · {item.id}</option>)}</select></label> : null}
   <div role="tablist" aria-label={t("instructions")} className="flex flex-wrap gap-2">{(["overview", "agent", "protocol"] as const).map(value => <Button key={value} role="tab" aria-selected={tab === value} variant={tab === value ? "default" : "outline"} onClick={() => context(value)}>{t(value)}</Button>)}</div>
-  <label className="grid gap-1 text-sm">{t("chooseKey")}<select disabled={keysState === "loading" || keysState === "error"} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={selectedKey} onChange={event => context(tab, event.target.value)}>
+  <label className="grid gap-1 text-sm">{t("chooseKey")}<select aria-label={t("chooseKey")} disabled={keysState === "loading" || keysState === "error"} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={selectedKey} onChange={event => context(tab, event.target.value)}>
    <option value="">{t("noKey")}</option>{selectedKey && !key ? <option value={selectedKey}>{keysState === "ready" ? t("keyUnavailable") : t("keysLoading")}</option> : null}
    {keys.map(item => <option key={item.id} value={item.id}>{item.name} · {maskAPIKey(item.prefix)}</option>)}
   </select></label>
@@ -218,28 +248,38 @@ export function ModelUsagePanel({ model, models = [model], keyID = "", initialTa
         }).service_status : "unknown"}`) })}</p> : null}
   {docs && tab === "overview" ? <><p className="text-sm">{model.description || model.display_name}</p><p className="text-sm">{t("price")} · {formatSellPrice(model.sell_price)} USD</p></> : null}
   {docs && tab === "agent" ? <>
-   <label className="grid gap-1 text-sm">{t("chooseAgent")}<select className="h-10 rounded-control border border-hairline bg-canvas px-2" defaultValue={agent}><option value="cline">Cline · OpenAI Compatible</option></select></label>
-   {agent === "cline" && endpoints.includes("/v1/chat/completions") ? <>
+   <label className="grid gap-1 text-sm">{t("chooseAgent")}<select aria-label={t("chooseAgent")} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={agent} onChange={event => choose("tool", event.target.value)}><option value="cline">Cline · OpenAI Compatible</option><option value="aider">Aider · OpenAI Compatible</option></select></label>
+   {endpoints.includes("/v1/chat/completions") ? <>
+    {agent === "cline" ? <>
     <h2 className="text-base font-medium">Cline · OpenAI Compatible</h2>
     <p className="text-xs text-ink-secondary">{t("agentVersion")}</p>
     <ol className="list-decimal space-y-2 pl-5 text-sm"><li>{t("clineStep1")}</li><li>{t("clineStep2")}</li><li>{t("clineStep3")}</li></ol>
-    <dl className="space-y-3 text-sm"><div><dt>Base URL</dt><dd className="mt-1 break-all font-mono">{apiURL} <Button size="sm" variant="outline" onClick={() => void copy(apiURL)}>{tc("copy")}</Button></dd></div><div><dt>Model ID</dt><dd className="mt-1 break-all font-mono">{model.id} <Button size="sm" variant="outline" onClick={() => void copy(model.id)}>{tc("copy")}</Button></dd></div><div><dt>API Key</dt><dd>{key ? maskAPIKey(key.prefix) : "TOKENHUB_API_KEY"}</dd></div></dl>
+    <dl className="space-y-3 text-sm"><div><dt>Base URL</dt><dd className="mt-1 break-all font-mono">{apiURL} <Button size="sm" variant="outline" onClick={() => void copy(apiURL)}>{tc("copy")}</Button></dd></div><div><dt>Model ID</dt><dd className="mt-1 break-all font-mono">{model.id} <Button size="sm" variant="outline" onClick={() => void copy(model.id)}>{tc("copy")}</Button></dd></div><div><dt>API Key</dt><dd>{key ? maskAPIKey(key.prefix) : t("pasteKey")}</dd></div></dl>
     <p className="text-sm text-ink-secondary">{t("clineSuccess")}</p>
+    <p className="text-xs text-ink-secondary">{t("clineCapabilities", { context: model.context_length || t("notPublished"), output: model.max_completion_tokens || t("notPublished") })}</p>
+    </> : <>
+    <h2 className="text-base font-medium">Aider · OpenAI Compatible</h2>
+    <ol className="list-decimal space-y-2 pl-5 text-sm"><li>{t("aiderStep1")} <code>python3 -m pip install aider-install</code><br/><code>aider-install</code></li><li>{t("aiderStep2")}</li><li>{t("aiderStep3")}</li></ol>
+    {typeof (docs.examples?.["/v1/chat/completions"] as Record<string, unknown> | undefined)?.aider === "string" ? <><pre data-testid="model-agent-config" className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-xs">{(docs.examples!["/v1/chat/completions"] as Record<string, string>).aider}</pre><Button variant="outline" onClick={() => void copy((docs.examples!["/v1/chat/completions"] as Record<string, string>).aider)}>{tc("copy")}</Button></> : <p>{t("noProtocol")}</p>}
+    <p className="text-xs text-ink-secondary">{t("aiderModelPrefix")}</p>
+    <p className="text-sm text-ink-secondary">{t("clineSuccess")}</p>
+    </>}
    </> : <p role="status">{t("agentUnsupported")}</p>}
-   <a className="text-xs underline" href={agentSources.cline} target="_blank" rel="noreferrer">{t("officialDocs")}</a>
+   <a className="text-xs underline" href={agentSources[agent]} target="_blank" rel="noreferrer">{t("officialDocs")}</a>
    <details><summary className="cursor-pointer text-sm">Codex / Claude Code · {t("agentBoundaries")}</summary><div className="mt-2 space-y-2 text-sm text-ink-secondary"><p>{t("codexUnsupported")}</p><a className="underline" href={agentSources.codex} target="_blank" rel="noreferrer">Codex · {t("officialDocs")}</a><p>{t("claudeUnsupported")}</p><a className="underline" href={agentSources.claude} target="_blank" rel="noreferrer">Claude Code · {t("officialDocs")}</a></div></details>
   </> : null}
   {docs && tab === "protocol" ? endpoints.length ? <>
-   <label className="grid gap-1 text-sm">{t("protocol")}<select className="h-10 rounded-control border border-hairline bg-canvas px-2" value={path} onChange={event => setPath(event.target.value)}>{endpoints.map(endpoint => <option key={endpoint} value={endpoint}>{endpoint}</option>)}</select></label>
+   <label className="grid gap-1 text-sm">{t("protocol")}<select aria-label={t("protocol")} className="h-10 rounded-control border border-hairline bg-canvas px-2" value={path} onChange={event => choose("protocol", event.target.value)}>{endpoints.map(endpoint => <option key={endpoint} value={endpoint}>{endpoint}</option>)}</select></label>
    <code className="break-all text-sm">POST {apiRoot}{path}</code><p className="text-sm text-ink-secondary">{t("auth")}</p>
-   {snippet ? <><div className="flex gap-2">{["curl", "python", "node"].map(value => <Button key={value} size="sm" variant={language === value ? "default" : "outline"} onClick={() => setLanguage(value)}>{value}</Button>)}</div><pre data-testid="model-protocol-example" className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-xs">{snippet}</pre><Button variant="outline" onClick={() => void copy(snippet)}>{tc("copy")}</Button></> : <p>{t("noProtocol")}</p>}
+   {snippet ? <><p className="text-sm">{t("runExample")}</p><pre data-testid="model-key-environment" className="th-code whitespace-pre-wrap break-all p-3 text-xs">{'export TOKENHUB_API_KEY=\'PASTE_YOUR_KEY\''}</pre><Button size="sm" variant="outline" onClick={() => void copy("export TOKENHUB_API_KEY='PASTE_YOUR_KEY'")}>{t("copyEnvironment")}</Button>{sdkExample ? <p className="text-xs text-ink-secondary">{t("sdkRetries")} <a className="underline" href={effectiveLanguage === "python_sdk" ? "https://developers.openai.com/api/reference/python" : "https://developers.openai.com/api/reference/typescript"} target="_blank" rel="noreferrer">{t("officialDocs")}</a></p> : null}</> : null}
+   {snippet ? <><div className="flex flex-wrap gap-2">{languages.map(value => <Button key={value} size="sm" variant={effectiveLanguage === value ? "default" : "outline"} onClick={() => choose("language", value)}>{languageLabel(value)}</Button>)}</div><pre data-testid="model-protocol-example" className="th-code overflow-x-auto whitespace-pre-wrap break-all p-3 text-xs">{snippet}</pre><Button variant="outline" onClick={() => void copy(snippet)}>{tc("copy")}</Button></> : <p>{t("noProtocol")}</p>}
    <p className="text-sm text-ink-secondary">{path.includes("/images") || path.includes("/videos") ? t("mediaHint") : t("responseHint")}</p>
    {path !== "/v1/chat/completions" && !path.includes("/images") && !path.includes("/videos") ? <p className="text-xs text-ink-secondary">{t("partialProtocol")}</p> : null}
-   <p className="text-xs text-ink-secondary">{model.capabilities?.budget_control_supported === true || model.capabilities?.text_budget_control_supported === true ? t("budgetSupported") : t("budgetUnsupported")}</p>
-   <details><summary className="cursor-pointer text-sm">{t("errorsTitle")}</summary><p className="mt-2 text-sm text-ink-secondary">{t("errors")}</p></details>
+   <p className="text-xs text-ink-secondary">{(model.capabilities?.budget_estimate_supported ?? model.capabilities?.budget_control_supported ?? model.capabilities?.text_budget_control_supported) === true ? t("budgetSupported") : t("budgetUnsupported")}</p>
+   <details><summary className="cursor-pointer text-sm">{t("errorsTitle")}</summary><ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-ink-secondary">{["errorAuth", "errorModel", "errorBudget", "errorBalance", "errorEstimate", "errorRate", "errorUnknown", "errorEndpoint"].map(value => <li key={value}>{t(value)}</li>)}</ul></details>
   </> : <p>{t("noProtocol")}</p> : null}
-  {docs && verifyRequest ? <div className="grid gap-2 border-t border-hairline pt-3"><p className="text-sm text-ink-secondary">{t("verifyCost")}</p><Button variant="outline" disabled={!canVerify || verifying} onClick={() => void verify()}>{verifying ? tc("submitting") : t("verify")}</Button></div> : null}
-  {verification ? <div data-testid="model-verify-status" role={verification.ok ? "status" : "alert"} className="grid gap-2 text-sm"><p>{verification.code === "key_budget_unbounded" ? t("budgetUnsupported") : verification.message}</p>{verification.requestID ? <code>{verification.requestID}</code> : null}<Link className="underline" onClick={event => { if (recovery === "protocol") {
+  {docs && verifyRequest ? <div className="grid gap-2 border-t border-hairline pt-3"><p className="text-sm text-ink-secondary">{t("verifyCost")} <code>{path}</code></p><Button variant="outline" disabled={!canVerify || verifying} onClick={() => void verify()}>{verifying ? tc("submitting") : t("verify")}</Button></div> : null}
+  {verification ? <div data-testid="model-verify-status" role={verification.ok ? "status" : "alert"} className="grid gap-2 text-sm"><p>{verification.code === "price_estimate_unavailable" ? `${verification.message} · ${t("errorEstimate")}` : verification.message}</p>{verification.requestID ? <code>{verification.requestID}</code> : null}<Link className="underline" onClick={event => { if (recovery === "protocol") {
         event.preventDefault();
         context("protocol");
     } }} href={recovery === "wallet" ? walletHref : recovery === "key" ? editHref : recovery === "protocol" ? protocolHref : verification?.requestID ? `/app/usage/requests/${encodeURIComponent(verification.requestID)}` : requestsHref}>{recovery === "wallet" ? t("wallet") : recovery === "key" ? t("edit") : recovery === "protocol" ? t("protocol") : t("requests")}</Link></div> : null}

@@ -90,4 +90,39 @@ describe("model instructions and optional test", () => {
   fireEvent.change(screen.getByLabelText("当前 Key"),{target:{value:"key_b"}});resolve({ok:true,json:async()=>({request_id:"req_a"})});
   await waitFor(()=>expect(screen.getByLabelText("当前 Key")).toHaveProperty("value","key_b"));expect(screen.queryByTestId("model-verify-status")).toBeNull();expect(window.location.href).not.toContain(key.key);
  });
+ it("restores the SDK language and protocol from the URL without dropping invitation or return context",async()=>{
+  window.history.replaceState(null,"","/docs?model=openai%2Ftest-text&key_id=key_a&protocol=%2Fv1%2Fresponses&language=python_sdk&promo=invite-a&return_to=%2Fmodels%3Fq%3Dtest");
+  const body=docs();body.supported_endpoints.push("/v1/responses");
+  Object.assign(body.examples,{"/v1/responses":{curl:"curl https://brand.example/v1/responses",python_sdk:'OpenAI(base_url="https://brand.example/v1", max_retries=0)'}});
+  vi.stubGlobal("fetch",vi.fn(async input=>({ok:true,json:async()=>String(input).includes("docs-context")?body:{items:[key]}})));
+  render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));
+  await waitFor(()=>expect(screen.getByTestId("model-protocol-example").textContent).toContain("max_retries=0"));
+  expect(screen.getByLabelText("调用协议")).toHaveProperty("value","/v1/responses");
+  const wallet=new URL(screen.getByRole("link",{name:"账户余额 / 充值"}).getAttribute("href")!,window.location.origin);
+  const next=wallet.searchParams.get("next")!;expect(next.startsWith("/docs?")).toBe(true);expect(next).toContain("language=python_sdk");expect(next).toContain("promo=invite-a");expect(next).toContain("return_to=%2Fmodels%3Fq%3Dtest");
+  expect(screen.getByTestId("model-key-environment").textContent).toBe("export TOKENHUB_API_KEY='PASTE_YOUR_KEY'");expect(document.body.textContent).not.toContain(key.key);
+ });
+ it("offers only generated SDK choices and preserves tool context across tabs",async()=>{
+  const body=docs();Object.assign(body.examples["/v1/chat/completions"],{python_sdk:"from openai import OpenAI",node_sdk:'import OpenAI from "openai"',aider:"export OPENAI_API_BASE='https://brand.example/v1'\naider --model 'openai/openai/test-text'"});
+  vi.stubGlobal("fetch",vi.fn(async input=>({ok:true,json:async()=>String(input).includes("docs-context")?body:{items:[key]}})));
+  render(withZh(<ModelUsagePanel model={model} keyID={key.id}/>));await screen.findByTestId("model-protocol-example");
+  fireEvent.click(screen.getByRole("button",{name:"Node.js · OpenAI SDK"}));expect(screen.getByTestId("model-protocol-example").textContent).toContain('import OpenAI');
+  fireEvent.click(screen.getByRole("tab",{name:"Agent 配置"}));fireEvent.change(screen.getByLabelText("接入工具"),{target:{value:"aider"}});
+  expect(screen.getByTestId("model-agent-config").textContent).toContain("openai/openai/test-text");expect(window.location.search).toContain("tool=aider");
+  expect(screen.getByText(/先用 \/ask/)).toBeTruthy();expect(screen.getByText(/本页未执行外部 Agent/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("tab",{name:"调用协议"}));expect(screen.getByTestId("model-protocol-example").textContent).toContain('import OpenAI');expect(window.location.search).toContain("language=node_sdk");
+ });
+ it("falls back to HTTP when a copied SDK language is unavailable on Messages",async()=>{
+  window.history.replaceState(null,"","/app/docs?language=node_sdk&protocol=%2Fv1%2Fmessages");await show("/v1/messages");
+  expect(screen.queryByRole("button",{name:"Node.js · OpenAI SDK"})).toBeNull();expect(screen.getByTestId("model-protocol-example").textContent).toContain("/v1/messages");
+  fireEvent.click(screen.getByRole("tab",{name:"Agent 配置"}));expect(screen.queryByTestId("model-agent-config")).toBeNull();expect(screen.queryByText("Base URL")).toBeNull();
+ });
+ it("uses the current estimate error and describes actual settlement rather than an absolute cap",async()=>{
+  stubFetch({ok:false,error:{code:"price_estimate_unavailable",message:"cannot estimate"}});
+  render(withZh(<ModelUsagePanel model={{...model,capabilities:{budget_estimate_supported:true}}} keyID={key.id}/>));
+  await screen.findByRole("option",{name:/Work/});expect(screen.getByText(/单次消费可能超过 Key 上限/)).toBeTruthy();
+  expect(screen.getByText(/充值不会重置已发生的累计消费/)).toBeTruthy();expect(document.body.textContent).not.toContain("key_budget_unbounded");
+  fireEvent.click(screen.getByRole("button",{name:"发送站内测试请求"}));await waitFor(()=>expect(screen.getByTestId("model-verify-status").textContent).toContain("price_estimate_unavailable"));
+  expect(screen.getByTestId("model-verify-status").textContent).not.toContain("取消");
+ });
 });

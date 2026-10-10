@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { apiHostFromEndpoint, keyExampleFor, keyVerifyRequest, pickKeyExampleModel } from "./key-example";
 
-const echo = { id: "tokenhub/echo-1", kind: "text" as const, status: "available" };
-const gemini = { id: "google/gemini-flash", kind: "text" as const, status: "available" };
+const echo = { id: "tokenhub/echo-1", kind: "text" as const, status: "available", capabilities:{supported_endpoints:["/v1/chat/completions"]} };
+const gemini = { id: "google/gemini-flash", kind: "text" as const, status: "available", capabilities:{supported_endpoints:["/v1/chat/completions"]} };
 const embed = {
   id: "openai/text-embedding-3",
   kind: "embedding" as const,
@@ -12,11 +12,11 @@ const embed = {
 
 describe("pickKeyExampleModel", () => {
   it("stays inside a non-empty allowlist", () => {
-    expect(pickKeyExampleModel(["google/gemini-flash"], [echo, gemini])).toBe("google/gemini-flash");
+    expect(pickKeyExampleModel(["google/gemini-flash"], [echo, gemini],"google/gemini-flash")).toBe("google/gemini-flash");
   });
 
-  it("prefers a chat model when the allowlist is empty", () => {
-    expect(pickKeyExampleModel([], [embed, gemini])).toBe("google/gemini-flash");
+  it("requires explicit model context even when the Key permits all models", () => {
+    expect(pickKeyExampleModel([], [embed, gemini])).toBe("");
   });
 
   it("does not invent a default model when the catalog is empty", () => {
@@ -27,7 +27,7 @@ describe("pickKeyExampleModel", () => {
 
 describe("keyExampleFor", () => {
   it("keeps the env placeholder and a complete chat request", () => {
-    const example = keyExampleFor(undefined, [gemini], "https://api.tokenhub.test/v1");
+    const example = keyExampleFor(undefined, [gemini], "https://api.tokenhub.test/v1","google/gemini-flash");
     expect(example.curl).toContain(`-H "Authorization: Bearer \${TOKENHUB_API_KEY}"`);
     expect(example.curl).not.toContain("'Authorization:");
     expect(example.curl).not.toMatch(/thk_/);
@@ -37,7 +37,7 @@ describe("keyExampleFor", () => {
   });
 
   it("uses embeddings path when that is what the key allows", () => {
-    const example = keyExampleFor(["openai/text-embedding-3"], [embed, gemini], "https://api.tokenhub.test/v1");
+    const example = keyExampleFor(["openai/text-embedding-3"], [embed, gemini], "https://api.tokenhub.test/v1","openai/text-embedding-3");
     expect(example.model).toBe("openai/text-embedding-3");
     expect(example.path).toBe("/v1/embeddings");
     expect(example.verifiable).toBe(false);
@@ -53,6 +53,7 @@ describe("keyExampleFor", () => {
       ["anthropic/claude"],
       [{ id: "anthropic/claude", kind: "text", status: "available", capabilities: { supported_endpoints: ["/v1/messages"] } }],
       "https://api.tokenhub.test/v1",
+      "anthropic/claude",
     );
     expect(messages.path).toBe("/v1/messages");
     expect(messages.verifiable).toBe(true);
@@ -64,6 +65,7 @@ describe("keyExampleFor", () => {
       ["openai/gpt"],
       [{ id: "openai/gpt", kind: "text", status: "available", capabilities: { supported_endpoints: ["/v1/responses"] } }],
       "https://api.tokenhub.test/v1",
+      "openai/gpt",
     );
     expect(responses.path).toBe("/v1/responses");
     expect(responses.curl).toContain("/v1/responses");
@@ -71,12 +73,11 @@ describe("keyExampleFor", () => {
     expect(responses.curl).not.toContain('"messages"');
   });
 
-  it("keeps a chat sample but does not mark it verifiable without a catalog model", () => {
+  it("does not invent any sample or default protocol without a selected authorized model", () => {
     const example = keyExampleFor(undefined, [], "https://api.tokenhub.test/v1");
     expect(example.model).toBe("");
     expect(example.verifiable).toBe(false);
-    expect(example.curl).toContain("/v1/chat/completions");
-    expect(example.curl).toContain('"model":"your-model"');
+    expect(example.curl).toBe("");
     expect(example.curl).not.toContain("tokenhub/echo-1");
   });
 });
@@ -85,14 +86,14 @@ describe("keyVerifyRequest", () => {
   it("posts chat completions for text models", () => {
     expect(keyVerifyRequest("google/gemini-flash", "/v1/chat/completions")).toEqual({
       path: "/v1/chat/completions",
-      body: { model: "google/gemini-flash", messages: [{ role: "user", content: "ping" }] },
+      body: { model: "google/gemini-flash",max_tokens:32, messages: [{ role: "user", content: "ping" }] },
     });
   });
 
   it("posts Responses and Messages on their own paths", () => {
     expect(keyVerifyRequest("openai/gpt", "/v1/responses")).toEqual({
       path: "/v1/responses",
-      body: { model: "openai/gpt", input: "ping" },
+      body: { model: "openai/gpt",max_output_tokens:32, input: "ping" },
     });
     expect(keyVerifyRequest("anthropic/claude", "/v1/messages")).toEqual({
       path: "/v1/messages",

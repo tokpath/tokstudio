@@ -1,17 +1,22 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { useTranslations } from "next-intl";
-import { apiClient } from "@/lib/client";
+import { apiBase } from "@/lib/api";
+import { loginHref } from "@/lib/login-next";
 import { stickyColumnClass, type ScrollTableDensity } from "@/lib/scroll-table";
 import { cn } from "@/lib/utils";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { appendReturnContext } from "@/lib/return-context";
+import { Button } from "@/components/ui/button";
 
-type ListResponse<T> = { items?: T[]; error?: { message?: string } };
+type ListResponse<T> = { items?: T[]; next_cursor?: string; error?: { message?: string } };
 
 export function AdminListPanel<T extends Record<string, unknown>>({
   path,
@@ -25,6 +30,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyDetail = "当前条件下暂无记录，可调整筛选条件后重试。",
   stickyEnds = true,
   density = "admin",
+  headingLevel = 2,
 }: {
   path: string;
   title: string;
@@ -37,39 +43,78 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   emptyDetail?: string;
   stickyEnds?: boolean;
   density?: ScrollTableDensity;
+  headingLevel?: 1 | 2;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [locationSearch, setLocationSearch] = useState("");
+  const rowLink = (row:T) => appendReturnContext(rowHref!(row), `${pathname}${locationSearch}`);
   const tc = useTranslations("common");
   const [q, setQ] = useState("");
-  const href = q ? `${path}${path.includes("?") ? "&" : "?"}q=${encodeURIComponent(q)}` : path;
+  const [search, setSearch] = useState("");
+  const [cursor, setCursor] = useState("");
+  const [previous, setPrevious] = useState<string[]>([]);
+  const viewer = useViewer();
+  const stateKey = path.split("?")[0].replaceAll("/", "_");
+  useEffect(() => {
+    const restore = () => {
+      setLocationSearch(window.location.search);
+      const params = new URLSearchParams(window.location.search);
+      const value = params.get(`${stateKey}_q`) || "";
+      setQ(value); setSearch(value); setCursor(params.get(`${stateKey}_cursor`) || ""); setPrevious([]);
+    };
+    restore(); window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [stateKey]);
+  function updateLocation(value: string, next: string) {
+    const url = new URL(window.location.href);
+    for (const [key, item] of [[`${stateKey}_q`, value], [`${stateKey}_cursor`, next]]) {
+      if (item) url.searchParams.set(key, item); else url.searchParams.delete(key);
+    }
+    window.history.replaceState(null, "", url.toString());
+    setLocationSearch(url.search);
+  }
+  const params = new URLSearchParams(path.split("?")[1]);
+  if (search) params.set("q", search);
+  if (cursor) params.set("cursor", cursor);
+  const href = `${path.split("?")[0]}${params.size ? `?${params}` : ""}`;
   const query = useQuery({
-    queryKey: [href],
-    queryFn: () => apiClient<ListResponse<T>>("GET", href),
+    queryKey: [viewer.userId, href],
+    queryFn: async () => {
+      const response=await fetch(`${apiBase}${href}`,{credentials:"include"});
+      const body=await response.json() as ListResponse<T>;
+      if(!response.ok || body.error)throw Object.assign(new Error(body.error?.message||tc("listFailed")),{status:response.status});
+      return body;
+    },
+    retry:false,
   });
-  const data = query.data?.items ?? [];
+  const data = query.isError ? [] : query.data?.items ?? [];
+  const failureStatus = (query.error as Error & {status?:number}|null)?.status;
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const colCount = columns.length;
+  const Heading = headingLevel === 1 ? "h1" : "h2";
 
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <Heading className={headingLevel === 1 ? "text-2xl font-semibold tracking-tight" : "text-lg font-semibold tracking-tight"}>{title}</Heading>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {actions}
-          <Input
+          <form className="flex items-center gap-2" onSubmit={event => { event.preventDefault(); setSearch(q.trim()); setCursor(""); setPrevious([]); updateLocation(q.trim(), ""); }}><Input
             className="w-44 sm:w-56"
-            aria-label="筛选列表"
+            aria-label={tc("filter")}
             placeholder={tc("filter")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
+          <Button size="sm" variant="outline" type="submit">{tc("search")}</Button></form>
         </div>
       </div>
       {query.isError || query.data?.error ? (
-        <p className="mb-3 text-sm text-ink-secondary">{query.data?.error?.message || "数据加载失败，请检查网络后刷新重试。"}</p>
+        <div role="alert" className="mb-3 space-y-2 text-sm"><p>{failureStatus===401?tc("listSessionExpiredDetail"):failureStatus===403?tc("listForbidden"):query.error?.message||query.data?.error?.message||tc("listFailed")}</p>{failureStatus===401?<Button asChild variant="outline"><Link href={loginHref(`${pathname}${locationSearch}`)}>{tc("listRelogin")}</Link></Button>:<Button variant="outline" onClick={()=>void query.refetch()}>{tc("listRetry")}</Button>}</div>
       ) : null}
       <div className="overflow-x-auto">
-        <table className="min-w-[52rem] w-full text-left text-sm">
+        <table className={cn("w-full text-left text-sm", colCount > 7 ? "min-w-[52rem]" : colCount > 4 ? "min-w-[34rem]" : "")}>
           <thead>
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id} className="group border-b border-hairline">
@@ -83,13 +128,13 @@ export function AdminListPanel<T extends Record<string, unknown>>({
           </thead>
           <tbody>
             {query.isLoading ? (
-              <tr><td colSpan={Math.max(colCount, 1)} className="px-3 py-6"><p role="status">正在加载记录…</p></td></tr>
+              <tr><td colSpan={Math.max(colCount, 1)} className="px-3 py-6"><p role="status">{tc("listLoading")}</p></td></tr>
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={Math.max(colCount, 1)} className="px-3 py-6">
                   <EmptyState
-                    title={query.isError || query.data?.error ? "暂时看不到数据" : emptyTitle}
-                    detail={query.isError || query.data?.error ? "请检查网络或联系管理员确认访问权限，然后刷新重试。" : emptyDetail}
+                    title={query.isError || query.data?.error ? tc("listFailed") : emptyTitle}
+                    detail={query.isError || query.data?.error ? tc("listRetry") : emptyDetail}
                   />
                 </td>
               </tr>
@@ -109,13 +154,13 @@ export function AdminListPanel<T extends Record<string, unknown>>({
                       return;
                     }
                     if (rowHref) {
-                      router.push(rowHref(row.original));
+                      router.push(rowLink(row.original));
                     }
                   }}
                 >
                   {row.getVisibleCells().map((cell, index) => (
                     <td key={cell.id} className={stickyColumnClass(index, colCount, { stickyEnds, density })}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {index === 0 && rowHref ? <Link href={rowLink(row.original)} onClick={event => event.stopPropagation()} className="text-brand-emphasis underline underline-offset-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</Link> : index === 0 && onRowSelect ? <Button size="sm" variant="ghost" onClick={event => { event.stopPropagation(); onRowSelect(row.original); }}>{tc("open")} · {flexRender(cell.column.columnDef.cell, cell.getContext())}</Button> : flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
@@ -123,6 +168,11 @@ export function AdminListPanel<T extends Record<string, unknown>>({
             )}
           </tbody>
         </table>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+        {cursor ? <Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => { const next = previous.at(-1) || ""; setPrevious(items => items.slice(0, -1)); setCursor(next); updateLocation(search, next); }}>{tc(previous.length ? "previousPage" : "firstPage")}</Button> : null}
+        <span>{query.isFetching ? tc("listLoading") : query.isError || !query.data ? "—" : tc("pageCount", { count: data.length })}</span>
+        {query.data?.next_cursor ? <Button size="sm" variant="outline" disabled={query.isFetching} onClick={() => { const next = query.data?.next_cursor || ""; setPrevious(items => [...items, cursor]); setCursor(next); updateLocation(search, next); }}>{tc("nextPage")}</Button> : null}
       </div>
     </section>
   );

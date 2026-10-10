@@ -17,6 +17,8 @@ import (
 )
 
 func (a *App) registerMediaRoutes(r *gin.Engine) {
+	r.POST("/admin/diagnostics/videos", a.requireRoles("platform_admin", "tech_admin"), a.diagnosticKey(), a.createVideo)
+	r.POST("/admin/diagnostics/images/generations", a.requireRoles("platform_admin", "tech_admin"), a.diagnosticKey(), a.createImage)
 	r.GET("/v1/me/media", a.requireAnyUser(), a.listMyMedia)
 	r.GET("/admin/media", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listAdminMedia)
 	r.POST("/v1/videos", a.requireUserOrKey(), a.createVideo)
@@ -39,6 +41,10 @@ func (a *App) listMyMedia(c *gin.Context) {
 		return
 	}
 	limit, cursor := httpx.Page(c, 20)
+	for i := range items {
+		items[i].Provider = ""
+		items[i].UpstreamID = ""
+	}
 	page, next := httpx.Paginate(items, limit, cursor, func(item media.JobView) string { return item.ID })
 	httpx.OK(c, gin.H{
 		"items": page, "limit": limit, "next_cursor": next,
@@ -167,7 +173,12 @@ func (a *App) createMedia(c *gin.Context, kind, defaultTask string) {
 		ForceFail:      c.GetHeader("X-Tokenhub-Force-Fail"),
 	})
 	if err != nil {
+		if abortKeyBudget(c, err) {
+			return
+		}
 		switch {
+		case errors.Is(err, billing.ErrConflict):
+			httpx.Abort(c, http.StatusConflict, "idempotency_conflict", "相同幂等键对应不同调用", false)
 		case errors.Is(err, billing.ErrInsufficientBalance):
 			httpx.Abort(c, http.StatusPaymentRequired, "insufficient_balance", "余额不足", false)
 		case errors.Is(err, media.ErrInvalidRequest):
@@ -179,7 +190,7 @@ func (a *App) createMedia(c *gin.Context, kind, defaultTask string) {
 		}
 		return
 	}
-	httpx.Accepted(c, job)
+	httpx.Accepted(c, publicMediaJob(c, job))
 }
 
 func (a *App) mediaCaller(c *gin.Context) *identity.APIKeyPrincipal {
@@ -205,7 +216,7 @@ func (a *App) getVideo(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "任务不存在", false)
 		return
 	}
-	httpx.OK(c, job)
+	httpx.OK(c, publicMediaJob(c, job))
 }
 
 func (a *App) videoContent(c *gin.Context) {
@@ -231,7 +242,7 @@ func (a *App) cancelVideo(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "任务不存在", false)
 		return
 	}
-	httpx.OK(c, job)
+	httpx.OK(c, publicMediaJob(c, job))
 }
 
 func (a *App) mediaCallback(c *gin.Context) {
@@ -263,4 +274,14 @@ func (a *App) mediaObject(c *gin.Context) {
 		return
 	}
 	c.Data(http.StatusOK, "application/octet-stream", data)
+}
+
+func publicMediaJob(c *gin.Context, job *media.JobView) *media.JobView {
+	if job == nil || c.GetBool("internal_diagnostic") {
+		return job
+	}
+	safe := *job
+	safe.Provider = ""
+	safe.UpstreamID = ""
+	return &safe
 }

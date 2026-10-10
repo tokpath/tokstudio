@@ -146,6 +146,27 @@ func (s *Service) RefundTopupTx(tx *gorm.DB, topupID string) (*TopupView, error)
 	return topupView(row), nil
 }
 
+// A provider can confirm a full refund before the original paid callback arrives.
+// Close an uncredited topup without inventing a credit or a wallet debit.
+func (s *Service) RefundUncreditedTopupTx(tx *gorm.DB, topupID string) (*TopupView, error) {
+	var row topupRow
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", topupID).First(&row).Error; err != nil {
+		return nil, err
+	}
+	if row.Status == TopupPaid || row.Status == TopupRefunded {
+		return s.RefundTopupTx(tx, topupID)
+	}
+	if row.Status != TopupPending {
+		return nil, ErrTopupNotPending
+	}
+	row.Status = TopupRefunded
+	row.UpdatedAt = time.Now().UTC()
+	if err := tx.Save(&row).Error; err != nil {
+		return nil, err
+	}
+	return topupView(row), nil
+}
+
 func creditWallet(tx *gorm.DB, userID string, amount int64, event, refType, refID, idem string) error {
 	wallet, err := lockWallet(tx, userID)
 	if err != nil {

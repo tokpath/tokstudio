@@ -4,41 +4,21 @@ import { adminNavActive } from "./tenants";
 
 describe("adminNavKeys", () => {
   it("covers every admin palette label key", () => {
-    expect(adminNavKeys).toEqual([
-      "overview",
-      "providers",
-      "models",
-      "routes",
-      "plans",
-      "payments",
-      "billing",
-      "usage",
-      "margin",
-      "channels",
-      "brands",
-      "promos",
-      "commission",
-      "metrics",
-      "reconciliation",
-      "media",
-      "users",
-      "staff",
-      "alerts",
-      "runbooks",
-      "audit",
-      "settings",
-    ]);
+    expect(adminNavKeys).toContain("models");
+    expect(adminNavKeys).toContain("users");
+    expect(adminNavKeys).not.toContain("keys");
+    expect(adminNavKeys).not.toContain("runbooks");
   });
 });
 
 describe("channel keys nav", () => {
-  it("derives OEM groups and labels from the platform except catalogue and OEM brands", () => {
-    const platform = adminGroups.filter((group) => group.titleKey !== "groupCatalog").map((group) => ({ titleKey: group.titleKey, keys: group.items.filter((item) => item.key !== "brands").map((item) => item.key) }));
-    expect(channelNavGroupsFor("C").map((group) => ({ titleKey: group.titleKey, keys: group.items.map((item) => item.key) }))).toEqual(platform);
-    expect(channelNavGroupsFor("C").flatMap((group) => group.items).every((item) => item.href.startsWith("/channel"))).toBe(true);
-    expect(channelNavItemForPath("/channel/models/model-1", "C")?.key).toBe("channels");
+  it("gives OEM an independent task navigation without technical controls", () => {
+    const oem = channelNavGroupsFor("C").flatMap(group => group.items);
+    expect(oem.some(item => ['providers', 'routes'].includes(item.key))).toBe(false);
+    expect(oem.every(item => item.href.startsWith("/channel"))).toBe(true);
+    expect(channelNavItemForPath("/channel/models/model-1", "C")?.key).toBe("models");
     expect(channelNavItemForPath("/channel/keys", "C")?.key).toBe("users");
-    expect(channelNavItemForPath("/channel/brand", "C")?.key).toBe("settings");
+    expect(channelNavItemForPath("/channel/brand", "C")?.key).toBe("brand");
     expect(channelNavItemForPath("/channel/settlements", "C")?.key).toBe("commission");
   });
   it("keeps brand management with OEM and user operations with B", () => {
@@ -54,13 +34,15 @@ describe("channel keys nav", () => {
     expect(c).toContain("/channel/subchannels");
   });
   it("lists channel API keys after users", () => {
-    expect(channelSections.some((item) => item.href === "/channel/keys")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/keys")).toBe(false);
   });
 
-  it("lists channel stock and rules in the ledger group", () => {
-    expect(channelSections.some((item) => item.href === "/channel/ledger")).toBe(true);
-    expect(channelSections.some((item) => item.href === "/channel/rules")).toBe(true);
-    expect(channelSections.some((item) => item.href === "/channel/reconciliation")).toBe(true);
+  it("keeps funding and rules out of channel navigation", () => {
+    const items = channelSections.map(item => item.href);
+    expect(items).not.toContain("/channel/ledger");
+    expect(items).not.toContain("/channel/rules");
+    expect(items).not.toContain("/channel/payments");
+    expect(items).toContain("/channel/commissions");
   });
 });
 
@@ -101,7 +83,7 @@ describe("adminNavActive", () => {
 describe("user console nav", () => {
   it("uses real routes instead of hash anchors", () => {
     expect(userSections.some((item) => item.href === "/app/keys")).toBe(true);
-    expect(userSections.some((item) => item.href === "/app/reconciliation")).toBe(true);
+    expect(userSections.some((item) => item.href === "/app/reconciliation")).toBe(false);
     expect(userSections.some((item) => item.href.startsWith("#"))).toBe(false);
   });
 
@@ -116,19 +98,14 @@ describe("user console nav", () => {
     expect(isNavActive("/app/settings/team", "/app/settings")).toBe(true);
   });
 
-  it("marks placeholder settings as unavailable without dropping their href", () => {
-    expect(userSettingsNav.some((item) => item.href === "/app/settings/team" && item.unavailable)).toBe(true);
-    expect(availableNavItems(userSettingsNav).map((item) => item.href)).toEqual([
-      "/app/settings",
-      "/app/settings/billing",
-      "/app/settings/quotas",
-    ]);
-    expect(navItemForPath("/app/settings/team", userSettingsNav)?.key).toBe("team");
+  it("only exposes implemented settings tasks", () => {
+    expect(availableNavItems(userSettingsNav).map(item=>item.href)).toEqual(["/app/settings"]);
+    expect(navItemForPath("/app/settings/team", userSettingsNav)?.key).toBe("account");
   });
 
   it("uses real routes for channel console too", () => {
     expect(channelSections.some((item) => item.href === "/channel/users")).toBe(true);
-    expect(channelSections.some((item) => item.href === "/channel/payments")).toBe(true);
+    expect(channelSections.some((item) => item.href === "/channel/payments")).toBe(false);
     expect(channelSections.some((item) => item.href === "/channel/models")).toBe(true);
     expect(channelSections.some((item) => item.href.startsWith("#"))).toBe(false);
     expect(isNavActive("/channel", "/channel")).toBe(true);

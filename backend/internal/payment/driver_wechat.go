@@ -103,14 +103,13 @@ func (d wechatDriver) ParseWebhook(_ context.Context, in WebhookRequest) (*Webho
 		sig,
 		in.Body,
 	)
-	status, orderID, tradeID, eventID := wechatEventStatus(outer, inner)
-	if eventID == "" {
+	ev := wechatWebhookEvent(outer, inner)
+	if ev.ExternalEventID == "" {
 		return nil, ErrInvalidEvent
 	}
-	return &WebhookEvent{
-		ExternalEventID: eventID, OrderID: orderID, Status: status, TradeID: tradeID,
-		MerchantID: asString(inner["mchid"]), SignatureValid: valid,
-	}, nil
+	ev.MerchantID = asString(inner["mchid"])
+	ev.SignatureValid = valid
+	return ev, nil
 }
 
 func (d wechatDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryResult, error) {
@@ -134,7 +133,8 @@ func (d wechatDriver) QueryOrder(ctx context.Context, in QueryRequest) (*QueryRe
 	if st == "CLOSED" || st == "PAYERROR" {
 		out = StatusFailed
 	}
-	return &QueryResult{Status: out, TradeID: asString(obj["transaction_id"])}, nil
+	amount, _ := obj["amount"].(map[string]any)
+	return &QueryResult{Status: out, TradeID: asString(obj["transaction_id"]), CheckPaidAmount: true, PaidAmountMinor: callbackAmount(amount["total"]), Currency: asString(amount["currency"])}, nil
 }
 
 func (d wechatDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResult, error) {
@@ -156,5 +156,12 @@ func (d wechatDriver) Refund(ctx context.Context, in RefundRequest) (*RefundResu
 		return nil, ErrProviderFailed
 	}
 	obj := decodeJSONMap(raw)
-	return &RefundResult{Status: StatusRefunded, TradeID: asString(obj["refund_id"])}, nil
+	status := StatusRefunding
+	switch asString(obj["status"]) {
+	case "SUCCESS":
+		status = StatusRefunded
+	case "CLOSED", "ABNORMAL":
+		return nil, ErrProviderFailed
+	}
+	return &RefundResult{Status: status, TradeID: asString(obj["refund_id"])}, nil
 }

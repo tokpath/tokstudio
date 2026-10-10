@@ -35,17 +35,31 @@ func casbinPolicy() []policyRule {
 	}
 	rules = append(rules, grant("/admin/commission-recoveries", "GET", "finance_admin", "audit_readonly")...)
 	rules = append(rules, grant("/admin/commission-recoveries/:id/receipts", "POST", "finance_admin")...)
-	rules = append(rules, grantMany("GET", []string{"finance_admin"}, "/admin/payments/overview", "/admin/payments/instances", "/admin/payments/settings", "/admin/payments/recipients")...)
+	rules = append(rules, grantMany("GET", []string{"finance_admin", "ops_admin", "audit_readonly"}, "/admin/commission-context", "/admin/commissions/settlement-preview", "/admin/settlements/:id")...)
+	rules = append(rules, grantMany("GET", []string{"finance_admin"}, "/admin/commission-operations/:operation_id", "/admin/commission-recovery-operations/:operation_id")...)
+	rules = append(rules, grantMany("GET", []string{"finance_admin"}, "/admin/channel-quotas/:channel_id/operations", "/admin/payments/overview", "/admin/payments/instances", "/admin/payments/settings", "/admin/payments/recipients")...)
 	rules = append(rules, grantMany("POST", []string{"finance_admin"}, "/admin/payments/offline", "/admin/payments/instances", "/admin/payments/instances/:id/test", "/admin/payments/instances/:id/go-live")...)
 	rules = append(rules, grantMany("PATCH", []string{"finance_admin"}, "/admin/payments/instances/:id", "/admin/payments/settings")...)
 	rules = append(rules, grantMany("GET", []string{"ops_admin", "audit_readonly"}, "/admin/payments/overview")...)
+	rules = append(rules, grantMany("GET", []string{"ops_admin", "finance_admin", "tech_admin", "audit_readonly"}, "/admin/oem-deliveries/:id", "/admin/channels/:id/models")...)
+	rules = append(rules, grant("/admin/channels/:id/admins/candidates", "GET", "channel_admin")...)
+	rules = append(rules, grantMany("GET", []string{"audit_readonly"}, "/admin/brands", "/admin/brands/:id")...)
+	rules = append(rules, grant("/admin/oem-deliveries/:id/domains/check", "POST", "tech_admin")...)
+	rules = append(rules, grant("/channel/delivery", "GET", "channel_admin", "oem_ops", "oem_finance", "oem_audit")...)
+	rules = append(rules, usageWorkflowRules()...)
 	rules = append(rules, authenticatedRules()...)
+	rules = append(rules, customerRules()...)
 	rules = append(rules, financeRules()...)
 	rules = append(rules, opsRules()...)
 	rules = append(rules, techRules()...)
 	rules = append(rules, channelRules()...)
 	rules = append(rules, auditRules()...)
 	rules = append(rules, oemEmployeeRules()...)
+	rules = append(rules, grantMany("GET", []string{"platform_admin", "finance_admin"}, "/admin/payments/offline/operations/:operation_id", "/admin/payments/offline/preview", "/admin/payments/:id/refund-preview")...)
+	rules = append(rules, grantMany("GET", []string{"platform_admin", "finance_admin", "ops_admin", "audit_readonly"}, "/admin/payments/:id")...)
+	rules = append(rules, grantMany("GET", []string{"channel_admin", "oem_ops", "oem_finance", "oem_audit"}, "/channel/payments/orders/:id")...)
+	rules = append(rules, grantMany("GET", []string{"channel_admin", "oem_finance"}, "/channel/payments/offline/operations/:operation_id", "/channel/payments/offline/preview", "/channel/payments/orders/:id/refund-preview")...)
+
 	return rules
 }
 
@@ -238,7 +252,7 @@ func opsRules() []policyRule {
 
 func techRules() []policyRule {
 	roles := []string{"tech_admin"}
-	out := []policyRule{}
+	out := grant("/admin/diagnostics/*", "*", "tech_admin")
 	out = append(out, grantMany("GET", roles,
 		"/admin/me",
 		"/admin/me/2fa",

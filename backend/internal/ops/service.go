@@ -136,51 +136,99 @@ func (s *Service) Seed(ctx context.Context) error {
 }
 
 func (s *Service) Dashboard(ctx context.Context) (*Dashboard, error) {
-	out := &Dashboard{Version: PolicyVersion, Dimensions: map[string][]DimStat{}}
-	if s.money != nil {
-		if money, err := s.money.Money(ctx); err == nil && money != nil {
-			out.Totals = *money
-		}
+	out := &Dashboard{Version: PolicyVersion, Dimensions: map[string][]DimStat{}, ModuleErrors: map[string]string{}, GeneratedAt: time.Now().UTC()}
+	if s.money == nil {
+		out.ModuleErrors["finance"] = "unavailable"
+	} else if money, err := s.money.Money(ctx); err != nil || money == nil {
+		out.ModuleErrors["finance"] = "read_error"
+	} else {
+		out.Totals = *money
 	}
+	if s.traffic == nil {
+		out.ModuleErrors["traffic"] = "unavailable"
+	}
+	var providerTraffic []DimStat
 	for _, dim := range []string{DimProvider, DimModel, DimChannel, DimUser, DimAPIKey, DimAgent} {
 		stats := []DimStat{}
+		failed := s.traffic == nil || s.money == nil
 		if dim == DimAgent {
-			stats = s.agentStats(ctx)
+			rows, err := s.agentStats(ctx)
+			if err != nil {
+				failed = true
+			} else {
+				stats = rows
+			}
 		} else {
 			if s.traffic != nil {
-				if rows, err := s.traffic.DimStats(ctx, dim); err == nil {
+				rows, err := s.traffic.DimStats(ctx, dim)
+				if err != nil {
+					failed = true
+					if dim == DimProvider {
+						out.ModuleErrors["traffic"] = "read_error"
+					}
+				} else {
 					stats = rows
+					if dim == DimProvider {
+						providerTraffic = rows
+					}
 				}
 			}
 			if s.money != nil {
-				if money, err := s.money.DimMoney(ctx, dim); err == nil {
+				money, err := s.money.DimMoney(ctx, dim)
+				if err != nil {
+					failed = true
+				} else {
 					stats = mergeMoney(stats, money)
 				}
 			}
 		}
-		out.Dimensions[dim] = stats
+		if failed {
+			out.ModuleErrors["dimensions."+dim] = "read_error"
+		} else {
+			out.Dimensions[dim] = stats
+		}
 	}
-	fillOverview(&out.Totals, out.Dimensions[DimProvider])
+	if out.ModuleErrors["traffic"] == "" {
+		fillOverview(&out.Totals, providerTraffic)
+	}
 	if s.latency != nil {
-		if p95, err := s.latency.CallbackP95MS(ctx); err == nil {
+		p95, err := s.latency.CallbackP95MS(ctx)
+		if err != nil {
+			out.ModuleErrors["callbacks"] = "read_error"
+		} else {
 			out.Totals.CallbackP95MS = p95
 		}
 	}
 	if s.traffic != nil {
-		if codes, err := s.traffic.ErrorBreakdown(ctx); err == nil {
+		codes, err := s.traffic.ErrorBreakdown(ctx)
+		if err != nil {
+			out.ModuleErrors["errors"] = "read_error"
+		} else {
 			out.Totals.ErrorCodes = codes
 		}
 	}
-	if out.Totals.ErrorCodes == nil {
-		out.Totals.ErrorCodes = map[string]int64{}
-	}
-	if thr, err := s.Thresholds(ctx); err == nil {
+	if thr, err := s.Thresholds(ctx); err != nil {
+		out.ModuleErrors["thresholds"] = "read_error"
+	} else {
 		out.Thresholds = thr
 	}
-	out.Alerts, _ = s.ListAlerts(ctx, StatusOpen)
-	out.Canary, _ = s.Canary(ctx, CanaryChat)
-	out.LastDrill, _ = s.LastDrill(ctx)
-	out.Runbooks, _ = s.ListRunbooks(ctx)
+	var err error
+	out.Alerts, err = s.ListAlerts(ctx, StatusOpen)
+	if err != nil {
+		out.ModuleErrors["alerts"] = "read_error"
+	}
+	out.Canary, err = s.Canary(ctx, CanaryChat)
+	if err != nil {
+		out.ModuleErrors["canary"] = "read_error"
+	}
+	out.LastDrill, err = s.LastDrill(ctx)
+	if err != nil {
+		out.ModuleErrors["backup"] = "read_error"
+	}
+	out.Runbooks, err = s.ListRunbooks(ctx)
+	if err != nil {
+		out.ModuleErrors["runbooks"] = "read_error"
+	}
 	return out, nil
 }
 
@@ -215,18 +263,24 @@ func mergeMoney(traffic, money []DimStat) []DimStat {
 	return out
 }
 
-func (s *Service) agentStats(ctx context.Context) []DimStat {
+func (s *Service) agentStats(ctx context.Context) ([]DimStat, error) {
 	var users []DimStat
 	if s.traffic != nil {
-		users, _ = s.traffic.DimStats(ctx, DimUser)
-	}
-	if s.money != nil {
-		if money, err := s.money.DimMoney(ctx, DimUser); err == nil {
-			users = mergeMoney(users, money)
+		var err error
+		users, err = s.traffic.DimStats(ctx, DimUser)
+		if err != nil {
+			return nil, err
 		}
 	}
+	if s.money != nil {
+		money, err := s.money.DimMoney(ctx, DimUser)
+		if err != nil {
+			return nil, err
+		}
+		users = mergeMoney(users, money)
+	}
 	if s.roles == nil || len(users) == 0 {
-		return nil
+		return nil, nil
 	}
 	ids := make([]string, 0, len(users))
 	for _, row := range users {
@@ -234,7 +288,7 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 	}
 	roles, err := s.roles.MapUserRoles(ctx, ids)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	byRole := map[string]DimStat{}
 	for _, row := range users {
@@ -280,7 +334,7 @@ func (s *Service) agentStats(ctx context.Context) []DimStat {
 		row.MarginMinor = row.RevenueMinor - row.CostMinor
 		out = append(out, row)
 	}
-	return out
+	return out, nil
 }
 
 func fillOverview(totals *MoneyView, providers []DimStat) {

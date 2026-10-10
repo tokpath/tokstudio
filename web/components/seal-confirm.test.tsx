@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 describe("SealConfirm", () => {
-  it("keeps the trigger label and confirms with a seal, not a lightweight dialog", async () => {
+  it("keeps the action label and requires a single explicit confirmation", async () => {
     const onConfirm = vi.fn(async () => true);
     render(
       withZh(
@@ -25,11 +25,14 @@ describe("SealConfirm", () => {
     fireEvent.click(screen.getByRole("button", { name: "发布价格" }));
     expect(screen.getByText("SEAL")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "新牌价只约束之后的请求，已入账金额不会改写。" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "盖章确认" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "确认" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "取消" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "确认" })).toBeNull();
+    expect(onConfirm).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name:"取消"}));
+    expect(onConfirm).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name:"发布价格"}));
 
-    fireEvent.click(screen.getByRole("button", { name: "盖章确认" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
     await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByText("SEAL")).toBeNull());
   });

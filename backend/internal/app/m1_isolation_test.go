@@ -245,8 +245,18 @@ func TestM1IdentityIsolation(t *testing.T) {
 		t.Fatalf("B channel could manage plans: %d", code)
 	}
 	usage := getAuthJSON(t, server.URL+"/channel/usage", "m1_channel_token")
-	if usage["usage"] == nil {
+	if usage["items"] == nil {
 		t.Fatalf("channel usage missing: %+v", usage)
+	}
+	for _, raw := range usage["items"].([]any) {
+		row := raw.(map[string]any)
+		if row["channel_org_id"] != nil && row["channel_org_id"] != identity.ResellerChannelID {
+			t.Fatalf("channel usage leaked another channel: %+v", row)
+		}
+	}
+	summary := getAuthJSON(t, server.URL+"/channel/usage/summary", "m1_channel_token")
+	if summary["totals"] == nil {
+		t.Fatalf("channel full-scope usage summary missing: %+v", summary)
 	}
 	if mustStatusJSON(t, http.MethodGet, server.URL+"/channel/attribution", "", nil) != http.StatusForbidden {
 		t.Fatal("unauth channel attribution must be 403")
@@ -318,7 +328,7 @@ func TestM1IdentityIsolation(t *testing.T) {
 	if brand["name"] != "Aurora OEM" {
 		t.Fatalf("oem brand: %+v", oemBrand)
 	}
-	docs := getAuthJSON(t, server.URL+"/v1/public/docs-context?host=oem.localhost", "")
+	docs := getAuthJSON(t, server.URL+"/v1/public/docs-context?host=oem.localhost&model=tokenhub/oem-demo", "")
 	if !containsText(docs, "Aurora OEM") || !containsText(docs, "${TOKENHUB_API_KEY}") || !containsText(docs, "/v1/messages") {
 		t.Fatalf("oem docs examples: %+v", docs)
 	}

@@ -50,8 +50,12 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hi"}},
 	})
-	if chat["provider"] != catalog.PrimaryProvider {
-		t.Fatalf("expected primary provider, got %+v", chat)
+	if chat["provider"] != nil {
+		t.Fatalf("public completion leaked internal provider: %+v", chat)
+	}
+	facts := getDiagnosticJSON(t, server.URL+"/v1/requests/"+chat["request_id"].(string)+"/attempts", apiKey)
+	if facts["items"].([]any)[0].(map[string]any)["provider_id"] != "prd_echo_primary" {
+		t.Fatalf("expected primary diagnostic fact: %+v", facts)
 	}
 
 	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/chat/completions", bytes.NewReader(mustJSON(map[string]any{
@@ -60,6 +64,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Force-Fail", catalog.PrimaryProvider)
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -163,7 +168,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		_ = application.Catalog.MarkHealth(ctx, "prd_echo_primary", "available")
 		_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "priority"})
 	}()
-	healthy := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+	healthy := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "health"}},
 	})
 	if healthy["provider"] != catalog.BackupProvider {
@@ -181,7 +186,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		_ = application.DB.Exec(`UPDATE catalog_provider_models SET unit_costs_json = ? WHERE provider_id = 'prd_echo_backup' AND upstream_model_id = 'echo-upstream'`, previous).Error
 	}()
 	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "price"})
-	priced := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+	priced := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "price"}},
 	})
 	if priced["provider"] != catalog.BackupProvider {
@@ -189,7 +194,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	}
 	_ = patchJSONRaw(t, server.URL+"/admin/routes/rg_echo", "m2_admin", map[string]any{"strategy": "priority"})
 	_ = application.Catalog.MarkHealth(ctx, "prd_echo_primary", "available")
-	reset := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
+	reset := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "priority"}},
 	})
 	if reset["provider"] != catalog.PrimaryProvider {
@@ -241,7 +246,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 		"name": "echo-only", "allowlist": []string{catalog.EchoModelID}, "rpm_limit": 30,
 	})
 	echoKey := allowed["item"].(map[string]any)["key"].(string)
-	okChat := postJSONRaw(t, server.URL+"/v1/chat/completions", echoKey, map[string]any{
+	okChat := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", echoKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "allow"}},
 	})
 	if okChat["provider"] != catalog.PrimaryProvider {
@@ -272,7 +277,7 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 	if err := application.Redis.Decr(ctx, "tokenhub:conc:"+slotID).Err(); err != nil {
 		t.Fatal(err)
 	}
-	free := postJSONRaw(t, server.URL+"/v1/chat/completions", slotKey, map[string]any{
+	free := postDiagnosticJSONRaw(t, server.URL+"/v1/chat/completions", slotKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "free"}},
 	})
 	if free["provider"] != catalog.PrimaryProvider {
@@ -282,6 +287,8 @@ func TestM2GatewayFallbackAndParams(t *testing.T) {
 
 func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	t.Helper()
+	diagnosticTestStaff.Store(t.Name(), cfg.BootstrapAdmin)
+	t.Cleanup(func() { diagnosticTestStaff.Delete(t.Name()) })
 	gdb, err := db.Open(cfg.DatabaseURL)
 	if err != nil {
 		t.Fatal(err)
@@ -297,6 +304,8 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	}
 	t.Cleanup(func() { _ = rdb.Close() })
 	application := app.New(cfg, gdb, rdb, logx.New("error", os.Stdout))
+	diagnosticTestApps.Store(t.Name(), application)
+	t.Cleanup(func() { diagnosticTestApps.Delete(t.Name()) })
 	// 测试专用：注入确定性上游，覆盖 CI 无 Provider Key 的场景。生产 app.New 不挂 harness。
 	application.Gateway.InstallTestHarness()
 	application.Media.InstallTestHarness()
@@ -307,6 +316,20 @@ func mustApp(t *testing.T, cfg *config.Config) *app.App {
 	if err := application.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}
+	var fixtureProviders []struct {
+		ID           string
+		TestBehavior string
+		Status       string
+		Health       string
+	}
+	if err := application.DB.Table("catalog_providers").Select("id,test_behavior,status,health").Where("id IN ?", []string{"prd_echo_primary", "prd_echo_backup"}).Find(&fixtureProviders).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		for _, p := range fixtureProviders {
+			application.DB.Table("catalog_providers").Where("id=?", p.ID).Updates(map[string]any{"test_behavior": p.TestBehavior, "status": p.Status, "health": p.Health})
+		}
+	})
 	// Explicit sandbox merchants are test fixtures; unconfigured production brands cannot take orders.
 	for _, owner := range []string{identity.OfficialChannelID, identity.OEMChannelID} {
 		for adapter, creds := range map[string]map[string]string{

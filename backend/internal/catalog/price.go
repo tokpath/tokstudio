@@ -36,27 +36,31 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 	if err != nil {
 		return nil, err
 	}
-	for key, value := range decodeCosts(policy.Wholesale) {
-		prices["wholesale_"+key] = value
-	}
+	wholesale := decodeCosts(policy.Wholesale)
 	customerOverride := decodeCosts(policy.Override)
-	var channel struct{ Type string `gorm:"column:type"` }
-	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id = ?", channelID).Take(&channel).Error; err != nil {
+	var channel struct {
+		Type     string `gorm:"column:type"`
+		ParentID string `gorm:"column:parent_id"`
+	}
+	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type,parent_id").Where("id = ?", channelID).Take(&channel).Error; err != nil {
 		return nil, err
 	}
 	if channel.Type == identity.ChannelTypeB {
-		customerOverride = nil
-		parentID, err := s.delegatingParent(ctx, channelID)
-		if err != nil {
+		// A promotion organization has no purchasing layer. Both prices come
+		// from the original brand's financial owner, ignoring legacy B terms.
+		owner := channel.ParentID
+		if owner == "" {
+			owner = identity.OfficialChannelID
+		}
+		var brandPolicy channelPolicyRow
+		if err := s.db.WithContext(ctx).Where("channel_org_id=? AND public_model_id=? AND enabled=true AND self_enabled=true", owner, policy.PublicModelID).First(&brandPolicy).Error; err != nil {
 			return nil, err
 		}
-		if parentID != "" {
-			var parentPolicy channelPolicyRow
-			if err := s.db.WithContext(ctx).Where("channel_org_id = ? AND public_model_id = ?", parentID, policy.PublicModelID).First(&parentPolicy).Error; err != nil {
-				return nil, err
-			}
-			customerOverride = decodeCosts(parentPolicy.Override)
-		}
+		wholesale = decodeCosts(brandPolicy.Wholesale)
+		customerOverride = decodeCosts(brandPolicy.Override)
+	}
+	for key, value := range wholesale {
+		prices["wholesale_"+key] = value
 	}
 	for key, value := range customerOverride {
 		if key == "input" || key == "output" {
@@ -66,12 +70,28 @@ func (s *Service) PriceForChannel(ctx context.Context, channelID, publicID strin
 			prices[key] = value
 		}
 	}
+	if _, ok := customerOverride["input"]; ok {
+		sell := map[string]any{}
+		for _, key := range []string{"input", "output"} {
+			if value, exists := prices[key]; exists {
+				sell[key] = value
+			}
+		}
+		prices["customer_sell"] = sell
+	}
 	return json.Marshal(prices)
 }
 
 // SetOwnChannelCustomerPrices sets the selling terms for one OEM brand.
 // Child B policies never define a separate customer price.
 func (s *Service) SetOwnChannelCustomerPrices(ctx context.Context, channelID, publicID string, prices map[string]string) error {
+	var organization struct{ Type string }
+	if err := s.db.WithContext(ctx).Table("identity_channel_orgs").Select("type").Where("id=?", channelID).Take(&organization).Error; err != nil {
+		return err
+	}
+	if organization.Type != identity.ChannelTypeC {
+		return ErrModelNotVisible
+	}
 	var model publicModelRow
 	if err := s.db.WithContext(ctx).Where("public_id = ?", publicID).First(&model).Error; err != nil {
 		return err
@@ -339,4 +359,28 @@ func formatIO(input, output string) string {
 	default:
 		return input + "/" + output
 	}
+}
+
+// ValidateChannelPrice checks the effective brand sell and OEM settlement terms
+// without inspecting or changing historical snapshots.
+func (s *Service) ValidateChannelPrice(ctx context.Context, channelID, publicID string, raw json.RawMessage) error {
+	model, err := s.loadModel(ctx, publicID)
+	if err != nil {
+		return err
+	}
+	var units map[string]any
+	if json.Unmarshal(raw, &units) != nil {
+		return ErrInvalidInput
+	}
+	if !modelConfigurationReady(*model, map[string]any{"kind": modelKind(*model)}, units) {
+		return ErrModelIncomplete
+	}
+	wholesale := map[string]string{}
+	for _, key := range costKeys {
+		wholesale[key] = stringifyPrice(units["wholesale_"+key])
+	}
+	if !pricedForKind(wholesale, modelKind(*model)) {
+		return ErrModelIncomplete
+	}
+	return nil
 }

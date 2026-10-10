@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -44,6 +45,14 @@ func (a *App) registerPaymentChannelRoutes(r *gin.Engine) {
 	r.POST("/admin/payments/offline", a.requireRoles("platform_admin", "finance_admin"), a.recordOfflinePayment)
 	r.GET("/channel/payments/recipients", a.requireRoles("channel_admin"), a.paymentRecipients)
 	r.POST("/channel/payments/offline", a.requireRoles("channel_admin"), a.recordOfflinePayment)
+	r.GET("/admin/payments/offline/operations/:operation_id", a.requireRoles("platform_admin", "finance_admin"), a.offlinePaymentOperation)
+	r.GET("/channel/payments/offline/operations/:operation_id", a.requireRoles("channel_admin"), a.offlinePaymentOperation)
+	r.GET("/admin/payments/offline/preview", a.requireRoles("platform_admin", "finance_admin"), a.offlinePaymentPreview)
+	r.GET("/channel/payments/offline/preview", a.requireRoles("channel_admin"), a.offlinePaymentPreview)
+	r.GET("/admin/payments/:id", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.paymentOrderDetail)
+	r.GET("/channel/payments/orders/:id", a.requireRoles("channel_admin"), a.paymentOrderDetail)
+	r.GET("/admin/payments/:id/refund-preview", a.requireRoles("platform_admin", "finance_admin"), a.paymentRefundPreview)
+	r.GET("/channel/payments/orders/:id/refund-preview", a.requireRoles("channel_admin"), a.paymentRefundPreview)
 
 	r.GET("/admin/channels/:id/payments", a.requireRoles("platform_admin", "finance_admin", "ops_admin", "audit_readonly"), a.adminChannelPayments)
 	r.POST("/admin/channels/:id/payments/disable", a.requireRoles("platform_admin", "finance_admin", "ops_admin"), a.adminDisableChannelPayments)
@@ -55,15 +64,24 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
+	var external *payment.ExternalReceiptConflict
+	if errors.As(err, &external) {
+		httpx.AbortParam(c, 409, "external_transaction_conflict", "该真实交易号已登记，请核对原订单", gin.H{"order_id": external.OrderID}, false)
+		return true
+	}
 	switch {
 	case errors.Is(err, payment.ErrReceiptConflict):
-		httpx.Abort(c, http.StatusConflict, "receipt_conflict", "该凭证已用于另一笔收款，请核对原订单", false)
+		httpx.Abort(c, http.StatusConflict, "operation_conflict", "该操作编号已绑定其他主体或内容，请查询原操作", false)
+	case errors.Is(err, payment.ErrPreviewChanged):
+		httpx.Abort(c, 409, "preview_changed", "发放换算规则已变化，本笔未登记，请重新核对预览", false)
 	case errors.Is(err, payment.ErrCollectorRequired), errors.Is(err, identity.ErrChannelImmutable):
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "只能管理所属品牌的收款和额度", false)
 	case errors.Is(err, billing.ErrInsufficientQuota):
 		httpx.Abort(c, http.StatusConflict, "insufficient_quota", "OEM 服务额度不足，划拨未完成", false)
-	case errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInstanceNotFound):
+	case errors.Is(err, identity.ErrNotFound), errors.Is(err, payment.ErrNotFound), errors.Is(err, payment.ErrInstanceNotFound):
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到支付配置或订单", false)
+	case errors.Is(err, payment.ErrRefundNeedsReview):
+		httpx.Abort(c, 409, "refund_needs_review", "退款回报需要核对，请检查原订单和支付回调", false)
 	case errors.Is(err, payment.ErrOrderNotPending):
 		httpx.Abort(c, http.StatusConflict, "order_status_conflict", "订单状态已变化，请刷新后核对；仅已支付订单可退款", false)
 	case errors.Is(err, billing.ErrInsufficientBalance):
@@ -85,7 +103,7 @@ func (a *App) abortPaymentErr(c *gin.Context, err error) bool {
 	case errors.Is(err, payment.ErrProviderFailed):
 		httpx.Abort(c, http.StatusBadGateway, "payment_provider_failed", "支付渠道请求失败", true)
 	default:
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "支付操作失败", false)
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "暂未确认支付操作结果，请查询原订单或原操作", true)
 	}
 	return true
 }
@@ -352,7 +370,14 @@ func (a *App) channelConfirmPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "请填写实际收款时间", false)
+		return
+	}
+	item, err := a.Payment.ConfirmRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -370,7 +395,14 @@ func (a *App) channelRefundPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "退款信息无效", false)
+		return
+	}
+	item, err := a.Payment.RefundRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}

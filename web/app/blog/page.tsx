@@ -1,31 +1,5 @@
-import { headers } from "next/headers";
-import Link from "next/link";
-import { loadSite } from "@/lib/site-content";
-import { I18nPublicHero } from "@/components/i18n-page-hero";
-import { PublicMain } from "@/components/public-section";
+import { notFound } from "next/navigation";
 
-export default async function BlogPage() {
-  const host = (await headers()).get("x-tokenhub-host") || "localhost";
-  const site = await loadSite(host);
-  const posts = site.blog || [];
-
-  return (
-    <PublicMain>
-      <I18nPublicHero id="blog" primaryHref="/docs" secondaryHref="/quickstart" />
-      <ul className="flex flex-col gap-3">
-        {posts.map((post) => (
-          <li key={post.href}>
-            <Link
-              href={post.href}
-              className="block rounded-card border border-hairline bg-canvas-raised p-6 no-underline transition-colors duration-150 hover:bg-brand-soft/30"
-            >
-              <p className="th-eyebrow text-ink-mute">{post.date || "LOG"}</p>
-              <h2 className="mt-2 text-lg font-semibold text-ink">{post.title}</h2>
-              {post.summary ? <p className="mt-2 text-sm text-ink-secondary">{post.summary}</p> : null}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </PublicMain>
-  );
+export default function UnavailablePublicPage() {
+  notFound();
 }

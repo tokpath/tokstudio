@@ -13,7 +13,7 @@ describe("ModelsCatalog", () => {
     cleanup();
   });
 
-  it("offers try now into playground with catalog filters", () => {
+  it("offers model instructions with catalog filters", () => {
     render(
       withZh(
         <ModelsCatalog
@@ -34,12 +34,12 @@ describe("ModelsCatalog", () => {
       ),
     );
     const tryLink = screen.getByRole("link", { name: "立即试用" });
-    expect(tryLink.getAttribute("href")).toContain("/app/playground?model=google%2Fgemini-flash");
+    expect(tryLink.getAttribute("href")).toContain("/app/docs?model=google%2Fgemini-flash");
     expect(tryLink.getAttribute("href")).toContain("from=");
     expect(screen.getByText("适合短回复")).toBeTruthy();
   });
 
-  it("sends image models to media with the model id", () => {
+  it("sends image models to their protocol with the model id", () => {
     render(
       withZh(
         <ModelsCatalog
@@ -57,11 +57,11 @@ describe("ModelsCatalog", () => {
         />,
       ),
     );
-    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/media?model=bytedance%2Fseedream");
-    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("kind=image");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/docs?model=bytedance%2Fseedream");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("tab=protocol");
   });
 
-  it("sends video models to media with the model id", () => {
+  it("sends video models to their protocol with the model id", () => {
     render(
       withZh(
         <ModelsCatalog
@@ -79,8 +79,8 @@ describe("ModelsCatalog", () => {
         />,
       ),
     );
-    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/media?model=bytedance%2Fseedance");
-    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("kind=video");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("/app/docs?model=bytedance%2Fseedance");
+    expect(screen.getByRole("link", { name: "立即试用" }).getAttribute("href")).toContain("tab=protocol");
   });
 
   it("does not show an empty catalog when loading failed", () => {

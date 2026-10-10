@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
+import { notifyWalletChanged } from "@/lib/wallet-events";
 import { UserShellBell, UserShellRightZone } from "./user-shell-menu";
 
 const push = vi.fn();
@@ -11,7 +12,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
-vi.mock("@/components/rbac/viewer-context", () => ({ useViewer: () => ({ channelType: "C" }) }));
+const mockViewer = vi.hoisted(() => ({ signedIn: true, loading: false, userId: "shell-user", channelType: "C", roles: ["end_user"] }));
+vi.mock("@/components/rbac/viewer-context", () => ({ useViewer: () => mockViewer }));
+
+vi.mock("@/components/brand-context",()=>({useBrand:()=>({id:"wallet-brand"})}));
 
 function jsonResponse(ok: boolean, body: unknown, status = ok ? 200 : 503) {
   return {
@@ -23,6 +27,7 @@ function jsonResponse(ok: boolean, body: unknown, status = ok ? 200 : 503) {
 
 describe("UserShellRightZone", () => {
   beforeEach(() => {
+    mockViewer.roles = ["end_user"];
     push.mockReset();
     refresh.mockReset();
     vi.stubGlobal(
@@ -55,6 +60,26 @@ describe("UserShellRightZone", () => {
     vi.unstubAllGlobals();
   });
 
+  it("refreshes only the current wallet and ignores a late old balance",async()=>{
+    let reads=0;let release!:(value:unknown)=>void;
+    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
+      if(String(input).includes("/v1/me/balance")){
+        reads++;if(reads===1)return await new Promise(resolve=>{release=resolve;});
+        return jsonResponse(true,{balance:{available:"10"}});
+      }
+      return jsonResponse(true,{user:{display_name:"Ada",roles:["end_user"]}});
+    }));
+    render(withZh(<UserShellRightZone/>));
+    await waitFor(()=>expect(reads).toBe(1));
+    act(()=>notifyWalletChanged({userId:"another-user",brandId:"wallet-brand"}));
+    expect(reads).toBe(1);
+    act(()=>notifyWalletChanged({userId:"shell-user",brandId:"foreign-brand"}));expect(reads).toBe(1);
+    act(()=>notifyWalletChanged({userId:"shell-user",brandId:"wallet-brand"}));
+    await waitFor(()=>expect(screen.getByTestId("balance-pill").textContent).toBe("$10.00"));
+    await act(async()=>release(jsonResponse(true,{balance:{available:"0"}})));
+    expect(screen.getByTestId("balance-pill").textContent).toBe("$10.00");
+  });
+
   it("shows the nailed available field and real profile, never a fake key list", async () => {
     render(withZh(<UserShellRightZone />));
     await waitFor(() => expect(screen.getByTestId("balance-pill").textContent).toBe("$12.50"));
@@ -65,7 +90,7 @@ describe("UserShellRightZone", () => {
     expect(screen.getByTestId("menu-display-name").textContent).toBe("Ada");
     expect(screen.getByTestId("menu-email").textContent).toBe("ada@example.test");
     expect(screen.getByTestId("menu-balance").textContent).toBe("$12.50");
-    expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/profile");
+    expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/settings");
     expect(screen.getByRole("menuitem", { name: "API 密钥" }).getAttribute("href")).toBe("/app/keys");
     expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();
     expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
@@ -83,7 +108,7 @@ describe("UserShellRightZone", () => {
           return jsonResponse(false, { error: { message: "boom" } });
         }
         if (url.includes("/v1/me")) {
-          return jsonResponse(true, { user: { roles: ["platform_admin"] } });
+          return jsonResponse(true, { user: { roles: ["end_user"] } });
         }
         return jsonResponse(false, {});
       }),
@@ -95,11 +120,12 @@ describe("UserShellRightZone", () => {
     fireEvent.click(screen.getByTestId("avatar-trigger"));
     expect(screen.getByTestId("menu-display-name").textContent).toBe("—");
     expect(screen.getByTestId("menu-email").textContent).toBe("—");
-    expect(screen.getByText("平台管理员")).toBeTruthy();
-    expect(screen.getByRole("menuitem", { name: "平台管理" }).getAttribute("href")).toBe("/admin");
+    expect(screen.getByText("用户", {exact:true})).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();
   });
 
   it("shows 平台管理 only when roles include platform_admin", async () => {
+    mockViewer.roles = ["platform_admin"];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -124,7 +150,8 @@ describe("UserShellRightZone", () => {
     expect((adminItem as HTMLElement).hasAttribute("disabled")).toBe(false);
   });
 
-  it("does not render a disabled 平台管理 entry for finance_admin or end_user", async () => {
+  it("does not render consumer funds or Keys for a finance employee", async () => {
+    mockViewer.roles = ["finance_admin"];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -147,6 +174,10 @@ describe("UserShellRightZone", () => {
     expect(screen.queryByRole("link", { name: "平台管理" })).toBeNull();
     expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
     expect(screen.queryAllByText("平台管理")).toHaveLength(0);
+    expect(screen.queryByTestId("balance-pill")).toBeNull();
+    expect(screen.queryByTestId("menu-balance")).toBeNull();
+    expect(screen.queryByRole("menuitem",{name:"API 密钥"})).toBeNull();
+    expect(vi.mocked(fetch).mock.calls.some(call=>String(call[0]).includes("/v1/me/balance"))).toBe(false);
   });
 
   it("logs out through the real session endpoint", async () => {
@@ -170,6 +201,7 @@ describe("UserShellBell", () => {
 
 describe("UserShellRightZone admin variant", () => {
   beforeEach(() => {
+    mockViewer.roles = ["platform_admin"];
     push.mockReset();
     refresh.mockReset();
     vi.stubGlobal(
@@ -202,6 +234,7 @@ describe("UserShellRightZone admin variant", () => {
   });
 
   it("shows channel.c as an OEM administrator without a platform management link", async () => {
+    mockViewer.roles = ["channel_admin"];
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(true, { user: { email: "channel.c@tokenhub.local", roles: ["channel_admin"] } })));
     render(withZh(<UserShellRightZone variant="admin" />));
     await screen.findByText("OEM 管理员");
@@ -211,7 +244,7 @@ describe("UserShellRightZone admin variant", () => {
     expect(screen.getByTestId("menu-email").textContent).toBe("channel.c@tokenhub.local");
   });
 
-  it("shows avatar profile without balance or API keys, and links back to user console", async () => {
+  it("shows one account settings entry without consumer funds or duplicate entries", async () => {
     render(withZh(<UserShellRightZone variant="admin" />));
     await waitFor(() => expect(screen.getByTestId("avatar-trigger")).toBeTruthy());
     expect(screen.queryByTestId("balance-pill")).toBeNull();
@@ -220,8 +253,9 @@ describe("UserShellRightZone admin variant", () => {
     fireEvent.click(screen.getByTestId("avatar-trigger"));
     expect(screen.getByTestId("menu-display-name").textContent).toBe("Ops");
     expect(screen.getByTestId("menu-email").textContent).toBe("ops@example.test");
-    expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/profile");
-    expect(screen.getByRole("menuitem", { name: "用户控制台" }).getAttribute("href")).toBe("/app");
+    expect(screen.getByRole("menuitem", { name: "个人资料" }).getAttribute("href")).toBe("/app/settings");
+    expect(screen.queryByRole("menuitem", { name: "用户控制台" })).toBeNull();
+    expect(screen.getAllByRole("menuitem", { name: "个人资料" })).toHaveLength(1);
     expect(screen.queryByRole("menuitem", { name: "API 密钥" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "平台管理" })).toBeNull();
     expect(screen.queryByTestId("menu-platform-admin")).toBeNull();

@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ type supplierRow struct {
 func (supplierRow) TableName() string { return "billing_supplier_entries" }
 
 type SupplierInput struct {
+	Confirmed      bool      `json:"confirmed"`
 	ChannelOrgID   string    `json:"-"`
 	AmountMinor    int64     `json:"amount_minor"`
 	Currency       string    `json:"currency"`
@@ -73,6 +75,7 @@ type SupplierView struct {
 	ReversalOf     string    `json:"reversal_of,omitempty"`
 	IdempotencyKey string    `json:"idempotency_key"`
 	CreatedAt      time.Time `json:"created_at"`
+	ReversedBy     string    `json:"reversed_by,omitempty"`
 }
 
 func supplierView(row supplierRow) *SupplierView {
@@ -124,101 +127,149 @@ func optStr(v string) *string {
 
 // RecordSupplier 记录线下已付给供应商的款项，不改钱包或额度。
 func (s *Service) RecordSupplier(ctx context.Context, actorUserID string, in SupplierInput) (*SupplierView, error) {
+	var out *SupplierView
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var e error; out, _, e = s.RecordSupplierTx(tx, actorUserID, in); return e })
+	return out, err
+}
+
+// RecordSupplierTx shares the original fact and the caller's audit transaction.
+func (s *Service) RecordSupplierTx(tx *gorm.DB, actorUserID string, in SupplierInput) (*SupplierView, bool, error) {
 	in.ChannelOrgID = strings.TrimSpace(in.ChannelOrgID)
 	in.SourceType = strings.TrimSpace(in.SourceType)
 	in.IdempotencyKey = strings.TrimSpace(in.IdempotencyKey)
-	if in.ChannelOrgID == "" || in.SourceType == "" || in.IdempotencyKey == "" || actorUserID == "" {
-		return nil, ErrInvalidAmount
+	if in.ChannelOrgID == "" || actorUserID == "" || in.IdempotencyKey == "" || len(in.IdempotencyKey) > 200 || in.AmountMinor <= 0 {
+		return nil, false, ErrInvalidAmount
 	}
-	if InventedSupplierSource(in.SourceType) {
-		return nil, ErrInventedCost
-	}
-	if !AllowedSupplierSource(in.SourceType) {
-		return nil, ErrInventedCost
+	if !AllowedSupplierSource(in.SourceType) || InventedSupplierSource(in.SourceType) {
+		return nil, false, ErrInventedCost
 	}
 	if s.pool != nil {
-		if pool, err := s.pool.ResolvePoolChannelID(ctx, in.ChannelOrgID); err == nil && pool != "" {
+		pool, err := s.pool.ResolvePoolChannelID(tx.Statement.Context, in.ChannelOrgID)
+		if err != nil {
+			return nil, false, err
+		}
+		if pool != "" {
 			in.ChannelOrgID = pool
 		}
-	}
-	if in.AmountMinor <= 0 {
-		return nil, ErrInvalidAmount
 	}
 	if in.Currency == "" {
 		in.Currency = CurrencyUSD
 	}
-	if in.OccurredAt.IsZero() {
-		in.OccurredAt = time.Now().UTC()
+	explicitTime := !in.OccurredAt.IsZero()
+	if explicitTime {
+		in.OccurredAt = in.OccurredAt.UTC().Truncate(time.Microsecond)
+	} else {
+		in.OccurredAt = time.Now().UTC().Truncate(time.Microsecond)
 	}
-	var out *SupplierView
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing supplierRow
-		if err := tx.Where("idempotency_key = ?", in.IdempotencyKey).First(&existing).Error; err == nil {
-			out = supplierView(existing)
-			return nil
+	if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "supplier-operation:"+in.IdempotencyKey).Error; err != nil {
+		return nil, false, err
+	}
+	var existing supplierRow
+	err := tx.Where("idempotency_key=?", in.IdempotencyKey).First(&existing).Error
+	if err == nil {
+		if existing.ReversalOf != nil || existing.ActorUserID != actorUserID || existing.ChannelOrgID != in.ChannelOrgID || existing.AmountMinor != -in.AmountMinor || existing.Currency != in.Currency || existing.SourceType != in.SourceType || (explicitTime && !existing.OccurredAt.Equal(in.OccurredAt)) || !sameSupplierOptional(existing, in) {
+			return nil, false, ErrConflict
 		}
-		row := supplierRow{
-			ID: id.New("spe"), ChannelOrgID: in.ChannelOrgID, AmountMinor: -in.AmountMinor,
-			Currency: in.Currency, OccurredAt: in.OccurredAt.UTC(), SourceType: in.SourceType,
-			SourceID: optStr(in.SourceID), ProviderID: optStr(in.ProviderID), VendorName: optStr(in.VendorName),
-			InvoiceNo: optStr(in.InvoiceNo), PaymentMethod: optStr(in.PaymentMethod), BankRef: optStr(in.BankRef),
-			Counterparty: optStr(in.Counterparty), Memo: optStr(in.Memo), AttachmentURL: optStr(in.AttachmentURL),
-			ActorUserID: actorUserID, IdempotencyKey: in.IdempotencyKey, CreatedAt: time.Now().UTC(),
+		return supplierView(existing), false, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, err
+	}
+	reference := strings.TrimSpace(in.BankRef)
+	if reference != "" {
+		if err = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "supplier-reference:"+in.ChannelOrgID+":"+reference).Error; err != nil {
+			return nil, false, err
 		}
-		if err := tx.Create(&row).Error; err != nil {
-			return err
+		var duplicate int64
+		if err = tx.Model(&supplierRow{}).Where("channel_org_id=? AND bank_ref=? AND reversal_of IS NULL", in.ChannelOrgID, reference).Count(&duplicate).Error; err != nil {
+			return nil, false, err
 		}
-		out = supplierView(row)
-		return nil
-	})
-	return out, err
+		if duplicate > 0 {
+			return nil, false, ErrConflict
+		}
+	}
+	row := supplierRow{ID: id.New("spe"), ChannelOrgID: in.ChannelOrgID, AmountMinor: -in.AmountMinor, Currency: in.Currency, OccurredAt: in.OccurredAt, SourceType: in.SourceType, SourceID: optStr(in.SourceID), ProviderID: optStr(in.ProviderID), VendorName: optStr(in.VendorName), InvoiceNo: optStr(in.InvoiceNo), PaymentMethod: optStr(in.PaymentMethod), BankRef: optStr(in.BankRef), Counterparty: optStr(in.Counterparty), Memo: optStr(in.Memo), AttachmentURL: optStr(in.AttachmentURL), ActorUserID: actorUserID, IdempotencyKey: in.IdempotencyKey, CreatedAt: time.Now().UTC()}
+	if err = tx.Create(&row).Error; err != nil {
+		return nil, false, err
+	}
+	return supplierView(row), true, nil
+}
+
+func sameSupplierOptional(row supplierRow, in SupplierInput) bool {
+	value := func(v *string) string {
+		if v == nil {
+			return ""
+		}
+		return *v
+	}
+	return value(row.SourceID) == strings.TrimSpace(in.SourceID) && value(row.ProviderID) == strings.TrimSpace(in.ProviderID) && value(row.VendorName) == strings.TrimSpace(in.VendorName) && value(row.InvoiceNo) == strings.TrimSpace(in.InvoiceNo) && value(row.PaymentMethod) == strings.TrimSpace(in.PaymentMethod) && value(row.BankRef) == strings.TrimSpace(in.BankRef) && value(row.Counterparty) == strings.TrimSpace(in.Counterparty) && value(row.Memo) == strings.TrimSpace(in.Memo) && value(row.AttachmentURL) == strings.TrimSpace(in.AttachmentURL)
 }
 
 func (s *Service) ReverseSupplier(ctx context.Context, actorUserID, entryID, reason string) (*SupplierView, error) {
-	if actorUserID == "" || entryID == "" {
-		return nil, ErrInvalidAmount
-	}
-	idem := "spe-rev:" + entryID
 	var out *SupplierView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing supplierRow
-		if err := tx.Where("idempotency_key = ?", idem).First(&existing).Error; err == nil {
-			out = supplierView(existing)
-			return nil
-		}
-		var orig supplierRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", entryID).First(&orig).Error; err != nil {
-			return ErrNotFound
-		}
-		if orig.ReversalOf != nil {
-			return ErrConflict
-		}
-		memo := strings.TrimSpace(reason)
-		rev := supplierRow{
-			ID: id.New("spe"), ChannelOrgID: orig.ChannelOrgID, AmountMinor: -orig.AmountMinor,
-			Currency: orig.Currency, OccurredAt: time.Now().UTC(), SourceType: orig.SourceType,
-			SourceID: orig.SourceID, ProviderID: orig.ProviderID, VendorName: orig.VendorName,
-			InvoiceNo: orig.InvoiceNo, PaymentMethod: orig.PaymentMethod, BankRef: orig.BankRef,
-			Counterparty: orig.Counterparty, AttachmentURL: orig.AttachmentURL,
-			ActorUserID: actorUserID, ReversalOf: &orig.ID, IdempotencyKey: idem, CreatedAt: time.Now().UTC(),
-		}
-		if memo != "" {
-			rev.Memo = &memo
-		}
-		if err := tx.Create(&rev).Error; err != nil {
-			return err
-		}
-		out = supplierView(rev)
-		return nil
+		var e error
+		out, _, e = s.ReverseSupplierTx(tx, actorUserID, entryID, "spe-rev:"+entryID, reason, "")
+		return e
 	})
 	return out, err
 }
 
-func (s *Service) ListSupplier(ctx context.Context, channelOrgID string, limit int) ([]SupplierView, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
+func (s *Service) ReverseSupplierTx(tx *gorm.DB, actor, entryID, operationID, reason, book string) (*SupplierView, bool, error) {
+	reason = strings.TrimSpace(reason)
+	if actor == "" || entryID == "" || operationID == "" || len(operationID) > 200 || len(reason) > 1000 {
+		return nil, false, ErrInvalidAmount
 	}
-	q := s.db.WithContext(ctx).Order("occurred_at DESC").Limit(limit)
+	if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "supplier-operation:"+operationID).Error; err != nil {
+		return nil, false, err
+	}
+	var orig supplierRow
+	q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", entryID)
+	if book != "" {
+		q = q.Where("channel_org_id=?", book)
+	}
+	if err := q.First(&orig).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, ErrNotFound
+		}
+		return nil, false, err
+	}
+	if orig.ReversalOf != nil || orig.AmountMinor >= 0 {
+		return nil, false, ErrConflict
+	}
+	var existing supplierRow
+	if err := tx.Where("idempotency_key=?", operationID).First(&existing).Error; err == nil {
+		memo := ""
+		if existing.Memo != nil {
+			memo = *existing.Memo
+		}
+		if existing.ActorUserID != actor || existing.ChannelOrgID != orig.ChannelOrgID || existing.ReversalOf == nil || *existing.ReversalOf != entryID || memo != reason {
+			return nil, false, ErrConflict
+		}
+		return supplierView(existing), false, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, err
+	}
+	var count int64
+	if err := tx.Model(&supplierRow{}).Where("reversal_of=?", entryID).Count(&count).Error; err != nil {
+		return nil, false, err
+	}
+	if count > 0 {
+		return nil, false, ErrConflict
+	}
+	now := time.Now().UTC()
+	rev := supplierRow{ID: id.New("spe"), ChannelOrgID: orig.ChannelOrgID, AmountMinor: -orig.AmountMinor, Currency: orig.Currency, OccurredAt: now, SourceType: orig.SourceType, SourceID: orig.SourceID, ProviderID: orig.ProviderID, VendorName: orig.VendorName, InvoiceNo: orig.InvoiceNo, PaymentMethod: orig.PaymentMethod, BankRef: orig.BankRef, Counterparty: orig.Counterparty, AttachmentURL: orig.AttachmentURL, ActorUserID: actor, ReversalOf: &orig.ID, IdempotencyKey: operationID, CreatedAt: now, Memo: optStr(reason)}
+	if err := tx.Create(&rev).Error; err != nil {
+		return nil, false, err
+	}
+	return supplierView(rev), true, nil
+}
+
+func (s *Service) ListSupplier(ctx context.Context, channelOrgID string, limit int) ([]SupplierView, error) {
+	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
 	if channelOrgID != "" {
 		q = q.Where("channel_org_id = ?", channelOrgID)
 	}
@@ -227,8 +278,26 @@ func (s *Service) ListSupplier(ctx context.Context, channelOrgID string, limit i
 		return nil, err
 	}
 	out := make([]SupplierView, 0, len(rows))
+	ids := []string{}
 	for _, row := range rows {
-		out = append(out, *supplierView(row))
+		ids = append(ids, row.ID)
+	}
+	var reversals []supplierRow
+	if len(ids) > 0 {
+		if err := s.db.WithContext(ctx).Where("reversal_of IN ?", ids).Find(&reversals).Error; err != nil {
+			return nil, err
+		}
+	}
+	reversed := map[string]string{}
+	for _, row := range reversals {
+		if row.ReversalOf != nil {
+			reversed[*row.ReversalOf] = row.ID
+		}
+	}
+	for _, row := range rows {
+		v := *supplierView(row)
+		v.ReversedBy = reversed[row.ID]
+		out = append(out, v)
 	}
 	return out, nil
 }
@@ -236,7 +305,23 @@ func (s *Service) ListSupplier(ctx context.Context, channelOrgID string, limit i
 func (s *Service) GetSupplier(ctx context.Context, entryID string) (*SupplierView, error) {
 	var row supplierRow
 	if err := s.db.WithContext(ctx).Where("id = ?", entryID).First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return supplierView(row), nil
+}
+
+// SupplierOperation only returns the caller's own operation in its original book.
+func (s *Service) SupplierOperation(ctx context.Context, actorID, channelID, operationID string) (*SupplierView, error) {
+	var row supplierRow
+	err := s.db.WithContext(ctx).Where("actor_user_id = ? AND channel_org_id = ? AND idempotency_key = ?", actorID, channelID, operationID).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 	return supplierView(row), nil
 }

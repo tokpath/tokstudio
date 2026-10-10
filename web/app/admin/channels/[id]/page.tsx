@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -11,7 +12,11 @@ import { ConfirmButton, confirmFormSubmit } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminShell } from "../../shell";
-import { AdminListPanel } from "../../list-panel";
+import { ProfessionalCustomerList } from "@/components/professional-customer-list";
+import { ChannelOnboardingPanel } from "@/components/channel-onboarding";
+import { customerReturnHref } from "@/lib/customer";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { useBrand } from "@/components/brand-context";
 import { ChannelAdminsPanel } from "../admins-panel";
 import { ChannelQuotaPanel } from "../quota-panel";
 import { ChannelPnLPanel } from "../pnl-panel";
@@ -21,7 +26,7 @@ import { ChannelPaymentReadiness } from "../payment-readiness";
 import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
-import { STATUS_OPTIONS, channelTypeLabel, partnerHref } from "@/lib/tenants";
+import { STATUS_OPTIONS, channelTypeLabel } from "@/lib/tenants";
 import { IfCan } from "@/components/rbac/if-can";
 
 type Channel = { id: string; code: string; type: string; status: string; brand_id: string; parent_id?: string };
@@ -36,18 +41,25 @@ const selectClass =
   "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
 
 export default function AdminChannelDetailPage() {
+  const tc = useTranslations("common");
+  const router = useRouter();
+  const viewer=useViewer();const brand=useBrand();const scope=`${viewer.userId || ""}:${brand?.id || ""}`;
+  const contextParams=useSearchParams();
   const params = useParams<{ id: string }>();
   const raw = params.id;
   const id = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw || "");
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState("停用后冻结新消费（聊天/媒体 403），余额和历史仍保留。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。");
+  const [message, setMessage] = useState("停用后冻结新消费，余额和历史仍保留。");
   const query = useQuery({
-    queryKey: ["/admin/channels", id],
+    queryKey: ["/admin/channels", id,scope,viewer.roles.join(",")],
+    enabled: !viewer.loading,
     queryFn: () => apiClient<ItemResponse>("GET", `/admin/channels/${id}`),
   });
   const item = query.data?.item;
-  const managedByPlatform = !item || !item.parent_id || item.parent_id === "chn_official_a";
+  useEffect(()=>{setEditing(false);setMessage("");},[scope,id]);
+  useEffect(() => { if (item?.type === "C") router.replace(`/admin/oem-deliveries/${encodeURIComponent(id)}${contextParams.size?`?${contextParams}`:""}`); }, [item?.type, id, router, contextParams]);
+  const managedByPlatform = !!item && ( !item.parent_id || item.parent_id === "chn_official_a");
   const form = useForm<z.infer<typeof patchSchema>>({
     resolver: zodResolver(patchSchema),
     values: {
@@ -55,14 +67,16 @@ export default function AdminChannelDetailPage() {
     },
   });
 
+  if(query.isPending) return <p role="status">{tc("listLoading")}</p>;
+  if(query.isError || !item) return <div role="alert"><p>{tc("listFailed")}</p><Button variant="outline" onClick={()=>void query.refetch()}>{tc("listRetry")}</Button></div>;
   return (
     <AdminShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/admin/channels" className="text-sm text-brand-emphasis no-underline hover:underline">
+          <Link href={customerReturnHref(contextParams.get("return_to"),"/admin/channels",scope)} className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h2>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h1>
           <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -75,7 +89,7 @@ export default function AdminChannelDetailPage() {
               <ConfirmButton
                 size="sm"
                 title="确认保存渠道"
-                description="停用后冻结新消费。不要停用 chn_official_a / chn_reseller_b / chn_oem_c。"
+                description="停用后冻结新消费，历史账务保留。"
                 validate={() => form.trigger()}
                 onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                   try {
@@ -113,7 +127,7 @@ export default function AdminChannelDetailPage() {
       </div>
       {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
       <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
-        <h3 className="mb-3 text-lg font-medium">租户字段</h3>
+        <h3 className="mb-3 text-lg font-medium">渠道信息</h3>
         {editing ? (
           <Form {...form}>
             <form className="grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
@@ -142,15 +156,15 @@ export default function AdminChannelDetailPage() {
         ) : (
           <dl className="grid max-w-xl gap-2 text-sm">
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">ID</dt>
+              <dt className="text-ink-secondary">渠道编号</dt>
               <dd className="font-mono">{item?.id || id}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">Code</dt>
+              <dt className="text-ink-secondary">渠道名称</dt>
               <dd>{item?.code || "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">租户类型</dt>
+              <dt className="text-ink-secondary">渠道类型</dt>
               <dd>{item ? channelTypeLabel(item.type) : "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
@@ -169,39 +183,17 @@ export default function AdminChannelDetailPage() {
         )}
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
+      {item?.type === "B" ? <ChannelOnboardingPanel channelID={id} /> : null}
       {item && (item.id === "chn_official_a" || !item.parent_id || item.parent_id === "chn_official_a") ? <IfCan action="models.grant">
         <ChannelModelsPanel channelID={id} />
       </IfCan> : null}
       <IfCan action="channels.quota">
         {item?.type === "C" ? <ChannelQuotaPanel channelID={id} channelType={item.type} /> : null}
       </IfCan>
-      <ChannelPnLPanel channelID={id} />
-      <AdminSupplierPanel channelID={id} />
+      {item?.type === "A" ? <><ChannelPnLPanel channelID={id} /><AdminSupplierPanel channelID={id} /></> : null}
       {item && managedByPlatform && item.type !== "A" ? <IfCan action="channels.write"><ChannelAdminsPanel channelID={id} code={item.code} /></IfCan> : null}
       {item?.type === "C" ? <ChannelPaymentReadiness channelID={id} /> : null}
-      <IfCan action="partners.view">
-      <AdminListPanel<Role>
-        path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=agent`}
-        title="本租户代理商"
-        rowHref={(row) => partnerHref(String(row.id))}
-        columns={[
-          { accessorKey: "id", header: "ID" },
-          { accessorKey: "type", header: "角色" },
-          { accessorKey: "status", header: "状态" },
-        ]}
-      />
-      <AdminListPanel<Role>
-        path={`/admin/acquisition-roles?channel_id=${encodeURIComponent(id)}&type=kol`}
-        title="本租户 KOL"
-        rowHref={(row) => partnerHref(String(row.id))}
-        columns={[
-          { accessorKey: "id", header: "ID" },
-          { accessorKey: "type", header: "层级" },
-          { accessorKey: "parent_id", header: "上级" },
-          { accessorKey: "status", header: "状态" },
-        ]}
-      />
-      </IfCan>
+      <IfCan action="partners.view"><ProfessionalCustomerList channelID={id}/></IfCan>
     </AdminShell>
   );
 }

@@ -20,6 +20,11 @@ var defaultAllowHosts = []string{
 	"dashscope.aliyuncs.com",
 }
 
+// UpstreamAllowedHosts is the shared server-configured destination policy.
+func UpstreamAllowedHosts(extra []string) []string {
+	return append(append([]string{}, defaultAllowHosts...), extra...)
+}
+
 // ValidateUpstreamURL 校验 Provider Base URL。
 // 空地址允许（沙箱适配器）。任意环境都拒绝链路本地/元数据地址。
 // 生产环境只允许 https，且主机必须落在 allowlist。
@@ -45,8 +50,7 @@ func ValidateUpstreamURL(raw string, production bool, extraAllow []string) error
 	if parsed.Scheme != "https" {
 		return ErrBlockedURL
 	}
-	allowed := append([]string{}, defaultAllowHosts...)
-	allowed = append(allowed, extraAllow...)
+	allowed := UpstreamAllowedHosts(extraAllow)
 	if !hostAllowed(host, allowed) {
 		return ErrBlockedURL
 	}

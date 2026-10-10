@@ -17,7 +17,7 @@ export function AppProviders({
   const [queryClient] = useState(() => new QueryClient());
   return (
     <ThemeProvider>
-      <NextIntlClientProvider locale={locale} messages={messages}>
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Shanghai">
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       </NextIntlClientProvider>
     </ThemeProvider>

@@ -12,7 +12,7 @@ export function SettingsSubnav() {
   const tc = useTranslations("chrome");
   return (
     <nav aria-label={t("settings")} className="flex flex-wrap gap-1 border-b border-hairline pb-4">
-      {userSettingsNav.map((item) => {
+      {userSettingsNav.filter(item => !item.unavailable).map((item) => {
         const active = pathname === item.href;
         const Icon = iconForHref(item.href);
         const label = t(item.key);

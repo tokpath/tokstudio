@@ -44,7 +44,7 @@ P0 落地时推广角色物理表为 `identity_acquisition_roles`、`identity_ro
 | `provider_model_mapping` | `id`, `public_model_id`, `provider_id`, `upstream_model_id`, `capabilities_json`, `sync_state` | 上游模型映射，自动同步先进入 draft |
 | `price_version` | `id`, `public_model_id`, `provider_id`, `unit_prices_json`, `effective_at`, `status` | 成本、批发价、销售价版本化 |
 | `route_group` | `id`, `public_model_id`, `strategy`, `fallback_policy`, `status` | 固定优先级/权重/价格/健康优先；主键仍是公开模型。厂商默认路由是应用层模板（批量写入/覆盖多条 `route_group`），不另建 vendor 主键表；见 `docs/13` |
-| `route_candidate` | `route_group_id`, `provider_id`, `priority`, `weight`, `constraints_json` | provider.only/provider.ignore 等约束 |
+| `route_candidate` | `route_group_id`, `provider_id`, `priority`, `weight`, `constraints_json` | 内部候选约束；公开请求不得携带提供商控制参数 |
 | `channel_model_policy` | `channel_org_id`, `public_model_id`, `enabled`, `sell_price_override` | 平台从目录授权给租户的可见模型；租户不能自建提供商或模型 |
 
 ### 2.3 API Key、套餐与权益
@@ -83,9 +83,9 @@ P0 落地时这些实体由 `billing` 模块拥有，物理表带 `billing_` 前
 
 | 表 | 关键字段 | 说明 |
 |---|---|---|
-| `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按渠道配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；B/C 代理商不能改 |
+| `billing_quota_issue_rules` | `id`, `channel_org_id`, `issue_ratio_bps`, `version`, `updated_at` | 平台按 OEM 品牌配置“充值金额 → 服务额度”换算比；`10000` BPS = 1.0（默认 1:1）；合法范围 `1000`–`100000`；无行按 1:1；OEM 和渠道不能改 |
 
-B/C 额度发放：用户充值入账后按**该用户所属渠道自己的积分池**的 `issue_ratio_bps`（默认 1:1）写入 `billing_quota_allocations.granted_minor`，并从该池 `available_minor` 扣减。C 下的 B 有独立池，向 C 进货（`quota_wholesale_out/in`）。请求结算只增加 `consumed_minor` 并记 `billing_quota_consumes`，不再二次扣渠道。渠道额度不足时兑换/确认入账返回 `402 insufficient_quota`。官方渠道不发放。未消费部分退充值时 `quota_reclaim` 退回渠道。现行产品口径见 `docs/15`。
+OEM 额度发放：用户入账后按所属品牌 OEM 池的 `issue_ratio_bps`（默认 1:1）写入 allocation 并扣该 OEM 池。OEM 直属与渠道客户共用此来源；渠道没有采购或独立资金池。消费只记实际 allocation 消耗，不再次扣池；不足时入账事务拒绝，不留下半成功记录。退款按原 allocation 与原来源池收回，不能按当前归属改写来源。平台用户使用平台账户额度。旧 quota_wholesale_out/in、旧渠道账户只保留历史，不继续创建 OEM→渠道采购。
 
 ### 2.5 媒体任务与审计
 
@@ -102,11 +102,11 @@ P0 运营实体由独立 `ops` 模块拥有：`ops_alerts`、`ops_runbooks`、`o
 
 ## 3. 关键不变量
 
-1. `available_minor + reserved_minor` 不得为负；预授权、释放和结算必须在同一账务事务中完成。
+1. 新预授权只在适用账户可用总额度覆盖合理预估时准入；已准入请求按可靠实际用量结算可使钱包余额为负。`reserved_minor`与赠送积分不得为负；Key实际已用可超过上限。预授权、释放和结算须在同一账务事务中完成。充值自然补齐负余额，不重置Key用量。
 2. 同一 `idempotency_key` 在同一业务域只能成功一次。
 3. `usage_event` 的客户金额按价格快照计算，价格变更不影响历史账单。
-4. B/C 用户消费只扣自己的权益/钱包和已发放 allocation；渠道额度在充值发放时扣减，请求时只做剩余风险帽检查，不对同一请求再扣渠道。
-5. 佣金基于已确认 usage 和渠道批发价产生，退款或人工冲正必须生成反向流水。
+4. 客户消费扣自己的权益/钱包或原 allocation；OEM 池在发放时已扣，不在消费时二次扣减；渠道不形成独立资金层。
+5. 佣金基于已确认 usage 与原品牌资金主体结算价快照产生，退款或人工冲正必须生成反向流水。
 6. 媒体任务拿到 `upstream_job_id` 后禁止自动重复提交；未知状态进入待确认。
 7. 跨模块一致性通过 Outbox 事件和补偿流水实现，不使用跨服务分布式事务；每个事件必须有版本和幂等消费记录。
 

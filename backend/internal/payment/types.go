@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrReceiptConflict    = errors.New("offline receipt conflicts with existing receipt")
+	ErrPreviewChanged     = errors.New("offline receipt preview has changed")
 	ErrCollectorRequired  = errors.New("only brand owners may collect payments")
 	ErrNotFound           = errors.New("payment order not found")
 	ErrInvalidAdapter     = errors.New("unsupported payment adapter")
@@ -22,6 +23,7 @@ var (
 	ErrOnlineDisabled     = errors.New("channel online payments are disabled")
 	ErrNotTested          = errors.New("payment instance has not passed connectivity test")
 	ErrMethodUnavailable  = errors.New("payment method is not available for this channel")
+	ErrRefundNeedsReview  = errors.New("refund requires reconciliation")
 	ErrRefundDisabled     = errors.New("refunds are disabled for this instance")
 	ErrProviderFailed     = errors.New("payment provider request failed")
 )
@@ -36,11 +38,16 @@ const (
 	PurposeWallet       = "wallet"
 	PurposeRenewal      = "renewal"
 
-	StatusPending  = "pending"
-	StatusPaid     = "paid"
-	StatusFailed   = "failed"
-	StatusRefunded = "refunded"
-	StatusExpired  = "expired"
+	StatusPending       = "pending"
+	StatusPaid          = "paid"
+	StatusPaymentReview = "payment_review"
+	StatusFailed        = "failed"
+	StatusRefunded      = "refunded"
+	StatusRefunding     = "refunding"
+	StatusRefundFailed  = "refund_failed"
+	StatusRefundPartial = "refund_partial"
+	StatusRefundReview  = "refund_review"
+	StatusExpired       = "expired"
 
 	ModeSandbox = "sandbox"
 	ModeLive    = "live"
@@ -65,6 +72,8 @@ type CreateOrderInput struct {
 }
 
 type ListOrdersFilter struct {
+	Cursor            string
+	Limit             int
 	PayeeChannelOrgID string
 	MatchUserIDs      []string
 	Status            string
@@ -74,6 +83,13 @@ type ListOrdersFilter struct {
 }
 
 type OrderView struct {
+	PaymentIssue      string     `json:"payment_issue,omitempty"`
+	RefundStatus      string     `json:"refund_status,omitempty"`
+	RefundAmountMinor *int64     `json:"refund_amount_minor,omitempty"`
+	ReceivedAt        *time.Time `json:"received_at,omitempty"`
+	ReceiptNote       string     `json:"receipt_note,omitempty"`
+	RefundedAt        *time.Time `json:"refunded_at,omitempty"`
+	RefundRecordedBy  string     `json:"refund_recorded_by,omitempty"`
 	PayeeChannelOrgID string     `json:"payee_channel_org_id"`
 	ReceiptReference  string     `json:"receipt_reference,omitempty"`
 	RecordedBy        string     `json:"recorded_by,omitempty"`

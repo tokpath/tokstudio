@@ -32,7 +32,7 @@ export function ConsoleEnter() {
 
   useEffect(() => {
     let cancelled = false;
-    void resolveConsoleHref().then((next) => {
+    void resolveConsoleHref(undefined, new URLSearchParams(window.location.search).get("next")).then((next) => {
       if (!cancelled) window.location.replace(next);
     });
     return () => {

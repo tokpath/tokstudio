@@ -258,6 +258,9 @@ func TestStripeRefundReusesOperationKey(t *testing.T) {
 		if err := r.ParseForm(); err != nil {
 			t.Error(err)
 		}
+		if r.Form.Get("metadata[order_id]") != "pay_refund" {
+			t.Error("missing refund original-order metadata")
+		}
 		if r.Form.Get("payment_intent") != "pi_refund" {
 			t.Error("wrong payment intent")
 		}

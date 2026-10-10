@@ -140,7 +140,7 @@ func TestSettlementJourney(t *testing.T) {
 		t.Fatalf("regenerated amount: %+v", items)
 	}
 	if code, _ := doJSON(t, "POST", server.URL+"/admin/settlements/"+current.ID+"/payout", cfg.BootstrapAdmin, true, map[string]any{"method": "manual", "reference": "  "}); code != 400 {
-		t.Fatalf("empty reference: %d", code)
+		t.Fatalf("missing actual payment time and operation identity: %d", code)
 	}
 	for _, token := range []string{cfg.BootstrapAdmin + "-audit", cfg.BootstrapAdmin + "-ops", cfg.BootstrapAdmin + "-tech"} {
 		if code, _ := doJSON(t, "POST", server.URL+"/admin/settlements/"+current.ID+"/payout", token, true, map[string]any{"method": "manual", "reference": "wire"}); code != 403 {

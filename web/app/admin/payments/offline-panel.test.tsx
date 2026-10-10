@@ -1,41 +1,23 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { OfflineReceiptPanel } from "./offline-panel";
 import { withZh } from "@/lib/test-i18n";
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-const customer = { id: "u1", email: "alice@example.test", display_name: "Alice", channel_code: "OEM-B" };
-async function fill() {
-  fireEvent.click(screen.getByRole("button", { name: "线下收款划拨" }));
-  fireEvent.change(screen.getByLabelText("查找划拨客户"), { target: { value: "alice" } });
-  fireEvent.click(screen.getByRole("button", { name: "查找客户" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Alice.*alice@example.test/ }));
-  fireEvent.change(screen.getByLabelText("实收金额"), { target: { value: "100.25" } });
-  fireEvent.change(screen.getByLabelText("发放额度（USD）"), { target: { value: "12.5" } });
-  fireEvent.change(screen.getByLabelText("收款凭证"), { target: { value: "bank-001" } });
-  fireEvent.click(screen.getByRole("button", { name: "核对并划拨" }));
+vi.mock("next/navigation",()=>({useSearchParams:()=>new URLSearchParams()}));
+vi.mock("@/components/rbac/viewer-context",()=>({useViewer:()=>({userId:"finance-person",loading:false})}));
+afterEach(()=>{cleanup();sessionStorage.clear();vi.unstubAllGlobals()});
+const customer={id:"u1",email:"alice@example.test",display_name:"Alice",channel_code:"OEM-channel"};
+const preview={payee_channel_org_id:"oem",channel_org_id:"channel",issue_ratio_bps:10000,pool_before_minor:30000000,pool_debit_minor:12500000,pool_after_minor:17500000};
+const json=(body:unknown,status=200)=>({ok:status<400,status,json:async()=>body});
+async function fill(reference=""){
+ fireEvent.click(screen.getByRole("button",{name:"线下收款划拨"}));fireEvent.change(screen.getByLabelText("查找划拨客户"),{target:{value:"alice"}});fireEvent.click(screen.getByRole("button",{name:"查找客户"}));fireEvent.click(await screen.findByRole("button",{name:/Alice.*alice@example.test/}));fireEvent.change(screen.getByLabelText("实收金额"),{target:{value:"100.25"}});fireEvent.change(screen.getByLabelText("发放额度（USD）"),{target:{value:"12.5"}});if(reference)fireEvent.change(screen.getByLabelText("真实交易号（可选）"),{target:{value:reference}});fireEvent.click(screen.getByRole("button",{name:"核对并划拨"}));await screen.findByRole("dialog");
 }
-it("records actual money and permanent credits under the OEM, using the selected customer", async () => {
-  const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => ({ ok: true, json: async () => init?.method === "POST" ? { item: { id: "pay_1", fulfilled_at: "2026-10-09" } } : { items: [customer] } }));
-  vi.stubGlobal("fetch", fetcher);
-  const refreshed = vi.fn();
-  render(withZh(<OfflineReceiptPanel basePath="/channel/payments" onRecorded={refreshed} />));
-  await fill();
-  const dialog = screen.getByRole("dialog");
-  expect(within(dialog).getByText(/alice@example.test.*100.25 CNY.*12.50.*长期有效.*bank-001/)).toBeTruthy();
-  fireEvent.click(within(dialog).getByRole("button", { name: "确认" }));
-  await screen.findByText(/已为 alice@example.test 划拨/);
-  const call = fetcher.mock.calls.find(([, init]) => init?.method === "POST")!;
-  expect(String(call[0])).toContain("/channel/payments/offline");
-  expect(JSON.parse(call[1]?.body as string)).toEqual({ user_id: "u1", amount_minor: 10025, credit_minor: 12500000, currency: "CNY", reference: "bank-001" });
-  expect(refreshed).toHaveBeenCalledOnce();
+it("requires no external receipt and previews the original OEM pool before committing",async()=>{
+ const fetcher=vi.fn(async(url:unknown,init?:RequestInit)=>init?.method==="POST"?json({item:{id:"pay_1",fulfilled_at:"2026-10-10"}}):String(url).includes("/preview?")?json({item:preview}):json({items:[customer]}));vi.stubGlobal("fetch",fetcher);const refreshed=vi.fn();render(withZh(<OfflineReceiptPanel basePath="/channel/payments" onRecorded={refreshed}/>));await fill();const dialog=screen.getByRole("dialog");expect(within(dialog).getByText(/Alice.*alice@example.test/)).toBeTruthy();expect(within(dialog).getByText(/30.00.*17.50.*12.50/)).toBeTruthy();fireEvent.click(within(dialog).getByRole("button",{name:"确认"}));await screen.findByText(/收款与发放已完成，订单 pay_1/);const call=fetcher.mock.calls.find(([,init])=>init?.method==="POST")!;const body=JSON.parse(String(call[1]?.body));expect(body).toMatchObject({user_id:"u1",amount_minor:10025,credit_minor:12500000,currency:"CNY",reference:"",expected_issue_ratio_bps:10000});expect(body.operation_id).toBeTruthy();expect(body.occurred_at).toBeTruthy();expect(refreshed).toHaveBeenCalledOnce();expect(screen.getByRole("link",{name:"查看订单"}).getAttribute("href")).toBe("/channel/payments/orders/pay_1");
 });
-it("keeps a failed allocation and its original receipt ready for a safe retry", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (_url, init) => ({ ok: init?.method !== "POST", json: async () => init?.method === "POST" ? { error: { message: "OEM 服务额度不足，划拨未完成" } } : { items: [customer] } })));
-  const refreshed = vi.fn();
-  render(withZh(<OfflineReceiptPanel basePath="/channel/payments" onRecorded={refreshed} />));
-  await fill(); fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "确认" }));
-  expect(await within(screen.getByRole("dialog")).findByText("OEM 服务额度不足，划拨未完成")).toBeTruthy();
-  expect(within(screen.getByRole("dialog")).getByText(/bank-001/)).toBeTruthy();
-  expect(refreshed).not.toHaveBeenCalled();
+it("a lost response survives remount and repeats exactly the original financial operation",async()=>{
+ const requests:string[]=[];let lost=true;vi.stubGlobal("fetch",vi.fn(async(url,init)=>{if(init?.method==="POST"){requests.push(init.body);if(lost)throw new Error("lost");return json({item:{id:"pay_original",fulfilled_at:"2026-10-10"}})}return String(url).includes("/preview?")?json({item:preview}):String(url).includes("/operations/")?json({operation_status:"not_found"}):json({items:[customer]})}));const first=render(withZh(<OfflineReceiptPanel basePath="/channel/payments" onRecorded={()=>{}}/>));await fill();fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"确认"}));await screen.findByText(/结果待确认。请保留原操作/);first.unmount();render(withZh(<OfflineReceiptPanel basePath="/channel/payments" onRecorded={()=>{}}/>));expect(screen.getByLabelText("实收金额").matches(":disabled")).toBe(true);fireEvent.click(screen.getByRole("button",{name:"查询原操作"}));await screen.findByText(/尚未查到完成记录/);expect(screen.getByLabelText("实收金额").matches(":disabled")).toBe(true);lost=false;fireEvent.click(screen.getByRole("button",{name:"重试原操作"}));fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button",{name:"确认"}));await waitFor(()=>expect(requests).toHaveLength(2));expect(requests[0]).toBe(requests[1]);await screen.findByText(/pay_original/);
+});
+it("rejects missing money before opening a confirmation and never sends an operation",async()=>{
+ const fetcher=vi.fn(async()=>json({items:[customer]}));vi.stubGlobal("fetch",fetcher);render(withZh(<OfflineReceiptPanel basePath="/admin/payments" onRecorded={()=>{}}/>));fireEvent.click(screen.getByRole("button",{name:"线下收款划拨"}));fireEvent.click(screen.getByRole("button",{name:"核对并划拨"}));expect(screen.queryByRole("dialog")).toBeNull();expect(fetcher).not.toHaveBeenCalled();
 });

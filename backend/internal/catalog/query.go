@@ -110,6 +110,7 @@ func ApplyPublicFilters(items []ModelView, q ModelListQuery) ModelListPage {
 		out = filterByKind(out, kind)
 	}
 
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	total := len(out)
 	if q.Limit > 0 && len(out) > q.Limit {
 		out = out[:q.Limit]

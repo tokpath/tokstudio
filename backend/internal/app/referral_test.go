@@ -45,6 +45,10 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 		t.Fatalf("new profile: %+v", a)
 	}
 	code := a["codes"].([]any)[0].(string)
+	links := a["code_links"].([]any)
+	if len(links) != 1 || links[0].(map[string]any)["share_url"] != "http://localhost/login?promotion_code="+code {
+		t.Fatalf("canonical brand invitation: %+v", links)
+	}
 	second := register(code)
 	attr, err := application.Identity.GetAttribution(context.Background(), userIDOf(second))
 	if err != nil {
@@ -91,6 +95,59 @@ func TestPersonalReferralRegistrationAndIsolation(t *testing.T) {
 	ownRewards := profile(tokenOf(first))["rewards"].([]any)
 	if len(ownRewards) != 1 || ownRewards[0].(map[string]any)["id"] != "ref-test-"+userIDOf(first) {
 		t.Fatalf("commission owner isolation: %+v", ownRewards)
+	}
+	// Personal summaries are complete while the entries themselves are paginated.
+	roleA, err := application.Identity.MemberRole(context.Background(), userIDOf(first))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 30; i++ {
+		id := "ref-page-" + userIDOf(first) + strconv.Itoa(i)
+		if err := application.DB.Exec(`INSERT INTO commission_entries (id,usage_event_id,beneficiary_role_id,kind,policy_version,base_amount_minor,raw_amount_minor,amount_minor,status,idempotency_key) VALUES (?,?,?,'direct','test',100,15,15,'available',?)`, id, id, roleA.ID, id).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	facts := profile(tokenOf(first))
+	if asInt(facts["summary"].(map[string]any)["earned_minor"]) != 465 || len(facts["rewards"].([]any)) != 25 || asInt(facts["pagination"].(map[string]any)["rewards_total"]) != 31 {
+		t.Fatalf("page/summary: %+v", facts)
+	}
+	secondPage := getAuthJSON(t, server.URL+"/v1/me/referral?page=2", tokenOf(first))["item"].(map[string]any)
+	if len(secondPage["rewards"].([]any)) != 6 {
+		t.Fatalf("second page: %+v", secondPage)
+	}
+	if facts["professional_customers"] != false {
+		t.Fatal("registration must not grant professional customer permissions")
+	}
+	if status, _ := doJSON(t, http.MethodGet, server.URL+"/v1/partner/users", tokenOf(first), false, nil); status != 403 {
+		t.Fatalf("ordinary customer scope = %d", status)
+	}
+	personalLegacy := getAuthJSON(t, server.URL+"/v1/partner/commissions", tokenOf(first))["items"].([]any)
+	if len(personalLegacy) != 31 {
+		t.Fatalf("legacy income leaked downline: %+v", personalLegacy)
+	}
+	for _, reg := range []map[string]any{first, second} {
+		role, err := application.Identity.MemberRole(context.Background(), userIDOf(reg))
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := "ref-settle-" + userIDOf(reg)
+		if err := application.DB.Exec(`INSERT INTO commission_settlements (id,period_start,period_end,beneficiary_role_id,amount_minor,status,policy_version) VALUES (?,now()-interval '1 day',now(),?,15,'paid','test')`, id, role.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := application.DB.Exec(`INSERT INTO commission_payouts (id,settlement_id,method,reference,status) VALUES (?,?,'offline',?,'paid')`, id, id, "test-reference-"+id).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	settles := profile(tokenOf(first))["settlements"].([]any)
+	if asInt(profile(tokenOf(first))["summary"].(map[string]any)["paid_minor"]) != 15 {
+		t.Fatal("paid amount must use actual settlement facts")
+	}
+	if len(settles) != 1 || settles[0].(map[string]any)["id"] != "ref-settle-"+userIDOf(first) || settles[0].(map[string]any)["payout_reference"] != "test-reference-ref-settle-"+userIDOf(first) {
+		t.Fatalf("settlement isolation: %+v", settles)
+	}
+	progress := profile(tokenOf(second))["progress"].(map[string]any)
+	if asInt(progress["gift_granted_minor"]) != rule.GiftMinor || asInt(progress["gift_remaining_minor"]) != rule.GiftMinor || asInt(progress["largest_topup_minor"]) != 0 {
+		t.Fatalf("gift/qualification facts: %+v", progress)
 	}
 	legacy := register("THA1")
 	if err := application.DB.Exec("DELETE FROM identity_role_members WHERE user_id = ?", userIDOf(legacy)).Error; err != nil {

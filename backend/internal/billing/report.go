@@ -193,13 +193,21 @@ func (s *Service) DailySeries(ctx context.Context, since time.Time) ([]DailyMone
 
 func (s *Service) Risk(ctx context.Context) (*RiskView, error) {
 	view := &RiskView{}
-	_ = s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_wallets WHERE available_minor < ?`, MinorPerUSD).Scan(&view.LowBalanceWallets).Error
-	_ = s.db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(reserved_minor),0) FROM billing_wallets`).Scan(&view.ReservedMinor).Error
-	_ = s.db.WithContext(ctx).Raw(`
+	if err := s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_wallets WHERE available_minor < ?`, MinorPerUSD).Scan(&view.LowBalanceWallets).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(reserved_minor),0) FROM billing_wallets`).Scan(&view.ReservedMinor).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.WithContext(ctx).Raw(`
 		SELECT COALESCE(SUM(wholesale_amount_minor),0) FROM billing_usage_events
 		WHERE state = 'confirmed' AND channel_org_id IS NOT NULL AND channel_org_id <> ''
-	`).Scan(&view.ChannelSpendMinor).Error
-	_ = s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_preauth_failures`).Scan(&view.PreauthFailed).Error
+	`).Scan(&view.ChannelSpendMinor).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM billing_preauth_failures`).Scan(&view.PreauthFailed).Error; err != nil {
+		return nil, err
+	}
 	return view, nil
 }
 

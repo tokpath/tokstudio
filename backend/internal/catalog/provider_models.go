@@ -199,6 +199,8 @@ func pricedProviderModelTx(tx *gorm.DB, providerID, upstreamID, kind string) (js
 		if pricedForKind(decodeCosts(row.UnitCosts), kind) {
 			return row.UnitCosts, nil
 		}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 	return nil, ErrProviderModelUnpriced
 }

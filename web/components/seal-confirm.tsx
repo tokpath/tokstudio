@@ -36,9 +36,10 @@ export function SealConfirm({
   ...buttonProps
 }: SealConfirmProps) {
   const t = useTranslations("common");
-  const confirmText = confirmLabel ?? "盖章确认";
+  const confirmText = confirmLabel ?? t("confirm");
   const cancelText = cancelLabel ?? t("cancel");
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const { open, pending, handleOpenChange, dismiss, runConfirm } = useConfirmSession(onConfirm);
 
   async function openSeal() {
@@ -53,7 +54,7 @@ export function SealConfirm({
 
   return (
     <>
-      <Button type="button" disabled={disabled || pending} onClick={openSeal} {...buttonProps}>
+      <Button ref={trigger} type="button" disabled={disabled || pending} onClick={openSeal} {...buttonProps}>
         {children}
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -63,6 +64,7 @@ export function SealConfirm({
             className={cn(
               "fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card border border-hairline bg-canvas-raised p-8 text-ink",
             )}
+            onCloseAutoFocus={(event) => { event.preventDefault(); trigger.current?.focus(); }}
             onOpenAutoFocus={(event) => {
               event.preventDefault();
               titleRef.current?.focus();

@@ -24,6 +24,7 @@ import (
 var migrationFS embed.FS
 
 const (
+	StatusPending    = "pending_reconciliation"
 	StatusQueued     = "queued"
 	StatusInProgress = "in_progress"
 	StatusCompleted  = "completed"
@@ -40,6 +41,7 @@ var (
 	ErrNotFound       = errors.New("media job not found")
 	ErrNotReady       = errors.New("media job not ready")
 	ErrInvalidRequest = errors.New("invalid media request")
+	ErrOutcomeUnknown = errors.New("media outcome unknown")
 )
 
 type jobRow struct {
@@ -50,6 +52,8 @@ type jobRow struct {
 	RequestID         string     `gorm:"column:request_id"`
 	PublicModelID     string     `gorm:"column:public_model_id"`
 	ProviderID        *string    `gorm:"column:provider_id"`
+	SupplierCosts     []byte     `gorm:"column:supplier_costs_json"`
+	UpstreamModelID   string     `gorm:"column:upstream_model_id"`
 	UpstreamJobID     *string    `gorm:"column:upstream_job_id"`
 	JobKind           string     `gorm:"column:job_kind"`
 	Status            string     `gorm:"column:status"`
@@ -202,6 +206,23 @@ func (s *Service) TestCreates() int32 {
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) {
+	if in.IdempotencyKey == "" {
+		return s.create(ctx, in)
+	}
+	var result *JobView
+	err := s.db.WithContext(ctx).Connection(func(lockDB *gorm.DB) error {
+		lockName := "media.create:" + in.Caller.UserID + ":" + in.IdempotencyKey
+		if err := lockDB.Exec("SELECT pg_advisory_lock(hashtextextended(?,0))", lockName).Error; err != nil {
+			return err
+		}
+		defer lockDB.WithContext(context.WithoutCancel(ctx)).Exec("SELECT pg_advisory_unlock(hashtextextended(?,0))", lockName)
+		var err error
+		result, err = s.create(ctx, in)
+		return err
+	})
+	return result, err
+}
+func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) {
 	if in.Kind == "" {
 		in.Kind = KindVideo
 	}
@@ -223,6 +244,9 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		return nil, err
 	}
 	in.TaskType = task
+	if in.Kind == KindImage && in.TaskType == TaskEdit {
+		return nil, Invalid("当前图像适配器暂不支持编辑，请使用图像生成")
+	}
 	if err := ValidateCreate(in); err != nil {
 		return nil, err
 	}
@@ -231,23 +255,52 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 			return nil, err
 		}
 	}
+	if !in.Caller.AllowsModel(in.Model) {
+		return nil, identity.ErrKeyModelNotAllowed
+	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Model, in.Caller.Allowlist)
 	if err != nil {
 		return nil, err
 	}
+	if model.Kind != in.Kind {
+		return nil, Invalid("模型不支持此媒体类型")
+	}
 	if in.IdempotencyKey != "" {
 		var existing jobRow
-		if err := s.db.WithContext(ctx).Where("user_id = ? AND idempotency_key = ?", in.Caller.UserID, in.IdempotencyKey).First(&existing).Error; err == nil {
+		findErr := s.db.WithContext(ctx).Where("user_id = ? AND idempotency_key = ?", in.Caller.UserID, in.IdempotencyKey).First(&existing).Error
+		if findErr == nil {
+			images, _ := json.Marshal(in.Images)
+			oldImages := existing.ImagesJSON
+			if len(in.Images) == 0 {
+				images = []byte("null")
+				if string(oldImages) == "[]" || len(oldImages) == 0 {
+					oldImages = images
+				}
+			}
+			if ptrValue(existing.APIKeyID) != in.Caller.APIKeyID || ptrValue(existing.ChannelOrgID) != in.Caller.ChannelOrgID || existing.PublicModelID != in.Model || existing.JobKind != in.Kind || existing.Prompt != in.Prompt || existing.DurationSeconds != in.Duration || existing.Resolution != in.Resolution || existing.AspectRatio != in.AspectRatio || existing.FPS != in.FPS || existing.GenerateAudio != in.Audio || existing.TaskType != in.TaskType || existing.FirstFrame != in.FirstFrame || existing.LastFrame != in.LastFrame || existing.ReferenceVideo != in.ReferenceVideo || existing.ReferenceAudio != in.ReferenceAudio || existing.SourceJobID != in.SourceJobID || existing.CallbackURL != in.CallbackURL || string(oldImages) != string(images) {
+				return nil, billing.ErrConflict
+			}
 			return s.view(ctx, existing), nil
+		}
+		if !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return nil, findErr
 		}
 	}
 	snapshot, err := s.catalog.PriceSnapshot(ctx, model.ID)
 	if err != nil {
 		return nil, err
 	}
+	effectivePrices, err := s.catalog.PriceForChannel(ctx, in.Caller.ChannelOrgID, model.ID, snapshot.Raw)
+	if err != nil {
+		return nil, err
+	}
+	snapshot.Raw = effectivePrices
 	quote, err := billing.ParseQuote(snapshot.VersionID, snapshot.Raw)
 	if err != nil {
 		return nil, err
+	}
+	if !catalog.BudgetableMediaPrices(snapshot.Raw) {
+		return nil, billing.ErrPriceEstimateUnavailable
 	}
 	images := 0
 	if in.Kind == KindImage {
@@ -261,12 +314,19 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		seconds = in.Duration
 	}
 	reserve := billing.EstimateMediaReserveMinor(quote, seconds, images, in.Resolution, in.Audio)
-	if _, err := s.billing.Reserve(ctx, billing.ReserveInput{
+	// Some configured media prices also charge prompt/output tokens. Include
+	// those known dimensions in admission; never turn this estimate into usage.
+	reserve += quote.Charge(map[string]int{"prompt_tokens": (len(in.Prompt)+2)/3 + 1024*len(in.Images), "completion_tokens": 256, "reasoning_tokens": 256}, "")
+	reservation, err := s.billing.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
 		UnitPrices: snapshot.Raw, ReserveMinor: reserve,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
+	}
+	if reservation.Replayed {
+		return nil, billing.ErrConflict
 	}
 
 	now := time.Now().UTC()
@@ -283,7 +343,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		TaskType: in.TaskType, FirstFrame: in.FirstFrame, LastFrame: in.LastFrame,
 		ReferenceVideo: in.ReferenceVideo, ReferenceAudio: in.ReferenceAudio,
 		SourceJobID: in.SourceJobID, ImagesJSON: imagesJSON,
-		UsageJSON: []byte(`{}`), ExpiresAt: &exp, CreatedAt: now, UpdatedAt: now,
+		UsageJSON: []byte(`{}`), SupplierCosts: []byte(`{}`), ExpiresAt: &exp, CreatedAt: now, UpdatedAt: now,
 	}
 	if in.Kind == KindImage {
 		job.ID = id.New("img")
@@ -330,9 +390,17 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 		})
 		if err != nil {
 			last = err
+			if errors.Is(err, ErrOutcomeUnknown) {
+				job.ProviderID = &cand.ProviderID
+				job.SupplierCosts = cand.UnitCosts
+				job.UpstreamModelID = cand.UpstreamModelID
+				return s.pending(context.WithoutCancel(ctx), job, "request_outcome_unknown")
+			}
 			continue
 		}
 		job.ProviderID = &cand.ProviderID
+		job.SupplierCosts = cand.UnitCosts
+		job.UpstreamModelID = cand.UpstreamModelID
 		job.UpstreamJobID = &result.UpstreamID
 		job.Status = StatusInProgress
 		job.Progress = result.Progress
@@ -341,7 +409,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*JobView, error) 
 			return nil, err
 		}
 		if result.Status == StatusCompleted {
-			if err := s.finish(ctx, job, result, snapshot); err != nil {
+			if err := s.finish(ctx, job, result); err != nil {
 				return nil, err
 			}
 		}
@@ -441,11 +509,25 @@ func (s *Service) Cancel(ctx context.Context, jobID, userID string) (*JobView, e
 	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", jobID, userID).First(&job).Error; err != nil {
 		return nil, ErrNotFound
 	}
-	if job.Status == StatusCompleted || job.Status == StatusCancelled || job.Status == StatusFailed {
+	if job.Status == StatusCompleted || job.Status == StatusCancelled || job.Status == StatusFailed || job.Status == StatusPending {
 		return s.view(ctx, job), nil
 	}
 	if job.UpstreamJobID != nil && *job.UpstreamJobID != "" {
-		_ = s.adapterForJob(ctx, job).Cancel(ctx, *job.UpstreamJobID)
+		if err := s.adapterForJob(ctx, job).Cancel(ctx, *job.UpstreamJobID); err != nil {
+			return s.pending(context.WithoutCancel(ctx), job, "cancel_outcome_unknown")
+		}
+		// Acknowledged cancellation supplies no final measured usage. Preserve
+		// authorization until reconciliation, even though the job is cancelled.
+		job.Status = StatusCancelled
+		job.UpdatedAt = time.Now().UTC()
+		if err := s.db.WithContext(ctx).Save(&job).Error; err != nil {
+			return nil, err
+		}
+		if _, err := s.billing.Settle(ctx, billing.SettleInput{RequestID: job.RequestID, PublicModelID: job.PublicModelID, MissingUsage: true}); err != nil {
+			return nil, err
+		}
+		s.queueCustomerCallback(ctx, job)
+		return s.view(ctx, job), nil
 	}
 	job.Status = StatusCancelled
 	job.UpdatedAt = time.Now().UTC()
@@ -473,10 +555,6 @@ func (s *Service) HandleCallback(ctx context.Context, eventID, jobID, sig string
 	if job.Status == StatusCancelled {
 		return nil
 	}
-	snapshot, err := s.catalog.PriceSnapshot(ctx, job.PublicModelID)
-	if err != nil {
-		return err
-	}
 	if usage == nil {
 		usage = map[string]int{}
 	}
@@ -484,7 +562,7 @@ func (s *Service) HandleCallback(ctx context.Context, eventID, jobID, sig string
 	if job.JobKind == KindImage {
 		result.ContentType = "image/png"
 	}
-	return s.finish(ctx, job, result, snapshot)
+	return s.finish(ctx, job, result)
 }
 
 func (s *Service) Object(key, sig string, exp int64) ([]byte, error) {
@@ -571,20 +649,7 @@ func (s *Service) refreshJob(ctx context.Context, job jobRow) error {
 		return nil
 	}
 	if result.Status == StatusCompleted {
-		if result.Usage == nil {
-			result.Usage = map[string]int{}
-		}
-		if job.JobKind == KindVideo && result.Usage["video_seconds"] == 0 {
-			result.Usage["video_seconds"] = job.DurationSeconds
-		}
-		if job.JobKind == KindImage && result.Usage["image_count"] == 0 {
-			result.Usage["image_count"] = 1
-		}
-		snapshot, err := s.catalog.PriceSnapshot(ctx, job.PublicModelID)
-		if err != nil {
-			return err
-		}
-		return s.finish(ctx, job, result, snapshot)
+		return s.finish(ctx, job, result)
 	}
 	if result.Status == StatusCancelled {
 		job.Status = StatusCancelled
@@ -599,19 +664,23 @@ func (s *Service) refreshJob(ctx context.Context, job jobRow) error {
 	return nil
 }
 
-func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, snapshot *catalog.PriceSnapshot) error {
+func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult) error {
+	quote, err := s.billing.AuthorizationQuote(ctx, job.RequestID)
+	if err != nil {
+		return err
+	}
 	usage := result.Usage
 	if usage == nil {
 		usage = map[string]int{}
 	}
-	if job.JobKind == KindVideo && usage["video_seconds"] == 0 {
-		usage["video_seconds"] = job.DurationSeconds
-	}
-	if job.JobKind == KindImage && usage["image_count"] == 0 {
-		usage["image_count"] = 1
-	}
-	if job.GenerateAudio && usage["audio_seconds"] == 0 && job.JobKind == KindVideo {
-		usage["audio_seconds"] = job.DurationSeconds
+	_, videoKnown := usage["video_seconds"]
+	_, imageKnown := usage["image_count"]
+	_, audioKnown := usage["audio_seconds"]
+	missingUsage := len(usage) == 0 || (job.JobKind == KindVideo && !videoKnown) || (job.JobKind == KindImage && !imageKnown) || (job.GenerateAudio && !audioKnown) || !quote.TokenUsageComplete(usage)
+	for _, amount := range usage {
+		if amount < 0 {
+			missingUsage = true
+		}
 	}
 	wrote := false
 	var usageJSON []byte
@@ -655,11 +724,20 @@ func (s *Service) finish(ctx context.Context, job jobRow, result SubmitResult, s
 		s.DeliverCustomerCallbacks(ctx)
 	}
 	// 已完成的任务再收到回调时只做幂等结算，不重复写资产。
-	_, err := s.billing.Settle(ctx, billing.SettleInput{
+	var costPrices json.RawMessage
+	if len(job.SupplierCosts) > 0 && string(job.SupplierCosts) != "{}" {
+		var err error
+		costPrices, err = catalog.PriceWithProviderCosts(json.RawMessage(`{}`), job.SupplierCosts)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = s.billing.Settle(ctx, billing.SettleInput{
 		RequestID: job.RequestID, UserID: job.UserID, PublicModelID: job.PublicModelID,
-		Usage: usage, PriceVersionID: snapshot.VersionID, UnitPrices: snapshot.Raw,
+		Usage: usage, APIKeyID: stringPtr(job.APIKeyID), ChannelOrgID: stringPtr(job.ChannelOrgID),
 		IdempotencyKey: "usage:" + job.RequestID, Resolution: job.Resolution,
-		MissingUsage: len(usage) == 0,
+		MissingUsage: missingUsage,
+		ProviderID:   stringPtr(job.ProviderID), AttemptID: "media:" + job.ID + ":accepted", UpstreamModelID: job.UpstreamModelID, UnitPrices: costPrices,
 	})
 	return err
 }
@@ -807,4 +885,30 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func stringPtr(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
+func ptrValue(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+func (s *Service) pending(ctx context.Context, job jobRow, code string) (*JobView, error) {
+	job.Status = StatusPending
+	job.ErrorCode = &code
+	job.UpdatedAt = time.Now().UTC()
+	if err := s.db.WithContext(ctx).Save(&job).Error; err != nil {
+		return nil, err
+	}
+	if _, err := s.billing.Settle(ctx, billing.SettleInput{RequestID: job.RequestID, PublicModelID: job.PublicModelID, MissingUsage: true}); err != nil {
+		return nil, err
+	}
+	return s.view(ctx, job), nil
 }

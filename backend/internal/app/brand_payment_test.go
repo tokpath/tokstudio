@@ -131,7 +131,7 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	}
 	before, _ := a.Billing.Balance(ctx, cUser, child.ID)
 	poolBefore, _ := a.Billing.ChannelQuota(ctx, identity.OEMChannelID)
-	in := payment.OfflineReceiptInput{UserID: cUser, AmountMinor: 10000, CreditMinor: 2000000, Currency: "CNY", Reference: marker + "-wire"}
+	in := payment.OfflineReceiptInput{OperationID: marker + "-receipt-op", OccurredAt: time.Now().UTC(), ExpectedIssueRatioBPS: billing.DefaultIssueRatioBPS, UserID: cUser, AmountMinor: 10000, CreditMinor: 2000000, Currency: "CNY", Reference: marker + "-wire"}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var receipts []*payment.OrderView
@@ -201,10 +201,12 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 			t.Fatalf("foreign refund accepted: %d", status)
 		}
 	}
-	if status, _ := doJSON(t, http.MethodPost, server.URL+"/channel/payments/offline", oem, true, map[string]any{"user_id": bUser, "amount_minor": 10000, "credit_minor": 1000000, "currency": "CNY", "reference": marker + "-foreign"}); status != 403 {
+	if status, _ := doJSON(t, http.MethodPost, server.URL+"/channel/payments/offline", oem, true, map[string]any{"operation_id": marker + "-foreign-op", "occurred_at": time.Now().UTC(), "expected_issue_ratio_bps": billing.DefaultIssueRatioBPS, "user_id": bUser, "amount_minor": 10000, "credit_minor": 1000000, "currency": "CNY", "reference": marker + "-foreign"}); status != 403 {
 		t.Fatalf("cross-brand allocation accepted: %d", status)
 	}
 	// Reject audit insertion after wallet/stock writes; the transaction must roll back.
+	originalReceipt := in
+	in.OperationID = marker + "-rollback-op"
 	in.Reference = marker + "-rollback"
 	callback := marker + "-audit-failure"
 	if err := a.DB.Callback().Create().Before("gorm:create").Register(callback, func(tx *gorm.DB) {
@@ -227,7 +229,7 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if count != 0 {
 		t.Fatal("partial receipt survived")
 	}
-	if status, body := doJSON(t, http.MethodPost, server.URL+"/channel/payments/orders/"+paid.ID+"/refund", oem, true, map[string]any{}); status != 200 {
+	if status, body := doJSON(t, http.MethodPost, server.URL+"/channel/payments/orders/"+paid.ID+"/refund", oem, true, map[string]any{"occurred_at": time.Now().UTC()}); status != 200 {
 		t.Fatalf("own brand refund: %d %+v", status, body)
 	}
 	refundedPool, _ := a.Billing.ChannelQuota(ctx, identity.OEMChannelID)
@@ -238,12 +240,12 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if refundedWallet.AvailableMinor != before.AvailableMinor {
 		t.Fatal("refund did not reverse credits")
 	}
-	in.Reference = paid.ReceiptReference
-	if _, err := a.Payment.RecordOfflineReceipt(ctx, identity.OEMChannelID, in, a.Audit, audit.RecordInput{ActorUserID: "finance"}); !errors.Is(err, payment.ErrReceiptConflict) {
-		t.Fatalf("refunded receipt reissued credit: %v", err)
+	in = originalReceipt
+	if replay, err := a.Payment.RecordOfflineReceipt(ctx, identity.OEMChannelID, in, a.Audit, audit.RecordInput{ActorUserID: "finance"}); err != nil || replay.ID != paid.ID || replay.Status != payment.StatusRefunded {
+		t.Fatalf("refunded operation must return original current facts: %+v %v", replay, err)
 	}
 	// Platform B receives permanent credit without drawing from a B quota pool.
-	if _, err := a.Payment.RecordOfflineReceipt(ctx, identity.OfficialChannelID, payment.OfflineReceiptInput{UserID: bUser, AmountMinor: 10000, CreditMinor: billing.MinorPerUSD, Currency: "CNY", Reference: marker + "-platform"}, a.Audit, audit.RecordInput{ActorUserID: "finance"}); err != nil {
+	if _, err := a.Payment.RecordOfflineReceipt(ctx, identity.OfficialChannelID, payment.OfflineReceiptInput{OperationID: marker + "-platform-op", OccurredAt: time.Now().UTC(), ExpectedIssueRatioBPS: billing.DefaultIssueRatioBPS, UserID: bUser, AmountMinor: 10000, CreditMinor: billing.MinorPerUSD, Currency: "CNY", Reference: marker + "-platform"}, a.Audit, audit.RecordInput{ActorUserID: "finance"}); err != nil {
 		t.Fatal(err)
 	}
 	// OEM settlement and payout can only affect its own brand, including direct B customers.
@@ -272,12 +274,15 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if err != nil || len(bEntries) == 0 || bEntries[0].Status != commission.StatusFrozen {
 		t.Fatalf("OEM unfroze platform commission: %+v %v", bEntries, err)
 	}
-	settlements := postJSONRaw(t, server.URL+"/channel/commissions/settle?ignore_minimum=1", oem, map[string]any{})
+	preview := getAuthJSON(t, server.URL+"/channel/commissions/settlement-preview?ignore_minimum=1", oem)
+	settlements := postJSONRaw(t, server.URL+"/channel/commissions/settle", oem, map[string]any{"operation_id": marker + "-settle", "preview_id": preview["preview"].(map[string]any)["id"]})
 	sid := ""
+	amount := int64(0)
 	for _, raw := range settlements["items"].([]any) {
 		item := raw.(map[string]any)
 		if item["channel_org_id"] == child.ID {
 			sid = item["id"].(string)
+			amount = asInt(item["amount_minor"])
 		}
 		if item["channel_org_id"] == identity.ResellerChannelID {
 			t.Fatal("OEM settled a platform commission")
@@ -289,10 +294,10 @@ func TestBrandPaymentOwnershipAndOfflineAllocation(t *testing.T) {
 	if hasPlan(getAuthJSON(t, server.URL+"/admin/settlements", cfg.BootstrapAdmin), sid) {
 		t.Fatal("OEM settlement leaked to platform payment list")
 	}
-	if status, _ := doJSON(t, http.MethodPost, server.URL+"/admin/settlements/"+sid+"/payout", cfg.BootstrapAdmin, true, map[string]any{"method": "manual", "reference": marker + "-wrong"}); status != 404 {
+	if status, _ := doJSON(t, http.MethodPost, server.URL+"/admin/settlements/"+sid+"/payout", cfg.BootstrapAdmin, true, map[string]any{"method": "manual", "reference": marker + "-wrong", "operation_id": marker + "-wrong-op", "amount_minor": amount, "occurred_at": time.Now().Add(-time.Minute), "confirmed": true}); status != 404 {
 		t.Fatalf("platform recorded OEM payout: %d", status)
 	}
-	postJSONRaw(t, server.URL+"/channel/settlements/"+sid+"/payout", oem, map[string]any{"method": "manual", "reference": marker + "-payout"})
+	postJSONRaw(t, server.URL+"/channel/settlements/"+sid+"/payout", oem, map[string]any{"method": "manual", "reference": marker + "-payout", "operation_id": marker + "-payout-op", "amount_minor": amount, "occurred_at": time.Now().Add(-time.Minute), "confirmed": true})
 	var payout struct {
 		ActorUserID string
 		CreatedAt   time.Time

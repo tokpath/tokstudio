@@ -31,7 +31,7 @@ func TestWalletGiftAndCommissionBuckets(t *testing.T) {
 	server := httptest.NewServer(application.Router())
 	defer server.Close()
 	ctx := context.Background()
-	prices := []byte(`{"input":"1","output":"1"}`)
+	prices := []byte(`{"input":"0.2","output":"0.2"}`)
 
 	email := "gift-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test"
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
@@ -86,7 +86,7 @@ func TestWalletGiftAndCommissionBuckets(t *testing.T) {
 	}
 	if _, err := application.Billing.Settle(ctx, billing.SettleInput{
 		RequestID: reqID, UserID: uid, ChannelOrgID: identity.OfficialChannelID,
-		Usage: map[string]int{"prompt_tokens": 10, "completion_tokens": 1}, UnitPrices: prices,
+		Usage: map[string]int{"prompt_tokens": 10, "completion_tokens": 10}, UnitPrices: prices,
 	}); err != nil {
 		t.Fatal(err)
 	}

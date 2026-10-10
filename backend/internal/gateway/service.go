@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 // Booker 是账务模块暴露给网关的预授权接口。网关不得直连 billing 表。
@@ -35,6 +36,7 @@ var (
 	ErrInsufficientBalance = errors.New("insufficient balance")
 	ErrChannelDisabled     = errors.New("channel is disabled")
 	ErrUserRequired        = errors.New("user id required")
+	ErrRequestUnknown      = errors.New("request outcome unknown")
 )
 
 const (
@@ -112,6 +114,9 @@ type AttemptView struct {
 }
 
 type QueryRequestsInput struct {
+	ChannelOrgIDs []string
+	Cursor        string
+	Query         string
 	UserID        string
 	APIKeyID      string
 	PublicModelID string
@@ -224,12 +229,18 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 			return nil, err
 		}
 	}
+	if !in.Caller.AllowsModel(in.Chat.Model) {
+		return nil, ErrModelNotAllowed
+	}
 	model, err := s.catalog.GetVisibleModel(ctx, in.Caller.ChannelOrgID, in.Chat.Model, in.Caller.Allowlist)
 	if err != nil {
 		if errors.Is(err, catalog.ErrUnknownModel) {
 			return nil, catalog.ErrUnknownModel
 		}
 		return nil, ErrModelNotAllowed
+	}
+	if model.Kind != "text" {
+		return nil, ParamError{Param: "model protocol"}
 	}
 	if err := ValidateChat(in.Chat); err != nil {
 		return nil, err
@@ -254,28 +265,52 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	if err != nil {
 		return nil, err
 	}
-	promptHint := 0
-	for _, msg := range in.Chat.Messages {
-		promptHint += (len(msg.Content) + 3) / 4
+	// Always send an output ceiling upstream; a default estimate alone is not a limit.
+	if in.Chat.MaxTokens == nil {
+		n := 256
+		in.Chat.MaxTokens = &n
 	}
-	maxTokens := 256
-	if in.Chat.MaxTokens != nil && *in.Chat.MaxTokens > 0 {
-		maxTokens = *in.Chat.MaxTokens
+	if *in.Chat.MaxTokens <= 0 || *in.Chat.MaxTokens > 1_000_000 {
+		return nil, ParamError{Param: "max_tokens"}
 	}
-	if in.Chat.ReasoningEffort != "" || presentRaw(in.Chat.Reasoning) {
-		maxTokens += 64
+	for _, cand := range cands {
+		if _, real := s.adapterFor(cand.Adapter).(BifrostAdapter); real && string(resolveBifrostProvider(cand.ProviderSlug)) == "openrouter" && *in.Chat.MaxTokens < 16 {
+			return nil, ParamError{Param: "max_tokens (OpenRouter minimum 16)"}
+		}
 	}
-	if _, err := s.booker.Reserve(ctx, billing.ReserveInput{
+	if !catalog.BudgetableTextPrices(effectivePrices) {
+		return nil, billing.ErrPriceEstimateUnavailable
+	}
+	// Estimate serialized text/tool framing and image input separately. Remote
+	// image bytes and hidden reasoning can differ; actual upstream usage settles.
+	inputBytes := len(in.Chat.Tools) + len(in.Chat.ResponseFormat)
+	for _, message := range in.Chat.Messages {
+		inputBytes += len(message.Content) + len(message.Name) + len(message.ToolCallID)
+		calls, _ := json.Marshal(message.ToolCalls)
+		inputBytes += len(calls)
+		for _, part := range message.Parts {
+			if part.Type != "text" && part.Type != "image" && part.Type != "image_url" {
+				return nil, ParamError{Param: "content type " + part.Type}
+			}
+		}
+	}
+	promptHint := (inputBytes+2)/3 + 16*(len(in.Chat.Messages)+1) + 1024*visionCount(in.Chat)
+	reserve := billing.EstimateReserveMinor(quote, promptHint, *in.Chat.MaxTokens)
+	reservation, err := s.booker.Reserve(ctx, billing.ReserveInput{
 		UserID: in.Caller.UserID, ChannelOrgID: in.Caller.ChannelOrgID, APIKeyID: in.Caller.APIKeyID,
 		RequestID: in.RequestID, PublicModelID: model.ID, PriceVersionID: snapshot.VersionID,
-		UnitPrices: effectivePrices, ReserveMinor: billing.EstimateReserveMinor(quote, promptHint, maxTokens),
-	}); err != nil {
+		UnitPrices: effectivePrices, ReserveMinor: reserve,
+	})
+	if err != nil {
 		if errors.Is(err, billing.ErrInsufficientBalance) || errors.Is(err, billing.ErrInsufficientQuota) {
 			return nil, ErrInsufficientBalance
 		}
 		return nil, err
 	}
 
+	if reservation.Replayed {
+		return nil, billing.ErrConflict
+	}
 	now := time.Now().UTC()
 	req := requestRow{
 		ID: id.New("grq"), RequestID: in.RequestID, UserID: in.Caller.UserID,
@@ -365,6 +400,13 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 				s.breaker.RecordAttempt(ctx, cand.ProviderID, false)
 			}
 			out.Attempts = append(out.Attempts, AttemptView{ID: attempt.ID, ProviderID: cand.ProviderID, AttemptNo: i + 1, Status: "failed", HTTPStatus: result.HTTPStatus, ErrorCode: code})
+			if result.HTTPStatus == 408 || result.ErrorClass == "timeout" || result.ErrorClass == "outcome_unknown" || (err != nil && result.HTTPStatus == 0) {
+				_, settleErr := s.booker.Settle(context.WithoutCancel(ctx), billing.SettleInput{RequestID: in.RequestID, UserID: in.Caller.UserID, APIKeyID: in.Caller.APIKeyID, PublicModelID: model.ID, MissingUsage: true})
+				if settleErr != nil {
+					return nil, settleErr
+				}
+				return out, ErrRequestUnknown
+			}
 			if streamStarted {
 				break
 			}
@@ -383,7 +425,7 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		result.Body.RequestID = in.RequestID
 		result.Body.Model = in.Chat.Model
 		out.Response = result.Body
-		out.Stream = result.Stream
+		out.Stream = publicChatStreamChunks(result.Stream, in.Chat.Model)
 		if in.Chat.Stream {
 			streamStarted = true
 		}
@@ -396,7 +438,14 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 		usage = resolveAttemptUsage(usageAdapterName(cand.Adapter, s.runtime), mode, in.Chat, completionText(result.Body), usage)
 		result.Body.Usage = usage
 		out.Response.Usage = usage
-		missing := mode == UsageOmit || len(usage) == 0
+		_, promptKnown := usage["prompt_tokens"]
+		_, outputKnown := usage["completion_tokens"]
+		missing := mode == UsageOmit || !promptKnown || !outputKnown
+		for _, amount := range usage {
+			if amount < 0 {
+				missing = true
+			}
+		}
 		factSource := attemptFactSource(cand.Adapter, result, s.runtime)
 		applyAttemptFacts(&attempt, usage, factSource, passthroughMeta(in, attemptID, model.ID, result, factSource))
 		_ = s.db.WithContext(ctx).Model(&attemptRow{}).Where("id = ?", attempt.ID).Updates(map[string]any{
@@ -425,6 +474,15 @@ func (s *Service) Execute(ctx context.Context, in ExecuteInput) (*ExecuteOutput,
 	_ = s.db.WithContext(ctx).Model(&requestRow{}).Where("id = ?", req.ID).Updates(map[string]any{"status": "failed", "ended_at": ended})
 	_ = s.booker.Release(ctx, in.RequestID)
 	return out, ErrProviderUnavailable
+}
+
+// ListOwnedAttempts restricts public receipts to this logical Key and owner.
+func (s *Service) ListOwnedAttempts(ctx context.Context, requestID, userID, keyID string) ([]AttemptView, error) {
+	var req requestRow
+	if err := s.db.WithContext(ctx).Where("request_id = ? AND user_id = ? AND api_key_id = ?", requestID, userID, keyID).First(&req).Error; err != nil {
+		return nil, err
+	}
+	return s.ListAttempts(ctx, requestID)
 }
 
 func (s *Service) ListAttempts(ctx context.Context, requestID string) ([]AttemptView, error) {
@@ -468,6 +526,12 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 	if strings.TrimSpace(in.UserID) == "" {
 		return nil, ErrUserRequired
 	}
+	return s.ListScopedRequests(ctx, in)
+}
+
+// ListScopedRequests is used only after the HTTP layer derives the authorized
+// management scope. The ordinary method above still requires the owner.
+func (s *Service) ListScopedRequests(ctx context.Context, in QueryRequestsInput) ([]RequestView, error) {
 	if in.RequestIDs != nil && len(in.RequestIDs) == 0 {
 		return []RequestView{}, nil
 	}
@@ -478,7 +542,24 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 		in.Limit = 200
 	}
 	var rows []requestRow
-	q := s.db.WithContext(ctx).Model(&requestRow{}).Where("user_id = ?", in.UserID).Order("started_at DESC").Limit(in.Limit)
+	q := s.db.WithContext(ctx).Model(&requestRow{}).Order("started_at DESC,id DESC").Limit(in.Limit)
+	if in.UserID != "" {
+		q = q.Where("user_id = ?", in.UserID)
+	}
+	if in.ChannelOrgIDs != nil {
+		q = q.Where("channel_org_id IN ?", in.ChannelOrgIDs)
+	}
+	if in.Query != "" {
+		term := "%" + strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(in.Query, "\\", "\\\\"), "%", "\\%"), "_", "\\_") + "%"
+		q = q.Where("request_id ILIKE ? OR public_model_id ILIKE ? OR api_key_id ILIKE ?", term, term, term)
+	}
+	if in.Cursor != "" {
+		at, key, err := page.Decode(in.Cursor)
+		if err != nil {
+			return nil, err
+		}
+		q = q.Where("(started_at,id) < (?,?)", at, key)
+	}
 	if in.APIKeyID != "" {
 		q = q.Where("api_key_id = ?", in.APIKeyID)
 	}
@@ -492,8 +573,8 @@ func (s *Service) ListRequests(ctx context.Context, in QueryRequestsInput) ([]Re
 		q = q.Where("request_id IN ?", in.RequestIDs)
 	}
 	if in.BillingState != "" {
-		args := []any{in.UserID, in.BillingState}
-		clause := `EXISTS (SELECT 1 FROM billing_usage_events u WHERE u.request_id = gateway_requests.request_id AND u.user_id = ? AND u.state = ?`
+		args := []any{in.BillingState}
+		clause := `EXISTS (SELECT 1 FROM billing_usage_events u WHERE u.request_id = gateway_requests.request_id AND u.user_id = gateway_requests.user_id AND u.state = ?`
 		if in.APIKeyID != "" {
 			clause += ` AND u.api_key_id = ?`
 			args = append(args, in.APIKeyID)
@@ -714,3 +795,5 @@ func ParseHint(only, ignore, order string) catalog.RouteHint {
 	}
 	return catalog.RouteHint{Only: split(only), Ignore: split(ignore), Order: split(order)}
 }
+
+func RequestCursor(item RequestView) string { return page.Encode(item.StartedAt, item.ID) }

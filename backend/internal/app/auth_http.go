@@ -13,6 +13,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
+	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 )
 
@@ -25,7 +26,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/v1/public/tls-check", a.publicTLSCheck)
 	r.GET("/.well-known/acme-challenge/:token", a.acmeHTTP01)
 	r.GET("/v1/public/docs-context", a.docsContext)
-	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin"), a.listBrands)
+	r.GET("/admin/brands", a.requireRoles("platform_admin", "ops_admin", "tech_admin", "audit_readonly"), a.listBrands)
 	r.POST("/admin/brands/:id/tls/issue", a.requireRoles("platform_admin", "tech_admin"), a.issueBrandTLS)
 	r.POST("/v1/auth/register", a.register)
 	r.POST("/v1/auth/login", a.login)
@@ -45,7 +46,7 @@ func (a *App) registerAuthRoutes(r *gin.Engine) {
 	r.GET("/admin/channels", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.listChannels)
 	r.POST("/admin/channels", a.requireRoles("platform_admin", "channel_admin"), a.createChannel)
 	r.GET("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin", "finance_admin", "ops_admin", "audit_readonly"), a.getChannel)
-	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.getChannelModels)
+	r.GET("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "finance_admin", "tech_admin", "audit_readonly", "channel_admin"), a.getChannelModels)
 	r.PATCH("/admin/channels/:id/models", a.requireRoles("platform_admin", "ops_admin", "channel_admin"), a.patchChannelModels)
 	r.PATCH("/admin/channels/:id", a.requireRoles("platform_admin", "channel_admin"), a.patchChannel)
 	r.GET("/channel/models", a.requireRoles("channel_admin"), a.channelModels)
@@ -162,7 +163,7 @@ func (a *App) register(c *gin.Context) {
 		return
 	}
 	session, err := a.Identity.Register(c.Request.Context(), identity.RegisterInput{
-		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode,
+		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode, BrandID: a.signupBrandID(c),
 	})
 	if err != nil {
 		a.writeAuthError(c, err)
@@ -258,6 +259,12 @@ func googleExchangeMessage(reason string) (string, bool) {
 		return "Google 授权码无效或已使用", true
 	case "access_denied":
 		return "已取消 Google 授权", false
+	case "email_unverified":
+		return "Google 邮箱尚未验证", false
+	case "state_mismatch":
+		return "请在发起 Google 登录的浏览器中重试", false
+	case "account_conflict":
+		return "此邮箱已绑定其他 Google 账户", false
 	case "network_error":
 		return "无法连接 Google，请检查服务器出网", true
 	case "empty_profile", "userinfo_error", "empty_token":
@@ -269,6 +276,7 @@ func googleExchangeMessage(reason string) (string, bool) {
 
 func (a *App) googleStatus(c *gin.Context) {
 	configured, available := a.googleMode()
+	available = available && a.googleBrandAvailable(c)
 	httpx.OK(c, gin.H{
 		"available":  available,
 		"configured": configured,
@@ -279,15 +287,22 @@ func (a *App) googleStatus(c *gin.Context) {
 
 func (a *App) googleStart(c *gin.Context) {
 	configured, available := a.googleMode()
-	if !available {
+	if !available || !a.googleBrandAvailable(c) {
 		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
 		return
 	}
-	state, err := a.Identity.StartGoogle(c.Request.Context(), c.Query("promotion_code"))
+	challenge, err := crypto.RandomToken("browser_")
 	if err != nil {
 		a.writeGoogleAuthError(c, err)
 		return
 	}
+	state, err := a.Identity.StartGoogleWithIntent(c.Request.Context(), identity.OAuthIntent{BrowserToken: challenge, PromotionCode: c.Query("promotion_code"), BrandID: a.signupBrandID(c), NextPath: identity.SafeReturnPath(c.Query("next"))})
+	if err != nil {
+		a.writeGoogleAuthError(c, err)
+		return
+	}
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(googleBrowserCookie(state), challenge, 900, "/", "", a.sessionCookieSecure(c), true)
 	authURL := ""
 	if configured {
 		values := url.Values{}
@@ -330,6 +345,25 @@ func (a *App) googleCallback(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
+	if a.resolveGoogleExchange() == nil {
+		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
+		return
+	}
+	if !a.googleBrowserMatches(c, body.State) {
+		a.writeGoogleAuthError(c, identity.NewGoogleExchangeError("state_mismatch"))
+		return
+	}
+	intent := a.Identity.GoogleIntent(ctx, body.State)
+	if intent.NextPath != "" {
+		c.Header("X-Login-Next", intent.NextPath)
+	}
+	if intent.PromotionCode != "" {
+		c.Header("X-Promotion-Code", intent.PromotionCode)
+	}
+	if body.State == "" || body.Code == "" {
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Google 授权未完成", false)
+		return
+	}
 	if session := a.recallGoogleOAuth(ctx, body.State); session != nil {
 		a.setSessionCookie(c, session.Token)
 		httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
@@ -338,10 +372,6 @@ func (a *App) googleCallback(c *gin.Context) {
 	if !a.beginGoogleOAuthFlight(ctx, body.State) {
 		if session := a.waitGoogleOAuth(ctx, body.State, googleOAuthWaitBudget); session != nil {
 			a.setSessionCookie(c, session.Token)
-			httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
-			return
-		}
-		if session := a.sessionFromCookie(c); session != nil {
 			httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
 			return
 		}
@@ -358,10 +388,6 @@ func (a *App) googleCallback(c *gin.Context) {
 				httpx.OK(c, gin.H{"session": replay, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
 				return
 			}
-			if existing := a.sessionFromCookie(c); existing != nil {
-				httpx.OK(c, gin.H{"session": existing, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
-				return
-			}
 		}
 		a.writeGoogleAuthError(c, err)
 		return
@@ -371,36 +397,41 @@ func (a *App) googleCallback(c *gin.Context) {
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
-func (a *App) sessionFromCookie(c *gin.Context) *identity.Session {
-	cookie, err := c.Cookie(sessionCookie)
-	if err != nil || strings.TrimSpace(cookie) == "" {
-		return nil
-	}
-	principal, err := a.Identity.Authenticate(c.Request.Context(), "Bearer "+cookie)
-	if err != nil || principal == nil {
-		return nil
-	}
-	me, err := a.Identity.Me(c.Request.Context(), *principal)
-	if err != nil || me == nil {
-		return nil
-	}
-	return &identity.Session{
-		Token:     cookie,
-		User:      *me,
-		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
-	}
-}
-
 func (a *App) googleCallbackRedirect(c *gin.Context) {
-	if qErr := strings.TrimSpace(c.Query("error")); qErr != "" {
-		c.Redirect(http.StatusFound, a.oauthReturnURL("denied"))
+	state, code := c.Query("state"), c.Query("code")
+	origin := a.oauthCallbackOrigin(c)
+	if !a.googleBrowserMatches(c, state) {
+		c.Redirect(http.StatusFound, origin+"/login?oauth=state_mismatch")
 		return
 	}
-	state, code := c.Query("state"), c.Query("code")
+	intent := a.Identity.GoogleIntent(c.Request.Context(), state)
+	failure := func(reason string) string {
+		params := url.Values{}
+		params.Set("oauth_error", "Google 登录失败，请重试")
+		params.Set("error_code", reason)
+		if intent.NextPath != "" {
+			params.Set("next", intent.NextPath)
+		}
+		if intent.PromotionCode != "" {
+			params.Set("promotion_code", intent.PromotionCode)
+		}
+		return origin + "/login?" + params.Encode()
+	}
+	destination := func(session *identity.Session) string {
+		next := identity.SafeReturnPath(session.NextPath)
+		if next == "" {
+			next = "/enter"
+		}
+		return origin + next
+	}
+	if strings.TrimSpace(c.Query("error")) != "" {
+		c.Redirect(http.StatusFound, failure("access_denied"))
+		return
+	}
 	ctx := c.Request.Context()
 	if session := a.recallGoogleOAuth(ctx, state); session != nil {
 		a.setSessionCookie(c, session.Token)
-		c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+		c.Redirect(http.StatusFound, destination(session))
 		return
 	}
 	session, err := a.finishGoogleSession(c, state, code)
@@ -408,20 +439,67 @@ func (a *App) googleCallbackRedirect(c *gin.Context) {
 		if errors.Is(err, identity.ErrOAuthStateConsumed) {
 			if replay := a.waitGoogleOAuth(ctx, state, googleOAuthWaitBudget); replay != nil {
 				a.setSessionCookie(c, replay.Token)
-				c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
-				return
-			}
-			if existing := a.sessionFromCookie(c); existing != nil {
-				c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+				c.Redirect(http.StatusFound, destination(replay))
 				return
 			}
 		}
-		c.Redirect(http.StatusFound, a.oauthReturnURL("fail"))
+		c.Redirect(http.StatusFound, failure("authentication_error"))
 		return
 	}
 	a.rememberGoogleOAuth(ctx, state, session)
 	a.afterGoogleSession(c, session)
-	c.Redirect(http.StatusFound, a.webOrigin()+"/enter")
+	c.Redirect(http.StatusFound, destination(session))
+}
+
+// Local development can use explicit test promo codes. A known public brand
+// constrains the invitation and default registration to that brand.
+func googleBrowserCookie(state string) string {
+	return "tokenhub_google_" + crypto.HashToken(state)[:16]
+}
+func (a *App) googleBrowserMatches(c *gin.Context, state string) bool {
+	challenge, err := c.Cookie(googleBrowserCookie(state))
+	return err == nil && a.Identity.GoogleBrowserMatches(c.Request.Context(), state, challenge)
+}
+
+// Known brands return to their configured Google frontend origin.
+func (a *App) oauthCallbackOrigin(c *gin.Context) string {
+	if a.Identity.KnownBrandHost(c.Request.Context(), a.requestHost(c)) && a.googleBrandAvailable(c) {
+		if callback, err := url.Parse(a.Config.GoogleRedirect); err == nil && (callback.Scheme == "https" || callback.Scheme == "http") && callback.Host != "" {
+			return callback.Scheme + "://" + callback.Host
+		}
+	}
+	return a.webOrigin()
+}
+
+func (a *App) signupBrandID(c *gin.Context) string {
+	host := a.requestHost(c)
+	if !a.Identity.KnownBrandHost(c.Request.Context(), host) {
+		return ""
+	}
+	brand, err := a.Identity.BrandByHost(c.Request.Context(), host)
+	if err != nil {
+		return ""
+	}
+	return brand.ID
+}
+
+// A single configured Google callback cannot establish a session on an
+// unrelated OEM domain. Advertise Google only for its configured brand.
+func (a *App) googleBrandAvailable(c *gin.Context) bool {
+	brandID := a.signupBrandID(c)
+	if brandID == "" {
+		return true
+	}
+	redirect, err := url.Parse(a.Config.GoogleRedirect)
+	if err != nil || redirect.Hostname() == "" {
+		return false
+	}
+	current, parseErr := url.Parse("//" + a.requestHost(c))
+	if parseErr != nil || !strings.EqualFold(current.Hostname(), redirect.Hostname()) {
+		return false
+	}
+	brand, err := a.Identity.BrandByHost(c.Request.Context(), redirect.Hostname())
+	return err == nil && brand.ID == brandID
 }
 
 func (a *App) webOrigin() string {
@@ -542,10 +620,16 @@ func (a *App) publicModels(c *gin.Context) {
 		Kind:   c.Query("kind"),
 		Q:      c.Query("q"),
 		ID:     c.Query("id"),
-		Limit:  catalog.ParseLimit(c.Query("limit")),
+		Limit:  0,
 	})
+	items := page.Items
+	next := ""
+	if limit := catalog.ParseLimit(c.Query("limit")); limit > 0 {
+		items, next = httpx.Paginate(items, limit, c.Query("cursor"), func(item catalog.ModelView) string { return item.ID })
+	}
 	httpx.OK(c, gin.H{
-		"items": publicModelCards(page.Items), "total": page.Total, "facets": page.Facets,
+		"next_cursor": next,
+		"items":       publicModelCards(items), "total": page.Total, "facets": page.Facets,
 		"brand_id": brand.ID, "request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -557,7 +641,7 @@ func publicModelCards(models []catalog.ModelView) []gin.H {
 		items = append(items, gin.H{
 			"id": model.ID, "vendor": model.Vendor, "display_name": model.DisplayName,
 			"capabilities": model.Capabilities, "sell_price": model.SellPrice,
-			"status":      catalog.PublicModelStatus(model.Status),
+			"status": model.ServiceStatus, "service_status": model.ServiceStatus,
 			"description": model.Description, "kind": model.Kind,
 			"context_length": model.ContextLength, "max_completion_tokens": model.MaxCompletionTokens,
 		})
@@ -575,23 +659,43 @@ func (a *App) docsContext(c *gin.Context) {
 		httpx.Abort(c, http.StatusNotFound, "invalid_request", "未找到品牌", false)
 		return
 	}
+	apiBase := docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL)
+	if apiBase == "" {
+		httpx.Abort(c, http.StatusServiceUnavailable, "brand_api_unavailable", "品牌 API 地址尚未配置，请联系管理员", false)
+		return
+	}
 	channelID, err := a.Identity.ChannelIDByBrand(c.Request.Context(), brand.ID)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道失败", true)
 		return
 	}
-	models, _ := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	models, err := a.Catalog.ListVisibleModels(c.Request.Context(), channelID, nil)
+	if err != nil {
+		httpx.Abort(c, http.StatusServiceUnavailable, "catalog_unavailable", "模型说明暂不可用", true)
+		return
+	}
 	ids := make([]string, 0, len(models))
 	for _, model := range models {
 		ids = append(ids, model.ID)
 	}
+	examples := gin.H{}
+	endpoints := []string{}
+	wanted := c.Query("model")
+	for _, model := range models {
+		if model.ID == wanted {
+			for _, path := range docsEndpointList(model.Capabilities) {
+				endpoints = append(endpoints, path)
+			}
+			examples = docsExamplesFor(apiBase, wanted, endpoints)
+		}
+	}
 	httpx.OK(c, gin.H{
 		"brand":        brand,
 		"models":       ids,
-		"api_base_url": docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL),
-		"examples":     docsExamples(docsAPIBase(brand.APIDomain, a.Config.PublicBaseURL), firstModel(ids)),
-		"notes":        docsNotes(),
-		"request_id":   c.GetString(httpx.ContextRequestID),
+		"api_base_url": apiBase,
+		"examples":     examples, "supported_endpoints": endpoints, "model": wanted,
+		"notes":      docsNotes(),
+		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 
@@ -661,10 +765,19 @@ func (a *App) listChannels(c *gin.Context) {
 		}
 		items = managed
 	}
+	if kind := c.Query("type"); kind != "" {
+		filtered := make([]identity.ChannelView, 0, len(items))
+		for _, item := range items {
+			if item.Type == kind {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	if q := strings.ToLower(c.Query("q")); q != "" {
 		filtered := make([]identity.ChannelView, 0, len(items))
 		for _, item := range items {
-			if strings.Contains(strings.ToLower(item.Code+item.ID+item.Type+item.Status), q) {
+			if strings.Contains(strings.ToLower(item.Code+item.BrandName+item.ID+item.Type+item.Status), q) {
 				filtered = append(filtered, item)
 			}
 		}
@@ -706,7 +819,7 @@ func (a *App) getChannelModels(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道模型失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"items": items, "channel_type": target.Type, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) channelModels(c *gin.Context) {
@@ -941,18 +1054,7 @@ func (a *App) adminTOTPDisable(c *gin.Context) {
 }
 
 func (a *App) listUsersAdmin(c *gin.Context) {
-	items, err := a.Identity.ListUsers(c.Request.Context(), *a.currentPrincipal(c))
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "users.csv", []string{"id", "email", "status", "channel_org_id", "source_code"}, items, func(item identity.UserView) []string {
-			return []string{item.ID, item.Email, item.Status, item.ChannelOrgID, item.SourceCode}
-		})
-		return
-	}
-	httpx.OKPage(c, items, 100, func(item identity.UserView) string { return item.ID })
+	a.writeCustomerPage(c, a.customerQueryInput(c))
 }
 
 func (a *App) listUsersChannel(c *gin.Context) {
@@ -960,12 +1062,9 @@ func (a *App) listUsersChannel(c *gin.Context) {
 	if !ok {
 		return
 	}
-	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *a.currentPrincipal(c), channelID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	in := a.customerQueryInput(c)
+	in.ChannelID = channelID
+	a.writeCustomerPage(c, in)
 }
 
 func (a *App) listSubchannelUsers(c *gin.Context) {
@@ -980,12 +1079,9 @@ func (a *App) listSubchannelUsers(c *gin.Context) {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "仅 OEM 可查看下属渠道用户", false)
 		return
 	}
-	items, err := a.Identity.ListUsersForChannel(c.Request.Context(), *principal, child.ID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取用户失败", true)
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	in := a.customerQueryInput(c)
+	in.ChannelID = child.ID
+	a.writeCustomerPage(c, in)
 }
 
 func (a *App) channelAttribution(c *gin.Context) {
@@ -1004,9 +1100,17 @@ func (a *App) channelMe(c *gin.Context) {
 		a.writeAuthError(c, err)
 		return
 	}
+	brand, err := a.Identity.BrandByID(c.Request.Context(), channel.BrandID)
+	if err != nil {
+		a.writeAuthError(c, err)
+		return
+	}
 	httpx.OK(c, gin.H{
 		"channel_org_id": principal.ChannelOrgID,
 		"channel_type":   channel.Type,
+		"channel_name":   channel.Code,
+		"brand_name":     brand.Name,
+		"brand_id":       brand.ID,
 		"email":          principal.Email,
 		"roles":          principal.Roles,
 		"request_id":     c.GetString(httpx.ContextRequestID),

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/tokpath/tokstudio/backend/internal/audit"
 	"github.com/tokpath/tokstudio/backend/internal/billing"
@@ -17,6 +18,8 @@ import (
 )
 
 func (a *App) registerCommissionRoutes(r *gin.Engine) {
+	a.registerOEMPurchaseRoutes(r)
+	a.registerCommissionWorkflowRoutes(r)
 	r.GET("/admin/commission-recoveries", a.requireRoles("platform_admin", "finance_admin", "audit_readonly"), a.adminCommissionRecoveries)
 	r.POST("/admin/commission-recoveries/:id/receipts", a.requireRoles("platform_admin", "finance_admin"), a.adminRecordCommissionRecovery)
 	r.GET("/v1/me/commission-recoveries", a.requireAnyUser(), a.myCommissionRecoveries)
@@ -43,6 +46,7 @@ func (a *App) registerCommissionRoutes(r *gin.Engine) {
 	r.PATCH("/admin/acquisition-roles/:id", a.requireRoles("platform_admin", "channel_admin"), a.adminPatchRole)
 	r.GET("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin", "ops_admin", "audit_readonly"), a.adminListPromos)
 	r.POST("/admin/promotion-codes", a.requireRoles("platform_admin", "channel_admin"), a.adminCreatePromo)
+	r.GET("/admin/channel-quotas/:channel_id/operations", a.requireRoles("platform_admin", "finance_admin"), a.adminQuotaOperation)
 	r.POST("/admin/channel-quotas/grant", a.requireRoles("platform_admin", "finance_admin"), a.adminGrantQuota)
 	r.POST("/channel/quotas/grant", a.requireRoles("channel_admin"), a.channelGrantQuota)
 	r.GET("/admin/channel-quotas/:channel_id/issue-rule", a.requireRoles("platform_admin", "finance_admin", "channel_admin"), a.adminGetIssueRule)
@@ -92,6 +96,42 @@ func (a *App) partnerScope(c *gin.Context) (channelID string, roleIDs []string, 
 	return mem.ChannelOrgID, ids, true
 }
 
+// Financial results in the account belong to its own memberships. Customer
+// visibility retains the existing professional/management scope separately.
+func (a *App) partnerIncomeScope(c *gin.Context) (string, []string, bool) {
+	p := a.currentPrincipal(c)
+	if p == nil {
+		return "", nil, false
+	}
+	if p.IsPlatformAdmin() || p.HasRole("finance_admin", "ops_admin") {
+		return a.partnerScope(c)
+	}
+	if p.IsChannelStaff() {
+		channel, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
+		if err != nil {
+			return "", nil, false
+		}
+		if channel.Type == identity.ChannelTypeC {
+			return a.partnerScope(c)
+		}
+		if channel.Type != identity.ChannelTypeB {
+			return "", nil, false
+		}
+		own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+		if err != nil {
+			return "", nil, false
+		}
+		// Empty membership is an empty financial scope, never all recipients.
+		roles := append([]string{}, own.RoleIDs...)
+		return channel.ID, roles, true
+	}
+	own, err := a.Identity.PersonalReferral(c.Request.Context(), p.UserID)
+	if err != nil || len(own.RoleIDs) == 0 {
+		return "", nil, false
+	}
+	return "", own.RoleIDs, true
+}
+
 func (a *App) partnerMe(c *gin.Context) {
 	p := a.currentPrincipal(c)
 	if p == nil {
@@ -132,6 +172,13 @@ func (a *App) partnerMe(c *gin.Context) {
 
 func (a *App) partnerUsers(c *gin.Context) {
 	p := a.currentPrincipal(c)
+	if !p.IsPlatformAdmin() && !p.HasRole("finance_admin", "ops_admin") && !p.IsChannelStaff() {
+		mem, err := a.Identity.MemberRole(c.Request.Context(), p.UserID)
+		if err != nil || mem.Status != "active" || mem.Type == identity.AcqPromoter {
+			httpx.Abort(c, http.StatusForbidden, "permission_denied", "此账户没有专业推广客户查看权限", false)
+			return
+		}
+	}
 	if _, _, ok := a.partnerScope(c); !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -146,7 +193,7 @@ func (a *App) partnerUsers(c *gin.Context) {
 }
 
 func (a *App) partnerCommissions(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -160,7 +207,7 @@ func (a *App) partnerCommissions(c *gin.Context) {
 }
 
 func (a *App) partnerSettlements(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -174,7 +221,7 @@ func (a *App) partnerSettlements(c *gin.Context) {
 }
 
 func (a *App) partnerExport(c *gin.Context) {
-	channelID, roleIDs, ok := a.partnerScope(c)
+	channelID, roleIDs, ok := a.partnerIncomeScope(c)
 	if !ok {
 		httpx.Abort(c, http.StatusForbidden, "permission_denied", "不是推广主体", false)
 		return
@@ -199,50 +246,50 @@ func (a *App) channelQuota(c *gin.Context) {
 		channelID = c.Query("channel_id")
 	}
 	item, err := a.Billing.ChannelQuota(c.Request.Context(), channelID)
+	if errors.Is(err, billing.ErrNotFound) {
+		httpx.Abort(c, 404, "not_found", "OEM 服务额度池尚未建立。", false)
+		return
+	}
 	if err != nil {
-		httpx.Abort(c, http.StatusNotFound, "invalid_request", "渠道额度不存在", false)
+		httpx.Abort(c, 500, "read_failed", "读取额度失败。", true)
 		return
 	}
 	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) channelAllocations(c *gin.Context) {
-	channelID := a.currentPrincipal(c).ChannelOrgID
-	if a.currentPrincipal(c).IsPlatformAdmin() && c.Query("channel_id") != "" {
-		channelID = c.Query("channel_id")
-	}
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	items, err := a.Billing.ListAllocations(c.Request.Context(), channelID, limit)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取额度发放失败", true)
-		return
-	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func (a *App) channelUsage(c *gin.Context) {
-	channelID, ok := a.channelForQuery(c)
+	scope, ok := a.commissionWorkflowScope(c)
 	if !ok {
 		return
 	}
-	item, err := a.Billing.ChannelUsage(c.Request.Context(), channelID)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取渠道用量失败", true)
+	items, err := a.Billing.ListPoolAllocations(c.Request.Context(), scope.OwnerID, c.Query("channel_id"))
+	if a.abortCommissionWorkflowError(c, err) {
 		return
 	}
-	keys, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "api_key", "", channelID)
-	models, _ := a.Billing.DimMoneyScoped(c.Request.Context(), "model", "", channelID)
-	items, _ := a.Billing.QueryUsage(c.Request.Context(), billing.QueryUsageInput{
-		ChannelOrgID:  channelID,
-		APIKeyID:      c.Query("api_key_id"),
-		PublicModelID: c.Query("public_model_id"),
-		Limit:         50,
-	})
-	httpx.OK(c, gin.H{
-		"usage": item, "keys": keys, "models": models, "items": items,
-		"request_id": c.GetString(httpx.ContextRequestID),
-	})
+	ids := []string{}
+	for _, item := range items {
+		ids = append(ids, item.UserID)
+	}
+	people, err := a.Identity.BillingRecipientsByID(c.Request.Context(), ids)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	type view struct {
+		billing.AllocationView
+		Recipient identity.BillingRecipient `json:"recipient"`
+	}
+	out := []view{}
+	q := strings.ToLower(strings.TrimSpace(c.Query("q")))
+	for _, item := range items {
+		row := view{item, people[item.UserID]}
+		if (c.Query("status") == "" || c.Query("status") == item.Status) && commissionMatches(row, q) {
+			out = append(out, row)
+		}
+	}
+	commissionPage(c, out, func(v view) string { return v.ID }, func(v view) time.Time { return v.CreatedAt })
 }
+
+func (a *App) channelUsage(c *gin.Context) { a.workflowUsage(c, "channel") }
 
 func (a *App) channelSettlements(c *gin.Context) {
 	if p := a.currentPrincipal(c); p.IsChannelStaff() {
@@ -254,57 +301,62 @@ func (a *App) channelSettlements(c *gin.Context) {
 	}
 	channelID := a.currentPrincipal(c).VisibleChannelID()
 	if channelID == "" {
-		channelID = c.Query("channel_id")
+		a.adminListSettlements(c)
+		return
 	}
-	items, err := a.Commission.ListSettlements(c.Request.Context(), channelID, nil)
+	if selected := c.Query("channel_id"); selected != "" && selected != channelID {
+		httpx.Abort(c, 403, "permission_denied", "只能查看本渠道结算", false)
+		return
+	}
+	own, err := a.Identity.PersonalReferral(c.Request.Context(), a.currentPrincipal(c).UserID)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	items, err := a.Commission.ListSettlements(c.Request.Context(), channelID, own.RoleIDs)
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取结算单失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	views, err := a.settlementAdminViews(c, items)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	out := []commissionSettlementAdminView{}
+	for _, item := range views {
+		if (c.Query("settlement_id") == "" || item.ID == c.Query("settlement_id")) && (c.Query("status") == "" || item.Status == c.Query("status")) && commissionMatches(item, strings.ToLower(strings.TrimSpace(c.Query("q")))) {
+			out = append(out, item)
+		}
+	}
+	commissionPage(c, out, func(item commissionSettlementAdminView) string { return item.ID }, func(item commissionSettlementAdminView) time.Time { return item.CreatedAt })
 }
 
 func (a *App) adminListSettlements(c *gin.Context) {
-	_, scopeIDs, ok := a.paymentSettlementScope(c)
+	scope, ok := a.commissionWorkflowScope(c)
 	if !ok {
 		return
 	}
-	items, err := a.Commission.ListBrandSettlements(c.Request.Context(), scopeIDs)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取结算单失败", true)
+	items, err := a.Commission.ListBrandSettlements(c.Request.Context(), scope.Channels)
+	if a.abortCommissionWorkflowError(c, err) {
 		return
 	}
+	views, err := a.settlementAdminViews(c, items)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	status, query := strings.TrimSpace(c.Query("status")), strings.ToLower(strings.TrimSpace(c.Query("q")))
+	out := []commissionSettlementAdminView{}
+	for _, item := range views {
+		if (status == "" || item.Status == status) && commissionMatches(item, query) {
+			out = append(out, item)
+		}
+	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "settlements.csv", []string{"id", "channel_org_id", "status", "amount_minor"}, items, func(item commission.SettlementView) []string {
+		httpx.WriteCSV(c, "settlements.csv", []string{"id", "channel_org_id", "status", "amount_minor"}, out, func(item commissionSettlementAdminView) []string {
 			return []string{item.ID, item.ChannelOrgID, item.Status, strconv.FormatInt(item.AmountMinor, 10)}
 		})
 		return
 	}
-	roleIDs, channelIDs := []string{}, []string{}
-	for _, item := range items {
-		roleIDs = append(roleIDs, item.BeneficiaryRoleID)
-		channelIDs = append(channelIDs, item.ChannelOrgID)
-	}
-	recipients, err := a.Identity.BillingRecipientsByRole(c.Request.Context(), roleIDs)
-	if err != nil {
-		httpx.Abort(c, 500, "internal_error", "读取收款人失败，请重试。", true)
-		return
-	}
-	channels, err := a.Identity.BillingChannelCodes(c.Request.Context(), channelIDs)
-	if err != nil {
-		httpx.Abort(c, 500, "internal_error", "读取渠道失败，请重试。", true)
-		return
-	}
-	type adminSettlement struct {
-		commission.SettlementView
-		Recipient   identity.BillingRecipient `json:"recipient"`
-		ChannelCode string                    `json:"channel_code"`
-	}
-	out := make([]adminSettlement, 0, len(items))
-	for _, item := range items {
-		out = append(out, adminSettlement{item, recipients[item.BeneficiaryRoleID], channels[item.ChannelOrgID]})
-	}
-	httpx.OKPage(c, out, 100, func(item adminSettlement) string { return item.ID })
+	commissionPage(c, out, func(item commissionSettlementAdminView) string { return item.ID }, func(item commissionSettlementAdminView) time.Time { return item.CreatedAt })
 }
 
 func (a *App) channelListPromos(c *gin.Context) {
@@ -347,25 +399,34 @@ func (a *App) channelCommissions(c *gin.Context) {
 	if p := a.currentPrincipal(c); p.IsChannelStaff() {
 		ch, err := a.Identity.GetChannel(c.Request.Context(), *p, p.ChannelOrgID)
 		if err == nil && ch.Type == identity.ChannelTypeC {
-			channels, ok := a.oemScope(c)
-			if !ok {
-				return
-			}
-			items, err := a.Commission.ListBrandEntries(c.Request.Context(), channels, c.Query("usage_event_id"))
-			if err != nil {
-				httpx.Abort(c, 500, "internal_error", "读取佣金失败", true)
-				return
-			}
-			httpx.OK(c, gin.H{"items": items})
+			a.adminCommissions(c)
 			return
 		}
 	}
-	items, err := a.Commission.ListEntries(c.Request.Context(), channelID, nil, "")
+	if channelID == "" {
+		a.adminCommissions(c)
+		return
+	}
+	if selected := c.Query("channel_id"); selected != "" && selected != channelID {
+		httpx.Abort(c, 403, "permission_denied", "只能查看本渠道佣金", false)
+		return
+	}
+	own, err := a.Identity.PersonalReferral(c.Request.Context(), a.currentPrincipal(c).UserID)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	items, err := a.Commission.ListEntries(c.Request.Context(), channelID, own.RoleIDs, "")
 	if err != nil {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取佣金失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	out := []commission.EntryView{}
+	for _, item := range items {
+		if (c.Query("status") == "" || item.Status == c.Query("status")) && commissionMatches(item, strings.ToLower(strings.TrimSpace(c.Query("q")))) {
+			out = append(out, item)
+		}
+	}
+	commissionPage(c, out, func(item commission.EntryView) string { return item.ID }, func(item commission.EntryView) time.Time { return item.CreatedAt })
 }
 
 func (a *App) adminCreateRole(c *gin.Context) {
@@ -483,26 +544,51 @@ func (a *App) adminGrantQuota(c *gin.Context) {
 	var body struct {
 		ChannelOrgID string `json:"channel_org_id"`
 		AmountMinor  int64  `json:"amount_minor"`
+		OperationID  string `json:"operation_id"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.ChannelOrgID == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "额度参数无效", false)
+	if c.ShouldBindJSON(&body) != nil || body.ChannelOrgID == "" || body.OperationID == "" || body.AmountMinor == 0 {
+		httpx.Abort(c, 400, "invalid_request", "请填写组织、有效金额和原操作编号。", false)
 		return
 	}
 	ownerID, err := a.Identity.ResolvePaymentOwnerID(c.Request.Context(), body.ChannelOrgID)
-	if err != nil || ownerID != body.ChannelOrgID || ownerID == identity.OfficialChannelID {
+	if err != nil {
+		httpx.Abort(c, 500, "read_failed", "组织读取失败，未调整额度。", true)
+		return
+	}
+	if ownerID != body.ChannelOrgID || ownerID == identity.OfficialChannelID {
 		httpx.Abort(c, 403, "permission_denied", "仅向 OEM 服务额度池划拨，渠道客户由品牌方直接管理", false)
 		return
 	}
-	item, err := a.Billing.GrantChannelQuota(c.Request.Context(), body.ChannelOrgID, body.AmountMinor, a.currentPrincipal(c).UserID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "调整额度失败", false)
+	operation, err := a.Billing.AdjustQuota(c.Request.Context(), a.currentPrincipal(c).UserID, body.ChannelOrgID, body.OperationID, body.AmountMinor)
+	if errors.Is(err, billing.ErrConflict) {
+		httpx.Abort(c, 409, "operation_conflict", "该操作编号已绑定其他内容，请核对原记录。", false)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.quota.grant", ResourceType: "quota", ResourceID: body.ChannelOrgID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"quota": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	if errors.Is(err, billing.ErrInsufficientQuota) || errors.Is(err, billing.ErrInvalidAmount) {
+		httpx.Abort(c, 400, "invalid_request", "金额无效或回收金额超过可用额度，未修改额度。", false)
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "result_unconfirmed", "调整结果待确认，请重试同一操作。", true)
+		return
+	}
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "billing.quota.grant", ResourceType: "quota_operation", ResourceID: operation.ID, After: operation, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+	httpx.OK(c, gin.H{"quota": operation.Quota, "operation": operation})
+}
+func (a *App) adminQuotaOperation(c *gin.Context) {
+	if !a.canReadChannelQuota(c, c.Param("channel_id")) {
+		return
+	}
+	item, err := a.Billing.QuotaOperation(c.Request.Context(), a.currentPrincipal(c).UserID, c.Param("channel_id"), c.Query("operation_id"))
+	if errors.Is(err, billing.ErrNotFound) {
+		httpx.Abort(c, 404, "not_found", "尚未查到该操作，请继续核对原操作。", false)
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "read_failed", "读取原操作失败。", true)
+		return
+	}
+	httpx.OK(c, gin.H{"operation": item})
 }
 
 func (a *App) channelGrantQuota(c *gin.Context) {
@@ -582,18 +668,47 @@ func (a *App) adminPatchIssueRule(c *gin.Context) {
 }
 
 func (a *App) adminCommissions(c *gin.Context) {
-	items, err := a.Commission.ListEntries(c.Request.Context(), c.Query("channel_id"), nil, c.Query("usage_event_id"))
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取佣金失败", true)
+	scope, ok := a.commissionWorkflowScope(c)
+	if !ok {
 		return
 	}
+	items, err := a.Commission.ListBrandEntries(c.Request.Context(), scope.Channels, c.Query("usage_event_id"))
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	roles, channels := []string{}, []string{}
+	for _, item := range items {
+		roles = append(roles, item.BeneficiaryRoleID)
+		channels = append(channels, item.ChannelOrgID)
+	}
+	people, err := a.Identity.BillingRecipientsByRole(c.Request.Context(), roles)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	codes, err := a.Identity.BillingChannelCodes(c.Request.Context(), channels)
+	if a.abortCommissionWorkflowError(c, err) {
+		return
+	}
+	type entry struct {
+		commission.EntryView
+		Recipient   identity.BillingRecipient `json:"recipient"`
+		ChannelCode string                    `json:"channel_code"`
+	}
+	status, q := c.Query("status"), strings.ToLower(strings.TrimSpace(c.Query("q")))
+	out := []entry{}
+	for _, item := range items {
+		view := entry{item, people[item.BeneficiaryRoleID], codes[item.ChannelOrgID]}
+		if (status == "" || item.Status == status) && commissionMatches(view, q) {
+			out = append(out, view)
+		}
+	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "commissions.csv", []string{"id", "kind", "status", "amount_minor", "channel_org_id"}, items, func(item commission.EntryView) []string {
+		httpx.WriteCSV(c, "commissions.csv", []string{"id", "kind", "status", "amount_minor", "channel_org_id"}, out, func(item entry) []string {
 			return []string{item.ID, item.Kind, item.Status, strconv.FormatInt(item.AmountMinor, 10), item.ChannelOrgID}
 		})
 		return
 	}
-	httpx.OKPage(c, items, 100, func(item commission.EntryView) string { return item.ID })
+	commissionPage(c, out, func(item entry) string { return item.ID }, func(item entry) time.Time { return item.CreatedAt })
 }
 
 func (a *App) adminUnfreeze(c *gin.Context) {
@@ -601,6 +716,7 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 		return
 	}
 	var body struct {
+		OperationID  string `json:"operation_id"`
 		UsageEventID string `json:"usage_event_id"`
 		Now          bool   `json:"now"`
 	}
@@ -610,6 +726,28 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 	}
 	if body.Now {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "只能解冻已到期佣金，不能跳过冻结期。", false)
+		return
+	}
+	if body.OperationID != "" {
+		scope, ok := a.commissionWorkflowScope(c)
+		if !ok {
+			return
+		}
+		n := 0
+		err := a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+			var created bool
+			var err error
+			n, created, err = a.Commission.UnfreezeWorkflowTx(tx, scope, commission.UnfreezeInput{OperationID: body.OperationID, UsageEventID: body.UsageEventID})
+			if err != nil || !created {
+				return err
+			}
+			_, err = a.Audit.RecordTx(tx, audit.RecordInput{ActorUserID: scope.ActorUserID, Action: "commission.unfreeze", ResourceType: "commission_operation", ResourceID: body.OperationID, After: map[string]any{"unfrozen": n}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+			return err
+		})
+		if a.abortCommissionWorkflowError(c, err) {
+			return
+		}
+		httpx.OK(c, gin.H{"unfrozen": n})
 		return
 	}
 	_, channels, ok := a.paymentSettlementScope(c)
@@ -630,70 +768,11 @@ func (a *App) adminUnfreeze(c *gin.Context) {
 }
 
 func (a *App) adminSettle(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	ownerID, channels, ok := a.paymentSettlementScope(c)
-	if !ok {
-		return
-	}
-	if ownerID == identity.OfficialChannelID {
-		ownerID = ""
-	}
-	items, err := a.Commission.CreateBrandSettlement(c.Request.Context(), time.Now().UTC(), c.Query("ignore_minimum") == "1", ownerID, channels)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "生成结算单失败", false)
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "commission.settle", ResourceType: "settlement_batch", ResourceID: "monthly",
-		After: items, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"items": items, "request_id": c.GetString(httpx.ContextRequestID)})
+	a.submitCommissionSettlement(c)
 }
 
 func (a *App) adminPayout(c *gin.Context) {
-	if !a.requireConfirm(c) {
-		return
-	}
-	var body struct {
-		Method    string `json:"method"`
-		Reference string `json:"reference"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写有效的打款凭证。", false)
-		return
-	}
-	if body.Method == "" {
-		body.Method = "manual"
-	}
-	_, channels, ok := a.paymentSettlementScope(c)
-	if !ok {
-		return
-	}
-	item, err := a.Commission.PayoutForChannels(c.Request.Context(), c.Param("id"), body.Method, body.Reference, a.currentPrincipal(c).UserID, channels)
-	if err != nil {
-		switch {
-		case errors.Is(err, commission.ErrWalletMismatch):
-			httpx.Abort(c, http.StatusConflict, "commission_wallet_mismatch", "佣金钱包入账或余额与结算单不一致，未登记打款。请联系财务核对原佣金流水后再操作。", false)
-		case errors.Is(err, commission.ErrInvalid):
-			httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请填写真实的线下打款凭证（1–200 字节）；仅支持人工登记。", false)
-		case errors.Is(err, commission.ErrConflict):
-			httpx.Abort(c, http.StatusConflict, "payout_conflict", "该结算单已登记其他凭证，请刷新核对，不要重复登记。", false)
-		case errors.Is(err, commission.ErrSettlementChanged):
-			httpx.Abort(c, http.StatusConflict, "settlement_changed", "结算单已因佣金变更失效，请刷新并重新生成结算单。", false)
-		case errors.Is(err, commission.ErrNotFound):
-			httpx.Abort(c, http.StatusNotFound, "not_found", "结算单不存在，请刷新列表。", false)
-		default:
-			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "尚未确认登记结果，请用原凭证重试，不会重复登记。", true)
-		}
-		return
-	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: a.currentPrincipal(c).UserID, Action: "commission.payout", ResourceType: "settlement", ResourceID: item.ID,
-		After: item, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
-	httpx.OK(c, gin.H{"item": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	a.submitCommissionPayout(c)
 }
 
 func (a *App) adminPolicy(c *gin.Context) {
@@ -717,6 +796,10 @@ func (a *App) adminPatchPolicy(c *gin.Context) {
 	before, _ := a.Commission.ActivePolicy(c.Request.Context())
 	item, err := a.Commission.UpdatePolicy(c.Request.Context(), body)
 	if err != nil {
+		if errors.Is(err, commission.ErrConflict) {
+			httpx.Abort(c, http.StatusConflict, "version_conflict", "策略已被更新，请重新读取并核对差异", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "佣金策略不合法：各档 BPS 之和不能超过上限", false)
 		return
 	}

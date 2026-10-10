@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OverviewHero } from "@/components/console/overview-hero";
 import { withZh } from "@/lib/test-i18n";
 
+vi.mock("@/components/usage-charts",()=>({UsageCharts:()=> <div data-testid="overview-usage-chart"/>}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app",
 }));

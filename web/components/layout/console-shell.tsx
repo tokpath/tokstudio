@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -16,7 +16,7 @@ import {
   type NavItem,
 } from "@/lib/nav";
 import { adminNavActive } from "@/lib/tenants";
-import { Menu, Search } from "lucide-react";
+import { ChevronDown, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,9 +30,10 @@ import type { Brand } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ConsoleOverflowMenu } from "@/components/layout/console-overflow-menu";
-import { UserShellBell, UserShellRightZone } from "@/components/layout/user-shell-menu";
+import { UserShellRightZone } from "@/components/layout/user-shell-menu";
 import { iconForHref } from "@/lib/page-icons";
-import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, filterChannelGroups, shouldBypassRbac } from "@/lib/rbac";
+import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, filterChannelGroups, shouldBypassRbac, canViewUserHref } from "@/lib/rbac";
+import { rememberConsoleWorkspace } from "@/lib/console-home";
 import { useViewer } from "@/components/rbac/viewer-context";
 
 const navLinkFocus =
@@ -44,19 +45,24 @@ function GroupedNav({
   t,
   onNavigate,
   isActive = isNavActive,
+  collapsible = false,
 }: {
   groups: { titleKey: string; items: NavItem[] }[];
   pathname: string;
   t: (key: string) => string;
   onNavigate?: () => void;
   isActive?: (pathname: string, href: string) => boolean;
+  collapsible?: boolean;
 }) {
+  const activeGroup = groups.find(group => group.items.some(item => isActive(pathname, item.href)))?.titleKey;
+  const [expanded, setExpanded] = useState<string | undefined>(activeGroup);
+  useEffect(() => { setExpanded(activeGroup); }, [activeGroup]);
   return (
     <div className="flex flex-col gap-0">
       {groups.map((group) => (
-        <div key={group.titleKey} className="mb-6">
-          <p className="th-eyebrow mb-2.5 px-3 text-ink-mute">{t(group.titleKey)}</p>
-          <ul className="flex flex-col gap-0.5">
+        <div key={group.titleKey} className={collapsible ? "mb-2" : "mb-3"}>
+          {collapsible ? <button type="button" aria-expanded={expanded === group.titleKey} className={`flex min-h-11 w-full items-center justify-between rounded-control px-3 text-left text-sm font-medium text-ink ${navLinkFocus}`} onClick={() => setExpanded(current => current === group.titleKey ? undefined : group.titleKey)}>{t(group.titleKey)}<ChevronDown aria-hidden className={`size-4 transition-transform ${expanded === group.titleKey ? "rotate-180" : ""}`} /></button> : group.titleKey === "tools" ? <p className="th-eyebrow mb-2 px-3 text-ink-mute">{t(group.titleKey)}</p> : null}
+          <ul hidden={collapsible && expanded !== group.titleKey} className={collapsible && expanded !== group.titleKey ? "hidden" : "flex flex-col gap-0.5"}>
             {group.items.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = iconForHref(item.href);
@@ -105,11 +111,11 @@ function ConsoleNav({
 
   return (
     <>
-      {isUser ? <GroupedNav groups={userNavGroups} pathname={pathname} t={tu} onNavigate={onNavigate} /> : null}
-      {showChannelNav ? <GroupedNav groups={filterChannelGroups(channelNavGroupsFor(viewer.channelType), viewer)} pathname={pathname} t={viewer.channelType === "C" ? ta : tch} onNavigate={onNavigate} isActive={(path, href) => channelNavItemForPath(path, viewer.channelType)?.href === href} /> : null}
+      {isUser ? <GroupedNav groups={userNavGroups.map(group => ({...group, items: group.items.filter(item => canViewUserHref(item.href, viewer))})).filter(group => group.items.length > 0)} pathname={pathname} t={tu} onNavigate={onNavigate} /> : null}
+      {showChannelNav ? <GroupedNav groups={filterChannelGroups(channelNavGroupsFor(viewer.channelType), viewer)} pathname={pathname} collapsible={viewer.channelType === "C"} t={viewer.channelType === "C" ? ta : tch} onNavigate={onNavigate} isActive={(path, href) => channelNavItemForPath(path, viewer.channelType)?.href === href} /> : null}
       {showPartnerNav ? <GroupedNav groups={partnerNavGroups} pathname={pathname} t={tp} onNavigate={onNavigate} /> : null}
       {isAdmin ? (
-        <GroupedNav groups={adminNav} pathname={pathname} t={ta} onNavigate={onNavigate} isActive={adminNavActive} />
+        <GroupedNav groups={adminNav} collapsible pathname={pathname} t={ta} onNavigate={onNavigate} isActive={adminNavActive} />
       ) : null}
     </>
   );
@@ -132,6 +138,7 @@ export function ConsoleShell({
   const tp = useTranslations("partnerNav");
   const tc = useTranslations("chrome");
   const [navOpen, setNavOpen] = useState(false);
+  const navTrigger = useRef<HTMLButtonElement>(null);
   const isAdmin = pathname.startsWith("/admin");
   const isUser = pathname.startsWith("/app") || pathname.startsWith("/console");
   const isChannel = pathname.startsWith("/channel");
@@ -139,6 +146,7 @@ export function ConsoleShell({
   const portalHref = isAdmin ? "/admin" : isChannel ? "/channel" : isPartner ? "/partner" : "/app";
   const portalKey = isAdmin ? "admin" : isChannel ? "channel" : isPartner ? "partner" : "app";
   const viewer = useViewer();
+  useEffect(() => { if (!viewer.loading && viewer.signedIn) rememberConsoleWorkspace(viewer.userId, pathname, viewer.roles); }, [pathname, viewer.loading, viewer.signedIn, viewer.userId, viewer.roles]);
   const title = t(isChannel && viewer.channelType === "C" ? "oem" : portalKey);
   const adminNav = filterAdminGroups(adminGroups, viewer);
 
@@ -156,7 +164,7 @@ export function ConsoleShell({
       return item ? tp(item.key) : title;
     }
     if (isAdmin) {
-      const item = navItemForPath(pathname, adminNav.flatMap((group) => group.items));
+      const item = adminNav.flatMap((group) => group.items).find(item => adminNavActive(pathname, item.href) && item.href !== "/admin") || navItemForPath(pathname, adminNav.flatMap((group) => group.items));
       return item ? ta(item.key) : title;
     }
     return title;
@@ -167,6 +175,7 @@ export function ConsoleShell({
       <header className="sticky top-0 z-30 border-b border-hairline bg-canvas">
         <div className="flex h-16 min-w-0 items-center gap-2 px-3 md:gap-4 md:px-6">
           <Button
+            ref={navTrigger}
             type="button"
             variant="ghost"
             size="icon"
@@ -178,7 +187,7 @@ export function ConsoleShell({
             <Menu />
             <span className="sr-only">{tc("openNav")}</span>
           </Button>
-          <Link href={portalHref} className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
+          <Link href={portalHref} aria-label={brand?.name || title} className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
             <BrandLogo brand={brand} />
             <span className="hidden text-lg font-semibold tracking-tight md:inline">{brand?.name || title}</span>
           </Link>
@@ -190,7 +199,6 @@ export function ConsoleShell({
           </p>
           <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
             <div className="hidden items-center gap-1 md:flex" data-testid="console-chrome-inline">
-              {isUser ? <UserShellBell /> : null}
               <LocaleSwitch />
               <ThemeToggle />
               <Button variant="ghost" size="sm" onClick={onCommand}>
@@ -203,7 +211,7 @@ export function ConsoleShell({
                 </Button>
               ) : null}
             </div>
-            <ConsoleOverflowMenu onCommand={onCommand} showBell={isUser} />
+            <ConsoleOverflowMenu onCommand={onCommand} />
             {isUser ? <UserShellRightZone /> : null}
             {!isUser ? <UserShellRightZone variant="admin" /> : null}
           </div>
@@ -212,7 +220,8 @@ export function ConsoleShell({
       <Dialog open={navOpen} onOpenChange={setNavOpen}>
         <DialogContent
           id="console-nav-drawer"
-          className="left-0 top-0 h-dvh max-h-dvh w-[min(18rem,85vw)] max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none"
+          className="left-0 top-0 h-dvh max-h-dvh w-[min(18rem,85vw)] max-w-none translate-x-0 translate-y-0 content-start overflow-y-auto rounded-none"
+          onCloseAutoFocus={(event) => { event.preventDefault(); navTrigger.current?.focus(); }}
         >
           <DialogHeader className="text-left">
             <DialogTitle>{title}</DialogTitle>

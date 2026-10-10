@@ -180,20 +180,22 @@ func TestM6CommissionDistribution(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = postJSONRaw(t, server.URL+"/admin/commissions/unfreeze", "m6_admin", map[string]any{"usage_event_id": u2})
-	settled := postJSONRaw(t, server.URL+"/admin/commissions/settle?ignore_minimum=1", "m6_admin", map[string]any{})
+	preview := getAuthJSON(t, server.URL+"/admin/commissions/settlement-preview?ignore_minimum=1", "m6_admin")
+	settled := postJSONRaw(t, server.URL+"/admin/commissions/settle", "m6_admin", map[string]any{"operation_id": "m6-settle-" + strconv.FormatInt(time.Now().UnixNano(), 10), "preview_id": preview["preview"].(map[string]any)["id"]})
 	items, _ := settled["items"].([]any)
 	if len(items) == 0 {
 		t.Fatalf("expected settlement batch: %+v", settled)
 	}
 	sid := items[0].(map[string]any)["id"].(string)
 	paid := postJSONRaw(t, server.URL+"/admin/settlements/"+sid+"/payout", "m6_admin", map[string]any{
-		"method": "manual", "reference": "wire-e2e",
+		"method": "manual", "reference": "wire-e2e-" + sid, "operation_id": "m6-payout-" + sid, "amount_minor": items[0].(map[string]any)["amount_minor"], "occurred_at": time.Now().Add(-time.Minute), "confirmed": true,
 	})
 	if paid["item"].(map[string]any)["status"] != commission.StatusPaid {
 		t.Fatalf("payout: %+v", paid)
 	}
 
 	if code := postStatusConfirm(t, server.URL+"/admin/channel-quotas/grant", "m6_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": identity.ResellerChannelID, "amount_minor": 1,
 	}); code != http.StatusForbidden {
 		t.Fatalf("B cannot own a quota pool: %d", code)
@@ -280,10 +282,12 @@ func TestD82QuotaRatio(t *testing.T) {
 		application.Billing.SetIssueRule(context.Background(), channelID, billing.DefaultIssueRatioBPS)
 	})
 	_ = postJSONRaw(t, server.URL+"/admin/channel-quotas/grant", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": channelID, "amount_minor": 100 * billing.MinorPerUSD,
 	})
 	promo := "THX-D82-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": channelID, "code": promo,
 	})
 
@@ -352,7 +356,10 @@ func TestD82QuotaRatio(t *testing.T) {
 	if asInt(after["issue_ratio_bps"]) != 12_000 {
 		t.Fatalf("quota should keep 1.2x ratio: %+v", after)
 	}
-	allocs := getAuthJSON(t, server.URL+"/channel/allocations?channel_id="+channelID, "d82_admin")["items"].([]any)
+	if status := getStatus(t, server.URL+"/channel/allocations?channel_id="+channelID, "d82_admin"); status != http.StatusForbidden {
+		t.Fatalf("platform must not inspect a foreign OEM allocation book: %d", status)
+	}
+	allocs := getAuthJSON(t, server.URL+"/channel/allocations?channel_id="+channelID+"&q="+userIDOf(reg), "d82_admin-c")["items"].([]any)
 	if len(allocs) == 0 || asInt(allocs[0].(map[string]any)["granted_minor"]) != 12*billing.MinorPerUSD {
 		t.Fatalf("allocation granted should be 12 USD: %+v", allocs)
 	}
@@ -364,6 +371,7 @@ func TestD82QuotaRatio(t *testing.T) {
 	plainID := oneToOne["item"].(map[string]any)["id"].(string)
 	plainPromo := "THX-D82B-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	_ = postJSONRaw(t, server.URL+"/admin/promotion-codes", "d82_admin", map[string]any{
+		"operation_id":   "quota-test-" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		"channel_org_id": plainID, "code": plainPromo,
 	})
 	plainReg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{
@@ -383,7 +391,7 @@ func TestD82QuotaRatio(t *testing.T) {
 func postEchoUsage(t *testing.T, url, token, content string) map[string]any {
 	t.Helper()
 	payload := map[string]any{
-		"model":    catalog.EchoModelID,
+		"model": catalog.EchoModelID, "max_tokens": 32,
 		"messages": []map[string]string{{"role": "user", "content": content + strings.Repeat("x", 48)}},
 	}
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(mustJSON(payload)))

@@ -18,8 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders } from "@/lib/confirm";
 import { formatUsdMinor } from "@/lib/money";
-import ChannelRules from "./rules-panel";
-import { SettlementPanel } from "@/app/admin/commission/settlement-panel";
+import { CommissionWorkspace } from "@/app/admin/commission/workspace";
 
 type Channel = { id: string; code: string; type: string; parent_id?: string };
 type Totals = { requests: number; revenue_minor: number; cost_minor: number; margin_minor: number; pending: number };
@@ -39,29 +38,43 @@ export function OEMPage({ page, children }: { page: string; children: ReactNode 
 
 export function OEMScope({ children, includeAll = true }: { children: (suffix: string) => ReactNode; includeAll?: boolean }) {
   const t = useTranslations("oem");
+  const viewer = useViewer();
   const [channel, setChannel] = useState("");
-  useEffect(() => { setChannel(new URLSearchParams(window.location.search).get("channel_id") ?? ""); }, []);
-  const me = useQuery({ queryKey: ["/channel/me"], queryFn: () => loadOEM<{ channel_org_id: string }>("/channel/me") });
-  const channels = useQuery({ queryKey: ["oem-scope-channels"], queryFn: async () => {
+  useEffect(() => {
+    const restore = () => setChannel(new URLSearchParams(window.location.search).get("channel_id") ?? "");
+    restore(); window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [viewer.userId]);
+  const me = useQuery({ queryKey: [viewer.userId, "/channel/me"], queryFn: () => loadOEM<{ channel_org_id: string }>("/channel/me") });
+  const channels = useQuery({ queryKey: [viewer.userId, "oem-scope-channels"], queryFn: async () => {
     const items: Channel[] = [];
     let cursor = "";
     do {
-      const page = await apiClient<{ items?: Channel[]; next_cursor?: string; error?: unknown }>("GET", `/admin/channels?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
-      if (page.error) throw new Error("channel scope unavailable");
+      const page = await loadOEM<{ items?: Channel[]; next_cursor?: string }>(`/admin/channels?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
       items.push(...(page.items ?? []));
       if (!page.next_cursor || page.next_cursor === cursor) break;
       cursor = page.next_cursor;
     } while (true);
     return items;
   } });
-  const owned = channels.data?.filter((item) => item.id === me.data?.channel_org_id || (item.type === "B" && item.parent_id === me.data?.channel_org_id)) ?? [];
-  const selected = channel || (includeAll ? "" : me.data?.channel_org_id || "");
-  return <><label className="flex max-w-xs flex-col gap-2 text-sm">{t("channel")}<select aria-label={t("channel")} className="h-10 rounded-control border border-hairline bg-canvas-raised px-3" value={selected} onChange={(event) => setChannel(event.target.value)}>{includeAll ? <option value="">{t("allChannels")}</option> : null}{owned.map((item) => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>{channels.isError || me.isError ? <p role="alert">{t("loadError")}</p> : null}{includeAll || selected ? children(selected ? `?channel_id=${encodeURIComponent(selected)}` : "") : <p role="status">{t("loading")}</p>}</>;
+  if (channels.isError || me.isError) return <p role="alert">{t("loadError")}</p>;
+  if (!channels.data || !me.data) return <p role="status">{t("loading")}</p>;
+  const owned = channels.data.filter((item) => item.id === me.data.channel_org_id || (item.type === "B" && item.parent_id === me.data.channel_org_id));
+  const invalid = Boolean(channel && !owned.some(item => item.id === channel));
+  const selected = invalid ? "" : channel || (includeAll ? "" : me.data.channel_org_id);
+  function select(value: string) {
+    setChannel(value);
+    const url = new URL(window.location.href);
+    if (value) url.searchParams.set("channel_id", value); else url.searchParams.delete("channel_id");
+    window.history.replaceState(null, "", url.toString());
+  }
+  return <><label className="flex max-w-xs flex-col gap-2 text-sm">{t("channel")}<select aria-label={t("channel")} className="h-10 rounded-control border border-hairline bg-canvas-raised px-3" value={selected} onChange={event => select(event.target.value)}>{includeAll ? <option value="">{t("allChannels")}</option> : null}{owned.map(item => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>{invalid ? <p role="alert">{t("invalidScope")} <Button variant="outline" onClick={() => select("")}>{t("refresh")}</Button></p> : <div key={`${viewer.userId}:${selected}`}>{children(selected ? `?channel_id=${encodeURIComponent(selected)}` : "")}</div>}</>;
 }
 
 function Report({ suffix, margin }: { suffix: string; margin: boolean }) {
   const t = useTranslations("oem");
-  const query = useQuery({ queryKey: ["/channel/metrics", suffix], queryFn: () => loadOEM<{ totals: Totals; items: Model[] }>(`/channel/metrics${suffix}`) });
+  const viewer = useViewer();
+  const query = useQuery({ queryKey: [viewer.userId, "/channel/metrics", suffix], queryFn: () => loadOEM<{ totals: Totals; items: Model[] }>(`/channel/metrics${suffix}`) });
   const totals = query.data?.totals;
   if (query.isPending) return <p role="status">{t("loading")}</p>;
   if (query.isError || !totals) return <p role="alert">{t("loadError")} <Button variant="outline" onClick={() => void query.refetch()}>{t("refresh")}</Button></p>;
@@ -85,7 +98,8 @@ export function OEMAuditPage() {
 
 function Alerts({ suffix }: { suffix: string }) {
   const t = useTranslations("oem");
-  const query = useQuery({ queryKey: ["/channel/alerts", suffix], queryFn: () => loadOEM<{ items: { id: string; title: string; count: number; href: string }[] }>(`/channel/alerts${suffix}`) });
+  const viewer = useViewer();
+  const query = useQuery({ queryKey: [viewer.userId, "/channel/alerts", suffix], queryFn: () => loadOEM<{ items: { id: string; title: string; count: number; href: string }[] }>(`/channel/alerts${suffix}`) });
   return <section className="rounded-card border border-hairline bg-canvas-raised p-6"><div className="flex items-center justify-between"><h2 className="font-semibold">{t("businessAlerts")}</h2><Button variant="outline" onClick={() => void query.refetch()}>{t("refresh")}</Button></div>{query.isPending ? <p role="status" className="mt-4">{t("loading")}</p> : query.isError ? <p role="alert" className="mt-4">{t("loadError")}</p> : <ul className="mt-4 divide-y divide-hairline">{query.data?.items.map((item) => <li key={item.id} className="flex items-center justify-between py-4"><span>{item.title} · {item.count}</span><Link className="text-brand-emphasis underline" href={item.href}>{t("view")}</Link></li>)}{!query.data?.items.length ? <li className="text-sm text-ink-secondary">{t("noAlerts")}</li> : null}</ul>}<Link className="mt-5 inline-block text-sm text-brand-emphasis underline" href="/channel/runbooks">{t("runbooks")}</Link></section>;
 }
 
@@ -99,8 +113,7 @@ export function OEMRunbooksPage() {
 }
 
 export function OEMCommissionPage() {
-  const t = useTranslations("oem");
-  return <OEMPage page="commission"><ChannelRules /><AdminListPanel path="/channel/commissions" title={t("commissions")} columns={[{ accessorKey: "kind", header: t("kind") }, { accessorKey: "status", header: t("status") }, { accessorKey: "amount_minor", header: t("amount"), cell: ({ row }) => formatUsdMinor(Number(row.original.amount_minor)) }, { accessorKey: "usage_event_id", header: t("resource") }]} /><SettlementPanel oem /></OEMPage>;
+  return <OEMPage page="commission"><CommissionWorkspace oem /></OEMPage>;
 }
 
 function OEMSecurity() {
@@ -119,7 +132,7 @@ function OEMSecurity() {
       await query.refetch();
       setMessage(t("saved"));
       return true;
-    } catch { setMessage(t("saveError")); return false; }
+    } catch (error) { setMessage(error instanceof Error && "status" in error && Number(error.status) >= 400 && Number(error.status) < 500 ? error.message : t("saveError")); return false; }
   }
   return <section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="font-semibold">{t("security")}</h2><p className="mt-3 text-sm text-ink-secondary">{t("securityHint")}</p>{query.isError ? <p role="alert">{t("loadError")}</p> : <p className="mt-3">{t("status")}: {query.data?.item.status ?? "—"}</p>}<div className="mt-4 flex max-w-xl flex-wrap gap-3">{query.data?.item.status !== "enabled" ? <Button variant="outline" disabled={!query.data} onClick={() => void mutate("setup")}>{t("setup2fa")}</Button> : null}{query.data?.item.status === "pending" || query.data?.item.status === "enabled" ? <><Input aria-label={t("otp")} placeholder={t("otp")} className="max-w-48" value={code} onChange={(e) => setCode(e.target.value)} />{query.data?.item.status === "pending" ? <Button disabled={!/^\d{6}$/.test(code)} onClick={() => void mutate("enable")}>{t("enable2fa")}</Button> : <ConfirmButton disabled={!/^\d{6}$/.test(code)} title={t("disable2fa")} description={t("disableHint")} onConfirm={() => mutate("disable")}>{t("disable2fa")}</ConfirmButton>}</> : null}</div>{secret ? <p className="mt-3 break-all font-mono text-sm">{t("secret")}: {secret}</p> : null}{message ? <p role="status" className="mt-3 text-sm">{message}</p> : null}</section>;
 }

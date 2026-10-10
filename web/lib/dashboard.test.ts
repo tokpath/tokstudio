@@ -11,6 +11,13 @@ describe("dashboardSummaryParams", () => {
     ).toMatchObject({ pending: 1, revenue: "$0.00001", profit: "$0.000004", rate: "100", risk: 2, alerts: 1 });
   });
 
+  it("keeps missing health and totals unknown", () => {
+    expect(dashboardHero({alerts: []})[3]).toMatchObject({ v: "unknown" });
+    expect(dashboardHero({provider_health:{state:"healthy"}})[3]).toMatchObject({v:"healthy"});
+    expect(dashboardHero({})[3]).toMatchObject({ v: "unknown", hintKey: "heroHealthUnknown" });
+    expect(dashboardSummaryParams({})).toMatchObject({ pending: "—", revenue: "—", rate: "—", alerts: "—" });
+  });
+
   it("exposes DESIGN.md admin hero stats", () => {
     const cards = dashboardHero({
       totals: { pending_reconciliation_count: 2, gross_profit_minor: 4_000_000, commission_liability_minor: 500_000 },
@@ -20,6 +27,6 @@ describe("dashboardSummaryParams", () => {
     expect(cards[0].v).toBe("2");
     expect(cards[0].href).toBe("/admin/reconciliation");
     expect(cards[1].v).toBe("$4.00");
-    expect(cards[3].v).toBe("DEGRADED");
+    expect(cards[3].v).toBe("degraded");
   });
 });

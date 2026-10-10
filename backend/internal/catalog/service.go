@@ -33,23 +33,24 @@ const (
 )
 
 type providerRow struct {
-	ID               string `gorm:"column:id;primaryKey"`
-	Name             string `gorm:"column:name"`
-	Slug             string `gorm:"column:slug"`
-	Kind             string `gorm:"column:kind"`
-	Adapter          string `gorm:"column:adapter"`
-	BaseURL          string `gorm:"column:base_url"`
-	Region           string `gorm:"column:region"`
-	Status           string `gorm:"column:status"`
-	Health           string `gorm:"column:health"`
-	TestBehavior     string `gorm:"column:test_behavior"`
-	Priority         int    `gorm:"column:priority"`
-	Weight           int    `gorm:"column:weight"`
-	TimeoutMS        int    `gorm:"column:timeout_ms"`
-	RetryMax         int    `gorm:"column:retry_max"`
-	RPMLimit         int    `gorm:"column:rpm_limit"`
-	ConcurrencyLimit int    `gorm:"column:concurrency_limit"`
-	CapabilityTags   string `gorm:"column:capability_tags"`
+	ID               string     `gorm:"column:id;primaryKey"`
+	Name             string     `gorm:"column:name"`
+	Slug             string     `gorm:"column:slug"`
+	Kind             string     `gorm:"column:kind"`
+	Adapter          string     `gorm:"column:adapter"`
+	BaseURL          string     `gorm:"column:base_url"`
+	Region           string     `gorm:"column:region"`
+	Status           string     `gorm:"column:status"`
+	Health           string     `gorm:"column:health"`
+	HealthCheckedAt  *time.Time `gorm:"column:health_checked_at"`
+	TestBehavior     string     `gorm:"column:test_behavior"`
+	Priority         int        `gorm:"column:priority"`
+	Weight           int        `gorm:"column:weight"`
+	TimeoutMS        int        `gorm:"column:timeout_ms"`
+	RetryMax         int        `gorm:"column:retry_max"`
+	RPMLimit         int        `gorm:"column:rpm_limit"`
+	ConcurrencyLimit int        `gorm:"column:concurrency_limit"`
+	CapabilityTags   string     `gorm:"column:capability_tags"`
 }
 
 func (providerRow) TableName() string { return "catalog_providers" }
@@ -120,21 +121,24 @@ type channelPolicyRow struct {
 func (channelPolicyRow) TableName() string { return "catalog_channel_model_policies" }
 
 type ModelView struct {
-	ID                  string         `json:"id"`
-	Vendor              string         `json:"vendor"`
-	DisplayName         string         `json:"display_name"`
-	Capabilities        map[string]any `json:"capabilities"`
-	SellPrice           map[string]any `json:"sell_price,omitempty"`
-	Providers           []string       `json:"providers"`
-	Status              string         `json:"status"`
-	ConfigReady         bool           `json:"config_ready"`
-	SyncState           string         `json:"sync_state,omitempty"`
-	CreatedByUserID     string         `json:"created_by_user_id,omitempty"`
-	ReviewedByUserID    string         `json:"reviewed_by_user_id,omitempty"`
-	Description         string         `json:"description,omitempty"`
-	Kind                string         `json:"kind,omitempty"`
-	ContextLength       int            `json:"context_length,omitempty"`
-	MaxCompletionTokens int            `json:"max_completion_tokens,omitempty"`
+	ID                       string                 `json:"id"`
+	Vendor                   string                 `json:"vendor"`
+	DisplayName              string                 `json:"display_name"`
+	Capabilities             map[string]any         `json:"capabilities"`
+	SellPrice                map[string]any         `json:"sell_price,omitempty"`
+	Providers                []string               `json:"providers,omitempty"`
+	Status                   string                 `json:"status"`
+	ServiceStatus            string                 `json:"service_status,omitempty"`
+	ConfigReady              bool                   `json:"config_ready"`
+	ServiceReadiness         *ModelServiceReadiness `json:"service_readiness,omitempty"`
+	SyncState                string                 `json:"sync_state,omitempty"`
+	CreatedByUserID          string                 `json:"created_by_user_id,omitempty"`
+	ReviewedByUserID         string                 `json:"reviewed_by_user_id,omitempty"`
+	Description              string                 `json:"description,omitempty"`
+	Kind                     string                 `json:"kind,omitempty"`
+	ContextLength            int                    `json:"context_length,omitempty"`
+	MaxCompletionTokens      int                    `json:"max_completion_tokens,omitempty"`
+	textBudgetRouteSupported bool
 }
 
 // ChannelModelView 是租户可见的平台目录切片，不含上游凭据。租户不能自建提供商或模型。
@@ -635,6 +639,11 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 		return ErrInvalidInput
 	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var target struct{ Type string }
+		if err := tx.Table("identity_channel_orgs").Select("type").Where("id = ?", channelOrgID).Take(&target).Error; err != nil {
+			return err
+		}
+		channelOnly := target.Type == identity.ChannelTypeB
 		for _, grant := range grants {
 			publicID := strings.TrimSpace(grant.PublicID)
 			if publicID == "" {
@@ -660,7 +669,7 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 			err := tx.Where("channel_org_id = ? AND public_model_id = ?", channelOrgID, model.ID).First(&existing).Error
 			lookupErr := err
 			wholesale := decodeCosts(existing.Wholesale)
-			if grant.Wholesale != nil {
+			if !channelOnly && grant.Wholesale != nil {
 				var priceErr error
 				wholesale, priceErr = validateUnitCosts(grant.Wholesale)
 				if priceErr != nil {
@@ -668,14 +677,14 @@ func (s *Service) setChannelModels(ctx context.Context, channelOrgID, parentID s
 				}
 			}
 			override := decodeCosts(existing.Override)
-			if grant.CustomerOverride != nil {
+			if !channelOnly && grant.CustomerOverride != nil {
 				var priceErr error
 				override, priceErr = validateUnitCosts(grant.CustomerOverride)
 				if priceErr != nil || (len(override) > 0 && !pricedForKind(override, modelKind(model))) {
 					return ErrInvalidInput
 				}
 			}
-			if grant.Enabled && !pricedForKind(wholesale, modelKind(model)) {
+			if !channelOnly && grant.Enabled && !pricedForKind(wholesale, modelKind(model)) {
 				return ErrInvalidInput
 			}
 			wholeJSON, _ := json.Marshal(wholesale)
@@ -758,8 +767,7 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		Joins("LEFT JOIN identity_channel_orgs parent ON parent.id = child.parent_id").
 		Joins("LEFT JOIN catalog_channel_model_policies upstream ON upstream.channel_org_id = parent.id AND upstream.public_model_id = m.id").
 		Where("m.status = ? AND p.channel_org_id = ?", "published", channelOrgID).
-		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC).
-		Where(routeReadySQL)
+		Where("(parent.type IS DISTINCT FROM ? OR (upstream.enabled = true AND upstream.self_enabled = true))", identity.ChannelTypeC)
 	if len(allowlist) > 0 {
 		q = q.Where("m.public_id IN ?", allowlist)
 	}
@@ -775,6 +783,39 @@ func (s *Service) ListVisibleModels(ctx context.Context, channelOrgID string, al
 		if !view.ConfigReady {
 			continue
 		}
+		snapshot, err := s.PriceSnapshot(ctx, model.PublicID)
+		if err != nil {
+			return nil, err
+		}
+		effective, err := s.PriceForChannel(ctx, channelOrgID, model.PublicID, snapshot.Raw)
+		if err != nil {
+			return nil, err
+		}
+		var prices map[string]any
+		if err := json.Unmarshal(effective, &prices); err != nil {
+			return nil, err
+		}
+		view.SellPrice = publicSell(prices)
+		setBudgetCapabilities(view)
+		readiness, err := s.ModelReadiness(ctx, model.PublicID)
+		if err != nil {
+			return nil, err
+		}
+		switch readiness.RuntimeState {
+		case "healthy":
+			view.ServiceStatus = "available"
+		case "degraded":
+			view.ServiceStatus = "degraded"
+		case "not_configured", "unavailable":
+			view.ServiceStatus = "unavailable"
+		default:
+			view.ServiceStatus = "unknown"
+		}
+		view.Providers = nil
+		view.SyncState = ""
+		view.CreatedByUserID = ""
+		view.ReviewedByUserID = ""
+		view.ServiceReadiness = nil
 		out = append(out, *view)
 	}
 	return out, nil
@@ -784,7 +825,19 @@ func (s *Service) GetVisibleModel(ctx context.Context, channelOrgID, publicID st
 	if _, err := s.loadModel(ctx, publicID); err != nil {
 		return nil, err
 	}
-	models, err := s.ListVisibleModels(ctx, channelOrgID, allowlist)
+	if len(allowlist) > 0 {
+		allowed := false
+		for _, id := range allowlist {
+			if id == publicID {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, ErrModelNotVisible
+		}
+	}
+	models, err := s.ListVisibleModels(ctx, channelOrgID, []string{publicID})
 	if err != nil {
 		return nil, err
 	}
@@ -948,7 +1001,7 @@ func (s *Service) PublishPrice(ctx context.Context, publicID string, unitPrices 
 }
 
 func (s *Service) MarkHealth(ctx context.Context, providerID, health string) error {
-	return s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).Update("health", health).Error
+	return s.db.WithContext(ctx).Model(&providerRow{}).Where("id = ?", providerID).Updates(map[string]any{"health": health, "health_checked_at": time.Now().UTC()}).Error
 }
 
 type MappedModelView struct {
@@ -968,6 +1021,7 @@ type ProviderView struct {
 	BaseURL          string            `json:"base_url,omitempty"`
 	Region           string            `json:"region,omitempty"`
 	Health           string            `json:"health"`
+	HealthCheckedAt  *time.Time        `json:"health_checked_at,omitempty"`
 	Status           string            `json:"status"`
 	Priority         int               `json:"priority"`
 	Weight           int               `json:"weight"`
@@ -1069,7 +1123,62 @@ func (s *Service) modelView(ctx context.Context, model publicModelRow) (*ModelVi
 		Description: desc, Kind: kind, ContextLength: ctxLen, MaxCompletionTokens: maxTok,
 	}
 	view.Kind = InferKind(*view)
+	// Protocols reflect the deployed adapter contract, never the vendor's name.
+	var adapters []string
+	if err := s.db.WithContext(ctx).Table("catalog_provider_model_mappings m").Select("DISTINCT p.adapter").Joins("JOIN catalog_providers p ON p.id=m.provider_id").Where("m.public_model_id = ? AND m.status = ? AND p.status = ?", model.ID, "active", "active").Scan(&adapters).Error; err != nil {
+		return nil, err
+	}
+	endpoints := modelSupportedEndpoints(view.Kind, adapters)
+	caps["supported_endpoints"] = endpoints
+	supportsBudget := view.Kind == "text"
+	cands, routeErr := s.ResolveRoute(ctx, model.PublicID, RouteHint{})
+	if routeErr != nil || len(cands) == 0 {
+		supportsBudget = false
+	}
+	for _, cand := range cands {
+		if !TextBudgetCandidate(cand) {
+			supportsBudget = false
+		}
+	}
+	view.textBudgetRouteSupported = supportsBudget
+	setBudgetCapabilities(view)
 	return view, nil
+}
+
+// Recompute after applying the customer's brand price. Route compatibility is
+// independent of the price, and stays internal to this projection.
+func setBudgetCapabilities(view *ModelView) {
+	sellJSON, _ := json.Marshal(view.SellPrice)
+	textBudget := view.textBudgetRouteSupported && BudgetableTextPrices(sellJSON)
+	endpoints, _ := view.Capabilities["supported_endpoints"].([]string)
+	mediaBudget := (view.Kind == "image" || view.Kind == "video") && BudgetableMediaPrices(sellJSON) && len(endpoints) > 0
+	view.Capabilities["text_budget_control_supported"] = textBudget
+	view.Capabilities["budget_control_supported"] = textBudget || mediaBudget
+	view.Capabilities["budget_estimate_supported"] = textBudget || mediaBudget
+}
+
+func modelSupportedEndpoints(kind string, adapters []string) []string {
+	for _, raw := range adapters {
+		adapter := strings.ToLower(strings.TrimSpace(raw))
+		switch kind {
+		case "text":
+			// These names are the explicit text adapter aliases accepted by
+			// gateway.Service.adapterFor. Vendor names do not establish a protocol.
+			switch adapter {
+			case "bifrost", "openai", "anthropic", "openrouter", "google", "gemini", "test":
+				return []string{"/v1/chat/completions", "/v1/responses", "/v1/messages"}
+			}
+		case "image":
+			if adapter == "ark" || adapter == "openrouter" {
+				return []string{"/v1/images/generations"}
+			}
+		case "video":
+			if adapter == "ark" || adapter == "openrouter" {
+				return []string{"/v1/videos"}
+			}
+		}
+	}
+	return []string{}
 }
 
 func ignored(list []string, slug string) bool {

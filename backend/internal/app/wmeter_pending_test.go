@@ -70,11 +70,15 @@ func TestWMeterSentinelDoubleCharge(t *testing.T) {
 	beforeDebits := usageDebitCount(t, fx.app.Billing, fx.userID, requestID)
 
 	firstReplay := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, fx.app.Billing, requestID),
 	})
-	secondReplay := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
+	code, _ := doJSON(t, http.MethodPost, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", true, map[string]any{
 		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 99, "completion_tokens": 99},
 	})
+	if code != http.StatusConflict {
+		t.Fatalf("changed confirmed usage must conflict: %d", code)
+	}
+	secondReplay := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{"request_id": requestID, "usage": measuredReplayUsage(t, fx.app.Billing, requestID)})
 	replayCharge := firstReplay["item"].(map[string]any)["charge_id"]
 	if replayCharge == nil || replayCharge != first[0].ChargeID {
 		t.Fatalf("sentinel double-charge FAIL: replay must reuse the live charge: live=%s replay=%v", first[0].ChargeID, replayCharge)
@@ -100,6 +104,11 @@ func TestWMeterSentinelReplayIdempotent(t *testing.T) {
 	omit := omitChat(t, fx.server.URL, fx.apiKey, "wmeter2-replay")
 	requestID := omit["request_id"].(string)
 	requireChargeCount(t, fx.app.Billing, requestID, 0, "omit must not estimate-debit before replay")
+	// Make the retained old gap sort before the future confirmed fact. Replay
+	// must follow the charge's fact, rather than whichever usage ID sorts first.
+	if err := fx.app.DB.Table("billing_usage_events").Where("request_id=? AND state=?", requestID, billing.UsagePending).Update("id", "000-pending-"+requestID).Error; err != nil {
+		t.Fatal(err)
+	}
 
 	r1 := postJSONRaw(t, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", map[string]any{
 		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
@@ -126,6 +135,12 @@ func TestWMeterSentinelReplayIdempotent(t *testing.T) {
 	}
 	if n := usageDebitCount(t, fx.app.Billing, fx.userID, requestID); n > 1 {
 		t.Fatalf("same usage replay wrote %d usage_debit rows", n)
+	}
+	code, _ := doJSON(t, http.MethodPost, fx.server.URL+"/admin/usage/replay", "wmeter2_admin", true, map[string]any{
+		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 9, "completion_tokens": 4},
+	})
+	if code != http.StatusConflict || balanceMinor(t, fx.server.URL, fx.session) != afterFirst {
+		t.Fatalf("changed actual usage must conflict without moving funds: %d", code)
 	}
 }
 
@@ -263,6 +278,7 @@ func omitChat(t *testing.T, base, key, content string) map[string]any {
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Omit-Usage", "1")
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -341,4 +357,19 @@ func usageDebitCount(t *testing.T, svc *billing.Service, userID, requestID strin
 		}
 	}
 	return n
+}
+
+// Replay the original measured fact rather than inventing today's token counts.
+func measuredReplayUsage(t *testing.T, service *billing.Service, requestID string) map[string]int {
+	t.Helper()
+	gap, err := service.GetUsageGap(context.Background(), requestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prompt, completion, reasoning := billing.ParseUnitUsage(gap.UnitUsage)
+	usage := map[string]int{"prompt_tokens": int(prompt), "completion_tokens": int(completion)}
+	if reasoning > 0 {
+		usage["reasoning_tokens"] = int(reasoning)
+	}
+	return usage
 }

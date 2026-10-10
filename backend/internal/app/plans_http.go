@@ -1,9 +1,7 @@
 package app
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +15,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/plans"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
 
 func (a *App) registerPlanRoutes(r *gin.Engine) {
@@ -24,9 +23,11 @@ func (a *App) registerPlanRoutes(r *gin.Engine) {
 	r.GET("/v1/me/plans", a.requireUserOrKey(), a.listMyPlans)
 	r.GET("/v1/me/subscriptions", a.requireUserOrKey(), a.listMySubscriptions)
 	r.POST("/v1/me/subscriptions", a.requireUserOrKey(), a.createMySubscription)
+	r.GET("/v1/me/subscription-purchases/:operation", a.requireAnyUser(), a.getMySubscriptionPurchase)
 	r.POST("/v1/me/subscriptions/:id/cancel", a.requireUserOrKey(), a.cancelMySubscription)
 	r.GET("/v1/me/entitlements", a.requireUserOrKey(), a.listMyEntitlements)
 	r.POST("/v1/payments/orders", a.requireUserOrKey(), a.createPaymentOrder)
+	r.GET("/v1/me/wallet-purchases/:operation", a.requireAnyUser(), a.getMyWalletPurchase)
 	r.POST("/v1/payments/orders/:id/sync", a.requireUserOrKey(), a.syncPaymentOrder)
 	r.GET("/v1/payments/orders/:id", a.requireUserOrKey(), a.getPaymentOrder)
 	r.POST("/v1/payments/:adapter/webhook", a.paymentWebhook)
@@ -144,9 +145,10 @@ func (a *App) createMySubscription(c *gin.Context) {
 		PlanID           string `json:"plan_id"`
 		Adapter          string `json:"adapter"`
 		PaymentMethodRef string `json:"payment_method_ref"`
+		AutoRenew        bool   `json:"auto_renew"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.PlanID == "" {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "需要 plan_id", false)
+		httpx.Abort(c, 400, "invalid_request", "需要 plan_id", false)
 		return
 	}
 	if body.Adapter == "" {
@@ -159,42 +161,49 @@ func (a *App) createMySubscription(c *gin.Context) {
 	userID, channelID := a.billingUser(c)
 	ownerID, err := a.planBrandOwnerID(c, channelID)
 	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "渠道无效", false)
+		httpx.Abort(c, 400, "invalid_request", "渠道无效", false)
 		return
 	}
-	sub, err := a.Plans.CreateSubscription(c.Request.Context(), userID, channelID, body.PlanID, body.Adapter, body.PaymentMethodRef, ownerID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "无法订阅该套餐", false)
+	if body.AutoRenew || strings.TrimSpace(body.PaymentMethodRef) != "" {
+		httpx.Abort(c, 400, "invalid_request", "当前购买仅支持手动续费", false)
 		return
 	}
-	plan, err := a.Plans.GetPlan(c.Request.Context(), body.PlanID)
-	if err != nil {
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "套餐不存在", false)
+	operation := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if operation == "" {
+		operation = id.New("purchase")
+	}
+	sub, order, err := a.Payment.CreateSubscriptionPurchase(c.Request.Context(), payment.SubscriptionPurchaseInput{UserID: userID, ChannelID: channelID, BrandOwnerID: ownerID, PlanID: body.PlanID, Adapter: body.Adapter, MethodRef: body.PaymentMethodRef, OperationID: operation, AutoRenew: body.AutoRenew})
+	if errors.Is(err, payment.ErrPurchaseConflict) {
+		httpx.Abort(c, 409, "idempotency_conflict", "此购买操作的套餐或支付方式已改变，请回查原订单", false)
 		return
 	}
-	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
-		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: payment.PurposeSubscription,
-		ReferenceType: payment.PurposeSubscription, ReferenceID: sub.ID,
-		AmountMinor: plan.PriceMinor, Currency: plan.Currency,
-	})
 	if err != nil {
+		if errors.Is(err, plans.ErrNotFound) || errors.Is(err, plans.ErrNotPublished) {
+			httpx.Abort(c, 400, "invalid_request", "该套餐当前不可购买", false)
+			return
+		}
 		a.abortPaymentErr(c, err)
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{
-		ActorUserID: userID, Action: "plans.subscription.create", ResourceType: "subscription", ResourceID: sub.ID,
-		After: map[string]any{"plan_id": body.PlanID, "adapter": body.Adapter, "order_id": order.ID},
-		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
-	})
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: userID, Action: "plans.subscription.create", ResourceType: "subscription", ResourceID: sub.ID, After: map[string]any{"plan_id": body.PlanID, "adapter": body.Adapter, "order_id": order.ID}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
 	checkout, err := a.Payment.Checkout(c.Request.Context(), order, a.paymentCallbackOrigin(c, order.PayeeChannelOrgID))
 	if a.abortPaymentErr(c, err) {
 		return
 	}
-	httpx.Created(c, gin.H{
-		"subscription": sub,
-		"checkout":     checkout,
-		"request_id":   c.GetString(httpx.ContextRequestID),
-	})
+	httpx.Created(c, gin.H{"subscription": sub, "checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)})
+}
+
+func (a *App) getMySubscriptionPurchase(c *gin.Context) {
+	item, err := a.Payment.GetSubscriptionPurchase(c.Request.Context(), a.currentPrincipal(c).UserID, c.Param("operation"))
+	if errors.Is(err, payment.ErrNotFound) {
+		httpx.OK(c, gin.H{"item": nil})
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "读取购买结果失败，请重试", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": item})
 }
 
 func (a *App) cancelMySubscription(c *gin.Context) {
@@ -218,11 +227,6 @@ func (a *App) listMyEntitlements(c *gin.Context) {
 }
 
 func (a *App) createPaymentOrder(c *gin.Context) {
-	raw, _ := io.ReadAll(c.Request.Body)
-	if rec := a.replayIdempotency(c, raw); rec != nil {
-		return
-	}
-	c.Request.Body = io.NopCloser(bytes.NewReader(raw))
 	var body struct {
 		Adapter     string `json:"adapter"`
 		AmountMinor int64  `json:"amount_minor"`
@@ -253,10 +257,18 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 		return
 	}
 	userID, channelID := a.billingUser(c)
-	order, err := a.Payment.CreateOrder(c.Request.Context(), payment.CreateOrderInput{
+	operation := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if operation == "" {
+		operation = id.New("wallet_purchase")
+	}
+	order, err := a.Payment.CreateWalletPurchase(c.Request.Context(), payment.CreateOrderInput{
 		UserID: userID, ChannelOrgID: channelID, Adapter: body.Adapter, Purpose: body.Purpose,
 		PayMajor: body.PayMajor,
-	})
+	}, operation)
+	if errors.Is(err, payment.ErrPurchaseConflict) {
+		httpx.Abort(c, 409, "idempotency_conflict", "此充值操作的金额或支付方式已改变，请回查原订单", false)
+		return
+	}
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -265,8 +277,20 @@ func (a *App) createPaymentOrder(c *gin.Context) {
 		return
 	}
 	payload := gin.H{"checkout": checkout, "request_id": c.GetString(httpx.ContextRequestID)}
-	a.rememberIdempotency(c, raw, http.StatusCreated, payload)
 	httpx.Created(c, payload)
+}
+
+func (a *App) getMyWalletPurchase(c *gin.Context) {
+	order, err := a.Payment.GetWalletPurchase(c.Request.Context(), a.currentPrincipal(c).UserID, c.Param("operation"))
+	if errors.Is(err, payment.ErrNotFound) {
+		httpx.OK(c, gin.H{"item": nil})
+		return
+	}
+	if err != nil {
+		httpx.Abort(c, 500, "internal_error", "充值结果尚未确认，请重试", true)
+		return
+	}
+	httpx.OK(c, gin.H{"item": order})
 }
 
 func (a *App) getPaymentOrder(c *gin.Context) {
@@ -562,7 +586,13 @@ func (a *App) adminListPayments(c *gin.Context) {
 			return
 		}
 	}
+	limit, cursor := httpx.Page(c, 20)
+	if httpx.WantCSV(c) {
+		limit = 0
+		cursor = ""
+	}
 	items, err := a.Payment.ListOrders(c.Request.Context(), payment.ListOrdersFilter{
+		Limit: limit, Cursor: cursor,
 		PayeeChannelOrgID: ownerID, Status: c.Query("status"), ChannelOrgID: c.Query("channel_id"), Adapter: c.Query("adapter"), Query: query, MatchUserIDs: userIDs,
 	})
 	if err != nil {
@@ -602,7 +632,12 @@ func (a *App) adminListPayments(c *gin.Context) {
 		u := users[item.UserID]
 		result = append(result, adminPayment{item, u.Email, u.DisplayName, channels[item.ChannelOrgID]})
 	}
-	httpx.OKPage(c, result, 100, func(item adminPayment) string { return item.ID })
+	next := ""
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+		next = result[len(result)-1].ID
+	}
+	httpx.OK(c, gin.H{"items": result, "next_cursor": next, "limit": limit})
 }
 
 func (a *App) adminConfirmPayment(c *gin.Context) {
@@ -612,7 +647,14 @@ func (a *App) adminConfirmPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.ConfirmManual(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "请填写实际收款时间", false)
+		return
+	}
+	item, err := a.Payment.ConfirmRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}
@@ -630,7 +672,14 @@ func (a *App) adminRefundPayment(c *gin.Context) {
 	if !a.canManagePayment(c) {
 		return
 	}
-	item, err := a.Payment.Refund(c.Request.Context(), c.Param("id"))
+	var fact struct {
+		OccurredAt time.Time `json:"occurred_at"`
+	}
+	if err := c.ShouldBindJSON(&fact); err != nil {
+		httpx.Abort(c, 400, "invalid_request", "退款信息无效", false)
+		return
+	}
+	item, err := a.Payment.RefundRecorded(c.Request.Context(), c.Param("id"), a.currentPrincipal(c).UserID, fact.OccurredAt)
 	if a.abortPaymentErr(c, err) {
 		return
 	}

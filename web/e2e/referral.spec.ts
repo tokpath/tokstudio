@@ -2,8 +2,11 @@ import { expect, test } from "@playwright/test";
 import { mockViewer } from "./mock-viewer";
 
 const referral = {
-  codes: ["THU_MY_INVITE"], can_create: false, invited_count: 3, can_commission: false,
-  rules: { spend_minor: 10_000_000, topup_minor: 20_000_000, gift_minor: 1_000_000 }, rewards: [],
+  codes: ["THU_MY_INVITE"], code_links: [{ code: "THU_MY_INVITE", share_url: "https://actual-brand.test/login?promotion_code=THU_MY_INVITE" }], can_create: false, invited_count: 3, can_commission: false,
+  rules: { spend_minor: 10_000_000, topup_minor: 20_000_000, gift_minor: 1_000_000 }, rewards: [], settlements: [], professional_customers: false,
+  progress: { spend_minor: 0, largest_topup_minor: 0, gift_granted_minor: 0, gift_remaining_minor: 0 },
+  summary: { earned_minor: 0, frozen_minor: 0, available_minor: 0, held_minor: 0, settled_minor: 0, paid_minor: 0, reversed_minor: 0 },
+  pagination: { page: 1, page_size: 25, rewards_total: 0, settlements_total: 0 },
 };
 
 for (const query of ["promo", "promotion_code"]) {
@@ -28,13 +31,14 @@ for (const query of ["promo", "promotion_code"]) {
 
 test("personal referral shows a usable link and the actual reward recipient", async ({ page }) => {
   await mockViewer(page, { roles: ["end_user"] });
-  await page.route("**/v1/me/referral", route => route.fulfill({ json: { item: referral } }));
+  await page.route("**/v1/me/referral?**", route => route.fulfill({ json: { item: referral } }));
   await page.goto("/app/referral");
-  await expect(page.getByLabel("推广链接", { exact: true })).toHaveValue(/\/login\?promotion_code=THU_MY_INVITE$/);
+  await expect(page.getByLabel("推广链接", { exact: true })).toHaveValue("https://actual-brand.test/login?promotion_code=THU_MY_INVITE");
   await expect(page.getByText("已直接邀请 3 人注册")).toBeVisible();
-  await expect(page.getByText(/积分发给受邀新用户/)).toBeVisible();
-  await expect(page.getByText("单笔充值达到 $20.00")).toBeVisible();
-  await expect(page.getByText("暂无佣金记录")).toBeVisible();
+  await expect(page.getByText(/通过你的邀请码注册的新用户按当前规则获赠 \$1.00 API 积分/)).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "本人最高单笔已确认充值", exact: true })).toHaveAttribute("max", "20000000");
+  await expect(page.getByRole("link", { name: "个人佣金", exact: true })).toHaveCount(0);
+  await expect(page.getByText("暂无佣金记录", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "复制推广链接" }).click();
   await expect(page.getByRole("status")).toContainText(/已复制|复制失败/);
 });
@@ -42,7 +46,7 @@ test("personal referral shows a usable link and the actual reward recipient", as
 test("referral load failure does not look like zero invitations and can be retried", async ({ page }) => {
   await mockViewer(page, { roles: ["end_user"] });
   let failed = true;
-  await page.route("**/v1/me/referral", route => route.fulfill(failed
+  await page.route("**/v1/me/referral?**", route => route.fulfill(failed
     ? { status: 503, json: { error: { message: "推广服务暂不可用" } } }
     : { json: { item: referral } }));
   await page.goto("/app/referral");
@@ -79,12 +83,14 @@ test("registration supports Enter and preserves the invitation after a network f
 test("invitee wallet identifies signup credits and separates commission from API credit", async ({ page }) => {
   await mockViewer(page, { roles: ["end_user"] });
   await page.route("**/v1/me/balance**", route => route.fulfill({ json: { balance: { available: "1", reserved: "0", gift_minor: 1_000_000, purchased_minor: 0, commission_available_minor: 2_000_000 } } }));
-  await page.route("**/v1/me/ledger**", route => route.fulfill({ json: { items: [{ id: "led_internal", event_type: "gift_credit", amount_minor: 1_000_000, created_at: "2026-09-18T00:00:00Z" }] } }));
+  await page.route("**/v1/me/wallet-records?**", route => route.fulfill({ json: { items: new URL(route.request().url()).searchParams.get("kind") === "ledger" ? [{ id: "led_internal", event_type: "gift_credit", amount_minor: 1_000_000, created_at: "2026-09-18T00:00:00Z" }] : [], total: new URL(route.request().url()).searchParams.get("kind") === "ledger" ? 1 : 0, next_cursor: "", limit: 25 } }));
   await page.goto("/app/wallet");
   const buckets = page.getByLabel("余额组成");
   await expect(buckets.getByText("赠送积分（USD）")).toBeVisible();
   await expect(buckets.getByText("$1.00")).toBeVisible();
-  await expect(buckets.getByText("$2.00")).toBeVisible();
-  await expect(page.getByRole("cell", { name: "赠送积分入账" })).toBeVisible();
+  await expect(buckets.getByText("$2.00")).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("link", { name: "邀请与收益", exact: true })).toHaveAttribute("href", "/app/referral");
+  await page.getByRole("navigation", { name: "钱包", exact: true }).getByRole("link", { name: "订单与流水", exact: true }).click();
+  await expect(page.getByRole("cell", { name: "赠送积分入账", exact: true })).toBeVisible();
   await expect(page.getByText("led_internal")).toHaveCount(0);
 });

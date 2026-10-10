@@ -72,7 +72,7 @@ func TestW1OAuthStatusAndStartUnavailableWithoutTriad(t *testing.T) {
 		t.Fatalf("must not silently mock-succeed: %+v", body)
 	}
 
-	cbCode, cb := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, map[string]string{
+	cbCode, cb := callbackOAuthJSON(t, server.URL+"/v1/auth/google/callback", map[string]string{
 		"state": "nope", "code": "mock:oem@example.test",
 	})
 	if cbCode != http.StatusServiceUnavailable {
@@ -94,7 +94,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 		t.Fatalf("triad status: %+v", status)
 	}
 
-	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
 	if started["mock"] == true {
 		t.Fatalf("triad start must not be mock: %+v", started)
 	}
@@ -131,9 +131,9 @@ func TestW1OAuthExchangeFailureAvoidsBadGateway(t *testing.T) {
 		application.GoogleExchange = func(_ context.Context, _ string) (identity.GoogleProfile, error) {
 			return identity.GoogleProfile{}, identity.NewGoogleExchangeError("invalid_grant")
 		}
-		started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+		started := startOAuthJSON(t, server.URL+"/v1/auth/google/start")
 		state, _ := started["state"].(string)
-		code, body := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, map[string]string{
+		code, body := callbackOAuthJSON(t, server.URL+"/v1/auth/google/callback", map[string]string{
 			"state": state, "code": "auth-code-used",
 		})
 		if code == http.StatusBadGateway {
@@ -152,9 +152,9 @@ func TestW1OAuthExchangeFailureAvoidsBadGateway(t *testing.T) {
 		application.GoogleExchange = func(_ context.Context, _ string) (identity.GoogleProfile, error) {
 			return identity.GoogleProfile{}, identity.NewGoogleExchangeError("network_error")
 		}
-		started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+		started := startOAuthJSON(t, server.URL+"/v1/auth/google/start")
 		state, _ := started["state"].(string)
-		code, body := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, map[string]string{
+		code, body := callbackOAuthJSON(t, server.URL+"/v1/auth/google/callback", map[string]string{
 			"state": state, "code": "auth-code-net",
 		})
 		if code == http.StatusBadGateway {
@@ -183,7 +183,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_fake_" + email, Email: email}, nil
 	}
 
-	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
 	state, _ := started["state"].(string)
 	if state == "" {
 		t.Fatalf("state: %+v", started)
@@ -193,6 +193,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 		"state": state, "code": "auth-code-from-google",
 	})))
 	req.Header.Set("Content-Type", "application/json")
+	addOAuthChallenge(req, state)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -259,12 +260,13 @@ func TestW1OAuthSessionCookieSecureWhenPublicHTTPS(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_secure_" + email, Email: email}, nil
 	}
 
-	started := getJSON(t, server.URL+"/v1/auth/google/start", "")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start")
 	state, _ := started["state"].(string)
 	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/auth/google/callback", bytes.NewReader(mustJSON(map[string]string{
 		"state": state, "code": "auth-code-secure",
 	})))
 	req.Header.Set("Content-Type", "application/json")
+	addOAuthChallenge(req, state)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -312,14 +314,14 @@ func TestW1OAuthDoubleCallbackIsIdempotent(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_dup_" + email, Email: email}, nil
 	}
 
-	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
 	state, _ := started["state"].(string)
 	if state == "" {
 		t.Fatalf("state: %+v", started)
 	}
 
 	payload := map[string]string{"state": state, "code": "auth-code-once"}
-	firstCode, first := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, payload)
+	firstCode, first := callbackOAuthJSON(t, server.URL+"/v1/auth/google/callback", payload)
 	if firstCode != http.StatusOK {
 		t.Fatalf("first callback: %d %+v", firstCode, first)
 	}
@@ -327,7 +329,7 @@ func TestW1OAuthDoubleCallbackIsIdempotent(t *testing.T) {
 		t.Fatalf("first must issue session: %+v", first)
 	}
 
-	secondCode, second := doJSON(t, http.MethodPost, server.URL+"/v1/auth/google/callback", "", false, payload)
+	secondCode, second := callbackOAuthJSON(t, server.URL+"/v1/auth/google/callback", payload)
 	if secondCode != http.StatusOK {
 		t.Fatalf("second callback must be idempotent success, got %d %+v", secondCode, second)
 	}
@@ -360,7 +362,7 @@ func TestW1OAuthConcurrentDoubleCallback(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_race_" + email, Email: email}, nil
 	}
 
-	started := getJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1", "")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
 	state, _ := started["state"].(string)
 	payload := mustJSON(map[string]string{"state": state, "code": "auth-code-race"})
 
@@ -373,6 +375,7 @@ func TestW1OAuthConcurrentDoubleCallback(t *testing.T) {
 		go func() {
 			req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/auth/google/callback", bytes.NewReader(payload))
 			req.Header.Set("Content-Type", "application/json")
+			addOAuthChallenge(req, state)
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				ch <- result{code: 0, body: map[string]any{"err": err.Error()}}

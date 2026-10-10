@@ -175,6 +175,7 @@ func upstreamFailChat(t *testing.T, base, key string) string {
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Force-Fail", catalog.PrimaryProvider)
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

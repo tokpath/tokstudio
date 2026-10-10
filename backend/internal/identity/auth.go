@@ -70,6 +70,8 @@ func sanitizeGoogleReason(reason string) string {
 		"access_denied", "invalid_request", "unsupported_grant_type", "network_error",
 		"userinfo_error", "empty_token", "empty_profile":
 		return reason
+	case "email_unverified", "state_mismatch", "account_conflict":
+		return reason
 	default:
 		return ""
 	}
@@ -106,7 +108,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 	if err != nil {
 		return nil, err
 	}
-	resolved, err := s.resolvePromotion(ctx, in.PromotionCode)
+	resolved, err := s.resolveRegistration(ctx, in.PromotionCode, in.BrandID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +132,10 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 		Locale:       DefaultLocale,
 		CreatedAt:    now,
 		UpdatedAt:    now,
+	}
+	if in.googleSubject != "" {
+		user.GoogleSub = &in.googleSubject
+		user.EmailVerifiedAt = &now
 	}
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&user).Error; err != nil {

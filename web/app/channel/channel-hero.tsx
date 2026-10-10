@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewer } from "@/components/rbac/viewer-context";
 import { useEffect, useState } from "react";
 import { apiBase } from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -8,6 +9,8 @@ import { formatUsdMinor } from "@/lib/money";
 import { CHANNEL_HERO_ICONS } from "@/lib/page-icons";
 
 export function ChannelHero() {
+  const viewer = useViewer();
+  const isOem = viewer.channelType === "C";
   const t = useTranslations("channelHero");
   const [quota, setQuota] = useState("—");
   const [consumed, setConsumed] = useState("—");
@@ -18,12 +21,12 @@ export function ChannelHero() {
     let cancelled = false;
     async function load() {
       const [q, c, s] = await Promise.all([
-        fetch(`${apiBase}/channel/quota`, { credentials: "include" }),
+        isOem ? fetch(`${apiBase}/channel/quota`, { credentials: "include" }) : Promise.resolve(null),
         fetch(`${apiBase}/channel/commissions`, { credentials: "include" }),
         fetch(`${apiBase}/channel/settlements`, { credentials: "include" }),
       ]);
       if (cancelled) return;
-      if (q.ok) {
+      if (q?.ok) {
         const body = await q.json();
         setQuota(formatUsdMinor(body.quota?.available_minor));
         setConsumed(formatUsdMinor(body.quota?.consumed_minor));
@@ -43,18 +46,18 @@ export function ChannelHero() {
         setSettleable(formatUsdMinor(sum));
       }
     }
-    void load();
+    void load().catch(() => { if (!cancelled) { setQuota("读取失败"); setConsumed("读取失败"); setFrozen("读取失败"); setSettleable("读取失败"); } });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isOem]);
 
   const cards = [
     { t: t("quota"), d: t("quotaHint"), v: quota, icon: CHANNEL_HERO_ICONS[0] },
     { t: t("consumed"), d: t("consumedHint"), v: consumed, icon: CHANNEL_HERO_ICONS[1] },
     { t: t("frozen"), d: t("frozenHint"), v: frozen, icon: CHANNEL_HERO_ICONS[2] },
     { t: t("settleable"), d: t("settleableHint"), v: settleable, icon: CHANNEL_HERO_ICONS[3] },
-  ];
+  ].filter((_, index) => isOem || index >= 2);
 
   return (
     <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label={t("region")}>

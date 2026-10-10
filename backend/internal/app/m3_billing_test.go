@@ -78,12 +78,15 @@ func TestM3BillingInvariants(t *testing.T) {
 		t.Fatalf("reap expired: n=%d err=%v", n, err)
 	}
 	afterReap := getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["available_minor"]
-	if afterReap != beforeReap {
-		t.Fatalf("expired reservation should return balance: before=%v after=%v", beforeReap, afterReap)
+	if afterReap != held {
+		t.Fatalf("unknown expired reservation must remain held: before=%v after=%v", held, afterReap)
+	}
+	if err := application.Billing.Release(ctx, reapID); err != nil {
+		t.Fatal(err)
 	}
 
 	chat := postJSONRaw(t, server.URL+"/v1/chat/completions", apiKey, map[string]any{
-		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "hi"}},
+		"model": catalog.EchoModelID, "max_tokens": 32, "messages": []map[string]string{{"role": "user", "content": "hi"}},
 	})
 	requestID := chat["request_id"].(string)
 	usage := getAuthJSON(t, server.URL+"/v1/me/usage", session)
@@ -96,20 +99,21 @@ func TestM3BillingInvariants(t *testing.T) {
 	usageID := first["id"].(string)
 
 	if postStatus(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	}) != http.StatusConflict {
 		t.Fatal("usage replay without confirm must be 409")
 	}
 	firstReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	})
 	secondReplay := postJSONRaw(t, server.URL+"/admin/usage/replay", "m3_admin", map[string]any{
-		"request_id": requestID, "usage": map[string]int{"prompt_tokens": 8, "completion_tokens": 4},
+		"request_id": requestID, "usage": measuredReplayUsage(t, application.Billing, requestID),
 	})
 	if firstReplay["item"].(map[string]any)["charge_id"] != secondReplay["item"].(map[string]any)["charge_id"] {
 		t.Fatalf("duplicate usage created a second charge")
 	}
 
+	isolateEchoPrice(t, application)
 	_ = postJSONRaw(t, server.URL+"/admin/price-books", "m3_admin", map[string]any{
 		"model": catalog.EchoModelID, "input": "0.01", "output": "0.02", "currency": "USD",
 	})
@@ -226,13 +230,14 @@ func TestM3BillingInvariants(t *testing.T) {
 func chatStatus(t *testing.T, base, key, content, omit string) int {
 	t.Helper()
 	body, _ := json.Marshal(map[string]any{
-		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": content}},
+		"model": catalog.EchoModelID, "max_tokens": 32, "messages": []map[string]string{{"role": "user", "content": content}},
 	})
 	req, _ := http.NewRequest(http.MethodPost, base+"/v1/chat/completions", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	if omit != "" {
 		req.Header.Set("X-Tokenhub-Omit-Usage", omit)
+		diagnosticTestRequest(t, req)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

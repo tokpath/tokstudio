@@ -50,7 +50,7 @@ func TestM4MediaJobs(t *testing.T) {
 	first := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-m4-1", map[string]any{
 		"model": catalog.SeedanceModelID, "prompt": "a cat walks", "duration": 5, "resolution": "720p",
 	})
-	if first["status"] != "completed" || first["upstream_job_id"] == "" {
+	if first["status"] != "completed" || first["upstream_job_id"] != nil || first["provider"] != nil {
 		t.Fatalf("create: %+v", first)
 	}
 	second := postAccepted(t, server.URL+"/v1/videos", apiKey, "idem-m4-1", map[string]any{
@@ -135,8 +135,8 @@ func TestM4MediaJobs(t *testing.T) {
 		t.Fatalf("cancel: %+v", cancel)
 	}
 	afterBal := num(getAuthJSON(t, server.URL+"/v1/me/balance", session)["balance"].(map[string]any)["reserved_minor"])
-	if afterBal >= beforeBal && beforeBal > 0 {
-		t.Fatalf("cancel should release reserve: before=%v after=%v", beforeBal, afterBal)
+	if afterBal != beforeBal {
+		t.Fatalf("cancel without final usage must retain reserve: before=%v after=%v", beforeBal, afterBal)
 	}
 
 	img := postAccepted(t, server.URL+"/v1/images/generations", apiKey, "idem-img", map[string]any{
@@ -236,10 +236,14 @@ func TestM4MediaJobs(t *testing.T) {
 	if badEdit.status != http.StatusBadRequest {
 		t.Fatalf("image edit without images: %d %+v", badEdit.status, badEdit.body)
 	}
-	imgEdit := postAccepted(t, server.URL+"/v1/images/edits", apiKey, "idem-img-edit", map[string]any{
+	var beforeEditJobs, afterEditJobs int64
+	application.DB.Table("media_jobs").Count(&beforeEditJobs)
+	beforeEditBalance := balanceMinor(t, server.URL, session)
+	imgEdit := mustStatusBody(t, http.MethodPost, server.URL+"/v1/images/edits", apiKey, map[string]any{
 		"model": catalog.ImageModelID, "prompt": "make blue", "images": []string{"https://example.test/logo.png"},
 	})
-	if imgEdit["object"] != "image" || imgEdit["task_type"] != "edit" {
+	application.DB.Table("media_jobs").Count(&afterEditJobs)
+	if imgEdit.status != http.StatusBadRequest || !containsText(imgEdit.body, "暂不支持编辑") || afterEditJobs != beforeEditJobs || balanceMinor(t, server.URL, session) != beforeEditBalance {
 		t.Fatalf("image edit: %+v", imgEdit)
 	}
 }
@@ -312,7 +316,7 @@ func TestM4PollAndCustomerCallback(t *testing.T) {
 		t.Fatalf("async: %+v", asyncJob)
 	}
 	before := len(got)
-	application.Media.CompleteTestJob(asyncJob["upstream_job_id"].(string), []byte("polled-bytes"))
+	application.Media.CompleteTestJob(testUpstreamJobID(t, application, asyncJob["id"].(string)), []byte("polled-bytes"))
 	polled := getAuthJSON(t, server.URL+"/v1/videos/"+asyncJob["id"].(string), apiKey)
 	if polled["status"] != "completed" {
 		t.Fatalf("poll via GET: %+v", polled)
@@ -415,4 +419,13 @@ func num(v any) float64 {
 	default:
 		return 0
 	}
+}
+
+func testUpstreamJobID(t *testing.T, a *app.App, jobID string) string {
+	t.Helper()
+	var upstream string
+	if err := a.DB.Raw("SELECT upstream_job_id FROM media_jobs WHERE id=?", jobID).Scan(&upstream).Error; err != nil || upstream == "" {
+		t.Fatalf("fixture upstream ID: %q %v", upstream, err)
+	}
+	return upstream
 }

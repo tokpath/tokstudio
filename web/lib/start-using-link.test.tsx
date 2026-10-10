@@ -4,7 +4,7 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { StartUsingLink } from "../components/start-using-link";
 import { Button } from "../components/ui/button";
 import { loginHref } from "./login-next";
-import { playgroundHref } from "./console-home";
+import { useModelHref } from "./model-use";
 
 describe("StartUsingLink", () => {
   afterEach(() => {
@@ -12,7 +12,7 @@ describe("StartUsingLink", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps guests on login with playground as next", async () => {
+  it("keeps guests on login with model instructions as next", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -25,13 +25,13 @@ describe("StartUsingLink", () => {
       <StartUsingLink model={{ id: "tokenhub/echo-1", kind: "text" }}>开始使用</StartUsingLink>,
     );
     const link = screen.getByRole("link", { name: "开始使用" });
-    expect(link.getAttribute("href")).toBe(loginHref(playgroundHref("tokenhub/echo-1")));
+    expect(link.getAttribute("href")).toBe(loginHref(useModelHref({id:"tokenhub/echo-1",kind:"text"})));
     await waitFor(() => {
-      expect(link.getAttribute("href")).toBe(loginHref(playgroundHref("tokenhub/echo-1")));
+      expect(link.getAttribute("href")).toBe(loginHref(useModelHref({id:"tokenhub/echo-1",kind:"text"})));
     });
   });
 
-  it("sends signed-in users to playground instead of login", async () => {
+  it("sends signed-in users to model instructions", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -44,7 +44,7 @@ describe("StartUsingLink", () => {
     );
     await waitFor(() => {
       expect(screen.getByRole("link", { name: "开始使用" }).getAttribute("href")).toBe(
-        "/app/playground?model=tokenhub%2Fecho-1",
+        "/app/docs?model=tokenhub%2Fecho-1&tab=agent",
       );
     });
   });

@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"embed"
+	"errors"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -22,10 +23,17 @@ import (
 var migrationFS embed.FS
 
 type orderRow struct {
+	PaymentIssue      string     `gorm:"column:payment_issue"`
 	ID                string     `gorm:"column:id;primaryKey"`
 	UserID            string     `gorm:"column:user_id"`
 	PayeeChannelOrgID string     `gorm:"column:payee_channel_org_id"`
 	ReceiptReference  string     `gorm:"column:receipt_reference"`
+	ReceiptNote       string     `gorm:"column:receipt_note"`
+	ReceivedAt        *time.Time `gorm:"column:received_at"`
+	RefundedAt        *time.Time `gorm:"column:refunded_at"`
+	RefundRecordedBy  string     `gorm:"column:refund_recorded_by"`
+	RefundStatus      string     `gorm:"column:refund_status"`
+	RefundAmountMinor *int64     `gorm:"column:refund_amount_minor"`
 	RecordedBy        string     `gorm:"column:recorded_by"`
 	ChannelOrgID      string     `gorm:"column:channel_org_id"`
 	Adapter           string     `gorm:"column:adapter"`
@@ -45,13 +53,17 @@ type orderRow struct {
 func (orderRow) TableName() string { return "payment_orders" }
 
 type eventRow struct {
-	ID              string    `gorm:"column:id;primaryKey"`
-	Adapter         string    `gorm:"column:adapter"`
-	ExternalEventID string    `gorm:"column:external_event_id"`
-	OrderID         *string   `gorm:"column:order_id"`
-	SignatureValid  bool      `gorm:"column:signature_valid"`
-	PayloadJSON     []byte    `gorm:"column:payload_json"`
-	ProcessedAt     time.Time `gorm:"column:processed_at"`
+	ProviderTradeID string     `gorm:"column:provider_trade_id"`
+	ID              string     `gorm:"column:id;primaryKey"`
+	Adapter         string     `gorm:"column:adapter"`
+	ExternalEventID string     `gorm:"column:external_event_id"`
+	OrderID         *string    `gorm:"column:order_id"`
+	SignatureValid  bool       `gorm:"column:signature_valid"`
+	PayloadJSON     []byte     `gorm:"column:payload_json"`
+	ProcessedAt     time.Time  `gorm:"column:processed_at"`
+	Status          string     `gorm:"column:status"`
+	AppliedAt       *time.Time `gorm:"column:applied_at"`
+	ProcessingError string     `gorm:"column:processing_error"`
 }
 
 func (eventRow) TableName() string { return "payment_events" }
@@ -172,7 +184,13 @@ func (s *Service) CreateOrder(ctx context.Context, in CreateOrderInput) (*OrderV
 
 func (s *Service) ListOrders(ctx context.Context, f ListOrdersFilter) ([]OrderView, error) {
 	var rows []orderRow
-	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC").Limit(200)
+	q := s.db.WithContext(ctx).Order("created_at DESC, id DESC")
+	if f.Limit > 0 {
+		q = q.Limit(f.Limit + 1)
+	}
+	if f.Cursor != "" {
+		q = q.Where("(created_at,id) < (SELECT created_at,id FROM payment_orders WHERE id = ? AND payee_channel_org_id = ?)", f.Cursor, f.PayeeChannelOrgID)
+	}
 	if f.Status != "" {
 		q = q.Where("status = ?", f.Status)
 	}
@@ -206,7 +224,10 @@ func (s *Service) GetOrder(ctx context.Context, id, userID string) (*OrderView, 
 		q = q.Where("user_id = ?", userID)
 	}
 	if err := q.First(&row).Error; err != nil {
-		return nil, ErrNotFound
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
 	}
 	return orderView(row), nil
 }
@@ -216,7 +237,7 @@ func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) 
 	if err != nil {
 		return nil, err
 	}
-	if order.Status == StatusPaid || order.Status == StatusRefunded {
+	if order.Status == StatusPaid || order.Status == StatusRefunding || order.Status == StatusRefunded {
 		return order, nil
 	}
 	plugin, ok := s.plugin(order.Adapter)
@@ -240,8 +261,17 @@ func (s *Service) SyncFromProvider(ctx context.Context, orderID, userID string) 
 	if err != nil {
 		return nil, err
 	}
+	if res == nil {
+		return nil, ErrInvalidEvent
+	}
 	switch res.Status {
 	case StatusPaid:
+		if res.CheckPaidAmount && !paymentAmountMatches(order.Adapter, order, res.PaidAmountMinor, res.Currency) {
+			if err := s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ?", order.ID).Update("payment_issue", "amount_or_currency_mismatch").Error; err != nil {
+				return nil, err
+			}
+			return s.GetOrder(ctx, order.ID, userID)
+		}
 		if err := s.markPaid(ctx, order.ID, res.TradeID); err != nil {
 			return nil, err
 		}
@@ -299,116 +329,6 @@ func (s *Service) Checkout(ctx context.Context, order *OrderView, publicBase str
 		view.PublishableKey = sess.PublishableKey
 		view.Payload = sess.Payload
 		view.Session = sess
-	}
-	return view, nil
-}
-
-func (s *Service) HandleWebhook(ctx context.Context, adapter string, headers http.Header, body []byte) (*EventView, error) {
-	plugin, ok := s.plugin(adapter)
-	if !ok {
-		return nil, ErrInvalidAdapter
-	}
-	if headers == nil {
-		headers = http.Header{}
-	}
-	parsed, err := s.parseWebhookEvent(ctx, plugin, adapter, headers, body)
-	if err != nil {
-		return nil, err
-	}
-	if parsed == nil {
-		return nil, ErrInvalidEvent
-	}
-	if !parsed.SignatureValid {
-		return nil, ErrInvalidSignature
-	}
-	eventID := parsed.ExternalEventID
-	orderID := parsed.OrderID
-	status := parsed.Status
-	tradeID := parsed.TradeID
-	valid := parsed.SignatureValid
-	if orderID != "" {
-		order, err := s.GetOrder(ctx, orderID, "")
-		if err != nil || order.Adapter != adapter {
-			return nil, ErrInvalidEvent
-		}
-		inst := s.firstReadyInstance(ctx, order.PayeeChannelOrgID, adapter)
-		if inst == nil && adapter != AdapterManual {
-			return nil, ErrMethodUnavailable
-		}
-		creds := map[string]string{}
-		if inst != nil {
-			creds, err = openCredentials(s.signKey, inst.CredentialsCiphertext)
-			if err != nil {
-				return nil, err
-			}
-		}
-		owned, err := plugin.ParseWebhook(ctx, WebhookRequest{Adapter: adapter, Headers: headers, Body: body, SignKey: s.signKey, Credentials: creds})
-		if err != nil || owned == nil || !owned.SignatureValid || owned.OrderID != orderID {
-			return nil, ErrInvalidSignature
-		}
-		valid = owned.SignatureValid
-	}
-	now := time.Now().UTC()
-	view := &EventView{Adapter: adapter, ExternalEventID: eventID, OrderID: orderID, SignatureValid: valid}
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing eventRow
-		if err := tx.Where("external_event_id = ?", eventID).First(&existing).Error; err == nil {
-			view.ID = existing.ID
-			view.SignatureValid = existing.SignatureValid
-			view.Duplicate = true
-			if !existing.SignatureValid {
-				return ErrInvalidSignature
-			}
-			return nil
-		}
-		row := eventRow{
-			ID: id.New("pev"), Adapter: adapter, ExternalEventID: eventID,
-			SignatureValid: valid, PayloadJSON: body, ProcessedAt: now,
-		}
-		if orderID != "" {
-			row.OrderID = &orderID
-		}
-		if err := tx.Create(&row).Error; err != nil {
-			return err
-		}
-		view.ID = row.ID
-		if !valid {
-			return ErrInvalidSignature
-		}
-		if _, err := s.outbox.EnqueueTx(tx, "payment.webhook.received", "payment_event", row.ID, map[string]any{
-			"adapter": adapter, "external_event_id": eventID, "status": status,
-		}); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return view, err
-	}
-	if view.Duplicate {
-		if parsed.SignatureValid && orderID != "" && parsed.Status == StatusPaid {
-			if err := s.ensureFulfill(ctx, orderID); err != nil {
-				return view, err
-			}
-		}
-		return view, nil
-	}
-	view.Status = status
-	if orderID == "" {
-		return view, nil
-	}
-	switch status {
-	case StatusPaid:
-		if err := s.markPaid(ctx, orderID, tradeID); err != nil {
-			return view, err
-		}
-	case StatusFailed:
-		_ = s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ? AND status = ?", orderID, StatusPending).
-			Updates(map[string]any{"status": StatusFailed, "updated_at": now})
-	case StatusRefunded:
-		if err := s.markRefunded(ctx, orderID); err != nil {
-			return view, err
-		}
 	}
 	return view, nil
 }
@@ -492,7 +412,16 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", orderID).First(&row).Error; err != nil {
 			return ErrNotFound
 		}
-		if row.Status == StatusPaid {
+		// A later verified success may resolve an amount/currency exception, but
+		// cannot replace the original provider transaction with another payment.
+		if row.ProviderTradeID != nil && *row.ProviderTradeID != "" && tradeID != "" && *row.ProviderTradeID != tradeID {
+			return ErrInvalidEvent
+		}
+		if row.Status == StatusPaid || row.Status == StatusRefunded || row.Status == StatusRefunding {
+			if row.PaymentIssue != "" {
+				row.PaymentIssue = ""
+				return tx.Save(&row).Error
+			}
 			return nil
 		}
 		if row.Status != StatusPending {
@@ -500,6 +429,7 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 		}
 		now := time.Now().UTC()
 		row.Status = StatusPaid
+		row.PaymentIssue = ""
 		row.UpdatedAt = now
 		if tradeID != "" {
 			row.ProviderTradeID = &tradeID
@@ -508,6 +438,9 @@ func (s *Service) markPaid(ctx context.Context, orderID, tradeID string) error {
 	})
 	if err != nil {
 		return err
+	}
+	if row.Status == StatusRefunded || row.Status == StatusRefunding {
+		return nil
 	}
 	s.touchLastPaid(ctx, row.PayeeChannelOrgID, row.Adapter)
 	return s.fulfill(ctx, row)
@@ -524,29 +457,32 @@ func (s *Service) ensureFulfill(ctx context.Context, orderID string) error {
 	return s.fulfill(ctx, row)
 }
 
-func (s *Service) fulfill(ctx context.Context, row orderRow) error {
-	if row.FulfilledAt != nil {
-		return nil
-	}
-	var err error
-	switch row.Purpose {
-	case PurposeSubscription:
-		if row.ReferenceID != nil && s.plans != nil {
-			_, err = s.plans.ActivatePaid(ctx, *row.ReferenceID, time.Now().UTC())
+func (s *Service) fulfill(ctx context.Context, initial orderRow) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var row orderRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", initial.ID).First(&row).Error; err != nil {
+			return err
 		}
-	case PurposeWallet:
-		if row.ReferenceID != nil && s.billing != nil {
-			_, err = s.billing.ConfirmTopup(ctx, *row.ReferenceID, "payment:"+row.ID)
+		if row.Status != StatusPaid || row.FulfilledAt != nil {
+			return nil
 		}
-	case PurposeRenewal:
-		err = nil
-	}
-	if err != nil {
-		return err
-	}
-	now := time.Now().UTC()
-	return s.db.WithContext(ctx).Model(&orderRow{}).Where("id = ? AND fulfilled_at IS NULL", row.ID).
-		Updates(map[string]any{"fulfilled_at": now, "updated_at": now}).Error
+		var err error
+		switch row.Purpose {
+		case PurposeSubscription:
+			if row.ReferenceID != nil && s.plans != nil {
+				_, err = s.plans.ActivatePaid(ctx, *row.ReferenceID, time.Now().UTC())
+			}
+		case PurposeWallet:
+			if row.ReferenceID != nil && s.billing != nil {
+				_, err = s.billing.ConfirmTopup(ctx, *row.ReferenceID, "payment:"+row.ID)
+			}
+		}
+		if err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		return tx.Model(&row).Updates(map[string]any{"fulfilled_at": now, "updated_at": now}).Error
+	})
 }
 
 func (s *Service) RetryUnfulfilled(ctx context.Context) (int, error) {
@@ -573,6 +509,7 @@ func (s *Service) RunFulfillment(ctx context.Context) {
 			return
 		case <-ticker.C:
 			_, _ = s.RetryUnfulfilled(ctx)
+			_, _ = s.RetryUnappliedEvents(ctx)
 		}
 	}
 }
@@ -590,7 +527,10 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 		if row.Status == StatusRefunded {
 			return nil
 		}
-		if row.Status != StatusPaid {
+		if callProvider && row.RefundStatus != "" && !(row.Status == StatusRefunding && row.RefundStatus == StatusRefunding) {
+			return ErrRefundNeedsReview
+		}
+		if row.Status != StatusPaid && row.Status != StatusRefunding && !(!callProvider && row.FulfilledAt == nil && (row.Status == StatusPending || row.Status == StatusFailed || row.Status == StatusExpired)) {
 			return ErrOrderNotPending
 		}
 		// Reversal must succeed before asking a provider to refund. A failure rolls back
@@ -598,17 +538,24 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 		switch row.Purpose {
 		case PurposeWallet:
 			if row.ReferenceID != nil && s.billing != nil {
-				if _, err := s.billing.RefundTopupTx(tx, *row.ReferenceID); err != nil {
+				var err error
+				if !callProvider && row.FulfilledAt == nil {
+					_, err = s.billing.RefundUncreditedTopupTx(tx, *row.ReferenceID)
+				} else {
+					_, err = s.billing.RefundTopupTx(tx, *row.ReferenceID)
+				}
+				if err != nil {
 					return err
 				}
 			}
 		case PurposeSubscription:
 			if row.ReferenceID != nil && s.plans != nil {
-				if err := s.plans.ReverseSourceTx(tx, *row.ReferenceID); err != nil {
+				if err := s.plans.RefundSubscriptionTx(tx, *row.ReferenceID); err != nil {
 					return err
 				}
 			}
 		}
+		refundStatus := StatusRefunded
 		if callProvider {
 			plugin, ok := s.plugin(row.Adapter)
 			if !ok {
@@ -628,11 +575,23 @@ func (s *Service) refundOrder(ctx context.Context, orderID string, callProvider 
 				}
 				in.Mode = inst.Mode
 			}
-			if _, err := plugin.Refund(ctx, in); err != nil {
+			result, err := plugin.Refund(ctx, in)
+			if err != nil {
 				return err
 			}
+			if result == nil || result.Status != StatusRefunded {
+				refundStatus = StatusRefunding
+			}
 		}
-		row.Status = StatusRefunded
+		row.Status = refundStatus
+		row.RefundStatus = refundStatus
+		if refundStatus == StatusRefunded {
+			row.RefundAmountMinor = &row.AmountMinor
+		}
+		if refundStatus == StatusRefunded && row.RefundedAt == nil {
+			now := time.Now().UTC()
+			row.RefundedAt = &now
+		}
 		row.UpdatedAt = time.Now().UTC()
 		return tx.Save(&row).Error
 	})
@@ -726,9 +685,12 @@ func (s *Service) plugin(id string) (Adapter, bool) {
 
 func orderView(row orderRow) *OrderView {
 	view := &OrderView{
-		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose,
+		ID: row.ID, UserID: row.UserID, ChannelOrgID: row.ChannelOrgID, Adapter: row.Adapter, Purpose: row.Purpose, PaymentIssue: row.PaymentIssue,
 		AmountMinor: row.AmountMinor, CreditMinor: row.CreditMinor, Currency: row.Currency, Status: row.Status, CreatedAt: row.CreatedAt,
 		FulfilledAt: row.FulfilledAt, PayeeChannelOrgID: row.PayeeChannelOrgID, ReceiptReference: row.ReceiptReference, RecordedBy: row.RecordedBy,
+		ReceivedAt: row.ReceivedAt, ReceiptNote: row.ReceiptNote,
+		RefundedAt: row.RefundedAt, RefundRecordedBy: row.RefundRecordedBy,
+		RefundStatus: row.RefundStatus, RefundAmountMinor: row.RefundAmountMinor,
 	}
 	if row.ReferenceType != nil {
 		view.ReferenceType = *row.ReferenceType
@@ -738,6 +700,21 @@ func orderView(row orderRow) *OrderView {
 	}
 	if row.ProviderTradeID != nil {
 		view.TradeID = *row.ProviderTradeID
+	}
+	// Older manual refunds recorded the actor and actual time before storing
+	// refund amount/status. Manual refunds are full refunds of the original cash
+	// payment; project that registered fact without rewriting historical rows.
+	if row.Adapter == AdapterManual && row.Status == StatusRefunded && row.AmountMinor > 0 &&
+		row.RefundedAt != nil && !row.RefundedAt.IsZero() && strings.TrimSpace(row.RefundRecordedBy) != "" &&
+		(row.RefundStatus == "" || row.RefundStatus == StatusRefunded) &&
+		(row.RefundAmountMinor == nil || *row.RefundAmountMinor == row.AmountMinor) {
+		if view.RefundAmountMinor == nil {
+			amount := row.AmountMinor
+			view.RefundAmountMinor = &amount
+		}
+		if view.RefundStatus == "" {
+			view.RefundStatus = StatusRefunded
+		}
 	}
 	return view
 }

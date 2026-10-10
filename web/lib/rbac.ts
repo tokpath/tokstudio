@@ -2,7 +2,7 @@ import { ADMIN_CONSOLE_ROLES, OEM_CONSOLE_ROLES } from "./console-home";
 
 type NavGroupLike = { titleKey: string; items: { href: string; key: string }[] };
 
-/** 当前登录人。未登录时菜单和写按钮保持全量，方便无登录的 e2e。 */
+/** 登录与角色事实完成前不显示受保护的入口或写操作。 */
 export type Viewer = {
   signedIn: boolean;
   loading: boolean;
@@ -78,12 +78,13 @@ const ADMIN_PAGE_VIEW: Record<string, readonly string[]> = {
   "/admin/reconciliation": [P, F, O, A],
   "/admin/channels": [P, F, O, A],
   "/admin/partners": [P],
-  "/admin/brands": [P, O, T],
+  "/admin/brands": [P, O, T, A],
+  "/admin/oem-deliveries": [P,F,O,T,A],
   "/admin/promos": [P, O, A],
   "/admin/commission": [P, F, O, A],
   "/admin/metrics": [P, F, O, T, A],
   "/admin/media": [P, O, T, A],
-  "/admin/users": [P],
+  "/admin/users": [P, F, O, A],
   "/admin/staff": [P],
   "/admin/alerts": [P, O, T, A],
   "/admin/runbooks": [P, O, T, A],
@@ -133,7 +134,7 @@ const WRITE_ACTION_ROLES: Record<WriteAction, readonly string[]> = {
 };
 
 export function shouldBypassRbac(viewer: Viewer): boolean {
-  return !viewer.signedIn;
+  return false;
 }
 
 export function hasAnyRole(roles: string[] | undefined | null, allowed: readonly string[]): boolean {
@@ -158,7 +159,8 @@ export function canChannelAction(action: ChannelAction, viewer: Viewer): boolean
 export function canViewChannelHref(href: string, viewer: Viewer): boolean {
   if (shouldBypassRbac(viewer) || viewer.roles.includes(P)) return true;
   if (!hasAnyRole(viewer.roles, OEM_CONSOLE_ROLES)) return false;
-  const path = href.split("?")[0];
+  const path = href.split(/[?#]/)[0];
+  if (path === "/channel/delivery") return viewer.channelType === "C";
   if (path === "/channel/staff" || path.startsWith("/channel/staff/")) return viewer.channelType === "C" && viewer.roles.includes("channel_admin");
   if (viewer.channelType === "B" && ["/channel/payments", "/channel/ledger", "/channel/reconciliation"].some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return false;
   if (path.startsWith("/channel/payments/rules")) return viewer.channelType === "C" && hasAnyRole(viewer.roles, ["channel_admin", "oem_finance"]);
@@ -168,7 +170,7 @@ export function canViewChannelHref(href: string, viewer: Viewer): boolean {
     return true;
   }
   if (viewer.channelType !== "C") return false;
-  const common = ["/channel", "/channel/ledger", "/channel/usage", "/channel/margin", "/channel/metrics", "/channel/reconciliation", "/channel/commission", "/channel/commissions", "/channel/settlements", "/channel/alerts", "/channel/runbooks", "/channel/settings", "/channel/rules", "/channel/subchannels", "/channel/payments", "/channel/models"];
+  const common = ["/channel", "/channel/delivery", "/channel/ledger", "/channel/usage", "/channel/margin", "/channel/metrics", "/channel/reconciliation", "/channel/commission", "/channel/commissions", "/channel/settlements", "/channel/alerts", "/channel/runbooks", "/channel/settings", "/channel/rules", "/channel/subchannels", "/channel/payments", "/channel/models", "/channel/users"];
   const operational = ["/channel/users", "/channel/keys", "/channel/models", "/channel/plans", "/channel/promos", "/channel/attribution", "/channel/media", "/channel/brand"];
   const allowed = [...common, ...(hasAnyRole(viewer.roles, ["oem_ops", "oem_audit"]) ? operational : []), ...(viewer.roles.includes("oem_audit") ? ["/channel/audit"] : [])];
   return allowed.some((prefix) => prefix === "/channel" ? path === prefix : path === prefix || path.startsWith(`${prefix}/`));
@@ -189,8 +191,21 @@ export function canAccessUserPortal(viewer: Viewer): boolean {
   return shouldBypassRbac(viewer) || viewer.signedIn;
 }
 
+/** Employee accounts use their own security settings; management roles do not grant consumer funds. */
+export function canUseConsumerAccount(viewer: Pick<Viewer, "roles">): boolean {
+  return !hasAnyRole(viewer.roles, [...ADMIN_CONSOLE_ROLES, ...OEM_CONSOLE_ROLES]);
+}
+
+export function canViewUserHref(href: string, viewer: Viewer): boolean {
+  if (!viewer.signedIn || viewer.loading) return false;
+  const path = href.split(/[?#]/)[0].replace(/^\/console(?=\/|$)/, "/app");
+  if (canUseConsumerAccount(viewer)) return path === "/app" || path.startsWith("/app/");
+  if (["/app/settings", "/app/profile"].includes(path)) return true;
+  return hasAnyRole(viewer.roles, [P, T]) && ["/app", "/app/keys", "/app/docs", "/app/usage"].some(prefix => path === prefix || (prefix !== "/app" && path.startsWith(`${prefix}/`)));
+}
+
 function adminPageKey(href: string): string | undefined {
-  const path = href.split("?")[0].replace(/\/$/, "") || "/admin";
+  const path = href.split(/[?#]/)[0].replace(/\/$/, "") || "/admin";
   if (path === "/admin") {
     return "/admin";
   }

@@ -11,18 +11,19 @@ import (
 )
 
 var (
-	ErrInsufficientBalance = errors.New("insufficient balance")
-	ErrInsufficientQuota   = errors.New("insufficient channel quota")
-	ErrNotFound            = errors.New("billing record not found")
-	ErrConflict            = errors.New("idempotency conflict")
-	ErrInvalidAmount       = errors.New("invalid amount")
-	ErrInvalidIssueRatio   = errors.New("invalid issue ratio")
-	ErrRedeemUnavailable   = errors.New("redeem code unavailable")
-	ErrTopupNotPending     = errors.New("topup is not pending")
-	ErrAuthNotReserved     = errors.New("authorization not reserved")
-	ErrAlreadyCharged      = errors.New("usage already charged")
-	ErrAlreadyMatched      = errors.New("usage already matched")
-	ErrInventedCost        = errors.New("supplier/attempt cost must come from TokenHub facts")
+	ErrInsufficientBalance      = errors.New("insufficient balance")
+	ErrInsufficientQuota        = errors.New("insufficient channel quota")
+	ErrNotFound                 = errors.New("billing record not found")
+	ErrConflict                 = errors.New("idempotency conflict")
+	ErrInvalidAmount            = errors.New("invalid amount")
+	ErrPriceEstimateUnavailable = errors.New("price estimate unavailable")
+	ErrInvalidIssueRatio        = errors.New("invalid issue ratio")
+	ErrRedeemUnavailable        = errors.New("redeem code unavailable")
+	ErrTopupNotPending          = errors.New("topup is not pending")
+	ErrAuthNotReserved          = errors.New("authorization not reserved")
+	ErrAlreadyCharged           = errors.New("usage already charged")
+	ErrAlreadyMatched           = errors.New("usage already matched")
+	ErrInventedCost             = errors.New("supplier/attempt cost must come from TokenHub facts")
 )
 
 // Commissioner 由 commission 模块实现。billing 只提交 usage 摘要，不读佣金表。
@@ -45,10 +46,12 @@ type Qualifier interface {
 // EntitlementCoverer 由 plans 模块实现。billing 只问“能覆盖多少 USD”，不读套餐表。
 type EntitlementCoverer interface {
 	AvailableUSD(ctx context.Context, userID string) (int64, error)
-	ConsumeUSD(ctx context.Context, userID, requestID string, amount int64) (int64, error)
+	AvailableUSDTx(tx *gorm.DB, userID string) (int64, error)
+	ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
+	ExtendUSDUsageTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
 	ReverseByRequest(ctx context.Context, requestID string) error
 	ReverseByRequestTx(tx *gorm.DB, requestID string) error
-	ReverseKeep(ctx context.Context, requestID string, keep int64) error
+	ReverseKeepTx(tx *gorm.DB, requestID string, keep int64) error
 }
 
 const (
@@ -128,6 +131,7 @@ type ReserveInput struct {
 }
 
 type Reservation struct {
+	Replayed    bool   `json:"replayed,omitempty"`
 	ID          string `json:"id"`
 	RequestID   string `json:"request_id"`
 	AmountMinor int64  `json:"amount_minor"`
@@ -226,6 +230,10 @@ type QueryUsageInput struct {
 	UserID        string
 	APIKeyID      string
 	ChannelOrgID  string
+	ChannelOrgIDs []string // non-nil empty scope returns no records
+	Cursor        string
+	Query         string
+	Unlimited     bool // trusted internal export/fact queries only
 	PublicModelID string
 	RequestID     string
 	RequestIDs    []string
@@ -241,8 +249,14 @@ type ResolvePendingInput struct {
 	RequestIDs []string `json:"request_ids"`
 }
 
+type PendingResolution struct {
+	Key    string `json:"key"`
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+}
 type ResolvePendingResult struct {
-	Items []UsageGapView `json:"items"`
+	Results []PendingResolution `json:"results"`
+	Items   []UsageGapView      `json:"items"`
 }
 
 type TopupView struct {

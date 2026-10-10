@@ -22,10 +22,11 @@ import {
 
 type Props = {
   checkout: CheckoutPayload;
-  onPaid?: () => void;
+  onPaid?: (order: CheckoutOrder) => void;
+  onResolved?: (order: CheckoutOrder) => void;
 };
 
-export function CheckoutPay({ checkout, onPaid }: Props) {
+export function CheckoutPay({ checkout, onPaid, onResolved }: Props) {
   const t = useTranslations("checkout");
   const kind = checkoutKind(checkout);
   const orderID = checkoutOrderID(checkout);
@@ -47,12 +48,13 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
         return;
       }
       setOrder((prev) => ({ ...prev, ...next }));
-      if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunded" || next.status === "partially_refunded") {
+      if (next.status === "paid" || next.status === "failed" || next.status === "expired" || next.status === "refunding" || next.status === "refunded" || next.status === "partially_refunded") {
         setAwaitingProvider(false);
+        onResolved?.(next);
       }
-      if (next.status === "paid") onPaid?.();
+      if (next.status === "paid") onPaid?.(next);
     },
-    [onPaid],
+    [onPaid,onResolved],
   );
 
   useEffect(() => {
@@ -153,7 +155,7 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
       </p>
       <p className="mt-1 text-sm text-ink-secondary">{statusCopy()}</p>
       {syncError ? <p className="mt-1 text-sm text-danger">{syncError}</p> : null}
-      {kind === "sandbox" && open ? <p className="mt-3 text-sm text-ink-secondary">{t("sandboxHint")}</p> : null}
+      {kind === "sandbox" && checkout.sandbox === true && open ? <p className="mt-3 text-sm text-ink-secondary">{t("sandboxHint")}</p> : null}
       {kind === "qr" && open ? (
         <div className="mt-3">
           <p className="mb-2 text-sm text-ink-secondary">{t("scanQr")}</p>
@@ -184,7 +186,8 @@ export function CheckoutPay({ checkout, onPaid }: Props) {
           }}
         />
       ) : null}
-      {open && kind !== "sandbox" ? (
+      {open && kind === "sandbox" && checkout.sandbox !== true && <p className="mt-3 text-sm text-ink-secondary">{t("recoverDetails")}</p>}
+      {open && (kind !== "sandbox" || checkout.sandbox !== true) ? (
         <Button type="button" variant="outline" className="mt-3" disabled={busy} onClick={() => void loadOrder("sync")}>
           {busy ? t("checking") : t("paidCheck")}
         </Button>

@@ -340,13 +340,18 @@ func (s *Service) Overview(ctx context.Context, channelOrgID, callbackOrigin str
 	var instances []InstanceView
 	onlineDisabled := false
 	if channelOrgID != "" {
-		if settings, err := s.GetSettings(ctx, channelOrgID); err == nil && settings != nil {
+		settings, err := s.GetSettings(ctx, channelOrgID)
+		if err != nil {
+			return nil, err
+		}
+		if settings != nil {
 			view.OnlineDisabled = settings.OnlineDisabled
 			view.IssueRatioBPS = settings.IssueRatioBPS
 			onlineDisabled = settings.OnlineDisabled
 		}
-		if items, err := s.ListInstances(ctx, channelOrgID, ""); err == nil {
-			instances = items
+		instances, err = s.ListInstances(ctx, channelOrgID, "")
+		if err != nil {
+			return nil, err
 		}
 	}
 	byAdapter := map[string][]InstanceView{}

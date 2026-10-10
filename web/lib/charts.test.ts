@@ -6,12 +6,14 @@ describe("dashboardSeries", () => {
     const series = dashboardSeries([{ key: "tokenhub/echo-1", requests: 3, revenue_minor: 12, success_rate: 1 }]);
     expect(series.categories).toEqual(["tokenhub/echo-1"]);
     expect(series.requests).toEqual([3]);
+    expect(series.revenue).toEqual([0.000012]);
     expect(requestChartOption([{ key: "echo", requests: 1 }]).series[0].type).toBe("bar");
   });
 
   it("builds a daily line chart", () => {
     const series = dailySeries([{ day: "2026-08-29", requests: 4, revenue_minor: 10 }]);
     expect(series.categories).toEqual(["2026-08-29"]);
+    expect(series.revenue).toEqual([0.00001]);
     expect(dailyChartOption([{ day: "2026-08-29", requests: 4 }]).series[0].type).toBe("line");
   });
 
@@ -19,6 +21,8 @@ describe("dashboardSeries", () => {
     const option = requestChartOption([{ key: "echo", requests: 2, revenue_minor: 80 }]);
     expect(option.yAxis).toHaveLength(2);
     expect(option.series[1].yAxisIndex).toBe(1);
+    expect(option.series[1].data).toEqual([0.00008]);
+    expect(option.yAxis[1].name).toContain("USD");
     expect(option.series[0]).not.toHaveProperty("areaStyle");
     expect(option.grid.borderColor).toBeUndefined();
     expect(option.tooltip.borderWidth).toBe(1);

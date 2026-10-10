@@ -1,177 +1,47 @@
 "use client";
+import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/confirm-button';
+import { ListResourceView } from '@/components/console/list-resource-view';
+import { useViewer } from '@/components/rbac/viewer-context';
+import { canChannelAction, canWrite } from '@/lib/rbac';
+import { apiBase } from '@/lib/api';
+import { formatUsdMinor, parseUsdToMinor } from '@/lib/money';
+import { OperationStatus, actualTime, localNow, useCommissionOperation, useCommissionPage, type Context, type WorkflowPayload } from '@/app/admin/commission/workflow-client';
 
-import { useState } from "react";
-import { ConfirmButton } from "@/components/confirm-button";
-import { LedgerTable } from "@/components/console/ledger-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { apiBase } from "@/lib/api";
-import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
-import { IfCan } from "@/components/rbac/if-can";
-
-type Supplier = {
-  id?: string;
-  channel_org_id?: string;
-  amount_minor?: number;
-  source_type?: string;
-  vendor_name?: string;
-  memo?: string;
-  reversal_of?: string;
-  created_at?: string;
-};
-
-function micro(n: unknown) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return `$${(v / 1_000_000).toFixed(2)}`;
+type Supplier = { id:string; channel_org_id:string; amount_minor:number; currency:string; vendor_name?:string; source_type:string; occurred_at:string; created_at:string; actor_email?:string; actor_user_id:string; memo?:string; bank_ref?:string; reversal_of?:string; reversed_by?:string; status:string };
+export function AdminSupplierPanel({channelID,prefix='/admin',context:provided}:{channelID?:string;prefix?:'/admin'|'/channel';context?:Context}) {
+ const viewer=useViewer(),t=useTranslations('commissionWorkflow');
+ const [context,setContext]=useState<Context|null>(null),[error,setError]=useState(''),[version,setVersion]=useState(0);
+ useEffect(()=>{setContext(null);setError('');if(provided){setContext(provided);return;}if(!viewer.userId)return;let active=true;void fetch(`${apiBase}${prefix}/commission-context`,{credentials:'include'}).then(async r=>{const b=await r.json();if(!r.ok||!b.owner_id)throw new Error(b.error?.message||t('loadFailed'));if(active)setContext(b);}).catch(e=>{if(active)setError(e instanceof Error?e.message:t('loadFailed'));});return()=>{active=false;};},[viewer.userId,prefix,provided,version,t]);
+ if(!context)return <section className="rounded-card border border-hairline p-5"><p role={error?'alert':'status'}>{error||t('loadingScope')}</p>{error&&<Button className="mt-3" variant="outline" onClick={()=>setVersion(v=>v+1)}>{t('retry')}</Button>}</section>;
+ const scope=`${viewer.userId}:${typeof window==='undefined'?'':window.location.host}:${context.owner_id}:${prefix}`;
+ return <SupplierFacts key={scope} scope={scope} context={context} prefix={prefix} channelID={channelID} canEdit={!channelID&&(prefix==='/channel'?canChannelAction('finance',viewer):canWrite('billing.refund',viewer))}/>;
 }
-
-function usdToMinor(raw: string) {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.round(n * 1_000_000);
-}
-
-const selectClass =
-  "h-10 min-h-10 w-full max-w-xs rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
-
-export function AdminSupplierPanel({ channelID }: { channelID?: string }) {
-  const [items, setItems] = useState<Supplier[]>([]);
-  const [usd, setUsd] = useState("10");
-  const [sourceType, setSourceType] = useState("provider_invoice");
-  const [vendor, setVendor] = useState("");
-  const [memo, setMemo] = useState("");
-  const [message, setMessage] = useState(
-    channelID
-      ? "这里只看该渠道账本。记一笔会记在当前登录人自己的账上（平台记官方渠道）。"
-      : "线下已付给模型商，线上只记账。金额按正数填写，入库为负。记在官方渠道。",
-  );
-
-  const listPath = channelID
-    ? `/admin/supplier-entries?channel_id=${encodeURIComponent(channelID)}`
-    : "/admin/supplier-entries";
-
-  async function load() {
-    const res = await fetch(`${apiBase}${listPath}`, { credentials: "include" });
-    const body = await res.json();
-    if (!res.ok) {
-      setMessage(body.error?.message || "读取供应商支出失败");
-      return;
-    }
-    const next = Array.isArray(body.items) ? (body.items as Supplier[]) : [];
-    setItems(next);
-    setMessage(`供应商支出 ${next.length} 条`);
-  }
-
-  async function record(): Promise<boolean> {
-    try {
-    const amount = usdToMinor(usd);
-    if (!amount) {
-      setMessage("请填写正数金额（USD）");
-      return false;
-    }
-    const res = await fetch(`${apiBase}/admin/supplier-entries`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({
-        amount_minor: amount,
-        source_type: sourceType,
-        idempotency_key: `spe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        vendor_name: vendor || undefined,
-        memo: memo || undefined,
-      }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? `已记账 ${body.item?.id}` : body.error?.message || "记账失败");
-    const __ok = res.ok;
-    if (res.ok) await load();
-    return __ok;
-    } catch {
-      setMessage(confirmNetworkUnavailable);
-      return false;
-    }
-}
-
-  async function reverse(id: string): Promise<boolean> {
-    try {
-    const res = await fetch(`${apiBase}/admin/supplier-entries/${encodeURIComponent(id)}/reverse`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({ reason: "void" }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? `已冲正 ${body.item?.id}` : body.error?.message || "冲正失败");
-    const __ok = res.ok;
-    if (res.ok) await load();
-    return __ok;
-    } catch {
-      setMessage(confirmNetworkUnavailable);
-      return false;
-    }
-}
-
-  return (
-    <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h2 className="mb-4 text-lg font-semibold tracking-tight">供应商支出</h2>
-      <p className="mb-3 text-sm text-ink-secondary">
-        {channelID
-          ? "列表按渠道过滤。新建仍记在平台官方账本，不会记到被查看的渠道。"
-          : "A 记付给模型商。必填金额、来源类型；幂等键自动生成。"}
-      </p>
-      {!channelID ? (
-        <IfCan action="billing.refund">
-          <div className="mb-3 grid max-w-xl gap-2">
-            <Input value={usd} onChange={(e) => setUsd(e.target.value)} aria-label="金额 USD" placeholder="10" />
-            <select className={selectClass} aria-label="来源类型" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
-              <option value="provider_invoice">付给模型商</option>
-              <option value="platform_recharge">其他上游付款</option>
-              <option value="other">其他</option>
-            </select>
-            <Input value={vendor} onChange={(e) => setVendor(e.target.value)} aria-label="对方名称" placeholder="厂商名" />
-            <Input value={memo} onChange={(e) => setMemo(e.target.value)} aria-label="备注" placeholder="线下付款备忘" />
-            <ConfirmButton size="sm" title="确认记供应商支出" description="线下已付，线上只记账。金额入库为负。" onConfirm={record}>
-              记一笔
-            </ConfirmButton>
-          </div>
-        </IfCan>
-      ) : null}
-      <Button size="sm" variant="outline" onClick={() => void load()}>
-        刷新流水
-      </Button>
-      <LedgerTable
-        columns={["时间", "金额", "来源", "渠道", "操作"]}
-        emptyTitle="暂无供应商支出"
-        emptyDetail="点刷新后可看到线下付款记账。"
-        rows={items.map((item) => ({
-          key: item.id || "spe",
-          cells: [
-            item.created_at ? String(item.created_at).slice(0, 19) : "—",
-            <span key="a" className="font-mono tabular-nums">
-              {micro(item.amount_minor)}
-            </span>,
-            item.source_type || "—",
-            item.channel_org_id || "—",
-            item.reversal_of ? (
-              "—"
-            ) : (
-              <IfCan key="r" action="billing.refund">
-                <ConfirmButton
-                  size="sm"
-                  variant="outline"
-                  title="确认冲正"
-                  description="成对补记，不删原流水。"
-                  onConfirm={() => reverse(String(item.id))}
-                >
-                  冲正
-                </ConfirmButton>
-              </IfCan>
-            ),
-          ],
-        }))}
-      />
-      <p className="mt-3 text-sm text-ink-secondary">{message}</p>
-    </section>
-  );
+function SupplierFacts({scope,context,prefix,channelID,canEdit}:{scope:string;context:Context;prefix:string;channelID?:string;canEdit:boolean}) {
+ const t=useTranslations('commissionWorkflow'),ts=useTranslations('supplierWorkflow');
+ const [params,setParams]=useState(new URLSearchParams()),[search,setSearch]=useState(''),[version,setVersion]=useState(0);
+ const [form,setForm]=useState(false),[selected,setSelected]=useState<Supplier|null>(null),[review,setReview]=useState<WorkflowPayload|null>(null);
+ const [usd,setUsd]=useState(''),[vendor,setVendor]=useState(''),[when,setWhen]=useState(localNow),[source,setSource]=useState(prefix==='/channel'?'platform_recharge':'provider_invoice'),[reference,setReference]=useState(''),[memo,setMemo]=useState(''),[happened,setHappened]=useState(false),[reason,setReason]=useState('');
+ const trigger=useRef<HTMLButtonElement|null>(null);
+ useEffect(()=>{const read=()=>{const p=new URLSearchParams(window.location.search);setParams(p);setSearch(p.get('supplier_q')||'');};read();window.addEventListener('popstate',read);return()=>window.removeEventListener('popstate',read);},[]);
+ function update(values:Record<string,string>){const p=new URLSearchParams(window.location.search);Object.entries(values).forEach(([key,v])=>v?p.set(key,v):p.delete(key));window.history.pushState(null,'',`${window.location.pathname}?${p}`);setParams(p);}
+ const q=new URLSearchParams({limit:'30'});if(channelID)q.set('channel_id',channelID);if(params.get('supplier_q'))q.set('q',params.get('supplier_q')!);if(params.get('supplier_status'))q.set('status',params.get('supplier_status')!);if(params.get('supplier_cursor'))q.set('cursor',params.get('supplier_cursor')!);
+ const list=useCommissionPage<Supplier>(scope,`${prefix}/supplier-entries?${q}`);
+ const op=useCommissionOperation(`supplier:${scope}`,()=>{setVersion(v=>v+1);setForm(false);setSelected(null);setReview(null);});
+ useEffect(()=>{void list.reload();},[version,list.reload]);
+ const ready=['ready','empty'].includes(list.snapshot.phase)&&!list.refreshing,locked=op.busy||Boolean(op.saved);
+ const amount=parseUsdToMinor(usd),date=actualTime(when),valid=Boolean(amount&&amount>0&&vendor.trim()&&date&&new Date(date).getTime()<=Date.now()+300000&&happened&&new TextEncoder().encode(vendor.trim()).length<=200&&new TextEncoder().encode(reference.trim()).length<=200&&new TextEncoder().encode(memo.trim()).length<=1000);
+ const brand=context.owner_name||context.owner_code||context.owner_id;
+ return <section aria-label={ts('title')} className="space-y-4 rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap justify-between gap-3"><h2 className="text-lg font-semibold">{ts('title')}</h2><div className="flex gap-2">{canEdit&&<Button disabled={!ready||locked} onClick={e=>{trigger.current=e.currentTarget;setForm(true);setUsd('');setVendor('');setWhen(localNow());setReference('');setMemo('');setHappened(false);}}>{ts('record')}</Button>}<Button variant="outline" onClick={()=>void list.reload()}>{t('refresh')}</Button></div></div><p className="text-sm text-ink-secondary">{t('brand')}: {brand}</p><OperationStatus operation={op}/>
+ <form className="flex flex-wrap gap-2" onSubmit={e=>{e.preventDefault();update({supplier_q:search.trim(),supplier_cursor:''});}}><Input className="max-w-lg" aria-label={ts('search')} placeholder={ts('searchHint')} value={search} onChange={e=>setSearch(e.target.value)}/><Button variant="outline">{t('search')}</Button><select className="rounded-control border border-hairline bg-canvas p-2" aria-label={t('statusLabel')} value={params.get('supplier_status')||''} onChange={e=>update({supplier_status:e.target.value,supplier_cursor:''})}><option value="">{t('allStates')}</option>{['recorded','reversed','reversal'].map(key=><option key={key} value={key}>{ts(`status.${key}`)}</option>)}</select></form>
+ <ListResourceView snapshot={list.snapshot} emptyTitle={t('empty')} emptyDetail={ts('emptyHint')} onRetry={()=>void list.reload()}><ul className="grid gap-3">{list.snapshot.items.map(item=><li key={item.id} className="rounded-control border border-hairline p-4 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="break-all font-medium">{item.vendor_name||'—'}</span><span>{formatUsdMinor(item.amount_minor)} {item.currency}</span></div><p className="mt-1">{ts(`status.${item.status}`)} · {new Date(item.occurred_at).toLocaleString()}</p><p className="mt-1 break-all text-ink-secondary">{item.id}{item.reversal_of&&` · ${ts('original')}: ${item.reversal_of}`}{item.reversed_by&&` · ${ts('opposite')}: ${item.reversed_by}`}</p><Button variant="outline" className="mt-3" onClick={e=>{trigger.current=e.currentTarget;setSelected(item);setReason('');}}>{t('detail')}</Button></li>)}</ul></ListResourceView>
+ {list.page.total!==undefined&&<div className="flex flex-wrap items-center gap-3 text-sm"><span>{t('total',{count:list.page.total})}</span>{params.get('supplier_cursor')&&<Button variant="outline" disabled={!ready} onClick={()=>update({supplier_cursor:''})}>{t('firstPage')}</Button>}{list.page.next_cursor&&<Button variant="outline" disabled={!ready} onClick={()=>update({supplier_cursor:list.page.next_cursor!})}>{t('nextPage')}</Button>}</div>}
+ <Dialog open={form} onOpenChange={setForm}><DialogContent className="max-h-[90vh] overflow-y-auto" onCloseAutoFocus={e=>{e.preventDefault();trigger.current?.focus();}}><DialogTitle>{ts('record')}</DialogTitle><DialogDescription>{t('brand')}: {brand}</DialogDescription><fieldset disabled={locked} className="space-y-3"><label className="block text-sm">{ts('vendor')}<Input aria-label={ts('vendor')} value={vendor} onChange={e=>setVendor(e.target.value)}/></label><label className="block text-sm">{ts('amount')}<Input aria-label={ts('amount')} inputMode="decimal" value={usd} onChange={e=>setUsd(e.target.value)}/></label><label className="block text-sm">{ts('time')}<Input aria-label={ts('time')} type="datetime-local" value={when} onChange={e=>setWhen(e.target.value)}/></label><label className="block text-sm">{ts('category')}<select className="block h-10 w-full rounded-control border border-hairline bg-canvas p-2" value={source} onChange={e=>setSource(e.target.value)}>{['provider_invoice','platform_recharge','other'].map(key=><option value={key} key={key}>{ts(`source.${key}`)}</option>)}</select></label><label className="block text-sm">{t('reference')}<Input aria-label={t('reference')} value={reference} onChange={e=>setReference(e.target.value)}/></label><label className="block text-sm">{t('note')}<Input aria-label={t('note')} value={memo} onChange={e=>setMemo(e.target.value)}/></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={happened} onChange={e=>setHappened(e.target.checked)}/>{ts('happened')}</label><Button disabled={!valid} onClick={()=>setReview({kind:'supplier',target:'',path:`${prefix}/supplier-entries`,lookup:`${prefix}/supplier-entries`,lookupQuery:true,label:`${vendor.trim()} · ${formatUsdMinor(amount!)} USD`,description:`${t('brand')}: ${brand}\n${vendor.trim()} · ${formatUsdMinor(amount!)} USD\n${ts('time')}: ${new Date(date).toLocaleString()}\n${ts('recordConfirm')}`,data:{amount_minor:amount,currency:'USD',source_type:source,vendor_name:vendor.trim(),memo:memo.trim(),bank_ref:reference.trim(),occurred_at:date,confirmed:true}})}>{ts('review')}</Button></fieldset></DialogContent></Dialog>
+ <Dialog open={Boolean(selected)} onOpenChange={open=>{if(!open)setSelected(null);}}><DialogContent className="max-h-[90vh] overflow-y-auto" onCloseAutoFocus={e=>{e.preventDefault();trigger.current?.focus();}}><DialogTitle>{t('detail')}</DialogTitle><DialogDescription>{selected?.vendor_name||'—'} · {selected?`${formatUsdMinor(selected.amount_minor)} ${selected.currency}`:''}</DialogDescription>{selected&&<div className="space-y-2 break-all text-sm"><p>{selected.id}</p><p>{ts(`status.${selected.status}`)}</p><p>{ts('time')}: {new Date(selected.occurred_at).toLocaleString()}</p><p>{t('recordedAt')}: {new Date(selected.created_at).toLocaleString()} · {selected.actor_email||selected.actor_user_id}</p>{selected.bank_ref&&<p>{t('reference')}: {selected.bank_ref}</p>}{selected.memo&&<p>{t('note')}: {selected.memo}</p>}{selected.reversal_of&&<p>{ts('original')}: {selected.reversal_of}</p>}{selected.reversed_by&&<p>{ts('opposite')}: {selected.reversed_by}</p>}</div>}{canEdit&&selected&&!selected.reversal_of&&!selected.reversed_by&&<fieldset disabled={locked||!ready} className="space-y-3"><label className="block text-sm">{ts('reason')}<Input aria-label={ts('reason')} value={reason} onChange={e=>setReason(e.target.value)}/></label><Button variant="outline" disabled={!reason.trim()||new TextEncoder().encode(reason.trim()).length>1000} onClick={()=>setReview({kind:'supplier_reverse',target:selected.id,path:`${prefix}/supplier-entries/${encodeURIComponent(selected.id)}/reverse`,lookup:`${prefix}/supplier-entries`,lookupQuery:true,label:`${selected.vendor_name||'—'} · ${selected.id}`,description:`${t('brand')}: ${brand}\n${selected.id} · ${formatUsdMinor(-selected.amount_minor)} ${selected.currency}\n${ts('reason')}: ${reason.trim()}\n${ts('reverseConfirm')}`,data:{reason:reason.trim()}})}>{ts('reverse')}</Button></fieldset>}</DialogContent></Dialog>
+ <ConfirmDialog open={Boolean(review)} onOpenChange={open=>{if(!open)setReview(null);}} title={review?.kind==='supplier_reverse'?ts('reverse'):ts('record')} description={review?.description} error={op.error} onConfirm={async()=>review?await op.run(review):false}/>
+ </section>;
 }

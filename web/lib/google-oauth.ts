@@ -1,3 +1,6 @@
+import { safeNextPath } from "./login-next";
+import { promotionCode, type AuthIntent } from "./auth-intent";
+
 /** Next.js 接收 Google `?code=&state=` 的规范路径；Console 也登记这一条 Redirect URI。 */
 export const GOOGLE_OAUTH_CALLBACK_PATH = "/login/oauth/google";
 
@@ -45,12 +48,14 @@ export function sanitizeOAuthError(message: string | undefined | null, fallback:
   return cleaned;
 }
 
-export function oauthFailureHref(message: string, errorCode?: string): string {
+export function oauthFailureHref(message: string, errorCode?: string, intent?: AuthIntent): string {
   const params = new URLSearchParams();
   params.set("oauth_error", sanitizeOAuthError(message, "Google 登录失败"));
   if (errorCode && !hasSecretLike(errorCode) && errorCode.length < 64) {
     params.set("error_code", errorCode);
   }
+  if (safeNextPath(intent?.next)) params.set("next", safeNextPath(intent?.next));
+  if (promotionCode(intent?.promotionCode)) params.set("promotion_code", promotionCode(intent?.promotionCode));
   return `/login?${params.toString()}`;
 }
 
@@ -122,11 +127,11 @@ export function readStoredNext(storage: Pick<Storage, "getItem" | "removeItem"> 
 }
 
 export function storeLoginNext(storage: Pick<Storage, "setItem"> | null | undefined, next: string) {
-  if (!storage || !next) {
+  if (!storage) {
     return;
   }
   try {
-    storage.setItem(GOOGLE_OAUTH_NEXT_KEY, next);
+    storage.setItem(GOOGLE_OAUTH_NEXT_KEY, safeNextPath(next));
   } catch {
     /* ignore quota / private mode */
   }

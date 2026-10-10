@@ -68,6 +68,7 @@ describe("user-shell balance pill", () => {
 
   it("formats the nailed field as $x.xx and never invents $0.00 on miss/error", () => {
     expect(formatAvailableBalance("12.5")).toBe("$12.50");
+    expect(formatAvailableBalance("-0.02")).toBe("-$0.02");
     expect(formatAvailableBalance(0)).toBe("$0.00");
     expect(formatAvailableBalance("0")).toBe("$0.00");
     expect(formatAvailableBalance(undefined)).toBe(MISSING_PROFILE);

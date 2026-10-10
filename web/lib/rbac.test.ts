@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { adminGroups, portalLinks } from "./nav";
 import {
   canChannelAction,
+  canViewUserHref, canUseConsumerAccount,
   canAccessAdminConsole,
   canAccessChannelPortal,
   canAccessPartnerPortal,
@@ -32,12 +33,10 @@ describe("role menus", () => {
       expect(canViewChannelHref(`/channel/${page}`, c)).toBe(true);
     }
   });
-  it("lets unsigned viewers keep the full admin nav", () => {
-    expect(filterAdminGroups(adminGroups, guest).flatMap((group) => group.items).length).toBe(
-      adminGroups.flatMap((group) => group.items).length,
-    );
-    expect(canViewAdminHref("/admin/providers", guest)).toBe(true);
-    expect(canWrite("providers.write", guest)).toBe(true);
+  it("hides protected menus and writes until authenticated", () => {
+    expect(filterAdminGroups(adminGroups, guest)).toEqual([]);
+    expect(canViewAdminHref("/admin/providers", guest)).toBe(false);
+    expect(canWrite("providers.write", guest)).toBe(false);
   });
 
   it("hides upstream keys and user bans from finance", () => {
@@ -48,7 +47,7 @@ describe("role menus", () => {
     expect(hrefs).toContain("/admin/channels");
     expect(hrefs).toContain("/admin/commission");
     expect(hrefs).not.toContain("/admin/providers");
-    expect(hrefs).not.toContain("/admin/users");
+    expect(hrefs).toContain("/admin/users");
     expect(hrefs).not.toContain("/admin/audit");
     expect(hrefs).not.toContain("/admin/keys");
     expect(hrefs).not.toContain("/admin/prices");
@@ -64,7 +63,7 @@ describe("role menus", () => {
     const hrefs = filterAdminGroups(adminGroups, ops).flatMap((group) => group.items.map((item) => item.href));
     expect(canViewAdminHref("/admin/models", ops)).toBe(true);
     expect(canViewAdminHref("/admin/channels", ops)).toBe(true);
-    expect(canViewAdminHref("/admin/users", ops)).toBe(false);
+    expect(canViewAdminHref("/admin/users", ops)).toBe(true);
     expect(canViewAdminHref("/admin/audit", ops)).toBe(false);
     expect(hrefs).not.toContain("/admin/keys");
     expect(hrefs).not.toContain("/admin/prices");
@@ -91,7 +90,7 @@ describe("role menus", () => {
     const audit = signed(["audit_readonly"]);
     expect(canViewAdminHref("/admin/audit", audit)).toBe(true);
     expect(canViewAdminHref("/admin/billing", audit)).toBe(true);
-    expect(canViewAdminHref("/admin/users", audit)).toBe(false);
+    expect(canViewAdminHref("/admin/users", audit)).toBe(true);
     expect(canViewAdminHref("/admin/settings", audit)).toBe(false);
     expect(canWrite("audit.probe", audit)).toBe(false);
     expect(canWrite("billing.refund", audit)).toBe(false);
@@ -139,7 +138,7 @@ describe("OEM employee permissions", () => {
   });
   it("separates operating, financial and audit work", () => {
     expect(canViewChannelHref("/channel/users", signed(["oem_ops"], { channelType: "C" }))).toBe(true);
-    expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(false);
+    expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/audit", signed(["oem_audit"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "B" }))).toBe(false);
@@ -154,4 +153,14 @@ describe("brand payment authority", () => {
     expect(canChannelAction("paymentSettings", b)).toBe(false);
     expect(canChannelAction("operations", b)).toBe(true);
   });
+});
+
+
+it("keeps employee security and diagnostics separate from consumer funds",()=>{
+ const employee={signedIn:true,loading:false,roles:["end_user","audit_readonly"]};
+ expect(canUseConsumerAccount(employee)).toBe(false);expect(canViewUserHref("/app/wallet",employee)).toBe(false);
+ expect(canViewUserHref("/app/settings",employee)).toBe(true);expect(canViewUserHref("/app/keys",employee)).toBe(false);
+ expect(canViewUserHref("/app/keys",{...employee,roles:["tech_admin"]})).toBe(true);
+ expect(canViewUserHref("/app/media",{...employee,roles:["tech_admin"]})).toBe(false);
+ expect(canViewUserHref("/app/wallet",{...employee,roles:["end_user"]})).toBe(true);
 });

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { safeReturnHref } from "@/lib/return-context";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -48,6 +51,7 @@ type Provider = {
   health: string;
   status: string;
   timeout_ms?: number;
+  health_checked_at?: string;
   models?: MappedPublicModel[];
 };
 
@@ -80,14 +84,19 @@ function accountKindLabel(kind?: string): string {
 }
 
 export default function AdminProviderDetailPage() {
+  const t = useTranslations("modelService");
+  const viewer = useViewer();
+  const searchParams = useSearchParams();
+  const originModel = searchParams.get("model");
+  const returnTo = searchParams.get("return_to");
   const params = useParams<{ id: string }>();
   const raw = params.id;
   const routeID = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw || "");
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState("维护中会从路由候选里拿掉。不要改 echo-primary / echo-backup / gemini-flash。");
+  const [message, setMessage] = useState("");
   const query = useQuery({
-    queryKey: ["/admin/providers", routeID],
+    queryKey: [viewer.userId, "/admin/providers", routeID],
     queryFn: () => apiClient<ItemResponse>("GET", `/admin/providers/${encodeURIComponent(routeID)}`),
   });
   const item = query.data?.item;
@@ -106,12 +115,13 @@ export default function AdminProviderDetailPage() {
 
   return (
     <AdminShell>
+      {originModel ? <Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo, modelEditHref(originModel))}>{t("returnModel")}</Link> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/admin/providers" className="text-sm text-brand-emphasis no-underline hover:underline">
             返回列表
           </Link>
-          <h2 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h2>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h1>
           <p className="mt-1 text-sm text-ink-secondary">
             {item ? `${item.name} · ${providerKindLabel(item.kind)} · ${adapterLabel(item.adapter)}` : routeID}
           </p>
@@ -127,7 +137,7 @@ export default function AdminProviderDetailPage() {
                 <ConfirmButton
                   size="sm"
                   title="确认保存提供商"
-                  description="维护中会从路由拿掉。不要改 echo-primary / echo-backup / gemini-flash。"
+                  description={t("providerHint")}
                   validate={() => form.trigger()}
                   onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                     try {
@@ -156,7 +166,7 @@ export default function AdminProviderDetailPage() {
                     }
                     setMessage(`已保存 ${body.item?.slug || body.item?.id} → ${providerStatusLabel(body.item?.status)}`);
                     setEditing(false);
-                    await queryClient.invalidateQueries({ queryKey: ["/admin/providers", routeID] });
+                    await queryClient.invalidateQueries({ queryKey: [viewer.userId, "/admin/providers", routeID] });
                     return true;
                     } catch {
                       setMessage(confirmNetworkUnavailable);
@@ -249,7 +259,7 @@ export default function AdminProviderDetailPage() {
             <div>
               <dt className="text-ink-secondary">健康</dt>
               <dd className="mt-1">
-                <Badge tone={healthTone(item?.health)}>{healthLabel(item?.health)}</Badge>
+                <Badge tone={healthTone(item?.health)}>{item?.health_checked_at && Date.now() - new Date(item.health_checked_at).getTime() <= 86400000 ? healthLabel(item.health) : t("state.unknown")}</Badge>
               </dd>
             </div>
             <div>
@@ -271,9 +281,9 @@ export default function AdminProviderDetailPage() {
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
 
-      <MappedModelsPanel models={item?.models || []} />
-      {providerID ? <ProviderModelsPanel providerID={providerID} /> : null}
       <AccountPoolPanel providerID={providerID} />
+      {providerID ? <ProviderModelsPanel providerID={providerID} /> : null}
+      <MappedModelsPanel models={item?.models || []} />
     </AdminShell>
   );
 }

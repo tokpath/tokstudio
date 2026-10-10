@@ -1,11 +1,5 @@
-import { I18nConsoleHeader } from "@/components/i18n-page-hero";
-import ProfilePanel from "./profile-panel";
-
-export default function ProfilePage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <I18nConsoleHeader id="profile" />
-      <ProfilePanel />
-    </div>
-  );
+import { redirect } from "next/navigation";
+export default async function ProfilePage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}) {
+ const params=new URLSearchParams();for(const[key,value]of Object.entries(await searchParams)){if(typeof value==="string")params.set(key,value);}
+ redirect("/app/settings"+(params.size?`?${params}`:""));
 }

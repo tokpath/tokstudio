@@ -12,6 +12,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ConsoleEntryButton } from "@/components/layout/console-entry";
 import { iconForMegaLink } from "@/lib/page-icons";
+import { capturePublicInvitation, readPublicInvitation, publicInvitationHref } from "@/lib/public-invitation";
 
 export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () => void }) {
   const pathname = usePathname();
@@ -20,6 +21,13 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
   const name = brand?.name || "TokenHub";
   const [openId, setOpenId] = useState<string | null>(null);
   const rootRef = useRef<HTMLElement>(null);
+  const [invitation,setInvitation]=useState("");
+  useEffect(()=>{
+    function capture(){try{capturePublicInvitation(sessionStorage,new URLSearchParams(window.location.search),brand?.id || "");setInvitation(readPublicInvitation(sessionStorage,brand?.id || ""));}catch{/* private mode */}}
+    capture();document.addEventListener("click",capture,true);window.addEventListener("popstate",capture);
+    return ()=>{document.removeEventListener("click",capture,true);window.removeEventListener("popstate",capture);};
+  },[pathname,brand?.id]);
+  const publicHref=(href:string)=>publicInvitationHref(href,invitation);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -52,7 +60,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
   return (
     <header ref={rootRef} className="sticky top-0 z-40 border-b border-hairline bg-canvas">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-8 px-6">
-        <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">
+        <Link href={publicHref("/")} className="flex items-center gap-2.5 text-ink no-underline">
           <BrandLogo brand={brand} />
           <span className="text-xl font-semibold tracking-tight">{name}</span>
         </Link>
@@ -90,7 +98,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={publicHref(item.href)}
                 className={`inline-flex items-center rounded-control px-3 py-1.5 text-sm no-underline transition-colors duration-150 ${
                   active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary hover:text-ink"
                 }`}
@@ -116,7 +124,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
                           return (
                             <li key={`${col.titleKey}-${link.href}-${link.labelKey || link.literal}`}>
                               <Link
-                                href={link.href}
+                                href={publicHref(link.href)}
                                 className="flex items-start gap-2.5 rounded-control px-2 py-2 no-underline transition-colors duration-150 hover:bg-brand-soft/60"
                                 onClick={() => setOpenId(null)}
                               >
@@ -161,7 +169,7 @@ export function SiteHeader({ brand, onCommand }: { brand?: Brand; onCommand: () 
           return (
             <Link
               key={`${item.href}-${linkLabel(item)}`}
-              href={item.href}
+              href={publicHref(item.href)}
               className={`shrink-0 rounded-control px-3 py-1.5 text-sm no-underline ${
                 active ? "bg-brand-soft text-brand-emphasis" : "text-ink-secondary"
               }`}

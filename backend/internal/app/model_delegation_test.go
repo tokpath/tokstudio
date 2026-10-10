@@ -101,16 +101,24 @@ func TestHierarchicalModelAuthorization(t *testing.T) {
 	}); code != http.StatusOK {
 		t.Fatalf("OEM could not set brand customer price: %d", code)
 	}
+	// Legacy B buying terms must not affect a new brand customer request.
+	if err := a.DB.Table("catalog_channel_model_policies").Where("channel_org_id=?", child).Update("wholesale_json", `{"input":"0.9","output":"0.8"}`).Error; err != nil {
+		t.Fatal(err)
+	}
 	quote, err := a.Catalog.PriceForChannel(ctx, child, catalog.EchoModelID, json.RawMessage(`{"input":"0.000001","output":"0.000002"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var prices map[string]string
+	var prices map[string]any
 	if err := json.Unmarshal(quote, &prices); err != nil {
 		t.Fatal(err)
 	}
 	if prices["input"] != "0.000003" || prices["output"] != "0.000005" || prices["wholesale_input"] != "0.0000007" {
-		t.Fatalf("B did not inherit OEM customer price while keeping its settlement terms: %+v", prices)
+		t.Fatalf("B did not inherit the brand customer price and original OEM settlement terms: %+v", prices)
+	}
+	sell, ok := prices["customer_sell"].(map[string]any)
+	if !ok || sell["input"] != prices["input"] || sell["output"] != prices["output"] {
+		t.Fatalf("nested and flat brand prices differ: %+v", prices)
 	}
 	grant(parent, cfg.BootstrapAdmin, false)
 	checkVisible(parent, false)

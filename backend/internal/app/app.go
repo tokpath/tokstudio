@@ -101,13 +101,16 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	if withGateway {
 		var err error
 		rt, err = gateway.Start(context.Background(), gateway.Settings{
-			LogLevel:         cfg.LogLevel,
-			OpenAIAPIKey:     cfg.OpenAIAPIKey,
-			AnthropicAPIKey:  cfg.AnthropicAPIKey,
-			GeminiAPIKey:     cfg.GeminiAPIKey,
-			OpenRouterAPIKey: cfg.OpenRouterAPIKey,
-			EncryptionKey:    cfg.EncryptionKey,
-			Keys:             catalogSvc,
+			LogLevel:             cfg.LogLevel,
+			OpenAIAPIKey:         cfg.OpenAIAPIKey,
+			AnthropicAPIKey:      cfg.AnthropicAPIKey,
+			GeminiAPIKey:         cfg.GeminiAPIKey,
+			OpenRouterAPIKey:     cfg.OpenRouterAPIKey,
+			EncryptionKey:        cfg.EncryptionKey,
+			Keys:                 catalogSvc,
+			Production:           cfg.IsProduction(),
+			UpstreamURLAllowlist: cfg.UpstreamURLAllowlist,
+			AllowTestLoopback:    cfg.Env == "test",
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("bifrost_embed_init_failed")
@@ -229,9 +232,12 @@ func (a *App) Router() *gin.Engine {
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
+	a.registerCustomerRoutes(r)
+	a.registerPersonalRecordsRoutes(r)
 	a.registerBrandWriteRoutes(r)
 	a.registerGatewayRoutes(r)
 	a.registerBillingRoutes(r)
+	a.registerUsageWorkflowRoutes(r)
 	a.registerMediaRoutes(r)
 	a.registerPlanRoutes(r)
 	a.registerPaymentChannelRoutes(r)
@@ -239,6 +245,7 @@ func (a *App) Router() *gin.Engine {
 	a.registerOpsRoutes(r)
 	a.registerOEMManagementRoutes(r)
 	a.registerStaffRoutes(r)
+	a.registerOEMDeliveryRoutes(r)
 	return r
 }
 

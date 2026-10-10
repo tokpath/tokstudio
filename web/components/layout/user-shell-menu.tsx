@@ -16,6 +16,9 @@ import {
   type BalanceLoadState,
   type MeProfile,
 } from "@/lib/user-shell";
+import { useBrand } from "@/components/brand-context";
+import { subscribeWalletChanged } from "@/lib/wallet-events";
+import { canUseConsumerAccount, canViewUserHref } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
 
 type ShellMe = MeProfile & { id?: string };
@@ -43,7 +46,9 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
   const t = useTranslations("shell");
   const router = useRouter();
   const viewer = useViewer();
+  const brand = useBrand();
   const isUserShell = variant === "user";
+  const hasConsumerFunds = isUserShell && canUseConsumerAccount(viewer);
   const [me, setMe] = useState<ShellMe | null>(null);
   const [meReady, setMeReady] = useState(false);
   const [balanceState, setBalanceState] = useState<BalanceLoadState>("loading");
@@ -54,6 +59,8 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
 
   useEffect(() => {
     let cancelled = false;
+    let balanceGeneration = 0;
+    setMe(null);setMeReady(false);setBalanceState("loading");setAvailable(undefined);
     async function loadMe() {
       try {
         const response = await fetch(`${apiBase}/v1/me`, { credentials: "include" });
@@ -77,35 +84,38 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
       }
     }
     async function loadBalance() {
+      const generation = ++balanceGeneration;
+      setBalanceState("loading");
       try {
         const response = await fetch(`${apiBase}/v1/me/balance`, { credentials: "include" });
         if (!response.ok) {
-          if (!cancelled) {
+          if (!cancelled && generation === balanceGeneration) {
             setBalanceState("error");
             setAvailable(undefined);
           }
           return;
         }
         const body = (await response.json()) as { balance?: { available?: string | number } };
-        if (!cancelled) {
+        if (!cancelled && generation === balanceGeneration) {
           setAvailable(readNailedAvailable(body));
           setBalanceState("ok");
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && generation === balanceGeneration) {
           setBalanceState("error");
           setAvailable(undefined);
         }
       }
     }
     void loadMe();
-    if (isUserShell) {
+    if (hasConsumerFunds) {
       void loadBalance();
     }
+    const unsubscribe = subscribeWalletChanged({userId:viewer.userId || "",brandId:brand?.id || ""},()=>{if(hasConsumerFunds)void loadBalance();});
     return () => {
-      cancelled = true;
+      cancelled = true; unsubscribe();
     };
-  }, [isUserShell]);
+  }, [hasConsumerFunds, viewer.userId, brand?.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -143,7 +153,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
 
   return (
     <>
-      {isUserShell ? (
+      {hasConsumerFunds ? (
         balanceState === "loading" ? (
           <span
             data-testid="balance-pill"
@@ -209,13 +219,13 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
               <p data-testid="menu-email" className="mt-0.5 truncate text-[12px] text-ink-mute">
                 {email}
               </p>
-              {isUserShell ? (
+              {hasConsumerFunds ? (
                 <p data-testid="menu-balance" className="mt-1 font-mono text-sm tabular-nums text-ink">
                   {amount}
                 </p>
               ) : null}
             </div>
-            {isUserShell ? (
+            {hasConsumerFunds ? (
               <Link
                 href="/app/wallet"
                 role="menuitem"
@@ -228,7 +238,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
               </Link>
             ) : null}
             <Link
-              href="/app/profile"
+              href="/app/settings"
               role="menuitem"
               className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
               onClick={() => setOpen(false)}
@@ -248,7 +258,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
                 {t("platformAdmin")}
               </Link>
             ) : null}
-            {!isUserShell ? (
+            {!isUserShell && canUseConsumerAccount(viewer) ? (
               <Link
                 href="/app"
                 role="menuitem"
@@ -260,7 +270,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
                 {t("userConsole")}
               </Link>
             ) : null}
-            {isUserShell ? (
+            {isUserShell && canViewUserHref("/app/keys", viewer) ? (
               <Link
                 href="/app/keys"
                 role="menuitem"

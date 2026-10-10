@@ -1,0 +1,60 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useViewer } from "@/components/rbac/viewer-context";
+import { canChannelAction, canWrite } from "@/lib/rbac";
+import { apiBase } from "@/lib/api";
+import { confirmHeaders } from "@/lib/confirm";
+import { formatOrderDue,formatOrderCredit } from "@/lib/checkout";
+import { formatUsdMinor } from "@/lib/money";
+import { copyText } from "@/lib/submit-result";
+import { safeReturnHref } from "@/lib/return-context";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
+
+export type PaymentOrder={id:string;user_id:string;channel_org_id:string;payee_channel_org_id:string;adapter:string;purpose:string;status:string;payment_issue?:string;refund_status?:string;refund_amount_minor?:number;amount_minor:number;credit_minor:number;currency:string;created_at:string;fulfilled_at?:string;received_at?:string;receipt_reference?:string;receipt_note?:string;recorded_by?:string;refunded_at?:string;refund_recorded_by?:string;reference_type?:string;reference_id?:string};
+type Detail={item:{order:PaymentOrder;allocations:{id:string;pool_channel_org_id:string;channel_org_id:string;granted_minor:number;consumed_minor:number;status:string}[];events:{id:string;adapter:string;signature_valid:boolean;processed_at:string;status?:string;applied_at?:string;processing_error?:string}[];subscription_status?:string};customer:{email:string;display_name:string};channel_codes:Record<string,string>;channel_names?:Record<string,string>;recorded_by?:{email:string;display_name:string};refund_recorded_by?:{email:string;display_name:string}};
+type Refund={order:PaymentOrder;credit_reclaim_minor:number;subscription:boolean;can_refund:boolean;blocked_reason?:string};
+export function PaymentOrderDetail({id,oem=false}:{id:string;oem?:boolean}){
+ const t=useTranslations("paymentTasks");const viewer=useViewer();const queryClient=useQueryClient();const returnTo=useSearchParams().get("return_to");const path=oem?`/channel/payments/orders/${encodeURIComponent(id)}`:`/admin/payments/${encodeURIComponent(id)}`;
+ const [when,setWhen]=useState(()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16));
+ const [message,setMessage]=useState("");const [error,setError]=useState("");const [preview,setPreview]=useState<Refund|null>(null);
+ const query=useQuery({queryKey:[viewer.userId,path],queryFn:async()=>{const response=await fetch(`${apiBase}${path}`,{credentials:"include"});const body=await response.json();if(!response.ok||!body.item)throw new Error(body.error?.message||t("loadFailed"));return body as Detail}});
+ const writable=oem?canChannelAction("finance",viewer):canWrite("payments.write",viewer);
+ async function refundPreview(){setError("");if(query.data?.item.order.adapter==="manual"&&(!when||!Number.isFinite(new Date(when).getTime())||new Date(when).getTime()>Date.now()+300000)){setError(t("fillTime"));return false}setPreview(null);try{const response=await fetch(`${apiBase}${path}/refund-preview`,{credentials:"include"});const body=await response.json();if(!response.ok||!body.item){setError(body.error?.message||t("previewFailed"));return false}setPreview(body.item);if(!body.item.can_refund){setError(t(body.item.blocked_reason==="credit_unavailable"?"blockedCredit":"blockedStatus"));return false}return true}catch{setError(t("previewFailed"));return false}}
+ async function act(action:"confirm"|"refund"){setError("");try{const response=await fetch(`${apiBase}${path}/${action}`,{method:"POST",credentials:"include",headers:confirmHeaders,body:JSON.stringify({occurred_at:when&&Number.isFinite(new Date(when).getTime())?new Date(when).toISOString():undefined})});const body=await response.json();if(!response.ok){setError(body.error?.message||t("actionUnknown"));return false}if(!body.item?.id){setError(t("actionUnknown"));return false}setMessage(t(action==="refund"?(body.item.status==="refunded"?"refundDone":"refundRequested"):"actionDone",{id}));await Promise.allSettled([query.refetch(),queryClient.invalidateQueries({predicate:q=>q.queryKey.some(key=>typeof key==="string"&&(key.startsWith("/admin/payments")||key.startsWith("/channel/payments")))})]);return true}catch{setError(t("actionUnknown"));return false}}
+ const back=safeReturnHref(returnTo,oem?"/channel/payments/orders":"/admin/payments");
+ if(query.isPending)return <p role="status">{t("loading")}</p>;
+ if(query.isError||!query.data)return <section><Link className="text-brand-emphasis underline" href={back}>{t("back")}</Link><p role="alert">{t("loadFailed")}</p><Button variant="outline" onClick={()=>void query.refetch()}>{t("refresh")}</Button></section>;
+ const {item,customer,channel_codes:codes}=query.data;const order=item.order;const needsReview=Boolean(order.refund_status&&order.status!=="refunded"&&!(order.status==="refunding"&&order.refund_status==="refunding"));const label=(key:string)=>["pending","paid","refunding","refunded","failed","expired","wallet","subscription","renewal","refund_failed","refund_partial","refund_review","manual","stripe","alipay","wechat"].includes(key)?t(key):key;
+ const person=(value:{email?:string;display_name?:string}|undefined,fallback:string)=>{const name=value?.display_name?.trim(),email=value?.email?.trim();return name&&email&&name!==email?`${name} · ${email}`:name||email||fallback};
+ const customerName=person(customer,order.user_id);
+ const ownerName=query.data.channel_names?.[order.payee_channel_org_id]||codes[order.payee_channel_org_id]||order.payee_channel_org_id;
+ const receiptActor=person(query.data.recorded_by,order.recorded_by||"—"),refundActor=person(query.data.refund_recorded_by,order.refund_recorded_by||"—");
+ const refundDescription=preview?[customerName,`${id} · ${ownerName}`,preview.subscription?t("subscriptionReclaim",{cash:formatOrderDue(order),currency:order.currency}):t("reclaim",{amount:formatUsdMinor(preview.credit_reclaim_minor),cash:formatOrderDue(order),currency:order.currency}),order.adapter==="manual"?`${t("refundAt")}: ${new Date(when).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})}`:"",t("refundHint")].filter(Boolean).join("\n"):"";
+ return <div className="space-y-6">
+  <Link className="text-brand-emphasis underline" href={back}>{t("back")}</Link>
+  <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">{t("details")}</h1><p className="mt-2 break-all font-mono text-sm">{id}</p></div><Button variant="outline" onClick={()=>void query.refetch()}>{t("refresh")}</Button></header>
+  {message?<p role="status" aria-live="polite" className="rounded-control border border-hairline p-3">{message}</p>:null}
+  {error?<p role="alert" className="text-danger">{error}</p>:null}
+  {order.payment_issue?<p role="alert" className="rounded-control border border-hairline p-3">{t("paymentReviewHint")}</p>:null}
+  {needsReview?<p role="alert" className="rounded-control border border-hairline p-3">{t("refundReviewHint")}</p>:null}
+  <dl className="grid gap-4 rounded-card border border-hairline bg-canvas-raised p-6 sm:grid-cols-2">
+   {[[t("customer"),customerName],[t("attribution"),codes[order.channel_org_id]||order.channel_org_id],[t("payee"),ownerName],[t("purpose"),label(order.purpose)],[t("adapter"),label(order.adapter)],[t("amount"),`${formatOrderDue(order)} ${order.currency}`],[t("credit"),`${formatOrderCredit(order)} USD`],[t("status"),label(order.status)],...(order.adapter==="manual"?[[t("registeredRefundAmount"),order.refund_amount_minor==null?"—":`${formatOrderDue({...order,amount_minor:order.refund_amount_minor})} ${order.currency}`]]:[[t("refundState"),order.refund_status?label(order.refund_status):"—"],[t("actualRefund"),order.refund_amount_minor==null?"—":`${formatOrderDue({...order,amount_minor:order.refund_amount_minor})} ${order.currency}`]]),[t("fulfillment"),order.status==="refunded"?t("reclaimed"):order.fulfilled_at?t("fulfilled"):t("unfulfilled")],[t("createdAt"),new Date(order.created_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})],[t("receiptAt"),order.received_at?new Date(order.received_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"}):"—"],[t("recordedBy"),receiptActor],[t("refundAt"),order.refunded_at?new Date(order.refunded_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"}):"—"],[t("refundRecordedBy"),refundActor],[t("reference"),order.receipt_reference||"—"],[t("note"),order.receipt_note||"—"],[t("orderReference"),order.reference_id||"—"]].map(([name,value])=><div key={name}><dt className="text-sm text-ink-secondary">{name}</dt><dd className="mt-1 break-all text-sm">{value}</dd></div>)}
+  </dl>
+  <details className="text-xs text-ink-mute"><summary>{t("recordIDs")}</summary><dl className="mt-2 space-y-2">{[[t("customer"),order.user_id],[t("payee"),order.payee_channel_org_id],[t("recordedBy"),order.recorded_by],[t("refundRecordedBy"),order.refund_recorded_by]].filter(([,value])=>value).map(([name,value])=><div key={name}><dt>{name}</dt><dd className="break-all font-mono">{value} <Button size="sm" variant="ghost" onClick={async()=>{setMessage(await copyText(value!)?t("copiedID"):t("copyIDFallback",{id:value!}));}}>{t("copyID")}</Button></dd></div>)}</dl></details>
+  {writable&&!needsReview?<div className="flex flex-wrap items-end gap-3">
+   {order.adapter==="manual"&&["pending","paid"].includes(order.status)?<label className="grid gap-1 text-sm">{t(order.status==="pending"?"occurredAt":"refundAt")}<Input type="datetime-local" value={when} onChange={event=>setWhen(event.target.value)}/></label>:null}
+   {(order.status==="pending"&&order.adapter==="manual")||(order.status==="paid"&&!order.fulfilled_at)?<ConfirmButton title={order.status==="paid"?t("retryFulfillment"):t("confirm")} description={`${customer.email} · ${id} · ${formatOrderDue(order)} ${order.currency}\n${t(order.status==="paid"?"retryHint":"confirmHint")}`} error={error} validate={()=>{if(order.status==="paid")return true;const valid=Boolean(when&&Number.isFinite(new Date(when).getTime())&&new Date(when).getTime()<=Date.now()+300000);if(!valid)setError(t("fillTime"));return valid}} onConfirm={()=>act("confirm")}>{order.status==="paid"?t("retryFulfillment"):t("confirm")}</ConfirmButton>:null}
+   {order.status==="refunding"?<ConfirmButton variant="outline" title={t("retryRefund")} description={`${id} · ${formatOrderDue(order)} ${order.currency}\n${t("refundPendingHint")}`} error={error} onConfirm={()=>act("refund")}>{t("retryRefund")}</ConfirmButton>:null}
+   {order.status==="paid"?<ConfirmButton variant="outline" title={order.adapter==="manual"?t("manualRefund"):t("refund")} description={refundDescription} error={error} validate={refundPreview} onConfirm={()=>act("refund")}>{order.adapter==="manual"?t("manualRefund"):t("refund")}</ConfirmButton>:null}
+  </div>:null}
+  {item.allocations.length?<section className="rounded-card border border-hairline p-6"><h2 className="font-semibold">{t("allocation")}</h2><ul className="mt-3 space-y-3 text-sm">{item.allocations.map(row=><li key={row.id}><p className="break-all">{t("pool")}: {codes[row.pool_channel_org_id]||row.pool_channel_org_id}</p><p>{t("credit")}: {formatUsdMinor(row.granted_minor)} · {t("consumed")}: {formatUsdMinor(row.consumed_minor)} USD</p></li>)}</ul></section>:null}
+  <section className="rounded-card border border-hairline p-6"><h2 className="font-semibold">{t("events")}</h2><ul className="mt-3 space-y-2 text-sm">{item.events.length?item.events.map(event=><li key={event.id}>{event.adapter} · {event.status?label(event.status):t("receivedEvent")} · {event.processing_error?t("applicationPending"):event.applied_at?t("appliedEvent"):t("receivedEvent")} · {event.signature_valid?t("validSignature"):t("invalidSignature")} · {new Date(event.processed_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})}</li>):<li>{t("noEvents")}</li>}</ul></section>
+ </div>
+}

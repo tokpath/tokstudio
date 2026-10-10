@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const maxPageSize = 100
+
 // Page 对齐 docs/06：limit 默认 20、最大 100，cursor 为上一页最后一条 id。
 func Page(c *gin.Context, defaultLimit int) (limit int, cursor string) {
 	if defaultLimit <= 0 {
@@ -19,8 +21,8 @@ func Page(c *gin.Context, defaultLimit int) (limit int, cursor string) {
 			limit = n
 		}
 	}
-	if limit > 100 {
-		limit = 100
+	if limit > maxPageSize {
+		limit = maxPageSize
 	}
 	return limit, c.Query("cursor")
 }
@@ -34,7 +36,14 @@ func NextCursor(items []string, limit int) string {
 
 // Paginate 按 id cursor 切一页，避免复用原切片底层数组。
 func Paginate[T any](items []T, limit int, cursor string, idFn func(T) string) (page []T, next string) {
-	page = make([]T, 0, limit)
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > maxPageSize {
+		limit = maxPageSize
+	}
+	// Allocation has a fixed upper bound independent of request input.
+	page = make([]T, 0, maxPageSize)
 	seen := cursor == ""
 	for _, item := range items {
 		if !seen {
@@ -48,7 +57,7 @@ func Paginate[T any](items []T, limit int, cursor string, idFn func(T) string) (
 			break
 		}
 	}
-	ids := make([]string, 0, len(page))
+	ids := make([]string, 0, maxPageSize)
 	for _, item := range page {
 		ids = append(ids, idFn(item))
 	}

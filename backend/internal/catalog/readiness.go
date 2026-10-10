@@ -3,6 +3,8 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"gorm.io/gorm"
 	"math"
 	"strconv"
 	"strings"
@@ -35,7 +37,10 @@ func (s *Service) validateModelReady(ctx context.Context, model publicModelRow) 
 	var price priceRow
 	if err := s.db.WithContext(ctx).Where("public_model_id = ? AND provider_id IS NULL AND status = ?", model.ID, SyncPublished).
 		Order("effective_at DESC").First(&price).Error; err != nil {
-		return ErrModelIncomplete
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrModelIncomplete
+		}
+		return err
 	}
 	var units map[string]any
 	if err := json.Unmarshal(price.UnitPrices, &units); err != nil {

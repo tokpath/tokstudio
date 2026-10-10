@@ -4,48 +4,40 @@ import { catalogModelUsable, exampleCurl, examplePath, modelEntry, protocolAllow
 export function apiHostFromEndpoint(endpoint: string): string {
   const raw = endpoint.trim();
   if (!raw) {
-    return "localhost";
+    return "";
   }
   try {
     const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
-    return url.host || "localhost";
+    return url.host || "";
   } catch {
-    return "localhost";
+    return "";
   }
 }
 
-export function pickKeyExampleModel(allowlist: string[] | undefined, catalog: CatalogModel[]): string {
-  const usable = catalog.filter((item) => catalogModelUsable(item));
-  if (allowlist && allowlist.length > 0) {
-    const allowedUsable = allowlist.filter((id) => usable.some((item) => item.id === id));
-    const chat = allowedUsable.find((id) => {
-      const found = usable.find((item) => item.id === id);
-      return found ? modelEntry(found) === "chat" : false;
-    });
-    return chat || allowedUsable[0] || "";
-  }
-  const chat = usable.find((item) => modelEntry(item) === "chat");
-  return chat?.id || usable[0]?.id || "";
+export function pickKeyExampleModel(allowlist: string[] | undefined, catalog: CatalogModel[], requested = ""): string {
+  if (!requested) return "";
+  return catalog.some(item=>item.id===requested&&catalogModelUsable(item)) && (!allowlist?.length || allowlist.includes(requested)) ? requested : "";
 }
 
 export function keyExampleFor(
   allowlist: string[] | undefined,
   catalog: CatalogModel[],
   endpoint: string,
+  requested = "",
 ): { model: string; path: string; curl: string; verifiable: boolean } {
-  const model = pickKeyExampleModel(allowlist, catalog);
+  const model = pickKeyExampleModel(allowlist, catalog, requested);
   const found = catalog.find((item) => item.id === model);
-  const host = apiHostFromEndpoint(endpoint);
+  const host = endpoint;
   if (!found) {
     return {
       model: "",
       path: "",
-      curl: exampleCurl("your-model", "/v1/chat/completions", host),
+      curl: "",
       verifiable: false,
     };
   }
   const path = examplePath(found);
-  return { model, path, curl: exampleCurl(model, path, host), verifiable: protocolAllowsKeyVerify(path) };
+  return { model, path, curl: exampleCurl(model, path, host), verifiable: !!endpoint && protocolAllowsKeyVerify(path) };
 }
 
 export function keyVerifyRequest(model: string, path: string): { path: string; body: Record<string, unknown> } | null {
@@ -54,10 +46,10 @@ export function keyVerifyRequest(model: string, path: string): { path: string; b
     return null;
   }
   if (path.startsWith("/v1/chat/completions")) {
-    return { path: "/v1/chat/completions", body: { model: id, messages: [{ role: "user" as const, content: "ping" }] } };
+    return { path: "/v1/chat/completions", body: { model: id, max_tokens:32, messages: [{ role: "user" as const, content: "ping" }] } };
   }
   if (path.startsWith("/v1/responses")) {
-    return { path: "/v1/responses", body: { model: id, input: "ping" } };
+    return { path: "/v1/responses", body: { model: id, max_output_tokens:32, input: "ping" } };
   }
   if (path.startsWith("/v1/messages")) {
     return {

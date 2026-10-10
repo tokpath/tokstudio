@@ -214,6 +214,7 @@ func forceFailChat(t *testing.T, url, token, provider string) statusBody {
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tokenhub-Force-Fail", provider)
+	diagnosticTestRequest(t, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

@@ -1,31 +1,9 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/button";
-import { PublicSection, PublicMain } from "@/components/public-section";
-import { FeatureCard } from "@/components/feature-card";
-import { I18nPublicHero } from "@/components/i18n-page-hero";
-import { PROMO_STEP_ICONS } from "@/lib/page-icons";
+import { PublicMain, PublicPageHero } from "@/components/public-section";
+import { loginIntentHref } from "@/lib/auth-intent";
 
-export default async function PromoPage() {
-  const t = await getTranslations("promoUi");
-  return (
-    <PublicMain>
-      <I18nPublicHero id="promo" primaryHref="/login" secondaryHref="/channel" />
-      <PublicSection eyebrow="HOW" title={t("howTitle")}>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <FeatureCard key={i} icon={PROMO_STEP_ICONS[i]} title={t(`l${i}`)} />
-          ))}
-        </div>
-      </PublicSection>
-      <div className="flex flex-wrap gap-3">
-        <Button asChild variant="outline">
-          <Link href="/partner">{t("partner")}</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/docs">{t("docs")}</Link>
-        </Button>
-      </div>
-    </PublicMain>
-  );
+export default async function PromoPage({searchParams}: {searchParams: Promise<{promotion_code?:string; promo?:string}>}) {
+  const search = await searchParams;
+  const t = await getTranslations("publicExperience");
+  return <PublicMain width="prose"><PublicPageHero eyebrow="API" title={t("referralTitle")} description={t("referralDetail")} primaryHref={loginIntentHref("/app/referral",search.promotion_code || search.promo)} primaryLabel={t("referralAction")} secondaryHref="/models" secondaryLabel={t("browseModels")} /></PublicMain>;
 }

@@ -8,6 +8,7 @@ export type CatalogModel = {
   capabilities?: Record<string, unknown>;
   sell_price?: Record<string, unknown>;
   status?: string;
+  service_status?: "available"|"unknown"|"degraded"|"unavailable";
   description?: string;
   context_length?: number;
   max_completion_tokens?: number;
@@ -48,6 +49,7 @@ export type AdminModel = {
   display_name: string;
   status: string;
   config_ready?: boolean;
+  service_readiness?: { configuration_ready: boolean; callable: boolean; runtime_state: string; route_ids: string[]; missing: string[]; providers: {provider_id: string; route_id: string; upstream_model_id: string; missing: string[]; runtime_state: string; checked_at?: string}[] };
   sync_state?: string;
   created_by_user_id?: string;
   reviewed_by_user_id?: string;
@@ -113,7 +115,8 @@ function normalizeCatalogModel(m: CatalogModel): CatalogModel {
     display_name: m.display_name || m.id || "unknown",
     capabilities: m.capabilities,
     sell_price: m.sell_price,
-    status: m.status || "available",
+    status: m.service_status || (m.status === "published" ? "unknown" : m.status) || "unknown",
+    service_status:m.service_status,
     kind: m.kind || inferKind(m),
     description: m.description,
     context_length: m.context_length,

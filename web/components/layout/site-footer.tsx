@@ -37,9 +37,7 @@ export function SiteFooter({ brand }: { brand?: Brand }) {
             © {new Date().getFullYear()} {name} {tc("footerCopy")}
           </p>
           <p className="flex flex-wrap gap-x-4 gap-y-2">
-            <Link href="/app" className="transition-colors duration-150 hover:text-ink">{tc("footerApp")}</Link>
-            <Link href="/channel" className="transition-colors duration-150 hover:text-ink">{tc("footerChannel")}</Link>
-            <Link href="/admin" className="transition-colors duration-150 hover:text-ink">{tc("footerAdmin")}</Link>
+            <Link href="/enter" className="transition-colors duration-150 hover:text-ink">{tc("footerApp")}</Link>
             <Link href="/login" className="transition-colors duration-150 hover:text-ink">{tc("login")}</Link>
           </p>
         </div>

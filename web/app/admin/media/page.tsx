@@ -9,6 +9,7 @@ export default function AdminMediaPage() {
   return (
     <AdminShell>
       <AdminListPanel<Job>
+        headingLevel={1}
         path="/admin/media"
         title="媒体任务"
         columns={[

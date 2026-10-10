@@ -170,6 +170,7 @@ export default function MediaPanel({
 } = {}) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
+  const tKey = useTranslations("keyUX");
   const tCat = useTranslations("catalog");
   const seededKind: MediaFormValues["kind"] = initialKind === "video" ? "video" : "image";
   const entryBlocked = Boolean(initialModel) && (!catalogOk || Boolean(modelError));
@@ -358,6 +359,10 @@ export default function MediaPanel({
   }
 
   async function createJob(values: MediaFormValues) {
+	if (values.kind === "image" && values.task_type === "edit") {
+	  setCreateError(tKey("imageEditUnsupported"));
+	  return;
+	}
     if (entryBlocked) {
       setCreateError(
         !catalogOk ? catalogMessage || tc("listFailed") : modelError === "unavailable" ? t("pgModelUnavailable") : t("pgModelMissing"),
@@ -790,8 +795,8 @@ export default function MediaPanel({
                         }}
                       >
                         {modes.map((mode) => (
-                          <option key={mode.value} value={mode.value}>
-                            {mode.label}
+                          <option key={mode.value} value={mode.value} disabled={currentKind === "image" && mode.value === "edit"}>
+                            {currentKind === "image" && mode.value === "edit" ? tKey("imageEditUnsupported") : mode.label}
                           </option>
                         ))}
                       </select>

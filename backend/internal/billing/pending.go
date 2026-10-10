@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,7 +19,7 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 	if in.Limit > 200 {
 		in.Limit = 200
 	}
-	q := s.db.WithContext(ctx).Model(&usageRow{}).Order("occurred_at DESC").Limit(in.Limit)
+	q := s.db.WithContext(ctx).Model(&usageRow{}).Order("occurred_at DESC,id DESC").Limit(in.Limit)
 	q = applyUsageFilters(q, in)
 	switch in.State {
 	case "", UsagePending:
@@ -26,6 +28,10 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 		q = q.Where("state IN ?", []string{UsagePending, UsageVoided})
 	default:
 		q = q.Where("state = ?", in.State)
+	}
+	q, err := usageCursor(q, in.Cursor)
+	if err != nil {
+		return nil, err
 	}
 	var rows []usageRow
 	if err := q.Find(&rows).Error; err != nil {
@@ -36,11 +42,15 @@ func (s *Service) ListPendingReconciliation(ctx context.Context, in QueryUsageIn
 
 // GetUsageGap 按 usage id 或 request_id 打开缺口详情。
 func (s *Service) GetUsageGap(ctx context.Context, key string) (*UsageGapView, error) {
+	return s.GetUsageGapScoped(ctx, key, QueryUsageInput{})
+}
+
+func (s *Service) GetUsageGapScoped(ctx context.Context, key string, scope QueryUsageInput) (*UsageGapView, error) {
 	if key == "" {
 		return nil, ErrNotFound
 	}
 	var row usageRow
-	if err := s.db.WithContext(ctx).Where("id = ? OR request_id = ?", key, key).First(&row).Error; err != nil {
+	if err := applyUsageFilters(s.db.WithContext(ctx).Model(&usageRow{}), scope).Where("(id = ? OR request_id = ?)", key, key).First(&row).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		}
@@ -58,26 +68,41 @@ func (s *Service) GetUsageGap(ctx context.Context, key string) (*UsageGapView, e
 
 // ResolvePending 标记已解：作废 pending usage、释放预授权。已结算的账单拒绝，禁止估算扣款。
 func (s *Service) ResolvePending(ctx context.Context, in ResolvePendingInput) (*ResolvePendingResult, error) {
+	return s.ResolvePendingScoped(ctx, in, QueryUsageInput{})
+}
+
+func (s *Service) ResolvePendingScoped(ctx context.Context, in ResolvePendingInput, scope QueryUsageInput) (*ResolvePendingResult, error) {
 	keys := uniqueNonEmpty(append(append([]string{}, in.IDs...), in.RequestIDs...))
 	if len(keys) == 0 {
 		return nil, ErrInvalidAmount
 	}
-	out := &ResolvePendingResult{Items: make([]UsageGapView, 0, len(keys))}
+	out := &ResolvePendingResult{Items: make([]UsageGapView, 0, len(keys)), Results: make([]PendingResolution, 0, len(keys))}
 	for _, key := range keys {
-		item, err := s.resolveOne(ctx, key)
+		item, err := s.resolveOne(ctx, key, scope)
 		if err != nil {
-			return out, err
+			code := "read_error"
+			if errors.Is(err, ErrNotFound) {
+				code = "not_found"
+			} else if errors.Is(err, ErrAlreadyCharged) {
+				code = "already_charged"
+			}
+			out.Results = append(out.Results, PendingResolution{Key: key, Status: "failed", Error: code})
+			if len(keys) == 1 {
+				return out, err
+			}
+			continue
 		}
+		out.Results = append(out.Results, PendingResolution{Key: key, Status: "resolved"})
 		out.Items = append(out.Items, *item)
 	}
 	return out, nil
 }
 
-func (s *Service) resolveOne(ctx context.Context, key string) (*UsageGapView, error) {
+func (s *Service) resolveOne(ctx context.Context, key string, scope QueryUsageInput) (*UsageGapView, error) {
 	var out *UsageGapView
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row usageRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? OR request_id = ?", key, key).First(&row).Error; err != nil {
+		if err := applyUsageFilters(tx.Model(&usageRow{}), scope).Clauses(clause.Locking{Strength: "UPDATE"}).Where("(id = ? OR request_id = ?)", key, key).First(&row).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrNotFound
 			}
@@ -143,6 +168,13 @@ func applyUsageFilters(q *gorm.DB, in QueryUsageInput) *gorm.DB {
 	if in.ChannelOrgID != "" {
 		q = q.Where("channel_org_id = ?", in.ChannelOrgID)
 	}
+	if in.ChannelOrgIDs != nil {
+		q = q.Where("channel_org_id IN ?", in.ChannelOrgIDs)
+	}
+	if in.Query != "" {
+		term := "%" + strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(in.Query, "\\", "\\\\"), "%", "\\%"), "_", "\\_") + "%"
+		q = q.Where("request_id ILIKE ? OR id ILIKE ? OR public_model_id ILIKE ? OR api_key_id ILIKE ?", term, term, term, term)
+	}
 	if in.PublicModelID != "" {
 		q = q.Where("public_model_id = ?", in.PublicModelID)
 	}
@@ -203,3 +235,15 @@ func uniqueNonEmpty(in []string) []string {
 	}
 	return out
 }
+
+func usageCursor(q *gorm.DB, raw string) (*gorm.DB, error) {
+	if raw == "" {
+		return q, nil
+	}
+	at, key, err := page.Decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	return q.Where("(occurred_at,id) < (?,?)", at, key), nil
+}
+func UsageCursor(item UsageView) string { return page.Encode(item.OccurredAt, item.ID) }

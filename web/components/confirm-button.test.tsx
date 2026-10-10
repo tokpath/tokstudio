@@ -9,6 +9,13 @@ afterEach(() => {
 });
 
 describe("ConfirmButton", () => {
+  it("returns focus to the original trigger after cancel", async () => {
+    render(withZh(<ConfirmButton title="确认支出" onConfirm={() => true}>登记支出</ConfirmButton>));
+    const trigger = screen.getByRole("button", { name: "登记支出" });
+    trigger.focus(); fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
   it("keeps the trigger label and closes only when onConfirm returns true", async () => {
     const onConfirm = vi.fn(async () => true);
     render(

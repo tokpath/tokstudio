@@ -1,14 +1,3 @@
-import { OverviewHero } from "@/components/console/overview-hero";
-import { ConsolePageHeader } from "@/components/console/page-header";
-import { getTranslations } from "next-intl/server";
-
-/** 总览：个人状态 + 用量趋势；无用量时给出第一次使用步骤。 */
-export default async function UserConsole() {
-  const t = await getTranslations("overview");
-  return (
-    <div className="flex flex-col gap-8">
-      <ConsolePageHeader eyebrow={t("eyebrow")} title={t("title")} description={t("lead")} />
-      <OverviewHero />
-    </div>
-  );
-}
+import KeysPanel from "./keys-panel";
+import {I18nConsoleHeader} from "@/components/i18n-page-hero";
+export default function UserConsole(){return <div className="flex flex-col gap-6"><I18nConsoleHeader id="keys"/><KeysPanel/></div>;}

@@ -341,7 +341,15 @@ func (s *Service) CreateChannel(ctx context.Context, viewer Principal, in Channe
 		in.BrandID = parent.BrandID
 	}
 	row := channelRow{ID: id.New("chn"), Code: in.Code, Type: in.Type, Status: in.Status, BrandID: in.BrandID, CreatedAt: time.Now().UTC(), ParentID: &parentID}
-	if err := s.db.WithContext(ctx).Create(&row).Error; err != nil {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return s.createChannelInvitationTx(tx, row)
+	}); err != nil {
+		if recovered, recoverErr := s.recoverCreatedChannel(ctx, row); recoverErr == nil {
+			return recovered, nil
+		}
 		return nil, err
 	}
 	view := channelViewFrom(row)
@@ -451,9 +459,25 @@ func (s *Service) ListChannels(ctx context.Context, viewer Principal) ([]Channel
 	if err := q.Order("code").Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	brandIDs := []string{}
+	for _, row := range rows {
+		brandIDs = append(brandIDs, row.BrandID)
+	}
+	var brands []brandRow
+	if len(brandIDs) > 0 {
+		if err := s.db.WithContext(ctx).Where("id IN ?", brandIDs).Find(&brands).Error; err != nil {
+			return nil, err
+		}
+	}
+	names := map[string]string{}
+	for _, b := range brands {
+		names[b.ID] = b.Name
+	}
 	out := make([]ChannelView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, channelViewFrom(row))
+		view := channelViewFrom(row)
+		view.BrandName = names[row.BrandID]
+		out = append(out, view)
 	}
 	return out, nil
 }

@@ -1,0 +1,31 @@
+import {expect,test} from "@playwright/test";
+import {mockViewer} from "./mock-viewer";
+test("redeemed credit updates the header and records and legacy plans preserves its task",async({page})=>{
+ await mockViewer(page,{roles:["end_user"]});let redeemed=false;
+ await page.route("**/v1/me/balance**",r=>r.fulfill({json:{balance:{available:redeemed?"10":"0",reserved:"0",gift_minor:0,purchased_minor:redeemed?10000000:0}}}));
+ await page.route("**/v1/payments/checkout",r=>r.fulfill({json:{item:{methods:[]}}}));
+ await page.route("**/v1/me/plans",r=>r.fulfill({json:{items:[]}}));await page.route("**/v1/me/entitlements",r=>r.fulfill({json:{items:[]}}));
+ await page.route("**/v1/me/wallet-records?**",r=>{const kind=new URL(r.request().url()).searchParams.get("kind");return r.fulfill({json:{items:kind==="ledger" && redeemed ? [{id:"credit-one",event_type:"topup",amount_minor:10000000,created_at:"2026-10-10"}]:[],total:kind==="ledger" && redeemed ? 1:0,next_cursor:""}});});
+ await page.route("**/v1/topups/redeem",r=>{expect(r.request().postDataJSON()).toEqual({code:"THE2E"});redeemed=true;return r.fulfill({json:{item:{amount_minor:10000000}}});});
+ await page.goto("/app/wallet?next=%2Fapp%2Fkeys%3Fmodel%3Decho");
+ await expect(page.getByTestId("balance-pill")).toHaveText("$0.00");
+ await page.getByLabel("兑换码",{exact:true}).fill("THE2E");await page.getByRole("button",{name:"兑换",exact:true}).click();
+ await expect(page.getByTestId("balance-pill")).toHaveText("$10.00");
+ await expect(page.getByRole("status").filter({hasText:"已兑换到账"})).toContainText("$10.00 USD");
+ await expect(page.getByText("余额已刷新",{exact:true})).toHaveCount(0);
+ await page.getByRole("link",{name:"订单与流水",exact:true}).click();await expect(page.getByRole("cell",{name:"充值入账",exact:true})).toBeVisible();
+ await expect(page.getByRole("region",{name:"佣金收回记录"})).toHaveCount(0);
+ await page.goto("/app/plans?plan=monthly&next=%2Fmodels%2Fecho%3Ftab%3Dagent");
+ await expect(page).toHaveURL(/\/app\/wallet\?/);const url=new URL(page.url());expect(url.searchParams.get("tab")).toBe("plans");expect(url.searchParams.get("plan")).toBe("monthly");expect(url.searchParams.get("next")).toBe("/models/echo?tab=agent");
+ await expect(page.getByRole("link",{name:"返回原任务",exact:true})).toHaveAttribute("href","/models/echo?tab=agent");
+ await page.screenshot({path:"test-results/t10-wallet-workspace.png",fullPage:true});
+});
+test("unqualified account keeps invitation and progress without empty income navigation",async({page})=>{
+ await mockViewer(page,{roles:["end_user"]});
+ await page.route("**/v1/me/referral**",r=>r.fulfill({json:{item:{codes:["THU123"],code_links:[{code:"THU123",share_url:"https://brand.example/login?promotion_code=THU123"}],can_create:true,invited_count:0,can_commission:false,professional_customers:false,rules:{spend_minor:10000000,topup_minor:5000000,gift_minor:1000000},progress:{spend_minor:0,largest_topup_minor:0,gift_granted_minor:0,gift_remaining_minor:0},summary:{earned_minor:0,frozen_minor:0,available_minor:0,held_minor:0,settled_minor:0,paid_minor:0,reversed_minor:0},rewards:[],settlements:[],pagination:{page:1,page_size:25,rewards_total:0,settlements_total:0}}}}));
+ await page.goto("/app/referral?tab=commissions");await expect(page.getByLabel("推广链接",{exact:true})).toHaveValue("https://brand.example/login?promotion_code=THU123");
+ await expect(page.getByRole("progressbar",{name:"本人累计已确认 API 消费"})).toBeVisible();
+ await expect(page.getByRole("link",{name:"个人佣金",exact:true})).toHaveCount(0);await expect(page.getByRole("link",{name:"结算记录",exact:true})).toHaveCount(0);
+ await expect(page.getByText("个人推广收入",{exact:true})).toHaveCount(0);
+ await page.screenshot({path:"test-results/t10-unqualified-referral.png",fullPage:true});
+});

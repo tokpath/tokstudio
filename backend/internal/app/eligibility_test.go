@@ -76,14 +76,14 @@ func TestCommissionEligibilityThresholds(t *testing.T) {
 		"password": "password1", "promotion_code": "THA1",
 	})
 	suid := userIDOf(regSpend)
-	if err := application.Billing.Credit(ctx, suid, "elig-spend-"+suid, 5*billing.MinorPerUSD, "spend"); err != nil {
+	if err := application.Billing.Credit(ctx, suid, "elig-spend-"+suid, 20*billing.MinorPerUSD, "spend"); err != nil {
 		t.Fatal(err)
 	}
 	prices := []byte(`{"input":"1","output":"1"}`)
 	reqID := "elig-spend-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	if _, err := application.Billing.Reserve(ctx, billing.ReserveInput{
 		UserID: suid, ChannelOrgID: identity.OfficialChannelID, RequestID: reqID,
-		ReserveMinor: 4 * billing.MinorPerUSD, UnitPrices: prices,
+		ReserveMinor: 12 * billing.MinorPerUSD, UnitPrices: prices,
 	}); err != nil {
 		t.Fatal(err)
 	}

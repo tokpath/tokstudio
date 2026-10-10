@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,11 @@ import { IfCan } from "@/components/rbac/if-can";
 import { AdminListPanel } from "../../list-panel";
 import { AdminShell } from "../../shell";
 import { apiBase } from "@/lib/api";
+import { safeReturnHref } from "@/lib/return-context";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
+import { ModelServicePanel } from "../service-readiness";
+import { useViewer } from "@/components/rbac/viewer-context";
 import { type AdminModel, modelEditHref } from "@/lib/catalog";
 import { catalogStatusTone, modelStatusLabel } from "@/lib/catalog-admin";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
@@ -61,6 +64,8 @@ function pricePayload(values: PriceFields): Record<string, unknown> {
 }
 
 export default function AdminModelEditPage() {
+  const viewer = useViewer();
+  const returnTo = useSearchParams().get("return_to");
   const params = useParams<{ id?: string | string[] }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -70,7 +75,7 @@ export default function AdminModelEditPage() {
   const [priceMessage, setPriceMessage] = useState("");
   const [lifeError, setLifeError] = useState("");
   const query = useQuery({
-    queryKey: ["/admin/models", publicId],
+    queryKey: [viewer.userId, "/admin/models", publicId],
     queryFn: () => apiClient<{ item?: AdminModel; error?: { message?: string } }>("GET", `/admin/models/${publicId}`),
     enabled: !!publicId && !isNew,
   });
@@ -103,13 +108,13 @@ export default function AdminModelEditPage() {
       image_count: String(model.sell_price?.image_count ?? ""),
       video_second: String(model.sell_price?.video_second ?? ""),
       audio_second: String(model.sell_price?.audio_second ?? ""),
-      currency: String(model.sell_price?.currency ?? "USD"),
+      currency: "USD",
     });
   }, [model, modelForm, priceForm]);
 
   async function reload() {
-    await queryClient.invalidateQueries({ queryKey: ["/admin/models", publicId] });
-    await queryClient.invalidateQueries({ queryKey: ["/admin/models"] });
+    await query.refetch();
+    await queryClient.invalidateQueries({ predicate: query => query.queryKey.includes("/admin/models") });
   }
 
   async function saveModel(values: ModelFields): Promise<boolean> {
@@ -164,11 +169,15 @@ export default function AdminModelEditPage() {
     } catch { setLifeError(confirmNetworkUnavailable); return false; }
   }
 
+  if (!isNew && (query.isPending || query.isError || query.data?.error || !model)) return <AdminShell>
+      <h1 className="text-2xl font-semibold">{model?.display_name || publicId}</h1><section role={query.isPending ? "status" : "alert"}><p>{query.isPending ? "正在读取模型…" : "读取模型失败，未修改配置。"}</p>{!query.isPending ? <Button variant="outline" onClick={()=>void query.refetch()}>重试读取</Button>:null}</section></AdminShell>;
   return (
     <AdminShell>
-      <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/models">返回模型列表</Link>
+      <h1 className="text-2xl font-semibold">{isNew ? "创建模型" : model?.display_name || publicId}</h1>
+      <Link className="text-sm text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, "/admin/models")}>返回模型列表</Link>
       {query.data?.error ? <p className="text-sm text-danger">{query.data.error.message}</p> : null}
 
+      {!isNew && model ? <ModelServicePanel model={model} /> : null}
       <IfCan action="models.write">
         <section className="rounded-card border border-hairline bg-canvas-raised p-6">
           <h3 className="text-base font-semibold">模型信息</h3>
@@ -193,7 +202,7 @@ export default function AdminModelEditPage() {
 
       {(isNew || model) ? <>
         <IfCan action="prices.write">
-          <section className="rounded-card border border-hairline bg-canvas-raised p-6">
+          <section id="prices" className="scroll-mt-20 rounded-card border border-hairline bg-canvas-raised p-6">
             <h3 className="text-base font-semibold">售价</h3>
             <p className="mt-1 text-sm text-ink-secondary">{isNew ? "首次售价随模型一起保存，之后可单独改价。" : "改价只影响之后的请求。"}</p>
             <Form {...priceForm}>
@@ -206,7 +215,7 @@ export default function AdminModelEditPage() {
                 {(kind === "image" || kind === "video" || kind === "audio") && model?.sell_price?.media &&
                   !model?.sell_price?.[kind === "image" ? "image_count" : kind === "video" ? "video_second" : "audio_second"] ?
                   <p className="text-sm text-ink-secondary">旧价格 {String(model.sell_price.media)}／媒体单位，未标明当前计价单位。请确认后填写上方售价。</p> : null}
-                <AdminSelectField control={priceForm.control} name="currency" label="币种" options={[{ value: "USD", label: "美元 USD" }, { value: "CNY", label: "人民币 CNY" }]} />
+                <AdminSelectField control={priceForm.control} name="currency" label="币种" options={[{ value: "USD", label: "美元 USD" }]} />
                 {isNew ? <ConfirmButton
                   size="sm" title="确认创建模型" description="模型信息和首次售价将一起保存；创建后可发布模型。"
                   error={message} validate={validateNewModel}
@@ -250,9 +259,6 @@ export default function AdminModelEditPage() {
                   return true;
                 }} onConfirm={() => lifecycle("publish")}
               >发布模型</ConfirmButton> : <>
-                {model.config_ready !== false ?
-                  <Button asChild size="sm" variant="outline"><Link href={`/admin/routes/new?model=${encodeURIComponent(publicId)}`}>配置路由</Link></Button> :
-                  <span className="self-center text-sm text-ink-secondary">补齐模型类型和售价后可配置路由</span>}
                 <ConfirmButton size="sm" variant="outline" title="确认弃用模型" description="弃用后客户目录隐藏，历史账单保留。" error={lifeError} onConfirm={() => lifecycle("deprecate")}>弃用模型</ConfirmButton>
               </>}
             </div>

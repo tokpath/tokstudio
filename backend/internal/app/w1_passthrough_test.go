@@ -32,7 +32,7 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 		t.Fatalf("priced provider must be routable: %+v %v", candidates, err)
 	}
 
-	chat := postJSONRaw(t, fx.server.URL+"/v1/chat/completions?provider.only="+slug, fx.apiKey, map[string]any{
+	chat := postDiagnosticJSONRaw(t, fx.server.URL+"/v1/chat/completions?provider.only="+slug, fx.apiKey, map[string]any{
 		"model": catalog.EchoModelID, "messages": []map[string]string{{"role": "user", "content": "w1-pass"}},
 	})
 	requestID, _ := chat["request_id"].(string)
@@ -44,7 +44,7 @@ func TestW1BifrostPassthroughMetadata(t *testing.T) {
 		t.Fatalf("test harness bifrost reply should echo: %+v", chat)
 	}
 
-	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
+	attempts := getDiagnosticJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)
 	if len(items) < 1 {
 		t.Fatalf("need attempt: %+v", attempts)
@@ -145,7 +145,7 @@ func TestW1MissingUsagePendingHonestEmpty(t *testing.T) {
 	requestID := omit["request_id"].(string)
 	requireChargeCount(t, fx.app.Billing, requestID, 0, "W1 missing usage must not estimate-debit")
 
-	attempts := getAuthJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
+	attempts := getDiagnosticJSON(t, fx.server.URL+"/v1/requests/"+requestID+"/attempts", fx.apiKey)
 	items, _ := attempts["items"].([]any)
 	if len(items) < 1 {
 		t.Fatalf("attempt should still exist: %+v", attempts)

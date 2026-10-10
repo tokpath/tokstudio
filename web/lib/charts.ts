@@ -1,3 +1,5 @@
+import { MICRO_PER_USD } from "@/lib/money";
+
 export type MetricPoint = { key: string; requests?: number; revenue_minor?: number; success_rate?: number };
 export type DayPoint = { day: string; requests?: number; revenue_minor?: number; success_rate?: number };
 
@@ -75,7 +77,7 @@ export function dashboardSeries(items: MetricPoint[] = []) {
   return {
     categories: items.map((item) => shortChartLabel(item.key)),
     requests: items.map((item) => item.requests ?? 0),
-    revenue: items.map((item) => item.revenue_minor ?? 0),
+    revenue: items.map((item) => (item.revenue_minor ?? 0) / MICRO_PER_USD),
     success: items.map((item) => Number(((item.success_rate ?? 0) * 100).toFixed(1))),
   };
 }
@@ -83,7 +85,7 @@ export function dashboardSeries(items: MetricPoint[] = []) {
 export function requestChartOption(items: MetricPoint[], labels: ChartLabels = {}, palette: ChartPalette = chartPalette()) {
   const series = dashboardSeries(items);
   const requests = labels.requests || "requests";
-  const revenue = labels.revenue || "revenue";
+  const revenue = labels.revenue && /USD/i.test(labels.revenue) ? labels.revenue : `${labels.revenue || "Consumption"} (USD)`;
   return {
     color: [palette.brand, palette.contrast],
     tooltip: tooltip(palette),
@@ -123,14 +125,14 @@ export function dailySeries(items: DayPoint[] = []) {
   return {
     categories: items.map((item) => item.day),
     requests: items.map((item) => item.requests ?? 0),
-    revenue: items.map((item) => item.revenue_minor ?? 0),
+    revenue: items.map((item) => (item.revenue_minor ?? 0) / MICRO_PER_USD),
   };
 }
 
 export function dailyChartOption(items: DayPoint[], labels: ChartLabels = {}, palette: ChartPalette = chartPalette()) {
   const series = dailySeries(items);
   const requests = labels.requests || "requests";
-  const revenue = labels.revenue || "revenue";
+  const revenue = labels.revenue && /USD/i.test(labels.revenue) ? labels.revenue : `${labels.revenue || "Consumption"} (USD)`;
   return {
     color: [palette.brand, palette.contrast],
     tooltip: tooltip(palette),

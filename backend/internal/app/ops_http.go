@@ -49,7 +49,7 @@ func (a *App) adminMetrics(c *gin.Context) {
 	httpx.OK(c, gin.H{
 		"dimension":  dim,
 		"items":      dash.Dimensions[dim],
-		"totals":     dash.Totals,
+		"totals":     dash.SafeTotals(),
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
@@ -97,7 +97,14 @@ func (a *App) adminDashboard(c *gin.Context) {
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取看板失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"dashboard": item, "request_id": c.GetString(httpx.ContextRequestID)})
+	health, err := a.Catalog.ProviderHealthSummary(c.Request.Context())
+	if err != nil {
+		item.ModuleErrors["provider_health"] = "read_error"
+		health = map[string]any{"state": "read_error"}
+	}
+	view := item.SafeView()
+	view["provider_health"] = health
+	httpx.OK(c, gin.H{"dashboard": view, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminAlerts(c *gin.Context) {

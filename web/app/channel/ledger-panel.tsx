@@ -1,295 +1,36 @@
 "use client";
+import { OEMPurchasesPanel } from '@/components/oem-purchases';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useViewer } from '@/components/rbac/viewer-context';
+import { canChannelAction } from '@/lib/rbac';
+import { AdminSupplierPanel } from '@/app/admin/billing/supplier-panel';
+import { person, useCommissionPage, type Context, type Person } from '@/app/admin/commission/workflow-client';
+import { BrandPnLPanel } from './brand-pnl-panel';
+import { ListResourceView } from '@/components/console/list-resource-view';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { apiBase } from '@/lib/api';
+import { formatUsdMinor } from '@/lib/money';
 
-import { useViewer } from "@/components/rbac/viewer-context";
-import { canChannelAction } from "@/lib/rbac";
-
-import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
-import { ConfirmButton } from "@/components/confirm-button";
-import { LedgerTable } from "@/components/console/ledger-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { apiBase } from "@/lib/api";
-import { confirmHeaders } from "@/lib/confirm";
-import { formatUsdMinor, parseUsdToMinor } from "@/lib/money";
-
-type Channel = { id?: string; code?: string; type?: string; parent_id?: string; status?: string };
-type PnL = {
-  recharge_minor?: number;
-  unconsumed_minor?: number;
-  consumed_minor?: number;
-  marketing_minor?: number;
-  marketing_frozen_minor?: number;
-  marketing_issued_minor?: number;
-  supplier_minor?: number;
-  pnl_minor?: number;
-};
-type Supplier = {
-  id?: string;
-  amount_minor?: number;
-  source_type?: string;
-  vendor_name?: string;
-  memo?: string;
-  reversal_of?: string;
-  created_at?: string;
-};
-
-function usdToMinor(raw: string) {
-  return parseUsdToMinor(raw) ?? 0;
+type Allocation={id:string;recipient?:Person;user_id:string;granted_minor:number;consumed_minor:number;remaining_minor:number;status:string;source_type:string;source_id:string;created_at:string};
+export default function ChannelLedger(){
+ const viewer=useViewer(),t=useTranslations('commissionWorkflow');const [context,setContext]=useState<Context|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
+ useEffect(()=>{setContext(null);setError('');if(!viewer.userId)return;let active=true;void fetch(`${apiBase}/channel/commission-context`,{credentials:'include'}).then(async r=>{const b=await r.json();if(!r.ok||!b.owner_id)throw new Error(b.error?.message||t('loadFailed'));if(active)setContext(b);}).catch(e=>{if(active)setError(e instanceof Error?e.message:t('loadFailed'));});return()=>{active=false;};},[viewer.userId,retry,t]);
+ if(!context)return <section className="rounded-card border border-hairline p-5"><p role={error?'alert':'status'}>{error||t('loadingScope')}</p>{error&&<Button variant="outline" onClick={()=>setRetry(v=>v+1)}>{t('retry')}</Button>}</section>;
+ const scope=`${viewer.userId}:${typeof window==='undefined'?'':window.location.host}:${context.owner_id}`;
+ return <LedgerFacts key={scope} context={context} scope={scope} writable={canChannelAction('finance',viewer)}/>;
 }
-
-function newIdem() {
-  return `spe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-const selectClass =
-  "h-10 min-h-10 w-full max-w-xs rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
-
-export default function ChannelLedger() {
-  const permissionViewer = useViewer();
-  const canOperate = canChannelAction("operations", permissionViewer);
-  const canFinance = canChannelAction("finance", permissionViewer);
-  const t = useTranslations("channelUi");
-  const tc = useTranslations("common");
-  const [message, setMessage] = useState(t("ledgerHint"));
-  const [channel, setChannel] = useState<Channel>({});
-  const [pnl, setPnl] = useState<PnL>({});
-  const [quota, setQuota] = useState<string>("—");
-  const [entries, setEntries] = useState<Supplier[]>([]);
-  const [children, setChildren] = useState<Channel[]>([]);
-  const [usd, setUsd] = useState("10");
-  const [sourceType, setSourceType] = useState("platform_recharge");
-  const [vendor, setVendor] = useState("");
-  const [memo, setMemo] = useState("");
-  const [bCode, setBCode] = useState("");
-
-  const isC = channel.type === "C";
-
-  const defaultSource = useMemo(() => {
-    if (channel.type === "C" || channel.type === "B") return "platform_recharge";
-    return "provider_invoice";
-  }, [channel.type]);
-
-  async function refresh() {
-    const meRes = await fetch(`${apiBase}/channel/me`, { credentials: "include" });
-    const meBody = await meRes.json();
-    if (!meRes.ok) {
-      setMessage(meBody.error?.message || t("needAdmin"));
-      return;
-    }
-    const id = String(meBody.channel_org_id || "");
-    const [chRes, pnlRes, qRes, sRes, listRes] = await Promise.all([
-      fetch(`${apiBase}/admin/channels/${encodeURIComponent(id)}`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/pnl`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/quota`, { credentials: "include" }),
-      fetch(`${apiBase}/channel/supplier-entries`, { credentials: "include" }),
-      fetch(`${apiBase}/admin/channels`, { credentials: "include" }),
-    ]);
-    const chBody = await chRes.json();
-    const pnlBody = await pnlRes.json();
-    const qBody = await qRes.json();
-    const sBody = await sRes.json();
-    const listBody = await listRes.json();
-    if (!pnlRes.ok && !sRes.ok) {
-      setMessage(pnlBody.error?.message || t("needAdmin"));
-      return;
-    }
-    const next = (chBody.item || {}) as Channel;
-    setChannel({ ...next, id: next.id || id });
-    setPnl((pnlBody.pnl || {}) as PnL);
-    setQuota(formatUsdMinor(qBody.quota?.available_minor));
-    const items = Array.isArray(sBody.items) ? (sBody.items as Supplier[]) : [];
-    setEntries(items);
-    const kids = (Array.isArray(listBody.items) ? (listBody.items as Channel[]) : []).filter(
-      (item) => item.parent_id === id && item.type === "B",
-    );
-    setChildren(kids);
-    setMessage(t("ledgerCount", { n: items.length, quota: formatUsdMinor(qBody.quota?.available_minor) }));
-  }
-
-  useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setSourceType(defaultSource);
-  }, [defaultSource]);
-
-  async function recordSupplier(): Promise<boolean> {
-    try {
-    const amount = usdToMinor(usd);
-    if (!amount) {
-      setMessage(t("amountRequiredUsd"));
-      return false;
-    }
-    const res = await fetch(`${apiBase}/channel/supplier-entries`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({
-        amount_minor: amount,
-        source_type: sourceType,
-        idempotency_key: newIdem(),
-        vendor_name: vendor || undefined,
-        memo: memo || undefined,
-      }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? t("recordedSupplier", { id: body.item?.id || "" }) : body.error?.message || t("needAdmin"));
-    const __ok = res.ok;
-    if (res.ok) await refresh();
-    return __ok;
-    } catch {
-      setMessage(tc("listNetwork"));
-      return false;
-    }
-}
-
-  async function reverse(id: string): Promise<boolean> {
-    try {
-    const res = await fetch(`${apiBase}/channel/supplier-entries/${encodeURIComponent(id)}/reverse`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({ reason: "void" }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? t("reversedSupplier", { id: body.item?.id || "" }) : body.error?.message || t("needAdmin"));
-    const __ok = res.ok;
-    if (res.ok) await refresh();
-    return __ok;
-    } catch {
-      setMessage(tc("listNetwork"));
-      return false;
-    }
-}
-
-  async function createB(): Promise<boolean> {
-    try {
-    const code = bCode.trim();
-    if (!code) {
-      setMessage(t("codeRequired"));
-      return false;
-    }
-    const res = await fetch(`${apiBase}/admin/channels`, {
-      method: "POST",
-      credentials: "include",
-      headers: confirmHeaders,
-      body: JSON.stringify({ code, type: "B", status: "active" }),
-    });
-    const body = await res.json();
-    setMessage(res.ok ? t("createdB", { id: body.item?.id || "", code: body.item?.code || code }) : body.error?.message || t("needAdmin"));
-    const __ok = res.ok;
-    if (res.ok) {
-      setBCode("");
-      await refresh();
-    }
-    return __ok;
-    } catch {
-      setMessage(tc("listNetwork"));
-      return false;
-    }
-}
-
-  const metrics = [
-    { k: t("pnlRecharge"), v: formatUsdMinor(pnl.recharge_minor) },
-    { k: t("pnlUnconsumed"), v: formatUsdMinor(pnl.unconsumed_minor) },
-    { k: t("pnlConsumed"), v: formatUsdMinor(pnl.consumed_minor) },
-    { k: t("pnlMarketing"), v: formatUsdMinor(pnl.marketing_minor) },
-    { k: t("pnlSupplier"), v: formatUsdMinor(pnl.supplier_minor) },
-    { k: t("pnlResult"), v: formatUsdMinor(pnl.pnl_minor) },
-  ];
-
-  return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("pnlTitle")}</CardTitle>
-        <p className="mb-3 text-sm text-ink-secondary">{t("pnlLead", { quota })}</p>
-        <dl className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {metrics.map((item) => (
-            <div key={item.k} className="border-b border-hairline py-2">
-              <dt className="text-sm text-ink-secondary">{item.k}</dt>
-              <dd className="text-right font-mono text-lg tabular-nums">{item.v}</dd>
-            </div>
-          ))}
-        </dl>
-        <Button type="button" variant="outline" onClick={() => void refresh()}>
-          {tc("refresh")}
-        </Button>
-      </Card>
-
-      <Card>
-        <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("supplierTitle")}</CardTitle>
-        <p className="mb-3 text-sm text-ink-secondary">{t("supplierLead")}</p>
-        <div className="mb-3 grid max-w-xl gap-2">
-          <Input value={usd} onChange={(e) => setUsd(e.target.value)} aria-label={t("usdLabel")} placeholder="10" />
-          <select className={selectClass} aria-label={t("sourceLabel")} value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
-            <option value="platform_recharge">{t("sourcePlatform")}</option>
-            <option value="provider_invoice">{t("sourceProvider")}</option>
-            <option value="other">{t("sourceOther")}</option>
-          </select>
-          <Input value={vendor} onChange={(e) => setVendor(e.target.value)} aria-label={t("vendorLabel")} placeholder={t("vendorPh")} />
-          <Input value={memo} onChange={(e) => setMemo(e.target.value)} aria-label={t("memoLabel")} placeholder={t("memoPh")} />
-        </div>
-        <ConfirmButton
-          disabled={!canFinance}
-          size="sm"
-          title={t("confirmSupplier")}
-          description={t("confirmSupplierD")}
-          onConfirm={recordSupplier}
-        >
-          {t("recordSupplier")}
-        </ConfirmButton>
-        <LedgerTable
-          columns={[t("colWhen"), t("colAmount"), t("colSource"), t("colMemo"), t("colAction")]}
-          emptyTitle={t("emptySupplier")}
-          emptyDetail={t("emptySupplierDetail")}
-          rows={entries.map((item) => ({
-            key: item.id || item.created_at || "spe",
-            cells: [
-              item.created_at ? String(item.created_at).slice(0, 19) : "—",
-              <span key="a" className="font-mono tabular-nums">
-                {formatUsdMinor(item.amount_minor)}
-              </span>,
-              item.source_type || "—",
-              item.vendor_name || item.memo || item.reversal_of || "—",
-              item.reversal_of ? (
-                "—"
-              ) : (
-                <ConfirmButton
-          disabled={!canFinance}
-                  size="sm"
-                  variant="outline"
-                  title={t("confirmReverse")}
-                  description={t("confirmReverseD")}
-                  onConfirm={() => reverse(String(item.id))}
-                >
-                  {t("reverse")}
-                </ConfirmButton>
-              ),
-            ],
-          }))}
-        />
-      </Card>
-
-      {isC ? (
-        <>
-          <Card>
-            <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("createBTitle")}</CardTitle>
-            <p className="mb-3 text-sm text-ink-secondary">{t("createBLead")}</p>
-            <div className="mb-3 flex flex-wrap gap-2">
-              <Input className="w-56" value={bCode} onChange={(e) => setBCode(e.target.value)} aria-label={t("bCodeLabel")} placeholder="THC-B1" />
-              <ConfirmButton disabled={!canOperate} size="sm" title={t("confirmCreateB")} description={t("confirmCreateBD")} onConfirm={createB}>
-                {t("createB")}
-              </ConfirmButton>
-            </div>
-          </Card>
-        </>
-      ) : null}
-
-      <p className="text-sm text-ink-secondary">{message}</p>
-    </div>
-  );
+function LedgerFacts({context,scope,writable}:{context:Context;scope:string;writable:boolean}){
+ const t=useTranslations('commissionWorkflow'),tl=useTranslations('ledgerWorkflow');const [params,setParams]=useState(new URLSearchParams()),[search,setSearch]=useState('');
+ useEffect(()=>{const read=()=>{const p=new URLSearchParams(window.location.search);setParams(p);setSearch(p.get('allocation_q')||'');};read();window.addEventListener('popstate',read);return()=>window.removeEventListener('popstate',read);},[]);
+ function update(values:Record<string,string>){const p=new URLSearchParams(window.location.search);Object.entries(values).forEach(([key,v])=>v?p.set(key,v):p.delete(key));window.history.pushState(null,'',`${window.location.pathname}?${p}`);setParams(p);}
+ const tab=params.get('tab')||'overview';const q=new URLSearchParams({limit:'30'});if(params.get('channel_id'))q.set('channel_id',params.get('channel_id')!);if(params.get('allocation_q'))q.set('q',params.get('allocation_q')!);if(params.get('allocation_status'))q.set('status',params.get('allocation_status')!);if(params.get('allocation_cursor'))q.set('cursor',params.get('allocation_cursor')!);
+ const allocations=useCommissionPage<Allocation>(scope,`/channel/allocations?${q}`);
+ const ready=['ready','empty'].includes(allocations.snapshot.phase)&&!allocations.refreshing;
+ const returnURL=`/channel/ledger?${params}`;
+ return <div className="space-y-5"><div className="flex flex-wrap gap-2" role="navigation" aria-label={tl('title')}>{['overview','procurement','issuance','supplier'].map(key=><Button variant={tab===key?'default':'outline'} aria-pressed={tab===key} key={key} onClick={()=>update({tab:key})}>{tl(`tab.${key}`)}</Button>)}</div><p className="text-sm">{t('brand')}: {context.owner_name||context.owner_code||context.owner_id}</p>
+ {tab==='procurement'?<OEMPurchasesPanel channel ownerID={context.owner_id}/>:tab==='supplier'?<AdminSupplierPanel prefix="/channel" context={context}/>:tab==='issuance'?<section className="space-y-4 rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap justify-between gap-3"><h2 className="text-lg font-semibold">{tl('tab.issuance')}</h2>{writable&&<Link className="text-sm text-brand-emphasis underline" href={`/channel/payments/orders?from=ledger&next=${encodeURIComponent(returnURL)}`}>{tl('goPayments')}</Link>}</div><form className="flex flex-wrap gap-2" onSubmit={e=>{e.preventDefault();update({allocation_q:search.trim(),allocation_cursor:''});}}><Input aria-label={t('search')} placeholder={t('searchHint')} value={search} onChange={e=>setSearch(e.target.value)}/><Button variant="outline">{t('search')}</Button><Button type="button" variant="outline" onClick={()=>void allocations.reload()}>{t('refresh')}</Button></form><ListResourceView snapshot={allocations.snapshot} emptyTitle={t('empty')} emptyDetail={t('emptyDetail')} onRetry={()=>void allocations.reload()}><ul className="grid gap-3">{allocations.snapshot.items.map(item=><li key={item.id} className="rounded-control border border-hairline p-4 text-sm"><p className="break-all font-medium">{person(item)}</p><p>{tl('granted')}: {formatUsdMinor(item.granted_minor)} USD · {tl('used')}: {formatUsdMinor(item.consumed_minor)} USD · {tl('remaining')}: {formatUsdMinor(item.remaining_minor)} USD</p><p>{tl.has(`status.${item.status}`)?tl(`status.${item.status}`):item.status} · {new Date(item.created_at).toLocaleString()}</p><p className="mt-1 break-all text-ink-secondary">{item.id} · {item.source_type} · {item.source_id}</p></li>)}</ul></ListResourceView>{allocations.page.total!==undefined&&<div className="flex flex-wrap items-center gap-3 text-sm"><span>{t('total',{count:allocations.page.total})}</span>{params.get('allocation_cursor')&&<Button variant="outline" disabled={!ready} onClick={()=>update({allocation_cursor:''})}>{t('firstPage')}</Button>}{allocations.page.next_cursor&&<Button variant="outline" disabled={!ready} onClick={()=>update({allocation_cursor:allocations.page.next_cursor!})}>{t('nextPage')}</Button>}</div>}</section>:<BrandPnLPanel scope={scope} ownerID={context.owner_id} path="/channel/pnl"/>}
+ </div>;
 }

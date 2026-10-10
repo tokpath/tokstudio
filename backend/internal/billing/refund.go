@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
 )
 
@@ -45,6 +46,9 @@ func (s *Service) RefundCharge(ctx context.Context, requestID string) (*Settleme
 		}
 		if userID == "" {
 			return ErrNotFound
+		}
+		if err := identity.AdjustAPIKeyBudgetTx(tx, stringPtr(auth.APIKeyID), -charge.AmountMinor, 0); err != nil {
+			return err
 		}
 		walletCredit, _, _ := chargeRefundAmounts(charge.AmountMinor, auth)
 

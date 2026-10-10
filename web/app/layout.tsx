@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { publicAssetURL, themeStyle, type Brand } from "@/lib/brand";
 import { fetchAPI } from "@/lib/api";
@@ -8,8 +7,6 @@ import { htmlLang, messagesForRequest, resolveRequestLocale } from "@/lib/i18n";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { AppProviders } from "@/app/providers";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
@@ -21,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: brand?.name || "TokenHub",
     description: messages.chrome?.metaDescription || "一个 Key，可解释路由，账能复算。",
     icons: icon ? { icon } : undefined,
+    other: brand ? { "tokstudio-brand-id": brand.id } : undefined,
   };
 }
 
@@ -41,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = resolveRequestLocale(cookie, accept);
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
-      <body className={`${sans.variable} ${mono.variable} min-h-screen bg-canvas font-sans text-ink antialiased`} style={themeStyle(brand)}>
+      <body className="min-h-screen bg-canvas font-sans text-ink antialiased" style={themeStyle(brand)}>
         <AppProviders locale={locale} messages={messagesForRequest(cookie, accept)}>
           <AppChrome brand={brand}>{children}</AppChrome>
         </AppProviders>

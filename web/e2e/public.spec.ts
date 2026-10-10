@@ -139,16 +139,31 @@ test("legacy professional commissions retain their page within the same user acc
 
 test("admin workbench links confirmed financial and operational facts to their tasks", async ({ page }) => {
   await mockViewer(page, { roles: ["platform_admin"] });
-  await page.route("**/api/admin/ops/dashboard", route => route.fulfill({ json: { dashboard: { totals: { pending_reconciliation_count: 7, gross_profit_minor: 25000000, commission_liability_minor: 3000000 }, provider_health: { state: "healthy" } } } }));
+  await page.route("**/api/admin/ops/dashboard", route => route.fulfill({ json: { dashboard: { totals: { pending_reconciliation_count: 7, revenue_minor: 50000000, upstream_cost_minor: 25000000, gross_profit_minor: 25000000, commission_liability_minor: 3000000 }, provider_health: { state: "healthy" } } } }));
   await page.route("**/api/admin/metrics/series?**", route => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/admin/billing/report", route => route.fulfill({ json: { report: {
+    scope: "platform_business", self_revenue_minor: 10000000, oem_sales_minor: 40000000, revenue_minor: 50000000,
+    upstream_cost_minor: 25000000, gross_profit_minor: 25000000, commission_liability_minor: 3000000,
+    marketing_minor: -3000000, operating_profit_minor: 22000000, pending_reconciliation_count: 7,
+  } } }));
+  await page.route("**/api/admin/oem-purchases?**", route => route.fulfill({ json: { items: [], next_cursor: "" } }));
   await page.goto("/admin");
   await expect(page.getByRole("heading", { level: 1, name: "工作台", exact: true })).toBeVisible();
   const facts = page.getByRole("region", { name: "待办与常用任务", exact: true });
   await expect(facts.locator('a[href="/admin/reconciliation"]')).toContainText("7");
-  await expect(facts.locator('a[href="/admin/margin"]')).toContainText("$25.00");
+  await expect(facts.locator('a[href="/admin/billing"]')).toContainText("平台 API 毛利");
+  await expect(facts.locator('a[href="/admin/billing"]')).toContainText("$25.00");
+  await expect(facts.locator('a[href="/admin/margin"]')).toHaveCount(0);
   await expect(facts.locator('a[href="/admin/commission?tab=payout"]')).toContainText("$3.00");
   await expect(facts.locator('a[href="/admin/providers"]')).toContainText("正常");
   for (const href of ["/admin/models", "/admin/channels", "/admin/payments", "/admin/usage?tab=requests"]) await expect(page.getByRole("main").locator(`a[href="${href}"]`)).toBeVisible();
+  await facts.locator('a[href="/admin/billing"]').click();
+  await expect(page).toHaveURL(/\/admin\/billing$/);
+  for (const [label, amount] of [
+    ["平台营业收入", "$50.00 USD"], ["平台自营消费收入", "$10.00 USD"], ["OEM 服务额度销售", "$40.00 USD"],
+    ["已发生 API 服务成本", "$25.00 USD"], ["平台 API 毛利", "$25.00 USD"], ["平台 API 经营利润", "$22.00 USD"],
+  ]) await expect(page.locator("dl > div").filter({ has: page.getByText(label, { exact: true }) })).toContainText(amount);
+
 });
 
 test("desktop compatibility path opens actual integration documentation", async ({ page }) => {

@@ -48,6 +48,11 @@ async function channel(page: Page, type: "B" | "C") {
     } } }));
     await page.route(`**/api/admin/channel-quotas/${id}`, route => route.fulfill({ json: { quota: { available_minor: 5000000, issued_minor: 0, consumed_minor: 0 } } }));
     await page.route(`**/api/admin/channel-quotas/${id}/issue-rule`, route => route.fulfill({ json: { rule: { issue_ratio_bps: 10000 } } }));
+    await page.route("**/api/admin/oem-purchases?**", route => route.fulfill({ json: { items: [{
+      id: "purchase-original", operation_id: "original-operation", oem_channel_org_id: id, status: "completed",
+      cash_currency: "CNY", cash_amount_minor: 70000, sale_amount_minor: 100000000, quota_amount_minor: 120000000,
+      occurred_at: "2026-10-10T00:05:00Z", completed_at: "2026-10-10T00:06:00Z",
+    }], next_cursor: "" } }));
   }
   await page.goto(`/admin/channels/${id}`);
 }
@@ -79,11 +84,19 @@ test("finance reads minimal customers and finance tasks without upstream or orga
   await expect(page.getByText("reseller-b · 渠道", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "编辑", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "编辑授权", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "OEM 服务额度", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "OEM 服务额度销售", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "登记收款并划入额度", exact: true })).toHaveCount(0);
   await channel(page, "C");
   await expect(page).toHaveURL(/\/admin\/oem-deliveries\/chn_oem_c$/);
   await expect(page.getByRole("heading", { name: "OEM C · 交付与营业", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "OEM 服务额度", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "OEM 服务额度销售", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登记收款并划入额度", exact: true })).toBeEnabled();
+  await expect(page.locator("#procurement")).toContainText("¥700.00 CNY");
+  await expect(page.locator("#procurement")).toContainText("$100.00 USD");
+  await expect(page.locator("#procurement")).toContainText("$120.00 USD");
+  await expect(page.getByRole("button", { name: "调整额度", exact: true })).not.toBeVisible();
+  await page.locator("summary").filter({ hasText: "管理调整与客户发放规则" }).click();
+  await expect(page.getByText("当前可用：$5.00 USD", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "调整额度", exact: true })).toBeEnabled();
   await expect(page.getByRole("main")).toContainText("Test Model");
   await expect(page.getByRole("button", { name: "编辑授权", exact: true })).toHaveCount(0);
@@ -125,6 +138,10 @@ test("audit reads minimal customer and audit facts without any financial or prob
   await page.goto("/admin/billing");
   await expect(page.getByRole("button", { name: "查询退款账单", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "赠送额度", exact: true })).toHaveCount(0);
+  await channel(page, "C");
+  await expect(page.getByRole("heading", { name: "OEM C · 交付与营业", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登记收款并划入额度", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "调整额度", exact: true })).toHaveCount(0);
 });
 
 test("ops reads minimal customers and edits model grants without refund or organization write access", async ({ page }) => {

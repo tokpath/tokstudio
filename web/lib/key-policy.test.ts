@@ -1,5 +1,5 @@
 import {describe,it,expect} from "vitest";
-import {usdToMinor,keyAllowsModel,keyState,preferredKeyModel} from "./key-policy";
+import {usdToMinor,keyAllowsModel,keyRemainingMinor,keyState,preferredKeyModel} from "./key-policy";
 
 describe("logical Key limits",()=>{
  it("preserves exact USD micro units and rejects invalid or unsafe limits",()=>{
@@ -12,6 +12,7 @@ describe("logical Key limits",()=>{
  });
  it("distinguishes settled exhaustion from in-flight occupancy",()=>{
   expect(keyState({budget_limit_minor:100,budget_used_minor:80,budget_reserved_minor:20})).toBe("occupied");
+  expect(keyRemainingMinor({budget_limit_minor:100000,budget_used_minor:120000,budget_reserved_minor:30000})).toBe(0);
   expect(keyState({budget_limit_minor:100,budget_used_minor:100})).toBe("spent");
   expect(keyState({status:"disabled",budget_limit_minor:100,budget_used_minor:100})).toBe("disabled");
  });

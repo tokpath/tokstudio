@@ -49,6 +49,8 @@ type EntitlementCoverer interface {
 	AvailableUSDTx(tx *gorm.DB, userID string) (int64, error)
 	ConsumeUSDTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
 	ExtendUSDUsageTx(tx *gorm.DB, userID, requestID string, amount int64) (int64, error)
+	PurchasedUSDRemainingTx(tx *gorm.DB, userID string) (int64, error)
+	ZeroPurchasedUSDTx(tx *gorm.DB, userID, requestID string) (int64, error)
 	ReverseByRequest(ctx context.Context, requestID string) error
 	ReverseByRequestTx(tx *gorm.DB, requestID string) error
 	ReverseKeepTx(tx *gorm.DB, requestID string, keep int64) error

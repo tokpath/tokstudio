@@ -23,7 +23,7 @@ import { keysCreateQueryOpen } from "@/lib/overview-guide";
 import { statusLabelKey } from "@/lib/status-copy";
 import { copyText, errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
 import { useToast } from "@/lib/toast";
-import { keyState, keyDocsHref, preferredKeyModel, usdToMinor, type KeyPolicy } from "@/lib/key-policy";
+import { keyRemainingMinor, keyState, keyDocsHref, preferredKeyModel, usdToMinor, type KeyPolicy } from "@/lib/key-policy";
 export { optionalPositiveInt, parseAllowlist } from "@/lib/key-limits";
 export type APIKeyItem = KeyPolicy & {
     id: string;
@@ -290,18 +290,23 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
         }} title={pending ? copy[pending.action].title : ""} description={pending ? copy[pending.action].description : undefined} error={actionError} onConfirm={confirmPending}/>
     </>);
 }
+type BudgetPeriod = "lifetime" | "month" | "quarter" | "year";
 type KeyForm = {
     name: string;
     model_mode: "all" | "selected";
     allowlist: string[];
     budget: string;
     limited: boolean;
+    period: BudgetPeriod;
     expiry: string;
     expiring: boolean;
     rpm: string;
     concurrency: string;
 };
-const defaultForm: KeyForm = { name: "", model_mode: "all", allowlist: [], budget: "", limited: false, expiry: "", expiring: false, rpm: "", concurrency: "" };
+const defaultForm: KeyForm = { name: "", model_mode: "all", allowlist: [], budget: "", limited: false, period: "lifetime", expiry: "", expiring: false, rpm: "", concurrency: "" };
+function budgetPeriodOf(value?: string): BudgetPeriod {
+    return value === "month" || value === "quarter" || value === "year" ? value : "lifetime";
+}
 function localDateTime(value?: string | null) { if (!value)
     return ""; const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 export default function KeysPanel() {
@@ -333,7 +338,7 @@ export default function KeysPanel() {
     const session = useRef(0);
     const message = useToast(s => s.message);
     const setMessage = useToast(s => s.setMessage);
-    function openForm(item?: APIKeyItem) { session.current++; createOperation.current = { id: crypto.randomUUID(), body: "" }; setUnknownCreate(false); setEdit(item ?? null); setCreated(null); setError(""); setFallback(""); setBusy(false); setOpen(true); setForm(item ? { name: item.name, model_mode: item.model_mode ?? (item.allowlist?.length ? "selected" : "all"), allowlist: item.allowlist ?? [], limited: item.budget_limit_minor != null, budget: item.budget_limit_minor != null ? String(item.budget_limit_minor / 1e6) : "", expiry: localDateTime(item.expires_at), expiring: !!item.expires_at, rpm: String(item.rpm_limit ?? ""), concurrency: String(item.concurrency_limit ?? "") } : defaultForm); }
+    function openForm(item?: APIKeyItem) { session.current++; createOperation.current = { id: crypto.randomUUID(), body: "" }; setUnknownCreate(false); setEdit(item ?? null); setCreated(null); setError(""); setFallback(""); setBusy(false); setOpen(true); setForm(item ? { name: item.name, model_mode: item.model_mode ?? (item.allowlist?.length ? "selected" : "all"), allowlist: item.allowlist ?? [], limited: item.budget_limit_minor != null, budget: item.budget_limit_minor != null ? String(item.budget_limit_minor / 1e6) : "", period: budgetPeriodOf(item.budget_period), expiry: localDateTime(item.expires_at), expiring: !!item.expires_at, rpm: String(item.rpm_limit ?? ""), concurrency: String(item.concurrency_limit ?? "") } : defaultForm); }
     function close() { session.current++; setOpen(false); setError(""); setBusy(false); }
     useEffect(() => { session.current++; actionSession.current++; setRevealed([]); setUnknownCreate(false); setOpen(false); setCreated(null); setError(""); setFallback(""); }, [scope]);
     useEffect(() => { const query = new URLSearchParams(window.location.search); setContextModel(query.get("model") ?? ""); if (keysCreateQueryOpen(window.location.search))
@@ -365,7 +370,7 @@ export default function KeysPanel() {
         setBusy(true);
         setError("");
         try {
-            const payload = JSON.stringify({ name: form.name.trim(), model_mode: form.model_mode, allowlist: form.model_mode === "selected" ? form.allowlist : [], budget_limit_minor: amount, expires_at: form.expiring ? new Date(form.expiry).toISOString() : null, rpm_limit: typeof rpm === "number" ? rpm : 0, concurrency_limit: typeof concurrency === "number" ? concurrency : 0, ...(!edit ? { operation_id: createOperation.current.id } : {}) });
+            const payload = JSON.stringify({ name: form.name.trim(), model_mode: form.model_mode, allowlist: form.model_mode === "selected" ? form.allowlist : [], budget_limit_minor: amount, budget_period: form.limited ? form.period : "lifetime", expires_at: form.expiring ? new Date(form.expiry).toISOString() : null, rpm_limit: typeof rpm === "number" ? rpm : 0, concurrency_limit: typeof concurrency === "number" ? concurrency : 0, ...(!edit ? { operation_id: createOperation.current.id } : {}) });
             if (!edit && !unknownCreate)
                 createOperation.current.body = payload;
             const res = await fetch(`${apiBase}/v1/me/api-keys${edit ? `/${encodeURIComponent(edit.id)}/limits` : ""}`, { method: edit ? "PUT" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: !edit ? createOperation.current.body : payload });
@@ -488,6 +493,9 @@ export default function KeysPanel() {
     <label className="text-sm"><input type="radio" name="budget-mode" checked={!form.limited} onChange={() => update("limited", false)}/> {tx("unlimited")}</label>
     <label className="text-sm"><input type="radio" name="budget-mode" checked={form.limited} onChange={() => update("limited", true)}/> {tx("limited")}</label>
     {form.limited ? <label className="grid gap-1 text-sm">USD<input type="text" inputMode="decimal" className="h-10 rounded-control border border-hairline bg-canvas px-3" value={form.budget} onChange={e => update("budget", e.target.value)}/></label> : null}
+    {form.limited ? <fieldset className="grid gap-2"><legend className="text-sm font-medium">{tx("period")}</legend>
+     {(["lifetime", "month", "quarter", "year"] as const).map(period => <label key={period} className="text-sm"><input type="radio" name="budget-period" checked={form.period === period} onChange={() => update("period", period)}/> {tx(period === "lifetime" ? "periodLifetime" : period === "month" ? "periodMonth" : period === "quarter" ? "periodQuarter" : "periodYear")}</label>)}
+    </fieldset> : null}
     {form.limited ? <div className="space-y-1 text-xs text-warning"><p>{tx("finiteCompatibility")}</p>{modelsLoading ? <p>{tx("modelsLoading")}</p> : modelsError ? <p>{tx("modelsFailed")}</p> : <p>{tx("finiteModels", { models: models.filter(m => m.capabilities?.budget_control_supported === true || m.capabilities?.text_budget_control_supported === true).filter(m => form.model_mode === "all" || form.allowlist.includes(m.id)).map(m => m.id).join(", ") || tx("noneBudgetable") })}</p>}</div> : null}
     {edit ? <KeyBudgetSummary item={edit}/> : null}<p className="text-xs text-ink-secondary">{tx("budgetHint")}</p>
    </fieldset>
@@ -509,5 +517,7 @@ function KeyBudgetSummary({ item }: {
     const used = item.budget_used_minor ?? 0;
     const reserved = item.budget_reserved_minor ?? 0;
     const limit = item.budget_limit_minor;
-    return <div className="space-y-1 text-xs text-ink-secondary"><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{limit != null ? <p>{tx("remaining", { amount: ((limit - used - reserved) / 1e6).toFixed(6) })}</p> : null}</div>;
+    const remaining = keyRemainingMinor(item);
+    const period = item.budget_period === "month" ? tx("periodMonth") : item.budget_period === "quarter" ? tx("periodQuarter") : item.budget_period === "year" ? tx("periodYear") : item.budget_period === "lifetime" ? tx("periodLifetime") : "";
+    return <div className="space-y-1 text-xs text-ink-secondary"><p>{tx("used", { amount: (used / 1e6).toFixed(6) })} · {limit == null ? tx("unlimited") : tx("limit", { amount: limit / 1e6 })}{period ? ` · ${period}` : ""}</p>{reserved > 0 ? <p>{tx("reserved", { amount: (reserved / 1e6).toFixed(6) })}</p> : null}{remaining != null ? <p>{tx("remaining", { amount: (remaining / 1e6).toFixed(6) })}</p> : null}</div>;
 }

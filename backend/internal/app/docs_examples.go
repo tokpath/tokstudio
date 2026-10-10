@@ -212,7 +212,7 @@ func docsNotes() gin.H {
 	return gin.H{
 		"auth":       "先执行 export TOKENHUB_API_KEY='控制台复制的密钥'。curl 必须用双引号 \"Authorization: Bearer ${TOKENHUB_API_KEY}\"；Python 用 os.environ[\"TOKENHUB_API_KEY\"]，Node 用 process.env.TOKENHUB_API_KEY。示例不会写入完整 Key。",
 		"errors":     "错误体为 {error:{code,message,request_id}}。常见 code：invalid_request、key_invalid、key_unusable、model_not_allowed、key_budget_exceeded、price_estimate_unavailable、insufficient_balance、rate_limited、request_outcome_unknown。超时或未知结果先查原请求，不自动重发。",
-		"budget":     "请求开始前按当前品牌价格和计费维度预估是否准入，结束后按真实用量扣费；单次实际用量可能使 Key 累计消费超过上限或账户余额为负。超过 Key 上限后停止准入新请求；充值只补账户余额，不重置 Key 累计消费。缺失用量保持待核对，不按估算结算。",
+		"budget":     "请求开始前按当前品牌价格和计费维度预估是否准入，结束后按真实用量扣费。实际费用超过所购套餐剩余额度时，套餐额度归零，账户余额不扣且不能为负。Key 余量用完归零。超过 Key 上限后停止准入新请求；充值只补账户余额，不重置 Key 累计消费。缺失用量保持待核对，不按估算结算。",
 		"rate_limit": "超过 API Key RPM/并发返回 429 rate_limited。",
 		"webhook":    "媒体回调 POST /v1/media/callbacks，校验 X-Tokenhub-Signature；支付回调按适配器验签，均按 event_id 幂等。",
 	}

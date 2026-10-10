@@ -63,7 +63,7 @@ describe("KeysList", () => {
   it("shows actual usage above the limit and signed remaining after occupancy", () => {
     render(withZh(<KeysList items={[{...sampleKey, budget_limit_minor:100000, budget_used_minor:120000, budget_reserved_minor:30000}]} />));
     expect(screen.getAllByText(/已用 0.120000 USD/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/剩余 -0.050000 USD/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/剩余 0.000000 USD/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/占用 0.030000 USD/).length).toBeGreaterThan(0);
   });
 
@@ -411,12 +411,26 @@ describe("KeysPanel", () => {
     fireEvent.click(screen.getByLabelText("所有可用模型"));fireEvent.click(screen.getByLabelText("设置累计总上限"));fireEvent.change(screen.getByLabelText("USD"),{target:{value:"0.0000001"}});fireEvent.click(screen.getByRole("button",{name:"创建"}));
     expect(fetchMock.mock.calls.some(call=>(call as unknown as [unknown,RequestInit])[1]?.method==="POST")).toBe(false);
   });
+  it("sends the selected USD accumulation period", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => ({ ok: true, json: async () => init?.method === "POST" ? { item: { ...sampleKey, name: "work", budget_period: "quarter" } } : { items: [] } }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(withZh(<KeysPanel />));
+    fireEvent.click(screen.getByRole("button", { name: "创建 API Key" }));
+    fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "work" } });
+    fireEvent.click(screen.getByLabelText("设置累计总上限"));
+    fireEvent.change(screen.getByLabelText("USD"), { target: { value: "2" } });
+    fireEvent.click(screen.getByLabelText("按季"));
+    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(JSON.parse(String(posts[0][1]?.body)).budget_period).toBe("quarter");
+  });
   it("creates without balance or Agent selection, sends atomic limits and never automatically bills",async()=>{
     const fetchMock=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>({ok:true,json:async()=>init?.method==="POST"?{item:{...sampleKey,name:"work",model_mode:"all",budget_limit_minor:1250000,expires_at:"2030-01-01T00:00:00Z"}}:{items:[]}}));vi.stubGlobal("fetch",fetchMock);
     render(withZh(<KeysPanel/>));fireEvent.click(screen.getByRole("button",{name:"创建 API Key"}));fireEvent.change(screen.getByLabelText("密钥名称"),{target:{value:"work"}});fireEvent.click(screen.getByLabelText("设置累计总上限"));fireEvent.change(screen.getByLabelText("USD"),{target:{value:"1.25"}});
     fireEvent.click(screen.getByLabelText("指定到期时间"));fireEvent.change(screen.getByLabelText(/当地时间/),{target:{value:"2030-01-01T00:00"}});fireEvent.click(screen.getByRole("button",{name:"创建"}));
     await waitFor(()=>expect(screen.getByTestId("key-secret")).toBeTruthy());
-    const posts=fetchMock.mock.calls.filter(([,init])=>init?.method==="POST");expect(posts).toHaveLength(1);expect(JSON.parse(String(posts[0][1]?.body))).toMatchObject({name:"work",model_mode:"all",allowlist:[],budget_limit_minor:1250000});
+    const posts=fetchMock.mock.calls.filter(([,init])=>init?.method==="POST");expect(posts).toHaveLength(1);expect(JSON.parse(String(posts[0][1]?.body))).toMatchObject({name:"work",model_mode:"all",allowlist:[],budget_limit_minor:1250000,budget_period:"lifetime"});
     expect(screen.getByRole("link",{name:"Agent 配置"}).getAttribute("href")).toContain("key_id=key_1");expect(window.location.href).not.toContain(sampleKey.key);expect(screen.queryByRole("button",{name:"发送站内测试请求"})).toBeNull();
   });
 

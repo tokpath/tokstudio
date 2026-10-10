@@ -707,6 +707,54 @@ func (s *Service) ExtendUSDUsageTx(tx *gorm.DB, userID, requestID string, amount
 	return s.consumeTx(tx, userID, requestID, UnitUSDCredit, amount, true)
 }
 
+// PurchasedUSDRemainingTx 是还没被占用的已购套餐 USD，不含赠送。
+func (s *Service) PurchasedUSDRemainingTx(tx *gorm.DB, userID string) (int64, error) {
+	rows, err := lockPurchasedUSD(tx, userID)
+	if err != nil {
+		return 0, err
+	}
+	var left int64
+	for _, row := range rows {
+		left += row.Granted - row.Consumed
+	}
+	return left, nil
+}
+
+// ZeroPurchasedUSDTx 把已购套餐剩余额度一次性归零，并记在这次请求上。
+func (s *Service) ZeroPurchasedUSDTx(tx *gorm.DB, userID, requestID string) (int64, error) {
+	rows, err := lockPurchasedUSD(tx, userID)
+	if err != nil {
+		return 0, err
+	}
+	var took int64
+	for i := range rows {
+		use := rows[i].Granted - rows[i].Consumed
+		if use <= 0 {
+			continue
+		}
+		rows[i].Consumed += use
+		rows[i].Status = EntExhausted
+		if err := tx.Save(&rows[i]).Error; err != nil {
+			return 0, err
+		}
+		if err := writeEntLedger(tx, rows[i].ID, EventDebit, -use, requestID, "wipe-plan:"+requestID+":"+rows[i].ID); err != nil {
+			return 0, err
+		}
+		took += use
+	}
+	return took, nil
+}
+
+func lockPurchasedUSD(tx *gorm.DB, userID string) ([]entRow, error) {
+	var rows []entRow
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("user_id = ? AND unit_type = ? AND source_type = ? AND status = ? AND granted > consumed AND (expires_at IS NULL OR expires_at > ?)",
+			userID, UnitUSDCredit, SourcePlan, EntActive, time.Now().UTC()).
+		Order("expires_at ASC NULLS LAST").
+		Find(&rows).Error
+	return rows, err
+}
+
 func (s *Service) consumeTx(tx *gorm.DB, userID, requestID, unit string, amount int64, extend bool) (int64, error) {
 	if amount <= 0 {
 		return 0, nil

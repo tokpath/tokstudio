@@ -124,7 +124,7 @@
 - `GET /v1/me/subscriptions`
 - `POST /v1/me/subscriptions/{id}/cancel`
 - `GET /v1/me/api-keys`：列表回带 `allowlist` 与 `rpm_limit`；完整 Key 仅创建者可见。
-- `POST /v1/me/api-keys`：接受 `name`、`model_mode`、`allowlist`、`budget_limit_minor`、`expires_at`，RPM/并发为高级项。创建持久operation_id复用原操作。`model_mode=all`使用所有可用模型，selected必须有非空白名单；`PATCH /v1/me/api-keys/{id}`编辑限制，同样严格本人所有。USD累计预算原子预留/结算/释放/冲正，轮换不重置；有限额Key只支持有可靠费用上界的模型/参数，不支持返回key_budget_unbounded。模型与品牌授权、有效期和账户余额独立生效。
+- `POST /v1/me/api-keys`：接受 `name`、`model_mode`、`allowlist`、`budget_limit_minor`、`expires_at`，RPM/并发为高级项。创建持久operation_id复用原操作。`model_mode=all`使用所有可用模型，selected必须有非空白名单；`PATCH /v1/me/api-keys/{id}`编辑限制，同样严格本人所有。USD累计预算原子预留/结算/释放/冲正，轮换不重置；有限额Key按合理费用预估准入，不因无法证明绝对上界而排除兼容模型；实际用量齐全就按实结算，可使Key超限及账户负余额，缺价格/计量仍明确拒绝。模型与品牌授权、有效期和账户余额独立生效。
 - `POST /v1/me/api-keys/{id}/rotate`
 - `POST /v1/me/api-keys/{id}/disable`
 - `POST /v1/me/api-keys/{id}/copy`：复制完整 Key，只写审计不改密文
@@ -209,3 +209,13 @@
 - 支付页从具体订单发起确认和退款，明确展示支付币种、实付金额、对应充值额度及入账状态；失败原因保留在确认框内，操作成功与列表刷新失败分开反馈。
 - 退款先校验订单状态和额度回收条件；本地退款状态与额度冲正在同一事务提交。已退款订单重试不再调用渠道。Stripe 退款使用订单固定幂等键（支付宝、微信原有固定退款编号保留）。外部渠道网络结果不确定时仍需以渠道状态与对账结果核实，不能将本地事务等同于跨支付渠道事务。
 - 线下订单的“登记退款”只回收平台额度并登记状态，不执行真实转账。消费账单退款及佣金冲正是独立链路，不能与充值/支付退款混称。
+
+### 2026-10-10 业务补充：实际结算与 OEM 采购
+
+- 请求开始前用原品牌价格预估，账户适用余额与 Key 累计限额均原子占用。可靠实际消费可超过预估与 Key 限额，并使现金余额为负；缺少真实用量仍待核对。新请求继续检查扣除欠额后的可用余额，不把欠额按零计算；充值不重置 Key 已用。无法取得有效计费估算时返回 `price_estimate_unavailable`，不再以供应商绝对费用上界白名单决定有限额 Key 是否可用。
+- `GET /admin/oem-purchases`：平台/财务/运营/审计读取，支持 `oem_channel_id`、`limit`、`cursor`；游标必须属于当前查询范围。`GET /channel/oem-purchases` 仅 OEM 读取自己的采购，裁去平台内部备注与操作人员字段。
+- `POST /admin/oem-purchases`：平台管理员/财务确认实际到账并划入服务额度。必填 `operation_id`、`oem_channel_org_id`、`cash_amount_minor`、`cash_currency`、`sale_amount_minor`、`quota_amount_minor`、`occurred_at`、`confirmed=true`，需现有确认头。`external_reference` 与 `note` 可为空。
+- 金额单位：USD 现金、协议 USD 销售金额及服务额度均为 microUSD（1 USD = 1,000,000）；CNY 现金为分（1 CNY = 100）。USD 现金金额须等于协议 USD 销售金额；CNY 的协议 USD 金额由双方明确填写，不推测汇率。销售金额与服务额度分别保存，不能自动互相代替。
+- 原操作编号绑定登记人、OEM 与完整参数；重试不重复发放，参数不同返回 `409 operation_conflict`。真实外部交易号非空时按平台收款主体防重，重复返回 `external_reference_conflict` 与原记录。`GET /admin/oem-purchases/operations?oem_channel_id=&operation_id=` 供原登记人核对未知结果；`GET /admin/oem-purchases/{id}` 供有权平台岗位查看原单。
+- `POST /admin/oem-purchases/{id}/reverse`：平台管理员/财务登记误录撤销，提交新的稳定 `operation_id` 与 `reason` 并确认。原 OEM 可用服务额度足额时原子收回、冲减销售并写审计；额度不足返回 `409 quota_not_recoverable`，不改变客户余额。不执行外部退款，不删除原采购，重复请求沿同一原操作核对。
+- 平台经营收入是自营品牌终端消费与已完成 OEM 服务额度销售；不汇总 OEM 终端售价。OEM API 毛利是其终端实际计费减原平台结算价对应消耗。采购现金、未消费额度、真实上游成本和营销支出分别呈现，详情见 docs/28、docs/30。

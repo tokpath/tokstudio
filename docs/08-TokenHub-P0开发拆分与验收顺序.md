@@ -64,7 +64,7 @@ M6 实现补充：以 `docs/15` 为准。种子树仍可保留 `acr_b_agent` →
 
 Ofox 公开目录预置：独立命令 `backend/cmd/catalog-seed`（`make catalog-seed`，Compose `docker compose --profile seed run --rm catalog-seed`）把嵌入的 `ofox-models.json` 写入 PostgreSQL。预置模型直接是 `status=published`、`sync_state=published`（已审核并已发布），创建人/审核人为空；只授权官方与分销渠道，不进 OEM 白名单；跳过空 id 与 `tokenhub/*`。命令幂等，先执行 migration。API `Seed()` 仍会调用同一导入，便于开发环境；不必先起 API 也能预置空库。
 
-M2 当前实现：本人 Key 直接配置模型范围、累计 USD 上限和有效期，RPM/并发为高级项。原子预算预留/结算/释放/冲正，轮换不重置；有限额 Key 拒绝没有可靠费用上界的模型/参数。公开请求禁止提供商和路由控制。Chat Completions 按实际模型和已部署适配器提供协议；Responses 与 Messages 只支持已实现的子集，未知或未支持参数返回结构化错误。公开模型的 supported_endpoints 是选择调用方式的依据。当前支持的 Agent 配置见 docs/20；Codex、Claude Code 未完成协议验收，不列为已支持 Agent。图像生成按真实能力提供，图像编辑当前关闭，不以生成冒充编辑。
+M2 当前实现：本人 Key 直接配置模型范围、累计 USD 上限和有效期，RPM/并发为高级项。原子预算预留/结算/释放/冲正，轮换不重置；有限额Key按合理预估准入，已执行请求可靠实际用量即使超预估也正常结算并允许负余额；未知定价/计量仍拒绝。公开请求禁止提供商和路由控制。Chat Completions 按实际模型和已部署适配器提供协议；Responses 与 Messages 只支持已实现的子集，未知或未支持参数返回结构化错误。公开模型的 supported_endpoints 是选择调用方式的依据。当前支持的 Agent 配置见 docs/20；Codex、Claude Code 未完成协议验收，不列为已支持 Agent。图像生成按真实能力提供，图像编辑当前关闭，不以生成冒充编辑。
 
 M7 当前实现：员工按真实岗位进入平台/OEM任务工作区；普通账户邀请与收益在 `/app/referral`，旧 `/partner` 入口合并。平台用户 Key 管理已退役，本人读写严格所有权。OEM 收款和服务池按品牌，渠道无资金操作；资金操作记录原对象、金额、实际时间与确认，外部参考号可选，未知结果按原系统操作重试。汇总/搜索由服务端全范围查询，读取失败与真实零区分，直接 ID 与批量动作再次鉴权。运营诊断只在有权内部页；生产启动不安装测试回声 Harness。请求与账务日志只记录必要元数据，不默认持久化 prompt/completion；例外是标准 API 的幂等响应缓存：为原操作重试，完整响应正文在 Redis 保存 24 小时，访问按原操作身份控制。媒体素材另按对象存储保留策略处理。 本轮验证与未验证边界以 docs/21 和 docs/26 为准，旧里程碑不代表当前生产验收。
 

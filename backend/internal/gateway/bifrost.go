@@ -71,6 +71,7 @@ func contextString(ctx context.Context, key ctxKey) string {
 // Runtime 是嵌在 TokenHub 进程里的 Bifrost 数据面（仅 live，禁止 sandbox echo plugin）。
 type Runtime struct {
 	settings     Settings
+	upstreamHTTP *upstreamHTTP
 	Client       *bifrost.Bifrost
 	Sandbox      bool // 恒为 false；保留字段避免调用方大面积改动。
 	GeminiAPIKey string
@@ -82,23 +83,31 @@ func GeminiLiveEnabled(rt *Runtime) bool {
 }
 
 func (rt *Runtime) Close() {
-	if rt == nil || rt.Client == nil {
+	if rt == nil {
 		return
 	}
-	rt.Client.Shutdown()
+	if rt.upstreamHTTP != nil && rt.upstreamHTTP.client != nil {
+		rt.upstreamHTTP.client.CloseIdleConnections()
+	}
+	if rt.Client != nil {
+		rt.Client.Shutdown()
+	}
 }
 
 // Settings 是进程内 Init Bifrost 所需的配置。
 // Sandbox 字段已废弃：即使传入 true 也会被忽略，始终走 live，缺 Key 则 Init 失败。
 type Settings struct {
-	Sandbox          bool // deprecated: ignored
-	LogLevel         string
-	OpenAIAPIKey     string
-	AnthropicAPIKey  string
-	GeminiAPIKey     string
-	OpenRouterAPIKey string
-	EncryptionKey    string
-	Keys             AccountKeys
+	Sandbox              bool // deprecated: ignored
+	LogLevel             string
+	OpenAIAPIKey         string
+	AnthropicAPIKey      string
+	GeminiAPIKey         string
+	OpenRouterAPIKey     string
+	EncryptionKey        string
+	Keys                 AccountKeys
+	Production           bool
+	UpstreamURLAllowlist []string
+	AllowTestLoopback    bool // Only enabled by the app's explicit test environment.
 }
 
 // AccountKeys 由 catalog 实现：把目录账号池解密给 Bifrost。
@@ -127,7 +136,7 @@ func Start(ctx context.Context, in Settings) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Runtime{Client: client, Sandbox: false, GeminiAPIKey: in.GeminiAPIKey, settings: in}, nil
+	return &Runtime{Client: client, Sandbox: false, GeminiAPIKey: in.GeminiAPIKey, settings: in, upstreamHTTP: newUpstreamHTTP(in)}, nil
 }
 
 // BifrostAdapter 在进程内调用 Bifrost SDK。client 为空时返回 503。

@@ -72,7 +72,7 @@ func TestOtherVerifiedTextBudgetActualOutbound(t *testing.T) {
 		settings                              Settings
 	}{
 		{"anthropic", "claude-sonnet-4-6", "/v1/messages", "max_tokens", `{"id":"msg_local","type":"message","role":"assistant","model":"claude-sonnet-4-6","content":[{"type":"text","text":"pong"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":7,"output_tokens":9,"output_tokens_details":{"thinking_tokens":5}}}`, Settings{AnthropicAPIKey: "sk-local-budget-test"}},
-		{"openrouter", "openai/gpt-4.1-mini", "/v1/chat/completions", "max_completion_tokens", `{"id":"chat_local","object":"chat.completion","model":"openai/gpt-4.1-mini","choices":[{"index":0,"message":{"role":"assistant","content":"pong"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16,"completion_tokens_details":{"reasoning_tokens":5}}}`, Settings{OpenRouterAPIKey: "sk-local-budget-test"}},
+		{"openrouter", "openai/gpt-4.1-mini", "/v1/chat/completions", "max_completion_tokens", `{"id":"chat_local","object":"chat.completion","model":"openai/gpt-4.1-mini","choices":[{"index":0,"message":{"role":"assistant","content":"pong"},"finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":9,"total_tokens":16,"completion_tokens_details":{"reasoning_tokens":5}}}`, Settings{OpenRouterAPIKey: "sk-local-budget-test", AllowTestLoopback: true}},
 	} {
 		t.Run(fixture.slug, func(t *testing.T) {
 			captured := make(chan map[string]any, 1)
@@ -223,7 +223,7 @@ func TestRealAdapterUnknownAndMissingUsage(t *testing.T) {
 			_, _ = w.Write([]byte(fixture.body))
 		}))
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		runtime := &Runtime{settings: Settings{OpenRouterAPIKey: "sk-local-unknown"}}
+		runtime := &Runtime{settings: Settings{OpenRouterAPIKey: "sk-local-unknown", AllowTestLoopback: true}}
 		ctx = context.WithValue(ctx, ctxProviderBaseURLKey, upstream.URL+"/v1")
 		cap := 32
 		out, err := (BifrostAdapter{Runtime: runtime}).openRouterChat(ctx, ChatRequest{Model: "openai/gpt-4.1-mini", MaxTokens: &cap, Messages: []ChatMessage{{Role: "user", Content: "ping"}}})

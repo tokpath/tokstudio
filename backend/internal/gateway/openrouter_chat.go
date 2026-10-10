@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,6 +45,19 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 		base += "/api/v1"
 	}
 	endpoint := chatCompletionsURL(base)
+	guard := a.Runtime.upstreamHTTP
+	if guard == nil {
+		guard = newUpstreamHTTP(a.Runtime.settings)
+		defer guard.client.CloseIdleConnections()
+	}
+	// Only server-allowed URL authorities can reach the request constructor.
+	// The transport separately pins public DNS results and rejects redirects.
+	if !guard.allowedURL.MatchString(endpoint) {
+		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, errBlockedUpstream
+	}
+	if err := guard.validateURL(endpoint); err != nil {
+		return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, err
+	}
 	raw, _ := json.Marshal(req)
 	var body map[string]any
 	if err := json.Unmarshal(raw, &body); err != nil {
@@ -66,8 +80,11 @@ func (a BifrostAdapter) openRouterChat(ctx context.Context, req ChatRequest) (Ad
 	}
 	call.Header.Set("Content-Type", "application/json")
 	call.Header.Set("Authorization", "Bearer "+secret)
-	response, err := http.DefaultClient.Do(call)
+	response, err := guard.client.Do(call)
 	if err != nil {
+		if errors.Is(err, errBlockedUpstream) {
+			return AdapterResult{HTTPStatus: 503, ErrorClass: "provider_unavailable"}, errBlockedUpstream
+		}
 		return AdapterResult{ErrorClass: "timeout"}, fmt.Errorf("openrouter outcome unknown")
 	}
 	defer response.Body.Close()

@@ -46,7 +46,7 @@ test.beforeAll(async()=>{
       }}));return;
     }
     if(url.pathname==="/v1/me" || url.pathname==="/v1/me/api-keys"){response.statusCode=401;response.end("{}");return;}
-    response.end("{}");
+    response.statusCode=503;response.end(JSON.stringify({error:{message:"Fixture does not serve this endpoint"}}));
   });
   await new Promise<void>(resolve=>server.listen(8080,"127.0.0.1",resolve));
 });

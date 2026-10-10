@@ -60,6 +60,22 @@ test("platform navigation shows only its current task group and expands on reque
  await expect(nav.getByRole("link",{name:"价格",exact:true})).toHaveCount(0);await expect(nav.getByRole("link",{name:"API Key",exact:true})).toHaveCount(0);await expect(nav.getByRole("link",{name:"应急手册",exact:true})).toHaveCount(0);
 });
 
+test("malformed workbench responses keep navigation usable and metrics unknown", async ({ page }) => {
+ const errors: string[] = [];
+ page.on("pageerror", error => errors.push(error.message));
+ await page.route("**/api/admin/ops/dashboard", route => route.fulfill({ json: {} }));
+ await page.route("**/api/admin/metrics/series?**", route => route.fulfill({ json: {} }));
+ await page.goto("/admin");
+ await expect(page.getByRole("alert").filter({hasText:"读取失败"}).first()).toBeVisible();
+ const nav=page.getByRole("navigation",{name:"平台管理"});
+ await nav.getByRole("button",{name:"模型与套餐",exact:true}).click();
+ await expect(nav.getByRole("link",{name:"提供商",exact:true})).toBeVisible();
+ await nav.getByRole("button",{name:"资金与结算",exact:true}).click();
+ await expect(nav.getByRole("link",{name:"支付",exact:true})).toBeVisible();
+ await expect(page.getByTestId("ops-daily-chart")).toHaveCount(0);
+ expect(errors).toEqual([]);
+});
+
 test("admin margin page is TokenHub-only and never estimates cost", async ({ page }) => {
   await page.route("**/admin/margin**", async (route) => {
     if (route.request().resourceType() !== "fetch" && route.request().resourceType() !== "xhr") {

@@ -34,6 +34,12 @@ func NextCursor(items []string, limit int) string {
 
 // Paginate 按 id cursor 切一页，避免复用原切片底层数组。
 func Paginate[T any](items []T, limit int, cursor string, idFn func(T) string) (page []T, next string) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
 	page = make([]T, 0, limit)
 	seen := cursor == ""
 	for _, item := range items {

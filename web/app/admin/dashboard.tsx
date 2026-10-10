@@ -19,8 +19,8 @@ export default function AdminDashboard(){
  const tb=useTranslations("billingOverview");
  const t=useTranslations("admin"),td=useTranslations("dashboard"),tw=useTranslations("workbench"),tc=useTranslations("charts"),viewer=useViewer();
  const {resolvedTheme}=useTheme();const[dimension,setDimension]=useState("model");
- const query=useQuery({queryKey:[viewer.userId,"dashboard"],queryFn:()=>readUsage<Body>("/admin/ops/dashboard"),enabled:viewer.signedIn,retry:false});
- const series=useQuery({queryKey:[viewer.userId,"metrics-series"],queryFn:()=>readUsage<Series>("/admin/metrics/series?days=7"),enabled:viewer.signedIn,retry:false});
+ const query=useQuery({queryKey:[viewer.userId,"dashboard"],queryFn:async()=>{const body=await readUsage<Body>("/admin/ops/dashboard");if(!body?.dashboard || typeof body.dashboard!=="object" || Array.isArray(body.dashboard))throw new Error("read_error");return body;},enabled:viewer.signedIn,retry:false});
+ const series=useQuery({queryKey:[viewer.userId,"metrics-series"],queryFn:async()=>{const body=await readUsage<Series>("/admin/metrics/series?days=7");if(!Array.isArray(body?.items))throw new Error("read_error");return body;},enabled:viewer.signedIn,retry:false});
  const dash=query.isError?undefined:query.data?.dashboard,errors=dash?.module_errors||{};
  const palette=useMemo(()=>chartPalette(resolvedTheme==="dark"),[resolvedTheme]),labels=useMemo(()=>({requests:tc("requests"),revenue:tb("platformRevenue")}),[tc,tb]);
  const dims=dash?.dimensions?.[dimension]?.map(row=>({...row,key:row.key==="oem_service_sales"?tb("oemSales"):row.key}));

@@ -16,7 +16,8 @@ test.beforeAll(async()=>{
     if(url.pathname==="/v1/public/docs-context" && url.searchParams.get("model")==="echo"){
       response.end(JSON.stringify({model:"echo",api_base_url:"http://127.0.0.1:3000",supported_endpoints:["/v1/chat/completions"],examples:{"/v1/chat/completions":{curl:"curl http://127.0.0.1:3000/v1/chat/completions",python:"import urllib.request",node:"await fetch()"}}}));return;
     }
-    response.end("{}");
+    if(url.pathname==="/v1/me" || url.pathname==="/v1/partner/me"){response.statusCode=401;response.end("{}");return;}
+    response.statusCode=503;response.end(JSON.stringify({error:{message:"Fixture does not serve this endpoint"}}));
   });
   await new Promise<void>(resolve=>catalogServer.listen(8080,"127.0.0.1",resolve));
 });

@@ -137,7 +137,7 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("OEM brand must show its own plan: %d %+v", oemRes.StatusCode, oemPublic)
 	}
 	rejectedPlan := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-		"name": "Rejected plan", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"name": "Rejected plan", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})
 	rejectedID := rejectedPlan["item"].(map[string]any)["id"].(string)
@@ -359,7 +359,7 @@ func TestM5PlansPayments(t *testing.T) {
 		}
 	}
 	if code := postStatusConfirm(t, server.URL+"/channel/plans", "m5_channel", map[string]any{
-		"name": "Out of scope", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"name": "Out of scope", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"channel_scope": "selected", "channel_ids": []string{identity.OEMChannelID},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	}); code != http.StatusForbidden {
@@ -387,7 +387,7 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("OEM picker omitted its direct child: %+v; principal: %+v", oemTargets, getAuthJSON(t, server.URL+"/admin/me", "m5_admin-c"))
 	}
 	if code := postStatusConfirm(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-		"name": "Grandchild target", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"name": "Grandchild target", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"channel_scope": "selected", "channel_ids": []string{childID},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	}); code != http.StatusBadRequest {
@@ -400,7 +400,7 @@ func TestM5PlansPayments(t *testing.T) {
 		"code": "plan-second-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B",
 	})["item"].(map[string]any)["id"].(string)
 	multi := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-		"name": "Multi-channel", "price_minor": 1_000_000, "billing_period": plans.PeriodOnce,
+		"name": "Multi-channel", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID, secondB},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})

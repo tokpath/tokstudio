@@ -11,7 +11,7 @@ func (s *Service) CreateSubscriptionTx(tx *gorm.DB, userID, channelID, planID, a
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", planID).First(&row).Error; err != nil {
 		return nil, ErrNotFound
 	}
-	if autoRenew && (!row.AutoRenewAllowed || row.BillingPeriod == PeriodOnce || adapter != "stripe") {
+	if autoRenew && (!row.AutoRenewAllowed || row.BillingPeriod == PeriodLifetime || adapter != "stripe") {
 		return nil, ErrInvalidPlan
 	}
 	scoped := *s

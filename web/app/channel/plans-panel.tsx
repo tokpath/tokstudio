@@ -52,13 +52,13 @@ export function ChannelPlans() {
         name: z.string().trim().min(1, t("nameRequired")),
         price_usd: z.string().trim().min(1, t("priceRequired")),
         included_usd: z.string().trim().min(1, t("amountRequired")),
-        billing_period: z.enum(["once", "monthly", "quarterly", "yearly"]),
+        billing_period: z.enum(["lifetime", "monthly", "quarterly", "yearly"]),
       }),
     [t],
   );
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", price_usd: "1", included_usd: "1", billing_period: "once" },
+    defaultValues: { name: "", price_usd: "1", included_usd: "1", billing_period: "lifetime" },
   });
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function ChannelPlans() {
               name: values.name,
               price_minor: price,
               billing_period: values.billing_period,
-              auto_renew_allowed: values.billing_period !== "once",
+              auto_renew_allowed: values.billing_period !== "lifetime",
               channel_scope: channelScope,
               channel_ids: channelScope === "selected" ? selectedChannels : [],
               items: [{ unit_type: USD_CREDIT, included_amount: included }],
@@ -183,7 +183,7 @@ export function ChannelPlans() {
           <label className="grid gap-1 text-sm" htmlFor="channel-plan-period">
             {t("billingPeriod")}
             <select id="channel-plan-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...form.register("billing_period")}>
-              <option value="once">{t("periodOnce")}</option>
+              <option value="lifetime">{t("periodLifetime")}</option>
               <option value="monthly">{t("periodMonthly")}</option>
               <option value="quarterly">{t("periodQuarterly")}</option>
               <option value="yearly">{t("periodYearly")}</option>

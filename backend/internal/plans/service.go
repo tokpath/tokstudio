@@ -166,9 +166,9 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audi
 		in.OwnerType = OwnerPlatform
 	}
 	if in.BillingPeriod == "" {
-		in.BillingPeriod = PeriodOnce
+		in.BillingPeriod = PeriodLifetime
 	}
-	if (in.BillingPeriod != PeriodOnce && in.BillingPeriod != PeriodMonthly && in.BillingPeriod != PeriodQuarterly && in.BillingPeriod != PeriodYearly) || (in.BillingPeriod == PeriodOnce && in.AutoRenew) {
+	if (in.BillingPeriod != PeriodLifetime && in.BillingPeriod != PeriodMonthly && in.BillingPeriod != PeriodQuarterly && in.BillingPeriod != PeriodYearly) || (in.BillingPeriod == PeriodLifetime && in.AutoRenew) {
 		return nil, ErrInvalidPlan
 	}
 	if in.ChannelScope == "" {
@@ -212,7 +212,7 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audi
 				return ErrInvalidPlan
 			}
 			expires := item.ExpiresIn
-			if in.BillingPeriod == PeriodOnce {
+			if in.BillingPeriod == PeriodLifetime {
 				expires = 0
 			} else if expires <= 0 {
 				expires = 30 * 24 * 3600
@@ -376,7 +376,7 @@ func (s *Service) viewPlan(ctx context.Context, row planRow) (*PlanView, error) 
 	}
 	for _, item := range items {
 		in := PlanItemInput{UnitType: item.UnitType, Included: item.IncludedAmount, OverageMinor: item.OveragePriceMinor, ExpiresIn: item.ExpiresInSeconds}
-		if row.BillingPeriod == PeriodOnce {
+		if row.BillingPeriod == PeriodLifetime {
 			in.ExpiresIn = 0
 		}
 		if item.PublicModelID != nil {
@@ -403,7 +403,7 @@ func (s *Service) createSubscription(ctx context.Context, userID, channelID, pla
 		return nil, ErrNotFound
 	}
 	renew := RenewManual
-	if autoRenew && plan.BillingPeriod != PeriodOnce && plan.AutoRenewAllowed && adapter == "stripe" {
+	if autoRenew && plan.BillingPeriod != PeriodLifetime && plan.AutoRenewAllowed && adapter == "stripe" {
 		renew = RenewAuto
 	}
 	now := time.Now().UTC()

@@ -5,11 +5,11 @@ export type PublicPlan = {
   id: string; name: string; price_minor: number; currency: string; billing_period: string; auto_renew_allowed: boolean;
   items?: { unit_type: string; included_amount: number; public_model_id?: string; expires_in_seconds?: number }[];
 };
-export function planPeriod(period?: string): "once" | "month" | "quarter" | "year" | "unknown" {
-  if (["once", "one_time"].includes(period || "")) return "once";
-  if (["month", "monthly"].includes(period || "")) return "month";
-  if (["quarter", "quarterly"].includes(period || "")) return "quarter";
-  if (["year", "yearly"].includes(period || "")) return "year";
+export function planPeriod(period?: string): "lifetime" | "month" | "quarter" | "year" | "unknown" {
+  if (period === "lifetime") return "lifetime";
+  if (period === "monthly") return "month";
+  if (period === "quarterly") return "quarter";
+  if (period === "yearly") return "year";
   return "unknown";
 }
 export function planPrice(plan: Pick<PublicPlan,"currency"|"price_minor">) {

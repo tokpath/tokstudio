@@ -250,7 +250,7 @@ test("admin creates a plan for multiple direct channels without a second confirm
   await page.goto("/admin/plans");
   await page.getByRole("button", { name: "创建套餐" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("购买方式")).toHaveValue("once");
+  await expect(dialog.getByLabel("购买方式")).toHaveValue("lifetime");
   await expect(dialog.getByRole("option", { name: "不限时", exact: true })).toHaveCount(1);
   await expect(dialog.getByRole("option", { name: "一次性", exact: true })).toHaveCount(0);
   await dialog.getByLabel("套餐名称").fill("Two channels");
@@ -261,7 +261,7 @@ test("admin creates a plan for multiple direct channels without a second confirm
   await dialog.getByLabel("own-2").check();
   await dialog.getByRole("button", { name: "创建套餐" }).click();
   await expect.poll(() => created).toMatchObject({
-    name: "Two channels", billing_period: "once", auto_renew_allowed: false, channel_scope: "selected", channel_ids: ["chn_own_1", "chn_own_2"],
+    name: "Two channels", billing_period: "lifetime", auto_renew_allowed: false, channel_scope: "selected", channel_ids: ["chn_own_1", "chn_own_2"],
   });
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText("确认创建套餐")).toHaveCount(0);

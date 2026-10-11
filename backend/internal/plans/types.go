@@ -54,7 +54,7 @@ const (
 	PeriodMonthly        = "monthly"
 	PeriodQuarterly      = "quarterly"
 	PeriodYearly         = "yearly"
-	PeriodOnce           = "once"
+	PeriodLifetime       = "lifetime"
 	ChannelScopeAll      = "all"
 	ChannelScopeSelected = "selected"
 	GraceDays            = 7

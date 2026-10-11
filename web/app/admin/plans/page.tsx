@@ -41,7 +41,7 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "请填写套餐名"),
   price_usd: z.string().trim().min(1, "请填写价格"),
   included_usd: z.string().trim().min(1, "请填写额度"),
-  billing_period: z.enum(["once", "monthly", "quarterly", "yearly"]),
+  billing_period: z.enum(["lifetime", "monthly", "quarterly", "yearly"]),
 });
 
 const statusLabel: Record<string, string> = {
@@ -87,7 +87,7 @@ export default function AdminPlansPage() {
   const items = query.data?.items ?? [];
   const createForm = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
-    defaultValues: { name: "", price_usd: "1", included_usd: "1", billing_period: "once" },
+    defaultValues: { name: "", price_usd: "1", included_usd: "1", billing_period: "lifetime" },
   });
 
   async function changeStatus(plan: Plan, action: PlanAction): Promise<boolean> {
@@ -128,7 +128,7 @@ export default function AdminPlansPage() {
         method: "POST", credentials: "include", headers: confirmHeaders,
         body: JSON.stringify({
           name: values.name, owner_type: "platform", price_minor: price,
-          billing_period: values.billing_period, auto_renew_allowed: values.billing_period !== "once",
+          billing_period: values.billing_period, auto_renew_allowed: values.billing_period !== "lifetime",
           channel_scope: channelScope, channel_ids: channelScope === "selected" ? selectedChannels : [],
           items: [{ unit_type: USD_CREDIT, included_amount: included }],
         }),
@@ -177,7 +177,7 @@ export default function AdminPlansPage() {
           </label>
           <label className="grid gap-1 text-sm">套餐类型
             <select aria-label="按套餐类型筛选" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
-              <option value="">全部方式</option><option value="once">不限时</option><option value="monthly">包月</option><option value="quarterly">季付</option><option value="yearly">年付</option>
+              <option value="">全部方式</option><option value="lifetime">不限时</option><option value="monthly">包月</option><option value="quarterly">季付</option><option value="yearly">年付</option>
             </select>
           </label>
           <form className="flex gap-1" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
@@ -189,7 +189,7 @@ export default function AdminPlansPage() {
         <ScrollTable
           columns={[
             { id: "name", header: "套餐", className: "w-28 whitespace-normal px-1.5", cell: (item) => <span className="block w-28 break-words"><span className="block">{item.name}</span><span className="block text-xs text-ink-secondary">{item.owner_type === "platform" ? "平台" : item.owner_id}</span></span> },
-            { id: "price", header: "价格", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{formatUsdMinor(item.price_minor)} / {{ once: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
+            { id: "price", header: "价格", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{formatUsdMinor(item.price_minor)} / {{ lifetime: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
             { id: "quota", header: "包括额度", className: "px-1.5", cell: (item) => <span className="block max-w-24 whitespace-normal break-words text-ink-secondary">{quotaText(item)}</span> },
             { id: "channels", header: "适用渠道", className: "px-1.5", cell: (item) => <span className="block max-w-28 break-words text-ink-secondary">{item.channel_scope === "selected" ? item.channel_ids?.map((id) => channelNames.get(id) || id).join("、") : item.owner_type === "platform" ? "所有渠道" : "所属渠道及下属"}</span> },
             { id: "status", header: "状态", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{statusLabel[item.status] || item.status}</span> },
@@ -228,7 +228,7 @@ export default function AdminPlansPage() {
               <label className="grid gap-1 text-sm" htmlFor="billing-period">
                 购买方式
                 <select id="billing-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...createForm.register("billing_period")}>
-                  <option value="once">不限时</option>
+                  <option value="lifetime">不限时</option>
                   <option value="monthly">包月</option>
                   <option value="quarterly">季付</option>
                   <option value="yearly">年付</option>

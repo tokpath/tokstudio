@@ -189,7 +189,7 @@ export function ChannelPlans() {
               <option value="yearly">{t("periodYearly")}</option>
             </select>
           </label>
-          <p className="text-xs text-ink-secondary">一次性额度长期有效；周期套餐每期补充额度。</p>
+          <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
           <fieldset className="grid gap-2 text-sm">
             <legend>适用渠道</legend>
             <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>

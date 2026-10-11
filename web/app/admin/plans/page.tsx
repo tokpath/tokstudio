@@ -177,7 +177,7 @@ export default function AdminPlansPage() {
           </label>
           <label className="grid gap-1 text-sm">套餐类型
             <select aria-label="按套餐类型筛选" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
-              <option value="">全部方式</option><option value="once">一次性</option><option value="monthly">包月</option><option value="quarterly">季付</option><option value="yearly">年付</option>
+              <option value="">全部方式</option><option value="once">不限时</option><option value="monthly">包月</option><option value="quarterly">季付</option><option value="yearly">年付</option>
             </select>
           </label>
           <form className="flex gap-1" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
@@ -189,7 +189,7 @@ export default function AdminPlansPage() {
         <ScrollTable
           columns={[
             { id: "name", header: "套餐", className: "w-28 whitespace-normal px-1.5", cell: (item) => <span className="block w-28 break-words"><span className="block">{item.name}</span><span className="block text-xs text-ink-secondary">{item.owner_type === "platform" ? "平台" : item.owner_id}</span></span> },
-            { id: "price", header: "价格", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{formatUsdMinor(item.price_minor)} / {{ once: "次", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
+            { id: "price", header: "价格", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{formatUsdMinor(item.price_minor)} / {{ once: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
             { id: "quota", header: "包括额度", className: "px-1.5", cell: (item) => <span className="block max-w-24 whitespace-normal break-words text-ink-secondary">{quotaText(item)}</span> },
             { id: "channels", header: "适用渠道", className: "px-1.5", cell: (item) => <span className="block max-w-28 break-words text-ink-secondary">{item.channel_scope === "selected" ? item.channel_ids?.map((id) => channelNames.get(id) || id).join("、") : item.owner_type === "platform" ? "所有渠道" : "所属渠道及下属"}</span> },
             { id: "status", header: "状态", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{statusLabel[item.status] || item.status}</span> },
@@ -228,13 +228,13 @@ export default function AdminPlansPage() {
               <label className="grid gap-1 text-sm" htmlFor="billing-period">
                 购买方式
                 <select id="billing-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...createForm.register("billing_period")}>
-                  <option value="once">一次性</option>
+                  <option value="once">不限时</option>
                   <option value="monthly">包月</option>
                   <option value="quarterly">季付</option>
                   <option value="yearly">年付</option>
                 </select>
               </label>
-              <p className="text-xs text-ink-secondary">一次性额度长期有效；周期套餐每期补充额度。</p>
+              <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
               <fieldset className="grid gap-2 text-sm">
                 <legend>适用渠道</legend>
                 <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所有渠道</label>

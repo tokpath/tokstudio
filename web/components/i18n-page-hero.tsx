@@ -44,11 +44,12 @@ export function I18nPublicHero({
 }
 
 /** 控制台页头走 messages.console.<id>。 */
-export function I18nConsoleHeader({ id, actions }: { id: string; actions?: ReactNode }) {
+export function I18nConsoleHeader({ id, actions, hideDescription = false }: { id: string; actions?: ReactNode; hideDescription?: boolean }) {
   const t = useTranslations(`console.${id}`);
   const ta = useTranslations("admin");
   const to = useTranslations("oem");
   const viewer = useViewer();
   const isOEM = viewer.channelType === "C" && Boolean(oemPageKeys[id]);
-  return <ConsolePageHeader eyebrow={isOEM ? "OEM" : t("eyebrow")} title={isOEM ? ta(oemPageKeys[id]) : t("title")} description={isOEM ? to("scope") : t("description")} actions={actions} />;
+  const description = hideDescription ? "" : isOEM ? to("scope") : t("description");
+  return <ConsolePageHeader eyebrow={isOEM ? "OEM" : t("eyebrow")} title={isOEM ? ta(oemPageKeys[id]) : t("title")} description={description} actions={actions} />;
 }

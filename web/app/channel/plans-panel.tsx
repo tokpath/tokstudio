@@ -15,7 +15,7 @@ import { SubmitStatus } from "@/components/console/submit-status";
 import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { useListResource } from "@/hooks/use-list-resource";
@@ -167,16 +167,9 @@ export function ChannelPlans() {
 
   return (
     <Card>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <CardTitle className="text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
-          <p className="mt-2 text-sm text-ink-secondary">{t("plansLead")}</p>
-          <p className="mt-2 text-sm text-ink-secondary">本品牌统一制定套餐和价格，适用于本平台及指定下属渠道。创建后在列表中发布。</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void list.reload()}>{t("refreshPlans")}</Button>
-          {canOperate ? <Button onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
-        </div>
+      <div className="mb-4 flex justify-end gap-2">
+        <Button variant="outline" onClick={() => void list.reload()}>{t("refreshPlans")}</Button>
+        {canOperate ? <Button onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
       </div>
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
       {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
@@ -189,7 +182,6 @@ export function ChannelPlans() {
             <form className="grid gap-3" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
               <TextField control={form.control} name="name" label={t("planName")} />
               <TextField control={form.control} name="price_usd" label={t("planPrice")} placeholder={t("planPricePh")} suffix={tc("usd")} />
-              <p className="text-sm text-ink-secondary">{t("planUnit")}：{t("planCreditUsd")}</p>
               <TextField control={form.control} name="included_usd" label={t("planAmount")} placeholder="1.00" suffix={tc("usd")} />
               <label className="grid gap-1 text-sm" htmlFor="channel-plan-period">
                 {t("billingPeriod")}
@@ -222,13 +214,13 @@ export function ChannelPlans() {
         snapshot={list.snapshot}
         loadingTitle={t("plansTitle")}
         emptyTitle={t("emptyPlans")}
-        emptyDetail={t("emptyPlansDetail")}
+        emptyDetail=""
         onRetry={() => void list.reload()}
       >
         <LedgerTable
           columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice"), "操作"]}
           emptyTitle={t("emptyPlans")}
-          emptyDetail={t("emptyPlansDetail")}
+          emptyDetail=""
           rows={list.snapshot.items.map((item) => ({
             key: item.id || item.name || "plan",
             cells: [

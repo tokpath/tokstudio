@@ -806,7 +806,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "套餐",
-      "description": "订阅与权益。扣费顺序：赠送额度 → 套餐额度 → 钱包余额。"
+      "description": ""
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -906,7 +906,7 @@
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "套餐",
-      "description": "低价或高风险配额会进平台审核。归属会被后端写成当前渠道。"
+      "description": ""
     },
     "channelPayments": {
       "eyebrow": "PAYMENTS",
@@ -2020,8 +2020,8 @@
     "colCode": "推广码",
     "emptyUsers": "暂无本渠道用户",
     "emptyUsersDetail": "还没有用户通过本渠道推广码注册。先去推广页创建推广码。",
-    "plansTitle": "本渠道套餐",
-    "plansLead": "套餐创建后等待平台审核发布。这里只列本渠道的套餐。",
+    "plansTitle": "套餐",
+    "plansLead": "",
     "plansHint": "渠道管理员可看本渠道套餐和平台套餐，看不到其他渠道的销售组合。",
     "createHint": "创建后等待平台发布。套餐归属为本渠道。",
     "plansCount": "本渠道可见套餐 {n} 个",

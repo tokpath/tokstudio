@@ -806,7 +806,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "Plans",
-      "description": "Subscriptions and credits. Debit order: bonus credits → plan credits → wallet balance."
+      "description": ""
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -906,7 +906,7 @@
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "Plans",
-      "description": "Low price or high-risk quota goes to review. Owner is this channel."
+      "description": ""
     },
     "channelPayments": {
       "eyebrow": "PAYMENTS",
@@ -2020,8 +2020,8 @@
     "colCode": "Promo code",
     "emptyUsers": "No users in this channel",
     "emptyUsersDetail": "No users have signed up with this channel’s promo code yet. Create a code on the promo page first.",
-    "plansTitle": "Channel plans",
-    "plansLead": "New plans await platform publication. Only this channel’s plans are listed.",
+    "plansTitle": "Plans",
+    "plansLead": "",
     "plansHint": "Channel admins see this channel's plans and platform plans, not other channels' catalogs.",
     "createHint": "New plans await platform publication and belong to this channel.",
     "plansCount": "{n} visible plans",

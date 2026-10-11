@@ -35,7 +35,6 @@ export function EntitlementsPanel() {
   }
   return <section className="mt-6 space-y-3 border-t border-hairline pt-5" aria-label={t("title")}>
     <div className="flex items-center justify-between gap-3"><h3 className="font-semibold">{t("title")}</h3><Button type="button" size="sm" variant="outline" disabled={loading} onClick={() => void refresh()}>{t("refresh")}</Button></div>
-    <p className="text-sm text-ink-secondary">{t("help")}</p>
     {loading ? <p role="status">{t("loading")}</p> : error ? <p role="alert" className="text-danger">{error}</p> : !items.length ? <p>{t("empty")}</p> : <ul className="space-y-3">{items.map(item => {
       const expired = !!item.expires_at && Date.parse(item.expires_at) <= Date.now();
       const status = item.status === "active" ? (expired ? "expired" : item.remaining <= 0 ? "exhausted" : "active") : item.status;

@@ -806,7 +806,7 @@
     "plans": {
       "eyebrow": "PLANS",
       "title": "プラン",
-      "description": "サブスクリプションとクレジット。控除順：ボーナス → プラン → ウォレット残高。"
+      "description": ""
     },
     "usage": {
       "eyebrow": "USAGE",
@@ -906,7 +906,7 @@
     "channelPlans": {
       "eyebrow": "PLANS",
       "title": "プラン",
-      "description": "低価格や高リスク枠は審査へ。所有者はこのチャネル。"
+      "description": ""
     },
     "channelPayments": {
       "eyebrow": "PAYMENTS",
@@ -2020,8 +2020,8 @@
     "colCode": "紹介コード",
     "emptyUsers": "本チャネルのユーザーはいません",
     "emptyUsersDetail": "本チャネルのプロモコードで登録したユーザーはまだいません。先にプロモページでコードを作成してください。",
-    "plansTitle": "本チャネルのプラン",
-    "plansLead": "作成したプランはプラットフォームの公開を待ちます。本チャネルのプランのみ表示します。",
+    "plansTitle": "プラン",
+    "plansLead": "",
     "plansHint": "本チャネルとプラットフォームのプランは見えます。他チャネルの販売セットは見えません。",
     "createHint": "作成後はプラットフォームの公開を待ちます。プランは本チャネルに属します。",
     "plansCount": "見えるプラン {n} 件",

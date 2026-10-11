@@ -9,7 +9,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { TextField } from "@/components/text-field";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
 import { ScrollTable } from "@/components/ui/scroll-table";
 import { AdminShell } from "../shell";
@@ -158,7 +158,6 @@ export default function AdminPlansPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <AdminH2 level={1} k="planReview" className="text-lg font-semibold tracking-tight" />
-            <p className="mt-1 text-sm text-ink-secondary">套餐创建后待审核，发布后才可购买。</p>
           </div>
           <IfCan action="plans.write">
             <Button size="sm" onClick={() => setCreateOpen(true)}>创建套餐</Button>
@@ -209,16 +208,15 @@ export default function AdminPlansPage() {
           stickyEnds={false}
           minWidthClassName="min-w-[42rem]"
           getRowId={(item) => item.id}
-          empty={<EmptyState title="暂无套餐" detail="创建套餐后在这里审核发布。" />}
+          empty={<EmptyState title="暂无套餐" detail="" />}
         />
         {message ? <p role="status" className="mt-3 text-sm text-ink-secondary">{message}</p> : null}
       </section>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>创建套餐</DialogTitle>
-            <DialogDescription>创建后进入待审核，发布后才能购买。</DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
             <form className="grid gap-3" onSubmit={createForm.handleSubmit(createPlan)}>
@@ -234,7 +232,6 @@ export default function AdminPlansPage() {
                   <option value="yearly">年付</option>
                 </select>
               </label>
-              <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
               <fieldset className="grid gap-2 text-sm">
                 <legend>适用渠道</legend>
                 <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所有渠道</label>

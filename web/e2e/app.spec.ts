@@ -71,6 +71,9 @@ test("user keys create dialog exposes model USD and calculation period before ad
   await dialog.getByRole("radio", { name: "设置上限", exact: true }).check();
   const usd = dialog.getByLabel("USD", { exact: true });
   await usd.fill("10");
+  await usd.focus();
+  const outlineColor = await usd.evaluate((el) => getComputedStyle(el).outlineColor);
+  expect(outlineColor === "transparent" || outlineColor === "rgba(0, 0, 0, 0)").toBeTruthy();
   const period = dialog.getByRole("combobox", { name: "计算周期", exact: true });
   await expect(period).toBeVisible();
   await expect(period).toHaveValue("lifetime");

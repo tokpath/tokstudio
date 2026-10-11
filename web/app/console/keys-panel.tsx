@@ -502,10 +502,10 @@ function BudgetAmountField({ budget, period, onBudget, onPeriod }: {
 }) {
     const tx = useTranslations("keyUX");
     return <div className="flex h-10 w-fit max-w-full overflow-hidden rounded-control border border-hairline bg-canvas text-sm focus-within:border-brand-emphasis">
-        <input id="key-budget-usd" aria-label="USD" inputMode="decimal" className="w-24 min-w-0 bg-transparent px-3 text-ink outline-none" value={budget} onChange={event => onBudget(event.target.value)}/>
+        <input id="key-budget-usd" aria-label="USD" inputMode="decimal" className="w-24 min-w-0 bg-transparent px-3 text-ink outline-none focus-visible:outline-none" value={budget} onChange={event => onBudget(event.target.value)}/>
         <span aria-hidden className="flex items-center pr-3 text-ink-secondary">USD</span>
         <div className="relative shrink-0 border-l border-hairline bg-canvas-raised">
-          <select aria-label={tx("period")} className="h-full max-w-44 cursor-pointer appearance-none bg-transparent py-0 pl-3 pr-8 text-sm text-ink outline-none" value={period} onChange={event => onPeriod(event.target.value as BudgetPeriod)}>
+          <select aria-label={tx("period")} className="h-full max-w-44 cursor-pointer appearance-none bg-transparent py-0 pl-3 pr-8 text-sm text-ink outline-none focus-visible:outline-none" value={period} onChange={event => onPeriod(event.target.value as BudgetPeriod)}>
             {budgetPeriods.map(value => <option key={value} value={value}>{tx(value === "lifetime" ? "periodLifetime" : value === "month" ? "periodMonth" : value === "quarter" ? "periodQuarter" : "periodYear")}</option>)}
           </select>
           <ChevronDown aria-hidden className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-ink-secondary" strokeWidth={1.75}/>

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChannelPlans } from "@/app/channel/plans-panel";
 import { withZh } from "@/lib/test-i18n";
@@ -14,13 +14,18 @@ function jsonResponse(status: number, body: unknown) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
 
+function planDialog() {
+  return screen.getByRole("dialog");
+}
+
 function fillPlan(name = "渠道套餐甲") {
-  if (!screen.queryByLabelText("套餐名")) {
+  if (!screen.queryByRole("dialog")) {
     fireEvent.click(screen.getByRole("button", { name: "创建套餐" }));
   }
-  fireEvent.change(screen.getByLabelText("套餐名"), { target: { value: name } });
-  fireEvent.change(screen.getByLabelText("售价（USD）"), { target: { value: "2" } });
-  fireEvent.change(screen.getByLabelText("包含额度（USD）"), { target: { value: "2" } });
+  const dialog = planDialog();
+  fireEvent.change(within(dialog).getByLabelText("套餐名"), { target: { value: name } });
+  fireEvent.change(within(dialog).getByLabelText("售价（USD）"), { target: { value: "2" } });
+  fireEvent.change(within(dialog).getByLabelText("包含额度（USD）"), { target: { value: "2" } });
 }
 
 function submitCreate() {
@@ -64,7 +69,7 @@ describe("ChannelPlans create", () => {
     await waitFor(() => {
       expect(screen.getByTestId("submit-status").textContent).toContain("售价过低需审核但渠道无效");
     });
-    expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
+    expect(within(planDialog()).getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
   });
 
   it("shows a network error instead of failing silently", async () => {
@@ -84,7 +89,7 @@ describe("ChannelPlans create", () => {
     await waitFor(() => {
       expect(screen.getByTestId("submit-status").textContent).toContain("网络不可用，请重试。");
     });
-    expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
+    expect(within(planDialog()).getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
   });
 
   it("keeps a new draft when a stale in-flight create later succeeds", async () => {
@@ -113,8 +118,36 @@ describe("ChannelPlans create", () => {
     fillPlan("新草稿");
     finish({});
     await waitFor(() => {
-      expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "新草稿");
+      expect(within(planDialog()).getByLabelText("套餐名")).toHaveProperty("value", "新草稿");
     });
     expect(screen.queryByTestId("submit-status")).toBeNull();
+  });
+
+  it("asks the API for status, channel, period, and name together", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/eligible-channels")) {
+          return jsonResponse(200, { items: [{ id: "ch_child", code: "child-a", status: "active" }] });
+        }
+        return jsonResponse(200, { items: [] });
+      }),
+    );
+    render(withZh(<ChannelPlans />));
+    await screen.findByText("暂无可见套餐");
+    fireEvent.change(screen.getByLabelText("按状态筛选"), { target: { value: "published" } });
+    await screen.findByRole("option", { name: "child-a" });
+    fireEvent.change(screen.getByLabelText("按渠道筛选"), { target: { value: "ch_child" } });
+    fireEvent.change(screen.getByLabelText("按套餐类型筛选"), { target: { value: "monthly" } });
+    fireEvent.change(screen.getByLabelText("按套餐名筛选"), { target: { value: " 入门 " } });
+    fireEvent.click(screen.getByRole("button", { name: "筛选" }));
+    await waitFor(() => {
+      expect(urls.some((url) => url.includes("/channel/plans?") && url.includes("status=published") && url.includes("channel_id=ch_child") && url.includes("billing_period=monthly") && url.includes("name="))).toBe(true);
+    });
+    const matched = urls.find((url) => url.includes("status=published") && url.includes("channel_id=ch_child") && url.includes("billing_period=monthly") && url.includes("name="));
+    expect(decodeURIComponent(matched || "")).toContain("name=入门");
   });
 });

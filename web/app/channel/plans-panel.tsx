@@ -39,6 +39,11 @@ export function ChannelPlans() {
   const [createMessage, setCreateMessage] = useState("");
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState("");
+  const [periodFilter, setPeriodFilter] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
   const [channels, setChannels] = useState<PlanChannel[]>([]);
   const [channelScope, setChannelScope] = useState("all");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
@@ -46,8 +51,15 @@ export function ChannelPlans() {
   const [actionMessage, setActionMessage] = useState("");
   const creatingRef = useRef(false);
   const submitGen = useRef(0);
+  const planQuery = new URLSearchParams();
+  if (statusFilter) planQuery.set("status", statusFilter);
+  if (channelFilter) planQuery.set("channel_id", channelFilter);
+  if (periodFilter) planQuery.set("billing_period", periodFilter);
+  if (nameFilter) planQuery.set("name", nameFilter);
+  const planQueryString = planQuery.toString();
   const list = useListResource<Plan>({
-    load: () => fetchListItems(`${apiBase}/channel/plans`),
+    queryKey: planQueryString,
+    load: () => fetchListItems(`${apiBase}/channel/plans${planQueryString ? `?${planQueryString}` : ""}`),
   });
   const schema = useMemo(
     () =>
@@ -173,6 +185,38 @@ export function ChannelPlans() {
       {canOperate ? <Button size="sm" onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
     </>} />
     <Card>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="grid gap-1 text-sm">状态
+          <select aria-label="按状态筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="">全部状态</option>
+            <option value="pending_review">待审核</option>
+            <option value="published">已发布</option>
+            <option value="archived">已下架</option>
+            <option value="rejected">已拒绝</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm">渠道
+          <select aria-label="按渠道筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={channelFilter} onChange={(event) => setChannelFilter(event.target.value)}>
+            <option value="">全部渠道</option>
+            {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.code}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm">套餐类型
+          <select aria-label="按套餐类型筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
+            <option value="">全部方式</option>
+            <option value="lifetime">不限时</option>
+            <option value="monthly">包月</option>
+            <option value="quarterly">季付</option>
+            <option value="yearly">年付</option>
+          </select>
+        </label>
+        <form className="flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
+          <label className="grid gap-1 text-sm">套餐名
+            <input aria-label="按套餐名筛选" className="h-10 w-44 rounded-control border border-hairline bg-canvas px-3 text-sm" value={nameInput} onChange={(event) => setNameInput(event.target.value)} />
+          </label>
+          <Button type="submit" variant="outline">筛选</Button>
+        </form>
+      </div>
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
       {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
       {canOperate ? <Dialog open={createOpen} onOpenChange={setCreateOpen}>

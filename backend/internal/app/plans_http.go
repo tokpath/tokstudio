@@ -337,11 +337,34 @@ func (a *App) channelListPlans(c *gin.Context) {
 	if !a.requirePlanPublisher(c) {
 		return
 	}
-	filter := plans.ListPlanFilter{Status: c.Query("status")}
+	filter := plans.ListPlanFilter{Status: c.Query("status"), Name: strings.TrimSpace(c.Query("name")), BillingPeriod: c.Query("billing_period")}
 	if p := a.currentPrincipal(c); p != nil && p.IsChannelStaff() && !p.IsPlatformAdmin() {
 		filter.OwnerChannelID = p.ChannelOrgID
 	} else {
 		filter.BrandOwnerID = identity.OfficialChannelID
+	}
+	if target := strings.TrimSpace(c.Query("channel_id")); target != "" {
+		ownerID := filter.OwnerChannelID
+		if ownerID == "" {
+			ownerID = filter.BrandOwnerID
+		}
+		allowed, err := a.Identity.ListPlanSubchannels(c.Request.Context(), ownerID)
+		if err != nil {
+			httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取下属渠道失败", true)
+			return
+		}
+		known := false
+		for _, channel := range allowed {
+			if channel.ID == target {
+				known = true
+				break
+			}
+		}
+		if !known {
+			httpx.Abort(c, http.StatusForbidden, "forbidden", "无权查看该渠道", false)
+			return
+		}
+		filter.TargetChannelID = target
 	}
 	items, err := a.Plans.ListPlansFiltered(c.Request.Context(), filter)
 	if err != nil {
@@ -454,6 +477,10 @@ func (a *App) adminCreatePlan(c *gin.Context) {
 		ActorUserID: a.currentPrincipal(c).UserID, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
 	if err != nil {
+		if errors.Is(err, plans.ErrPlanNameTaken) {
+			httpx.Abort(c, http.StatusConflict, "plan_name_taken", "套餐名称已存在", false)
+			return
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "创建套餐失败", false)
 		return
 	}

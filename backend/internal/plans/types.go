@@ -9,6 +9,7 @@ var (
 	ErrBonusConflict = errors.New("bonus idempotency conflict")
 	ErrNotFound      = errors.New("plan not found")
 	ErrInvalidPlan   = errors.New("invalid plan")
+	ErrPlanNameTaken = errors.New("plan name taken")
 	ErrNotPublished  = errors.New("plan is not published")
 	ErrInvalidState  = errors.New("plan status does not allow this action")
 )

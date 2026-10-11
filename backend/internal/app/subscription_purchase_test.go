@@ -23,7 +23,7 @@ func TestSubscriptionPurchaseDurableIdempotency(t *testing.T) {
 	ctx := context.Background()
 	reg := postBody(t, server.URL+"/v1/auth/register", "", map[string]string{"email": "purchase-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.test", "password": "password1"})
 	userID := userIDOf(reg)
-	plan, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{OwnerType: plans.OwnerPlatform, OwnerID: identity.OfficialChannelID, Name: "Purchase test", PriceMinor: 2000000, Currency: "USD", BillingPeriod: plans.PeriodMonthly, AutoRenew: true, ChannelScope: plans.ChannelScopeAll, Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 2000000}}}, audit.RecordInput{ActorUserID: userID})
+	plan, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{OwnerType: plans.OwnerPlatform, OwnerID: identity.OfficialChannelID, Name: "Purchase test " + strconv.FormatInt(time.Now().UnixNano(), 10), PriceMinor: 2000000, Currency: "USD", BillingPeriod: plans.PeriodMonthly, AutoRenew: true, ChannelScope: plans.ChannelScopeAll, Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 2000000}}}, audit.RecordInput{ActorUserID: userID})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,6 +35,7 @@ const LABEL_KEY: Record<string, string> = {
   pending_reconciliation: "stPendingRecon",
   pending_review: "stPendingReview",
   published: "stPublished",
+  archived: "stArchived",
   rejected: "stRejected",
   draft: "stDraft",
   failed: "stFailed",

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -64,8 +66,9 @@ func TestM5PlansPayments(t *testing.T) {
 	}); code != http.StatusForbidden {
 		t.Fatalf("B channel could create a brand plan: %d", code)
 	}
+	suffix := strconv.FormatInt(time.Now().UnixNano(), 10)
 	legacyPlan, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
-		OwnerType: plans.OwnerChannel, OwnerID: identity.ResellerChannelID, Name: "Legacy B Plan", PriceMinor: 1000,
+		OwnerType: plans.OwnerChannel, OwnerID: identity.ResellerChannelID, Name: "Legacy B Plan " + suffix, PriceMinor: 1000,
 		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
 	}, audit.RecordInput{ActorUserID: userID})
 	if err != nil {
@@ -74,11 +77,56 @@ func TestM5PlansPayments(t *testing.T) {
 	if code := postStatusConfirm(t, server.URL+"/admin/plans/"+legacyPlan.ID+"/review", "m5_channel", map[string]any{"action": "approve"}); code != http.StatusForbidden {
 		t.Fatalf("B channel published a legacy plan: %d", code)
 	}
+	planName := "OEM Plan " + suffix
 	cheap := postJSONRaw(t, server.URL+"/channel/plans", "m5_admin-c", map[string]any{
-		"name": "Too Cheap", "price_minor": 1000, "owner_type": "platform", "owner_id": identity.OfficialChannelID,
+		"name": planName, "price_minor": 1000, "owner_type": "platform", "owner_id": identity.OfficialChannelID,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
 	})
 	cheapItem := cheap["item"].(map[string]any)
+	if code := postStatusConfirm(t, server.URL+"/channel/plans", "m5_admin-c", map[string]any{
+		"name": "  " + strings.ToLower(planName) + "  ", "price_minor": 2000,
+		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1}},
+	}); code != http.StatusConflict {
+		t.Fatalf("duplicate OEM plan name: %d", code)
+	}
+	shared := "Shared " + suffix
+	if _, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
+		OwnerType: plans.OwnerPlatform, OwnerID: identity.OfficialChannelID, Name: shared, PriceMinor: 2000,
+		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
+	}, audit.RecordInput{ActorUserID: userID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
+		OwnerType: plans.OwnerChannel, OwnerID: "org_other_oem_" + suffix, Name: shared, PriceMinor: 2000,
+		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
+	}, audit.RecordInput{ActorUserID: userID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
+		OwnerType: plans.OwnerChannel, OwnerID: identity.OEMChannelID, Name: shared, PriceMinor: 2000,
+		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
+	}, audit.RecordInput{ActorUserID: userID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.Plans.CreatePlan(ctx, plans.CreatePlanInput{
+		OwnerType: plans.OwnerChannel, OwnerID: identity.OEMChannelID, Name: planName, PriceMinor: 2000,
+		Items: []plans.PlanItemInput{{UnitType: plans.UnitUSDCredit, Included: 1}},
+	}, audit.RecordInput{ActorUserID: userID}); !errors.Is(err, plans.ErrPlanNameTaken) {
+		t.Fatalf("same OEM name must be rejected in the service: %v", err)
+	}
+	filter := url.Values{}
+	filter.Set("name", planName)
+	filter.Set("status", plans.StatusPendingReview)
+	filter.Set("billing_period", plans.PeriodLifetime)
+	if !hasPlan(getAuthJSON(t, server.URL+"/channel/plans?"+filter.Encode(), "m5_admin-c"), cheapItem["id"].(string)) {
+		t.Fatal("OEM plan filters missed the new plan")
+	}
+	if hasPlan(getAuthJSON(t, server.URL+"/channel/plans?name="+url.QueryEscape(planName+"-missing"), "m5_admin-c"), cheapItem["id"].(string)) {
+		t.Fatal("OEM name filter matched a different plan")
+	}
+	if code := getStatus(t, server.URL+"/channel/plans?channel_id=not-a-child", "m5_admin-c"); code != http.StatusForbidden {
+		t.Fatalf("OEM channel filter accepted an unknown channel: %d", code)
+	}
 	if cheapItem["status"] != plans.StatusPendingReview || cheapItem["owner_type"] != plans.OwnerChannel || cheapItem["owner_id"] != identity.OEMChannelID {
 		t.Fatalf("OEM plan should await publication: %+v", cheap)
 	}
@@ -137,7 +185,7 @@ func TestM5PlansPayments(t *testing.T) {
 		t.Fatalf("OEM brand must show its own plan: %d %+v", oemRes.StatusCode, oemPublic)
 	}
 	rejectedPlan := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-		"name": "Rejected plan", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
+		"name": "Rejected plan " + suffix, "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})
 	rejectedID := rejectedPlan["item"].(map[string]any)["id"].(string)
@@ -324,7 +372,7 @@ func TestM5PlansPayments(t *testing.T) {
 		months int
 	}{{plans.PeriodQuarterly, 3}, {plans.PeriodYearly, 12}} {
 		created := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-			"name": "Period " + tc.period, "price_minor": 1_000_000, "billing_period": tc.period,
+			"name": "Period " + tc.period + " " + suffix, "price_minor": 1_000_000, "billing_period": tc.period,
 			"auto_renew_allowed": true, "channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID},
 			"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 		})
@@ -383,6 +431,9 @@ func TestM5PlansPayments(t *testing.T) {
 	if hasPlan(getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin"), childID) {
 		t.Fatal("platform picker included a grandchild channel")
 	}
+	if !hasPlan(getAuthJSON(t, server.URL+"/channel/plans?channel_id="+childID+"&name="+url.QueryEscape(planName), "m5_admin-c"), cheapItem["id"].(string)) {
+		t.Fatal("OEM channel filter omitted a plan that applies to every subordinate channel")
+	}
 	if oemTargets := getAuthJSON(t, server.URL+"/admin/plans/eligible-channels", "m5_admin-c"); !hasPlan(oemTargets, childID) {
 		t.Fatalf("OEM picker omitted its direct child: %+v; principal: %+v", oemTargets, getAuthJSON(t, server.URL+"/admin/me", "m5_admin-c"))
 	}
@@ -400,7 +451,7 @@ func TestM5PlansPayments(t *testing.T) {
 		"code": "plan-second-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), "type": "B",
 	})["item"].(map[string]any)["id"].(string)
 	multi := postJSONRaw(t, server.URL+"/admin/plans", "m5_admin", map[string]any{
-		"name": "Multi-channel", "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
+		"name": "Multi-channel " + suffix, "price_minor": 1_000_000, "billing_period": plans.PeriodLifetime,
 		"channel_scope": "selected", "channel_ids": []string{identity.ResellerChannelID, secondB},
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})

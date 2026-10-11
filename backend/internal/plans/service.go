@@ -159,6 +159,7 @@ func billingMinor() int64 { return 1_000_000 }
 func strPtr(s string) *string { return &s }
 
 func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audit.RecordInput) (*PlanView, error) {
+	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" || in.PriceMinor <= 0 || len(in.Items) == 0 {
 		return nil, ErrInvalidPlan
 	}
@@ -194,7 +195,22 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audi
 		CreatedAt: now, UpdatedAt: now,
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 同一归属内串行比较名称。平台与每个 OEM 各自一份目录，彼此可以同名。
+		lockKey := "plan-name:" + in.OwnerType + ":" + in.OwnerID + ":" + strings.ToLower(in.Name)
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", lockKey).Error; err != nil {
+			return err
+		}
+		var sameName int64
+		if err := tx.Model(&planRow{}).Where("owner_type = ? AND owner_id = ? AND LOWER(name) = LOWER(?)", in.OwnerType, in.OwnerID, in.Name).Count(&sameName).Error; err != nil {
+			return err
+		}
+		if sameName > 0 {
+			return ErrPlanNameTaken
+		}
 		if err := tx.Create(&row).Error; err != nil {
+			if isOwnerNameConflict(err) {
+				return ErrPlanNameTaken
+			}
 			return err
 		}
 		seenChannels := map[string]bool{}
@@ -242,6 +258,10 @@ func (s *Service) CreatePlan(ctx context.Context, in CreatePlanInput, actor audi
 		return nil, err
 	}
 	return s.GetPlan(ctx, row.ID)
+}
+
+func isOwnerNameConflict(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "plans_product_plans_owner_name_uidx")
 }
 
 func validUnit(u string) bool {

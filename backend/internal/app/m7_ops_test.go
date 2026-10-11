@@ -416,7 +416,7 @@ func TestM7OpsHardening(t *testing.T) {
 		t.Fatalf("patch channel: %+v", patchedCh)
 	}
 	createdPlan := postJSONRaw(t, server.URL+"/admin/plans", "m7_admin", map[string]any{
-		"name": "Ops Lab Plan", "owner_type": "platform", "price_minor": 1_000_000,
+		"name": "Ops Lab Plan " + strconv.FormatInt(time.Now().UnixNano(), 10), "owner_type": "platform", "price_minor": 1_000_000,
 		"items": []map[string]any{{"unit_type": "usd_credit", "included_amount": 1_000_000}},
 	})
 	planID, _ := createdPlan["item"].(map[string]any)["id"].(string)

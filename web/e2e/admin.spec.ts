@@ -250,7 +250,7 @@ test("admin creates a plan for multiple direct channels without a second confirm
   await page.goto("/admin/plans");
   await page.getByRole("button", { name: "创建套餐" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("购买方式")).toHaveValue("lifetime");
+  await expect(dialog.getByLabel("额度周期")).toHaveValue("lifetime");
   await expect(dialog.getByRole("option", { name: "不限时", exact: true })).toHaveCount(1);
   await expect(dialog.getByRole("option", { name: "一次性", exact: true })).toHaveCount(0);
   await dialog.getByLabel("套餐名称").fill("Two channels");

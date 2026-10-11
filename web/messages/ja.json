@@ -2038,7 +2038,7 @@
     "planUnit": "枠の種類",
     "planCreditUsd": "米ドル枠",
     "planAmount": "含まれる枠",
-    "billingPeriod": "購入方法",
+    "billingPeriod": "利用枠の周期",
     "periodLifetime": "期間を設けない",
     "periodMonthly": "毎月",
     "periodQuarterly": "四半期",

@@ -224,7 +224,7 @@ export default function AdminPlansPage() {
               <TextField control={createForm.control} name="price_usd" label="售价" placeholder="1.00" suffix="USD" />
               <TextField control={createForm.control} name="included_usd" label="包含额度" placeholder="1.00" suffix="USD" />
               <label className="grid gap-1 text-sm" htmlFor="billing-period">
-                购买方式
+                额度周期
                 <select id="billing-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...createForm.register("billing_period")}>
                   <option value="lifetime">不限时</option>
                   <option value="monthly">包月</option>

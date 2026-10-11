@@ -2038,7 +2038,7 @@
     "planUnit": "额度类型",
     "planCreditUsd": "美元额度",
     "planAmount": "包含额度",
-    "billingPeriod": "购买方式",
+    "billingPeriod": "额度周期",
     "periodLifetime": "不限时",
     "periodMonthly": "每月",
     "periodQuarterly": "季付",

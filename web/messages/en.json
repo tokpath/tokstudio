@@ -2038,7 +2038,7 @@
     "planUnit": "Credit type",
     "planCreditUsd": "USD credit",
     "planAmount": "Included credit",
-    "billingPeriod": "Purchase type",
+    "billingPeriod": "Credit period",
     "periodLifetime": "No time limit",
     "periodMonthly": "Monthly",
     "periodQuarterly": "Quarterly",

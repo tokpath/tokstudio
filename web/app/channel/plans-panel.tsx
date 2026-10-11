@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { ConfirmButton } from "@/components/confirm-button";
-import { LedgerTable } from "@/components/console/ledger-table";
+import { I18nConsoleHeader } from "@/components/i18n-page-hero";
 import { ListResourceView } from "@/components/console/list-resource-view";
 import { SubmitStatus } from "@/components/console/submit-status";
 import { TextField } from "@/components/text-field";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { ScrollTable } from "@/components/ui/scroll-table";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
@@ -166,11 +167,12 @@ export function ChannelPlans() {
   }
 
   return (
+    <div className="flex flex-col gap-6">
+    <I18nConsoleHeader id="channelPlans" hideDescription actions={<>
+      <Button variant="outline" size="sm" onClick={() => void list.reload()}>{t("refreshPlans")}</Button>
+      {canOperate ? <Button size="sm" onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
+    </>} />
     <Card>
-      <div className="mb-4 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => void list.reload()}>{t("refreshPlans")}</Button>
-        {canOperate ? <Button onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
-      </div>
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
       {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
       {canOperate ? <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -217,29 +219,27 @@ export function ChannelPlans() {
         emptyDetail=""
         onRetry={() => void list.reload()}
       >
-        <LedgerTable
-          columns={[t("colPlan"), t("colStatus"), t("colOwner"), t("colPrice"), "操作"]}
-          emptyTitle={t("emptyPlans")}
-          emptyDetail=""
-          rows={list.snapshot.items.map((item) => ({
-            key: item.id || item.name || "plan",
-            cells: [
-              item.name || "—",
-              <Badge key="st" tone={statusTone(item.status)}>
-                {statusText(item.status)}
-              </Badge>,
-              ownerText(item.owner_type),
-              formatUsdMinor(item.price_minor, tc("lessThanCent")),
-              <span key="actions" className="flex flex-wrap gap-1">
-                <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
-                <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
-                <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
-              </span>,
-            ],
-          }))}
+        <ScrollTable
+          stickyEnds={false}
+          density="admin"
+          minWidthClassName="min-w-[36rem]"
+          getRowId={(item) => item.id || item.name || "plan"}
+          rows={list.snapshot.items}
+          columns={[
+            { id: "name", header: t("colPlan"), cell: (item) => item.name || "—" },
+            { id: "status", header: t("colStatus"), cell: (item) => <Badge tone={statusTone(item.status)}>{statusText(item.status)}</Badge> },
+            { id: "owner", header: t("colOwner"), cell: (item) => ownerText(item.owner_type) },
+            { id: "price", header: t("colPrice"), cell: (item) => formatUsdMinor(item.price_minor, tc("lessThanCent")) },
+            { id: "actions", header: "操作", className: "w-full text-right", cell: (item) => <span className="flex w-full justify-end gap-1">
+              <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
+              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
+              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
+            </span> },
+          ]}
         />
       </ListResourceView>
     </Card>
+    </div>
   );
 }
 

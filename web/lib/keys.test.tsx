@@ -405,6 +405,9 @@ describe("KeysPanel", () => {
     const period = screen.getByRole("combobox", { name: "计算周期" });
     expect(period).toHaveProperty("value", "lifetime");
     for (const label of ["不限时","每月","每季","每年"]) expect(screen.getByRole("option", { name: label })).toBeTruthy();
+    expect(screen.getByText("USD", { selector: "span" })).toBeTruthy();
+    expect(screen.queryByText(/按品牌终端价累计/)).toBeNull();
+    expect(screen.queryByText(/请求前按预估费用核验限额/)).toBeNull();
     expect(screen.getByLabelText("每分钟最多请求数").closest("details")?.open).toBe(false);
   });
   it("validates empty selected models, exact USD and advanced limits without submitting",async()=>{

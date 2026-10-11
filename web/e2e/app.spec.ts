@@ -78,9 +78,16 @@ test("user keys create dialog exposes model USD and calculation period before ad
   const periodBox = await period.boundingBox();
   const dialogBox = await dialog.boundingBox();
   expect(usdBox && periodBox && dialogBox).toBeTruthy();
-  expect(periodBox!.x).toBeGreaterThan(usdBox!.x + usdBox!.width - 4);
+  const unit = dialog.getByText("USD", { exact: true });
+  const unitBox = await unit.boundingBox();
+  expect(unitBox).toBeTruthy();
+  expect(unitBox!.x).toBeGreaterThan(usdBox!.x);
+  expect(periodBox!.x).toBeGreaterThan(unitBox!.x);
+  expect(Math.abs(unitBox!.y - usdBox!.y)).toBeLessThan(12);
   expect(Math.abs(periodBox!.y - usdBox!.y)).toBeLessThan(6);
-  expect(usdBox!.width + periodBox!.width).toBeLessThan(dialogBox!.width * 0.8);
+  await expect(dialog.getByText("按品牌终端价累计")).toHaveCount(0);
+  await expect(dialog.getByText("请求前按预估费用核验限额")).toHaveCount(0);
+  await expect(dialog.getByText(/可预估费用的模型/)).toHaveCount(0);
   await period.selectOption({ label: "每月" });
   await expect(period).toHaveValue("month");
   await period.selectOption({ label: "每季" });

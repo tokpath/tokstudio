@@ -15,6 +15,9 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function fillPlan(name = "渠道套餐甲") {
+  if (!screen.queryByLabelText("渠道套餐名")) {
+    fireEvent.click(screen.getByRole("button", { name: "创建渠道套餐" }));
+  }
   fireEvent.change(screen.getByLabelText("渠道套餐名"), { target: { value: name } });
   fireEvent.change(screen.getByLabelText("售价（USD）"), { target: { value: "2" } });
   fireEvent.change(screen.getByLabelText("包含额度（USD）"), { target: { value: "2" } });

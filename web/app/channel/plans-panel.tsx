@@ -16,6 +16,7 @@ import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
@@ -33,7 +34,8 @@ export function ChannelPlans() {
   const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
-  const [createMessage, setCreateMessage] = useState(t("createHint"));
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createMessage, setCreateMessage] = useState("");
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
   const [channels, setChannels] = useState<PlanChannel[]>([]);
@@ -125,6 +127,7 @@ export function ChannelPlans() {
           setSelectedChannels([]);
           setChannelSearch("");
           setCreateError("");
+          setCreateOpen(false);
           setCreateMessage(
             t("createdPlan", {
               id: item?.id || "",
@@ -164,50 +167,59 @@ export function ChannelPlans() {
 
   return (
     <Card>
-      <CardTitle className="mb-4 text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
-      <p className="mb-3 text-sm text-ink-secondary">{t("plansLead")}</p>
-      <p className="mb-3 text-sm text-ink-secondary">本品牌统一制定套餐和价格，适用于本平台及指定下属渠道。创建后在列表中发布。</p>
-      <Button variant="outline" onClick={() => void list.reload()}>
-        {t("refreshPlans")}
-      </Button>
-      {actionMessage ? <p role="status" className="mt-2 text-sm text-ink-secondary">{actionMessage}</p> : null}
-      {canOperate ? <Form {...form}>
-        <form className="mt-4 grid max-w-xl gap-2" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
-          <h3 className="text-lg font-medium">{t("createPlan")}</h3>
-          <TextField control={form.control} name="name" label={t("planName")} />
-          <TextField control={form.control} name="price_usd" label={t("planPrice")} placeholder={t("planPricePh")} suffix={tc("usd")} />
-          <p className="text-sm text-ink-secondary">
-            {t("planUnit")}：{t("planCreditUsd")}
-          </p>
-          <TextField control={form.control} name="included_usd" label={t("planAmount")} placeholder="1.00" suffix={tc("usd")} />
-          <label className="grid gap-1 text-sm" htmlFor="channel-plan-period">
-            {t("billingPeriod")}
-            <select id="channel-plan-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...form.register("billing_period")}>
-              <option value="lifetime">{t("periodLifetime")}</option>
-              <option value="monthly">{t("periodMonthly")}</option>
-              <option value="quarterly">{t("periodQuarterly")}</option>
-              <option value="yearly">{t("periodYearly")}</option>
-            </select>
-          </label>
-          <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
-          <fieldset className="grid gap-2 text-sm">
-            <legend>适用渠道</legend>
-            <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>
-            <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />指定渠道</label>
-            {channelScope === "selected" ? <div className="grid gap-2">
-              <input aria-label="查找适用渠道" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder="查找渠道" value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />
-              <div className="max-h-32 overflow-y-auto rounded-md border border-hairline p-2">
-                {channels.filter((channel) => channel.code.toLowerCase().includes(channelSearch.toLowerCase())).map((channel) => <label key={channel.id} className="flex items-center gap-2 py-1"><input type="checkbox" checked={selectedChannels.includes(channel.id)} onChange={(event) => setSelectedChannels(event.target.checked ? [...selectedChannels, channel.id] : selectedChannels.filter((id) => id !== channel.id))} />{channel.code}</label>)}
-              </div>
-              <span className="text-xs text-ink-secondary">已选 {selectedChannels.length} 个渠道</span>
-            </div> : null}
-          </fieldset>
-          <Button size="sm" type="submit" disabled={creating}>
-            {creating ? tc("submitting") : t("createPlan")}
-          </Button>
-          {createError ? <SubmitStatus error={createError} /> : <p className="text-sm text-ink-secondary">{createMessage}</p>}
-        </form>
-      </Form> : null}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <CardTitle className="text-lg font-semibold tracking-tight">{t("plansTitle")}</CardTitle>
+          <p className="mt-2 text-sm text-ink-secondary">{t("plansLead")}</p>
+          <p className="mt-2 text-sm text-ink-secondary">本品牌统一制定套餐和价格，适用于本平台及指定下属渠道。创建后在列表中发布。</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => void list.reload()}>{t("refreshPlans")}</Button>
+          {canOperate ? <Button onClick={() => setCreateOpen(true)}>{t("createPlan")}</Button> : null}
+        </div>
+      </div>
+      {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
+      {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
+      {canOperate ? <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("createPlan")}</DialogTitle>
+            <DialogDescription>{t("createHint")}</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form className="grid gap-3" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
+              <TextField control={form.control} name="name" label={t("planName")} />
+              <TextField control={form.control} name="price_usd" label={t("planPrice")} placeholder={t("planPricePh")} suffix={tc("usd")} />
+              <p className="text-sm text-ink-secondary">{t("planUnit")}：{t("planCreditUsd")}</p>
+              <TextField control={form.control} name="included_usd" label={t("planAmount")} placeholder="1.00" suffix={tc("usd")} />
+              <label className="grid gap-1 text-sm" htmlFor="channel-plan-period">
+                {t("billingPeriod")}
+                <select id="channel-plan-period" className="h-10 rounded-md border border-hairline bg-canvas-raised px-3" {...form.register("billing_period")}>
+                  <option value="lifetime">{t("periodLifetime")}</option>
+                  <option value="monthly">{t("periodMonthly")}</option>
+                  <option value="quarterly">{t("periodQuarterly")}</option>
+                  <option value="yearly">{t("periodYearly")}</option>
+                </select>
+              </label>
+              <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
+              <fieldset className="grid gap-2 text-sm">
+                <legend>适用渠道</legend>
+                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />指定渠道</label>
+                {channelScope === "selected" ? <div className="grid gap-2">
+                  <input aria-label="查找适用渠道" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder="查找渠道" value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />
+                  <div className="max-h-32 overflow-y-auto rounded-md border border-hairline p-2">
+                    {channels.filter((channel) => channel.code.toLowerCase().includes(channelSearch.toLowerCase())).map((channel) => <label key={channel.id} className="flex items-center gap-2 py-1"><input type="checkbox" checked={selectedChannels.includes(channel.id)} onChange={(event) => setSelectedChannels(event.target.checked ? [...selectedChannels, channel.id] : selectedChannels.filter((id) => id !== channel.id))} />{channel.code}</label>)}
+                  </div>
+                  <span className="text-xs text-ink-secondary">已选 {selectedChannels.length} 个渠道</span>
+                </div> : null}
+              </fieldset>
+              {createError ? <SubmitStatus error={createError} /> : null}
+              <Button size="sm" type="submit" disabled={creating}>{creating ? tc("submitting") : t("createPlan")}</Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog> : null}
       <ListResourceView
         snapshot={list.snapshot}
         loadingTitle={t("plansTitle")}

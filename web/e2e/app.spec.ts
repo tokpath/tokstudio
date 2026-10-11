@@ -42,7 +42,7 @@ test("user entry starts with Key creation and visible use limits", async ({ page
   await expect(dialog.getByRole("radio", { name: "所有可用模型", exact: true })).toBeChecked();
   await expect(dialog.getByRole("radio", { name: "不设单独上限", exact: true })).toBeChecked();
   await expect(dialog.getByRole("radio", { name: "设置上限", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("group", { name: "计算周期", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("combobox", { name: "计算周期", exact: true })).toHaveCount(0);
 });
 
 test("user entry retains existing Keys when unrelated usage is unavailable", async ({ page }) => {
@@ -69,13 +69,22 @@ test("user keys create dialog exposes model USD and calculation period before ad
   await expect(dialog.getByRole("group", { name: "USD 消耗上限", exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toHaveCount(0);
   await dialog.getByRole("radio", { name: "设置上限", exact: true }).check();
-  await dialog.getByLabel("USD", { exact: true }).fill("10");
-  const period = dialog.getByRole("group", { name: "计算周期", exact: true });
+  const usd = dialog.getByLabel("USD", { exact: true });
+  await usd.fill("10");
+  const period = dialog.getByRole("combobox", { name: "计算周期", exact: true });
   await expect(period).toBeVisible();
-  await expect(period.getByRole("radio", { name: "不限时", exact: true })).toBeChecked();
-  await period.getByRole("radio", { name: "每月", exact: true }).check();
-  await period.getByRole("radio", { name: "每季", exact: true }).check();
-  await period.getByRole("radio", { name: "每年", exact: true }).check();
+  await expect(period).toHaveValue("lifetime");
+  const usdBox = await usd.boundingBox();
+  const periodBox = await period.boundingBox();
+  const dialogBox = await dialog.boundingBox();
+  expect(usdBox && periodBox && dialogBox).toBeTruthy();
+  expect(periodBox!.x).toBeGreaterThan(usdBox!.x + usdBox!.width - 4);
+  expect(Math.abs(periodBox!.y - usdBox!.y)).toBeLessThan(6);
+  expect(usdBox!.width + periodBox!.width).toBeLessThan(dialogBox!.width * 0.8);
+  await period.selectOption({ label: "每月" });
+  await expect(period).toHaveValue("month");
+  await period.selectOption({ label: "每季" });
+  await period.selectOption({ label: "每年" });
   await expect(dialog.locator('input[type="datetime-local"]')).toHaveCount(0);
   await expect(dialog.getByLabel("每分钟最多请求数", { exact: true })).toBeHidden();
   await dialog.getByText("高级设置", { exact: true }).click();

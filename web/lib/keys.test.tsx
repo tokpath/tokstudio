@@ -402,8 +402,9 @@ describe("KeysPanel", () => {
     render(withZh(<KeysPanel/>));fireEvent.click(screen.getByRole("button",{name:"创建 API Key"}));
     expect(screen.getByText("可用模型")).toBeTruthy();expect(screen.getByText("USD 消耗上限")).toBeTruthy();expect(screen.queryByText("有效期")).toBeNull();expect(screen.queryByText("计算周期")).toBeNull();
     fireEvent.click(screen.getByLabelText("设置上限"));
-    expect(screen.getByRole("group",{name:"计算周期"})).toBeTruthy();
-    for (const label of ["不限时","每月","每季","每年"]) expect(screen.getByLabelText(label)).toBeTruthy();
+    const period = screen.getByRole("combobox", { name: "计算周期" });
+    expect(period).toHaveProperty("value", "lifetime");
+    for (const label of ["不限时","每月","每季","每年"]) expect(screen.getByRole("option", { name: label })).toBeTruthy();
     expect(screen.getByLabelText("每分钟最多请求数").closest("details")?.open).toBe(false);
   });
   it("validates empty selected models, exact USD and advanced limits without submitting",async()=>{
@@ -422,8 +423,7 @@ describe("KeysPanel", () => {
     fireEvent.change(screen.getByLabelText("密钥名称"), { target: { value: "work" } });
     fireEvent.click(screen.getByLabelText("设置上限"));
     fireEvent.change(screen.getByLabelText("USD"), { target: { value: "2" } });
-    expect(screen.getByRole("group", { name: "计算周期" })).toBeTruthy();
-    fireEvent.click(screen.getByLabelText("每季"));
+    fireEvent.change(screen.getByRole("combobox", { name: "计算周期" }), { target: { value: "quarter" } });
     fireEvent.click(screen.getByRole("button", { name: "创建" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
@@ -432,7 +432,7 @@ describe("KeysPanel", () => {
   it("creates without balance or Agent selection, sends atomic limits and never automatically bills",async()=>{
     const fetchMock=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>({ok:true,json:async()=>init?.method==="POST"?{item:{...sampleKey,name:"work",model_mode:"all",budget_limit_minor:1250000,expires_at:"2030-01-01T00:00:00Z"}}:{items:[]}}));vi.stubGlobal("fetch",fetchMock);
     render(withZh(<KeysPanel/>));fireEvent.click(screen.getByRole("button",{name:"创建 API Key"}));fireEvent.change(screen.getByLabelText("密钥名称"),{target:{value:"work"}});fireEvent.click(screen.getByLabelText("设置上限"));fireEvent.change(screen.getByLabelText("USD"),{target:{value:"1.25"}});
-    expect(screen.getByLabelText("不限时")).toBeTruthy();fireEvent.click(screen.getByRole("button",{name:"创建"}));
+    expect(screen.getByRole("combobox",{name:"计算周期"})).toHaveProperty("value","lifetime");fireEvent.click(screen.getByRole("button",{name:"创建"}));
     await waitFor(()=>expect(screen.getByTestId("key-secret")).toBeTruthy());
     const posts=fetchMock.mock.calls.filter(([,init])=>init?.method==="POST");expect(posts).toHaveLength(1);const body=JSON.parse(String(posts[0][1]?.body));expect(body).toMatchObject({name:"work",model_mode:"all",allowlist:[],budget_limit_minor:1250000,budget_period:"lifetime"});expect(body).not.toHaveProperty("expires_at");
     expect(screen.getByRole("link",{name:"Agent 配置"}).getAttribute("href")).toContain("key_id=key_1");expect(window.location.href).not.toContain(sampleKey.key);expect(screen.queryByRole("button",{name:"发送站内测试请求"})).toBeNull();

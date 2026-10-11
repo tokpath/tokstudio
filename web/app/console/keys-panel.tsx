@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/confirm-button";
 import { ActionRow, LeadActions } from "@/components/console/action-row";
@@ -483,10 +484,7 @@ export default function KeysPanel() {
    <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-medium">{tx("budget")}</legend>
     <label className="text-sm"><input type="radio" name="budget-mode" checked={!form.limited} onChange={() => update("limited", false)}/> {tx("unlimited")}</label>
     <label className="text-sm"><input type="radio" name="budget-mode" checked={form.limited} onChange={() => update("limited", true)}/> {tx("limited")}</label>
-    {form.limited ? <label className="grid gap-1 text-sm">USD<input type="text" inputMode="decimal" className="h-10 rounded-control border border-hairline bg-canvas px-3" value={form.budget} onChange={e => update("budget", e.target.value)}/></label> : null}
-    {form.limited ? <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-medium">{tx("period")}</legend>
-     {(["lifetime", "month", "quarter", "year"] as const).map(period => <label key={period} className="text-sm"><input type="radio" name="budget-period" checked={form.period === period} onChange={() => update("period", period)}/> {tx(period === "lifetime" ? "periodLifetime" : period === "month" ? "periodMonth" : period === "quarter" ? "periodQuarter" : "periodYear")}</label>)}
-    </fieldset> : null}
+    {form.limited ? <BudgetAmountField budget={form.budget} period={form.period} onBudget={value => update("budget", value)} onPeriod={value => update("period", value)}/> : null}
     {form.limited ? <div className="space-y-1 text-xs text-warning"><p>{tx("finiteCompatibility")}</p>{modelsLoading ? <p>{tx("modelsLoading")}</p> : modelsError ? <p>{tx("modelsFailed")}</p> : <p>{tx("finiteModels", { models: models.filter(m => m.capabilities?.budget_control_supported === true || m.capabilities?.text_budget_control_supported === true).filter(m => form.model_mode === "all" || form.allowlist.includes(m.id)).map(m => m.id).join(", ") || tx("noneBudgetable") })}</p>}</div> : null}
     {edit ? <KeyBudgetSummary item={edit}/> : null}<p className="text-xs text-ink-secondary">{tx("budgetHint")}</p>
    </fieldset>
@@ -495,6 +493,27 @@ export default function KeysPanel() {
   </form>}
   </DialogContent></Dialog>
  </Card>;
+}
+const budgetPeriods = ["lifetime", "month", "quarter", "year"] as const;
+function BudgetAmountField({ budget, period, onBudget, onPeriod }: {
+    budget: string;
+    period: BudgetPeriod;
+    onBudget: (value: string) => void;
+    onPeriod: (value: BudgetPeriod) => void;
+}) {
+    const tx = useTranslations("keyUX");
+    return <div className="grid w-fit max-w-full gap-1 text-sm">
+      <label htmlFor="key-budget-usd">USD</label>
+      <div className="flex h-10 max-w-full overflow-hidden rounded-control border border-hairline bg-canvas focus-within:border-brand-emphasis">
+        <input id="key-budget-usd" inputMode="decimal" className="w-28 min-w-0 bg-transparent px-3 text-ink outline-none" value={budget} onChange={event => onBudget(event.target.value)}/>
+        <div className="relative shrink-0 border-l border-hairline bg-canvas-raised">
+          <select aria-label={tx("period")} className="h-full max-w-44 cursor-pointer appearance-none bg-transparent py-0 pl-3 pr-8 text-sm text-ink outline-none" value={period} onChange={event => onPeriod(event.target.value as BudgetPeriod)}>
+            {budgetPeriods.map(value => <option key={value} value={value}>{tx(value === "lifetime" ? "periodLifetime" : value === "month" ? "periodMonth" : value === "quarter" ? "periodQuarter" : "periodYear")}</option>)}
+          </select>
+          <ChevronDown aria-hidden className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-ink-secondary" strokeWidth={1.75}/>
+        </div>
+      </div>
+    </div>;
 }
 function KeyBudgetSummary({ item }: {
     item: APIKeyItem;

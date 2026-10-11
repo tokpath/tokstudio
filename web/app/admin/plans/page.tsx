@@ -44,6 +44,8 @@ const createSchema = z.object({
   billing_period: z.enum(["lifetime", "monthly", "quarterly", "yearly"]),
 });
 
+const filterControlClass = "h-10 rounded-control border border-hairline bg-canvas px-3 text-sm";
+
 const statusLabel: Record<string, string> = {
   pending_review: "待审核",
   published: "已发布",
@@ -60,7 +62,7 @@ function quotaText(plan: Plan) {
 }
 
 export default function AdminPlansPage() {
-  const [status, setStatus] = useState("pending_review");
+  const [status, setStatus] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
   const [periodFilter, setPeriodFilter] = useState("");
   const [nameInput, setNameInput] = useState("");
@@ -163,39 +165,47 @@ export default function AdminPlansPage() {
             <Button size="sm" onClick={() => setCreateOpen(true)}>创建套餐</Button>
           </IfCan>
         </div>
-        <div className="mb-3 flex gap-2">
-          <Button size="sm" variant={status === "pending_review" ? "default" : "outline"} onClick={() => setStatus("pending_review")}>待审核</Button>
-          <Button size="sm" variant={status === "" ? "default" : "outline"} onClick={() => setStatus("")}>全部套餐</Button>
-        </div>
-        <div className="mb-4 flex flex-wrap items-end gap-2">
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <label className="grid gap-1 text-sm">状态
+            <select aria-label="按状态筛选" className={filterControlClass} value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="">全部状态</option>
+              {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
           <label className="grid gap-1 text-sm">渠道
-            <select aria-label="按渠道筛选" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" value={channelFilter} onChange={(event) => setChannelFilter(event.target.value)}>
+            <select aria-label="按渠道筛选" className={filterControlClass} value={channelFilter} onChange={(event) => setChannelFilter(event.target.value)}>
               <option value="">全部渠道</option>
               {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.code}</option>)}
             </select>
           </label>
           <label className="grid gap-1 text-sm">套餐类型
-            <select aria-label="按套餐类型筛选" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
-              <option value="">全部方式</option><option value="lifetime">不限时</option><option value="monthly">包月</option><option value="quarterly">季付</option><option value="yearly">年付</option>
+            <select aria-label="按套餐类型筛选" className={filterControlClass} value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
+              <option value="">全部方式</option>
+              <option value="lifetime">不限时</option>
+              <option value="monthly">包月</option>
+              <option value="quarterly">季付</option>
+              <option value="yearly">年付</option>
             </select>
           </label>
-          <form className="flex gap-1" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
-            <input aria-label="按套餐名筛选" className="h-9 w-40 rounded-md border border-hairline bg-canvas-raised px-2 text-sm" placeholder="套餐名" value={nameInput} onChange={(event) => setNameInput(event.target.value)} />
-            <Button type="submit" size="sm" variant="outline">筛选</Button>
+          <form className="flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
+            <label className="grid gap-1 text-sm">套餐名
+              <input aria-label="按套餐名筛选" className={`${filterControlClass} w-44`} value={nameInput} onChange={(event) => setNameInput(event.target.value)} />
+            </label>
+            <Button type="submit" variant="outline">筛选</Button>
           </form>
         </div>
         {query.data?.error ? <p className="mb-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <ScrollTable
           columns={[
-            { id: "name", header: "套餐", className: "w-28 whitespace-normal px-1.5", cell: (item) => <span className="block w-28 break-words"><span className="block">{item.name}</span><span className="block text-xs text-ink-secondary">{item.owner_type === "platform" ? "平台" : item.owner_id}</span></span> },
-            { id: "price", header: "价格", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{formatUsdMinor(item.price_minor)} / {{ lifetime: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
-            { id: "quota", header: "包括额度", className: "px-1.5", cell: (item) => <span className="block max-w-24 whitespace-normal break-words text-ink-secondary">{quotaText(item)}</span> },
-            { id: "channels", header: "适用渠道", className: "px-1.5", cell: (item) => <span className="block max-w-28 break-words text-ink-secondary">{item.channel_scope === "selected" ? item.channel_ids?.map((id) => channelNames.get(id) || id).join("、") : item.owner_type === "platform" ? "所有渠道" : "所属渠道及下属"}</span> },
-            { id: "status", header: "状态", className: "px-1.5", cell: (item) => <span className="whitespace-nowrap text-ink-secondary">{statusLabel[item.status] || item.status}</span> },
+            { id: "name", header: "套餐", cell: (item) => <span className="block whitespace-nowrap"><span className="block">{item.name}</span><span className="block text-xs text-ink-secondary">{item.owner_type === "platform" ? "平台" : item.owner_id}</span></span> },
+            { id: "price", header: "价格", cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor)} / {{ lifetime: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
+            { id: "quota", header: "包括额度", cell: (item) => <span className="whitespace-nowrap">{quotaText(item)}</span> },
+            { id: "channels", header: "适用渠道", cell: (item) => <span className="whitespace-nowrap">{item.channel_scope === "selected" ? item.channel_ids?.map((id) => channelNames.get(id) || id).join("、") : item.owner_type === "platform" ? "所有渠道" : "所属渠道及下属"}</span> },
+            { id: "status", header: "状态", cell: (item) => <span className="whitespace-nowrap">{statusLabel[item.status] || item.status}</span> },
             {
-              id: "actions", header: "操作", className: "px-1.5", cell: (item) => (
+              id: "actions", header: "操作", className: "w-full text-right", cell: (item) => (
                 <IfCan action="plans.write">
-                  <div className="flex flex-nowrap gap-1">
+                  <div className="flex w-full flex-nowrap justify-end gap-1">
                     <ConfirmButton size="sm" className="px-2" disabled={!["pending_review", "rejected", "archived"].includes(item.status)} title="确认发布套餐" description={`发布后用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
                     <ConfirmButton size="sm" className="px-2" variant="outline" disabled={item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
                     <ConfirmButton size="sm" className="px-2" variant="outline" disabled={item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」，以后仍可重新发布。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
@@ -206,7 +216,7 @@ export default function AdminPlansPage() {
           ]}
           rows={items}
           stickyEnds={false}
-          minWidthClassName="min-w-[42rem]"
+          minWidthClassName="min-w-[52rem]"
           getRowId={(item) => item.id}
           empty={<EmptyState title="暂无套餐" detail="" />}
         />

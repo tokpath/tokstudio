@@ -24,11 +24,24 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { fetchListItems } from "@/lib/list-resource";
 import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
-import { ownerTypeLabelKey, statusLabelKey, statusTone } from "@/lib/status-copy";
+import { planAudienceText, planPeriodLabel, planQuotaText, planStatusLabel } from "@/lib/plan-display";
+import { statusTone } from "@/lib/status-copy";
 import { confirmJsonAction } from "@/lib/submit-result";
 import { listEligiblePlanChannels, type PlanChannel } from "@/lib/plan-channels";
 
-type Plan = { id?: string; name?: string; status?: string; owner_type?: string; owner_id?: string; price_minor?: number; review_reason?: string };
+type Plan = {
+  id?: string;
+  name?: string;
+  status?: string;
+  owner_type?: string;
+  owner_id?: string;
+  price_minor?: number;
+  billing_period?: string;
+  channel_scope?: string;
+  channel_ids?: string[];
+  items?: { unit_type?: string; included_amount?: number }[];
+  review_reason?: string;
+};
 
 export function ChannelPlans() {
   const permissionViewer = useViewer();
@@ -36,7 +49,6 @@ export function ChannelPlans() {
   const t = useTranslations("channelUi");
   const tc = useTranslations("common");
   const [createOpen, setCreateOpen] = useState(false);
-  const [createMessage, setCreateMessage] = useState("");
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
@@ -80,16 +92,6 @@ export function ChannelPlans() {
     void listEligiblePlanChannels().then(setChannels).catch(() => setChannels([]));
   }, []);
 
-  function statusText(status?: string) {
-    const key = statusLabelKey(status);
-    return key ? tc(key) : status ? tc("stUnknown", { status }) : "—";
-  }
-
-  function ownerText(owner?: string) {
-    const key = ownerTypeLabelKey(owner);
-    return key ? tc(key) : owner || "—";
-  }
-
   async function createPlan(values: z.infer<typeof schema>) {
     if (creatingRef.current) {
       return;
@@ -130,24 +132,16 @@ export function ChannelPlans() {
           }
           setCreateError(message);
         },
-        onSuccess: async (body) => {
+        onSuccess: async () => {
           if (generation !== submitGen.current) {
             return;
           }
-          const item = (body as { item?: Plan }).item;
           form.reset();
           setChannelScope("all");
           setSelectedChannels([]);
           setChannelSearch("");
           setCreateError("");
           setCreateOpen(false);
-          setCreateMessage(
-            t("createdPlan", {
-              id: item?.id || "",
-              name: item?.name || values.name,
-              status: `${statusText(item?.status)}${item?.review_reason ? ` (${item.review_reason})` : ""}`,
-            }),
-          );
           await list.reload();
         },
       });
@@ -177,6 +171,8 @@ export function ChannelPlans() {
       return false;
     }
   }
+
+  const channelNames = new Map(channels.map((channel) => [channel.id, channel.code]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -218,7 +214,6 @@ export function ChannelPlans() {
         </form>
       </div>
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
-      {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
       {canOperate ? <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
@@ -266,14 +261,16 @@ export function ChannelPlans() {
         <ScrollTable
           stickyEnds={false}
           density="admin"
-          minWidthClassName="min-w-[36rem]"
+          minWidthClassName="min-w-[64rem]"
           getRowId={(item) => item.id || item.name || "plan"}
           rows={list.snapshot.items}
           columns={[
-            { id: "name", header: t("colPlan"), cell: (item) => item.name || "—" },
-            { id: "status", header: t("colStatus"), cell: (item) => <Badge tone={statusTone(item.status)}>{statusText(item.status)}</Badge> },
-            { id: "owner", header: t("colOwner"), cell: (item) => ownerText(item.owner_type) },
-            { id: "price", header: t("colPrice"), cell: (item) => formatUsdMinor(item.price_minor, tc("lessThanCent")) },
+            { id: "name", header: "套餐", cell: (item) => <span className="whitespace-nowrap">{item.name || "—"}</span> },
+            { id: "price", header: "价格", cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor, tc("lessThanCent"))}</span> },
+            { id: "quota", header: "包括额度", cell: (item) => <span className="whitespace-nowrap">{planQuotaText(item.items)}</span> },
+            { id: "period", header: "额度周期", cell: (item) => <span className="whitespace-nowrap">{planPeriodLabel[item.billing_period || ""] || item.billing_period || "—"}</span> },
+            { id: "channels", header: "适用渠道", cell: (item) => <span className="whitespace-nowrap">{planAudienceText(item, channelNames)}</span> },
+            { id: "status", header: "状态", cell: (item) => <Badge tone={statusTone(item.status)}>{planStatusLabel[item.status || ""] || item.status || "—"}</Badge> },
             { id: "actions", header: "操作", className: "w-full text-right", cell: (item) => <span className="flex w-full justify-end gap-1">
               <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
               <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>

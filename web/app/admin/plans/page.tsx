@@ -17,6 +17,9 @@ import { apiBase } from "@/lib/api";
 import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { USD_CREDIT, formatUsdMinor, parseUsdToMinor } from "@/lib/money";
+import { planAudienceText, planPeriodLabel, planQuotaText, planStatusLabel } from "@/lib/plan-display";
+import { statusTone } from "@/lib/status-copy";
+import { Badge } from "@/components/ui/badge";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
 import { listEligiblePlanChannels, listPlanChannels } from "@/lib/plan-channels";
@@ -45,21 +48,6 @@ const createSchema = z.object({
 });
 
 const filterControlClass = "h-10 rounded-control border border-hairline bg-canvas px-3 text-sm";
-
-const statusLabel: Record<string, string> = {
-  pending_review: "待审核",
-  published: "已发布",
-  archived: "已下架",
-  rejected: "已拒绝",
-};
-
-function quotaText(plan: Plan) {
-  return plan.items?.map((item) => {
-    const amount = item.unit_type === USD_CREDIT ? formatUsdMinor(item.included_amount) : item.included_amount.toLocaleString();
-    const unit = item.unit_type === USD_CREDIT ? "" : ` ${item.unit_type}`;
-    return `${amount}${unit}`;
-  }).join("、") || "—";
-}
 
 export default function AdminPlansPage() {
   const [status, setStatus] = useState("");
@@ -156,20 +144,21 @@ export default function AdminPlansPage() {
 
   return (
     <AdminShell>
-      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <AdminH2 level={1} k="planReview" className="text-lg font-semibold tracking-tight" />
-          </div>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <AdminH2 level={1} k="planReview" className="text-2xl font-semibold tracking-tight" />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>刷新套餐</Button>
           <IfCan action="plans.write">
             <Button size="sm" onClick={() => setCreateOpen(true)}>创建套餐</Button>
           </IfCan>
         </div>
+      </header>
+      <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <label className="grid gap-1 text-sm">状态
             <select aria-label="按状态筛选" className={filterControlClass} value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">全部状态</option>
-              {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {Object.entries(planStatusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label className="grid gap-1 text-sm">渠道
@@ -197,11 +186,12 @@ export default function AdminPlansPage() {
         {query.data?.error ? <p className="mb-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <ScrollTable
           columns={[
-            { id: "name", header: "套餐", cell: (item) => <span className="block whitespace-nowrap"><span className="block">{item.name}</span><span className="block text-xs text-ink-secondary">{item.owner_type === "platform" ? "平台" : item.owner_id}</span></span> },
-            { id: "price", header: "价格", cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor)} / {{ lifetime: "不限时", monthly: "月", quarterly: "季", yearly: "年" }[item.billing_period] || item.billing_period}</span> },
-            { id: "quota", header: "包括额度", cell: (item) => <span className="whitespace-nowrap">{quotaText(item)}</span> },
-            { id: "channels", header: "适用渠道", cell: (item) => <span className="whitespace-nowrap">{item.channel_scope === "selected" ? item.channel_ids?.map((id) => channelNames.get(id) || id).join("、") : item.owner_type === "platform" ? "所有渠道" : "所属渠道及下属"}</span> },
-            { id: "status", header: "状态", cell: (item) => <span className="whitespace-nowrap">{statusLabel[item.status] || item.status}</span> },
+            { id: "name", header: "套餐", cell: (item) => <span className="whitespace-nowrap">{item.name}</span> },
+            { id: "price", header: "价格", cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor)}</span> },
+            { id: "quota", header: "包括额度", cell: (item) => <span className="whitespace-nowrap">{planQuotaText(item.items)}</span> },
+            { id: "period", header: "额度周期", cell: (item) => <span className="whitespace-nowrap">{planPeriodLabel[item.billing_period] || item.billing_period}</span> },
+            { id: "channels", header: "适用渠道", cell: (item) => <span className="whitespace-nowrap">{planAudienceText(item, channelNames)}</span> },
+            { id: "status", header: "状态", cell: (item) => <Badge tone={statusTone(item.status)}>{planStatusLabel[item.status] || item.status}</Badge> },
             {
               id: "actions", header: "操作", className: "w-full text-right", cell: (item) => (
                 <IfCan action="plans.write">
@@ -216,7 +206,7 @@ export default function AdminPlansPage() {
           ]}
           rows={items}
           stickyEnds={false}
-          minWidthClassName="min-w-[52rem]"
+          minWidthClassName="min-w-[64rem]"
           getRowId={(item) => item.id}
           empty={<EmptyState title="暂无套餐" detail="" />}
         />

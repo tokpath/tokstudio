@@ -150,4 +150,43 @@ describe("ChannelPlans create", () => {
     const matched = urls.find((url) => url.includes("status=published") && url.includes("channel_id=ch_child") && url.includes("billing_period=monthly") && url.includes("name="));
     expect(decodeURIComponent(matched || "")).toContain("name=入门");
   });
+
+  it("shows the shared columns and does not announce a created plan under the filters", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/eligible-channels")) {
+          return jsonResponse(200, { items: [{ id: "ch_child", code: "north-shop", status: "active" }] });
+        }
+        if (url.includes("/channel/plans") && init?.method === "POST") {
+          return jsonResponse(201, { item: { id: "pln_new", name: "入门", status: "pending_review" } });
+        }
+        return jsonResponse(200, {
+          items: [{
+            id: "pln_1",
+            name: "入门",
+            status: "published",
+            owner_type: "channel",
+            price_minor: 2_000_000,
+            billing_period: "monthly",
+            channel_scope: "selected",
+            channel_ids: ["ch_child"],
+            items: [{ unit_type: "usd_credit", included_amount: 5_000_000 }],
+          }],
+        });
+      }),
+    );
+    render(withZh(<ChannelPlans />));
+    for (const header of ["套餐", "价格", "包括额度", "额度周期", "适用渠道", "状态", "操作"]) {
+      expect(await screen.findByRole("columnheader", { name: header })).toBeTruthy();
+    }
+    expect(screen.getByText("每月")).toBeTruthy();
+    expect((await screen.findAllByText("north-shop")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("columnheader", { name: "归属" })).toBeNull();
+    fillPlan("新套餐");
+    submitCreate();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByText(/已创建/)).toBeNull();
+  });
 });

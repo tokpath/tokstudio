@@ -38,10 +38,11 @@ test("user entry starts with Key creation and visible use limits", async ({ page
   await expect(dialog.getByLabel("密钥名称", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "可用模型", exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "USD 消耗上限", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("radio", { name: "所有可用模型", exact: true })).toBeChecked();
   await expect(dialog.getByRole("radio", { name: "不设单独上限", exact: true })).toBeChecked();
-  await expect(dialog.getByRole("radio", { name: "长期有效", exact: true })).toBeChecked();
+  await expect(dialog.getByRole("radio", { name: "设置上限", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("group", { name: "计算周期", exact: true })).toHaveCount(0);
 });
 
 test("user entry retains existing Keys when unrelated usage is unavailable", async ({ page }) => {
@@ -55,7 +56,7 @@ test("user entry retains existing Keys when unrelated usage is unavailable", asy
   expect(usageReads).toBe(0);
 });
 
-test("user keys create dialog exposes model USD and expiry before advanced rate controls", async ({ page }) => {
+test("user keys create dialog exposes model USD and calculation period before advanced rate controls", async ({ page }) => {
   await stubEmptyUserLists(page);
   await page.goto("/app/keys");
   await expect(page.getByRole("heading", { level: 1, name: "API Key", exact: true })).toBeVisible();
@@ -66,11 +67,16 @@ test("user keys create dialog exposes model USD and expiry before advanced rate 
   await expect(dialog.getByPlaceholder("我的聊天客户端")).toBeVisible();
   await expect(dialog.getByRole("group", { name: "可用模型", exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "USD 消耗上限", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toBeVisible();
-  await dialog.getByRole("radio", { name: "设置累计总上限", exact: true }).check();
+  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toHaveCount(0);
+  await dialog.getByRole("radio", { name: "设置上限", exact: true }).check();
   await dialog.getByLabel("USD", { exact: true }).fill("10");
-  await dialog.getByRole("radio", { name: "指定到期时间", exact: true }).check();
-  await expect(dialog.locator('input[type="datetime-local"]')).toBeVisible();
+  const period = dialog.getByRole("group", { name: "计算周期", exact: true });
+  await expect(period).toBeVisible();
+  await expect(period.getByRole("radio", { name: "不限时", exact: true })).toBeChecked();
+  await period.getByRole("radio", { name: "每月", exact: true }).check();
+  await period.getByRole("radio", { name: "每季", exact: true }).check();
+  await period.getByRole("radio", { name: "每年", exact: true }).check();
+  await expect(dialog.locator('input[type="datetime-local"]')).toHaveCount(0);
   await expect(dialog.getByLabel("每分钟最多请求数", { exact: true })).toBeHidden();
   await dialog.getByText("高级设置", { exact: true }).click();
   await expect(dialog.getByLabel("每分钟最多请求数", { exact: true })).toBeVisible();

@@ -95,7 +95,7 @@ func (a *App) requireAPIKey() gin.HandlerFunc {
 		principal, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), token)
 		if err != nil {
 			if errors.Is(err, identity.ErrKeyExpired) {
-				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，请延长有效期", false)
+				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，不能继续调用", false)
 				return
 			}
 			if abortKeyBudget(c, err) {
@@ -137,7 +137,7 @@ func (a *App) createAPIKey(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, identity.ErrInvalidKeyLimits) {
-			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择指定模型或有效的 USD 上限", false)
+			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择模型范围、有效的 USD 上限和计算周期", false)
 			return
 		}
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "创建 Key 失败", true)

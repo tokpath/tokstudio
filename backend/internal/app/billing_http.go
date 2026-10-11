@@ -75,7 +75,7 @@ func (a *App) requireUserOrKey() gin.HandlerFunc {
 		key, err := a.Identity.AuthenticateAPIKey(c.Request.Context(), trimBearer(token))
 		if err != nil {
 			if errors.Is(err, identity.ErrKeyExpired) {
-				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，请延长有效期", false)
+				httpx.Abort(c, http.StatusForbidden, "key_expired", "该 Key 已过期，不能继续调用", false)
 				return
 			}
 			if abortKeyBudget(c, err) {

@@ -51,3 +51,27 @@ func TestNormalizeBudgetPeriod(t *testing.T) {
 		t.Fatalf("unlimited ignores period %s %v", got, err)
 	}
 }
+
+func TestNormalizeKeyLimitsDropsKeyExpiry(t *testing.T) {
+	when := time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC)
+	limit := int64(20_000_000)
+	got, err := normalizeKeyLimits(APIKeyLimits{
+		Name: "chat", BudgetLimitMinor: &limit, BudgetPeriod: BudgetPeriodMonth, ExpiresAt: &when,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ExpiresAt != nil {
+		t.Fatalf("spending limits must not store a key lifetime, got %s", got.ExpiresAt)
+	}
+	if got.BudgetPeriod != BudgetPeriodMonth || got.BudgetLimitMinor == nil || *got.BudgetLimitMinor != limit {
+		t.Fatalf("period and amount changed: %+v", got)
+	}
+	unlimited, err := normalizeKeyLimits(APIKeyLimits{Name: "open", ExpiresAt: &when, BudgetPeriod: "weekly"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unlimited.ExpiresAt != nil || unlimited.BudgetPeriod != BudgetPeriodLifetime {
+		t.Fatalf("unlimited key kept expiry or period: %+v", unlimited)
+	}
+}

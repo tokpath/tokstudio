@@ -76,7 +76,8 @@ test("user console begins with Key creation without requiring a funded account",
   await expect(dialog.getByLabel("密钥名称", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "可用模型", exact: true })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "USD 消耗上限", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("group", { name: "有效期", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("radio", { name: "设置上限", exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "创建", exact: true })).toBeEnabled();
 });
 

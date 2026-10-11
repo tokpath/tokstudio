@@ -17,7 +17,8 @@ for (const width of [390, 903]) {
     await expect(card.getByText("额度已用完", { exact: true })).toBeVisible();
     await expect(card.getByText("已用 0.120000 USD · 上限 0.1 USD", { exact: true })).toBeVisible();
     await expect(card.getByText("剩余 0.000000 USD", { exact: true })).toBeVisible();
-    await expect(card.getByText(/public\/echo.*2030/)).toBeVisible();
+    await expect(card.getByText(/可用模型: public\/echo/)).toBeVisible();
+    await expect(card.getByText("有效期")).toHaveCount(0);
     await expect(card.getByRole("button", { name: "编辑限制", exact: true })).toBeVisible();
     await expect(page.getByTestId("balance-pill")).toHaveText("-$0.02");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);

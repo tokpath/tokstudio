@@ -223,10 +223,9 @@ func normalizeKeyLimits(in APIKeyLimits) (APIKeyLimits, error) {
 	if in.ConcurrencyLimit == 0 {
 		in.ConcurrencyLimit = 5
 	}
-	if in.ExpiresAt != nil {
-		utc := in.ExpiresAt.UTC()
-		in.ExpiresAt = &utc
-	}
+	// A spending cap has a calculation window (budget_period), not a key lifetime.
+	// Create and limit edits ignore expires_at. Existing expiries stay until expire.
+	in.ExpiresAt = nil
 	return in, nil
 }
 
@@ -341,7 +340,6 @@ func (s *Service) UpdateAPIKeyLimits(ctx context.Context, user Principal, keyID 
 		} else if start := budgetPeriodStart(time.Now().UTC(), in.BudgetPeriod); !start.IsZero() {
 			row.BudgetWindowStart = &start
 		}
-		row.ExpiresAt = in.ExpiresAt
 		row.RPMLimit = in.RPMLimit
 		row.ConcurrencyLimit = in.ConcurrencyLimit
 		return tx.Save(&row).Error

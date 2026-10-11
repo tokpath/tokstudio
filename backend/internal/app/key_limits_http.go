@@ -89,13 +89,13 @@ func (a *App) updateAPIKeyLimits(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, identity.ErrInvalidKeyLimits):
-			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择模型范围、有效的 USD 上限和有效期", false)
+			httpx.Abort(c, http.StatusBadRequest, "invalid_key_limits", "请选择模型范围、有效的 USD 上限和计算周期", false)
 		default:
 			httpx.Abort(c, http.StatusNotFound, "key_not_found", "API Key 不存在或暂不可编辑", false)
 		}
 		return
 	}
-	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.limits", ResourceType: "api_key", ResourceID: item.ID, After: map[string]any{"model_mode": item.ModelMode, "allowlist": item.Allowlist, "budget_limit_minor": item.BudgetLimitMinor, "expires_at": item.ExpiresAt}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
+	_, _ = a.Audit.Record(c.Request.Context(), audit.RecordInput{ActorUserID: a.currentPrincipal(c).UserID, Action: "api_key.limits", ResourceType: "api_key", ResourceID: item.ID, After: map[string]any{"model_mode": item.ModelMode, "allowlist": item.Allowlist, "budget_limit_minor": item.BudgetLimitMinor, "budget_period": item.BudgetPeriod}, IP: c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID)})
 	httpx.OK(c, gin.H{"item": item})
 }
 func (a *App) enableAPIKey(c *gin.Context) {

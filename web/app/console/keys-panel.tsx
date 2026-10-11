@@ -219,7 +219,7 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
                 </div>
                 <KeyStatusBadge item={item}/>
               </div>
-              <div className="mt-3"><KeyBudgetSummary item={item}/><p className="mt-2 text-xs">{tx("models")}: {item.model_mode === "all" ? tx("all") : item.allowlist?.join(", ")} · {tx("expiry")}: {item.expires_at ? formatWhen(item.expires_at) : tx("permanent")}</p>{menu(item)}</div>
+              <div className="mt-3"><KeyBudgetSummary item={item}/><p className="mt-2 text-xs">{tx("models")}: {item.model_mode === "all" ? tx("all") : item.allowlist?.join(", ")}</p>{menu(item)}</div>
               <details className="mt-3">
                 <summary className="cursor-pointer text-sm text-brand-emphasis">{t("expandKeyDetails")}</summary>
                 <div className="mt-3 flex flex-col gap-3">
@@ -267,11 +267,6 @@ export function KeysList({ items, revealedIds = [], onCopy, onToggleReveal, onRo
               </span>),
             },
             {
-                id: "expiry",
-                header: tx("expiry"),
-                cell: item => <span>{item.expires_at ? formatWhen(item.expires_at) : tx("permanent")}</span>,
-            },
-            {
                 id: "lastUsed",
                 header: t("colLastUsed"),
                 cell: (item) => <span className="text-ink-mute">{formatWhen(item.last_used_at, t("neverUsed"))}</span>,
@@ -298,17 +293,13 @@ type KeyForm = {
     budget: string;
     limited: boolean;
     period: BudgetPeriod;
-    expiry: string;
-    expiring: boolean;
     rpm: string;
     concurrency: string;
 };
-const defaultForm: KeyForm = { name: "", model_mode: "all", allowlist: [], budget: "", limited: false, period: "lifetime", expiry: "", expiring: false, rpm: "", concurrency: "" };
+const defaultForm: KeyForm = { name: "", model_mode: "all", allowlist: [], budget: "", limited: false, period: "lifetime", rpm: "", concurrency: "" };
 function budgetPeriodOf(value?: string): BudgetPeriod {
     return value === "month" || value === "quarter" || value === "year" ? value : "lifetime";
 }
-function localDateTime(value?: string | null) { if (!value)
-    return ""; const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 export default function KeysPanel() {
     const t = useTranslations("user");
     const tc = useTranslations("common");
@@ -338,7 +329,7 @@ export default function KeysPanel() {
     const session = useRef(0);
     const message = useToast(s => s.message);
     const setMessage = useToast(s => s.setMessage);
-    function openForm(item?: APIKeyItem) { session.current++; createOperation.current = { id: crypto.randomUUID(), body: "" }; setUnknownCreate(false); setEdit(item ?? null); setCreated(null); setError(""); setFallback(""); setBusy(false); setOpen(true); setForm(item ? { name: item.name, model_mode: item.model_mode ?? (item.allowlist?.length ? "selected" : "all"), allowlist: item.allowlist ?? [], limited: item.budget_limit_minor != null, budget: item.budget_limit_minor != null ? String(item.budget_limit_minor / 1e6) : "", period: budgetPeriodOf(item.budget_period), expiry: localDateTime(item.expires_at), expiring: !!item.expires_at, rpm: String(item.rpm_limit ?? ""), concurrency: String(item.concurrency_limit ?? "") } : defaultForm); }
+    function openForm(item?: APIKeyItem) { session.current++; createOperation.current = { id: crypto.randomUUID(), body: "" }; setUnknownCreate(false); setEdit(item ?? null); setCreated(null); setError(""); setFallback(""); setBusy(false); setOpen(true); setForm(item ? { name: item.name, model_mode: item.model_mode ?? (item.allowlist?.length ? "selected" : "all"), allowlist: item.allowlist ?? [], limited: item.budget_limit_minor != null, budget: item.budget_limit_minor != null ? String(item.budget_limit_minor / 1e6) : "", period: budgetPeriodOf(item.budget_period), rpm: String(item.rpm_limit ?? ""), concurrency: String(item.concurrency_limit ?? "") } : defaultForm); }
     function close() { session.current++; setOpen(false); setError(""); setBusy(false); }
     useEffect(() => { session.current++; actionSession.current++; setRevealed([]); setUnknownCreate(false); setOpen(false); setCreated(null); setError(""); setFallback(""); }, [scope]);
     useEffect(() => { const query = new URLSearchParams(window.location.search); setContextModel(query.get("model") ?? ""); if (keysCreateQueryOpen(window.location.search))
@@ -363,14 +354,14 @@ export default function KeysPanel() {
         const amount = form.limited ? usdToMinor(form.budget) : null;
         const rpm = optionalPositiveInt(form.rpm);
         const concurrency = optionalPositiveInt(form.concurrency);
-        if (!unknownCreate && (!form.name.trim() || (form.model_mode === "selected" && form.allowlist.length === 0) || (form.limited && amount === null) || (form.expiring && (!form.expiry || !Number.isFinite(Date.parse(form.expiry)))) || rpm === "invalid" || concurrency === "invalid")) {
+        if (!unknownCreate && (!form.name.trim() || (form.model_mode === "selected" && form.allowlist.length === 0) || (form.limited && amount === null) || rpm === "invalid" || concurrency === "invalid")) {
             setError(tx("invalid"));
             return;
         }
         setBusy(true);
         setError("");
         try {
-            const payload = JSON.stringify({ name: form.name.trim(), model_mode: form.model_mode, allowlist: form.model_mode === "selected" ? form.allowlist : [], budget_limit_minor: amount, budget_period: form.limited ? form.period : "lifetime", expires_at: form.expiring ? new Date(form.expiry).toISOString() : null, rpm_limit: typeof rpm === "number" ? rpm : 0, concurrency_limit: typeof concurrency === "number" ? concurrency : 0, ...(!edit ? { operation_id: createOperation.current.id } : {}) });
+            const payload = JSON.stringify({ name: form.name.trim(), model_mode: form.model_mode, allowlist: form.model_mode === "selected" ? form.allowlist : [], budget_limit_minor: amount, budget_period: form.limited ? form.period : "lifetime", rpm_limit: typeof rpm === "number" ? rpm : 0, concurrency_limit: typeof concurrency === "number" ? concurrency : 0, ...(!edit ? { operation_id: createOperation.current.id } : {}) });
             if (!edit && !unknownCreate)
                 createOperation.current.body = payload;
             const res = await fetch(`${apiBase}/v1/me/api-keys${edit ? `/${encodeURIComponent(edit.id)}/limits` : ""}`, { method: edit ? "PUT" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: !edit ? createOperation.current.body : payload });
@@ -493,16 +484,11 @@ export default function KeysPanel() {
     <label className="text-sm"><input type="radio" name="budget-mode" checked={!form.limited} onChange={() => update("limited", false)}/> {tx("unlimited")}</label>
     <label className="text-sm"><input type="radio" name="budget-mode" checked={form.limited} onChange={() => update("limited", true)}/> {tx("limited")}</label>
     {form.limited ? <label className="grid gap-1 text-sm">USD<input type="text" inputMode="decimal" className="h-10 rounded-control border border-hairline bg-canvas px-3" value={form.budget} onChange={e => update("budget", e.target.value)}/></label> : null}
-    {form.limited ? <fieldset className="grid gap-2"><legend className="text-sm font-medium">{tx("period")}</legend>
+    {form.limited ? <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-medium">{tx("period")}</legend>
      {(["lifetime", "month", "quarter", "year"] as const).map(period => <label key={period} className="text-sm"><input type="radio" name="budget-period" checked={form.period === period} onChange={() => update("period", period)}/> {tx(period === "lifetime" ? "periodLifetime" : period === "month" ? "periodMonth" : period === "quarter" ? "periodQuarter" : "periodYear")}</label>)}
     </fieldset> : null}
     {form.limited ? <div className="space-y-1 text-xs text-warning"><p>{tx("finiteCompatibility")}</p>{modelsLoading ? <p>{tx("modelsLoading")}</p> : modelsError ? <p>{tx("modelsFailed")}</p> : <p>{tx("finiteModels", { models: models.filter(m => m.capabilities?.budget_control_supported === true || m.capabilities?.text_budget_control_supported === true).filter(m => form.model_mode === "all" || form.allowlist.includes(m.id)).map(m => m.id).join(", ") || tx("noneBudgetable") })}</p>}</div> : null}
     {edit ? <KeyBudgetSummary item={edit}/> : null}<p className="text-xs text-ink-secondary">{tx("budgetHint")}</p>
-   </fieldset>
-   <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-medium">{tx("expiry")}</legend>
-    <label className="text-sm"><input type="radio" name="expiry-mode" checked={!form.expiring} onChange={() => update("expiring", false)}/> {tx("permanent")}</label>
-    <label className="text-sm"><input type="radio" name="expiry-mode" checked={form.expiring} onChange={() => update("expiring", true)}/> {tx("expires")}</label>
-    {form.expiring ? <label className="grid gap-1 text-sm">{tx("localTime", { zone: Intl.DateTimeFormat().resolvedOptions().timeZone })}<input type="datetime-local" className="h-10 rounded-control border border-hairline bg-canvas px-3" value={form.expiry} onChange={e => update("expiry", e.target.value)}/></label> : null}
    </fieldset>
    <details><summary className="cursor-pointer text-sm text-brand">{t("advanced")}</summary><div className="mt-3 grid gap-3">{(["rpm", "concurrency"] as const).map(field => <label key={field} className="grid gap-1 text-sm">{field === "rpm" ? t("rpm") : t("conc")}<input className="h-10 rounded-control border border-hairline bg-canvas px-3" inputMode="numeric" value={form[field]} onChange={e => update(field, e.target.value)}/></label>)}</div></details>
    </fieldset><SubmitStatus error={error}/><DialogFooter><Button type="button" variant="outline" onClick={close}>{tc("cancel")}</Button><Button type="submit" disabled={busy}>{busy ? tc("submitting") : edit ? tx("save") : unknownCreate ? tx("recoverCreate") : tc("create")}</Button></DialogFooter>

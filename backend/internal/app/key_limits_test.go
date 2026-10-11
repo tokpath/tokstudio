@@ -260,10 +260,19 @@ func TestKeyLimitsAtomicLifecycle(t *testing.T) {
 		t.Fatal("platform role bypassed own-Key scope")
 	}
 	past := time.Now().Add(-time.Minute)
-	edited = limits
-	edited.ExpiresAt = &past
-	if _, err := application.Identity.UpdateAPIKeyLimits(ctx, *principal, key.ID, edited); err != nil {
+	if _, err := application.Identity.ExpireAPIKey(ctx, *principal, key.ID, past); err != nil {
 		t.Fatal(err)
+	}
+	future := time.Now().Add(time.Hour)
+	edited = limits
+	edited.Name = "still expired"
+	edited.ExpiresAt = &future
+	updated, err := application.Identity.UpdateAPIKeyLimits(ctx, *principal, key.ID, edited)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Name != "still expired" || updated.ExpiresAt == nil || !updated.ExpiresAt.Before(time.Now()) {
+		t.Fatalf("limit edit must keep the existing expiry and ignore a new lifetime: %+v", updated.ExpiresAt)
 	}
 	if _, err := reserve(id.New("req"), 1); !errors.Is(err, identity.ErrKeyNotUsable) {
 		t.Fatalf("expired key accepted: %v", err)

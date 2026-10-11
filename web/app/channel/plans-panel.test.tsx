@@ -15,16 +15,16 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function fillPlan(name = "渠道套餐甲") {
-  if (!screen.queryByLabelText("渠道套餐名")) {
-    fireEvent.click(screen.getByRole("button", { name: "创建渠道套餐" }));
+  if (!screen.queryByLabelText("套餐名")) {
+    fireEvent.click(screen.getByRole("button", { name: "创建套餐" }));
   }
-  fireEvent.change(screen.getByLabelText("渠道套餐名"), { target: { value: name } });
+  fireEvent.change(screen.getByLabelText("套餐名"), { target: { value: name } });
   fireEvent.change(screen.getByLabelText("售价（USD）"), { target: { value: "2" } });
   fireEvent.change(screen.getByLabelText("包含额度（USD）"), { target: { value: "2" } });
 }
 
 function submitCreate() {
-  const buttons = screen.getAllByRole("button", { name: "创建渠道套餐" });
+  const buttons = screen.getAllByRole("button", { name: "创建套餐" });
   fireEvent.click(buttons[buttons.length - 1]);
 }
 
@@ -64,7 +64,7 @@ describe("ChannelPlans create", () => {
     await waitFor(() => {
       expect(screen.getByTestId("submit-status").textContent).toContain("售价过低需审核但渠道无效");
     });
-    expect(screen.getByLabelText("渠道套餐名")).toHaveProperty("value", "渠道套餐甲");
+    expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
   });
 
   it("shows a network error instead of failing silently", async () => {
@@ -84,7 +84,7 @@ describe("ChannelPlans create", () => {
     await waitFor(() => {
       expect(screen.getByTestId("submit-status").textContent).toContain("网络不可用，请重试。");
     });
-    expect(screen.getByLabelText("渠道套餐名")).toHaveProperty("value", "渠道套餐甲");
+    expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "渠道套餐甲");
   });
 
   it("keeps a new draft when a stale in-flight create later succeeds", async () => {
@@ -113,7 +113,7 @@ describe("ChannelPlans create", () => {
     fillPlan("新草稿");
     finish({});
     await waitFor(() => {
-      expect(screen.getByLabelText("渠道套餐名")).toHaveProperty("value", "新草稿");
+      expect(screen.getByLabelText("套餐名")).toHaveProperty("value", "新草稿");
     });
     expect(screen.queryByTestId("submit-status")).toBeNull();
   });

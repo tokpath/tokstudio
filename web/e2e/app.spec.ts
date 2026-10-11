@@ -565,13 +565,13 @@ test("channel home directs customer and promotion work without financial tasks",
   const tasks = page.getByRole("region", { name: "经营任务", exact: true });
   for (const path of ["users", "promos", "models", "commissions"]) await expect(tasks.locator(`a[href="/channel/${path}"]`)).toBeVisible();
   for (const path of ["payments", "ledger", "plans", "reconciliation"]) await expect(tasks.locator(`a[href="/channel/${path}"]`)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "创建渠道套餐" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "创建套餐" })).toHaveCount(0);
   await tasks.locator('a[href="/channel/users"]').click();
   await expect(page).toHaveURL(/\/channel\/users$/);
   await expect(page.getByRole("button", { name: "刷新", exact: true })).toBeVisible();
   await page.goto("/channel/plans");
   await expect(page.getByTestId("console-access")).toBeVisible();
-  await expect(page.getByRole("button", { name: "创建渠道套餐" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "创建套餐" })).toHaveCount(0);
 });
 
 async function fulfillJSON(route: Route, status: number, body: unknown) {

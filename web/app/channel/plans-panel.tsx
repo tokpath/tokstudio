@@ -16,7 +16,7 @@ import { TextField } from "@/components/text-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
@@ -181,10 +181,9 @@ export function ChannelPlans() {
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
       {createMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{createMessage}</p> : null}
       {canOperate ? <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{t("createPlan")}</DialogTitle>
-            <DialogDescription>{t("createHint")}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form className="grid gap-3" onSubmit={form.handleSubmit((values) => void createPlan(values))}>
@@ -201,7 +200,6 @@ export function ChannelPlans() {
                   <option value="yearly">{t("periodYearly")}</option>
                 </select>
               </label>
-              <p className="text-xs text-ink-secondary">不限时额度不过期；周期套餐每期补充额度。</p>
               <fieldset className="grid gap-2 text-sm">
                 <legend>适用渠道</legend>
                 <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>

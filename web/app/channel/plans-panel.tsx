@@ -235,7 +235,7 @@ export function ChannelPlans() {
               </label>
               <fieldset className="grid gap-2 text-sm">
                 <legend>适用渠道</legend>
-                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所属及下属所有渠道</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所有渠道</label>
                 <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />指定渠道</label>
                 {channelScope === "selected" ? <div className="grid gap-2">
                   <input aria-label="查找适用渠道" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder="查找渠道" value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />

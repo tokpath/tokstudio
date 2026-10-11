@@ -31,5 +31,6 @@ export function planAudienceText(
     const labels = (plan.channel_ids ?? []).map((id) => names.get(id) || id).filter(Boolean);
     return labels.length ? labels.join("、") : "—";
   }
-  return plan.owner_type === "platform" ? "所有渠道" : "所属渠道及下属";
+  // 文案都是「所有渠道」。平台套餐指平台下的渠道，OEM 套餐指该 OEM 下的客户。
+  return "所有渠道";
 }

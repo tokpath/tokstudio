@@ -30,7 +30,8 @@ it("retains the original operation after a timeout and creates a fresh one after
   const requests:RequestInit[]=[];
   const fetcher=stub(init=>{requests.push(init!);return requests.length===1 ? Promise.reject(new Error("lost response")) : json({checkout:{order:{id:"original-order",status:"pending"},sandbox:true}},201);});
   render(withZh(<PlansPanel/>));
-  const purchase=await screen.findByRole("button",{name:"订阅"});
+  await waitFor(()=>expect(screen.getByRole("button",{name:"订阅"}).hasAttribute("disabled")).toBe(false));
+  const purchase=screen.getByRole("button",{name:"订阅"});
   expect(screen.queryByRole("checkbox")).toBeNull();
   expect(screen.getByRole("link",{name:"返回原任务"}).getAttribute("href")).toBe("/models/echo?tab=agent");
   fireEvent.click(purchase);fireEvent.click(purchase);
@@ -71,7 +72,8 @@ it("ignores a late purchase response from the previous account",async()=>{
   const late=new Promise<Awaited<ReturnType<typeof json>>>(done=>{resolve=done;});
   stub(()=>late);
   const view=render(withZh(<PlansPanel/>));
-  fireEvent.click(await screen.findByRole("button",{name:"订阅"}));
+  await waitFor(()=>expect(screen.getByRole("button",{name:"订阅"}).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button",{name:"订阅"}));
   state.userId="buyer-b";view.rerender(withZh(<PlansPanel/>));
   await screen.findByRole("button",{name:"订阅"});
   resolve(await json({checkout:{order:{id:"other-account-order",status:"pending"},sandbox:true}},201));

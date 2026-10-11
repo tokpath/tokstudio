@@ -56,10 +56,8 @@ export default function PlansPanel() {
     },
   });
   const item = bundle.snapshot.items[0];
-  const method = item?.methods.find(value => value.adapter === adapter);
-  useEffect(() => {
-    if (item && !item.methods.some(value=>value.adapter === adapter)) setAdapter(item.methods[0]?.adapter || "");
-  }, [item,adapter]);
+  const resolvedAdapter = item?.methods.some(value => value.adapter === adapter) ? adapter : item?.methods[0]?.adapter || "";
+  const method = item?.methods.find(value => value.adapter === resolvedAdapter);
   useEffect(() => {
     busyRef.current=false;setBusy(false);
     operation.current = null; setPending(null); setCheckout(null); setPaid(false);setMessage("");
@@ -86,7 +84,7 @@ export default function PlansPanel() {
   async function subscribe(planId: string) {
     if (busyRef.current) return;
     busyRef.current=true; setBusy(true);setMessage("");
-    const op = operation.current || newPurchaseOperation(planId,adapter,false);
+    const op = operation.current || newPurchaseOperation(planId,resolvedAdapter,false);
     operation.current=op;setPending(op);setPaid(false);
     try {sessionStorage.setItem(storageKey,JSON.stringify(op));} catch { /* private mode */ }
     try {
@@ -108,7 +106,7 @@ export default function PlansPanel() {
       {item && <>
         {selected && !item.plans.some(plan=>plan.id===selected) && <p role="alert" className="mb-4 text-danger">{a("planUnavailable")}</p>}
         {pending && (!checkout || (checkout.order?.status==="pending" && !checkout.sandbox && !checkout.qr_code && !checkout.redirect_url && !checkout.client_secret)) && <Card><p role="status">{purchase("resume")}</p><p className="mt-2 text-sm text-ink-secondary">{purchase("original",{plan:pending.planId,method:pending.adapter})}</p><Button className="mt-3" disabled={busy} onClick={()=>void subscribe(pending.planId)}>{purchase("retryOriginal")}</Button></Card>}
-        <div className="mb-4 flex flex-wrap gap-2">{item.methods.map(value=><Button key={value.adapter} variant={adapter===value.adapter ? "default":"outline"} disabled={busy || !!pending} onClick={()=>{setAdapter(value.adapter);}}>{value.display_name || value.name || value.adapter}{value.sandbox ? " · SANDBOX":""}</Button>)}</div>
+        <div className="mb-4 flex flex-wrap gap-2">{item.methods.map(value=><Button key={value.adapter} variant={resolvedAdapter===value.adapter ? "default":"outline"} disabled={busy || !!pending} onClick={()=>{setAdapter(value.adapter);}}>{value.display_name || value.name || value.adapter}{value.sandbox ? " · SANDBOX":""}</Button>)}</div>
         {item.methodError ? <p role="alert" className="mb-3 text-danger">{a("failedPaymentMethods")}</p> : !item.methods.length && <p role="status" className="mb-3">{a("noPaymentMethod")}</p>}
         <div className="grid gap-4 md:grid-cols-2">{item.plans.map(plan=>{
           return <Card key={plan.id} className={plan.id===selected ? "border-brand":""}><CardTitle>{plan.name}</CardTitle>{plan.id===selected && <p className="mt-2 text-sm text-brand-emphasis">{a("selectedPlan")}</p>}<p className="my-3 font-mono text-xl">{planPrice(plan)}</p><p className="text-sm text-ink-secondary">{a(`period_${planPeriod(plan.billing_period)}`)}</p><ul className="my-3 space-y-2 text-sm">{plan.items?.map((benefit,i)=><li key={i}>{benefit.unit_type === "usd_credit" ? `${formatUsdMinor(benefit.included_amount)} ${a("giftCredit")}` : a("unknownUnit",{amount:benefit.included_amount,unit:te.has(benefit.unit_type)?te(benefit.unit_type):benefit.unit_type})}{benefit.public_model_id && <span className="block break-all text-ink-secondary">{benefit.public_model_id}</span>}{benefit.expires_in_seconds && benefit.expires_in_seconds > 0 ? <span className="block text-ink-secondary">{a("validDays",{days:benefit.expires_in_seconds/86400})}</span> : null}</li>)}</ul>

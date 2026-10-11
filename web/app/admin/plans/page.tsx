@@ -237,7 +237,7 @@ export default function AdminPlansPage() {
                   <span className="text-xs text-ink-secondary">已选 {selectedChannels.length} 个渠道</span>
                 </div> : null}
               </fieldset>
-              {message ? <p role="status" className="text-sm text-ink-secondary">{message}</p> : null}
+              {message ? <p role="status" className="text-sm text-danger">{message}</p> : null}
               <Button size="sm" type="submit" disabled={createForm.formState.isSubmitting}>创建套餐</Button>
             </form>
           </Form>

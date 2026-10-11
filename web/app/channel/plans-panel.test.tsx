@@ -138,6 +138,13 @@ describe("ChannelPlans create", () => {
     );
     render(withZh(<ChannelPlans />));
     await screen.findByText("暂无可见套餐");
+    expect(screen.queryByText("套餐类型")).toBeNull();
+    expect(screen.queryByText("全部方式")).toBeNull();
+    expect(screen.getByRole("option", { name: "全部周期" })).toBeTruthy();
+    const nameFilter = screen.getByLabelText("按套餐名筛选");
+    expect(nameFilter).toHaveProperty("placeholder", "套餐名");
+    fireEvent.focus(nameFilter);
+    expect(nameFilter.className).toContain("focus:placeholder:text-transparent");
     fireEvent.change(screen.getByLabelText("按状态筛选"), { target: { value: "published" } });
     await screen.findByRole("option", { name: "child-a" });
     fireEvent.change(screen.getByLabelText("按渠道筛选"), { target: { value: "ch_child" } });

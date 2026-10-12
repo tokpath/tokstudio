@@ -9,6 +9,24 @@ paths:
   /v1/auth/login:
     post:
       summary: Password login within the authenticated host's brand; sets host-only HttpOnly session cookie
+  /v1/auth/email/status:
+    get:
+      summary: Transactional email availability without disclosing SMTP credentials
+  /v1/auth/password/forgot:
+    post:
+      summary: Queue a brand-scoped password reset email; generic response and cooldown for all addresses
+  /v1/auth/password/reset:
+    post:
+      summary: Consume a one-use 30-minute email token, update password and revoke login sessions
+  /v1/auth/email/verification/request:
+    post:
+      summary: Queue a one-use 24-hour verification email; generic response
+  /v1/auth/email/verify:
+    post:
+      summary: Verify the email snapshot for the token's user within the current brand
+  /v1/me/email/verification:
+    post:
+      summary: Resend the current user's verification email
   /v1/auth/google/status:
     get:
       summary: Google availability for the current brand and verified callback origin

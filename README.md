@@ -52,6 +52,8 @@ API 启动时的 `Seed()` 仍会调用同一导入，方便开发环境；生产
 
 `make web` 在 http://localhost:3000。浏览器请求 `/api/*` 由 Next.js rewrite 转到本机 API（`TOKENHUB_API_INTERNAL_URL`，默认 `http://127.0.0.1:8080`）。
 
+邮箱验证和密码找回使用平台统一 SMTP。配置根目录 `.env` 中的 `TOKENHUB_SMTP_HOST`、`TOKENHUB_SMTP_PORT`、`TOKENHUB_SMTP_FROM`（纯邮箱地址）、`TOKENHUB_SMTP_USERNAME` 和 `TOKENHUB_SMTP_PASSWORD`，发信模式 `TOKENHUB_SMTP_SECURITY` 支持 `starttls`（通常 587）和 `tls`（通常 465），证书必须有效。API 和 worker 必须使用相同的 SMTP 配置与 `TOKENHUB_ENCRYPTION_KEY`，并保持 worker 运行以发送及重试邮件。未配置时不会模拟发信或返回验证令牌。官方邮件链接来自 `TOKENHUB_WEB_ORIGIN`，OEM 链接来自品牌登记的主站或管理站域名；正式环境应配置可访问的 HTTPS 地址。
+
 ## 验收
 
 ```bash

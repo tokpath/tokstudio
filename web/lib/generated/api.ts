@@ -428,6 +428,30 @@ export const generatedOperations: GeneratedOperation[] = [
   },
   {
     "method": "GET",
+    "path": "/v1/auth/email/status"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/auth/password/forgot"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/auth/password/reset"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/auth/email/verification/request"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/auth/email/verify"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/email/verification"
+  },
+  {
+    "method": "GET",
     "path": "/v1/me/media"
   },
   {

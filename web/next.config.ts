@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const apiProxy = (process.env.TOKENHUB_API_INTERNAL_URL || "http://127.0.0.1:8080").replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return ["/forgot-password", "/reset-password", "/verify-email"].map(source => ({ source, headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] }));
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${apiProxy}/:path*` },

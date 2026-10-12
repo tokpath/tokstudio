@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
@@ -85,7 +86,7 @@ func mapNotFound(err error) error {
 }
 
 func HashPassword(password string) (string, error) {
-	if len(password) < 8 {
+	if len(password) < 8 || len(password) > 72 {
 		return "", ErrWeakPassword
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -164,7 +165,13 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 		}
 		scoped := *s
 		scoped.db = tx
-		return scoped.ensureUserPromo(ctx, user.ID, resolved.ChannelID, resolved.AcquisitionRoleID)
+		if err := scoped.ensureUserPromo(ctx, user.ID, resolved.ChannelID, resolved.AcquisitionRoleID); err != nil {
+			return err
+		}
+		if in.Verification != nil && s.EmailAvailable() && user.EmailVerifiedAt == nil {
+			return s.queueEmailAction(tx, user, EmailVerify, *in.Verification)
+		}
+		return nil
 	}); err != nil {
 		return nil, err
 	}
@@ -177,14 +184,27 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 	if brandID == "" {
 		brandID = OfficialBrandID
 	}
-	var user userRow
-	if err := s.db.WithContext(ctx).Where("brand_id = ? AND lower(email) = ? AND status = ?", brandID, email, "active").First(&user).Error; err != nil {
-		return nil, ErrInvalidCredentials
+	var session *Session
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var user userRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("brand_id = ? AND lower(email) = ? AND status = ?", brandID, email, "active").First(&user).Error; err != nil {
+			return ErrInvalidCredentials
+		}
+		if user.PasswordHash == nil || !checkPassword(*user.PasswordHash, in.Password) {
+			return ErrInvalidCredentials
+		}
+		// Serialize password login with reset, so an in-flight old-password login
+		// cannot create a surviving session after the reset has revoked sessions.
+		scoped := *s
+		scoped.db = tx
+		var err error
+		session, err = scoped.issueSession(ctx, user)
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
-	if user.PasswordHash == nil || !checkPassword(*user.PasswordHash, in.Password) {
-		return nil, ErrInvalidCredentials
-	}
-	return s.issueSession(ctx, user)
+	return session, nil
 }
 
 // Logout 吊销当前会话令牌。空令牌是空操作，不发明会话。

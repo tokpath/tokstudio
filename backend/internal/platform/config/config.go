@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 )
 
 // Config 是进程启动后的只读配置快照。
@@ -24,6 +25,12 @@ type Config struct {
 	GoogleClientID         string
 	GoogleClientSecret     string
 	GoogleRedirect         string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPUsername           string
+	SMTPPassword           string
+	SMTPFrom               string
+	SMTPSecurity           string
 	OpenAIAPIKey           string
 	AnthropicAPIKey        string
 	GeminiAPIKey           string
@@ -73,6 +80,8 @@ func Load() (*Config, error) {
 	v.SetDefault("OTEL_SERVICE_NAME", "tokenhub-api")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("ALLOW_DEMO_PROBES", true)
+	v.SetDefault("SMTP_PORT", 587)
+	v.SetDefault("SMTP_SECURITY", "starttls")
 
 	loadDotEnv(".env")
 	loadDotEnv("../.env")
@@ -90,6 +99,12 @@ func Load() (*Config, error) {
 		GoogleClientID:         normalizeSecretValue(v.GetString("GOOGLE_CLIENT_ID")),
 		GoogleClientSecret:     normalizeSecretValue(v.GetString("GOOGLE_CLIENT_SECRET")),
 		GoogleRedirect:         normalizeSecretValue(v.GetString("GOOGLE_REDIRECT_URL")),
+		SMTPHost:               v.GetString("SMTP_HOST"),
+		SMTPPort:               v.GetInt("SMTP_PORT"),
+		SMTPUsername:           v.GetString("SMTP_USERNAME"),
+		SMTPPassword:           normalizeSecretValue(v.GetString("SMTP_PASSWORD")),
+		SMTPFrom:               v.GetString("SMTP_FROM"),
+		SMTPSecurity:           v.GetString("SMTP_SECURITY"),
 		OpenAIAPIKey:           v.GetString("OPENAI_API_KEY"),
 		AnthropicAPIKey:        v.GetString("ANTHROPIC_API_KEY"),
 		GeminiAPIKey:           v.GetString("GEMINI_API_KEY"),
@@ -130,6 +145,14 @@ func Load() (*Config, error) {
 	}
 	if cfg.RedisURL == "" {
 		return nil, fmt.Errorf("TOKENHUB_REDIS_URL is required")
+	}
+	if cfg.SMTPHost != "" || cfg.SMTPFrom != "" || cfg.SMTPUsername != "" || cfg.SMTPPassword != "" {
+		if _, err := mail.NewSMTP(mail.SMTPOptions{Host: cfg.SMTPHost, Port: cfg.SMTPPort, From: cfg.SMTPFrom, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, Security: cfg.SMTPSecurity, Production: cfg.IsProduction()}); err != nil {
+			return nil, fmt.Errorf("TOKENHUB_SMTP configuration is invalid")
+		}
+		if strings.TrimSpace(cfg.EncryptionKey) == "" {
+			return nil, fmt.Errorf("TOKENHUB_ENCRYPTION_KEY is required for email delivery")
+		}
 	}
 	return cfg, nil
 }
@@ -233,6 +256,7 @@ func (c *Config) RedactedMap() map[string]any {
 		"google_redirect_set":     c.GoogleRedirect != "",
 		"google_redirect":         c.GoogleRedirect,
 		"google_triad":            c.GoogleTriad(),
+		"smtp_configured":         c.SMTPHost != "" && c.SMTPFrom != "",
 		"cloudflare_token_set":    c.CloudflareAPIToken != "",
 		"cloudflare_zone_set":     c.CloudflareZoneID != "",
 		"cloudflare_cname_set":    c.CloudflareCNAME != "",

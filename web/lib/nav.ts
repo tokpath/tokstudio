@@ -145,6 +145,7 @@ export function isConsolePath(pathname: string) {
 /** 登录页和控制台入口不套公共顶栏/页脚。 */
 export function isAuthPath(pathname: string) {
   return (
+    ["/forgot-password", "/reset-password", "/verify-email"].includes(pathname) ||
     pathname === "/login" ||
     pathname.startsWith("/login/") ||
     pathname === "/enter" ||

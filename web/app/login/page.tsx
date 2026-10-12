@@ -126,7 +126,10 @@ function LoginForm() {
     if (response.ok) {
       setErrorBanner("");
       setMessage(t("registered", { channel: body.session?.user?.channel_org_id || "—" }));
-      await goNext();
+      const params = new URLSearchParams({ sent: body.verification_email_queued ? "1" : "0" });
+      const next = safeNextPath(search.get("next"));
+      if (next) params.set("next", next);
+      window.location.href = `/verify-email?${params}`;
       return;
     }
     showAuthFailure(body, t("fail"));
@@ -229,6 +232,7 @@ function LoginForm() {
             <fieldset disabled={!hydrated} className="contents">
             <TextField control={form.control} name="email" label={t("email")} placeholder="m@example.com" icon={Mail} />
             <TextField control={form.control} name="password" label={t("password")} placeholder={t("passwordPh")} type="password" icon={KeyRound} />
+            {mode === "login" && <Link className="self-end text-sm text-brand-emphasis hover:underline" href="/forgot-password">{t("forgotPassword")}</Link>}
             {mode === "register" ? (
               <TextField control={form.control} name="promo" label={t("promo")} placeholder={t("promoPh")} />
             ) : null}

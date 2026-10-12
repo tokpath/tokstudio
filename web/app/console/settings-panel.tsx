@@ -23,8 +23,10 @@ import { SubmitStatus } from "@/components/console/submit-status";
 import { apiBase } from "@/lib/api";
 import { resolveLocale } from "@/lib/i18n";
 import { errorMessageFromBody, readResponseBody } from "@/lib/submit-result";
+import { EmailVerificationStatus } from "@/components/email-verification-status";
 
 type MeUser = {
+	 email_verified?: boolean;
   email?: string;
   display_name?: string;
   locale?: string;
@@ -98,6 +100,7 @@ export default function SettingsPanel() {
 
   return (
     <Card>
+      {user?.email && <div className="mb-6 border-b border-hairline pb-6"><EmailVerificationStatus email={user.email} verified={user.email_verified === true} showEmail={false} /></div>}
       <p className="mb-4 text-sm text-ink-secondary">
         {t("settingsMeta", { email: user?.email ?? "—", channel: user?.channel_org_id ?? "—" })}
       </p>

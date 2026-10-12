@@ -128,7 +128,7 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 	case errors.Is(err, identity.ErrEmailTaken):
 		httpx.Abort(c, http.StatusConflict, "invalid_request", "邮箱已注册", false)
 	case errors.Is(err, identity.ErrWeakPassword):
-		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "密码至少 8 位", false)
+		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "密码至少 8 位，UTF-8 编码不超过 72 字节", false)
 	case errors.Is(err, identity.ErrPromotionInvalid):
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "推广码无效", false)
 	case errors.Is(err, identity.ErrChannelImmutable):
@@ -159,7 +159,7 @@ func (a *App) register(c *gin.Context) {
 		return
 	}
 	// Bare loopback transports are used by development fixtures with explicit promo codes.
-	if !a.Config.IsProduction() && loopbackAuthHost(a.authenticationHost(c)) && localAuthTransport(c) && !a.Identity.KnownBrandHost(c.Request.Context(), a.authenticationHost(c)) {
+	if !a.Identity.EmailAvailable() && !a.Config.IsProduction() && loopbackAuthHost(a.authenticationHost(c)) && localAuthTransport(c) && !a.Identity.KnownBrandHost(c.Request.Context(), a.authenticationHost(c)) {
 		brandID = ""
 	}
 	var body struct {
@@ -171,8 +171,21 @@ func (a *App) register(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
+	var verification *identity.EmailActionContext
+	if a.Identity.EmailAvailable() {
+		if !a.emailRateLimit(c, "request:signup") {
+			return
+		}
+		context, contextErr := a.emailActionContext(c, brandID)
+		if contextErr != nil {
+			a.writeEmailError(c, contextErr)
+			return
+		}
+		verification = &context
+	}
 	session, err := a.Identity.Register(c.Request.Context(), identity.RegisterInput{
 		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode, BrandID: brandID,
+		Verification: verification,
 	})
 	if err != nil {
 		a.writeAuthError(c, err)
@@ -185,7 +198,7 @@ func (a *App) register(c *gin.Context) {
 		After: map[string]string{"channel_org_id": session.User.ChannelOrgID, "source_code": body.PromotionCode},
 		IP:    c.ClientIP(), RequestID: c.GetString(httpx.ContextRequestID),
 	})
-	httpx.Created(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
+	httpx.Created(c, gin.H{"session": session, "verification_email_queued": verification != nil, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) login(c *gin.Context) {

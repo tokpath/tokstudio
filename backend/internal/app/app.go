@@ -29,6 +29,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/platform/config"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"github.com/tokpath/tokstudio/backend/internal/platform/redisx"
 )
 
@@ -83,6 +84,14 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.ArkAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterAPIKey)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
+	if cfg.SMTPHost != "" {
+		sender, err := mail.NewSMTP(mail.SMTPOptions{Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, From: cfg.SMTPFrom, Security: cfg.SMTPSecurity, Production: cfg.IsProduction()})
+		if err != nil {
+			logger.Error().Msg("smtp_configuration_invalid")
+		} else {
+			idSvc.SetEmailSender(sender, cfg.EncryptionKey)
+		}
+	}
 	idSvc.SetStore(store)
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	idSvc.SetCloudflare(identity.NewCloudflare(identity.CloudflareOptions{
@@ -232,6 +241,7 @@ func (a *App) Router() *gin.Engine {
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
+	a.registerEmailAuthRoutes(r)
 	a.registerGoogleConfigRoutes(r)
 	a.registerCustomerRoutes(r)
 	a.registerPersonalRecordsRoutes(r)

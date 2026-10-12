@@ -42,6 +42,7 @@ func (p Principal) VisibleChannelID() string {
 type UserView struct {
 	ID            string    `json:"id"`
 	Email         string    `json:"email"`
+	EmailVerified bool      `json:"email_verified"`
 	DisplayName   string    `json:"display_name"`
 	Locale        string    `json:"locale"`
 	Status        string    `json:"status"`
@@ -90,6 +91,7 @@ type Session struct {
 }
 
 type RegisterInput struct {
+	Verification  *EmailActionContext
 	googleSubject string
 	BrandID       string
 	Email         string

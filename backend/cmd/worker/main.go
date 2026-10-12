@@ -54,6 +54,7 @@ func main() {
 	go application.Plans.RunRenewal(ctx, application.Payment.RenewCharger())
 	go application.Payment.RunFulfillment(ctx)
 	go application.Identity.RunTLSRefresh(ctx)
+	go application.Identity.RunEmailDelivery(ctx, func(err error) { logger.Error().Err(err).Msg("email_queue_failed") })
 	go application.Commission.RunUnfreeze(ctx)
 	logger.Info().Msg("worker_running")
 	<-ctx.Done()

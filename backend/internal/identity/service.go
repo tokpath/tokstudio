@@ -15,6 +15,7 @@ import (
 
 	"github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
+	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 )
 
 //go:embed migrate/*.sql
@@ -66,11 +67,13 @@ type tokenRow struct {
 func (tokenRow) TableName() string { return "identity_access_tokens" }
 
 type Service struct {
-	db       *gorm.DB
-	acme     *ACME
-	cf       *Cloudflare
-	store    ObjectStore
-	enforcer *casbin.Enforcer
+	db          *gorm.DB
+	acme        *ACME
+	cf          *Cloudflare
+	store       ObjectStore
+	enforcer    *casbin.Enforcer
+	emailSender mail.Sender
+	emailKey    string
 }
 
 func New(db *gorm.DB) *Service {

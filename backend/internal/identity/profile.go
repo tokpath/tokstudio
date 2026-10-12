@@ -2,6 +2,8 @@ package identity
 
 import (
 	"context"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -56,6 +58,7 @@ func viewFromUser(user userRow, roles []string, source string) UserView {
 	return UserView{
 		ID:            user.ID,
 		Email:         user.Email,
+		EmailVerified: user.EmailVerifiedAt != nil,
 		DisplayName:   user.DisplayName,
 		Locale:        localeOrDefault(user.Locale),
 		Status:        user.Status,
@@ -95,19 +98,24 @@ func (s *Service) UpdateProfile(ctx context.Context, viewer Principal, in Update
 }
 
 func (s *Service) ChangePassword(ctx context.Context, viewer Principal, current, next string) error {
-	var user userRow
-	if err := s.db.WithContext(ctx).Where("id = ? AND status = ?", viewer.UserID, "active").First(&user).Error; err != nil {
-		return ErrInvalidCredentials
-	}
-	if user.PasswordHash == nil || !checkPassword(*user.PasswordHash, current) {
-		return ErrInvalidCredentials
-	}
-	hash, err := HashPassword(next)
-	if err != nil {
-		return err
-	}
-	return s.db.WithContext(ctx).Model(&userRow{}).Where("id = ?", user.ID).Updates(map[string]any{
-		"password_hash": hash,
-		"updated_at":    time.Now().UTC(),
-	}).Error
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var user userRow
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND status = ?", viewer.UserID, "active").First(&user).Error; err != nil {
+			return ErrInvalidCredentials
+		}
+		if user.PasswordHash == nil || !checkPassword(*user.PasswordHash, current) {
+			return ErrInvalidCredentials
+		}
+		hash, err := HashPassword(next)
+		if err != nil {
+			return err
+		}
+		if err := s.invalidateEmailActions(tx, user.ID, EmailReset, time.Now().UTC()); err != nil {
+			return err
+		}
+		return tx.Model(&userRow{}).Where("id = ?", user.ID).Updates(map[string]any{
+			"password_hash": hash,
+			"updated_at":    time.Now().UTC(),
+		}).Error
+	})
 }

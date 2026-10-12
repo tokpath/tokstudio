@@ -942,6 +942,42 @@ paths:
       responses:
         "200":
           description: password changed
+  /v1/auth/email/status:
+    get:
+      operationId: emailAuthStatus
+      responses:
+        "200":
+          description: email availability
+  /v1/auth/password/forgot:
+    post:
+      operationId: requestPasswordReset
+      responses:
+        "202":
+          description: generic acceptance without revealing account existence
+  /v1/auth/password/reset:
+    post:
+      operationId: resetPassword
+      responses:
+        "200":
+          description: password updated and old sessions revoked; no automatic login
+  /v1/auth/email/verification/request:
+    post:
+      operationId: requestEmailVerification
+      responses:
+        "202":
+          description: generic acceptance with 60-second resend cooldown
+  /v1/auth/email/verify:
+    post:
+      operationId: verifyEmail
+      responses:
+        "200":
+          description: email verified without issuing a login session
+  /v1/me/email/verification:
+    post:
+      operationId: resendMyVerificationEmail
+      responses:
+        "202":
+          description: verification email queued if needed
   /v1/me/media:
     get:
       operationId: listMyMedia

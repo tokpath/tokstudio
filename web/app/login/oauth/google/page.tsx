@@ -8,6 +8,7 @@ import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
 import { promotionCode, readAuthIntent, storeAuthIntent } from "@/lib/auth-intent";
 import { safeNextPath } from "@/lib/login-next";
 import {
+  GOOGLE_TEST_STATE,
   claimOAuthCallback,
   oauthFailureHref,
   readStoredNext,
@@ -49,7 +50,8 @@ function GoogleOAuthCallback() {
 
     const storage = typeof sessionStorage === "undefined" ? null : sessionStorage;
     let callbackIntent = readAuthIntent(storage);
-    const failure = (message: string, code?: string) => oauthFailureHref(message, code, callbackIntent);
+    const isTest = Boolean(search.get("state")) && storage?.getItem(GOOGLE_TEST_STATE) === search.get("state");
+    const failure = (message: string, code?: string) => isTest ? `/login/oauth/google/test?error=${encodeURIComponent(code || "authentication_error")}` : oauthFailureHref(message, code, callbackIntent);
 
     const googleError = search.get("error");
     const code = search.get("code") || "";
@@ -58,7 +60,7 @@ function GoogleOAuthCallback() {
       void (async () => {
         if (state) {
           try {
-            const response = await fetch(`${apiBase}/v1/auth/google/callback`, {method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code:""})});
+            const response = await fetch(`${apiBase}/v1/auth/google/callback`, {method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({state,code:"",error:googleError||"access_denied"})});
             callbackIntent = {next:safeNextPath(response.headers.get("X-Login-Next")) || callbackIntent.next,promotionCode:promotionCode(response.headers.get("X-Promotion-Code")) || callbackIntent.promotionCode};
           } catch { /* Stored task context remains available when recovery fails. */ }
         }
@@ -67,10 +69,10 @@ function GoogleOAuthCallback() {
       return;
     }
 
-    if (!claimOAuthCallback(storage, code)) {
+    if (!isTest && !claimOAuthCallback(storage, code)) {
       // 同码已在兑换中：等同伴写好 cookie 再进控制台，绝不跳失败页。
       void (async () => {
-        if (await recoverAuthenticatedSession({ probe: probeMe })) {
+        if (!isTest && await recoverAuthenticatedSession({ probe: probeMe })) {
           await goConsoleOrNext(storage);
           return;
         }
@@ -91,11 +93,11 @@ function GoogleOAuthCallback() {
         callbackIntent = {next:safeNextPath(response.headers.get("X-Login-Next")) || callbackIntent.next,promotionCode:promotionCode(response.headers.get("X-Promotion-Code")) || callbackIntent.promotionCode};
         storeAuthIntent(storage,callbackIntent);
         const raw = await response.text();
-        let body: { session?: { next?: string }; error?: { message?: string; code?: string; param?: string } } = {};
+        let body: { test_only?: boolean; session?: { next?: string }; error?: { message?: string; code?: string; param?: string } } = {};
         try {
           body = raw ? (JSON.parse(raw) as typeof body) : {};
         } catch {
-          if (await recoverAuthenticatedSession({ probe: probeMe })) {
+          if (!isTest && await recoverAuthenticatedSession({ probe: probeMe })) {
             await goConsoleOrNext(storage);
             return;
           }
@@ -109,7 +111,7 @@ function GoogleOAuthCallback() {
               ? body.error.param
               : body.error?.code;
           if (
-            shouldRecoverOAuthFailure(body.error?.code, typeof body.error?.param === "string" ? body.error.param : null) &&
+            !isTest && shouldRecoverOAuthFailure(body.error?.code, typeof body.error?.param === "string" ? body.error.param : null) &&
             (await recoverAuthenticatedSession({ probe: probeMe }))
           ) {
             await goConsoleOrNext(storage);
@@ -122,6 +124,7 @@ function GoogleOAuthCallback() {
           return;
         }
         // 回调 200 仍须能读到 HttpOnly cookie；否则进控制台只会看到 /v1/me 403。
+        if (body.test_only) { window.location.replace("/login/oauth/google/test?result=success"); return; }
         if (!(await recoverAuthenticatedSession({ probe: probeMe }))) {
           releaseOAuthCallback(storage, code);
           window.location.replace(failure(t("googleFail"), "session_cookie_missing"));
@@ -129,7 +132,7 @@ function GoogleOAuthCallback() {
         }
         await goConsoleOrNext(storage, body.session?.next);
       } catch {
-        if (await recoverAuthenticatedSession({ probe: probeMe })) {
+        if (!isTest && await recoverAuthenticatedSession({ probe: probeMe })) {
           await goConsoleOrNext(storage);
           return;
         }

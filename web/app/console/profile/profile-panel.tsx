@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 import { apiBase } from "@/lib/api";
 import { loginMethodsOf, profileDash } from "@/lib/user-shell";
 
@@ -15,6 +16,10 @@ export default function ProfilePanel() {
   const t = useTranslations("shell");
   const [user, setUser] = useState<MeUser | null>(null);
   const [ready, setReady] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const tg = useTranslations("oemGoogle");
 
   useEffect(() => {
     let cancelled = false;
@@ -41,10 +46,21 @@ export default function ProfilePanel() {
       }
     }
     void load();
+    void fetch(`${apiBase}/v1/auth/google/status`, { credentials: "include" }).then(response => response.ok ? response.json() : null).then(body => { if (!cancelled) setGoogleAvailable(body?.available === true); }).catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
+
+  async function linkGoogle() {
+    setLinking(true); setLinkError("");
+    try {
+      const response = await fetch(`${apiBase}/v1/me/google/start`, { credentials: "include" });
+      const body = await response.json();
+      if (!response.ok || !body.auth_url) throw new Error(body.error?.message || tg("failed"));
+      window.location.assign(body.auth_url);
+    } catch (caught) { setLinkError(caught instanceof Error ? caught.message : tg("failed")); setLinking(false); }
+  }
 
   const methods = loginMethodsOf(user?.login_methods);
   const name = ready ? profileDash(user?.display_name) : "—";
@@ -84,6 +100,8 @@ export default function ProfilePanel() {
           </dd>
         </div>
       </dl>
+      {googleAvailable && user && !methods.includes("google") ? <Button className="mt-5" variant="outline" disabled={linking} onClick={() => void linkGoogle()}>{tg("linkGoogle")}</Button> : null}
+      {linkError ? <p role="alert" className="mt-3 text-sm text-danger">{linkError}</p> : null}
     </section>
   );
 }

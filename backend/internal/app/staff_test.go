@@ -31,10 +31,10 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	a := mustApp(t, cfg)
 	server := httptest.NewServer(a.Router())
 	defer server.Close()
-	login := func(email string) string {
-		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": email, "password": "password1"}))
+	login := func(email string, hosts ...string) string {
+		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": email, "password": "password1"}, hosts...))
 	}
-	admin, oem, b := login("admin@tokenhub.local"), login("channel.c@tokenhub.local"), login("channel.b@tokenhub.local")
+	admin, oem, b := login("admin@tokenhub.local"), login("channel.c@tokenhub.local", "oem.localhost"), login("channel.b@tokenhub.local")
 	uid := func(token string) string {
 		return getAuthJSON(t, server.URL+"/v1/me", token)["user"].(map[string]any)["id"].(string)
 	}
@@ -53,7 +53,7 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	oemOpsID, oemOpsEmail := create("/channel/staff", oem, "-ops", []string{"oem_ops"})
 	financeID, financeEmail := create("/channel/staff", oem, "-finance", []string{"oem_finance"})
 	_, auditEmail := create("/channel/staff", oem, "-audit", []string{"oem_audit"})
-	opToken, finToken, auditToken := login(oemOpsEmail), login(financeEmail), login(auditEmail)
+	opToken, finToken, auditToken := login(oemOpsEmail, "oem.localhost"), login(financeEmail, "oem.localhost"), login(auditEmail, "oem.localhost")
 	for _, token := range []string{b, opToken, finToken, auditToken, login(platformEmail)} {
 		for _, path := range []string{"/admin/staff", "/channel/staff"} {
 			if code := getStatus(t, server.URL+path, token); code != 403 {
@@ -106,12 +106,22 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 		want        int
 	}{
 		{"/channel/staff", oem, map[string]any{"email": prefix + "-global@example.test", "password": "password1", "roles": []string{"platform_admin"}}, 400},
-		{"/channel/staff", oem, map[string]any{"email": "user@tokenhub.local", "roles": []string{"oem_ops"}}, 409},
-		{"/admin/staff", admin, map[string]any{"email": oemOpsEmail, "roles": []string{"ops_admin"}}, 409},
+		{"/channel/staff", oem, map[string]any{"email": "user@tokenhub.local", "roles": []string{"oem_ops"}}, 400},
+		{"/admin/staff", admin, map[string]any{"email": oemOpsEmail, "roles": []string{"ops_admin"}}, 400},
 	} {
 		if code, _ := doJSON(t, http.MethodPost, server.URL+test.path, test.token, true, test.body); code != test.want {
 			t.Fatalf("invalid addition %s %d", test.path, code)
 		}
+	}
+	// An employee in another brand is a new account, requiring an initial
+	// password. Never attach that employee's existing identity or roles.
+	sameEmailPlatformID, _ := create("/admin/staff", admin, "-ops", []string{"ops_admin"})
+	if sameEmailPlatformID == oemOpsID {
+		t.Fatal("employee accounts merged across brands")
+	}
+	sameEmailPrincipal, err := a.Identity.Authenticate(context.Background(), "Bearer "+login(oemOpsEmail))
+	if err != nil || sameEmailPrincipal.BrandID != identity.OfficialBrandID || sameEmailPrincipal.HasRole("oem_ops") {
+		t.Fatal("employee roles crossed brands")
 	}
 	for _, test := range []struct {
 		path, token string
@@ -161,7 +171,7 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); (err != nil && !errors.Is(err, identity.ErrKeyNotUsable)) || key != nil {
 		t.Fatal("disabled staff API key active")
 	}
-	if code, _ := doJSON(t, http.MethodPost, server.URL+"/v1/auth/login", "", false, map[string]string{"email": financeEmail, "password": "password1"}); code != 403 {
+	if code, _ := brandRequest(t, http.MethodPost, server.URL+"/v1/auth/login", "oem.localhost", "", map[string]string{"email": financeEmail, "password": "password1"}, ""); code != 403 {
 		t.Fatal("disabled staff can login")
 	}
 	if code, _ := doJSON(t, http.MethodPatch, server.URL+"/channel/staff/"+financeID, oem, true, map[string]any{"status": "active"}); code != 200 {
@@ -170,7 +180,7 @@ func TestStaffPermissionsLifecycle(t *testing.T) {
 	if getStatus(t, server.URL+"/channel/metrics", finToken) != 403 {
 		t.Fatal("reactivation resurrected session")
 	}
-	if getStatus(t, server.URL+"/channel/metrics", login(financeEmail)) != 200 {
+	if getStatus(t, server.URL+"/channel/metrics", login(financeEmail, "oem.localhost")) != 200 {
 		t.Fatal("reactivated login fails")
 	}
 	if key, err := a.Identity.AuthenticateAPIKey(context.Background(), staffKey.Secret); (err != nil && !errors.Is(err, identity.ErrKeyNotUsable)) || key != nil {

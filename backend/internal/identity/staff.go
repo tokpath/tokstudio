@@ -185,7 +185,7 @@ func (s *Service) CreateStaffTx(tx *gorm.DB, actor Principal, scope StaffScope, 
 		return nil, ErrStaffInput
 	}
 	var user userRow
-	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("LOWER(email) = ?", email).First(&user).Error
+	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("brand_id = ? AND LOWER(email) = ?", ch.BrandID, email).First(&user).Error
 	now := time.Now().UTC()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		hash, hashErr := HashPassword(in.Password)

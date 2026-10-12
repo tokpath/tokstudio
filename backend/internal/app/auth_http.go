@@ -153,6 +153,15 @@ func (a *App) writeAuthError(c *gin.Context, err error) {
 }
 
 func (a *App) register(c *gin.Context) {
+	brandID, err := a.authenticationBrand(c)
+	if err != nil {
+		a.writeAuthError(c, identity.ErrInvalidCredentials)
+		return
+	}
+	// Bare loopback transports are used by development fixtures with explicit promo codes.
+	if !a.Config.IsProduction() && loopbackAuthHost(a.authenticationHost(c)) && localAuthTransport(c) && !a.Identity.KnownBrandHost(c.Request.Context(), a.authenticationHost(c)) {
+		brandID = ""
+	}
 	var body struct {
 		Email         string `json:"email"`
 		Password      string `json:"password"`
@@ -163,7 +172,7 @@ func (a *App) register(c *gin.Context) {
 		return
 	}
 	session, err := a.Identity.Register(c.Request.Context(), identity.RegisterInput{
-		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode, BrandID: a.signupBrandID(c),
+		Email: body.Email, Password: body.Password, PromotionCode: body.PromotionCode, BrandID: brandID,
 	})
 	if err != nil {
 		a.writeAuthError(c, err)
@@ -180,6 +189,11 @@ func (a *App) register(c *gin.Context) {
 }
 
 func (a *App) login(c *gin.Context) {
+	brandID, err := a.authenticationBrand(c)
+	if err != nil {
+		a.writeAuthError(c, identity.ErrInvalidCredentials)
+		return
+	}
 	var body struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -188,34 +202,13 @@ func (a *App) login(c *gin.Context) {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
-	session, err := a.Identity.Login(c.Request.Context(), identity.LoginInput{Email: body.Email, Password: body.Password})
+	session, err := a.Identity.Login(c.Request.Context(), identity.LoginInput{BrandID: brandID, Email: body.Email, Password: body.Password})
 	if err != nil {
 		a.writeAuthError(c, err)
 		return
 	}
 	a.setSessionCookie(c, session.Token)
 	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
-}
-
-func (a *App) googleMode() (configured, available bool) {
-	configured = a.Config.GoogleTriad()
-	available = configured
-	return configured, available
-}
-
-func (a *App) resolveGoogleExchange() identity.GoogleExchanger {
-	if a.GoogleExchange != nil {
-		return a.GoogleExchange
-	}
-	configured, _ := a.googleMode()
-	if configured {
-		return identity.NewGoogleExchange(identity.GoogleOAuthConfig{
-			ClientID:     a.Config.GoogleClientID,
-			ClientSecret: a.Config.GoogleClientSecret,
-			RedirectURL:  a.Config.GoogleRedirect,
-		})
-	}
-	return nil
 }
 
 func (a *App) writeGoogleAuthError(c *gin.Context, err error) {
@@ -263,6 +256,10 @@ func googleExchangeMessage(reason string) (string, bool) {
 		return "Google 邮箱尚未验证", false
 	case "state_mismatch":
 		return "请在发起 Google 登录的浏览器中重试", false
+	case "account_link_required":
+		return "请先用密码登录此品牌账号，再到个人资料绑定 Google", false
+	case "configuration_changed":
+		return "Google 登录配置已变化，请重新发起登录", true
 	case "account_conflict":
 		return "此邮箱已绑定其他 Google 账户", false
 	case "network_error":
@@ -275,56 +272,58 @@ func googleExchangeMessage(reason string) (string, bool) {
 }
 
 func (a *App) googleStatus(c *gin.Context) {
-	configured, available := a.googleMode()
-	available = available && a.googleBrandAvailable(c)
-	httpx.OK(c, gin.H{
-		"available":  available,
-		"configured": configured,
-		"mock":       false,
-		"request_id": c.GetString(httpx.ContextRequestID),
-	})
+	cfg, _, _, err := a.googleConfigForRequest(c, false)
+	c.Header("Cache-Control", "no-store")
+	httpx.OK(c, gin.H{"available": err == nil && cfg != nil, "configured": err == nil && cfg != nil, "mock": false, "request_id": c.GetString(httpx.ContextRequestID)})
 }
-
 func (a *App) googleStart(c *gin.Context) {
-	configured, available := a.googleMode()
-	if !available || !a.googleBrandAvailable(c) {
-		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
+	cfg, brandID, version, err := a.googleConfigForRequest(c, false)
+	if err != nil {
+		a.writeGoogleAuthError(c, err)
 		return
 	}
+	intent := identity.OAuthIntent{BrandID: brandID, ConfigVersion: version, RedirectURI: cfg.RedirectURL, PromotionCode: c.Query("promotion_code"), NextPath: identity.SafeReturnPath(c.Query("next"))}
+	if c.FullPath() == "/v1/me/google/start" {
+		intent.LinkUserID = a.currentPrincipal(c).UserID
+		intent.PromotionCode = ""
+		intent.NextPath = "/app/profile"
+	}
+	a.startGoogleIntent(c, cfg, intent)
+}
+func (a *App) startGoogleIntent(c *gin.Context, cfg *identity.GoogleOAuthConfig, intent identity.OAuthIntent) {
 	challenge, err := crypto.RandomToken("browser_")
 	if err != nil {
 		a.writeGoogleAuthError(c, err)
 		return
 	}
-	state, err := a.Identity.StartGoogleWithIntent(c.Request.Context(), identity.OAuthIntent{BrowserToken: challenge, PromotionCode: c.Query("promotion_code"), BrandID: a.signupBrandID(c), NextPath: identity.SafeReturnPath(c.Query("next"))})
+	intent.BrowserToken = challenge
+	state, err := a.Identity.StartGoogleWithIntent(c.Request.Context(), intent)
 	if err != nil {
 		a.writeGoogleAuthError(c, err)
 		return
 	}
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(googleBrowserCookie(state), challenge, 900, "/", "", a.sessionCookieSecure(c), true)
-	authURL := ""
-	if configured {
-		values := url.Values{}
-		values.Set("client_id", a.Config.GoogleClientID)
-		values.Set("redirect_uri", a.Config.GoogleRedirect)
-		values.Set("response_type", "code")
-		values.Set("scope", "openid email profile")
-		values.Set("state", state)
-		authURL = identity.GoogleAuthorizeURL + "?" + values.Encode()
-	}
-	httpx.OK(c, gin.H{"state": state, "auth_url": authURL, "mock": false, "request_id": c.GetString(httpx.ContextRequestID)})
+	values := url.Values{"client_id": {cfg.ClientID}, "redirect_uri": {cfg.RedirectURL}, "response_type": {"code"}, "scope": {"openid email profile"}, "state": {state}}
+	c.Header("Cache-Control", "no-store")
+	httpx.OK(c, gin.H{"state": state, "auth_url": identity.GoogleAuthorizeURL + "?" + values.Encode(), "mock": false})
 }
-
 func (a *App) finishGoogleSession(c *gin.Context, state, code string) (*identity.Session, error) {
-	exchange := a.resolveGoogleExchange()
+	cfg, _, err := a.googleCallbackConfig(c, state)
+	if err != nil {
+		return nil, err
+	}
+	exchange := a.GoogleExchange
 	if exchange == nil {
-		return nil, identity.ErrGoogleUnavailable
+		exchange = identity.NewGoogleExchange(*cfg)
 	}
 	return a.Identity.FinishGoogle(c.Request.Context(), state, code, exchange)
 }
 
 func (a *App) afterGoogleSession(c *gin.Context, session *identity.Session) {
+	if session.TestOnly {
+		return
+	}
 	if time.Since(session.User.CreatedAt) < 5*time.Minute {
 		a.grantSignupGift(c, session.User.ID)
 	}
@@ -336,24 +335,22 @@ func (a *App) afterGoogleSession(c *gin.Context, session *identity.Session) {
 }
 
 func (a *App) googleCallback(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	var body struct {
 		State string `json:"state"`
 		Code  string `json:"code"`
+		Error string `json:"error"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "请求体无效", false)
 		return
 	}
 	ctx := c.Request.Context()
-	if a.resolveGoogleExchange() == nil {
-		a.writeGoogleAuthError(c, identity.ErrGoogleUnavailable)
+	_, intent, configErr := a.googleCallbackConfig(c, body.State)
+	if configErr != nil {
+		a.writeGoogleAuthError(c, configErr)
 		return
 	}
-	if !a.googleBrowserMatches(c, body.State) {
-		a.writeGoogleAuthError(c, identity.NewGoogleExchangeError("state_mismatch"))
-		return
-	}
-	intent := a.Identity.GoogleIntent(ctx, body.State)
 	if intent.NextPath != "" {
 		c.Header("X-Login-Next", intent.NextPath)
 	}
@@ -361,18 +358,19 @@ func (a *App) googleCallback(c *gin.Context) {
 		c.Header("X-Promotion-Code", intent.PromotionCode)
 	}
 	if body.State == "" || body.Code == "" {
+		if intent.TestOnly {
+			_ = a.Identity.RecordGoogleVerification(ctx, intent, "access_denied")
+		}
 		httpx.Abort(c, http.StatusBadRequest, "invalid_request", "Google 授权未完成", false)
 		return
 	}
 	if session := a.recallGoogleOAuth(ctx, body.State); session != nil {
-		a.setSessionCookie(c, session.Token)
-		httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+		a.writeGoogleSession(c, session, true)
 		return
 	}
 	if !a.beginGoogleOAuthFlight(ctx, body.State) {
 		if session := a.waitGoogleOAuth(ctx, body.State, googleOAuthWaitBudget); session != nil {
-			a.setSessionCookie(c, session.Token)
-			httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+			a.writeGoogleSession(c, session, true)
 			return
 		}
 		a.writeGoogleAuthError(c, identity.ErrOAuthStateConsumed)
@@ -384,8 +382,7 @@ func (a *App) googleCallback(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, identity.ErrOAuthStateConsumed) {
 			if replay := a.waitGoogleOAuth(ctx, body.State, googleOAuthWaitBudget); replay != nil {
-				a.setSessionCookie(c, replay.Token)
-				httpx.OK(c, gin.H{"session": replay, "request_id": c.GetString(httpx.ContextRequestID), "idempotent": true})
+				a.writeGoogleSession(c, replay, true)
 				return
 			}
 		}
@@ -394,17 +391,19 @@ func (a *App) googleCallback(c *gin.Context) {
 	}
 	a.rememberGoogleOAuth(ctx, body.State, session)
 	a.afterGoogleSession(c, session)
-	httpx.OK(c, gin.H{"session": session, "request_id": c.GetString(httpx.ContextRequestID)})
+	a.writeGoogleSession(c, session, false)
 }
 
 func (a *App) googleCallbackRedirect(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	state, code := c.Query("state"), c.Query("code")
-	origin := a.oauthCallbackOrigin(c)
-	if !a.googleBrowserMatches(c, state) {
-		c.Redirect(http.StatusFound, origin+"/login?oauth=state_mismatch")
+	cfg, intent, configErr := a.googleCallbackConfig(c, state)
+	if configErr != nil {
+		c.Redirect(http.StatusFound, "/login?oauth_error="+url.QueryEscape(googleSafeFailure(configErr)))
 		return
 	}
-	intent := a.Identity.GoogleIntent(c.Request.Context(), state)
+	callback, _ := url.Parse(cfg.RedirectURL)
+	origin := callback.Scheme + "://" + callback.Host
 	failure := func(reason string) string {
 		params := url.Values{}
 		params.Set("oauth_error", "Google 登录失败，请重试")
@@ -415,9 +414,15 @@ func (a *App) googleCallbackRedirect(c *gin.Context) {
 		if intent.PromotionCode != "" {
 			params.Set("promotion_code", intent.PromotionCode)
 		}
+		if intent.TestOnly {
+			return origin + "/login/oauth/google/test?error=" + url.QueryEscape(reason)
+		}
 		return origin + "/login?" + params.Encode()
 	}
 	destination := func(session *identity.Session) string {
+		if session.TestOnly {
+			return origin + "/login/oauth/google/test?result=success"
+		}
 		next := identity.SafeReturnPath(session.NextPath)
 		if next == "" {
 			next = "/enter"
@@ -425,12 +430,17 @@ func (a *App) googleCallbackRedirect(c *gin.Context) {
 		return origin + next
 	}
 	if strings.TrimSpace(c.Query("error")) != "" {
+		if intent.TestOnly {
+			_ = a.Identity.RecordGoogleVerification(c.Request.Context(), intent, "access_denied")
+		}
 		c.Redirect(http.StatusFound, failure("access_denied"))
 		return
 	}
 	ctx := c.Request.Context()
 	if session := a.recallGoogleOAuth(ctx, state); session != nil {
-		a.setSessionCookie(c, session.Token)
+		if !session.TestOnly {
+			a.setSessionCookie(c, session.Token)
+		}
 		c.Redirect(http.StatusFound, destination(session))
 		return
 	}
@@ -438,7 +448,9 @@ func (a *App) googleCallbackRedirect(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, identity.ErrOAuthStateConsumed) {
 			if replay := a.waitGoogleOAuth(ctx, state, googleOAuthWaitBudget); replay != nil {
-				a.setSessionCookie(c, replay.Token)
+				if !replay.TestOnly {
+					a.setSessionCookie(c, replay.Token)
+				}
 				c.Redirect(http.StatusFound, destination(replay))
 				return
 			}
@@ -459,47 +471,6 @@ func googleBrowserCookie(state string) string {
 func (a *App) googleBrowserMatches(c *gin.Context, state string) bool {
 	challenge, err := c.Cookie(googleBrowserCookie(state))
 	return err == nil && a.Identity.GoogleBrowserMatches(c.Request.Context(), state, challenge)
-}
-
-// Known brands return to their configured Google frontend origin.
-func (a *App) oauthCallbackOrigin(c *gin.Context) string {
-	if a.Identity.KnownBrandHost(c.Request.Context(), a.requestHost(c)) && a.googleBrandAvailable(c) {
-		if callback, err := url.Parse(a.Config.GoogleRedirect); err == nil && (callback.Scheme == "https" || callback.Scheme == "http") && callback.Host != "" {
-			return callback.Scheme + "://" + callback.Host
-		}
-	}
-	return a.webOrigin()
-}
-
-func (a *App) signupBrandID(c *gin.Context) string {
-	host := a.requestHost(c)
-	if !a.Identity.KnownBrandHost(c.Request.Context(), host) {
-		return ""
-	}
-	brand, err := a.Identity.BrandByHost(c.Request.Context(), host)
-	if err != nil {
-		return ""
-	}
-	return brand.ID
-}
-
-// A single configured Google callback cannot establish a session on an
-// unrelated OEM domain. Advertise Google only for its configured brand.
-func (a *App) googleBrandAvailable(c *gin.Context) bool {
-	brandID := a.signupBrandID(c)
-	if brandID == "" {
-		return true
-	}
-	redirect, err := url.Parse(a.Config.GoogleRedirect)
-	if err != nil || redirect.Hostname() == "" {
-		return false
-	}
-	current, parseErr := url.Parse("//" + a.requestHost(c))
-	if parseErr != nil || !strings.EqualFold(current.Hostname(), redirect.Hostname()) {
-		return false
-	}
-	brand, err := a.Identity.BrandByHost(c.Request.Context(), redirect.Hostname())
-	return err == nil && brand.ID == brandID
 }
 
 func (a *App) webOrigin() string {

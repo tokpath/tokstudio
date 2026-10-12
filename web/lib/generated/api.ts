@@ -793,6 +793,26 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/channel/staff/{id}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/oem-deliveries/{id}/google"
+  },
+  {
+    "method": "PUT",
+    "path": "/admin/oem-deliveries/{id}/google"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/oem-deliveries/{id}/google/test"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/auth/google/test/start"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/me/google/start"
   }
 ];
 

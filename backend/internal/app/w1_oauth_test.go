@@ -57,7 +57,7 @@ func TestW1OAuthStatusAndStartUnavailableWithoutTriad(t *testing.T) {
 		t.Fatalf("default must be unavailable: %+v", status)
 	}
 
-	code, body := doJSON(t, http.MethodGet, server.URL+"/v1/auth/google/start?promotion_code=THC1", "", false, nil)
+	code, body := doJSON(t, http.MethodGet, server.URL+"/v1/auth/google/start?promotion_code=THA1", "", false, nil)
 	if code != http.StatusServiceUnavailable {
 		t.Fatalf("start without triad: %d %+v", code, body)
 	}
@@ -94,7 +94,7 @@ func TestW1OAuthStartBuildsRealGoogleURLWhenTriadPresent(t *testing.T) {
 		t.Fatalf("triad status: %+v", status)
 	}
 
-	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THA1")
 	if started["mock"] == true {
 		t.Fatalf("triad start must not be mock: %+v", started)
 	}
@@ -183,7 +183,7 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_fake_" + email, Email: email}, nil
 	}
 
-	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THA1")
 	state, _ := started["state"].(string)
 	if state == "" {
 		t.Fatalf("state: %+v", started)
@@ -210,8 +210,8 @@ func TestW1OAuthFakeExchangerKeepsPromotionAndHttpOnlyCookie(t *testing.T) {
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	if channelOf(body) != identity.OEMChannelID {
-		t.Fatalf("promotion THC1 must stay on OEM: %+v", body)
+	if channelOf(body) != identity.OfficialChannelID {
+		t.Fatalf("promotion THA1 must stay on official brand: %+v", body)
 	}
 	user, _ := body["session"].(map[string]any)["user"].(map[string]any)
 	if user["email"] != email {
@@ -314,7 +314,7 @@ func TestW1OAuthDoubleCallbackIsIdempotent(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_dup_" + email, Email: email}, nil
 	}
 
-	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THA1")
 	state, _ := started["state"].(string)
 	if state == "" {
 		t.Fatalf("state: %+v", started)
@@ -362,7 +362,7 @@ func TestW1OAuthConcurrentDoubleCallback(t *testing.T) {
 		return identity.GoogleProfile{Subject: "google_race_" + email, Email: email}, nil
 	}
 
-	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THC1")
+	started := startOAuthJSON(t, server.URL+"/v1/auth/google/start?promotion_code=THA1")
 	state, _ := started["state"].(string)
 	payload := mustJSON(map[string]string{"state": state, "code": "auth-code-race"})
 

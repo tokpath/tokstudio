@@ -77,7 +77,7 @@ func (s *Service) Bootstrap(ctx context.Context, adminToken, userToken, channelT
 			return err
 		}
 		for _, email := range []string{"agent.b@tokenhub.local", "kol1.b@tokenhub.local", "kol2.b@tokenhub.local"} {
-			if err := tx.Model(&userRow{}).Where("email = ?", email).Update("can_commission", true).Error; err != nil {
+			if err := tx.Model(&userRow{}).Where("brand_id = ? AND lower(email) = ?", OfficialBrandID, email).Update("can_commission", true).Error; err != nil {
 				return err
 			}
 		}
@@ -161,7 +161,7 @@ func seedCatalog(tx *gorm.DB) error {
 
 func bindAcquisition(tx *gorm.DB, email, roleID string) error {
 	var user userRow
-	if err := tx.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := tx.Where("brand_id = ? AND lower(email) = ?", OfficialBrandID, email).First(&user).Error; err != nil {
 		return err
 	}
 	return tx.Where("user_id = ? AND acquisition_role_id = ?", user.ID, roleID).

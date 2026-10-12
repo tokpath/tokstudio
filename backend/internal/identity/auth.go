@@ -70,7 +70,7 @@ func sanitizeGoogleReason(reason string) string {
 		"access_denied", "invalid_request", "unsupported_grant_type", "network_error",
 		"userinfo_error", "empty_token", "empty_profile":
 		return reason
-	case "email_unverified", "state_mismatch", "account_conflict":
+	case "email_unverified", "state_mismatch", "account_conflict", "account_link_required", "configuration_changed":
 		return reason
 	default:
 		return ""
@@ -114,7 +114,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 	}
 
 	var count int64
-	if err := s.db.WithContext(ctx).Model(&userRow{}).Where("email = ?", email).Count(&count).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&userRow{}).Where("brand_id = ? AND lower(email) = ?", resolved.BrandID, email).Count(&count).Error; err != nil {
 		return nil, err
 	}
 	if count > 0 {
@@ -173,8 +173,12 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*Session, err
 
 func (s *Service) Login(ctx context.Context, in LoginInput) (*Session, error) {
 	email := normalizeEmail(in.Email)
+	brandID := in.BrandID
+	if brandID == "" {
+		brandID = OfficialBrandID
+	}
 	var user userRow
-	if err := s.db.WithContext(ctx).Where("email = ? AND status = ?", email, "active").First(&user).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("brand_id = ? AND lower(email) = ? AND status = ?", brandID, email, "active").First(&user).Error; err != nil {
 		return nil, ErrInvalidCredentials
 	}
 	if user.PasswordHash == nil || !checkPassword(*user.PasswordHash, in.Password) {

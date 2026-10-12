@@ -27,7 +27,7 @@ func TestOEMManagementScope(t *testing.T) {
 	server := httptest.NewServer(a.Router())
 	defer server.Close()
 	login := func(name string) map[string]any {
-		return postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": name + "@tokenhub.local", "password": identity.BootstrapPassword})
+		return bootstrapLogin(t, server.URL+"/v1/auth/login", name)
 	}
 	cLogin, bLogin := login("channel.c"), login("channel.b")
 	cToken, bToken := tokenOf(cLogin), tokenOf(bLogin)

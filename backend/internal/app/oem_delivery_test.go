@@ -111,7 +111,7 @@ func TestOverhaulOEMDeliveryAndBrandPriceFacts(t *testing.T) {
 	if _, err := a.Identity.CompleteOEMDelivery(ctx, actor, channel.ID, receiver.User.ID, delivery.Version, map[string]any{"fixture": true}); !errors.Is(err, identity.ErrDeliveryIncomplete) {
 		t.Fatalf("pre-login handoff: %v", err)
 	}
-	receiver, err = a.Identity.Login(ctx, identity.LoginInput{Email: receiver.User.Email, Password: "password1"})
+	receiver, err = a.Identity.Login(ctx, identity.LoginInput{BrandID: receiver.User.BrandID, Email: receiver.User.Email, Password: "password1"})
 	if err != nil {
 		t.Fatal(err)
 	}

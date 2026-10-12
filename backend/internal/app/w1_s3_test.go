@@ -74,7 +74,7 @@ func TestW1S3MissingBucketNeverSilentLocalSuccess(t *testing.T) {
 
 	cLogin := postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
 		"email": "channel.c@tokenhub.local", "password": identity.BootstrapPassword,
-	})
+	}, "oem.localhost")
 	cToken := cLogin["session"].(map[string]any)["token"].(string)
 	code, body := postBrandFileStatus(t, server.URL+"/channel/brand/assets", cToken, "logo", "logo.png", pngBytes(t, 128, 128))
 	if code != http.StatusServiceUnavailable {

@@ -5,19 +5,19 @@ info:
 paths:
   /v1/auth/register:
     post:
-      summary: Email password register with immutable promotion attribution
+      summary: Brand-scoped email password registration with immutable promotion attribution
   /v1/auth/login:
     post:
-      summary: Password login, sets HttpOnly session cookie
+      summary: Password login within the authenticated host's brand; sets host-only HttpOnly session cookie
   /v1/auth/google/status:
     get:
-      summary: Whether Google OAuth triad is configured; unavailable when incomplete (mock removed)
+      summary: Google availability for the current brand and verified callback origin
   /v1/auth/google/start:
     get:
-      summary: Start Google OAuth, stash promotion code; real Google URL when triad is present
+      summary: Start Google OAuth using brand credentials; bind state to brand, callback, config version and browser
   /v1/auth/google/callback:
     post:
-      summary: Finish Google OAuth with real token/profile exchange when triad is present; HttpOnly cookie
+      summary: Finish brand-scoped Google OAuth; test callbacks verify configuration without issuing customer sessions
   /v1/auth/logout:
     post:
       summary: Revoke the current session token and clear the HttpOnly cookie

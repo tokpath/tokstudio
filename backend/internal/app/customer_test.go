@@ -42,7 +42,7 @@ func TestCustomerSearchProjectionAndTotals(t *testing.T) {
 		t.Fatal(err)
 	}
 	login := func(name string) string {
-		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": name + "@tokenhub.local", "password": "password1"}))
+		return tokenOf(bootstrapLogin(t, server.URL+"/v1/auth/login", name))
 	}
 	admin, fin, audit, oem, b := login("admin"), login("finance"), login("audit"), login("channel.c"), login("channel.b")
 	get := func(path, token string) map[string]any {
@@ -213,7 +213,7 @@ func TestProfessionalCustomerAndChannelOnboarding(t *testing.T) {
 	defer server.Close()
 	prefix := fmt.Sprintf("professional-%d", time.Now().UnixNano())
 	login := func(name string) string {
-		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": name + "@tokenhub.local", "password": "password1"}))
+		return tokenOf(bootstrapLogin(t, server.URL+"/v1/auth/login", name))
 	}
 	admin, oem, b := login("admin"), login("channel.c"), login("channel.b")
 	get := func(path, token string) map[string]any {
@@ -317,7 +317,7 @@ func TestProfessionalCustomerAndChannelOnboarding(t *testing.T) {
 	if err := a.DB.Exec(`INSERT INTO identity_user_roles(user_id,role_id,scope_type,scope_id) SELECT ?,id,'channel',? FROM identity_roles WHERE code IN ('oem_ops','oem_finance')`, unionID, identity.OEMChannelID).Error; err != nil {
 		t.Fatal(err)
 	}
-	unionToken := tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": prefix + "-union@example.test", "password": "password1"}))
+	unionToken := tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": prefix + "-union@example.test", "password": "password1"}, "oem.localhost"))
 	unionDetail := get("/channel/customers/"+oemID, unionToken)
 	permissions := unionDetail["permissions"].(map[string]any)
 	if permissions["operations"] != true || permissions["finance"] != true || permissions["record_payment"] != true {

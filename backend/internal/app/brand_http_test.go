@@ -89,7 +89,7 @@ func TestOEMBrandSelfService(t *testing.T) {
 
 	cLogin := postBody(t, server.URL+"/v1/auth/login", "", map[string]string{
 		"email": "channel.c@tokenhub.local", "password": identity.BootstrapPassword,
-	})
+	}, "oem.localhost")
 	cToken := cLogin["session"].(map[string]any)["token"].(string)
 	mine := getAuthJSON(t, server.URL+"/channel/brand", cToken)
 	if mine["customizable"] != true {

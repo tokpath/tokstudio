@@ -418,10 +418,13 @@ func TestM1IdentityIsolation(t *testing.T) {
 	}
 }
 
-func postBody(t *testing.T, url, token string, payload map[string]string) map[string]any {
+func postBody(t *testing.T, url, token string, payload map[string]string, hosts ...string) map[string]any {
 	t.Helper()
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if len(hosts) > 0 && hosts[0] != "" {
+		req.Host = hosts[0]
+	}
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -531,4 +534,13 @@ func channelOf(body map[string]any) string {
 	user, _ := session["user"].(map[string]any)
 	channel, _ := user["channel_org_id"].(string)
 	return channel
+}
+
+// Seeded OEM employees log in through their brand's browser domain.
+func bootstrapLogin(t *testing.T, endpoint, name string) map[string]any {
+	host := "localhost"
+	if name == "channel.c" {
+		host = "oem.localhost"
+	}
+	return postBody(t, endpoint, "", map[string]string{"email": name + "@tokenhub.local", "password": "password1"}, host)
 }

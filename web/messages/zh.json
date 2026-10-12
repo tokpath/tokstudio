@@ -3599,5 +3599,37 @@
       "completed": "已完成采购",
       "reversed": "误录已撤销"
     }
+  },
+  "oemGoogle": {
+    "title": "Google 登录",
+    "intro": "由平台为此 OEM 配置独立的 Google 客户端。",
+    "loading": "正在读取配置…",
+    "failed": "读取或保存配置失败，请重试。",
+    "refresh": "刷新配置",
+    "keepSecret": "已保存，留空保留原 Secret",
+    "enterSecret": "填写 Client Secret",
+    "enabled": "启用 Google 登录",
+    "enableHint": "先保存配置并完成主站测试登录，再启用。更换凭据需要重新测试。",
+    "primaryCallback": "主站回调地址",
+    "adminCallback": "管理站回调地址",
+    "verified": "已验证 · {time}",
+    "testFailed": "测试失败 · {reason}",
+    "unverified": "尚未验证",
+    "copy": "复制回调地址",
+    "copied": "回调地址已复制",
+    "copyFailed": "复制失败，请手动复制。",
+    "test": "测试登录",
+    "callbacksHint": "将回调地址原样登记到此 Client ID 的 Google 控制台。每个入口通过测试后才提供 Google 登录。",
+    "save": "保存 Google 配置",
+    "confirm": "保存将更新此 OEM 的 Google 登录配置，正在进行的登录需要重新发起。",
+    "invalid": "请填写有效的 Client ID；更换 Client ID 时需要填写新的 Secret。",
+    "saved": "Google 配置已保存。",
+    "testStarted": "测试已打开，完成授权后刷新配置查看结果。测试不会创建客户账号或登录会话。",
+    "continueTest": "继续 Google 测试",
+    "testTitle": "Google 登录测试",
+    "testSuccess": "测试成功。请返回平台 OEM 交付详情刷新配置，再启用 Google 登录。可以关闭此窗口。",
+    "testFailure": "测试未完成。请返回平台 OEM 交付详情核对配置并重新测试。",
+    "testRedirecting": "正在进入 Google 授权…",
+    "linkGoogle": "绑定 Google 账号"
   }
 }

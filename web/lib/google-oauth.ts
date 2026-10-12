@@ -1,3 +1,5 @@
+export const GOOGLE_TEST_STATE = "tokenhub_google_test_state";
+
 import { safeNextPath } from "./login-next";
 import { promotionCode, type AuthIntent } from "./auth-intent";
 

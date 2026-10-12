@@ -82,6 +82,7 @@ type ChannelView struct {
 }
 
 type Session struct {
+	TestOnly  bool      `json:"test_only,omitempty"`
 	NextPath  string    `json:"next,omitempty"`
 	Token     string    `json:"token"`
 	User      UserView  `json:"user"`
@@ -97,6 +98,7 @@ type RegisterInput struct {
 }
 
 type LoginInput struct {
+	BrandID  string
 	Email    string
 	Password string
 }

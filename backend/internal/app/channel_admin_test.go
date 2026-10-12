@@ -35,7 +35,7 @@ func TestChannelAdministratorHandoff(t *testing.T) {
 	uid := userIDOf(reg)
 	userToken := tokenOf(reg)
 	login := func(name string) string {
-		return tokenOf(postBody(t, server.URL+"/v1/auth/login", "", map[string]string{"email": name + "@tokenhub.local", "password": "password1"}))
+		return tokenOf(bootstrapLogin(t, server.URL+"/v1/auth/login", name))
 	}
 	admin := login("admin")
 	item, err := a.Identity.CreateChannel(context.Background(), identity.Principal{Roles: []string{"channel_admin"}, ChannelOrgID: identity.OEMChannelID}, identity.ChannelInput{Code: "handoff-b-" + strconv.FormatInt(time.Now().UnixNano(), 10), Type: "B"})

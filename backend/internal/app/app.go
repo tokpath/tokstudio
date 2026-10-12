@@ -232,6 +232,7 @@ func (a *App) Router() *gin.Engine {
 	r.POST("/admin/audit-probes", a.requireRoles("platform_admin"), a.createAuditProbe)
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
+	a.registerGoogleConfigRoutes(r)
 	a.registerCustomerRoutes(r)
 	a.registerPersonalRecordsRoutes(r)
 	a.registerBrandWriteRoutes(r)
@@ -370,6 +371,10 @@ func (a *App) enforceSessionAuth(roles []string, anyAuthenticated, catalogAuth b
 				return
 			}
 			httpx.Abort(c, http.StatusForbidden, "permission_denied", "未授权", false)
+			return
+		}
+		if !a.browserBrandMatches(c, principal) {
+			httpx.Abort(c, 403, "brand_mismatch", "请登录当前品牌的账号", false)
 			return
 		}
 		if !anyAuthenticated && len(roles) > 0 && !principal.HasRole(roles...) && !(principal.IsOEMStaff() && slices.Contains(roles, "channel_admin")) {

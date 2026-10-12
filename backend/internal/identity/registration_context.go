@@ -44,7 +44,7 @@ func SafeReturnPath(raw string) string {
 	return value
 }
 
-// A brand selected by the public host constrains signup, never existing accounts.
+// Registration attribution must stay inside the account's brand.
 func (s *Service) resolveRegistration(ctx context.Context, code, brandID string) (resolvedPromotion, error) {
 	if strings.TrimSpace(code) != "" || brandID == "" || brandID == OfficialBrandID {
 		resolved, err := s.resolvePromotion(ctx, code)

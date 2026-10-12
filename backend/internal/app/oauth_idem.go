@@ -46,7 +46,7 @@ func (a *App) recallGoogleOAuth(ctx context.Context, state string) *identity.Ses
 		return nil
 	}
 	var session identity.Session
-	if err := json.Unmarshal(raw, &session); err != nil || session.Token == "" {
+	if err := json.Unmarshal(raw, &session); err != nil || (session.Token == "" && !session.TestOnly) {
 		return nil
 	}
 	return &session

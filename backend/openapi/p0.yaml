@@ -1761,3 +1761,53 @@ paths:
           description: Insufficient permissions
         "409":
           description: Conflicting account or last administrator
+
+  /admin/oem-deliveries/{id}/google:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getOEMGoogleConfig
+      summary: Platform administrator or technician reads redacted OEM Google configuration
+      responses:
+        "200":
+          description: Client ID, secret presence, generated callbacks and verification results; never the secret
+    put:
+      operationId: saveOEMGoogleConfig
+      summary: Platform administrator or technician saves a dedicated OEM Google client
+      description: Requires confirmation and expected_version. Credentials are encrypted. New credentials must be saved disabled, tested on the primary domain, then enabled. Client IDs cannot be shared between brands.
+      responses:
+        "200":
+          description: Redacted saved configuration
+        "409":
+          description: Confirmation required, stale version, duplicate client or primary callback not verified
+  /admin/oem-deliveries/{id}/google/test:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: testOEMGoogleConfig
+      summary: Issue a five-minute single-use test ticket for a registered callback
+      responses:
+        "200":
+          description: URL to open on the OEM origin; no customer identity is created
+  /v1/auth/google/test/start:
+    get:
+      operationId: startGoogleConfigurationTest
+      summary: Redeem a platform-issued test ticket on its exact OEM origin
+      responses:
+        "200":
+          description: Google authorization URL and browser-bound test state
+  /v1/me/google/start:
+    get:
+      operationId: startGoogleAccountLink
+      summary: Begin Google linking for the signed-in account in the current brand
+      responses:
+        "200":
+          description: Google authorization URL and state bound to the existing user

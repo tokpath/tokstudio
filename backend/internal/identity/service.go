@@ -107,7 +107,7 @@ func Migrations() (string, fs.FS) {
 func upsertBootUser(tx *gorm.DB, email, roleCode, token, prefix, channelID, brandID, scopeType, scopeID string) error {
 	now := time.Now().UTC()
 	var user userRow
-	err := tx.Where("email = ?", email).First(&user).Error
+	err := tx.Where("brand_id = ? AND lower(email) = ?", brandID, normalizeEmail(email)).First(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		pwd, err := HashPassword(BootstrapPassword)
 		if err != nil {

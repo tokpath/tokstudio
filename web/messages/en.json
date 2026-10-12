@@ -3599,5 +3599,37 @@
       "completed": "Purchase completed",
       "reversed": "Incorrect registration reversed"
     }
+  },
+  "oemGoogle": {
+    "title": "Google sign-in",
+    "intro": "The platform configures a dedicated Google client for this OEM.",
+    "loading": "Loading configuration…",
+    "failed": "Could not load or save configuration. Please retry.",
+    "refresh": "Refresh configuration",
+    "keepSecret": "Saved; leave blank to keep the current secret",
+    "enterSecret": "Enter the client secret",
+    "enabled": "Enable Google sign-in",
+    "enableHint": "Save the configuration and test the primary site before enabling. Credential changes require a new test.",
+    "primaryCallback": "Primary site callback",
+    "adminCallback": "Admin site callback",
+    "verified": "Verified · {time}",
+    "testFailed": "Test failed · {reason}",
+    "unverified": "Not verified",
+    "copy": "Copy callback URL",
+    "copied": "Callback URL copied",
+    "copyFailed": "Copy failed. Please copy manually.",
+    "test": "Test sign-in",
+    "callbacksHint": "Register these exact callback URLs for this client in Google Console. Each entry point offers Google sign-in after its test succeeds.",
+    "save": "Save Google configuration",
+    "confirm": "This updates Google sign-in for this OEM. Pending sign-ins will need to restart.",
+    "invalid": "Enter a valid client ID and a new secret when changing the client ID.",
+    "saved": "Google configuration saved.",
+    "testStarted": "The test is open. After authorization, refresh configuration to see the result. No customer account or session is created.",
+    "continueTest": "Continue Google test",
+    "testTitle": "Google sign-in test",
+    "testSuccess": "Test succeeded. Return to the platform OEM delivery page, refresh configuration, then enable Google sign-in. You can close this window.",
+    "testFailure": "The test did not complete. Return to the platform OEM delivery page, check the configuration, and retry.",
+    "testRedirecting": "Opening Google authorization…",
+    "linkGoogle": "Link Google account"
   }
 }

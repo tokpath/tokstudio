@@ -18,6 +18,7 @@ import (
 )
 
 type Message struct {
+	ID      string `json:"id,omitempty"`
 	To      string `json:"to"`
 	Brand   string `json:"brand"`
 	Subject string `json:"subject"`
@@ -58,7 +59,7 @@ func ValidAddress(value string) bool {
 }
 
 func (s *SMTP) Send(ctx context.Context, message Message) error {
-	if !ValidAddress(message.To) || strings.ContainsAny(message.Brand+message.Subject, "\r\n") {
+	if !ValidAddress(message.To) || strings.ContainsAny(message.Brand+message.Subject, "\r\n") || strings.ContainsAny(message.ID, "\r\n<>@ ") {
 		return errors.New("invalid mail envelope")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -118,6 +119,10 @@ func (s *SMTP) Send(ctx context.Context, message Message) error {
 	}
 	from := (&stdmail.Address{Name: message.Brand, Address: options.From}).String()
 	body := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n", from, message.To, mime.QEncoding.Encode("UTF-8", message.Subject), time.Now().UTC().Format(time.RFC1123Z))
+	if message.ID != "" {
+		_, domain, _ := strings.Cut(options.From, "@")
+		body = "Message-ID: <" + message.ID + "@" + domain + ">\r\n" + body
+	}
 	encoded := base64.StdEncoding.EncodeToString([]byte(message.Text))
 	for len(encoded) > 76 {
 		body += encoded[:76] + "\r\n"
@@ -130,5 +135,8 @@ func (s *SMTP) Send(ctx context.Context, message Message) error {
 	if err := writer.Close(); err != nil {
 		return err
 	}
-	return client.Quit()
+	// DATA's final success is the server's acceptance. A subsequent QUIT error
+	// must not cause a second copy of an already accepted message.
+	_ = client.Quit()
+	return nil
 }

@@ -10,6 +10,7 @@ import { apiClient } from "@/lib/client";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan } from "@/components/rbac/if-can";
+import { NotificationDeliveryLog } from "@/components/notifications/admin-settings";
 
 type Alert = { id: string; kind: string; severity: string; status: string; message: string };
 type ListResponse = { items?: Alert[]; error?: { message?: string } };
@@ -81,6 +82,7 @@ export default function AdminAlertsPage() {
         </table>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
+      <NotificationDeliveryLog />
     </AdminShell>
   );
 }

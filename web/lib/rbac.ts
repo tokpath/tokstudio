@@ -200,7 +200,7 @@ export function canViewUserHref(href: string, viewer: Viewer): boolean {
   if (!viewer.signedIn || viewer.loading) return false;
   const path = href.split(/[?#]/)[0].replace(/^\/console(?=\/|$)/, "/app");
   if (canUseConsumerAccount(viewer)) return path === "/app" || path.startsWith("/app/");
-  if (["/app/settings", "/app/profile"].includes(path)) return true;
+  if (["/app/settings", "/app/profile", "/app/notifications"].includes(path)) return true;
   return hasAnyRole(viewer.roles, [P, T]) && ["/app", "/app/keys", "/app/docs", "/app/usage"].some(prefix => path === prefix || (prefix !== "/app" && path.startsWith(`${prefix}/`)));
 }
 

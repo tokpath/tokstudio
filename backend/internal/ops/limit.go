@@ -81,7 +81,7 @@ func (s *Service) RecordAttempt(ctx context.Context, providerID string, success 
 		if s.health != nil {
 			_ = s.health.MarkHealth(ctx, providerID, "available")
 		}
-		_ = s.resolveAlert(ctx, AlertCircuit)
+		_ = s.resolveScopedAlert(ctx, AlertCircuit, providerID)
 		return
 	}
 	n, err := s.redis.Incr(ctx, failKey(providerID)).Result()
@@ -117,7 +117,7 @@ func (s *Service) ResetCircuit(ctx context.Context, providerID string) error {
 	if s.health != nil {
 		_ = s.health.MarkHealth(ctx, providerID, "available")
 	}
-	return s.resolveAlert(ctx, AlertCircuit)
+	return s.resolveScopedAlert(ctx, AlertCircuit, providerID)
 }
 
 func (s *Service) PingRedis(ctx context.Context) error {
@@ -126,4 +126,3 @@ func (s *Service) PingRedis(ctx context.Context) error {
 	}
 	return s.redis.Ping(ctx).Err()
 }
-

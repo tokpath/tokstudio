@@ -58,7 +58,6 @@ const (
 	PeriodLifetime       = "lifetime"
 	ChannelScopeAll      = "all"
 	ChannelScopeSelected = "selected"
-	GraceDays            = 7
 )
 
 type PlanItemInput struct {
@@ -119,7 +118,6 @@ type SubscriptionView struct {
 	PeriodEnd     *time.Time `json:"current_period_end,omitempty"`
 	RenewalPolicy string     `json:"renewal_policy"`
 	Adapter       string     `json:"payment_adapter,omitempty"`
-	GraceUntil    *time.Time `json:"grace_until,omitempty"`
 }
 
 type EntitlementView struct {

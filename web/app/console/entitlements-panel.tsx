@@ -13,6 +13,7 @@ type Entitlement = { id: string; source_type: string; unit_type: string; granted
 
 export function EntitlementsPanel() {
   const t = useTranslations("entitlements");
+  const tn = useTranslations("notifications");
   const locale = useLocale();
   const viewer=useViewer();const brand=useBrand();
   const scope=`${viewer.userId || ""}:${brand?.id || ""}`;const scopeRef=useRef(scope);scopeRef.current=scope;const generation=useRef(0);
@@ -34,6 +35,7 @@ export function EntitlementsPanel() {
     return unit === "usd_credit" ? `${formatUsdMinor(n)} USD` : `${n.toLocaleString(locale)} ${["token", "video_second", "image_count"].includes(unit) ? t(unit) : unit}`;
   }
   return <section className="mt-6 space-y-3 border-t border-hairline pt-5" aria-label={t("title")}>
+    <p className="text-sm leading-relaxed text-ink-secondary">{tn("noGrace")}</p>
     <div className="flex items-center justify-between gap-3"><h3 className="font-semibold">{t("title")}</h3><Button type="button" size="sm" variant="outline" disabled={loading} onClick={() => void refresh()}>{t("refresh")}</Button></div>
     {loading ? <p role="status">{t("loading")}</p> : error ? <p role="alert" className="text-danger">{error}</p> : !items.length ? <p>{t("empty")}</p> : <ul className="space-y-3">{items.map(item => {
       const expired = !!item.expires_at && Date.parse(item.expires_at) <= Date.now();

@@ -392,7 +392,9 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (*Reservation, e
 		return nil
 	})
 	if err != nil {
-		s.notePreauthFailure(ctx, in, err)
+		if noticeErr := s.notePreauthFailure(ctx, in, err); noticeErr != nil {
+			err = errors.Join(err, noticeErr)
+		}
 	}
 	return out, err
 }
@@ -407,7 +409,7 @@ type preauthFailRow struct {
 
 func (preauthFailRow) TableName() string { return "billing_preauth_failures" }
 
-func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err error) {
+func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err error) error {
 	reason := ""
 	switch {
 	case errors.Is(err, ErrInsufficientBalance):
@@ -415,11 +417,47 @@ func (s *Service) notePreauthFailure(ctx context.Context, in ReserveInput, err e
 	case errors.Is(err, ErrInsufficientQuota):
 		reason = "insufficient_quota"
 	default:
-		return
+		return nil
 	}
-	_ = s.db.WithContext(ctx).Create(&preauthFailRow{
-		ID: id.New("paf"), UserID: in.UserID, RequestID: in.RequestID, Reason: reason, CreatedAt: time.Now().UTC(),
-	}).Error
+	// Reservation rolled back. Persist the failure fact and notification in a
+	// separate transaction, even if the caller disconnects after rejection.
+	noticeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer cancel()
+	poolID, poolErr := s.quotaOwner(noticeCtx, in.ChannelOrgID)
+	if poolErr != nil {
+		return poolErr
+	}
+	return s.db.WithContext(noticeCtx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "preauth-failure:"+in.UserID+":"+in.RequestID).Error; err != nil {
+			return err
+		}
+		var exists int64
+		if err := tx.Model(&preauthFailRow{}).Where("user_id=? AND request_id=? AND reason=?", in.UserID, in.RequestID, reason).Count(&exists).Error; err != nil {
+			return err
+		}
+		if exists > 0 {
+			return nil
+		}
+		now := time.Now().UTC()
+		fact := preauthFailRow{ID: id.New("paf"), UserID: in.UserID, RequestID: in.RequestID, Reason: reason, CreatedAt: now}
+		if err := tx.Create(&fact).Error; err != nil {
+			return err
+		}
+		kind := "billing.balance.insufficient"
+		if reason == "insufficient_quota" {
+			kind = "billing.quota.insufficient"
+		}
+		key := kind + ":" + in.UserID + ":" + now.Truncate(6*time.Hour).Format(time.RFC3339)
+		res := tx.Exec("INSERT INTO billing_notification_marks(key) VALUES (?) ON CONFLICT DO NOTHING", key)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return nil
+		}
+		_, err := s.outbox.EnqueueTx(tx, kind, "preauth_failure", fact.ID, map[string]any{"user_id": in.UserID, "channel_org_id": poolID, "customer_channel_id": in.ChannelOrgID, "required_minor": in.ReserveMinor})
+		return err
+	})
 }
 
 // AuthorizationQuote is an internal service read of the original admitted
@@ -731,7 +769,7 @@ func (s *Service) Settle(ctx context.Context, in SettleInput) (*Settlement, erro
 			return err
 		}
 		if _, err := s.outbox.EnqueueTx(tx, "billing.charge.committed", "customer_charge", charge.ID, map[string]any{
-			"request_id": in.RequestID, "amount_minor": billed, "usage_event_id": row.ID,
+			"request_id": in.RequestID, "amount_minor": billed, "usage_event_id": row.ID, "user_id": auth.UserID,
 		}); err != nil {
 			return err
 		}

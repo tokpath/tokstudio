@@ -56,7 +56,7 @@ func (s *Service) SetEmailSender(sender mail.Sender, encryptionKey string) {
 	s.emailSender, s.emailKey = sender, encryptionKey
 }
 func (s *Service) EmailAvailable() bool {
-	return s.emailSender != nil && strings.TrimSpace(s.emailKey) != ""
+	return mail.Available(s.emailSender) && strings.TrimSpace(s.emailKey) != ""
 }
 
 // RequestEmailAction deliberately returns the same result for missing, disabled,

@@ -35,6 +35,7 @@ import { iconForHref } from "@/lib/page-icons";
 import { canAccessChannelPortal, canAccessPartnerPortal, filterAdminGroups, filterChannelGroups, shouldBypassRbac, canViewUserHref } from "@/lib/rbac";
 import { rememberConsoleWorkspace } from "@/lib/console-home";
 import { useViewer } from "@/components/rbac/viewer-context";
+import { NotificationBell } from "@/components/notifications/bell";
 
 const navLinkFocus =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
@@ -137,6 +138,7 @@ export function ConsoleShell({
   const tch = useTranslations("channelNav");
   const tp = useTranslations("partnerNav");
   const tc = useTranslations("chrome");
+  const tn = useTranslations("notifications");
   const [navOpen, setNavOpen] = useState(false);
   const navTrigger = useRef<HTMLButtonElement>(null);
   const isAdmin = pathname.startsWith("/admin");
@@ -151,6 +153,7 @@ export function ConsoleShell({
   const adminNav = filterAdminGroups(adminGroups, viewer);
 
   const pageLabel = useMemo(() => {
+    if (pathname === "/app/notifications" || pathname === "/console/notifications") return tn("title");
     if (isUser) {
       const item = navItemForPath(pathname, [...userNavGroups.flatMap((group) => group.items), ...userSettingsNav]);
       return item ? tu(item.key) : title;
@@ -168,7 +171,7 @@ export function ConsoleShell({
       return item ? ta(item.key) : title;
     }
     return title;
-  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu, viewer.channelType]);
+  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu, tn, viewer.channelType]);
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col" data-testid="console-shell">
@@ -212,6 +215,7 @@ export function ConsoleShell({
               ) : null}
             </div>
             <ConsoleOverflowMenu onCommand={onCommand} />
+            <NotificationBell />
             {isUser ? <UserShellRightZone /> : null}
             {!isUser ? <UserShellRightZone variant="admin" /> : null}
           </div>

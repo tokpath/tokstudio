@@ -4,13 +4,16 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/tokpath/tokstudio/backend/internal/outbox"
 	"github.com/tokpath/tokstudio/backend/internal/platform/id"
+	"gorm.io/gorm/clause"
 )
 
 //go:embed migrate/*.sql
@@ -51,6 +54,7 @@ type runbookRow struct {
 func (runbookRow) TableName() string { return "ops_runbooks" }
 
 type alertRow struct {
+	ScopeKey    string          `gorm:"column:scope_key"`
 	ID          string          `gorm:"column:id;primaryKey"`
 	Kind        string          `gorm:"column:kind"`
 	Severity    string          `gorm:"column:severity"`
@@ -87,6 +91,7 @@ type canaryRow struct {
 func (canaryRow) TableName() string { return "ops_canary" }
 
 type Service struct {
+	events  *outbox.Service
 	db      *gorm.DB
 	redis   *redis.Client
 	traffic TrafficSource
@@ -99,6 +104,8 @@ type Service struct {
 func New(db *gorm.DB, rdb *redis.Client) *Service {
 	return &Service{db: db, redis: rdb}
 }
+
+func (s *Service) SetPublisher(events *outbox.Service) { s.events = events }
 
 func (s *Service) SetSources(traffic TrafficSource, money MoneySource, health HealthSink, roles RoleSource, latency LatencySource) {
 	s.traffic = traffic
@@ -408,59 +415,125 @@ func (s *Service) ListAlerts(ctx context.Context, status string) ([]AlertView, e
 }
 
 func (s *Service) openAlert(ctx context.Context, kind, severity, message string, payload any) error {
-	var existing alertRow
-	if err := s.db.WithContext(ctx).Where("kind = ? AND status = ?", kind, StatusOpen).First(&existing).Error; err == nil {
-		return nil
+	scope := ""
+	switch value := payload.(type) {
+	case DimStat:
+		scope = value.Key
+	case map[string]string:
+		scope = value["provider_id"]
 	}
-	body, _ := json.Marshal(payload)
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
 	row := alertRow{
-		ID: id.New("alt"), Kind: kind, Severity: severity, Status: StatusOpen,
+		ID: id.New("alt"), Kind: kind, ScopeKey: scope, Severity: severity, Status: StatusOpen,
 		Message: message, PayloadJSON: body, CreatedAt: time.Now().UTC(),
 	}
-	return s.db.WithContext(ctx).Create(&row).Error
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "ops.alert:"+kind+":"+scope).Error; err != nil {
+			return err
+		}
+		var existing alertRow
+		err := tx.Where("kind=? AND scope_key=? AND status=?", kind, scope, StatusOpen).First(&existing).Error
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+		return s.enqueueAlert(tx, row, "ops.alert.opened")
+	})
 }
 
 func (s *Service) resolveAlert(ctx context.Context, kind string) error {
-	now := time.Now().UTC()
-	return s.db.WithContext(ctx).Model(&alertRow{}).
-		Where("kind = ? AND status = ?", kind, StatusOpen).
-		Updates(map[string]any{"status": StatusResolved, "resolved_at": now}).Error
+	return s.resolveAlerts(ctx, kind, nil, nil)
+}
+
+func (s *Service) resolveScopedAlert(ctx context.Context, kind, scope string) error {
+	return s.resolveAlerts(ctx, kind, &scope, nil)
+}
+func (s *Service) enqueueAlert(tx *gorm.DB, row alertRow, kind string) error {
+	if s.events == nil {
+		return nil
+	}
+	_, err := s.events.EnqueueTx(tx, kind, "ops_alert", row.ID, map[string]any{"message": row.Message, "severity": row.Severity})
+	return err
+}
+func (s *Service) resolveAlerts(ctx context.Context, kind string, scope *string, keep []string) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		q := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("kind=? AND status=?", kind, StatusOpen)
+		if scope != nil {
+			q = q.Where("scope_key=?", *scope)
+		}
+		if len(keep) > 0 {
+			q = q.Where("scope_key NOT IN ?", keep)
+		}
+		var rows []alertRow
+		if err := q.Find(&rows).Error; err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		for _, row := range rows {
+			if err := tx.Model(&row).Updates(map[string]any{"status": StatusResolved, "resolved_at": now}).Error; err != nil {
+				return err
+			}
+			if err := s.enqueueAlert(tx, row, "ops.alert.resolved"); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *Service) EvaluateAlerts(ctx context.Context) ([]AlertView, error) {
 	thr := DefaultThresholds()
-	if item, err := s.Thresholds(ctx); err == nil && item != nil {
+	var evaluationErr error
+	record := func(err error) { evaluationErr = errors.Join(evaluationErr, err) }
+	if item, err := s.Thresholds(ctx); err != nil {
+		record(err)
+	} else if item != nil {
 		thr = *item
 	}
 	if s.money != nil {
-		if money, err := s.money.Money(ctx); err == nil && money != nil {
+		money, err := s.money.Money(ctx)
+		if err != nil {
+			record(err)
+		} else if money != nil {
 			if money.PendingCount >= thr.PendingCount {
-				_ = s.openAlert(ctx, AlertPending, SeverityHigh, "存在待对账预授权，禁止按估算扣款", money)
+				record(s.openAlert(ctx, AlertPending, SeverityHigh, "存在待对账预授权，禁止按估算扣款", money))
 			} else {
-				_ = s.resolveAlert(ctx, AlertPending)
+				record(s.resolveAlert(ctx, AlertPending))
 			}
 		}
 	}
 	if s.traffic != nil {
-		if rows, err := s.traffic.DimStats(ctx, DimProvider); err == nil {
-			low := false
+		rows, err := s.traffic.DimStats(ctx, DimProvider)
+		if err != nil {
+			record(err)
+		} else {
+			low := []string{}
 			for _, row := range rows {
 				if row.Requests >= thr.MinRequests && row.SuccessRate < thr.SuccessRateMin {
-					low = true
-					_ = s.openAlert(ctx, AlertLowSuccess, SeverityMed, "成功率低于阈值："+row.Key, row)
+					low = append(low, row.Key)
+					record(s.openAlert(ctx, AlertLowSuccess, SeverityMed, "成功率低于阈值："+row.Key, row))
 				}
 			}
-			if !low {
-				_ = s.resolveAlert(ctx, AlertLowSuccess)
-			}
+			record(s.resolveAlerts(ctx, AlertLowSuccess, nil, low))
 		}
 	}
-	if last, _ := s.LastDrill(ctx); last == nil {
-		_ = s.openAlert(ctx, AlertBackup, SeverityMed, "尚未记录备份恢复演练", nil)
+	if last, err := s.LastDrill(ctx); err != nil {
+		record(err)
+	} else if last == nil {
+		record(s.openAlert(ctx, AlertBackup, SeverityMed, "尚未记录备份恢复演练", nil))
 	} else {
-		_ = s.resolveAlert(ctx, AlertBackup)
+		record(s.resolveAlert(ctx, AlertBackup))
 	}
-	return s.ListAlerts(ctx, StatusOpen)
+	items, err := s.ListAlerts(ctx, StatusOpen)
+	return items, errors.Join(evaluationErr, err)
 }
 
 func (s *Service) RecordBackupDrill(ctx context.Context, method, evidence, actor string, passed bool) (*DrillView, error) {
@@ -487,7 +560,10 @@ func (s *Service) RecordBackupDrill(ctx context.Context, method, evidence, actor
 func (s *Service) LastDrill(ctx context.Context) (*DrillView, error) {
 	var row drillRow
 	if err := s.db.WithContext(ctx).Order("created_at DESC").First(&row).Error; err != nil {
-		return nil, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
 	}
 	return drillView(row), nil
 }

@@ -1847,3 +1847,90 @@ paths:
       responses:
         "200":
           description: Google authorization URL and state bound to the existing user
+  /v1/me/notifications:
+    get:
+      operationId: listMyNotifications
+      summary: Inbox for the authenticated user and brand; cursor pagination and unread filter
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /v1/me/notifications/unread-count:
+    get:
+      operationId: countMyUnreadNotifications
+      summary: Unread inbox count scoped to authenticated user and brand
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /v1/me/notifications/read-all:
+    post:
+      operationId: readAllMyNotifications
+      summary: Mark all inbox notices as read in the current account
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /v1/me/notifications/{id}/read:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: readMyNotification
+      summary: Mark an owned inbox notice as read; foreign IDs return 404
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /v1/me/notification-preferences:
+    get:
+      operationId: getMyNotificationPreferences
+      summary: Business email preference and platform SMTP availability
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+    put:
+      operationId: setMyNotificationPreferences
+      summary: Set email_enabled; authentication emails retain their private queue
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /admin/notifications/smtp:
+    get:
+      operationId: getPlatformSMTP
+      summary: Platform administrator or technician reads redacted SMTP settings
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+    put:
+      operationId: savePlatformSMTP
+      summary: Save encrypted shared SMTP settings with confirmation; omitted password preserves the previous secret
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /admin/notifications/smtp/test:
+    post:
+      operationId: testPlatformSMTP
+      summary: Queue a test only to the acting administrator or technician verified email
+      responses:
+        "202":
+          description: Queued for asynchronous SMTP delivery
+  /admin/notifications/deliveries:
+    get:
+      operationId: listNotificationDeliveries
+      summary: Platform email audit, status filter and queue counts; accepted means SMTP acceptance only
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload
+  /admin/notifications/deliveries/{id}/retry:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: retryNotificationDelivery
+      summary: Retry unexpired failed or blocked mail; accepted and in-flight messages cannot be retried
+      responses:
+        "200":
+          description: Scoped result without credentials or encrypted mail payload

@@ -9,6 +9,7 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { AdminH2 } from "@/components/admin-h2";
 import { IfCan, IfRoles } from "@/components/rbac/if-can";
+import { NotificationAdminSettings } from "@/components/notifications/admin-settings";
 
 export default function AdminSettingsPage() {
   const [rate, setRate] = useState("0.5");
@@ -152,6 +153,7 @@ export default function AdminSettingsPage() {
 }
   return (
     <AdminShell>
+      <NotificationAdminSettings />
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 level={1} k="settings" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>

@@ -837,6 +837,50 @@ export const generatedOperations: GeneratedOperation[] = [
   {
     "method": "GET",
     "path": "/v1/me/google/start"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/me/notifications"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/me/notifications/unread-count"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/notifications/read-all"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/me/notifications/{id}/read"
+  },
+  {
+    "method": "GET",
+    "path": "/v1/me/notification-preferences"
+  },
+  {
+    "method": "PUT",
+    "path": "/v1/me/notification-preferences"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/notifications/smtp"
+  },
+  {
+    "method": "PUT",
+    "path": "/admin/notifications/smtp"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/notifications/smtp/test"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/notifications/deliveries"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/notifications/deliveries/{id}/retry"
   }
 ];
 

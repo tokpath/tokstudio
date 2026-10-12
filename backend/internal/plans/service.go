@@ -521,6 +521,7 @@ func (s *Service) ActivatePaid(ctx context.Context, subID string, now time.Time)
 			view = subView(row)
 			return nil
 		}
+		wasExpired := row.CurrentPeriodEnd != nil && !row.CurrentPeriodEnd.After(now)
 		var plan planRow
 		if err := tx.Where("id = ?", row.PlanID).First(&plan).Error; err != nil {
 			return ErrNotFound
@@ -537,6 +538,11 @@ func (s *Service) ActivatePaid(ctx context.Context, subID string, now time.Time)
 		}
 		if err := grantPlanEntitlements(tx, row, now); err != nil {
 			return err
+		}
+		if wasExpired {
+			if _, err := s.outbox.EnqueueTx(tx, "plans.subscription.renewed", "subscription", row.ID, subscriptionNotice(row)); err != nil {
+				return err
+			}
 		}
 		view = subView(row)
 		return nil
@@ -997,23 +1003,27 @@ func retryOffsets() []time.Duration {
 	return []time.Duration{0, 24 * time.Hour, 3 * 24 * time.Hour, 5 * 24 * time.Hour}
 }
 
-// ProcessRenewals 按文档：到期日、+1/+3/+5 天重试；失败 past_due；7 天宽限后 cancelled。
+// Failed renewals never extend entitlement validity. Retrying a payment does not
+// grant access: admission only uses credits whose own expiry is still in future.
 func (s *Service) ProcessRenewals(ctx context.Context, now time.Time, charger func(subID, adapter, methodRef string) error) (int, error) {
 	var due []subRow
 	// 不能只取前 100 条：共享库过期订阅多时，后创建的支付宝手动续费会被漏掉，一直停在 active。
 	if err := s.db.WithContext(ctx).
-		Where("status IN ? AND ((current_period_end IS NOT NULL AND current_period_end <= ?) OR (next_retry_at IS NOT NULL AND next_retry_at <= ?))",
-			[]string{SubActive, SubPastDue, SubCancelAtPeriodEnd}, now, now).
+		Where("(status IN ? AND current_period_end <= ?) OR (status = ? AND next_retry_at <= ?)",
+			[]string{SubActive, SubCancelAtPeriodEnd}, now, SubPastDue, now).
 		Order("id").Find(&due).Error; err != nil {
 		return 0, err
 	}
 	n := 0
+	var firstErr error
 	for _, row := range due {
 		if err := s.renewOne(ctx, row, now, charger); err == nil {
 			n++
+		} else if firstErr == nil {
+			firstErr = err
 		}
 	}
-	return n, nil
+	return n, firstErr
 }
 
 func (s *Service) renewOne(ctx context.Context, row subRow, now time.Time, charger func(subID, adapter, methodRef string) error) error {
@@ -1021,23 +1031,27 @@ func (s *Service) renewOne(ctx context.Context, row subRow, now time.Time, charg
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", row.ID).First(&row).Error; err != nil {
 			return err
 		}
+		// Recheck under the lock: another worker may already have renewed or failed.
+		if row.Status == SubPastDue {
+			if row.NextRetryAt == nil || row.NextRetryAt.After(now) {
+				return nil
+			}
+		} else if (row.Status != SubActive && row.Status != SubCancelAtPeriodEnd) || row.CurrentPeriodEnd == nil || row.CurrentPeriodEnd.After(now) {
+			return nil
+		}
+		row.GraceUntil = nil
 		if row.Status == SubCancelAtPeriodEnd {
 			row.Status = SubCancelled
+			row.NextRetryAt = nil
 			row.UpdatedAt = now
-			return tx.Save(&row).Error
-		}
-		if row.Status == SubPastDue && row.GraceUntil != nil && !row.GraceUntil.After(now) {
-			row.Status = SubCancelled
-			row.UpdatedAt = now
-			return tx.Save(&row).Error
+			return s.saveSubscriptionNotice(tx, &row, "plans.subscription.expired")
 		}
 		if row.RenewalPolicy != RenewAuto {
 			if row.Status == SubActive && row.CurrentPeriodEnd != nil && !row.CurrentPeriodEnd.After(now) {
 				row.Status = SubPastDue
-				grace := now.AddDate(0, 0, GraceDays)
-				row.GraceUntil = &grace
+				row.NextRetryAt = nil
 				row.UpdatedAt = now
-				return tx.Save(&row).Error
+				return s.saveSubscriptionNotice(tx, &row, "plans.subscription.expired")
 			}
 			return nil
 		}
@@ -1052,10 +1066,9 @@ func (s *Service) renewOne(ctx context.Context, row subRow, now time.Time, charg
 		if adapter != "stripe" {
 			// 支付宝/微信没有代扣能力时，不得伪造自动续费成功。
 			row.Status = SubPastDue
-			grace := now.AddDate(0, 0, GraceDays)
-			row.GraceUntil = &grace
+			row.NextRetryAt = nil
 			row.UpdatedAt = now
-			return tx.Save(&row).Error
+			return s.saveSubscriptionNotice(tx, &row, "plans.subscription.renewal_failed")
 		}
 		if charger == nil {
 			return s.markPastDue(tx, &row, now)
@@ -1081,13 +1094,18 @@ func (s *Service) renewOne(ctx context.Context, row subRow, now time.Time, charg
 		if err := tx.Save(&row).Error; err != nil {
 			return err
 		}
-		return grantPlanEntitlements(tx, row, now)
+		if err := grantPlanEntitlements(tx, row, now); err != nil {
+			return err
+		}
+		_, err := s.outbox.EnqueueTx(tx, "plans.subscription.renewed", "subscription", row.ID, subscriptionNotice(row))
+		return err
 	})
 }
 
 func (s *Service) markPastDue(tx *gorm.DB, row *subRow, now time.Time) error {
 	offsets := retryOffsets()
 	row.RetryCount++
+	row.NextRetryAt = nil
 	if row.RetryCount < len(offsets) {
 		next := now.Add(offsets[row.RetryCount] - offsets[row.RetryCount-1])
 		if row.CurrentPeriodEnd != nil {
@@ -1096,16 +1114,9 @@ func (s *Service) markPastDue(tx *gorm.DB, row *subRow, now time.Time) error {
 		row.NextRetryAt = &next
 	}
 	row.Status = SubPastDue
-	if row.GraceUntil == nil {
-		base := now
-		if row.CurrentPeriodEnd != nil {
-			base = *row.CurrentPeriodEnd
-		}
-		grace := base.AddDate(0, 0, GraceDays)
-		row.GraceUntil = &grace
-	}
+	row.GraceUntil = nil
 	row.UpdatedAt = now
-	return tx.Save(row).Error
+	return s.saveSubscriptionNotice(tx, row, "plans.subscription.renewal_failed")
 }
 
 func (s *Service) RunRenewal(ctx context.Context, charger func(subID, adapter, methodRef string) error) {
@@ -1116,6 +1127,7 @@ func (s *Service) RunRenewal(ctx context.Context, charger func(subID, adapter, m
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			_ = s.ProcessExpiryReminders(ctx, time.Now().UTC())
 			_, _ = s.ProcessRenewals(ctx, time.Now().UTC(), charger)
 		}
 	}
@@ -1141,7 +1153,6 @@ func subView(row subRow) *SubscriptionView {
 		ID: row.ID, UserID: row.UserID, ChannelOrgID: deref(row.ChannelOrgID), PlanID: row.PlanID, Status: row.Status,
 		PeriodStart: row.CurrentPeriodStart, PeriodEnd: row.CurrentPeriodEnd,
 		RenewalPolicy: row.RenewalPolicy, Adapter: strings.TrimSpace(deref(row.PaymentAdapter)),
-		GraceUntil: row.GraceUntil,
 	}
 }
 
@@ -1165,14 +1176,16 @@ func deref(p *string) string {
 }
 
 func (s *Service) ForcePeriodEnd(ctx context.Context, subID string, end time.Time) error {
-	res := s.db.WithContext(ctx).Model(&subRow{}).Where("id = ?", subID).Updates(map[string]any{
-		"current_period_end": end, "updated_at": time.Now().UTC(),
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&subRow{}).Where("id = ?", subID).Updates(map[string]any{
+			"current_period_end": end, "updated_at": time.Now().UTC(),
+		})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return errors.New("subscription not found")
+		}
+		return tx.Model(&entRow{}).Where("source_type = ? AND source_id = ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)", SourcePlan, subID, EntActive, end).Update("expires_at", end).Error
 	})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return errors.New("subscription not found")
-	}
-	return nil
 }

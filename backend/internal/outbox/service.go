@@ -75,7 +75,9 @@ func (s *Service) EnqueueTx(tx *gorm.DB, eventType, aggregateType, aggregateID s
 		AvailableAt:   time.Now().UTC(),
 		CreatedAt:     time.Now().UTC(),
 	}
-	if err := tx.Create(&row).Error; err != nil {
+	// Consumer epochs and event timestamps must use the same database clock.
+	// Otherwise modest API/database clock skew can silently skip new events.
+	if err := tx.Omit("CreatedAt", "AvailableAt").Create(&row).Error; err != nil {
 		return "", err
 	}
 	return row.ID, nil

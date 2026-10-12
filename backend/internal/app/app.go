@@ -22,6 +22,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/gateway"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
+	"github.com/tokpath/tokstudio/backend/internal/notifications"
 	"github.com/tokpath/tokstudio/backend/internal/ops"
 	"github.com/tokpath/tokstudio/backend/internal/outbox"
 	"github.com/tokpath/tokstudio/backend/internal/payment"
@@ -34,21 +35,23 @@ import (
 )
 
 type App struct {
-	Config     *config.Config
-	DB         *gorm.DB
-	Redis      *redis.Client
-	Identity   *identity.Service
-	Audit      *audit.Service
-	Outbox     *outbox.Service
-	Catalog    *catalog.Service
-	Billing    *billing.Service
-	Gateway    *gateway.Service
-	Media      *media.Service
-	Plans      *plans.Service
-	Payment    *payment.Service
-	Commission *commission.Service
-	Ops        *ops.Service
-	Logger     zerolog.Logger
+	Config        *config.Config
+	DB            *gorm.DB
+	Redis         *redis.Client
+	Identity      *identity.Service
+	Audit         *audit.Service
+	Outbox        *outbox.Service
+	Catalog       *catalog.Service
+	Billing       *billing.Service
+	Gateway       *gateway.Service
+	Media         *media.Service
+	Plans         *plans.Service
+	Payment       *payment.Service
+	Commission    *commission.Service
+	Ops           *ops.Service
+	Mail          *mail.Service
+	Notifications *notifications.Service
+	Logger        zerolog.Logger
 	// GoogleExchange 仅测试注入。生产路径为 nil，由配置选择真实交换。
 	GoogleExchange identity.GoogleExchanger
 }
@@ -84,14 +87,9 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	mediaSvc := media.New(gdb, catalogSvc, billingSvc, outboxSvc, store, cfg.ArkBaseURL, cfg.ArkAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterAPIKey)
 	paySvc := payment.New(gdb, outboxSvc, plansSvc, billingSvc, firstNonEmpty(cfg.PaymentSignKey, cfg.EncryptionKey))
 	idSvc := identity.New(gdb)
-	if cfg.SMTPHost != "" {
-		sender, err := mail.NewSMTP(mail.SMTPOptions{Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, From: cfg.SMTPFrom, Security: cfg.SMTPSecurity, Production: cfg.IsProduction()})
-		if err != nil {
-			logger.Error().Msg("smtp_configuration_invalid")
-		} else {
-			idSvc.SetEmailSender(sender, cfg.EncryptionKey)
-		}
-	}
+	mailSvc := mail.NewService(gdb, cfg.EncryptionKey, mail.SMTPOptions{Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, From: cfg.SMTPFrom, Security: cfg.SMTPSecurity, Production: cfg.IsProduction()})
+	idSvc.SetEmailSender(mailSvc, cfg.EncryptionKey)
+	notificationSvc := notifications.New(gdb, outboxSvc, idSvc, billingSvc, plansSvc, mailSvc, cfg.EncryptionKey, cfg.WebOrigin)
 	idSvc.SetStore(store)
 	idSvc.SetACME(identity.NewACME(cfg.ACMEDirectory, cfg.ACMEInsecureSkipVerify, cfg.ACMEForce))
 	idSvc.SetCloudflare(identity.NewCloudflare(identity.CloudflareOptions{
@@ -127,25 +125,29 @@ func newApp(cfg *config.Config, gdb *gorm.DB, rdb *redis.Client, logger zerolog.
 	}
 	gw := gateway.New(gdb, catalogSvc, billingSvc, rt, cfg.EncryptionKey)
 	opsSvc := ops.New(gdb, rdb)
+	opsSvc.SetPublisher(outboxSvc)
+	notificationSvc.SetAlerts(opsSvc)
 	opsSvc.SetSources(&trafficBridge{gateway: gw}, &moneyBridge{billing: billingSvc}, &healthBridge{catalog: catalogSvc}, &roleBridge{identity: idSvc}, &latencyBridge{media: mediaSvc})
 	gw.SetBreaker(opsSvc)
 	gw.SetChannelGuard(idSvc)
 	return &App{
-		Config:     cfg,
-		DB:         gdb,
-		Redis:      rdb,
-		Identity:   idSvc,
-		Audit:      auditSvc,
-		Outbox:     outboxSvc,
-		Catalog:    catalogSvc,
-		Billing:    billingSvc,
-		Gateway:    gw,
-		Media:      mediaSvc,
-		Plans:      plansSvc,
-		Payment:    paySvc,
-		Commission: commSvc,
-		Ops:        opsSvc,
-		Logger:     logger,
+		Config:        cfg,
+		DB:            gdb,
+		Redis:         rdb,
+		Identity:      idSvc,
+		Audit:         auditSvc,
+		Outbox:        outboxSvc,
+		Catalog:       catalogSvc,
+		Billing:       billingSvc,
+		Gateway:       gw,
+		Media:         mediaSvc,
+		Plans:         plansSvc,
+		Payment:       paySvc,
+		Commission:    commSvc,
+		Ops:           opsSvc,
+		Mail:          mailSvc,
+		Notifications: notificationSvc,
+		Logger:        logger,
 	}
 }
 
@@ -179,6 +181,8 @@ func AllMigrations() []db.ModuleMigrations {
 	paymentName, paymentFS := payment.Migrations()
 	commissionName, commissionFS := commission.Migrations()
 	opsName, opsFS := ops.Migrations()
+	mailName, mailFS := mail.Migrations()
+	notificationName, notificationFS := notifications.Migrations()
 	return []db.ModuleMigrations{
 		{Module: outboxName, FS: outboxFS},
 		{Module: identityName, FS: identityFS},
@@ -191,6 +195,8 @@ func AllMigrations() []db.ModuleMigrations {
 		{Module: paymentName, FS: paymentFS},
 		{Module: commissionName, FS: commissionFS},
 		{Module: opsName, FS: opsFS},
+		{Module: mailName, FS: mailFS},
+		{Module: notificationName, FS: notificationFS},
 	}
 }
 
@@ -242,6 +248,7 @@ func (a *App) Router() *gin.Engine {
 	r.GET("/admin/outbox/stats", a.requireRoles("platform_admin", "tech_admin"), a.outboxStats)
 	a.registerAuthRoutes(r)
 	a.registerEmailAuthRoutes(r)
+	a.registerNotificationRoutes(r)
 	a.registerGoogleConfigRoutes(r)
 	a.registerCustomerRoutes(r)
 	a.registerPersonalRecordsRoutes(r)

@@ -153,7 +153,7 @@ export function ConsoleShell({
   const adminNav = filterAdminGroups(adminGroups, viewer);
 
   const pageLabel = useMemo(() => {
-    if (pathname === "/app/notifications" || pathname === "/console/notifications") return tn("title");
+    if (pathname === `${portalHref}/notifications` || pathname === "/console/notifications") return tn("title");
     if (isUser) {
       const item = navItemForPath(pathname, [...userNavGroups.flatMap((group) => group.items), ...userSettingsNav]);
       return item ? tu(item.key) : title;
@@ -171,7 +171,7 @@ export function ConsoleShell({
       return item ? ta(item.key) : title;
     }
     return title;
-  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, ta, tch, title, tp, tu, tn, viewer.channelType]);
+  }, [adminNav, isAdmin, isChannel, isPartner, isUser, pathname, portalHref, ta, tch, title, tp, tu, tn, viewer.channelType]);
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col" data-testid="console-shell">
@@ -214,7 +214,7 @@ export function ConsoleShell({
                 </Button>
               ) : null}
             </div>
-            <NotificationBell />
+            <NotificationBell href={`${portalHref}/notifications`} />
             <ConsoleOverflowMenu onCommand={onCommand} />
             {isUser ? <UserShellRightZone /> : null}
             {!isUser ? <UserShellRightZone variant="admin" /> : null}

@@ -90,6 +90,7 @@ const ADMIN_PAGE_VIEW: Record<string, readonly string[]> = {
   "/admin/runbooks": [P, O, T, A],
   "/admin/audit": [P, A],
   "/admin/settings": [P, F, O, T],
+  "/admin/notifications": [P, F, O, T, A],
 };
 
 const WRITE_ACTION_ROLES: Record<WriteAction, readonly string[]> = {
@@ -160,6 +161,7 @@ export function canViewChannelHref(href: string, viewer: Viewer): boolean {
   if (shouldBypassRbac(viewer) || viewer.roles.includes(P)) return true;
   if (!hasAnyRole(viewer.roles, OEM_CONSOLE_ROLES)) return false;
   const path = href.split(/[?#]/)[0];
+  if (path === "/channel/notifications") return true;
   if (path === "/channel/delivery") return viewer.channelType === "C";
   if (path === "/channel/staff" || path.startsWith("/channel/staff/")) return viewer.channelType === "C" && viewer.roles.includes("channel_admin");
   if (viewer.channelType === "B" && ["/channel/payments", "/channel/ledger", "/channel/reconciliation"].some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return false;

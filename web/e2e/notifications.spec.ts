@@ -1,9 +1,44 @@
 import { test, expect } from "@playwright/test";
+import { mockViewer } from "./mock-viewer";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 401, json: { error: { message: "未登录" } } }));
   await page.route("**/api/v1/me/notifications/unread-count", route => route.fulfill({ json: { unread: 1 } }));
 });
+
+const workspaces = [
+  ...["platform_admin", "finance_admin", "ops_admin", "tech_admin", "audit_readonly"].map(role => ({ role, start: "/admin", root: "/admin", navigation: "平台管理" })),
+  { role: "channel_admin", channelType: "B" as const, start: "/channel", root: "/channel", navigation: "渠道控制台" },
+  ...["channel_admin", "oem_ops", "oem_finance", "oem_audit"].map(role => ({ role, channelType: "C" as const, start: "/channel", root: "/channel", navigation: "OEM 管理控制台" })),
+  { role: "end_user", start: "/app/settings", root: "/app", navigation: "用户控制台" },
+  { role: "end_user", partner: true, start: "/app/referral", root: "/app", navigation: "用户控制台" },
+];
+
+for (const workspace of workspaces) {
+  test(`notification bell keeps ${workspace.role} in ${workspace.start} ${"channelType" in workspace ? workspace.channelType : "partner" in workspace ? "partner" : ""}`, async ({ page }) => {
+    await mockViewer(page, { roles: [workspace.role], channelType: "channelType" in workspace ? workspace.channelType : undefined, partner: "partner" in workspace ? workspace.partner : false });
+    await page.route("**/api/v1/me/notifications?*", route => route.fulfill({ json: { items: [], unread: 1, next_cursor: "" } }));
+    await page.route("**/api/v1/me/notification-preferences", route => route.fulfill({ json: { email_enabled: true, smtp_available: false } }));
+    await page.goto(workspace.start);
+    const navigation = page.getByRole("navigation", { name: workspace.navigation, exact: true });
+    await expect(navigation).toBeVisible();
+    const menu = await navigation.locator("a").evaluateAll(links => links.map(link => link.getAttribute("href")));
+    const bell = page.getByRole("link", { name: "通知中心，1 条未读", exact: true });
+    await expect(bell).toHaveAttribute("href", `${workspace.root}/notifications`);
+    await bell.click();
+    await expect(page).toHaveURL(new RegExp(`${workspace.root}/notifications$`));
+    await expect(page.getByRole("heading", { name: "通知中心", exact: true })).toBeVisible();
+    await expect(page.getByTestId("console-page-title")).toHaveText("通知中心");
+    await expect(navigation).toBeVisible();
+    expect(await navigation.locator("a").evaluateAll(links => links.map(link => link.getAttribute("href")))).toEqual(menu);
+    await page.reload();
+    await expect(navigation).toBeVisible();
+    await expect(page.getByRole("heading", { name: "通知中心", exact: true })).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "打开导航", exact: true }).click();
+    await expect(page.getByRole("dialog").getByRole("navigation", { name: workspace.navigation, exact: true })).toBeVisible();
+  });
+}
 
 test("read a no-grace renewal notice and change email preference on desktop and mobile", async ({ page }) => {
   let read = false; let enabled = true;

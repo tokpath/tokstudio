@@ -11,7 +11,7 @@ import { apiBase } from "@/lib/api";
 
 export function notifyInboxChanged() { window.dispatchEvent(new Event("tokenhub:notifications-changed")); }
 
-export function NotificationBell() {
+export function NotificationBell({ href }: { href: string }) {
   const t = useTranslations("notifications");
   const viewer = useViewer();
   const brand = useBrand();
@@ -41,7 +41,7 @@ export function NotificationBell() {
   }, [viewer.loading, viewer.signedIn, viewer.userId, brand?.id]);
   if (!viewer.signedIn) return null;
   const label = failed ? t("bellUnavailable") : count === null ? t("title") : t("bellLabel", { count });
-  return <Button asChild variant="ghost" size="icon" className="relative shrink-0"><Link href="/app/notifications" aria-label={label} title={label}>
+  return <Button asChild variant="ghost" size="icon" className="relative shrink-0"><Link href={href} aria-label={label} title={label}>
     <Bell aria-hidden="true" />
     {count !== null && count > 0 && <span aria-hidden="true" className="absolute -right-1 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] leading-4 text-white">{count > 99 ? "99+" : count}</span>}
   </Link></Button>;

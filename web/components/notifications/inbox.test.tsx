@@ -47,7 +47,7 @@ it("changes business email preference while preserving the inbox", async () => {
 
 it("shows a failed unread-count request as unavailable", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) })));
-  render(withZh(<NotificationBell />));
+  render(withZh(<NotificationBell href="/app/notifications" />));
   await screen.findByRole("link", { name: "通知中心，未读数量暂不可用" });
 });
 

@@ -214,8 +214,8 @@ export function ConsoleShell({
                 </Button>
               ) : null}
             </div>
-            <ConsoleOverflowMenu onCommand={onCommand} />
             <NotificationBell />
+            <ConsoleOverflowMenu onCommand={onCommand} />
             {isUser ? <UserShellRightZone /> : null}
             {!isUser ? <UserShellRightZone variant="admin" /> : null}
           </div>

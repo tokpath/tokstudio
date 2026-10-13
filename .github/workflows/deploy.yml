@@ -46,6 +46,13 @@ jobs:
             docker builder prune -af >/dev/null
             docker image prune -f >/dev/null
             df -h /root/workspace
+            if [ "$(df -Pk /root/workspace | awk 'NR == 2 { print $4 }')" -lt 3145728 ]; then
+              docker system df
+              (du -x -h --max-depth=2 /var /root /tmp 2>/dev/null || true) | sort -h | tail -n 30
+              journalctl --disk-usage || true
+              echo "Less than 3 GiB available; inspect disk usage before building." >&2
+              exit 1
+            fi
             ROOT=/root/workspace/tokstudio
             BRANCH=release/v0.1.0
             if [ ! -d "$ROOT/.git" ]; then

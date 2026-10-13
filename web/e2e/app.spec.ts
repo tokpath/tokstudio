@@ -687,7 +687,7 @@ test("user shell shows 平台管理 only for platform_admin", async ({ page }) =
       user: { id: "usr_rbac", display_name: "Pat", email: "pat@example.test", roles: ["platform_admin"] },
     });
   });
-  await page.goto("/app");
+  await page.goto("/app/settings");
   await page.getByTestId("avatar-trigger").click();
   const adminItem = page.getByRole("menuitem", { name: "平台管理" });
   await expect(adminItem).toBeVisible();

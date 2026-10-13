@@ -131,6 +131,31 @@ it("keeps automatically created personal promoters in their user workspace", asy
 
 
 describe("authorized workspace preference",()=>{
+ it("keeps every employee's management home after visiting personal settings and rejects old /app preferences",async()=>{
+  const values=new Map<string,string>();
+  vi.stubGlobal("window",{localStorage:{getItem:(key:string)=>values.get(key)||null,setItem:(key:string,value:string)=>values.set(key,value)}});
+  try {
+   for(const role of ["platform_admin","finance_admin","ops_admin","tech_admin","audit_readonly","channel_admin","oem_ops","oem_finance","oem_audit"]){
+    const home=role.includes("oem")||role==="channel_admin"?"/channel":"/admin";
+    values.set(`console-workspace:${role}`,home);
+    rememberConsoleWorkspace(role,"/app/settings",[role]);
+    expect(values.get(`console-workspace:${role}`)).toBe(home);
+    values.set(`console-workspace:${role}`,"/app");
+    const fetcher=vi.fn().mockResolvedValue(jsonResponse(true,{user:{id:role,roles:[role]}}));
+    expect(await resolveConsoleHref(fetcher)).toBe(home);
+    expect(await resolveConsoleHref(fetcher,"/app")).toBe(home);
+   }
+  } finally {vi.unstubAllGlobals();}
+ });
+ it("checks explicit protected targets while keeping public returns and authorized API tasks",async()=>{
+  const finance=vi.fn().mockResolvedValue(jsonResponse(true,{user:{roles:["finance_admin"]}}));
+  expect(await resolveConsoleHref(finance,"/admin/providers")).toBe("/admin");
+  expect(await resolveConsoleHref(finance,"/models/test%2Fmodel?kind=text")).toBe("/models/test%2Fmodel?kind=text");
+  expect(await resolveConsoleHref(finance,"/login?next=%2Flogin")).toBe("/admin");
+  const tech=vi.fn().mockResolvedValue(jsonResponse(true,{user:{roles:["tech_admin"]}}));
+  expect(await resolveConsoleHref(tech,"/console/docs?model=test%2Fmodel")).toBe("/app/docs?model=test%2Fmodel");
+  expect(await resolveConsoleHref(tech,"/app/wallet")).toBe("/admin");
+ });
  it("prioritizes a legal explicit target and rejects unauthorized saved roots",async()=>{
   const values=new Map<string,string>();
   vi.stubGlobal("window",{localStorage:{getItem:(key:string)=>values.get(key)||null,setItem:(key:string,value:string)=>values.set(key,value)}});

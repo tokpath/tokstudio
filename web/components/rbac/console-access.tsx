@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useViewer } from "./viewer-context";
 import { canAccessChannelPortal, canViewAdminHref, canViewChannelHref, canViewUserHref } from "@/lib/rbac";
@@ -14,9 +14,14 @@ import { loginHref, pagePathWithSearch } from "@/lib/login-next";
 export function ConsoleAccess({ children }: { children: ReactNode }) {
   const viewer = useViewer();
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("common");
   const partner = pathname === "/partner" || pathname.startsWith("/partner/");
   const failed = viewer.error || (partner && viewer.partnerError);
+  const home = consoleHomeForViewer(viewer);
+  const redirectHome = !viewer.loading && !failed && viewer.signedIn && home !== "/app" && (pathname === "/app" || pathname === "/console");
+  useEffect(() => { if (redirectHome) router.replace(home); }, [redirectHome, home, router]);
+  if (redirectHome) return <main className="p-6" role="status">{t("listLoading")}</main>;
   const allowed = viewer.signedIn && (
     pathname === "/admin" || pathname.startsWith("/admin/")
       ? canViewAdminHref(pathname, viewer)

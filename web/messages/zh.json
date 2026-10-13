@@ -53,6 +53,7 @@
     "accountMenu": "账户菜单",
     "profile": "个人资料",
     "platformAdmin": "平台管理",
+    "managementHome": "返回管理工作台",
     "userConsole": "用户控制台",
     "keys": "API 密钥",
     "logout": "退出登录",

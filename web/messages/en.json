@@ -53,6 +53,7 @@
     "accountMenu": "Account menu",
     "profile": "Profile",
     "platformAdmin": "Platform admin",
+    "managementHome": "Return to management workspace",
     "userConsole": "User console",
     "keys": "API keys",
     "logout": "Sign out",

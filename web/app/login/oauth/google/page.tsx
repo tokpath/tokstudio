@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiBase } from "@/lib/api";
-import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
+import { resolveConsoleHref } from "@/lib/console-home";
 import { promotionCode, readAuthIntent, storeAuthIntent } from "@/lib/auth-intent";
 import { safeNextPath } from "@/lib/login-next";
 import {
@@ -30,11 +30,7 @@ async function probeMe(): Promise<boolean> {
 async function goConsoleOrNext(storage: Storage | null, serverNext?: string): Promise<void> {
   const intent = readAuthIntent(storage, true);
   const next = safeNextPath(serverNext) || intent.next || safeNextPath(readStoredNext(storage));
-  if (next && next !== CONSOLE_ENTRY_PATH) {
-    window.location.replace(next);
-    return;
-  }
-  window.location.replace(await resolveConsoleHref());
+  window.location.replace(await resolveConsoleHref(fetch, next));
 }
 
 function GoogleOAuthCallback() {

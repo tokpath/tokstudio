@@ -20,6 +20,7 @@ import { useBrand } from "@/components/brand-context";
 import { subscribeWalletChanged } from "@/lib/wallet-events";
 import { canUseConsumerAccount, canViewUserHref } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
+import { consoleHomeForRoles } from "@/lib/console-home";
 
 type ShellMe = MeProfile & { id?: string };
 
@@ -139,6 +140,7 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
   const initial = avatarInitial(me?.display_name, me?.email);
   const amount = balancePillText(balanceState, available);
   const showPlatformAdmin = isUserShell && canSeePlatformAdmin(me?.roles);
+  const managementHome = consoleHomeForRoles(me?.roles);
 
   async function logout() {
     setOpen(false);
@@ -256,6 +258,14 @@ export function UserShellRightZone({ variant = "user" }: { variant?: UserShellVa
               >
                 <LayoutDashboard className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
                 {t("platformAdmin")}
+              </Link>
+            ) : null}
+            {isUserShell && !showPlatformAdmin && managementHome !== "/app" ? (
+              <Link href={managementHome} role="menuitem" data-testid="menu-management-home"
+                className="flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-sm text-ink no-underline hover:bg-canvas"
+                onClick={() => setOpen(false)}>
+                <LayoutDashboard className="size-4 shrink-0 text-ink-mute" strokeWidth={1.75} aria-hidden />
+                {t("managementHome")}
               </Link>
             ) : null}
             {!isUserShell && canUseConsumerAccount(viewer) ? (

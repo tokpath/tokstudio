@@ -172,8 +172,8 @@ export function canViewChannelHref(href: string, viewer: Viewer): boolean {
     return true;
   }
   if (viewer.channelType !== "C") return false;
-  const common = ["/channel", "/channel/delivery", "/channel/ledger", "/channel/usage", "/channel/margin", "/channel/metrics", "/channel/reconciliation", "/channel/commission", "/channel/commissions", "/channel/settlements", "/channel/alerts", "/channel/runbooks", "/channel/settings", "/channel/rules", "/channel/subchannels", "/channel/payments", "/channel/models", "/channel/users"];
-  const operational = ["/channel/users", "/channel/keys", "/channel/models", "/channel/plans", "/channel/promos", "/channel/attribution", "/channel/media", "/channel/brand"];
+  const common = ["/channel", "/channel/delivery", "/channel/ledger", "/channel/usage", "/channel/margin", "/channel/metrics", "/channel/reconciliation", "/channel/commission", "/channel/commissions", "/channel/settlements", "/channel/alerts", "/channel/runbooks", "/channel/settings", "/channel/rules", "/channel/payments", "/channel/models", "/channel/users"];
+  const operational = ["/channel/subchannels", "/channel/users", "/channel/keys", "/channel/models", "/channel/plans", "/channel/promos", "/channel/attribution", "/channel/media", "/channel/brand"];
   const allowed = [...common, ...(hasAnyRole(viewer.roles, ["oem_ops", "oem_audit"]) ? operational : []), ...(viewer.roles.includes("oem_audit") ? ["/channel/audit"] : [])];
   return allowed.some((prefix) => prefix === "/channel" ? path === prefix : path === prefix || path.startsWith(`${prefix}/`));
 }

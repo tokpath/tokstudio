@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { withZh } from "@/lib/test-i18n";
 import type { Viewer } from "@/lib/rbac";
 import { ConsoleAccess } from "./console-access";
-const state = vi.hoisted(() => ({ path: "/admin", viewer: { signedIn: true, loading: false, roles: ["end_user"] } as Viewer }));
-vi.mock("next/navigation", () => ({ usePathname: () => state.path }));
+const state = vi.hoisted(() => ({ path: "/admin", replace: vi.fn(), viewer: { signedIn: true, loading: false, roles: ["end_user"] } as Viewer }));
+vi.mock("next/navigation", () => ({ usePathname: () => state.path, useRouter: () => ({replace: state.replace}) }));
 vi.mock("./viewer-context", () => ({ useViewer: () => state.viewer }));
 afterEach(cleanup);
 function show(viewer: Viewer, path = "/admin") {
@@ -14,6 +14,12 @@ function show(viewer: Viewer, path = "/admin") {
   render(withZh(<ConsoleAccess><div>protected data</div></ConsoleAccess>));
 }
 describe("console access", () => {
+  it.each(["platform_admin","finance_admin","ops_admin","tech_admin","audit_readonly","channel_admin","oem_ops","oem_finance","oem_audit"])("redirects %s away from a generic user landing without mounting API tools",role=>{
+    state.replace.mockClear();
+    show({signedIn:true,loading:false,roles:[role]},"/app");
+    expect(screen.queryByText("protected data")).toBeNull();
+    expect(state.replace).toHaveBeenCalledWith(role.startsWith("oem_")||role==="channel_admin"?"/channel":"/admin");
+  });
   it("does not mount protected data while identity is loading", () => {
     show({ signedIn: false, loading: true, roles: [] });
     expect(screen.queryByText("protected data")).toBeNull();

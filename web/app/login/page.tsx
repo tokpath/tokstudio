@@ -16,7 +16,7 @@ import { useBrand } from "@/components/brand-context";
 import { BrandLogo } from "@/components/brand-logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CONSOLE_ENTRY_PATH, resolveConsoleHref } from "@/lib/console-home";
+import { resolveConsoleHref } from "@/lib/console-home";
 import { authIntent, storeAuthIntent } from "@/lib/auth-intent";
 import { safeNextPath } from "@/lib/login-next";
 import {
@@ -96,12 +96,7 @@ function LoginForm() {
   }, []);
 
   async function goNext() {
-    const next = safeNextPath(search.get("next"));
-    if (next && next !== CONSOLE_ENTRY_PATH) {
-      window.location.href = next;
-      return;
-    }
-    window.location.href = await resolveConsoleHref();
+    window.location.href = await resolveConsoleHref(fetch, search.get("next"));
   }
 
   useEffect(() => {

@@ -174,6 +174,7 @@ describe("UserShellRightZone", () => {
     expect(screen.queryByRole("link", { name: "平台管理" })).toBeNull();
     expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
     expect(screen.queryAllByText("平台管理")).toHaveLength(0);
+    expect(screen.getByRole("menuitem",{name:"返回管理工作台"}).getAttribute("href")).toBe("/admin");
     expect(screen.queryByTestId("balance-pill")).toBeNull();
     expect(screen.queryByTestId("menu-balance")).toBeNull();
     expect(screen.queryByRole("menuitem",{name:"API 密钥"})).toBeNull();
@@ -187,6 +188,16 @@ describe("UserShellRightZone", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "退出登录" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
     expect(fetch).toHaveBeenCalledWith("/api/v1/auth/logout", expect.objectContaining({ method: "POST" }));
+  });
+
+  it.each(["channel_admin","oem_ops","oem_finance","oem_audit"])("lets %s return from personal settings to its own channel workspace",async role=>{
+    mockViewer.roles=[role];
+    vi.stubGlobal("fetch",vi.fn(async()=>jsonResponse(true,{user:{roles:[role],email:"employee@example.test"}})));
+    render(withZh(<UserShellRightZone/>));
+    await screen.findByText(role==="channel_admin"?"OEM 管理员":role==="oem_ops"?"OEM 运营":role==="oem_finance"?"OEM 财务":"OEM 只读审计");
+    fireEvent.click(screen.getByTestId("avatar-trigger"));
+    expect(screen.getByTestId("menu-management-home").getAttribute("href")).toBe("/channel");
+    expect(screen.queryByTestId("menu-platform-admin")).toBeNull();
   });
 });
 

@@ -139,6 +139,9 @@ describe("OEM employee permissions", () => {
   it("separates operating, financial and audit work", () => {
     expect(canViewChannelHref("/channel/users", signed(["oem_ops"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/users", signed(["oem_finance"], { channelType: "C" }))).toBe(true);
+    expect(canViewChannelHref("/channel/keys", signed(["oem_finance"], { channelType: "C" }))).toBe(false);
+    expect(canViewChannelHref("/channel/subchannels", signed(["oem_finance"], { channelType: "C" }))).toBe(false);
+    expect(canViewChannelHref("/channel/subchannels", signed(["oem_ops"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/audit", signed(["oem_audit"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "C" }))).toBe(true);
     expect(canViewChannelHref("/channel/staff", signed(["channel_admin"], { channelType: "B" }))).toBe(false);

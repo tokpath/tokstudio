@@ -41,6 +41,11 @@ jobs:
           command_timeout: 40m
           script: |
             set -euo pipefail
+            # 磁盘耗尽时 git fetch 也会失败，因此先清理可重建缓存与悬空镜像。
+            df -h /root/workspace
+            docker builder prune -af >/dev/null
+            docker image prune -f >/dev/null
+            df -h /root/workspace
             ROOT=/root/workspace/tokstudio
             BRANCH=release/v0.1.0
             if [ ! -d "$ROOT/.git" ]; then

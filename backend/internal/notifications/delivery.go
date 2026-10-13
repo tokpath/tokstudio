@@ -246,9 +246,13 @@ func (s *Service) Deliveries(ctx context.Context, status string) (*DeliveryPage,
 	if err := q.Order("d.created_at DESC,d.id DESC").Limit(50).Scan(&page.Items).Error; err != nil {
 		return nil, err
 	}
+	var counts struct {
+		Pending, Blocked, Failed, Accepted int64
+	}
 	err := s.db.WithContext(ctx).Model(&deliveryRow{}).Select(`COUNT(*) FILTER (WHERE status IN ('pending','sending')) AS pending,
         COUNT(*) FILTER (WHERE status IN ('blocked_smtp','blocked_unverified')) AS blocked,
-        COUNT(*) FILTER (WHERE status='failed') AS failed, COUNT(*) FILTER (WHERE status='accepted') AS accepted`).Scan(page).Error
+        COUNT(*) FILTER (WHERE status='failed') AS failed, COUNT(*) FILTER (WHERE status='accepted') AS accepted`).Scan(&counts).Error
+	page.Pending, page.Blocked, page.Failed, page.Accepted = counts.Pending, counts.Blocked, counts.Failed, counts.Accepted
 	return page, err
 }
 func (s *Service) Retry(ctx context.Context, deliveryID string) error {

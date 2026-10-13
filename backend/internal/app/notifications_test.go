@@ -561,6 +561,56 @@ func TestPlatformSMTPSettingsAreRestrictedAndSecretsNeverEcho(t *testing.T) {
 	}
 }
 
+func TestNotificationDeliveryRowsSurviveCountSummary(t *testing.T) {
+	t.Setenv("TOKENHUB_ENCRYPTION_KEY", "synthetic-notification-encryption-key")
+	a, server := newOAuthEnv(t)
+	resetNotificationFixture(t, a.DB)
+	code, empty := doJSON(t, "GET", server.URL+"/admin/notifications/deliveries", "oauth_admin-audit", false, nil)
+	if code != 200 {
+		t.Fatalf("empty delivery list: %d", code)
+	}
+	if items, ok := empty["items"].([]any); !ok || len(items) != 0 {
+		t.Fatalf("empty list is not an array: %#v", empty["items"])
+	}
+	for i, status := range []string{"pending", "blocked_smtp", "failed", "accepted"} {
+		id := fmt.Sprintf("synthetic-delivery-summary-%d", i)
+		if err := a.DB.Exec(`INSERT INTO notifications_inbox (id,user_id,brand_id,event_id,dedupe_key,kind,title,body,href)
+            VALUES (?, 'synthetic-user', ?, ?, ?, 'smtp_test', ?, 'synthetic message', '/app/notifications')`, id, identity.OfficialBrandID, id, id, id).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := a.DB.Exec(`INSERT INTO notifications_email_deliveries (id,notification_id,status,expires_at) VALUES (?, ?, ?, now()+interval '1 day')`, id, id, status).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, status := range []string{"", "failed", "blocked_unverified"} {
+		code, body := doJSON(t, "GET", server.URL+"/admin/notifications/deliveries?status="+status, "oauth_admin-audit", false, nil)
+		if code != 200 {
+			t.Fatalf("list deliveries: %d", code)
+		}
+		items, ok := body["items"].([]any)
+		expected := 4
+		if status == "failed" {
+			expected = 1
+		} else if status != "" {
+			expected = 0
+		}
+		if !ok || len(items) != expected {
+			t.Fatalf("rows overwritten for filter %q: %#v", status, body)
+		}
+		for _, count := range []string{"pending", "blocked", "failed", "accepted"} {
+			if body[count] != float64(1) {
+				t.Fatalf("wrong summary %s: %#v", count, body)
+			}
+		}
+		for _, item := range items {
+			row := item.(map[string]any)
+			if status != "" && row["status"] != status {
+				t.Fatalf("wrong filtered row: %#v", row)
+			}
+		}
+	}
+}
+
 // Start each scenario after unrelated historical fixtures, as a fresh consumer
 // deployment does, and remove notification fixtures from earlier scenarios.
 func resetNotificationFixture(t *testing.T, db *gorm.DB) {

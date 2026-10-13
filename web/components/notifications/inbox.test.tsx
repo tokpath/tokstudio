@@ -70,3 +70,11 @@ it("lets operations inspect delivery failures without loading SMTP credentials",
   expect(screen.queryByRole("heading", { name: "平台邮件通知" })).toBeNull();
   expect(fetcher.mock.calls.every(call => String(call[0]).includes("/deliveries"))).toBe(true);
 });
+
+it.each([null, undefined])("renders an empty delivery log when the API returns %s items", async items => {
+  roles = ["ops_admin"];
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ items, pending: 0, blocked: 0, failed: 0, accepted: 0 }) })));
+  render(withZh(<NotificationAdminSettings />));
+  await screen.findByText("待发送 0 · 受阻 0 · 失败 0 · 已接收 0");
+  expect(screen.getByText("暂无符合条件的发送记录。")).toBeTruthy();
+});

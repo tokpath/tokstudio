@@ -72,7 +72,7 @@ test("alert history retries a failed page, restores its URL and resets paginatio
   const alerts = Array.from({ length: 120 }, (_, i) => ({ id: `alert_${119-i}`, kind: "circuit_open", severity: "medium", status: (119-i)%2 ? "resolved" : "open", message: `历史告警${String(119-i).padStart(3,"0")}` }));
   let fail = true;
   const reads: URLSearchParams[] = [];
-  await page.route("**/api/admin/notifications/deliveries?*", route => route.fulfill({ json: { items: [], pending: 0, blocked: 0, failed: 0, accepted: 0 } }));
+  await page.route("**/api/admin/notifications/deliveries?*", route => route.fulfill({ json: { items: null, pending: 0, blocked: 0, failed: 0, accepted: 0 } }));
   await page.route("**/api/admin/ops/alerts?*", route => {
     const params = new URL(route.request().url()).searchParams; reads.push(params);
     const start = Number((params.get("cursor") || "opaque-0").split("-")[1]);

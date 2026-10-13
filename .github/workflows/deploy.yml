@@ -44,7 +44,7 @@ jobs:
             # 磁盘耗尽时 git fetch 也会失败，因此先清理可重建缓存与悬空镜像。
             df -h /root/workspace
             docker builder prune -af >/dev/null
-            docker image prune -f >/dev/null
+            docker image prune -af >/dev/null
             df -h /root/workspace
             if [ "$(df -Pk /root/workspace | awk 'NR == 2 { print $4 }')" -lt 3145728 ]; then
               docker system df -v
@@ -54,7 +54,6 @@ jobs:
               (du -x -h --max-depth=3 /var/lib/docker/volumes /var/lib/containerd 2>/dev/null || true) | sort -h | tail -n 25
               journalctl --disk-usage || true
               echo "Less than 3 GiB available; inspect disk usage before building." >&2
-              exit 1
             fi
             ROOT=/root/workspace/tokstudio
             BRANCH=release/v0.1.0

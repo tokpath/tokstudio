@@ -99,9 +99,34 @@ PY
 echo "disk usage before deploy cleanup"
 df -h "$ROOT"
 docker builder prune -af >/dev/null
-docker image prune -f >/dev/null
+docker image prune -af >/dev/null
 echo "disk usage after deploy cleanup"
 df -h "$ROOT"
+
+# 先应用测试环境数据库配置，让 PostgreSQL 自行回收未归档 WAL，再构建镜像。
+COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.token.yml)
+"${COMPOSE[@]}" up -d --no-deps postgres
+pg_ready=0
+for _ in $(seq 1 45); do
+  if "${COMPOSE[@]}" exec -T postgres pg_isready -h 127.0.0.1 -U tokenhub -d tokenhub >/dev/null; then
+    pg_ready=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$pg_ready" != "1" ]]; then
+  echo "PostgreSQL did not become ready before build" >&2
+  "${COMPOSE[@]}" logs --no-color --tail=40 postgres >&2 || true
+  exit 1
+fi
+"${COMPOSE[@]}" exec -T postgres psql -U tokenhub -d tokenhub -v ON_ERROR_STOP=1 -c 'CHECKPOINT'
+"${COMPOSE[@]}" exec -T postgres psql -U tokenhub -d tokenhub -v ON_ERROR_STOP=1 -c "SELECT current_setting('archive_mode') AS archive_mode, pg_size_pretty(pg_database_size(current_database())) AS database_size, pg_size_pretty((SELECT sum(size) FROM pg_ls_waldir())) AS wal_size;"
+echo "disk usage after PostgreSQL checkpoint"
+df -h "$ROOT"
+if [[ "$(df -Pk "$ROOT" | awk 'NR == 2 { print $4 }')" -lt 3145728 ]]; then
+  echo "Less than 3 GiB available after PostgreSQL recovery; build stopped." >&2
+  exit 1
+fi
 
 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
 

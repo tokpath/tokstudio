@@ -29,6 +29,18 @@ services:
 
   postgres:
     restart: unless-stopped
+    # 测试环境使用每日加密全量备份；不启用尚未接通的 WAL 连续归档。
+    # 归档失败会阻止旧 WAL 回收，archive_timeout=60 会快速耗尽小容量系统盘。
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=off
+      - -c
+      - max_wal_size=512MB
+      - -c
+      - min_wal_size=80MB
 
   redis:
     restart: unless-stopped

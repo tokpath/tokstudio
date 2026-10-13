@@ -105,6 +105,15 @@ df -h "$ROOT"
 
 # 先应用测试环境数据库配置，让 PostgreSQL 自行回收未归档 WAL，再构建镜像。
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.token.yml)
+if [[ "$(df -Pk "$ROOT" | awk 'NR == 2 { print $4 }')" -lt 262144 ]]; then
+  # 前端没有业务数据卷；释放旧镜像的构建空间，给数据库正常启动留出余量。
+  "${COMPOSE[@]}" stop web
+  "${COMPOSE[@]}" rm -f web
+  docker image prune -af >/dev/null
+  docker builder prune -af >/dev/null
+  echo "disk usage after releasing old preview web image"
+  df -h "$ROOT"
+fi
 "${COMPOSE[@]}" up -d --no-deps postgres
 pg_ready=0
 for _ in $(seq 1 45); do

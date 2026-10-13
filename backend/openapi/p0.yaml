@@ -981,9 +981,28 @@ paths:
   /v1/me/media:
     get:
       operationId: listMyMedia
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: previous next_cursor; opaque created_at/id boundary, legacy scoped job IDs accepted
+        - name: kind
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
       responses:
         "200":
-          description: current user media jobs
+          description: current-user media page with items, limit and next_cursor; empty next_cursor marks the end of all matching history
+        "400":
+          description: invalid or inaccessible legacy cursor
   /v1/me/requests:
     get:
       operationId: listMyRequests
@@ -1012,9 +1031,35 @@ paths:
   /admin/media:
     get:
       operationId: listAdminMedia
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: previous next_cursor; opaque created_at/id boundary, legacy scoped job IDs accepted
+        - name: user_id
+          in: query
+          schema: { type: string }
+        - name: kind
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv] }
+          description: exports the complete filtered result; ignores limit and cursor
       responses:
         "200":
-          description: media jobs without prompts
+          description: media page with items, limit and next_cursor, or complete filtered CSV without prompts and supplier data
+        "400":
+          description: invalid or inaccessible legacy cursor
   /admin/billing/export:
     get:
       operationId: exportBilling
@@ -1261,9 +1306,29 @@ paths:
   /admin/ops/alerts:
     get:
       operationId: listAdminAlerts
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: previous next_cursor; opaque created_at/id boundary, legacy scoped alert IDs accepted
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv] }
+          description: exports the complete filtered result; ignores limit and cursor
       responses:
         "200":
-          description: operational alerts
+          description: operational alert page with items, limit and next_cursor, or complete filtered CSV
+        "400":
+          description: invalid or inaccessible legacy cursor
   /admin/ops/alerts/evaluate:
     post:
       operationId: evaluateAdminAlerts
@@ -1594,9 +1659,26 @@ paths:
   /channel/media:
     get:
       summary: OEM media task metadata; self and direct B channels only
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: previous next_cursor; opaque created_at/id boundary, legacy scoped job IDs accepted
+        - name: channel_id
+          in: query
+          schema: { type: string }
+          description: authorized OEM or direct B channel only
+        - name: q
+          in: query
+          schema: { type: string }
       responses:
         "200":
-          description: success within OEM scope
+          description: metadata page within OEM scope with items, limit and next_cursor
+        "400":
+          description: invalid or inaccessible legacy cursor
         "403":
           description: non-OEM role or foreign channel
   /channel/audit-logs:

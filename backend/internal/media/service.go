@@ -421,34 +421,6 @@ func (s *Service) create(ctx context.Context, in CreateInput) (*JobView, error) 
 	return s.fail(ctx, job, "provider_unavailable")
 }
 
-func (s *Service) List(ctx context.Context, userID, kind, status string, limit int) ([]JobView, error) {
-	q := s.db.WithContext(ctx).Order("created_at DESC")
-	if userID != "" {
-		q = q.Where("user_id = ?", userID)
-	}
-	if kind != "" {
-		q = q.Where("job_kind = ?", kind)
-	}
-	if status != "" {
-		q = q.Where("status = ?", status)
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	var rows []jobRow
-	if err := q.Limit(limit).Find(&rows).Error; err != nil {
-		return nil, err
-	}
-	out := make([]JobView, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, *s.view(ctx, row))
-	}
-	return out, nil
-}
-
 func (s *Service) Get(ctx context.Context, jobID, userID string) (*JobView, error) {
 	var job jobRow
 	q := s.db.WithContext(ctx).Where("id = ?", jobID)

@@ -1,12 +1,14 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 func (a *App) registerOEMManagementRoutes(r *gin.Engine) {
@@ -101,12 +103,17 @@ func (a *App) oemMedia(c *gin.Context) {
 	if !ok {
 		return
 	}
-	items, err := a.Media.ListChannels(c.Request.Context(), ids, c.Query("q"))
+	limit, cursor := httpx.Page(c, 50)
+	items, next, err := a.Media.ListChannelsPage(c.Request.Context(), ids, c.Query("q"), limit, cursor)
 	if err != nil {
+		if errors.Is(err, page.ErrCursor) {
+			httpx.Abort(c, 400, "invalid_request", "分页位置无效", false)
+			return
+		}
 		httpx.Abort(c, 500, "internal_error", "读取媒体任务失败", true)
 		return
 	}
-	httpx.OK(c, gin.H{"items": items})
+	httpx.OK(c, gin.H{"items": items, "limit": limit, "next_cursor": next})
 }
 
 func (a *App) oemAudit(c *gin.Context) {

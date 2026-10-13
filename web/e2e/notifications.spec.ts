@@ -91,7 +91,7 @@ test("technician saves shared SMTP, queues a test and inspects acceptance truthf
 
 test("auditor reads delivery failures from alerts without SMTP configuration or retry access", async ({ page }) => {
   await page.route("**/api/v1/me", route => route.fulfill({ json: { user: { id: "synthetic-notification-auditor", roles: ["audit_readonly"] } } }));
-  await page.route("**/api/admin/ops/alerts", route => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/admin/ops/alerts?*", route => route.fulfill({ json: { items: [], next_cursor: "" } }));
   await page.route("**/api/admin/notifications/deliveries?*", route => route.fulfill({ json: { items: [{ id: "synthetic-failed-delivery", title: "套餐续费失败", brand_id: "brd_official", status: "failed", attempts: 5, last_error: "smtp_delivery_failed", created_at: "2026-10-12T08:00:00Z" }], pending: 0, blocked: 0, failed: 1, accepted: 0 } }));
   await page.goto("/admin/alerts");
   await expect(page.getByRole("heading", { name: "邮件发送记录", exact: true })).toBeVisible();

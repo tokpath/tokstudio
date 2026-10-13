@@ -18,6 +18,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/payment"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 func (a *App) registerOpsRoutes(r *gin.Engine) {
@@ -108,18 +109,25 @@ func (a *App) adminDashboard(c *gin.Context) {
 }
 
 func (a *App) adminAlerts(c *gin.Context) {
-	items, err := a.Ops.ListAlerts(c.Request.Context(), c.Query("status"))
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取告警失败", true)
-		return
-	}
 	if httpx.WantCSV(c) {
-		httpx.WriteCSV(c, "alerts.csv", []string{"id", "kind", "severity", "status", "message"}, items, func(item ops.AlertView) []string {
-			return []string{item.ID, item.Kind, item.Severity, item.Status, item.Message}
+		httpx.WriteCSVExport(c, "alerts.csv", []string{"id", "kind", "severity", "status", "message"}, func(write func([]string) error) error {
+			return a.Ops.ExportAlerts(c.Request.Context(), c.Query("status"), c.Query("q"), func(item ops.AlertView) error {
+				return write([]string{item.ID, item.Kind, item.Severity, item.Status, item.Message})
+			})
 		})
 		return
 	}
-	httpx.OKPage(c, items, 50, func(item ops.AlertView) string { return item.ID })
+	limit, cursor := httpx.Page(c, 50)
+	items, next, err := a.Ops.ListAlertsPage(c.Request.Context(), c.Query("status"), c.Query("q"), limit, cursor)
+	if err != nil {
+		if errors.Is(err, page.ErrCursor) {
+			httpx.Abort(c, 400, "invalid_request", "分页位置无效", false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取告警失败", true)
+		return
+	}
+	httpx.OK(c, gin.H{"items": items, "limit": limit, "next_cursor": next, "request_id": c.GetString(httpx.ContextRequestID)})
 }
 
 func (a *App) adminGetThresholds(c *gin.Context) {

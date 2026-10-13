@@ -14,6 +14,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/identity"
 	"github.com/tokpath/tokstudio/backend/internal/media"
 	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 func (a *App) registerMediaRoutes(r *gin.Engine) {
@@ -35,40 +36,49 @@ func (a *App) registerMediaRoutes(r *gin.Engine) {
 }
 
 func (a *App) listMyMedia(c *gin.Context) {
-	items, err := a.Media.List(c.Request.Context(), a.currentPrincipal(c).UserID, c.Query("kind"), c.Query("status"), 200)
+	limit, cursor := httpx.Page(c, 20)
+	items, next, err := a.Media.ListPage(c.Request.Context(), media.JobQuery{UserID: a.currentPrincipal(c).UserID, Kind: c.Query("kind"), Status: c.Query("status"), Query: c.Query("q")}, limit, cursor)
 	if err != nil {
+		if errors.Is(err, page.ErrCursor) {
+			httpx.Abort(c, 400, "invalid_request", "分页位置无效", false)
+			return
+		}
 		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
 		return
 	}
-	limit, cursor := httpx.Page(c, 20)
 	for i := range items {
 		items[i].Provider = ""
 		items[i].UpstreamID = ""
 	}
-	page, next := httpx.Paginate(items, limit, cursor, func(item media.JobView) string { return item.ID })
 	httpx.OK(c, gin.H{
-		"items": page, "limit": limit, "next_cursor": next,
+		"items": items, "limit": limit, "next_cursor": next,
 		"storage":    a.storageView(),
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})
 }
 
 func (a *App) listAdminMedia(c *gin.Context) {
-	items, err := a.Media.List(c.Request.Context(), c.Query("user_id"), c.Query("kind"), c.Query("status"), 200)
-	if err != nil {
-		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
-		return
-	}
-	if c.Query("format") == "csv" {
-		httpx.WriteCSV(c, "media.csv", []string{"id", "kind", "task_type", "status", "model"}, items, func(item media.JobView) []string {
-			return []string{item.ID, item.Kind, item.TaskType, item.Status, item.Model}
+	in := media.JobQuery{UserID: c.Query("user_id"), Kind: c.Query("kind"), Status: c.Query("status"), Query: c.Query("q")}
+	if httpx.WantCSV(c) {
+		httpx.WriteCSVExport(c, "media.csv", []string{"id", "kind", "task_type", "status", "model"}, func(write func([]string) error) error {
+			return a.Media.Export(c.Request.Context(), in, func(item media.JobView) error {
+				return write([]string{item.ID, item.Kind, item.TaskType, item.Status, item.Model})
+			})
 		})
 		return
 	}
 	limit, cursor := httpx.Page(c, 50)
-	page, next := httpx.Paginate(items, limit, cursor, func(item media.JobView) string { return item.ID })
+	items, next, err := a.Media.ListPage(c.Request.Context(), in, limit, cursor)
+	if err != nil {
+		if errors.Is(err, page.ErrCursor) {
+			httpx.Abort(c, 400, "invalid_request", "分页位置无效", false)
+			return
+		}
+		httpx.Abort(c, http.StatusInternalServerError, "internal_error", "读取媒体任务失败", true)
+		return
+	}
 	httpx.OK(c, gin.H{
-		"items": page, "limit": limit, "next_cursor": next,
+		"items": items, "limit": limit, "next_cursor": next,
 		"storage":    a.storageView(),
 		"request_id": c.GetString(httpx.ContextRequestID),
 	})

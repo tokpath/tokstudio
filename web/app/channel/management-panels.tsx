@@ -66,6 +66,10 @@ export function OEMScope({ children, includeAll = true }: { children: (suffix: s
     setChannel(value);
     const url = new URL(window.location.href);
     if (value) url.searchParams.set("channel_id", value); else url.searchParams.delete("channel_id");
+    // A different channel starts from its first page, preserving search terms.
+    for (const key of [...url.searchParams.keys()]) {
+      if (key === "cursor" || key.endsWith("_cursor")) url.searchParams.delete(key);
+    }
     window.history.replaceState(null, "", url.toString());
   }
   return <><label className="flex max-w-xs flex-col gap-2 text-sm">{t("channel")}<select aria-label={t("channel")} className="h-10 rounded-control border border-hairline bg-canvas-raised px-3" value={selected} onChange={event => select(event.target.value)}>{includeAll ? <option value="">{t("allChannels")}</option> : null}{owned.map(item => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>{invalid ? <p role="alert">{t("invalidScope")} <Button variant="outline" onClick={() => select("")}>{t("refresh")}</Button></p> : <div key={`${viewer.userId}:${selected}`}>{children(selected ? `?channel_id=${encodeURIComponent(selected)}` : "")}</div>}</>;

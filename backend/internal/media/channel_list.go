@@ -3,6 +3,8 @@ package media
 import (
 	"context"
 	"time"
+
+	"github.com/tokpath/tokstudio/backend/internal/platform/page"
 )
 
 // ChannelJob exposes operational status without prompts, supplier identifiers or
@@ -19,18 +21,31 @@ type ChannelJob struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-func (s *Service) ListChannels(ctx context.Context, channelIDs []string, query string) ([]ChannelJob, error) {
+func (s *Service) ListChannelsPage(ctx context.Context, channelIDs []string, query string, limit int, cursor string) ([]ChannelJob, string, error) {
 	items := make([]ChannelJob, 0)
 	if len(channelIDs) == 0 {
-		return items, nil
+		return items, "", nil
 	}
+	limit = page.Size(limit)
 	q := s.db.WithContext(ctx).Table("media_jobs").Select("id, user_id, channel_org_id, job_kind AS kind, task_type, status, public_model_id AS model, progress, created_at").Where("channel_org_id IN ?", channelIDs)
 	if query != "" {
 		like := "%" + query + "%"
-		q = q.Where("id ILIKE ? OR public_model_id ILIKE ? OR status ILIKE ?", like, like, like)
+		q = q.Where("(id ILIKE ? OR public_model_id ILIKE ? OR status ILIKE ?)", like, like, like)
 	}
-	err := q.Order("created_at DESC, id").Limit(100).Scan(&items).Error
-	return items, err
+	q, err := page.BeforeCreated(q, cursor)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := q.Order("created_at DESC, id DESC").Limit(limit + 1).Scan(&items).Error; err != nil {
+		return nil, "", err
+	}
+	next := ""
+	if len(items) > limit {
+		items = items[:limit]
+		last := items[len(items)-1]
+		next = page.Encode(last.CreatedAt, last.ID)
+	}
+	return items, next, nil
 }
 
 func (s *Service) FailedChannelJobCounts(ctx context.Context, channelIDs []string) (map[string]int64, error) {

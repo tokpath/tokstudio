@@ -220,7 +220,7 @@ func (s *Service) Dashboard(ctx context.Context) (*Dashboard, error) {
 		out.Thresholds = thr
 	}
 	var err error
-	out.Alerts, err = s.ListAlerts(ctx, StatusOpen)
+	out.Alerts, err = s.RecentAlerts(ctx, StatusOpen)
 	if err != nil {
 		out.ModuleErrors["alerts"] = "read_error"
 	}
@@ -398,22 +398,6 @@ func (s *Service) ListRunbooks(ctx context.Context) ([]RunbookView, error) {
 	return out, nil
 }
 
-func (s *Service) ListAlerts(ctx context.Context, status string) ([]AlertView, error) {
-	q := s.db.WithContext(ctx).Order("created_at DESC").Limit(50)
-	if status != "" {
-		q = q.Where("status = ?", status)
-	}
-	var rows []alertRow
-	if err := q.Find(&rows).Error; err != nil {
-		return nil, err
-	}
-	out := make([]AlertView, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, AlertView{ID: row.ID, Kind: row.Kind, Severity: row.Severity, Status: row.Status, Message: row.Message, CreatedAt: row.CreatedAt})
-	}
-	return out, nil
-}
-
 func (s *Service) openAlert(ctx context.Context, kind, severity, message string, payload any) error {
 	scope := ""
 	switch value := payload.(type) {
@@ -532,7 +516,7 @@ func (s *Service) EvaluateAlerts(ctx context.Context) ([]AlertView, error) {
 	} else {
 		record(s.resolveAlert(ctx, AlertBackup))
 	}
-	items, err := s.ListAlerts(ctx, StatusOpen)
+	items, err := s.RecentAlerts(ctx, StatusOpen)
 	return items, errors.Join(evaluationErr, err)
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { networkUnavailable } from "@/lib/confirm";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +22,9 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 export function CreateChannelDialog({ open, onOpenChange }: Props) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
     const t = useTranslations("customerExperience");
     const [code, setCode] = useState("");
     const [message, setMessage] = useState("");
@@ -56,6 +60,9 @@ export function CreatePartnerDialog({ open, onOpenChange, defaultType, defaultCu
     defaultType: "agent" | "kol_l1" | "kol_l2";
     defaultCustomer?: Customer;
 }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
     const t = useTranslations("customerExperience");
     const viewer = useViewer();
     const brand = useBrand();

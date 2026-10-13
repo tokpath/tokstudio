@@ -1,10 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import AdminDashboard from "../dashboard";
 import { AdminShell } from "../shell";
 
-export default function AdminMetricsPage() {
+export default async function AdminMetricsPage() {
+  const tUI = await getTranslations();
   return (
     <AdminShell>
-      <h1 className="text-2xl font-semibold">服务概况</h1>
+      <h1 className="text-2xl font-semibold">{tUI("consoleCopy.serviceOverview")}</h1>
       <AdminDashboard />
     </AdminShell>
   );

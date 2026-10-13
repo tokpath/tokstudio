@@ -1,5 +1,9 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,15 +21,20 @@ import { apiBase } from "@/lib/api";
 import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 import { protocolOptions, providerHref } from "@/lib/catalog-admin";
 
-const schema = z.object({
-  name: z.string().trim().min(1, "请填写名称"),
+function makeSchema(tUI: CopyTranslator) { return z.object({
+  name: z.string().trim().min(1, tUI("consoleCopy.enterAName")),
   kind: z.enum(["direct", "aggregator"]),
-  adapter: z.string().trim().min(1, "请选择协议"),
+  adapter: z.string().trim().min(1, tUI("consoleCopy.selectAProtocol")),
   base_url: z.string(),
-});
-type Fields = z.infer<typeof schema>;
+}); }
+type Fields = z.infer<ReturnType<typeof makeSchema>>;
 
 export default function NewProviderPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+  const schema = makeSchema(tUI);
+
   const router = useRouter();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -35,21 +44,21 @@ export default function NewProviderPage() {
   });
 
   return <AdminShell>
-    <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/providers">返回提供商列表</Link>
+    <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/providers">{tUI("consoleCopy.returnToProviderList")}</Link>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h1 className="text-lg font-semibold">新建提供商</h1>
-      <p className="mt-1 text-sm text-ink-secondary">配置上游连接。创建后在同一详情维护密钥、账号和健康状态。</p>
+      <h1 className="text-lg font-semibold">{tUI("consoleCopy.newProvider")}</h1>
+      <p className="mt-1 text-sm text-ink-secondary">{tUI("consoleCopy.configureTheUpstreamConnectionManageCredentialsAccountsAnd")}</p>
     </section>
     <IfCan action="providers.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <Form {...form}>
           <form className="grid max-w-xl gap-4" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={form.control} name="name" label="名称" placeholder="例如 OpenAI" />
-            <AdminSelectField control={form.control} name="kind" label="类型" options={[{ value: "direct", label: "直连" }, { value: "aggregator", label: "聚合" }]} />
-            <AdminSelectField control={form.control} name="adapter" label="协议" options={protocolOptions(form.watch("adapter"))} />
-            <TextField control={form.control} name="base_url" label="上游地址" placeholder="https://api.example.com/v1" />
+            <TextField control={form.control} name="name" label={tUI("user.colName")} placeholder={tUI("consoleCopy.forExampleOpenai")} />
+            <AdminSelectField control={form.control} name="kind" label={tUI("partnerBoard.colKind")} options={[{ value: "direct", label: tUI("consoleCopy.direct") }, { value: "aggregator", label: tUI("consoleCopy.aggregator") }]} />
+            <AdminSelectField control={form.control} name="adapter" label={tUI("quickstartUi.statProto")} options={protocolOptions(form.watch("adapter"), tUI)} />
+            <TextField control={form.control} name="base_url" label={tUI("consoleCopy.upstreamUrl")} placeholder="https://api.example.com/v1" />
             <ConfirmButton
-              size="sm" title="确认创建提供商" description="创建连接后可在详情页添加密钥和账号。"
+              size="sm" title={tUI("consoleCopy.confirmProviderCreation")} description={tUI("consoleCopy.afterCreatingTheConnectionAddCredentialsAndAccounts")}
               validate={() => form.trigger()}
               onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                 try {
@@ -57,13 +66,13 @@ export default function NewProviderPage() {
                     method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify(values),
                   });
                   const body = await res.json();
-                  if (!res.ok) { setMessage(body.error?.message || "创建失败"); return false; }
+                  if (!res.ok) { setMessage(body.error?.message || tUI("common.createFailed")); return false; }
                   await queryClient.invalidateQueries({ queryKey: ["/admin/providers"] });
                   router.replace(providerHref(String(body.item?.id || body.item?.slug)));
                   return true;
                 } catch { setMessage(confirmNetworkUnavailable); return false; }
               })}
-            >创建提供商</ConfirmButton>
+            >{tUI("consoleCopy.createProvider")}</ConfirmButton>
             {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
           </form>
         </Form>

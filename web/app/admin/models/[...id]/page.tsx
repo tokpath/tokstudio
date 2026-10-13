@@ -1,5 +1,9 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -28,22 +32,22 @@ import { catalogStatusTone, modelStatusLabel } from "@/lib/catalog-admin";
 import { priceBookColumns, publishedPriceLabel, type PriceBook } from "@/lib/price-book";
 import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
 
-const kinds = [
-  { value: "text", label: "文本" }, { value: "image", label: "图片" },
-  { value: "video", label: "视频" }, { value: "audio", label: "音频" },
-  { value: "embedding", label: "向量" },
-];
-const modelSchema = z.object({
-  display_name: z.string().trim().min(1, "请填写名称"),
-  vendor: z.string().trim().min(1, "请填写原厂"),
+function makeKinds(tUI: CopyTranslator) { return [
+  { value: "text", label: tUI("home.tabText") }, { value: "image", label: tUI("consoleCopy.image") },
+  { value: "video", label: tUI("home.tabVideo") }, { value: "audio", label: tUI("consoleCopy.audio") },
+  { value: "embedding", label: tUI("catalog.embedding") },
+]; }
+function makeModelSchema(tUI: CopyTranslator) { return z.object({
+  display_name: z.string().trim().min(1, tUI("consoleCopy.enterAName")),
+  vendor: z.string().trim().min(1, tUI("consoleCopy.enterAVendor")),
   kind: z.enum(["text", "image", "video", "audio", "embedding"]),
   description: z.string(),
-});
+}); }
 const priceSchema = z.object({
   input: z.string(), output: z.string(), image_count: z.string(), video_second: z.string(), audio_second: z.string(),
   currency: z.string().min(1),
 });
-type ModelFields = z.infer<typeof modelSchema>;
+type ModelFields = z.infer<ReturnType<typeof makeModelSchema>>;
 type PriceFields = z.infer<typeof priceSchema>;
 
 function mergedCapabilities(model: AdminModel | undefined, values: ModelFields): Record<string, unknown> {
@@ -53,9 +57,9 @@ function mergedCapabilities(model: AdminModel | undefined, values: ModelFields):
   return caps;
 }
 
-function pricePayload(values: PriceFields): Record<string, unknown> {
+function pricePayload(values: PriceFields, tUI: CopyTranslator = defaultCopy): Record<string, unknown> {
   const payload: Record<string, unknown> = { currency: values.currency };
-  const sell = millionDim(values.input, values.output);
+  const sell = millionDim(values.input, values.output, tUI);
   if (sell) payload.customer_sell = sell;
   for (const key of ["image_count", "video_second", "audio_second"] as const) {
     if (values[key].trim()) payload[key] = values[key].trim();
@@ -64,6 +68,12 @@ function pricePayload(values: PriceFields): Record<string, unknown> {
 }
 
 export default function AdminModelEditPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+  const modelSchema = makeModelSchema(tUI);
+  const kinds = makeKinds(tUI);
+
   const viewer = useViewer();
   const returnTo = useSearchParams().get("return_to");
   const params = useParams<{ id?: string | string[] }>();
@@ -129,9 +139,9 @@ export default function AdminModelEditPage() {
         }),
       });
       const body = await res.json();
-      if (!res.ok) { setMessage(body.error?.message || "保存失败"); return false; }
-      if (isNew && !body.item?.id) { setMessage("已创建模型，但未收到调用 ID，请返回列表查看"); return false; }
-      setMessage(isNew ? "模型与首次售价已保存" : "已保存模型信息");
+      if (!res.ok) { setMessage(body.error?.message || tUI("user.saveFail")); return false; }
+      if (isNew && !body.item?.id) { setMessage(tUI("consoleCopy.modelCreatedButNoCallIdWasReturned")); return false; }
+      setMessage(isNew ? tUI("consoleCopy.modelAndInitialPriceSaved") : tUI("consoleCopy.modelInformationSaved"));
       if (isNew) router.replace(modelEditHref(body.item.id));
       else await reload();
       return true;
@@ -149,7 +159,7 @@ export default function AdminModelEditPage() {
     for (const key of required) {
       const value = values[key].trim();
       if (!value || !/^\d+(?:\.\d+)?$/.test(value)) {
-        priceForm.setError(key, { message: value ? "请输入非负数字" : "请填写售价" });
+        priceForm.setError(key, { message: value ? tUI("consoleCopy.enterANonnegativeNumber") : tUI("consoleCopy.enterASellingPrice") });
         complete = false;
       }
     }
@@ -162,7 +172,7 @@ export default function AdminModelEditPage() {
         method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ public_id: publicId }),
       });
       const body = await res.json();
-      if (!res.ok) { setLifeError(body.error?.message || "操作失败"); return false; }
+      if (!res.ok) { setLifeError(body.error?.message || tUI("user.actFail")); return false; }
       setLifeError("");
       await reload();
       return true;
@@ -170,30 +180,30 @@ export default function AdminModelEditPage() {
   }
 
   if (!isNew && (query.isPending || query.isError || query.data?.error || !model)) return <AdminShell>
-      <h1 className="text-2xl font-semibold">{model?.display_name || publicId}</h1><section role={query.isPending ? "status" : "alert"}><p>{query.isPending ? "正在读取模型…" : "读取模型失败，未修改配置。"}</p>{!query.isPending ? <Button variant="outline" onClick={()=>void query.refetch()}>重试读取</Button>:null}</section></AdminShell>;
+      <h1 className="text-2xl font-semibold">{model?.display_name || publicId}</h1><section role={query.isPending ? "status" : "alert"}><p>{query.isPending ? tUI("consoleCopy.loadingModel") : tUI("consoleCopy.couldNotLoadTheModelConfigurationHasNot")}</p>{!query.isPending ? <Button variant="outline" onClick={()=>void query.refetch()}>{tUI("usageWorkflow.retry")}</Button>:null}</section></AdminShell>;
   return (
     <AdminShell>
-      <h1 className="text-2xl font-semibold">{isNew ? "创建模型" : model?.display_name || publicId}</h1>
-      <Link className="text-sm text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, "/admin/models")}>返回模型列表</Link>
+      <h1 className="text-2xl font-semibold">{isNew ? tUI("adminUi.createModel") : model?.display_name || publicId}</h1>
+      <Link className="text-sm text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, "/admin/models")}>{tUI("consoleCopy.returnToModelList")}</Link>
       {query.data?.error ? <p className="text-sm text-danger">{query.data.error.message}</p> : null}
 
       {!isNew && model ? <ModelServicePanel model={model} /> : null}
       <IfCan action="models.write">
         <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-          <h3 className="text-base font-semibold">模型信息</h3>
+          <h3 className="text-base font-semibold">{tUI("consoleCopy.modelInformation")}</h3>
           <Form {...modelForm}>
             <form className="mt-4 grid max-w-2xl gap-4" onSubmit={(event) => event.preventDefault()}>
-              {!isNew ? <p className="text-sm text-ink-secondary">调用 ID <code className="ml-2 font-mono text-ink-primary">{publicId}</code></p> : null}
-              <TextField control={modelForm.control} name="display_name" label="名称" />
-              <TextField control={modelForm.control} name="vendor" label="原厂" placeholder="例如 alibaba" />
-              <AdminSelectField control={modelForm.control} name="kind" label="类型" options={kinds} />
-              <TextField control={modelForm.control} name="description" label="简介" />
+              {!isNew ? <p className="text-sm text-ink-secondary">{tUI("modelService.callID")}<code className="ml-2 font-mono text-ink-primary">{publicId}</code></p> : null}
+              <TextField control={modelForm.control} name="display_name" label={tUI("user.colName")} />
+              <TextField control={modelForm.control} name="vendor" label={tUI("modelService.vendor")} placeholder={tUI("consoleCopy.forExampleAlibaba")} />
+              <AdminSelectField control={modelForm.control} name="kind" label={tUI("partnerBoard.colKind")} options={kinds} />
+              <TextField control={modelForm.control} name="description" label={tUI("consoleCopy.description162")} />
               {!isNew ? <ConfirmButton
-                size="sm" title="确认保存模型"
-                description="保存模型信息。公开模型标识创建后不可修改。"
+                size="sm" title={tUI("consoleCopy.confirmModelChanges")}
+                description={tUI("consoleCopy.saveModelInformationThePublicModelIdCannot")}
                 validate={() => modelForm.trigger()}
                 onConfirm={confirmFormSubmit(modelForm.handleSubmit, saveModel)}
-              >保存模型</ConfirmButton> : null}
+              >{tUI("consoleCopy.saveModel")}</ConfirmButton> : null}
               {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
             </form>
           </Form>
@@ -203,38 +213,38 @@ export default function AdminModelEditPage() {
       {(isNew || model) ? <>
         <IfCan action="prices.write">
           <section id="prices" className="scroll-mt-20 rounded-card border border-hairline bg-canvas-raised p-6">
-            <h3 className="text-base font-semibold">售价</h3>
-            <p className="mt-1 text-sm text-ink-secondary">{isNew ? "首次售价随模型一起保存，之后可单独改价。" : "改价只影响之后的请求。"}</p>
+            <h3 className="text-base font-semibold">{tUI("adminUi.colSell")}</h3>
+            <p className="mt-1 text-sm text-ink-secondary">{isNew ? tUI("consoleCopy.theInitialPriceIsSavedWithTheModel") : tUI("consoleCopy.priceChangesApplyOnlyToFutureRequests")}</p>
             <Form {...priceForm}>
               <form className="mt-4 grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
-                {kind === "text" || kind === "embedding" ? <TextField control={priceForm.control} name="input" label="输入售价" suffix="美元/M token" /> : null}
-                {kind === "text" ? <TextField control={priceForm.control} name="output" label="输出售价" suffix="美元/M token" /> : null}
-                {kind === "image" ? <TextField control={priceForm.control} name="image_count" label="每张图片售价" suffix="美元/张" /> : null}
-                {kind === "video" ? <TextField control={priceForm.control} name="video_second" label="每秒视频售价" suffix="美元/秒" /> : null}
-                {kind === "audio" ? <TextField control={priceForm.control} name="audio_second" label="每秒音频售价" suffix="美元/秒" /> : null}
+                {kind === "text" || kind === "embedding" ? <TextField control={priceForm.control} name="input" label={tUI("consoleCopy.inputPrice")} suffix={tUI("consoleCopy.usdMillionTokens")} /> : null}
+                {kind === "text" ? <TextField control={priceForm.control} name="output" label={tUI("consoleCopy.outputPrice")} suffix={tUI("consoleCopy.usdMillionTokens")} /> : null}
+                {kind === "image" ? <TextField control={priceForm.control} name="image_count" label={tUI("consoleCopy.pricePerImage")} suffix={tUI("consoleCopy.usdImage")} /> : null}
+                {kind === "video" ? <TextField control={priceForm.control} name="video_second" label={tUI("consoleCopy.pricePerVideoSecond")} suffix={tUI("consoleCopy.usdSecond")} /> : null}
+                {kind === "audio" ? <TextField control={priceForm.control} name="audio_second" label={tUI("consoleCopy.pricePerAudioSecond")} suffix={tUI("consoleCopy.usdSecond")} /> : null}
                 {(kind === "image" || kind === "video" || kind === "audio") && model?.sell_price?.media &&
                   !model?.sell_price?.[kind === "image" ? "image_count" : kind === "video" ? "video_second" : "audio_second"] ?
-                  <p className="text-sm text-ink-secondary">旧价格 {String(model.sell_price.media)}／媒体单位，未标明当前计价单位。请确认后填写上方售价。</p> : null}
-                <AdminSelectField control={priceForm.control} name="currency" label="币种" options={[{ value: "USD", label: "美元 USD" }]} />
+                  <p className="text-sm text-ink-secondary">{tUI("consoleCopy.legacyPrice")}{String(model.sell_price.media)}{tUI("consoleCopy.mediaUnitWithNoCurrentBillingUnitSpecified")}</p> : null}
+                <AdminSelectField control={priceForm.control} name="currency" label={tUI("consoleCopy.currency")} options={[{ value: "USD", label: tUI("consoleCopy.usDollarUsd") }]} />
                 {isNew ? <ConfirmButton
-                  size="sm" title="确认创建模型" description="模型信息和首次售价将一起保存；创建后可发布模型。"
+                  size="sm" title={tUI("consoleCopy.confirmModelCreation")} description={tUI("consoleCopy.modelInformationAndTheInitialPriceWillBe")}
                   error={message} validate={validateNewModel}
                   onConfirm={confirmFormSubmit(modelForm.handleSubmit, saveModel)}
-                >创建模型</ConfirmButton> : <SealConfirm
-                  size="sm" title="确认发布新价格" description="历史账单保持原价格快照。"
+                >{tUI("adminUi.createModel")}</ConfirmButton> : <SealConfirm
+                  size="sm" title={tUI("consoleCopy.confirmNewPricePublication")} description={tUI("consoleCopy.historicalBillsRetainTheirOriginalPriceSnapshots")}
                   validate={() => priceForm.trigger()}
                   onConfirm={confirmFormSubmit(priceForm.handleSubmit, async (values) => {
                     try {
-                      const payload = { ...pricePayload(values), model: publicId };
+                      const payload = { ...pricePayload(values, tUI), model: publicId };
                       const res = await fetch(`${apiBase}/admin/price-books`, { method: "POST", credentials: "include", headers: confirmHeaders, body: JSON.stringify(payload) });
                       const body = await res.json();
-                      if (!res.ok) { setPriceMessage(body.error?.message || "发布价格失败"); return false; }
-                      setPriceMessage(`已发布 ${publishedPriceLabel(body.price, publicId)}`);
+                      if (!res.ok) { setPriceMessage(body.error?.message || tUI("consoleCopy.pricePublicationFailed")); return false; }
+                      setPriceMessage(tUI("consoleCopy.published", { value0: String(publishedPriceLabel(body.price, publicId)) }));
                       await reload();
                       return true;
                     } catch (err) { setPriceMessage(err instanceof Error ? err.message : confirmNetworkUnavailable); return false; }
                   })}
-                >发布价格</SealConfirm>}
+                >{tUI("consoleCopy.publishPrice")}</SealConfirm>}
                 {priceMessage ? <p className="text-sm text-ink-secondary">{priceMessage}</p> : null}
               </form>
             </Form>
@@ -243,34 +253,34 @@ export default function AdminModelEditPage() {
         {!isNew && model ? <IfCan action="models.write">
           <section className="rounded-card border border-hairline bg-canvas-raised p-6">
             <div className="flex flex-wrap items-center gap-3">
-              <h3 className="text-base font-semibold">模型状态</h3>
-              <Badge tone={catalogStatusTone(model.status)}>{model.status === "published" && model.config_ready === false ? "待补配置" : modelStatusLabel(model.status)}</Badge>
+              <h3 className="text-base font-semibold">{tUI("consoleCopy.modelStatus")}</h3>
+              <Badge tone={catalogStatusTone(model.status)}>{model.status === "published" && model.config_ready === false ? tUI("consoleCopy.configurationIncomplete") : modelStatusLabel(model.status, tUI)}</Badge>
             </div>
-            <p className="mt-1 text-sm text-ink-secondary">模型配置完整后可在路由组选择；发布本身不会启用路由或授权渠道。</p>
+            <p className="mt-1 text-sm text-ink-secondary">{tUI("consoleCopy.aFullyConfiguredModelCanBeSelectedIn")}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {model.status !== "published" ? <ConfirmButton
-                size="sm" title="确认发布模型" description="仅发布模型配置，不创建路由和渠道授权。"
+                size="sm" title={tUI("consoleCopy.confirmModelPublication")} description={tUI("consoleCopy.publishOnlyTheModelConfigurationNoRoutesOr")}
                 error={lifeError} validate={() => {
                   if (modelForm.formState.isDirty || priceForm.formState.isDirty) {
-                    setLifeError("请先保存模型信息或发布新价格");
+                    setLifeError(tUI("consoleCopy.saveModelInformationOrPublishANewPrice"));
                     return false;
                   }
                   setLifeError("");
                   return true;
                 }} onConfirm={() => lifecycle("publish")}
-              >发布模型</ConfirmButton> : <>
-                <ConfirmButton size="sm" variant="outline" title="确认弃用模型" description="弃用后客户目录隐藏，历史账单保留。" error={lifeError} onConfirm={() => lifecycle("deprecate")}>弃用模型</ConfirmButton>
+              >{tUI("modelService.missing.publish")}</ConfirmButton> : <>
+                <ConfirmButton size="sm" variant="outline" title={tUI("consoleCopy.confirmModelDeprecation")} description={tUI("consoleCopy.deprecationHidesTheModelFromTheCustomerCatalog")} error={lifeError} onConfirm={() => lifecycle("deprecate")}>{tUI("adminUi.deprecateModel")}</ConfirmButton>
               </>}
             </div>
             {lifeError ? <p className="mt-3 text-sm text-danger">{lifeError}</p> : null}
           </section>
         </IfCan> : null}
         {!isNew && model ? <details className="rounded-card border border-hairline bg-canvas-raised p-6">
-          <summary className="cursor-pointer text-sm font-medium">查看价格版本</summary>
+          <summary className="cursor-pointer text-sm font-medium">{tUI("consoleCopy.viewPriceVersions")}</summary>
           <div className="mt-4">
             <AdminListPanel<PriceBook>
               path={`/admin/price-books?q=${encodeURIComponent(publicId)}`}
-              title="价格版本" columns={priceBookColumns} emptyTitle="还没有价格版本" emptyDetail="发布售价后会记录版本。"
+              title={tUI("consoleCopy.priceVersions")} columns={priceBookColumns} emptyTitle={tUI("consoleCopy.noPriceVersionsYet")} emptyDetail={tUI("consoleCopy.publishingASellingPriceRecordsAVersion")}
             />
           </div>
         </details> : null}

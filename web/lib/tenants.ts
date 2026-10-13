@@ -1,28 +1,31 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 export type TenantListKind = "channel" | "agent" | "kol";
 
-export const CHANNEL_TYPES = [
-  { value: "A", label: "平台" },
-  { value: "B", label: "渠道" },
+export function channelTypes(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "A", label: tUI("common.ownerPlatform") },
+  { value: "B", label: tUI("chrome.groupChannel") },
   { value: "C", label: "OEM" },
-] as const;
+] as const; }
+export const CHANNEL_TYPES = channelTypes();
 
-export const ROLE_TYPES = [
-  { value: "agent", label: "代理商" },
-  { value: "promoter", label: "个人推广员" },
-] as const;
+export function roleTypes(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "agent", label: tUI("partnerBoard.roleAgent") },
+  { value: "promoter", label: tUI("partnerBoard.rolePromoter") },
+] as const; }
+export const ROLE_TYPES = roleTypes();
 
 export const STATUS_OPTIONS = [
   { value: "active", label: "active" },
   { value: "disabled", label: "disabled" },
 ] as const;
 
-export function channelTypeLabel(type: string): string {
-  return CHANNEL_TYPES.find((item) => item.value === type)?.label ?? type;
+export function channelTypeLabel(type: string, tUI: CopyTranslator = defaultCopy): string {
+  return channelTypes(tUI).find((item) => item.value === type)?.label ?? type;
 }
 
-export function roleTypeLabel(type: string): string {
-  if (["kol_l1", "kol_l2"].includes(type)) return "个人推广员";
-  return ROLE_TYPES.find((item) => item.value === type)?.label ?? type;
+export function roleTypeLabel(type: string, tUI: CopyTranslator = defaultCopy): string {
+  if (["kol_l1", "kol_l2"].includes(type)) return tUI("partnerBoard.rolePromoter");
+  return roleTypes(tUI).find((item) => item.value === type)?.label ?? type;
 }
 
 export function isKOLType(type: string): boolean {

@@ -1,21 +1,24 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 /** 管理台目录三页共用的业务用语。同一对象只保留一个中文名。 */
-export const CATALOG_LABEL = {
-  publicModelId: "公开模型标识",
-  displayName: "显示名",
-  vendor: "原厂",
-  provider: "提供商",
-  providerPool: "提供商池",
-  upstreamModelId: "上游模型标识",
-  routeStrategy: "选路策略",
-  routeStatus: "路由状态",
-  tokenizer: "分词器",
-} as const;
+export function catalogLabels(tUI: CopyTranslator = defaultCopy) { return {
+  publicModelId: tUI("consoleCopy.publicModelId"),
+  displayName: tUI("shell.displayName"),
+  vendor: tUI("modelService.vendor"),
+  provider: tUI("admin.providers"),
+  providerPool: tUI("consoleCopy.providerPool"),
+  upstreamModelId: tUI("consoleCopy.upstreamModelId"),
+  routeStrategy: tUI("consoleCopy.routingStrategy"),
+  routeStatus: tUI("consoleCopy.routeStatus"),
+  tokenizer: tUI("consoleCopy.tokenizer"),
+} as const; }
+export const CATALOG_LABEL = catalogLabels();
 
-export const CATALOG_HELP = {
-  providers: "提供商是进货渠道：协议、调用地址和密钥都在这里。客户看到的名字在模型页；选哪几家、谁优先在路由组。",
-  models: "配置公开模型的名称、类型、能力和售价。发布后才可在路由组接入上游。",
-  routes: "为已发布模型配置提供商、上游模型标识和选路策略；启用后再由渠道授权。",
-} as const;
+export function catalogHelp(tUI: CopyTranslator = defaultCopy) { return {
+  providers: tUI("consoleCopy.providersAreUpstreamSourcesConfigureProtocolsUrlsAnd"),
+  models: tUI("consoleCopy.configureThePublicModelSNameTypeCapabilities"),
+  routes: tUI("consoleCopy.configureProvidersUpstreamModelIdsAndRoutingStrategies"),
+} as const; }
+export const CATALOG_HELP = catalogHelp();
 
 export type PublicModelOption = { id: string; display_name?: string; vendor?: string };
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { useTranslations } from "next-intl";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { canChannelAction } from "@/lib/rbac";
 import { useSearchParams } from "next/navigation";
@@ -21,6 +23,8 @@ import { confirmHeaders, confirmNetworkUnavailable } from "@/lib/confirm";
 type Channel = { id: string; code: string; type: string; status: string; parent_id?: string; brand_id: string };
 
 export default function SubchannelDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
   const { id } = use(params);
   const search=useSearchParams();
   const viewer = useViewer();
@@ -41,7 +45,7 @@ export default function SubchannelDetailPage({ params }: { params: Promise<{ id:
         body: JSON.stringify({ status }),
       });
       const body = await response.json();
-      setMessage(response.ok ? `已${status === "active" ? "启用" : "停用"} ${item.code}` : body.error?.message || "保存失败");
+      setMessage(response.ok ? tUI("consoleCopy.completed", { value0: String(status === "active" ? tUI("keyUX.enable") : tUI("staff.disable")), value1: String(item.code) }) : body.error?.message || tUI("user.saveFail"));
       if (response.ok) await queryClient.invalidateQueries({ queryKey: ["/admin/channels", id] });
       return response.ok;
     } catch {
@@ -51,8 +55,8 @@ export default function SubchannelDetailPage({ params }: { params: Promise<{ id:
   }
 
   return <div className="grid gap-6">
-    <header><Link className="text-sm text-brand-emphasis hover:underline" href={customerReturnHref(search.get("return_to"),"/channel/subchannels",scope)}>← 下属渠道</Link><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">{item?.code || "渠道详情"}</h1><p className="mt-1 text-sm text-ink-secondary">{item ? `渠道 · ${item.status === "active" ? "运行中" : "已停用"} · 继承本平台品牌` : "正在读取渠道…"}</p></div>{item && allowed && canChannelAction("operations", viewer) ? <ConfirmButton size="sm" variant="outline" title={`确认${item.status === "active" ? "停用" : "启用"}渠道`} description={item.status === "active" ? "停用后该渠道的新模型消费立即停止，余额和历史保留。" : "启用后仍须有有效模型授权才可调用。"} onConfirm={changeStatus}>{item.status === "active" ? "停用渠道" : "启用渠道"}</ConfirmButton> : null}</div>{message ? <p role="status" className="mt-2 text-sm text-ink-secondary">{message}</p> : null}{query.isError ? <p role="alert" className="mt-2">读取渠道失败，请返回列表重试。</p> : null}</header>
-    {item && me.data && !allowed ? <p role="alert">只能管理自己的直属下属渠道。</p> : null}
+    <header><Link className="text-sm text-brand-emphasis hover:underline" href={customerReturnHref(search.get("return_to"),"/channel/subchannels",scope)}>{tUI("consoleCopy.childChannels")}</Link><div className="mt-2 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">{item?.code || tUI("consoleCopy.channelDetails")}</h1><p className="mt-1 text-sm text-ink-secondary">{item ? tUI("consoleCopy.channelInheritsThisPlatformSBrand", { value0: String(item.status === "active" ? tUI("consoleCopy.operating") : tUI("common.stDisabled")) }) : tUI("customerExperience.loadingChannels")}</p></div>{item && allowed && canChannelAction("operations", viewer) ? <ConfirmButton size="sm" variant="outline" title={tUI("consoleCopy.confirmChannel", { value0: String(item.status === "active" ? tUI("staff.disable") : tUI("keyUX.enable")) })} description={item.status === "active" ? tUI("consoleCopy.newModelUsageStopsImmediatelyAfterDisablingBalance") : tUI("consoleCopy.enablingStillRequiresValidModelGrantsBeforeCalls")} onConfirm={changeStatus}>{item.status === "active" ? tUI("consoleCopy.disableChannel") : tUI("consoleCopy.enableChannel")}</ConfirmButton> : null}</div>{message ? <p role="status" className="mt-2 text-sm text-ink-secondary">{message}</p> : null}{query.isError ? <p role="alert" className="mt-2">{tUI("consoleCopy.couldNotLoadTheChannelReturnToThe")}</p> : null}</header>
+    {item && me.data && !allowed ? <p role="alert">{tUI("consoleCopy.onlyYourDirectChildChannelsCanBeManaged")}</p> : null}
     {allowed ? <><ChannelOnboardingPanel channelID={id}/><ChannelModelsPanel channelID={id} delegated />{viewer.roles.includes("channel_admin") ? <ChannelAdminsPanel channelID={id} code={item.code} /> : null}{viewer.roles.some((role) => ["channel_admin", "oem_ops", "oem_audit"].includes(role)) ? <><ChannelUsers channelID={id} />{viewer.roles.includes("channel_admin") ? <ProfessionalCustomerList channelID={id} surface="channel"/>:null}</> : null}</> : null}
   </div>;
 }

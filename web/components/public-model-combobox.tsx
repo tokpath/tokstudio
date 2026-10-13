@@ -1,5 +1,7 @@
 "use client";
 
+import { catalogLabels } from "@/lib/catalog-copy";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -15,6 +17,8 @@ export function PublicModelCombobox<T extends FieldValues>({
   name: FieldPath<T>;
   options: PublicModelOption[];
 }) {
+  const tUI = useTranslations();
+  const CATALOG_LABEL = catalogLabels(tUI);
   const [open, setOpen] = useState(false);
   const listId = `${String(name)}-public-model-list`;
 
@@ -27,7 +31,7 @@ export function PublicModelCombobox<T extends FieldValues>({
         return (
           <FormItem>
             <FormLabel>{CATALOG_LABEL.publicModelId}</FormLabel>
-            <p className="text-sm text-ink-secondary">客户请求里写的名字，不是上游官方模型名。</p>
+            <p className="text-sm text-ink-secondary">{tUI("consoleCopy.theNameSentInCustomerRequestsNotThe")}</p>
             <FormControl>
               <div className="relative">
                 <Input
@@ -38,7 +42,7 @@ export function PublicModelCombobox<T extends FieldValues>({
                   aria-controls={listId}
                   aria-autocomplete="list"
                   autoComplete="off"
-                  placeholder="输入显示名或标识筛选"
+                  placeholder={tUI("consoleCopy.filterByDisplayNameOrId")}
                   onFocus={() => setOpen(true)}
                   onBlur={() => setOpen(false)}
                   onChange={(event) => {
@@ -53,7 +57,7 @@ export function PublicModelCombobox<T extends FieldValues>({
                     className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-control border border-hairline bg-canvas-raised py-1 shadow-sm"
                   >
                     {filtered.length === 0 ? (
-                      <li className="px-3 py-2 text-sm text-ink-secondary">没有匹配的公开模型</li>
+                      <li className="px-3 py-2 text-sm text-ink-secondary">{tUI("consoleCopy.noMatchingPublicModels")}</li>
                     ) : (
                       filtered.map((item) => (
                         <li key={item.id} role="option">

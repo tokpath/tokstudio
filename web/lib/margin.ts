@@ -1,6 +1,9 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 export const COST_SOURCE = "TokenHub";
-export const EMPTY_ATTEMPT_COST = "暂无 attempt 成本";
-export const PAGE_TITLE = "成本/毛利";
+export function emptyAttemptCostText(tUI: CopyTranslator = defaultCopy) { return tUI("adminUi.marginEmpty"); }
+export const EMPTY_ATTEMPT_COST = emptyAttemptCostText();
+export function marginPageTitle(tUI: CopyTranslator = defaultCopy) { return tUI("admin.margin"); }
+export const PAGE_TITLE = marginPageTitle();
 
 export type PriceTiers = {
   upstream?: string;
@@ -47,12 +50,12 @@ export function marginClassName(margin: number): string {
   return isNegativeMargin(margin) ? "text-[color:var(--danger)]" : "";
 }
 
-export function emptyAttemptCostTitle(): string {
-  return EMPTY_ATTEMPT_COST;
+export function emptyAttemptCostTitle(tUI: CopyTranslator = defaultCopy): string {
+  return emptyAttemptCostText(tUI);
 }
 
-export function pageTitle(): string {
-  return PAGE_TITLE;
+export function pageTitle(tUI: CopyTranslator = defaultCopy): string {
+  return marginPageTitle(tUI);
 }
 
 export function costSourceLabel(): string {

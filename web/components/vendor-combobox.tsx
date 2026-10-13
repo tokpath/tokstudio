@@ -1,5 +1,8 @@
 "use client";
 
+
+import { catalogLabels } from "@/lib/catalog-copy";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -18,6 +21,9 @@ export function VendorCombobox<T extends FieldValues>({
   extra?: string[];
   onCommit?: (vendor: string) => void;
 }) {
+  const tUI = useTranslations();
+
+  const CATALOG_LABEL = catalogLabels(tUI);
   const [open, setOpen] = useState(false);
   const listId = `${String(name)}-vendor-list`;
 
@@ -29,8 +35,8 @@ export function VendorCombobox<T extends FieldValues>({
         const value = String(field.value ?? "");
         const needle = value.trim().toLowerCase();
         const options = optionUnion(KNOWN_VENDORS, [...extra, value]).filter((item) => {
-          const hay = `${item} ${vendorLabel(item)}`.toLowerCase();
-          return !needle || hay.includes(needle) || vendorLabel(item).toLowerCase().includes(needle);
+          const hay = `${item} ${vendorLabel(item, tUI)}`.toLowerCase();
+          return !needle || hay.includes(needle) || vendorLabel(item, tUI).toLowerCase().includes(needle);
         });
         return (
           <FormItem>
@@ -45,7 +51,7 @@ export function VendorCombobox<T extends FieldValues>({
                   aria-controls={listId}
                   aria-autocomplete="list"
                   autoComplete="off"
-                  placeholder="例如阿里 / OpenAI"
+                  placeholder={tUI("consoleCopy.forExampleAlibabaOpenai")}
                   onFocus={() => setOpen(true)}
                   onBlur={() => {
                     setOpen(false);
@@ -79,7 +85,7 @@ export function VendorCombobox<T extends FieldValues>({
                             onCommit?.(item);
                           }}
                         >
-                          <span>{vendorLabel(item)}</span>
+                          <span>{vendorLabel(item, tUI)}</span>
                           <span className="font-mono text-xs text-ink-secondary">{item}</span>
                         </button>
                       </li>

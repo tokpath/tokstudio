@@ -1,5 +1,7 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { useTranslations } from "next-intl";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { canChannelAction, canWrite } from "@/lib/rbac";
 
@@ -51,6 +53,8 @@ const stateTone: Record<string, "neutral" | "brand" | "success" | "warn"> = {
 };
 
 export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "admin" }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
   const basePath = `/${scope}/payments`;
   const permissionViewer = useViewer();
   const queryClient = useQueryClient();
@@ -60,7 +64,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
       const res = await fetch(`${apiBase}${basePath}/overview`, { credentials: "include" });
       const body = (await res.json()) as Overview & { error?: { message?: string } };
       if (!res.ok) {
-        throw new Error(body.error?.message || `加载失败（${res.status}）`);
+        throw new Error(body.error?.message || tUI("consoleCopy.loadingFailed", { value0: String(res.status) }));
       }
       return body;
     },
@@ -81,11 +85,11 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
   const stateLabel = useMemo(
     () =>
       ({
-        none: "未开通",
-        configuring: "配置中",
-        sandbox: "沙箱可用",
-        live: "已开通",
-        disabled: "已停用",
+        none: tUI("consoleCopy.notActivated"),
+        configuring: tUI("oemDelivery.phase.configuring"),
+        sandbox: tUI("consoleCopy.sandboxAvailable"),
+        live: tUI("consoleCopy.activated"),
+        disabled: tUI("common.stDisabled"),
       }) as Record<string, string>,
     [],
   );
@@ -93,7 +97,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
   function resetWizard(lane: Lane) {
     setOpen(lane);
     setStep(0);
-    setName(`${lane.display_name} 商户`);
+    setName(tUI("consoleCopy.merchant", { value0: String(lane.display_name) }));
     setMode("sandbox");
     setCreds({});
     setInstanceID("");
@@ -109,7 +113,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
     });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "创建失败");
+      setMessage(body.error?.message || tUI("common.createFailed"));
       return "";
     }
     const id = String(body.item?.id || "");
@@ -128,10 +132,10 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
     });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "保存凭证失败");
+      setMessage(body.error?.message || tUI("consoleCopy.couldNotSaveCredentials"));
       return false;
     }
-    setMessage("凭证已保存（密钥不会回显）");
+    setMessage(tUI("consoleCopy.credentialsSavedSecretsWillNotBeShownAgain"));
     return true;
   }
 
@@ -144,23 +148,23 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
     });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "连通失败，请检查必填字段");
+      setMessage(body.error?.message || tUI("consoleCopy.connectionFailedCheckTheRequiredFields"));
       return false;
     }
-    setMessage("连通成功");
+    setMessage(tUI("consoleCopy.connectionSuccessful"));
     return true;
   }
 
   if (query.isPending) {
-    return <p className="text-sm text-ink-secondary">正在加载支付通道…</p>;
+    return <p className="text-sm text-ink-secondary">{tUI("consoleCopy.loadingPaymentMethods")}</p>;
   }
   if (query.isError) {
-    const detail = query.error instanceof Error ? query.error.message : "加载失败";
+    const detail = query.error instanceof Error ? query.error.message : tUI("common.listFailed");
     return (
       <EmptyState
         icon={CreditCard}
-        title="无法加载支付通道"
-        detail={`${detail}。请刷新重试。`}
+        title={tUI("consoleCopy.couldNotLoadPaymentMethods")}
+        detail={tUI("consoleCopy.refreshAndTryAgain", { value0: String(detail) })}
       />
     );
   }
@@ -168,8 +172,8 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
     return (
       <EmptyState
         icon={CreditCard}
-        title="还没有支付插件"
-        detail="当前未配置可用的支付方式。"
+        title={tUI("consoleCopy.noPaymentPluginsYet")}
+        detail={tUI("consoleCopy.noAvailablePaymentMethodsAreConfigured")}
       />
     );
   }
@@ -188,13 +192,13 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
             </div>
             <p className="mb-4 text-sm text-ink-secondary">
               {lane.state === "none"
-                ? `开通后，本渠道用户充值页会出现${lane.display_name}。`
+                ? tUI("consoleCopy.afterActivationThisChannelSTopUpPage", { value0: String(lane.display_name) })
                 : lane.missing_fields?.length
-                  ? `还差：${lane.missing_fields.join("、")}`
-                  : `已配置 ${lane.instance_count} 个商户。收款币种 ${lane.pay_currency}。`}
+                  ? tUI("consoleCopy.stillRequired", { value0: String(lane.missing_fields.join("、")) })
+                  : tUI("consoleCopy.merchantsConfiguredSettlementCurrency", { value0: String(lane.instance_count), value1: String(lane.pay_currency) })}
             </p>
             <Button size="sm" disabled={!(scope === "admin" ? canWrite("payments.write", permissionViewer) : canChannelAction("paymentSettings", permissionViewer))} onClick={() => resetWizard(lane)}>
-              {lane.state === "none" ? `开通${lane.display_name}` : "管理凭证"}
+              {lane.state === "none" ? tUI("consoleCopy.activate", { value0: String(lane.display_name) }) : tUI("consoleCopy.manageCredentials")}
             </Button>
           </section>
         ))}
@@ -202,24 +206,23 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
       <Dialog open={!!open} onOpenChange={(next) => !next && setOpen(null)}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>开通 {open?.display_name}</DialogTitle>
+            <DialogTitle>{tUI("consoleCopy.activate517")}{open?.display_name}</DialogTitle>
             <DialogDescription>
-              第 {step + 1} / 5 步。凭证按该支付方式自己的字段渲染，后续加本地支付不用改这个向导结构。
-            </DialogDescription>
+              {tUI("consoleCopy.step")}{step + 1} {tUI("consoleCopy.5CredentialFieldsFollowEachPaymentMethodS")}</DialogDescription>
           </DialogHeader>
           {step === 0 ? (
             <div className="grid gap-3">
-              <Label htmlFor="ppi-name">内部名称</Label>
+              <Label htmlFor="ppi-name">{tUI("consoleCopy.internalName")}</Label>
               <Input id="ppi-name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Label htmlFor="ppi-mode">环境</Label>
+              <Label htmlFor="ppi-mode">{tUI("consoleCopy.environment")}</Label>
               <select
                 id="ppi-mode"
                 className="h-10 rounded-control border border-hairline bg-canvas-raised px-3 text-sm"
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
               >
-                <option value="sandbox">沙箱</option>
-                <option value="live">生产</option>
+                <option value="sandbox">{tUI("consoleCopy.sandbox")}</option>
+                <option value="live">{tUI("consoleCopy.production")}</option>
               </select>
             </div>
           ) : null}
@@ -234,7 +237,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                   <Input
                     id={field.key}
                     type={field.secret ? "password" : "text"}
-                    placeholder={field.secret ? "已填写则留空不覆盖" : ""}
+                    placeholder={field.secret ? tUI("consoleCopy.leaveBlankToRetainTheSavedValue") : ""}
                     value={creds[field.key] || ""}
                     onChange={(e) => setCreds((prev) => ({ ...prev, [field.key]: e.target.value }))}
                   />
@@ -244,7 +247,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
           ) : null}
           {step === 2 ? (
             <div className="grid gap-2 text-sm">
-              <p className="text-ink-secondary">回调只读，系统用商户号识别渠道，不必把渠道 ID 写进 URL。</p>
+              <p className="text-ink-secondary">{tUI("consoleCopy.theCallbackIsReadOnlyTheSystemIdentifies")}</p>
               <p className="th-eyebrow text-ink-mute">ORIGIN</p>
               <code className="rounded-stamp bg-canvas px-3 py-2">{origin || "—"}</code>
               <p className="th-eyebrow text-ink-mute">PATH</p>
@@ -254,37 +257,33 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                 variant="outline"
                 onClick={() => void navigator.clipboard.writeText(`${origin}${webhookPath}`)}
               >
-                复制完整 URL
-              </Button>
+                {tUI("consoleCopy.copyFullUrl")}</Button>
             </div>
           ) : null}
           {step === 3 ? (
-            <p className="text-sm text-ink-secondary">限额可留空，使用收款规则里的默认最低/最高金额。多商户时以后再开负载均衡。</p>
+            <p className="text-sm text-ink-secondary">{tUI("consoleCopy.limitsAreOptionalDefaultsComeFromThePayment")}</p>
           ) : null}
           {step === 4 ? (
-            <p className="text-sm text-ink-secondary">先测连通。失败不能上线。沙箱模式可先给本渠道测试账号用。</p>
+            <p className="text-sm text-ink-secondary">{tUI("consoleCopy.testConnectivityFirstAFailedTestBlocksProduction")}</p>
           ) : null}
           {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
           <DialogFooter>
             {step > 0 ? (
               <Button variant="outline" onClick={() => setStep((n) => n - 1)}>
-                上一步
-              </Button>
+                {tUI("consoleCopy.previousStep")}</Button>
             ) : null}
             {step === 1 ? (
-              <ConfirmButton title="保存凭证" description="密钥加密存储，列表不会回显。" onConfirm={saveCredentials}>
-                保存凭证
-              </ConfirmButton>
+              <ConfirmButton title={tUI("consoleCopy.saveCredentials")} description={tUI("consoleCopy.secretsAreStoredEncryptedAndNeverReturnedIn")} onConfirm={saveCredentials}>
+                {tUI("consoleCopy.saveCredentials")}</ConfirmButton>
             ) : null}
             {step === 4 ? (
               <>
                 <Button variant="outline" onClick={() => void testConn()}>
-                  测连通
-                </Button>
+                  {tUI("consoleCopy.testConnection")}</Button>
                 {mode === "live" ? (
                   <ConfirmButton
-                    title="上线生产"
-                    description="生产通道会在用户充值页展示。请确认商户号和回调已在支付机构后台配好。"
+                    title={tUI("consoleCopy.activateProduction")}
+                    description={tUI("consoleCopy.productionPaymentsAppearOnTheUserSTop")}
                     onConfirm={async () => {
                     try {
                       const ok = await testConn();
@@ -296,7 +295,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                         body: "{}",
                       });
                       const body = await res.json();
-                      setMessage(res.ok ? "已上线" : body.error?.message || "上线失败");
+                      setMessage(res.ok ? tUI("consoleCopy.live") : body.error?.message || tUI("consoleCopy.activationFailed"));
                     const __ok = res.ok;
                       if (res.ok) {
                         setOpen(null);
@@ -309,8 +308,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                     }
 }}
                   >
-                    上线
-                  </ConfirmButton>
+                    {tUI("consoleCopy.goLive")}</ConfirmButton>
                 ) : (
                   <Button
                     onClick={async () => {
@@ -321,8 +319,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                       }
                     }}
                   >
-                    保存沙箱
-                  </Button>
+                    {tUI("consoleCopy.saveSandbox")}</Button>
                 )}
               </>
             ) : (
@@ -335,8 +332,7 @@ export function PaymentLanesPanel({ scope = "channel" }: { scope?: "channel" | "
                   setStep((n) => Math.min(4, n + 1));
                 }}
               >
-                下一步
-              </Button>
+                {tUI("vibeUi.statNext")}</Button>
             )}
           </DialogFooter>
         </DialogContent>

@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const icon = publicAssetURL(brand?.favicon_url || brand?.logo_url);
   return {
     title: brand?.name || "TokenHub",
-    description: messages.chrome?.metaDescription || "一个 Key，可解释路由，账能复算。",
+    description: messages.chrome?.metaDescription || "TokenHub API",
     icons: icon ? { icon } : undefined,
     other: brand ? { "tokstudio-brand-id": brand.id } : undefined,
   };

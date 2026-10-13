@@ -1,4 +1,5 @@
 "use client";
+import { networkUnavailable } from "@/lib/confirm";
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
@@ -21,6 +22,9 @@ type Channel = {
     status: string;
 };
 function ChannelList() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
     const t = useTranslations("customerExperience");
     const viewer = useViewer();
     const brand = useBrand();

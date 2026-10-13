@@ -1,45 +1,51 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 /** 接入提供商时可选的请求协议。Bifrost 是数据面，不作为选项。 */
-export const PROVIDER_PROTOCOLS = [
-  { value: "openai", label: "OpenAI 兼容" },
+export function providerProtocols(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "openai", label: tUI("desktopUi.hintCline") },
   { value: "anthropic", label: "Anthropic" },
   { value: "gemini", label: "Gemini" },
-  { value: "ark", label: "火山方舟" },
+  { value: "ark", label: tUI("consoleCopy.volcengineArk") },
   { value: "openrouter", label: "OpenRouter" },
-] as const;
+] as const; }
+export const PROVIDER_PROTOCOLS = providerProtocols();
 
-const LEGACY_ADAPTER_LABELS: Record<string, string> = {
-  test: "沙箱回声",
+function legacyAdapterLabels(tUI: CopyTranslator = defaultCopy): Record<string, string> { return {
+  test: tUI("consoleCopy.sandboxEcho"),
   bifrost: "Bifrost",
-};
+}; }
+const LEGACY_ADAPTER_LABELS = legacyAdapterLabels();
 
-export function protocolOptions(current?: string): { value: string; label: string }[] {
-  const options = PROVIDER_PROTOCOLS.map((item) => ({ value: item.value, label: item.label }));
+export function protocolOptions(current?: string, tUI: CopyTranslator = defaultCopy): { value: string; label: string }[] {
+  const options = providerProtocols(tUI).map((item) => ({ value: item.value, label: item.label }));
   const value = (current || "").trim().toLowerCase();
   if (value && !options.some((item) => item.value === value)) {
-    return [{ value, label: adapterLabel(value) }, ...options];
+    return [{ value, label: adapterLabel(value, tUI) }, ...options];
   }
   return options;
 }
 
-export const PROVIDER_STATUSES = [
-  { value: "active", label: "参与路由" },
-  { value: "maintenance", label: "维护中（从路由拿掉）" },
-  { value: "disabled", label: "已停用" },
-] as const;
+export function providerStatuses(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "active", label: tUI("consoleCopy.eligibleForRouting") },
+  { value: "maintenance", label: tUI("consoleCopy.maintenanceExcludedFromRouting") },
+  { value: "disabled", label: tUI("common.stDisabled") },
+] as const; }
+export const PROVIDER_STATUSES = providerStatuses();
 
 /** 对齐 catalog.applyStrategy：priority / weight / price / health。 */
-export const ROUTE_STRATEGIES = [
-  { value: "priority", label: "按指定顺序" },
-  { value: "weight", label: "按流量权重" },
-  { value: "price", label: "选更便宜的" },
-  { value: "health", label: "选更健康的" },
-] as const;
+export function routeStrategies(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "priority", label: tUI("consoleCopy.specifiedOrder") },
+  { value: "weight", label: tUI("consoleCopy.trafficWeights") },
+  { value: "price", label: tUI("consoleCopy.lowestPrice") },
+  { value: "health", label: tUI("consoleCopy.bestHealth") },
+] as const; }
+export const ROUTE_STRATEGIES = routeStrategies();
 
 /** 网关 ResolveRoute 只取 status=active 的路由组。 */
-export const ROUTE_STATUSES = [
-  { value: "active", label: "启用选路" },
-  { value: "inactive", label: "停用" },
-] as const;
+export function routeStatuses(tUI: CopyTranslator = defaultCopy) { return [
+  { value: "active", label: tUI("consoleCopy.routingEnabled") },
+  { value: "inactive", label: tUI("staff.disable") },
+] as const; }
+export const ROUTE_STATUSES = routeStatuses();
 
 function withCurrentOption(
   items: readonly { value: string; label: string }[],
@@ -53,89 +59,89 @@ function withCurrentOption(
   return options;
 }
 
-export function routeStrategyOptions(current?: string): { value: string; label: string }[] {
-  return withCurrentOption(ROUTE_STRATEGIES, current);
+export function routeStrategyOptions(current?: string, tUI: CopyTranslator = defaultCopy): { value: string; label: string }[] {
+  return withCurrentOption(routeStrategies(tUI), current);
 }
 
-export function routeStatusOptions(current?: string): { value: string; label: string }[] {
-  return withCurrentOption(ROUTE_STATUSES, current);
+export function routeStatusOptions(current?: string, tUI: CopyTranslator = defaultCopy): { value: string; label: string }[] {
+  return withCurrentOption(routeStatuses(tUI), current);
 }
 
-export function routeStrategyLabel(value?: string): string {
+export function routeStrategyLabel(value?: string, tUI: CopyTranslator = defaultCopy): string {
   const key = (value || "").trim().toLowerCase();
-  return ROUTE_STRATEGIES.find((item) => item.value === key)?.label || value?.trim() || "—";
+  return routeStrategies(tUI).find((item) => item.value === key)?.label || value?.trim() || "—";
 }
 
-export function routeStatusLabel(value?: string): string {
+export function routeStatusLabel(value?: string, tUI: CopyTranslator = defaultCopy): string {
   const key = (value || "").trim().toLowerCase();
-  return ROUTE_STATUSES.find((item) => item.value === key)?.label || value?.trim() || "—";
+  return routeStatuses(tUI).find((item) => item.value === key)?.label || value?.trim() || "—";
 }
 
-export function modelStatusLabel(status?: string): string {
+export function modelStatusLabel(status?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((status || "").trim().toLowerCase()) {
     case "published":
-      return "已发布";
+      return tUI("common.stPublished");
     case "draft":
-      return "草稿";
+      return tUI("common.stDraft");
     case "deprecated":
-      return "已下架";
+      return tUI("common.stArchived");
     case "active":
-      return "启用";
+      return tUI("keyUX.enable");
     case "inactive":
-      return "停用";
+      return tUI("staff.disable");
     case "disabled":
-      return "已停用";
+      return tUI("common.stDisabled");
     default:
       return statusWord(status);
   }
 }
 
-export function providerKindLabel(kind?: string): string {
+export function providerKindLabel(kind?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((kind || "").trim().toLowerCase()) {
     case "aggregator":
-      return "聚合";
+      return tUI("consoleCopy.aggregator");
     case "direct":
-      return "直连";
+      return tUI("consoleCopy.direct");
     default:
       return kind?.trim() || "—";
   }
 }
 
-export function adapterLabel(adapter?: string): string {
+export function adapterLabel(adapter?: string, tUI: CopyTranslator = defaultCopy): string {
   const value = (adapter || "").trim().toLowerCase();
   if (!value) {
     return "—";
   }
-  const protocol = PROVIDER_PROTOCOLS.find((item) => item.value === value);
+  const protocol = providerProtocols(tUI).find((item) => item.value === value);
   if (protocol) {
     return protocol.label;
   }
-  return LEGACY_ADAPTER_LABELS[value] ?? (adapter?.trim() || "—");
+  return legacyAdapterLabels(tUI)[value] ?? (adapter?.trim() || "—");
 }
 
-export function providerStatusLabel(status?: string): string {
+export function providerStatusLabel(status?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((status || "").trim().toLowerCase()) {
     case "active":
-      return "参与路由";
+      return tUI("consoleCopy.eligibleForRouting");
     case "maintenance":
-      return "维护中";
+      return tUI("consoleCopy.maintenance");
     case "disabled":
-      return "已停用";
+      return tUI("common.stDisabled");
     default:
       return status?.trim() || "—";
   }
 }
 
-export function healthLabel(health?: string): string {
+export function healthLabel(health?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((health || "").trim().toLowerCase()) {
     case "available":
-      return "正常";
+      return tUI("staff.active");
     case "degraded":
-      return "降级";
+      return tUI("consoleCopy.degraded");
     case "unavailable":
-      return "不可用";
+      return tUI("consoleCopy.unavailable");
     case "maintenance":
-      return "维护中";
+      return tUI("consoleCopy.maintenance");
     default:
       return health?.trim() || "—";
   }
@@ -153,9 +159,9 @@ export type MappedPublicModel = {
   status?: string;
 };
 
-export function formatMappedModels(models?: MappedPublicModel[]): string {
+export function formatMappedModels(models?: MappedPublicModel[], tUI: CopyTranslator = defaultCopy): string {
   const ids = (models || []).map((item) => (item.public_id || "").trim()).filter(Boolean);
-  return ids.length > 0 ? ids.join(" · ") : "尚未接到公开模型";
+  return ids.length > 0 ? ids.join(" · ") : tUI("consoleCopy.noPublicModelsConnectedYet");
 }
 
 export function healthTone(health?: string): "success" | "warn" | "neutral" {
@@ -219,31 +225,31 @@ export function modelLifecycleEnabled(status?: string, syncState?: string): {
   };
 }
 
-export function syncStateLabel(state?: string): string {
+export function syncStateLabel(state?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((state || "").trim().toLowerCase()) {
     case "draft":
-      return "草稿";
+      return tUI("common.stDraft");
     case "reviewed":
-      return "已通过";
+      return tUI("consoleCopy.approved");
     case "rejected":
-      return "已拒绝";
+      return tUI("common.stRejected");
     case "published":
-      return "已发布";
+      return tUI("common.stPublished");
     default:
       return state?.trim() || "—";
   }
 }
 
-export function formatRpm(limit?: number): string {
+export function formatRpm(limit?: number, tUI: CopyTranslator = defaultCopy): string {
   if (!limit || limit <= 0) {
-    return "未限制";
+    return tUI("consoleCopy.unlimited");
   }
   return String(limit);
 }
 
-export function formatProviderSlugs(providers?: string[]): string {
+export function formatProviderSlugs(providers?: string[], tUI: CopyTranslator = defaultCopy): string {
   const items = (providers || []).map((item) => item.trim()).filter(Boolean);
-  return items.length > 0 ? items.join(" · ") : "尚未接入提供商";
+  return items.length > 0 ? items.join(" · ") : tUI("consoleCopy.noProvidersConnectedYet");
 }
 
 export type ProviderOption = { id: string; name: string; slug: string };

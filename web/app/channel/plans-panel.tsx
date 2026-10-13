@@ -1,5 +1,7 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { planPeriodLabels, planStatusLabels } from "@/lib/plan-display";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { canChannelAction } from "@/lib/rbac";
 
@@ -44,6 +46,10 @@ type Plan = {
 };
 
 export function ChannelPlans() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+  const planPeriodLabel = planPeriodLabels(tUI);
+  const planStatusLabel = planStatusLabels(tUI);
   const permissionViewer = useViewer();
   const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");
@@ -102,7 +108,7 @@ export function ChannelPlans() {
       setCreateError(t("priceRequired"));
       return;
     }
-    if (channelScope === "selected" && selectedChannels.length === 0) { setCreateError("请选择至少一个渠道"); return; }
+    if (channelScope === "selected" && selectedChannels.length === 0) { setCreateError(tUI("consoleCopy.selectAtLeastOneChannel")); return; }
     const generation = ++submitGen.current;
     creatingRef.current = true;
     setCreating(true);
@@ -160,10 +166,10 @@ export function ChannelPlans() {
       });
       const body = await response.json();
       if (!response.ok) {
-        setActionMessage(body.error?.message || "操作失败");
+        setActionMessage(body.error?.message || tUI("user.actFail"));
         return false;
       }
-      setActionMessage(`已${action === "approve" ? "发布" : action === "archive" ? "下架" : "拒绝"} ${item.name}`);
+      setActionMessage(tUI("consoleCopy.completed", { value0: String(action === "approve" ? tUI("consoleCopy.publish") : action === "archive" ? tUI("consoleCopy.unpublish") : tUI("consoleCopy.reject")), value1: String(item.name) }));
       await list.reload();
       return true;
     } catch {
@@ -182,27 +188,27 @@ export function ChannelPlans() {
     </>} />
     <Card>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <select aria-label="按状态筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <option value="">全部状态</option>
-          <option value="pending_review">待审核</option>
-          <option value="published">已发布</option>
-          <option value="archived">已下架</option>
-          <option value="rejected">已拒绝</option>
+        <select aria-label={tUI("adminUi.filterStatus")} className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">{tUI("paymentTasks.allStatus")}</option>
+          <option value="pending_review">{tUI("common.stPendingReview")}</option>
+          <option value="published">{tUI("common.stPublished")}</option>
+          <option value="archived">{tUI("common.stArchived")}</option>
+          <option value="rejected">{tUI("common.stRejected")}</option>
         </select>
-        <select aria-label="按渠道筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={channelFilter} onChange={(event) => setChannelFilter(event.target.value)}>
-          <option value="">全部渠道</option>
+        <select aria-label={tUI("consoleCopy.filterByChannel")} className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={channelFilter} onChange={(event) => setChannelFilter(event.target.value)}>
+          <option value="">{tUI("consoleCopy.allChannels")}</option>
           {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.code}</option>)}
         </select>
-        <select aria-label="按套餐类型筛选" className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
-          <option value="">全部周期</option>
-          <option value="lifetime">不限时</option>
-          <option value="monthly">包月</option>
-          <option value="quarterly">季付</option>
-          <option value="yearly">年付</option>
+        <select aria-label={tUI("consoleCopy.filterByPlanType")} className="h-10 rounded-control border border-hairline bg-canvas px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
+          <option value="">{tUI("consoleCopy.allPeriods")}</option>
+          <option value="lifetime">{tUI("user.planLifetime")}</option>
+          <option value="monthly">{tUI("consoleCopy.monthlyPlan")}</option>
+          <option value="quarterly">{tUI("user.planQuarterly")}</option>
+          <option value="yearly">{tUI("user.planYearly")}</option>
         </select>
         <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); setNameFilter(nameInput.trim()); }}>
-          <input aria-label="按套餐名筛选" placeholder="套餐名" className="h-10 w-44 rounded-control border border-hairline bg-canvas px-3 text-sm placeholder:text-ink-secondary focus:placeholder:text-transparent" value={nameInput} onChange={(event) => setNameInput(event.target.value)} />
-          <Button type="submit" variant="outline">筛选</Button>
+          <input aria-label={tUI("consoleCopy.filterByPlanName")} placeholder={tUI("channelUi.planName")} className="h-10 w-44 rounded-control border border-hairline bg-canvas px-3 text-sm placeholder:text-ink-secondary focus:placeholder:text-transparent" value={nameInput} onChange={(event) => setNameInput(event.target.value)} />
+          <Button type="submit" variant="outline">{tUI("common.filter")}</Button>
         </form>
       </div>
       {actionMessage ? <p role="status" className="mb-3 text-sm text-ink-secondary">{actionMessage}</p> : null}
@@ -226,15 +232,15 @@ export function ChannelPlans() {
                 </select>
               </label>
               <fieldset className="grid gap-2 text-sm">
-                <legend>适用渠道</legend>
-                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />所有渠道</label>
-                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />指定渠道</label>
+                <legend>{tUI("consoleCopy.eligibleChannels")}</legend>
+                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "all"} onChange={() => setChannelScope("all")} />{tUI("consoleCopy.allChannels226")}</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={channelScope === "selected"} onChange={() => setChannelScope("selected")} />{tUI("consoleCopy.selectedChannels")}</label>
                 {channelScope === "selected" ? <div className="grid gap-2">
-                  <input aria-label="查找适用渠道" className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder="查找渠道" value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />
+                  <input aria-label={tUI("consoleCopy.findEligibleChannels")} className="h-9 rounded-md border border-hairline bg-canvas-raised px-2" placeholder={tUI("consoleCopy.findChannels")} value={channelSearch} onChange={(event) => setChannelSearch(event.target.value)} />
                   <div className="max-h-32 overflow-y-auto rounded-md border border-hairline p-2">
                     {channels.filter((channel) => channel.code.toLowerCase().includes(channelSearch.toLowerCase())).map((channel) => <label key={channel.id} className="flex items-center gap-2 py-1"><input type="checkbox" checked={selectedChannels.includes(channel.id)} onChange={(event) => setSelectedChannels(event.target.checked ? [...selectedChannels, channel.id] : selectedChannels.filter((id) => id !== channel.id))} />{channel.code}</label>)}
                   </div>
-                  <span className="text-xs text-ink-secondary">已选 {selectedChannels.length} 个渠道</span>
+                  <span className="text-xs text-ink-secondary">{tUI("consoleCopy.selected")}{selectedChannels.length} {tUI("consoleCopy.channels")}</span>
                 </div> : null}
               </fieldset>
               {createError ? <SubmitStatus error={createError} /> : null}
@@ -257,16 +263,16 @@ export function ChannelPlans() {
           getRowId={(item) => item.id || item.name || "plan"}
           rows={list.snapshot.items}
           columns={[
-            { id: "name", header: "套餐", cell: (item) => <span className="whitespace-nowrap">{item.name || "—"}</span> },
-            { id: "price", header: "价格", cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor, tc("lessThanCent"))}</span> },
-            { id: "quota", header: "包括额度", cell: (item) => <span className="whitespace-nowrap">{planQuotaText(item.items)}</span> },
-            { id: "period", header: "额度周期", cell: (item) => <span className="whitespace-nowrap">{planPeriodLabel[item.billing_period || ""] || item.billing_period || "—"}</span> },
-            { id: "channels", header: "适用渠道", cell: (item) => <span className="whitespace-nowrap">{planAudienceText(item, channelNames)}</span> },
-            { id: "status", header: "状态", cell: (item) => <Badge tone={statusTone(item.status)}>{planStatusLabel[item.status || ""] || item.status || "—"}</Badge> },
-            { id: "actions", header: "操作", className: "w-full text-right", cell: (item) => <span className="flex w-full justify-end gap-1">
-              <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title="确认发布套餐" description={`发布后本品牌用户可购买「${item.name}」。`} onConfirm={() => changeStatus(item, "approve")}>发布</ConfirmButton>
-              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title="确认下架套餐" description={`下架「${item.name}」后停止新购买，已有权益保留。`} onConfirm={() => changeStatus(item, "archive")}>下架</ConfirmButton>
-              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "pending_review"} title="确认拒绝套餐" description={`拒绝「${item.name}」。`} onConfirm={() => changeStatus(item, "reject")}>拒绝</ConfirmButton>
+            { id: "name", header: tUI("userNav.plans"), cell: (item) => <span className="whitespace-nowrap">{item.name || "—"}</span> },
+            { id: "price", header: tUI("admin.prices"), cell: (item) => <span className="whitespace-nowrap">{formatUsdMinor(item.price_minor, tc("lessThanCent"))}</span> },
+            { id: "quota", header: tUI("consoleCopy.includedCredit"), cell: (item) => <span className="whitespace-nowrap">{planQuotaText(item.items, tUI)}</span> },
+            { id: "period", header: tUI("channelUi.billingPeriod"), cell: (item) => <span className="whitespace-nowrap">{planPeriodLabel[item.billing_period || ""] || item.billing_period || "—"}</span> },
+            { id: "channels", header: tUI("consoleCopy.eligibleChannels"), cell: (item) => <span className="whitespace-nowrap">{planAudienceText(item, channelNames, tUI)}</span> },
+            { id: "status", header: tUI("compareUi.status"), cell: (item) => <Badge tone={statusTone(item.status)}>{planStatusLabel[item.status || ""] || item.status || "—"}</Badge> },
+            { id: "actions", header: tUI("user.colActions"), className: "w-full text-right", cell: (item) => <span className="flex w-full justify-end gap-1">
+              <ConfirmButton size="sm" disabled={!canOperate || !item.id || !["pending_review", "rejected", "archived"].includes(item.status || "")} title={tUI("consoleCopy.confirmPlanPublication")} description={tUI("consoleCopy.usersOfThisBrandCanPurchaseAfterPublication", { value0: String(item.name) })} onConfirm={() => changeStatus(item, "approve")}>{tUI("consoleCopy.publish")}</ConfirmButton>
+              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "published"} title={tUI("consoleCopy.confirmPlanUnpublication")} description={tUI("consoleCopy.stopNewPurchasesOfExistingBenefitsWillBe", { value0: String(item.name) })} onConfirm={() => changeStatus(item, "archive")}>{tUI("consoleCopy.unpublish")}</ConfirmButton>
+              <ConfirmButton size="sm" variant="outline" disabled={!canOperate || !item.id || item.status !== "pending_review"} title={tUI("consoleCopy.confirmPlanRejection")} description={tUI("consoleCopy.reject555", { value0: String(item.name) })} onConfirm={() => changeStatus(item, "reject")}>{tUI("consoleCopy.reject")}</ConfirmButton>
             </span> },
           ]}
         />

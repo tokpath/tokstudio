@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { usePathname, useSearchParams } from "next/navigation";
 import { appendReturnContext } from "@/lib/return-context";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { perTokenToPerMillion } from "@/lib/token-price";
 import { type AdminModel } from "@/lib/catalog";
 
 export function ModelServicePanel({ model }: { model: AdminModel }) {
+  const displayLocale = useLocale();
   const path = usePathname();
   const params = useSearchParams();
   const modelReturn = `${path}${params.size ? `?${params}` : ""}`;
@@ -31,7 +33,7 @@ export function ModelServicePanel({ model }: { model: AdminModel }) {
       {canViewAdminHref("/admin/providers", viewer) ? <Link className="break-all text-brand-emphasis underline" href={appendReturnContext(`/admin/providers/${encodeURIComponent(provider.provider_id)}?model=${encodeURIComponent(model.id)}`, modelReturn)}>{provider.provider_id}</Link> : <span>{provider.provider_id}</span>}
       <p className="my-1">{provider.upstream_model_id || "—"} · {t(`state.${provider.runtime_state}`)}</p>
       {provider.missing.map(item => <p key={item}>{t(`missing.${item}`)}</p>)}
-      {provider.checked_at ? <p className="text-ink-secondary">{t("checkedAt", { time: new Date(provider.checked_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" }) + " (UTC+8)" })}</p> : null}
+      {provider.checked_at ? <p className="text-ink-secondary">{t("checkedAt", { time: new Date(provider.checked_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" }) + " (UTC+8)" })}</p> : null}
     </div>)}</div> : null}
     <details className="mt-5 text-sm"><summary className="cursor-pointer">{t("price")}</summary><dl className="mt-3 grid gap-2">{Object.entries(model.sell_price || {}).map(([key,value]) => <div key={key} className="flex gap-3"><dt>{["input", "output", "image_count", "video_second", "audio_second"].includes(key) ? t(key) : key}</dt><dd className="break-all">{["input", "output"].includes(key) ? perTokenToPerMillion(String(value)) : typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}</dl></details>
   </section>;

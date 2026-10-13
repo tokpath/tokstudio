@@ -1,5 +1,9 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { catalogLabels } from "@/lib/catalog-copy";
+import { providerStatuses } from "@/lib/catalog-admin";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -58,24 +62,24 @@ type Provider = {
 type ItemResponse = { item?: Provider; error?: { message?: string } };
 type Account = { id: string; label: string; fingerprint: string; status: string; kind: string };
 
-const patchSchema = z.object({
-  name: z.string().trim().min(1, "请填写名称"),
+function makePatchSchema(tUI: CopyTranslator) { return z.object({
+  name: z.string().trim().min(1, tUI("consoleCopy.enterAName")),
   kind: z.enum(["direct", "aggregator"]),
-  adapter: z.string().trim().min(1, "请选择协议"),
+  adapter: z.string().trim().min(1, tUI("consoleCopy.selectAProtocol")),
   base_url: z.string().trim(),
-  status: z.string().trim().min(1, "请选择状态"),
+  status: z.string().trim().min(1, tUI("consoleCopy.selectAStatus")),
   timeout_ms: z.string().trim(),
-});
+}); }
 
-const addAccountSchema = z.object({
-  label: z.string().trim().min(1, "请填写标签"),
-  secret: z.string().min(1, "请填写账号密文"),
-});
+function makeAddAccountSchema(tUI: CopyTranslator) { return z.object({
+  label: z.string().trim().min(1, tUI("consoleCopy.enterALabel")),
+  secret: z.string().min(1, tUI("consoleCopy.enterTheAccountSecret")),
+}); }
 
-function accountKindLabel(kind?: string): string {
+function accountKindLabel(kind?: string, tUI: CopyTranslator = defaultCopy): string {
   switch ((kind || "").trim()) {
     case "adapter_secret":
-      return "适配器密钥";
+      return tUI("consoleCopy.adapterCredential");
     case "api_key":
       return "API Key";
     default:
@@ -84,6 +88,11 @@ function accountKindLabel(kind?: string): string {
 }
 
 export default function AdminProviderDetailPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+  const PROVIDER_STATUSES = providerStatuses(tUI);
+  const patchSchema = makePatchSchema(tUI);
+
   const t = useTranslations("modelService");
   const viewer = useViewer();
   const searchParams = useSearchParams();
@@ -101,7 +110,7 @@ export default function AdminProviderDetailPage() {
   });
   const item = query.data?.item;
   const providerID = item?.id || "";
-  const form = useForm<z.infer<typeof patchSchema>>({
+  const form = useForm<z.infer<ReturnType<typeof makePatchSchema>>>({
     resolver: zodResolver(patchSchema),
     values: {
       name: item?.name || "",
@@ -119,11 +128,10 @@ export default function AdminProviderDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/admin/providers" className="text-sm text-brand-emphasis no-underline hover:underline">
-            返回列表
-          </Link>
-          <h1 className="mt-3 text-lg font-semibold tracking-tight">提供商详情</h1>
+            {tUI("public.article.primary")}</Link>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">{tUI("consoleCopy.providerDetails")}</h1>
           <p className="mt-1 text-sm text-ink-secondary">
-            {item ? `${item.name} · ${providerKindLabel(item.kind)} · ${adapterLabel(item.adapter)}` : routeID}
+            {item ? `${item.name} · ${providerKindLabel(item.kind, tUI)} · ${adapterLabel(item.adapter, tUI)}` : routeID}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -132,11 +140,10 @@ export default function AdminProviderDetailPage() {
             {editing ? (
               <>
                 <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
-                  取消
-                </Button>
+                  {tUI("common.cancel")}</Button>
                 <ConfirmButton
                   size="sm"
-                  title="确认保存提供商"
+                  title={tUI("consoleCopy.confirmProviderChanges")}
                   description={t("providerHint")}
                   validate={() => form.trigger()}
                   onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
@@ -161,10 +168,10 @@ export default function AdminProviderDetailPage() {
                     });
                     const body = await res.json();
                     if (!res.ok) {
-                      setMessage(body.error?.message || "保存失败");
+                      setMessage(body.error?.message || tUI("user.saveFail"));
                       return false;
                     }
-                    setMessage(`已保存 ${body.item?.slug || body.item?.id} → ${providerStatusLabel(body.item?.status)}`);
+                    setMessage(tUI("consoleCopy.saved259", { value0: String(body.item?.slug || body.item?.id), value1: String(providerStatusLabel(body.item?.status, tUI)) }));
                     setEditing(false);
                     await queryClient.invalidateQueries({ queryKey: [viewer.userId, "/admin/providers", routeID] });
                     return true;
@@ -174,13 +181,11 @@ export default function AdminProviderDetailPage() {
                     }
 })}
                 >
-                  保存提供商
-                </ConfirmButton>
+                  {tUI("consoleCopy.saveProvider")}</ConfirmButton>
               </>
             ) : (
               <Button size="sm" onClick={() => setEditing(true)}>
-                编辑
-              </Button>
+                {tUI("user.edit")}</Button>
             )}
           </IfCan>
         </div>
@@ -193,19 +198,18 @@ export default function AdminProviderDetailPage() {
           <Form {...form}>
             <form className="grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
               <p className="text-sm text-ink-secondary">
-                改状态、协议和上游地址。标识创建后不要改。超时只影响调用这家上游时等多久。
-              </p>
-              <TextField control={form.control} name="name" label="名称" />
+                {tUI("consoleCopy.changeStatusProtocolAndUpstreamUrlKeepThe")}</p>
+              <TextField control={form.control} name="name" label={tUI("user.colName")} />
               <FormField
                 control={form.control}
                 name="kind"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>类型</FormLabel>
+                    <FormLabel>{tUI("partnerBoard.colKind")}</FormLabel>
                     <FormControl>
-                      <select className={selectClass} aria-label="类型" {...field}>
-                        <option value="direct">直连 · 官方或兼容协议</option>
-                        <option value="aggregator">聚合 · OpenRouter 等，禁止回流 TokenHub</option>
+                      <select className={selectClass} aria-label={tUI("partnerBoard.colKind")} {...field}>
+                        <option value="direct">{tUI("consoleCopy.directOfficialOrCompatibleProtocol")}</option>
+                        <option value="aggregator">{tUI("consoleCopy.aggregatorOpenrouterAndOthersNoRoutingBackTo")}</option>
                       </select>
                     </FormControl>
                     <FormMessage />
@@ -217,10 +221,10 @@ export default function AdminProviderDetailPage() {
                 name="adapter"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>协议</FormLabel>
+                    <FormLabel>{tUI("quickstartUi.statProto")}</FormLabel>
                     <FormControl>
-                      <select className={selectClass} aria-label="协议" {...field}>
-                        {protocolOptions(field.value).map((option) => (
+                      <select className={selectClass} aria-label={tUI("quickstartUi.statProto")} {...field}>
+                        {protocolOptions(field.value, tUI).map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
@@ -231,15 +235,15 @@ export default function AdminProviderDetailPage() {
                   </FormItem>
                 )}
               />
-              <TextField control={form.control} name="base_url" label="上游地址" placeholder="https://api.openai.com/v1" />
+              <TextField control={form.control} name="base_url" label={tUI("consoleCopy.upstreamUrl")} placeholder="https://api.openai.com/v1" />
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>状态</FormLabel>
+                    <FormLabel>{tUI("compareUi.status")}</FormLabel>
                     <FormControl>
-                      <select className={selectClass} aria-label="状态" {...field}>
+                      <select className={selectClass} aria-label={tUI("compareUi.status")} {...field}>
                         {PROVIDER_STATUSES.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
@@ -251,30 +255,30 @@ export default function AdminProviderDetailPage() {
                   </FormItem>
                 )}
               />
-              <TextField control={form.control} name="timeout_ms" label="上游超时（毫秒）" placeholder="默认 30000" />
+              <TextField control={form.control} name="timeout_ms" label={tUI("consoleCopy.upstreamTimeoutMilliseconds")} placeholder={tUI("consoleCopy.default30000")} />
             </form>
           </Form>
         ) : (
           <dl className="grid max-w-3xl gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-ink-secondary">健康</dt>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.health")}</dt>
               <dd className="mt-1">
-                <Badge tone={healthTone(item?.health)}>{item?.health_checked_at && Date.now() - new Date(item.health_checked_at).getTime() <= 86400000 ? healthLabel(item.health) : t("state.unknown")}</Badge>
+                <Badge tone={healthTone(item?.health)}>{item?.health_checked_at && Date.now() - new Date(item.health_checked_at).getTime() <= 86400000 ? healthLabel(item.health, tUI) : t("state.unknown")}</Badge>
               </dd>
             </div>
             <div>
-              <dt className="text-ink-secondary">状态</dt>
+              <dt className="text-ink-secondary">{tUI("compareUi.status")}</dt>
               <dd className="mt-1">
-                <Badge tone={catalogStatusTone(item?.status)}>{providerStatusLabel(item?.status)}</Badge>
+                <Badge tone={catalogStatusTone(item?.status)}>{providerStatusLabel(item?.status, tUI)}</Badge>
               </dd>
             </div>
             <div>
-              <dt className="text-ink-secondary">上游超时</dt>
-              <dd className="mt-1">{item?.timeout_ms ? `${item.timeout_ms} ms` : "默认 30000 ms"}</dd>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.upstreamTimeout")}</dt>
+              <dd className="mt-1">{item?.timeout_ms ? `${item.timeout_ms} ms` : tUI("consoleCopy.default30000Ms")}</dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-ink-secondary">上游地址</dt>
-              <dd className="mt-1 font-mono text-[13px]">{item?.base_url || "未填写（沙箱可空）"}</dd>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.upstreamUrl")}</dt>
+              <dd className="mt-1 font-mono text-[13px]">{item?.base_url || tUI("consoleCopy.notSetOptionalForSandbox")}</dd>
             </div>
           </dl>
         )}
@@ -296,17 +300,20 @@ type UpstreamModel = {
   status: string;
 };
 
-function costSummary(costs: Record<string, string>) {
+function costSummary(costs: Record<string, string>, tUI: CopyTranslator = defaultCopy) {
   const parts: string[] = [];
-  if (costs.input) parts.push(`输入 ${perTokenToPerMillion(costs.input)} 美元/M`);
-  if (costs.output) parts.push(`输出 ${perTokenToPerMillion(costs.output)} 美元/M`);
-  if (costs.image_count) parts.push(`图片 ${costs.image_count} 美元/张`);
-  if (costs.video_second) parts.push(`视频 ${costs.video_second} 美元/秒`);
-  if (costs.audio_second) parts.push(`音频 ${costs.audio_second} 美元/秒`);
-  return parts.join(" · ") || "待补价";
+  if (costs.input) parts.push(tUI("consoleCopy.inputUsdMillion", { value0: String(perTokenToPerMillion(costs.input)) }));
+  if (costs.output) parts.push(tUI("consoleCopy.outputUsdMillion", { value0: String(perTokenToPerMillion(costs.output)) }));
+  if (costs.image_count) parts.push(tUI("consoleCopy.imageUsdImage", { value0: String(costs.image_count) }));
+  if (costs.video_second) parts.push(tUI("consoleCopy.videoUsdSecond", { value0: String(costs.video_second) }));
+  if (costs.audio_second) parts.push(tUI("consoleCopy.audioUsdSecond", { value0: String(costs.audio_second) }));
+  return parts.join(" · ") || tUI("consoleCopy.priceMissing");
 }
 
 function ProviderModelsPanel({ providerID }: { providerID: string }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
@@ -342,15 +349,15 @@ function ProviderModelsPanel({ providerID }: { providerID: string }) {
         method: "POST", credentials: "include", headers: confirmHeaders,
       });
       const body = await res.json();
-      if (!res.ok) { setMessage(body.error?.message || "上游不支持模型发现，请人工添加"); return; }
-      setMessage(`发现 ${body.items?.length ?? 0} 个上游模型；未返回报价的模型可人工补价。`);
+      if (!res.ok) { setMessage(body.error?.message || tUI("consoleCopy.thisUpstreamDoesNotSupportModelDiscoveryAdd")); return; }
+      setMessage(tUI("consoleCopy.discoveredUpstreamModelsPricesMissingFromTheResponse", { value0: String(body.items?.length ?? 0) }));
       await queryClient.invalidateQueries({ queryKey });
     } catch { setMessage(confirmNetworkUnavailable); }
   }
 
   async function save() {
     try {
-      const unitCosts = { ...millionDim(input, output) } as Record<string, string>;
+      const unitCosts = { ...millionDim(input, output, tUI) } as Record<string, string>;
       if (image.trim()) unitCosts.image_count = image.trim();
       if (video.trim()) unitCosts.video_second = video.trim();
       if (audio.trim()) unitCosts.audio_second = audio.trim();
@@ -359,9 +366,9 @@ function ProviderModelsPanel({ providerID }: { providerID: string }) {
         body: JSON.stringify({ upstream_model_id: modelID.trim(), unit_costs: unitCosts }),
       });
       const body = await res.json();
-      if (!res.ok) { setMessage(body.error?.message || "保存成本价失败"); return; }
+      if (!res.ok) { setMessage(body.error?.message || tUI("consoleCopy.couldNotSaveTheCostPrice")); return; }
       setEditingID(null);
-      setMessage("已保存上游模型成本价");
+      setMessage(tUI("consoleCopy.upstreamModelCostPriceSaved"));
       await queryClient.invalidateQueries({ queryKey });
     } catch (err) { setMessage(err instanceof Error ? err.message : confirmNetworkUnavailable); }
   }
@@ -373,8 +380,8 @@ function ProviderModelsPanel({ providerID }: { providerID: string }) {
         body: JSON.stringify({ upstream_model_id: item.upstream_model_id, enabled }),
       });
       const body = await res.json();
-      if (!res.ok) { setMessage(body.error?.message || "更新状态失败"); return false; }
-      setMessage(enabled ? "上游模型已启用" : "上游模型已停用，后续请求不会选用它");
+      if (!res.ok) { setMessage(body.error?.message || tUI("consoleCopy.statusUpdateFailed")); return false; }
+      setMessage(enabled ? tUI("consoleCopy.upstreamModelEnabled") : tUI("consoleCopy.upstreamModelDisabledFutureRequestsWillNotSelect"));
       await queryClient.invalidateQueries({ queryKey });
       await queryClient.invalidateQueries({ queryKey: ["/admin/routes"] });
       return true;
@@ -384,48 +391,50 @@ function ProviderModelsPanel({ providerID }: { providerID: string }) {
   const fieldClass = "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm";
   return <section className="rounded-card border border-hairline bg-canvas-raised p-6">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-lg font-semibold">支持的模型及价格</h3>
+      <h3 className="text-lg font-semibold">{tUI("consoleCopy.supportedModelsAndPrices")}</h3>
       <IfCan action="providers.write"><div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={discover}>探测上游</Button>
-        <Button size="sm" variant="outline" onClick={() => edit()}>人工添加</Button>
+        <Button size="sm" variant="outline" onClick={discover}>{tUI("consoleCopy.discoverUpstreamModels")}</Button>
+        <Button size="sm" variant="outline" onClick={() => edit()}>{tUI("consoleCopy.addManually")}</Button>
       </div></IfCan>
     </div>
-    <p className="mb-3 text-sm text-ink-secondary">上游接口有报价则自动读取；没有报价时人工补齐成本价，路由组才能选择。</p>
-    <input className={`${fieldClass} mb-3 max-w-sm`} aria-label="搜索上游模型" placeholder="搜索上游模型" value={search} onChange={(event) => setSearch(event.target.value)} />
+    <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.readPricesAutomaticallyWhenSuppliedByTheUpstream")}</p>
+    <input className={`${fieldClass} mb-3 max-w-sm`} aria-label={tUI("consoleCopy.searchUpstreamModels")} placeholder={tUI("consoleCopy.searchUpstreamModels")} value={search} onChange={(event) => setSearch(event.target.value)} />
     <div className="max-h-96 overflow-auto">
-      {models.length === 0 ? <p className="py-3 text-sm text-ink-secondary">暂无上游模型。可以探测或人工添加。</p> :
+      {models.length === 0 ? <p className="py-3 text-sm text-ink-secondary">{tUI("consoleCopy.noUpstreamModelsYetDiscoverModelsOrAdd")}</p> :
         <table className="min-w-full text-left text-sm"><thead><tr className="border-b border-hairline text-ink-secondary">
-          <th className="px-2 py-2">上游模型</th><th className="px-2 py-2">成本价</th><th className="px-2 py-2">状态</th><th className="px-2 py-2">来源</th><th className="px-2 py-2">操作</th>
+          <th className="px-2 py-2">{tUI("consoleCopy.upstreamModel")}</th><th className="px-2 py-2">{tUI("adminUi.colUpstream")}</th><th className="px-2 py-2">{tUI("compareUi.status")}</th><th className="px-2 py-2">{tUI("blogUi.source")}</th><th className="px-2 py-2">{tUI("user.colActions")}</th>
         </tr></thead><tbody>{models.map((item) => <tr key={item.upstream_model_id} className="border-b border-hairline/80">
           <td className="px-2 py-2"><span className="font-mono">{item.upstream_model_id}</span>{item.display_name && item.display_name !== item.upstream_model_id ? <span className="ml-2 text-ink-secondary">{item.display_name}</span> : null}</td>
-          <td className="px-2 py-2 font-mono">{costSummary(item.unit_costs)}</td>
-          <td className="px-2 py-2">{item.status === "inactive" ? "已停用" : "已启用"}</td>
-          <td className="px-2 py-2">{item.price_source === "manual" ? "人工" : item.price_source === "detected" ? "上游" : "待补价"}</td>
-          <td className="px-2 py-2"><IfCan action="providers.write"><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => edit(item)}>编辑报价</Button><ConfirmButton size="sm" variant="ghost" title={item.status === "inactive" ? "启用上游模型" : "停用上游模型"} description={item.status === "inactive" ? "启用后可重新参与符合条件的路由。" : "停用后新请求不再选用该上游模型。"} onConfirm={() => setEnabled(item, item.status === "inactive")}>{item.status === "inactive" ? "启用" : "停用"}</ConfirmButton></div></IfCan></td>
+          <td className="px-2 py-2 font-mono">{costSummary(item.unit_costs, tUI)}</td>
+          <td className="px-2 py-2">{item.status === "inactive" ? tUI("common.stDisabled") : tUI("common.stActive")}</td>
+          <td className="px-2 py-2">{item.price_source === "manual" ? tUI("consoleCopy.manual") : item.price_source === "detected" ? tUI("consoleCopy.upstream") : tUI("consoleCopy.priceMissing")}</td>
+          <td className="px-2 py-2"><IfCan action="providers.write"><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => edit(item)}>{tUI("consoleCopy.editPrice")}</Button><ConfirmButton size="sm" variant="ghost" title={item.status === "inactive" ? tUI("consoleCopy.enableUpstreamModel") : tUI("consoleCopy.disableUpstreamModel")} description={item.status === "inactive" ? tUI("consoleCopy.enablingMakesItEligibleForMatchingRoutesAgain") : tUI("consoleCopy.newRequestsWillNoLongerSelectThisUpstream")} onConfirm={() => setEnabled(item, item.status === "inactive")}>{item.status === "inactive" ? tUI("keyUX.enable") : tUI("staff.disable")}</ConfirmButton></div></IfCan></td>
         </tr>)}</tbody></table>}
     </div>
     {editingID !== null ? <div className="mt-4 grid max-w-3xl gap-3 rounded-control border border-hairline p-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">上游模型标识（调用时使用）<input className={fieldClass} value={modelID} disabled={!!editingID} onChange={(event) => setModelID(event.target.value)} /></label>
-        <label className="text-sm">输入成本（美元/M token）<input className={fieldClass} value={input} onChange={(event) => setInput(event.target.value)} /></label>
-        <label className="text-sm">输出成本（美元/M token）<input className={fieldClass} value={output} onChange={(event) => setOutput(event.target.value)} /></label>
-        <label className="text-sm">图片成本（美元/张）<input className={fieldClass} value={image} onChange={(event) => setImage(event.target.value)} /></label>
-        <label className="text-sm">视频成本（美元/秒）<input className={fieldClass} value={video} onChange={(event) => setVideo(event.target.value)} /></label>
-        <label className="text-sm">音频成本（美元/秒）<input className={fieldClass} value={audio} onChange={(event) => setAudio(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.upstreamModelIdUsedForCalls")}<input className={fieldClass} value={modelID} disabled={!!editingID} onChange={(event) => setModelID(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.inputCostUsdMillionTokens")}<input className={fieldClass} value={input} onChange={(event) => setInput(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.outputCostUsdMillionTokens")}<input className={fieldClass} value={output} onChange={(event) => setOutput(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.imageCostUsdImage")}<input className={fieldClass} value={image} onChange={(event) => setImage(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.videoCostUsdSecond")}<input className={fieldClass} value={video} onChange={(event) => setVideo(event.target.value)} /></label>
+        <label className="text-sm">{tUI("consoleCopy.audioCostUsdSecond")}<input className={fieldClass} value={audio} onChange={(event) => setAudio(event.target.value)} /></label>
       </div>
-      <div className="flex gap-2"><Button size="sm" onClick={save}>保存报价</Button><Button size="sm" variant="outline" onClick={() => setEditingID(null)}>取消</Button></div>
+      <div className="flex gap-2"><Button size="sm" onClick={save}>{tUI("consoleCopy.savePrice")}</Button><Button size="sm" variant="outline" onClick={() => setEditingID(null)}>{tUI("common.cancel")}</Button></div>
     </div> : null}
     {message ? <p className="mt-3 text-sm text-ink-secondary">{message}</p> : null}
   </section>;
 }
 
 function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
+  const tUI = useTranslations();
+
+  const CATALOG_LABEL = catalogLabels(tUI);
   return (
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <AdminH2 k="mappedModels" className="mb-3 text-lg font-semibold tracking-tight" />
       <p className="mb-3 text-sm text-ink-secondary">
-        这里只读展示路由组使用此提供商的模型及上游标识。修改请到路由组。
-      </p>
+        {tUI("consoleCopy.readOnlyViewOfModelsAndUpstreamIds")}</p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
@@ -433,15 +442,14 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
               <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.publicModelId}</th>
               <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.vendor}</th>
               <th className="th-eyebrow px-2 py-2 font-medium">{CATALOG_LABEL.upstreamModelId}</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">状态</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("compareUi.status")}</th>
             </tr>
           </thead>
           <tbody>
             {models.length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-ink-secondary" colSpan={4}>
-                  还没有接到公开模型。先发布模型，再到路由组配置。
-                </td>
+                  {tUI("consoleCopy.noPublicModelsConnectedYetPublishAModel")}</td>
               </tr>
             ) : (
               models.map((model) => (
@@ -456,10 +464,10 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
                     )}
                     {model.display_name ? <span className="ml-2 text-ink-secondary">{model.display_name}</span> : null}
                   </td>
-                  <td className="px-2 py-2">{vendorLabel(model.vendor)}</td>
+                  <td className="px-2 py-2">{vendorLabel(model.vendor, tUI)}</td>
                   <td className="px-2 py-2 font-mono text-[13px]">{model.upstream_model_id || "—"}</td>
                   <td className="px-2 py-2">
-                    <Badge tone={catalogStatusTone(model.status)}>{modelStatusLabel(model.status)}</Badge>
+                    <Badge tone={catalogStatusTone(model.status)}>{modelStatusLabel(model.status, tUI)}</Badge>
                   </td>
                 </tr>
               ))
@@ -472,11 +480,16 @@ function MappedModelsPanel({ models }: { models: MappedPublicModel[] }) {
 }
 
 function AccountPoolPanel({ providerID }: { providerID: string }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+  const addAccountSchema = makeAddAccountSchema(tUI);
+
   const queryClient = useQueryClient();
   const [items, setItems] = useState<Account[]>([]);
-  const [message, setMessage] = useState("正在加载账号…");
+  const [message, setMessage] = useState(tUI("consoleCopy.loadingAccounts"));
   const [loading, setLoading] = useState(false);
-  const addForm = useForm<z.infer<typeof addAccountSchema>>({
+  const addForm = useForm<z.infer<ReturnType<typeof makeAddAccountSchema>>>({
     resolver: zodResolver(addAccountSchema),
     defaultValues: { label: "primary", secret: "" },
   });
@@ -490,18 +503,18 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
       const res = await fetch(`${apiBase}/admin/providers/${encodeURIComponent(id)}/accounts`, { credentials: "include" });
       const body = await res.json();
       if (!res.ok) {
-        setMessage(body.error?.message || "加载账号失败");
+        setMessage(body.error?.message || tUI("consoleCopy.couldNotLoadAccounts"));
         setItems([]);
         return;
       }
       const raw = JSON.stringify(body);
       if (raw.includes("ciphertext") || raw.includes("\"secret\"")) {
-        setMessage("账号列表泄漏了密文，已拒绝展示");
+        setMessage(tUI("consoleCopy.theAccountResponseExposedASecretAndWas"));
         setItems([]);
         return;
       }
       setItems(body.items || []);
-      setMessage(`已加载 ${body.items?.length ?? 0} 个账号`);
+      setMessage(tUI("consoleCopy.loadedAccounts", { value0: String(body.items?.length ?? 0) }));
     } catch {
       setMessage(confirmNetworkUnavailable);
       setItems([]);
@@ -529,7 +542,7 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
     });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "更新失败");
+      setMessage(body.error?.message || tUI("consoleCopy.updateFailed"));
       return false;
     }
     await load();
@@ -546,44 +559,41 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
       <AdminH2 k="accountPool" className="mb-3 text-lg font-semibold tracking-tight" />
       <p className="mb-3 text-sm text-ink-secondary">
-        一家提供商可以挂多把上游 Key，路由会挑还能用的那把。列表只显示指纹，不回密文。
-      </p>
+        {tUI("consoleCopy.aProviderCanHaveMultipleUpstreamKeysRouting")}</p>
       <p role="status" className="mb-3 text-sm text-ink-secondary">{message}</p>
       <div className="mb-3 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-hairline text-ink-secondary">
-              <th className="th-eyebrow px-2 py-2 font-medium">标签</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">指纹</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">种类</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">状态</th>
-              <th className="th-eyebrow px-2 py-2 font-medium">操作</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("consoleCopy.label")}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("consoleCopy.fingerprint")}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("consoleCopy.kind")}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("compareUi.status")}</th>
+              <th className="th-eyebrow px-2 py-2 font-medium">{tUI("user.colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-2 py-3 text-ink-secondary">
-                  {loading ? "正在加载账号…" : "暂无账号，请在下方添加。"}
+                  {loading ? tUI("consoleCopy.loadingAccounts") : tUI("consoleCopy.noAccountsYetAddOneBelow")}
                 </td>
               </tr>
             ) : items.map((row) => (
               <tr key={row.id} className="border-b border-hairline/80">
                 <td className="px-2 py-2">{row.label}</td>
                 <td className="px-2 py-2 font-mono text-[13px]">{row.fingerprint}</td>
-                <td className="px-2 py-2">{accountKindLabel(row.kind)}</td>
+                <td className="px-2 py-2">{accountKindLabel(row.kind, tUI)}</td>
                 <td className="px-2 py-2">
-                  <Badge tone={catalogStatusTone(row.status)}>{modelStatusLabel(row.status)}</Badge>
+                  <Badge tone={catalogStatusTone(row.status)}>{modelStatusLabel(row.status, tUI)}</Badge>
                 </td>
                 <td className="px-2 py-2">
                   <div className="flex flex-wrap gap-2">
                     <IfCan action="providers.write">
-                      <ConfirmButton size="sm" variant="outline" title="确认冷却账号" description="冷却后该账号不会被路由选中。" onConfirm={() => patch(row.id, { cooldown_seconds: 120 }, "已冷却")}>
-                        冷却
-                      </ConfirmButton>
-                      <ConfirmButton size="sm" variant="outline" title="确认停用账号" description="停用后该账号不会被路由选中。" onConfirm={() => patch(row.id, { status: "disabled" }, "已停用")}>
-                        停用
-                      </ConfirmButton>
+                      <ConfirmButton size="sm" variant="outline" title={tUI("consoleCopy.confirmAccountCooldown")} description={tUI("consoleCopy.anAccountOnCooldownWillNotBeSelected")} onConfirm={() => patch(row.id, { cooldown_seconds: 120 }, tUI("consoleCopy.onCooldown"))}>
+                        {tUI("consoleCopy.coolDown")}</ConfirmButton>
+                      <ConfirmButton size="sm" variant="outline" title={tUI("consoleCopy.confirmAccountDisabling")} description={tUI("consoleCopy.aDisabledAccountWillNotBeSelectedFor")} onConfirm={() => patch(row.id, { status: "disabled" }, tUI("common.stDisabled"))}>
+                        {tUI("staff.disable")}</ConfirmButton>
                     </IfCan>
                   </div>
                 </td>
@@ -595,12 +605,12 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
       <IfCan action="providers.write">
         <Form {...addForm}>
           <form className="grid max-w-xl gap-2" onSubmit={(event) => event.preventDefault()}>
-            <TextField control={addForm.control} name="label" label="账号标签" placeholder="primary" />
-            <TextField control={addForm.control} name="secret" label="账号密文" type="password" autoComplete="new-password" />
+            <TextField control={addForm.control} name="label" label={tUI("consoleCopy.accountLabel")} placeholder="primary" />
+            <TextField control={addForm.control} name="secret" label={tUI("consoleCopy.accountSecret")} type="password" autoComplete="new-password" />
             <ConfirmButton
               size="sm"
-              title="确认添加账号"
-              description="列表只显示指纹，不会回显密文。"
+              title={tUI("consoleCopy.confirmAccountAddition")}
+              description={tUI("consoleCopy.onlyFingerprintsAppearInTheListSecretsAre")}
               validate={() => addForm.trigger()}
               onConfirm={confirmFormSubmit(addForm.handleSubmit, async (values) => {
                 try {
@@ -612,16 +622,16 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
                 });
                 const body = await res.json();
                 if (!res.ok) {
-                  setMessage(body.error?.message || "添加失败");
+                  setMessage(body.error?.message || tUI("consoleCopy.additionFailed"));
                   return false;
                 }
                 if (body.item?.secret || body.item?.ciphertext) {
-                  setMessage("添加响应泄漏了密文");
+                  setMessage(tUI("consoleCopy.theAddAccountResponseExposedASecret"));
                   return false;
                 }
                 addForm.reset({ label: "primary", secret: "" });
                 await load(providerID);
-                setMessage(`已添加，指纹 ${body.item?.fingerprint || ""}`);
+                setMessage(tUI("consoleCopy.addedAccountFingerprint", { value0: String(body.item?.fingerprint || "") }));
                 return true;
                 } catch {
                   setMessage(confirmNetworkUnavailable);
@@ -629,8 +639,7 @@ function AccountPoolPanel({ providerID }: { providerID: string }) {
                 }
 })}
             >
-              添加账号
-            </ConfirmButton>
+              {tUI("consoleCopy.addAccount")}</ConfirmButton>
           </form>
         </Form>
       </IfCan>

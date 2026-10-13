@@ -385,12 +385,13 @@ export const KNOWN_VENDORS = [
   "tokenhub",
 ] as const;
 
-export function vendorLabel(value?: string): string {
+export function vendorLabel(value?: string, tUI: CopyTranslator = defaultCopy): string {
   const key = (value || "").trim().toLowerCase();
   if (!key) {
     return "—";
   }
-  return VENDOR_LABELS[key] || value?.trim() || "—";
+  const localized: Record<string, string> = { alibaba: "consoleCopy.alibaba", bytedance: "consoleCopy.bytedance", zhipu: "consoleCopy.zhipu", moonshot: "consoleCopy.moonshot" };
+  return localized[key] ? tUI(localized[key]) : VENDOR_LABELS[key] || value?.trim() || "—";
 }
 
 export function resolveVendorInput(value: string): string {
@@ -522,3 +523,4 @@ function orderKnown(known: readonly string[], current: string[]): string[] {
 function formatModality(inputs: string[], outputs: string[]): string {
   return `${inputs.join("+") || "?"}->${outputs.join("+") || "?"}`;
 }
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";

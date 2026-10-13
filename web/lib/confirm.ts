@@ -4,3 +4,5 @@ export const confirmHeaders: Record<string, string> = {
 };
 
 export const confirmNetworkUnavailable = "网络不可用，请重试。";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+export function networkUnavailable(tUI: CopyTranslator = defaultCopy): string { return tUI("common.listNetwork"); }

@@ -1,5 +1,7 @@
 "use client";
 
+import { catalogLabels } from "@/lib/catalog-copy";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -14,6 +16,8 @@ export function TokenizerCombobox<T extends FieldValues>({
   control: Control<T>;
   name: FieldPath<T>;
 }) {
+  const tUI = useTranslations();
+  const CATALOG_LABEL = catalogLabels(tUI);
   const [open, setOpen] = useState(false);
   const listId = `${String(name)}-list`;
 
@@ -30,7 +34,7 @@ export function TokenizerCombobox<T extends FieldValues>({
         return (
           <FormItem>
             <FormLabel>{CATALOG_LABEL.tokenizer}</FormLabel>
-            <p className="text-sm text-ink-secondary">用来估算用量。不确定可留空。</p>
+            <p className="text-sm text-ink-secondary">{tUI("consoleCopy.usedToEstimateUsageLeaveBlankIfUnsure")}</p>
             <FormControl>
               <div className="relative">
                 <Input
@@ -41,7 +45,7 @@ export function TokenizerCombobox<T extends FieldValues>({
                   aria-controls={listId}
                   aria-autocomplete="list"
                   autoComplete="off"
-                  placeholder="输入或选择分词器，可空"
+                  placeholder={tUI("consoleCopy.enterOrSelectATokenizerOptional")}
                   onFocus={() => setOpen(true)}
                   onBlur={() => setOpen(false)}
                   onChange={(event) => {
@@ -69,7 +73,7 @@ export function TokenizerCombobox<T extends FieldValues>({
                             }}
                           >
                             <span className="font-mono">{item}</span>
-                            {!isKnown ? <span className="text-xs text-ink-secondary">新值</span> : null}
+                            {!isKnown ? <span className="text-xs text-ink-secondary">{tUI("consoleCopy.newValue")}</span> : null}
                           </button>
                         </li>
                       );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -21,6 +22,7 @@ export function ProviderSlugCombobox<T extends FieldValues>({
   placeholder?: string;
   description?: string;
 }) {
+  const tUI = useTranslations();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listId = `${String(name)}-list`;
@@ -63,7 +65,7 @@ export function ProviderSlugCombobox<T extends FieldValues>({
                     className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-control border border-hairline bg-canvas-raised py-1 shadow-sm"
                   >
                     {filtered.length === 0 ? (
-                      <li className="px-3 py-2 text-sm text-ink-secondary">没有匹配的提供商</li>
+                      <li className="px-3 py-2 text-sm text-ink-secondary">{tUI("consoleCopy.noMatchingProviders")}</li>
                     ) : (
                       filtered.map((item) => (
                         <li key={item.id || item.slug} role="option">

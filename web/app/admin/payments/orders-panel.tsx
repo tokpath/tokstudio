@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,6 +13,7 @@ import type { PaymentOrder } from "./order-detail";
 
 type Row=PaymentOrder & {user_email?:string;user_name?:string;channel_code?:string};
 export function PaymentOrdersPanel({oem=false}:{oem?:boolean}){
+  const displayLocale = useLocale();
  const t=useTranslations("paymentTasks");const viewer=useViewer();const queryClient=useQueryClient();const params=useSearchParams();const [status,setStatus]=useState(params.get("status")||"");
  const listPath=oem?"/channel/payments/orders":"/admin/payments";const writable=oem?canChannelAction("finance",viewer):canWrite("payments.write",viewer);
  useEffect(()=>{setStatus(params.get("status")||"")},[params]);
@@ -27,7 +29,7 @@ export function PaymentOrdersPanel({oem=false}:{oem?:boolean}){
     {accessorKey:"purpose",header:t("purpose"),cell:({row})=>label(row.original.purpose)},
     {accessorKey:"adapter",header:t("adapter"),cell:({row})=>label(row.original.adapter)},
     {accessorKey:"status",header:t("status"),cell:({row})=><div>{label(row.original.status)}{row.original.status==="paid"?<p className="text-ink-secondary">{t(row.original.fulfilled_at?"fulfilled":"unfulfilled")}</p>:null}</div>},
-    {accessorKey:"created_at",header:t("createdAt"),cell:({row})=>new Date(row.original.created_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})}
+    {accessorKey:"created_at",header:t("createdAt"),cell:({row})=>new Date(row.original.created_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})}
    ]}/>
  </div>
 }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -29,6 +31,10 @@ function micro(n: unknown) {
 }
 
 export default function AdminMarginPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+
   const t = useTranslations("adminUi");
   const [selected, setSelected] = useState<AttemptCostRow | null>(null);
   const [message, setMessage] = useState(t("marginLead"));
@@ -126,7 +132,7 @@ export default function AdminMarginPage() {
         path="/admin/margin"
         title={t("margin")}
         density="ledger"
-        emptyTitle={emptyAttemptCostTitle()}
+        emptyTitle={emptyAttemptCostTitle(tUI)}
         emptyDetail={t("marginEmptyDetail")}
         onRowSelect={(row) => setSelected(row)}
         rowSelected={(row) => row.attempt_id === selected?.attempt_id && row.request_id === selected?.request_id}

@@ -1,3 +1,4 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 export type ThreeBuckets = {
   available_minor?: number;
   reserved_minor?: number;
@@ -69,16 +70,16 @@ export function forbidsEstimateDebit(labels: string[]): boolean {
   return !labels.some((label) => FORBIDDEN_ACTIONS.some((banned) => label.includes(banned)));
 }
 
-export function emptyUsageTitle(): string {
-  return "暂无 usage";
+export function emptyUsageTitle(tUI: CopyTranslator = defaultCopy): string {
+  return tUI("reconcile.empty");
 }
 
-export function pageTitle(): string {
-  return "对账";
+export function pageTitle(tUI: CopyTranslator = defaultCopy): string {
+  return tUI("userNav.reconciliation");
 }
 
-export function pendingQueueTitle(): string {
-  return "待对账队列";
+export function pendingQueueTitle(tUI: CopyTranslator = defaultCopy): string {
+  return tUI("adminUi.pendingList");
 }
 
 export function flagPath(scope: "user" | "channel"): string {

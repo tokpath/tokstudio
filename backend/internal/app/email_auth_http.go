@@ -48,17 +48,7 @@ func (a *App) emailActionContext(c *gin.Context, brandID string) (identity.Email
 	if err != nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(u.Scheme == "http" && !a.Config.IsProduction() && loopbackAuthHost(u.Host))) {
 		return identity.EmailActionContext{}, identity.ErrEmailUnavailable
 	}
-	locale, _ := c.Cookie("NEXT_LOCALE")
-	if _, err := identity.NormalizeLocale(locale); err != nil {
-		locale = "zh"
-		language := strings.ToLower(c.GetHeader("Accept-Language"))
-		if strings.HasPrefix(language, "en") {
-			locale = "en"
-		}
-		if strings.HasPrefix(language, "ja") {
-			locale = "ja"
-		}
-	}
+	locale := httpx.RequestLocale(c.Request)
 	return identity.EmailActionContext{Origin: origin, Locale: locale}, nil
 }
 

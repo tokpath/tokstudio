@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { AdminListPanel } from "../list-panel";
 import { AdminShell } from "../shell";
@@ -14,20 +16,22 @@ type Route = {
 };
 
 export default function AdminRoutesPage() {
+  const tUI = useTranslations();
+
   return <AdminShell>
     <AdminListPanel<Route>
         headingLevel={1}
       path="/admin/routes"
-      title="路由组"
-      emptyTitle="还没有路由组"
-      emptyDetail="先发布模型，再配置提供商和上游模型标识。"
+      title={tUI("admin.routes")}
+      emptyTitle={tUI("consoleCopy.noRouteGroupsYet")}
+      emptyDetail={tUI("consoleCopy.publishAModelFirstThenConfigureProvidersAnd")}
       rowHref={(row) => `/admin/routes/${encodeURIComponent(row.id)}`}
-      actions={<IfCan action="routes.write"><Button asChild size="sm"><Link href="/admin/routes/new">创建路由组</Link></Button></IfCan>}
+      actions={<IfCan action="routes.write"><Button asChild size="sm"><Link href="/admin/routes/new">{tUI("consoleCopy.createRouteGroup")}</Link></Button></IfCan>}
       columns={[
-        { accessorKey: "public_model_id", header: "公开模型" },
-        { accessorKey: "strategy", header: "策略", cell: ({ row }) => routeStrategyLabel(row.original.strategy) },
-        { id: "providers", header: "提供商", cell: ({ row }) => row.original.candidates?.map((item) => item.provider_slug || item.provider_id).join(" → ") || "尚未配置" },
-        { accessorKey: "status", header: "状态", cell: ({ row }) => <Badge tone={catalogStatusTone(row.original.status)}>{routeStatusLabel(row.original.status)}</Badge> },
+        { accessorKey: "public_model_id", header: tUI("consoleCopy.publicModel389") },
+        { accessorKey: "strategy", header: tUI("consoleCopy.strategy390"), cell: ({ row }) => routeStrategyLabel(row.original.strategy, tUI) },
+        { id: "providers", header: tUI("admin.providers"), cell: ({ row }) => row.original.candidates?.map((item) => item.provider_slug || item.provider_id).join(" → ") || tUI("consoleCopy.notConfigured") },
+        { accessorKey: "status", header: tUI("compareUi.status"), cell: ({ row }) => <Badge tone={catalogStatusTone(row.original.status)}>{routeStatusLabel(row.original.status, tUI)}</Badge> },
       ]}
     />
   </AdminShell>;

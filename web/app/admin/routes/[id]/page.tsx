@@ -1,5 +1,9 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -31,19 +35,19 @@ type Route = {
   id: string; public_model_id: string; strategy: string; status: string;
   candidates?: { provider_id: string; provider_slug: string; upstream_model_id: string; weight: number }[];
 };
-const schema = z.object({
-  public_model_id: z.string().trim().min(1, "请选择模型"),
+function makeSchema(tUI: CopyTranslator) { return z.object({
+  public_model_id: z.string().trim().min(1, tUI("consoleCopy.selectAModel")),
   strategy: z.enum(["priority", "weight", "price", "health"]),
   status: z.enum(["inactive", "active"]),
   candidates: z.array(z.object({
-    provider_id: z.string().trim().min(1, "请选择提供商"),
-    upstream_model_id: z.string().trim().min(1, "请填写上游模型标识"),
-    weight: z.string().trim().regex(/^\d+$/, "权重须为正整数"),
+    provider_id: z.string().trim().min(1, tUI("consoleCopy.selectAProvider")),
+    upstream_model_id: z.string().trim().min(1, tUI("consoleCopy.enterAnUpstreamModelId")),
+    weight: z.string().trim().regex(/^\d+$/, tUI("consoleCopy.weightMustBeAPositiveInteger")),
   })),
 }).refine((value) => value.status !== "active" || value.candidates.length > 0, {
-  message: "启用前至少配置一个提供商", path: ["status"],
-});
-type Fields = z.infer<typeof schema>;
+  message: tUI("consoleCopy.configureAtLeastOneProviderBeforeEnabling"), path: ["status"],
+}); }
+type Fields = z.infer<ReturnType<typeof makeSchema>>;
 
 type UpstreamModel = { upstream_model_id: string; display_name: string; unit_costs: Record<string, string>; status: string };
 function hasCost(costs: Record<string, string>, kind: string) {
@@ -61,6 +65,7 @@ function UpstreamModelSelect({ control, name, providerID, kind, publicID }: {
   kind: string;
   publicID: string;
 }) {
+  const tUI = useTranslations();
   const viewer = useViewer();
   const selected = useWatch({ control, name });
   const query = useQuery({
@@ -70,22 +75,27 @@ function UpstreamModelSelect({ control, name, providerID, kind, publicID }: {
   });
   const options = (query.data?.items ?? []).filter((item) => item.status !== "inactive" && hasCost(item.unit_costs, kind)).map((item) => ({
     value: item.upstream_model_id,
-    label: `${item.display_name && item.display_name !== item.upstream_model_id ? `${item.display_name} · ` : ""}${item.upstream_model_id}${item.unit_costs.input !== undefined ? ` · ${perTokenToPerMillion(item.unit_costs.input)}/${perTokenToPerMillion(item.unit_costs.output ?? "")} 美元/M` : ""}`,
+    label: `${item.display_name && item.display_name !== item.upstream_model_id ? `${item.display_name} · ` : ""}${item.upstream_model_id}${item.unit_costs.input !== undefined ? tUI("consoleCopy.usdMillion", { value0: String(perTokenToPerMillion(item.unit_costs.input)), value1: String(perTokenToPerMillion(item.unit_costs.output ?? "")) }) : ""}`,
   }));
   const selectedUnavailable = !!selected && !options.some((item) => item.value === selected);
   return <div>
-    <fieldset disabled={query.isPending || query.isError || !providerID}><AdminSelectField control={control} name={name} label="上游模型" options={[
-      { value: "", label: providerID ? "选择已配置成本价的模型" : "先选提供商" },
-      ...(selectedUnavailable ? [{ value: selected, label: `${selected}（已停用或未报价）` }] : []),
+    <fieldset disabled={query.isPending || query.isError || !providerID}><AdminSelectField control={control} name={name} label={tUI("consoleCopy.upstreamModel")} options={[
+      { value: "", label: providerID ? tUI("consoleCopy.selectAModelWithACostPrice") : tUI("consoleCopy.selectAProviderFirst") },
+      ...(selectedUnavailable ? [{ value: selected, label: tUI("consoleCopy.disabledOrUnpriced", { value0: String(selected) }) }] : []),
       ...options,
     ]} /></fieldset>
-    {query.isError ? <p role="alert">读取上游模型失败，<Button variant="outline" size="sm" onClick={()=>void query.refetch()}>重试</Button></p> : null}
-    {selectedUnavailable && !query.isLoading && !query.isError ? <p className="mt-1 text-sm text-ink-secondary">当前模型不可用，请更换或移除候选。</p> : null}
-    {providerID && !query.isLoading && !query.isError && options.length === 0 ? <p className="mt-1 text-sm text-ink-secondary">这家提供商没有已定价的模型。<Link className="text-brand-emphasis underline" href={`/admin/providers/${encodeURIComponent(providerID)}?model=${encodeURIComponent(publicID)}`}>补齐上游成本并返回</Link></p> : null}
+    {query.isError ? <p role="alert">{tUI("consoleCopy.couldNotLoadUpstreamModels")}<Button variant="outline" size="sm" onClick={()=>void query.refetch()}>{tUI("common.listRetry")}</Button></p> : null}
+    {selectedUnavailable && !query.isLoading && !query.isError ? <p className="mt-1 text-sm text-ink-secondary">{tUI("consoleCopy.theCurrentModelIsUnavailableReplaceOrRemove")}</p> : null}
+    {providerID && !query.isLoading && !query.isError && options.length === 0 ? <p className="mt-1 text-sm text-ink-secondary">{tUI("consoleCopy.thisProviderHasNoPricedModels")}<Link className="text-brand-emphasis underline" href={`/admin/providers/${encodeURIComponent(providerID)}?model=${encodeURIComponent(publicID)}`}>{tUI("consoleCopy.setUpstreamCostsAndReturn")}</Link></p> : null}
   </div>;
 }
 
 export default function AdminRouteEditPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+  const schema = makeSchema(tUI);
+
   const viewer = useViewer();
   const returnTo = useSearchParams().get("return_to");
   const params = useParams<{ id: string }>();
@@ -97,7 +107,7 @@ export default function AdminRouteEditPage() {
   const [loadedID, setLoadedID] = useState("");
   const routeQuery = useQuery({
     queryKey: [viewer.userId, "/admin/routes", routeID],
-    queryFn: async () => {const body=await apiClient<{item?:Route;error?:{message?:string}}>("GET",`/admin/routes/${encodeURIComponent(routeID)}`);if(body.error||!body.item)throw new Error(body.error?.message||"读取路由失败");return body;},
+    queryFn: async () => {const body=await apiClient<{item?:Route;error?:{message?:string}}>("GET",`/admin/routes/${encodeURIComponent(routeID)}`);if(body.error||!body.item)throw new Error(body.error?.message||tUI("consoleCopy.couldNotLoadTheRoute"));return body;},
     enabled: !!routeID && !isNew,
   });
   const modelsQuery = useQuery({ queryKey: [viewer.userId, "/admin/models", "all"], queryFn: () => readAllPages<AdminModel>("/admin/models") });
@@ -156,8 +166,8 @@ export default function AdminRouteEditPage() {
         method: isNew ? "POST" : "PATCH", credentials: "include", headers: confirmHeaders, body: JSON.stringify(body),
       });
       const result = await res.json();
-      if (!res.ok) { setMessage(result.error?.message || "保存失败"); return false; }
-      setMessage(values.status === "active" ? "路由组已启用" : "路由组已保存");
+      if (!res.ok) { setMessage(result.error?.message || tUI("user.saveFail")); return false; }
+      setMessage(values.status === "active" ? tUI("consoleCopy.routeGroupEnabled") : tUI("consoleCopy.routeGroupSaved"));
       await queryClient.invalidateQueries({ queryKey: ["/admin/routes"] });
       if (isNew) router.replace(`/admin/routes/${encodeURIComponent(result.item?.id)}`);
       else {setLoadedID("");await routeQuery.refetch();}
@@ -167,54 +177,54 @@ export default function AdminRouteEditPage() {
 
   const reading = !isNew && (routeQuery.isPending || loadedID !== routeID);
   const readFailed = !isNew && routeQuery.isError;
-  if (readFailed || reading) return <AdminShell><section role={readFailed ? "alert" : "status"}><p>{readFailed ? "读取路由失败，未修改配置。" : "正在读取路由…"}</p>{readFailed ? <Button variant="outline" onClick={()=>void routeQuery.refetch()}>重试读取</Button> : null}</section></AdminShell>;
+  if (readFailed || reading) return <AdminShell><section role={readFailed ? "alert" : "status"}><p>{readFailed ? tUI("consoleCopy.couldNotLoadTheRouteConfigurationHasNot") : tUI("consoleCopy.loadingRoute")}</p>{readFailed ? <Button variant="outline" onClick={()=>void routeQuery.refetch()}>{tUI("usageWorkflow.retry")}</Button> : null}</section></AdminShell>;
   return <AdminShell>
-    <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/routes">返回路由组</Link>
+    <Link className="text-sm text-brand-emphasis hover:underline" href="/admin/routes">{tUI("consoleCopy.returnToRouteGroups")}</Link>
     <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-      <h1 className="text-lg font-semibold">{isNew ? "创建路由组" : `路由组 ${routeID}`}</h1>
-      {canWrite("routes.write",viewer)?<p className="mt-1 text-sm text-ink-secondary">在这里把已发布模型接到上游，并决定选路顺序。保存为停用时不会接收请求。</p>:null}
+      <h1 className="text-lg font-semibold">{isNew ? tUI("consoleCopy.createRouteGroup") : tUI("consoleCopy.routeGroup", { value0: String(routeID) })}</h1>
+      {canWrite("routes.write",viewer)?<p className="mt-1 text-sm text-ink-secondary">{tUI("consoleCopy.connectPublishedModelsToUpstreamsAndSetTheir")}</p>:null}
       {routeQuery.data?.error ? <p className="mt-2 text-sm text-danger">{routeQuery.data.error.message}</p> : null}
     </section>
-    {!isNew && routeQuery.data?.item ? <section className="rounded-card border border-hairline bg-canvas-raised p-6"><p>模型：<Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo, modelEditHref(routeQuery.data.item.public_model_id))}>{routeQuery.data.item.public_model_id}</Link></p><p>状态：{routeQuery.data.item.status} · 策略：{routeQuery.data.item.strategy}</p><ul className="mt-3">{routeQuery.data.item.candidates?.map(candidate=><li key={candidate.provider_id}>{candidate.provider_slug || candidate.provider_id} · {candidate.upstream_model_id}</li>)}</ul></section> : null}
-    {(modelsQuery.isError || providersQuery.isError || (isNew && routesQuery.isError)) && canWrite("routes.write",viewer) ? <section role="alert"><p>读取模型、提供商或路由失败，保存已停用。</p><Button variant="outline" onClick={()=>void Promise.all([modelsQuery.refetch(),providersQuery.refetch(),...(isNew?[routesQuery.refetch()]:[])])}>重试读取</Button></section>:null}
+    {!isNew && routeQuery.data?.item ? <section className="rounded-card border border-hairline bg-canvas-raised p-6"><p>{tUI("consoleCopy.model")}<Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo, modelEditHref(routeQuery.data.item.public_model_id))}>{routeQuery.data.item.public_model_id}</Link></p><p>{tUI("consoleCopy.status")}{routeQuery.data.item.status} {tUI("consoleCopy.strategy")}{routeQuery.data.item.strategy}</p><ul className="mt-3">{routeQuery.data.item.candidates?.map(candidate=><li key={candidate.provider_id}>{candidate.provider_slug || candidate.provider_id} · {candidate.upstream_model_id}</li>)}</ul></section> : null}
+    {(modelsQuery.isError || providersQuery.isError || (isNew && routesQuery.isError)) && canWrite("routes.write",viewer) ? <section role="alert"><p>{tUI("consoleCopy.couldNotLoadModelsProvidersOrRoutesSaving")}</p><Button variant="outline" onClick={()=>void Promise.all([modelsQuery.refetch(),providersQuery.refetch(),...(isNew?[routesQuery.refetch()]:[])])}>{tUI("usageWorkflow.retry")}</Button></section>:null}
     <IfCan action="routes.write">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <Form {...form}>
           <form className="grid max-w-3xl gap-5" onSubmit={(event) => event.preventDefault()}>
             {isNew ? <PublicModelCombobox control={form.control} name="public_model_id" options={selectable} /> :
-              <p className="text-sm">公开模型：<Link className="font-mono text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, modelEditHref(routeQuery.data?.item?.public_model_id || ""))}>{routeQuery.data?.item?.public_model_id}</Link></p>}
-            <AdminSelectField control={form.control} name="strategy" label="选路策略" options={routeStrategyOptions(strategy)} />
+              <p className="text-sm">{tUI("consoleCopy.publicModel")}<Link className="font-mono text-brand-emphasis hover:underline" href={safeReturnHref(returnTo, modelEditHref(routeQuery.data?.item?.public_model_id || ""))}>{routeQuery.data?.item?.public_model_id}</Link></p>}
+            <AdminSelectField control={form.control} name="strategy" label={tUI("consoleCopy.routingStrategy")} options={routeStrategyOptions(strategy, tUI)} />
             <div>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-base font-semibold">提供商候选</h3>
-                <Button type="button" size="sm" variant="outline" onClick={() => candidates.append({ provider_id: "", upstream_model_id: "", weight: "1" })}>添加提供商</Button>
+                <h3 className="text-base font-semibold">{tUI("consoleCopy.providerCandidates")}</h3>
+                <Button type="button" size="sm" variant="outline" onClick={() => candidates.append({ provider_id: "", upstream_model_id: "", weight: "1" })}>{tUI("consoleCopy.addProvider")}</Button>
               </div>
-              {candidates.fields.length === 0 ? <p className="text-sm text-ink-secondary">尚未配置。可以先保存停用的路由组。</p> : null}
+              {candidates.fields.length === 0 ? <p className="text-sm text-ink-secondary">{tUI("consoleCopy.notConfiguredYetYouCanSaveADisabled")}</p> : null}
               <div className="grid gap-3">
                 {candidates.fields.map((field, index) => <div key={field.id} className="rounded-control border border-hairline p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <ProviderSlugCombobox control={form.control} name={`candidates.${index}.provider_id`} label="提供商" options={providersQuery.data?.items ?? []} />
+                    <ProviderSlugCombobox control={form.control} name={`candidates.${index}.provider_id`} label={tUI("admin.providers")} options={providersQuery.data?.items ?? []} />
                     <UpstreamModelSelect control={form.control} name={`candidates.${index}.upstream_model_id`}
                       providerID={(providersQuery.data?.items ?? []).find((item) => item.slug === chosenCandidates[index]?.provider_id || item.id === chosenCandidates[index]?.provider_id)?.id || ""}
                       kind={modelKind} publicID={chosenModel} />
-                    {strategy === "weight" ? <TextField control={form.control} name={`candidates.${index}.weight`} label="权重" /> : null}
+                    {strategy === "weight" ? <TextField control={form.control} name={`candidates.${index}.weight`} label={tUI("consoleCopy.weight")} /> : null}
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <Button type="button" size="sm" variant="outline" disabled={index === 0} onClick={() => candidates.swap(index, index - 1)}>上移</Button>
-                    <Button type="button" size="sm" variant="outline" disabled={index === candidates.fields.length - 1} onClick={() => candidates.swap(index, index + 1)}>下移</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => candidates.remove(index)}>移除</Button>
+                    <Button type="button" size="sm" variant="outline" disabled={index === 0} onClick={() => candidates.swap(index, index - 1)}>{tUI("consoleCopy.moveUp")}</Button>
+                    <Button type="button" size="sm" variant="outline" disabled={index === candidates.fields.length - 1} onClick={() => candidates.swap(index, index + 1)}>{tUI("consoleCopy.moveDown")}</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => candidates.remove(index)}>{tUI("consoleCopy.remove")}</Button>
                   </div>
                 </div>)}
               </div>
             </div>
-            <AdminSelectField control={form.control} name="status" label="状态" options={routeStatusOptions(status)} />
+            <AdminSelectField control={form.control} name="status" label={tUI("compareUi.status")} options={routeStatusOptions(status, tUI)} />
             <ConfirmButton
               disabled={modelsQuery.isPending || modelsQuery.isError || providersQuery.isPending || providersQuery.isError || (isNew && (routesQuery.isPending || routesQuery.isError))}
-              size="sm" title={status === "active" ? "确认启用路由组" : "确认保存路由组"}
-              description={`${form.watch("public_model_id")}：${status === "active" ? "启用后新请求会按此候选池选路。" : "保存为停用，不会接收请求。"}`}
+              size="sm" title={status === "active" ? tUI("consoleCopy.confirmRouteGroupEnabling") : tUI("consoleCopy.confirmRouteGroupChanges")}
+              description={`${form.watch("public_model_id")}：${status === "active" ? tUI("consoleCopy.newRequestsWillRouteThroughThisCandidatePool") : tUI("consoleCopy.saveAsDisabledTheGroupWillReceiveNo")}`}
               error={message} validate={() => { setMessage(""); return form.trigger(); }}
               onConfirm={confirmFormSubmit(form.handleSubmit, save)}
-            >{isNew ? "创建路由组" : "保存路由组"}</ConfirmButton>
+            >{isNew ? tUI("consoleCopy.createRouteGroup") : tUI("consoleCopy.saveRouteGroup")}</ConfirmButton>
             {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
           </form>
         </Form>

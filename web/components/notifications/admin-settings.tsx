@@ -11,10 +11,11 @@ import { IfRoles } from "@/components/rbac/if-can";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
+import { deliveryTitle } from "@/lib/system-copy";
 import { confirmHeaders } from "@/lib/confirm";
 
 type Settings = { enabled: boolean; available: boolean; source: string; host: string; port: number; username: string; from: string; security: string; password_set: boolean };
-type Delivery = { id: string; title: string; brand_id: string; status: string; attempts: number; last_error: string; created_at: string; accepted_at?: string };
+type Delivery = { id: string; kind?: string; title: string; brand_id: string; status: string; attempts: number; last_error: string; created_at: string; accepted_at?: string };
 type Deliveries = { items?: Delivery[] | null; pending: number; blocked: number; failed: number; accepted: number };
 
 function SMTPSettings() {
@@ -60,6 +61,7 @@ function SMTPSettings() {
 }
 
 export function NotificationDeliveryLog() {
+  const tUI = useTranslations();
   const t = useTranslations("notifications"); const locale = useLocale(); const viewer = useViewer();
   const [status, setStatus] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const query = useListResource<Deliveries>({ queryKey: `${viewer.userId}:${status}`, load: async () => {
@@ -79,7 +81,7 @@ export function NotificationDeliveryLog() {
     <label className="mt-5 flex flex-wrap items-center gap-3 text-sm">{t("deliveryFilter")}<select value={status} className="h-10 rounded-control border border-hairline bg-canvas px-3" onChange={event => setStatus(event.target.value)}>{["", "pending", "blocked_smtp", "blocked_unverified", "failed", "accepted"].map(value => <option key={value} value={value}>{value ? t(`status_${value}`) : t("all")}</option>)}</select></label>
     {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
     {query.snapshot.phase === "stale" && <p role="alert" className="mt-3 text-sm text-danger">{t("loadFailed")}</p>}
-    {!data ? <p className="mt-5" role={query.snapshot.phase === "loading" ? "status" : "alert"}>{t(query.snapshot.phase === "loading" ? "loading" : "loadFailed")}</p> : !deliveries.length ? <p className="mt-5 text-sm text-ink-secondary">{t("deliveryEmpty")}</p> : <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead><tr className="border-b border-hairline"><th className="pb-3 font-medium">{t("deliveryMessage")}</th><th className="pb-3 font-medium">{t("deliveryStatus")}</th><th className="pb-3 font-medium">{t("attempts")}</th><th className="pb-3 font-medium">{t("createdAt")}</th><th /></tr></thead><tbody>{deliveries.map(item => <tr key={item.id} className="border-b border-hairline align-top"><td className="max-w-64 py-4 pr-4"><p>{item.title}</p><p className="mt-1 break-all text-xs text-ink-mute">{item.brand_id}</p></td><td className="py-4 pr-4">{t.has(`status_${item.status}`) ? t(`status_${item.status}`) : item.status}{item.last_error && <p className="mt-1 text-xs text-ink-mute">{t.has(`error_${item.last_error}`) ? t(`error_${item.last_error}`) : t("actionFailed")}</p>}</td><td className="py-4 pr-4">{item.attempts}</td><td className="py-4 pr-4 text-xs text-ink-secondary">{new Date(item.created_at).toLocaleString(locale)}</td><td className="py-4">{canRetry && ["failed", "blocked_smtp", "blocked_unverified"].includes(item.status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void retry(item.id)}>{t("retry")}</Button>}</td></tr>)}</tbody></table></div>}
+    {!data ? <p className="mt-5" role={query.snapshot.phase === "loading" ? "status" : "alert"}>{t(query.snapshot.phase === "loading" ? "loading" : "loadFailed")}</p> : !deliveries.length ? <p className="mt-5 text-sm text-ink-secondary">{t("deliveryEmpty")}</p> : <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead><tr className="border-b border-hairline"><th className="pb-3 font-medium">{t("deliveryMessage")}</th><th className="pb-3 font-medium">{t("deliveryStatus")}</th><th className="pb-3 font-medium">{t("attempts")}</th><th className="pb-3 font-medium">{t("createdAt")}</th><th /></tr></thead><tbody>{deliveries.map(item => <tr key={item.id} className="border-b border-hairline align-top"><td className="max-w-64 py-4 pr-4"><p>{deliveryTitle(item, locale, tUI)}</p><p className="mt-1 break-all text-xs text-ink-mute">{item.brand_id}</p></td><td className="py-4 pr-4">{t.has(`status_${item.status}`) ? t(`status_${item.status}`) : item.status}{item.last_error && <p className="mt-1 text-xs text-ink-mute">{t.has(`error_${item.last_error}`) ? t(`error_${item.last_error}`) : t("actionFailed")}</p>}</td><td className="py-4 pr-4">{item.attempts}</td><td className="py-4 pr-4 text-xs text-ink-secondary">{new Date(item.created_at).toLocaleString(locale)}</td><td className="py-4">{canRetry && ["failed", "blocked_smtp", "blocked_unverified"].includes(item.status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void retry(item.id)}>{t("retry")}</Button>}</td></tr>)}</tbody></table></div>}
   </Card>;
 }
 

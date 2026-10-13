@@ -1,5 +1,6 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { canChannelAction } from "@/lib/rbac";
 
@@ -33,6 +34,9 @@ function formatLastUsed(value?: string | null) {
 }
 
 export default function ChannelKeys() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
   const permissionViewer = useViewer();
   const canOperate = canChannelAction("operations", permissionViewer);
   const t = useTranslations("channelUi");

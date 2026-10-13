@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect,useState } from "react";
 import { useQuery,useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ type Detail={request:RequestReceipt;customer_id?:string;customer?:{id:string;ema
 
 type ActionPayload={path:string;body:unknown;kind:string;prompt:string;completion:string};
 export function RequestDetail({surface,id}:{surface:UsageSurface;id:string}){
+  const displayLocale = useLocale();
  const t=useTranslations("usageWorkflow"),viewer=useViewer(),brand=useBrand(),client=useQueryClient();
  const base=usageConsole(surface),endpoint=usageEndpoint(surface);
  const [suffix,setSuffix]=useState(""),[returnTo,setReturnTo]=useState(`${base}/usage?tab=requests`),[ready,setReady]=useState(false),[selfHref,setSelfHref]=useState(""),[error,setError]=useState("");
@@ -40,7 +42,7 @@ export function RequestDetail({surface,id}:{surface:UsageSurface;id:string}){
  function state(value:string){const known=["reserved","settled","released","reversed","pending_reconciliation","committed","confirmed","voided","success","succeeded","failed","running","frozen","paid"];return known.includes(value)?t(value):value}
  return <div className="flex flex-col gap-5"><Link className="text-sm text-brand" href={returnTo}>← {t("back")}</Link><h1 className="text-2xl font-semibold">{t("detail")}</h1>
   {detail.isPending?<p role="status">{t("loading")}</p>:detail.isError?<section role="alert"><p>{t("readFailed")}</p><Button onClick={()=>void detail.refetch()}>{t("retry")}</Button></section>:null}
-  {data?<><section className="rounded-card border border-hairline bg-canvas-raised p-5"><dl className="grid gap-4 text-sm sm:grid-cols-2">{[{k:"request",v:data.request.request_id},{k:"model",v:data.request.public_model_id},{k:"result",v:state(data.request.result)},{k:"billing",v:data.request.billing_state?state(data.request.billing_state):!data.charges.length && data.authorization?.status==="released"?t("unbilled"):"—"},{k:"time",v:new Date(data.request.started_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})+" · Asia/Shanghai"},{k:"amount",v:money(data.request.customer_amount_minor)}].map(v=><div key={v.k}><dt className="text-ink-mute">{t(v.k)}</dt><dd className="mt-1 break-all">{v.v}</dd></div>)}</dl>
+  {data?<><section className="rounded-card border border-hairline bg-canvas-raised p-5"><dl className="grid gap-4 text-sm sm:grid-cols-2">{[{k:"request",v:data.request.request_id},{k:"model",v:data.request.public_model_id},{k:"result",v:state(data.request.result)},{k:"billing",v:data.request.billing_state?state(data.request.billing_state):!data.charges.length && data.authorization?.status==="released"?t("unbilled"):"—"},{k:"time",v:new Date(data.request.started_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})+" · Asia/Shanghai"},{k:"amount",v:money(data.request.customer_amount_minor)}].map(v=><div key={v.k}><dt className="text-ink-mute">{t(v.k)}</dt><dd className="mt-1 break-all">{v.v}</dd></div>)}</dl>
    <div className="mt-4 flex flex-wrap gap-3">{surface!=="user"&&data.customer_id?<Link className="text-brand" href={appendReturnContext(`${base}/users/${encodeURIComponent(data.customer_id)}`,selfHref)}>{t("customer")}{data.customer?` · ${data.customer.display_name||data.customer.email}`:""}</Link>:null}
     {surface==="user"?<><Link href={`/docs?model=${encodeURIComponent(data.request.public_model_id)}&key_id=${encodeURIComponent(data.request.api_key_id||"")}`} className="text-brand">{t("docs")}</Link>{data.request.api_key_id?<Link href={`/app/keys?edit=${encodeURIComponent(data.request.api_key_id)}`} className="text-brand">{t("editKey")}</Link>:null}</>:null}
     {surface==="admin"&&data.charges.some(v=>v.state==="committed")?<IfCan action="billing.refund"><Link href={appendReturnContext(`/admin/billing?request_id=${encodeURIComponent(id)}`,selfHref)} className="text-brand">{t("refund")}</Link></IfCan>:null}

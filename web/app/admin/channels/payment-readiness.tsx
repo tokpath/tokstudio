@@ -1,5 +1,7 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,8 @@ import { IfCan } from "@/components/rbac/if-can";
 type Lane = { adapter: string; display_name?: string; state: string; instance_count?: number };
 
 export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
   const [message, setMessage] = useState("");
   const query = useQuery({
     queryKey: ["/admin/channels", channelID, "payments"],
@@ -21,12 +25,12 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
     enabled: !!channelID,
   });
   const lanes: Lane[] = query.data?.item?.lanes || [];
-  const label: Record<string, string> = { none: "未开通", configuring: "配置中", sandbox: "沙箱", live: "已开通", disabled: "停用" };
+  const label: Record<string, string> = { none: tUI("consoleCopy.notActivated"), configuring: tUI("oemDelivery.phase.configuring"), sandbox: tUI("consoleCopy.sandbox"), live: tUI("consoleCopy.activated"), disabled: tUI("staff.disable") };
 
   return (
     <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
-      <h3 className="mb-3 text-lg font-medium">收款就绪</h3>
-      <p className="mb-3 text-sm text-ink-secondary">不展示密钥。紧急停用后，该渠道用户充值页不再出现在线支付按钮。</p>
+      <h3 className="mb-3 text-lg font-medium">{tUI("consoleCopy.paymentReadiness")}</h3>
+      <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.secretsAreHiddenAnEmergencyShutdownRemovesOnline")}</p>
       <ul className="mb-4 grid gap-2 md:grid-cols-3">
         {lanes.map((lane) => (
           <li key={lane.adapter} className="flex items-center justify-between rounded-stamp border border-hairline px-3 py-2 text-sm">
@@ -41,8 +45,8 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
       <ConfirmButton
         size="sm"
         variant="outline"
-        title="紧急停用在线支付"
-        description="用户将看不到该渠道已开通的在线支付按钮。已填凭证保留。"
+        title={tUI("consoleCopy.emergencyOnlinePaymentShutdown")}
+        description={tUI("consoleCopy.onlinePaymentButtonsForThisChannelWillBe")}
         onConfirm={async () => {
                     try {
           const res = await fetch(`${apiBase}/admin/channels/${channelID}/payments/disable`, {
@@ -52,7 +56,7 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
             body: "{}",
           });
           const body = await res.json();
-          setMessage(res.ok ? "已停用该渠道在线支付" : body.error?.message || "操作失败");
+          setMessage(res.ok ? tUI("consoleCopy.onlinePaymentsDisabledForThisChannel") : body.error?.message || tUI("user.actFail"));
                     const __ok = res.ok;
                     return __ok;
                     } catch {
@@ -61,8 +65,7 @@ export function ChannelPaymentReadiness({ channelID }: { channelID: string }) {
                     }
 }}
       >
-        紧急停用在线支付
-      </ConfirmButton>
+        {tUI("consoleCopy.emergencyOnlinePaymentShutdown")}</ConfirmButton>
       </IfCan>
       {message ? <p className="mt-2 text-sm text-ink-secondary">{message}</p> : null}
     </section>

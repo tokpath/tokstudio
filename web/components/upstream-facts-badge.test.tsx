@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { withZh } from "@/lib/test-i18n";
 import { UpstreamFactsBadge } from "./upstream-facts-badge";
 
 afterEach(() => {
@@ -9,7 +10,7 @@ afterEach(() => {
 
 describe("UpstreamFactsBadge", () => {
   it("shows the locked missing copy and never a green check", () => {
-    render(<UpstreamFactsBadge facts={{ request_id: "req_gap" }} />);
+    render(withZh(<UpstreamFactsBadge facts={{ request_id: "req_gap" }} />));
     const badge = screen.getByTestId("upstream-facts-badge");
     expect(badge.textContent).toBe("缺上游元数据");
     expect(badge.getAttribute("data-complete")).toBe("false");
@@ -20,11 +21,11 @@ describe("UpstreamFactsBadge", () => {
   });
 
   it("keeps sandbox Gemini grey and never a green live impersonation", () => {
-    render(
+    render(withZh(
       <UpstreamFactsBadge
         facts={{ request_id: "req_gem", fact_source: "sandbox" }}
-      />,
-    );
+      />
+    ));
     const badge = screen.getByTestId("upstream-facts-badge");
     expect(badge.textContent).toBe("缺上游元数据");
     expect(badge.getAttribute("data-complete")).toBe("false");
@@ -35,11 +36,11 @@ describe("UpstreamFactsBadge", () => {
   });
 
   it("opens a read-only JSON drawer on hover when facts are complete", () => {
-    render(
+    render(withZh(
       <UpstreamFactsBadge
         facts={{ provider: "prd_echo", model: "echo-up", request_id: "req_ok", fact_source: "sandbox" }}
-      />,
-    );
+      />
+    ));
     const badge = screen.getByTestId("upstream-facts-badge");
     expect(badge.getAttribute("data-complete")).toBe("true");
     expect(badge.getAttribute("data-sandbox")).toBe("true");

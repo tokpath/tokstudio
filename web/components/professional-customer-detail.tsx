@@ -1,4 +1,5 @@
 "use client";
+import { networkUnavailable } from "@/lib/confirm";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -33,6 +34,9 @@ export function ProfessionalCustomerDetail({ id, surface = "admin" }: {
     id: string;
     surface?: "admin" | "channel";
 }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
     const t = useTranslations("customerExperience");
     const labels: Record<string, string> = { agent: t("agent"), kol_l1: t("directReferralCustomer"), kol_l2: t("downstreamReferralCustomer"), promoter: t("referringCustomer") };
     const pathname = usePathname();

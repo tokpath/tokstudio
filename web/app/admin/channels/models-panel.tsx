@@ -14,6 +14,7 @@ import { confirmHeaders } from "@/lib/confirm";
 import { canWrite, canViewAdminHref } from "@/lib/rbac";
 import { useViewer } from "@/components/rbac/viewer-context";
 import { millionDim, perTokenToPerMillion } from "@/lib/token-price";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 
 type ChannelModel = {
   public_id: string; display_name: string; vendor: string; kind?: string; status: string; enabled: boolean;
@@ -24,9 +25,10 @@ type PriceDraft = { input: string; output: string; unit: string };
 const unitKey = (model: ChannelModel) => model.kind === "image" ? "image_count" : model.kind === "video" ? "video_second" : "audio_second";
 const tokenKind = (model: ChannelModel) => !model.kind || ["text", "embedding"].includes(model.kind);
 const draftFor = (model: ChannelModel): PriceDraft => ({ input: perTokenToPerMillion(model.wholesale?.input || ""), output: perTokenToPerMillion(model.wholesale?.output || ""), unit: model.wholesale?.[unitKey(model)] || "" });
-const encodePrice = (model: ChannelModel, draft: PriceDraft) => tokenKind(model) ? millionDim(draft.input, model.kind === "embedding" ? "" : draft.output) || {} : { [unitKey(model)]: draft.unit.trim() };
+const encodePrice = (model: ChannelModel, draft: PriceDraft, tUI: CopyTranslator = defaultCopy) => tokenKind(model) ? millionDim(draft.input, model.kind === "embedding" ? "" : draft.output, tUI) || {} : { [unitKey(model)]: draft.unit.trim() };
 
 export function ChannelModelsPanel({ channelID, delegated = false }: { channelID: string; delegated?: boolean }) {
+  const tUI = useTranslations();
   const t = useTranslations("modelGrants");
   const viewer = useViewer();
   const queryClient = useQueryClient();
@@ -67,14 +69,14 @@ export function ChannelModelsPanel({ channelID, delegated = false }: { channelID
       const price = prices[model.public_id] || draftFor(model);
       const required = tokenKind(model) ? model.kind === "embedding" ? [price.input] : [price.input, price.output] : [price.unit];
       if (required.some(value => !/^\d+(?:\.\d+)?$/.test(value.trim()) || !Number.isFinite(Number(value)))) { setMessage(t("invalidPrice", { name: model.display_name })); return false; }
-      try { encodePrice(model, price); } catch { setMessage(t("invalidPrice", { name: model.display_name })); return false; }
+      try { encodePrice(model, price, tUI); } catch { setMessage(t("invalidPrice", { name: model.display_name })); return false; }
     }
     setMessage(""); return changes.length > 0;
   }
   async function save() {
     try {
       const response = await fetch(`${apiBase}/admin/channels/${encodeURIComponent(channelID)}/models`, { method: "PATCH", credentials: "include", headers: confirmHeaders,
-        body: JSON.stringify({ items: changes.map(model => ({ public_id: model.public_id, enabled: selected.has(model.public_id), ...(pricing && selected.has(model.public_id) ? { wholesale: encodePrice(model, prices[model.public_id] || draftFor(model)) } : {}) })) }) });
+        body: JSON.stringify({ items: changes.map(model => ({ public_id: model.public_id, enabled: selected.has(model.public_id), ...(pricing && selected.has(model.public_id) ? { wholesale: encodePrice(model, prices[model.public_id] || draftFor(model), tUI) } : {}) })) }) });
       const body = await response.json();
       if (!response.ok) { setMessage(body.error?.message || t("saveError")); return false; }
       setGranting(false);

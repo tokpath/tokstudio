@@ -1,0 +1,482 @@
+{
+  "codes": {
+    "asset_dimension": [
+      "The image dimensions do not meet the upload requirements.",
+      "画像サイズがアップロード要件を満たしていません。"
+    ],
+    "asset_kind": [
+      "This asset kind is not supported.",
+      "このリソース種別には対応していません。"
+    ],
+    "asset_svg": [
+      "This SVG is invalid or contains unsupported content.",
+      "SVG が無効か、未対応の内容を含んでいます。"
+    ],
+    "asset_too_large": [
+      "The file exceeds the upload size limit.",
+      "ファイルがアップロードのサイズ上限を超えています。"
+    ],
+    "asset_type": [
+      "This file type is not supported.",
+      "このファイル形式には対応していません。"
+    ],
+    "authentication_error": [
+      "Sign-in failed. Check the account and credentials.",
+      "ログインに失敗しました。アカウントと認証情報を確認してください。"
+    ],
+    "brand_api_unavailable": [
+      "The brand API address is unavailable.",
+      "ブランドの API アドレスを利用できません。"
+    ],
+    "brand_mismatch": [
+      "This account or record belongs to a different brand.",
+      "このアカウントまたは記録は別のブランドに属しています。"
+    ],
+    "brand_not_customizable": [
+      "This brand cannot be customized.",
+      "このブランドはカスタマイズできません。"
+    ],
+    "catalog_unavailable": [
+      "The model catalog is temporarily unavailable.",
+      "モデルカタログを一時的に利用できません。"
+    ],
+    "channel_disabled": [
+      "This channel is disabled. New usage is unavailable.",
+      "このチャネルは無効です。新規利用はできません。"
+    ],
+    "client_id_taken": [
+      "This Google client ID is already assigned to another brand.",
+      "この Google クライアント ID は別のブランドで使用されています。"
+    ],
+    "commission_conflict": [
+      "The commission record has changed. Reload and review it.",
+      "コミッション記録が変更されています。再読み込みして確認してください。"
+    ],
+    "commission_wallet_mismatch": [
+      "The commission wallet does not match the settlement facts.",
+      "コミッションウォレットが精算記録と一致しません。"
+    ],
+    "configuration_error": [
+      "The service configuration is incomplete or invalid.",
+      "サービス設定が未完了または無効です。"
+    ],
+    "confirm_required": [
+      "Confirm this operation before submitting it.",
+      "送信前にこの操作を確認してください。"
+    ],
+    "delivery_incomplete": [
+      "OEM delivery requirements are incomplete.",
+      "OEM の納品要件が未完了です。"
+    ],
+    "email_link_invalid": [
+      "This email link is invalid, expired or already used. Request a new one.",
+      "メールリンクが無効、期限切れ、または使用済みです。新しいリンクを申請してください。"
+    ],
+    "email_unavailable": [
+      "Email service is unavailable. Contact the platform administrator.",
+      "メールサービスを利用できません。プラットフォーム管理者に連絡してください。"
+    ],
+    "external_reference_conflict": [
+      "This external reference is already used by another operation.",
+      "この外部参照は別の操作で使用されています。"
+    ],
+    "external_transaction_conflict": [
+      "This external transaction is already recorded.",
+      "この外部取引は記録済みです。"
+    ],
+    "forbidden": [
+      "You do not have permission to perform this operation.",
+      "この操作を行う権限がありません。"
+    ],
+    "gone": [
+      "This resource is no longer available.",
+      "このリソースは利用できなくなりました。"
+    ],
+    "google_not_verified": [
+      "Verify this Google configuration before enabling it.",
+      "有効化する前に Google 設定を検証してください。"
+    ],
+    "idempotency_conflict": [
+      "This operation ID was used with different details. Check the original operation.",
+      "この操作 ID は異なる内容で使用されています。元の操作を確認してください。"
+    ],
+    "insufficient_balance": [
+      "Eligible credit is insufficient. Add credit or purchase a valid plan.",
+      "利用可能な枠が不足しています。チャージまたは有効なプランの購入を行ってください。"
+    ],
+    "insufficient_quota": [
+      "Available service credit is insufficient.",
+      "利用可能なサービス枠が不足しています。"
+    ],
+    "internal_error": [
+      "The operation could not be completed. Check its result before retrying.",
+      "操作を完了できませんでした。再試行前に結果を確認してください。"
+    ],
+    "invalid_amount": [
+      "Enter a valid amount within the allowed limits.",
+      "許容範囲内の有効な金額を入力してください。"
+    ],
+    "invalid_channel_admin": [
+      "The channel administrator is invalid or cannot be changed this way.",
+      "チャネル管理者が無効か、この方法では変更できません。"
+    ],
+    "invalid_cursor": [
+      "The pagination cursor is invalid. Return to the first page.",
+      "ページ移動のカーソルが無効です。最初のページに戻ってください。"
+    ],
+    "invalid_key_limits": [
+      "The API key limits are invalid.",
+      "API キーの制限設定が無効です。"
+    ],
+    "invalid_recipient": [
+      "Select a valid recipient within your scope.",
+      "管理範囲内の有効な受取人を選択してください。"
+    ],
+    "invalid_request": [
+      "The request is invalid. Check the fields and try again.",
+      "リクエストが無効です。入力項目を確認して再試行してください。"
+    ],
+    "invalid_smtp_settings": [
+      "Check the SMTP server, port, sender address and secure connection settings.",
+      "SMTP サーバー、ポート、送信元、セキュア接続の設定を確認してください。"
+    ],
+    "key_budget_exceeded": [
+      "This API key has reached its spending limit.",
+      "この API キーは利用金額の上限に達しています。"
+    ],
+    "key_expired": [
+      "This API key has expired.",
+      "この API キーは有効期限が切れています。"
+    ],
+    "key_invalid": [
+      "This API key is invalid.",
+      "この API キーは無効です。"
+    ],
+    "key_not_found": [
+      "This API key was not found.",
+      "この API キーが見つかりません。"
+    ],
+    "key_operation_conflict": [
+      "The API key operation conflicts with its current state. Refresh and review it.",
+      "API キーの現在の状態と操作が競合しています。更新して確認してください。"
+    ],
+    "key_unusable": [
+      "This API key cannot currently be used.",
+      "この API キーは現在利用できません。"
+    ],
+    "media_job_not_ready": [
+      "The media result is not ready yet. Check the job status.",
+      "メディア結果はまだ準備できていません。ジョブの状態を確認してください。"
+    ],
+    "model_not_allowed": [
+      "This model is unavailable or is not granted to this account.",
+      "このモデルは利用できないか、このアカウントに許可されていません。"
+    ],
+    "not_found": [
+      "The requested record was not found.",
+      "対象の記録が見つかりません。"
+    ],
+    "nothing_to_settle": [
+      "There are no eligible commissions to settle.",
+      "精算対象のコミッションがありません。"
+    ],
+    "notification_ineligible": [
+      "Check SMTP configuration, email verification and whether this notification is expired or already sent.",
+      "SMTP 設定、メール認証、通知の有効期限と送信済み状態を確認してください。"
+    ],
+    "notification_not_found": [
+      "This notification was not found.",
+      "この通知が見つかりません。"
+    ],
+    "operation_conflict": [
+      "The operation conflicts with the current state. Reload the original record.",
+      "現在の状態と操作が競合しています。元の記録を再読み込みしてください。"
+    ],
+    "order_status_conflict": [
+      "The order status has changed or does not permit this action.",
+      "注文の状態が変更されているか、この操作を許可していません。"
+    ],
+    "payment_provider_failed": [
+      "The payment provider could not complete the operation. Check the payment result.",
+      "決済事業者が操作を完了できませんでした。決済結果を確認してください。"
+    ],
+    "payment_unavailable": [
+      "This payment method is currently unavailable.",
+      "この決済手段は現在利用できません。"
+    ],
+    "permission_denied": [
+      "You do not have permission to access this record or perform this operation.",
+      "この記録へのアクセスまたは操作の権限がありません。"
+    ],
+    "plan_name_taken": [
+      "A plan with this name already exists.",
+      "同じ名前のプランが既に存在します。"
+    ],
+    "preview_changed": [
+      "The preview has changed. Reload and confirm the updated result.",
+      "プレビューが変更されています。再読み込みして最新の結果を確認してください。"
+    ],
+    "price_estimate_unavailable": [
+      "A reliable price estimate is unavailable for this request.",
+      "このリクエストの価格を正確に見積もれません。"
+    ],
+    "probe_not_supported": [
+      "This provider does not support this probe.",
+      "このプロバイダーはこのプローブに対応していません。"
+    ],
+    "provider_unavailable": [
+      "The upstream provider is currently unavailable.",
+      "上流プロバイダーは現在利用できません。"
+    ],
+    "quota_not_recoverable": [
+      "This credit cannot be recovered in its current state.",
+      "この枠は現在の状態では回収できません。"
+    ],
+    "rate_limit_exceeded": [
+      "The request rate limit has been reached. Try again later.",
+      "リクエスト数の上限に達しました。時間をおいて再試行してください。"
+    ],
+    "rate_limited": [
+      "Too many requests. Try again later.",
+      "リクエストが多すぎます。時間をおいて再試行してください。"
+    ],
+    "read_failed": [
+      "Could not load the record. Please retry.",
+      "記録を読み込めませんでした。再試行してください。"
+    ],
+    "recovery_conflict": [
+      "The recovery record has changed. Reload the original record.",
+      "回収記録が変更されています。元の記録を再読み込みしてください。"
+    ],
+    "refund_failed": [
+      "The refund could not be completed. Check the original operation before retrying.",
+      "返金を完了できませんでした。再試行前に元の操作を確認してください。"
+    ],
+    "refund_needs_review": [
+      "This refund requires a financial review before it can proceed.",
+      "この返金を進めるには財務による確認が必要です。"
+    ],
+    "request_outcome_unknown": [
+      "The request result is unconfirmed. Check the original request before retrying.",
+      "リクエスト結果が未確認です。再試行前に元のリクエストを確認してください。"
+    ],
+    "result_unconfirmed": [
+      "The result is unconfirmed. Check the original operation rather than creating a new one.",
+      "結果が未確認です。新しい操作を作成せず、元の操作を確認してください。"
+    ],
+    "service_unavailable": [
+      "The service is temporarily unavailable. Try again later.",
+      "サービスを一時的に利用できません。時間をおいて再試行してください。"
+    ],
+    "settlement_changed": [
+      "The settlement facts have changed. Reload the preview before confirming.",
+      "精算内容が変更されています。確認前にプレビューを再読み込みしてください。"
+    ],
+    "smtp_unavailable": [
+      "Email delivery is unavailable. Check SMTP and platform encryption settings.",
+      "メール配信を利用できません。SMTP と暗号化設定を確認してください。"
+    ],
+    "snapshot_unavailable": [
+      "The original snapshot is unavailable. This operation needs review.",
+      "元のスナップショットを利用できません。この操作には確認が必要です。"
+    ],
+    "store_unavailable": [
+      "Storage is unavailable.",
+      "ストレージを利用できません。"
+    ],
+    "supplier_conflict": [
+      "The supplier record conflicts with existing financial facts.",
+      "仕入先の記録が既存の会計記録と競合しています。"
+    ],
+    "topup_status_conflict": [
+      "The top-up status does not permit this operation.",
+      "チャージの状態がこの操作を許可していません。"
+    ],
+    "totp_required": [
+      "Enter a valid authenticator code for this operation.",
+      "この操作には有効な認証アプリのコードを入力してください。"
+    ],
+    "unauthorized": [
+      "Sign in again to continue.",
+      "再度ログインして続行してください。"
+    ],
+    "unsupported_control_parameter": [
+      "This request contains unsupported control parameters.",
+      "リクエストに未対応の制御パラメーターが含まれています。"
+    ],
+    "unsupported_operation": [
+      "This operation is not supported.",
+      "この操作には対応していません。"
+    ],
+    "version_conflict": [
+      "The configuration has changed. Reload it before saving.",
+      "設定が変更されています。保存前に再読み込みしてください。"
+    ]
+  },
+  "messages": {
+    "未授权": [
+      "Authentication is required.",
+      "認証が必要です。"
+    ],
+    "存储不可用": [
+      "Storage unavailable",
+      "ストレージを利用できません"
+    ],
+    "未登录": [
+      "Sign in to continue.",
+      "ログインして続行してください。"
+    ],
+    "模型不可用": [
+      "Model unavailable",
+      "モデルが利用できない"
+    ],
+    "读取路由失败": [
+      "Could not load the route",
+      "ルートを読み込めませんでした"
+    ],
+    "读取品牌失败": [
+      "Could not load the brand",
+      "ブランドを読み込めませんでした"
+    ],
+    "请填写有效邮箱": [
+      "Enter a valid email",
+      "有効なメールを入力してください"
+    ],
+    "不是推广主体": [
+      "Not a promotion principal",
+      "紹介主体ではありません"
+    ],
+    "结果尚未确认，请回查或重试原操作。": [
+      "The result is unconfirmed. Check or retry the original operation.",
+      "The result is unconfirmed. Check or retry the original operation."
+    ],
+    "请先登录": [
+      "Sign in first.",
+      "先にログインしてください。"
+    ],
+    "送入待对账失败": [
+      "Could not flag the mismatch",
+      "キュー投入に失敗しました"
+    ],
+    "标记已解失败": [
+      "Could not mark resolved",
+      "解除に失敗しました"
+    ],
+    "发布价格失败": [
+      "Price publication failed",
+      "価格の公開に失敗しました"
+    ],
+    "读取账单失败，请重试。": [
+      "Could not load the bill. Please try again.",
+      "請求を読み込めませんでした。再試行してください。"
+    ],
+    "Google 登录失败": [
+      "Google sign-in failed.",
+      "Google ログインに失敗しました。"
+    ],
+    "读取 2FA 失败": [
+      "Could not read 2FA status",
+      "2FA の状態を読み込めませんでした"
+    ],
+    "邮箱已注册": [
+      "This email is already registered for this brand.",
+      "このメールはこのブランドで登録済みです。"
+    ],
+    "密码至少 8 位，UTF-8 编码不超过 72 字节": [
+      "Use at least 8 characters and no more than 72 UTF-8 bytes for the password.",
+      "パスワードは8文字以上、UTF-8で72バイト以内にしてください。"
+    ],
+    "推广码无效": [
+      "The promotion code is invalid.",
+      "紹介コードが無効です。"
+    ],
+    "渠道归属不可自行切换": [
+      "You cannot change your channel membership yourself.",
+      "チャネルの所属は自分で変更できません。"
+    ],
+    "记录不存在": [
+      "The record does not exist.",
+      "記録が存在しません。"
+    ],
+    "账号或密码错误": [
+      "The account or password is incorrect.",
+      "アカウントまたはパスワードが正しくありません。"
+    ],
+    "显示名过长": [
+      "The display name is too long.",
+      "表示名が長すぎます。"
+    ],
+    "语言只支持 zh、en、ja": [
+      "Supported languages are Chinese, English and Japanese.",
+      "対応言語は中国語、英語、日本語です。"
+    ],
+    "必须填写原因": [
+      "Enter a reason for this operation.",
+      "操作の理由を入力してください。"
+    ],
+    "不能对自己执行该操作": [
+      "You cannot perform this operation on your own account.",
+      "自分のアカウントにはこの操作を実行できません。"
+    ],
+    "不能操作后台管理员": [
+      "This operation cannot be applied to an administrator account.",
+      "管理者アカウントにはこの操作を実行できません。"
+    ],
+    "请求体无效": [
+      "The request body is invalid.",
+      "リクエスト本文が無効です。"
+    ],
+    "账号已停用": [
+      "This account has been disabled.",
+      "このアカウントは無効化されています。"
+    ],
+    "未配置 Google 登录": [
+      "Google sign-in has not been configured.",
+      "Google ログインは未設定です。"
+    ],
+    "请填写有效邮箱和密码": [
+      "Enter a valid email and password.",
+      "有効なメールとパスワードを入力してください。"
+    ],
+    "该邮箱在本品牌已注册，请直接登录": [
+      "This email is already registered for this brand. Sign in instead.",
+      "このメールはこのブランドで登録済みです。ログインしてください。"
+    ],
+    "邮箱密码账号需要先登录后绑定 Google": [
+      "Sign in with your password before linking Google.",
+      "パスワードでログインしてから Google を連携してください。"
+    ],
+    "该品牌不支持自定义配置": [
+      "This brand does not support custom configuration.",
+      "このブランドは独自設定に対応していません。"
+    ],
+    "请求参数无效": [
+      "The request parameters are invalid.",
+      "リクエストのパラメーターが無効です。"
+    ],
+    "渠道不存在": [
+      "This channel does not exist.",
+      "このチャネルは存在しません。"
+    ],
+    "用户不存在": [
+      "This user does not exist.",
+      "このユーザーは存在しません。"
+    ],
+    "只能查看自己的渠道": [
+      "You can only view your own channel.",
+      "自分のチャネルのみ表示できます。"
+    ],
+    "只能管理自己的直属下属渠道": [
+      "You can only manage your own direct child channels.",
+      "自分の直属の下位チャネルのみ管理できます。"
+    ],
+    "只能上传图片资源": [
+      "Only image assets can be uploaded.",
+      "画像リソースのみアップロードできます。"
+    ],
+    "文件过大": [
+      "The file is too large.",
+      "ファイルが大きすぎます。"
+    ]
+  }
+}

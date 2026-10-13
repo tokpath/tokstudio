@@ -1,5 +1,8 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -33,14 +36,19 @@ type Channel = { id: string; code: string; type: string; status: string; brand_i
 type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; status: string };
 type ItemResponse = { item?: Channel; error?: { message?: string } };
 
-const patchSchema = z.object({
-  status: z.string().trim().min(1, "请选择状态"),
-});
+function makePatchSchema(tUI: CopyTranslator) { return z.object({
+  status: z.string().trim().min(1, tUI("consoleCopy.selectAStatus")),
+}); }
 
 const selectClass =
   "h-10 min-h-10 w-full rounded-control border border-hairline bg-canvas-raised px-3 text-sm text-ink";
 
 export default function AdminChannelDetailPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+  const patchSchema = makePatchSchema(tUI);
+
   const tc = useTranslations("common");
   const router = useRouter();
   const viewer=useViewer();const brand=useBrand();const scope=`${viewer.userId || ""}:${brand?.id || ""}`;
@@ -50,7 +58,7 @@ export default function AdminChannelDetailPage() {
   const id = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw || "");
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState("停用后冻结新消费，余额和历史仍保留。");
+  const [message, setMessage] = useState(tUI("consoleCopy.disablingFreezesNewUsageWhileRetainingBalanceAnd"));
   const query = useQuery({
     queryKey: ["/admin/channels", id,scope,viewer.roles.join(",")],
     enabled: !viewer.loading,
@@ -60,7 +68,7 @@ export default function AdminChannelDetailPage() {
   useEffect(()=>{setEditing(false);setMessage("");},[scope,id]);
   useEffect(() => { if (item?.type === "C") router.replace(`/admin/oem-deliveries/${encodeURIComponent(id)}${contextParams.size?`?${contextParams}`:""}`); }, [item?.type, id, router, contextParams]);
   const managedByPlatform = !!item && ( !item.parent_id || item.parent_id === "chn_official_a");
-  const form = useForm<z.infer<typeof patchSchema>>({
+  const form = useForm<z.infer<ReturnType<typeof makePatchSchema>>>({
     resolver: zodResolver(patchSchema),
     values: {
       status: item?.status || "active",
@@ -74,22 +82,20 @@ export default function AdminChannelDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href={customerReturnHref(contextParams.get("return_to"),"/admin/channels",scope)} className="text-sm text-brand-emphasis no-underline hover:underline">
-            返回列表
-          </Link>
-          <h1 className="mt-3 text-lg font-semibold tracking-tight">渠道详情</h1>
-          <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type)}` : id}</p>
+            {tUI("public.article.primary")}</Link>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight">{tUI("consoleCopy.channelDetails")}</h1>
+          <p className="mt-1 text-sm text-ink-secondary">{item ? `${item.code} · ${channelTypeLabel(item.type, tUI)}` : id}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {managedByPlatform ? <IfCan action="channels.write">
           {editing ? (
             <>
               <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
-                取消
-              </Button>
+                {tUI("common.cancel")}</Button>
               <ConfirmButton
                 size="sm"
-                title="确认保存渠道"
-                description="停用后冻结新消费，历史账务保留。"
+                title={tUI("consoleCopy.confirmChannelChanges")}
+                description={tUI("consoleCopy.disablingFreezesNewUsageWhileRetainingFinancialHistory")}
                 validate={() => form.trigger()}
                 onConfirm={confirmFormSubmit(form.handleSubmit, async (values) => {
                   try {
@@ -101,10 +107,10 @@ export default function AdminChannelDetailPage() {
                   });
                   const body = await res.json();
                   if (!res.ok) {
-                    setMessage(body.error?.message || "保存失败");
+                    setMessage(body.error?.message || tUI("user.saveFail"));
                     return false;
                   }
-                  setMessage(`已保存 ${body.item?.id} → ${body.item?.status} / ${body.item?.type}`);
+                  setMessage(tUI("consoleCopy.saved", { value0: String(body.item?.id), value1: String(body.item?.status), value2: String(body.item?.type) }));
                   setEditing(false);
                   await queryClient.invalidateQueries({ queryKey: ["/admin/channels", id] });
                   return true;
@@ -114,32 +120,30 @@ export default function AdminChannelDetailPage() {
                   }
 })}
               >
-                保存渠道
-              </ConfirmButton>
+                {tUI("consoleCopy.saveChannel")}</ConfirmButton>
             </>
           ) : (
             <Button size="sm" onClick={() => setEditing(true)}>
-              编辑
-            </Button>
+              {tUI("user.edit")}</Button>
           )}
           </IfCan> : null}
         </div>
       </div>
       {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
       <section className="rounded-stamp border border-hairline bg-canvas-raised p-6">
-        <h3 className="mb-3 text-lg font-medium">渠道信息</h3>
+        <h3 className="mb-3 text-lg font-medium">{tUI("consoleCopy.channelInformation")}</h3>
         {editing ? (
           <Form {...form}>
             <form className="grid max-w-xl gap-3" onSubmit={(event) => event.preventDefault()}>
-              <p className="text-sm text-ink-secondary">渠道类型和品牌创建后固定；这里只修改运行状态。</p>
+              <p className="text-sm text-ink-secondary">{tUI("consoleCopy.channelTypeAndBrandAreFixedAfterCreation")}</p>
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>状态</FormLabel>
+                    <FormLabel>{tUI("compareUi.status")}</FormLabel>
                     <FormControl>
-                      <select className={selectClass} aria-label="渠道状态" {...field}>
+                      <select className={selectClass} aria-label={tUI("consoleCopy.channelStatus")} {...field}>
                         {STATUS_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
@@ -156,28 +160,28 @@ export default function AdminChannelDetailPage() {
         ) : (
           <dl className="grid max-w-xl gap-2 text-sm">
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">渠道编号</dt>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.channelId")}</dt>
               <dd className="font-mono">{item?.id || id}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">渠道名称</dt>
+              <dt className="text-ink-secondary">{tUI("channelUi.bCodeLabel")}</dt>
               <dd>{item?.code || "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">渠道类型</dt>
-              <dd>{item ? channelTypeLabel(item.type) : "—"}</dd>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.channelType")}</dt>
+              <dd>{item ? channelTypeLabel(item.type, tUI) : "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">状态</dt>
+              <dt className="text-ink-secondary">{tUI("compareUi.status")}</dt>
               <dd>{item?.status || "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-hairline py-2">
-              <dt className="text-ink-secondary">品牌</dt>
+              <dt className="text-ink-secondary">{tUI("channelNav.brand")}</dt>
               <dd>{item?.brand_id || "—"}</dd>
             </div>
             <div className="flex justify-between gap-4 py-2">
-              <dt className="text-ink-secondary">上级渠道</dt>
-              <dd>{item?.parent_id || "无"}</dd>
+              <dt className="text-ink-secondary">{tUI("consoleCopy.parentChannel")}</dt>
+              <dd>{item?.parent_id || tUI("user.examplesNone")}</dd>
             </div>
           </dl>
         )}

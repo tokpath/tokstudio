@@ -168,6 +168,7 @@ export default function MediaPanel({
   catalogMessage?: string;
   modelError?: "missing" | "unavailable";
 } = {}) {
+  const tUI = useTranslations();
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const tKey = useTranslations("keyUX");
@@ -444,15 +445,15 @@ export default function MediaPanel({
           setStorage(nextStorage);
         }
         if (!response.ok) {
-          const reason = errorMessageFromBody(body, "存储不可用");
+          const reason = errorMessageFromBody(body, tUI("consoleCopy.storageUnavailable"));
           setPreviewErrors((current) => ({ ...current, [id]: reason }));
           setMessage(reason);
           return "";
         }
         const signed = parseSignedMedia(body);
         if (!signed) {
-          setPreviewErrors((current) => ({ ...current, [id]: "存储不可用" }));
-          setMessage("存储不可用");
+          setPreviewErrors((current) => ({ ...current, [id]: tUI("consoleCopy.storageUnavailable") }));
+          setMessage(tUI("consoleCopy.storageUnavailable"));
           return "";
         }
         previewsRef.current = { ...previewsRef.current, [id]: signed };

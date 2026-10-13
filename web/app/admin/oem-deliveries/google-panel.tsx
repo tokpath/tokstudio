@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -20,6 +21,7 @@ type GoogleConfig = {
 };
 
 export function OEMGooglePanel({ channelID }: { channelID: string }) {
+  const displayLocale = useLocale();
   const t = useTranslations("oemGoogle");
   const viewer = useViewer();
   const cache = useQueryClient();
@@ -113,7 +115,7 @@ export function OEMGooglePanel({ channelID }: { channelID: string }) {
           return <div key={uri} className="space-y-2 py-3">
             <p className="text-sm font-medium">{t(index === 0 ? "primaryCallback" : "adminCallback")}</p>
             <p className="break-all font-mono text-sm">{uri}</p>
-            <p className={`text-sm ${proof?.error ? "text-danger" : "text-ink-secondary"}`}>{proof?.verified_at ? t("verified", { time: new Date(proof.verified_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" }) }) : proof?.error ? t("testFailed", { reason: proof.error }) : t("unverified")}</p>
+            <p className={`text-sm ${proof?.error ? "text-danger" : "text-ink-secondary"}`}>{proof?.verified_at ? t("verified", { time: new Date(proof.verified_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" }) }) : proof?.error ? t("testFailed", { reason: proof.error }) : t("unverified")}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => void navigator.clipboard.writeText(uri).then(() => setMessage(t("copied"))).catch(() => setError(t("copyFailed")))}>{t("copy")}</Button>
               <Button variant="outline" disabled={busy || dirty || !query.data?.secret_set} onClick={() => void test(uri)}>{t("test")}</Button>

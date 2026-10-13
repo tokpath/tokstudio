@@ -1,3 +1,4 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 import { apiBase } from "@/lib/api";
 
 export type Brand = {
@@ -62,39 +63,39 @@ export function assetByteLimit(kind: AssetKind): number {
   return LOGO_MAX_BYTES;
 }
 
-export function describeAssetLimit(kind: AssetKind): string {
-  if (kind === "favicon") return "Favicon：PNG/ICO，≤64KiB，恰好 32×32 或 48×48";
-  if (kind === "og_image") return "分享图：PNG/JPEG/WebP，≤512KiB，恰好 1200×630";
-  return "Logo：PNG/WebP/SVG，≤128KiB，短边 64–1024px，宽高比 1:1～4:1，页上高 24px";
+export function describeAssetLimit(kind: AssetKind, tUI: CopyTranslator = defaultCopy): string {
+  if (kind === "favicon") return tUI("consoleCopy.faviconPngIco64KibExactly3232");
+  if (kind === "og_image") return tUI("consoleCopy.socialImagePngJpegWebp512KibExactly");
+  return tUI("consoleCopy.logoPngWebpSvg128KibShorterSide");
 }
 
-export async function inspectLocalAsset(kind: AssetKind, file: File): Promise<string | null> {
+export async function inspectLocalAsset(kind: AssetKind, file: File, tUI: CopyTranslator = defaultCopy): Promise<string | null> {
   if (file.size > assetByteLimit(kind)) {
-    return `文件 ${file.size} 字节，超过 ${assetByteLimit(kind)} 字节上限`;
+    return tUI("consoleCopy.fileIsBytesExceedingTheByteLimit", { value0: String(file.size), value1: String(assetByteLimit(kind)) });
   }
   if (kind !== "logo" && kind !== "logo_dark" && file.type === "image/svg+xml") {
-    return "只有 Logo 可以上传 SVG";
+    return tUI("consoleCopy.onlyLogosMayUseSvg");
   }
   if ((kind === "logo" || kind === "logo_dark") && file.type === "image/jpeg") {
-    return "Logo 不能用 JPEG";
+    return tUI("consoleCopy.logosCannotUseJpeg");
   }
   if (file.type === "image/svg+xml") return null;
   const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) return "无法读取图片尺寸";
+  if (!bitmap) return tUI("consoleCopy.couldNotReadImageDimensions");
   const { width, height } = bitmap;
   bitmap.close();
   if (kind === "favicon" && !((width === 32 && height === 32) || (width === 48 && height === 48))) {
-    return `Favicon 现在是 ${width}×${height}，必须是 32×32 或 48×48`;
+    return tUI("consoleCopy.faviconIsItMustBe3232Or", { value0: String(width), value1: String(height) });
   }
   if (kind === "og_image" && (width !== 1200 || height !== 630)) {
-    return `分享图现在是 ${width}×${height}，必须是 1200×630`;
+    return tUI("consoleCopy.socialImageIsItMustBe1200630", { value0: String(width), value1: String(height) });
   }
   if (kind === "logo" || kind === "logo_dark") {
     const short = Math.min(width, height);
     const long = Math.max(width, height);
     const ratio = width / height;
     if (short < LOGO_MIN_SIDE || long > LOGO_MAX_SIDE || ratio < 1 || ratio > LOGO_MAX_RATIO) {
-      return `Logo 现在是 ${width}×${height}，短边需 64–1024px，宽高比 1:1～4:1`;
+      return tUI("consoleCopy.logoIsTheShorterSideMustBe64", { value0: String(width), value1: String(height) });
     }
   }
   return null;

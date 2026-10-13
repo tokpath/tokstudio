@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -19,6 +20,7 @@ type Preview = { payee_channel_org_id: string; channel_org_id:string; issue_rati
 type Receipt = { user_id: string; amount_minor: number; credit_minor: number; currency: string; reference: string;note:string;occurred_at:string;expected_issue_ratio_bps:number;customer:Customer;preview:Preview };
 const localTime=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 export function OfflineReceiptPanel({ basePath, onRecorded }: { basePath: string; onRecorded: () => void }) {
+  const displayLocale = useLocale();
  const t=useTranslations("paymentTasks");const viewer=useViewer();const params=useSearchParams();
  const fixedCustomer=params.get("customer_id")||"";const returnTo=params.get("return_to");
  const storageKey=`offline-receipt:${basePath}:${viewer.userId||"loading"}:${fixedCustomer||"draft"}`;
@@ -52,7 +54,7 @@ export function OfflineReceiptPanel({ basePath, onRecorded }: { basePath: string
  }
  async function lookup(){if(!operation)return;try{const response=await fetch(`${apiBase}${basePath}/offline/operations/${encodeURIComponent(operation.id)}`,{credentials:"include"});const body=await response.json();if(!response.ok){setMessage(t("lookupFailed"));return}if(body.operation_status==="recorded"&&body.item?.id){completed(body.item.id,body.item.status);setReceipt(null)}else if(conflict&&body.operation_status==="not_found"){finishOperation(storageKey);setOperation(null);setConflict(false);setMessage(t("confirmedConflict"))}else setMessage(t("notFoundYet"))}catch{setMessage(t("lookupFailed"))}}
  const chosen=receipt||operation?.payload;const pool=chosen?.preview;
- const description=chosen?[`${chosen.customer.display_name} · ${chosen.customer.email}`,t("receiptSummary",{amount:String(chosen.amount_minor/(chosen.currency==="USD"?1_000_000:100)),currency:chosen.currency,credit:formatUsdMinor(chosen.credit_minor),time:new Date(chosen.occurred_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})}),pool?.pool_before_minor!==undefined?t("poolSummary",{before:formatUsdMinor(pool.pool_before_minor),debit:formatUsdMinor(pool.pool_debit_minor),after:formatUsdMinor(pool.pool_after_minor)}):t("platformFunds"),chosen.reference?t("referenceValue",{value:chosen.reference}):"",t("actualReceived")].filter(Boolean).join("\n"):"";
+ const description=chosen?[`${chosen.customer.display_name} · ${chosen.customer.email}`,t("receiptSummary",{amount:String(chosen.amount_minor/(chosen.currency==="USD"?1_000_000:100)),currency:chosen.currency,credit:formatUsdMinor(chosen.credit_minor),time:new Date(chosen.occurred_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})}),pool?.pool_before_minor!==undefined?t("poolSummary",{before:formatUsdMinor(pool.pool_before_minor),debit:formatUsdMinor(pool.pool_debit_minor),after:formatUsdMinor(pool.pool_after_minor)}):t("platformFunds"),chosen.reference?t("referenceValue",{value:chosen.reference}):"",t("actualReceived")].filter(Boolean).join("\n"):"";
  return <div className="space-y-3">
   <Button variant="outline" onClick={()=>setExpanded(value=>!value)}>{expanded?t("collapse"):t("offline")}</Button>
   {expanded?<section aria-label={t("offline")} className="space-y-4 rounded-control border border-hairline p-4">

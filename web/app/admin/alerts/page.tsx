@@ -1,5 +1,6 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -15,12 +16,15 @@ import { NotificationDeliveryLog } from "@/components/notifications/admin-settin
 import { useViewer } from "@/components/rbac/viewer-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { alertMessage } from "@/lib/system-copy";
 
 type Alert = { id: string; kind: string; severity: string; status: string; message: string };
 type ListResponse = { items?: Alert[]; next_cursor?: string; error?: { message?: string } };
 
 export default function AdminAlertsPage() {
-  const [message, setMessage] = useState("按当前成功率、待对账和熔断状态生成告警。");
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+  const [message, setMessage] = useState(tUI("consoleCopy.generateAlertsFromTheCurrentSuccessRateReconciliation"));
   const [error,setError]=useState("");
   const viewer = useViewer();
   const tc = useTranslations("common");
@@ -77,8 +81,8 @@ export default function AdminAlertsPage() {
       headers: confirmHeaders,
     });
     const body = await res.json();
-    setMessage(res.ok ? "评估完成，已刷新告警列表。" : body.error?.message || "评估失败");
-    if(!res.ok)setError(body.error?.message||"评估失败，请重试。");
+    setMessage(res.ok ? tUI("consoleCopy.evaluationCompleteTheAlertListHasBeenRefreshed") : body.error?.message || tUI("consoleCopy.evaluationFailed"));
+    if(!res.ok)setError(body.error?.message||tUI("consoleCopy.evaluationFailedPleaseTryAgain"));
     const __ok = res.ok;
     if (res.ok) { setCursor(""); setPrevious([]); updateLocation(status, search, ""); }
     await queryClient.invalidateQueries({ queryKey: [viewer.userId, "/admin/ops/alerts"] });
@@ -93,38 +97,37 @@ export default function AdminAlertsPage() {
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 level={1} k="alerts" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">按系统设置中的阈值检查当前运行情况，生成告警并保留审计记录。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.checkCurrentOperationsAgainstTheConfiguredThresholdsGenerate")}</p>
         <IfCan action="alerts.write">
-        <ConfirmButton size="sm" title="确认评估告警" description="将按当前阈值重新评估运行情况并生成告警，不会自动修改上游配置或资金记录。" error={error} onConfirm={evaluate}>
-          评估告警
-        </ConfirmButton>
+        <ConfirmButton size="sm" title={tUI("consoleCopy.confirmAlertEvaluation")} description={tUI("consoleCopy.reevaluateOperationsUsingCurrentThresholdsAndGenerateAlerts")} error={error} onConfirm={evaluate}>
+          {tUI("consoleCopy.evaluateAlerts")}</ConfirmButton>
         </IfCan>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">状态<select aria-label="告警状态" value={status} className="h-10 rounded-control border border-hairline bg-canvas px-3" onChange={event => filter(event.target.value, search)}><option value="">全部</option><option value="open">待处理</option><option value="resolved">已恢复</option><option value="closed">已关闭</option></select></label>
+          <label className="flex items-center gap-2 text-sm">{tUI("compareUi.status")}<select aria-label={tUI("consoleCopy.alertStatus")} value={status} className="h-10 rounded-control border border-hairline bg-canvas px-3" onChange={event => filter(event.target.value, search)}><option value="">{tUI("common.all")}</option><option value="open">{tUI("consoleCopy.open")}</option><option value="resolved">{tUI("consoleCopy.resolved")}</option><option value="closed">{tUI("consoleCopy.closed")}</option></select></label>
           <form className="flex min-w-0 items-center gap-2" onSubmit={event => { event.preventDefault(); filter(status, input.trim()); }}><Input className="w-44 sm:w-56" aria-label={tc("filter")} placeholder={tc("filter")} value={input} onChange={event => setInput(event.target.value)} /><Button size="sm" variant="outline" type="submit">{tc("search")}</Button></form>
-          <Button asChild size="sm" variant="outline"><a href={`${apiBase}/admin/ops/alerts?${exportParams}`}>导出 CSV</a></Button>
+          <Button asChild size="sm" variant="outline"><a href={`${apiBase}/admin/ops/alerts?${exportParams}`}>{tUI("common.exportCsv")}</a></Button>
         </div>
         {query.data?.error ? <p className="mt-3 text-sm text-ink-secondary">{query.data.error.message}</p> : null}
-        {query.isPending && <p role="status">正在读取告警…</p>}
-        {query.isError && <div role="alert" className="mt-3"><p>读取告警失败，请重试。</p><Button size="sm" variant="outline" onClick={() => void query.refetch()}>{tc("listRetry")}</Button></div>}
-        {!query.isPending && !query.isError && !query.data?.error && items.length===0 && <p className="mt-3">当前条件下暂无告警记录。</p>}
-        <Link href="/admin/runbooks" className="mt-3 block text-brand-emphasis">查看应急处置手册</Link>
+        {query.isPending && <p role="status">{tUI("consoleCopy.loadingAlerts")}</p>}
+        {query.isError && <div role="alert" className="mt-3"><p>{tUI("consoleCopy.couldNotLoadAlertsPleaseTryAgain")}</p><Button size="sm" variant="outline" onClick={() => void query.refetch()}>{tc("listRetry")}</Button></div>}
+        {!query.isPending && !query.isError && !query.data?.error && items.length===0 && <p className="mt-3">{tUI("consoleCopy.noAlertsMatchTheCurrentFilters")}</p>}
+        <Link href="/admin/runbooks" className="mt-3 block text-brand-emphasis">{tUI("consoleCopy.openIncidentRunbooks")}</Link>
         <div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-hairline text-ink-secondary">
-              <th className="px-2 py-2">类型</th>
-              <th className="px-2 py-2">级别</th>
-              <th className="px-2 py-2">状态</th>
-              <th className="px-2 py-2">说明</th>
+              <th className="px-2 py-2">{tUI("partnerBoard.colKind")}</th>
+              <th className="px-2 py-2">{tUI("consoleCopy.severity")}</th>
+              <th className="px-2 py-2">{tUI("compareUi.status")}</th>
+              <th className="px-2 py-2">{tUI("consoleCopy.description")}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-hairline/80">
-                <td className="px-2 py-2 text-ink">{({backup_drill_missing:"缺少备份恢复演练",low_success_rate:"成功率偏低",pending_reconciliation:"待对账",circuit_open:"上游熔断"} as Record<string,string>)[item.kind]||item.kind}</td>
-                <td className="px-2 py-2 text-ink-secondary">{({critical:"严重",high:"高",medium:"中",low:"低"} as Record<string,string>)[item.severity]||item.severity}</td>
-                <td className="px-2 py-2 text-ink-secondary">{({open:"待处理",resolved:"已恢复",closed:"已关闭"} as Record<string,string>)[item.status]||item.status}</td>
-                <td className="px-2 py-2 text-ink-secondary">{item.message}</td>
+                <td className="px-2 py-2 text-ink">{({backup_drill_missing:tUI("consoleCopy.backupRestoreDrillMissing"),low_success_rate:tUI("consoleCopy.lowSuccessRate"),pending_reconciliation:tUI("admin.heroPending"),circuit_open:tUI("consoleCopy.upstreamCircuitOpen")} as Record<string,string>)[item.kind]||item.kind}</td>
+                <td className="px-2 py-2 text-ink-secondary">{({critical:tUI("consoleCopy.critical"),high:tUI("consoleCopy.high"),medium:tUI("consoleCopy.medium"),low:tUI("consoleCopy.low")} as Record<string,string>)[item.severity]||item.severity}</td>
+                <td className="px-2 py-2 text-ink-secondary">{({open:tUI("consoleCopy.open"),resolved:tUI("consoleCopy.resolved"),closed:tUI("consoleCopy.closed")} as Record<string,string>)[item.status]||item.status}</td>
+                <td className="px-2 py-2 text-ink-secondary">{alertMessage(item.message, tUI)}</td>
               </tr>
             ))}
           </tbody>

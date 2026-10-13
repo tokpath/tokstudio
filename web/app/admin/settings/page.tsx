@@ -1,5 +1,7 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,8 @@ import { IfCan, IfRoles } from "@/components/rbac/if-can";
 import { NotificationAdminSettings } from "@/components/notifications/admin-settings";
 
 export default function AdminSettingsPage() {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
   const [rate, setRate] = useState("0.5");
   const [minReq, setMinReq] = useState("5");
   const [pending, setPending] = useState("1");
@@ -19,9 +23,9 @@ export default function AdminSettingsPage() {
   const [canarySlug, setCanarySlug] = useState("echo-backup");
   const [canaryPercent, setCanaryPercent] = useState("0");
   const [brandID, setBrandID] = useState("brd_oem");
-  const [message, setMessage] = useState("告警阈值写入 ops 表，评估成功率时会读取。");
-  const [drillMessage, setDrillMessage] = useState("支付/媒体/TLS 演练不强制确认头。TLS 只验沙箱门禁，不是公网 ACME。");
-  const [totpMessage, setTotpMessage] = useState("读取状态不返回密文。绑定后请使用 6 位验证码确认启用。请勿在共享管理员账户上保持 enabled 状态。");
+  const [message, setMessage] = useState(tUI("consoleCopy.alertThresholdsAreStoredInTheOpsTable"));
+  const [drillMessage, setDrillMessage] = useState(tUI("consoleCopy.paymentMediaAndTlsDrillsRequireNoConfirmation"));
+  const [totpMessage, setTotpMessage] = useState(tUI("consoleCopy.statusReadsNeverReturnSecretsConfirmEnablingWith"));
   const [totpStatus, setTotpStatus] = useState("disabled");
   const [totpSecret, setTotpSecret] = useState("");
   const [totpURL, setTotpURL] = useState("");
@@ -31,11 +35,11 @@ export default function AdminSettingsPage() {
     const res = await fetch(`${apiBase}/admin/me/2fa`, { credentials: "include" });
     const body = await res.json();
     if (!res.ok) {
-      setTotpMessage(body.error?.message || "读取 2FA 失败");
+      setTotpMessage(body.error?.message || tUI("consoleCopy.couldNotRead2faStatus"));
       return;
     }
     setTotpStatus(String(body.item?.status || "disabled"));
-    setTotpMessage(`状态 ${body.item?.status || "disabled"} / enabled=${body.item?.enabled ? "true" : "false"}`);
+    setTotpMessage(tUI("consoleCopy.statusEnabled", { value0: String(body.item?.status || "disabled"), value1: String(body.item?.enabled ? "true" : "false") }));
   }
 
   async function setup2FA() {
@@ -47,13 +51,13 @@ export default function AdminSettingsPage() {
     });
     const body = await res.json();
     if (!res.ok) {
-      setTotpMessage(body.error?.message || "绑定失败");
+      setTotpMessage(body.error?.message || tUI("consoleCopy.setupFailed"));
       return;
     }
     setTotpStatus(String(body.item?.status || "pending"));
     setTotpSecret(String(body.item?.secret || ""));
     setTotpURL(String(body.item?.otpauth_url || ""));
-    setTotpMessage(`已绑定 pending，用验证器扫 otpauth 后再点确认启用`);
+    setTotpMessage(tUI("consoleCopy.setupPendingScanOtpauthWithYourAuthenticatorThen"));
   }
 
   async function enable2FA(event: React.FormEvent<HTMLFormElement>) {
@@ -69,14 +73,14 @@ export default function AdminSettingsPage() {
     });
     const body = await res.json();
     if (!res.ok) {
-      setTotpMessage(body.error?.message || "启用失败");
+      setTotpMessage(body.error?.message || tUI("consoleCopy.enablingFailed"));
       return;
     }
     form.reset();
     setTotpStatus("enabled");
     setTotpSecret("");
     setTotpURL("");
-    setTotpMessage("已启用。共享管理员账户请立即关闭，否则后续写操作均需提供 TOTP。");
+    setTotpMessage(tUI("consoleCopy.enabledDisableItImmediatelyOnASharedAdministrator"));
   }
 
   async function disable2FA(code: string): Promise<boolean> {
@@ -93,14 +97,14 @@ export default function AdminSettingsPage() {
     });
     const body = await res.json();
     if (!res.ok) {
-      setTotpMessage(body.error?.message || "关闭失败");
+      setTotpMessage(body.error?.message || tUI("consoleCopy.disablingFailed"));
       return false;
     }
     setTotpCode("");
     setTotpStatus(String(body.status || "disabled"));
     setTotpSecret("");
     setTotpURL("");
-    setTotpMessage("已关闭 2FA。敏感写操作不再要 TOTP。");
+    setTotpMessage(tUI("consoleCopy.2faDisabledSensitiveWritesNoLongerRequireTotp"));
     return true;
     } catch {
       setTotpMessage(confirmNetworkUnavailable);
@@ -119,13 +123,13 @@ export default function AdminSettingsPage() {
     const res = await fetch(`${apiBase}/admin/ops/thresholds`, { credentials: "include" });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "未登录平台管理员");
+      setMessage(body.error?.message || tUI("dashboard.needAdmin"));
       return;
     }
     setRate(String(body.thresholds?.success_rate_min ?? 0.5));
     setMinReq(String(body.thresholds?.min_requests ?? 5));
     setPending(String(body.thresholds?.pending_count ?? 1));
-    setMessage("已读取告警阈值");
+    setMessage(tUI("consoleCopy.alertThresholdsLoaded"));
   }
   async function saveThresholds(): Promise<boolean> {
     try {
@@ -141,10 +145,10 @@ export default function AdminSettingsPage() {
     });
     const body = await res.json();
     if (!res.ok) {
-      setMessage(body.error?.message || "保存失败");
+      setMessage(body.error?.message || tUI("user.saveFail"));
       return false;
     }
-    setMessage(`已保存：成功率 < ${body.thresholds?.success_rate_min} 且请求 ≥ ${body.thresholds?.min_requests}`);
+    setMessage(tUI("consoleCopy.savedSuccessRateAndRequests", { value0: String(body.thresholds?.success_rate_min), value1: String(body.thresholds?.min_requests) }));
     return true;
     } catch {
       setMessage(confirmNetworkUnavailable);
@@ -156,56 +160,48 @@ export default function AdminSettingsPage() {
       <NotificationAdminSettings />
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 level={1} k="settings" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-4 text-sm text-ink-secondary">管理员 2FA 使用 TOTP。语言预留中 / 英 / 日（next-intl）。</p>
+        <p className="mb-4 text-sm text-ink-secondary">{tUI("consoleCopy.administrator2faUsesTotpInterfaceLanguagesChineseEnglish")}</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => setLocale("auto")}>
-            自动
-          </Button>
+            {tUI("chrome.localeAuto")}</Button>
           <Button type="button" variant="outline" onClick={() => setLocale("zh")}>
-            中文
-          </Button>
+            {tUI("chrome.localeZh")}</Button>
           <Button type="button" variant="outline" onClick={() => setLocale("en")}>
             English
           </Button>
           <Button type="button" variant="outline" onClick={() => setLocale("ja")}>
-            日本語
-          </Button>
+            {tUI("chrome.localeJa")}</Button>
         </div>
       </section>
       <IfCan action="settings.totp">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="twofa" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          读取状态不返回密文。开始绑定后请使用验证器扫码，再填写 6 位验证码确认启用。关闭需二次确认；已启用时还需提供 TOTP。请勿在共享管理员账户上保持 enabled 状态。
-        </p>
+          {tUI("consoleCopy.statusReadsNeverReturnSecretsScanWithAn")}</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={load2FA}>
-            读取 2FA
-          </Button>
+            {tUI("consoleCopy.read2faStatus")}</Button>
           <Button size="sm" variant="outline" onClick={setup2FA}>
-            开始绑定
-          </Button>
+            {tUI("consoleCopy.startSetup")}</Button>
         </div>
-        <p className="mb-3 text-sm text-ink-secondary">当前 {totpStatus}</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.current")}{totpStatus}</p>
         {totpSecret ? <p className="mb-3 break-all text-xs text-ink-secondary">secret={totpSecret}</p> : null}
         {totpURL ? <p className="mb-3 break-all text-xs text-ink-secondary">{totpURL}</p> : null}
         <form className="mb-3 flex flex-wrap gap-2" onSubmit={enable2FA}>
-          <Input name="enable_code" aria-label="启用用 TOTP" placeholder="启用用 6 位码" />
+          <Input name="enable_code" aria-label={tUI("consoleCopy.totpForEnabling")} placeholder={tUI("consoleCopy.sixDigitCodeToEnable")} />
           <Button size="sm" type="submit">
-            确认启用
-          </Button>
+            {tUI("consoleCopy.confirmEnabling")}</Button>
         </form>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input
             name="disable_code"
-            aria-label="关闭用 TOTP"
-            placeholder="关闭用 6 位码（enabled 时必填）"
+            aria-label={tUI("consoleCopy.totpForDisabling")}
+            placeholder={tUI("consoleCopy.sixDigitCodeToDisableRequiredWhenEnabled")}
             value={totpCode}
             onChange={(e) => setTotpCode(e.target.value)}
           />
-          <ConfirmButton size="sm" title="确认关闭 2FA" description="关闭后敏感写操作不再要 TOTP。已经 enabled 时还要带验证码。" onConfirm={() => disable2FA(totpCode.trim())}>
-            关闭 2FA
-          </ConfirmButton>
+          <ConfirmButton size="sm" title={tUI("consoleCopy.confirm2faDisabling")} description={tUI("consoleCopy.sensitiveWritesWillNoLongerRequireTotpAn")} onConfirm={() => disable2FA(totpCode.trim())}>
+            {tUI("consoleCopy.disable2fa")}</ConfirmButton>
         </div>
         <p className="text-sm text-ink-secondary">{totpMessage}</p>
       </section>
@@ -213,18 +209,16 @@ export default function AdminSettingsPage() {
       <IfCan action="settings.thresholds.view">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="thresholds" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">成功率下限、最少请求数、待对账条数。保存需要二次确认头。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.minimumSuccessRateMinimumRequestsAndReconciliationQueue")}</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <Input className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="成功率下限" />
-          <Input className="w-28" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label="最少请求数" />
-          <Input className="w-28" value={pending} onChange={(e) => setPending(e.target.value)} aria-label="待对账条数" />
+          <Input className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} aria-label={tUI("consoleCopy.minimumSuccessRate")} />
+          <Input className="w-28" value={minReq} onChange={(e) => setMinReq(e.target.value)} aria-label={tUI("consoleCopy.minimumRequests")} />
+          <Input className="w-28" value={pending} onChange={(e) => setPending(e.target.value)} aria-label={tUI("consoleCopy.reconciliationQueueSize")} />
           <Button type="button" variant="outline" onClick={loadThresholds}>
-            读取阈值
-          </Button>
+            {tUI("consoleCopy.readThresholds")}</Button>
           <IfCan action="settings.thresholds">
-          <ConfirmButton size="sm" variant="outline" title="确认保存阈值" description="评估告警时会读取这些阈值。" onConfirm={saveThresholds}>
-            保存阈值
-          </ConfirmButton>
+          <ConfirmButton size="sm" variant="outline" title={tUI("consoleCopy.confirmThresholdChanges")} description={tUI("consoleCopy.theseThresholdsAreUsedWhenEvaluatingAlerts")} onConfirm={saveThresholds}>
+            {tUI("consoleCopy.saveThresholds")}</ConfirmButton>
           </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
@@ -233,7 +227,7 @@ export default function AdminSettingsPage() {
       <IfRoles roles={["platform_admin", "ops_admin", "tech_admin"]}>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="ops" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">健康探测不会计费。熔断跳过该 Provider；灰度按百分比把带 X-Tokenhub-Canary 的流量切到指定 slug。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.healthProbesIncurNoChargesAnOpenCircuit")}</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <Input className="w-56" value={providerID} onChange={(e) => setProviderID(e.target.value)} aria-label="Provider ID" />
           <IfCan action="settings.circuit">
@@ -248,11 +242,10 @@ export default function AdminSettingsPage() {
                 body: "{}",
               });
               const body = await res.json();
-              setMessage(res.ok ? `健康=${body.health}` : body.error?.message || "探测失败");
+              setMessage(res.ok ? tUI("consoleCopy.health428", { value0: String(body.health) }) : body.error?.message || tUI("consoleCopy.probeFailed"));
             }}
           >
-            健康探测
-          </Button>
+            {tUI("consoleCopy.healthProbe")}</Button>
           <Button
             size="sm"
             variant="outline"
@@ -264,11 +257,10 @@ export default function AdminSettingsPage() {
                 body: JSON.stringify({ action: "trip" }),
               });
               const body = await res.json();
-              setMessage(res.ok ? `已打开熔断 ${providerID}` : body.error?.message || "熔断失败");
+              setMessage(res.ok ? tUI("consoleCopy.circuitOpened", { value0: String(providerID) }) : body.error?.message || tUI("consoleCopy.couldNotOpenTheCircuit"));
             }}
           >
-            打开熔断
-          </Button>
+            {tUI("consoleCopy.openCircuit")}</Button>
           <Button
             size="sm"
             onClick={async () => {
@@ -279,16 +271,15 @@ export default function AdminSettingsPage() {
                 body: JSON.stringify({ action: "reset" }),
               });
               const body = await res.json();
-              setMessage(res.ok ? `已复位熔断 ${providerID}` : body.error?.message || "复位失败");
+              setMessage(res.ok ? tUI("consoleCopy.circuitReset", { value0: String(providerID) }) : body.error?.message || tUI("consoleCopy.resetFailed"));
             }}
           >
-            复位熔断
-          </Button>
+            {tUI("consoleCopy.resetCircuit")}</Button>
           </IfCan>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Input className="w-40" value={canarySlug} onChange={(e) => setCanarySlug(e.target.value)} aria-label="灰度 Provider slug" />
-          <Input className="w-24" value={canaryPercent} onChange={(e) => setCanaryPercent(e.target.value)} aria-label="灰度百分比" />
+          <Input className="w-40" value={canarySlug} onChange={(e) => setCanarySlug(e.target.value)} aria-label={tUI("consoleCopy.canaryProviderSlug")} />
+          <Input className="w-24" value={canaryPercent} onChange={(e) => setCanaryPercent(e.target.value)} aria-label={tUI("consoleCopy.canaryPercentage")} />
           <Button
             size="sm"
             variant="outline"
@@ -296,16 +287,15 @@ export default function AdminSettingsPage() {
               const res = await fetch(`${apiBase}/admin/ops/canary`, { credentials: "include" });
               const body = await res.json();
               if (!res.ok) {
-                setMessage(body.error?.message || "读取灰度失败");
+                setMessage(body.error?.message || tUI("consoleCopy.couldNotReadCanaryConfiguration"));
                 return;
               }
               setCanarySlug(body.canary?.provider_slug || "");
               setCanaryPercent(String(body.canary?.percent ?? 0));
-              setMessage(`灰度 ${body.canary?.provider_slug || "-"} ${body.canary?.percent ?? 0}%`);
+              setMessage(tUI("consoleCopy.canary", { value0: String(body.canary?.provider_slug || "-"), value1: String(body.canary?.percent ?? 0) }));
             }}
           >
-            读取灰度
-          </Button>
+            {tUI("consoleCopy.readCanaryConfiguration")}</Button>
           <Button
             size="sm"
             onClick={async () => {
@@ -316,18 +306,17 @@ export default function AdminSettingsPage() {
                 body: JSON.stringify({ provider_slug: canarySlug, percent: Number(canaryPercent) }),
               });
               const body = await res.json();
-              setMessage(res.ok ? `已设置灰度 ${body.canary?.provider_slug} ${body.canary?.percent}%` : body.error?.message || "设置失败");
+              setMessage(res.ok ? tUI("consoleCopy.canaryConfigured", { value0: String(body.canary?.provider_slug), value1: String(body.canary?.percent) }) : body.error?.message || tUI("consoleCopy.configurationFailed"));
             }}
           >
-            保存灰度
-          </Button>
+            {tUI("consoleCopy.saveCanaryConfiguration")}</Button>
         </div>
       </section>
       </IfRoles>
       <IfCan action="settings.backup">
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="backup" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">只验证 Postgres / Redis / migration，并记录 RPO 15 分钟、RTO 1 小时。不是把整库真的恢复一遍。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.checksPostgresRedisAndMigrationsAndRecordsRpo")}</p>
         <Button
           size="sm"
           onClick={async () => {
@@ -340,21 +329,19 @@ export default function AdminSettingsPage() {
             const body = await res.json();
             setMessage(
               res.ok
-                ? `演练 ${body.item?.status || "ok"}：RPO ${body.item?.rpo_minutes} 分钟 / RTO ${body.item?.rto_minutes} 分钟`
-                : body.error?.message || "演练失败",
+                ? tUI("consoleCopy.drillRpoMinutesRtoMinutes", { value0: String(body.item?.status || "ok"), value1: String(body.item?.rpo_minutes), value2: String(body.item?.rto_minutes) })
+                : body.error?.message || tUI("consoleCopy.drillFailed"),
             );
           }}
         >
-          备份演练
-        </Button>
+          {tUI("adminUi.backup")}</Button>
         <p className="mt-3 text-sm text-ink-secondary">{message}</p>
       </section>
       </IfCan>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="drill" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          支付演练必须拒绝伪造签名；媒体演练只记录 force-fail 必须释放预授权；TLS 演练核对已知域名 200、未知 404、沙箱 issued。
-        </p>
+          {tUI("consoleCopy.paymentDrillsMustRejectForgedSignaturesMediaDrills")}</p>
         <div className="flex flex-wrap items-center gap-2">
           <IfCan action="settings.drill.payment">
           <Button
@@ -368,11 +355,10 @@ export default function AdminSettingsPage() {
                 body: "{}",
               });
               const body = await res.json();
-              setDrillMessage(res.ok ? `支付演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "支付演练失败");
+              setDrillMessage(res.ok ? tUI("consoleCopy.paymentDrill", { value0: String(body.item?.status), value1: String(body.item?.detail) }) : body.error?.message || tUI("consoleCopy.paymentDrillFailed"));
             }}
           >
-            支付演练
-          </Button>
+            {tUI("consoleCopy.paymentDrill450")}</Button>
           </IfCan>
           <IfCan action="settings.drill.media">
           <Button
@@ -386,11 +372,10 @@ export default function AdminSettingsPage() {
                 body: "{}",
               });
               const body = await res.json();
-              setDrillMessage(res.ok ? `媒体演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "媒体演练失败");
+              setDrillMessage(res.ok ? tUI("consoleCopy.mediaDrill", { value0: String(body.item?.status), value1: String(body.item?.detail) }) : body.error?.message || tUI("consoleCopy.mediaDrillFailed"));
             }}
           >
-            媒体演练
-          </Button>
+            {tUI("consoleCopy.mediaDrill453")}</Button>
           </IfCan>
           <IfCan action="settings.drill.tls">
           <Button
@@ -403,20 +388,19 @@ export default function AdminSettingsPage() {
                 body: "{}",
               });
               const body = await res.json();
-              setDrillMessage(res.ok ? `TLS 演练 ${body.item?.status}：${body.item?.detail}` : body.error?.message || "TLS 演练失败");
+              setDrillMessage(res.ok ? tUI("consoleCopy.tlsDrill", { value0: String(body.item?.status), value1: String(body.item?.detail) }) : body.error?.message || tUI("consoleCopy.tlsDrillFailed"));
             }}
           >
-            TLS 演练
-          </Button>
+            {tUI("consoleCopy.tlsDrill456")}</Button>
           </IfCan>
           <p className="text-sm text-ink-secondary">{drillMessage}</p>
         </div>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 k="oem" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">.localhost / 空目录走沙箱 issued。配齐 Cloudflare API Token 与 Zone ID 后，公网形态域名会登记 Custom Hostname；Worker 会刷新 pending。客户把域名 CNAME 到入口。未登记域名 tls-check 仍 404。不自建公网 Let&apos;s Encrypt。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.localhostAndEmptyDomainsUseSandboxIssuanceWith")}</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label="品牌 ID" placeholder="brd_oem" />
+          <Input className="w-56" value={brandID} onChange={(e) => setBrandID(e.target.value)} aria-label={tUI("consoleCopy.brandId")} placeholder="brd_oem" />
           <Button
             size="sm"
             variant="outline"
@@ -424,21 +408,20 @@ export default function AdminSettingsPage() {
               const res = await fetch(`${apiBase}/admin/brands`, { credentials: "include" });
               const body = await res.json();
               if (!res.ok) {
-                setMessage(body.error?.message || "读取品牌失败");
+                setMessage(body.error?.message || tUI("consoleCopy.couldNotLoadTheBrand"));
                 return;
               }
               const items = body.items || [];
               const hit = items.find((item: { id?: string }) => item.id === brandID) || items[0];
-              setMessage(hit ? `${hit.id} CNAME=${hit.cname_target || "-"} TLS=${hit.tls_status || "pending"} issuer=${hit.tls_issuer || "sandbox"}` : "没有品牌");
+              setMessage(hit ? `${hit.id} CNAME=${hit.cname_target || "-"} TLS=${hit.tls_status || "pending"} issuer=${hit.tls_issuer || "sandbox"}` : tUI("consoleCopy.noBrand"));
             }}
           >
-            读取品牌
-          </Button>
+            {tUI("consoleCopy.readBrand")}</Button>
           <IfCan action="settings.drill.tls">
           <ConfirmButton
             size="sm"
-            title="确认签发证书"
-            description="沙箱域名只标 issued。已配置 Cloudflare 的公网形态域名会登记 Custom Hostname。Pebble 仅本地演练 RFC 8555。"
+            title={tUI("consoleCopy.confirmCertificateIssuance")}
+            description={tUI("consoleCopy.sandboxDomainsAreOnlyMarkedIssuedPublicDomains")}
             onConfirm={async () => {
                     try {
               const res = await fetch(`${apiBase}/admin/brands/${brandID}/tls/issue`, {
@@ -450,8 +433,8 @@ export default function AdminSettingsPage() {
               const body = await res.json();
               setMessage(
                 res.ok
-                  ? `已签发 ${body.item?.id} → ${body.item?.tls_status} / ${body.item?.cname_target} / ${body.item?.tls_issuer || "sandbox"}`
-                  : body.error?.message || "签发失败",
+                  ? tUI("consoleCopy.issued", { value0: String(body.item?.id), value1: String(body.item?.tls_status), value2: String(body.item?.cname_target), value3: String(body.item?.tls_issuer || "sandbox") })
+                  : body.error?.message || tUI("consoleCopy.issuanceFailed"),
               );
                     return true;
                     } catch {
@@ -460,8 +443,7 @@ export default function AdminSettingsPage() {
                     }
 }}
           >
-            签发证书
-          </ConfirmButton>
+            {tUI("consoleCopy.issueCertificate")}</ConfirmButton>
           </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>

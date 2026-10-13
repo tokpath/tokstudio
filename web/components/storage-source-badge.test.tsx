@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { withZh } from "@/lib/test-i18n";
 import { StorageSourceBadge } from "./storage-source-badge";
 
 afterEach(() => {
@@ -9,7 +10,7 @@ afterEach(() => {
 
 describe("StorageSourceBadge", () => {
   it("renders muted S3 for MinIO and never a checkmark", () => {
-    render(<StorageSourceBadge storage={{ source: "minio", ok: true }} />);
+    render(withZh(<StorageSourceBadge storage={{ source: "minio", ok: true }} />));
     expect(screen.getByText("存储源")).toBeTruthy();
     const badge = screen.getByTestId("storage-source-badge");
     expect(badge.textContent).toBe("S3");
@@ -20,7 +21,7 @@ describe("StorageSourceBadge", () => {
   });
 
   it("renders green S3 for cloud", () => {
-    render(<StorageSourceBadge storage={{ source: "s3", ok: true }} />);
+    render(withZh(<StorageSourceBadge storage={{ source: "s3", ok: true }} />));
     const badge = screen.getByTestId("storage-source-badge");
     expect(badge.textContent).toBe("S3");
     expect(badge.getAttribute("data-tone")).toBe("ok");
@@ -28,7 +29,7 @@ describe("StorageSourceBadge", () => {
   });
 
   it("renders grey 存储不可用 on missing bucket and forbids silent success", () => {
-    render(<StorageSourceBadge storage={{ source: "unavailable", ok: false, detail: "missing bucket" }} />);
+    render(withZh(<StorageSourceBadge storage={{ source: "unavailable", ok: false, detail: "missing bucket" }} />));
     const badge = screen.getByTestId("storage-source-badge");
     expect(badge.textContent).toBe("存储不可用");
     expect(badge.getAttribute("data-ok")).toBe("false");

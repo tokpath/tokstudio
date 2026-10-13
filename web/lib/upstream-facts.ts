@@ -1,5 +1,8 @@
-export const MISSING_UPSTREAM = "缺上游元数据";
-export const UPSTREAM_FACTS_TITLE = "上游事实";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+export function missingUpstreamText(tUI: CopyTranslator = defaultCopy) { return tUI("consoleCopy.upstreamMetadataMissing"); }
+export const MISSING_UPSTREAM = missingUpstreamText();
+export function upstreamFactsTitle(tUI: CopyTranslator = defaultCopy) { return tUI("adminUi.colUpstreamFacts"); }
+export const UPSTREAM_FACTS_TITLE = upstreamFactsTitle();
 
 export type UpstreamFacts = {
   provider?: string;
@@ -18,8 +21,8 @@ export function hasCompleteUpstreamFacts(facts: UpstreamFacts | null | undefined
   return Boolean(trim(facts.provider) && trim(facts.model) && trim(facts.request_id));
 }
 
-export function missingUpstreamLabel(): string {
-  return MISSING_UPSTREAM;
+export function missingUpstreamLabel(tUI: CopyTranslator = defaultCopy): string {
+  return missingUpstreamText(tUI);
 }
 
 export function truncateFact(value: string | undefined, max = 12): string {
@@ -33,9 +36,9 @@ export function truncateFact(value: string | undefined, max = 12): string {
   return `${text.slice(0, max)}…`;
 }
 
-export function badgeLabel(facts: UpstreamFacts | null | undefined): string {
+export function badgeLabel(facts: UpstreamFacts | null | undefined, tUI: CopyTranslator = defaultCopy): string {
   if (!hasCompleteUpstreamFacts(facts)) {
-    return MISSING_UPSTREAM;
+    return missingUpstreamText(tUI);
   }
   return [
     truncateFact(facts?.provider),

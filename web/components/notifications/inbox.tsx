@@ -11,11 +11,13 @@ import { useBrand } from "@/components/brand-context";
 import { useListResource } from "@/hooks/use-list-resource";
 import { apiBase } from "@/lib/api";
 import { notifyInboxChanged } from "./bell";
+import { notificationCopy } from "@/lib/system-copy";
 
 type Item = { id: string; kind: string; title: string; body: string; href: string; created_at: string; read_at: string | null; email_status: string };
 type Inbox = { items: Item[]; unread: number; next_cursor: string };
 
 export function NotificationInbox() {
+  const tUI = useTranslations();
   const t = useTranslations("notifications"); const locale = useLocale();
   const viewer = useViewer(); const brand = useBrand();
   const scope = `${viewer.userId || ""}:${brand?.id || ""}`;
@@ -34,6 +36,7 @@ export function NotificationInbox() {
     return { ok: response.ok, status: response.status, items: response.ok ? [body] : [] };
   } });
   const data = query.snapshot.items[0]; const preference = prefs.snapshot.items[0];
+  const items = data?.items.map(item => notificationCopy(item, locale, tUI)) ?? [];
   async function action(path: string, method = "POST", body: object = {}) {
     if (busy) return false; setBusy(true); setError("");
     try { const response = await fetch(`${apiBase}${path}`, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); if (!response.ok) throw new Error();
@@ -57,7 +60,7 @@ export function NotificationInbox() {
       </div>
       {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
       {query.snapshot.phase === "stale" && <p role="alert" className="mt-4 text-sm text-danger">{t("loadFailed")}</p>}
-      {!data ? <p role={query.snapshot.phase === "loading" ? "status" : "alert"} className="py-8 text-sm">{t(query.snapshot.phase === "loading" ? "loading" : "loadFailed")}</p> : !data.items.length ? <p className="py-8 text-sm text-ink-secondary">{t(unreadOnly ? "emptyUnread" : "empty")}</p> : <ul className="mt-4 divide-y divide-hairline">{data.items.map(item => <li key={item.id} className="py-5">
+      {!data ? <p role={query.snapshot.phase === "loading" ? "status" : "alert"} className="py-8 text-sm">{t(query.snapshot.phase === "loading" ? "loading" : "loadFailed")}</p> : !data.items.length ? <p className="py-8 text-sm text-ink-secondary">{t(unreadOnly ? "emptyUnread" : "empty")}</p> : <ul className="mt-4 divide-y divide-hairline">{items.map(item => <li key={item.id} className="py-5">
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold">{!item.read_at && <span className="mr-2 inline-block size-2 rounded-full bg-brand" aria-label={t("new")} />}{item.title}</h2><time dateTime={item.created_at} className="text-xs text-ink-mute">{new Date(item.created_at).toLocaleString(locale, { timeZoneName: "short" })}</time></div>
         <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-secondary">{item.body}</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">

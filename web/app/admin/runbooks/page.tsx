@@ -1,25 +1,29 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { AdminShell } from "../shell";
 import { apiClient } from "@/lib/client";
 import { AdminH2 } from "@/components/admin-h2";
+import { runbookCopy } from "@/lib/system-copy";
 
 type Runbook = { id: string; alert_kind: string; title: string; body: string };
 type ListResponse = { items?: Runbook[]; error?: { message?: string } };
 
 export default function AdminRunbooksPage() {
+  const tUI = useTranslations();
+  const locale = useLocale();
   const query = useQuery({
     queryKey: ["/admin/ops/runbooks"],
     queryFn: () => apiClient<ListResponse>("GET", "/admin/ops/runbooks"),
   });
-  const items = query.data?.items ?? [];
+  const items = (query.data?.items ?? []).map(item => runbookCopy(item, locale, tUI));
 
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 level={1} k="runbooks" className="mb-4 text-lg font-semibold tracking-tight" />
-        <p className="mb-3 text-sm text-ink-secondary">每种关键告警对应一份处置步骤。对账、熔断、备份和 TLS 演练都有手册。</p>
+        <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.eachCriticalAlertHasAResponseProcedureRunbooks")}</p>
         {query.data?.error ? <p className="text-sm text-ink-secondary">{query.data.error.message}</p> : null}
         <div className="grid gap-3">
           {items.map((item) => (

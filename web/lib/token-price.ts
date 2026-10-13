@@ -1,18 +1,19 @@
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
 /** 管理台 Token 价按「美元 / 百万 token」填写；账本仍存美元/token。 */
 
 const PER_TOKEN_LOOKS_LIKE = /^0\.0{4,}/;
 
-export function perMillionToPerToken(raw: string): string {
+export function perMillionToPerToken(raw: string, tUI: CopyTranslator = defaultCopy): string {
   const t = raw.trim();
   if (t === "") {
     return "";
   }
   if (PER_TOKEN_LOOKS_LIKE.test(t)) {
-    throw new Error("请填每百万 token 的美元，例如 2，不要填 0.000002");
+    throw new Error(tUI("consoleCopy.enterUsdPerMillionTokensSuchAs2"));
   }
   const shifted = shiftDecimal(t, -6);
   if (shifted == null) {
-    throw new Error(`无效单价 ${t}`);
+    throw new Error(tUI("consoleCopy.invalidUnitPrice", { value0: String(t) }));
   }
   return shifted;
 }
@@ -39,10 +40,10 @@ export function formatIOPerMillion(pair?: string): string {
     .join("/");
 }
 
-export function millionDim(input: string, output: string): Record<string, string> | undefined {
+export function millionDim(input: string, output: string, tUI: CopyTranslator = defaultCopy): Record<string, string> | undefined {
   const next: Record<string, string> = {};
-  const inTok = perMillionToPerToken(input);
-  const outTok = perMillionToPerToken(output);
+  const inTok = perMillionToPerToken(input, tUI);
+  const outTok = perMillionToPerToken(output, tUI);
   if (inTok) {
     next.input = inTok;
   }

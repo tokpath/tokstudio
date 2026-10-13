@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -34,6 +35,7 @@ function matchesOperation(p: Purchase, op: SavedOperation<Payload>) {
 }
 
 export function OEMPurchasesPanel({ ownerID, channel = false, allowCreate = false }: { ownerID?: string; channel?: boolean; allowCreate?: boolean }) {
+  const displayLocale = useLocale();
   const t = useTranslations("oemPurchase"), viewer = useViewer(), client = useQueryClient();
   const writable = !channel && allowCreate && Boolean(ownerID) && canWrite("channels.quota", viewer);
   const key = `oem-purchase:${viewer.userId}:${ownerID || "platform"}`;
@@ -100,7 +102,7 @@ export function OEMPurchasesPanel({ ownerID, channel = false, allowCreate = fals
   }
   function endRejected() { finishOperation(key); setOperation(null); setRejected(false); setOriginalPurchase(null); setMessage(t("ended")); return true; }
   function summary(p: Payload | Purchase) {
-    return t("summary", { owner: p.oem_channel_org_id, cash: `${formatPayMinor(p.cash_currency, p.cash_amount_minor)} ${p.cash_currency}`, sale: formatUsdMinor(p.sale_amount_minor), quota: formatUsdMinor(p.quota_amount_minor), time: p.occurred_at ? new Date(p.occurred_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" }) : "—" });
+    return t("summary", { owner: p.oem_channel_org_id, cash: `${formatPayMinor(p.cash_currency, p.cash_amount_minor)} ${p.cash_currency}`, sale: formatUsdMinor(p.sale_amount_minor), quota: formatUsdMinor(p.quota_amount_minor), time: p.occurred_at ? new Date(p.occurred_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" }) : "—" });
   }
   return <section id="procurement" className="space-y-4 rounded-card border border-hairline bg-canvas-raised p-5">
     <h2 className="text-lg font-semibold">{t(channel ? "buyerTitle" : "title")}</h2><p className="text-sm text-ink-secondary">{t(channel ? "buyerHint" : "hint")}</p>
@@ -127,8 +129,8 @@ export function OEMPurchasesPanel({ ownerID, channel = false, allowCreate = fals
     {query.isPending ? <p role="status">{t("loading")}</p> : query.isError ? <p role="alert">{t("readFailed")}</p> : query.data?.items.length ? <ul className="space-y-3">{query.data.items.map(p => <li key={p.id} className="rounded-control border border-hairline p-4 text-sm">
       <p className="font-medium">{t("status." + (p.status || "completed"))}</p>
       <p className="font-medium">{t("received")}: {formatPayMinor(p.cash_currency, p.cash_amount_minor)} {p.cash_currency} · {t("saleValue")}: {formatUsdMinor(p.sale_amount_minor)} USD · {t("delivered")}: {formatUsdMinor(p.quota_amount_minor)} USD</p>
-      <p>{t("time")}: {new Date(p.occurred_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" })} · {t("completedAt")}: {new Date(p.completed_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" })}</p>
-      {p.reversed_at && <p>{t("reversedAt")}: {new Date(p.reversed_at).toLocaleString(undefined, { timeZone: "Asia/Shanghai" })} · {p.reversal_reason} · {t("noCashRefund")}</p>}
+      <p>{t("time")}: {new Date(p.occurred_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" })} · {t("completedAt")}: {new Date(p.completed_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" })}</p>
+      {p.reversed_at && <p>{t("reversedAt")}: {new Date(p.reversed_at).toLocaleString(displayLocale, { timeZone: "Asia/Shanghai" })} · {p.reversal_reason} · {t("noCashRefund")}</p>}
       {p.external_reference && <p>{t("reference")}: {p.external_reference}</p>}<p className="break-all text-xs text-ink-mute">{p.id} · {p.oem_channel_org_id}</p>
       {!channel && canWrite("channels.quota", viewer) && <OEMPurchaseReversal original={p} onChanged={async () => { await Promise.allSettled([query.refetch(), client.invalidateQueries({ predicate: q => q.queryKey.some(k => typeof k === "string" && (k.includes("pnl") || k.includes("dashboard") || k.includes("billing-report") || k.includes("channel-quotas"))) })]); }} />}
     </li>)}</ul> : <p>{t("empty")}</p>}

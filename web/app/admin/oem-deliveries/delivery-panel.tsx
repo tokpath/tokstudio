@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useEffect,useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { safeReturnHref } from "@/lib/return-context";
@@ -19,6 +20,7 @@ import { ChannelAdminsPanel } from "@/app/admin/channels/admins-panel";
 
 type Projection={delivery:{channel_org_id:string;phase:string;version:number;sales_mode:string;sell_plans:boolean;receiver_user_id?:string;handed_over_at?:string;handoff_evidence:Record<string,unknown>};channel:{id:string;code:string};brand:{id:string;name:string;primary_domain:string;api_domain:string;admin_domain:string};checks:{key:string;ready:boolean;reason:string;responsibility:string;href?:string}[];ready:boolean;checked_at:string;registration_url?:string;customer_registration_url?:string;administrators:{user_id:string;email:string;login_at?:string}[];request_evidence?:{request_id:string;public_model_id:string;occurred_at:string}};
 export function DeliveryPanel({channelID,own=false}:{channelID?:string;own?:boolean}){
+  const displayLocale = useLocale();
  const returnTo=useSearchParams().get("return_to");
  const [busy,setBusy]=useState(false);
  const [phase,setPhase]=useState("configuring");
@@ -38,8 +40,8 @@ export function DeliveryPanel({channelID,own=false}:{channelID?:string;own?:bool
  return <div className="grid gap-6">
  {!own?<Link className="text-brand-emphasis underline" href={safeReturnHref(returnTo,"/admin/channels")}>{t("back")}</Link>:null}
  {message?<p role="status" aria-live="polite" className="sticky top-16 z-10 rounded-control border border-hairline bg-canvas-raised p-3">{message}</p>:null}
- <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold">{item.brand.name} · {t("title")}</h1><p className="mt-2 text-sm">{t(`phase.${item.delivery.phase}`)} · {item.ready?t("ready"):t("notReady")}</p><p className="mt-1 text-sm text-ink-secondary">{t("checkedAt",{time:new Date(item.checked_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})})}</p></div><Button variant="outline" onClick={()=>void query.refetch()}>{t("refresh")}</Button></header>
- {item.delivery.handed_over_at?<section className="rounded-card border border-hairline bg-canvas-raised p-5"><p>{t("history",{time:new Date(item.delivery.handed_over_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})})}</p><p className="mt-2 text-sm">{t("acceptedBy",{email:historicalReceiver?.email||item.delivery.receiver_user_id||"—"})}</p><ul className="mt-3 text-sm">{historical.checks?.map(check=><li key={check.key}>✓ {t(`check.${check.key}`)}</li>)}</ul>{historical.request_id?<p className="mt-3 break-all text-sm">{t("check.request")}: {historical.request_id}</p>:null}</section>:null}
+ <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold">{item.brand.name} · {t("title")}</h1><p className="mt-2 text-sm">{t(`phase.${item.delivery.phase}`)} · {item.ready?t("ready"):t("notReady")}</p><p className="mt-1 text-sm text-ink-secondary">{t("checkedAt",{time:new Date(item.checked_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})})}</p></div><Button variant="outline" onClick={()=>void query.refetch()}>{t("refresh")}</Button></header>
+ {item.delivery.handed_over_at?<section className="rounded-card border border-hairline bg-canvas-raised p-5"><p>{t("history",{time:new Date(item.delivery.handed_over_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})})}</p><p className="mt-2 text-sm">{t("acceptedBy",{email:historicalReceiver?.email||item.delivery.receiver_user_id||"—"})}</p><ul className="mt-3 text-sm">{historical.checks?.map(check=><li key={check.key}>✓ {t(`check.${check.key}`)}</li>)}</ul>{historical.request_id?<p className="mt-3 break-all text-sm">{t("check.request")}: {historical.request_id}</p>:null}</section>:null}
  <section className="rounded-card border border-hairline bg-canvas-raised p-6"><h2 className="font-semibold">{t("checklist")}</h2><ul className="mt-3 divide-y divide-hairline">{item.checks.map(check=><li key={check.key} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p>{check.ready?"✓":"○"} {t(`check.${check.key}`)}</p><p className="mt-1 text-sm text-ink-secondary">{t(`owner.${check.responsibility}`)}{!check.ready?` · ${t(`reason.${check.reason}`)}`:""}</p></div>{check.href&&(own?canViewChannelHref(check.href,viewer):canViewAdminHref(check.href,viewer))?<Link className="text-sm text-brand-emphasis underline" href={check.href}>{check.ready?tw("view"):t("continue")}</Link>:null}</li>)}</ul>
  {!own&&viewer.roles.some(role=>["platform_admin","tech_admin"].includes(role))?<Button disabled={busy} variant="outline" className="mt-4" onClick={()=>void mutate("/domains/check",{})}>{t("checkDomains")}</Button>:null}
  </section>

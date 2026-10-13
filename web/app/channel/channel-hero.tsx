@@ -9,6 +9,7 @@ import { formatUsdMinor } from "@/lib/money";
 import { CHANNEL_HERO_ICONS } from "@/lib/page-icons";
 
 export function ChannelHero() {
+  const tUI = useTranslations();
   const viewer = useViewer();
   const isOem = viewer.channelType === "C";
   const t = useTranslations("channelHero");
@@ -46,7 +47,7 @@ export function ChannelHero() {
         setSettleable(formatUsdMinor(sum));
       }
     }
-    void load().catch(() => { if (!cancelled) { setQuota("读取失败"); setConsumed("读取失败"); setFrozen("读取失败"); setSettleable("读取失败"); } });
+    void load().catch(() => { if (!cancelled) { setQuota(tUI("workbench.readFailed")); setConsumed(tUI("workbench.readFailed")); setFrozen(tUI("workbench.readFailed")); setSettleable(tUI("workbench.readFailed")); } });
     return () => {
       cancelled = true;
     };

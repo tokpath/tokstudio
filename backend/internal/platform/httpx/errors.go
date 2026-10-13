@@ -26,7 +26,7 @@ func AbortParam(c *gin.Context, status int, code, message string, param any, ret
 	c.AbortWithStatusJSON(status, gin.H{
 		"error": APIError{
 			Code:      code,
-			Message:   message,
+			Message:   localizedErrorMessage(RequestLocale(c.Request), code, message),
 			Param:     param,
 			RequestID: stringify(requestID),
 			Retryable: retryable,

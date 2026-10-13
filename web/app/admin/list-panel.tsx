@@ -27,8 +27,8 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   rowSelected,
   actions,
   exportCSV = false,
-  emptyTitle = "暂无记录",
-  emptyDetail = "当前条件下暂无记录，可调整筛选条件后重试。",
+  emptyTitle: providedEmptyTitle,
+  emptyDetail: providedEmptyDetail,
   stickyEnds = true,
   density = "admin",
   headingLevel = 2,
@@ -47,6 +47,9 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   density?: ScrollTableDensity;
   headingLevel?: 1 | 2;
 }) {
+  const tUI = useTranslations();
+  const emptyTitle = providedEmptyTitle ?? tUI("oem.empty");
+  const emptyDetail = providedEmptyDetail ?? tUI("consoleCopy.noRecordsMatchAdjustTheFiltersAndTry");
   const router = useRouter();
   const pathname = usePathname();
   const [locationSearch, setLocationSearch] = useState("");

@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import {
   STORAGE_LABEL_S3,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/storage-source";
 
 export function StorageSourceBadge({ storage }: { storage?: StorageSource | null }) {
+  const tUI = useTranslations();
   const view = storageBadge(storage);
   const toneClass =
     view.tone === "ok"
@@ -19,7 +21,7 @@ export function StorageSourceBadge({ storage }: { storage?: StorageSource | null
 
   return (
     <span className="inline-flex items-center gap-1.5" data-testid="storage-source">
-      <span className="th-eyebrow text-ink-mute">{STORAGE_SOURCE_TITLE}</span>
+      <span className="th-eyebrow text-ink-mute">{tUI("consoleCopy.storageSource")}</span>
       <span
         data-testid="storage-source-badge"
         data-ok={view.ok ? "true" : "false"}
@@ -31,7 +33,7 @@ export function StorageSourceBadge({ storage }: { storage?: StorageSource | null
             : "bg-[color-mix(in_srgb,var(--muted)_14%,transparent)]"
         }`}
       >
-        {view.label.replace(/[✓✔☑✅]/g, "") || (view.ok ? STORAGE_LABEL_S3 : STORAGE_LABEL_UNAVAILABLE)}
+        {view.ok ? STORAGE_LABEL_S3 : tUI("consoleCopy.storageUnavailable")}
       </span>
     </span>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ type Settings = {
 };
 
 export function PaymentRulesPanel({ scope = "channel" }: { scope?: "channel" | "admin" }) {
+  const tUI = useTranslations();
   const basePath = `/${scope}/payments`;
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -31,7 +33,7 @@ export function PaymentRulesPanel({ scope = "channel" }: { scope?: "channel" | "
     queryFn: async () => {
       const res = await fetch(`${apiBase}${basePath}/settings`, { credentials: "include" });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error?.message || "规则加载失败");
+      if (!res.ok) throw new Error(body.error?.message || tUI("consoleCopy.couldNotLoadRules"));
       return (body.item || {}) as Settings;
     },
   });
@@ -78,58 +80,56 @@ export function PaymentRulesPanel({ scope = "channel" }: { scope?: "channel" | "
       }),
     });
     const body = await res.json();
-    setMessage(res.ok ? "规则已保存。" : body.error?.message || "保存失败");
+    setMessage(res.ok ? tUI("consoleCopy.rulesSaved") : body.error?.message || tUI("user.saveFail"));
     if (res.ok) await queryClient.invalidateQueries({ queryKey: [`${basePath}/settings`] });
   }
 
-  if (query.isError) return <p role="alert">规则加载失败，请刷新重试。</p>;
-  if (query.isPending) return <p role="status">正在加载规则…</p>;
+  if (query.isError) return <p role="alert">{tUI("consoleCopy.couldNotLoadRulesRefreshAndTryAgain")}</p>;
+  if (query.isPending) return <p role="status">{tUI("consoleCopy.loadingRules")}</p>;
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <p className="th-eyebrow mb-3 text-ink-mute">LEDGER</p>
         <ul className="divide-y divide-hairline text-sm">
           <li className="flex justify-between py-2">
-            <span>用户付</span>
+            <span>{tUI("consoleCopy.userPays")}</span>
             <span className="font-mono tabular-nums">¥{previewMajor.toFixed(2)}</span>
           </li>
           <li className="flex justify-between py-2">
-            <span>手续费</span>
+            <span>{tUI("user.ledgerFee")}</span>
             <span className="font-mono tabular-nums">¥{(feeFen / 100).toFixed(2)}</span>
           </li>
           <li className="flex justify-between py-2">
-            <span>钱包入账</span>
+            <span>{tUI("consoleCopy.walletCredit")}</span>
             <span className="font-mono tabular-nums">${(wallet / 1_000_000).toFixed(2)}</span>
           </li>
           <li className="flex justify-between py-2">
-            <span>发放额度</span>
+            <span>{tUI("consoleCopy.creditGranted")}</span>
             <span className="font-mono tabular-nums">${(credit / 1_000_000).toFixed(2)}</span>
           </li>
         </ul>
         <p className="mt-3 text-sm text-ink-secondary">
-          1 USD = {(fenPerUsd / 100).toFixed(2)} CNY；换算比 {bps} BPS。渠道不能改这个比例。
-        </p>
+          1 USD = {(fenPerUsd / 100).toFixed(2)} {tUI("consoleCopy.cnyConversionRatio")}{bps} {tUI("consoleCopy.bpsChannelsCannotChangeThisRatio")}</p>
       </section>
       <section className="rounded-card border border-hairline bg-canvas-raised p-6">
         <div className="grid max-w-xl gap-3">
-          <Label htmlFor="chips">快捷金额（逗号分隔，3–8 个）</Label>
+          <Label htmlFor="chips">{tUI("consoleCopy.presetAmountsCommaSeparated38Values")}</Label>
           <Input id="chips" value={loaded.chips} onChange={(e) => setChips(e.target.value)} placeholder="100,300,500,1000" />
-          <Label htmlFor="timeout">订单超时（分钟）</Label>
+          <Label htmlFor="timeout">{tUI("consoleCopy.orderTimeoutMinutes")}</Label>
           <Input id="timeout" value={loaded.timeout} onChange={(e) => setTimeoutMin(e.target.value)} />
-          <Label htmlFor="help">帮助文案</Label>
+          <Label htmlFor="help">{tUI("consoleCopy.helpText")}</Label>
           <Input id="help" value={loaded.help} onChange={(e) => setHelp(e.target.value)} />
           <button type="button" className="text-left text-sm text-brand-emphasis" onClick={() => setAdvanced((v) => !v)}>
-            {advanced ? "收起高级" : "高级：商品名前缀、待支付上限、手续费"}
+            {advanced ? tUI("consoleCopy.hideAdvancedSettings") : tUI("consoleCopy.advancedProductPrefixPendingOrderLimitFees")}
           </button>
           {advanced ? (
             <>
-              <Label htmlFor="fee">手续费 BPS</Label>
+              <Label htmlFor="fee">{tUI("consoleCopy.feeBps")}</Label>
               <Input id="fee" value={loaded.fee} onChange={(e) => setFee(e.target.value)} />
             </>
           ) : null}
           <Button className="w-fit" onClick={() => void save()}>
-            保存规则
-          </Button>
+            {tUI("consoleCopy.saveRules")}</Button>
           {message ? <p className="text-sm text-ink-secondary">{message}</p> : null}
         </div>
       </section>

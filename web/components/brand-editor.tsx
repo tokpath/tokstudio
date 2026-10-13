@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useTranslations } from "next-intl";
 import { ConfirmButton } from "@/components/confirm-button";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +26,8 @@ export function BrandEditor({
   confirmWrites?: boolean;
   readOnly?: boolean;
 }) {
+  const tUI = useTranslations();
+
   const t = useTranslations("oemDelivery");
   const [domains,setDomains]=useState({primary_domain:"",api_domain:"",admin_domain:""});
   const loadVersion = useRef(0);
@@ -47,7 +50,7 @@ export function BrandEditor({
       setStorage(nextStorage);
     }
     if (!res.ok) {
-      setMessage(body.error?.message || "读取品牌失败");
+      setMessage(body.error?.message || tUI("consoleCopy.couldNotLoadTheBrand"));
       return;
     }
     const item = (body.brand || body.item) as Brand;
@@ -76,7 +79,7 @@ export function BrandEditor({
       body: JSON.stringify({ name, ...domains, theme: { brand: color, brand_emphasis: color } }),
     });
     const body = await res.json();
-    setMessage(res.ok ? "已保存名称和主色" : body.error?.message || "保存失败");
+    setMessage(res.ok ? tUI("consoleCopy.nameAndPrimaryColorSaved") : body.error?.message || tUI("user.saveFail"));
     if (res.ok) await load();
     return res.ok;
     } catch { setMessage(t("resultUnknown")); return false; }
@@ -84,7 +87,7 @@ export function BrandEditor({
 
   async function upload(kind: AssetKind, file: File) {
     try {
-    const local = await inspectLocalAsset(kind, file);
+    const local = await inspectLocalAsset(kind, file, tUI);
     if (local) {
       setMessage(local);
       return;
@@ -98,7 +101,7 @@ export function BrandEditor({
     if (nextStorage) {
       setStorage(nextStorage);
     }
-    setMessage(res.ok ? `已上传 ${kind} ${body.item?.width_px}×${body.item?.height_px}` : body.error?.message || "存储不可用");
+    setMessage(res.ok ? tUI("consoleCopy.uploaded", { value0: String(kind), value1: String(body.item?.width_px), value2: String(body.item?.height_px) }) : body.error?.message || tUI("consoleCopy.storageUnavailable"));
     if (res.ok) await load();
     } catch { setMessage(t("resultUnknown")); }
   }
@@ -110,17 +113,15 @@ export function BrandEditor({
       {locked ? <p className="text-sm text-ink-secondary">{t("readOnly")}</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm text-ink-secondary">
-          站点名
-          <Input className="mt-1" value={name} disabled={locked} onChange={(e) => setName(e.target.value)} />
+          {tUI("consoleCopy.siteName")}<Input className="mt-1" value={name} disabled={locked} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="text-sm text-ink-secondary">
-          章的颜色
-          <Input className="mt-1" type="color" value={color} disabled={locked} onChange={(e) => setColor(e.target.value)} />
+          {tUI("consoleCopy.brandColor")}<Input className="mt-1" type="color" value={color} disabled={locked} onChange={(e) => setColor(e.target.value)} />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex h-9 items-center rounded-stamp bg-brand px-3 text-sm text-on-brand">主按钮预览</span>
-        <span className="text-sm text-brand-emphasis">链字预览</span>
+        <span className="inline-flex h-9 items-center rounded-stamp bg-brand px-3 text-sm text-on-brand">{tUI("consoleCopy.primaryButtonPreview")}</span>
+        <span className="text-sm text-brand-emphasis">{tUI("consoleCopy.linkTextPreview")}</span>
         {brand?.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={publicAssetURL(brand.logo_url)} alt="" className="h-6 max-w-24 object-contain" />
@@ -133,8 +134,7 @@ export function BrandEditor({
             target="_blank"
             rel="noreferrer"
           >
-            下载 Logo
-          </a>
+            {tUI("consoleCopy.downloadLogo")}</a>
         ) : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-3">{(["primary_domain","api_domain","admin_domain"] as const).map((key,index)=><label key={key} className="text-sm">{t(["primary","api","admin"][index])}<Input className="mt-1" disabled={locked} value={domains[key]} onChange={event=>setDomains(current=>({...current,[key]:event.target.value.trim().toLowerCase()}))}/></label>)}</div>
@@ -143,7 +143,7 @@ export function BrandEditor({
         {KINDS.map((kind) => (
           <label key={kind} className="rounded-card border border-hairline p-4 text-sm">
             <p className="font-medium text-ink">{kind}</p>
-            <p className="mt-1 text-ink-mute">{describeAssetLimit(kind)}</p>
+            <p className="mt-1 text-ink-mute">{describeAssetLimit(kind, tUI)}</p>
             <Input
               className="mt-3"
               type="file"

@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ import { formatUsdMinor } from "@/lib/money";
 type Resolution = {key:string;status:string;error?:string};
 type Payload = {ids:string[]};
 export function PendingUsageQueue({surface,channelID}:{surface:"admin"|"channel";channelID?:string}) {
+  const displayLocale = useLocale();
  const t=useTranslations("usageWorkflow"),viewer=useViewer(),brand=useBrand(),client=useQueryClient();
  const base=`/${surface}`,operationKey=`usage-release:${viewer.userId}:${brand?.id||""}:${surface}:${channelID||"brand"}`;
  const [status,setStatus]=useState("pending_reconciliation"),[from,setFrom]=useState(""),[to,setTo]=useState(""),[picked,setPicked]=useState<string[]>([]);
@@ -64,7 +66,7 @@ export function PendingUsageQueue({surface,channelID}:{surface:"admin"|"channel"
   {results.length?<ul className="mt-3 space-y-1 text-sm">{results.map(r=><li key={r.key}><span className="font-mono">{r.key}</span> · {t(r.status==="resolved"?"voided":r.error==="already_charged"?"alreadyCharged":r.error==="not_found"?"missing":"readFailed")}</li>)}</ul>:null}</section>
   <AdminListPanel<UsageGap> key={params.toString()} path={`${base}/usage/pending?${params}`} title={t("pendingQueue")} emptyTitle={t("emptyPending")} emptyDetail={t("adjust")} onRowSelect={r=>void open(r)} rowSelected={r=>gapKey(r)===gapKey(selected||{})} columns={[
    {id:"pick",header:t("select"),cell:({row})=><input type="checkbox" aria-label={`${t("select")} ${gapKey(row.original)}`} disabled={!!operation||row.original.state!=="pending_reconciliation"} checked={picked.includes(gapKey(row.original))} onClick={e=>e.stopPropagation()} onChange={e=>{const id=gapKey(row.original);setPicked(v=>e.target.checked?[...new Set([...v,id])]:v.filter(k=>k!==id))}}/>},
-   {accessorKey:"occurred_at",header:t("time"),cell:({row})=>new Date(row.original.occurred_at||"").toLocaleString(undefined,{timeZone:"Asia/Shanghai"})},
+   {accessorKey:"occurred_at",header:t("time"),cell:({row})=>new Date(row.original.occurred_at||"").toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})},
    {accessorKey:"request_id",header:t("request")},{accessorKey:"public_model_id",header:t("model")},{accessorKey:"reserved_minor",header:t("reserved"),cell:({row})=>`${formatUsdMinor(row.original.reserved_minor)} USD`},{accessorKey:"state",header:t("billing"),cell:({row})=>t(row.original.state==="voided"?"voided":"pending_reconciliation")}
   ]}/>
   {selected?<section className="rounded-card border border-hairline bg-canvas-raised p-5" data-testid="usage-gap-detail"><h2 className="font-semibold">{t("detail")}</h2>{detailState==="loading"?<p role="status">{t("loading")}</p>:detailState==="error"?<div role="alert"><p>{t("readFailed")}</p><Button variant="outline" onClick={()=>void open(selected)}>{t("retry")}</Button></div>:<><p className="mt-3 break-all text-sm">{selected.request_id} · {selected.public_model_id}</p><p className="mt-2 text-sm">{t("reserved")} {formatUsdMinor(selected.reserved_minor)} USD · {t(selected.state==="voided"?"voided":"pending_reconciliation")}</p>{selected.request_id?<Link className="mt-3 inline-block text-sm text-brand" href={detailHref(selected.request_id)}>{t("openRequest")}</Link>:null}</>}</section>:null}

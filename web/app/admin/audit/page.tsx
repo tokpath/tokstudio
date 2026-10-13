@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -12,16 +14,17 @@ import { IfCan } from "@/components/rbac/if-can";
 type Audit = { id: string; action: string; resource_type: string; resource_id: string; actor_user_id?: string; created_at?: string; before?: unknown; after?: unknown; request_id?: string };
 
 export default function AdminAuditPage() {
+  const displayLocale = useLocale();
+  const tUI = useTranslations();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("Outbox 看 pending/published/failed。探测只在沙箱写一条 audit.probe，生产会 403。");
+  const [message, setMessage] = useState(tUI("consoleCopy.outboxShowsPendingPublishedAndFailedEventsProbes"));
 
   return (
     <AdminShell>
       <section className="rounded-card border border-hairline bg-canvas-raised  p-6">
         <AdminH2 level={1} k="audit" className="mb-4 text-lg font-semibold tracking-tight" />
         <p className="mb-3 text-sm text-ink-secondary">
-          pending 太高说明 worker 没跟上。探测用来确认审计链路还能写，不会计费，也不要二次确认。
-        </p>
+          {tUI("consoleCopy.aLargePendingQueueMayIndicateAWorker")}</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <IfCan action="audit.outbox">
             <Button
@@ -33,12 +36,11 @@ export default function AdminAuditPage() {
                 setMessage(
                   res.ok
                     ? `Outbox pending=${body.stats?.pending ?? 0} published=${body.stats?.published ?? 0} failed=${body.stats?.failed ?? 0}`
-                    : body.error?.message || "读取失败",
+                    : body.error?.message || tUI("workbench.readFailed"),
                 );
               }}
             >
-              读取 Outbox
-            </Button>
+              {tUI("consoleCopy.readOutbox")}</Button>
           </IfCan>
           <IfCan action="audit.probe">
             <Button
@@ -52,29 +54,28 @@ export default function AdminAuditPage() {
                 });
                 const body = await res.json();
                 if (!res.ok) {
-                  setMessage(body.error?.message || "探测失败");
+                  setMessage(body.error?.message || tUI("consoleCopy.probeFailed"));
                   return;
                 }
-                setMessage(`已写入探测 ${body.item?.id} → ${body.item?.action}`);
+                setMessage(tUI("consoleCopy.probeRecorded", { value0: String(body.item?.id), value1: String(body.item?.action) }));
                 await queryClient.invalidateQueries();
               }}
             >
-              写入探测
-            </Button>
+              {tUI("consoleCopy.writeProbe")}</Button>
           </IfCan>
         </div>
         <p className="text-sm text-ink-secondary">{message}</p>
       </section>
       <AdminListPanel<Audit>
         path="/admin/audit-logs"
-        title="审计日志"
+        title={tUI("admin.audit")}
         columns={[
-          { accessorKey: "created_at", header: "时间", cell: ({row}) => row.original.created_at ? new Date(row.original.created_at).toLocaleString() : "—" },
-          { accessorKey: "actor_user_id", header: "操作人编号", cell: ({row}) => row.original.actor_user_id || "系统" },
-          { accessorKey: "action", header: "操作" },
-          { accessorKey: "resource_type", header: "对象类型" },
-          { accessorKey: "resource_id", header: "对象编号" },
-          { id: "details", header: "变更凭证", cell: ({row}) => <details><summary className="cursor-pointer text-brand-emphasis">查看详情</summary><p className="mt-2">请求编号：{row.original.request_id || "—"}</p><p className="mt-2 font-medium">变更前</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.before ?? {},null,2)}</pre><p className="mt-2 font-medium">变更后（含操作原因）</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.after ?? {},null,2)}</pre></details> },
+          { accessorKey: "created_at", header: tUI("adminUi.colTime"), cell: ({row}) => row.original.created_at ? new Date(row.original.created_at).toLocaleString(displayLocale) : "—" },
+          { accessorKey: "actor_user_id", header: tUI("consoleCopy.actorId"), cell: ({row}) => row.original.actor_user_id || tUI("theme.system") },
+          { accessorKey: "action", header: tUI("user.colActions") },
+          { accessorKey: "resource_type", header: tUI("oem.resourceType") },
+          { accessorKey: "resource_id", header: tUI("oem.resource") },
+          { id: "details", header: tUI("consoleCopy.changeEvidence"), cell: ({row}) => <details><summary className="cursor-pointer text-brand-emphasis">{tUI("user.viewDetails")}</summary><p className="mt-2">{tUI("consoleCopy.requestId")}{row.original.request_id || "—"}</p><p className="mt-2 font-medium">{tUI("consoleCopy.before")}</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.before ?? {},null,2)}</pre><p className="mt-2 font-medium">{tUI("consoleCopy.afterIncludingTheReason")}</p><pre className="max-w-md overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(row.original.after ?? {},null,2)}</pre></details> },
         ]}
       />
     </AdminShell>

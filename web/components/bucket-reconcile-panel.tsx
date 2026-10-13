@@ -1,5 +1,7 @@
 "use client";
 
+
+import { networkUnavailable } from "@/lib/confirm";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EmptyLedger } from "@/components/console/empty-ledger";
@@ -35,6 +37,10 @@ export function BucketReconcilePanel({
   initial?: ReconcileView;
   channelID?: string;
 }) {
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+
+
   const t = useTranslations("reconcile");
   const [view, setView] = useState<ReconcileView>(initial ?? { items: [], pending: [] });
   const [message, setMessage] = useState(t("lead"));
@@ -144,7 +150,7 @@ export function BucketReconcilePanel({
           rowClassName={rowClassName}
           empty={
             loaded ? (
-              <EmptyLedger title={emptyUsageTitle()} detail={t("emptyDetail")} />
+              <EmptyLedger title={emptyUsageTitle(tUI)} detail={t("emptyDetail")} />
             ) : (
               <p className="text-sm text-ink-mute">{t("loading")}</p>
             )
@@ -217,7 +223,7 @@ export function BucketReconcilePanel({
 
       {pending.length > 0 ? (
         <section className="rounded-card border border-hairline bg-canvas-raised p-6">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">{pendingQueueTitle()}</h2>
+          <h2 className="mb-3 text-lg font-semibold tracking-tight">{pendingQueueTitle(tUI)}</h2>
           <p className="mb-3 text-sm text-ink-secondary">{t("pendingLead")}</p>
           <ul className="space-y-2 font-mono text-xs">
             {pending.map((row) => (

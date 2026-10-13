@@ -218,6 +218,7 @@ func (s *Service) Run(ctx context.Context, report func(error)) {
 }
 
 type DeliveryView struct {
+	Kind           string     `json:"kind"`
 	ID             string     `json:"id"`
 	NotificationID string     `json:"notification_id"`
 	UserID         string     `json:"user_id"`
@@ -239,7 +240,7 @@ type DeliveryPage struct {
 
 func (s *Service) Deliveries(ctx context.Context, status string) (*DeliveryPage, error) {
 	page := &DeliveryPage{Items: []DeliveryView{}}
-	q := s.db.WithContext(ctx).Table("notifications_email_deliveries d").Select("d.id,d.notification_id,n.user_id,n.brand_id,n.title,d.status,d.attempts,d.last_error,d.created_at,d.accepted_at").Joins("JOIN notifications_inbox n ON n.id=d.notification_id")
+	q := s.db.WithContext(ctx).Table("notifications_email_deliveries d").Select("d.id,d.notification_id,n.user_id,n.brand_id,n.kind,n.title,d.status,d.attempts,d.last_error,d.created_at,d.accepted_at").Joins("JOIN notifications_inbox n ON n.id=d.notification_id")
 	if status != "" {
 		q = q.Where("d.status=?", status)
 	}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/client";
@@ -18,6 +19,7 @@ const emptyPolicy = { direct: "", indirect: "", total: "", freeze: "", minimum: 
 const emptyRule = { spend: "", topup: "", gift: "" };
 
 export function PolicyEditor({ prefix = "/admin", canEdit = false, scope = "", ownerLabel = "" }: { scope?: string; ownerLabel?: string; prefix?: "/admin" | "/channel"; canEdit?: boolean }) {
+  const tUI = useTranslations();
   const viewer = useViewer();
   const [policy, setPolicy] = useState(emptyPolicy);
   const [rule, setRule] = useState(emptyRule);
@@ -42,44 +44,44 @@ export function PolicyEditor({ prefix = "/admin", canEdit = false, scope = "", o
     const direct = percentToBps(policy.direct), indirect = percentToBps(policy.indirect), total = percentToBps(policy.total);
     const minimum = parseUsdToMinor(policy.minimum), freeze = Number(policy.freeze);
     if (direct === null || indirect === null || total === null || total <= 0 || direct + indirect > total || minimum === null || !Number.isInteger(freeze) || freeze < 0 || freeze > 90) {
-      setMessage("请填写有效百分比、冻结天数及金额；直接与间接比例之和不能超过总佣金。"); return false;
+      setMessage(tUI("consoleCopy.enterValidPercentagesFreezeDaysAndAmountsDirect")); return false;
     }
     try {
       const response = await fetch(`${apiBase}${prefix}/commission-policy`, { method: "PATCH", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ direct_bps: direct, indirect_bps: indirect, total_bps: total, freeze_days: freeze, min_settle_minor: minimum, expected_version: version }) });
       const body = await response.json();
-      if (!response.ok) { setMessage(body.error?.message || "保存失败，保留当前内容。"); return false; }
-      setMessage(`已保存策略 ${body.policy?.version}；仅影响之后的新消费。`);
+      if (!response.ok) { setMessage(body.error?.message || tUI("consoleCopy.saveFailedYourCurrentInputHasBeenRetained")); return false; }
+      setMessage(tUI("consoleCopy.policySavedAppliesOnlyToFutureUsage", { value0: String(body.policy?.version) }));
       await policyQuery.refetch(); return true;
-    } catch { setMessage("结果尚未确认，请重新读取当前策略后核对；不要直接重复覆盖。"); return false; }
+    } catch { setMessage(tUI("consoleCopy.theResultIsUnconfirmedReloadAndCheckThe")); return false; }
   }
   async function saveRule() {
     if (!canEdit || !ruleReady) return false;
     const spend = parseUsdToMinor(rule.spend), topup = parseUsdToMinor(rule.topup), gift = parseUsdToMinor(rule.gift);
-    if ([spend, topup, gift].some(v => v === null)) { setMessage("请填写有效 USD 金额，0 表示关闭对应路径。"); return false; }
+    if ([spend, topup, gift].some(v => v === null)) { setMessage(tUI("consoleCopy.enterAValidUsdAmountSet0To")); return false; }
     try {
       const response = await fetch(`${apiBase}${prefix}/eligibility-rules`, { method: "PATCH", credentials: "include", headers: confirmHeaders, body: JSON.stringify({ spend_minor: spend, topup_minor: topup, gift_minor: gift }) });
       const body = await response.json();
-      if (!response.ok) { setMessage(body.error?.message || "保存失败"); return false; }
-      setMessage("已保存达线规则；仅影响之后的达线与注册赠送。"); await ruleQuery.refetch(); return true;
-    } catch { setMessage("结果尚未确认，请重新读取规则后核对。"); return false; }
+      if (!response.ok) { setMessage(body.error?.message || tUI("user.saveFail")); return false; }
+      setMessage(tUI("consoleCopy.qualificationRulesSavedAppliesOnlyToFutureQualification")); await ruleQuery.refetch(); return true;
+    } catch { setMessage(tUI("consoleCopy.theResultIsUnconfirmedReloadTheRulesAnd")); return false; }
   }
   return <div className="space-y-6">
-    <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label="分佣策略">
-      <h2 className="text-lg font-semibold">分佣策略</h2>
-      <p className="my-3 text-sm text-ink-secondary">当前版本：{policyReady ? version : "尚未读取"}。历史消费保留原策略。</p>
-      {!policyReady ? <p role="status">{policyQuery.isFetching ? "正在读取当前策略…" : policyQuery.data?.error?.message || "策略读取失败，请重试。"}</p> : null}
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label={tUI("consoleCopy.commissionPolicy")}>
+      <h2 className="text-lg font-semibold">{tUI("consoleCopy.commissionPolicy")}</h2>
+      <p className="my-3 text-sm text-ink-secondary">{tUI("consoleCopy.currentVersion")}{policyReady ? version : tUI("consoleCopy.notYetLoaded")}{tUI("consoleCopy.historicalUsageRetainsTheOriginalPolicy")}</p>
+      {!policyReady ? <p role="status">{policyQuery.isFetching ? tUI("consoleCopy.loadingCurrentPolicy") : policyQuery.data?.error?.message || tUI("consoleCopy.couldNotLoadThePolicyPleaseRetry")}</p> : null}
       <fieldset disabled={!canEdit || !policyReady} className="my-4 grid max-w-3xl gap-3 sm:grid-cols-3">
-        {([{ key: "direct", label: "直接佣金（%）" }, { key: "indirect", label: "间接佣金（%）" }, { key: "total", label: "总佣金（%）" }, { key: "freeze", label: "冻结天数" }, { key: "minimum", label: "最低结算额（USD）" }] as const).map(field => <label key={field.key} className="grid gap-1 text-sm"><span>{field.label}</span><Input aria-label={field.label} value={policy[field.key]} onChange={e => setPolicy(p => ({ ...p, [field.key]: e.target.value }))} inputMode="decimal" /></label>)}
+        {([{ key: "direct", label: tUI("consoleCopy.directCommission") }, { key: "indirect", label: tUI("consoleCopy.indirectCommission") }, { key: "total", label: tUI("consoleCopy.totalCommission") }, { key: "freeze", label: tUI("channelUi.freezeDays") }, { key: "minimum", label: tUI("consoleCopy.minimumSettlementUsd") }] as const).map(field => <label key={field.key} className="grid gap-1 text-sm"><span>{field.label}</span><Input aria-label={field.label} value={policy[field.key]} onChange={e => setPolicy(p => ({ ...p, [field.key]: e.target.value }))} inputMode="decimal" /></label>)}
       </fieldset>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void policyQuery.refetch()}>重新读取策略</Button>{canEdit ? <ConfirmButton size="sm" disabled={!policyReady} title="保存分佣策略" description={`当前品牌 ${ownerLabel || "当前授权范围"}；版本 ${version}。直接 ${bpsToPercent(policyQuery.data?.policy?.direct_bps || 0)}% → ${policy.direct}%；间接 ${bpsToPercent(policyQuery.data?.policy?.indirect_bps || 0)}% → ${policy.indirect}%；总佣金 ${bpsToPercent(policyQuery.data?.policy?.total_bps || 0)}% → ${policy.total}%；冻结 ${policyQuery.data?.policy?.freeze_days} → ${policy.freeze} 天；最低结算 ${Number(policyQuery.data?.policy?.min_settle_minor || 0) / 1_000_000} → ${policy.minimum} USD。保存成功后影响新消费，历史快照保留。`} onConfirm={savePolicy}>保存策略</ConfirmButton> : null}</div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void policyQuery.refetch()}>{tUI("consoleCopy.reloadPolicy")}</Button>{canEdit ? <ConfirmButton size="sm" disabled={!policyReady} title={tUI("consoleCopy.saveCommissionPolicy")} description={tUI("consoleCopy.brandVersionDirectIndirectTotalFreezeDaysMinimum", { value0: String(ownerLabel || tUI("consoleCopy.currentAuthorizedScope")), value1: String(version), value2: String(bpsToPercent(policyQuery.data?.policy?.direct_bps || 0)), value3: String(policy.direct), value4: String(bpsToPercent(policyQuery.data?.policy?.indirect_bps || 0)), value5: String(policy.indirect), value6: String(bpsToPercent(policyQuery.data?.policy?.total_bps || 0)), value7: String(policy.total), value8: String(policyQuery.data?.policy?.freeze_days), value9: String(policy.freeze), value10: String(Number(policyQuery.data?.policy?.min_settle_minor || 0) / 1_000_000), value11: String(policy.minimum) })} onConfirm={savePolicy}>{tUI("consoleCopy.savePolicy")}</ConfirmButton> : null}</div>
     </section>
-    <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label="邀请分佣资格">
-      <h2 className="text-lg font-semibold">邀请分佣资格</h2>
-      {!ruleReady ? <p role="status">{ruleQuery.isFetching ? "正在读取达线规则…" : ruleQuery.data?.error?.message || "达线规则读取失败，请重试。"}</p> : null}
+    <section className="rounded-card border border-hairline bg-canvas-raised p-6" aria-label={tUI("consoleCopy.referralCommissionEligibility")}>
+      <h2 className="text-lg font-semibold">{tUI("consoleCopy.referralCommissionEligibility")}</h2>
+      {!ruleReady ? <p role="status">{ruleQuery.isFetching ? tUI("consoleCopy.loadingQualificationRules") : ruleQuery.data?.error?.message || tUI("consoleCopy.couldNotLoadQualificationRulesPleaseRetry")}</p> : null}
       <fieldset disabled={!canEdit || !ruleReady} className="my-4 grid max-w-3xl gap-3 sm:grid-cols-3">
-        {([{ key: "spend", label: "累计消费达线（USD）" }, { key: "topup", label: "单笔充值达线（USD）" }, { key: "gift", label: "无资格邀请注册赠送（USD 积分）" }] as const).map(field => <label key={field.key} className="grid gap-1 text-sm"><span>{field.label}</span><Input aria-label={field.label} value={rule[field.key]} onChange={e => setRule(r => ({ ...r, [field.key]: e.target.value }))} inputMode="decimal" /></label>)}
+        {([{ key: "spend", label: tUI("consoleCopy.cumulativeUsageThresholdUsd") }, { key: "topup", label: tUI("consoleCopy.singleTopUpThresholdUsd") }, { key: "gift", label: tUI("consoleCopy.registrationGiftForAnIneligibleReferralUsdCredit") }] as const).map(field => <label key={field.key} className="grid gap-1 text-sm"><span>{field.label}</span><Input aria-label={field.label} value={rule[field.key]} onChange={e => setRule(r => ({ ...r, [field.key]: e.target.value }))} inputMode="decimal" /></label>)}
       </fieldset>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void ruleQuery.refetch()}>重新读取达线</Button>{canEdit ? <ConfirmButton size="sm" disabled={!ruleReady} title="保存达线规则" description="只影响之后的达线和注册赠送。充值本身不计佣。" onConfirm={saveRule}>保存达线</ConfirmButton> : null}</div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void ruleQuery.refetch()}>{tUI("consoleCopy.reloadQualificationRules")}</Button>{canEdit ? <ConfirmButton size="sm" disabled={!ruleReady} title={tUI("consoleCopy.saveQualificationRules")} description={tUI("consoleCopy.appliesOnlyToFutureQualificationAndRegistrationGifts")} onConfirm={saveRule}>{tUI("channelUi.saveElig")}</ConfirmButton> : null}</div>
     </section>
     {message ? <p role="status" className="text-sm text-ink-secondary">{message}</p> : null}
   </div>;

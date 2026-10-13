@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   badgeLabel,
@@ -10,6 +12,8 @@ import {
 } from "@/lib/upstream-facts";
 
 export function UpstreamFactsBadge({ facts }: { facts: UpstreamFacts }) {
+  const tUI = useTranslations();
+
   const [open, setOpen] = useState(false);
   const complete = hasCompleteUpstreamFacts(facts);
   const sandbox = isSandboxFact(facts);
@@ -30,12 +34,12 @@ export function UpstreamFactsBadge({ facts }: { facts: UpstreamFacts }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
       >
-        {badgeLabel(facts)}
+        {badgeLabel(facts, tUI)}
       </button>
       {open ? (
         <aside
           role="dialog"
-          aria-label="上游事实"
+          aria-label={tUI("adminUi.colUpstreamFacts")}
           data-testid="upstream-facts-drawer"
           className="absolute left-0 top-full z-20 mt-1 w-[18rem] rounded-card border border-hairline bg-canvas-raised p-3 text-left shadow-sm"
         >

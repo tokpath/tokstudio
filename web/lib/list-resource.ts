@@ -35,7 +35,7 @@ export function isSessionLoss(status?: number, code?: string, message?: string):
   if (code === "authentication_error") {
     return true;
   }
-  return message === "未登录" || message === "未授权";
+  return ["未登录", "未授权", "Sign in to continue.", "Authentication is required.", "ログインして続行してください。", "認証が必要です。"].includes(message ?? "");
 }
 
 export function isForbidden(status?: number, code?: string, message?: string): boolean {

@@ -26,8 +26,8 @@ export function parseAcceptLanguage(header?: string | null): Locale | null {
     return { tag: (tagRaw || "").trim().toLowerCase(), quality: Number.isFinite(quality) ? quality : 0 };
   });
   parts.sort((a, b) => b.quality - a.quality);
-  for (const { tag } of parts) {
-    if (tag === "*" || !tag) {
+  for (const { tag, quality } of parts) {
+    if (tag === "*" || !tag || quality <= 0 || quality > 1) {
       continue;
     }
     if (tag === "zh" || tag.startsWith("zh-")) {

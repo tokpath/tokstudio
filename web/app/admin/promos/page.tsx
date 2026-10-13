@@ -1,5 +1,8 @@
 "use client";
 
+import { networkUnavailable } from "@/lib/confirm";
+import { defaultCopy, type CopyTranslator } from "@/lib/copy";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,25 +20,30 @@ import { IfCan } from "@/components/rbac/if-can";
 type Role = { id: string; channel_org_id: string; type: string; parent_id?: string; status: string };
 type Promo = { id: string; code: string; channel_org_id: string; acquisition_role_id?: string; status: string };
 
-const roleSchema = z.object({
-  channel_id: z.string().trim().min(1, "请填写渠道 ID"),
-  role_type: z.string().trim().min(1, "请填写角色类型"),
+function makeRoleSchema(tUI: CopyTranslator) { return z.object({
+  channel_id: z.string().trim().min(1, tUI("consoleCopy.enterAChannelId")),
+  role_type: z.string().trim().min(1, tUI("consoleCopy.enterARoleType")),
   parent_id: z.string().trim(),
-});
+}); }
 
-const promoSchema = z.object({
-  channel_id: z.string().trim().min(1, "请填写渠道 ID"),
-  role_id: z.string().trim().min(1, "请填写推广角色 ID"),
+function makePromoSchema(tUI: CopyTranslator) { return z.object({
+  channel_id: z.string().trim().min(1, tUI("consoleCopy.enterAChannelId")),
+  role_id: z.string().trim().min(1, tUI("consoleCopy.enterAPromotionRoleId")),
   code: z.string().trim(),
-});
+}); }
 
 export default function AdminPromosPage() {
-  const [message, setMessage] = useState("推广码在注册时固化归因。创建角色和推广码都要二次确认。");
-  const roleForm = useForm<z.infer<typeof roleSchema>>({
+  const tUI = useTranslations();
+  const confirmNetworkUnavailable = networkUnavailable(tUI);
+  const roleSchema = makeRoleSchema(tUI);
+  const promoSchema = makePromoSchema(tUI);
+
+  const [message, setMessage] = useState(tUI("consoleCopy.promotionCodesFixAttributionAtRegistrationCreatingA"));
+  const roleForm = useForm<z.infer<ReturnType<typeof makeRoleSchema>>>({
     resolver: zodResolver(roleSchema),
     defaultValues: { channel_id: "chn_reseller_b", role_type: "kol_l2", parent_id: "acr_b_kol1" },
   });
-  const promoForm = useForm<z.infer<typeof promoSchema>>({
+  const promoForm = useForm<z.infer<ReturnType<typeof makePromoSchema>>>({
     resolver: zodResolver(promoSchema),
     defaultValues: { channel_id: "chn_reseller_b", role_id: "acr_b_kol2", code: "" },
   });
@@ -47,16 +55,15 @@ export default function AdminPromosPage() {
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 level={1} k="promoRoles" className="mb-4 text-lg font-semibold tracking-tight" />
           <p className="mb-3 text-sm text-ink-secondary">
-            层级只能是 agent → kol_l1 → kol_l2。2 级必须挂在 1 级下面。主体列表在「渠道租户」分栏管理。
-          </p>
+            {tUI("consoleCopy.theHierarchyIsAgentKolL1KolL2")}</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">
-            <TextField control={roleForm.control} name="channel_id" label="渠道 ID" showLabel={false} className="w-48" />
-            <TextField control={roleForm.control} name="role_type" label="角色类型" showLabel={false} className="w-28" />
-            <TextField control={roleForm.control} name="parent_id" label="上级角色" showLabel={false} className="w-48" />
+            <TextField control={roleForm.control} name="channel_id" label={tUI("consoleCopy.channelId238")} showLabel={false} className="w-48" />
+            <TextField control={roleForm.control} name="role_type" label={tUI("consoleCopy.roleType")} showLabel={false} className="w-28" />
+            <TextField control={roleForm.control} name="parent_id" label={tUI("consoleCopy.parentRole")} showLabel={false} className="w-48" />
             <ConfirmButton
               size="sm"
-              title="确认创建推广角色"
-              description="层级只能是 agent → kol_l1 → kol_l2。"
+              title={tUI("consoleCopy.confirmPromotionRoleCreation")}
+              description={tUI("consoleCopy.theHierarchyMustBeAgentKolL1Kol")}
               validate={() => roleForm.trigger()}
               onConfirm={confirmFormSubmit(roleForm.handleSubmit, async (values) => {
                 try {
@@ -68,14 +75,14 @@ export default function AdminPromosPage() {
                 });
                 const body = await res.json();
                 if (!res.ok) {
-                  setMessage(body.error?.message || "创建角色失败");
+                  setMessage(body.error?.message || tUI("consoleCopy.roleCreationFailed"));
                   return false;
                 }
                 if (body.item?.id) {
                   promoForm.setValue("role_id", body.item.id);
                   promoForm.setValue("channel_id", values.channel_id);
                 }
-                setMessage(`已创建角色 ${body.item?.id}（${body.item?.type}）`);
+                setMessage(tUI("consoleCopy.createdRole", { value0: String(body.item?.id), value1: String(body.item?.type) }));
                 return true;
                 } catch {
                   setMessage(confirmNetworkUnavailable);
@@ -83,8 +90,7 @@ export default function AdminPromosPage() {
                 }
 })}
             >
-              创建推广角色
-            </ConfirmButton>
+              {tUI("consoleCopy.createPromotionRole")}</ConfirmButton>
           </div>
           <p className="text-sm text-ink-secondary">{message}</p>
         </form>
@@ -94,14 +100,14 @@ export default function AdminPromosPage() {
       <Form {...promoForm}>
         <form className="rounded-card border border-hairline bg-canvas-raised  p-6" onSubmit={(event) => event.preventDefault()}>
           <AdminH2 k="promos" className="mb-4 text-lg font-semibold tracking-tight" />
-          <p className="mb-3 text-sm text-ink-secondary">把码发给用户，或复制 /login?promo=CODE。服务端按码反查渠道和角色。</p>
+          <p className="mb-3 text-sm text-ink-secondary">{tUI("consoleCopy.shareTheCodeOrCopyLoginPromoCode")}</p>
           <div className="mb-3 flex flex-wrap items-end gap-2">
-            <TextField control={promoForm.control} name="role_id" label="推广角色 ID" showLabel={false} className="w-48" />
-            <TextField control={promoForm.control} name="code" label="推广码" placeholder="THB-SALE" showLabel={false} className="w-40" />
+            <TextField control={promoForm.control} name="role_id" label={tUI("consoleCopy.promotionRoleId")} showLabel={false} className="w-48" />
+            <TextField control={promoForm.control} name="code" label={tUI("admin.promos")} placeholder="THB-SALE" showLabel={false} className="w-40" />
             <ConfirmButton
               size="sm"
-              title="确认创建推广码"
-              description="注册时会按这个码固化渠道和角色。"
+              title={tUI("channelUi.confirmPromo")}
+              description={tUI("consoleCopy.thisCodeFixesTheChannelAndRoleAt")}
               validate={() => promoForm.trigger()}
               onConfirm={confirmFormSubmit(promoForm.handleSubmit, async (values) => {
                 try {
@@ -116,7 +122,7 @@ export default function AdminPromosPage() {
                   }),
                 });
                 const body = await res.json();
-                setMessage(res.ok ? `已创建推广码 ${body.item?.code}` : body.error?.message || "创建推广码失败");
+                setMessage(res.ok ? tUI("consoleCopy.createdPromotionCode", { value0: String(body.item?.code) }) : body.error?.message || tUI("consoleCopy.promotionCodeCreationFailed"));
                 return res.ok;
                 } catch {
                   setMessage(confirmNetworkUnavailable);
@@ -124,30 +130,29 @@ export default function AdminPromosPage() {
                 }
 })}
             >
-              创建推广码
-            </ConfirmButton>
+              {tUI("channelUi.createPromo")}</ConfirmButton>
           </div>
         </form>
       </Form>
       </IfCan>
       <AdminListPanel<Role>
         path="/admin/acquisition-roles"
-        title="角色列表"
+        title={tUI("consoleCopy.roles")}
         columns={[
           { accessorKey: "id", header: "ID" },
-          { accessorKey: "type", header: "Type" },
-          { accessorKey: "channel_org_id", header: "Channel" },
-          { accessorKey: "status", header: "Status" },
+          { accessorKey: "type", header: tUI("user.ledColType") },
+          { accessorKey: "channel_org_id", header: tUI("nav.channel") },
+          { accessorKey: "status", header: tUI("compareUi.status") },
         ]}
       />
       <AdminListPanel<Promo>
         path="/admin/promotion-codes"
-        title="推广码列表"
+        title={tUI("consoleCopy.promotionCodes")}
         columns={[
-          { accessorKey: "code", header: "Code" },
-          { accessorKey: "channel_org_id", header: "Channel" },
-          { accessorKey: "acquisition_role_id", header: "Role" },
-          { accessorKey: "status", header: "Status" },
+          { accessorKey: "code", header: tUI("playgroundUi.code") },
+          { accessorKey: "channel_org_id", header: tUI("nav.channel") },
+          { accessorKey: "acquisition_role_id", header: tUI("staff.role") },
+          { accessorKey: "status", header: tUI("compareUi.status") },
         ]}
       />
     </AdminShell>

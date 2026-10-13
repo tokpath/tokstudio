@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ function initial(): Filters {
 function label(t: ReturnType<typeof useTranslations>, status?: string) { const known=["confirmed","pending_reconciliation","voided","success","succeeded","failed","running","cancelled"];return status ? known.includes(status) ? t(status) : status : "—"; }
 
 export function UsageReport({surface,channelID}: {surface:UsageSurface;channelID?:string}) {
+  const displayLocale = useLocale();
  const t=useTranslations("usageWorkflow"), viewer=useViewer();
  const {resolvedTheme}=useTheme();
  const [filters,setFilters]=useState<Filters>(initial),[ready,setReady]=useState(false),[returnTo,setReturnTo]=useState<string|null>(null);
@@ -71,7 +73,7 @@ export function UsageReport({surface,channelID}: {surface:UsageSurface;channelID
   </section>
   <nav aria-label={t("tabs")} className="flex gap-2">{["summary","requests"].map(tab=><Button key={tab} variant={filters.tab===tab?"default":"outline"} onClick={()=>update("tab",tab)}>{t(tab)}</Button>)}</nav>
   {filters.tab==="requests"?<AdminListPanel<RequestReceipt> key={`${endpoint}:${params}`} path={`${endpoint}/requests?${params}`} title={t("requests")} rowHref={requestHref} emptyTitle={t("emptyRequests")} emptyDetail={t("adjust")}
-   columns={[{accessorKey:"started_at",header:t("time"),cell:({row})=>new Date(row.original.started_at).toLocaleString(undefined,{timeZone:"Asia/Shanghai"})},{accessorKey:"public_model_id",header:t("model")},{accessorKey:"result",header:t("result"),cell:({row})=>label(t,row.original.result)},{accessorKey:"billing_state",header:t("billing"),cell:({row})=>label(t,row.original.billing_state)},{accessorKey:"customer_amount_minor",header:t("amount"),cell:({row})=>formatUsdMinor(row.original.customer_amount_minor)},{accessorKey:"request_id",header:t("request")}]} />:<>
+   columns={[{accessorKey:"started_at",header:t("time"),cell:({row})=>new Date(row.original.started_at).toLocaleString(displayLocale,{timeZone:"Asia/Shanghai"})},{accessorKey:"public_model_id",header:t("model")},{accessorKey:"result",header:t("result"),cell:({row})=>label(t,row.original.result)},{accessorKey:"billing_state",header:t("billing"),cell:({row})=>label(t,row.original.billing_state)},{accessorKey:"customer_amount_minor",header:t("amount"),cell:({row})=>formatUsdMinor(row.original.customer_amount_minor)},{accessorKey:"request_id",header:t("request")}]} />:<>
    <section className="rounded-card border border-hairline bg-canvas-raised p-5" data-testid="list-resource-usage" data-list-phase={summary.isPending?"loading":summary.isError?"error":report?.totals.requests?"ready":"empty"}>
     {summary.isPending?<p role="status">{t("loading")}</p>:summary.isError?<div role="alert"><p>{t("readFailed")}</p>
     <Button variant="outline" onClick={()=>void summary.refetch()}>{t("retry")}</Button></div>:null}

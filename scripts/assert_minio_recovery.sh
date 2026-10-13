@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 无 Docker 时验证 compose_up_with_minio_recovery.sh：首次 up 失败 → 删卷 → 重试成功。
+# 无 Docker 时验证：默认失败保留数据；显式允许丢弃预览数据后才重建卷并重试。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -91,7 +91,21 @@ chmod +x "$PATH_DIR/docker"
 export COMPOSE_MOCK_STATE="$TMP/state"
 export PATH="$PATH_DIR:$PATH"
 
-bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
+if TOKENHUB_RESET_PREVIEW_MINIO_VOLUME=0 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml; then
+  echo "expected failed compose to remain failed" >&2
+  exit 1
+fi
+[[ "$(cat "$COMPOSE_MOCK_STATE/up_attempts")" == "1" ]] || {
+  echo "unexpected default retry" >&2
+  exit 1
+}
+[[ ! -f "$COMPOSE_MOCK_STATE/ops.log" ]] || {
+  echo "default failure must not stop/remove containers or delete volumes" >&2
+  exit 1
+}
+
+export COMPOSE_MOCK_STATE="$TMP/explicit-reset"
+TOKENHUB_RESET_PREVIEW_MINIO_VOLUME=1 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
 
 attempts="$(cat "$COMPOSE_MOCK_STATE/up_attempts")"
 [[ "$attempts" == "2" ]] || {

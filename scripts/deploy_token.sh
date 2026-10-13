@@ -95,8 +95,13 @@ for key in sorted(google_keys):
         print(f"{key}={info['value']!r} had_wrapping_quotes={info['quoted']}")
 PY
 
-# 释放已无用的构建缓存，避免 40G 盘在镜像构建时写满。
-docker builder prune -f >/dev/null
+# 清理可重建的缓存与悬空镜像，不删除容器或数据卷。
+echo "disk usage before deploy cleanup"
+df -h "$ROOT"
+docker builder prune -af >/dev/null
+docker image prune -f >/dev/null
+echo "disk usage after deploy cleanup"
+df -h "$ROOT"
 
 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
 
@@ -109,17 +114,18 @@ if [[ -f "$CADDY_SNIPPET" && -f "$NOVA_CADDY" ]]; then
   docker exec caddy caddy reload --config /etc/caddy/Caddyfile
 fi
 
-echo "waiting for TokenHub healthz"
+echo "waiting for TokenHub healthz and readyz"
 ok=0
 for _ in $(seq 1 45); do
-  if curl -fsS --max-time 3 -H "Host: test.tokpath.com" "http://127.0.0.1/healthz" >/dev/null; then
+  if curl -fsS --max-time 3 -H "Host: test.tokpath.com" "http://127.0.0.1/healthz" >/dev/null &&
+    curl -fsS --max-time 3 -H "Host: test.tokpath.com" "http://127.0.0.1/readyz" >/dev/null; then
     ok=1
     break
   fi
   sleep 2
 done
 if [[ "$ok" -ne 1 ]]; then
-  echo "healthz did not become ready on test.tokpath.com" >&2
+  echo "healthz / readyz did not become ready on test.tokpath.com" >&2
   docker compose -f docker-compose.yml -f docker-compose.token.yml ps >&2
   docker compose -f docker-compose.yml -f docker-compose.token.yml logs --no-color --tail=80 minio minio-init api web >&2 || true
   exit 1

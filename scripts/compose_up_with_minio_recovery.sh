@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 预览栈共用：docker compose up，若 minio-init 因卷内旧凭证失败则重建 MinIO 卷并重试一次。
+# 预览栈共用：默认失败即退出并保留数据卷。仅明确指定可丢弃预览数据时允许重建 MinIO 卷。
 # 用法：compose_up_with_minio_recovery.sh <compose 额外参数...>
 # 例：compose_up_with_minio_recovery.sh -f docker-compose.yml -f docker-compose.token.yml
 set -euo pipefail
@@ -43,6 +43,11 @@ fi
 
 echo "compose up failed; checking MinIO init" >&2
 dump_minio_logs
+if [[ "${TOKENHUB_RESET_PREVIEW_MINIO_VOLUME:-0}" != "1" ]]; then
+  echo "compose up failed; MinIO data volume preserved. Diagnose the failure before retrying." >&2
+  "${COMPOSE[@]}" ps >&2 || true
+  exit 1
+fi
 recreate_minio_volume
 
 if "${COMPOSE[@]}" up --build -d; then

@@ -11,6 +11,7 @@ export default function AdminMediaPage() {
       <AdminListPanel<Job>
         headingLevel={1}
         path="/admin/media"
+        exportCSV
         title="媒体任务"
         columns={[
           { accessorKey: "id", header: "ID" },

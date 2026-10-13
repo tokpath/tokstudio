@@ -26,6 +26,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   onRowSelect,
   rowSelected,
   actions,
+  exportCSV = false,
   emptyTitle = "暂无记录",
   emptyDetail = "当前条件下暂无记录，可调整筛选条件后重试。",
   stickyEnds = true,
@@ -39,6 +40,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   onRowSelect?: (row: T) => void;
   rowSelected?: (row: T) => boolean;
   actions?: ReactNode;
+  exportCSV?: boolean;
   emptyTitle?: string;
   emptyDetail?: string;
   stickyEnds?: boolean;
@@ -78,6 +80,10 @@ export function AdminListPanel<T extends Record<string, unknown>>({
   if (search) params.set("q", search);
   if (cursor) params.set("cursor", cursor);
   const href = `${path.split("?")[0]}${params.size ? `?${params}` : ""}`;
+  const exportParams = new URLSearchParams(params);
+  exportParams.delete("cursor");
+  exportParams.delete("limit");
+  exportParams.set("format", "csv");
   const query = useQuery({
     queryKey: [viewer.userId, href],
     queryFn: async () => {
@@ -100,6 +106,7 @@ export function AdminListPanel<T extends Record<string, unknown>>({
         <Heading className={headingLevel === 1 ? "text-2xl font-semibold tracking-tight" : "text-lg font-semibold tracking-tight"}>{title}</Heading>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {actions}
+          {exportCSV ? <Button asChild size="sm" variant="outline"><a href={`${apiBase}${path.split("?")[0]}?${exportParams}`}>{tc("exportCsv")}</a></Button> : null}
           <form className="flex items-center gap-2" onSubmit={event => { event.preventDefault(); setSearch(q.trim()); setCursor(""); setPrevious([]); updateLocation(q.trim(), ""); }}><Input
             className="w-44 sm:w-56"
             aria-label={tc("filter")}

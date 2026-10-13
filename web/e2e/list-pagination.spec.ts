@@ -34,8 +34,9 @@ for (const portal of ["admin", "channel"] as const) {
       const params = new URL(route.request().url()).searchParams;
       if (params.get("channel_id") === "chn_oem_child") return route.fulfill({ json: { items: params.get("cursor") ? [] : [{ ...jobs[0], id: "child_first" }], next_cursor: "" } });
       const start = Number((params.get("cursor") || "opaque-0").split("-")[1]);
-      const end = Math.min(start+50, jobs.length);
-      return route.fulfill({ json: { items: jobs.slice(start, end), next_cursor: end < jobs.length ? `opaque-${end}` : "" } });
+      const filtered = jobs.filter(job => !params.get("q") || job.id.includes(params.get("q")!));
+      const end = Math.min(start+50, filtered.length);
+      return route.fulfill({ json: { items: filtered.slice(start, end), next_cursor: end < filtered.length ? `opaque-${end}` : "" } });
     });
     await page.goto(`/${portal}/media`);
     await expect(page.getByRole("cell", { name: "record_274", exact: true })).toBeVisible();
@@ -46,6 +47,18 @@ for (const portal of ["admin", "channel"] as const) {
     await expect(page.getByRole("button", { name: "下一页", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "上一页", exact: true }).click();
     await expect(page.getByRole("cell", { name: "record_74", exact: true })).toBeVisible();
+    if (portal === "admin") {
+      const exportLink = page.getByRole("link", { name: "导出 CSV", exact: true });
+      expect(new URL((await exportLink.getAttribute("href"))!, page.url()).searchParams.get("cursor")).toBeNull();
+      await page.getByRole("textbox", { name: "筛选", exact: true }).fill("record_74");
+      await page.getByRole("button", { name: "搜索", exact: true }).click();
+      await expect(page.getByText("本页 1 条", { exact: true })).toBeVisible();
+      const exportParams = new URL((await exportLink.getAttribute("href"))!, page.url()).searchParams;
+      expect(exportParams.get("format")).toBe("csv");
+      expect(exportParams.get("q")).toBe("record_74");
+      expect(exportParams.get("cursor")).toBeNull();
+      await expect(page.getByRole("button", { name: "上一页", exact: true })).toHaveCount(0);
+    }
     if (portal === "channel") {
       await page.locator("select").filter({ has: page.locator('option[value="chn_oem_child"]') }).selectOption("chn_oem_child");
       await expect(page.getByRole("cell", { name: "child_first", exact: true })).toBeVisible();

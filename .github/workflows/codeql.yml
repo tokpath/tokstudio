@@ -1,0 +1,55 @@
+# 仓库已经不再包含 Python 源码。CodeQL 若仍按 Python 建库，会在找不到源码时失败
+# （“not any written in Python”）。这里只分析仍有源码的语言：
+# GitHub Actions、Go、JavaScript/TypeScript。
+# 这是 advanced setup。若仓库仍启用 CodeQL default setup，GitHub 会停用本文件并继续跑 Python；
+# 需要在 Code scanning 里关闭 default setup 后，才由本工作流接管。
+name: CodeQL
+
+on:
+  push:
+    branches: [main, release/v0.1.0, feature/grokbot, "cursor/**"]
+  pull_request:
+  schedule:
+    - cron: "15 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: go
+            build-mode: autobuild
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.0"
+          cache: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

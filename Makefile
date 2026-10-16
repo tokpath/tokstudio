@@ -26,6 +26,7 @@ test-external:
 	@test -n "$$TOKENHUB_MODEL_MOCK_URL" && test -n "$$TOKENHUB_PAYMENT_MOCK_URL"
 	@test -n "$$TOKENHUB_SMTP_MOCK_ADDR" && test -n "$$TOKENHUB_TEST_REDIS_URL"
 	@test -n "$$TOKENHUB_TEST_S3_ENDPOINT" && test -n "$$TOKENHUB_TEST_S3_BUCKET"
+	@test -n "$$TOKENHUB_TEST_S3_REGION"
 	@test -n "$$TOKENHUB_TEST_S3_ACCESS_KEY" && test -n "$$TOKENHUB_TEST_S3_SECRET_KEY"
 	cd backend && go test -race -p 1 -count=1 -timeout 15m ./...
 

@@ -50,7 +50,7 @@ cd web && npm run build && npx playwright test
 
 外部用例使用显式的 `TOKENHUB_MODEL_MOCK_URL`、支付测试通道变量、`TOKENHUB_TEST_S3_*` 和 `TOKENHUB_TEST_REDIS_URL`。未设置时对应外部用例会跳过；跳过不计作联调完成。测试必须连接隔离环境，不对生产账户运行故障注入。
 
-完整协议联调使用 `make test-external`，它要求同时配置两项测试数据库变量、`TOKENHUB_MODEL_MOCK_URL`、`TOKENHUB_PAYMENT_MOCK_URL`、`TOKENHUB_SMTP_MOCK_ADDR`、`TOKENHUB_TEST_REDIS_URL` 以及 S3 的 ENDPOINT、BUCKET、ACCESS_KEY、SECRET_KEY。容器需要回调主机上的测试监听器时，另设 `TOKENHUB_MOCK_CALLBACK_HOST=host.docker.internal`。各包按顺序执行，避免不同测试同时改动同一个协议服务的故障状态。协议服务自身部署和合成凭据见仓库外 integration-lab 的 README；不要将这些配置复制到正式业务环境。
+完整协议联调使用 `make test-external`，它要求同时配置两项测试数据库变量、`TOKENHUB_MODEL_MOCK_URL`、`TOKENHUB_PAYMENT_MOCK_URL`、`TOKENHUB_SMTP_MOCK_ADDR`、`TOKENHUB_TEST_REDIS_URL` 以及 S3 的 ENDPOINT、REGION、BUCKET、ACCESS_KEY、SECRET_KEY。`TOKENHUB_TEST_S3_REGION` 由测试夹具单独读取，MinIO 可设置为 `us-east-1`。容器需要回调主机上的测试监听器时，另设 `TOKENHUB_MOCK_CALLBACK_HOST=host.docker.internal`。各包按顺序执行，避免不同测试同时改动同一个协议服务的故障状态。协议服务自身部署和合成凭据见仓库外 integration-lab 的 README；不要将这些配置复制到正式业务环境。
 
 持续负载为显式运行的 `TestExternalConcurrentCallingAndSalesSoak`，另设 `TOKENHUB_LOAD_DURATION=30m`；默认 100 个调用协程、50 个购买协程，可用 `TOKENHUB_LOAD_CALLERS` 和 `TOKENHUB_LOAD_BUYERS` 调整，并用 `TOKENHUB_LOAD_REPORT` 指定原始报告路径。它使用同一热点客户，并在结束后核对全部账本和上游尝试，时延包含排队。已运行结果见[账本、调用与运行证据](docs/product-spec/账本调用与运行验收证据.md)。
 

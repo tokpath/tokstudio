@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 # Local dev config. .env is gitignored, so create it from the committed template.
-if [[ ! -f .env ]]; then
+if [[ ! -e .env && ! -L .env ]]; then
   cp .env.example .env
 fi
 

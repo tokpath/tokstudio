@@ -1,49 +1,5 @@
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
 import "./globals.css";
-import { publicAssetURL, themeStyle, type Brand } from "@/lib/brand";
-import { fetchAPI } from "@/lib/api";
-import { htmlLang, messagesForRequest, resolveRequestLocale } from "@/lib/i18n";
-import { AppChrome } from "@/components/layout/app-chrome";
-import { AppProviders } from "@/app/providers";
-
-
-export async function generateMetadata(): Promise<Metadata> {
-  const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
-  const accept = (await headers()).get("accept-language");
-  const messages = messagesForRequest(cookie, accept) as { chrome?: { metaDescription?: string } };
-  const brand = await loadBrand();
-  const icon = publicAssetURL(brand?.favicon_url || brand?.logo_url);
-  return {
-    title: brand?.name || "TokenHub",
-    description: messages.chrome?.metaDescription || "TokenHub API",
-    icons: icon ? { icon } : undefined,
-    other: brand ? { "tokstudio-brand-id": brand.id } : undefined,
-  };
-}
-
-async function loadBrand(): Promise<Brand | undefined> {
-  try {
-    const host = (await headers()).get("x-tokenhub-host") || (await headers()).get("host") || "localhost";
-    const data = await fetchAPI<{ brand: Brand }>("/v1/public/brand", { host });
-    return data.brand;
-  } catch {
-    return undefined;
-  }
-}
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const brand = await loadBrand();
-  const cookie = (await cookies()).get("NEXT_LOCALE")?.value;
-  const accept = (await headers()).get("accept-language");
-  const locale = resolveRequestLocale(cookie, accept);
-  return (
-    <html lang={htmlLang(locale)} suppressHydrationWarning>
-      <body className="min-h-screen bg-canvas font-sans text-ink antialiased" style={themeStyle(brand)}>
-        <AppProviders locale={locale} messages={messagesForRequest(cookie, accept)}>
-          <AppChrome brand={brand}>{children}</AppChrome>
-        </AppProviders>
-      </body>
-    </html>
-  );
-}
+import { AppProviders } from "./providers";
+export const metadata: Metadata = { title: "TokenHub", description: "品牌模型服务、独立经营与统一资产账务" };
+export default function RootLayout({ children }: { children: React.ReactNode }) { return <html lang="zh-CN" suppressHydrationWarning><body className="min-h-screen bg-canvas font-sans text-ink antialiased"><AppProviders>{children}</AppProviders></body></html>; }

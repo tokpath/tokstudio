@@ -29,6 +29,9 @@ type eventRow struct {
 	PayloadJSON   []byte     `gorm:"column:payload_json"`
 	Status        string     `gorm:"column:status"`
 	Attempts      int        `gorm:"column:attempts"`
+	MaxAttempts   int        `gorm:"column:max_attempts;default:12"`
+	LeaseUntil    *time.Time `gorm:"column:lease_until"`
+	Fence         int64      `gorm:"column:fence"`
 	AvailableAt   time.Time  `gorm:"column:available_at"`
 	PublishedAt   *time.Time `gorm:"column:published_at"`
 	LastError     *string    `gorm:"column:last_error"`
@@ -75,8 +78,8 @@ func (s *Service) EnqueueTx(tx *gorm.DB, eventType, aggregateType, aggregateID s
 		AvailableAt:   time.Now().UTC(),
 		CreatedAt:     time.Now().UTC(),
 	}
-	// Consumer epochs and event timestamps must use the same database clock.
-	// Otherwise modest API/database clock skew can silently skip new events.
+	// Database timestamps keep ordering and an explicitly configured replay cutoff
+	// independent of API clock skew. New consumers replay retained history.
 	if err := tx.Omit("CreatedAt", "AvailableAt").Create(&row).Error; err != nil {
 		return "", err
 	}
@@ -93,7 +96,7 @@ type Stats struct {
 func (s *Service) Stats(ctx context.Context) (Stats, error) {
 	var stats Stats
 	err := s.db.WithContext(ctx).Model(&eventRow{}).
-		Select(`COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+		Select(`COUNT(*) FILTER (WHERE status IN ('pending','publishing')) AS pending,
 		        COUNT(*) FILTER (WHERE status = 'published') AS published,
 		        COUNT(*) FILTER (WHERE status = 'failed') AS failed`).
 		Scan(&stats).Error

@@ -3,5 +3,12 @@ global:
 
 scrape_configs:
   - job_name: tokenhub-api
+    authorization:
+      credentials_file: /tmp/tokenhub-metrics-token
     static_configs:
       - targets: ["api:8080"]
+  - job_name: tokenhub-worker
+    authorization:
+      credentials_file: /tmp/tokenhub-metrics-token
+    static_configs:
+      - targets: ["worker:8081"]

@@ -30,7 +30,7 @@ project_name() {
 recreate_minio_volume() {
   local project vol
   project="$(project_name)"
-  vol="${project}_tokenhub_minio"
+  vol="${project}_tokenhub_v2_minio"
   echo "preview recovery: recreating MinIO volume ${vol} (root credentials are frozen in /data)" >&2
   "${COMPOSE[@]}" stop minio minio-init >/dev/null 2>&1 || true
   "${COMPOSE[@]}" rm -f minio minio-init >/dev/null 2>&1 || true

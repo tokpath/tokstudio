@@ -1,0 +1,86 @@
+package portal
+
+import "strings"
+
+// Ordinary business commands expose explicit fields. JSON editors are reserved
+// for verified technical model capabilities and component price rules.
+func businessFields(o operation) []field {
+	if len(o.Fields) != 1 || o.Fields[0].Name != "configuration" {
+		return o.Fields
+	}
+	parts := strings.Split(o.Path, "/")
+	resource := ""
+	for i, p := range parts {
+		if p == "operators" && len(parts) > i+2 {
+			resource = parts[i+2]
+		}
+		if p == "me" && len(parts) > i+1 {
+			resource = parts[i+1]
+		}
+	}
+	version := defaultField("expected_version", "当前版本（首次填写0）", "integer", 0)
+	switch resource {
+	case "plans":
+		return []field{optional("package_id", "现有套餐编号（新建留空）", "text"), f("name", "套餐名称", "text"), f("price_usd", "成交价格 USD", "decimal"), f("paid_atg", "购买权益 ATG", "decimal"), defaultField("gift_atg", "套餐赠送 ATG", "decimal", "0"), selectField("period", "有效期", "lifetime|不限期", "month|自然月", "quarter|自然季", "year|自然年"), defaultField("timezone", "经营时区", "text", "Asia/Shanghai"), f("terms_reference", "对客户公示条款编号", "text"), defaultField("new_purchase_enabled", "允许新购", "boolean", true), defaultField("renewal_enabled", "允许续费", "boolean", false), version}
+	case "operators":
+		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), optional("brand_name", "OEM品牌名称", "text"), optional("api_base_url", "OEM API入口", "text"), f("quote_reference", "供货条款编号", "text"), f("exit_terms_reference", "退出条款编号", "text")}
+	case "commissions":
+		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), f("confirmation_seconds", "消费确认等待秒数", "integer"), f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), f("reward_validity_seconds", "注册奖励有效秒数", "integer"), f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
+	case "activities", "marketing":
+		return []field{optional("campaign_id", "现有活动编号（新建留空）", "text"), f("package_id", "适用套餐编号", "text"), selectField("eligibility", "参与对象", "any|符合当前活动资格", "first_order|首购客户", "existing|已有成交客户"), optional("final_price_usd", "最终成交价 USD（无折扣留空）", "decimal"), defaultField("gift_atg", "本活动额外赠送 ATG", "decimal", "0"), defaultField("concession_rate", "本人佣金让利比例（0到1）", "decimal", "0"), f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), defaultField("total_use_limit", "活动总次数上限", "integer", 100), defaultField("gift_budget_atg", "赠送总预算 ATG", "decimal", "0"), defaultField("discount_budget_usd", "折扣总预算 USD", "decimal", "0"), defaultField("enabled", "启用活动", "boolean", true), version}
+	case "business-status":
+		return []field{selectField("feature", "营业项目", "registration|注册", "new_purchase|新购", "renewal|续费", "model_usage|模型调用", "activity|营销活动", "settlement|结算"), f("enabled", "通过真实依赖检查后开放", "boolean"), version, f("evidence_reference", "检查及授权依据", "text")}
+	case "branding", "channel-themes":
+		return []field{version, optional("values.primary_color", "主色（留空继承，#RRGGBB）", "text"), optional("values.background_color", "背景色（留空继承）", "text"), optional("values.text_color", "文字色（留空继承）", "text"), optional("values.logo_url", "已上传Logo地址（留空继承）", "text"), optional("values.support_url", "客户支持URL（留空继承）", "text")}
+	case "notifications":
+		return []field{f("recipient_id", "本经营范围收件人编号", "text"), selectField("category", "通知类别", "mandatory|必要业务通知", "usage|用量提醒", "marketing|已获授权营销"), selectField("severity", "级别", "info|一般", "warning|预警", "critical|紧急"), f("title", "标题", "text"), f("body", "通知正文", "textarea"), f("reference", "业务关联依据", "text")}
+	case "exports":
+		return []field{selectField("kind", "导出业务", "ledger|账本", "requests|请求", "procurement|采购"), optional("owner_id", "限定主体编号（留空当前范围）", "text"), f("from", "起始时间", "datetime"), f("to", "截至时间", "datetime")}
+	case "risk", "alerts":
+		return []field{f("id", "规则编号", "text"), selectField("metric", "真实指标", "sales_space_atg|剩余销售空间ATG", "procurement_available_atg|采购可用ATG", "oversell_used_atg|已用超卖ATG", "pending_usage|待结请求数", "unverified_costs|未知成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|低于阈值", "above|高于阈值"), f("recipients", "通知收件人ID（逗号分隔）", "csv"), optional("escalation_recipients", "升级收件人ID（逗号分隔）", "csv"), defaultField("reminder_seconds", "持续风险提醒间隔秒数", "integer", 3600), defaultField("escalate_seconds", "升级等待秒数", "integer", 86400), defaultField("enabled", "启用规则", "boolean", true), version}
+	case "payments":
+		return []field{defaultField("provider", "人工核实通道", "text", "manual"), f("provider_receipt_id", "外部唯一收款流水", "text"), f("gross_usd", "实际入账总额USD", "decimal"), selectField("fee_status", "手续费证据", "pending|尚待核实", "confirmed|已核实"), optional("fee_usd", "已核实手续费USD", "decimal"), optional("net_usd", "已核实净入账USD", "decimal"), f("currency", "实际入账币种", "text"), f("original_amount", "原币种实收金额", "decimal"), optional("network", "原网络（链上收款必填）", "text"), f("recipient_reference", "实际收款账号证明", "text"), f("payer_reference", "实际付款人账号证明", "text"), f("valuation_evidence", "本次USD估值依据", "text"), f("verification_evidence", "真实银行核实凭证", "textarea"), f("paid_at", "真实付款时刻", "datetime"), f("observed_at", "核实时刻", "datetime"), optional("settled_at", "费用结算时刻（已确认必填）", "datetime")}
+	case "payment-methods":
+		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|银行人工核实"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
+		asset := optional("asset_network_version_id", "平台已发布的准确资产与网络", "text")
+		asset.VisibleWhen = &fieldVisibility{Field: "driver", Values: []string{"evm_wallet", "nowpayments"}}
+		fields = append(fields, asset)
+		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "ipn_secret", "rpc_url", "wallet_address"} {
+			v := optional("credentials."+key, "通道材料 · "+key, "text")
+			if strings.Contains(key, "private_key") || strings.Contains(key, "public_key") {
+				v.Kind = "textarea"
+			} else if strings.Contains(key, "secret") || key == "api_key" || key == "api_v3_key" {
+				v.Kind = "password"
+			}
+			fields = append(fields, v)
+		}
+		return fields
+	case "withdrawals":
+		if o.Name == "verify_paid" {
+			return []field{f("payment_reference", "真实唯一付款流水", "text"), f("evidence", "银行核实依据", "textarea"), f("currency", "实际付款币种", "text"), f("original_amount", "实际付款金额", "decimal"), f("valuation_evidence", "本次真实换汇依据", "text"), f("paid_usd", "已付净额USD", "decimal"), f("paid_at", "实际付款时刻", "datetime")}
+		}
+		return []field{f("minimum_usd", "最低提现 USD", "decimal"), f("flat_fee_usd", "固定手续费 USD", "decimal"), f("fee_rate", "手续费比例（0到1）", "decimal"), f("requires_dual_approval", "必须双人审批付款", "boolean"), f("method_reference", "对客户公示付款方式规则", "text"), version}
+	case "invoices":
+		return []field{optional("issuer_id", "原始开票经营方", "hidden"), f("lines.0.receipt_id", "原始收款编号", "text"), f("lines.0.amount_usd", "本次申请 USD", "decimal"), f("details.title", "发票抬头", "text"), f("details.tax_id", "纳税识别号", "text"), f("details.email", "接收邮箱", "email"), optional("details.address", "发票地址", "text")}
+	case "refunds":
+		switch o.Name {
+		case "package_exception":
+			return []field{defaultField("action", "办理类型", "text", "package_exception"), f("customer_id", "客户编号", "text"), f("order_id", "原成交订单", "text"), selectField("reason", "真实异常原因", "transaction_error|交易错误", "unable_to_fulfill|无法履行服务"), f("evidence", "事实证据", "textarea")}
+		case "unallocated":
+			return []field{defaultField("action", "办理类型", "text", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_usd", "退回 USD", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
+		case "policy":
+			return []field{defaultField("action", "办理类型", "text", "policy"), optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal"), version}
+		case "verify_manual":
+			return []field{f("reference", "唯一银行退款流水", "text"), f("currency", "实际付款币种", "text"), f("amount", "实际币种金额", "decimal"), f("actual_usd", "本次折合USD", "decimal"), f("fee_usd", "付款方手续费USD", "decimal"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "银行核实及本次估值证据", "textarea")}
+		case "execute_api":
+			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
+			for _, v := range executionValuationFields() {
+				v.Name = strings.Replace(v.Name, "valuation.", "refund_valuation.", 1)
+				v.Required = false
+				fields = append(fields, v)
+			}
+			return fields
+		}
+	}
+	return o.Fields
+}

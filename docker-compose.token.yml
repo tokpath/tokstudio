@@ -3,7 +3,7 @@
 # - TokenHub 自己的 edge 只在 compose 内网听 80，并加入 gashub 网络
 # - 公网入口是 https://test.tokpath.com，由 gashub Caddy 反代到 tokstudio-edge
 # 长期运行的服务在 Docker / 服务器重启后自动恢复；主动停止后保持停止。
-# minio-init、catalog-seed 是一次性任务，Pebble 只用于本地 TLS 演练。
+# minio-init、migrate 是一次性任务，Pebble 只用于本地 TLS 演练。
 services:
   edge:
     restart: unless-stopped
@@ -19,13 +19,21 @@ services:
     environment:
       TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}
       TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://test.tokpath.com}
-      TOKENHUB_GOOGLE_REDIRECT_URL: ${TOKENHUB_GOOGLE_REDIRECT_URL:-https://test.tokpath.com/login/oauth/google}
+      TOKENHUB_OFFICIAL_HOST: ${TOKENHUB_OFFICIAL_HOST:-test.tokpath.com}
 
   web:
     restart: unless-stopped
 
   worker:
     restart: unless-stopped
+    environment:
+      TOKENHUB_OFFICIAL_HOST: ${TOKENHUB_OFFICIAL_HOST:-test.tokpath.com}
+
+  migrate:
+    environment:
+      TOKENHUB_OFFICIAL_HOST: ${TOKENHUB_OFFICIAL_HOST:-test.tokpath.com}
+      TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-https://test.tokpath.com}
+      TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-https://test.tokpath.com}
 
   postgres:
     restart: unless-stopped

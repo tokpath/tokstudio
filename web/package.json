@@ -6,8 +6,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "test": "vitest run",
-    "generate:api": "node scripts/generate-client.mjs",
-    "e2e:web": "playwright test"
+    "e2e:web": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

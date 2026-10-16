@@ -1,5 +1,7 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -8,9 +10,22 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "title": "Go process CPU",
       "type": "timeseries",
@@ -22,9 +37,22 @@
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
       "id": 2,
       "title": "Go heap",
       "type": "timeseries",
@@ -36,10 +64,15 @@
       ]
     },
     {
-      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
       "id": 3,
       "options": {
-        "content": "业务成功率、P50/P95、收入/成本/毛利、佣金和待对账见 `GET /admin/ops/dashboard`。Prometheus 只抓 `/metrics` 的运行时指标。",
+        "content": "HTTP 流量和耗时由 tokenhub_http_requests_total 与 tokenhub_http_request_duration_seconds 提供，worker 执行由 tokenhub_worker_jobs_total 提供。经营人员在系统的经营报表页面按权限查看现金、销售、履约、收益和未决差额；指标服务不导出客户资产明细。",
         "mode": "markdown"
       },
       "title": "业务看板入口",
@@ -47,9 +80,17 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["tokenhub", "ops"],
-  "templating": { "list": [] },
-  "time": { "from": "now-1h", "to": "now" },
+  "tags": [
+    "tokenhub",
+    "ops"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "title": "TokenHub Ops",
   "uid": "tokenhub-ops",
   "version": 1

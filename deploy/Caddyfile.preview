@@ -6,9 +6,9 @@
 }
 
 (app) {
-	@apihost host api.localhost api.oem.localhost
-	handle @apihost {
-		reverse_proxy api:8080
+	@private_metrics path /metrics /api/metrics
+	handle @private_metrics {
+		respond 404
 	}
 
 	handle_path /api/* {

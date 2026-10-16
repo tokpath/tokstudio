@@ -1,4 +1,3 @@
 import { Suspense } from "react";
-import { EmailActionForm } from "@/components/email-action-form";
-export const metadata = { referrer: "no-referrer" as const };
-export default function VerifyEmailPage() { return <Suspense><EmailActionForm kind="verify" /></Suspense>; }
+import { AuthPage } from "@/components/product/auth";
+export default function Page() { return <Suspense fallback={<p className="p-8">正在加载…</p>}><AuthPage mode="verify" /></Suspense>; }

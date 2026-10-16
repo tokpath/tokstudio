@@ -1,12 +1,7 @@
-# OEM / 平台域名：客户把 CNAME 指到 TOKENHUB_EDGE_CNAME（公网为 Cloudflare 入口）。
-# ask 接口只对已登记品牌域名返回 200，避免给任意主机签发证书。
-# 公网 OEM 证书由 Cloudflare Custom Hostname 签发续期；Caddy on-demand 仅作直连源站/本地演练。
-# 本地可用 TOKENHUB_ACME_CA 指到 compose 里的 Pebble（自签 CA，仅演练）。
-# 不自建公网 Let's Encrypt，也不把 Pebble 标成公网签发。
-#
-# 浏览器与控制台走同一主机：页面 → web:3000；接口 → /api/*（去掉前缀后到 api:8080）。
-# /admin、/channel 是 Next.js 页面，不能整段转给 Go，所以浏览器 API 必须带 /api 前缀。
-# SDK / API Key 走 api.localhost、api.oem.localhost，路径保持 OpenAI 兼容的 /v1。
+# Branding validates ownership and activation before the on-demand TLS gate permits a host.
+# Cloudflare Custom Hostnames handles public OEM TLS when configured; Caddy handles the origin.
+# Browsers use /api/v1/* and the shared brand model API uses /v1/* on the same hostname.
+# Local CA protocol drills live outside the application repository in integration-lab.
 {
 	email {$TOKENHUB_ACME_EMAIL:ops@tokenhub.local}
 	auto_https disable_redirects
@@ -16,22 +11,20 @@
 }
 
 (app) {
-	@apihost host api.localhost api.oem.localhost
-	handle @apihost {
-		reverse_proxy api:8080
+	@private_metrics path /metrics /api/metrics
+	handle @private_metrics {
+		respond 404
 	}
 
 	handle_path /api/* {
 		reverse_proxy api:8080 {
 			header_up Host {host}
-			header_up X-Forwarded-Proto {header.X-Forwarded-Proto}
 		}
 	}
 
 	handle /v1/* {
 		reverse_proxy api:8080 {
 			header_up Host {host}
-			header_up X-Forwarded-Proto {header.X-Forwarded-Proto}
 		}
 	}
 	handle /healthz {

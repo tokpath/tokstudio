@@ -1,2 +1,0 @@
-ALTER TABLE identity_eligibility_rules
-    ADD COLUMN IF NOT EXISTS gift_minor BIGINT NOT NULL DEFAULT 1000000;

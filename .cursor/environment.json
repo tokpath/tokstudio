@@ -9,15 +9,15 @@
   "terminals": [
     {
       "name": "api",
-      "command": "set -a; source .env; set +a; cd backend && go run ./cmd/api"
+      "command": "cd backend && go run ./cmd/api"
     },
     {
       "name": "worker",
-      "command": "set -a; source .env; set +a; cd backend && go run ./cmd/worker"
+      "command": "cd backend && go run ./cmd/worker"
     },
     {
       "name": "web",
-      "command": "set -a; source .env; set +a; cd web && npm run dev"
+      "command": "cd web && npm run dev"
     }
   ],
   "ports": [

@@ -1,18 +1,4 @@
-export const THEME_STORAGE_KEY = "tokenhub-theme";
-
-export type ThemePreference = "light" | "dark" | "system";
-export type ResolvedTheme = "light" | "dark";
-
-export const THEME_PREFERENCES: ThemePreference[] = ["light", "dark", "system"];
-
-/** 把用户选择和系统偏好收成实际要用的纸/碳模式。 */
-export function resolveTheme(preference: ThemePreference, systemDark: boolean): ResolvedTheme {
-  if (preference === "system") {
-    return systemDark ? "dark" : "light";
-  }
-  return preference;
-}
-
-export function isThemePreference(value: string | null | undefined): value is ThemePreference {
-  return value === "light" || value === "dark" || value === "system";
+import type { Theme } from "./contracts";
+export function resolveTheme(brand: Theme = {}, channel: Theme = {}): Theme {
+  return { primary_color: channel.primary_color ?? brand.primary_color, accent_color: channel.accent_color ?? brand.accent_color, logo_url: channel.logo_url ?? brand.logo_url, background_color: channel.background_color ?? brand.background_color, text_color: channel.text_color ?? brand.text_color, support_url: channel.support_url ?? brand.support_url };
 }

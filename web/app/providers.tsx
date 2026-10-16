@@ -1,25 +1,10 @@
 "use client";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
-import { useState } from "react";
-import { ThemeProvider } from "@/components/theme-provider";
-
-export function AppProviders({
-  locale,
-  messages,
-  children,
-}: {
-  locale: string;
-  messages: Record<string, unknown>;
-  children: React.ReactNode;
-}) {
-  const [queryClient] = useState(() => new QueryClient());
-  return (
-    <ThemeProvider>
-      <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Shanghai">
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </NextIntlClientProvider>
-    </ThemeProvider>
-  );
+import { ThemeProvider } from "next-themes";
+import { useState, type ReactNode } from "react";
+import { ProductProvider } from "@/components/product/context";
+export function AppProviders({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 15_000 } } }));
+  return <ThemeProvider attribute="class" defaultTheme="system" enableSystem><NextIntlClientProvider locale="zh-CN" messages={{}} timeZone="Asia/Shanghai"><QueryClientProvider client={queryClient}><ProductProvider>{children}</ProductProvider></QueryClientProvider></NextIntlClientProvider></ThemeProvider>;
 }

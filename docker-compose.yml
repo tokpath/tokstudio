@@ -1,174 +1,53 @@
-# 默认只把 Caddy（edge）映射到宿主机。80/443 是特权端口，本机常被占用或无权绑定，
-# 所以宿主机用 9080（HTTP）/ 9443（HTTPS）；容器内仍听 80/443。
-# 浏览器走同源入口：页面在 / ，接口在 /api/*（Caddy 去掉前缀后交给 api）。
-# SDK / API Key 仍用独立主机 api.localhost、api.oem.localhost（路径保持 /v1）。
-# 本机 make api / Grafana 需要宿主机端口时：
-#   docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+# Fresh operator-v2 volumes keep the rebuilt schema separate from old data.
+# No service performs legacy migrations or creates fake customers/models/merchants.
+x-application-env: &application-env
+  TOKENHUB_ENV: ${TOKENHUB_ENV:-development}
+  TOKENHUB_HTTP_ADDR: :8080
+  TOKENHUB_WORKER_HTTP_ADDR: :8081
+  TOKENHUB_METRICS_TOKEN: ${TOKENHUB_METRICS_TOKEN:-tokenhub-local-metrics-only}
+  TOKENHUB_OFFICIAL_HOST: ${TOKENHUB_OFFICIAL_HOST:-localhost}
+  TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-http://localhost:9080}
+  TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
+  TOKENHUB_DATABASE_URL: postgres://tokenhub:${TOKENHUB_POSTGRES_PASSWORD:-tokenhub}@postgres:5432/tokenhub_v2?sslmode=disable
+  TOKENHUB_REDIS_URL: redis://redis:6379/0
+  TOKENHUB_APP_KEY: ${TOKENHUB_APP_KEY:-}
+  TOKENHUB_ENCRYPTION_KEY: ${TOKENHUB_APP_KEY:-}
+  TOKENHUB_S3_ENDPOINT: http://minio:9000
+  TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub-v2}
+  TOKENHUB_S3_REGION: ${TOKENHUB_S3_REGION:-us-east-1}
+  TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
+  TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
+  TOKENHUB_S3_FORCE_PATH_STYLE: "true"
+  TOKENHUB_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  TOKENHUB_LOG_LEVEL: info
+
 services:
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tokenhub
-      POSTGRES_PASSWORD: tokenhub
-      POSTGRES_DB: tokenhub
-    command:
-      - postgres
-      - -c
-      - wal_level=replica
-      - -c
-      - archive_mode=on
-      - -c
-      - archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f
-      - -c
-      - archive_timeout=60
+      POSTGRES_PASSWORD: ${TOKENHUB_POSTGRES_PASSWORD:-tokenhub}
+      POSTGRES_DB: tokenhub_v2
+    command: ["postgres", "-c", "wal_level=replica", "-c", "archive_mode=off", "-c", "max_wal_size=512MB"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tokenhub -d tokenhub"]
+      test: ["CMD-SHELL", "pg_isready -U tokenhub -d tokenhub_v2"]
       interval: 3s
       timeout: 3s
       retries: 20
     volumes:
-      - tokenhub_pg:/var/lib/postgresql/data
-      - tokenhub_wal:/var/lib/postgresql/wal_archive
+      - tokenhub_v2_pg:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
       timeout: 3s
       retries: 20
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.159.0
-    command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
-      - ./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+      - tokenhub_v2_redis:/data
 
-  prometheus:
-    image: prom/prometheus:v3
-    volumes:
-      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on:
-      - api
-
-  grafana:
-    image: grafana/grafana:13.1.4
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: tokenhub
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-    volumes:
-      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
-    depends_on:
-      - prometheus
-
-  api:
-    build:
-      context: ./backend
-    # Google 等密钥从仓库根 .env 注入；environment 里不要再写空的 ${GOOGLE:-}，否则会覆盖掉文件里的值。
-    env_file:
-      - .env
-    environment:
-      TOKENHUB_ENV: development
-      TOKENHUB_HTTP_ADDR: :8080
-      TOKENHUB_PUBLIC_BASE_URL: ${TOKENHUB_PUBLIC_BASE_URL:-http://localhost:9080}
-      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
-      TOKENHUB_REDIS_URL: redis://redis:6379/0
-      TOKENHUB_BOOTSTRAP_ADMIN_TOKEN: ${TOKENHUB_BOOTSTRAP_ADMIN_TOKEN:-dev_admin_change_me}
-      TOKENHUB_BOOTSTRAP_USER_TOKEN: ${TOKENHUB_BOOTSTRAP_USER_TOKEN:-dev_user_change_me}
-      TOKENHUB_BOOTSTRAP_CHANNEL_TOKEN: ${TOKENHUB_BOOTSTRAP_CHANNEL_TOKEN:-dev_admin_change_me-b}
-      TOKENHUB_ENCRYPTION_KEY: ${TOKENHUB_ENCRYPTION_KEY:-dev-only-32-byte-key-change-me!!}
-      TOKENHUB_PAYMENT_SIGN_KEY: ${TOKENHUB_PAYMENT_SIGN_KEY:-dev-only-32-byte-key-change-me!!}
-      TOKENHUB_MEDIA_STORE_PATH: /data/media
-      TOKENHUB_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      TOKENHUB_OTEL_SERVICE_NAME: tokenhub-api
-      TOKENHUB_WEB_ORIGIN: ${TOKENHUB_WEB_ORIGIN:-http://localhost:9080}
-      TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_GEMINI_API_KEY: ${TOKENHUB_GEMINI_API_KEY:-}
-      TOKENHUB_OPENAI_API_KEY: ${TOKENHUB_OPENAI_API_KEY:-}
-      TOKENHUB_S3_ENDPOINT: ${TOKENHUB_S3_ENDPOINT:-http://minio:9000}
-      TOKENHUB_S3_PUBLIC_ENDPOINT: ${TOKENHUB_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
-      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
-      TOKENHUB_S3_REGION: ${TOKENHUB_S3_REGION:-us-east-1}
-      TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
-      TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
-      TOKENHUB_S3_FORCE_PATH_STYLE: ${TOKENHUB_S3_FORCE_PATH_STYLE:-true}
-    volumes:
-      - tokenhub_media:/data/media
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-
-  catalog-seed:
-    build:
-      context: ./backend
-    entrypoint: ["/catalog-seed"]
-    profiles: ["seed"]
-    environment:
-      TOKENHUB_ENV: development
-      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
-      TOKENHUB_LOG_LEVEL: info
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  worker:
-    build:
-      context: ./backend
-    entrypoint: ["/worker"]
-    env_file:
-      - .env
-    environment:
-      TOKENHUB_ENV: development
-      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
-      TOKENHUB_REDIS_URL: redis://redis:6379/0
-      TOKENHUB_ENCRYPTION_KEY: ${TOKENHUB_ENCRYPTION_KEY:-dev-only-32-byte-key-change-me!!}
-      TOKENHUB_MEDIA_STORE_PATH: /data/media
-      TOKENHUB_OTEL_SERVICE_NAME: tokenhub-worker
-      TOKENHUB_LOG_LEVEL: info
-      TOKENHUB_S3_ENDPOINT: ${TOKENHUB_S3_ENDPOINT:-http://minio:9000}
-      TOKENHUB_S3_PUBLIC_ENDPOINT: ${TOKENHUB_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
-      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
-      TOKENHUB_S3_REGION: ${TOKENHUB_S3_REGION:-us-east-1}
-      TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
-      TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
-      TOKENHUB_S3_FORCE_PATH_STYLE: ${TOKENHUB_S3_FORCE_PATH_STYLE:-true}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-
-  backup:
-    image: postgres:16-alpine
-    environment:
-      TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@postgres:5432/tokenhub?sslmode=disable
-      TOKENHUB_BACKUP_KEY: ${TOKENHUB_BACKUP_KEY:-dev-backup-key-change-me}
-      TOKENHUB_BACKUP_OFFSITE_DIR: /backups/offsite
-      TOKENHUB_BACKUP_INTERVAL_SECONDS: "86400"
-    volumes:
-      - ./scripts/backup_loop.sh:/backup_loop.sh:ro
-      - tokenhub_offsite:/backups/offsite
-    entrypoint: ["/bin/sh", "/backup_loop.sh"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  web:
-    build:
-      context: ./web
-    environment:
-      TOKENHUB_API_INTERNAL_URL: http://api:8080
-    depends_on:
-      - api
-
-  # 使用从 MinIO 官方源码构建的固定镜像；健康检查由 minio-init 的 mc ready 完成。
-  # MINIO_ROOT_* 必须与卷内既有配置一致：已有 /data 时 MinIO 会忽略新的环境变量。
   minio:
     image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
     command: ["server", "/data", "--console-address", ":9001"]
@@ -176,47 +55,72 @@ services:
       MINIO_ROOT_USER: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
     volumes:
-      - tokenhub_minio:/data
+      - tokenhub_v2_minio:/data
 
   minio-init:
     image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
-    depends_on:
-      - minio
+    depends_on: [minio]
     environment:
       TOKENHUB_S3_ACCESS_KEY: ${TOKENHUB_S3_ACCESS_KEY:-minioadmin}
       TOKENHUB_S3_SECRET_KEY: ${TOKENHUB_S3_SECRET_KEY:-minioadmin}
-      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub}
+      TOKENHUB_S3_BUCKET: ${TOKENHUB_S3_BUCKET:-tokenhub-v2}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -eu
         export MC_HOST_local="http://$${TOKENHUB_S3_ACCESS_KEY}:$${TOKENHUB_S3_SECRET_KEY}@minio:9000"
-        echo "minio-init: waiting for MinIO (mc ready) as $${TOKENHUB_S3_ACCESS_KEY}"
         ready=0
         for n in $$(seq 1 60); do
-          if mc ready local >/tmp/mc-ready.out 2>&1; then
-            ready=1
-            break
-          fi
-          echo "minio-init: not ready yet ($$n/60): $$(tr '\n' ' ' </tmp/mc-ready.out)"
+          if mc ready local >/dev/null 2>&1; then ready=1; break; fi
           sleep 1
         done
-        if [ "$$ready" -ne 1 ]; then
-          echo "minio-init: MinIO never became ready with configured credentials" >&2
-          echo "minio-init: if the Docker volume predates a credential change, recreate tokenhub_minio" >&2
-          exit 1
-        fi
+        test "$$ready" = 1
         mc mb -p "local/$${TOKENHUB_S3_BUCKET}"
-        mc ls "local/$${TOKENHUB_S3_BUCKET}" >/dev/null
-        echo "minio-init: bucket $${TOKENHUB_S3_BUCKET} ready"
+        mc anonymous set none "local/$${TOKENHUB_S3_BUCKET}"
 
-  pebble:
-    image: ghcr.io/letsencrypt/pebble:2.6.0
-    command: ["-config", "/test/config/pebble-config.json"]
+  migrate:
+    build: ./backend
+    entrypoint: ["/migrate"]
+    env_file: [.env]
+    environment: *application-env
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+
+  api:
+    build: ./backend
+    env_file: [.env]
+    environment: *application-env
+    healthcheck:
+      test: ["CMD", "/api", "--healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  worker:
+    build: ./backend
+    entrypoint: ["/worker"]
+    env_file: [.env]
+    environment: *application-env
+    healthcheck:
+      test: ["CMD", "/worker", "--healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  web:
+    build: ./web
     environment:
-      PEBBLE_VA_ALWAYS_VALID: "1"
-      PEBBLE_VA_NOSLEEP: "1"
-      PEBBLE_WFE_NONCEREJECT: "0"
+      TOKENHUB_API_INTERNAL_URL: http://api:8080
+    depends_on: [api]
 
   edge:
     image: caddy:2.8-alpine
@@ -225,19 +129,67 @@ services:
       - "${TOKENHUB_EDGE_HTTPS_PORT:-9443}:443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - tokenhub_caddy:/data
+      - tokenhub_v2_caddy:/data
     environment:
-      TOKENHUB_EDGE_CNAME: edge.tokenhub.local
-      TOKENHUB_ACME_EMAIL: ops@tokenhub.local
+      TOKENHUB_ACME_EMAIL: ${TOKENHUB_ACME_EMAIL:-ops@example.test}
+    depends_on: [api, web]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.159.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+  prometheus:
+    image: prom/prometheus:v3
+    environment:
+      TOKENHUB_METRICS_TOKEN: ${TOKENHUB_METRICS_TOKEN:-tokenhub-local-metrics-only}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        umask 077
+        printf '%s' "$${TOKENHUB_METRICS_TOKEN}" > /tmp/tokenhub-metrics-token
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on: [api, worker]
+  grafana:
+    image: grafana/grafana:13.1.4
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${TOKENHUB_GRAFANA_PASSWORD:-tokenhub-local-only}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on: [prometheus]
+  backup:
+    profiles: ["backup"]
+    build:
+      context: ./backend
+      target: backup
+    env_file: [.env]
+    environment:
+      <<: *application-env
+      TOKENHUB_BACKUP_KEY: ${TOKENHUB_BACKUP_KEY:-}
+      TOKENHUB_BACKUP_DIR: /backups
+      TOKENHUB_BACKUP_INTERVAL_SECONDS: ${TOKENHUB_BACKUP_INTERVAL_SECONDS:-86400}
+    volumes:
+      - ./scripts/backup_loop.sh:/backup_loop.sh:ro
+      - tokenhub_v2_offsite:/backups
+    entrypoint: ["/bin/sh", "/backup_loop.sh"]
     depends_on:
-      - api
-      - web
-      - pebble
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+  pebble:
+    image: ghcr.io/letsencrypt/pebble:2.6.0
+    profiles: ["tls-test"]
+    command: ["-config", "/test/config/pebble-config.json"]
+    environment:
+      PEBBLE_VA_ALWAYS_VALID: "1"
+      PEBBLE_VA_NOSLEEP: "1"
+      PEBBLE_WFE_NONCEREJECT: "0"
 
 volumes:
-  tokenhub_pg:
-  tokenhub_wal:
-  tokenhub_caddy:
-  tokenhub_offsite:
-  tokenhub_minio:
-  tokenhub_media:
+  tokenhub_v2_pg:
+  tokenhub_v2_redis:
+  tokenhub_v2_minio:
+  tokenhub_v2_caddy:
+  tokenhub_v2_offsite:

@@ -1,72 +1,37 @@
 package config
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
-func TestGoogleTriad(t *testing.T) {
-	empty := &Config{}
-	if empty.GoogleTriad() || empty.GoogleConfigured() {
-		t.Fatal("empty config must not look configured")
+func TestDotEnvDoesNotExecuteOrReplaceExplicitEmptyEnvironment(t *testing.T) {
+	t.Setenv("TOKENHUB_SMTP_HOST", "")
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("TOKENHUB_SMTP_HOST=should-not-enable.example\nTOKENHUB_CONFIG_TEST_LITERAL='$(touch should-not-exist)'\n"), 0600); err != nil {
+		t.Fatal(err)
 	}
-
-	full := &Config{
-		GoogleClientID:     "cid",
-		GoogleClientSecret: "sec",
-		GoogleRedirect:     "https://example.com/cb",
+	t.Cleanup(func() { os.Unsetenv("TOKENHUB_CONFIG_TEST_LITERAL") })
+	loadDotEnv(path)
+	if os.Getenv("TOKENHUB_SMTP_HOST") != "" {
+		t.Fatal("explicit disable overwritten")
 	}
-	if !full.GoogleTriad() || !full.GoogleConfigured() {
-		t.Fatal("triad must be configured")
-	}
-
-	partial := &Config{GoogleClientID: "cid", GoogleRedirect: "https://example.com/cb"}
-	if partial.GoogleTriad() {
-		t.Fatal("missing secret must not look configured")
+	if os.Getenv("TOKENHUB_CONFIG_TEST_LITERAL") != "$(touch should-not-exist)" {
+		t.Fatal("literal shell expression changed")
 	}
 }
 
-func TestNormalizeSecretValueStripsQuotes(t *testing.T) {
-	cases := map[string]string{
-		`GOCSPX-plain`:        "GOCSPX-plain",
-		`"GOCSPX-quoted"`:     "GOCSPX-quoted",
-		`'GOCSPX-single'`:     "GOCSPX-single",
-		`  "GOCSPX-padded"  `: "GOCSPX-padded",
-		`""`:                  "",
-		`'`:                   "'",
-		`856270696615-abc.apps.googleusercontent.com`: "856270696615-abc.apps.googleusercontent.com",
+func TestRedactedConfigurationContainsNoSecretValuesOrFragments(t *testing.T) {
+	secret := "unique-private-configuration-material"
+	c := &Config{DatabaseURL: secret, RedisURL: secret, EncryptionKey: secret, SMTPPassword: secret, S3AccessKey: secret, S3SecretKey: secret, CloudflareAPIToken: secret}
+	b, e := json.Marshal(c.RedactedMap())
+	if e != nil {
+		t.Fatal(e)
 	}
-	for in, want := range cases {
-		if got := normalizeSecretValue(in); got != want {
-			t.Fatalf("normalizeSecretValue(%q)=%q want %q", in, got, want)
-		}
-	}
-}
-
-func TestRedactedMapGoogleShape(t *testing.T) {
-	cfg := &Config{
-		GoogleClientID:     "856270696615-oduqir6in2hl1u64gcrbgk30rpddap3b.apps.googleusercontent.com",
-		GoogleClientSecret: "GOCSPX-example-not-real",
-		GoogleRedirect:     "https://test.tokpath.com/login/oauth/google",
-	}
-	m := cfg.RedactedMap()
-	if m["google_triad"] != true {
-		t.Fatal("expected triad true")
-	}
-	if m["google_secret_looks_web"] != true {
-		t.Fatal("expected GOCSPX prefix flag")
-	}
-	if m["google_secret_len"] != len(cfg.GoogleClientSecret) {
-		t.Fatal("unexpected secret len")
-	}
-	if m["google_secret_has_space"] != false {
-		t.Fatal("secret should not report spaces")
-	}
-	wantSuffix := suffixToken(cfg.GoogleClientID, 24)
-	if got, _ := m["google_client_id_suffix"].(string); got != wantSuffix {
-		t.Fatalf("suffix=%q want %q", got, wantSuffix)
-	}
-	if m["google_redirect"] != cfg.GoogleRedirect {
-		t.Fatal("redirect should be logged (public)")
-	}
-	if _, ok := m["google_client_secret"]; ok {
-		t.Fatal("must never redact-map the raw secret")
+	if strings.Contains(string(b), secret) || strings.Contains(string(b), "material") || strings.Contains(string(b), "_len") {
+		t.Fatal("secret metadata leaked")
 	}
 }

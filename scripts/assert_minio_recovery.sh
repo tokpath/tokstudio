@@ -112,7 +112,7 @@ attempts="$(cat "$COMPOSE_MOCK_STATE/up_attempts")"
   echo "expected 2 up attempts, got $attempts" >&2
   exit 1
 }
-grep -q 'volume rm tokstudio_tokenhub_minio' "$COMPOSE_MOCK_STATE/ops.log" \
+grep -q 'volume rm tokstudio_tokenhub_v2_minio' "$COMPOSE_MOCK_STATE/ops.log" \
   || {
     echo "expected volume recreate" >&2
     cat "$COMPOSE_MOCK_STATE/ops.log" >&2

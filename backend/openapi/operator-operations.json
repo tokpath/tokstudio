@@ -1,0 +1,5440 @@
+[
+  {
+    "resource": "receipt-valuations",
+    "confirmation": "确认独立真实付款时点和覆盖该时刻的本次估值窗口。只使原已收款事实一次入账，不生成新收款或重复交付。",
+    "description": "",
+    "fields": [
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "paid_at",
+        "label": "独立证明的真实付款时间（原事实缺失时必填）",
+        "kind": "datetime"
+      },
+      {
+        "name": "payment_time_evidence",
+        "label": "独立付款时点证明（补时间时必填）",
+        "kind": "textarea"
+      },
+      {
+        "name": "evidence_reference",
+        "label": "本次估值核实证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实原币实际付款时点估值",
+    "method": "POST",
+    "name": "confirm",
+    "path": "/v1/operators/{operatorId}/receipt-valuations/{id}/confirm",
+    "permission": ""
+  },
+  {
+    "resource": "payment-assets",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "asset_id",
+        "label": "已有组合（首次留空）",
+        "kind": "text"
+      },
+      {
+        "name": "driver",
+        "label": "收款协议",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "自有EVM钱包",
+            "value": "evm_wallet"
+          },
+          {
+            "label": "NOWPayments",
+            "value": "nowpayments"
+          }
+        ]
+      },
+      {
+        "name": "asset",
+        "label": "准确资产代码（NOW须用完整provider代码）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "network",
+        "label": "明确网络（EVM为十进制Chain ID）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "token_contract",
+        "label": "已核实代币合约",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "token_decimals",
+        "label": "代币小数位数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "minimum_confirmations",
+        "label": "最少链上确认数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "允许新的收款",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "effective_at",
+        "label": "本版本生效时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "evidence_reference",
+        "label": "资产/网络/合约官方核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布支持的资产与网络",
+    "method": "POST",
+    "name": "publish",
+    "path": "/v1/operators/{operatorId}/payment-assets",
+    "permission": ""
+  },
+  {
+    "resource": "payment-assets",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "asset_id",
+        "label": "已有组合（首次留空）",
+        "kind": "hidden"
+      },
+      {
+        "name": "driver",
+        "label": "收款协议",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "自有EVM钱包",
+            "value": "evm_wallet"
+          },
+          {
+            "label": "NOWPayments",
+            "value": "nowpayments"
+          }
+        ]
+      },
+      {
+        "name": "asset",
+        "label": "准确资产代码（NOW须用完整provider代码）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "network",
+        "label": "明确网络（EVM为十进制Chain ID）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "token_contract",
+        "label": "已核实代币合约",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "token_decimals",
+        "label": "代币小数位数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "minimum_confirmations",
+        "label": "最少链上确认数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "允许新的收款",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "effective_at",
+        "label": "本版本生效时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "evidence_reference",
+        "label": "资产/网络/合约官方核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": true,
+    "label": "发布此组合新版本",
+    "method": "POST",
+    "name": "publish_version",
+    "path": "/v1/operators/{operatorId}/payment-assets",
+    "permission": ""
+  },
+  {
+    "resource": "gifts",
+    "confirmation": "确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/customers",
+        "name": "customer_id",
+        "label": "本经营方当前客户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "明确赠送原因",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "独立服务补偿",
+            "value": "compensation"
+          },
+          {
+            "label": "受权定向赠送",
+            "value": "targeted_gift"
+          }
+        ]
+      },
+      {
+        "name": "amount_atg",
+        "label": "本次新增赠送ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "expires_at",
+        "label": "到期时刻（留空不限期）",
+        "kind": "datetime"
+      },
+      {
+        "name": "evidence",
+        "label": "授权、事实和原事项关联依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实并发放独立赠送",
+    "method": "POST",
+    "name": "issue",
+    "path": "/v1/operators/{operatorId}/gifts",
+    "permission": ""
+  },
+  {
+    "resource": "plans",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/plans",
+        "name": "package_id",
+        "label": "现有套餐编号（新建留空）",
+        "kind": "text"
+      },
+      {
+        "name": "name",
+        "label": "套餐名称",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "price_usd",
+        "label": "成交价格 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "paid_atg",
+        "label": "购买权益 ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "gift_atg",
+        "label": "套餐赠送 ATG",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0"
+      },
+      {
+        "name": "period",
+        "label": "有效期",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "不限期",
+            "value": "lifetime"
+          },
+          {
+            "label": "自然月",
+            "value": "month"
+          },
+          {
+            "label": "自然季",
+            "value": "quarter"
+          },
+          {
+            "label": "自然年",
+            "value": "year"
+          }
+        ]
+      },
+      {
+        "name": "timezone",
+        "label": "经营时区",
+        "kind": "text",
+        "required": true,
+        "default_value": "Asia/Shanghai"
+      },
+      {
+        "name": "terms_reference",
+        "label": "对客户公示条款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "new_purchase_enabled",
+        "label": "允许新购",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "renewal_enabled",
+        "label": "允许续费",
+        "kind": "boolean",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布套餐版本",
+    "method": "POST",
+    "name": "publish",
+    "path": "/v1/operators/{operatorId}/plans",
+    "permission": ""
+  },
+  {
+    "resource": "orders",
+    "confirmation": "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "重试交付",
+    "method": "POST",
+    "name": "fulfill",
+    "path": "/v1/operators/{operatorId}/orders/{id}/fulfill",
+    "permission": ""
+  },
+  {
+    "resource": "payments",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "provider",
+        "label": "人工核实通道",
+        "kind": "text",
+        "required": true,
+        "default_value": "manual"
+      },
+      {
+        "name": "provider_receipt_id",
+        "label": "外部唯一收款流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "gross_usd",
+        "label": "实际入账总额USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "fee_status",
+        "label": "手续费证据",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "尚待核实",
+            "value": "pending"
+          },
+          {
+            "label": "已核实",
+            "value": "confirmed"
+          }
+        ]
+      },
+      {
+        "name": "fee_usd",
+        "label": "已核实手续费USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "net_usd",
+        "label": "已核实净入账USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "currency",
+        "label": "实际入账币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "original_amount",
+        "label": "原币种实收金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "network",
+        "label": "原网络（链上收款必填）",
+        "kind": "text"
+      },
+      {
+        "name": "recipient_reference",
+        "label": "实际收款账号证明",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "payer_reference",
+        "label": "实际付款人账号证明",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation_evidence",
+        "label": "本次USD估值依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "真实银行核实凭证",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "paid_at",
+        "label": "真实付款时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "observed_at",
+        "label": "核实时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "settled_at",
+        "label": "费用结算时刻（已确认必填）",
+        "kind": "datetime"
+      }
+    ],
+    "include_version": false,
+    "label": "登记人工核实收款",
+    "method": "POST",
+    "name": "receipt",
+    "path": "/v1/operators/{operatorId}/payments",
+    "permission": ""
+  },
+  {
+    "resource": "payments",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/orders",
+        "name": "order_id",
+        "label": "订单 ID",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "分配金额 USD",
+        "kind": "decimal",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "分配至原订单",
+    "method": "POST",
+    "name": "allocate",
+    "path": "/v1/operators/{operatorId}/payments/{id}/allocate",
+    "permission": ""
+  },
+  {
+    "resource": "payment-methods",
+    "confirmation": "",
+    "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
+        "name": "id",
+        "label": "现有商户配置ID（首次留空）",
+        "kind": "text"
+      },
+      {
+        "name": "driver",
+        "label": "真实通道协议",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "Stripe",
+            "value": "stripe"
+          },
+          {
+            "label": "支付宝",
+            "value": "alipay"
+          },
+          {
+            "label": "微信支付",
+            "value": "wechat"
+          },
+          {
+            "label": "NOWPayments",
+            "value": "nowpayments"
+          },
+          {
+            "label": "自有EVM钱包只读验证",
+            "value": "evm_wallet"
+          },
+          {
+            "label": "银行人工核实",
+            "value": "manual"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "材料齐全后启用",
+        "kind": "boolean",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/payment-assets",
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "evm_wallet",
+            "nowpayments"
+          ]
+        },
+        "name": "asset_network_version_id",
+        "label": "平台已发布的准确资产与网络",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "stripe",
+            "manual"
+          ]
+        },
+        "name": "credentials.currency",
+        "label": "收款币种（大写，例如USD/CNY）",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "manual"
+          ]
+        },
+        "name": "credentials.recipient_reference",
+        "label": "实际收款银行账号/凭证",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "manual"
+          ]
+        },
+        "name": "credentials.instructions",
+        "label": "对付款人展示的付款说明",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "stripe"
+          ]
+        },
+        "name": "credentials.secret_key",
+        "label": "Stripe服务端密钥",
+        "kind": "password"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "stripe"
+          ]
+        },
+        "name": "credentials.publishable_key",
+        "label": "Stripe可发布密钥",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "stripe"
+          ]
+        },
+        "name": "credentials.webhook_secret",
+        "label": "Stripe回调签名密钥",
+        "kind": "password"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "alipay",
+            "wechat"
+          ]
+        },
+        "name": "credentials.app_id",
+        "label": "商户应用App ID",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.mch_id",
+        "label": "微信支付商户号",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.merchant_api_private_key",
+        "label": "微信商户API私钥PEM",
+        "kind": "textarea"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.cert_serial",
+        "label": "微信商户证书序列号",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.api_v3_key",
+        "label": "微信API v3加密密钥",
+        "kind": "password"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.wechat_public_key",
+        "label": "微信平台验签公钥PEM",
+        "kind": "textarea"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "wechat"
+          ]
+        },
+        "name": "credentials.public_key_id",
+        "label": "微信平台公钥ID",
+        "kind": "textarea"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "alipay"
+          ]
+        },
+        "name": "credentials.app_private_key",
+        "label": "支付宝应用RSA2私钥PEM",
+        "kind": "textarea"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "alipay"
+          ]
+        },
+        "name": "credentials.alipay_public_key",
+        "label": "支付宝验签公钥PEM",
+        "kind": "textarea"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "alipay"
+          ]
+        },
+        "name": "credentials.seller_id",
+        "label": "支付宝签约卖家ID",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "nowpayments"
+          ]
+        },
+        "name": "credentials.api_key",
+        "label": "NOWPayments API密钥",
+        "kind": "password"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "nowpayments"
+          ]
+        },
+        "name": "credentials.ipn_secret",
+        "label": "NOWPayments IPN签名密钥",
+        "kind": "password"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "evm_wallet"
+          ]
+        },
+        "name": "credentials.rpc_url",
+        "label": "EVM只读节点RPC URL",
+        "kind": "text"
+      },
+      {
+        "visible_when": {
+          "field": "driver",
+          "values": [
+            "evm_wallet"
+          ]
+        },
+        "name": "credentials.wallet_address",
+        "label": "本商户收款钱包地址",
+        "kind": "text"
+      },
+      {
+        "name": "api_base_url",
+        "label": "独立协议测试地址（仅隔离测试）",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "保存真实商户配置",
+    "method": "POST",
+    "name": "configure",
+    "path": "/v1/operators/{operatorId}/payment-methods",
+    "permission": ""
+  },
+  {
+    "resource": "valuations",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "currency",
+        "label": "币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "usd_per_unit",
+        "label": "每单位 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "source",
+        "label": "授权依据/汇率来源",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "effective_at",
+        "label": "生效时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "expires_at",
+        "label": "失效时间",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布收款估值依据",
+    "method": "POST",
+    "name": "publish",
+    "path": "/v1/operators/{operatorId}/valuations",
+    "permission": ""
+  },
+  {
+    "resource": "evidence",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "file",
+        "label": "PDF/PNG/JPEG凭据（不超过10MiB）",
+        "kind": "file",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "上传私有银行/收款凭据",
+    "method": "POST",
+    "name": "upload",
+    "path": "/v1/operators/{operatorId}/evidence",
+    "permission": ""
+  },
+  {
+    "resource": "pricing",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "配置 JSON",
+        "kind": "json",
+        "required": true,
+        "help": "action:'price'、price:{id,scope:{kind,seller_id,buyer_id?},model_id,layer,effective_at,ends_at?,rule,notice_id,published:true}。调价后将重算已售责任覆盖。"
+      }
+    ],
+    "include_version": false,
+    "label": "发布价格版本",
+    "method": "POST",
+    "name": "price",
+    "path": "/v1/operators/{operatorId}/pricing",
+    "permission": ""
+  },
+  {
+    "resource": "pricing",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "配置 JSON",
+        "kind": "json",
+        "required": true,
+        "help": "action:'listing' 或 'authorization'、model_id、buyer_id（授权时）、enabled、expected_version"
+      }
+    ],
+    "include_version": false,
+    "label": "授权或上架模型",
+    "method": "POST",
+    "name": "listing",
+    "path": "/v1/operators/{operatorId}/pricing",
+    "permission": ""
+  },
+  {
+    "resource": "catalog-changes",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "lead_seconds",
+        "label": "提前通知秒数（至少60）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "rules_reference",
+        "label": "对客户公开的通知条款依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前规则版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设置提前通知规则",
+    "method": "POST",
+    "name": "policy",
+    "path": "/v1/operators/{operatorId}/catalog-changes",
+    "permission": ""
+  },
+  {
+    "resource": "marketing",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
+        "name": "campaign_id",
+        "label": "现有活动编号（新建留空）",
+        "kind": "text"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/plans",
+        "name": "package_id",
+        "label": "适用套餐编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "eligibility",
+        "label": "参与对象",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "符合当前活动资格",
+            "value": "any"
+          },
+          {
+            "label": "首购客户",
+            "value": "first_order"
+          },
+          {
+            "label": "已有成交客户",
+            "value": "existing"
+          }
+        ]
+      },
+      {
+        "name": "final_price_usd",
+        "label": "最终成交价 USD（无折扣留空）",
+        "kind": "decimal"
+      },
+      {
+        "name": "gift_atg",
+        "label": "本活动额外赠送 ATG",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0"
+      },
+      {
+        "name": "concession_rate",
+        "label": "本人佣金让利比例（0到1）",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0"
+      },
+      {
+        "name": "starts_at",
+        "label": "开始时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "ends_at",
+        "label": "结束时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "per_customer_limit",
+        "label": "每位客户限次",
+        "kind": "integer",
+        "required": true,
+        "default_value": 1
+      },
+      {
+        "name": "total_use_limit",
+        "label": "活动总次数上限",
+        "kind": "integer",
+        "required": true,
+        "default_value": 100
+      },
+      {
+        "name": "gift_budget_atg",
+        "label": "赠送总预算 ATG",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0"
+      },
+      {
+        "name": "discount_budget_usd",
+        "label": "折扣总预算 USD",
+        "kind": "decimal",
+        "required": true,
+        "default_value": "0"
+      },
+      {
+        "name": "enabled",
+        "label": "启用活动",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布经营活动",
+    "method": "POST",
+    "name": "publish",
+    "path": "/v1/operators/{operatorId}/marketing",
+    "permission": ""
+  },
+  {
+    "resource": "marketing",
+    "confirmation": "请核实客户和处理依据。审查时保持active并暂缓解冻和新使用，继续正确应计；暂停/终止才停止后续本人分佣。恢复不重新累计资格，永久终止不可恢复，已成立合法佣金不删除。",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "function"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/customers",
+        "name": "customer_id",
+        "label": "当前经营方客户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "status",
+        "label": "推广功能状态",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "保持或恢复后续正确应计（保留历史资格）",
+            "value": "active"
+          },
+          {
+            "label": "明确暂停本人后续分佣",
+            "value": "suspended"
+          },
+          {
+            "label": "永久终止本人后续分佣，不可恢复",
+            "value": "terminated"
+          }
+        ]
+      },
+      {
+        "name": "release_blocked",
+        "label": "可疑审查：暂缓解冻与新使用",
+        "kind": "boolean",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "evidence",
+        "label": "真实处理与告知依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "管理客户推广功能",
+    "method": "POST",
+    "name": "function",
+    "path": "/v1/operators/{operatorId}/marketing",
+    "permission": ""
+  },
+  {
+    "resource": "marketing",
+    "confirmation": "",
+    "description": "默认不允许组合，仅这一对活动可组合；并不放开所有活动。提交仍逐资格、次数、预算与覆盖核实。",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "combination"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
+        "name": "merchant_campaign_id",
+        "label": "经营方活动",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/campaigns",
+        "name": "kol_campaign_id",
+        "label": "KOL活动",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "允许此明确配对组合",
+        "kind": "boolean",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "配置一对活动明确组合",
+    "method": "POST",
+    "name": "combination",
+    "path": "/v1/operators/{operatorId}/marketing",
+    "permission": ""
+  },
+  {
+    "resource": "commissions",
+    "confirmation": "",
+    "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。",
+    "fields": [
+      {
+        "name": "threshold_usd",
+        "label": "终身资格累计净消费门槛 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "direct_rate",
+        "label": "直接推荐分佣比例（0到1）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "indirect_rate",
+        "label": "间接推荐分佣比例（0到1）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "confirmation_seconds",
+        "label": "消费确认等待秒数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "invitee_atg",
+        "label": "受邀人注册赠送 ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "inviter_atg",
+        "label": "邀请人注册赠送 ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "reward_validity_seconds",
+        "label": "注册奖励有效秒数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "kol_cross_activity_limit",
+        "label": "KOL跨活动限制次数",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布资格与奖励政策",
+    "method": "POST",
+    "name": "policy",
+    "path": "/v1/operators/{operatorId}/commissions",
+    "permission": ""
+  },
+  {
+    "resource": "operators",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "kind",
+        "label": "合作类型",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "独立OEM品牌",
+            "value": "oem"
+          },
+          {
+            "label": "同品牌渠道",
+            "value": "channel"
+          }
+        ]
+      },
+      {
+        "name": "name",
+        "label": "经营方名称",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "legal_name",
+        "label": "实际经营主体",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "brand_name",
+        "label": "OEM品牌名称",
+        "kind": "text"
+      },
+      {
+        "name": "api_base_url",
+        "label": "OEM API入口",
+        "kind": "text"
+      },
+      {
+        "name": "quote_reference",
+        "label": "供货条款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "exit_terms_reference",
+        "label": "退出条款编号",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "建立 OEM / 渠道",
+    "method": "POST",
+    "name": "create",
+    "path": "/v1/operators/{operatorId}/operators",
+    "permission": ""
+  },
+  {
+    "resource": "operators",
+    "confirmation": "",
+    "description": "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。",
+    "fields": [
+      {
+        "name": "email",
+        "label": "负责人邮箱",
+        "kind": "email",
+        "required": true
+      },
+      {
+        "name": "role",
+        "label": "角色",
+        "kind": "text",
+        "required": true,
+        "default_value": "owner"
+      }
+    ],
+    "include_version": false,
+    "label": "邀请首位负责人",
+    "method": "POST",
+    "name": "invite_owner",
+    "path": "/v1/operators/{operatorId}/operators/{id}/invite_owner",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "quote"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/buyers",
+        "name": "buyer_id",
+        "label": "直属采购方编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "price_usd",
+        "label": "收款USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "paid_atg",
+        "label": "购买库存ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "gift_atg",
+        "label": "赠送库存ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "terms_reference",
+        "label": "成交条款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "exit_terms.version",
+        "label": "退出条款版本",
+        "kind": "integer",
+        "required": true,
+        "default_value": 1
+      },
+      {
+        "name": "exit_terms.voluntary_refund",
+        "label": "允许自愿退出退款",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "exit_terms.method",
+        "label": "合同退款算法",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余购买库存原价比例",
+            "value": "remaining_paid_proportional"
+          },
+          {
+            "label": "合同不退款",
+            "value": "non_refundable"
+          }
+        ]
+      },
+      {
+        "name": "exit_terms.terms_reference",
+        "label": "退出条款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valid_until",
+        "label": "报价截止时间",
+        "kind": "datetime"
+      },
+      {
+        "name": "enabled",
+        "label": "允许按报价下单",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      }
+    ],
+    "include_version": false,
+    "label": "向直属采购方发布供货报价",
+    "method": "POST",
+    "name": "quote",
+    "path": "/v1/operators/{operatorId}/procurement",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "authorization"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/purchase-quotes",
+        "name": "quote_id",
+        "label": "固定成交报价编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
+        "name": "supplier_id",
+        "label": "报价供货方编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "trigger_available_atg",
+        "label": "采购可用库存低于ATG时触发",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "single_limit_usd",
+        "label": "每次最高USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "period_limit_usd",
+        "label": "周期最高USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "period",
+        "label": "UTC自然周期",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "月",
+            "value": "month"
+          },
+          {
+            "label": "季",
+            "value": "quarter"
+          },
+          {
+            "label": "年",
+            "value": "year"
+          }
+        ]
+      },
+      {
+        "name": "mode",
+        "label": "执行方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "仅建立待付订单",
+            "value": "offline"
+          },
+          {
+            "label": "已获授权Stripe自动扣款",
+            "value": "automatic"
+          }
+        ]
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
+        "name": "merchant_id",
+        "label": "真实供货收款商户配置编号",
+        "kind": "text"
+      },
+      {
+        "name": "payment.payment_method",
+        "label": "Stripe已授权pm_编号",
+        "kind": "password"
+      },
+      {
+        "name": "payment.customer_ref",
+        "label": "Stripe已授权cus_编号",
+        "kind": "password"
+      },
+      {
+        "name": "consent_reference",
+        "label": "独立自动付款授权凭证",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "启用授权",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前授权版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设定有限自动补货授权",
+    "method": "POST",
+    "name": "authorization",
+    "path": "/v1/operators/{operatorId}/procurement",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "按原报价创建采购订单",
+    "method": "POST",
+    "name": "purchase",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/purchase",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "付款操作返回实际支付步骤，核实付款并交付后才可用。",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
+        "name": "merchant_id",
+        "label": "供货方收款配置编号",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发起真实付款",
+    "method": "POST",
+    "name": "checkout",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/checkout",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "查询原付款与交付",
+    "method": "POST",
+    "name": "query_payment",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/query_payment",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。",
+    "fields": [
+      {
+        "name": "transaction_hash",
+        "label": "实际交易Hash（仅查找线索）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "log_index",
+        "label": "目标Transfer事件索引（十六进制）",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "提交链上付款查找线索",
+    "method": "POST",
+    "name": "wallet_receipt",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/wallet_receipt",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "receipt_id",
+        "label": "本方已核实收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "本次分配USD",
+        "kind": "decimal",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "分配已核实收款",
+    "method": "POST",
+    "name": "fund",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/fund",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "重试实际库存交付",
+    "method": "POST",
+    "name": "fulfill",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/fulfill",
+    "permission": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": true,
+    "label": "停止未来自动补货",
+    "method": "POST",
+    "name": "cancel_authorization",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/cancel_authorization",
+    "permission": ""
+  },
+  {
+    "resource": "procurement-invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
+        "name": "supplier_id",
+        "label": "实际供货方编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "issuer_id",
+        "label": "原始开票经营方",
+        "kind": "hidden"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "lines.0.receipt_id",
+        "label": "原始收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "lines.0.amount_usd",
+        "label": "本次申请 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "details.title",
+        "label": "发票抬头",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "details.tax_id",
+        "label": "纳税识别号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "details.email",
+        "label": "接收邮箱",
+        "kind": "email",
+        "required": true
+      },
+      {
+        "name": "details.address",
+        "label": "发票地址",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "向实际供货方申请采购发票",
+    "method": "POST",
+    "name": "request",
+    "path": "/v1/operators/{operatorId}/procurement-invoices",
+    "permission": ""
+  },
+  {
+    "resource": "procurement-invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "issuer_id",
+        "label": "原始开票经营方",
+        "kind": "hidden"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "lines.0.receipt_id",
+        "label": "原始收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "lines.0.amount_usd",
+        "label": "本次申请 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "details.title",
+        "label": "发票抬头",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "details.tax_id",
+        "label": "纳税识别号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "details.email",
+        "label": "接收邮箱",
+        "kind": "email",
+        "required": true
+      },
+      {
+        "name": "details.address",
+        "label": "发票地址",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "作废后按原来源申请重开",
+    "method": "POST",
+    "name": "replacement",
+    "path": "/v1/operators/{operatorId}/procurement-invoices/{id}/replacement",
+    "permission": ""
+  },
+  {
+    "resource": "coverage",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "allowance",
+        "label": "超卖额度 ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "warning",
+        "label": "预警缓冲 ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "配置版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设置授权超卖与缓冲",
+    "method": "POST",
+    "name": "oversell",
+    "path": "/v1/operators/{operatorId}/coverage",
+    "permission": ""
+  },
+  {
+    "resource": "alerts",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "id",
+        "label": "规则编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "metric",
+        "label": "真实指标",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余销售空间ATG",
+            "value": "sales_space_atg"
+          },
+          {
+            "label": "采购可用ATG",
+            "value": "procurement_available_atg"
+          },
+          {
+            "label": "已用超卖ATG",
+            "value": "oversell_used_atg"
+          },
+          {
+            "label": "待结请求数",
+            "value": "pending_usage"
+          },
+          {
+            "label": "未知成本数",
+            "value": "unverified_costs"
+          }
+        ]
+      },
+      {
+        "name": "warning",
+        "label": "预警阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "critical",
+        "label": "严重阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "direction",
+        "label": "触发方向",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "低于阈值",
+            "value": "below"
+          },
+          {
+            "label": "高于阈值",
+            "value": "above"
+          }
+        ]
+      },
+      {
+        "name": "recipients",
+        "label": "通知收件人ID（逗号分隔）",
+        "kind": "csv",
+        "required": true
+      },
+      {
+        "name": "escalation_recipients",
+        "label": "升级收件人ID（逗号分隔）",
+        "kind": "csv"
+      },
+      {
+        "name": "reminder_seconds",
+        "label": "持续风险提醒间隔秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 3600
+      },
+      {
+        "name": "escalate_seconds",
+        "label": "升级等待秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 86400
+      },
+      {
+        "name": "enabled",
+        "label": "启用规则",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "保存风险阈值",
+    "method": "POST",
+    "name": "risk_rule",
+    "path": "/v1/operators/{operatorId}/alerts",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "request"
+      },
+      {
+        "name": "mode",
+        "label": "退出原因",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "按合同自愿退出",
+            "value": "voluntary_exit"
+          },
+          {
+            "label": "已有供货失约批准",
+            "value": "supply_failure"
+          }
+        ]
+      },
+      {
+        "name": "quantity",
+        "label": "拟移除采购库存ATG",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "approval_id",
+        "label": "供货失约批准编号（失约退出必填）",
+        "kind": "text"
+      },
+      {
+        "name": "evidence",
+        "label": "合同依据与未了责任处理证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "按合同申请退出库存",
+    "method": "POST",
+    "name": "request",
+    "path": "/v1/operators/{operatorId}/exits",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "approve_failure"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/buyers",
+        "name": "buyer_id",
+        "label": "直属采购方编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "实际供货失约与承接责任依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "供货方批准真实供货失约",
+    "method": "POST",
+    "name": "approve_failure",
+    "path": "/v1/operators/{operatorId}/exits",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "receipt_id",
+        "label": "原采购收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "本次合同退款USD",
+        "kind": "decimal",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "按原来源预留本次退款",
+    "method": "POST",
+    "name": "prepare_refund",
+    "path": "/v1/operators/{operatorId}/exits/{id}/prepare_refund",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "仅保存唯一付款意图，不能把计划当作银行退款成功。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "原银行路线与付款计划证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "记录原路银行退款意图",
+    "method": "POST",
+    "name": "begin_manual",
+    "path": "/v1/operators/{operatorId}/exits/{id}/begin_manual",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "proof.receipt_id",
+        "label": "原收款ID",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "proof.external_reference",
+        "label": "真实银行退款唯一流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "proof.money.currency",
+        "label": "本次付款币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "proof.money.amount",
+        "label": "本次实际付款金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "proof.executed_at",
+        "label": "实际退款时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "proof.evidence_reference",
+        "label": "银行核实证据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "proof.recipient_reference",
+        "label": "原已核实付款人账户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实原付款人实际退款",
+    "method": "POST",
+    "name": "verify_manual",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_manual",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。",
+    "description": "",
+    "fields": [
+      {
+        "name": "money.currency",
+        "label": "本次付款币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "money.amount",
+        "label": "本次实际执行金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "通过原通道执行退款",
+    "method": "POST",
+    "name": "execute_refund",
+    "path": "/v1/operators/{operatorId}/exits/{id}/execute_refund",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "取消依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "取消尚未执行的预留",
+    "method": "POST",
+    "name": "release_refund",
+    "path": "/v1/operators/{operatorId}/exits/{id}/release_refund",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "只补经营方实际费用，不更改原买方清偿金额。",
+    "description": "",
+    "fields": [
+      {
+        "name": "fee_usd",
+        "label": "实际已核实手续费USD（确为零填0）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "settled_at",
+        "label": "真实费用结算时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "费用结算独立证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实采购退款实际手续费",
+    "method": "POST",
+    "name": "confirm_fee",
+    "path": "/v1/operators/{operatorId}/exits/{id}/confirm_fee",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "原收款容量、待付本金与历史授权全部保留。未知付款不得关闭，后续须买方重新明确目的地、供方独立核实本方新商户。",
+    "description": "",
+    "fields": [
+      {
+        "name": "reason",
+        "label": "已核实旧路线终止原因",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "旧执行终态与不会再付的独立证明",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "封存旧采购退款路线并重授权剩余款",
+    "method": "POST",
+    "name": "close_route",
+    "path": "/v1/operators/{operatorId}/exits/{id}/close_route",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "expected_execution_key",
+        "label": "当前原执行编号",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "result",
+        "label": "执行方已核实终态",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "实际失败",
+            "value": "failed"
+          },
+          {
+            "label": "实际取消",
+            "value": "cancelled"
+          }
+        ]
+      },
+      {
+        "name": "external_reference",
+        "label": "外部终态核实流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "no_further_payment_reference",
+        "label": "执行方不会继续付款的独立证明",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "真实外部核实凭证",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verified_at",
+        "label": "真实核实时刻",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实原外部付款已失败或取消",
+    "method": "POST",
+    "name": "verify_manual_failure",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_manual_failure",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "proposal_id",
+        "label": "本轮买方提案",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
+        "name": "merchant_id",
+        "label": "本供方独立配置的新付款商户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "原付款人授权、地址及本方付款路线核实证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "独立核实剩余款目的地与本方新商户",
+    "method": "POST",
+    "name": "verify_replacement_destination",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_replacement_destination",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "依据已锁定本轮新商户与目的地只读核实真实付款，不签名或发送交易，不更改历史实际事实。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evm.transaction_hash",
+        "label": "EVM实际交易Hash（链上必填）",
+        "kind": "text"
+      },
+      {
+        "name": "evm.log_index",
+        "label": "EVM真实日志索引（0x）",
+        "kind": "text"
+      },
+      {
+        "name": "external.external_reference",
+        "label": "银行/NOW实际付款流水",
+        "kind": "text"
+      },
+      {
+        "name": "external.money.currency",
+        "label": "银行/NOW实际准确币种",
+        "kind": "text"
+      },
+      {
+        "name": "external.money.amount",
+        "label": "银行/NOW实际原币金额",
+        "kind": "decimal"
+      },
+      {
+        "name": "external.executed_at",
+        "label": "银行/NOW真实执行时刻",
+        "kind": "datetime"
+      },
+      {
+        "name": "external.evidence_reference",
+        "label": "银行/NOW核实凭证",
+        "kind": "textarea"
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实本方新路线实际退款",
+    "method": "POST",
+    "name": "verify_replacement",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_replacement",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。",
+    "description": "",
+    "fields": [
+      {
+        "name": "destination.network",
+        "label": "准确退款网络（银行填bank，EVM填十进制Chain ID）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "destination.asset",
+        "label": "原收款准确币种或资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "destination.token_contract",
+        "label": "代币合约（银行留空）",
+        "kind": "text"
+      },
+      {
+        "name": "destination.address",
+        "label": "本人明确指定接收地址或银行账户凭证",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "payer_authorization_reference",
+        "label": "原付款人明确授权依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "买方明确授权稳定币退款地址",
+    "method": "POST",
+    "name": "propose_destination",
+    "path": "/v1/operators/{operatorId}/exits/{id}/propose_destination",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "已核对当前行准确资产、网络、合约和地址。核实人员须与提案人不同，锁定后按本目的地执行。",
+    "description": "",
+    "fields": [
+      {
+        "name": "proposal_id",
+        "label": "买方原提案",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "独立核实付款人授权和接收地址证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "供方独立核实买方退款地址",
+    "method": "POST",
+    "name": "verify_destination",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_destination",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evm.transaction_hash",
+        "label": "实际退款交易哈希",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evm.log_index",
+        "label": "真实Transfer日志索引（0x）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "只读核实已执行采购链上退款",
+    "method": "POST",
+    "name": "verify_evm",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_evm",
+    "permission": ""
+  },
+  {
+    "resource": "exits",
+    "confirmation": "已在外部核实真实退款；系统只记录实际事实，不假称自动退款。",
+    "description": "",
+    "fields": [
+      {
+        "name": "external.external_reference",
+        "label": "外部退款唯一流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.currency",
+        "label": "原准确资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.amount",
+        "label": "本次实际原币金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "external.executed_at",
+        "label": "真实执行时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "external.evidence_reference",
+        "label": "外部核实凭证",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记采购NOW外部实际退款",
+    "method": "POST",
+    "name": "verify_external",
+    "path": "/v1/operators/{operatorId}/exits/{id}/verify_external",
+    "permission": ""
+  },
+  {
+    "resource": "branding",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "file",
+        "label": "Logo PNG/JPEG/WebP（不超过2MiB）",
+        "kind": "file",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "上传品牌Logo",
+    "method": "POST",
+    "name": "upload_logo",
+    "path": "/v1/operators/{operatorId}/branding/logo",
+    "permission": ""
+  },
+  {
+    "resource": "branding",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "values.primary_color",
+        "label": "主色（留空继承，#RRGGBB）",
+        "kind": "text"
+      },
+      {
+        "name": "values.background_color",
+        "label": "背景色（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.text_color",
+        "label": "文字色（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.logo_url",
+        "label": "已上传Logo地址（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.support_url",
+        "label": "客户支持URL（留空继承）",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "保存逐字段主题",
+    "method": "POST",
+    "name": "theme",
+    "path": "/v1/operators/{operatorId}/branding",
+    "permission": ""
+  },
+  {
+    "resource": "branding",
+    "confirmation": "",
+    "description": "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。",
+    "fields": [
+      {
+        "name": "hostname",
+        "label": "独立品牌域名",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "申请品牌域名验证",
+    "method": "POST",
+    "name": "domain",
+    "path": "/v1/operators/{operatorId}/domains",
+    "permission": ""
+  },
+  {
+    "resource": "domains",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "hostname",
+        "label": "品牌域名",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "申请域名验证",
+    "method": "POST",
+    "name": "request",
+    "path": "/v1/operators/{operatorId}/domains",
+    "permission": ""
+  },
+  {
+    "resource": "domains",
+    "confirmation": "",
+    "description": "服务器执行真实DNS和TLS验证，不能用按钮直接标记验证成功。",
+    "fields": [],
+    "include_version": true,
+    "label": "检查DNS与TLS",
+    "method": "POST",
+    "name": "verify",
+    "path": "/v1/operators/{operatorId}/domains/{id}/verify",
+    "permission": ""
+  },
+  {
+    "resource": "domains",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": true,
+    "label": "启用已验证域名",
+    "method": "POST",
+    "name": "enable",
+    "path": "/v1/operators/{operatorId}/domains/{id}/enable",
+    "permission": ""
+  },
+  {
+    "resource": "domains",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": true,
+    "label": "停用域名",
+    "method": "POST",
+    "name": "disable",
+    "path": "/v1/operators/{operatorId}/domains/{id}/disable",
+    "permission": ""
+  },
+  {
+    "resource": "channel-themes",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "file",
+        "label": "Logo PNG/JPEG/WebP（不超过2MiB）",
+        "kind": "file",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "上传品牌Logo",
+    "method": "POST",
+    "name": "upload_logo",
+    "path": "/v1/operators/{operatorId}/branding/logo",
+    "permission": ""
+  },
+  {
+    "resource": "channel-themes",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "values.primary_color",
+        "label": "主色（留空继承，#RRGGBB）",
+        "kind": "text"
+      },
+      {
+        "name": "values.background_color",
+        "label": "背景色（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.text_color",
+        "label": "文字色（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.logo_url",
+        "label": "已上传Logo地址（留空继承）",
+        "kind": "text"
+      },
+      {
+        "name": "values.support_url",
+        "label": "客户支持URL（留空继承）",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "保存逐字段主题",
+    "method": "POST",
+    "name": "theme",
+    "path": "/v1/operators/{operatorId}/channel-themes",
+    "permission": ""
+  },
+  {
+    "resource": "channel-themes",
+    "confirmation": "",
+    "description": "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。",
+    "fields": [
+      {
+        "name": "hostname",
+        "label": "独立品牌域名",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "申请品牌域名验证",
+    "method": "POST",
+    "name": "domain",
+    "path": "/v1/operators/{operatorId}/domains",
+    "permission": ""
+  },
+  {
+    "resource": "staff",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "email",
+        "label": "邮箱",
+        "kind": "email",
+        "required": true
+      },
+      {
+        "name": "role",
+        "label": "角色 owner/operations/finance/support/readonly",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "邮件邀请经营人员",
+    "method": "POST",
+    "name": "invite",
+    "path": "/v1/operators/{operatorId}/staff",
+    "permission": ""
+  },
+  {
+    "resource": "staff",
+    "confirmation": "仅调整当前经营方成员；最后一位负责人不能被移除。",
+    "description": "",
+    "fields": [
+      {
+        "name": "role",
+        "label": "角色",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "负责人",
+            "value": "owner"
+          },
+          {
+            "label": "运营",
+            "value": "operations"
+          },
+          {
+            "label": "财务",
+            "value": "finance"
+          },
+          {
+            "label": "客服",
+            "value": "support"
+          },
+          {
+            "label": "只读",
+            "value": "readonly"
+          },
+          {
+            "label": "明确自定义",
+            "value": "custom"
+          }
+        ]
+      },
+      {
+        "name": "status",
+        "label": "成员状态",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "启用",
+            "value": "active"
+          },
+          {
+            "label": "停用",
+            "value": "suspended"
+          }
+        ]
+      },
+      {
+        "name": "grants",
+        "label": "自定义权限（逗号分隔，仅限本人已有权限）",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "调整当前成员角色",
+    "method": "POST",
+    "name": "membership",
+    "path": "/v1/operators/{operatorId}/staff/{id}/membership",
+    "permission": ""
+  },
+  {
+    "resource": "risk",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "id",
+        "label": "规则编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "metric",
+        "label": "真实指标",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余销售空间ATG",
+            "value": "sales_space_atg"
+          },
+          {
+            "label": "采购可用ATG",
+            "value": "procurement_available_atg"
+          },
+          {
+            "label": "已用超卖ATG",
+            "value": "oversell_used_atg"
+          },
+          {
+            "label": "待结请求数",
+            "value": "pending_usage"
+          },
+          {
+            "label": "未知成本数",
+            "value": "unverified_costs"
+          }
+        ]
+      },
+      {
+        "name": "warning",
+        "label": "预警阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "critical",
+        "label": "严重阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "direction",
+        "label": "触发方向",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "低于阈值",
+            "value": "below"
+          },
+          {
+            "label": "高于阈值",
+            "value": "above"
+          }
+        ]
+      },
+      {
+        "name": "recipients",
+        "label": "通知收件人ID（逗号分隔）",
+        "kind": "csv",
+        "required": true
+      },
+      {
+        "name": "escalation_recipients",
+        "label": "升级收件人ID（逗号分隔）",
+        "kind": "csv"
+      },
+      {
+        "name": "reminder_seconds",
+        "label": "持续风险提醒间隔秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 3600
+      },
+      {
+        "name": "escalate_seconds",
+        "label": "升级等待秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 86400
+      },
+      {
+        "name": "enabled",
+        "label": "启用规则",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "保存风险阈值",
+    "method": "POST",
+    "name": "risk_rule",
+    "path": "/v1/operators/{operatorId}/risk",
+    "permission": ""
+  },
+  {
+    "resource": "restrictions",
+    "confirmation": "只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。",
+    "description": "",
+    "fields": [
+      {
+        "name": "scope_kind",
+        "label": "范围类型",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "本经营方",
+            "value": "operator"
+          },
+          {
+            "label": "本品牌（仅品牌负责人）",
+            "value": "brand"
+          },
+          {
+            "label": "当前服务归属客户",
+            "value": "customer"
+          }
+        ]
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/scope-subjects",
+        "name": "scope_id",
+        "label": "范围主体编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "action",
+        "label": "限制动作",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "注册",
+            "value": "registration"
+          },
+          {
+            "label": "新购",
+            "value": "new_purchase"
+          },
+          {
+            "label": "续费",
+            "value": "renewal"
+          },
+          {
+            "label": "模型调用",
+            "value": "model_usage"
+          },
+          {
+            "label": "营销活动",
+            "value": "activity"
+          },
+          {
+            "label": "佣金提现",
+            "value": "withdrawal"
+          },
+          {
+            "label": "余额退款",
+            "value": "wallet_refund"
+          },
+          {
+            "label": "登录",
+            "value": "customer_login"
+          },
+          {
+            "label": "所有新增业务",
+            "value": "all_new_business"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "启用限制（取消勾选解除）",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前范围动作版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "核实与处理依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "explanation",
+        "label": "对客户明确说明",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "review_due_at",
+        "label": "限制复核到期（启用必填）",
+        "kind": "datetime"
+      }
+    ],
+    "include_version": false,
+    "label": "记录或解除明确业务限制",
+    "method": "POST",
+    "name": "freeze",
+    "path": "/v1/operators/{operatorId}/restrictions",
+    "permission": ""
+  },
+  {
+    "resource": "restrictions",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "scope_kind",
+        "label": "原范围类型",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/scope-subjects",
+        "name": "scope_id",
+        "label": "原范围主体",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "action",
+        "label": "原限制动作",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "继续限制（取消勾选解除）",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "本次真实核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "explanation",
+        "label": "对客户说明",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "review_due_at",
+        "label": "新的复核到期（继续限制必填）",
+        "kind": "datetime"
+      }
+    ],
+    "include_version": false,
+    "label": "变更此项已有业务限制",
+    "method": "POST",
+    "name": "revise",
+    "path": "/v1/operators/{operatorId}/restrictions",
+    "permission": ""
+  },
+  {
+    "resource": "notifications",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "recipient_id",
+        "label": "本经营范围收件人编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "category",
+        "label": "通知类别",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "必要业务通知",
+            "value": "mandatory"
+          },
+          {
+            "label": "用量提醒",
+            "value": "usage"
+          },
+          {
+            "label": "已获授权营销",
+            "value": "marketing"
+          }
+        ]
+      },
+      {
+        "name": "severity",
+        "label": "级别",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "一般",
+            "value": "info"
+          },
+          {
+            "label": "预警",
+            "value": "warning"
+          },
+          {
+            "label": "紧急",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "name": "title",
+        "label": "标题",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "body",
+        "label": "通知正文",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "reference",
+        "label": "业务关联依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发送业务通知",
+    "method": "POST",
+    "name": "announce",
+    "path": "/v1/operators/{operatorId}/notifications",
+    "permission": ""
+  },
+  {
+    "resource": "notifications",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "重试原通知",
+    "method": "POST",
+    "name": "retry",
+    "path": "/v1/operators/{operatorId}/notifications/{id}/retry",
+    "permission": ""
+  },
+  {
+    "resource": "business-status",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "feature",
+        "label": "营业项目",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "注册",
+            "value": "registration"
+          },
+          {
+            "label": "新购",
+            "value": "new_purchase"
+          },
+          {
+            "label": "续费",
+            "value": "renewal"
+          },
+          {
+            "label": "模型调用",
+            "value": "model_usage"
+          },
+          {
+            "label": "营销活动",
+            "value": "activity"
+          },
+          {
+            "label": "结算",
+            "value": "settlement"
+          }
+        ]
+      },
+      {
+        "name": "enabled",
+        "label": "通过真实依赖检查后开放",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "evidence_reference",
+        "label": "检查及授权依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "提交开业配置检查",
+    "method": "POST",
+    "name": "set",
+    "path": "/v1/operators/{operatorId}/business-status",
+    "permission": ""
+  },
+  {
+    "resource": "retention",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "reason",
+        "label": "复核/保留依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "until",
+        "label": "保护截止时间",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "记录必要复核保护",
+    "method": "POST",
+    "name": "hold",
+    "path": "/v1/operators/{operatorId}/retention/{id}/hold",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "package_exception"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/customers",
+        "name": "customer_id",
+        "label": "客户编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/orders",
+        "name": "order_id",
+        "label": "原成交订单",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "真实异常原因",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "交易错误",
+            "value": "transaction_error"
+          },
+          {
+            "label": "无法履行服务",
+            "value": "unable_to_fulfill"
+          }
+        ]
+      },
+      {
+        "name": "evidence",
+        "label": "事实证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记真实套餐异常",
+    "method": "POST",
+    "name": "package_exception",
+    "path": "/v1/operators/{operatorId}/refunds",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "unallocated"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "receipt_id",
+        "label": "原收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "退回 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "退款原因",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "核实依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "退回未分配收款",
+    "method": "POST",
+    "name": "unallocated",
+    "path": "/v1/operators/{operatorId}/refunds",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "text",
+        "required": true,
+        "default_value": "policy"
+      },
+      {
+        "name": "second_review_above",
+        "label": "需独立复核的USD阈值（留空关闭）",
+        "kind": "decimal"
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设置独立复核阈值",
+    "method": "POST",
+    "name": "policy",
+    "path": "/v1/operators/{operatorId}/refunds",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "decision",
+        "label": "审核决定",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "批准按原责任办理",
+            "value": "approve"
+          },
+          {
+            "label": "拒绝并保留审核原因",
+            "value": "reject"
+          }
+        ]
+      },
+      {
+        "name": "evidence",
+        "label": "审核依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "审批/独立复核",
+    "method": "POST",
+    "name": "review",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/review",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "取消依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "取消未执行申请",
+    "method": "POST",
+    "name": "cancel",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/cancel",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "银行付款计划与依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记外部退款执行意图",
+    "method": "POST",
+    "name": "begin_manual",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/begin_manual",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "reference",
+        "label": "唯一银行退款流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "currency",
+        "label": "实际付款币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount",
+        "label": "实际币种金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "actual_usd",
+        "label": "本次折合USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "fee_usd",
+        "label": "付款方手续费USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "occurred_at",
+        "label": "实际付款时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "银行核实及本次估值证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实实际银行退款",
+    "method": "POST",
+    "name": "verify_manual",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "未知结果依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "结果未知，保留占用",
+    "method": "POST",
+    "name": "unknown",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/unknown",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。",
+    "description": "",
+    "fields": [
+      {
+        "name": "money.currency",
+        "label": "原付款币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "money.amount",
+        "label": "本次实际执行币种金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "refund_valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text"
+      },
+      {
+        "name": "refund_valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text"
+      },
+      {
+        "name": "refund_valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "refund_valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text"
+      },
+      {
+        "name": "refund_valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime"
+      },
+      {
+        "name": "refund_valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime"
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "通过原通道执行",
+    "method": "POST",
+    "name": "execute_api",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/execute_api",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "查询原通道结果",
+    "method": "POST",
+    "name": "query_api",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/query_api",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "已核实当前行本人最新提案、原付款人授权和接收地址；锁定后不可改为其它地址。",
+    "description": "",
+    "fields": [
+      {
+        "name": "proposal_id",
+        "label": "本人最新确认",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "payer_authorization_reference",
+        "label": "原付款人明确授权证据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "地址及原付款人核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "responsible_execution",
+        "label": "已明确选择责任方付款",
+        "kind": "hidden",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "route_exception_reference",
+        "label": "同经营方原路受限的替代依据（跨经营方接管可留空）",
+        "kind": "textarea"
+      }
+    ],
+    "include_version": false,
+    "label": "核实客户已确认的退款目的地",
+    "method": "POST",
+    "name": "authorize_destination",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/authorize_destination",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "已核实原付款人明确授权，未从原交易sender推定退款地址。",
+    "description": "",
+    "fields": [
+      {
+        "name": "destination.network",
+        "label": "准确退款网络（银行填bank，EVM填十进制Chain ID）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "destination.asset",
+        "label": "原收款准确币种或资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "destination.token_contract",
+        "label": "代币合约（银行留空）",
+        "kind": "text"
+      },
+      {
+        "name": "destination.address",
+        "label": "本人明确指定接收地址或银行账户凭证",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "payer_authorization_reference",
+        "label": "原付款人明确授权证据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "地址及原付款人核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "responsible_execution",
+        "label": "已明确选择责任方付款",
+        "kind": "hidden",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "route_exception_reference",
+        "label": "同经营方原路受限的替代依据（跨经营方接管可留空）",
+        "kind": "textarea"
+      }
+    ],
+    "include_version": false,
+    "label": "核实未分配款原付款人授权目的地",
+    "method": "POST",
+    "name": "authorize_unallocated_destination",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/authorize_unallocated_destination",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evm.transaction_hash",
+        "label": "实际退款交易哈希",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evm.log_index",
+        "label": "真实ERC20 Transfer日志索引（0x）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "本次链上查验依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "只读核实已执行链上退款",
+    "method": "POST",
+    "name": "verify_evm",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_evm",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "已在外部渠道核实实际转账。本操作登记真实执行事实，不调用自动退款API。",
+    "description": "",
+    "fields": [
+      {
+        "name": "external.external_reference",
+        "label": "实际外部退款唯一流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.currency",
+        "label": "原准确资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.amount",
+        "label": "实际退回原币种金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "external.executed_at",
+        "label": "实际执行时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "external.evidence_reference",
+        "label": "外部执行真实凭据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "本次收款地址及事实查验依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记NOWPayments外部已核实退款",
+    "method": "POST",
+    "name": "verify_external",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_external",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "只读查询当前责任经营方钱包的真实交易；不签名、不发送、不读取原经营方商户。",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
+        "name": "merchant_id",
+        "label": "当前责任经营方独立配置的付款商户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evm.transaction_hash",
+        "label": "本责任方实际退款交易哈希",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evm.log_index",
+        "label": "真实Transfer日志索引（0x）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "本次链上核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime"
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "责任方自身钱包：只读核实实际链上退款",
+    "method": "POST",
+    "name": "verify_responsible_evm",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_evm",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "已核实当前责任经营方的实际外部付款，系统不假称自动退款。",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
+        "name": "merchant_id",
+        "label": "当前责任经营方独立配置的付款商户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.external_reference",
+        "label": "实际付款唯一流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.currency",
+        "label": "实际原币种或准确资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.amount",
+        "label": "本次实际原币金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "external.executed_at",
+        "label": "真实执行时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "external.evidence_reference",
+        "label": "实际已执行凭据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "本次接收目的地与执行事实核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime"
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "责任方自身NOW：登记外部实际退款",
+    "method": "POST",
+    "name": "verify_responsible_external",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_external",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "已核实本责任经营方银行的实际付款，不使用原经营方资金，不把付款意图记为成功。",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/merchants",
+        "name": "merchant_id",
+        "label": "当前责任经营方独立配置的付款商户",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.external_reference",
+        "label": "实际付款唯一流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.currency",
+        "label": "实际原币种或准确资产代码",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "external.money.amount",
+        "label": "本次实际原币金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "external.executed_at",
+        "label": "真实执行时刻",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "external.evidence_reference",
+        "label": "实际已执行凭据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verification_evidence",
+        "label": "本次接收目的地与执行事实核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "valuation.id",
+        "label": "本次估值事实编号",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.currency",
+        "label": "本次估值币种",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.usd_per_unit",
+        "label": "本次真实每单位USD",
+        "kind": "decimal"
+      },
+      {
+        "name": "valuation.source",
+        "label": "本次授权汇率/实际换汇依据",
+        "kind": "text"
+      },
+      {
+        "name": "valuation.effective_at",
+        "label": "本次估值生效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valuation.expires_at",
+        "label": "本次估值失效",
+        "kind": "datetime"
+      },
+      {
+        "name": "valued_at",
+        "label": "实际估值时刻",
+        "kind": "datetime"
+      },
+      {
+        "name": "fx_execution_reference",
+        "label": "本次执行凭证/原币种结算依据",
+        "kind": "text"
+      }
+    ],
+    "include_version": false,
+    "label": "责任方自身银行：登记已核实实际退款",
+    "method": "POST",
+    "name": "verify_responsible_bank",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_bank",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "只补本次经营费用，不更改客户实际收到金额和原清偿事实。",
+    "description": "",
+    "fields": [
+      {
+        "name": "leg_id",
+        "label": "原退款责任",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "fee_usd",
+        "label": "实际已核实经营手续费USD（确为零时填0）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "reference",
+        "label": "实际结算流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "最终费用核实证据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "occurred_at",
+        "label": "实际费用发生时刻",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实本次实际退款手续费",
+    "method": "POST",
+    "name": "confirm_fee",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/confirm_fee",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。",
+    "description": "",
+    "fields": [
+      {
+        "name": "expected_execution_key",
+        "label": "当前实际付款指令",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "result",
+        "label": "外部已核实终态",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "实际失败",
+            "value": "failed"
+          },
+          {
+            "label": "执行方已取消",
+            "value": "cancelled"
+          }
+        ]
+      },
+      {
+        "name": "external_reference",
+        "label": "外部执行方唯一核实流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "no_further_payment_reference",
+        "label": "不会继续付款的独立核实证明",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "实际银行/执行方终态凭据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verified_at",
+        "label": "真实核实时刻",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "核实外部付款已失败或取消",
+    "method": "POST",
+    "name": "verify_manual_failure",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual_failure",
+    "permission": ""
+  },
+  {
+    "resource": "refunds",
+    "confirmation": "保留历史授权、已付事实和剩余占用。封存后必须由客户重新指定剩余款目的地、财务重新核实；未知结果不会允许封存。",
+    "description": "",
+    "fields": [
+      {
+        "name": "expected_execution_key",
+        "label": "本次旧执行编号",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "独立核实封存原因",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "已失败且不会再付",
+            "value": "failed"
+          },
+          {
+            "label": "已终止且不会再付",
+            "value": "terminated"
+          },
+          {
+            "label": "实际少付且旧指令已结束",
+            "value": "settled_partial"
+          }
+        ]
+      },
+      {
+        "name": "no_further_payment_reference",
+        "label": "旧指令不会继续付款的独立证明",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "核实与封存依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "封存已终止执行并重新授权剩余款",
+    "method": "POST",
+    "name": "close_execution",
+    "path": "/v1/operators/{operatorId}/refunds/{id}/close_execution",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "minimum_usd",
+        "label": "最低提现 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "flat_fee_usd",
+        "label": "固定手续费 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "fee_rate",
+        "label": "手续费比例（0到1）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "requires_dual_approval",
+        "label": "必须双人审批付款",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "method_reference",
+        "label": "对客户公示付款方式规则",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "发布提现规则",
+    "method": "POST",
+    "name": "policy",
+    "path": "/v1/operators/{operatorId}/withdrawals",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "审批",
+    "method": "POST",
+    "name": "approve",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/approve",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "将保存付款意图，未知结果不得再次盲目付款。",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "登记开始真实付款",
+    "method": "POST",
+    "name": "begin_payment",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/begin_payment",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "查询与不确定性依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "标记付款结果未知",
+    "method": "POST",
+    "name": "unknown",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/unknown",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "确认真实付款凭证与USD净额一致后释放占用并完成账务。",
+    "description": "",
+    "fields": [
+      {
+        "name": "payment_reference",
+        "label": "真实唯一付款流水",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "银行核实依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "currency",
+        "label": "实际付款币种",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "original_amount",
+        "label": "实际付款金额",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "valuation_evidence",
+        "label": "本次真实换汇依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "paid_usd",
+        "label": "已付净额USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "paid_at",
+        "label": "实际付款时刻",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记已核实实际付款",
+    "method": "POST",
+    "name": "verify_paid",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/verify_paid",
+    "permission": ""
+  },
+  {
+    "resource": "withdrawals",
+    "confirmation": "未知结果不能终止并再次付款。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "已核实未付款依据",
+        "kind": "textarea",
+        "required": true
+      },
+      {
+        "name": "verified_unpaid",
+        "label": "已核实未付",
+        "kind": "boolean",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "确认未付并终止",
+    "method": "POST",
+    "name": "fail",
+    "path": "/v1/operators/{operatorId}/withdrawals/{id}/fail",
+    "permission": ""
+  },
+  {
+    "resource": "disputes",
+    "confirmation": "确认这是已核实的外部扣回事实。登记将记录真实收款损失，不能用一般投诉替代资金证据。",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "name": "receipt_id",
+        "label": "原收款编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "provider",
+        "label": "外部通道",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "provider_case_id",
+        "label": "外部唯一争议编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "已核实实际扣回USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "争议原因",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "通道或银行真实证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记已核实外部扣回",
+    "method": "POST",
+    "name": "record",
+    "path": "/v1/operators/{operatorId}/disputes",
+    "permission": ""
+  },
+  {
+    "resource": "disputes",
+    "confirmation": "只限制真实关联的原收款来源资产。范围由服务器追溯。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "限制依据与客户告知",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "追溯并限制来源资产",
+    "method": "POST",
+    "name": "restrict",
+    "path": "/v1/operators/{operatorId}/disputes/{id}/restrict",
+    "permission": ""
+  },
+  {
+    "resource": "disputes",
+    "confirmation": "不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。",
+    "description": "",
+    "fields": [
+      {
+        "name": "classification",
+        "label": "事实归类",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "付款无效，按来源纠正",
+            "value": "invalid_payment"
+          },
+          {
+            "label": "经营收款风险，保留客户权益",
+            "value": "merchant_collection_risk"
+          },
+          {
+            "label": "外部已撤销且全部追回",
+            "value": "reversed"
+          }
+        ]
+      },
+      {
+        "name": "evidence",
+        "label": "独立复核与归类证据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "复核风险归类",
+    "method": "POST",
+    "name": "resolve",
+    "path": "/v1/operators/{operatorId}/disputes/{id}/resolve",
+    "permission": ""
+  },
+  {
+    "resource": "disputes",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "amount_usd",
+        "label": "本次真实追回USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "银行或通道追回凭证",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记真实追回资金",
+    "method": "POST",
+    "name": "recover",
+    "path": "/v1/operators/{operatorId}/disputes/{id}/recover",
+    "permission": ""
+  },
+  {
+    "resource": "invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "party_kind",
+        "label": "办理对象",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "customer"
+      },
+      {
+        "name": "enabled",
+        "label": "开放申请",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "stage",
+        "label": "允许开票阶段",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "原始收款",
+            "value": "receipt"
+          },
+          {
+            "label": "充值完成",
+            "value": "top_up"
+          },
+          {
+            "label": "完成购买",
+            "value": "purchase"
+          },
+          {
+            "label": "实际消费",
+            "value": "consumption"
+          }
+        ]
+      },
+      {
+        "name": "maximum_ratio",
+        "label": "最高原收款比例（0到1）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "rules_reference",
+        "label": "公开办理规则依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设置零售客户开票规则",
+    "method": "POST",
+    "name": "invoice_policy_customer",
+    "path": "/v1/operators/{operatorId}/invoices",
+    "permission": ""
+  },
+  {
+    "resource": "invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "party_kind",
+        "label": "办理对象",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "procurement"
+      },
+      {
+        "name": "enabled",
+        "label": "开放申请",
+        "kind": "boolean",
+        "required": true,
+        "default_value": false
+      },
+      {
+        "name": "stage",
+        "label": "允许开票阶段",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "原始收款",
+            "value": "receipt"
+          },
+          {
+            "label": "充值完成",
+            "value": "top_up"
+          },
+          {
+            "label": "完成购买",
+            "value": "purchase"
+          },
+          {
+            "label": "实际消费",
+            "value": "consumption"
+          }
+        ]
+      },
+      {
+        "name": "maximum_ratio",
+        "label": "最高原收款比例（0到1）",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "rules_reference",
+        "label": "公开办理规则依据",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "版本",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "设置经营方采购开票规则",
+    "method": "POST",
+    "name": "invoice_policy_procurement",
+    "path": "/v1/operators/{operatorId}/invoices",
+    "permission": ""
+  },
+  {
+    "resource": "invoices",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "state",
+        "label": "实际办理状态",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "外部开具已完成",
+            "value": "issued"
+          },
+          {
+            "label": "不予办理并说明原因",
+            "value": "rejected"
+          },
+          {
+            "label": "原票据已依法作废",
+            "value": "voided"
+          }
+        ]
+      },
+      {
+        "name": "invoice_reference",
+        "label": "发票凭证编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "evidence",
+        "label": "证据引用",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "说明",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记实际开票结果",
+    "method": "POST",
+    "name": "register",
+    "path": "/v1/operators/{operatorId}/invoices/{id}/register",
+    "permission": ""
+  },
+  {
+    "resource": "reconciliation",
+    "confirmation": "",
+    "description": "",
+    "fields": [],
+    "include_version": false,
+    "label": "按领域事实运行对账",
+    "method": "POST",
+    "name": "reconcile",
+    "path": "/v1/operators/{operatorId}/reconciliation",
+    "permission": ""
+  },
+  {
+    "resource": "reconciliation",
+    "confirmation": "",
+    "description": "只有可核实的领域修复记录才能解决差额；此操作不改余额。",
+    "fields": [
+      {
+        "name": "adjustment",
+        "label": "真实冲正/修复记录",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "原因",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "登记修复依据",
+    "method": "POST",
+    "name": "resolve",
+    "path": "/v1/operators/{operatorId}/reconciliation/{id}/resolve",
+    "permission": ""
+  },
+  {
+    "resource": "exports",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "kind",
+        "label": "导出业务",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "账本",
+            "value": "ledger"
+          },
+          {
+            "label": "请求",
+            "value": "requests"
+          },
+          {
+            "label": "采购",
+            "value": "procurement"
+          }
+        ]
+      },
+      {
+        "name": "owner_id",
+        "label": "限定主体编号（留空当前范围）",
+        "kind": "text"
+      },
+      {
+        "name": "from",
+        "label": "起始时间",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "to",
+        "label": "截至时间",
+        "kind": "datetime",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "创建私有导出",
+    "method": "POST",
+    "name": "export",
+    "path": "/v1/operators/{operatorId}/exports",
+    "permission": ""
+  },
+  {
+    "resource": "providers",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/credentials",
+        "name": "id",
+        "label": "现有凭据引用（首次留空）",
+        "kind": "text"
+      },
+      {
+        "name": "provider_id",
+        "label": "现有供应商引用（首次留空）",
+        "kind": "text"
+      },
+      {
+        "name": "secret",
+        "label": "新的供应商密钥",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "启用",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "创建或轮换凭据",
+    "method": "POST",
+    "name": "credential",
+    "path": "/v1/operators/{operatorId}/providers",
+    "permission": ""
+  },
+  {
+    "resource": "catalog",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "配置 JSON",
+        "kind": "json",
+        "required": true,
+        "help": "model 对象：id、identity、display_name、enabled、capabilities（必须有真实参数/用量/上界/恢复证据）、expected_version"
+      }
+    ],
+    "include_version": false,
+    "label": "维护公开模型与能力证据",
+    "method": "POST",
+    "name": "save",
+    "path": "/v1/operators/{operatorId}/catalog",
+    "permission": ""
+  },
+  {
+    "resource": "routes",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "配置 JSON",
+        "kind": "json",
+        "required": true,
+        "help": "upstream 对象 id、public_model_id、identity、provider_id、provider、model、credential_id、endpoints、capabilities、enabled、healthy、priority、expected_version。视频还必须配置 endpoints.video_retrieve 为 https://供应商/v1/videos/{task_id}、video_download 为 https://供应商/v1/videos/{task_id}/content；填路径模板而非具体任务ID。能力证据不足不能开放。"
+      }
+    ],
+    "include_version": false,
+    "label": "维护已验证路由",
+    "method": "POST",
+    "name": "save",
+    "path": "/v1/operators/{operatorId}/routes",
+    "permission": ""
+  },
+  {
+    "resource": "routes",
+    "confirmation": "",
+    "description": "保留原供应商模型与能力证据。真实占用、故障、探测与恢复状态在动态选路页面查看。",
+    "fields": [
+      {
+        "name": "public_model_id",
+        "label": "公开模型",
+        "kind": "hidden",
+        "required": true,
+        "default_value": ""
+      },
+      {
+        "name": "routing.max_concurrent",
+        "label": "此上游最大同时在途（0不限）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "routing.failure_threshold",
+        "label": "连续失败熔断阈值（0用默认3）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "routing.unknown_usage_threshold",
+        "label": "未知用量熔断阈值（0用默认2）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "routing.recovery_successes",
+        "label": "恢复所需成功探测次数（0用默认2）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "routing.cooldown_seconds",
+        "label": "熔断冷却秒数（0用默认60）",
+        "kind": "integer",
+        "required": true
+      }
+    ],
+    "include_version": true,
+    "label": "设置并发、熔断与恢复",
+    "method": "POST",
+    "name": "limits",
+    "path": "/v1/operators/{operatorId}/routes/{id}/limits",
+    "permission": ""
+  },
+  {
+    "resource": "routing",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "strategy",
+        "label": "选择策略",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "固定优先级",
+            "value": "priority"
+          },
+          {
+            "label": "已验证最低延迟",
+            "value": "lowest_latency"
+          },
+          {
+            "label": "已验证最低成本",
+            "value": "lowest_cost"
+          }
+        ]
+      },
+      {
+        "name": "evidence",
+        "label": "实际策略调整依据",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": true,
+    "label": "调整选路策略",
+    "method": "POST",
+    "name": "policy",
+    "path": "/v1/operators/{operatorId}/routing/{id}/policy",
+    "permission": ""
+  },
+  {
+    "resource": "jobs",
+    "confirmation": "只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。",
+    "description": "",
+    "fields": [
+      {
+        "name": "additional_attempts",
+        "label": "追加尝试次数1–10",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "人工核实与恢复原因",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "恢复原任务",
+    "method": "POST",
+    "name": "redrive",
+    "path": "/v1/operators/{operatorId}/jobs/{id}/redrive",
+    "permission": ""
+  },
+  {
+    "resource": "mail",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "enabled",
+        "label": "启用SMTP",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "host",
+        "label": "SMTP主机",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "port",
+        "label": "端口",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "username",
+        "label": "SMTP认证用户名",
+        "kind": "text"
+      },
+      {
+        "name": "password",
+        "label": "新密码（留空保留）",
+        "kind": "password"
+      },
+      {
+        "name": "from",
+        "label": "已授权发信地址",
+        "kind": "email",
+        "required": true
+      },
+      {
+        "name": "security",
+        "label": "传输方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "STARTTLS",
+            "value": "starttls"
+          },
+          {
+            "label": "TLS",
+            "value": "tls"
+          },
+          {
+            "label": "明文（仅隔离测试）",
+            "value": "plain"
+          }
+        ]
+      }
+    ],
+    "include_version": false,
+    "label": "保存邮件服务配置",
+    "method": "POST",
+    "name": "configure",
+    "path": "/v1/operators/{operatorId}/mail",
+    "permission": ""
+  }
+]

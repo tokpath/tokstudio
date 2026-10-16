@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: assert deploy host + test isolation
-        run: bash scripts/assert_deploy_isolation.sh
+        run: |
+          bash scripts/assert_deploy_isolation.sh
+          bash scripts/refactor-assert-release.sh
 
   backend:
     runs-on: ubuntu-latest
@@ -84,14 +86,18 @@ jobs:
         env:
           TOKENHUB_DATABASE_URL: postgres://tokenhub:tokenhub@localhost:5432/tokenhub?sslmode=disable
           TOKENHUB_REDIS_URL: redis://localhost:6379/0
-          TOKENHUB_BOOTSTRAP_ADMIN_TOKEN: ci_admin_token
-          TOKENHUB_BOOTSTRAP_USER_TOKEN: ci_user_token
+          TOKENHUB_TEST_DATABASE_URL: postgres://tokenhub:tokenhub@localhost:5432/tokenhub?sslmode=disable
+          TOKENHUB_TEST_REDIS_URL: redis://localhost:6379/0
           TOKENHUB_S3_ENDPOINT: http://127.0.0.1:9000
           TOKENHUB_S3_PUBLIC_ENDPOINT: http://127.0.0.1:9000
           TOKENHUB_S3_BUCKET: tokenhub
           TOKENHUB_S3_REGION: us-east-1
           TOKENHUB_S3_FORCE_PATH_STYLE: "true"
-        run: go test ./...
+          TOKENHUB_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          TOKENHUB_TEST_S3_BUCKET: tokenhub
+          TOKENHUB_TEST_S3_ACCESS_KEY: minioadmin
+          TOKENHUB_TEST_S3_SECRET_KEY: minioadmin
+        run: go test -race -p 1 -count=1 -timeout 15m ./...
 
   frontend:
     runs-on: ubuntu-latest
@@ -103,7 +109,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install
+      - run: npm ci
+      - name: verify OpenAPI artifacts match source
+        run: node ../scripts/refactor-openapi.cjs --check
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium

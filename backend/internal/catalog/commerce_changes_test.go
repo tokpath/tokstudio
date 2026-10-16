@@ -72,6 +72,9 @@ func TestPostgresCatalogPriceRequiresActualAdvanceNotice(t *testing.T) {
 	s := newCommerceTestStore(t)
 	seedCommerceModel(t, s)
 	c, now, sink := testController(t, s, "platform")
+	// Keep a sub-microsecond remainder so the database/JSON precision boundary
+	// is exercised on every platform instead of depending on the host clock.
+	*now = now.Truncate(time.Second).Add(123456789 * time.Nanosecond)
 	scope := PriceScope{Kind: "retail", SellerID: "platform"}
 	base := priceAt("base", scope, now.Add(-time.Hour), "0.001")
 	base.Published = true
@@ -123,7 +126,7 @@ func TestPostgresCatalogPriceRequiresActualAdvanceNotice(t *testing.T) {
 		t.Fatal("announced price missing")
 	}
 	preview, e := s.PublicChanges(context.Background(), "platform", "model", *now)
-	if e != nil || len(preview) != 1 || preview[0].Status != "scheduled" || len(preview[0].Prices) != 1 || preview[0].Prices[0].AmountATG != "0.002" {
+	if e != nil || len(preview) != 1 || preview[0].Status != "scheduled" || !preview[0].EffectiveAt.Equal(next.EffectiveAt) || len(preview[0].Prices) != 1 || preview[0].Prices[0].AmountATG != "0.002" {
 		t.Fatalf("public future price preview: %+v %v", preview, e)
 	}
 	private, e := s.PublicChanges(context.Background(), "other", "model", *now)

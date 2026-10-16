@@ -296,7 +296,11 @@ func (s CommerceCatalog) PublicChanges(ctx context.Context, operator, model stri
 				continue
 			}
 			price.Published = true
-			resolved, e := (PriceResolver{Source: plannedPriceSource{Base: s, Plan: &price}}).Resolve(ctx, PriceScope{Kind: "retail", SellerID: operator}, model, c.EffectiveAt)
+			// The JSON price retains nanoseconds while PostgreSQL timestamps
+			// have microsecond precision. Preview at the actual price boundary,
+			// otherwise rounding down can resolve the previous price instead.
+			v.EffectiveAt = price.EffectiveAt
+			resolved, e := (PriceResolver{Source: plannedPriceSource{Base: s, Plan: &price}}).Resolve(ctx, PriceScope{Kind: "retail", SellerID: operator}, model, price.EffectiveAt)
 			if e == nil {
 				v.Prices, e = publicPriceComponents(resolved)
 				if e != nil {

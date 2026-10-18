@@ -135,6 +135,18 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 403, "action_frozen", "当前范围的此项操作已冻结，请联系经营方核实", false
 	case errors.Is(err, organization.ErrBusinessClosed):
 		status, code, msg, retry = 409, "business_restricted", "当前经营方尚未开放此项业务", false
+	case errors.Is(err, organization.ErrGoogleUnavailable):
+		status, code, msg, retry = 409, "google_unavailable", "当前品牌域名尚未启用 Google 登录", false
+	case errors.Is(err, organization.ErrGoogleNotVerified):
+		status, code, msg, retry = 409, "google_not_verified", "请先在品牌域名上完成 Google 回调测试，再启用", false
+	case errors.Is(err, organization.ErrGoogleNeedsPassword):
+		status, code, msg, retry = 409, "google_email_exists", "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号", false
+	case errors.Is(err, organization.ErrGoogleState):
+		status, code, msg, retry = 409, "google_state", "Google 登录已过期或已使用，请从登录页重新开始", false
+	case errors.Is(err, organization.ErrGoogleClientTaken):
+		status, code, msg, retry = 409, "google_client_taken", "这个 Google 客户端已经配置给其他品牌", false
+	case errors.Is(err, organization.ErrGoogleConfig):
+		status, code, msg, retry = 400, "google_config", "请填写以 .apps.googleusercontent.com 结尾的客户端编号；首次配置必须填写密钥", false
 	}
 	fail(c, status, code, msg, retry)
 }
@@ -211,6 +223,9 @@ func (a *Application) Router() *gin.Engine {
 	v.GET("/auth/me", a.loadIdentity(false), a.sessionResponse)
 	v.POST("/auth/staff-invitations/accept", a.originGuard, a.acceptStaff)
 	v.POST("/auth/login", a.originGuard, a.login)
+	v.POST("/auth/google/start", a.originGuard, a.googleStart)
+	v.POST("/auth/google/test", a.originGuard, a.googleTestStart)
+	v.POST("/auth/google/finish", a.originGuard, a.googleFinish)
 	v.POST("/auth/registrations", a.originGuard, a.register)
 	v.POST("/auth/verify", a.originGuard, a.verify)
 	v.POST("/auth/password-resets", a.originGuard, a.passwordReset)

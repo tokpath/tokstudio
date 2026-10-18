@@ -6540,5 +6540,125 @@
     "en": "After this, the buyer can create new orders from this quote again.",
     "ja": "再開後、購入者はこの見積で新しい注文を作成できます。",
     "ru": "После этого покупатель снова сможет создавать новые заказы по этому предложению."
+  },
+  "使用 Google 账号继续": {
+    "en": "Continue with Google",
+    "ja": "Google アカウントで続行",
+    "ru": "Продолжить с Google"
+  },
+  "正在前往 Google…": {
+    "en": "Opening Google…",
+    "ja": "Google を開いています…",
+    "ru": "Открываем Google…"
+  },
+  "Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。": {
+    "en": "Google signs in to the current brand only. A new account uses the attribution on this page. An email that already has a password still signs in with that password.",
+    "ja": "Google ログインは現在のブランドだけに入ります。新しいアカウントはこのページの帰属で登録されます。すでにパスワードがあるメールは、引き続きパスワードでログインします。",
+    "ru": "Вход через Google относится только к текущему бренду. Новый аккаунт регистрируется с принадлежностью на этой странице. Почта, у которой уже есть пароль, входит паролем."
+  },
+  "Google 登录": {
+    "en": "Google sign-in",
+    "ja": "Google ログイン",
+    "ru": "Вход через Google"
+  },
+  "正在核对当前品牌的 Google 账号。": {
+    "en": "Checking the Google account for this brand.",
+    "ja": "このブランドの Google アカウントを確認しています。",
+    "ru": "Проверяем аккаунт Google для этого бренда."
+  },
+  "正在完成登录…": {
+    "en": "Finishing sign-in…",
+    "ja": "ログインを完了しています…",
+    "ru": "Завершаем вход…"
+  },
+  "这个域名的 Google 回调测试已通过。回到品牌配置并启用后，客户即可使用。": {
+    "en": "The Google callback test for this domain passed. Enable it in the brand settings, then customers can use it.",
+    "ja": "このドメインの Google 戻り先テストは成功しました。ブランド設定で有効にすると、顧客が利用できます。",
+    "ru": "Проверка возврата Google для этого домена прошла. Включите её в настройках бренда, после этого клиенты смогут входить."
+  },
+  "测试 Google 回调": {
+    "en": "Test the Google callback",
+    "ja": "Google の戻り先をテスト",
+    "ru": "Проверить возврат Google"
+  },
+  "即将前往 Google。测试不会创建客户或登录。": {
+    "en": "Opening Google. This test does not create a customer or a session.",
+    "ja": "Google に移動します。テストでは顧客もログインも作成しません。",
+    "ru": "Сейчас откроется Google. Тест не создаёт клиента и не выполняет вход."
+  },
+  "Google 登录没有返回授权码，请从登录页重新开始。": {
+    "en": "Google did not return an authorization code. Start again from the sign-in page.",
+    "ja": "Google から認可コードが返りませんでした。ログインページからやり直してください。",
+    "ru": "Google не вернул код авторизации. Начните снова со страницы входа."
+  },
+  "测试链接缺少凭据。请从品牌域名配置重新生成。": {
+    "en": "The test link is missing its credential. Generate it again from the brand domain settings.",
+    "ja": "テストリンクに資格情報がありません。ブランドドメイン設定から再生成してください。",
+    "ru": "В тестовой ссылке нет удостоверения. Создайте её снова в настройках домена бренда."
+  },
+  "配置 Google 登录": {
+    "en": "Configure Google sign-in",
+    "ja": "Google ログインを設定",
+    "ru": "Настроить вход через Google"
+  },
+  "生成 Google 回调测试链接": {
+    "en": "Create a Google callback test link",
+    "ja": "Google 戻り先のテストリンクを作成",
+    "ru": "Создать ссылку проверки возврата Google"
+  },
+  "Google 客户端编号": {
+    "en": "Google client ID",
+    "ja": "Google クライアント ID",
+    "ru": "Идентификатор клиента Google"
+  },
+  "Google 客户端密钥（已保存可留空）": {
+    "en": "Google client secret (leave blank if already saved)",
+    "ja": "Google クライアントシークレット（保存済みなら空欄）",
+    "ru": "Секрет клиента Google (оставьте пустым, если уже сохранён)"
+  },
+  "测试通过后启用": {
+    "en": "Enable after the test passes",
+    "ja": "テスト成功後に有効化",
+    "ru": "Включить после успешной проверки"
+  },
+  "当前配置版本（首次为 0）": {
+    "en": "Current configuration version (0 the first time)",
+    "ja": "現在の設定バージョン（初回は 0）",
+    "ru": "Текущая версия настройки (0 при первом сохранении)"
+  },
+  "要测试的登录域名（官方品牌可留空）": {
+    "en": "Sign-in domain to test (leave blank for the official brand)",
+    "ja": "テストするログインドメイン（公式ブランドは空欄可）",
+    "ru": "Домен входа для проверки (для официального бренда можно оставить пустым)"
+  },
+  "当前品牌域名尚未启用 Google 登录": {
+    "en": "Google sign-in is not enabled for this brand domain",
+    "ja": "このブランドドメインでは Google ログインがまだ有効ではありません",
+    "ru": "Вход через Google ещё не включён для домена этого бренда"
+  },
+  "请先在品牌域名上完成 Google 回调测试，再启用": {
+    "en": "Test the Google callback on the brand domain before enabling it",
+    "ja": "有効化する前に、ブランドドメインで Google の戻り先をテストしてください",
+    "ru": "Перед включением проверьте возврат Google на домене бренда"
+  },
+  "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号": {
+    "en": "This email already has a password in this brand. Sign in with the password. Google is not attached to an existing account automatically.",
+    "ja": "このメールは、このブランドですでにパスワード登録されています。パスワードでログインしてください。Google は既存アカウントへ自動では結び付きません。",
+    "ru": "Эта почта уже зарегистрирована в бренде с паролем. Войдите паролем. Google не присоединяется к существующему аккаунту автоматически."
+  },
+  "Google 登录已过期或已使用，请从登录页重新开始": {
+    "en": "This Google sign-in has expired or was already used. Start again from the sign-in page.",
+    "ja": "この Google ログインは期限切れか、すでに使用されています。ログインページからやり直してください。",
+    "ru": "Этот вход через Google истёк или уже использован. Начните снова со страницы входа."
+  },
+  "这个 Google 客户端已经配置给其他品牌": {
+    "en": "This Google client is already configured for another brand",
+    "ja": "この Google クライアントは別のブランドに設定済みです",
+    "ru": "Этот клиент Google уже настроен для другого бренда"
+  },
+  "请填写以 .apps.googleusercontent.com 结尾的客户端编号；首次配置必须填写密钥": {
+    "en": "Enter a client ID ending in .apps.googleusercontent.com. The first save must include the secret.",
+    "ja": "末尾が .apps.googleusercontent.com のクライアント ID を入力してください。初回保存にはシークレットが必要です。",
+    "ru": "Укажите идентификатор клиента, оканчивающийся на .apps.googleusercontent.com. При первом сохранении нужен секрет."
   }
 }

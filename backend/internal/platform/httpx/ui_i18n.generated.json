@@ -407,11 +407,47 @@
     "履行原価は消費済みの加重調達原価で、プラットフォームでは確認済み供給元原価を用います。特典原価は内数のため二重控除しません。未確定原価は不明であり、ゼロではありません。",
     "Затраты на исполнение — потреблённая средневзвешенная закупочная стоимость, а для платформы — проверенная стоимость поставщика. Затраты на бонусы входят в эту сумму и не вычитаются повторно. Неподтверждённые затраты неизвестны, а не равны нулю."
   ],
+  "Google 客户端密钥（已保存可留空）": [
+    "Google 客户端密钥（已保存可留空）",
+    "Google client secret (leave blank if already saved)",
+    "Google クライアントシークレット（保存済みなら空欄）",
+    "Секрет клиента Google (оставьте пустым, если уже сохранён)"
+  ],
+  "Google 客户端编号": [
+    "Google 客户端编号",
+    "Google client ID",
+    "Google クライアント ID",
+    "Идентификатор клиента Google"
+  ],
+  "Google 登录": [
+    "Google 登录",
+    "Google sign-in",
+    "Google ログイン",
+    "Вход через Google"
+  ],
+  "Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。": [
+    "Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。",
+    "Google signs in to the current brand only. A new account uses the attribution on this page. An email that already has a password still signs in with that password.",
+    "Google ログインは現在のブランドだけに入ります。新しいアカウントはこのページの帰属で登録されます。すでにパスワードがあるメールは、引き続きパスワードでログインします。",
+    "Вход через Google относится только к текущему бренду. Новый аккаунт регистрируется с принадлежностью на этой странице. Почта, у которой уже есть пароль, входит паролем."
+  ],
   "Google 登录失败": [
     "Google 登录失败",
     "Google sign-in failed.",
     "Google ログインに失敗しました。",
     "Не удалось войти через Google."
+  ],
+  "Google 登录已过期或已使用，请从登录页重新开始": [
+    "Google 登录已过期或已使用，请从登录页重新开始",
+    "This Google sign-in has expired or was already used. Start again from the sign-in page.",
+    "この Google ログインは期限切れか、すでに使用されています。ログインページからやり直してください。",
+    "Этот вход через Google истёк или уже использован. Начните снова со страницы входа."
+  ],
+  "Google 登录没有返回授权码，请从登录页重新开始。": [
+    "Google 登录没有返回授权码，请从登录页重新开始。",
+    "Google did not return an authorization code. Start again from the sign-in page.",
+    "Google から認可コードが返りませんでした。ログインページからやり直してください。",
+    "Google не вернул код авторизации. Начните снова со страницы входа."
   ],
   "HTTPS 服务地址": [
     "HTTPS 服务地址",
@@ -3143,6 +3179,12 @@
     "コミッションウォレット",
     "Кошелёк комиссии"
   ],
+  "使用 Google 账号继续": [
+    "使用 Google 账号继续",
+    "Continue with Google",
+    "Google アカウントで続行",
+    "Продолжить с Google"
+  ],
   "使用 IANA 时区名称，例如 Asia/Shanghai、Asia/Tokyo、Europe/Moscow 或 UTC，不填写 UTC+8。Key 预算按经营时区的自然月、季、年划分；套餐的月、季、年期限则从每次成功交付起按约定时区的日历期间计算。切换界面语言不改变业务时区或周期边界。": [
     "使用 IANA 时区名称，例如 Asia/Shanghai、Asia/Tokyo、Europe/Moscow 或 UTC，不填写 UTC+8。Key 预算按经营时区的自然月、季、年划分；套餐的月、季、年期限则从每次成功交付起按约定时区的日历期间计算。切换界面语言不改变业务时区或周期边界。",
     "Use an IANA time zone such as Asia/Shanghai, Asia/Tokyo, Europe/Moscow or UTC, not UTC+8. Key budgets use calendar months, quarters and years in the business time zone. Monthly, quarterly and annual plan terms instead run from each successful delivery for the agreed calendar duration and time zone. Changing the interface language does not change the business time zone or period boundaries.",
@@ -4960,6 +5002,12 @@
     "Held",
     "保留中",
     "Зарезервировано"
+  ],
+  "即将前往 Google。测试不会创建客户或登录。": [
+    "即将前往 Google。测试不会创建客户或登录。",
+    "Opening Google. This test does not create a customer or a session.",
+    "Google に移動します。テストでは顧客もログインも作成しません。",
+    "Сейчас откроется Google. Тест не создаёт клиента и не выполняет вход."
   ],
   "历史套餐活动": [
     "历史套餐活动",
@@ -9791,6 +9839,12 @@
     "現在呼び出し可能",
     "Доступны сейчас"
   ],
+  "当前品牌域名尚未启用 Google 登录": [
+    "当前品牌域名尚未启用 Google 登录",
+    "Google sign-in is not enabled for this brand domain",
+    "このブランドドメインでは Google ログインがまだ有効ではありません",
+    "Вход через Google ещё не включён для домена этого бренда"
+  ],
   "当前域名没有已验证并启用的品牌": [
     "当前域名没有已验证并启用的品牌",
     "No verified and enabled brand for the current domain",
@@ -10066,6 +10120,12 @@
     "Your current identity has no permission to act in this operator scope",
     "現在のユーザーにはこの事業範囲の操作権限がありません",
     "У текущей учётной записи нет прав на действия в этой области оператора"
+  ],
+  "当前配置版本（首次为 0）": [
+    "当前配置版本（首次为 0）",
+    "Current configuration version (0 the first time)",
+    "現在の設定バージョン（初回は 0）",
+    "Текущая версия настройки (0 при первом сохранении)"
   ],
   "当前限制": [
     "当前限制",
@@ -14465,6 +14525,12 @@
     "保存中です。このページを開いたままにしてください。",
     "Сохранение; оставьте страницу открытой."
   ],
+  "正在前往 Google…": [
+    "正在前往 Google…",
+    "Opening Google…",
+    "Google を開いています…",
+    "Открываем Google…"
+  ],
   "正在办理关联事项": [
     "正在办理关联事项",
     "Handling linked record",
@@ -14500,6 +14566,12 @@
     "Processing…",
     "処理中…",
     "Обработка…"
+  ],
+  "正在完成登录…": [
+    "正在完成登录…",
+    "Finishing sign-in…",
+    "ログインを完了しています…",
+    "Завершаем вход…"
   ],
   "正在建立订单…": [
     "正在建立订单…",
@@ -14542,6 +14614,12 @@
     "Verifying quote…",
     "見積もりを確認中…",
     "Проверка расчёта…"
+  ],
+  "正在核对当前品牌的 Google 账号。": [
+    "正在核对当前品牌的 Google 账号。",
+    "Checking the Google account for this brand.",
+    "このブランドの Google アカウントを確認しています。",
+    "Проверяем аккаунт Google для этого бренда."
   ],
   "正在申请…": [
     "正在申请…",
@@ -15083,6 +15161,24 @@
     "ライト",
     "Светлая"
   ],
+  "测试 Google 回调": [
+    "测试 Google 回调",
+    "Test the Google callback",
+    "Google の戻り先をテスト",
+    "Проверить возврат Google"
+  ],
+  "测试通过后启用": [
+    "测试通过后启用",
+    "Enable after the test passes",
+    "テスト成功後に有効化",
+    "Включить после успешной проверки"
+  ],
+  "测试链接缺少凭据。请从品牌域名配置重新生成。": [
+    "测试链接缺少凭据。请从品牌域名配置重新生成。",
+    "The test link is missing its credential. Generate it again from the brand domain settings.",
+    "テストリンクに資格情報がありません。ブランドドメイン設定から再生成してください。",
+    "В тестовой ссылке нет удостоверения. Создайте её снова в настройках домена бренда."
+  ],
   "消费确认复核状态已变更": [
     "消费确认复核状态已变更",
     "Consumption confirmation review status changed",
@@ -15436,6 +15532,12 @@
     "Existing campaign (leave blank to create)",
     "既存キャンペーン（新規作成時は空欄）",
     "Существующая кампания (для новой оставьте пустым)"
+  ],
+  "生成 Google 回调测试链接": [
+    "生成 Google 回调测试链接",
+    "Create a Google callback test link",
+    "Google 戻り先のテストリンクを作成",
+    "Создать ссылку проверки возврата Google"
   ],
   "生效于": [
     "生效于",
@@ -17561,6 +17663,12 @@
     "権限を付与する直属の下位事業者",
     "Прямой нижестоящий оператор для выдачи доступа"
   ],
+  "要测试的登录域名（官方品牌可留空）": [
+    "要测试的登录域名（官方品牌可留空）",
+    "Sign-in domain to test (leave blank for the official brand)",
+    "テストするログインドメイン（公式ブランドは空欄可）",
+    "Домен входа для проверки (для официального бренда можно оставить пустым)"
+  ],
   "覆盖与责任计算": [
     "覆盖与责任计算",
     "Coverage and obligation calculation",
@@ -18161,6 +18269,12 @@
     "運営スペースに入る前に初期パスワードを変更してください",
     "Перед входом в рабочее пространство оператора смените начальный пароль"
   ],
+  "请先在品牌域名上完成 Google 回调测试，再启用": [
+    "请先在品牌域名上完成 Google 回调测试，再启用",
+    "Test the Google callback on the brand domain before enabling it",
+    "有効化する前に、ブランドドメインで Google の戻り先をテストしてください",
+    "Перед включением проверьте возврат Google на домене бренда"
+  ],
   "请先核对填写内容与实际凭证。": [
     "请先核对填写内容与实际凭证。",
     "Check the entered details against the actual documents first.",
@@ -18220,6 +18334,12 @@
     "Enter an item name for {path}",
     "{path}の項目名を入力してください",
     "Укажите название элемента для {path}"
+  ],
+  "请填写以 .apps.googleusercontent.com 结尾的客户端编号；首次配置必须填写密钥": [
+    "请填写以 .apps.googleusercontent.com 结尾的客户端编号；首次配置必须填写密钥",
+    "Enter a client ID ending in .apps.googleusercontent.com. The first save must include the secret.",
+    "末尾が .apps.googleusercontent.com のクライアント ID を入力してください。初回保存にはシークレットが必要です。",
+    "Укажите идентификатор клиента, оканчивающийся на .apps.googleusercontent.com. При первом сохранении нужен секрет."
   ],
   "请填写大于 0 且不超过 {maximum} 的让利百分点，最多 16 位小数。": [
     "请填写大于 0 且不超过 {maximum} 的让利百分点，最多 16 位小数。",
@@ -19511,6 +19631,24 @@
     "プランの付与時刻や有効期限は変わりません。",
     "Это не меняет время предоставления и окончания пакета."
   ],
+  "这个 Google 客户端已经配置给其他品牌": [
+    "这个 Google 客户端已经配置给其他品牌",
+    "This Google client is already configured for another brand",
+    "この Google クライアントは別のブランドに設定済みです",
+    "Этот клиент Google уже настроен для другого бренда"
+  ],
+  "这个域名的 Google 回调测试已通过。回到品牌配置并启用后，客户即可使用。": [
+    "这个域名的 Google 回调测试已通过。回到品牌配置并启用后，客户即可使用。",
+    "The Google callback test for this domain passed. Enable it in the brand settings, then customers can use it.",
+    "このドメインの Google 戻り先テストは成功しました。ブランド設定で有効にすると、顧客が利用できます。",
+    "Проверка возврата Google для этого домена прошла. Включите её в настройках бренда, после этого клиенты смогут входить."
+  ],
+  "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号": [
+    "这个邮箱已在本品牌用密码注册。请使用密码登录；Google 不会自动并入已有账号",
+    "This email already has a password in this brand. Sign in with the password. Google is not attached to an existing account automatically.",
+    "このメールは、このブランドですでにパスワード登録されています。パスワードでログインしてください。Google は既存アカウントへ自動では結び付きません。",
+    "Эта почта уже зарегистрирована в бренде с паролем. Войдите паролем. Google не присоединяется к существующему аккаунту автоматически."
+  ],
   "这些原币款未按零USD或固定币价处理。": [
     "这些原币款未按零USD或固定币价处理。",
     "These original currency receipts are not assigned zero USD or a fixed currency price.",
@@ -20410,6 +20548,12 @@
     "Some task metrics are unverified. Continue checking on the relevant business pages.",
     "一部のタスク指標は未確認です。該当する業務ページで確認を続けてください。",
     "Некоторые показатели задач не проверены. Продолжите проверку в соответствующих разделах."
+  ],
+  "配置 Google 登录": [
+    "配置 Google 登录",
+    "Configure Google sign-in",
+    "Google ログインを設定",
+    "Настроить вход через Google"
   ],
   "配置 JSON": [
     "配置 JSON",

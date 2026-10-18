@@ -656,10 +656,19 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 }
 func (a *Application) domainRequest(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
+		Action           string `json:"action"`
 		Hostname         string
 		TargetOperatorID string `json:"target_operator_id"`
+		ClientID         string `json:"client_id"`
+		ClientSecret     string `json:"client_secret"`
+		Enabled          bool   `json:"enabled"`
+		ExpectedVersion  int64  `json:"config_version"`
 	}
 	if !body(c, &in) {
+		return
+	}
+	if in.Action == "google" || in.Action == "google_test" {
+		a.googleBrandCommand(c, op, actor, in.Action, in.TargetOperatorID, in.Hostname, in.ClientID, in.ClientSecret, in.Enabled, in.ExpectedVersion)
 		return
 	}
 	target, e := a.brandingTarget(c, op, in.TargetOperatorID)

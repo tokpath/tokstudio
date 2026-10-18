@@ -36561,6 +36561,9 @@
               ],
               "additionalProperties": true
             }
+          },
+          "google_sign_in": {
+            "type": "boolean"
           }
         },
         "required": [

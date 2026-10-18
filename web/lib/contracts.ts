@@ -25,6 +25,7 @@ export const PublicContextSchema = z.object({
   brand: BrandSchema, operator: OperatorSchema, theme: ThemeSchema,
   invitation: z.object({ code: z.string(), status: z.enum(["valid", "invalid", "disabled", "wrong_brand"]), type: z.enum(["user", "channel"]).optional(), operator: OperatorSchema.optional(), inviter_display_name: z.string().optional(), message: z.string().optional() }).optional(),
   availability: z.array(AvailabilitySchema), payment_methods: z.array(PaymentMethodSchema),
+  google_sign_in: z.boolean().optional(),
 });
 export type PublicContext = z.infer<typeof PublicContextSchema>;
 const PersonSchema = z.object({ id: ID, email: z.string(), display_name: z.string() });

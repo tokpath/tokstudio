@@ -100,6 +100,7 @@ type Application struct {
 	ProcurementRefunds *cooperation.ProcurementRefunds
 	Installation       Installation
 	Operations         *operations.Service
+	GoogleExchanger    GoogleExchanger
 }
 
 func New(ctx context.Context, c Config, gdb *gorm.DB) (*Application, error) {

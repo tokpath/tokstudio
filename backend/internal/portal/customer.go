@@ -155,7 +155,8 @@ func (a *Application) publicContext(c *gin.Context) {
 		}
 		pm = append(pm, gin.H{"id": m.ID, "name": m.Driver, "kind": kind, "status": "ready", "currency": m.Currency, "instructions": m.Instructions})
 	}
-	result := gin.H{"brand": a.brandDTO(ctx, b), "operator": a.operatorDTO(ctx, op), "theme": theme.Theme, "availability": available, "payment_methods": pm}
+	_, googleErr := a.Organization.OpenGoogleCredential(ctx, nil, b.ID, a.googleRedirectURI(c), a.Config.AppKey, false)
+	result := gin.H{"brand": a.brandDTO(ctx, b), "operator": a.operatorDTO(ctx, op), "theme": theme.Theme, "availability": available, "payment_methods": pm, "google_sign_in": googleErr == nil}
 	if invitation != nil {
 		result["invitation"] = invitation
 	}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { PublicContextSchema, RegistrationResultSchema, LoginResultSchema, CommandResultSchema } from "@/lib/contracts";
 import { authContinuation, safeCustomerNext } from "@/lib/customer-next";
 import { operatorLanding } from "@/lib/navigation";
@@ -27,6 +28,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "verify" | "fo
   const verify = useCommand("/api/v1/auth/verify", CommandResultSchema);
   const forgot = useCommand("/api/v1/auth/password-resets", CommandResultSchema);
   const reset = useCommand("/api/v1/auth/password-resets/complete", CommandResultSchema);
+  const google = useCommand("/api/v1/auth/google/start", z.object({ url: z.string() }));
   const attribution = useQuery({ queryKey: ["registration-context", code], queryFn: () => request(`/api/v1/public/context?invite_code=${encodeURIComponent(code)}`, PublicContextSchema), enabled: mode === "register" && !!code });
   const title = { login: t("登录你的空间"), register: t("创建客户账号"), verify: t("验证邮箱"), forgot: t("找回密码"), reset: t("设置新密码") }[mode];
   const action = mode === "login" ? login : mode === "register" ? register : mode === "verify" ? verify : mode === "forgot" ? forgot : reset;
@@ -34,6 +36,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "verify" | "fo
   const targetOperator = code ? attribution.data?.invitation?.operator || attribution.data?.operator : context?.operator;
   const token = search.get("token") || "";
   return <main className="mx-auto max-w-lg px-5 py-14"><Heading eyebrow={context?.brand.name} title={t(title)} description={mode === "register" ? t("正式注册完成后确定经营归属和邀请关系，请核对后再提交。") : t("输入邮箱和密码，系统将自动进入你可使用的空间。")} /><Card>
+    {context?.google_sign_in && (mode === "login" || mode === "register") && <div className="mb-5 space-y-3"><Button type="button" variant="outline" className="w-full" disabled={google.busy || (mode === "register" && invalidCode)} onClick={async () => { const result = await google.run({ ...(code ? { invite_code: code } : {}), ...(next ? { next } : {}) }); if (result?.url) window.location.assign(result.url); }}>{google.busy ? t("正在前往 Google…") : t("使用 Google 账号继续")}</Button>{!!google.error && <ErrorPanel error={google.error} />}<p className="text-xs leading-6 text-ink-mute">{t("Google 登录只进入当前品牌。新账号按本页归属注册；已经用密码注册的邮箱仍使用密码登录。")}</p></div>}
     <form className="space-y-5" onSubmit={async event => {
       event.preventDefault();
       if (mode === "login") { const result = await login.run({ kind, email, password }); if (result?.kind === "workspace_choice") { setChoices(result.choices); setKind(undefined); } if (result && result.kind !== "anonymous" && result.kind !== "workspace_choice") { queryClient.removeQueries({ predicate: query => !["public-context", "session"].includes(String(query.queryKey[0])) }); queryClient.setQueryData(["session"], result); setCSRFToken(result.csrf_token); } if (result?.kind === "customer") { router.push(next || "/workspace"); } else if (result?.kind === "staff") router.push(result.requires_password_change ? "/change-password" : result.workspaces.length ? operatorLanding(result.workspaces.find(item => item.operator.id === result.active_operator_id) || result.workspaces[0]) : "/login"); }

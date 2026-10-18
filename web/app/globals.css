@@ -128,6 +128,15 @@ a {
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.sidebar-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .th-scrollbar::-webkit-scrollbar {
   width: 10px;
   height: 10px;

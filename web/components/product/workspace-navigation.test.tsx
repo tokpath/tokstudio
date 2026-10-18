@@ -41,6 +41,20 @@ it("expands authorized operator links vertically and keeps notifications in tool
   expect(within(screen.getByRole("navigation", { name: "工作台工具", exact: true })).getByRole("link", { name: "通知管理" })).toBeTruthy();
 });
 
+it("collapses an open operator group on a second click and expands it again", () => {
+  state.session = staff(["operators.read", "procurement.read"]); state.path = "/manage/one/operators"; mount("one");
+  const business = screen.getByRole("navigation", { name: "工作台", exact: true });
+  const group = within(business).getByRole("link", { name: "采购与合作" });
+  const items = within(business).getByRole("navigation", { name: "采购与合作内导航" });
+  expect(within(items).getAllByRole("link").map(link => link.textContent)).toEqual(["下属经营方", "采购与补货"]);
+  fireEvent.click(group);
+  expect(within(business).queryByRole("navigation", { name: "采购与合作内导航" })).toBeNull();
+  expect(group.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(group);
+  expect(within(business).getByRole("navigation", { name: "采购与合作内导航" })).toBeTruthy();
+  expect(group.getAttribute("aria-expanded")).toBe("true");
+});
+
 it("keeps platform-only resources and unauthorized notification tools out of a channel workspace", () => {
   state.session = staff(["payments.read", "providers.read"], "channel"); state.path = "/manage/one/payments"; mount("one");
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });

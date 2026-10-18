@@ -100,7 +100,7 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 			return err
 		}
 		agreementID := newID()
-		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "draft", QuoteReference: "supply:" + agreementID + ":v1", ExitTermsReference: "supply-exit:" + agreementID + ":v1", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
+		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "active", QuoteReference: "supply:" + agreementID + ":v1", ExitTermsReference: "supply-exit:" + agreementID + ":v1", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
 		if err = tx.Create(&a).Error; err != nil {
 			return err
 		}

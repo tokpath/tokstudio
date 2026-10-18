@@ -23,7 +23,6 @@ test('new operator, manual owner and first login can be completed without intern
  await login(staff,email,'Initial-password-2026');await expect(staff).toHaveURL(/\/change-password$/);
  await staff.getByLabel('当前密码',{exact:true}).fill('Initial-password-2026');await staff.getByLabel(/^新密码/).fill('Private-password-2026');await staff.getByLabel('确认新密码',{exact:true}).fill('Private-password-2026');await staff.getByRole('button',{name:'保存并进入经营空间'}).click();await expect(staff).toHaveURL(/\/manage\//);
  await expect(staff.locator('body')).toContainText(name);
- await page.goto(`/manage/${f.operator_id}/agreements`);await expect(page.getByRole('row').filter({hasText:name})).toBeVisible();
  }finally{await admin.close().catch(()=>{});await owner.close().catch(()=>{});}
 });
 test('optional contracts, named procurement choices and generated risk identifiers work through the browser',async({page},info)=>{

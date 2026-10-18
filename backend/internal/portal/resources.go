@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
-	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -290,7 +289,7 @@ func permissionFor(resource string) string {
 		return "marketing.manage"
 	case "assets", "ledger":
 		return "ledger.read"
-	case "operators", "agreements":
+	case "operators":
 		return "organization.read"
 	case "procurement", "coverage", "exits", "procurement-invoices", "contracts":
 		return "cooperation.manage"
@@ -580,21 +579,6 @@ func (a *Application) operatorResource(c *gin.Context) {
 			p["operations"] = []operation{}
 		}
 		p["row_operations"] = []operation{{Name: "invite_owner", Label: "开通首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: ownerAccessFields(true), Description: "为尚无有效负责人的直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。"}}
-	case "agreements":
-		rows, e := a.Organization.ListSupplies(ctx, nil, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		for _, row := range rows {
-			v := values(row)
-			v["exit_policy_summary"] = cooperation.ProcurementExitPolicySummary(row.ExitPolicy)
-			if row.ContractAttachmentID != "" {
-				v["contract_url"] = "/api/v1/operators/" + op.ID + "/contracts/" + row.ContractAttachmentID + "/content"
-			}
-			items = append(items, entity(row.ID, row.Status, 1, v))
-		}
-		p["columns"] = []gin.H{col("supplier_id", "供货方", "text"), col("buyer_id", "采购方", "text"), col("supply_terms", "合作约定", "text"), col("exit_policy_summary", "采购余额退出方式", "text"), col("contract_url", "合作合同", "link")}
 	case "coverage":
 		a.coverageResource(c, op, base, p)
 		return

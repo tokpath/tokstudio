@@ -114,17 +114,3 @@ func (s *Service) ListCustomersInScope(ctx context.Context, tx *gorm.DB, actor, 
 	}
 	return out, nil
 }
-func (s *Service) ListSupplies(ctx context.Context, tx *gorm.DB, actor, operator string) ([]SupplyAgreement, error) {
-	if err := s.RequirePermission(ctx, tx, actor, operator, "organization.read"); err != nil {
-		return nil, err
-	}
-	var rows []supplyRow
-	if err := s.dbFor(ctx, tx).Where("supplier_id=? OR buyer_id=?", operator, operator).Order("created_at,id").Find(&rows).Error; err != nil {
-		return nil, err
-	}
-	out := make([]SupplyAgreement, len(rows))
-	for i, r := range rows {
-		out[i] = SupplyAgreement(r)
-	}
-	return out, nil
-}

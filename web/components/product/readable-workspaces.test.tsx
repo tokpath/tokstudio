@@ -13,11 +13,11 @@ afterEach(() => { cleanup();vi.unstubAllGlobals(); });
 const rowID="260f9ca6-dbb4-4137-bbcc-0904c9d59c33", supplierID="5d461bcb-a676-4648-a1cf-3c56ebfb8571";
 function show(node:React.ReactNode){return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>{node}</QueryClientProvider>);}
 function response(body:unknown){return new Response(JSON.stringify(body),{status:200,headers:{"content-type":"application/json"}});}
-function resource():ResourcePage {return {title:"供货关系",description:"",items:[{id:rowID,version:7,values:{supplier_id:supplierID,buyer_id:"buyer",warning_buffer:"30",action:"create",expected_version:7},presentation:{title:"已签供货约定",subtitle:"华东经营公司",labels:{supplier_id:"云服务公司 · cloud@example.test",buyer_id:"渠道甲 · channel@example.test"}}}],columns:[{key:"supplier_id",label:"供货方",kind:"text"},{key:"buyer_id",label:"采购方",kind:"text"},{key:"warning_buffer",label:"预警缓冲",kind:"atg"},{key:"action",label:"action",kind:"text"},{key:"expected_version",label:"当前版本",kind:"text"}],operations:[],row_operations:[]};}
+function resource():ResourcePage {return {title:"下属经营方",description:"",items:[{id:rowID,version:7,values:{supplier_id:supplierID,buyer_id:"buyer",warning_buffer:"30",action:"create",expected_version:7},presentation:{title:"已签供货约定",subtitle:"华东经营公司",labels:{supplier_id:"云服务公司 · cloud@example.test",buyer_id:"渠道甲 · channel@example.test"}}}],columns:[{key:"supplier_id",label:"供货方",kind:"text"},{key:"buyer_id",label:"采购方",kind:"text"},{key:"warning_buffer",label:"预警缓冲",kind:"atg"},{key:"action",label:"action",kind:"text"},{key:"expected_version",label:"当前版本",kind:"text"}],operations:[],row_operations:[]};}
 
 it("shows real relation labels and preserves the full original ID only in details",async()=>{
  const clipboard={writeText:vi.fn().mockResolvedValue(undefined)};vi.stubGlobal("navigator",{...navigator,clipboard});
- show(<ResourceCollection operatorID="workspace" resource="agreements" embedded page={resource()} />);
+ show(<ResourceCollection operatorID="workspace" resource="operators" embedded page={resource()} />);
  expect(screen.getByText("云服务公司 · cloud@example.test")).toBeTruthy();
  expect(screen.getByText("渠道甲 · channel@example.test")).toBeTruthy();
  expect(screen.queryByText(rowID)).toBeNull();expect(screen.queryByText(supplierID)).toBeNull();
@@ -37,7 +37,7 @@ it("opens the same business explanation from a column title without requiring ho
 
 it("restores a chosen reference beyond the first result page and reviews its name while submitting the ID",async()=>{
  const fetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>init?.method==="POST"?response({id:rowID,status:"saved"}):response(String(input).includes(encodeURIComponent(supplierID))?{items:[{value:supplierID,label:"真实供货方 · legal@example.test"}]}:{items:[],next_cursor:"later"}));vi.stubGlobal("fetch",fetch);
- const op:Operation={name:"save",label:"保存约定",method:"POST",path:"/api/v1/operators/workspace/agreements",fields:[{name:"supplier_id",label:"供货方",kind:"text",required:true,lookup_url:"/api/v1/operators/workspace/references/suppliers"}]};
+ const op:Operation={name:"save",label:"保存约定",method:"POST",path:"/api/v1/operators/workspace/operators",fields:[{name:"supplier_id",label:"供货方",kind:"text",required:true,lookup_url:"/api/v1/operators/workspace/references/suppliers"}]};
  show(<OperationForm operation={op} operatorID="workspace" initialValues={{supplier_id:supplierID}} />);
  await screen.findByRole("option",{name:"真实供货方 · legal@example.test"});
  await waitFor(()=>expect(screen.getAllByText("真实供货方 · legal@example.test").length).toBeGreaterThan(1));

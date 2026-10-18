@@ -425,9 +425,6 @@ func humanRecordTitle(v gin.H, resource string, labels map[string]string) string
 	if name := humanString(v, "name", "display_name", "title", "filename", "hostname", "operator_name"); name != "" {
 		return name
 	}
-	if resource == "agreements" {
-		return "供货关系"
-	}
 	if name := readableIdentifier(humanString(v, "invoice_reference", "provider_receipt_id", "provider_case_id")); name != "" {
 		return name
 	}

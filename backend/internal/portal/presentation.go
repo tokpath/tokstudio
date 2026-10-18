@@ -175,7 +175,7 @@ var _ fmt.Stringer
 // equivalent to a database predicate before pagination. Bounded or paged sources
 // must declare their own capabilities only after applying predicates in SQL.
 func prepareResourceFilters(c *gin.Context, p gin.H, resource string) {
-	complete := c.Param("operatorId") != "" && contains([]string{"plans", "payment-methods", "operators", "agreements", "marketing", "commissions", "business-status", "staff", "catalog", "providers", "routes", "pricing", "coverage", "routing", "mail", "branding", "channel-themes", "domains", "risk", "alerts", "overview"}, resource)
+	complete := c.Param("operatorId") != "" && contains([]string{"plans", "payment-methods", "operators", "marketing", "commissions", "business-status", "staff", "catalog", "providers", "routes", "pricing", "coverage", "routing", "mail", "branding", "channel-themes", "domains", "risk", "alerts", "overview"}, resource)
 	if _, exists := p["search_supported"]; !exists {
 		p["search_supported"] = complete
 	}

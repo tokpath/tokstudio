@@ -25,10 +25,6 @@ func TestHumanRecordTitleUsesSavedNamesAndBusinessFacts(t *testing.T) {
 	if strings.Contains(title, internal) || !strings.Contains(title, "收款") || !strings.Contains(title, "2026-10-18") {
 		t.Fatal(title)
 	}
-	got := humanRecordTitle(gin.H{"supplier_id": "supplier", "buyer_id": "buyer"}, "agreements", map[string]string{"supplier": "上游公司 · OEM", "buyer": "渠道甲 · 渠道"})
-	if got != "供货关系" {
-		t.Fatal(got)
-	}
 }
 func TestPostgresHumanLabelsRespectExactServiceAndSupplyScopes(t *testing.T) {
 	f := setupPortal(t)

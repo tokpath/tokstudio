@@ -619,7 +619,7 @@ func TestPostgresPublicContextAndManagementActions(t *testing.T) {
 	f.openRegistration(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	scope := "/v1/operators/" + f.a.Installation.OperatorID
-	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "valuations", "pricing", "catalog-changes", "marketing", "commissions", "assets", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "agreements", "procurement", "alerts", "takeovers", "takeover-settlements", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "risk", "notifications", "business-status", "audit", "retention", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
+	for _, resource := range []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "valuations", "pricing", "catalog-changes", "marketing", "commissions", "assets", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "procurement", "alerts", "takeovers", "takeover-settlements", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "risk", "notifications", "business-status", "audit", "retention", "providers", "catalog", "routes", "requests", "jobs", "mail"} {
 		status, out, _ = f.call(t, "GET", scope+"/"+resource, nil, "")
 		mustOK(t, status, out)
 		if _, has := out["items"]; !has {

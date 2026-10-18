@@ -3,6 +3,7 @@ package organization
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -77,7 +78,7 @@ type ScopedCustomer struct {
 	Ownership Ownership `json:"ownership"`
 }
 
-func (s *Service) ListCustomersInScope(ctx context.Context, tx *gorm.DB, actor, operator string, limit int, cursor string) ([]ScopedCustomer, error) {
+func (s *Service) ListCustomersInScope(ctx context.Context, tx *gorm.DB, actor, operator string, limit int, cursor string, search ...string) ([]ScopedCustomer, error) {
 	if limit < 1 || limit > 100 || (cursor != "" && !validID(cursor)) {
 		return nil, ErrInvalidInput
 	}
@@ -86,6 +87,10 @@ func (s *Service) ListCustomersInScope(ctx context.Context, tx *gorm.DB, actor, 
 	}
 	var rows []ownershipRow
 	q := s.dbFor(ctx, tx).Where("operator_id=? AND ended_at IS NULL", operator).Order("customer_id").Limit(limit)
+	if len(search) > 0 && strings.TrimSpace(search[0]) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(search[0])) + "%"
+		q = q.Where(`customer_id IN (SELECT c.id FROM organization_customers c JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true WHERE c.display_name ILIKE ? OR i.email_normalized ILIKE ? OR c.id::text=?)`, term, term, strings.TrimSpace(search[0]))
+	}
 	if cursor != "" {
 		q = q.Where("customer_id>?", cursor)
 	}

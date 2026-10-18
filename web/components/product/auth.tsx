@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PublicContextSchema, RegistrationResultSchema, SessionSchema, CommandResultSchema } from "@/lib/contracts";
+import { operatorLanding } from "@/lib/navigation";
 import { request, setCSRFToken } from "@/lib/api-client";
 import { useProduct } from "./context";
 import { ErrorPanel, Heading, Notice, useCommand } from "./shared";
@@ -29,7 +30,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "verify" | "fo
   return <main className="mx-auto max-w-lg px-5 py-14"><Heading eyebrow={context?.brand.name} title={title} description={mode === "register" ? "正式注册完成后确定经营归属和邀请关系，请核对后再提交。" : "账号由当前品牌识别。客户与经营人员使用各自的登录权限。"} /><Card>
     <form className="space-y-5" onSubmit={async event => {
       event.preventDefault();
-      if (mode === "login") { const result = await login.run({ kind, email, password }); if (result && result.kind !== "anonymous") { queryClient.removeQueries({ predicate: query => !["public-context", "session"].includes(String(query.queryKey[0])) }); queryClient.setQueryData(["session"], result); setCSRFToken(result.csrf_token); } if (result?.kind === "customer") { const next = search.get("next"); router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/workspace"); } else if (result?.kind === "staff") router.push(`/manage/${result.active_operator_id || result.workspaces[0]?.operator.id || "unassigned"}/overview`); }
+      if (mode === "login") { const result = await login.run({ kind, email, password }); if (result && result.kind !== "anonymous") { queryClient.removeQueries({ predicate: query => !["public-context", "session"].includes(String(query.queryKey[0])) }); queryClient.setQueryData(["session"], result); setCSRFToken(result.csrf_token); } if (result?.kind === "customer") { const next = search.get("next"); router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/workspace"); } else if (result?.kind === "staff") router.push(result.workspaces.length ? operatorLanding(result.workspaces.find(item => item.operator.id === result.active_operator_id) || result.workspaces[0]) : "/login"); }
       if (mode === "register" && !invalidCode) await register.run({ email, password, display_name: name, ...(code ? { invite_code: code } : {}) });
       if (mode === "verify") await verify.run({ token });
       if (mode === "forgot") await forgot.run({ email });

@@ -13,6 +13,11 @@ func (a *Application) uploadLogo(c *gin.Context) {
 	if !ok {
 		return
 	}
+	targetOp, targetErr := a.brandingTarget(c, op)
+	if targetErr != nil {
+		handleError(c, targetErr)
+		return
+	}
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 3<<20)
 	if e := c.Request.ParseMultipartForm(3 << 20); e != nil {
 		handleError(c, branding.ErrInvalidInput)
@@ -30,9 +35,9 @@ func (a *Application) uploadLogo(c *gin.Context) {
 		handleError(c, branding.ErrInvalidInput)
 		return
 	}
-	scope, target := "brand", op.BrandID
-	if op.Kind == organization.Channel {
-		scope, target = "channel", op.ID
+	scope, target := "brand", targetOp.BrandID
+	if targetOp.Kind == organization.Channel {
+		scope, target = "channel", targetOp.ID
 	}
 	asset, e := a.Branding.UploadLogo(c.Request.Context(), branding.UploadLogoInput{ActorStaffID: actor, ScopeType: scope, ScopeID: target, Filename: header.Filename, ContentType: header.Header.Get("Content-Type"), Data: data})
 	if e != nil {

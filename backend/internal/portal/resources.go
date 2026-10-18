@@ -175,6 +175,9 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 		for _, w := range rows {
 			row := entity(w.ID, w.Status, 1, w)
 			row["allowed_actions"] = []string{}
+			if w.Status == "requested" {
+				row["allowed_actions"] = []string{"cancel"}
+			}
 			items = append(items, row)
 		}
 		var previews []withdrawalPreview
@@ -192,7 +195,7 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 			row["allowed_actions"] = []string{"confirm"}
 			items = append(items, row)
 		}
-		p["row_operations"] = []operation{{Name: "confirm", Label: "确认费用并提交", Method: "POST", Path: "/api/v1/me/withdrawals/quotes/{id}/confirm", Fields: []field{f("recipient_reference", "本人真实收款资料", "textarea")}, Confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。"}}
+		p["row_operations"] = []operation{{Name: "confirm", Label: "确认费用并提交", Method: "POST", Path: "/api/v1/me/withdrawals/quotes/{id}/confirm", Fields: []field{f("recipient_reference", "本人真实收款资料", "textarea")}, Confirmation: "确认当前行的总额、手续费和实付金额，提交后将占用本人可用佣金。"}, {Name: "cancel", Label: "取消提现申请", Method: "POST", Path: "/api/v1/me/withdrawals/{id}/cancel", Fields: []field{}, Description: "仅尚未审核的本人提现申请可以取消。", Confirmation: "确认取消这笔尚未审核的提现申请？取消成功后释放本笔佣金占用；已进入审核或付款环节的申请须按最新状态继续办理。"}}
 		p["title"] = "佣金提现"
 		p["items"] = items
 		p["columns"] = []gin.H{col("id", "提现申请", "text"), col("amount_usd", "总额", "usd"), col("fee_usd", "手续费", "usd"), col("net_usd", "实付", "usd"), col("status", "状态", "status")}
@@ -254,6 +257,9 @@ func (a *Application) customerWorkspace(c *gin.Context) {
 	a.resourceResponse(c, p)
 }
 func (a *Application) operatorRoutes(r *gin.RouterGroup) {
+	r.GET("/customer-context/:id", a.customerContext)
+	r.GET("/order-context/:id", a.orderContext)
+	r.POST("/order-context/:id/allocate", a.allocateOrderReceipt)
 	r.GET("/refunds/:id/destination", a.staffRefundDestination)
 	r.GET("/reports/financial", a.financialReport)
 	r.GET("/references/:reference", a.references)
@@ -298,7 +304,7 @@ func permissionFor(resource string) string {
 		return "providers.manage"
 	case "requests", "jobs", "mail":
 		return "platform.manage"
-	case "notifications", "alerts":
+	case "notifications", "alerts", "risk":
 		return "operations.manage"
 	case "exports":
 		return "reports.export"
@@ -306,7 +312,7 @@ func permissionFor(resource string) string {
 		return "invoices.manage"
 	case "reconciliation":
 		return "reports.view"
-	case "risk", "retention", "restrictions":
+	case "retention", "restrictions":
 		return "security.manage"
 	case "withdrawals":
 		return "withdrawals.manage"
@@ -334,7 +340,13 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 		}
 
 	}
-	if e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, permission); e != nil {
+	e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, permission)
+	// Finance may inspect exact orders to allocate receipts, without receiving
+	// permission to publish products or force delivery. Writes still use sales.manage.
+	if e != nil && resource == "orders" && c.Request.Method == "GET" {
+		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
+	}
+	if e != nil {
 		handleError(c, e)
 		return op, actor, false
 	}
@@ -397,7 +409,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.procurementResource(c, op, actor, p, base)
 		return
 	case "customers":
-		rows, e := a.Organization.ListCustomersInScope(ctx, nil, actor, op.ID, 51, c.Query("cursor"))
+		rows, e := a.Organization.ListCustomersInScope(ctx, nil, actor, op.ID, 51, c.Query("cursor"), c.Query("q"))
 		if e != nil {
 			handleError(c, e)
 			return
@@ -448,7 +460,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			items = append(items, entity(row.ID, row.Status, 1, row))
 		}
 		p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("due_usd", "应付", "usd"), col("external_allocated_usd", "外部已分配", "usd"), col("paid_atg", "购买权益", "atg"), col("created_at", "创建", "datetime")}
-		p["row_operations"] = []operation{{Name: "fulfill", Label: "重试交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}, Confirmation: "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。"}}
+		p["row_operations"] = []operation{{Name: "fulfill", Label: "重试交付", Permission: "sales.manage", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}, Confirmation: "核实原订单资金、覆盖及资格后重试，不能跳过付款条件。"}}
 	case "payment-methods":
 		rows, e := a.Payments.ListMerchantConfigs(ctx, actor, op.ID)
 		if e != nil {
@@ -519,6 +531,24 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		p["columns"] = []gin.H{col("name", "经营方", "text"), col("kind", "类型", "text"), col("legal_name", "经营主体", "text"), col("brand_id", "品牌", "text")}
 		p["operations"] = []operation{{Name: "create", Label: "建立 OEM / 渠道", Method: "POST", Path: base, Fields: []field{jsonField("kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。")}}}
+		if op.Kind == organization.OEM {
+			create := p["operations"].([]operation)[0]
+			create.Label = "建立直属渠道"
+			fields := businessFields(create)
+			create.Fields = []field{}
+			for _, input := range fields {
+				if input.Name == "brand_name" || input.Name == "api_base_url" {
+					continue
+				}
+				if input.Name == "kind" {
+					input = defaultField("kind", "合作类型", "hidden", "channel")
+				}
+				create.Fields = append(create.Fields, input)
+			}
+			p["operations"] = []operation{create}
+		} else if op.Kind == organization.Channel {
+			p["operations"] = []operation{}
+		}
 		p["row_operations"] = []operation{{Name: "invite_owner", Label: "邀请首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: []field{f("email", "负责人邮箱", "email"), {Name: "role", Label: "角色", Kind: "text", Required: true, Default: "owner"}}, Description: "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。"}}
 	case "agreements":
 		rows, e := a.Organization.ListSupplies(ctx, nil, actor, op.ID)
@@ -531,14 +561,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		p["columns"] = []gin.H{col("supplier_id", "供货方", "text"), col("buyer_id", "采购方", "text"), col("quote_reference", "供货条款", "text"), col("exit_terms_reference", "退出条款", "text")}
 	case "coverage":
-		row, e := a.Cooperation.Coverage(ctx, nil, op.ID, time.Now())
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		items = append(items, entity(op.ID, row.Status, 1, row))
-		p["columns"] = []gin.H{col("procurement_available", "可用采购库存", "atg"), col("required", "已承诺责任", "atg"), col("pending", "待交付责任", "atg"), col("oversell", "超卖额度", "atg"), col("space", "剩余空间", "atg"), col("warning_buffer", "预警缓冲", "atg")}
-		p["operations"] = []operation{{Name: "oversell", Label: "设置授权超卖与缓冲", Method: "POST", Path: base, Fields: []field{f("allowance", "超卖额度 ATG", "decimal"), f("warning", "预警缓冲 ATG", "decimal"), f("expected_version", "配置版本", "integer")}}}
+		a.coverageResource(c, op, base, p)
+		return
 	case "marketing":
 		rows, e := a.Incentives.CampaignsForOperator(ctx, nil, actor, op.ID)
 		if e != nil {
@@ -573,14 +597,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["columns"] = []gin.H{col("registration", "注册", "boolean"), col("new_purchase", "新购", "boolean"), col("renewal", "续费", "boolean"), col("model_usage", "调用", "boolean"), col("activity", "营销", "boolean"), col("settlement", "结算", "boolean")}
 		p["operations"] = []operation{{Name: "set", Label: "提交开业配置检查", Method: "POST", Path: base, Fields: []field{jsonField("feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version、evidence_reference；只有通过真实依赖检查才会开放。")}}}
 	case "branding", "channel-themes":
-		row, e := a.Branding.ResolveTheme(ctx, nil, op.BrandID, channelThemeID(op))
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		items = append(items, entity(op.ID, "active", row.BrandVersion, row.Theme))
-		p["columns"] = []gin.H{col("primary_color", "主色", "text"), col("background_color", "背景", "text"), col("text_color", "文本", "text"), col("logo_url", "Logo", "text"), col("support_url", "支持入口", "text")}
-		p["operations"] = []operation{{Name: "upload_logo", Label: "上传品牌Logo", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/branding/logo", Fields: []field{f("file", "Logo PNG/JPEG/WebP（不超过2MiB）", "file")}}, {Name: "theme", Label: "保存逐字段主题", Method: "POST", Path: base, Fields: []field{jsonField("expected_version、values{primary_color,background_color,text_color,logo_url,support_url}；null字段继承，空Logo明确移除。")}}, {Name: "domain", Label: "申请品牌域名验证", Method: "POST", Path: "/api/v1/operators/" + op.ID + "/domains", Fields: []field{f("hostname", "独立品牌域名", "text")}, Description: "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。"}}
+		a.brandingResource(c, op, actor, resource, base, p)
+		return
 	case "jobs":
 		a.jobsResource(c, p, base)
 		return
@@ -597,11 +615,29 @@ func (a *Application) operatorResource(c *gin.Context) {
 			return
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.Status, 1, row))
+			var person Staff
+			if e := a.DB.WithContext(ctx).Where("id=?", row.StaffID).Limit(1).Find(&person).Error; e != nil {
+				handleError(c, e)
+				return
+			}
+			var grants []string
+			if e := a.DB.WithContext(ctx).Table("organization_staff_grants").Where("membership_id=?", row.ID).Order("action").Pluck("action", &grants).Error; e != nil {
+				handleError(c, e)
+				return
+			}
+			v := values(row)
+			v["display_name"], v["email"] = person.DisplayName, person.Email
+			v["grants"] = strings.Join(grants, ",")
+			items = append(items, entity(row.ID, row.Status, 1, v))
 		}
-		p["columns"] = []gin.H{col("staff_id", "人员", "text"), col("role", "角色", "text"), col("status", "状态", "status")}
-		p["row_operations"] = []operation{{Name: "membership", Label: "调整当前成员角色", Method: "POST", Path: base + "/{id}/membership", Fields: []field{selectField("role", "角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读", "custom|明确自定义"), selectField("status", "成员状态", "active|启用", "suspended|停用"), optional("grants", "自定义权限（逗号分隔，仅限本人已有权限）", "text")}, Confirmation: "仅调整当前经营方成员；最后一位负责人不能被移除。"}}
-		p["operations"] = []operation{{Name: "invite", Label: "邮件邀请经营人员", Method: "POST", Path: base, Fields: []field{f("email", "邮箱", "email"), f("role", "角色 owner/operations/finance/support/readonly", "text")}}}
+		p["columns"] = []gin.H{col("display_name", "人员", "text"), col("email", "邮箱", "text"), col("staff_id", "人员编号", "text"), col("role", "角色", "text"), col("status", "状态", "status")}
+		grants, e := a.staffGrantField(c, actor, op)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		p["row_operations"] = []operation{{Name: "membership", Label: "调整当前成员角色", Method: "POST", Path: base + "/{id}/membership", Fields: []field{selectField("role", "角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读", "custom|明确自定义"), selectField("status", "成员状态", "active|启用", "suspended|停用"), grants}, Confirmation: "仅调整当前经营方成员；最后一位负责人不能被移除。"}}
+		p["operations"] = []operation{{Name: "invite", Label: "邮件邀请经营人员", Method: "POST", Path: base, Fields: []field{f("email", "邮箱", "email"), selectField("role", "受邀角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读")}}}
 	case "refunds":
 		a.refundStaffResource(c, op, actor, p, base)
 		return

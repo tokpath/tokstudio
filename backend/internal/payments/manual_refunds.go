@@ -26,6 +26,17 @@ func manualBankFactID(kind, account, reference string) string {
 	return "manual:bank:" + kind + ":" + fingerprint([]string{strings.TrimSpace(account), strings.TrimSpace(reference)})
 }
 
+// ClaimManualReceiptRefund gives a finance-verified, unlinked bank receipt the
+// same global transfer identity as merchant-linked refunds. It only reserves
+// ownership; the caller must independently verify the receipt and refund proof.
+func ClaimManualReceiptRefund(tx *gorm.DB, operator, refundID, account, reference string) (string, error) {
+	if tx == nil || operator == "" || refundID == "" || strings.TrimSpace(account) == "" || strings.TrimSpace(reference) == "" {
+		return "", ErrInvalid
+	}
+	id := manualBankFactID("refund", account, reference)
+	return id, bindRefundFact(tx, Merchant{OperatorID: operator}, Refund{ID: refundID}, Fact{ID: id})
+}
+
 // RecordManualRefund verifies scope, original-route identity and actual bank
 // evidence. Verified cash facts survive a business/FX settlement mismatch and
 // remain pending; no USD obligation is silently erased. Callers must durably

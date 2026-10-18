@@ -214,11 +214,20 @@ func (s *Service) RunNotifications(ctx context.Context, limit int) ([]Delivery, 
 		var msg mail.Message
 		callErr := s.open(j.MessageCiphertext, &msg)
 		suppressed := false
+		suppressionCode := "preference"
 		if callErr == nil {
 			// Preferences and the verified address can change while queued.
 			var n Notification
 			callErr = s.DB.WithContext(ctx).First(&n, "id=?", j.NotificationID).Error
-			if callErr == nil {
+			if callErr == nil && strings.HasPrefix(n.BusinessKey, restrictionReviewKey) {
+				var current bool
+				current, callErr = s.restrictionReviewCurrent(ctx, n)
+				if callErr == nil && !current {
+					suppressed = true
+					suppressionCode = "review_resolved_or_access_changed"
+				}
+			}
+			if callErr == nil && !suppressed {
 				recipient, resolveErr := s.self(ctx, s.DB, n.RecipientID, n.OperatorID)
 				callErr = resolveErr
 				pref := Preference{UsageEmail: true}
@@ -246,7 +255,7 @@ func (s *Service) RunNotifications(ctx context.Context, limit int) ([]Delivery, 
 		updates := map[string]any{"attempts": d.Attempts, "lease_until": nil, "error_code": ""}
 		if suppressed {
 			d.State = "suppressed"
-			updates["error_code"] = "preference"
+			updates["error_code"] = suppressionCode
 		} else if callErr == nil {
 			at := time.Now().UTC()
 			d.AcceptedAt = &at

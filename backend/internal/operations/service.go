@@ -53,6 +53,7 @@ type Service struct {
 	ProcurementInvoices ProcurementInvoiceSource
 	InvoiceStore        objectstore.BlobStore
 	Results             ResultRetention
+	Restrictions        RestrictionReviewDirectory
 }
 
 func (s *Service) within(ctx context.Context, tx *gorm.DB, fn func(*gorm.DB) error) error {

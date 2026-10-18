@@ -80,6 +80,11 @@ func (a *Application) cancelWithdrawal(c *gin.Context) {
 	c.JSON(200, commandResult(c.Param("id"), "cancelled"))
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+	var policy incentives.WithdrawalPolicy
+	if e := a.DB.WithContext(c.Request.Context()).Table("incentives_withdrawal_policies").Where("operator_id=?", op.ID).Order("version DESC").Limit(1).Find(&policy).Error; e != nil {
+		handleError(c, e)
+		return
+	}
 	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50)
 	if e != nil {
 		handleError(c, e)
@@ -88,15 +93,7 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	items := []any{}
 	for _, w := range rows {
 		row := entity(w.ID, w.Status, 1, w)
-		actions := []string{}
-		switch w.Status {
-		case "requested":
-			actions = []string{"approve", "fail"}
-		case "approved":
-			actions = []string{"begin_payment", "fail"}
-		case "paying", "unknown":
-			actions = []string{"unknown", "verify_paid", "fail"}
-		}
+		actions := withdrawalAllowedActions(w.Status)
 		row["allowed_actions"] = actions
 		items = append(items, row)
 	}
@@ -104,8 +101,24 @@ func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Op
 	p["items"] = items
 	p["next_cursor"] = next
 	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("amount_usd", "总额", "usd"), col("fee_usd", "手续费", "usd"), col("net_usd", "实付", "usd"), col("recipient_reference", "收款资料", "text"), col("status", "状态", "status")}
-	p["operations"] = []operation{{Name: "policy", Label: "发布提现规则", Method: "POST", Path: base, Fields: []field{jsonField("minimum_usd、flat_fee_usd、fee_rate、requires_dual_approval、method_reference、expected_version")}}}
-	p["row_operations"] = []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: []field{jsonField("payment_reference、evidence、currency、original_amount、valuation_evidence、paid_usd；必须是本次真实付款事实。")}, Confirmation: "确认真实付款凭证与USD净额一致后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
+	minimum := f("configuration.minimum_usd", "最低提现 USD", "decimal")
+	method := f("configuration.method_reference", "对客户公示付款方式规则", "text")
+	if policy.Version > 0 {
+		minimum.Default = policy.MinimumUSD
+		method.Default = policy.MethodReference
+	}
+	// Policy CAS belongs to the policy itself, independently of the first
+	// withdrawal row. Explicit nested fields retain their real defaults through
+	// the generic resource presenter and decodeConfiguration reads this object.
+	p["operations"] = []operation{{Name: "policy", Label: "发布提现规则", Method: "POST", Path: base, Fields: []field{
+		minimum,
+		defaultField("configuration.flat_fee_usd", "固定手续费 USD", "decimal", policy.FlatFeeUSD),
+		defaultField("configuration.fee_rate", "手续费比例（0到1）", "decimal", policy.FeeRate),
+		defaultField("configuration.requires_dual_approval", "必须双人审批付款", "boolean", policy.RequiresDualApproval),
+		method,
+		defaultField("configuration.expected_version", "当前规则版本", "hidden", policy.Version),
+	}}}
+	p["row_operations"] = withdrawalRowOperations(base)
 	a.resourceResponse(c, p)
 }
 func (a *Application) withdrawalStaffCommand(c *gin.Context, op organization.Operator, actor string) {
@@ -181,4 +194,21 @@ func (a *Application) withdrawalStaffAction(c *gin.Context, op organization.Oper
 		status = "updated"
 	}
 	c.JSON(200, commandResult(c.Param("id"), status))
+}
+
+func withdrawalRowOperations(base string) []operation {
+	return []operation{{Name: "approve", Label: "审批", Method: "POST", Path: base + "/{id}/approve", Fields: []field{}, Confirmation: "确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。"}, {Name: "begin_payment", Label: "登记开始真实付款", Method: "POST", Path: base + "/{id}/begin_payment", Fields: []field{}, Confirmation: "将保存付款意图，未知结果不得再次盲目付款。"}, {Name: "unknown", Label: "标记付款结果未知", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "查询与不确定性依据", "textarea")}}, {Name: "verify_paid", Label: "登记已核实实际付款", Method: "POST", Path: base + "/{id}/verify_paid", Fields: []field{jsonField("payment_reference、evidence、currency、original_amount、valuation_evidence、paid_usd；必须是本次真实付款事实。")}, Confirmation: "确认真实付款凭证与USD净额一致后释放占用并完成账务。"}, {Name: "fail", Label: "确认未付并终止", Method: "POST", Path: base + "/{id}/fail", Fields: []field{f("evidence", "已核实未付款依据", "textarea"), f("verified_unpaid", "已核实未付", "boolean")}, Confirmation: "未知结果不能终止并再次付款。"}}
+}
+
+func withdrawalAllowedActions(status string) []string {
+	actions := []string{}
+	switch status {
+	case "requested":
+		actions = []string{"approve", "fail"}
+	case "approved":
+		actions = []string{"begin_payment", "fail"}
+	case "paying", "unknown":
+		actions = []string{"unknown", "verify_paid", "fail"}
+	}
+	return actions
 }

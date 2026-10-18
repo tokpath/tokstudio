@@ -38,6 +38,7 @@ type ProcurementExitRefund struct {
 	BusinessKey        string          `json:"business_key"`
 	Fingerprint        string          `json:"-"`
 	ReceiptID          string          `json:"receipt_id"`
+	SourceKind         string          `json:"source_kind" gorm:"default:payment"`
 	MerchantID         string          `json:"merchant_id"`
 	OriginOrderID      string          `json:"origin_order_id"`
 	AmountUSD          ledger.Decimal  `json:"amount_usd"`
@@ -119,8 +120,16 @@ func (p *ProcurementRefunds) PrepareRefund(ctx context.Context, actor, exitID, r
 			}
 			return nil
 		}
-		source, e := p.Payments.PaymentSourceForReceipt(ctx, exit.SupplierID, receiptID)
-		if e != nil {
+		service := *p.Payments
+		service.DB = t
+		source, e := service.PaymentSourceForReceipt(ctx, exit.SupplierID, receiptID)
+		sourceKind := "payment"
+		if errors.Is(e, gorm.ErrRecordNotFound) {
+			if _, e = p.manualReceipt(ctx, t, exit.SupplierID, receiptID); e != nil {
+				return e
+			}
+			sourceKind = "manual_receipt"
+		} else if e != nil {
 			return e
 		}
 		var removal ProcurementRemoval
@@ -178,7 +187,10 @@ func (p *ProcurementRefunds) PrepareRefund(ctx context.Context, actor, exitID, r
 		if e != nil {
 			return e
 		}
-		out = ProcurementExitRefund{ID: id, ExitID: exitID, BuyerID: exit.BuyerID, SupplierID: exit.SupplierID, BusinessKey: key, Fingerprint: fp, ReceiptID: receiptID, MerchantID: source.MerchantID, OriginOrderID: source.OriginalOrder.ID, AmountUSD: amount, HoldID: hold.ID, State: "prepared", CreatedBy: actor, CreatedAt: now}
+		out = ProcurementExitRefund{ID: id, ExitID: exitID, BuyerID: exit.BuyerID, SupplierID: exit.SupplierID, BusinessKey: key, Fingerprint: fp, ReceiptID: receiptID, SourceKind: sourceKind, MerchantID: source.MerchantID, OriginOrderID: source.OriginalOrder.ID, AmountUSD: amount, HoldID: hold.ID, State: "prepared", CreatedBy: actor, CreatedAt: now}
+		if sourceKind == "manual_receipt" {
+			return t.Omit("MerchantID").Create(&out).Error
+		}
 		return t.Create(&out).Error
 	})
 	return out, e
@@ -242,6 +254,9 @@ func (p *ProcurementRefunds) Execute(ctx context.Context, actor, id string, mone
 	if e := p.Cooperation.DB.WithContext(ctx).First(&leg, "id=?", id).Error; e != nil {
 		return payments.RefundStatus{}, e
 	}
+	if leg.SourceKind == "manual_receipt" {
+		return payments.RefundStatus{}, payments.ErrUnsupported
+	}
 	source, e := p.Payments.PaymentSourceForReceipt(ctx, leg.SupplierID, leg.ReceiptID)
 	if e != nil {
 		return payments.RefundStatus{}, e
@@ -270,6 +285,9 @@ func (p *ProcurementRefunds) Run(ctx context.Context, limit int) ([]ProcurementE
 	for _, leg := range legs {
 		if e := p.Cooperation.DB.WithContext(ctx).Model(&ProcurementExitRefund{}).Where("id=?", leg.ID).Update("last_checked_at", gorm.Expr("clock_timestamp()")).Error; e != nil {
 			return legs, e
+		}
+		if leg.SourceKind == "manual_receipt" && leg.MerchantID == "" {
+			continue
 		}
 		work, cancel := context.WithTimeout(ctx, 25*time.Second)
 		executions, e := service.RefundExecutions(work, leg.SupplierID, leg.MerchantID, leg.ID)

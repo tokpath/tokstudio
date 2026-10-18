@@ -34,12 +34,13 @@ func TestExternalProcurementExitRefundSharesReceiptCapacity(t *testing.T) {
 	if base == "" {
 		t.Skip("independent payment HTTP lab required")
 	}
-	for _, mode := range []string{"stripe", "manual", "manual_mismatch", "stripe_disputed_before_submission", "manual_disputed_before_instruction", "manual_disputed_after_instruction"} {
+	for _, mode := range []string{"stripe", "manual", "manual_mismatch", "stripe_disputed_before_submission", "manual_disputed_before_instruction", "manual_disputed_after_instruction", "manual_unlinked", "manual_unlinked_mismatch", "manual_unlinked_disputed_before_instruction", "manual_unlinked_disputed_after_instruction", "manual_unlinked_settlement_retry"} {
 		t.Run(mode, func(t *testing.T) { testProcurementExitRefund(t, base, mode) })
 	}
 }
 func testProcurementExitRefund(t *testing.T, base, mode string) {
 	isStripe := strings.HasPrefix(mode, "stripe")
+	unlinked := strings.HasPrefix(mode, "manual_unlinked")
 	db := dbtest.New(t)
 	apply := func(_ string, files fs.FS) {
 		t.Helper()
@@ -115,7 +116,10 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	}
 	now := time.Now().UTC()
 	externalOrder := payments.Order{ID: order.ID, OperatorID: supplier, MerchantID: m.ID, Money: payments.Money{Currency: "USD", Amount: order.DueUSD}, Valuation: payments.Valuation{ID: "native-usd", Currency: "USD", USDPerUnit: ledger.FromInt64(1), Source: "native_usd", EffectiveAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)}, AcceptedAt: now, ExpiresAt: order.ExpiresAt}
-	checkout, e := pay.Create(ctx, supplier, m.ID, externalOrder)
+	var checkout payments.Checkout
+	if !unlinked {
+		checkout, e = pay.Create(ctx, supplier, m.ID, externalOrder)
+	}
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -131,7 +135,16 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 			t.Fatalf("external control status %d", r.StatusCode)
 		}
 	}
-	if isStripe {
+	receiptID := ""
+	if unlinked {
+		zero := ledger.Zero()
+		net := order.DueUSD
+		receipt, err := collector.RecordManualReceipt(ctx, nil, owner, commerce.VerifiedReceipt{OperatorID: supplier, ProviderReceiptID: "generic-bank-" + order.ID, GrossUSD: order.DueUSD, NetUSD: &net, FeeUSD: &zero, FeeStatus: "confirmed", Currency: "USD", OriginalAmount: order.DueUSD.String(), RecipientReference: "bank:supplier-account", PayerReference: "bank:original-buyer", ValuationEvidence: "native USD", VerificationEvidence: "independently verified bank statement", PaidAt: &now, ObservedAt: now, SettledAt: &now})
+		if err != nil {
+			t.Fatal(err)
+		}
+		receiptID = receipt.ID
+	} else if isStripe {
 		control("/__control/payments/"+checkout.ProviderID+"/settle", map[string]any{})
 		if _, e = pay.Reconcile(ctx, supplier, m.ID, order.ID); e != nil {
 			t.Fatal(e)
@@ -141,11 +154,13 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 			t.Fatal(e)
 		}
 	}
-	links, e := pay.ReceiptsForOrder(ctx, supplier, m.ID, order.ID)
-	if e != nil || len(links) != 1 {
-		t.Fatal("verified original receipt missing", e)
+	if !unlinked {
+		links, e := pay.ReceiptsForOrder(ctx, supplier, m.ID, order.ID)
+		if e != nil || len(links) != 1 {
+			t.Fatal("verified original receipt missing", e)
+		}
+		receiptID = links[0].ReceiptID
 	}
-	receiptID := links[0].ReceiptID
 	e = db.Transaction(func(tx *gorm.DB) error {
 		if _, e := coop.ApplyVerifiedPurchaseReceipt(ctx, tx, collector, order.ID, receiptID, "original", order.DueUSD); e != nil {
 			return e
@@ -181,6 +196,12 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	if views, err := refunds.BuyerRefundLegs(ctx, owner, buyer); err != nil || len(views) != 1 || views[0].AmountUSD.String() != "10" {
+		t.Fatalf("buyer refund projection failed: %+v %v", views, err)
+	}
+	if unlinked && (leg.SourceKind != "manual_receipt" || leg.MerchantID != "") {
+		t.Fatal("offline receipt invented a merchant", leg)
+	}
 	if e = db.Transaction(func(tx *gorm.DB) error {
 		return capacity.ReserveReceiptRefund(ctx, tx, supplier, receiptID, uuid.NewString(), ledger.FromInt64(1))
 	}); e == nil {
@@ -212,7 +233,7 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		if _, e = refunds.BeginManualRefund(ctx, owner, leg.ID, "approved-bank-transfer", "finance-authorized-original-route"); e != nil {
 			t.Fatal(e)
 		}
-		if mode == "manual_disputed_after_instruction" {
+		if strings.HasSuffix(mode, "disputed_after_instruction") {
 			dispute()
 		}
 		proof := payments.ManualRefundVerification{ReceiptID: receiptID, ExternalReference: "bank-refund-" + leg.ID, Money: payments.Money{Currency: "USD", Amount: ledger.FromInt64(10)}, ExecutedAt: time.Now().UTC(), EvidenceReference: "bank-statement:verified-refund", RecipientReference: "bank:wrong-payee"}
@@ -220,16 +241,45 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 			t.Fatal("manual refund to unrelated payee accepted")
 		}
 		proof.RecipientReference = "bank:original-buyer"
-		if mode == "manual_mismatch" {
+		if strings.HasSuffix(mode, "mismatch") {
 			proof.Money.Amount = ledger.FromInt64(9)
 		}
+		if mode == "manual_unlinked_settlement_retry" {
+			observe := refunds.ObserveReceiptRefund
+			refunds.ObserveReceiptRefund = func(context.Context, *gorm.DB, string, string, string, string, ledger.Decimal) error {
+				return errors.New("synthetic accounting outage after actual bank verification")
+			}
+			pending, err := refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, "")
+			if err == nil || pending.State != "verified_pending_settlement" {
+				t.Fatalf("actual fact was not retained on accounting outage: %+v %v", pending, err)
+			}
+			var facts int64
+			if e := db.Table("cooperation_manual_receipt_refund_facts").Count(&facts).Error; e != nil || facts != 1 {
+				t.Fatalf("actual fact missing: %d %v", facts, e)
+			}
+			if _, e := refunds.BeginManualRefund(ctx, owner, leg.ID, "replacement-unresolved", "cannot replace unresolved payment"); e == nil {
+				t.Fatal("unsettled cash fact allowed a second instruction")
+			}
+			if _, e := refunds.RecordManualRefundFailure(ctx, owner, supplier, leg.ID, cooperation.ManualRefundFailureInput{BusinessKey: "wrong-failure", ExpectedExecutionKey: "approved-bank-transfer", Result: "failed", ExternalReference: "proof", NoFurtherPaymentReference: "proof", Evidence: "proof", VerifiedAt: time.Now().UTC()}); e == nil {
+				t.Fatal("known actual payment was declared failed")
+			}
+			current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
+			if e != nil || current.ReservedUSD.String() != "10" || !current.CompletedUSD.IsZero() {
+				t.Fatal("unsettled fact released reserved funds", current, e)
+			}
+			refunds.ObserveReceiptRefund = observe
+		}
 		result, callErr := refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, "")
-		if mode == "manual_mismatch" {
+		if strings.HasSuffix(mode, "mismatch") {
 			if !errors.Is(callErr, cooperation.ErrRefundFX) || result.State != "verified_pending_settlement" {
 				t.Fatalf("manual mismatch result=%+v %v", result, callErr)
 			}
 			var facts int64
-			if e = db.Table("payments_verified_facts").Where("kind='refund'").Count(&facts).Error; e != nil || facts != 1 {
+			factQuery := db.Table("payments_verified_facts").Where("kind='refund'")
+			if unlinked {
+				factQuery = db.Table("cooperation_manual_receipt_refund_facts")
+			}
+			if e = factQuery.Count(&facts).Error; e != nil || facts != 1 {
 				t.Fatalf("actual bank refund fact was lost: %d %v", facts, e)
 			}
 			current, e := capacity.ReceiptRefundCapacity(ctx, nil, supplier, receiptID)
@@ -256,6 +306,13 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 		}
 		if _, e = refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, ""); e != nil {
 			t.Fatal("same manual proof did not replay", e)
+		}
+		if unlinked {
+			changed := proof
+			changed.Money.Amount = ledger.FromInt64(9)
+			if _, e := refunds.RecordManualRefund(ctx, owner, leg.ID, changed, payments.Valuation{}, time.Time{}, ""); e == nil {
+				t.Fatal("same actual bank fact accepted changed amount")
+			}
 		}
 		proof.ExternalReference = "different-bank-refund"
 		if _, e = refunds.RecordManualRefund(ctx, owner, leg.ID, proof, payments.Valuation{}, time.Time{}, ""); e == nil {

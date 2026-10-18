@@ -1,0 +1,1 @@
+CREATE INDEX organization_scope_freezes_review_due ON organization_scope_freezes(review_due_at,scope_kind,scope_id,action) WHERE enabled;

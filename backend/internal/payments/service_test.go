@@ -128,8 +128,12 @@ func TestPaymentMerchantEncryptionManualFactsAndAtomicSink(t *testing.T) {
 		t.Fatal("stale merchant overwrite")
 	}
 	o := paymentTestOrder(m, "USD")
-	if _, e = s.Create(context.Background(), m.OperatorID, m.ID, o); e != nil {
+	checkout, e := s.Create(context.Background(), m.OperatorID, m.ID, o)
+	if e != nil {
 		t.Fatal(e)
+	}
+	if checkout.PaymentAddress != m.Credentials["recipient_reference"] || checkout.Instructions != m.Credentials["instructions"] || checkout.PayMoney == nil || checkout.PayMoney.Currency != "USD" {
+		t.Fatal("manual checkout lost its recipient, instructions or original currency", checkout)
 	}
 	verification := ManualVerification{ExternalReference: "bank-transfer-1", Money: o.Money, PaidAt: time.Now().UTC(), EvidenceReference: "private-object:bank-statement", PayerReference: "bank:payer-account"}
 	if _, e = s.RecordManual(context.Background(), "customer", m.OperatorID, m.ID, o.ID, verification); !errors.Is(e, ErrForbidden) {

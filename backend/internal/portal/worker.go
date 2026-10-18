@@ -92,7 +92,7 @@ func (a *Application) DiscoverWorkerTasks(ctx context.Context) error {
 	}
 	next := ""
 	for _, op := range operators {
-		for _, kind := range []string{"risks", "invoice_review"} {
+		for _, kind := range []string{"risks", "restriction_reviews", "invoice_review"} {
 			if e = a.schedule(ctx, kind, op.ID, workerPayload{OperatorID: op.ID}, time.Minute); e != nil {
 				return e
 			}
@@ -315,6 +315,9 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		})
 	case "risks":
 		_, e := a.Operations.RunRisks(ctx, p.OperatorID)
+		return e
+	case "restriction_reviews":
+		_, e := a.Operations.RunRestrictionReviews(ctx, p.OperatorID)
 		return e
 	case "invoice_review":
 		_, e := a.Operations.ReviewInvoices(ctx, p.OperatorID, 50)

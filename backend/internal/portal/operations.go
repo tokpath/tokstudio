@@ -91,7 +91,7 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 	op, customer := id.Customer.Ownership.OperatorID, id.Customer.Customer.ID
 	switch resource {
 	case "invoices":
-		rows, next, e := a.Operations.ListCustomerInvoices(ctx, customer, c.Query("cursor"), 50)
+		rows, next, e := a.Operations.ListCustomerInvoices(ctx, customer, c.Query("cursor"), 50, c.Query("q"))
 		if e != nil {
 			handleError(c, e)
 			return true
@@ -188,21 +188,13 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 			}
 			items = append(items, entity(row.ID, row.State, 1, v))
 		}
-		p["columns"] = []gin.H{col("kind", "类型", "text"), col("state", "状态", "status"), col("record_count", "记录数", "text"), col("expires_at", "失效", "datetime"), col("download_url", "私有下载地址", "link")}
+		p["columns"] = []gin.H{col("kind", "类型", "text"), col("state", "状态", "status"), col("row_count", "记录数", "text"), col("expires_at", "失效", "datetime"), col("download_url", "私有下载地址", "link")}
 		p["operations"] = []operation{{Name: "export", Label: "创建私有导出", Method: "POST", Path: base, Fields: []field{jsonField("kind(ledger/requests/procurement)、owner_id(可选)、from、to；选择有限时间范围。")}}}
 	case "risk", "alerts":
-		rows, e := a.Operations.ListRisks(ctx, actor, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		for _, row := range rows {
-			items = append(items, entity(row.RuleID, row.Status, 1, row))
-		}
-		p["columns"] = []gin.H{col("rule_id", "风险规则", "text"), col("metric", "指标", "text"), col("value", "当前值", "decimal"), col("level", "等级", "status"), col("observed_at", "检查时间", "datetime")}
-		p["operations"] = []operation{{Name: "risk_rule", Label: "保存风险阈值", Method: "POST", Path: base, Fields: []field{jsonField("id、metric、warning、critical、direction、enabled、expected_version；只使用领域公开可核实指标。")}}}
+		a.riskWorkspace(c, op, actor, resource, base, p)
+		return true
 	case "invoices":
-		rows, e := a.Operations.ListInvoices(ctx, actor, op.ID, false)
+		rows, e := a.Operations.ListInvoices(ctx, actor, op.ID, false, c.Query("q"))
 		if e != nil {
 			handleError(c, e)
 			return true
@@ -323,12 +315,11 @@ func (a *Application) operatorOperationsCommand(c *gin.Context, op organization.
 			return true
 		}
 		in.OperatorID = op.ID
-		out, e := a.Operations.SaveRiskRule(ctx, actor, in.RiskRule, in.ExpectedVersion)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		c.JSON(200, gin.H{"id": out.ID, "status": "saved", "version": out.Version})
+		result, e := a.command(c, "risk-rule:"+op.ID, in, func(tx *gorm.DB) (any, error) {
+			out, e := a.Operations.SaveRiskRuleTx(ctx, tx, actor, in.RiskRule, in.ExpectedVersion)
+			return gin.H{"id": out.ID, "status": "saved", "version": out.Version}, e
+		})
+		jsonResponse(c, result, e)
 		return true
 	}
 	return false

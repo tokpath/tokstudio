@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	appcrypto "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"gorm.io/gorm"
@@ -130,7 +131,23 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 		if q.PriceUSD.Cmp(a.SingleLimitUSD) > 0 || q.SupplierID != a.SupplierID {
 			return ErrReplenishment
 		}
+		var old ReplenishmentAuthorization
+		found := t.Where("buyer_id=?", a.BuyerID).Limit(1).Find(&old)
+		if found.Error != nil {
+			return found.Error
+		}
+		if (found.RowsAffected == 0 && in.ExpectedVersion != 0) || (found.RowsAffected > 0 && old.Version != in.ExpectedVersion) {
+			return ErrConflict
+		}
+		if (old.ID != "" && a.ID != old.ID) || (old.ID == "" && a.ID != "") {
+			return organization.ErrForbidden
+		}
 		if a.Mode == "automatic" {
+			if old.ID != "" && old.Mode == "automatic" && old.SupplierID == a.SupplierID && old.MerchantID != nil && a.MerchantID != nil && *old.MerchantID == *a.MerchantID && in.Payment.PaymentMethod == "" && in.Payment.CustomerRef == "" {
+				if e := r.open(old.PaymentCiphertext, &in.Payment); e != nil {
+					return e
+				}
+			}
 			if a.MerchantID == nil || !strings.HasPrefix(in.Payment.PaymentMethod, "pm_") || !strings.HasPrefix(in.Payment.CustomerRef, "cus_") {
 				return ErrReplenishment
 			}
@@ -144,14 +161,6 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 		} else {
 			a.MerchantID = nil
 			in.Payment = ReplenishmentPayment{}
-		}
-		var old ReplenishmentAuthorization
-		found := t.Where("buyer_id=?", a.BuyerID).Limit(1).Find(&old)
-		if found.Error != nil {
-			return found.Error
-		}
-		if (found.RowsAffected == 0 && in.ExpectedVersion != 0) || (found.RowsAffected > 0 && old.Version != in.ExpectedVersion) {
-			return ErrConflict
 		}
 		a.ID = old.ID
 		if a.ID == "" {

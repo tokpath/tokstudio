@@ -61,8 +61,15 @@ func (p *ProcurementRefunds) recordRefundObservation(ctx context.Context, tx *go
 	} else if m.ID != leg.MerchantID || o.ID != leg.OriginOrderID {
 		return ErrRefundFX
 	}
+	return p.applyRefundObservation(ctx, tx, leg, f, value)
+}
+
+// applyRefundObservation is shared accounting after either adapter verification
+// or independent finance verification of an unlinked manual receipt. Callers
+// persist the actual transfer evidence before this accounting savepoint.
+func (p *ProcurementRefunds) applyRefundObservation(ctx context.Context, tx *gorm.DB, leg ProcurementExitRefund, f payments.Fact, value payments.USDValue) error {
 	var old ProcurementRefundObservation
-	q = tx.Where("fact_id=?", f.ID).Limit(1).Find(&old)
+	q := tx.Where("fact_id=?", f.ID).Limit(1).Find(&old)
 	if q.Error != nil {
 		return q.Error
 	}

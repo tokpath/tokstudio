@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"gorm.io/gorm"
+	"strings"
 )
 
 // ListCustomerInvoices is an authenticated self-query. The caller supplies the
 // stable customer identity from its verified session, never from request data.
 // A change of service merchant does not transfer the original legal issuer.
-func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor string, limit int) ([]Invoice, string, error) {
+func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor string, limit int, search ...string) ([]Invoice, string, error) {
 	if !validID(customer) || limit < 1 || limit > 100 {
 		return nil, "", ErrInvalid
 	}
@@ -27,7 +28,7 @@ func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor str
 		if cursor != "" {
 			q = q.Where("(created_at,id)<(?,?)", c.At, c.ID)
 		}
-		return q.Order("created_at DESC,id DESC").Limit(limit + 1).Find(&rows).Error
+		return invoiceSearch(q, search).Order("created_at DESC,id DESC").Limit(limit + 1).Find(&rows).Error
 	})
 	if e != nil {
 		return nil, "", e
@@ -40,6 +41,22 @@ func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor str
 		next = base64.RawURLEncoding.EncodeToString(raw)
 	}
 	return rows, next, nil
+}
+
+// Search runs inside the authenticated issuer/customer scope and before the
+// page limit. strpos treats a user's % and _ as literal text, never wildcards.
+func invoiceSearch(q *gorm.DB, search []string) *gorm.DB {
+	if len(search) == 0 {
+		return q
+	}
+	term := strings.ToLower(strings.TrimSpace(search[0]))
+	if term == "" {
+		return q
+	}
+	return q.Where(`(strpos(lower(CAST(operations_invoices.id AS text)), ?) > 0
+		OR strpos(lower(COALESCE(invoice_reference,'')), ?) > 0
+		OR strpos(lower(COALESCE(evidence_reference,'')), ?) > 0
+		OR EXISTS (SELECT 1 FROM operations_invoice_sources src WHERE src.invoice_id=operations_invoices.id AND strpos(lower(CAST(src.receipt_id AS text)), ?) > 0))`, term, term, term, term)
 }
 
 // RequestHistoricalInvoice proves the original paid customer/issuer relationship

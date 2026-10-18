@@ -45,6 +45,10 @@ func (RiskState) TableName() string { return "operations_risk_states" }
 var riskMetrics = map[string]bool{"sales_space_atg": true, "procurement_available_atg": true, "oversell_used_atg": true, "pending_usage": true, "unverified_costs": true}
 
 func (s *Service) SaveRiskRule(ctx context.Context, actor string, r RiskRule, expected int64) (RiskRule, error) {
+	return s.SaveRiskRuleTx(ctx, nil, actor, r, expected)
+}
+
+func (s *Service) SaveRiskRuleTx(ctx context.Context, tx *gorm.DB, actor string, r RiskRule, expected int64) (RiskRule, error) {
 	if r.ID == "" || len(r.ID) > 100 || !riskMetrics[r.Metric] || r.ReminderSeconds < 60 || r.ReminderSeconds > 86400*30 || r.EscalateSeconds < 60 || r.EscalateSeconds > 86400*30 || !r.Warning.Valid() || !r.Critical.Valid() {
 		return r, ErrInvalid
 	}
@@ -56,7 +60,7 @@ func (s *Service) SaveRiskRule(ctx context.Context, actor string, r RiskRule, ex
 	if json.Unmarshal(r.Recipients, &recipients) != nil || json.Unmarshal(r.EscalationRecipients, &escalation) != nil || len(recipients) == 0 || len(recipients) > 50 || len(escalation) > 50 {
 		return r, ErrInvalid
 	}
-	e := s.within(ctx, nil, func(t *gorm.DB) error {
+	e := s.within(ctx, tx, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, r.OperatorID, "operations.manage"); e != nil {
 			return e
 		}
@@ -96,8 +100,10 @@ func (s *Service) ListRiskRules(ctx context.Context, actor, operator string) ([]
 func (s *Service) ListRisks(ctx context.Context, actor, operator string) ([]RiskState, error) {
 	out := []RiskState{}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
-		if e := s.require(ctx, t, actor, operator, "reports.view"); e != nil {
-			return e
+		if e := s.require(ctx, t, actor, operator, "operations.manage"); e != nil {
+			if e = s.require(ctx, t, actor, operator, "reports.view"); e != nil {
+				return e
+			}
 		}
 		return t.Where("operator_id=?", operator).Order("rule_id").Find(&out).Error
 	})

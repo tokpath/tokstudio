@@ -2,7 +2,7 @@
 
 TokenHub 为平台、OEM 和渠道提供独立经营系统，为终端客户提供一个品牌入口、多模型调用和通用 ATG 额度。业务以[产品说明书](docs/product-spec/TokenHub产品说明书.md)、[业务案例与验收标准](docs/product-spec/TokenHub关键业务案例与验收标准.md)为准，实施以[重构方案](docs/product-spec/TokenHub重构实施方案.md)为准。
 
-本轮直接在 `release/v0.1.0` 重构，范围包含全部已确认功能。旧业务模块与旧数据没有兼容路径。本轮代码重构和本地集成验证已完成，用户已授权提交推送；发布仍须单独授权。实现范围、实际证据、浏览器覆盖边界及真实外部账户的启用条件见[实施记录](docs/product-spec/实施记录.md)。
+本轮直接在 `release/v0.1.0` 重构，范围包含全部已确认功能。旧业务模块与旧数据没有兼容路径。业务与前端重构、多角色仿真及本地集成验证已完成；用户于 2026-10-18 授权提交、推送并部署至现有测试环境。实现范围、实际证据、浏览器覆盖边界及真实外部账户的启用条件见[实施记录](docs/product-spec/实施记录.md)。
 
 ## 运行结构
 
@@ -64,6 +64,6 @@ cd web && npm run build && npx playwright test
 
 ## 部署边界
 
-普通 push 只运行 CI，不发布。预览部署必须人工运行 `deploy-token`，选择 `release/v0.1.0` 中通过 CI 的完整提交 SHA，输入 `DEPLOY_TEST`，经 `tokenhub-test` Environment 门槛后部署该精确提交。部署仓库路径为 `/root/workspace/tokstudio`，目标预览主机名为 `test.tokpath.com`。本轮已获提交推送授权，不包含发布。
+普通 push 只运行 CI，不发布。预览部署必须人工运行 `deploy-token`，选择 `release/v0.1.0` 中通过 CI 的完整提交 SHA，输入 `DEPLOY_TEST`，经 `tokenhub-test` Environment 门槛后部署该精确提交。部署仓库路径为 `/root/workspace/tokstudio`，目标预览主机名为 `test.tokpath.com`。2026-10-18 本轮发布已获授权，仍须遵守上述提交和 CI 门槛。
 
 部署前准备新库、加密密钥、初始负责人、邮件、对象存储和备份密钥；运行 `make assert-deploy` 检查隔离约定。资金参数、上游供应商和商户配置通过各自经营权限管理，不能通过运维 SQL 直接改钱。凭据不进入 Git、日志、导出或通知。

@@ -32,6 +32,15 @@ func (s *Service) CustomerAssetSummary(ctx context.Context, tx *gorm.DB, operato
 		return result, ErrScope
 	}
 	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		// Delivery and invocation use the database clock. A live balance must
+		// use the same clock, even when an API host is a little ahead/behind.
+		// An explicit time remains available for historical/domain queries.
+		if at.IsZero() {
+			if err := t.Raw("SELECT clock_timestamp()").Row().Scan(&at); err != nil {
+				return err
+			}
+		}
+
 		if err := t.Raw(`SELECT
 			COALESCE(sum(CASE WHEN g.effective_at<=? AND (g.expires_at IS NULL OR g.expires_at>?) THEN a.balance-a.held ELSE 0 END),0)::text AS available_atg,
 			COALESCE(sum(a.held),0)::text AS held_atg,

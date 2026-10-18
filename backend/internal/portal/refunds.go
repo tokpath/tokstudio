@@ -2,6 +2,7 @@ package portal
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -111,7 +112,24 @@ func (a *Application) cancelRefund(c *gin.Context) {
 	c.JSON(200, commandResult(out.ID, out.State))
 }
 func (a *Application) refundStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
-	rows, e := a.Remediation.Cases(c.Request.Context(), op.ID, "")
+	policy := remediation.Policy{OperatorID: op.ID}
+	if err := a.DB.WithContext(c.Request.Context()).Where("operator_id=?", op.ID).Find(&policy).Error; err != nil {
+		handleError(c, err)
+		return
+	}
+	threshold := optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal")
+	threshold.Default = policy.SecondReviewAbove
+	var rows []remediation.Case
+	var e error
+	if record := c.Query("record"); record != "" {
+		var one remediation.Case
+		one, e = a.Remediation.GetCase(c.Request.Context(), nil, op.ID, record)
+		if e == nil {
+			rows = []remediation.Case{one}
+		}
+	} else {
+		rows, e = a.Remediation.Cases(c.Request.Context(), op.ID, "")
+	}
 	if e != nil {
 		handleError(c, e)
 		return
@@ -242,8 +260,14 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 	}
 	p["title"] = "退款与原路执行"
 	p["items"] = items
+	p["summary"] = []gin.H{{"label": "独立复核政策版本", "value": strconv.FormatInt(policy.Version, 10)}}
+	if policy.SecondReviewAbove == nil {
+		p["summary"] = append(p["summary"].([]gin.H), gin.H{"label": "二次复核阈值", "value": "未启用"})
+	} else {
+		p["summary"] = append(p["summary"].([]gin.H), gin.H{"label": "二次复核阈值", "value": policy.SecondReviewAbove.String(), "unit": "USD"})
+	}
 	p["columns"] = []gin.H{col("route_version", "路由版本", "text"), col("route_history", "已封存执行与授权", "details"), col("record_kind", "记录类型", "text"), col("case_id", "原申请", "text"), col("receipt_id", "原收款来源", "text"), col("amount_usd", "USD责任", "usd"), col("settled_usd", "已真实清偿USD", "usd"), col("remaining_usd", "仍占用待付USD", "usd"), col("excess_usd", "多付经营异常USD", "usd"), col("reason", "原因", "text"), col("state", "状态", "status")}
-	p["operations"] = []operation{{Name: "package_exception", Label: "登记真实套餐异常", Method: "POST", Path: base, Fields: []field{jsonField("action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence；只按原成交剩余责任退款，撤销未用权益与赠送。")}}, {Name: "unallocated", Label: "退回未分配收款", Method: "POST", Path: base, Fields: []field{jsonField("action:'unallocated'、receipt_id、amount_usd、reason、evidence")}}, {Name: "policy", Label: "设置独立复核阈值", Method: "POST", Path: base, Fields: []field{jsonField("action:'policy'、second_review_above(十进制或null)、expected_version")}}}
+	p["operations"] = []operation{{Name: "package_exception", Label: "登记真实套餐异常", Method: "POST", Path: base, Fields: []field{jsonField("action:'package_exception'、customer_id、order_id、reason(transaction_error/unable_to_fulfill)、evidence；只按原成交剩余责任退款，撤销未用权益与赠送。")}}, {Name: "unallocated", Label: "退回未分配收款", Method: "POST", Path: base, Fields: []field{jsonField("action:'unallocated'、receipt_id、amount_usd、reason、evidence")}}, {Name: "policy", Label: "设置独立复核阈值", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "policy"), threshold, defaultField("expected_version", "复核政策版本", "hidden", policy.Version)}}}
 	p["row_operations"] = []operation{{Name: "review", Label: "审批/独立复核", Method: "POST", Path: base + "/{id}/review", Fields: []field{selectField("decision", "审核决定", "approve|批准按原责任办理", "reject|拒绝并保留审核原因"), f("evidence", "审核依据", "textarea")}}, {Name: "cancel", Label: "取消未执行申请", Method: "POST", Path: base + "/{id}/cancel", Fields: []field{f("evidence", "取消依据", "textarea")}}, {Name: "begin_manual", Label: "登记外部退款执行意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "银行付款计划与依据", "textarea")}, Confirmation: "将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。"}, {Name: "verify_manual", Label: "核实实际银行退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: []field{jsonField("reference、evidence、actual_usd、fee_usd、currency、amount、occurred_at。必须填写本次实际付款证据。")}}, {Name: "unknown", Label: "结果未知，保留占用", Method: "POST", Path: base + "/{id}/unknown", Fields: []field{f("evidence", "未知结果依据", "textarea")}}, {Name: "execute_api", Label: "通过原通道执行", Method: "POST", Path: base + "/{id}/execute_api", Fields: []field{jsonField("money:{currency,amount}、refund_valuation（非USD必填本次FX实际报价）、valued_at、fx_execution_reference；原merchant/order由服务器解析。")}, Confirmation: "确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。"}, {Name: "query_api", Label: "查询原通道结果", Method: "POST", Path: base + "/{id}/query_api", Fields: []field{}}}
 
 	p["columns"] = append(p["columns"].([]gin.H), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确接收地址", "text"), col("authorization_id", "不可变目的地授权", "text"))

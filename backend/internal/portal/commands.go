@@ -129,28 +129,14 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		return
 	}
 	if resource == "coverage" {
-		var in struct {
-			Allowance, Warning ledger.Decimal
-			ExpectedVersion    int64 `json:"expected_version"`
-		}
-		if !body(c, &in) {
-			return
-		}
-		raw, e := a.command(c, "oversell:"+op.ID, in, func(tx *gorm.DB) (any, error) {
-			out, e := a.Cooperation.SetOversell(ctx, tx, actor, op.ID, in.Allowance, in.Warning, in.ExpectedVersion)
-			if e != nil {
-				return nil, e
-			}
-			return commandResult(out.OperatorID, "updated"), nil
-		})
-		jsonResponse(c, raw, e)
+		a.coverageCommand(c, op, actor)
 		return
 	}
 	config, ok := decodeConfiguration(c)
 	if !ok {
 		return
 	}
-	raw, e := a.command(c, "operator:"+op.ID+":"+resource, config, func(tx *gorm.DB) (any, error) {
+	raw, e := a.command(c, "operator:"+op.ID+":"+resource+":"+c.Query("target_operator_id"), config, func(tx *gorm.DB) (any, error) {
 		switch resource {
 		case "plans":
 			var in commerce.PublishPackageInput
@@ -266,6 +252,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			out, e := a.Incentives.SetPolicy(ctx, tx, actor, op.ID, in)
 			return gin.H{"id": out.ID, "status": "published", "version": out.Version}, e
 		case "branding", "channel-themes":
+			target, targetErr := a.brandingTarget(c, op)
+			if targetErr != nil {
+				return nil, targetErr
+			}
 			var in struct {
 				ExpectedVersion int64                   `json:"expected_version"`
 				Values          branding.ThemeOverrides `json:"values"`
@@ -273,16 +263,16 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			if json.Unmarshal(config, &in) != nil {
 				return nil, branding.ErrInvalidInput
 			}
-			input := branding.SetThemeInput{ActorStaffID: actor, TargetID: op.ID, ExpectedVersion: in.ExpectedVersion, Values: in.Values}
+			input := branding.SetThemeInput{ActorStaffID: actor, TargetID: target.ID, ExpectedVersion: in.ExpectedVersion, Values: in.Values}
 			var out branding.ThemeConfig
 			var e error
-			if op.Kind == organization.Channel {
+			if target.Kind == organization.Channel {
 				out, e = a.Branding.SetChannelTheme(ctx, tx, input)
 			} else {
-				input.TargetID = op.BrandID
+				input.TargetID = target.BrandID
 				out, e = a.Branding.SetBrandTheme(ctx, tx, input)
 			}
-			return gin.H{"id": op.ID, "status": "updated", "version": out.Version}, e
+			return gin.H{"id": target.ID, "status": "updated", "version": out.Version}, e
 		case "business-status":
 			var in struct {
 				Feature         organization.BusinessFeature `json:"feature"`
@@ -482,7 +472,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			return true
 		}
 		p["summary"] = []gin.H{{"label": "通知提前秒数", "value": fmt.Sprint(policy.LeadSeconds)}, {"label": "规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "通知规则依据", "value": policy.RulesReference}}
-		p["operations"] = []operation{{Name: "policy", Label: "设置提前通知规则", Method: "POST", Path: base, Fields: []field{f("lead_seconds", "提前通知秒数（至少60）", "integer"), f("rules_reference", "对客户公开的通知条款依据", "text"), f("expected_version", "当前规则版本（首次0）", "integer")}}}
+		p["operations"] = []operation{{Name: "policy", Label: "设置提前通知规则", Method: "POST", Path: base, Fields: []field{defaultField("lead_seconds", "提前通知秒数（至少60）", "integer", policy.LeadSeconds), defaultField("rules_reference", "对客户公开的通知条款依据", "text", policy.RulesReference), defaultField("expected_version", "当前规则版本（自动带入）", "integer", policy.Version)}}}
 	case "pricing":
 		models, e := a.Catalog.PublicCatalog(ctx, op.ID, time.Now())
 		if e != nil {
@@ -593,14 +583,16 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		}
 		switch in.Action {
 		case "listing":
-			if in.Expected == 0 && in.Enabled {
+			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetListing(ctx, op.ID, in.ModelID, true, 0)
-				return commandResult(in.ModelID, "configured"), e
+				if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
+					return commandResult(in.ModelID, "configured"), e
+				}
 			}
 			out, e := controller.ScheduleListing(ctx, op.ID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
 		case "authorization":
-			if in.Expected == 0 && in.Enabled {
+			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, true, 0)
 				return commandResult(in.ModelID, "configured"), e
 			}
@@ -658,12 +650,24 @@ func (a *Application) Check(ctx context.Context, tx *gorm.DB, op organization.Op
 	return requirements, nil
 }
 func (a *Application) domainRequest(c *gin.Context, op organization.Operator, actor string) {
-	var in struct{ Hostname string }
+	var in struct {
+		Hostname         string
+		TargetOperatorID string `json:"target_operator_id"`
+	}
 	if !body(c, &in) {
 		return
 	}
-	raw, e := a.command(c, "domain:"+op.BrandID, in, func(tx *gorm.DB) (any, error) {
-		out, e := a.Branding.RequestDomain(c.Request.Context(), tx, actor, op.BrandID, in.Hostname)
+	target, e := a.brandingTarget(c, op, in.TargetOperatorID)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	if target.Kind == organization.Channel {
+		handleError(c, organization.ErrForbidden)
+		return
+	}
+	raw, e := a.command(c, "domain:"+target.BrandID, in, func(tx *gorm.DB) (any, error) {
+		out, e := a.Branding.RequestDomain(c.Request.Context(), tx, actor, target.BrandID, in.Hostname)
 		return gin.H{"id": out.Domain.ID, "status": out.Domain.Status, "message": "请设置 TXT " + out.TXTName + " = " + out.TXTValue + " 并确保有效 TLS"}, e
 	})
 	jsonResponse(c, raw, e)

@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
+	"time"
 )
 
 type IntegrityFact struct {
@@ -35,4 +36,29 @@ func (s *Service) OperationalLots(ctx context.Context, tx *gorm.DB, operator str
 		return t.Where("buyer_id=?", operator).Order("delivered_at,id").Limit(limit).Find(&out).Error
 	})
 	return out, e
+}
+
+// Export only purchases in which this operator is an actual contracting party.
+// A parent relationship alone never exposes another operator's purchases.
+func (s *Service) OperationalPurchaseOrders(ctx context.Context, tx *gorm.DB, operator, party string, from, to time.Time, limit int) ([]PurchaseOrder, error) {
+	if _, err := uuid.Parse(operator); err != nil {
+		return nil, ErrConflict
+	}
+	if party != "" {
+		if _, err := uuid.Parse(party); err != nil {
+			return nil, ErrConflict
+		}
+	}
+	if !to.After(from) || to.Sub(from) > 31*24*time.Hour || limit < 1 || limit > 10001 {
+		return nil, ErrConflict
+	}
+	out := []PurchaseOrder{}
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		query := t.Where("(supplier_id=? OR buyer_id=?) AND created_at>=? AND created_at<?", operator, operator, from, to)
+		if party != "" {
+			query = query.Where("(supplier_id=? OR buyer_id=?)", party, party)
+		}
+		return query.Order("created_at,id").Limit(limit).Find(&out).Error
+	})
+	return out, err
 }

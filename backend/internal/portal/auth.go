@@ -80,7 +80,7 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 	}
 	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "assets", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "agreements", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "takeover-settlements", "catalog-changes", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "risk", "restrictions", "notifications", "business-status", "audit", "retention", "payment-assets", "providers", "catalog", "routes", "routing", "requests", "jobs", "mail"}
 	for _, resource := range resources {
-		if allowed[permissionFor(resource)] {
+		if allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] {
 			out = append(out, resource+".read")
 		}
 	}

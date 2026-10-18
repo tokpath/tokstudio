@@ -3,6 +3,7 @@ package portal
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"strings"
@@ -52,6 +53,85 @@ func (a *Application) references(c *gin.Context) {
 		}
 	}
 	switch kind {
+	case "branding-brands":
+		if customer || !require("organization.read") {
+			return
+		}
+		op, err := a.Organization.GetOperator(ctx, nil, operator)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		targets, err := a.appearanceTargets(c, op, false)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		for _, target := range targets {
+			if target.Kind != organization.Channel && a.Organization.RequireBrandBranding(ctx, nil, actor, target.BrandID) == nil {
+				add(target.ID, target.Name, nil)
+			}
+		}
+	case "models":
+		if customer {
+			handleError(c, organization.ErrForbidden)
+			return
+		}
+		if !require("catalog.manage", "sales.manage") {
+			return
+		}
+		var models []catalog.PublicModel
+		var err error
+		if operator == a.Installation.OperatorID {
+			models, err = a.Catalog.AdminModels(ctx, operator)
+		} else {
+			models, err = a.Catalog.AvailableModels(ctx, operator, false)
+		}
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		buyer := c.Query("buyer_id")
+		if buyer != "" {
+			child, e := a.Organization.GetOperator(ctx, nil, buyer)
+			if e != nil || child.ParentOperatorID == nil || *child.ParentOperatorID != operator {
+				handleError(c, organization.ErrForbidden)
+				return
+			}
+		}
+		var listings []struct {
+			PublicModelID string
+			Version       uint64
+		}
+		if err = a.DB.WithContext(ctx).Table("tokenhub_model_listings").Select("public_model_id,version").Where("operator_id=?", operator).Scan(&listings).Error; err != nil {
+			handleError(c, err)
+			return
+		}
+		listingVersions := map[string]uint64{}
+		for _, row := range listings {
+			listingVersions[row.PublicModelID] = row.Version
+		}
+		authorizationVersions := map[string]uint64{}
+		if buyer != "" {
+			var rows []struct {
+				PublicModelID string
+				Version       uint64
+			}
+			if err = a.DB.WithContext(ctx).Table("tokenhub_model_authorizations").Select("public_model_id,version").Where("seller_id=? AND buyer_id=?", operator, buyer).Scan(&rows).Error; err != nil {
+				handleError(c, err)
+				return
+			}
+			for _, row := range rows {
+				authorizationVersions[row.PublicModelID] = row.Version
+			}
+		}
+		for _, model := range models {
+			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID]}
+			if buyer != "" {
+				defaults["authorization_version"] = authorizationVersions[model.ID]
+			}
+			add(model.ID, model.DisplayName+" · "+model.Identity, defaults)
+		}
 	case "payment-assets":
 		if customer || !require("payments.manage") {
 			return
@@ -225,7 +305,7 @@ func (a *Application) references(c *gin.Context) {
 			handleError(c, organization.ErrForbidden)
 			return
 		}
-		if !require("cooperation.manage", "organization.create", "organization.read") {
+		if !require("cooperation.manage", "organization.create", "organization.read", "sales.manage") {
 			return
 		}
 		if kind == "buyers" {

@@ -62,7 +62,7 @@
     "method": "POST",
     "name": "confirm",
     "path": "/v1/operators/{operatorId}/receipt-valuations/{id}/confirm",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "payment-assets",
@@ -151,7 +151,7 @@
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/payment-assets",
-    "permission": ""
+    "permission": "providers.manage"
   },
   {
     "resource": "payment-assets",
@@ -240,7 +240,7 @@
     "method": "POST",
     "name": "publish_version",
     "path": "/v1/operators/{operatorId}/payment-assets",
-    "permission": ""
+    "permission": "providers.manage"
   },
   {
     "resource": "gifts",
@@ -293,7 +293,7 @@
     "method": "POST",
     "name": "issue",
     "path": "/v1/operators/{operatorId}/gifts",
-    "permission": ""
+    "permission": "marketing.manage"
   },
   {
     "resource": "plans",
@@ -394,7 +394,7 @@
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/plans",
-    "permission": ""
+    "permission": "sales.manage"
   },
   {
     "resource": "orders",
@@ -406,7 +406,7 @@
     "method": "POST",
     "name": "fulfill",
     "path": "/v1/operators/{operatorId}/orders/{id}/fulfill",
-    "permission": ""
+    "permission": "sales.manage"
   },
   {
     "resource": "payments",
@@ -522,7 +522,7 @@
     "method": "POST",
     "name": "receipt",
     "path": "/v1/operators/{operatorId}/payments",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "payments",
@@ -548,7 +548,7 @@
     "method": "POST",
     "name": "allocate",
     "path": "/v1/operators/{operatorId}/payments/{id}/allocate",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "payment-methods",
@@ -852,7 +852,7 @@
     "method": "POST",
     "name": "configure",
     "path": "/v1/operators/{operatorId}/payment-methods",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "valuations",
@@ -895,7 +895,7 @@
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/valuations",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "evidence",
@@ -914,7 +914,7 @@
     "method": "POST",
     "name": "upload",
     "path": "/v1/operators/{operatorId}/evidence",
-    "permission": ""
+    "permission": "payments.manage"
   },
   {
     "resource": "pricing",
@@ -934,7 +934,7 @@
     "method": "POST",
     "name": "price",
     "path": "/v1/operators/{operatorId}/pricing",
-    "permission": ""
+    "permission": "sales.manage"
   },
   {
     "resource": "pricing",
@@ -954,7 +954,7 @@
     "method": "POST",
     "name": "listing",
     "path": "/v1/operators/{operatorId}/pricing",
-    "permission": ""
+    "permission": "sales.manage"
   },
   {
     "resource": "catalog-changes",
@@ -975,7 +975,7 @@
       },
       {
         "name": "expected_version",
-        "label": "当前规则版本（首次0）",
+        "label": "当前规则版本（自动带入）",
         "kind": "hidden",
         "required": true
       }
@@ -985,7 +985,7 @@
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/catalog-changes",
-    "permission": ""
+    "permission": "sales.manage"
   },
   {
     "resource": "marketing",
@@ -1103,7 +1103,7 @@
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/marketing",
-    "permission": ""
+    "permission": "marketing.manage"
   },
   {
     "resource": "marketing",
@@ -1163,7 +1163,7 @@
     "method": "POST",
     "name": "function",
     "path": "/v1/operators/{operatorId}/marketing",
-    "permission": ""
+    "permission": "marketing.manage"
   },
   {
     "resource": "marketing",
@@ -1203,7 +1203,7 @@
     "method": "POST",
     "name": "combination",
     "path": "/v1/operators/{operatorId}/marketing",
-    "permission": ""
+    "permission": "marketing.manage"
   },
   {
     "resource": "commissions",
@@ -1270,7 +1270,7 @@
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/commissions",
-    "permission": ""
+    "permission": "marketing.manage"
   },
   {
     "resource": "operators",
@@ -1333,7 +1333,7 @@
     "method": "POST",
     "name": "create",
     "path": "/v1/operators/{operatorId}/operators",
-    "permission": ""
+    "permission": "organization.create"
   },
   {
     "resource": "operators",
@@ -1359,7 +1359,7 @@
     "method": "POST",
     "name": "invite_owner",
     "path": "/v1/operators/{operatorId}/operators/{id}/invite_owner",
-    "permission": ""
+    "permission": "organization.create"
   },
   {
     "resource": "procurement",
@@ -1457,7 +1457,7 @@
     "method": "POST",
     "name": "quote",
     "path": "/v1/operators/{operatorId}/procurement",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1580,7 +1580,157 @@
     "method": "POST",
     "name": "authorization",
     "path": "/v1/operators/{operatorId}/procurement",
-    "permission": ""
+    "permission": "cooperation.manage"
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
+    "description": "修订本经营方唯一的原自动补货授权，按当前版本保存，不取消重建。每次修订须重新确认并填写本次独立授权依据；敏感付款资料不回显。",
+    "fields": [
+      {
+        "name": "id",
+        "label": "原补货授权编号",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "action",
+        "label": "办理类型",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "authorization"
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/purchase-quotes",
+        "name": "quote_id",
+        "label": "固定成交报价编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
+        "name": "supplier_id",
+        "label": "报价供货方编号",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "trigger_available_atg",
+        "label": "采购可用库存低于ATG时触发",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "single_limit_usd",
+        "label": "每次最高USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "period_limit_usd",
+        "label": "周期最高USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "period",
+        "label": "UTC自然周期",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "月",
+            "value": "month"
+          },
+          {
+            "label": "季",
+            "value": "quarter"
+          },
+          {
+            "label": "年",
+            "value": "year"
+          }
+        ]
+      },
+      {
+        "name": "mode",
+        "label": "执行方式",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "仅建立待付订单",
+            "value": "offline"
+          },
+          {
+            "label": "已获授权Stripe自动扣款",
+            "value": "automatic"
+          }
+        ]
+      },
+      {
+        "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
+        "name": "merchant_id",
+        "label": "真实供货收款商户配置编号",
+        "kind": "text",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        }
+      },
+      {
+        "name": "payment.payment_method",
+        "label": "Stripe已授权pm_编号",
+        "kind": "password",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        },
+        "help": "修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。"
+      },
+      {
+        "name": "payment.customer_ref",
+        "label": "Stripe已授权cus_编号",
+        "kind": "password",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        },
+        "help": "修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。"
+      },
+      {
+        "name": "renewed_consent_reference",
+        "label": "本次修订的独立授权凭证（请重新确认并填写）",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "enabled",
+        "label": "启用授权",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前授权版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "修订本方自动补货授权",
+    "method": "POST",
+    "name": "authorization",
+    "path": "/v1/operators/{operatorId}/procurement",
+    "permission": "cooperation.manage",
+    "variant": "revision"
   },
   {
     "resource": "procurement",
@@ -1592,7 +1742,7 @@
     "method": "POST",
     "name": "purchase",
     "path": "/v1/operators/{operatorId}/procurement/{id}/purchase",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1612,7 +1762,7 @@
     "method": "POST",
     "name": "checkout",
     "path": "/v1/operators/{operatorId}/procurement/{id}/checkout",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1624,7 +1774,7 @@
     "method": "POST",
     "name": "query_payment",
     "path": "/v1/operators/{operatorId}/procurement/{id}/query_payment",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1649,7 +1799,7 @@
     "method": "POST",
     "name": "wallet_receipt",
     "path": "/v1/operators/{operatorId}/procurement/{id}/wallet_receipt",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1675,7 +1825,7 @@
     "method": "POST",
     "name": "fund",
     "path": "/v1/operators/{operatorId}/procurement/{id}/fund",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1687,7 +1837,7 @@
     "method": "POST",
     "name": "fulfill",
     "path": "/v1/operators/{operatorId}/procurement/{id}/fulfill",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement",
@@ -1699,7 +1849,7 @@
     "method": "POST",
     "name": "cancel_authorization",
     "path": "/v1/operators/{operatorId}/procurement/{id}/cancel_authorization",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement-invoices",
@@ -1760,7 +1910,7 @@
     "method": "POST",
     "name": "request",
     "path": "/v1/operators/{operatorId}/procurement-invoices",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "procurement-invoices",
@@ -1814,16 +1964,16 @@
     "method": "POST",
     "name": "replacement",
     "path": "/v1/operators/{operatorId}/procurement-invoices/{id}/replacement",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "coverage",
     "confirmation": "",
-    "description": "",
+    "description": "只调整目标经营方的销售承载授权和预警。采购余额不足时不能继续模型调用。",
     "fields": [
       {
         "name": "allowance",
-        "label": "超卖额度 ATG",
+        "label": "销售超卖额度 ATG",
         "kind": "decimal",
         "required": true
       },
@@ -1844,8 +1994,8 @@
     "label": "设置授权超卖与缓冲",
     "method": "POST",
     "name": "oversell",
-    "path": "/v1/operators/{operatorId}/coverage",
-    "permission": ""
+    "path": "/v1/operators/{operatorId}/coverage?target_operator_id={id}",
+    "permission": "cooperation.manage"
   },
   {
     "resource": "alerts",
@@ -1954,11 +2104,124 @@
       }
     ],
     "include_version": false,
-    "label": "保存风险阈值",
+    "label": "新增预警规则",
     "method": "POST",
     "name": "risk_rule",
     "path": "/v1/operators/{operatorId}/alerts",
-    "permission": ""
+    "permission": "operations.manage"
+  },
+  {
+    "resource": "alerts",
+    "confirmation": "",
+    "description": "沿用此规则真实版本，修改通知阈值、负责人、提醒、升级或启停；不会把风险观察记录当作规则保存。",
+    "fields": [
+      {
+        "name": "id",
+        "label": "规则编号",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "metric",
+        "label": "真实指标",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余销售空间ATG",
+            "value": "sales_space_atg"
+          },
+          {
+            "label": "采购可用ATG",
+            "value": "procurement_available_atg"
+          },
+          {
+            "label": "已用超卖ATG",
+            "value": "oversell_used_atg"
+          },
+          {
+            "label": "待结请求数",
+            "value": "pending_usage"
+          },
+          {
+            "label": "未知成本数",
+            "value": "unverified_costs"
+          }
+        ]
+      },
+      {
+        "name": "warning",
+        "label": "预警阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "critical",
+        "label": "严重阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "direction",
+        "label": "触发方向",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "低于阈值",
+            "value": "below"
+          },
+          {
+            "label": "高于阈值",
+            "value": "above"
+          }
+        ]
+      },
+      {
+        "name": "recipients",
+        "label": "通知收件人ID（逗号分隔）",
+        "kind": "csv",
+        "required": true
+      },
+      {
+        "name": "escalation_recipients",
+        "label": "升级收件人ID（逗号分隔）",
+        "kind": "csv"
+      },
+      {
+        "name": "reminder_seconds",
+        "label": "持续风险提醒间隔秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 3600
+      },
+      {
+        "name": "escalate_seconds",
+        "label": "升级等待秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 86400
+      },
+      {
+        "name": "enabled",
+        "label": "启用规则",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "修订此预警规则",
+    "method": "POST",
+    "name": "revise_rule",
+    "path": "/v1/operators/{operatorId}/alerts",
+    "permission": "operations.manage"
   },
   {
     "resource": "exits",
@@ -2011,7 +2274,7 @@
     "method": "POST",
     "name": "request",
     "path": "/v1/operators/{operatorId}/exits",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2044,7 +2307,7 @@
     "method": "POST",
     "name": "approve_failure",
     "path": "/v1/operators/{operatorId}/exits",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2070,7 +2333,7 @@
     "method": "POST",
     "name": "prepare_refund",
     "path": "/v1/operators/{operatorId}/exits/{id}/prepare_refund",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2089,7 +2352,7 @@
     "method": "POST",
     "name": "begin_manual",
     "path": "/v1/operators/{operatorId}/exits/{id}/begin_manual",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2193,7 +2456,7 @@
     "method": "POST",
     "name": "verify_manual",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_manual",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2266,7 +2529,7 @@
     "method": "POST",
     "name": "execute_refund",
     "path": "/v1/operators/{operatorId}/exits/{id}/execute_refund",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2285,7 +2548,7 @@
     "method": "POST",
     "name": "release_refund",
     "path": "/v1/operators/{operatorId}/exits/{id}/release_refund",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2316,7 +2579,7 @@
     "method": "POST",
     "name": "confirm_fee",
     "path": "/v1/operators/{operatorId}/exits/{id}/confirm_fee",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2341,7 +2604,7 @@
     "method": "POST",
     "name": "close_route",
     "path": "/v1/operators/{operatorId}/exits/{id}/close_route",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2400,7 +2663,7 @@
     "method": "POST",
     "name": "verify_manual_failure",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_manual_failure",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2432,7 +2695,7 @@
     "method": "POST",
     "name": "verify_replacement_destination",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_replacement_destination",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2528,7 +2791,7 @@
     "method": "POST",
     "name": "verify_replacement",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_replacement",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2570,7 +2833,7 @@
     "method": "POST",
     "name": "propose_destination",
     "path": "/v1/operators/{operatorId}/exits/{id}/propose_destination",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2595,7 +2858,7 @@
     "method": "POST",
     "name": "verify_destination",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_destination",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2668,7 +2931,7 @@
     "method": "POST",
     "name": "verify_evm",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_evm",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "exits",
@@ -2759,7 +3022,7 @@
     "method": "POST",
     "name": "verify_external",
     "path": "/v1/operators/{operatorId}/exits/{id}/verify_external",
-    "permission": ""
+    "permission": "cooperation.manage"
   },
   {
     "resource": "branding",
@@ -2774,11 +3037,11 @@
       }
     ],
     "include_version": false,
-    "label": "上传品牌Logo",
+    "label": "上传目标Logo",
     "method": "POST",
     "name": "upload_logo",
-    "path": "/v1/operators/{operatorId}/branding/logo",
-    "permission": ""
+    "path": "/v1/operators/{operatorId}/branding/logo?target_operator_id={id}",
+    "permission": "organization.read"
   },
   {
     "resource": "branding",
@@ -2818,36 +3081,23 @@
       }
     ],
     "include_version": false,
-    "label": "保存逐字段主题",
+    "label": "编辑网站外观",
     "method": "POST",
     "name": "theme",
-    "path": "/v1/operators/{operatorId}/branding",
-    "permission": ""
-  },
-  {
-    "resource": "branding",
-    "confirmation": "",
-    "description": "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。",
-    "fields": [
-      {
-        "name": "hostname",
-        "label": "独立品牌域名",
-        "kind": "text",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "申请品牌域名验证",
-    "method": "POST",
-    "name": "domain",
-    "path": "/v1/operators/{operatorId}/domains",
-    "permission": ""
+    "path": "/v1/operators/{operatorId}/branding?target_operator_id={id}",
+    "permission": "organization.read"
   },
   {
     "resource": "domains",
     "confirmation": "",
     "description": "",
     "fields": [
+      {
+        "name": "target_operator_id",
+        "label": "目标品牌经营方",
+        "kind": "text",
+        "required": true
+      },
       {
         "name": "hostname",
         "label": "品牌域名",
@@ -2860,7 +3110,7 @@
     "method": "POST",
     "name": "request",
     "path": "/v1/operators/{operatorId}/domains",
-    "permission": ""
+    "permission": "organization.read"
   },
   {
     "resource": "domains",
@@ -2872,7 +3122,7 @@
     "method": "POST",
     "name": "verify",
     "path": "/v1/operators/{operatorId}/domains/{id}/verify",
-    "permission": ""
+    "permission": "organization.read"
   },
   {
     "resource": "domains",
@@ -2884,7 +3134,7 @@
     "method": "POST",
     "name": "enable",
     "path": "/v1/operators/{operatorId}/domains/{id}/enable",
-    "permission": ""
+    "permission": "organization.read"
   },
   {
     "resource": "domains",
@@ -2896,7 +3146,7 @@
     "method": "POST",
     "name": "disable",
     "path": "/v1/operators/{operatorId}/domains/{id}/disable",
-    "permission": ""
+    "permission": "organization.read"
   },
   {
     "resource": "channel-themes",
@@ -2911,11 +3161,11 @@
       }
     ],
     "include_version": false,
-    "label": "上传品牌Logo",
+    "label": "上传目标Logo",
     "method": "POST",
     "name": "upload_logo",
-    "path": "/v1/operators/{operatorId}/branding/logo",
-    "permission": ""
+    "path": "/v1/operators/{operatorId}/branding/logo?target_operator_id={id}",
+    "permission": "organization.read"
   },
   {
     "resource": "channel-themes",
@@ -2955,30 +3205,11 @@
       }
     ],
     "include_version": false,
-    "label": "保存逐字段主题",
+    "label": "编辑网站外观",
     "method": "POST",
     "name": "theme",
-    "path": "/v1/operators/{operatorId}/channel-themes",
-    "permission": ""
-  },
-  {
-    "resource": "channel-themes",
-    "confirmation": "",
-    "description": "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。",
-    "fields": [
-      {
-        "name": "hostname",
-        "label": "独立品牌域名",
-        "kind": "text",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "申请品牌域名验证",
-    "method": "POST",
-    "name": "domain",
-    "path": "/v1/operators/{operatorId}/domains",
-    "permission": ""
+    "path": "/v1/operators/{operatorId}/channel-themes?target_operator_id={id}",
+    "permission": "organization.read"
   },
   {
     "resource": "staff",
@@ -2993,9 +3224,16 @@
       },
       {
         "name": "role",
-        "label": "角色 owner/operations/finance/support/readonly",
-        "kind": "text",
-        "required": true
+        "label": "受邀角色",
+        "kind": "select",
+        "required": true,
+        "options": [
+          { "label": "负责人", "value": "owner" },
+          { "label": "运营", "value": "operations" },
+          { "label": "财务", "value": "finance" },
+          { "label": "客服", "value": "support" },
+          { "label": "只读", "value": "readonly" }
+        ]
       }
     ],
     "include_version": false,
@@ -3003,7 +3241,7 @@
     "method": "POST",
     "name": "invite",
     "path": "/v1/operators/{operatorId}/staff",
-    "permission": ""
+    "permission": "staff.manage"
   },
   {
     "resource": "staff",
@@ -3060,8 +3298,9 @@
       },
       {
         "name": "grants",
-        "label": "自定义权限（逗号分隔，仅限本人已有权限）",
-        "kind": "text"
+        "label": "自定义权限",
+        "kind": "text",
+        "help": "勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。"
       }
     ],
     "include_version": false,
@@ -3069,7 +3308,7 @@
     "method": "POST",
     "name": "membership",
     "path": "/v1/operators/{operatorId}/staff/{id}/membership",
-    "permission": ""
+    "permission": "staff.manage"
   },
   {
     "resource": "risk",
@@ -3178,11 +3417,124 @@
       }
     ],
     "include_version": false,
-    "label": "保存风险阈值",
+    "label": "新增预警规则",
     "method": "POST",
     "name": "risk_rule",
     "path": "/v1/operators/{operatorId}/risk",
-    "permission": ""
+    "permission": "operations.manage"
+  },
+  {
+    "resource": "risk",
+    "confirmation": "",
+    "description": "沿用此规则真实版本，修改通知阈值、负责人、提醒、升级或启停；不会把风险观察记录当作规则保存。",
+    "fields": [
+      {
+        "name": "id",
+        "label": "规则编号",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "metric",
+        "label": "真实指标",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余销售空间ATG",
+            "value": "sales_space_atg"
+          },
+          {
+            "label": "采购可用ATG",
+            "value": "procurement_available_atg"
+          },
+          {
+            "label": "已用超卖ATG",
+            "value": "oversell_used_atg"
+          },
+          {
+            "label": "待结请求数",
+            "value": "pending_usage"
+          },
+          {
+            "label": "未知成本数",
+            "value": "unverified_costs"
+          }
+        ]
+      },
+      {
+        "name": "warning",
+        "label": "预警阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "critical",
+        "label": "严重阈值",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "direction",
+        "label": "触发方向",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "低于阈值",
+            "value": "below"
+          },
+          {
+            "label": "高于阈值",
+            "value": "above"
+          }
+        ]
+      },
+      {
+        "name": "recipients",
+        "label": "通知收件人ID（逗号分隔）",
+        "kind": "csv",
+        "required": true
+      },
+      {
+        "name": "escalation_recipients",
+        "label": "升级收件人ID（逗号分隔）",
+        "kind": "csv"
+      },
+      {
+        "name": "reminder_seconds",
+        "label": "持续风险提醒间隔秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 3600
+      },
+      {
+        "name": "escalate_seconds",
+        "label": "升级等待秒数",
+        "kind": "integer",
+        "required": true,
+        "default_value": 86400
+      },
+      {
+        "name": "enabled",
+        "label": "启用规则",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次填写0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "修订此预警规则",
+    "method": "POST",
+    "name": "revise_rule",
+    "path": "/v1/operators/{operatorId}/risk",
+    "permission": "operations.manage"
   },
   {
     "resource": "restrictions",
@@ -3295,7 +3647,7 @@
     "method": "POST",
     "name": "freeze",
     "path": "/v1/operators/{operatorId}/restrictions",
-    "permission": ""
+    "permission": "security.manage"
   },
   {
     "resource": "restrictions",
@@ -3356,7 +3708,7 @@
     "method": "POST",
     "name": "revise",
     "path": "/v1/operators/{operatorId}/restrictions",
-    "permission": ""
+    "permission": "security.manage"
   },
   {
     "resource": "notifications",
@@ -3433,7 +3785,7 @@
     "method": "POST",
     "name": "announce",
     "path": "/v1/operators/{operatorId}/notifications",
-    "permission": ""
+    "permission": "operations.manage"
   },
   {
     "resource": "notifications",
@@ -3445,7 +3797,7 @@
     "method": "POST",
     "name": "retry",
     "path": "/v1/operators/{operatorId}/notifications/{id}/retry",
-    "permission": ""
+    "permission": "operations.manage"
   },
   {
     "resource": "business-status",
@@ -3508,7 +3860,7 @@
     "method": "POST",
     "name": "set",
     "path": "/v1/operators/{operatorId}/business-status",
-    "permission": ""
+    "permission": "business.manage"
   },
   {
     "resource": "retention",
@@ -3533,7 +3885,7 @@
     "method": "POST",
     "name": "hold",
     "path": "/v1/operators/{operatorId}/retention/{id}/hold",
-    "permission": ""
+    "permission": "security.manage"
   },
   {
     "resource": "refunds",
@@ -3589,7 +3941,7 @@
     "method": "POST",
     "name": "package_exception",
     "path": "/v1/operators/{operatorId}/refunds",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3634,7 +3986,7 @@
     "method": "POST",
     "name": "unallocated",
     "path": "/v1/operators/{operatorId}/refunds",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3644,7 +3996,7 @@
       {
         "name": "action",
         "label": "办理类型",
-        "kind": "text",
+        "kind": "hidden",
         "required": true,
         "default_value": "policy"
       },
@@ -3655,7 +4007,7 @@
       },
       {
         "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "label": "复核政策版本",
         "kind": "hidden",
         "required": true
       }
@@ -3665,7 +4017,7 @@
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/refunds",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3700,7 +4052,7 @@
     "method": "POST",
     "name": "review",
     "path": "/v1/operators/{operatorId}/refunds/{id}/review",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3719,7 +4071,7 @@
     "method": "POST",
     "name": "cancel",
     "path": "/v1/operators/{operatorId}/refunds/{id}/cancel",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3738,7 +4090,7 @@
     "method": "POST",
     "name": "begin_manual",
     "path": "/v1/operators/{operatorId}/refunds/{id}/begin_manual",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3793,7 +4145,7 @@
     "method": "POST",
     "name": "verify_manual",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3812,7 +4164,7 @@
     "method": "POST",
     "name": "unknown",
     "path": "/v1/operators/{operatorId}/refunds/{id}/unknown",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3877,7 +4229,7 @@
     "method": "POST",
     "name": "execute_api",
     "path": "/v1/operators/{operatorId}/refunds/{id}/execute_api",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3889,7 +4241,7 @@
     "method": "POST",
     "name": "query_api",
     "path": "/v1/operators/{operatorId}/refunds/{id}/query_api",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3932,7 +4284,7 @@
     "method": "POST",
     "name": "authorize_destination",
     "path": "/v1/operators/{operatorId}/refunds/{id}/authorize_destination",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -3992,7 +4344,7 @@
     "method": "POST",
     "name": "authorize_unallocated_destination",
     "path": "/v1/operators/{operatorId}/refunds/{id}/authorize_unallocated_destination",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4071,7 +4423,7 @@
     "method": "POST",
     "name": "verify_evm",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_evm",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4168,7 +4520,7 @@
     "method": "POST",
     "name": "verify_external",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_external",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4246,7 +4598,7 @@
     "method": "POST",
     "name": "verify_responsible_evm",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_evm",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4342,7 +4694,7 @@
     "method": "POST",
     "name": "verify_responsible_external",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_external",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4438,7 +4790,7 @@
     "method": "POST",
     "name": "verify_responsible_bank",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_bank",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4481,7 +4833,7 @@
     "method": "POST",
     "name": "confirm_fee",
     "path": "/v1/operators/{operatorId}/refunds/{id}/confirm_fee",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4540,7 +4892,7 @@
     "method": "POST",
     "name": "verify_manual_failure",
     "path": "/v1/operators/{operatorId}/refunds/{id}/verify_manual_failure",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "refunds",
@@ -4591,7 +4943,7 @@
     "method": "POST",
     "name": "close_execution",
     "path": "/v1/operators/{operatorId}/refunds/{id}/close_execution",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "withdrawals",
@@ -4599,37 +4951,37 @@
     "description": "",
     "fields": [
       {
-        "name": "minimum_usd",
+        "name": "configuration.minimum_usd",
         "label": "最低提现 USD",
         "kind": "decimal",
         "required": true
       },
       {
-        "name": "flat_fee_usd",
+        "name": "configuration.flat_fee_usd",
         "label": "固定手续费 USD",
         "kind": "decimal",
         "required": true
       },
       {
-        "name": "fee_rate",
+        "name": "configuration.fee_rate",
         "label": "手续费比例（0到1）",
         "kind": "decimal",
         "required": true
       },
       {
-        "name": "requires_dual_approval",
+        "name": "configuration.requires_dual_approval",
         "label": "必须双人审批付款",
         "kind": "boolean",
         "required": true
       },
       {
-        "name": "method_reference",
+        "name": "configuration.method_reference",
         "label": "对客户公示付款方式规则",
         "kind": "text",
         "required": true
       },
       {
-        "name": "expected_version",
+        "name": "configuration.expected_version",
         "label": "当前版本（首次填写0）",
         "kind": "hidden",
         "required": true
@@ -4640,7 +4992,7 @@
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/withdrawals",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "withdrawals",
@@ -4652,7 +5004,7 @@
     "method": "POST",
     "name": "approve",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/approve",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "withdrawals",
@@ -4664,7 +5016,7 @@
     "method": "POST",
     "name": "begin_payment",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/begin_payment",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "withdrawals",
@@ -4683,7 +5035,7 @@
     "method": "POST",
     "name": "unknown",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/unknown",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "withdrawals",
@@ -4738,7 +5090,7 @@
     "method": "POST",
     "name": "verify_paid",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/verify_paid",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "withdrawals",
@@ -4763,7 +5115,7 @@
     "method": "POST",
     "name": "fail",
     "path": "/v1/operators/{operatorId}/withdrawals/{id}/fail",
-    "permission": ""
+    "permission": "withdrawals.manage"
   },
   {
     "resource": "disputes",
@@ -4813,7 +5165,7 @@
     "method": "POST",
     "name": "record",
     "path": "/v1/operators/{operatorId}/disputes",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "disputes",
@@ -4832,7 +5184,7 @@
     "method": "POST",
     "name": "restrict",
     "path": "/v1/operators/{operatorId}/disputes/{id}/restrict",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "disputes",
@@ -4871,7 +5223,7 @@
     "method": "POST",
     "name": "resolve",
     "path": "/v1/operators/{operatorId}/disputes/{id}/resolve",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "disputes",
@@ -4896,7 +5248,7 @@
     "method": "POST",
     "name": "recover",
     "path": "/v1/operators/{operatorId}/disputes/{id}/recover",
-    "permission": ""
+    "permission": "refunds.manage"
   },
   {
     "resource": "invoices",
@@ -4965,7 +5317,7 @@
     "method": "POST",
     "name": "invoice_policy_customer",
     "path": "/v1/operators/{operatorId}/invoices",
-    "permission": ""
+    "permission": "invoices.manage"
   },
   {
     "resource": "invoices",
@@ -5034,7 +5386,7 @@
     "method": "POST",
     "name": "invoice_policy_procurement",
     "path": "/v1/operators/{operatorId}/invoices",
-    "permission": ""
+    "permission": "invoices.manage"
   },
   {
     "resource": "invoices",
@@ -5085,7 +5437,7 @@
     "method": "POST",
     "name": "register",
     "path": "/v1/operators/{operatorId}/invoices/{id}/register",
-    "permission": ""
+    "permission": "invoices.manage"
   },
   {
     "resource": "reconciliation",
@@ -5097,7 +5449,7 @@
     "method": "POST",
     "name": "reconcile",
     "path": "/v1/operators/{operatorId}/reconciliation",
-    "permission": ""
+    "permission": "reports.view"
   },
   {
     "resource": "reconciliation",
@@ -5122,7 +5474,7 @@
     "method": "POST",
     "name": "resolve",
     "path": "/v1/operators/{operatorId}/reconciliation/{id}/resolve",
-    "permission": ""
+    "permission": "reports.view"
   },
   {
     "resource": "exports",
@@ -5172,7 +5524,7 @@
     "method": "POST",
     "name": "export",
     "path": "/v1/operators/{operatorId}/exports",
-    "permission": ""
+    "permission": "reports.export"
   },
   {
     "resource": "providers",
@@ -5214,7 +5566,7 @@
     "method": "POST",
     "name": "credential",
     "path": "/v1/operators/{operatorId}/providers",
-    "permission": ""
+    "permission": "catalog.manage"
   },
   {
     "resource": "catalog",
@@ -5234,7 +5586,7 @@
     "method": "POST",
     "name": "save",
     "path": "/v1/operators/{operatorId}/catalog",
-    "permission": ""
+    "permission": "catalog.manage"
   },
   {
     "resource": "routes",
@@ -5254,7 +5606,7 @@
     "method": "POST",
     "name": "save",
     "path": "/v1/operators/{operatorId}/routes",
-    "permission": ""
+    "permission": "catalog.manage"
   },
   {
     "resource": "routes",
@@ -5304,7 +5656,7 @@
     "method": "POST",
     "name": "limits",
     "path": "/v1/operators/{operatorId}/routes/{id}/limits",
-    "permission": ""
+    "permission": "catalog.manage"
   },
   {
     "resource": "routing",
@@ -5343,7 +5695,7 @@
     "method": "POST",
     "name": "policy",
     "path": "/v1/operators/{operatorId}/routing/{id}/policy",
-    "permission": ""
+    "permission": "catalog.manage"
   },
   {
     "resource": "jobs",
@@ -5368,7 +5720,7 @@
     "method": "POST",
     "name": "redrive",
     "path": "/v1/operators/{operatorId}/jobs/{id}/redrive",
-    "permission": ""
+    "permission": "platform.manage"
   },
   {
     "resource": "mail",
@@ -5435,6 +5787,6 @@
     "method": "POST",
     "name": "configure",
     "path": "/v1/operators/{operatorId}/mail",
-    "permission": ""
+    "permission": "platform.manage"
   }
 ]

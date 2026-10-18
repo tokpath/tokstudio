@@ -133,6 +133,15 @@ func (p *ProcurementRefunds) RecordManualRefundFailure(ctx context.Context, acto
 		if leg.ExecutionMode != "manual" || leg.ExecutionKey != in.ExpectedExecutionKey || leg.State != "manual_executing" || leg.AmountUSD.Cmp(leg.SettledUSD) <= 0 {
 			return ErrConflict
 		}
+		if leg.SourceKind == "manual_receipt" {
+			var count int64
+			if e := tx.Model(&manualReceiptRefundFact{}).Where("leg_id=? AND execution_key=?", leg.ID, leg.ExecutionKey).Count(&count).Error; e != nil {
+				return e
+			}
+			if count > 0 {
+				return payments.ErrConflict
+			}
+		}
 		facts, e := p.Payments.RefundExecutionClosureFacts(ctx, tx, supplier, legID)
 		if e != nil {
 			return e
@@ -211,6 +220,19 @@ func (p *ProcurementRefunds) CloseRefundRoute(ctx context.Context, actor, suppli
 			default:
 				return payments.ErrOutcomeUnknown
 			}
+		}
+		if leg.SourceKind == "manual_receipt" && leg.ExecutionKey != "" {
+			var total, observed int64
+			if e := tx.Model(&manualReceiptRefundFact{}).Where("leg_id=? AND execution_key=?", leg.ID, leg.ExecutionKey).Count(&total).Error; e != nil {
+				return e
+			}
+			if e := tx.Table("cooperation_manual_receipt_refund_facts f").Joins("JOIN cooperation_procurement_refund_observations o ON o.fact_id=f.fact_id AND o.leg_id=f.leg_id").Where("f.leg_id=? AND f.execution_key=?", leg.ID, leg.ExecutionKey).Count(&observed).Error; e != nil {
+				return e
+			}
+			if total != observed {
+				return payments.ErrOutcomeUnknown
+			}
+			matched = matched || total > 0
 		}
 		if leg.ExecutionKey != "" && !matched {
 			var n int64

@@ -314,6 +314,8 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 			ch := intent.Checkout
 			action := gin.H{}
 			switch {
+			case intent.Driver == "manual":
+				action = gin.H{"kind": "offline", "address": ch.PaymentAddress, "instructions": ch.Instructions}
 			case ch.ClientSecret != "":
 				action = gin.H{"kind": "stripe", "client_secret": ch.ClientSecret, "publishable_key": ch.PublishableKey}
 			case ch.URL != "":

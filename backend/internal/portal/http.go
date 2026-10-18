@@ -74,7 +74,13 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 403, "forbidden", "当前身份没有此经营范围的操作权限", false
 	case errors.Is(err, organization.ErrInvalidCredentials):
 		status, code, msg, retry = 401, "invalid_credentials", "邮箱或密码错误", false
-	case errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
+	case errors.Is(err, organization.ErrEmailAlreadyRegistered):
+		status, code, msg, retry = 409, "email_already_registered", "此邮箱已在当前品牌注册，请登录原账号；邀请码不能改变已有归属", false
+	case errors.Is(err, organization.ErrInvalidInviteCode):
+		status, code, msg, retry = 400, "invalid_invite_code", "邀请码无效，请更正或显式移除；不会自动更改经营归属", false
+	case errors.Is(err, organization.ErrInvalidVerification):
+		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
+	case errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
 		status, code, msg, retry = 400, "invalid_input", "输入不完整、不符合限制或身份凭据不可用", false
 	case errors.Is(err, usage.ErrSecretDisplayed):
 		status, code, msg, retry = 409, "secret_already_displayed", "此 Key 操作已完成；完整密钥只显示一次，请从列表重置以获得新密钥", false

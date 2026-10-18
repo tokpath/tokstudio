@@ -171,7 +171,7 @@ func (s *Service) requestInvoice(ctx context.Context, partyKind, party, operator
 	})
 	return out, e
 }
-func (s *Service) ListInvoices(ctx context.Context, actor, operator string, customer bool) ([]Invoice, error) {
+func (s *Service) ListInvoices(ctx context.Context, actor, operator string, customer bool, search ...string) ([]Invoice, error) {
 	out := []Invoice{}
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		q := t.Where("operator_id=?", operator)
@@ -185,7 +185,7 @@ func (s *Service) ListInvoices(ctx context.Context, actor, operator string, cust
 				return e
 			}
 		}
-		return q.Order("created_at DESC").Limit(100).Find(&out).Error
+		return invoiceSearch(q, search).Order("created_at DESC,id DESC").Limit(100).Find(&out).Error
 	})
 	return out, e
 }

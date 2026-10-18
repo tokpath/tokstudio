@@ -3,6 +3,7 @@ package portal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
@@ -27,6 +28,9 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	view := c.Query("view")
 	if view == "" {
 		view = "buyer"
+		if op.Kind == organization.Platform {
+			view = "supplier"
+		}
 	}
 	if view != "buyer" && view != "supplier" {
 		handleError(c, cooperation.ErrConflict)
@@ -78,27 +82,65 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		handleError(c, e)
 		return
 	}
-	for _, auth := range authorizations {
-		v := values(auth)
-		v["record_kind"] = "authorization"
-		row := entity(auth.ID, "authorization", auth.Version, v)
-		row["allowed_actions"] = []string{"cancel_authorization"}
-		items = append(items, row)
-	}
-	for _, attempt := range attempts {
-		v := values(attempt)
-		v["record_kind"] = "replenishment_attempt"
-		row := entity(attempt.ID, attempt.State, 0, v)
-		row["allowed_actions"] = []string{}
-		items = append(items, row)
+	if view == "buyer" {
+		for _, auth := range authorizations {
+			v := values(auth)
+			v["record_kind"] = "authorization"
+			row := entity(auth.ID, "authorization", auth.Version, v)
+			row["allowed_actions"] = []string{"authorization", "cancel_authorization"}
+			items = append(items, row)
+		}
+		for _, attempt := range attempts {
+			v := values(attempt)
+			v["record_kind"] = "replenishment_attempt"
+			row := entity(attempt.ID, attempt.State, 0, v)
+			row["allowed_actions"] = []string{}
+			items = append(items, row)
+		}
 	}
 	p["title"] = "采购、供货与自动补货"
 	p["description"] = "固定报价保留成交与退出条款。自动扣款须另有真实支付授权；线下模式只自动建待付订单。切换采购/供货视图可查看双方各自责任。"
 	p["items"] = items
 	p["views"] = []gin.H{{"value": "buyer", "label": "我方采购"}, {"value": "supplier", "label": "我方供货"}}
+	if op.Kind == organization.Platform {
+		p["views"] = []gin.H{{"value": "supplier", "label": "我方供货"}}
+	}
+	if op.Kind == organization.Channel {
+		p["views"] = []gin.H{{"value": "buyer", "label": "我方采购"}}
+	}
 	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("buyer_id", "采购方", "text"), col("supplier_id", "供货方", "text"), col("price_usd", "成交USD", "usd"), col("allocated_usd", "已分配USD", "usd"), col("paid_atg", "购买库存", "atg"), col("gift_atg", "赠送库存", "atg"), col("exit_terms", "原退出条款", "text"), col("state", "执行状态", "status")}
 	p["operations"] = []operation{{Name: "quote", Label: "向直属采购方发布供货报价", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "quote"), f("buyer_id", "直属采购方编号", "text"), f("price_usd", "收款USD", "decimal"), f("paid_atg", "购买库存ATG", "decimal"), f("gift_atg", "赠送库存ATG", "decimal"), f("terms_reference", "成交条款编号", "text"), defaultField("exit_terms.version", "退出条款版本", "integer", 1), f("exit_terms.voluntary_refund", "允许自愿退出退款", "boolean"), selectField("exit_terms.method", "合同退款算法", "remaining_paid_proportional|剩余购买库存原价比例", "non_refundable|合同不退款"), f("exit_terms.terms_reference", "退出条款编号", "text"), optional("valid_until", "报价截止时间", "datetime"), defaultField("enabled", "允许按报价下单", "boolean", true)}}, {Name: "authorization", Label: "设定有限自动补货授权", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "authorization"), f("quote_id", "固定成交报价编号", "text"), f("supplier_id", "报价供货方编号", "text"), f("trigger_available_atg", "采购可用库存低于ATG时触发", "decimal"), f("single_limit_usd", "每次最高USD", "decimal"), f("period_limit_usd", "周期最高USD", "decimal"), selectField("period", "UTC自然周期", "month|月", "quarter|季", "year|年"), selectField("mode", "执行方式", "offline|仅建立待付订单", "automatic|已获授权Stripe自动扣款"), optional("merchant_id", "真实供货收款商户配置编号", "text"), optional("payment.payment_method", "Stripe已授权pm_编号", "password"), optional("payment.customer_ref", "Stripe已授权cus_编号", "password"), f("consent_reference", "独立自动付款授权凭证", "text"), defaultField("enabled", "启用授权", "boolean", true), defaultField("expected_version", "当前授权版本（首次0）", "integer", 0)}, Confirmation: "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。"}}
 	p["row_operations"] = []operation{{Name: "purchase", Label: "按原报价创建采购订单", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{}, Confirmation: "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "供货方收款配置编号", "text")}, Description: "付款操作返回实际支付步骤，核实付款并交付后才可用。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "wallet_receipt", Label: "提交链上付款查找线索", Method: "POST", Path: base + "/{id}/wallet_receipt", Fields: []field{f("transaction_hash", "实际交易Hash（仅查找线索）", "text"), f("log_index", "目标Transfer事件索引（十六进制）", "text")}, Description: "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。"}, {Name: "fund", Label: "分配已核实收款", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实收款编号", "text"), f("amount_usd", "本次分配USD", "decimal")}}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
+	ops := p["operations"].([]operation)
+	p["operations"] = []operation{}
+	if view == "supplier" && op.Kind != organization.Channel {
+		p["operations"] = []operation{ops[0]}
+	}
+	if view == "buyer" && op.ParentOperatorID != nil {
+		if len(authorizations) == 0 {
+			p["operations"] = []operation{ops[1]}
+		}
+		revise := ops[1]
+		revise.Label = "修订本方自动补货授权"
+		revise.Fields = append([]field{f("id", "原补货授权编号", "hidden")}, revise.Fields...)
+		for i := range revise.Fields {
+			field := &revise.Fields[i]
+			if field.Name == "action" {
+				field.Kind = "hidden"
+			}
+			if field.Name == "consent_reference" {
+				field.Name, field.Label = "renewed_consent_reference", "本次修订的独立授权凭证（请重新确认并填写）"
+			}
+			if field.Name == "merchant_id" || field.Name == "payment.payment_method" || field.Name == "payment.customer_ref" {
+				field.VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"automatic"}}
+			}
+			if field.Name == "payment.payment_method" || field.Name == "payment.customer_ref" {
+				field.Help = "修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。"
+			}
+		}
+		revise.Description = "修订本经营方唯一的原自动补货授权，按当前版本保存，不取消重建。每次修订须重新确认并填写本次独立授权依据；敏感付款资料不回显。"
+		p["row_operations"] = append(p["row_operations"].([]operation), revise)
+	}
 	a.resourceResponse(c, p)
 }
 func (a *Application) procurementCommand(c *gin.Context, op organization.Operator, actor string) {
@@ -121,12 +163,29 @@ func (a *Application) procurementCommand(c *gin.Context, op organization.Operato
 			return
 		}
 		in.BuyerID = op.ID
-		out, e := a.AutoReplenishments.SaveAuthorization(ctx, actor, in)
-		if e != nil {
-			handleError(c, e)
-			return
+		if in.ExpectedVersion > 0 {
+			var revision struct {
+				Consent string `json:"renewed_consent_reference"`
+			}
+			if json.Unmarshal(raw, &revision) != nil {
+				handleError(c, organization.ErrInvalidInput)
+				return
+			}
+			in.ConsentReference = revision.Consent
 		}
-		c.JSON(200, gin.H{"id": out.ID, "status": "authorized", "version": out.Version})
+		result, err := a.command(c, "procurement-authorization:"+op.ID, raw, func(tx *gorm.DB) (any, error) {
+			svc, coop := *a.AutoReplenishments, *a.Cooperation
+			coop.DB, svc.Cooperation = tx, &coop
+			out, err := svc.SaveAuthorization(ctx, actor, in)
+			if errors.Is(err, cooperation.ErrConflict) {
+				return nil, organization.ErrConflict
+			}
+			if errors.Is(err, cooperation.ErrReplenishment) {
+				return nil, organization.ErrInvalidInput
+			}
+			return gin.H{"id": out.ID, "status": "authorized", "version": out.Version, "authorization": out}, err
+		})
+		jsonResponse(c, result, err)
 		return
 	}
 	result, e := a.command(c, "procurement:"+op.ID, raw, func(tx *gorm.DB) (any, error) {
@@ -194,11 +253,18 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 			out, e := a.Cooperation.CreatePurchaseOrder(ctx, tx, actor, op.ID, id, businessKey)
 			return commandResult(out.ID, out.Status), e
 		case "cancel_authorization":
+			var original cooperation.ReplenishmentAuthorization
+			if err := tx.Where("id=? AND buyer_id=?", id, op.ID).Take(&original).Error; err != nil {
+				return nil, err
+			}
 			svc := *a.AutoReplenishments
 			copyCoop := *a.Cooperation
 			copyCoop.DB = tx
 			svc.Cooperation = &copyCoop
 			e := svc.CancelAuthorization(ctx, actor, op.ID, in.Version)
+			if errors.Is(e, cooperation.ErrConflict) {
+				e = organization.ErrConflict
+			}
 			return commandResult(id, "cancelled"), e
 		case "fund", "fulfill":
 			o, e := a.Cooperation.GetPurchase(ctx, tx, actor, op.ID, id)
@@ -292,6 +358,9 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		return
 	}
 	action["network"], action["token_contract"] = intent.Network, intent.TokenContract
+	if intent.Driver == "manual" {
+		action["kind"], action["instructions"] = "offline", checkout.Instructions
+	}
 	if intent.Driver == "evm_wallet" {
 		action["wallet_receipt_path"] = "/api/v1/operators/" + op.ID + "/procurement/" + id + "/wallet_receipt"
 	}

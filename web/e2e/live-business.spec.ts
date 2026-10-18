@@ -1,0 +1,121 @@
+import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+
+const fixturePath = process.env.TOKENHUB_FRONTEND_ACCEPTANCE_FILE;
+test.skip(!fixturePath, "Requires opt-in isolated PostgreSQL application and independent HTTP protocol service");
+
+async function login(page: Page, kind: string, email: string, password: string) {
+  await page.goto("/login");
+  await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
+  await page.getByLabel("邮箱", { exact: true }).fill(email);
+  await page.getByLabel("密码", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page).toHaveURL(kind === "staff" ? /\/manage\// : /\/workspace/);
+}
+
+test("real purchase, verified manual receipt, entitlement, API key and Bifrost request form one traceable customer journey", async ({ browser }, testInfo) => {
+  test.setTimeout(180_000);
+  const fixture = JSON.parse(readFileSync(fixturePath!, "utf8"));
+  const customerContext = await browser.newContext(); const staffContext = await browser.newContext();
+  const customer = await customerContext.newPage(), staff = await staffContext.newPage();
+  customer.setDefaultTimeout(15_000); staff.setDefaultTimeout(15_000);
+  const failures: string[] = [];
+  for (const page of [customer, staff]) page.on("pageerror", error => failures.push(error.message));
+  try {
+    await login(customer, "customer", fixture.customer_email, fixture.customer_password);
+    await customer.goto("/workspace/plans");
+    await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();
+    await customer.getByRole("button", { name: "继续，核对成交条款" }).click();
+    await customer.getByRole("combobox", { name: "支付方式" }).selectOption(fixture.manual_method_id);
+    await customer.getByLabel("本次使用 USD 支付余额", { exact: true }).fill("0");
+    await customer.getByRole("checkbox", { name: /^我确认本次价格/ }).check();
+    const orderResponse = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/orders") && response.request().method() === "POST");
+    await customer.getByRole("button", { name: "确认订单，继续支付" }).click();
+    const rawOrder = await orderResponse; expect(rawOrder.status()).toBe(200); const order = await rawOrder.json();
+    expect(order.amount_usd).toBe("100");
+    expect(order.payment_action.kind).toBe("offline");
+    await expect(customer.getByText("合成测试收款账户", { exact: true })).toBeVisible();
+    await expect(customer.getByText("仅限隔离联调：登记合成到账事实后交付，不要向任何真实账户付款。", { exact: true })).toBeVisible();
+    await expect(customer.getByText("订单已建立。请按下方状态完成支付与到账核实。")).toBeVisible();
+    const before = await (await customer.request.get("/api/v1/me/credits", { timeout: 15_000 })).json();
+
+    await login(staff, "staff", fixture.owner_email, fixture.owner_password);
+    await staff.goto(`/manage/${fixture.operator_id}/payments`);
+    await staff.getByRole("button", { name: "登记人工核实收款", exact: true }).click();
+    const receiptPanel = staff.getByRole("dialog").last();
+    for (const details of await receiptPanel.locator("details:not([open]) > summary").all()) await details.click();
+    const reference = "synthetic-browser-" + randomUUID();
+    for (const [label, value] of [["外部唯一收款流水", reference], ["实际入账总额USD", "100"], ["实际入账币种", "USD"], ["原币种实收金额", "100"], ["实际收款账号证明", "isolated synthetic recipient"], ["实际付款人账号证明", "isolated synthetic payer"], ["本次USD估值依据", "synthetic USD, no FX"], ["真实银行核实凭证", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
+      await receiptPanel.getByLabel(label, { exact: false }).fill(value);
+    }
+    await receiptPanel.getByRole("combobox", { name: "手续费证据" }).selectOption("pending");
+    const now = new Date(), local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0,16);
+    await receiptPanel.getByLabel("真实付款时刻", { exact: false }).fill(local);
+    await receiptPanel.getByLabel("核实时刻", { exact: false }).fill(local);
+    const receiptResponse = staff.waitForResponse(response => response.url().endsWith(`/api/v1/operators/${fixture.operator_id}/payments`) && response.request().method() === "POST");
+    if (await receiptPanel.getByRole("checkbox").count()) await receiptPanel.getByRole("checkbox").check();
+    await receiptPanel.getByRole("button", { name: "登记人工核实收款", exact: true }).click();
+    const receiptHTTP = await receiptResponse; expect(receiptHTTP.status()).toBe(200); const receipt = await receiptHTTP.json();
+    await receiptPanel.getByRole("button", { name: "关闭办理面板" }).click();
+    await staff.goto(`/manage/${fixture.operator_id}/orders`);
+    await staff.getByLabel("搜索记录").fill(order.id);
+    await staff.getByRole("button", { name: "查询", exact: true }).click();
+    await expect(staff.getByRole("button", { name: "查看并办理" })).toHaveCount(1);
+    await staff.getByRole("button", { name: "查看并办理" }).click();
+    await staff.getByRole("dialog").last().getByRole("button", { name: "将已核实收款分配到此单" }).click();
+    const allocation = staff.getByRole("dialog").last();
+    await allocation.getByRole("combobox").selectOption(receipt.id);
+    await allocation.getByLabel("本次分配 USD", { exact: false }).fill("100");
+    await allocation.getByRole("checkbox").check();
+    const allocationResponse = staff.waitForResponse(response => response.url().endsWith(`/order-context/${order.id}/allocate`) && response.request().method() === "POST");
+    await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+    expect((await allocationResponse).status()).toBe(200);
+    await allocation.getByRole("button", { name: "关闭办理面板" }).click();
+    await staff.getByRole("dialog").last().getByRole("button", { name: "核实资金并重试交付" }).click();
+    const fulfill = staff.getByRole("dialog").last();
+    await fulfill.getByRole("checkbox").check();
+    const deliveryResponse = staff.waitForResponse(response => response.url().endsWith(`/orders/${order.id}/fulfill`) && response.request().method() === "POST");
+    await fulfill.getByRole("button", { name: "核实资金并重试交付", exact: true }).click();
+    expect((await deliveryResponse).status()).toBe(200);
+    const after = await (await customer.request.get("/api/v1/me/credits")).json();
+    expect(Number(after.customer_atg.available) - Number(before.customer_atg.available)).toBe(120);
+    await customer.goto(`/workspace/orders?record=${order.id}`);
+    await expect(customer.getByText(order.id, { exact: true }).first()).toBeVisible();
+    await customer.goto("/workspace/keys");
+    await customer.getByRole("button", { name: "创建 Key", exact: true }).click();
+    await customer.getByLabel("名称", { exact: true }).fill("真实联调应用");
+    await customer.getByLabel("ATG 预算上限").fill("10");
+    const keyResponse = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/keys") && response.request().method() === "POST");
+    await customer.getByRole("button", { name: "创建 Key", exact: true }).last().click();
+    const keyHTTP = await keyResponse; expect(keyHTTP.status()).toBe(200); const key = await keyHTTP.json();
+    await expect(customer.getByText(key.secret, { exact: true })).toBeVisible();
+    await customer.getByRole("button", { name: "关闭", exact: true }).click();
+    await expect(customer.getByText(key.secret, { exact: true })).toHaveCount(0);
+    const requestID = randomUUID(), body = { model: fixture.model_id, messages: [{ role: "user", content: "Synthetic frontend acceptance" }], max_completion_tokens: 20 };
+    const invoke = () => customer.request.post("/api/v1/chat/completions", { headers: { Authorization: `Bearer ${key.secret}`, "Idempotency-Key": requestID }, data: body });
+    const call = await invoke(); expect(call.status()).toBe(200); expect((await call.json()).choices.length).toBeGreaterThan(0);
+    const recordedRequestID = call.headers()["x-tokenhub-request-id"];
+    expect(recordedRequestID).toBeTruthy();
+    const recordedRequest = await (await customer.request.get(`/api/v1/me/requests/${recordedRequestID}`)).json();
+    expect(recordedRequest.charged_atg).toBe("0.017");
+    const charged = await (await customer.request.get("/api/v1/me/credits")).json();
+    const replay = await invoke(); expect(replay.status()).toBe(200);
+    const replayed = await (await customer.request.get("/api/v1/me/credits")).json();
+    expect(replayed.customer_atg.available).toBe(charged.customer_atg.available);
+    expect(Number(charged.customer_atg.available)).toBeLessThan(Number(after.customer_atg.available));
+    await customer.goto("/workspace/requests");
+    await expect(customer.getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
+    await customer.screenshot({ path: testInfo.outputPath("real-customer-usage.png"), fullPage: true });
+    await staff.goto(`/manage/${fixture.operator_id}/customers`);
+    await staff.getByLabel("搜索记录").fill(fixture.customer_email);
+    await staff.getByRole("button", { name: "查询", exact: true }).click();
+    await expect(staff.getByRole("button", { name: "客户工作台", exact: true })).toHaveCount(1);
+    await staff.getByRole("button", { name: "客户工作台", exact: true }).click();
+    await staff.getByRole("dialog").last().getByRole("tab", { name: "模型调用" }).click();
+    await expect(staff.getByRole("dialog").last().getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
+    await staff.screenshot({ path: testInfo.outputPath("real-operator-customer.png"), fullPage: true });
+    expect(failures).toEqual([]);
+    await testInfo.attach("verified-business-facts", { body: JSON.stringify({ order_id: order.id, receipt_id: receipt.id, granted_atg: "120", request_id: recordedRequestID, charged_atg: recordedRequest.charged_atg, replay_did_not_charge_again: true }), contentType: "application/json" });
+  } finally { await customerContext.close().catch(() => {}); await staffContext.close().catch(() => {}); }
+});

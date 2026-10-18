@@ -50,13 +50,26 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 			}
 			v["remaining_usd"] = remaining
 			v["expected_execution_key"] = leg.ExecutionKey
-			source, e := a.Payments.PaymentSourceForReceipt(ctx, op.ID, leg.ReceiptID)
-			if e != nil {
-				handleError(c, e)
-				return
+			sourceDriver := "manual"
+			manualBank := true
+			if leg.SourceKind == "manual_receipt" {
+				receipt, err := a.Commerce.GetReceipt(ctx, nil, op.ID, leg.ReceiptID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				manualBank = receipt.Network == "" || receipt.Network == "bank"
+				v["proof"] = gin.H{"receipt_id": receipt.ID, "recipient_reference": receipt.PayerReference, "money": gin.H{"currency": receipt.Currency}}
+			} else {
+				source, err := a.Payments.PaymentSourceForReceipt(ctx, op.ID, leg.ReceiptID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				sourceDriver = source.Driver
 			}
 			actions := []string{}
-			external := source.Driver == "evm_wallet" || source.Driver == "nowpayments"
+			external := sourceDriver == "evm_wallet" || sourceDriver == "nowpayments"
 			authorized := false
 			if external {
 				authorized, e = a.procurementDestinationFacts(c, actor, op.ID, leg.ID, v)
@@ -80,6 +93,12 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 			switch leg.State {
 			case "prepared":
 				actions = []string{"execute_refund", "begin_manual", "release_refund"}
+				if sourceDriver == "manual" {
+					actions = []string{"release_refund"}
+					if manualBank {
+						actions = append(actions, "begin_manual")
+					}
+				}
 				if external {
 					actions = []string{"release_refund"}
 					if authorized {
@@ -89,9 +108,9 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 					}
 				}
 			case "manual_executing", "executing":
-				if source.Driver == "evm_wallet" {
+				if sourceDriver == "evm_wallet" {
 					actions = []string{"verify_evm"}
-				} else if source.Driver == "nowpayments" {
+				} else if sourceDriver == "nowpayments" {
 					actions = []string{"verify_external"}
 				} else {
 					actions = []string{"verify_manual"}

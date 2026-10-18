@@ -239,7 +239,7 @@ func (a *Application) credits(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()
 	customer, operator := id.Customer.Customer.ID, id.Customer.Ownership.OperatorID
-	summary, e := a.Ledger.CustomerAssetSummary(ctx, nil, operator, customer, time.Now())
+	summary, e := a.Ledger.CustomerAssetSummary(ctx, nil, operator, customer, time.Time{})
 	if e != nil {
 		handleError(c, e)
 		return
@@ -292,7 +292,10 @@ func (a *Application) credits(c *gin.Context) {
 	c.JSON(200, gin.H{"customer_atg": gin.H{"available": summary.AvailableATG, "held": summary.HeldATG, "purchased_remaining": summary.PurchasedRemainingATG, "gift_remaining": summary.GiftRemainingATG, "expired": summary.ExpiredATG}, "usd_balance": gin.H{"available": usd.Available(), "held": usd.Held}, "commission_usd": gin.H{"available": spendable, "source_restricted": restricted, "held": comm.Held, "frozen": frozen.Balance, "recovery_due": q.PendingOffsetUSD}, "qualification": gin.H{"confirmed_usd": q.ConfirmedUSD, "pending_usd": overview.PendingConsumptionUSD, "pending_correction_usd": overview.PendingCorrectionUSD, "threshold_usd": policy.ThresholdUSD, "qualified_at": q.AcquiredAt, "function_status": overview.FunctionState.Status}})
 }
 func (a *Application) keyDTO(ctx context.Context, k usage.Key) (gin.H, error) {
-	budget, e := a.Usage.KeyBudget(ctx, nil, k, time.Time{})
+	return a.keyDTOIn(ctx, nil, k)
+}
+func (a *Application) keyDTOIn(ctx context.Context, tx *gorm.DB, k usage.Key) (gin.H, error) {
+	budget, e := a.Usage.KeyBudget(ctx, tx, k, time.Time{})
 	if e != nil {
 		return nil, e
 	}
@@ -357,17 +360,18 @@ func (a *Application) updateKey(c *gin.Context) {
 	if !body(c, &in) {
 		return
 	}
-	out, e := a.Usage.UpdateKey(c.Request.Context(), subject(c).Customer.Customer.ID, c.Param("id"), in.Version, in.domain())
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	dto, e := a.keyDTO(c.Request.Context(), out)
-	if e != nil {
-		handleError(c, e)
-		return
-	}
-	c.JSON(200, dto)
+	customer := subject(c).Customer.Customer.ID
+	ctx := c.Request.Context()
+	raw, e := a.command(c, "key-config:"+customer+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
+		svc := *a.Usage
+		svc.DB = tx
+		out, e := svc.UpdateKey(ctx, customer, c.Param("id"), in.Version, in.domain())
+		if e != nil {
+			return nil, e
+		}
+		return a.keyDTOIn(ctx, tx, out)
+	})
+	jsonResponse(c, raw, e)
 }
 func (a *Application) resetKey(c *gin.Context) {
 	var in struct{ Version int64 }
@@ -393,12 +397,14 @@ func (a *Application) setKeyState(state string) gin.HandlerFunc {
 		if !body(c, &in) {
 			return
 		}
-		out, e := a.Usage.SetKeyState(c.Request.Context(), subject(c).Customer.Customer.ID, c.Param("id"), state, in.Version)
-		if e != nil {
-			handleError(c, e)
-			return
-		}
-		c.JSON(200, gin.H{"id": out.ID, "status": out.Status, "version": out.Version})
+		customer := subject(c).Customer.Customer.ID
+		raw, e := a.command(c, "key-state:"+customer+":"+c.Param("id")+":"+state, in, func(tx *gorm.DB) (any, error) {
+			svc := *a.Usage
+			svc.DB = tx
+			out, e := svc.SetKeyState(c.Request.Context(), customer, c.Param("id"), state, in.Version)
+			return gin.H{"id": out.ID, "status": out.Status, "version": out.Version}, e
+		})
+		jsonResponse(c, raw, e)
 	}
 }
 func (a *Application) commissions(c *gin.Context) {

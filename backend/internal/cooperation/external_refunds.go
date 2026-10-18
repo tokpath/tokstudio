@@ -70,6 +70,14 @@ func (p *ProcurementRefunds) BuyerRefundLegs(ctx context.Context, actor, buyer s
 		copy := *p.Payments
 		copy.DB = tx
 		for _, leg := range legs {
+			if leg.SourceKind == "manual_receipt" {
+				receipt, e := p.manualReceipt(ctx, tx, leg.SupplierID, leg.ReceiptID)
+				if e != nil {
+					return e
+				}
+				out = append(out, BuyerRefundLegView{ID: leg.ID, ExitID: leg.ExitID, State: leg.State, Driver: "manual", Currency: receipt.Currency, Network: receipt.Network, AmountUSD: leg.AmountUSD, SettledUSD: leg.SettledUSD, ActualUSD: leg.ActualUSD, ExcessUSD: leg.ExcessUSD})
+				continue
+			}
 			source, e := copy.PaymentSourceForReceipt(ctx, leg.SupplierID, leg.ReceiptID)
 			if e != nil {
 				return e
@@ -124,6 +132,9 @@ func (p *ProcurementRefunds) ProposeRefundDestination(ctx context.Context, actor
 			return e
 		}
 		if version == 1 {
+			if leg.SourceKind == "manual_receipt" {
+				return payments.ErrUnsupported
+			}
 			copy := *p.Payments
 			copy.DB = tx
 			source, e := copy.PaymentSourceForReceipt(ctx, leg.SupplierID, leg.ReceiptID)

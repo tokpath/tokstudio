@@ -126,8 +126,14 @@ func (d DomainSource) Export(ctx context.Context, tx *gorm.DB, operator string, 
 			return nil, e
 		}
 		return jsonRows(rows)
-	case "usage":
+	case "usage", "requests":
 		rows, e := d.Usage.OperationalRequests(ctx, tx, operator, q.OwnerID, q.From, q.To, 10001)
+		if e != nil {
+			return nil, e
+		}
+		return jsonRows(rows)
+	case "procurement":
+		rows, e := d.Cooperation.OperationalPurchaseOrders(ctx, tx, operator, q.OwnerID, q.From, q.To, 10001)
 		if e != nil {
 			return nil, e
 		}

@@ -367,6 +367,141 @@
         }
       }
     },
+    "/v1/branding/assets/{id}/content": {
+      "get": {
+        "operationId": "get__v1_branding_assets_id_content",
+        "summary": "Read the current brand or channel logo without exposing private object storage",
+        "tags": [
+          "Customer browser API"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The actual channel operator within the resolved brand; omission selects the brand owner."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "operationId": "post__v1_auth_login",
@@ -3018,7 +3153,7 @@
                 "type": "object",
                 "properties": {
                   "amount_usd": {
-                    "$ref": "#/components/schemas/Decimal"
+                    "$ref": "#/components/schemas/LedgerDecimal"
                   },
                   "reason": {
                     "type": "string"
@@ -6475,7 +6610,7 @@
                 "type": "object",
                 "properties": {
                   "amount_usd": {
-                    "$ref": "#/components/schemas/Decimal"
+                    "$ref": "#/components/schemas/LedgerDecimal"
                   }
                 },
                 "required": [
@@ -7446,14 +7581,31 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "branding-brands",
+                "models",
+                "payment-assets",
+                "scope-subjects",
+                "customers",
+                "plans",
+                "orders",
+                "receipts",
+                "credentials",
+                "merchants",
+                "supplier-methods",
+                "buyers",
+                "suppliers",
+                "purchase-quotes",
+                "campaigns"
+              ]
             }
           },
           {
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Search by actual name or ID",
+            "description": "Search by actual name or ID; at most 200 characters",
             "schema": {
               "type": "string"
             }
@@ -7588,6 +7740,167 @@
             "in": "path",
             "required": true,
             "schema": {
+              "type": "string",
+              "enum": [
+                "branding-brands",
+                "models",
+                "payment-assets",
+                "scope-subjects",
+                "customers",
+                "plans",
+                "orders",
+                "receipts",
+                "credentials",
+                "merchants",
+                "supplier-methods",
+                "buyers",
+                "suppliers",
+                "purchase-quotes",
+                "campaigns"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Search by actual name or ID; at most 200 characters",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Cursor returned by next_cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "buyer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "For models only: an exact direct child operator. Adds its actual authorization_version; without this query, authorization_version is omitted."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferencePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operators/{operatorId}/references/models": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_references_models",
+        "summary": "Verified model identities and actual listing or direct-buyer authorization revisions",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
               "type": "string"
             }
           },
@@ -7595,7 +7908,155 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Search by actual name or ID",
+            "description": "Search model name or public ID; at most 200 characters",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Cursor returned by next_cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "buyer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "An exact direct child operator. Returns authorization_version for this seller/buyer/model; missing records return version 0. Every choice always returns the current operator listing_version."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelReferencePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permissions-any": [
+          "catalog.manage",
+          "sales.manage"
+        ]
+      }
+    },
+    "/v1/operators/{operatorId}/references/branding-brands": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_references_branding_brands",
+        "summary": "Only brand operators this staff member may configure through this parent workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Search actual target name or ID; at most 200 characters",
             "schema": {
               "type": "string"
             }
@@ -7701,6 +8162,446 @@
               }
             }
           }
+        },
+        "description": "Includes the current brand operator and permitted direct OEM children; channels are excluded. Each result value is the target operator ID, never a brand ID. Appearance authority does not grant customer or financial access.",
+        "x-required-permission": "organization.read"
+      }
+    },
+    "/v1/operators/{operatorId}/customer-context/{id}": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_customer_context_id_",
+        "summary": "Exact permission-scoped customer workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "description": "One returned section to paginate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Previous next_cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorContext"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operators/{operatorId}/order-context/{id}": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_order_context_id_",
+        "summary": "Exact permission-scoped order workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "description": "One returned section to paginate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Previous next_cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorContext"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operators/{operatorId}/order-context/{id}/allocate": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_order_context_id_allocate",
+        "summary": "Allocate an existing verified receipt to this exact operator order",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "receipt_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "amount_usd": {
+                    "$ref": "#/components/schemas/LedgerDecimal"
+                  }
+                },
+                "required": [
+                  "receipt_id",
+                  "amount_usd"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
         }
       }
     },
@@ -7748,6 +8649,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -7983,7 +8893,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires providers.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "providers.manage"
       }
     },
     "/v1/operators/{operatorId}/receipt-valuations": {
@@ -8030,6 +8941,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -8174,6 +9094,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -8402,7 +9331,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认独立发放本次赠送，不改原正确交易，不将赠送视作有偿消费或分佣基数。新增责任受真实覆盖检查。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "marketing.manage"
       }
     },
     "/v1/operators/{operatorId}/overview": {
@@ -8449,6 +9379,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -8596,6 +9535,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8737,6 +9685,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -8965,7 +9922,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "sales.manage"
       }
     },
     "/v1/operators/{operatorId}/orders": {
@@ -9012,6 +9970,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -9156,6 +10123,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -9384,7 +10360,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/payment-methods": {
@@ -9431,6 +10408,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -9659,7 +10645,8 @@
             }
           }
         },
-        "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/valuations": {
@@ -9706,6 +10693,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -9934,7 +10930,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/evidence": {
@@ -9981,6 +10978,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -10209,7 +11215,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/pricing": {
@@ -10256,6 +11263,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -10484,7 +11500,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "sales.manage"
       }
     },
     "/v1/operators/{operatorId}/catalog-changes": {
@@ -10531,6 +11548,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -10759,7 +11785,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "sales.manage"
       }
     },
     "/v1/operators/{operatorId}/marketing": {
@@ -10806,6 +11833,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -11044,7 +12080,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "marketing.manage"
       }
     },
     "/v1/operators/{operatorId}/commissions": {
@@ -11091,6 +12128,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -11319,7 +12365,8 @@
             }
           }
         },
-        "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "修改只影响规则指定的后续事实，已成立责任按原快照执行。 Requires marketing.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "marketing.manage"
       }
     },
     "/v1/operators/{operatorId}/assets": {
@@ -11366,6 +12413,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -11513,6 +12569,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11654,6 +12719,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -11882,7 +12956,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.create. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.create"
       }
     },
     "/v1/operators/{operatorId}/agreements": {
@@ -11929,6 +13004,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -12073,6 +13157,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -12302,13 +13395,17 @@
                   },
                   {
                     "$ref": "#/components/schemas/Operator_procurement_authorization"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_procurement_authorization_revision"
                   }
                 ]
               }
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement-invoices": {
@@ -12355,6 +13452,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -12583,7 +13689,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/coverage": {
@@ -12630,6 +13737,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -12750,6 +13866,16 @@
             }
           },
           {
+            "name": "target_operator_id",
+            "in": "query",
+            "required": false,
+            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
@@ -12858,7 +13984,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "只调整目标经营方的销售承载授权和预警。采购余额不足时不能继续模型调用。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/alerts": {
@@ -12905,6 +14032,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -13006,7 +14142,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_alerts",
-        "summary": "保存风险阈值",
+        "summary": "新增预警规则",
         "tags": [
           "Operator browser API"
         ],
@@ -13133,7 +14269,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "operations.manage"
       }
     },
     "/v1/operators/{operatorId}/takeovers": {
@@ -13180,6 +14317,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -13457,6 +14603,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13598,6 +14753,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -13833,7 +14997,8 @@
             }
           }
         },
-        "description": " Required explicit review: 将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/branding": {
@@ -13880,6 +15045,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -13981,7 +15155,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_branding",
-        "summary": "保存逐字段主题",
+        "summary": "编辑网站外观",
         "tags": [
           "Operator browser API"
         ],
@@ -13997,6 +15171,16 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "target_operator_id",
+            "in": "query",
+            "required": false,
+            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -14108,7 +15292,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/domains": {
@@ -14155,6 +15340,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -14256,7 +15450,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_domains",
-        "summary": "申请品牌域名验证",
+        "summary": "申请域名验证",
         "tags": [
           "Operator browser API"
         ],
@@ -14378,19 +15572,13 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_branding_domain"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_domains_request"
-                  }
-                ]
+                "$ref": "#/components/schemas/Operator_domains_request"
               }
             }
           }
         },
-        "description": "仅品牌经营者可配置，必须完成 DNS 所有权与 TLS 验证。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/channel-themes": {
@@ -14437,6 +15625,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -14538,7 +15735,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_channel_themes",
-        "summary": "保存逐字段主题",
+        "summary": "编辑网站外观",
         "tags": [
           "Operator browser API"
         ],
@@ -14554,6 +15751,16 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "target_operator_id",
+            "in": "query",
+            "required": false,
+            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -14665,7 +15872,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/staff": {
@@ -14712,6 +15920,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -14940,7 +16157,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires staff.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "staff.manage"
       }
     },
     "/v1/operators/{operatorId}/approvals": {
@@ -14987,6 +16205,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -15134,6 +16361,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -15232,7 +16468,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_risk",
-        "summary": "保存风险阈值",
+        "summary": "新增预警规则",
         "tags": [
           "Operator browser API"
         ],
@@ -15359,7 +16595,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "operations.manage"
       }
     },
     "/v1/operators/{operatorId}/restrictions": {
@@ -15406,6 +16643,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -15641,7 +16887,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只对明确范围与动作生效，不转移或删除客户资产。设置限制必须有复核到期。 Requires security.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "security.manage"
       }
     },
     "/v1/operators/{operatorId}/notifications": {
@@ -15688,6 +16935,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -15916,7 +17172,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "operations.manage"
       }
     },
     "/v1/operators/{operatorId}/business-status": {
@@ -15963,6 +17220,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -16191,7 +17457,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires business.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "business.manage"
       }
     },
     "/v1/operators/{operatorId}/audit": {
@@ -16238,6 +17505,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -16385,6 +17661,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -16526,6 +17811,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -16764,7 +18058,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals": {
@@ -16811,6 +18106,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -17039,7 +18343,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/disputes": {
@@ -17086,6 +18391,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -17314,7 +18628,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认这是已核实的外部扣回事实。登记将记录真实收款损失，不能用一般投诉替代资金证据。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认这是已核实的外部扣回事实。登记将记录真实收款损失，不能用一般投诉替代资金证据。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/invoices": {
@@ -17361,6 +18676,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -17596,7 +18920,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires invoices.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "invoices.manage"
       }
     },
     "/v1/operators/{operatorId}/reconciliation": {
@@ -17643,6 +18968,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -17871,7 +19205,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires reports.view. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "reports.view"
       }
     },
     "/v1/operators/{operatorId}/reports": {
@@ -17918,6 +19253,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -18062,6 +19406,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -18290,7 +19643,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires reports.export. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "reports.export"
       }
     },
     "/v1/operators/{operatorId}/providers": {
@@ -18337,6 +19691,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -18565,7 +19928,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
       }
     },
     "/v1/operators/{operatorId}/catalog": {
@@ -18612,6 +19976,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -18840,7 +20213,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
       }
     },
     "/v1/operators/{operatorId}/routes": {
@@ -18887,6 +20261,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -19115,7 +20498,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
       }
     },
     "/v1/operators/{operatorId}/routing": {
@@ -19162,6 +20546,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -19309,6 +20702,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -19453,6 +20855,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -19594,6 +21005,15 @@
             "in": "query",
             "required": false,
             "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
             "schema": {
               "type": "string"
             }
@@ -19822,7 +21242,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "platform.manage"
       }
     },
     "/v1/operators/{operatorId}/reports/financial": {
@@ -22387,7 +23808,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认独立真实付款时点和覆盖该时刻的本次估值窗口。只使原已收款事实一次入账，不生成新收款或重复交付。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认独立真实付款时点和覆盖该时刻的本次估值窗口。只使原已收款事实一次入账，不生成新收款或重复交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/orders/{id}/fulfill": {
@@ -22528,7 +23950,8 @@
             }
           }
         },
-        "description": " Required explicit review: 核实原订单资金、覆盖及资格后重试，不能跳过付款条件。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 核实原订单资金、覆盖及资格后重试，不能跳过付款条件。 Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "sales.manage"
       }
     },
     "/v1/operators/{operatorId}/payments/{id}/allocate": {
@@ -22669,7 +24092,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/operators/{id}/invite_owner": {
@@ -22810,7 +24234,8 @@
             }
           }
         },
-        "description": "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。 Requires organization.create. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.create"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/purchase": {
@@ -22951,7 +24376,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/checkout": {
@@ -23092,7 +24518,8 @@
             }
           }
         },
-        "description": "付款操作返回实际支付步骤，核实付款并交付后才可用。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "付款操作返回实际支付步骤，核实付款并交付后才可用。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/query_payment": {
@@ -23233,7 +24660,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/wallet_receipt": {
@@ -23374,7 +24802,8 @@
             }
           }
         },
-        "description": "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/fund": {
@@ -23515,7 +24944,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/fulfill": {
@@ -23656,7 +25086,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/cancel_authorization": {
@@ -23797,7 +25228,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement-invoices/{id}/replacement": {
@@ -23938,7 +25370,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/prepare_refund": {
@@ -24079,7 +25512,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/begin_manual": {
@@ -24220,7 +25654,8 @@
             }
           }
         },
-        "description": " Required explicit review: 仅保存唯一付款意图，不能把计划当作银行退款成功。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 仅保存唯一付款意图，不能把计划当作银行退款成功。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_manual": {
@@ -24361,7 +25796,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/execute_refund": {
@@ -24502,7 +25938,8 @@
             }
           }
         },
-        "description": " Required explicit review: 使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/release_refund": {
@@ -24643,7 +26080,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/confirm_fee": {
@@ -24784,7 +26222,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只补经营方实际费用，不更改原买方清偿金额。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只补经营方实际费用，不更改原买方清偿金额。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/close_route": {
@@ -24925,7 +26364,8 @@
             }
           }
         },
-        "description": " Required explicit review: 原收款容量、待付本金与历史授权全部保留。未知付款不得关闭，后续须买方重新明确目的地、供方独立核实本方新商户。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 原收款容量、待付本金与历史授权全部保留。未知付款不得关闭，后续须买方重新明确目的地、供方独立核实本方新商户。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_manual_failure": {
@@ -25066,7 +26506,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_replacement_destination": {
@@ -25207,7 +26648,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_replacement": {
@@ -25348,7 +26790,8 @@
             }
           }
         },
-        "description": " Required explicit review: 依据已锁定本轮新商户与目的地只读核实真实付款，不签名或发送交易，不更改历史实际事实。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 依据已锁定本轮新商户与目的地只读核实真实付款，不签名或发送交易，不更改历史实际事实。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/propose_destination": {
@@ -25489,7 +26932,8 @@
             }
           }
         },
-        "description": " Required explicit review: 买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 买方已核对准确资产、网络、代币合约和接收地址，并取得原付款人授权；供方须另由不同人员独立核实。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_destination": {
@@ -25630,7 +27074,8 @@
             }
           }
         },
-        "description": " Required explicit review: 已核对当前行准确资产、网络、合约和地址。核实人员须与提案人不同，锁定后按本目的地执行。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 已核对当前行准确资产、网络、合约和地址。核实人员须与提案人不同，锁定后按本目的地执行。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_evm": {
@@ -25771,7 +27216,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只读查询真实链上执行；不签名、不发送、不按原sender猜目的地。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/exits/{id}/verify_external": {
@@ -25912,13 +27358,14 @@
             }
           }
         },
-        "description": " Required explicit review: 已在外部核实真实退款；系统只记录实际事实，不假称自动退款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 已在外部核实真实退款；系统只记录实际事实，不假称自动退款。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
       }
     },
     "/v1/operators/{operatorId}/branding/logo": {
       "post": {
         "operationId": "post__v1_operators_operatorId_branding_logo",
-        "summary": "上传品牌Logo",
+        "summary": "上传目标Logo",
         "tags": [
           "Operator browser API"
         ],
@@ -25934,6 +27381,16 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "target_operator_id",
+            "in": "query",
+            "required": false,
+            "description": "Exact selected operator target. Omission selects the current operator only where its domain authority permits; it never grants membership or access to the target workspace.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -26045,7 +27502,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/verify": {
@@ -26186,7 +27644,8 @@
             }
           }
         },
-        "description": "服务器执行真实DNS和TLS验证，不能用按钮直接标记验证成功。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "服务器执行真实DNS和TLS验证，不能用按钮直接标记验证成功。 Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/enable": {
@@ -26327,7 +27786,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/domains/{id}/disable": {
@@ -26468,7 +27928,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires organization.read. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "organization.read"
       }
     },
     "/v1/operators/{operatorId}/staff/{id}/membership": {
@@ -26609,7 +28070,8 @@
             }
           }
         },
-        "description": " Required explicit review: 仅调整当前经营方成员；最后一位负责人不能被移除。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 仅调整当前经营方成员；最后一位负责人不能被移除。 Requires staff.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "staff.manage"
       }
     },
     "/v1/operators/{operatorId}/notifications/{id}/retry": {
@@ -26750,7 +28212,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires operations.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "operations.manage"
       }
     },
     "/v1/operators/{operatorId}/retention/{id}/hold": {
@@ -26891,7 +28354,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires security.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "security.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/review": {
@@ -27032,7 +28496,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/cancel": {
@@ -27173,7 +28638,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/begin_manual": {
@@ -27314,7 +28780,8 @@
             }
           }
         },
-        "description": " Required explicit review: 将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 将记录原退款责任下本次独立执行编号。仅实际少付后可另行补付剩余金额；结果未知时不得更换编号再次付款。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/verify_manual": {
@@ -27455,7 +28922,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/unknown": {
@@ -27596,7 +29064,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/execute_api": {
@@ -27737,7 +29206,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认本次执行汇率与费用依据；只执行已批准原退款leg，不会重提未知退款。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/query_api": {
@@ -27878,7 +29348,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/authorize_destination": {
@@ -28537,7 +30008,7 @@
                             "type": "string"
                           },
                           "amount": {
-                            "$ref": "#/components/schemas/Decimal"
+                            "$ref": "#/components/schemas/LedgerDecimal"
                           }
                         },
                         "required": [
@@ -28725,7 +30196,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只读查询当前责任经营方钱包的真实交易；不签名、不发送、不读取原经营方商户。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只读查询当前责任经营方钱包的真实交易；不签名、不发送、不读取原经营方商户。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_external": {
@@ -28866,7 +30338,8 @@
             }
           }
         },
-        "description": " Required explicit review: 已核实当前责任经营方的实际外部付款，系统不假称自动退款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 已核实当前责任经营方的实际外部付款，系统不假称自动退款。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/verify_responsible_bank": {
@@ -29007,7 +30480,8 @@
             }
           }
         },
-        "description": " Required explicit review: 已核实本责任经营方银行的实际付款，不使用原经营方资金，不把付款意图记为成功。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 已核实本责任经营方银行的实际付款，不使用原经营方资金，不把付款意图记为成功。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/confirm_fee": {
@@ -29148,7 +30622,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只补本次经营费用，不更改客户实际收到金额和原清偿事实。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只补本次经营费用，不更改客户实际收到金额和原清偿事实。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/verify_manual_failure": {
@@ -29289,7 +30764,8 @@
             }
           }
         },
-        "description": " Required explicit review: 仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 仅用于已取得外部终态证明。超时、查不到或结果未知不能认定失败；本操作不释放剩余退款责任。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/refunds/{id}/close_execution": {
@@ -29430,7 +30906,8 @@
             }
           }
         },
-        "description": " Required explicit review: 保留历史授权、已付事实和剩余占用。封存后必须由客户重新指定剩余款目的地、财务重新核实；未知结果不会允许封存。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 保留历史授权、已付事实和剩余占用。封存后必须由客户重新指定剩余款目的地、财务重新核实；未知结果不会允许封存。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals/{id}/approve": {
@@ -29571,7 +31048,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认原申请费用、收款资料及权限。启用双人复核时付款人必须与审批人不同。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals/{id}/begin_payment": {
@@ -29712,7 +31190,8 @@
             }
           }
         },
-        "description": " Required explicit review: 将保存付款意图，未知结果不得再次盲目付款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 将保存付款意图，未知结果不得再次盲目付款。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals/{id}/unknown": {
@@ -29853,7 +31332,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals/{id}/verify_paid": {
@@ -29994,7 +31474,8 @@
             }
           }
         },
-        "description": " Required explicit review: 确认真实付款凭证与USD净额一致后释放占用并完成账务。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 确认真实付款凭证与USD净额一致后释放占用并完成账务。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/withdrawals/{id}/fail": {
@@ -30135,7 +31616,8 @@
             }
           }
         },
-        "description": " Required explicit review: 未知结果不能终止并再次付款。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 未知结果不能终止并再次付款。 Requires withdrawals.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "withdrawals.manage"
       }
     },
     "/v1/operators/{operatorId}/disputes/{id}/restrict": {
@@ -30276,7 +31758,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只限制真实关联的原收款来源资产。范围由服务器追溯。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只限制真实关联的原收款来源资产。范围由服务器追溯。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/disputes/{id}/resolve": {
@@ -30417,7 +31900,8 @@
             }
           }
         },
-        "description": " Required explicit review: 不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 不同归类影响不同责任。请核实真实付款与收款风险，独立复核要求由服务器执行。 Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/disputes/{id}/recover": {
@@ -30558,7 +32042,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires refunds.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "refunds.manage"
       }
     },
     "/v1/operators/{operatorId}/invoices/{id}/register": {
@@ -30699,7 +32184,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires invoices.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "invoices.manage"
       }
     },
     "/v1/operators/{operatorId}/reconciliation/{id}/resolve": {
@@ -30840,7 +32326,8 @@
             }
           }
         },
-        "description": "只有可核实的领域修复记录才能解决差额；此操作不改余额。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "只有可核实的领域修复记录才能解决差额；此操作不改余额。 Requires reports.view. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "reports.view"
       }
     },
     "/v1/operators/{operatorId}/routes/{id}/limits": {
@@ -30981,7 +32468,8 @@
             }
           }
         },
-        "description": "保留原供应商模型与能力证据。真实占用、故障、探测与恢复状态在动态选路页面查看。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": "保留原供应商模型与能力证据。真实占用、故障、探测与恢复状态在动态选路页面查看。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
       }
     },
     "/v1/operators/{operatorId}/routing/{id}/policy": {
@@ -31122,7 +32610,8 @@
             }
           }
         },
-        "description": " Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
       }
     },
     "/v1/operators/{operatorId}/jobs/{id}/redrive": {
@@ -31263,7 +32752,8 @@
             }
           }
         },
-        "description": " Required explicit review: 只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。 Exact domain permission and allowed current state are enforced; actor identity is always taken from authenticated staff session."
+        "description": " Required explicit review: 只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "platform.manage"
       }
     },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
@@ -43903,6 +45393,16 @@
         ],
         "additionalProperties": true
       },
+      "LedgerDecimal": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$",
+        "description": "Exact unsigned NUMERIC(38,18) ledger amount; never round incoming values."
+      },
+      "SignedLedgerDecimal": {
+        "type": "string",
+        "pattern": "^-?(0|[1-9][0-9]{0,19})(\\.[0-9]{1,18})?$",
+        "description": "Exact signed NUMERIC(38,18) ledger quantity."
+      },
       "LoginInput": {
         "type": "object",
         "properties": {
@@ -43977,7 +45477,7 @@
               "limit_atg": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/Decimal"
+                    "$ref": "#/components/schemas/LedgerDecimal"
                   },
                   {
                     "type": "null"
@@ -44044,10 +45544,10 @@
             "type": "object",
             "properties": {
               "usd_balance": {
-                "$ref": "#/components/schemas/Decimal"
+                "$ref": "#/components/schemas/LedgerDecimal"
               },
               "commission_usd": {
-                "$ref": "#/components/schemas/Decimal"
+                "$ref": "#/components/schemas/LedgerDecimal"
               },
               "external_method_id": {
                 "type": "string",
@@ -44101,7 +45601,7 @@
         "type": "object",
         "properties": {
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "external_method_id": {
             "type": "string",
@@ -44166,7 +45666,7 @@
                   "format": "uuid"
                 },
                 "amount_usd": {
-                  "$ref": "#/components/schemas/Decimal"
+                  "$ref": "#/components/schemas/LedgerDecimal"
                 }
               },
               "required": [
@@ -44330,6 +45830,115 @@
         ],
         "additionalProperties": false
       },
+      "ModelReferenceDefaults": {
+        "type": "object",
+        "properties": {
+          "public_model_id": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "string"
+          },
+          "listing_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "authorization_version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "public_model_id",
+          "identity",
+          "listing_version"
+        ],
+        "additionalProperties": false
+      },
+      "ModelReferencePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "defaults": {
+                  "$ref": "#/components/schemas/ModelReferenceDefaults"
+                }
+              },
+              "required": [
+                "value",
+                "label",
+                "defaults"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "OperatorContext": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "subject_operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Operation"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "page": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              },
+              "required": [
+                "resource",
+                "title",
+                "page"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "next_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "subject",
+          "sections",
+          "next_actions"
+        ],
+        "additionalProperties": false
+      },
       "Capability": {
         "type": "object",
         "properties": {
@@ -44338,10 +45947,12 @@
               "chat",
               "responses",
               "embedding",
-              "image",
+              "image_generation",
               "speech",
               "transcription",
-              "video"
+              "video_generation",
+              "video_retrieve",
+              "video_download"
             ]
           },
           "streaming": {
@@ -44480,23 +46091,28 @@
         "properties": {
           "max_concurrent": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 100000
           },
           "failure_threshold": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 100
           },
           "unknown_usage_threshold": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 100
           },
           "recovery_successes": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 20
           },
           "cooldown_seconds": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 86400
           }
         },
         "required": [],
@@ -44575,7 +46191,7 @@
                 "type": "string",
                 "format": "uri"
               },
-              "image": {
+              "image_generation": {
                 "type": "string",
                 "format": "uri"
               },
@@ -44587,7 +46203,7 @@
                 "type": "string",
                 "format": "uri"
               },
-              "video": {
+              "video_generation": {
                 "type": "string",
                 "format": "uri"
               },
@@ -44631,7 +46247,6 @@
           "provider",
           "model",
           "credential_id",
-          "endpoints",
           "capabilities",
           "enabled",
           "healthy"
@@ -44946,7 +46561,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -45155,7 +46770,7 @@
             "description": "明确赠送原因"
           },
           "amount_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本次新增赠送ATG"
           },
           "expires_at": {
@@ -45188,15 +46803,15 @@
             "description": "套餐名称"
           },
           "price_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "成交价格 USD"
           },
           "paid_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "购买权益 ATG"
           },
           "gift_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "套餐赠送 ATG"
           },
           "period": {
@@ -45263,7 +46878,7 @@
             "description": "外部唯一收款流水"
           },
           "gross_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际入账总额USD"
           },
           "fee_status": {
@@ -45275,11 +46890,11 @@
             "description": "手续费证据"
           },
           "fee_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "已核实手续费USD"
           },
           "net_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "已核实净入账USD"
           },
           "currency": {
@@ -45287,7 +46902,7 @@
             "description": "实际入账币种"
           },
           "original_amount": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "原币种实收金额"
           },
           "network": {
@@ -45350,7 +46965,7 @@
             "description": "订单 ID"
           },
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "分配金额 USD"
           }
         },
@@ -45431,7 +47046,8 @@
               },
               "merchant_api_private_key": {
                 "type": "string",
-                "description": "微信商户API私钥PEM"
+                "description": "微信商户API私钥PEM",
+                "writeOnly": true
               },
               "cert_serial": {
                 "type": "string",
@@ -45452,7 +47068,8 @@
               },
               "app_private_key": {
                 "type": "string",
-                "description": "支付宝应用RSA2私钥PEM"
+                "description": "支付宝应用RSA2私钥PEM",
+                "writeOnly": true
               },
               "alipay_public_key": {
                 "type": "string",
@@ -45504,7 +47121,7 @@
             "description": "币种"
           },
           "usd_per_unit": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "每单位 USD"
           },
           "source": {
@@ -45566,7 +47183,7 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前规则版本（首次0）"
+            "description": "当前规则版本（自动带入）"
           }
         },
         "required": [
@@ -45597,15 +47214,15 @@
             "description": "参与对象"
           },
           "final_price_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "最终成交价 USD（无折扣留空）"
           },
           "gift_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本活动额外赠送 ATG"
           },
           "concession_rate": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本人佣金让利比例（0到1）"
           },
           "starts_at": {
@@ -45629,11 +47246,11 @@
             "description": "活动总次数上限"
           },
           "gift_budget_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "赠送总预算 ATG"
           },
           "discount_budget_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "折扣总预算 USD"
           },
           "enabled": {
@@ -45732,15 +47349,15 @@
         "type": "object",
         "properties": {
           "threshold_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "终身资格累计净消费门槛 USD"
           },
           "direct_rate": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "直接推荐分佣比例（0到1）"
           },
           "indirect_rate": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "间接推荐分佣比例（0到1）"
           },
           "confirmation_seconds": {
@@ -45749,11 +47366,11 @@
             "description": "消费确认等待秒数"
           },
           "invitee_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "受邀人注册赠送 ATG"
           },
           "inviter_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "邀请人注册赠送 ATG"
           },
           "reward_validity_seconds": {
@@ -45861,15 +47478,15 @@
             "description": "直属采购方编号"
           },
           "price_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "收款USD"
           },
           "paid_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "购买库存ATG"
           },
           "gift_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "赠送库存ATG"
           },
           "terms_reference": {
@@ -45947,15 +47564,15 @@
             "description": "报价供货方编号"
           },
           "trigger_available_atg": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "采购可用库存低于ATG时触发"
           },
           "single_limit_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "每次最高USD"
           },
           "period_limit_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "周期最高USD"
           },
           "period": {
@@ -46025,6 +47642,105 @@
         ],
         "additionalProperties": false
       },
+      "Operator_procurement_authorization_revision": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "原补货授权编号"
+          },
+          "action": {
+            "const": "authorization",
+            "description": "办理类型"
+          },
+          "quote_id": {
+            "type": "string",
+            "description": "固定成交报价编号"
+          },
+          "supplier_id": {
+            "type": "string",
+            "description": "报价供货方编号"
+          },
+          "trigger_available_atg": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "采购可用库存低于ATG时触发"
+          },
+          "single_limit_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "每次最高USD"
+          },
+          "period_limit_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "周期最高USD"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "month",
+              "quarter",
+              "year"
+            ],
+            "description": "UTC自然周期"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "automatic"
+            ],
+            "description": "执行方式"
+          },
+          "merchant_id": {
+            "type": "string",
+            "description": "真实供货收款商户配置编号"
+          },
+          "payment": {
+            "type": "object",
+            "properties": {
+              "payment_method": {
+                "type": "string",
+                "description": "Stripe已授权pm_编号 — 修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。",
+                "writeOnly": true
+              },
+              "customer_ref": {
+                "type": "string",
+                "description": "Stripe已授权cus_编号 — 修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。",
+                "writeOnly": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "renewed_consent_reference": {
+            "type": "string",
+            "description": "本次修订的独立授权凭证（请重新确认并填写）"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用授权"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前授权版本（首次0）"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "quote_id",
+          "supplier_id",
+          "trigger_available_atg",
+          "single_limit_usd",
+          "period_limit_usd",
+          "period",
+          "mode",
+          "renewed_consent_reference",
+          "enabled",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
       "Operator_procurement_purchase": {
         "type": "object",
         "properties": {},
@@ -46076,7 +47792,7 @@
             "description": "本方已核实收款编号"
           },
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本次分配USD"
           }
         },
@@ -46126,7 +47842,7 @@
                   "description": "原始收款编号"
                 },
                 "amount_usd": {
-                  "$ref": "#/components/schemas/Decimal",
+                  "$ref": "#/components/schemas/LedgerDecimal",
                   "description": "本次申请 USD"
                 }
               },
@@ -46191,7 +47907,7 @@
                   "description": "原始收款编号"
                 },
                 "amount_usd": {
-                  "$ref": "#/components/schemas/Decimal",
+                  "$ref": "#/components/schemas/LedgerDecimal",
                   "description": "本次申请 USD"
                 }
               },
@@ -46242,11 +47958,11 @@
         "type": "object",
         "properties": {
           "allowance": {
-            "$ref": "#/components/schemas/Decimal",
-            "description": "超卖额度 ATG"
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "销售超卖额度 ATG"
           },
           "warning": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "预警缓冲 ATG"
           },
           "expected_version": {
@@ -46281,11 +47997,93 @@
             "description": "真实指标"
           },
           "warning": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
             "description": "预警阈值"
           },
           "critical": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
+            "description": "严重阈值"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "below",
+              "above"
+            ],
+            "description": "触发方向"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "通知收件人ID（逗号分隔）"
+          },
+          "escalation_recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "升级收件人ID（逗号分隔）"
+          },
+          "reminder_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "持续风险提醒间隔秒数"
+          },
+          "escalate_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "升级等待秒数"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用规则"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本（首次填写0）"
+          }
+        },
+        "required": [
+          "id",
+          "metric",
+          "warning",
+          "critical",
+          "direction",
+          "recipients",
+          "reminder_seconds",
+          "escalate_seconds",
+          "enabled",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_alerts_revise_rule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "规则编号"
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sales_space_atg",
+              "procurement_available_atg",
+              "oversell_used_atg",
+              "pending_usage",
+              "unverified_costs"
+            ],
+            "description": "真实指标"
+          },
+          "warning": {
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
+            "description": "预警阈值"
+          },
+          "critical": {
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
             "description": "严重阈值"
           },
           "direction": {
@@ -46360,7 +48158,7 @@
             "description": "退出原因"
           },
           "quantity": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "拟移除采购库存ATG"
           },
           "approval_id": {
@@ -46411,7 +48209,7 @@
             "description": "原采购收款编号"
           },
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本次合同退款USD"
           }
         },
@@ -46456,7 +48254,7 @@
                     "description": "本次付款币种"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "本次实际付款金额"
                   }
                 },
@@ -46502,7 +48300,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -46559,7 +48357,7 @@
                 "description": "本次付款币种"
               },
               "amount": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次实际执行金额"
               }
             },
@@ -46581,7 +48379,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -46644,7 +48442,7 @@
         "type": "object",
         "properties": {
           "fee_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际已核实手续费USD（确为零填0）"
           },
           "settled_at": {
@@ -46781,7 +48579,7 @@
                     "description": "银行/NOW实际准确币种"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "银行/NOW实际原币金额"
                   }
                 },
@@ -46813,7 +48611,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -46950,7 +48748,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -47014,7 +48812,7 @@
                     "description": "原准确资产代码"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "本次实际原币金额"
                   }
                 },
@@ -47054,7 +48852,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -47126,23 +48924,41 @@
             "type": "object",
             "properties": {
               "primary_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "主色（留空继承，#RRGGBB）"
               },
               "background_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "背景色（留空继承）"
               },
               "text_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "文字色（留空继承）"
               },
               "logo_url": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "已上传Logo地址（留空继承）"
               },
               "support_url": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "客户支持URL（留空继承）"
               }
             },
@@ -47155,28 +48971,21 @@
         ],
         "additionalProperties": false
       },
-      "Operator_branding_domain": {
-        "type": "object",
-        "properties": {
-          "hostname": {
-            "type": "string",
-            "description": "独立品牌域名"
-          }
-        },
-        "required": [
-          "hostname"
-        ],
-        "additionalProperties": false
-      },
       "Operator_domains_request": {
         "type": "object",
         "properties": {
+          "target_operator_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "目标品牌经营方"
+          },
           "hostname": {
             "type": "string",
             "description": "品牌域名"
           }
         },
         "required": [
+          "target_operator_id",
           "hostname"
         ],
         "additionalProperties": false
@@ -47246,23 +49055,41 @@
             "type": "object",
             "properties": {
               "primary_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "主色（留空继承，#RRGGBB）"
               },
               "background_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "背景色（留空继承）"
               },
               "text_color": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^#[0-9a-fA-F]{6}$",
                 "description": "文字色（留空继承）"
               },
               "logo_url": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "已上传Logo地址（留空继承）"
               },
               "support_url": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "客户支持URL（留空继承）"
               }
             },
@@ -47272,19 +49099,6 @@
         },
         "required": [
           "expected_version"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_channel_themes_domain": {
-        "type": "object",
-        "properties": {
-          "hostname": {
-            "type": "string",
-            "description": "独立品牌域名"
-          }
-        },
-        "required": [
-          "hostname"
         ],
         "additionalProperties": false
       },
@@ -47298,7 +49112,14 @@
           },
           "role": {
             "type": "string",
-            "description": "角色 owner/operations/finance/support/readonly"
+            "enum": [
+              "owner",
+              "operations",
+              "finance",
+              "support",
+              "readonly"
+            ],
+            "description": "受邀角色"
           }
         },
         "required": [
@@ -47332,7 +49153,7 @@
           },
           "grants": {
             "type": "string",
-            "description": "自定义权限（逗号分隔，仅限本人已有权限）"
+            "description": "自定义权限 — 勾选当前经营范围明确授予的权限。角色自带权限仍按所选角色生效；这里只显示本人可授予的权限。"
           }
         },
         "required": [
@@ -47360,11 +49181,93 @@
             "description": "真实指标"
           },
           "warning": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
             "description": "预警阈值"
           },
           "critical": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
+            "description": "严重阈值"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "below",
+              "above"
+            ],
+            "description": "触发方向"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "通知收件人ID（逗号分隔）"
+          },
+          "escalation_recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "升级收件人ID（逗号分隔）"
+          },
+          "reminder_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "持续风险提醒间隔秒数"
+          },
+          "escalate_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "升级等待秒数"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "启用规则"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本（首次填写0）"
+          }
+        },
+        "required": [
+          "id",
+          "metric",
+          "warning",
+          "critical",
+          "direction",
+          "recipients",
+          "reminder_seconds",
+          "escalate_seconds",
+          "enabled",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_risk_revise_rule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "规则编号"
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sales_space_atg",
+              "procurement_available_atg",
+              "oversell_used_atg",
+              "pending_usage",
+              "unverified_costs"
+            ],
+            "description": "真实指标"
+          },
+          "warning": {
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
+            "description": "预警阈值"
+          },
+          "critical": {
+            "$ref": "#/components/schemas/SignedLedgerDecimal",
             "description": "严重阈值"
           },
           "direction": {
@@ -47696,7 +49599,7 @@
             "description": "原收款编号"
           },
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "退回 USD"
           },
           "reason": {
@@ -47725,13 +49628,20 @@
             "description": "办理类型"
           },
           "second_review_above": {
-            "$ref": "#/components/schemas/Decimal",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LedgerDecimal"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "需独立复核的USD阈值（留空关闭）"
           },
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "复核政策版本"
           }
         },
         "required": [
@@ -47800,15 +49710,15 @@
             "description": "实际付款币种"
           },
           "amount": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际币种金额"
           },
           "actual_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本次折合USD"
           },
           "fee_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "付款方手续费USD"
           },
           "occurred_at": {
@@ -47856,7 +49766,7 @@
                 "description": "原付款币种"
               },
               "amount": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次实际执行币种金额"
               }
             },
@@ -47878,7 +49788,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48044,7 +49954,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48109,7 +50019,7 @@
                     "description": "原准确资产代码"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "实际退回原币种金额"
                   }
                 },
@@ -48153,7 +50063,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48241,7 +50151,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48301,7 +50211,7 @@
                     "description": "实际原币种或准确资产代码"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "本次实际原币金额"
                   }
                 },
@@ -48345,7 +50255,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48405,7 +50315,7 @@
                     "description": "实际原币种或准确资产代码"
                   },
                   "amount": {
-                    "$ref": "#/components/schemas/Decimal",
+                    "$ref": "#/components/schemas/LedgerDecimal",
                     "description": "本次实际原币金额"
                   }
                 },
@@ -48449,7 +50359,7 @@
                 "description": "本次估值币种"
               },
               "usd_per_unit": {
-                "$ref": "#/components/schemas/Decimal",
+                "$ref": "#/components/schemas/LedgerDecimal",
                 "description": "本次真实每单位USD"
               },
               "source": {
@@ -48495,7 +50405,7 @@
             "description": "原退款责任"
           },
           "fee_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际已核实经营手续费USD（确为零时填0）"
           },
           "reference": {
@@ -48600,39 +50510,48 @@
       "Operator_withdrawals_policy": {
         "type": "object",
         "properties": {
-          "minimum_usd": {
-            "$ref": "#/components/schemas/Decimal",
-            "description": "最低提现 USD"
-          },
-          "flat_fee_usd": {
-            "$ref": "#/components/schemas/Decimal",
-            "description": "固定手续费 USD"
-          },
-          "fee_rate": {
-            "$ref": "#/components/schemas/Decimal",
-            "description": "手续费比例（0到1）"
-          },
-          "requires_dual_approval": {
-            "type": "boolean",
-            "description": "必须双人审批付款"
-          },
-          "method_reference": {
-            "type": "string",
-            "description": "对客户公示付款方式规则"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本（首次填写0）"
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "minimum_usd": {
+                "$ref": "#/components/schemas/LedgerDecimal",
+                "description": "最低提现 USD"
+              },
+              "flat_fee_usd": {
+                "$ref": "#/components/schemas/LedgerDecimal",
+                "description": "固定手续费 USD"
+              },
+              "fee_rate": {
+                "$ref": "#/components/schemas/LedgerDecimal",
+                "description": "手续费比例（0到1）"
+              },
+              "requires_dual_approval": {
+                "type": "boolean",
+                "description": "必须双人审批付款"
+              },
+              "method_reference": {
+                "type": "string",
+                "description": "对客户公示付款方式规则"
+              },
+              "expected_version": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "当前版本（首次填写0）"
+              }
+            },
+            "required": [
+              "minimum_usd",
+              "flat_fee_usd",
+              "fee_rate",
+              "requires_dual_approval",
+              "method_reference",
+              "expected_version"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
-          "minimum_usd",
-          "flat_fee_usd",
-          "fee_rate",
-          "requires_dual_approval",
-          "method_reference",
-          "expected_version"
+          "configuration"
         ],
         "additionalProperties": false
       },
@@ -48677,7 +50596,7 @@
             "description": "实际付款币种"
           },
           "original_amount": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "实际付款金额"
           },
           "valuation_evidence": {
@@ -48685,7 +50604,7 @@
             "description": "本次真实换汇依据"
           },
           "paid_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "已付净额USD"
           },
           "paid_at": {
@@ -48739,7 +50658,7 @@
             "description": "外部唯一争议编号"
           },
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "已核实实际扣回USD"
           },
           "reason": {
@@ -48801,7 +50720,7 @@
         "type": "object",
         "properties": {
           "amount_usd": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "本次真实追回USD"
           },
           "evidence": {
@@ -48837,7 +50756,7 @@
             "description": "允许开票阶段"
           },
           "maximum_ratio": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "最高原收款比例（0到1）"
           },
           "rules_reference": {
@@ -48882,7 +50801,7 @@
             "description": "允许开票阶段"
           },
           "maximum_ratio": {
-            "$ref": "#/components/schemas/Decimal",
+            "$ref": "#/components/schemas/LedgerDecimal",
             "description": "最高原收款比例（0到1）"
           },
           "rules_reference": {
@@ -49198,13 +51117,13 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "actual_usd": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "fee_usd": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "occurred_at": {
             "type": "string",
@@ -49239,13 +51158,13 @@
             ]
           },
           "service_usd_per_atg": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "procurement_usd_per_atg": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "extra_usd": {
-            "$ref": "#/components/schemas/SignedDecimal"
+            "$ref": "#/components/schemas/SignedLedgerDecimal"
           },
           "contract_reference": {
             "type": "string"
@@ -49275,7 +51194,7 @@
             "type": "string"
           },
           "usd_per_unit": {
-            "$ref": "#/components/schemas/Decimal"
+            "$ref": "#/components/schemas/LedgerDecimal"
           },
           "source": {
             "type": "string"

@@ -56,6 +56,21 @@ html.dark {
   color-scheme: dark;
 }
 
+/* Brand colors apply to the light surface; explicit dark mode keeps readable
+   surfaces and retains the brand accent rather than inheriting a white canvas. */
+.product-theme {
+  --canvas: var(--branding-background, #f4f1ea);
+  --canvas-raised: var(--branding-background, #fffdf8);
+  --ink: var(--branding-text, #141414);
+  --brand-emphasis: var(--brand-primary);
+}
+html.dark .product-theme {
+  --canvas: #161513;
+  --canvas-raised: #1f1d1a;
+  --ink: #edeae4;
+  --brand-emphasis: color-mix(in srgb, var(--brand-primary) 60%, white);
+}
+
 body {
   min-height: 100vh;
   background: var(--canvas);
@@ -121,4 +136,16 @@ a {
 .th-scrollbar::-webkit-scrollbar-thumb {
   background: var(--hairline);
   border-radius: 8px;
+}
+
+/* Workspaces favor legible controls and stable layouts over decorative motion. */
+select, textarea { font: inherit; }
+textarea { max-width: 100%; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media print {
+  header, aside, footer, nav, button { display: none !important; }
+  main { padding: 0 !important; }
 }

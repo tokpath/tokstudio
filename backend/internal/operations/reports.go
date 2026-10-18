@@ -140,7 +140,7 @@ type Export struct {
 func (Export) TableName() string { return "operations_exports" }
 func (s *Service) RequestExport(ctx context.Context, actor, operator string, q ExportQuery) (Export, error) {
 	out := Export{}
-	if !q.To.After(q.From) || q.To.Sub(q.From) > 31*24*time.Hour || (q.Kind != "ledger" && q.Kind != "usage") {
+	if !q.To.After(q.From) || q.To.Sub(q.From) > 31*24*time.Hour || (q.Kind != "ledger" && q.Kind != "usage" && q.Kind != "requests" && q.Kind != "procurement") {
 		return out, ErrInvalid
 	}
 	if q.OwnerID != "" && !validID(q.OwnerID) {

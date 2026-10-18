@@ -7,7 +7,10 @@ import (
 )
 
 func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
-	resource := c.Param("resource")
+	a.prepareResourcePage(c, p, c.Param("resource"))
+	c.JSON(200, p)
+}
+func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource string) {
 	scope := "/api/v1/me"
 	if c.Param("operatorId") != "" {
 		scope = "/api/v1/operators/" + c.Param("operatorId")
@@ -26,6 +29,9 @@ func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
 			continue
 		}
 		for i := range ops {
+			if c.Param("operatorId") != "" && ops[i].Permission == "" {
+				ops[i].Permission = operationPermission(resource, ops[i].Name)
+			}
 			ops[i].Fields = businessFields(ops[i])
 			if resource == "payment-methods" && a.Config.TestLoopback {
 				ops[i].Fields = append(ops[i].Fields, optional("api_base_url", "独立协议测试地址（仅隔离测试）", "text"))
@@ -43,6 +49,8 @@ func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
 				}
 				lookup := ""
 				switch f.Name {
+				case "target_operator_id":
+					lookup = "branding-brands"
 				case "asset_network_version_id":
 					lookup = "payment-assets"
 				case "package_id", "plan_id":
@@ -92,7 +100,20 @@ func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
 		}
 		p[key] = ops
 	}
-	c.JSON(200, p)
+}
+
+func operationPermission(resource, action string) string {
+	switch resource {
+	case "operators":
+		return "organization.create"
+	case "staff":
+		return "staff.manage"
+	// Appearance targets and row actions are filtered using the exact target
+	// authority; ownership of a child workspace is deliberately not required.
+	case "branding", "channel-themes", "domains":
+		return "organization.read"
+	}
+	return permissionFor(resource)
 }
 func contains(values []string, value string) bool {
 	for _, candidate := range values {

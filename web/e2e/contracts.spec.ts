@@ -26,6 +26,21 @@ test("public brand and operator remain distinct; model micro-prices stay exact",
   await api(page, { kind: "anonymous" }); await page.goto("/"); await expect(page.getByText("实际经营方：星河渠道")).toBeVisible(); await expect(page.getByRole("heading", { name: /一个品牌入口.*连接你的模型与应用/ })).toBeVisible(); await page.getByRole("link", { name: "模型与价格", exact: true }).click(); await expect(page.getByRole("heading", { name: "公开文本模型" })).toBeVisible(); await expect(page.getByLabel("0.00000001 ATG", { exact: true })).toBeVisible();
 });
 
+test("explicit dark mode keeps a branded white website readable", async ({ page }) => {
+  await api(page, { kind: "anonymous" });
+  await page.route("**/api/v1/public/context", route => route.fulfill({ json: { ...context, theme: { ...context.theme, background_color: "#ffffff", text_color: "#111827" } } }));
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.getByLabel("显示主题").selectOption("light");
+  const surface = page.locator(".product-theme");
+  await expect(surface).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await page.getByLabel("显示主题").selectOption("dark");
+  await expect(surface).toHaveCSS("background-color", "rgb(22, 21, 19)");
+  await expect(surface).toHaveCSS("color", "rgb(237, 234, 228)");
+  await page.getByLabel("显示主题").selectOption("light");
+  await expect(surface).toHaveCSS("color", "rgb(17, 24, 39)");
+});
+
 test("registration uses the final explicit invitation and blocks invalid fallback", async ({ page }) => {
   await api(page, { kind: "anonymous" }); let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/v1/auth/registrations", async route => { submitted = route.request().postDataJSON(); expect(route.request().headers()["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/); await route.fulfill({ json: { registration_id: "reg-1", verification_required: true, message: "请查收验证邮件" } }); });
@@ -51,15 +66,15 @@ test("staff sees only granted workspace resources; customer cannot open manageme
 });
 
 test("mobile workspace exposes all customer flows without horizontal overflow", async ({ page }) => {
-  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/workspace"); await page.getByText("打开工作台导航", { exact: true }).click(); await expect(page.getByRole("link", { name: "KOL 活动" })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await page.screenshot({ path: "test-results/customer-mobile.png", fullPage: true });
+  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/workspace"); await page.getByRole("button", { name: "打开工作台导航", exact: true }).click(); const nav = page.getByRole("navigation", { name: "移动工作台" }); await expect(nav.getByRole("link")).toHaveCount(7); await nav.getByRole("link", { name: "邀请与收益", exact: true }).click(); await expect(page.getByRole("navigation", { name: "邀请与收益内导航" }).getByRole("link", { name: "佣金明细", exact: true })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await page.screenshot({ path: "test-results/customer-mobile.png", fullPage: true });
 });
 
 test("takeover requires complete snapshot review and separates actual cash settlement",async({page})=>{
- await api(page,{kind:"staff",staff:{id:"reviewer",email:"owner@example.test",display_name:"负责人"},workspaces:[{operator,permissions:["*"]}],active_operator_id:operator.id});
+ await api(page,{kind:"staff",staff:{id:"reviewer",email:"owner@example.test",display_name:"负责人"},workspaces:[{operator:{...operator,kind:"oem"},permissions:["*"]}],active_operator_id:operator.id});
  const snapshot={customers:{"customer-one":4},assets:[{account_id:"account-one",customer_id:"customer-one",purpose:"customer:usd",unit:"USD",balance:"25.000000000000000001",held:"0",version:8}],coverage:{required:"100",space:"0"},procurement:{quantity:"200",cost:"80"},lots:[{ID:"lot-one",PaidUSD:"80",ExitTerms:{version:1,voluntary_refund:true,method:"remaining_paid_proportional",terms_reference:"original accepted exit"}}],service_atg:"100",service_usd:"100",cash_usd:"25.000000000000000001",offset_atg:"200",offset_usd:"80",residual_refund_usd:"0",settlement_due_usd:"45.000000000000000001",rounding_evidence:{rule:"exact accepted contract"}};
  const item={id:"takeover-one",channel_id:operator.id,brand_operator_id:"brand-operator",state:"awaiting_approval",method:"supply_coverage",service_usd_per_atg:"1",procurement_usd_per_atg:"0.4",extra_usd:"0",contract_reference:"signed-contract",evidence:"verified",requested_by:"another-owner",snapshot,snapshot_fingerprint:"snapshot-review-fingerprint",service_usd:"100",cash_usd:"25.000000000000000001",procurement_offset_atg:"200",procurement_offset_usd:"80",remaining_procurement_refund_usd:"0",settlement_due_usd:"45.000000000000000001",settled_usd:"0",created_at:"2026-10-16T00:00:00Z"};
  const submitted:unknown[]=[];
  await page.route("**/api/v1/operators/channel-1/takeovers**",async route=>{if(route.request().method()==="GET")return route.fulfill({json:{items:[item],channels:[{id:operator.id,name:operator.name,legal_name:operator.legal_name,lifecycle:"active"}]}});submitted.push(route.request().postDataJSON());item.state="completed";return route.fulfill({json:item})});
- await page.goto("/manage/channel-1/takeovers");await expect(page.getByRole("heading",{name:"渠道接管",exact:true})).toBeVisible();await page.getByRole("button",{name:"复核并执行接管"}).click();await expect(page.getByText("customer-one",{exact:false}).first()).toBeVisible();await expect(page.getByText("original accepted exit",{exact:false})).toBeVisible();await expect(page.getByRole("textbox")).toHaveCount(0);await expect(page.getByRole("button",{name:"确认提交"})).toBeEnabled();await page.getByRole("checkbox").check();await page.getByRole("button",{name:"确认提交"}).click();expect(submitted).toEqual([{expected_snapshot:"snapshot-review-fingerprint"}]);
+ await page.goto("/manage/channel-1/takeovers");await expect(page.getByRole("heading",{name:"渠道接管",exact:true})).toBeVisible();await page.getByRole("button",{name:"复核并执行接管"}).click();await expect(page.getByText("customer-one",{exact:false}).first()).toBeVisible();await expect(page.getByRole("dialog").getByText("original accepted exit",{exact:true})).toBeVisible();await expect(page.getByRole("textbox")).toHaveCount(0);await expect(page.getByRole("button",{name:"确认提交"})).toBeEnabled();await page.getByRole("checkbox").check();await page.getByRole("button",{name:"确认提交"}).click();expect(submitted).toEqual([{expected_snapshot:"snapshot-review-fingerprint"}]);
  await page.goto("/manage/channel-1/takeover-settlements");await expect(page.getByRole("heading",{name:"接管资金结清",exact:true})).toBeVisible();await page.getByRole("button",{name:"登记实际收付款"}).click();await expect(page.getByLabel("唯一银行流水 / 支付凭证")).toBeVisible();await expect(page.getByLabel("本次实际结清 USD")).toBeVisible();await page.screenshot({path:"test-results/takeover-cash-settlement.png",fullPage:true});
 });

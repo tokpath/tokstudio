@@ -8,7 +8,7 @@ func businessFields(o operation) []field {
 	if len(o.Fields) != 1 || o.Fields[0].Name != "configuration" {
 		return o.Fields
 	}
-	parts := strings.Split(o.Path, "/")
+	parts := strings.Split(strings.SplitN(o.Path, "?", 2)[0], "/")
 	resource := ""
 	for i, p := range parts {
 		if p == "operators" && len(parts) > i+2 {

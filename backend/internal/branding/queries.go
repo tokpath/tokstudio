@@ -22,3 +22,20 @@ func (s *Service) ListDomains(ctx context.Context, tx *gorm.DB, actor, brandID s
 	}
 	return out, nil
 }
+
+// ThemeConfiguration returns the saved overrides, preserving inheritance rather
+// than turning inherited colors into explicit overrides when the form is saved.
+func (s *Service) ThemeConfiguration(ctx context.Context, tx *gorm.DB, actor, scope, target string) (ThemeConfig, error) {
+	if scope == "channel" {
+		if err := s.directory.RequireChannelBranding(ctx, tx, actor, target); err != nil {
+			return ThemeConfig{}, err
+		}
+	} else if scope == "brand" {
+		if err := s.directory.RequireBrandBranding(ctx, tx, actor, target); err != nil {
+			return ThemeConfig{}, err
+		}
+	} else {
+		return ThemeConfig{}, ErrInvalidInput
+	}
+	return s.themeConfig(ctx, tx, scope, target)
+}

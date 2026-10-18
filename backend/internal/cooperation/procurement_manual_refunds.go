@@ -32,6 +32,15 @@ func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, k
 		if out.State != "prepared" && !(out.State == "exception" && out.SettledUSD.Cmp(out.AmountUSD) < 0) {
 			return ErrConflict
 		}
+		if out.SourceKind == "manual_receipt" {
+			var pending int64
+			if e := tx.Table("cooperation_manual_receipt_refund_facts f").Joins("LEFT JOIN cooperation_procurement_refund_observations o ON o.fact_id=f.fact_id AND o.leg_id=f.leg_id").Where("f.leg_id=? AND o.id IS NULL", out.ID).Count(&pending).Error; e != nil {
+				return e
+			}
+			if pending > 0 {
+				return payments.ErrOutcomeUnknown
+			}
+		}
 		service := *p.Payments
 		service.DB = tx
 		version, e := p.refundRouteVersion(ctx, tx, out.ID)
@@ -53,16 +62,26 @@ func (p *ProcurementRefunds) BeginManualRefund(ctx context.Context, actor, id, k
 		} else if version > 1 {
 			return ErrConflict
 		}
-		m, e := service.Merchant(ctx, out.SupplierID, merchantID)
-		if e != nil {
-			return e
-		}
-		if m.Driver != "manual" && m.Driver != "evm_wallet" && m.Driver != "nowpayments" || !m.Enabled {
-			return payments.ErrUnsupported
-		}
-		if m.Driver != "manual" {
-			if _, e = p.destination(ctx, tx, out); e != nil {
+		if out.SourceKind == "manual_receipt" && version == 1 {
+			receipt, e := p.manualReceipt(ctx, tx, out.SupplierID, out.ReceiptID)
+			if e != nil {
 				return e
+			}
+			if receipt.Network != "" && receipt.Network != "bank" {
+				return payments.ErrUnsupported
+			}
+		} else {
+			m, e := service.Merchant(ctx, out.SupplierID, merchantID)
+			if e != nil {
+				return e
+			}
+			if m.Driver != "manual" && m.Driver != "evm_wallet" && m.Driver != "nowpayments" || !m.Enabled {
+				return payments.ErrUnsupported
+			}
+			if m.Driver != "manual" {
+				if _, e = p.destination(ctx, tx, out); e != nil {
+					return e
+				}
 			}
 		}
 		if e = p.Capacity.RequireReceiptRefundExecution(ctx, tx, out.SupplierID, out.ReceiptID, out.ID); e != nil {
@@ -94,6 +113,9 @@ func (p *ProcurementRefunds) RecordManualRefund(ctx context.Context, actor, id s
 	var leg ProcurementExitRefund
 	if e := p.Cooperation.DB.WithContext(ctx).First(&leg, "id=?", id).Error; e != nil {
 		return payments.RefundStatus{}, e
+	}
+	if leg.SourceKind == "manual_receipt" {
+		return p.recordManualReceiptRefund(ctx, actor, leg.ID, proof, valuation, valuedAt, fxReference)
 	}
 	if leg.ExecutionMode != "manual" || leg.ExecutionKey == "" || leg.State != "manual_executing" && leg.State != "completed" && leg.State != "executing" || proof.ReceiptID != leg.ReceiptID {
 		return payments.RefundStatus{}, ErrConflict

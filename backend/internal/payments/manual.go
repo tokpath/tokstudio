@@ -26,7 +26,7 @@ func (d Manual) Create(_ context.Context, m Merchant, o Order) (Checkout, error)
 	if o.Validate(m) != nil || o.Money.Currency != m.Credentials["currency"] {
 		return Checkout{}, ErrInvalid
 	}
-	return Checkout{State: "pending", PaymentAddress: m.Credentials["recipient_reference"], PayMoney: &o.Money}, nil
+	return Checkout{State: "pending", PaymentAddress: m.Credentials["recipient_reference"], Instructions: m.Credentials["instructions"], PayMoney: &o.Money}, nil
 }
 func (Manual) Lookup(context.Context, Merchant, Order) (Fact, error) { return Fact{}, ErrNotFinal }
 func (Manual) Refund(context.Context, Merchant, Refund) (RefundStatus, error) {

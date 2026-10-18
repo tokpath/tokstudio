@@ -145,6 +145,7 @@ type Checkout struct {
 	ClientSecret   string `json:"client_secret,omitempty"`
 	PublishableKey string `json:"publishable_key,omitempty"`
 	PaymentAddress string `json:"payment_address,omitempty"`
+	Instructions   string `json:"instructions,omitempty"`
 	PayMoney       *Money `json:"pay_money,omitempty"`
 }
 type Refund struct {

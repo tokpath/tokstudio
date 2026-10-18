@@ -24,7 +24,7 @@ func (s *Service) BootstrapPlatform(ctx context.Context, tx *gorm.DB, in Bootstr
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
 		now := s.now()
 		opID, brandID := newID(), newID()
-		b := brandRow{ID: brandID, Kind: "official", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: in.APIBaseURL, Status: "active", CreatedAt: now}
+		b := brandRow{ID: brandID, Kind: "official", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: "", Status: "active", CreatedAt: now}
 		o := operatorRow{ID: opID, BrandID: brandID, Kind: Platform, Name: strings.TrimSpace(in.OperatorName), LegalName: in.LegalName, Lifecycle: "active", CreatedAt: now}
 		if err := tx.Create(&b).Error; err != nil {
 			return err
@@ -47,7 +47,7 @@ func (s *Service) BootstrapPlatform(ctx context.Context, tx *gorm.DB, in Bootstr
 }
 
 func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOperatorInput) (out OperatorCreated, err error) {
-	if !validID(in.ParentOperatorID) || strings.TrimSpace(in.Name) == "" {
+	if !validID(in.ParentOperatorID) || strings.TrimSpace(in.Name) == "" || len(in.SupplyTerms) > 10000 {
 		return out, ErrInvalidInput
 	}
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
@@ -64,6 +64,16 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 		if p.Lifecycle != "active" {
 			return ErrBusinessClosed
 		}
+		if in.ExitPolicy == "" {
+			in.ExitPolicy = "non_refundable"
+		}
+		if in.ExitPolicy != "non_refundable" && in.ExitPolicy != "remaining_paid_proportional" {
+			return ErrInvalidInput
+		}
+		in.ContractAttachmentID = strings.TrimSpace(in.ContractAttachmentID)
+		if err = s.RequireSupplyContract(ctx, tx, p.ID, in.ContractAttachmentID); err != nil {
+			return err
+		}
 		now := s.now()
 		opID := newID()
 		b, err := s.GetBrand(ctx, tx, p.BrandID)
@@ -74,7 +84,7 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 			if strings.TrimSpace(in.BrandName) == "" {
 				return ErrInvalidInput
 			}
-			b = Brand{ID: newID(), Kind: "oem", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: in.APIBaseURL, Status: "active", CreatedAt: now}
+			b = Brand{ID: newID(), Kind: "oem", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: "", Status: "active", CreatedAt: now}
 			row := brandRow(b)
 			if err = tx.Create(&row).Error; err != nil {
 				return err
@@ -89,7 +99,8 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 		if err = tx.Create(&st).Error; err != nil {
 			return err
 		}
-		a := supplyRow{ID: newID(), SupplierID: p.ID, BuyerID: opID, Status: "draft", QuoteReference: in.QuoteReference, ExitTermsReference: in.ExitTermsReference, CreatedAt: now}
+		agreementID := newID()
+		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "draft", QuoteReference: "supply:" + agreementID + ":v1", ExitTermsReference: "supply-exit:" + agreementID + ":v1", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
 		if err = tx.Create(&a).Error; err != nil {
 			return err
 		}
@@ -303,4 +314,24 @@ func (s *Service) SetBusinessStatus(ctx context.Context, tx *gorm.DB, in SetBusi
 		return s.event(tx, o.ID, in.ActorStaffID, "business.status_changed", in.EvidenceReference, in)
 	})
 	return
+}
+
+// RequireSupplyContract accepts only an immutable private attachment uploaded by
+// the supplier. An arbitrary URL, object key, finance evidence, or another
+// operator's attachment is never a cooperation contract.
+func (s *Service) RequireSupplyContract(ctx context.Context, tx *gorm.DB, supplierID, attachmentID string) error {
+	if attachmentID == "" {
+		return nil
+	}
+	if !validID(attachmentID) || !validID(supplierID) {
+		return ErrInvalidInput
+	}
+	var count int64
+	if err := s.dbFor(ctx, tx).Table("organization_cooperation_contracts").Where("id=? AND operator_id=? AND status='ready'", attachmentID, supplierID).Count(&count).Error; err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrForbidden
+	}
+	return nil
 }

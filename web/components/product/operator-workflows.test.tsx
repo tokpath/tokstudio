@@ -12,7 +12,7 @@ let currentSession: Session;
 vi.mock("./context", () => ({ useProduct: () => ({ session: currentSession }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 function staff(permissions: string[], kind: "platform" | "oem" | "channel" = "oem") { currentSession = { kind: "staff", staff: { id: "staff-1", email: "staff@example.test", display_name: "负责人" }, workspaces: [{ operator: { id: "operator-one", name: "山海服务", kind, brand_id: "brand-one" }, permissions }] }; }
-function page(items: Entity[] = [], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "精确归属的原业务记录", items, columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [], ...extra }; }
+function page(items: Entity[] = [], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "精确归属的原业务记录", items: items.map(item => ({...item,presentation:item.presentation || {title:item.id,labels:{}}})), columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [], ...extra }; }
 function show(content: React.ReactNode) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}>{content}</QueryClientProvider>); }
 function response(data: unknown) { return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } }); }
 

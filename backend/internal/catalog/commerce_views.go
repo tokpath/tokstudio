@@ -207,7 +207,7 @@ func (s CommerceCatalog) AdminCredentials(ctx context.Context, platformActor str
 		return nil, ErrCatalogForbidden
 	}
 	out := []CredentialView{}
-	e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("id,provider_id,enabled,version").Order("provider_id,id").Scan(&out).Error
+	e := s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("id,provider_id,fingerprint,enabled,version").Order("provider_id,id").Scan(&out).Error
 	return out, e
 }
 

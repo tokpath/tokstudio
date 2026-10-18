@@ -190,7 +190,7 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 		at := in.PaidAt.UTC()
 		in.PaidAt = &at
 	}
-	hash := fingerprint(in)
+	hash := ""
 	var pendingErr error
 	e := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if e := s.Authorize.RequirePermission(ctx, tx, actor, operator, "payments.manage"); e != nil {
@@ -215,6 +215,8 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 			return ErrInvalid
 		}
 		f.proof = true
+		in.Valuation = EnsureValuationIdentity(in.Valuation, "receipt:"+operator+":"+factID, f.Money.Currency)
+		hash = fingerprint(in)
 		copy := *s
 		copy.DB = tx
 		m, e := copy.Merchant(ctx, operator, row.MerchantID)
@@ -258,19 +260,29 @@ func (s *Service) ConfirmReceiptValuation(ctx context.Context, actor, operator, 
 					f.Evidence = evidence
 				}
 			}
-			if f.OccurredAt == nil || f.OccurredAt.IsZero() {
+			if f.Money.Currency != "USD" && (f.OccurredAt == nil || f.OccurredAt.IsZero()) {
 				return ErrAwaitingValuation
 			}
 			now, e := databaseTime(ctx, tx)
 			if e != nil {
 				return e
 			}
-			if f.OccurredAt.After(now.Add(5 * time.Minute)) {
+			if f.OccurredAt != nil && f.OccurredAt.After(now.Add(5*time.Minute)) {
 				return ErrInvalid
 			}
-			value, e := in.Valuation.Convert(f.Money, *f.OccurredAt)
-			if e != nil {
-				return e
+			var value USDValue
+			if f.Money.Currency == "USD" {
+				// Native USD needs no exchange quote or fabricated FX evidence.
+				var reason string
+				value, reason = receiptExecutionValue(o, f)
+				if reason != "" {
+					return ErrInvalid
+				}
+			} else {
+				value, e = in.Valuation.Convert(f.Money, *f.OccurredAt)
+				if e != nil {
+					return e
+				}
 			}
 			raw, _ := json.Marshal(f)
 			if e = tx.Table("payments_verified_facts").Where("id=?", f.ID).Update("fact", string(raw)).Error; e != nil {

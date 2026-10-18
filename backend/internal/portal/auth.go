@@ -21,9 +21,9 @@ import (
 func (a *Application) brandDTO(ctx context.Context, b organization.Brand) gin.H {
 	theme, e := a.Branding.ResolveTheme(ctx, nil, b.ID, "")
 	if e != nil {
-		return gin.H{"id": b.ID, "name": b.Name, "api_base_url": b.APIBaseURL, "theme": gin.H{}}
+		return gin.H{"id": b.ID, "name": b.Name, "api_base_url": a.brandAPIEndpoint(ctx, b.ID), "theme": gin.H{}}
 	}
-	return gin.H{"id": b.ID, "name": b.Name, "api_base_url": b.APIBaseURL, "theme": theme.Theme}
+	return gin.H{"id": b.ID, "name": b.Name, "api_base_url": a.brandAPIEndpoint(ctx, b.ID), "theme": theme.Theme}
 }
 func (a *Application) operatorDTO(ctx context.Context, op organization.Operator) gin.H {
 	result := gin.H{"id": op.ID, "name": op.Name, "kind": op.Kind, "brand_id": op.BrandID, "legal_name": op.LegalName}
@@ -68,7 +68,7 @@ func (a *Application) sessionResponse(c *gin.Context) {
 	for _, ws := range workspaces {
 		items = append(items, gin.H{"operator": a.operatorDTO(ctx, ws.Operator), "permissions": navigationPermissions(ws.Permissions, ws.Operator.Kind)})
 	}
-	c.JSON(200, gin.H{"kind": "staff", "staff": gin.H{"id": id.Staff.ID, "email": id.Staff.Email, "display_name": id.Staff.DisplayName}, "workspaces": items, "csrf_token": a.csrf(id.Token, id.Session.BrandID)})
+	c.JSON(200, gin.H{"kind": "staff", "staff": gin.H{"id": id.Staff.ID, "email": id.Staff.Email, "display_name": id.Staff.DisplayName}, "workspaces": items, "requires_password_change": id.Staff.MustChangePassword, "csrf_token": a.csrf(id.Token, id.Session.BrandID)})
 }
 func navigationPermissions(domain []string, kind organization.OperatorKind) []string {
 	out := append([]string{}, domain...)
@@ -79,7 +79,7 @@ func navigationPermissions(domain []string, kind organization.OperatorKind) []st
 			return []string{"*"}
 		}
 	}
-	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "assets", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "agreements", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "takeover-settlements", "catalog-changes", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "risk", "restrictions", "notifications", "business-status", "audit", "retention", "payment-assets", "providers", "catalog", "routes", "routing", "requests", "jobs", "mail"}
+	resources := []string{"overview", "customers", "plans", "orders", "payments", "payment-methods", "evidence", "valuations", "receipt-valuations", "pricing", "gifts", "marketing", "commissions", "assets", "ledger", "refunds", "withdrawals", "disputes", "invoices", "reconciliation", "reports", "exports", "operators", "agreements", "contracts", "procurement", "procurement-invoices", "coverage", "alerts", "takeovers", "takeover-settlements", "catalog-changes", "exits", "branding", "domains", "channel-themes", "staff", "approvals", "risk", "restrictions", "notifications", "business-status", "audit", "retention", "payment-assets", "providers", "catalog", "routes", "routing", "requests", "jobs", "mail"}
 	for _, resource := range resources {
 		if allowed[permissionFor(resource)] || resource == "orders" && allowed["payments.manage"] {
 			out = append(out, resource+".read")
@@ -113,6 +113,30 @@ func (a *Application) login(c *gin.Context) {
 	if a.throttle(ctx, "login:"+c.ClientIP()+":"+email) != nil {
 		fail(c, 429, "auth_rate", "登录尝试过多，请稍后重试", false)
 		return
+	}
+	if in.Kind == "" {
+		var candidate Staff
+		staffErr := a.DB.WithContext(ctx).First(&candidate, "email=? AND status='active'", email).Error
+		if staffErr != nil && !errors.Is(staffErr, gorm.ErrRecordNotFound) {
+			handleError(c, staffErr)
+			return
+		}
+		staffMatch := staffErr == nil && organization.CheckPassword(candidate.PasswordHash, in.Password)
+		_, customerErr := a.Organization.AuthenticateCredentials(ctx, nil, brand(c).ID, email, in.Password)
+		if customerErr != nil && !errors.Is(customerErr, organization.ErrInvalidCredentials) && !errors.Is(customerErr, organization.ErrBusinessClosed) && !errors.Is(customerErr, organization.ErrFrozen) {
+			handleError(c, customerErr)
+			return
+		}
+		customerMatch := customerErr == nil
+		if staffMatch && customerMatch {
+			c.JSON(200, gin.H{"kind": "workspace_choice", "choices": []string{"customer", "staff"}})
+			return
+		}
+		if staffMatch {
+			in.Kind = "staff"
+		} else if customerMatch {
+			in.Kind = "customer"
+		}
 	}
 	var id identity
 	now := time.Now().UTC()
@@ -200,7 +224,7 @@ func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Co
 	title := "验证邮箱并完成注册"
 	if kind == "password_reset" {
 		path = "/reset-password"
-		title = "重置登录密码"
+		title = "重置客户登录密码"
 	}
 	if kind == "email_change" {
 		title = "验证新的邮箱地址"
@@ -339,6 +363,9 @@ func (a *Application) passwordReset(c *gin.Context) {
 		return
 	}
 	raw, e := a.command(c, "password-reset:"+brand(c).ID, in, func(tx *gorm.DB) (any, error) {
+		if e := a.queueStaffPasswordReset(c, tx, in.Email); e != nil {
+			return nil, e
+		}
 		ch, e := a.Organization.BeginPasswordReset(c.Request.Context(), tx, brand(c).ID, in.Email)
 		if errors.Is(e, organization.ErrNotFound) || errors.Is(e, organization.ErrInvalidCredentials) {
 			return commandResult(uuid.NewString(), "accepted"), nil
@@ -359,9 +386,18 @@ func (a *Application) passwordResetComplete(c *gin.Context) {
 		return
 	}
 	raw, e := a.command(c, "password-complete:"+brand(c).ID, in, func(tx *gorm.DB) (any, error) {
-		ch, proof, e := a.verifiedChallenge(c, tx, in.Token, "password_reset")
+		ch, proof, e := a.verifiedChallenge(c, tx, in.Token, "")
 		if e != nil {
 			return nil, e
+		}
+		if ch.Kind == "staff_password_reset" {
+			if e = a.completeStaffPasswordReset(tx, ch, in.Password); e != nil {
+				return nil, e
+			}
+			return commandResult(ch.ID, "password_reset"), nil
+		}
+		if ch.Kind != "password_reset" {
+			return nil, organization.ErrInvalidVerification
 		}
 		if _, e = a.Organization.VerifyEmail(c.Request.Context(), tx, ch.IntentID, proof); e != nil {
 			return nil, e

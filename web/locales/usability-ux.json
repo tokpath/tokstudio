@@ -1,0 +1,802 @@
+{
+  "通用ATG额度可用于当前经营方已上架模型，模型价格按调用时生效报价计算。购买与套餐赠送额度按成交期限有效，到期余量不结转。套餐不支持一般性退款，可停止未来续费；重复或错误交易、未正确交付及无法履约按异常流程办理。": {
+    "en": "General ATG credits can be used for models listed by your current operator, at the prices effective when each call is made. Purchased and package gift credits remain valid for the agreed term; unused credits do not carry over after expiry. Packages do not allow ordinary refunds, and future renewals can be stopped. Duplicate or incorrect transactions, delivery errors and inability to fulfil service follow the exception process.",
+    "ja": "共通ATG残高は、現在の運営事業者が公開しているモデルに、呼び出し時点の価格で利用できます。購入分とプラン特典分は契約期間中のみ有効で、期限後の残高は繰り越されません。通常の返金はできませんが、今後の更新は停止できます。重複・誤取引、提供不備、履行不能は例外手続きで対応します。",
+    "ru": "Общие кредиты ATG можно использовать для моделей текущего оператора по ценам, действующим на момент вызова. Купленные и подарочные кредиты пакета действуют в течение согласованного срока; остаток после окончания срока не переносится. Обычный возврат средств за пакет не предусмотрен, будущие продления можно остановить. Дублирующие или ошибочные операции, ошибки предоставления и невозможность оказать услугу обрабатываются как исключения."
+  },
+  "%s ATG / %s USD 供货报价": {
+    "en": "Supply quote: %s ATG / %s USD",
+    "ja": "供給見積：%s ATG / %s USD",
+    "ru": "Предложение поставки: %s ATG / %s USD"
+  },
+  "主动退出并清算存量责任后，剩余购买额度按原实付比例退回；赠送额度不退。须另行办理退出及实际退款。": {
+    "en": "After voluntary exit and settlement of outstanding obligations, unused purchased credits are refunded in proportion to the original payment. Gift credits are not refundable. Exit and actual refund must be processed separately.",
+    "ja": "自主退出して既存の履行責任を清算した後、購入分の未使用残高は当初の実払額に比例して返金されます。特典分は返金対象外です。退出と実際の返金は別途手続きが必要です。",
+    "ru": "После добровольного выхода и урегулирования оставшихся обязательств неиспользованные купленные кредиты возвращаются пропорционально исходной оплате. Подарочные кредиты не возвращаются. Выход и фактический возврат оформляются отдельно."
+  },
+  "主动退出时剩余采购余额不退；须先清算存量责任。供货方不能履约时另行办理异常退款。": {
+    "en": "Unused procurement balance is not refundable on voluntary exit. Outstanding obligations must be settled first. Supplier non-performance is handled through an exceptional refund process.",
+    "ja": "自主退出時の未使用仕入残高は返金されません。先に既存の履行責任を清算してください。供給者が履行できない場合は、例外返金手続きで対応します。",
+    "ru": "При добровольном выходе остаток закупочного баланса не возвращается. Сначала нужно урегулировать оставшиеся обязательства. Если поставщик не может исполнить обязательства, применяется отдельная процедура исключительного возврата."
+  },
+  "原成交退出规则待核实": {
+    "en": "Original exit terms need verification",
+    "ja": "当初の取引の退出条件を要確認",
+    "ru": "Условия выхода по исходной сделке требуют проверки"
+  },
+  "剩余销售空间 ATG": {
+    "en": "Remaining sales capacity ATG",
+    "ja": "販売可能残高 ATG",
+    "ru": "Оставшийся объём продаж ATG"
+  },
+  "采购可用余额 ATG": {
+    "en": "Available procurement balance ATG",
+    "ja": "利用可能な仕入残高 ATG",
+    "ru": "Доступный закупочный баланс ATG"
+  },
+  "已用超卖额度 ATG": {
+    "en": "Used oversell allowance ATG",
+    "ja": "使用済み超過販売枠 ATG",
+    "ru": "Использованный лимит продаж сверх обеспечения ATG"
+  },
+  "在途及待结算请求数": {
+    "en": "In-flight and unsettled requests",
+    "ja": "処理中・精算待ちリクエスト数",
+    "ru": "Запросы в обработке и ожидающие расчёта"
+  },
+  "待核实上游成本数": {
+    "en": "Unverified upstream cost records",
+    "ja": "確認待ちの上流コスト件数",
+    "ru": "Непроверенные записи затрат поставщиков"
+  },
+  "待完成验证并启用": {
+    "en": "Awaiting verification and activation",
+    "ja": "検証・有効化待ち",
+    "ru": "Ожидает проверки и включения"
+  },
+  "可用备用入口": {
+    "en": "Available alternative endpoint",
+    "ja": "利用可能な代替エンドポイント",
+    "ru": "Доступный дополнительный адрес API"
+  },
+  "客户默认入口": {
+    "en": "Default customer endpoint",
+    "ja": "顧客向け既定エンドポイント",
+    "ru": "Адрес API клиентов по умолчанию"
+  },
+  "品牌API入口由已验证且已启用的域名自动生成，地址固定为 https://域名/v1；渠道沿用品牌入口。多个可用域名按最早添加顺序选定客户默认入口，停用后顺延。未完成DNS与TLS验证时显示待配置。检查已停用域名只更新验证结果，需另行启用。": {
+    "en": "The brand API endpoint is generated from a verified, enabled domain as https://domain/v1. Channels inherit the brand endpoint. If several domains are available, the earliest added becomes the default; disabling it selects the next one. Pending DNS or TLS verification is shown as not configured. Rechecking a disabled domain only updates verification results; enable it separately.",
+    "ja": "ブランドAPIの接続先は、検証済みかつ有効なドメインから https://ドメイン/v1 として自動生成されます。チャネルも同じ接続先を利用します。複数ある場合は最初に追加した利用可能なドメインが既定となり、無効化すると次に切り替わります。DNS・TLS検証が未完了の場合は未設定と表示します。無効化したドメインの再検査では検証結果のみ更新し、有効化は別途必要です。",
+    "ru": "Адрес API бренда автоматически создаётся из проверенного включённого домена в формате https://домен/v1. Каналы используют адрес бренда. Из доступных доменов по умолчанию выбирается добавленный раньше остальных; при его отключении выбирается следующий. До завершения проверки DNS и TLS отображается статус настройки. Повторная проверка отключённого домена обновляет только результаты; включить его нужно отдельно."
+  },
+  "API入口": {
+    "en": "API endpoint",
+    "ja": "APIエンドポイント",
+    "ru": "Адрес API"
+  },
+  "入口用途": {
+    "en": "Endpoint usage",
+    "ja": "接続先の用途",
+    "ru": "Назначение адреса"
+  },
+  "TXT记录名称": {
+    "en": "TXT record name",
+    "ja": "TXTレコード名",
+    "ru": "Имя TXT-записи"
+  },
+  "TXT记录完整值": {
+    "en": "Full TXT record value",
+    "ja": "TXTレコードの完全な値",
+    "ru": "Полное значение TXT-записи"
+  },
+  "合作约定说明（可选）": {
+    "en": "Cooperation terms (optional)",
+    "ja": "提携条件の説明（任意）",
+    "ru": "Условия сотрудничества (необязательно)"
+  },
+  "已上传合作合同（可选）": {
+    "en": "Uploaded cooperation contract (optional)",
+    "ja": "アップロード済み提携契約書（任意）",
+    "ru": "Загруженный договор сотрудничества (необязательно)"
+  },
+  "规则名称（留空按指标命名）": {
+    "en": "Rule name (leave blank to use the metric name)",
+    "ja": "ルール名（空欄の場合は指標名を使用）",
+    "ru": "Название правила (если пусто, используется название показателя)"
+  },
+  "达到或低于阈值": {
+    "en": "At or below the threshold",
+    "ja": "しきい値以下",
+    "ru": "На уровне порога или ниже"
+  },
+  "达到或高于阈值": {
+    "en": "At or above the threshold",
+    "ja": "しきい値以上",
+    "ru": "На уровне порога или выше"
+  },
+  "主动退出时的余额处理": {
+    "en": "Balance treatment on voluntary exit",
+    "ja": "自主退出時の残高処理",
+    "ru": "Остаток баланса при добровольном выходе"
+  },
+  "剩余采购余额不退": {
+    "en": "Unused procurement balance is non-refundable",
+    "ja": "未使用仕入残高は返金不可",
+    "ru": "Остаток закупочного баланса не возвращается"
+  },
+  "清算存量责任后，剩余购买额度按原实付比例退；赠送不退": {
+    "en": "After settling obligations, refund unused purchased credits proportionally to the original payment; gifts are non-refundable",
+    "ja": "既存の責任を清算後、購入分の未使用残高を当初の実払額に比例して返金。特典分は対象外",
+    "ru": "После урегулирования обязательств остаток купленных кредитов возвращается пропорционально исходной оплате; подарочные не возвращаются"
+  },
+  "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。": {
+    "en": "This exit policy is fixed in the quote and order. Selecting a refundable policy does not trigger exit or payment. Settle outstanding obligations, then process the exit and actual refund.",
+    "ja": "今回の退出条件は見積と注文に固定されます。返金可能な条件を選んでも退出や送金は実行されません。既存の責任を清算してから、退出と実際の返金を手続きしてください。",
+    "ru": "Условия выхода фиксируются в предложении и заказе. Выбор возвратного варианта не запускает выход или выплату. Сначала урегулируйте оставшиеся обязательства, затем оформите выход и фактический возврат."
+  },
+  "对客户公示的服务约定（可选）": {
+    "en": "Customer-facing service terms (optional)",
+    "ja": "顧客に公開するサービス条件（任意）",
+    "ru": "Условия обслуживания для клиентов (необязательно)"
+  },
+  "留空采用默认规则：通用额度按调用时报价使用，按成交期限有效；到期余量不结转，套餐不支持一般性退款，可停止未来续费；交易错误、未正确交付或无法履约走异常流程。新条款会固定到本次报价，变更须按续费规则重新确认。": {
+    "en": "Leave blank for the default terms: general credits use prices effective at the time of each call and remain valid for the agreed term. Unused credits do not carry over after expiry. Ordinary package refunds are not supported; future renewals can be stopped. Transaction errors, delivery errors and non-performance follow the exception process. New terms are fixed in this quote; changes require renewed confirmation under the renewal rules.",
+    "ja": "空欄の場合は既定の条件を使用します。共通残高は呼び出し時点の価格で利用でき、契約期間中のみ有効です。期限後の残高は繰り越されず、通常の返金はできませんが、今後の更新は停止できます。取引の誤り、提供不備、履行不能は例外手続きで対応します。新しい条件は今回の見積に固定され、変更時は更新ルールに従って再確認が必要です。",
+    "ru": "Если оставить поле пустым, применяются стандартные условия: общие кредиты расходуются по ценам на момент вызова и действуют в течение согласованного срока. Остаток после окончания срока не переносится. Обычный возврат за пакет не предусмотрен; будущие продления можно остановить. Ошибки операций, предоставления и неисполнение обрабатываются как исключения. Новые условия фиксируются в этом предложении; изменения требуют повторного подтверждения по правилам продления."
+  },
+  "请先修改初始密码，再进入经营空间": {
+    "en": "Change your initial password before entering the operator workspace",
+    "ja": "運営スペースに入る前に初期パスワードを変更してください",
+    "ru": "Перед входом в рабочее пространство оператора смените начальный пароль"
+  },
+  "报价或订单名称": {
+    "en": "Quote or order name",
+    "ja": "見積・注文名",
+    "ru": "Название предложения или заказа"
+  },
+  "成交时的退出规则": {
+    "en": "Exit terms agreed at purchase",
+    "ja": "取引時の退出条件",
+    "ru": "Условия выхода на момент сделки"
+  },
+  "合作约定": {
+    "en": "Cooperation terms",
+    "ja": "提携条件",
+    "ru": "Условия сотрудничества"
+  },
+  "合作合同": {
+    "en": "Cooperation contract",
+    "ja": "提携契約書",
+    "ru": "Договор сотрудничества"
+  },
+  "直属采购方": {
+    "en": "Direct buyer",
+    "ja": "直属の仕入事業者",
+    "ru": "Прямой покупатель"
+  },
+  "报价名称（留空自动命名）": {
+    "en": "Quote name (generated if blank)",
+    "ja": "見積名（空欄の場合は自動生成）",
+    "ru": "Название предложения (создаётся автоматически, если пусто)"
+  },
+  "补充合作约定（可选）": {
+    "en": "Additional cooperation terms (optional)",
+    "ja": "追加の提携条件（任意）",
+    "ru": "Дополнительные условия сотрудничества (необязательно)"
+  },
+  "已确认的供货报价": {
+    "en": "Confirmed supply quote",
+    "ja": "確定済み供給見積",
+    "ru": "Подтверждённое предложение поставки"
+  },
+  "报价供货方": {
+    "en": "Quoted supplier",
+    "ja": "見積の供給者",
+    "ru": "Поставщик по предложению"
+  },
+  "本次补货范围与付款授权说明": {
+    "en": "Replenishment scope and payment authorization",
+    "ja": "今回の補充範囲と支払い承認の説明",
+    "ru": "Объём пополнения и разрешение на оплату"
+  },
+  "当前授权版本": {
+    "en": "Current authorization version",
+    "ja": "現在の承認バージョン",
+    "ru": "Текущая версия разрешения"
+  },
+  "付款方式": {
+    "en": "Payment method",
+    "ja": "支払い方法",
+    "ru": "Способ оплаты"
+  },
+  "服务约定": {
+    "en": "Service terms",
+    "ja": "サービス条件",
+    "ru": "Условия обслуживания"
+  },
+  "开通首位负责人": {
+    "en": "Set up the first owner",
+    "ja": "最初の責任者を登録",
+    "ru": "Создать первого владельца"
+  },
+  "为尚无有效负责人的直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。": {
+    "en": "Set up the first owner for a direct operator that has no active owner. Deliver login details manually or send an email invitation. Existing account holders must accept the invitation themselves.",
+    "ja": "有効な責任者がまだいない直属事業者に、最初の責任者を登録します。ログイン情報を手動で渡すか、メールで招待できます。既存アカウントは本人による招待の承諾が必要です。",
+    "ru": "Создайте первого владельца для прямого оператора без действующего владельца. Передайте данные входа вручную или отправьте приглашение по почте. Владелец существующего аккаунта должен принять приглашение самостоятельно."
+  },
+  "采购余额退出方式": {
+    "en": "Procurement balance exit policy",
+    "ja": "退出時の仕入残高処理",
+    "ru": "Возврат закупочного баланса при выходе"
+  },
+  "开通或邀请经营人员": {
+    "en": "Create or invite operator staff",
+    "ja": "運営スタッフを登録・招待",
+    "ru": "Создать или пригласить сотрудника оператора"
+  },
+  "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。": {
+    "en": "Set an initial password for a new account and deliver it manually, or choose an email invitation. Existing accounts keep their passwords and join this operator by accepting the invitation themselves.",
+    "ja": "新規アカウントには初期パスワードを設定して手動で渡すか、メール招待を選択します。既存アカウントは元のパスワードを保持し、本人が招待を承諾して現在の事業者に参加します。",
+    "ru": "Задайте начальный пароль для нового аккаунта и передайте его вручную или выберите приглашение по почте. Существующие аккаунты сохраняют пароль и присоединяются к текущему оператору после самостоятельного принятия приглашения."
+  },
+  "开通方式": {
+    "en": "Account setup method",
+    "ja": "登録方法",
+    "ru": "Способ создания аккаунта"
+  },
+  "手动开通并交付": {
+    "en": "Create and deliver manually",
+    "ja": "手動で登録して引き渡す",
+    "ru": "Создать и передать вручную"
+  },
+  "发送邮件邀请": {
+    "en": "Send email invitation",
+    "ja": "メールで招待",
+    "ru": "Отправить приглашение по почте"
+  },
+  "新账号初始密码": {
+    "en": "Initial password for new account",
+    "ja": "新規アカウントの初期パスワード",
+    "ru": "Начальный пароль нового аккаунта"
+  },
+  "登录邮箱": {
+    "en": "Login email",
+    "ja": "ログインメールアドレス",
+    "ru": "Почта для входа"
+  },
+  "人员姓名": {
+    "en": "Staff name",
+    "ja": "スタッフ氏名",
+    "ru": "Имя сотрудника"
+  },
+  "规则名称": {
+    "en": "Rule name",
+    "ja": "ルール名",
+    "ru": "Название правила"
+  },
+  "历史预警规则": {
+    "en": "Historical alert rule",
+    "ja": "過去のアラートルール",
+    "ru": "Историческое правило оповещения"
+  },
+  "用于风险观察与通知，最多100字；留空时按所选指标自动命名。": {
+    "en": "Used in risk observations and notifications; up to 100 characters. Leave blank to generate a name from the selected metric.",
+    "ja": "リスク状況と通知に表示されます。100文字以内。空欄の場合は選択した指標から自動命名します。",
+    "ru": "Используется в наблюдениях и уведомлениях о рисках; до 100 символов. Если пусто, название создаётся по выбранному показателю."
+  },
+  "ATG指标使用ATG阈值；在途及待结算请求统计已受理、执行中、已提交及待补用量的请求。规则仅作用于当前经营方；待核实上游成本数仅供平台选择。": {
+    "en": "ATG metrics use ATG thresholds. In-flight and unsettled requests include accepted, executing, submitted and usage-pending requests. Rules apply only to this operator. Unverified upstream cost records are available only to the platform.",
+    "ja": "ATG指標にはATG単位のしきい値を使用します。処理中・精算待ち件数には、受付済み、実行中、送信済み、使用量待ちのリクエストを含みます。ルールは現在の事業者のみに適用されます。上流コストの確認待ち件数はプラットフォームのみ選択できます。",
+    "ru": "Для показателей ATG пороги задаются в ATG. В число запросов в обработке и ожидающих расчёта входят принятые, выполняемые, отправленные и ожидающие данных об использовании запросы. Правила действуют только для текущего оператора. Непроверенные затраты поставщиков доступны только платформе."
+  },
+  "达到阈值即触发。低于方向的严重阈值不能高于预警阈值；高于方向则相反。": {
+    "en": "The threshold itself triggers the rule. For a below-threshold rule, the critical threshold cannot exceed the warning threshold; the reverse applies for an above-threshold rule.",
+    "ja": "しきい値に達した時点で発動します。下限ルールでは重大しきい値を警告しきい値より高くできません。上限ルールでは逆になります。",
+    "ru": "Правило срабатывает и при равенстве порогу. Для нижнего порога критическое значение не должно превышать предупреждающее; для верхнего порога — наоборот."
+  },
+  "选择本经营方在岗人员，站内通知始终保留；邮箱已验证时同时发送邮件。": {
+    "en": "Select active staff of this operator. In-app notifications are always retained; verified email addresses also receive email.",
+    "ja": "現在の事業者の在籍スタッフを選択してください。アプリ内通知は常に保存され、確認済みメールアドレスにはメールも送信されます。",
+    "ru": "Выберите действующих сотрудников текущего оператора. Уведомления в приложении сохраняются всегда; на подтверждённые адреса также отправляется письмо."
+  },
+  "风险持续时重复提醒的间隔，单位为秒；至少60秒，最多30天。": {
+    "en": "Repeat notification interval while the risk persists, in seconds; from 60 seconds to 30 days.",
+    "ja": "リスク継続中の再通知間隔です。秒単位で、60秒以上30日以下です。",
+    "ru": "Интервал повторных уведомлений, пока риск сохраняется, в секундах; от 60 секунд до 30 дней."
+  },
+  "预警从本次风险开始持续达到此时长后升为严重并通知升级负责人，单位为秒；至少60秒，最多30天。严重阈值可直接触发严重通知。": {
+    "en": "A warning that persists for this duration from the start of the incident becomes critical and notifies escalation owners. In seconds, from 60 seconds to 30 days. Reaching the critical threshold triggers a critical notification immediately.",
+    "ja": "今回のリスク発生から警告がこの時間継続すると、重大に昇格し、エスカレーション担当者へ通知します。秒単位で、60秒以上30日以下です。重大しきい値に達すると即座に重大通知を送信します。",
+    "ru": "Если предупреждение сохраняется указанное время с начала инцидента, оно становится критическим и уведомляет ответственных за эскалацию. В секундах, от 60 секунд до 30 дней. Критический порог сразу вызывает критическое уведомление."
+  },
+  "已离岗负责人": {
+    "en": "Former owner",
+    "ja": "退任した担当者",
+    "ru": "Бывший ответственный"
+  },
+  "未设置": {
+    "en": "Not set",
+    "ja": "未設定",
+    "ru": "Не задано"
+  },
+  "账号已开通，请将登录入口、邮箱和初始密码交给负责人；首次登录需要修改密码": {
+    "en": "Account created. Give the owner the login URL, email and initial password. They must change the password on first login.",
+    "ja": "アカウントを作成しました。ログイン先、メールアドレス、初期パスワードを責任者に渡してください。初回ログイン時にパスワード変更が必要です。",
+    "ru": "Аккаунт создан. Передайте владельцу адрес входа, почту и начальный пароль. При первом входе потребуется сменить пароль."
+  },
+  "此邮箱已有经营人员账号，原密码保持不变。请将邀请链接交给本人，72 小时内使用原密码接受邀请": {
+    "en": "This email already has an operator staff account, and its password is unchanged. Give the invitation link to the account holder so they can accept within 72 hours using their existing password.",
+    "ja": "このメールアドレスには運営スタッフのアカウントがあり、元のパスワードは変更されません。本人に招待リンクを渡し、72時間以内に元のパスワードで承諾してもらってください。",
+    "ru": "Для этой почты уже существует аккаунт сотрудника оператора; пароль не изменён. Передайте ссылку владельцу аккаунта, чтобы он принял приглашение в течение 72 часов с прежним паролем."
+  },
+  "。请使用此邮箱接受邀请：\n": {
+    "en": ". Use this email to accept the invitation:\n",
+    "ja": "。このメールアドレスで招待を承諾してください：\n",
+    "ru": ". Используйте эту почту, чтобы принять приглашение:\n"
+  },
+  "输入邮箱和密码，系统将自动进入你可使用的空间。": {
+    "en": "Enter your email and password to open your available workspace.",
+    "ja": "メールアドレスとパスワードを入力すると、利用可能なスペースに自動で移動します。",
+    "ru": "Введите почту и пароль, чтобы перейти в доступное рабочее пространство."
+  },
+  "此账号可进入两个空间，请选择本次要办理的业务": {
+    "en": "This account has access to two workspaces. Choose the one for this task.",
+    "ja": "このアカウントでは2つのスペースを利用できます。今回の操作に使うスペースを選択してください。",
+    "ru": "Этому аккаунту доступны два рабочих пространства. Выберите нужное для текущей задачи."
+  },
+  "由品牌已验证并启用的域名自动生成 https://域名/v1；渠道沿用品牌入口。未完成域名接入时不提供可用 API 地址。": {
+    "en": "Generated as https://domain/v1 from a verified, enabled brand domain. Channels inherit the brand endpoint. No usable API address is provided until domain setup is complete.",
+    "ja": "検証済みかつ有効なブランドドメインから https://ドメイン/v1 を自動生成します。チャネルも同じ接続先を利用します。ドメイン設定が完了するまで、利用可能なAPIアドレスは表示されません。",
+    "ru": "Автоматически создаётся как https://домен/v1 из проверенного включённого домена бренда. Каналы используют адрес бренда. До завершения настройки домена рабочий адрес API не предоставляется."
+  },
+  "当可用采购余额减去已承诺责任和待交付责任后的余量，小于或等于此值时，系统提示提前补货。例如采购可用 100、已承诺 60、待交付 10、缓冲 30，就会进入提前补货提醒。超卖额度不计入这项余量；采购余额不足仍不能受理新调用。若已出现更严重的缺货或覆盖不足，优先显示更严重状态。": {
+    "en": "Early replenishment is advised when the available procurement balance minus committed and pending delivery obligations is at or below this amount. For example, 100 available minus 60 committed minus 10 pending equals a buffer of 30, so the reminder appears. Oversell allowance is excluded; insufficient procurement balance still blocks new calls. More serious shortages or coverage failures take priority.",
+    "ja": "利用可能な仕入残高から既存の責任と提供待ちの責任を引いた余裕が、この値以下になると早期補充を案内します。例えば残高100、既存責任60、提供待ち10、バッファ30の場合に通知されます。超過販売枠はこの余裕に含まれず、仕入残高が不足すると新規呼び出しは受け付けられません。より重大な欠品やカバー不足がある場合は、その状態を優先表示します。",
+    "ru": "Система рекомендует пополнение, когда доступный закупочный баланс за вычетом принятых обязательств и ожидаемых поставок становится не больше этого значения. Например, 100 доступно минус 60 обязательств минус 10 к поставке равно буферу 30 — появляется напоминание. Лимит продаж сверх обеспечения не учитывается; при нехватке закупочного баланса новые вызовы по-прежнему блокируются. Более серьёзные дефицит или недостаточное обеспечение имеют приоритет."
+  },
+  "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。": {
+    "en": "Remaining sales capacity = available procurement balance + oversell allowance − committed obligations − pending delivery obligations. Insufficient capacity limits new sales. Overselling does not increase the actual procurement balance.",
+    "ja": "販売可能残高＝利用可能な仕入残高＋超過販売枠−既存の責任−提供待ちの責任です。残高不足は新規販売を制限します。超過販売によって実際の仕入残高が増えることはありません。",
+    "ru": "Оставшийся объём продаж = доступный закупочный баланс + лимит продаж сверх обеспечения − принятые обязательства − обязательства к поставке. Недостаток объёма ограничивает новые продажи. Продажи сверх обеспечения не увеличивают реальный закупочный баланс."
+  },
+  "覆盖已经售出和赠送、仍需履约的权益，按开放模型最大采购成本核算。它是履约责任，不等于客户实际已经消耗的金额。": {
+    "en": "Covers sold and gifted entitlements that still require fulfilment, valued at the highest procurement cost of enabled models. This is a service obligation, not the customer's actual consumption.",
+    "ja": "販売済み・付与済みで、まだ履行が必要な権利をカバーします。利用可能なモデルの最大仕入コストで計算します。これは履行責任であり、顧客の実際の消費額ではありません。",
+    "ru": "Покрывает проданные и подаренные права, по которым ещё нужно оказать услуги, по максимальной закупочной стоимости доступных моделей. Это обязательство по оказанию услуг, а не фактическое потребление клиента."
+  },
+  "待付款或待交付订单已经预留的销售责任，避免多笔订单重复使用同一份销售空间。关闭或失败后按业务规则释放。": {
+    "en": "Sales obligations already reserved for unpaid or undelivered orders prevent multiple orders from using the same sales capacity. Reservations are released under the business rules when an order closes or fails.",
+    "ja": "支払い待ち・提供待ちの注文で予約済みの販売責任です。同じ販売可能残高を複数の注文が重複利用することを防ぎます。注文終了・失敗時は業務ルールに従って解放されます。",
+    "ru": "Обязательства, уже зарезервированные для неоплаченных или недоставленных заказов, не позволяют нескольким заказам использовать один и тот же объём продаж. Резерв освобождается по правилам при закрытии или сбое заказа."
+  },
+  "真实已交付采购余额扣除调用预占后的可用金额。报价、未付款采购订单和超卖额度不会增加这里的余额。": {
+    "en": "Actual delivered procurement balance available after call reservations. Quotes, unpaid procurement orders and oversell allowances do not increase this balance.",
+    "ja": "実際に提供済みの仕入残高から、呼び出しの仮押さえを引いた利用可能額です。見積、未払い仕入注文、超過販売枠ではこの残高は増えません。",
+    "ru": "Реальный предоставленный закупочный баланс за вычетом резервов под вызовы. Предложения, неоплаченные закупочные заказы и лимиты продаж сверх обеспечения не увеличивают этот баланс."
+  },
+  "手动开通可直接设置新账号初始密码，并把登录信息交给本人；首次登录须修改密码。已有账号不会被重设密码，应把接受邀请链接交给本人。邮件邀请需要先配置可用发信服务。": {
+    "en": "Manual setup lets you set an initial password for a new account and give login details to its holder; the password must be changed on first login. Existing account passwords are never reset; give the holder an invitation acceptance link. Email invitations require a working outgoing mail service.",
+    "ja": "手動登録では新規アカウントの初期パスワードを設定し、本人にログイン情報を渡せます。初回ログイン時に変更が必要です。既存アカウントのパスワードは再設定せず、本人に招待承諾リンクを渡してください。メール招待には送信サービスの設定が必要です。",
+    "ru": "При ручном создании можно задать начальный пароль нового аккаунта и передать данные владельцу; при первом входе пароль нужно сменить. Пароли существующих аккаунтов не сбрасываются — передайте владельцу ссылку принятия приглашения. Для приглашений по почте нужна настроенная служба отправки."
+  },
+  "仅用于手动开通的新账号。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。": {
+    "en": "Only for new accounts created manually. Deliver the initial password securely; it must be changed on first login. Existing account holders keep their passwords and accept invitations themselves.",
+    "ja": "手動登録する新規アカウント専用です。初期パスワードを安全に本人へ渡してください。初回ログイン時に変更を求められます。既存アカウントは元のパスワードで本人が招待を承諾します。",
+    "ru": "Только для новых аккаунтов, созданных вручную. Безопасно передайте начальный пароль; при первом входе его потребуется сменить. Владельцы существующих аккаунтов используют прежний пароль и сами принимают приглашение."
+  },
+  "负责人可管理当前经营方；运营、财务、客服、只读角色按实际职责授予权限。上级负责人不会因此取得下级客户与账务的访问权。": {
+    "en": "Owners manage the current operator. Operations, finance, support and read-only roles receive permissions according to their duties. A parent operator's owner does not gain access to a child's customers or finances.",
+    "ja": "責任者は現在の事業者を管理できます。運営、財務、サポート、閲覧専用の各ロールには実際の職務に応じて権限を付与します。上位の責任者に下位の顧客・会計へのアクセス権が付与されることはありません。",
+    "ru": "Владелец управляет текущим оператором. Роли операционного сотрудника, финансового сотрудника, поддержки и только для чтения получают права по обязанностям. Владелец вышестоящего оператора не получает доступ к клиентам и финансам нижестоящего."
+  },
+  "选择合作双方实际约定的未使用采购余额退出方式。退款责任依原成交约定核算；填写新约定不会改写历史订单。": {
+    "en": "Choose the agreed treatment of unused procurement balance on exit. Refund obligations follow the original purchase terms; new terms do not rewrite historical orders.",
+    "ja": "双方が実際に合意した、退出時の未使用仕入残高の処理方法を選択してください。返金責任は当初の取引条件に従って計算され、新しい条件で過去の注文は変更されません。",
+    "ru": "Выберите согласованный сторонами порядок возврата неиспользованного закупочного баланса при выходе. Обязательства по возврату определяются исходными условиями сделки; новые условия не меняют прежние заказы."
+  },
+  "选择当前经营方上传的私有合作合同。附件仅向有权查看该合作关系的双方开放，请先上传文件再选择。": {
+    "en": "Choose a private cooperation contract uploaded by this operator. Attachments are accessible only to the authorized parties to that relationship. Upload the file before selecting it.",
+    "ja": "現在の事業者がアップロードした非公開の提携契約書を選択します。添付ファイルは、権限を持つ提携当事者のみ閲覧できます。先にファイルをアップロードしてから選択してください。",
+    "ru": "Выберите закрытый договор сотрудничества, загруженный текущим оператором. Вложения доступны только уполномоченным сторонам этого сотрудничества. Сначала загрузите файл, затем выберите его."
+  },
+  "品牌 API 入口尚未配置，请联系经营方完成域名接入。": {
+    "en": "The brand API endpoint is not configured. Contact your operator to complete domain setup.",
+    "ja": "ブランドAPIの接続先は未設定です。ドメインの接続設定について運営事業者にお問い合わせください。",
+    "ru": "Адрес API бренда ещё не настроен. Обратитесь к оператору для завершения подключения домена."
+  },
+  "正在读取关联记录名称…": {
+    "en": "Loading linked record names…",
+    "ja": "関連レコード名を読み込み中…",
+    "ru": "Загрузка названий связанных записей…"
+  },
+  "已选择关联记录": {
+    "en": "Linked record selected",
+    "ja": "関連レコードを選択済み",
+    "ru": "Связанная запись выбрана"
+  },
+  "打开登录入口": {
+    "en": "Open login page",
+    "ja": "ログインページを開く",
+    "ru": "Открыть страницу входа"
+  },
+  "打开接受邀请链接": {
+    "en": "Open invitation acceptance link",
+    "ja": "招待承諾リンクを開く",
+    "ru": "Открыть ссылку принятия приглашения"
+  },
+  "初始密码仅在本次办理中显示，请安全交给本人；首次登录须修改密码。": {
+    "en": "The initial password is shown only during this action. Deliver it securely to the account holder; they must change it on first login.",
+    "ja": "初期パスワードは今回の操作中のみ表示されます。安全に本人へ渡してください。初回ログイン時に変更が必要です。",
+    "ru": "Начальный пароль показывается только в ходе этой операции. Безопасно передайте его владельцу; при первом входе пароль нужно сменить."
+  },
+  "复制开通信息": {
+    "en": "Copy account setup details",
+    "ja": "登録情報をコピー",
+    "ru": "Копировать данные созданного аккаунта"
+  },
+  "名称与事项": {
+    "en": "Name and purpose",
+    "ja": "名称・内容",
+    "ru": "Название и назначение"
+  },
+  "上传或查看可选合作合同": {
+    "en": "Upload or view an optional cooperation contract",
+    "ja": "任意の提携契約書をアップロード・閲覧",
+    "ru": "Загрузить или просмотреть необязательный договор сотрудничества"
+  },
+  "原始记录编号": {
+    "en": "Original record ID",
+    "ja": "元レコードID",
+    "ru": "ID исходной записи"
+  },
+  "复制编号": {
+    "en": "Copy ID",
+    "ja": "IDをコピー",
+    "ru": "Копировать ID"
+  },
+  "查看私有合同": {
+    "en": "View private contract",
+    "ja": "非公開契約書を表示",
+    "ru": "Просмотреть закрытый договор"
+  },
+  "邀请链接已确定邮箱和经营范围。请核对邀请来源后接受。": {
+    "en": "The invitation link specifies the email and operator scope. Verify its source before accepting.",
+    "ja": "招待リンクにはメールアドレスと運営範囲が指定されています。招待元を確認してから承諾してください。",
+    "ru": "Ссылка приглашения задаёт почту и область оператора. Проверьте отправителя перед принятием."
+  },
+  "已有经营人员账号请使用原密码；邮件邀请的新账号请设置至少 10 位密码。接受后直接使用邮箱登录。": {
+    "en": "Existing staff accounts should use their current password. New accounts invited by email must set a password of at least 10 characters. After accepting, log in with your email.",
+    "ja": "既存の運営スタッフアカウントは元のパスワードを使用してください。メール招待の新規アカウントは10文字以上のパスワードを設定します。承諾後はメールアドレスでログインできます。",
+    "ru": "Для существующего аккаунта сотрудника используйте прежний пароль. Для нового аккаунта по приглашению задайте пароль не короче 10 символов. После принятия входите по почте."
+  },
+  "接受邀请": {
+    "en": "Accept invitation",
+    "ja": "招待を承諾",
+    "ru": "Принять приглашение"
+  },
+  "修改初始密码": {
+    "en": "Change initial password",
+    "ja": "初期パスワードを変更",
+    "ru": "Сменить начальный пароль"
+  },
+  "合作合同附件": {
+    "en": "Cooperation contract attachments",
+    "ja": "提携契約書の添付ファイル",
+    "ru": "Вложения договоров сотрудничества"
+  },
+  "可选上传合作合同，文件加密保存。先上传，再在建立合作或发布报价时选择；仅供货方和关联采购方可查看。实际供货金额、额度和退出规则以订单接受的报价为准。": {
+    "en": "You may upload an optional cooperation contract, stored encrypted. Upload it first, then select it when creating a relationship or publishing a quote. Only the supplier and related buyer can view it. Actual payment amounts, credits and exit terms follow the quote accepted by the order.",
+    "ja": "提携契約書は任意でアップロードでき、暗号化して保存します。先にアップロードし、提携の作成時や見積の公開時に選択してください。供給者と関係する仕入事業者のみ閲覧できます。実際の供給金額、残高、退出条件は注文で承諾した見積に従います。",
+    "ru": "Договор сотрудничества можно загрузить по желанию; он хранится в зашифрованном виде. Сначала загрузите его, затем выберите при создании сотрудничества или публикации предложения. Просмотр доступен только поставщику и связанному покупателю. Суммы, кредиты и условия выхода определяются предложением, принятым в заказе."
+  },
+  "合同文件": {
+    "en": "Contract file",
+    "ja": "契約書ファイル",
+    "ru": "Файл договора"
+  },
+  "查看合同": {
+    "en": "View contract",
+    "ja": "契約書を表示",
+    "ru": "Просмотреть договор"
+  },
+  "上传可选合作合同": {
+    "en": "Upload optional cooperation contract",
+    "ja": "任意の提携契約書をアップロード",
+    "ru": "Загрузить необязательный договор сотрудничества"
+  },
+  "PDF/PNG/JPEG合同（不超过10MiB）": {
+    "en": "PDF/PNG/JPEG contract (up to 10 MiB)",
+    "ja": "PDF/PNG/JPEG契約書（10 MiB以下）",
+    "ru": "Договор PDF/PNG/JPEG (до 10 МиБ)"
+  },
+  "合同已加密保存，可在合作或供货报价中选择此附件。": {
+    "en": "The contract is stored encrypted and can be selected for a cooperation relationship or supply quote.",
+    "ja": "契約書を暗号化して保存しました。提携や供給見積でこの添付ファイルを選択できます。",
+    "ru": "Договор сохранён в зашифрованном виде. Его можно выбрать для сотрудничества или предложения поставки."
+  },
+  "供应商凭据": {
+    "en": "Supplier credentials",
+    "ja": "供給者の認証情報",
+    "ru": "Учётные данные поставщика"
+  },
+  "业务记录": {
+    "en": "Business record",
+    "ja": "業務レコード",
+    "ru": "Деловая запись"
+  },
+  "KOL 活动": {
+    "en": "KOL campaign",
+    "ja": "KOLキャンペーン",
+    "ru": "Кампания KOL"
+  },
+  "佣金规则": {
+    "en": "Commission rules",
+    "ja": "コミッションルール",
+    "ru": "Правила комиссии"
+  },
+  "履约覆盖": {
+    "en": "Fulfilment coverage",
+    "ja": "履行カバー状況",
+    "ru": "Обеспечение обязательств"
+  },
+  "ATG 来源": {
+    "en": "ATG source",
+    "ja": "ATGの出所",
+    "ru": "Источник ATG"
+  },
+  "客户发票": {
+    "en": "Customer invoice",
+    "ja": "顧客請求書",
+    "ru": "Счёт клиента"
+  },
+  "采购发票": {
+    "en": "Procurement invoice",
+    "ja": "仕入請求書",
+    "ru": "Закупочный счёт"
+  },
+  "证据文件": {
+    "en": "Evidence file",
+    "ja": "証拠ファイル",
+    "ru": "Файл подтверждения"
+  },
+  "此操作需要经营人员账号": {
+    "en": "This action requires an operator staff account",
+    "ja": "この操作には運営スタッフアカウントが必要です",
+    "ru": "Для этого действия нужен аккаунт сотрудника оператора"
+  },
+  "请先登录经营人员账号。": {
+    "en": "Log in with an operator staff account first.",
+    "ja": "先に運営スタッフアカウントでログインしてください。",
+    "ru": "Сначала войдите в аккаунт сотрудника оператора."
+  },
+  "修改密码": {
+    "en": "Change password",
+    "ja": "パスワードを変更",
+    "ru": "Сменить пароль"
+  },
+  "请设置只有你自己知道的密码。修改后，其他已登录设备需要重新登录。": {
+    "en": "Set a password only you know. Other signed-in devices will need to log in again.",
+    "ja": "本人だけが知るパスワードを設定してください。変更後、他のログイン済み端末では再ログインが必要です。",
+    "ru": "Задайте пароль, известный только вам. На других устройствах потребуется войти заново."
+  },
+  "新密码": {
+    "en": "New password",
+    "ja": "新しいパスワード",
+    "ru": "Новый пароль"
+  },
+  "至少 10 位，且不能与当前密码相同。": {
+    "en": "At least 10 characters, different from your current password.",
+    "ja": "10文字以上で、現在のパスワードと異なるものにしてください。",
+    "ru": "Не менее 10 символов и отличается от текущего пароля."
+  },
+  "确认新密码": {
+    "en": "Confirm new password",
+    "ja": "新しいパスワードを確認",
+    "ru": "Подтвердите новый пароль"
+  },
+  "两次输入的密码不一致。": {
+    "en": "The passwords do not match.",
+    "ja": "入力したパスワードが一致しません。",
+    "ru": "Пароли не совпадают."
+  },
+  "保存并进入经营空间": {
+    "en": "Save and enter operator workspace",
+    "ja": "保存して運営スペースに入る",
+    "ru": "Сохранить и перейти в пространство оператора"
+  },
+  "关联客户": {
+    "en": "Linked customer",
+    "ja": "関連顧客",
+    "ru": "Связанный клиент"
+  },
+  "关联供货方": {
+    "en": "Linked supplier",
+    "ja": "関連供給者",
+    "ru": "Связанный поставщик"
+  },
+  "关联采购方": {
+    "en": "Linked buyer",
+    "ja": "関連仕入事業者",
+    "ru": "Связанный покупатель"
+  },
+  "关联经营方": {
+    "en": "Linked operator",
+    "ja": "関連運営事業者",
+    "ru": "Связанный оператор"
+  },
+  "关联品牌": {
+    "en": "Linked brand",
+    "ja": "関連ブランド",
+    "ru": "Связанный бренд"
+  },
+  "关联订单": {
+    "en": "Linked order",
+    "ja": "関連注文",
+    "ru": "Связанный заказ"
+  },
+  "关联套餐": {
+    "en": "Linked package",
+    "ja": "関連プラン",
+    "ru": "Связанный пакет"
+  },
+  "已保存的供应商凭据": {
+    "en": "Saved supplier credentials",
+    "ja": "保存済み供給者認証情報",
+    "ru": "Сохранённые учётные данные поставщика"
+  },
+  "私有合作合同": {
+    "en": "Private cooperation contract",
+    "ja": "非公開の提携契約書",
+    "ru": "Закрытый договор сотрудничества"
+  },
+  "关联记录": {
+    "en": "Linked record",
+    "ja": "関連レコード",
+    "ru": "Связанная запись"
+  },
+  "已批准供货失约": {
+    "en": "Approved supplier non-performance",
+    "ja": "承認済みの供給者不履行",
+    "ru": "Подтверждённое неисполнение поставщиком"
+  },
+  "已选择的现有人员": {
+    "en": "Previously selected staff member",
+    "ja": "選択済みの既存スタッフ",
+    "ru": "Ранее выбранный сотрудник"
+  },
+  "不选择关联记录": {
+    "en": "Do not select a linked record",
+    "ja": "関連レコードを選択しない",
+    "ru": "Не выбирать связанную запись"
+  },
+  "续费报价": {
+    "en": "Renewal quote",
+    "ja": "更新見積",
+    "ru": "Предложение продления"
+  },
+  "原成交服务约定": {
+    "en": "Original service terms",
+    "ja": "当初の取引のサービス条件",
+    "ru": "Исходные условия обслуживания"
+  },
+  "我确认本次价格、购赠组成、有效期和服务约定。套餐无一般退款；续费条件变差须重新授权。": {
+    "en": "I confirm the price, purchased and gift credit breakdown, validity and service terms. Ordinary package refunds are not supported; less favorable renewal terms require new authorization.",
+    "ja": "今回の価格、購入分と特典分の内訳、有効期間、サービス条件を確認しました。通常の返金はできません。更新条件が不利になる場合は再承認が必要です。",
+    "ru": "Я подтверждаю цену, состав купленных и подарочных кредитов, срок действия и условия обслуживания. Обычный возврат за пакет не предусмотрен; менее выгодные условия продления требуют нового разрешения."
+  },
+  "重置经营人员密码": {
+    "en": "Reset operator staff password",
+    "ja": "運営スタッフのパスワードを再設定",
+    "ru": "Сбросить пароль сотрудника оператора"
+  },
+  "重置客户登录密码": {
+    "en": "Reset customer login password",
+    "ja": "顧客ログインパスワードを再設定",
+    "ru": "Сбросить пароль входа клиента"
+  },
+  "通用ATG额度可用于当前经营方已上架模型，模型价格按调用时生效报价计算。先到期的额度先使用，同一订单内购买与各来源赠送额度按比例消耗。购买与套餐赠送额度按成交期限有效，到期余量不结转。套餐不支持一般性退款，可停止未来续费；重复或错误交易、未正确交付及无法履约按异常流程办理。": {
+    "en": "General ATG credits can be used for models listed by your current operator, at the prices effective when each call is made. Credits expiring first are used first; purchased and all gift credits within the same order are consumed proportionally. Purchased and package gift credits remain valid for the agreed term; unused credits do not carry over after expiry. Packages do not allow ordinary refunds, and future renewals can be stopped. Duplicate or incorrect transactions, delivery errors and inability to fulfil service follow the exception process.",
+    "ja": "共通ATG残高は、現在の運営事業者が公開しているモデルに、呼び出し時点の価格で利用できます。有効期限が早い残高から使用し、同じ注文の購入分と各提供元の特典分は比例して消費します。購入分とプラン特典分は契約期間中のみ有効で、期限後の残高は繰り越されません。通常の返金はできませんが、今後の更新は停止できます。重複・誤取引、提供不備、履行不能は例外手続きで対応します。",
+    "ru": "Общие кредиты ATG можно использовать для моделей текущего оператора по ценам на момент вызова. Сначала расходуются кредиты с ближайшим сроком окончания; купленные и все подарочные кредиты одного заказа расходуются пропорционально. Купленные и подарочные кредиты пакета действуют в течение согласованного срока; остаток после окончания срока не переносится. Обычный возврат за пакет не предусмотрен, будущие продления можно остановить. Дублирующие или ошибочные операции, ошибки предоставления и невозможность оказать услугу обрабатываются как исключения."
+  },
+  "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。\n": {
+    "en": ". Please review the terms. Unfavorable changes require your renewed confirmation; insufficient funds do not create customer debt.\n",
+    "ja": "。条件をご確認ください。不利な変更には本人の再確認が必要です。残高不足で顧客に債務が発生することはありません。\n",
+    "ru": ". Проверьте условия. Невыгодные изменения требуют повторного подтверждения; нехватка средств не создаёт долг клиента.\n"
+  },
+  "定价经营方或供应商（自动带入）": {
+    "en": "Pricing operator or supplier (filled automatically)",
+    "ja": "価格設定の事業者または供給者（自動入力）",
+    "ru": "Оператор или поставщик цены (заполняется автоматически)"
+  },
+  "供货采购方或成本上游路由": {
+    "en": "Supply buyer or upstream cost route",
+    "ja": "供給先の仕入事業者または原価用の上流ルート",
+    "ru": "Покупатель поставки или маршрут поставщика для затрат"
+  },
+  "供应商引用（选择凭据后自动带入）": {
+    "en": "Supplier reference (filled after choosing credentials)",
+    "ja": "供給者参照（認証情報の選択後に自動入力）",
+    "ru": "Ссылка на поставщика (подставляется после выбора учётных данных)"
+  },
+  "真实供货收款商户配置": {
+    "en": "Supplier payment merchant configuration",
+    "ja": "供給者の実際の決済加盟店設定",
+    "ru": "Конфигурация платёжного продавца поставщика"
+  },
+  "本方已核实收款": {
+    "en": "Our verified receipt",
+    "ja": "自社の確認済み入金",
+    "ru": "Наше подтверждённое поступление"
+  },
+  "实际供货方": {
+    "en": "Actual supplier",
+    "ja": "実際の供給者",
+    "ru": "Фактический поставщик"
+  },
+  "现有套餐（新建留空）": {
+    "en": "Existing package (leave blank to create)",
+    "ja": "既存プラン（新規作成時は空欄）",
+    "ru": "Существующий пакет (для нового оставьте пустым)"
+  },
+  "现有活动（新建留空）": {
+    "en": "Existing campaign (leave blank to create)",
+    "ja": "既存キャンペーン（新規作成時は空欄）",
+    "ru": "Существующая кампания (для новой оставьте пустым)"
+  },
+  "本经营范围收件人": {
+    "en": "Recipient in this operator scope",
+    "ja": "現在の運営範囲の受信者",
+    "ru": "Получатель в области текущего оператора"
+  },
+  "范围主体": {
+    "en": "Scope subject",
+    "ja": "対象範囲の主体",
+    "ru": "Субъект области действия"
+  },
+  "供货失约批准（失约退出必填）": {
+    "en": "Supplier non-performance approval (required for non-performance exit)",
+    "ja": "供給者不履行の承認（不履行による退出時は必須）",
+    "ru": "Подтверждение неисполнения поставщиком (обязательно для выхода по этой причине)"
+  },
+  "原采购收款": {
+    "en": "Original procurement receipt",
+    "ja": "元の仕入入金",
+    "ru": "Исходное поступление по закупке"
+  },
+  "限定客户或合作方（留空导出当前范围）": {
+    "en": "Limit to a customer or partner (leave blank for the current scope)",
+    "ja": "顧客または提携先を指定（空欄で現在の範囲を出力）",
+    "ru": "Ограничить клиентом или партнёром (если пусто, экспортируется текущая область)"
+  },
+  "审核人": {
+    "en": "Reviewer",
+    "ja": "審査担当者",
+    "ru": "Проверяющий"
+  },
+  "核实人": {
+    "en": "Verifier",
+    "ja": "確認担当者",
+    "ru": "Подтвердивший сотрудник"
+  },
+  "关联业务主体": {
+    "en": "Related business subject",
+    "ja": "関連する業務主体",
+    "ru": "Связанный субъект операции"
+  },
+  "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号": {
+    "en": "The initial password must be 10–72 bytes. Use Latin letters, digits and symbols.",
+    "ja": "初期パスワードは10～72バイトで設定してください。英字・数字・記号の使用を推奨します。",
+    "ru": "Начальный пароль должен занимать от 10 до 72 байт. Рекомендуются латинские буквы, цифры и символы."
+  },
+  "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。": {
+    "en": "Only for new accounts created manually: at least 10 characters and at most 72 bytes. Deliver the initial password securely; it must be changed on first login. Existing account holders keep their passwords and accept invitations themselves.",
+    "ja": "手動登録する新規アカウント専用です。10文字以上、72バイト以下で設定してください。初期パスワードを安全に本人へ渡し、初回ログイン時に変更してください。既存アカウントは元のパスワードで本人が招待を承諾します。",
+    "ru": "Только для новых аккаунтов, созданных вручную: не менее 10 символов и не более 72 байт. Безопасно передайте начальный пароль; при первом входе его потребуется сменить. Владельцы существующих аккаунтов используют прежний пароль и сами принимают приглашение."
+  },
+  "新账号初始密码至少 10 位，最长 72 字节。": {
+    "en": "The new account's initial password must be at least 10 characters and no more than 72 bytes.",
+    "ja": "新規アカウントの初期パスワードは10文字以上、72バイト以下にしてください。",
+    "ru": "Начальный пароль нового аккаунта должен содержать не менее 10 символов и не более 72 байт."
+  }
+}

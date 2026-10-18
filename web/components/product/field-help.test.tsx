@@ -30,9 +30,9 @@ it("generates route and price IDs and leaves the public model ID for an author",
  expect(configDefaults(price)).toMatchObject({price:{id:expect.stringMatching(/^[\da-f-]{36}$/)}});expect(configDefaults(catalog)).toMatchObject({model:{id:""}});
 });
 it("retains generated route IDs through input and locale changes and preserves an existing route ID",()=>{
- vi.stubGlobal("fetch",vi.fn(async()=>response({items:[]})));const view=show(route),input=screen.getByRole("textbox",{name:/^路由标识/})as HTMLInputElement,id=input.value;
- expect(id).toMatch(/^[\da-f-]{36}$/);expect(input.disabled).toBe(true);fireEvent.change(screen.getByRole("textbox",{name:/^供应商协议名称/}),{target:{value:"provider-protocol"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));expect(input.value).toBe(id);view.unmount();
- show(route,{id:"route-existing",version:7,values:{provider:"existing-protocol",id:"stale-value"}});expect((screen.getByRole("textbox",{name:/^路由标识/})as HTMLInputElement).value).toBe("route-existing");
+ vi.stubGlobal("fetch",vi.fn(async()=>response({items:[]})));const view=show(route),input=screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement,id=JSON.parse(input.value).upstream.id;expect(screen.queryByRole("textbox",{name:/^路由标识/})).toBeNull();
+ expect(id).toMatch(/^[\da-f-]{36}$/);fireEvent.change(screen.getByRole("textbox",{name:/^供应商协议名称/}),{target:{value:"provider-protocol"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));expect(JSON.parse(input.value).upstream.id).toBe(id);view.unmount();
+ show(route,{id:"route-existing",version:7,values:{provider:"existing-protocol",id:"stale-value"}});expect(JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value).upstream.id).toBe("route-existing");
 });
 it("opening help does not unlock or resubmit an unresolved command",async()=>{
  const calls:RequestInit[]=[];vi.stubGlobal("fetch",vi.fn(async(_path:RequestInfo|URL,init?:RequestInit)=>{calls.push(init!);if(calls.length===1)throw new TypeError("network lost");return response({id:"policy",status:"saved"})}));

@@ -15,7 +15,7 @@ module.exports=function({root,schemas,paths,add,obj,str,bool,integer,uuid,decima
  const permissions=permissionMap('backend/internal/portal/resources.go','permissionFor'),mutationPermissions=permissionMap('backend/internal/portal/presentation.go','operationPermission');
  const ops=JSON.parse(fs.readFileSync(path.join(root,'backend/openapi/operator-operations.json'),'utf8'));const grouped=new Map();
  for(const o of ops){
-  const expected=mutationPermissions.get(o.resource)||permissions.get(o.resource);
+  const expected=o.resource==='procurement' && o.name==='fund' ? 'payments.manage' : mutationPermissions.get(o.resource)||permissions.get(o.resource);
   if(!expected||o.permission!==expected)throw new Error('Stale permission metadata for '+o.resource+'/'+o.name+': expected '+expected);
   let body=obj({},[]);if(o.fields.some(f=>f.kind==='json')){body=ref(o.resource==='catalog'?'CatalogWrite':o.resource==='routes'?'UpstreamWrite':'PricingWrite')}else{for(const f of o.fields)insert(body,f.name.split('.'),leaf(f,o.resource),!!f.required);if(o.include_version)insert(body,['version'],integer,true)}
   const name='Operator_'+o.resource.replace(/-/g,'_')+'_'+o.name+(o.variant?'_'+o.variant:'');if(schemas[name]&&JSON.stringify(schemas[name])!==JSON.stringify(body))throw new Error('Conflicting workflow schemas: '+name+'; use an explicit variant for distinct create/revise fields.');schemas[name]=body;const k=o.method.toLowerCase()+' '+o.path.split('?')[0],item=grouped.get(k)||{operation:o,names:[],multipart:false};

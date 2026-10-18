@@ -8,9 +8,11 @@ import { CustomerKeys, KeyEditor } from "./customer-keys";
 import { Checkout, CustomerPlans } from "./customer-plans";
 import { CustomerRequests } from "./customer-records";
 import { totalCredits } from "./customer-finance";
+import { apiExample, ConnectionGuide } from "./customer-models";
 import customerUX from "@/locales/customer-ux.json";
 
-vi.mock("./context", () => ({ useProduct: () => ({ context: { brand: { api_base_url: "https://brand.example.test/v1" }, payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
+const product = vi.hoisted(() => ({ baseURL: "https://brand.example.test/v1" }));
+vi.mock("./context", () => ({ useProduct: () => ({ context: { brand: { api_base_url: product.baseURL }, payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
 const credits = { customer_atg: { available: "100", held: "2", purchased_remaining: "90", gift_remaining: "10" }, usd_balance: { available: "3.000000000000000001", held: "0" }, commission_usd: { available: "2", held: "0", frozen: "1", recovery_due: "0" }, qualification: { confirmed_usd: "0", pending_usd: "0", threshold_usd: "100", qualified_at: null, function_status: "normal" } };
 const apiKey = { id: "key-one", name: "生产应用", prefix: "th_production", status: "active", model_ids: null, budget: { limit_atg: "20", period: "month", timezone: "Asia/Shanghai", spent_atg: "1", held_atg: "0", overage_atg: "0", window_start: null, window_end: null }, rate_limit_rpm: null, concurrency_limit: null, version: 1, created_at: "2026-10-18T00:00:00Z" };
 const call = { id: "request-one", model_id: "public-model", key_name: "生产应用", status: "completed", charged_atg: "0.01", held_atg: "0", created_at: "2026-10-18T00:00:00Z" };
@@ -19,7 +21,39 @@ const quote = { id: "quote-one", plan_id: "plan-one", plan_name: "按需套餐",
 const response = (data: unknown) => new Response(JSON.stringify(data), { status: 200 });
 function mount(children: ReactNode) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}>{children}</QueryClientProvider>); }
 function overviewFetch(items: unknown[]) { return vi.fn(async (path: RequestInfo | URL) => { const url = String(path); return response(url.endsWith("/credits") ? credits : { items: url.endsWith("/requests") ? items : url.endsWith("/keys") ? [apiKey] : [] }); }); }
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); product.baseURL = "https://brand.example.test/v1"; window.history.replaceState(null, "", "/"); });
+
+it("shows pending domain setup on overview without offering a fabricated API address", async () => {
+  product.baseURL = "";
+  vi.stubGlobal("fetch", overviewFetch([]));
+  mount(<CustomerOverview />);
+  await screen.findByText("接入你的第一个应用");
+  expect(screen.getByText("品牌 API 入口尚未配置，请联系经营方完成域名接入。")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "复制 Base URL", exact: true })).toBeNull();
+});
+
+it("withholds example code until the brand has a usable API endpoint", () => {
+  product.baseURL = "";
+  mount(<ConnectionGuide models={[{ id: "public-model", name: "公开模型", capabilities: ["chat"], status: "active", prices: [] }]} initialModel="public-model" />);
+  expect(screen.getByText("品牌 API 入口尚未配置，请联系经营方完成域名接入。")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "复制 Base URL", exact: true })).toBeNull();
+  expect(screen.queryByRole("button", { name: "复制代码", exact: true })).toBeNull();
+  expect(screen.queryByRole("group", { name: "代码语言" })).toBeNull();
+  expect(apiExample("", "public-model", "chat", "curl")).toBe("");
+  expect(document.body.textContent).not.toContain("<BASE_URL>");
+});
+
+it("keeps the generated Key available while explaining a pending brand API endpoint", async () => {
+  product.baseURL = "";
+  vi.stubGlobal("fetch", vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => init?.method === "POST" ? response({ key: apiKey, secret: "synthetic_pending_endpoint_secret" }) : response({ items: [] })));
+  mount(<KeyEditor close={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("名称", { exact: true }), { target: { value: "待接入应用" } });
+  fireEvent.click(screen.getByRole("button", { name: "创建 Key", exact: true }));
+  await screen.findByText("synthetic_pending_endpoint_secret");
+  expect(screen.getByText("品牌 API 入口尚未配置，请联系经营方完成域名接入。")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "复制密钥", exact: true })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "复制 Base URL", exact: true })).toBeNull();
+});
 
 it("shows the first-call guide only after confirming that the account has no calls", async () => {
   vi.stubGlobal("fetch", overviewFetch([]));

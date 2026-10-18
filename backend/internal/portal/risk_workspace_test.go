@@ -13,12 +13,21 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + op
-	input := map[string]any{"id": "procurement-reserve", "metric": "procurement_available_atg", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_seconds": 3600, "escalate_seconds": 7200, "enabled": true, "expected_version": 0}
-	status, out, _ := f.call(t, "POST", base+"/risk", input, uuid.NewString())
-	mustOK(t, status, out)
-	if out["version"] != float64(1) {
-		t.Fatal("new rule version", out)
+	input := map[string]any{"name": "采购余额补货提醒", "metric": "procurement_available_atg", "warning": "10.000000000000000001", "critical": "2.000000000000000001", "direction": "below", "recipients": []string{owner}, "escalation_recipients": []string{}, "reminder_seconds": 3600, "escalate_seconds": 7200, "enabled": true, "expected_version": 0}
+	creationKey := uuid.NewString()
+	var status int
+	var out map[string]any
+	createdID := ""
+	for i := 0; i < 2; i++ {
+		status, out, _ = f.call(t, "POST", base+"/risk", input, creationKey)
+		mustOK(t, status, out)
+		id, _ := out["id"].(string)
+		if _, err := uuid.Parse(id); err != nil || out["version"] != float64(1) || (createdID != "" && id != createdID) {
+			t.Fatal("new rule did not generate and replay one stable identity", out)
+		}
+		createdID = id
 	}
+	input["id"] = createdID
 	read := func(resource string) map[string]any {
 		t.Helper()
 		status, out, _ := f.call(t, "GET", base+resource, nil, "")
@@ -36,6 +45,9 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 		if row["id"] != input["id"] || row["version"] != version || value["warning"] != warning || value["reminder_seconds"] != float64(3600) || value["recipients"].([]any)[0] != owner {
 			t.Fatal("saved rule fields/version were not projected", row)
 		}
+		if value["name"] != input["name"] || value["recipient_names"] != "Owner · owner@example.test" {
+			t.Fatal("rule name or responsible person was not readable", value)
+		}
 		if actions := row["allowed_actions"].([]any); len(actions) != 1 || actions[0] != "revise_rule" {
 			t.Fatal("rule not editable", row)
 		}
@@ -47,6 +59,12 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 			f := field.(map[string]any)
 			if (f["name"] == "id" || f["name"] == "expected_version") && f["kind"] != "hidden" {
 				t.Fatal("rule identity/version is not fixed to selected record", f)
+			}
+			if f["name"] == "recipients" {
+				options, ok := f["options"].([]any)
+				if !ok || len(options) != 1 || options[0].(map[string]any)["value"] != owner || options[0].(map[string]any)["label"] != "Owner · owner@example.test" {
+					t.Fatal("responsible people cannot be selected by name/email", f)
+				}
 			}
 		}
 	}
@@ -65,6 +83,9 @@ func TestPostgresRiskWorkspaceEditsActualRuleVersionsAndKeepsObservationsReadOnl
 			t.Fatal("observation missing", page)
 		}
 		row := rows[0].(map[string]any)
+		if row["values"].(map[string]any)["name"] != input["name"] {
+			t.Fatal("risk observation lost the readable rule name", row)
+		}
 		if row["version"] != float64(0) || row["status"] != "warning" || len(row["allowed_actions"].([]any)) != 0 || len(page["row_operations"].([]any)) != 0 {
 			t.Fatal("observation can masquerade as an editable rule", page)
 		}

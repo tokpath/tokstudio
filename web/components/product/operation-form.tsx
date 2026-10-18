@@ -58,7 +58,15 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
   if ((fieldName(field) === "expected_version" || fieldName(field) === "version") && row?.version !== undefined) return String(row.version);
   return fieldString(field, nested(row?.values, field.name) ?? field.default_value);
 }
-function visible(field: CommandField, values: Record<string, string>) { return field.kind !== "hidden" && (!field.visible_when || field.visible_when.values.includes(values[field.visible_when.field] || "")); }
+function matchesVisibility(field: CommandField, values: Record<string, string>, row?: Entity) {
+  if (!field.visible_when) return true;
+  const condition = field.visible_when;
+  const value = [condition.field, ...(condition.fallback_fields || [])].map(name => values[name] || nested(row?.values, name)).find(value => value !== undefined && value !== null && String(value).trim() !== "");
+  const matches = condition.values.includes(String(value || "").trim().toUpperCase());
+  // An unknown currency must keep real FX evidence visible and required.
+  return condition.not ? !matches : condition.values.includes(String(value || ""));
+}
+function visible(field: CommandField, values: Record<string, string>, row?: Entity) { return field.kind !== "hidden" && matchesVisibility(field, values, row); }
 function group(field: CommandField): string {
   if (field.name.startsWith("credentials.") || field.name === "api_base_url") return "通道接入材料";
   if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "依据与办理说明";
@@ -90,6 +98,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const path = operation.path.replaceAll("{id}", encodeURIComponent(row?.id || "")).replaceAll("{operator_id}", encodeURIComponent(operatorID || ""));
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(operation.fields.map(field => [field.name, initial(field, operation, row, initialValues, operatorID)])));
   const [files, setFiles] = useState<Record<string, File>>({});
+  const [referenceLabels, setReferenceLabels] = useState<Record<string, string>>(() => row?.presentation?.labels || {});
   const [confirmed, setConfirmed] = useState(false);
   const [validationError, setValidationError] = useState<string | ConfigurationError>();
   const [invalidField, setInvalidField] = useState<string>();
@@ -99,10 +108,10 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const blocked = command.busy || command.unresolved;
   const disabled = blocked || !!command.result;
   const scoped = operatorID ? path.startsWith(`/api/v1/operators/${encodeURIComponent(operatorID)}/`) : path.startsWith("/api/v1/me/");
-  const fields = operation.fields.filter(field => visible(field, values));
+  const fields = operation.fields.filter(field => visible(field, values, row));
   const groups = Array.from(new Set(fields.map(group)));
   const schema = configurationSchema(operation, operatorID);
-  const objectName = row && ["display_name", "name", "plan_name", "customer_name", "title"].map(key => row.values[key]).find(value => typeof value === "string" && value);
+  const objectName = row?.presentation?.title || row && ["display_name", "name", "plan_name", "customer_name", "title"].map(key => row.values[key]).find(value => typeof value === "string" && value);
 
   useEffect(() => { onBlockedChange?.(blocked); }, [blocked, onBlockedChange]);
   useEffect(() => {
@@ -120,7 +129,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   }
   function change(name: string, value: string) {
     if (disabled || lockedFields.includes(name)) return;
-    setValues(previous => ({ ...previous, [name]: value }));
+    setValues(previous => ({ ...previous, [name]: value, ...(/\/exports$/.test(operation.path) && name === "kind" ? {owner_id:""} : {}) }));
     setConfirmed(false);
     if (invalidField === name) { setInvalidField(undefined); setValidationError(undefined); }
   }
@@ -134,12 +143,13 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       const payload: Record<string, JSONValue> = {};
       const activeFiles: Record<string, File> = {};
       for (const field of operation.fields) {
-        if (field.visible_when && !field.visible_when.values.includes(values[field.visible_when.field] || "")) continue;
+        if (!matchesVisibility(field, values, row)) continue;
         currentField = field.name;
         const value = values[field.name] || "";
         if (field.kind === "file") { if (field.required && !files[field.name]) throw new ConfigurationError("请上传{label}", "", { label: field.label }); if (files[field.name]) activeFiles[field.name] = files[field.name]; continue; }
         if (!value && !field.required) { if (field.kind === "csv") assign(payload, field.name, []); else if (field.name.startsWith("values.") || fieldName(field) === "second_review_above") assign(payload, field.name, null); continue; }
         if (!value && field.required) throw new ConfigurationError("请填写{label}", "", { label: field.label });
+        if (field.name === "initial_password" && value && (value.length < 10 || new TextEncoder().encode(value).length > 72)) throw new ConfigurationError("新账号初始密码至少 10 位，最长 72 字节。", "");
         let parsed: JSONValue;
         if (field.kind === "csv") parsed = value.split(",").map(item => item.trim()).filter(Boolean);
         else if (field.kind === "decimal") {
@@ -166,22 +176,30 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0"><p className="mb-2 text-xs font-medium tracking-wider text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2>{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={blocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
     <ol aria-label={t("办理步骤")} className="mb-7 grid grid-cols-3 gap-2 text-xs"><li className="flex items-center gap-2 text-brand-emphasis"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft">{command.result ? <Check className="size-3" /> : "1"}</span>{t("填写事项")}</li><li className="flex items-center gap-2 text-ink-secondary"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">2</span>{t("核对影响")}</li><li className={`flex items-center gap-2 ${command.result ? "text-success" : "text-ink-mute"}`}><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">{command.result ? <Check className="size-3" /> : "3"}</span>{command.result ? t("已完成") : t("提交办理")}</li></ol>
     <form ref={formRef} onSubmit={submit} noValidate className="space-y-7">
-      {!command.result && groups.map(name => <section key={name} className="space-y-4">{!(fields.length === 1 && fields[0].kind === "json") && <div><h3 className="text-sm font-semibold">{t(name)}</h3><p className="mt-1 text-xs leading-6 text-ink-mute">{t(groupHelp[name])}</p></div>}<div className="grid gap-5 sm:grid-cols-2">{fields.filter(field => group(field) === name).map(field => <div key={field.name} data-command-field={field.name} className={field.kind === "json" || field.kind === "textarea" || field.name === "grants" && field.options ? "min-w-0 sm:col-span-2" : "min-w-0"}>
-        {field.kind === "json" && schema ? <ConfigurationEditor schema={schema} operatorID={operatorID} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} change={value => change(field.name, value)} /> : <Field field={{ ...field, help: businessFieldHelp(field.name, field.help, field.lookup_url) }} primaryReference={primaryReference(operation, field)} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} invalid={invalidField === field.name} change={value => change(field.name, value)} onChoice={defaults => { if (disabled) return; setConfirmed(false); setValues(previous => { const next = { ...previous }; for (const [name, value] of Object.entries(defaults)) { const target = operation.fields.find(item => item.name === name); if (target && !secretField(target) && value !== undefined && value !== null && !lockedFields.includes(name)) next[name] = fieldString(target, value); } return next; }); }} onFile={file => { if (disabled) return; setConfirmed(false); setFiles(previous => ({ ...previous, [field.name]: file })); }} />}
+      {!command.result && groups.map(name => <section key={name} className="space-y-4">{!(fields.length === 1 && fields[0].kind === "json") && <div><h3 className="text-sm font-semibold">{t(name)}</h3><p className="mt-1 text-xs leading-6 text-ink-mute">{t(groupHelp[name])}</p></div>}<div className="grid gap-5 sm:grid-cols-2">{fields.filter(field => group(field) === name).map(field => <div key={field.name} data-command-field={field.name} className={field.kind === "json" || field.kind === "textarea" || (field.kind === "csv" || field.name === "grants") && field.options ? "min-w-0 sm:col-span-2" : "min-w-0"}>
+        {field.kind === "json" && schema ? <ConfigurationEditor schema={schema} operatorID={operatorID} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} change={value => change(field.name, value)} /> : <Field field={{ ...field, lookup_url: field.name === "owner_id" && field.lookup_url && /\/exports$/.test(operation.path) ? `${field.lookup_url}?kind=${encodeURIComponent(values.kind || "")}` : field.lookup_url, help: businessFieldHelp(field.name === "warning" && /\/coverage(?:[?]|$)/.test(operation.path) ? "coverage.warning" : field.name, field.help, field.lookup_url) }} onLabel={label => setReferenceLabels(previous => previous[field.name] === label ? previous : { ...previous, [field.name]: label })} primaryReference={primaryReference(operation, field)} value={values[field.name] || ""} disabled={disabled || lockedFields.includes(field.name)} invalid={invalidField === field.name} change={value => change(field.name, value)} onChoice={defaults => { if (disabled) return; setConfirmed(false); setValues(previous => { const next = { ...previous }; for (const [name, value] of Object.entries(defaults)) { const target = operation.fields.find(item => item.name === name); if (target && !secretField(target) && value !== undefined && value !== null && !lockedFields.includes(name)) next[name] = fieldString(target, value); } return next; }); }} onFile={file => { if (disabled) return; setConfirmed(false); setFiles(previous => ({ ...previous, [field.name]: file })); }} />}
         {lockedFields.includes(field.name) && <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-mute"><LockKeyhole className="size-3" aria-hidden="true" />{t("已按当前业务对象带入")}</p>}
         {invalidField === field.name && validationError && <p className="mt-2 text-xs text-danger">{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>}
       </div>)}</div></section>)}
-      {!command.result && <div className="rounded-control border border-hairline bg-canvas p-4"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-brand-emphasis" aria-hidden="true" />{t("提交前核对")}</h3><Review fields={fields} values={values} files={files} /><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。")}</p>{operation.confirmation && <label className="mt-4 flex items-start gap-3 border-t border-hairline pt-4 text-sm leading-7"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-2 size-4 shrink-0" disabled={disabled} />{t(operation.confirmation)}</label>}</div>}
+      {!command.result && <div className="rounded-control border border-hairline bg-canvas p-4"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-brand-emphasis" aria-hidden="true" />{t("提交前核对")}</h3><Review fields={fields} values={values} files={files} referenceLabels={referenceLabels} /><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。")}</p>{operation.confirmation && <label className="mt-4 flex items-start gap-3 border-t border-hairline pt-4 text-sm leading-7"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-2 size-4 shrink-0" disabled={disabled} />{t(operation.confirmation)}</label>}</div>}
       {validationError && <div role="alert" className="rounded-control border border-danger/30 p-4 text-sm text-danger"><p>{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>{invalidField && <button type="button" className="mt-2 underline underline-offset-4" onClick={() => focusField(invalidField, invalidConfigPath)}>{t("定位需要修改的字段")}</button>}</div>}
       {!!command.error && <ErrorPanel error={command.error} />}
       {command.unresolved && <Notice><p className="font-medium text-ink">{t("本次办理结果待核实")}</p><p>{t("请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。")}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">{t("查看核对编号")}</summary><span className="mt-1 block break-all font-mono">{command.actionKey}</span></details></Notice>}
-      {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p></div>}
+      {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p>{command.result.access_url && <AccessHandoff url={command.result.access_url} email={command.result.email} password={values.initial_password} requiresPasswordChange={command.result.requires_password_change} />}</div>}
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5"><Button type="submit" disabled={command.busy || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? t("原提交内容已锁定，等待核实。") : t("请先核对填写内容与实际凭证。")}</p>}</div>
     </form>{command.result?.order && <PaymentAction order={command.result.order} />}</>;
   return embedded ? <section className="min-w-0">{content}</section> : <Card className="my-5">{content}</Card>;
 }
 
-function Review({ fields, values, files }: { fields: CommandField[]; values: Record<string, string>; files: Record<string, File> }) {
+function AccessHandoff({ url, email, password, requiresPasswordChange }: { url: string; email?: string; password?: string; requiresPasswordChange?: boolean }) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const safe = url.startsWith("/") && !url.startsWith("//") || /^https?:\/\//.test(url);
+  if (!safe) return null;
+  return <div className="mt-4 space-y-3 border-t border-success/20 pt-4 text-sm">{email && <p>{t("登录邮箱")}：{email}</p>}<a className="break-all text-brand-emphasis underline" href={url} target="_blank" rel="noreferrer">{t(requiresPasswordChange ? "打开登录入口" : "打开接受邀请链接")}</a>{requiresPasswordChange && password && <p>{t("初始密码仅在本次办理中显示，请安全交给本人；首次登录须修改密码。")}</p>}<div><Button type="button" variant="outline" size="sm" onClick={async () => { try { const target = new URL(url, window.location.origin).href; await navigator.clipboard.writeText([email, requiresPasswordChange ? password : "", target].filter(Boolean).join("\n")); setCopied(true); } catch { setCopied(false); } }}>{t(copied ? "已复制" : "复制开通信息")}</Button></div></div>;
+}
+
+function Review({ fields, values, files, referenceLabels }: { fields: CommandField[]; values: Record<string, string>; files: Record<string, File>; referenceLabels: Record<string, string> }) {
   const { t } = useI18n();
   const selected = fields.filter(field => values[field.name] || files[field.name]);
   if (!selected.length) return <p className="mt-3 text-sm text-ink-secondary">{t("请核对当前记录及办理依据后确认提交。")}</p>;
@@ -190,9 +208,10 @@ function Review({ fields, values, files }: { fields: CommandField[]; values: Rec
     let content = field.kind === "file" ? files[field.name]?.name : values[field.name];
     if (secretField(field)) content = t("已填写，提交时安全发送");
     else if (field.kind === "boolean") content = content === "true" ? t("是") : t("否");
+    else if (field.lookup_url) content = referenceLabels[field.name] || t("已选择关联记录");
     else if (field.kind === "select") content = field.options?.find(item => item.value === content)?.label || content;
-    else if (field.name === "grants" && field.options) content = content?.split(",").filter(Boolean).map(value => t(field.options?.find(item => item.value === value)?.label || value)).join(t("、")) || t("未追加自定义权限");
-    return <div key={field.name} className="min-w-0"><dt className="text-xs text-ink-mute">{t(field.label.replace("配置 JSON", "业务配置"))}</dt><dd className="mt-1 break-words text-sm text-ink-secondary">{field.kind === "select" || field.name === "grants" ? t(content || "") : content}</dd></div>;
+    else if ((field.kind === "csv" || field.name === "grants") && field.options) content = content?.split(",").filter(Boolean).map(value => t(field.options?.find(item => item.value === value)?.label || (field.name === "grants" ? value : t("已选择的现有人员")))).join(t("、")) || t("未追加自定义权限");
+    return <div key={field.name} className="min-w-0"><dt className="text-xs text-ink-mute">{t(field.label.replace("配置 JSON", "业务配置"))}</dt><dd className="mt-1 break-words text-sm text-ink-secondary">{field.kind === "select" || field.kind === "csv" && field.options || field.name === "grants" ? t(content || "") : content}</dd></div>;
   })}</dl>;
 }
 
@@ -216,14 +235,14 @@ function ConfigurationReview({ value }: { value: string }) {
   return <p className="text-sm text-ink-secondary">{t("已填写业务配置，请核对上方条款与实际依据。")}</p>;
 }
 
-function Field({ field, value, disabled, invalid, change, onFile, onChoice, primaryReference }: { field: CommandField; value: string; disabled: boolean; invalid: boolean; change: (value: string) => void; onFile: (value: File) => void; onChoice: (values: Record<string, unknown>) => void; primaryReference: boolean }) {
+function Field({ field, value, disabled, invalid, change, onFile, onChoice, onLabel, primaryReference }: { field: CommandField; value: string; disabled: boolean; invalid: boolean; change: (value: string) => void; onFile: (value: File) => void; onChoice: (values: Record<string, unknown>) => void; onLabel: (label: string) => void; primaryReference: boolean }) {
   const { t } = useI18n();
   const id = useId();
-  if (field.name === "grants" && field.options) return <PermissionField field={field} value={value} disabled={disabled} change={change} />;
-  if (field.lookup_url) return <ReferenceField field={field} value={value} disabled={disabled} invalid={invalid} change={change} choose={onChoice} primary={primaryReference} />;
+  if ((field.kind === "csv" || field.name === "grants") && field.options) return <PermissionField field={field} value={value} disabled={disabled} change={change} />;
+  if (field.lookup_url) return <ReferenceField field={field} value={value} disabled={disabled} invalid={invalid} change={change} choose={onChoice} onLabel={onLabel} primary={primaryReference} />;
   const base = `mt-2 min-h-11 w-full rounded-control border ${invalid ? "border-danger" : "border-hairline"} bg-canvas-raised px-3 py-2 text-sm`;
-  return <div className="text-sm"><label htmlFor={id}>{t(field.label)}{field.required && <span className="ml-1 text-danger">*</span>}</label>{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}
-    {field.kind === "boolean" ? <label className="mt-2 flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3"><input id={id} type="checkbox" checked={value === "true"} disabled={disabled} onChange={event => change(event.target.checked ? "true" : "false")} />{value === "true" ? t("已启用") : t("未启用")}</label> : field.kind === "select" ? <select id={id} aria-invalid={invalid || undefined} className={base} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)}><option value="">{t("请选择")}</option>{field.options?.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}</select> : ["textarea", "json"].includes(field.kind) ? <textarea id={id} aria-invalid={invalid || undefined} className={`${base} min-h-28 ${field.kind === "json" ? "font-mono" : ""}`} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)} spellCheck={field.kind !== "json"} /> : field.kind === "file" ? <Input id={id} aria-invalid={invalid || undefined} className="mt-2" type="file" required={field.required} disabled={disabled} onChange={event => { const file = event.target.files?.[0]; if (file) onFile(file); }} /> : <Input id={id} aria-invalid={invalid || undefined} className="mt-2" type={field.kind === "email" ? "email" : field.kind === "password" ? "password" : field.kind === "datetime" ? "datetime-local" : "text"} inputMode={field.kind === "decimal" ? "decimal" : field.kind === "integer" ? "numeric" : undefined} autoComplete={field.kind === "password" ? "new-password" : "off"} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)} />}
+  return <div className="text-sm"><label htmlFor={id}>{t(field.label)}</label>{field.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}
+    {field.kind === "boolean" ? <label className="mt-2 flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3"><input id={id} type="checkbox" checked={value === "true"} disabled={disabled} onChange={event => change(event.target.checked ? "true" : "false")} />{value === "true" ? t("已启用") : t("未启用")}</label> : field.kind === "select" ? <select id={id} aria-invalid={invalid || undefined} className={base} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)}><option value="">{t("请选择")}</option>{field.options?.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}</select> : ["textarea", "json"].includes(field.kind) ? <textarea id={id} aria-invalid={invalid || undefined} className={`${base} min-h-28 ${field.kind === "json" ? "font-mono" : ""}`} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)} spellCheck={field.kind !== "json"} /> : field.kind === "file" ? <Input id={id} aria-invalid={invalid || undefined} className="mt-2" type="file" required={field.required} disabled={disabled} onChange={event => { const file = event.target.files?.[0]; if (file) onFile(file); }} /> : <Input id={id} aria-invalid={invalid || undefined} className="mt-2" type={field.kind === "email" ? "email" : field.kind === "password" ? "password" : field.kind === "datetime" ? "datetime-local" : "text"} inputMode={field.kind === "decimal" ? "decimal" : field.kind === "integer" ? "numeric" : undefined} autoComplete={field.kind === "password" ? "new-password" : "off"} minLength={field.name === "initial_password" ? 10 : undefined} value={value} required={field.required} disabled={disabled} onChange={event => change(event.target.value)} />}
 
   </div>;
 }
@@ -231,19 +250,23 @@ function Field({ field, value, disabled, invalid, change, onFile, onChoice, prim
 function PermissionField({ field, value, disabled, change }: { field: CommandField; value: string; disabled: boolean; change: (value: string) => void }) {
   const { t } = useI18n();
   const selected = value.split(",").map(item => item.trim()).filter(Boolean);
-  const options = [...(field.options || []), ...selected.filter(item => !field.options?.some(option => option.value === item)).map(item => ({ value: item, label: t("现有扩展权限 · {permission}", { permission: item }) }))];
+  const options = [...(field.options || []), ...selected.filter(item => !field.options?.some(option => option.value === item)).map(item => ({ value: item, label: field.name === "grants" ? t("现有扩展权限 · {permission}", { permission: item }) : t("已选择的现有人员") }))];
   return <fieldset className="text-sm"><legend>{t(field.label)}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{options.map(option => <label key={option.value} className="flex min-h-11 items-center gap-2 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(option.label)} checked={selected.includes(option.value)} disabled={disabled} onChange={event => change((event.target.checked ? [...selected, option.value] : selected.filter(item => item !== option.value)).join(","))} />{t(option.label)}</label>)}</div></fieldset>;
 }
 
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.string(), z.unknown()).optional() })), next_cursor: z.string().optional() });
-function ReferenceField({ field, value, disabled, invalid, change, choose, primary }: { field: CommandField; value: string; disabled: boolean; invalid: boolean; change: (value: string) => void; choose: (values: Record<string, unknown>) => void; primary: boolean }) {
+function ReferenceField({ field, value, disabled, invalid, change, choose, onLabel, primary }: { field: CommandField; value: string; disabled: boolean; invalid: boolean; change: (value: string) => void; choose: (values: Record<string, unknown>) => void; onLabel: (label: string) => void; primary: boolean }) {
   const { t } = useI18n();
-  const [search, setSearch] = useState(""); const deferred = useDeferredValue(search); const [cursor, setCursor] = useState(""); const [selectedLabel, setSelectedLabel] = useState(""); const path = field.lookup_url!;
-  const data = useQuery({ queryKey: ["references", path, deferred, cursor], queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}`, ReferenceSchema, { signal }) });
+  const [search, setSearch] = useState(""); const deferred = useDeferredValue(search); const [cursor, setCursor] = useState(""); const [selectedLabel, setSelectedLabel] = useState(""); const path = field.lookup_url!; const separator = path.includes("?") ? "&" : "?";
+  const data = useQuery({ queryKey: ["references", path, deferred, cursor], queryFn: ({ signal }) => request(`${path}${separator}q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}`, ReferenceSchema, { signal }) });
+  const selected = useQuery({ queryKey: ["reference-label", path, value], queryFn: ({ signal }) => request(`${path}${separator}q=${encodeURIComponent(value)}`, ReferenceSchema, { signal }), enabled: !!value && !data.data?.items.some(item => item.value === value) });
+  const currentLabel = data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel;
+  useEffect(() => { onLabel(currentLabel); }, [currentLabel, onLabel]);
   function select(next: string) {
     change(next);
     const option = data.data?.items.find(item => item.value === next);
     setSelectedLabel(option?.label || "");
+    onLabel(option?.label || "");
     const defaults = option?.defaults || {};
     if (primary) { choose({ expected_version: 0, ...defaults }); return; }
     // Linked records have their own identities and revisions. Carry only the
@@ -256,5 +279,5 @@ function ReferenceField({ field, value, disabled, invalid, change, choose, prima
     if (field.name === "asset_network_version_id" && /\/payment-assets$/.test(path)) permitted.add("driver");
     choose(Object.fromEntries(Object.entries(defaults).filter(([key]) => permitted.has(key) && !["id", "version", "expected_version"].includes(key))));
   }
-  return <fieldset className="min-w-0 text-sm"><legend>{t(field.label)}{field.required && <span className="ml-1 text-danger">*</span>}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}</legend><Input className="mt-2" aria-label={t("搜索{label}", { label: t(field.label) })} placeholder={t("按名称或编号搜索")} value={search} disabled={disabled} onChange={event => { setSearch(event.target.value); setCursor(""); }} /><select aria-label={t(field.label)} aria-invalid={invalid || undefined} className={`mt-2 min-h-11 w-full min-w-0 rounded-control border ${invalid ? "border-danger" : "border-hairline"} bg-canvas-raised px-3 py-2 text-sm`} value={value} required={field.required} disabled={disabled || data.isPending} onChange={event => select(event.target.value)}><option value="">{field.required ? t("请选择实际业务记录") : t("新建 / 不选择现有记录")}</option>{value && !data.data?.items.some(item => item.value === value) && <option value={value}>{selectedLabel ? t(selectedLabel) : value}</option>}{data.data?.items.map(item => <option value={item.value} key={item.value}>{t(item.label)}</option>)}</select>{data.isError && <div className="mt-2"><ErrorPanel error={data.error} retry={() => void data.refetch()} compact /></div>}{data.data?.next_cursor && <Button variant="outline" size="sm" type="button" className="mt-2" disabled={disabled} onClick={() => setCursor(data.data!.next_cursor!)}>{t("更多记录")}</Button>}</fieldset>;
+  return <fieldset className="min-w-0 text-sm"><legend>{t(field.label)}{field.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{field.help && <FieldHelp title={t(field.label)}>{t(field.help)}</FieldHelp>}</legend><Input className="mt-2" aria-label={t("搜索{label}", { label: t(field.label) })} placeholder={t("按名称或编号搜索")} value={search} disabled={disabled} onChange={event => { setSearch(event.target.value); setCursor(""); }} /><select aria-label={t(field.label)} aria-invalid={invalid || undefined} className={`mt-2 min-h-11 w-full min-w-0 rounded-control border ${invalid ? "border-danger" : "border-hairline"} bg-canvas-raised px-3 py-2 text-sm`} value={value} required={field.required} disabled={disabled || data.isPending} onChange={event => select(event.target.value)}><option value="">{field.required ? t("请选择实际业务记录") : primary ? t("新建 / 不选择现有记录") : t("不选择关联记录")}</option>{value && !data.data?.items.some(item => item.value === value) && <option value={value}>{currentLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录")}</option>}{data.data?.items.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select>{data.isError && <div className="mt-2"><ErrorPanel error={data.error} retry={() => void data.refetch()} compact /></div>}{data.data?.next_cursor && <Button variant="outline" size="sm" type="button" className="mt-2" disabled={disabled} onClick={() => setCursor(data.data!.next_cursor!)}>{t("更多记录")}</Button>}</fieldset>;
 }

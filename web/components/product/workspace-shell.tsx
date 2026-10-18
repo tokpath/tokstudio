@@ -25,6 +25,7 @@ export function WorkspaceShell({ children, operatorID }: { children: ReactNode; 
   if (sessionError) return <main className="mx-auto max-w-3xl p-8"><ErrorPanel error={sessionError} retry={reload} /></main>;
   if (!session) return <main className="mx-auto max-w-3xl px-5 py-16"><Loading /></main>;
   if (session.kind === "anonymous") return <main className="mx-auto max-w-xl px-5 py-20"><Empty title={t("登录后查看你的工作空间")}><Link href={authContinuation("/login", continuation)} className="text-brand-emphasis underline">{t("前往登录")}</Link></Empty></main>;
+  if (session.kind === "staff" && session.requires_password_change) return <main className="mx-auto max-w-xl px-5 py-20"><Notice>{t("请先修改初始密码，再进入经营空间")}<Link href="/change-password" className="ml-2 underline">{t("修改初始密码")}</Link></Notice></main>;
   if ((!operatorID && session.kind !== "customer") || (operatorID && session.kind !== "staff")) return <main className="mx-auto max-w-2xl p-8"><Notice>{t("当前登录身份无法访问此空间。")}<Link href="/login" className="ml-2 underline">{t("使用对应身份登录")}</Link></Notice></main>;
   const workspace = session.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   if (operatorID && !workspace) return <main className="mx-auto max-w-2xl p-8"><Empty title={t("没有这个经营空间的访问权限")}>{t("请联系经营方负责人授予相应人员权限。")}</Empty></main>;

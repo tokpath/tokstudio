@@ -10,7 +10,7 @@ import { readResourceListState, subjectReturnURL, subjectURL } from "./operator-
 let permissions = ["*"];
 vi.mock("./context", () => ({ useProduct: () => ({ session: { kind: "staff", staff: { id: "staff-1", email: "staff@example.test", display_name: "负责人" }, workspaces: [{ operator: { id: "operator-one", name: "经营方", kind: "oem", brand_id: "brand-one" }, permissions }] } as Session }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); localStorage.clear(); permissions = ["*"]; });
-function page(items: Entity[], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "", columns: [{ key: "id", label: "编号", kind: "text" }], items, operations: [], row_operations: [], ...extra }; }
+function page(items: Entity[], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "", columns: [{ key: "id", label: "编号", kind: "text" }], items: items.map(item => ({...item,presentation:item.presentation || {title: item.id, labels:{}}})), operations: [], row_operations: [], ...extra }; }
 function show(children: React.ReactNode) { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{children}</QueryClientProvider>); }
 function response(data: unknown) { return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } }); }
 

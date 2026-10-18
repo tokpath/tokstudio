@@ -69,6 +69,7 @@ type Staff struct {
 	ID, Email, DisplayName, PasswordHash, Status string
 	Version                                      int64
 	EmailVerified                                bool
+	MustChangePassword                           bool
 	CreatedAt                                    time.Time
 }
 

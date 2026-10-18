@@ -8,6 +8,10 @@ import (
 )
 
 func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
+	if err := a.projectResourceLabels(c, p, c.Param("resource")); err != nil {
+		handleError(c, err)
+		return
+	}
 	a.prepareResourcePage(c, p, c.Param("resource"))
 	c.JSON(200, p)
 }
@@ -40,17 +44,35 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 			}
 			for j := range ops[i].Fields {
 				f := &ops[i].Fields[j]
-				if f.Name == "expected_version" || f.Name == "version" {
+				if f.Name == "action" && f.Kind == "text" && f.Default != nil {
+					f.Kind = "hidden"
+				}
+				if f.Name == "expected_version" || f.Name == "version" || strings.HasSuffix(f.Name, "_version") {
 					f.Kind = "hidden"
 					if f.Default == nil {
 						f.Default = 0
 					}
-					if key == "operations" && contains([]string{"commissions", "withdrawals", "business-status", "branding", "channel-themes", "coverage"}, resource) {
+					// Nested configuration fields already carry their own policy CAS;
+					// the first business record is not that configuration's version.
+					if (f.Name == "expected_version" || f.Name == "version") && key == "operations" && contains([]string{"commissions", "business-status", "branding", "channel-themes", "coverage"}, resource) {
 						f.Default = version
 					}
 				}
 				lookup := ""
 				switch f.Name {
+				case "owner_id":
+					if resource == "exports" {
+						lookup = "export-subjects"
+					}
+				case "recipient_id":
+					lookup = "recipients"
+				case "approval_id":
+					if resource == "exits" {
+						lookup = "supply-failure-approvals"
+						f.VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"supply_failure"}}
+					}
+				case "contract_attachment_id":
+					lookup = "contracts"
 				case "target_operator_id":
 					lookup = "branding-brands"
 				case "asset_network_version_id":
@@ -87,6 +109,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 				}
 				if lookup != "" {
 					f.LookupURL = scope + "/references/" + lookup
+					f.Label = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(f.Label, " ID", ""), "ID", ""), "编号", "")
 				}
 				if resource == "payment-methods" && strings.HasPrefix(f.Name, "credentials.") {
 					name := strings.TrimPrefix(f.Name, "credentials.")
@@ -127,8 +150,10 @@ func contains(values []string, value string) bool {
 }
 
 type fieldVisibility struct {
-	Field  string   `json:"field"`
-	Values []string `json:"values"`
+	Not            bool     `json:"not,omitempty"`
+	FallbackFields []string `json:"fallback_fields,omitempty"`
+	Field          string   `json:"field"`
+	Values         []string `json:"values"`
 }
 type paymentMaterial struct {
 	Key, Label string

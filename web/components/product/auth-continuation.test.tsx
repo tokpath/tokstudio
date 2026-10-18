@@ -45,3 +45,29 @@ it.each(["/workspace/models?model=public-model", "//evil.test", "/\\evil.test"])
   fireEvent.click(screen.getByRole("button", { name: "登录", exact: true }));
   await waitFor(() => expect(route.push).toHaveBeenCalledWith(next.startsWith("/workspace/models") ? next : "/workspace"));
 });
+
+it("asks for a workspace only after credentials match both independent identities", async () => {
+ const calls: Record<string,string>[]=[];
+ vi.stubGlobal("fetch",vi.fn(async (_path:RequestInfo|URL,init?:RequestInit)=>{
+  const body=JSON.parse(String(init?.body));calls.push(body);
+  return response(body.kind ? session : {kind:"workspace_choice",choices:["customer","staff"]});
+ }));
+ mount("login"); expect(screen.queryByRole("radio")).toBeNull();
+ fireEvent.change(screen.getByLabelText("邮箱",{exact:true}),{target:{value:"customer@example.test"}});
+ fireEvent.change(screen.getByLabelText("密码",{exact:true}),{target:{value:"customer-password"}});
+ fireEvent.click(screen.getByRole("button",{name:"登录",exact:true}));
+ const choice=await screen.findByRole("radio",{name:"客户服务"});
+ expect(calls[0].kind).toBeUndefined();expect(route.push).not.toHaveBeenCalled();
+ fireEvent.click(choice); fireEvent.click(screen.getByRole("button",{name:"登录",exact:true}));
+ await waitFor(()=>expect(route.push).toHaveBeenCalledWith("/workspace"));
+ expect(calls[1].kind).toBe("customer");
+});
+
+it("sends a newly provisioned employee to change their initial password",async()=>{
+ vi.stubGlobal("fetch",vi.fn(async()=>response({kind:"staff",staff:session.customer,workspaces:[],requires_password_change:true,csrf_token:"csrf"})));
+ mount("login");
+ fireEvent.change(screen.getByLabelText("邮箱",{exact:true}),{target:{value:"managed@example.test"}});
+ fireEvent.change(screen.getByLabelText("密码",{exact:true}),{target:{value:"initial-password-test"}});
+ fireEvent.click(screen.getByRole("button",{name:"登录",exact:true}));
+ await waitFor(()=>expect(route.push).toHaveBeenCalledWith("/change-password"));
+});

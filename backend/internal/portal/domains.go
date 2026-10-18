@@ -27,13 +27,28 @@ func (a *Application) domainResource(c *gin.Context, op organization.Operator, a
 			return
 		}
 		canRequest = true
+		defaultEndpoint := a.brandAPIEndpoint(c.Request.Context(), target.BrandID)
 		for _, d := range rows {
 			row := entity(d.ID, d.Status, d.Version, d)
-			row["values"].(gin.H)["operator_name"] = target.Name
+			v := row["values"].(gin.H)
+			v["operator_name"] = target.Name
+			v["txt_record_name"] = "_tokenhub." + d.Hostname
+			v["txt_record_value"] = "tokenhub-verification=" + d.VerificationToken
+			v["api_entry_note"] = "待完成验证并启用"
+			if d.Status == "disabled" {
+				v["api_entry_note"] = "已停用"
+			}
+			if d.Status == "active" && d.VerifiedAt != nil && d.TLSReady && d.ProviderReference != "" {
+				v["api_base_url"] = "https://" + d.Hostname + "/v1"
+				v["api_entry_note"] = "可用备用入口"
+				if v["api_base_url"] == defaultEndpoint {
+					v["api_entry_note"] = "客户默认入口"
+				}
+			}
 			actions := []string{"verify"}
 			if d.Status == "active" {
 				actions = append(actions, "disable")
-			} else if d.VerifiedAt != nil && d.TLSReady {
+			} else if d.VerifiedAt != nil && d.TLSReady && d.ProviderReference != "" {
 				actions = append(actions, "enable")
 			}
 			row["allowed_actions"] = actions
@@ -41,9 +56,9 @@ func (a *Application) domainResource(c *gin.Context, op organization.Operator, a
 		}
 	}
 	p["title"] = "品牌域名与TLS验证"
-	p["description"] = "为本品牌或有权管理的直属OEM配置域名，通过DNS所有权及有效TLS检查后启用。渠道沿用品牌域名，由直属上级定制外观。"
+	p["description"] = "品牌API入口由已验证且已启用的域名自动生成，地址固定为 https://域名/v1；渠道沿用品牌入口。多个可用域名按最早添加顺序选定客户默认入口，停用后顺延。未完成DNS与TLS验证时显示待配置。检查已停用域名只更新验证结果，需另行启用。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("operator_name", "品牌经营方", "text"), col("hostname", "域名", "text"), col("status", "状态", "status"), col("tls_ready", "有效TLS", "boolean"), col("verification_token", "TXT验证值", "text"), col("provider_status", "域名供应商状态", "text"), col("tls_status", "证书状态", "text"), col("provider_instructions", "实际DNS步骤", "text"), col("failure_reason", "失败原因", "text"), col("checked_at", "检查时间", "datetime")}
+	p["columns"] = []gin.H{col("operator_name", "品牌经营方", "text"), col("hostname", "域名", "text"), col("status", "状态", "status"), col("api_base_url", "API入口", "text"), col("api_entry_note", "入口用途", "text"), col("tls_ready", "有效TLS", "boolean"), col("txt_record_name", "TXT记录名称", "text"), col("txt_record_value", "TXT记录完整值", "text"), col("provider_status", "域名供应商状态", "text"), col("tls_status", "证书状态", "text"), col("provider_instructions", "实际DNS步骤", "details"), col("failure_reason", "失败原因", "text"), col("checked_at", "检查时间", "datetime")}
 	p["operations"] = []operation{{Name: "request", Label: "申请域名验证", Method: "POST", Path: base, Fields: []field{f("target_operator_id", "目标品牌经营方", "text"), f("hostname", "品牌域名", "text")}}}
 	if !canRequest {
 		p["operations"] = []operation{}
@@ -60,6 +75,10 @@ func (a *Application) domainAction(c *gin.Context, op organization.Operator, act
 	domain, e := a.Branding.GetDomain(ctx, nil, actor, c.Param("id"))
 	if e != nil {
 		handleError(c, e)
+		return
+	}
+	if in.Version != domain.Version {
+		handleError(c, branding.ErrConflict)
 		return
 	}
 	brand, e := a.Organization.GetBrand(ctx, nil, domain.BrandID)

@@ -46,7 +46,7 @@ func (a *Application) runRenewal(ctx context.Context, p workerPayload) error {
 			return q.Error
 		}
 		if q.RowsAffected == 0 {
-			n, e := a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: s.OperatorID, RecipientID: s.CustomerID, BusinessKey: "renewal-notice:" + s.ID + ":" + s.NextDueAt.UTC().Format(time.RFC3339Nano) + ":" + quote.ID, Category: "mandatory", Severity: "info", Title: "套餐续费条款与资金提醒", Body: "下次续费于 " + s.NextDueAt.UTC().Format(time.RFC3339) + " 到期，价格 " + quote.PriceUSD.String() + " USD，购买 " + quote.PaidATG.String() + " ATG，赠送 " + quote.GiftATG.String() + " ATG，有效期 " + string(quote.Period) + "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。", Reference: "subscription:" + s.ID})
+			n, e := a.Operations.Emit(ctx, tx, operations.Notification{OperatorID: s.OperatorID, RecipientID: s.CustomerID, BusinessKey: "renewal-notice:" + s.ID + ":" + s.NextDueAt.UTC().Format(time.RFC3339Nano) + ":" + quote.ID, Category: "mandatory", Severity: "info", Title: "套餐续费条款与资金提醒", Body: "下次续费于 " + s.NextDueAt.UTC().Format(time.RFC3339) + " 到期，价格 " + quote.PriceUSD.String() + " USD，购买 " + quote.PaidATG.String() + " ATG，赠送 " + quote.GiftATG.String() + " ATG，有效期 " + string(quote.Period) + "。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。\n" + commerce.PackageTermsSummary(quote), Reference: "subscription:" + s.ID})
 			if e != nil {
 				return e
 			}

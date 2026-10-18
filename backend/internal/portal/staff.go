@@ -17,12 +17,26 @@ import (
 	"gorm.io/gorm"
 )
 
+var errStaffPasswordLength = errors.New("staff password length must be 10 to 72 bytes")
+
 func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, actor string) {
-	var in struct{ Email, Role string }
+	var in struct {
+		Email, Role     string
+		DeliveryMode    string `json:"delivery_mode"`
+		DisplayName     string `json:"display_name"`
+		InitialPassword string `json:"initial_password"`
+	}
 	if !body(c, &in) {
 		return
 	}
-	if !a.Mail.Available() {
+	if in.DeliveryMode == "" {
+		in.DeliveryMode = "manual"
+	}
+	if in.DeliveryMode != "manual" && in.DeliveryMode != "email" {
+		handleError(c, organization.ErrInvalidInput)
+		return
+	}
+	if in.DeliveryMode == "email" && !a.Mail.Available() {
 		handleError(c, incentives.ErrNotReady)
 		return
 	}
@@ -32,20 +46,63 @@ func (a *Application) inviteStaff(c *gin.Context, op organization.Operator, acto
 		if e != nil {
 			return nil, e
 		}
-		proof, e := pc.RandomToken("staff_")
-		if e != nil {
+		// Serialize provisioning across all operators; an existing account is never reset.
+		if e = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "staff-email:"+inv.Email).Error; e != nil {
 			return nil, e
 		}
-		record := challenge{ID: uuid.NewString(), IntentID: inv.ID, BrandID: brand(c).ID, Kind: "staff_invitation", DisplayName: inv.Email, ProofHash: pc.HashToken(proof), ExpiresAt: inv.ExpiresAt, CreatedAt: time.Now().UTC()}
-		if e = tx.Create(&record).Error; e != nil {
-			return nil, e
-		}
-		token := record.ID + "." + proof + "." + inv.Token
 		scheme := "https"
 		if !a.Config.IsProduction() {
 			scheme = "http"
 		}
-		message := mail.Message{ID: uuid.NewString(), To: inv.Email, Brand: brand(c).Name, Subject: "经营人员邀请", Text: "您受邀加入 " + op.Name + "。请使用此邮箱与独立经营人员密码接受邀请：\n" + scheme + "://" + a.requestHost(c) + "/staff-invitation?token=" + url.QueryEscape(token)}
+		origin := scheme + "://" + a.requestHost(c)
+		if in.DeliveryMode == "manual" {
+			var existing Staff
+			e = tx.Where("email=?", inv.Email).Take(&existing).Error
+			if errors.Is(e, gorm.ErrRecordNotFound) {
+				hash, err := organization.HashPassword(in.InitialPassword)
+				if err != nil {
+					if errors.Is(err, organization.ErrInvalidInput) {
+						return nil, errStaffPasswordLength
+					}
+					return nil, err
+				}
+				staff := Staff{ID: uuid.NewString(), Email: inv.Email, DisplayName: strings.TrimSpace(in.DisplayName), PasswordHash: hash, Version: 1, Status: "active", MustChangePassword: true, CreatedAt: time.Now().UTC()}
+				if staff.DisplayName == "" {
+					staff.DisplayName = inv.Email
+				}
+				if e = tx.Create(&staff).Error; e != nil {
+					return nil, e
+				}
+				if _, e = a.Organization.AcceptAuthenticatedStaffInvitation(ctx, tx, inv.Token, staff.ID, staff.Email); e != nil {
+					return nil, e
+				}
+				return gin.H{"id": staff.ID, "status": "account_created", "email": staff.Email, "access_url": origin + "/login", "requires_password_change": true, "message": "账号已开通，请将登录入口、邮箱和初始密码交给负责人；首次登录需要修改密码"}, nil
+			}
+			if e != nil {
+				return nil, e
+			}
+			if existing.Status != "active" {
+				return nil, organization.ErrInvalidCredentials
+			}
+		}
+		proof, e := pc.RandomToken("staff_")
+		if e != nil {
+			return nil, e
+		}
+		kind := "staff_invitation"
+		if in.DeliveryMode == "manual" {
+			kind = "staff_invitation_manual"
+		}
+		record := challenge{ID: uuid.NewString(), IntentID: inv.ID, BrandID: brand(c).ID, Kind: kind, DisplayName: inv.Email, ProofHash: pc.HashToken(proof), ExpiresAt: inv.ExpiresAt, CreatedAt: time.Now().UTC()}
+		if e = tx.Create(&record).Error; e != nil {
+			return nil, e
+		}
+		token := record.ID + "." + proof + "." + inv.Token
+		link := origin + "/staff-invitation?token=" + url.QueryEscape(token)
+		if in.DeliveryMode == "manual" {
+			return gin.H{"id": inv.ID, "status": "invitation_created", "email": inv.Email, "access_url": link, "message": "此邮箱已有经营人员账号，原密码保持不变。请将邀请链接交给本人，72 小时内使用原密码接受邀请"}, nil
+		}
+		message := mail.Message{ID: uuid.NewString(), To: inv.Email, Brand: brand(c).Name, Subject: "经营人员邀请", Text: "您受邀加入 " + op.Name + "。请使用此邮箱接受邀请：\n" + link}
 		encoded, _ := json.Marshal(message)
 		cipher, e := pc.Seal(a.Config.AppKey, string(encoded))
 		if e != nil {
@@ -75,14 +132,23 @@ func (a *Application) acceptStaff(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "staff-accept:"+brand(c).ID, in, func(tx *gorm.DB) (any, error) {
-		ch, proof, e := a.verifiedChallenge(c, tx, in.Token, "staff_invitation")
+		ch, proof, e := a.verifiedChallenge(c, tx, in.Token, "")
 		if e != nil {
 			return nil, e
 		}
+		if ch.Kind != "staff_invitation" && ch.Kind != "staff_invitation_manual" {
+			return nil, organization.ErrInvalidVerification
+		}
 		email := strings.ToLower(strings.TrimSpace(ch.DisplayName))
+		if e = tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "staff-email:"+email).Error; e != nil {
+			return nil, e
+		}
 		var staff Staff
 		e = tx.Where("email=?", email).Take(&staff).Error
 		if errors.Is(e, gorm.ErrRecordNotFound) {
+			if ch.Kind == "staff_invitation_manual" {
+				return nil, organization.ErrInvalidCredentials
+			}
 			hash, err := organization.HashPassword(in.Password)
 			if err != nil {
 				return nil, err
@@ -99,7 +165,12 @@ func (a *Application) acceptStaff(c *gin.Context) {
 		} else if staff.Status != "active" || !organization.CheckPassword(staff.PasswordHash, in.Password) {
 			return nil, organization.ErrInvalidCredentials
 		}
-		if _, e = a.Organization.AcceptStaffInvitation(ctx, tx, proof, organization.VerifiedStaff{ID: staff.ID, Email: staff.Email, EmailVerified: true}); e != nil {
+		if ch.Kind == "staff_invitation" && !staff.EmailVerified {
+			if e = tx.Model(&staff).Update("email_verified", true).Error; e != nil {
+				return nil, e
+			}
+		}
+		if _, e = a.Organization.AcceptAuthenticatedStaffInvitation(ctx, tx, proof, staff.ID, staff.Email); e != nil {
 			return nil, e
 		}
 		if e = tx.Model(&challenge{}).Where("id=?", ch.ID).Update("completed_at", time.Now()).Error; e != nil {

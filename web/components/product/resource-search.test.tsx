@@ -7,7 +7,7 @@ import type { ResourcePage } from "@/lib/contracts";
 
 vi.mock("./context", () => ({ useProduct: () => ({ session: { kind: "staff", staff: { id: "staff-search" }, workspaces: [{ operator: { id: "operator-search", kind: "channel" }, permissions: ["*"] }] } }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-const result = (items: { id: string; values: Record<string, string> }[], next_cursor = "", search_supported = true) => new Response(JSON.stringify({ search_supported, status_supported: search_supported, title: "业务记录", description: "真实范围", items, columns: [{ key: "id", label: "编号", kind: "text" }, { key: "reference", label: "凭证", kind: "text" }], operations: [], row_operations: [], next_cursor }), { status: 200, headers: { "content-type": "application/json" } });
+const result = (items: { id: string; values: Record<string, string> }[], next_cursor = "", search_supported = true) => new Response(JSON.stringify({ search_supported, status_supported: search_supported, title: "业务记录", description: "真实范围", items: items.map(item => ({...item,presentation:{title:item.id,labels:{}}})), columns: [{ key: "id", label: "编号", kind: "text" }, { key: "reference", label: "凭证", kind: "text" }], operations: [], row_operations: [], next_cursor }), { status: 200, headers: { "content-type": "application/json" } });
 function show(resource: string) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); render(<QueryClientProvider client={cache}><ResourceScreen operatorID="operator-search" resource={resource} /></QueryClientProvider>); }
 
 it("searches invoices on the server so records outside the loaded page can be found", async () => {
@@ -43,9 +43,9 @@ it("groups Chinese refund types by their exact case and leg IDs and keeps future
   ], columns: [{ key: "id", label: "编号", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }], operations: [], row_operations: [] };
   render(<ResourceCollection operatorID="operator-search" resource="refunds" page={page} record="refund-case" />);
   for (const label of ["退款事项", "退款分项", "实际退款付款", "future_record_kind"]) expect(screen.getByText(label, { exact: true })).toBeTruthy();
-  const refund = screen.getByText("refund-case").closest("section")!;
-  expect(refund.textContent).toContain("refund-payment");
-  expect(refund.textContent).not.toContain("refund-extension");
+  const refund = screen.getByText("退款事项", {exact:true}).closest("section")!;
+  expect(refund.textContent).toContain("实际退款付款");
+  expect(refund.textContent).not.toContain("future_record_kind");
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();
   expect(page.items[2].values.record_kind).toBe("actual_refund_payment");
 });
@@ -58,11 +58,11 @@ it("forwards refund queries to the server and preserves its complete case contex
   ], columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [] };
   const fetch = vi.fn(async () => new Response(JSON.stringify(page), { status: 200, headers: { "content-type": "application/json" } }));
   vi.stubGlobal("fetch", fetch); show("refunds");
-  await screen.findByText("refund-case");
+  await screen.findByText("退款事项", {exact:true});
   fireEvent.change(screen.getByLabelText("搜索记录"), { target: { value: "original-bank-proof" } });
   fireEvent.click(screen.getByRole("button", { name: "查询", exact: true }));
   await waitFor(() => expect(String(fetch.mock.calls.at(-1)?.[0])).toContain("q=original-bank-proof"));
-  await screen.findByText("refund-case");
-  expect(screen.getByText("refund-leg")).toBeTruthy(); expect(screen.getByText("refund-payment")).toBeTruthy();
+  await screen.findByText("退款事项", {exact:true});
+  expect(screen.getByText("退款分项", {exact:true})).toBeTruthy(); expect(screen.getByText("实际退款付款", {exact:true})).toBeTruthy();
   expect(page.items.map(item => item.values.record_kind)).toEqual(["case", "leg", "actual_refund_payment"]);
 });

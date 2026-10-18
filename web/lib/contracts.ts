@@ -31,12 +31,13 @@ const PersonSchema = z.object({ id: ID, email: z.string(), display_name: z.strin
 export const SessionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("anonymous") }),
   z.object({ kind: z.literal("customer"), customer: PersonSchema, brand: BrandSchema, operator: OperatorSchema, csrf_token: z.string().optional() }),
-  z.object({ kind: z.literal("staff"), staff: PersonSchema, workspaces: z.array(z.object({ operator: OperatorSchema, permissions: z.array(z.string()) })), active_operator_id: z.string().optional(), csrf_token: z.string().optional() }),
+  z.object({ kind: z.literal("staff"), requires_password_change:z.boolean().optional(), staff: PersonSchema, workspaces: z.array(z.object({ operator: OperatorSchema, permissions: z.array(z.string()) })), active_operator_id: z.string().optional(), csrf_token: z.string().optional() }),
 ]);
+export const LoginResultSchema = z.union([SessionSchema, z.object({kind:z.literal("workspace_choice"),choices:z.array(z.enum(["customer","staff"]))})]);
 export type Session = z.infer<typeof SessionSchema>;
 export const APIErrorSchema = z.object({ error: z.object({ code: z.string(), message: z.string(), request_id: z.string(), retryable: z.boolean(), next_action: z.string().optional() }) });
 export type APIErrorBody = z.infer<typeof APIErrorSchema>;
-export const CommandResultSchema = z.object({ id: ID, status: z.string(), version: z.number().int().optional(), message: z.string().optional(),order:z.lazy(()=>OrderSchema).optional() });
+export const CommandResultSchema = z.object({ id: ID, status: z.string(), version: z.number().int().optional(), message: z.string().optional(),access_url:z.string().optional(),email:z.string().optional(),requires_password_change:z.boolean().optional(),order:z.lazy(()=>OrderSchema).optional() });
 export type CommandResult = z.infer<typeof CommandResultSchema>;
 export const RegistrationResultSchema = z.object({ registration_id: ID, verification_required: z.boolean(), message: z.string(), operator: OperatorSchema.optional() });
 export const BalanceSchema = z.object({ available: Decimal, held: Decimal });
@@ -47,7 +48,7 @@ export const CreditsSchema = z.object({
   qualification: z.object({ confirmed_usd: Decimal, pending_usd: Decimal,pending_correction_usd:Decimal.optional(), threshold_usd: Decimal, qualified_at: z.string().nullable(), function_status: z.string() }),
 });
 export type Credits = z.infer<typeof CreditsSchema>;
-export const PlanSchema = z.object({ id: ID, name: z.string(), price_usd: Decimal, purchase_atg: Decimal, gift_atg: Decimal, validity: z.enum(["unlimited", "month", "quarter", "year"]), auto_renew_available: z.boolean(), status: z.string(), description: z.string().optional(), version: z.number().int() });
+export const PlanSchema = z.object({ id: ID, name: z.string(), price_usd: Decimal, purchase_atg: Decimal, gift_atg: Decimal, validity: z.enum(["unlimited", "month", "quarter", "year"]), auto_renew_available: z.boolean(), status: z.string(), description: z.string().optional(), terms_summary:z.string().optional(), quote_id:ID.optional(), version: z.number().int() });
 export type Plan = z.infer<typeof PlanSchema>;
 const PublicPriceTier=z.object({from:Decimal,to:Decimal.optional(),rate:Decimal});
 const PublicModelPrice=z.object({component:z.string(),amount_atg:Decimal,unit:z.string(),tiers:z.array(PublicPriceTier).nullable().optional()});
@@ -56,9 +57,9 @@ export const ModelSchema = z.object({ id: ID, name: z.string(), capabilities: z.
 export type Model = z.infer<typeof ModelSchema>;
 export const OrderSchema = z.object({ id: ID, status: z.string(), kind: z.string(), operator_name: z.string(), amount_usd: Decimal, paid_usd: Decimal, delivered_at: z.string().nullable().optional(), created_at: z.string(), expires_at: z.string().nullable().optional(), plan_name: z.string().optional(), purchase_atg: Decimal.optional(), gift_atg: Decimal.optional(), payment_action: z.object({ kind: z.enum(["redirect", "stripe", "offline", "stablecoin"]), url: z.string().optional(), client_secret: z.string().optional(), publishable_key: z.string().optional(), instructions: z.string().optional(), address: z.string().optional(), network: z.string().optional(), currency:z.string().optional(),token_contract:z.string().optional(),wallet_receipt_path:z.string().optional(), amount: z.string().optional() }).nullable().optional() });
 export type Order = z.infer<typeof OrderSchema>;
-export const QuoteSchema = z.object({ id: ID, plan_id: ID, plan_name: z.string(), operator_name: z.string(), amount_usd: Decimal, purchase_atg: Decimal, plan_gift_atg: Decimal, operator_gift_atg: Decimal, kol_gift_atg: Decimal, total_atg: Decimal, validity: z.string(), terms_version: z.string(), expires_at: z.string(), warnings: z.array(z.string()) });
+export const QuoteSchema = z.object({ id: ID, plan_id: ID, plan_name: z.string(), operator_name: z.string(), amount_usd: Decimal, purchase_atg: Decimal, plan_gift_atg: Decimal, operator_gift_atg: Decimal, kol_gift_atg: Decimal, total_atg: Decimal, validity: z.string(), terms_version: z.string(), terms_summary:z.string().optional(), expires_at: z.string(), warnings: z.array(z.string()) });
 export type Quote = z.infer<typeof QuoteSchema>;
-export const SubscriptionSchema = z.object({ id: ID, name: z.string(), status: z.string(), purchase_remaining_atg: Decimal, gift_remaining_atg: Decimal, effective_at: z.string(), expires_at: z.string().nullable(), auto_renew: z.boolean(), allow_commission: z.boolean(), requires_confirmation: z.boolean(), requires_current_plan:z.boolean().optional(), changed_terms: z.array(z.string()).optional(), version: z.number().int() });
+export const SubscriptionSchema = z.object({ id: ID, name: z.string(), status: z.string(), purchase_remaining_atg: Decimal, gift_remaining_atg: Decimal, effective_at: z.string(), expires_at: z.string().nullable(), auto_renew: z.boolean(), allow_commission: z.boolean(), requires_confirmation: z.boolean(), requires_current_plan:z.boolean().optional(), changed_terms: z.array(z.string()).optional(), terms_summary:z.string().optional(), renewal_quote:z.object({quote_id:ID,plan_id:ID,name:z.string(),price_usd:Decimal,purchase_atg:Decimal,gift_atg:Decimal,validity:z.string(),terms_summary:z.string()}).optional(), version: z.number().int() });
 export const KeySchema = z.object({ id: ID, name: z.string(), prefix: z.string(), status: z.string(), model_ids: z.array(z.string()).nullable(), budget: z.object({ limit_atg: Decimal.nullable(), period: z.enum(["lifetime", "month", "quarter", "year"]), timezone: z.string(), spent_atg: Decimal, held_atg: Decimal, overage_atg: Decimal, window_start: z.string().nullable(), window_end: z.string().nullable() }), rate_limit_rpm: z.number().int().nullable(), concurrency_limit: z.number().int().nullable(), version: z.number().int(), created_at: z.string() });
 export type APIKey = z.infer<typeof KeySchema>;
 export const KeySecretSchema = z.object({ key: KeySchema, secret: z.string().min(1) });
@@ -72,22 +73,22 @@ export const ActivitySchema = z.object({ id: ID, name: z.string(), plan_id: ID, 
 export function collection<T extends z.ZodTypeAny>(item: T) { return z.object({ items: z.array(item), next_cursor: z.string().nullable().optional() }); }
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
 export const JSONValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(JSONValueSchema), z.record(JSONValueSchema)]));
-export const EntitySchema = z.object({ id: ID, status: z.string().optional(), version: z.number().int().optional(), values: z.record(JSONValueSchema), allowed_actions: z.array(z.string()).optional() });
+export const EntitySchema = z.object({ presentation: z.object({ title: z.string().optional(), title_kind:z.string().optional(), subtitle: z.string().optional(), labels: z.record(z.string()) }).optional(), id: ID, status: z.string().optional(), version: z.number().int().optional(), values: z.record(JSONValueSchema), allowed_actions: z.array(z.string()).optional() });
 export type Entity = z.infer<typeof EntitySchema>;
-export const FieldSchema = z.object({ name: z.string(), label: z.string(), kind: z.enum(["text", "email", "password", "decimal", "integer", "boolean", "select", "datetime", "textarea", "json", "file", "csv", "hidden"]), lookup_url:z.string().optional(),visible_when:z.object({field:z.string(),values:z.array(z.string())}).optional(), required: z.boolean().optional(), help: z.string().optional(), options: z.array(z.object({ value: z.string(), label: z.string() })).optional(), default_value: JSONValueSchema.optional() });
+export const FieldSchema = z.object({ name: z.string(), label: z.string(), kind: z.enum(["text", "email", "password", "decimal", "integer", "boolean", "select", "datetime", "textarea", "json", "file", "csv", "hidden"]), lookup_url:z.string().optional(),visible_when:z.object({field:z.string(),values:z.array(z.string()),not:z.boolean().optional(),fallback_fields:z.array(z.string()).optional()}).optional(), required: z.boolean().optional(), help: z.string().optional(), options: z.array(z.object({ value: z.string(), label: z.string() })).optional(), default_value: JSONValueSchema.optional() });
 export type CommandField = z.infer<typeof FieldSchema>;
 export const OperationSchema = z.object({ name: z.string(), label: z.string(), method: z.enum(["POST", "PATCH", "DELETE"]), path: z.string(), description: z.string().optional(), confirmation: z.string().optional(), fields: z.array(FieldSchema), permission: z.string().optional(), include_version: z.boolean().optional() });
 export type Operation = z.infer<typeof OperationSchema>;
 export const ResourcePageSchema = z.object({ views:z.array(z.object({value:z.string(),label:z.string()})).optional(),
   title: z.string(), description: z.string(), items: z.array(EntitySchema), search_supported: z.boolean().optional(), status_supported: z.boolean().optional(),
-  columns: z.array(z.object({ key: z.string(), label: z.string(), kind: z.enum(["text", "usd", "atg", "decimal", "datetime", "status", "boolean", "link", "details"]) })),
+  columns: z.array(z.object({ key: z.string(), label: z.string(), help: z.string().optional(), kind: z.enum(["text", "usd", "atg", "decimal", "datetime", "status", "boolean", "link", "details"]) })),
   operations: z.array(OperationSchema), row_operations: z.array(OperationSchema),
   availability: z.array(AvailabilitySchema).optional(), next_cursor: z.string().nullable().optional(),
   summary: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), detail: z.string().optional() })).optional(),
 });
 export type ResourcePage = z.infer<typeof ResourcePageSchema>;
 
-export type LoginInput = { kind: "customer" | "staff"; email: string; password: string };
+export type LoginInput = { kind?: "customer" | "staff"; email: string; password: string };
 export type RegistrationInput = { email: string; password: string; display_name: string; invite_code?: string; next?: string };
 export type KeyInput = { name: string; model_ids: string[] | null; budget: { limit_atg: DecimalString | null; period: "lifetime" | "month" | "quarter" | "year" }; rate_limit_rpm: number | null; concurrency_limit: number | null };
 export type OrderInput = { quote_id: string; terms_version: string; funding: { usd_balance: DecimalString; commission_usd: DecimalString; external_method_id?: string }; auto_renew: boolean; allow_commission: boolean };

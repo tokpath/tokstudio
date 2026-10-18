@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/usage"
@@ -231,7 +232,7 @@ func (a *Application) plans(c *gin.Context) {
 		if p.NewPurchaseEnabled {
 			status = "active"
 		}
-		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_usd": q.PriceUSD, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "description": q.TermsReference})
+		items = append(items, gin.H{"id": p.ID, "name": p.Name, "price_usd": q.PriceUSD, "purchase_atg": q.PaidATG, "gift_atg": q.GiftATG, "validity": validity(q.Period), "auto_renew_available": p.RenewalEnabled && q.Period != ledger.Lifetime, "status": status, "version": q.Version, "quote_id": q.ID, "terms_summary": commerce.PackageTermsSummary(q), "description": commerce.PackageTermsSummary(q)})
 	}
 	c.JSON(200, gin.H{"items": items})
 }

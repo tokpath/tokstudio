@@ -505,7 +505,7 @@
     "/v1/auth/login": {
       "post": {
         "operationId": "post__v1_auth_login",
-        "summary": "Authenticate customer or staff; set HttpOnly SameSite cookie",
+        "summary": "Detect the authenticated account; choose a workspace only if both credentials match",
         "tags": [
           "Authentication"
         ],
@@ -521,7 +521,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Session"
+                  "$ref": "#/components/schemas/LoginResult"
                 }
               }
             }
@@ -716,6 +716,146 @@
                 "schema": {
                   "$ref": "#/components/schemas/APIError"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/staff-password": {
+      "post": {
+        "operationId": "post__v1_auth_staff_password",
+        "summary": "Change staff password and revoke other sessions",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "current_password": {
+                    "type": "string"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 72,
+                    "writeOnly": true
+                  }
+                },
+                "required": [
+                  "current_password",
+                  "new_password"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -4711,6 +4851,10 @@
                   "plan_id": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "quote_id": {
+                    "type": "string",
+                    "format": "uuid"
                   }
                 },
                 "required": [
@@ -8599,6 +8743,131 @@
                   "amount_usd"
                 ],
                 "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operators/{operatorId}/contracts/{id}/content": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_contracts_id_content",
+        "summary": "Download a private cooperation contract visible to this supplier or associated buyer",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "contentEncoding": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
               }
             }
           }
@@ -13284,6 +13553,300 @@
         "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
       }
     },
+    "/v1/operators/{operatorId}/contracts": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_contracts",
+        "summary": "Read exact operator contracts workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque page cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+      },
+      "post": {
+        "operationId": "post__v1_operators_operatorId_contracts",
+        "summary": "上传可选合作合同",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_contracts_upload"
+              }
+            }
+          }
+        },
+        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
+      }
+    },
     "/v1/operators/{operatorId}/procurement": {
       "get": {
         "operationId": "get__v1_operators_operatorId_procurement",
@@ -14471,7 +15034,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_alerts_risk_rule"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_alerts_risk_rule"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_alerts_revise_rule"
+                  }
+                ]
               }
             }
           }
@@ -16300,7 +16870,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_staff",
-        "summary": "邮件邀请经营人员",
+        "summary": "开通或邀请经营人员",
         "tags": [
           "Operator browser API"
         ],
@@ -16427,7 +16997,7 @@
             }
           }
         },
-        "description": " Requires staff.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。 Requires staff.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "staff.manage"
       }
     },
@@ -16878,7 +17448,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Operator_risk_risk_rule"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_risk_risk_rule"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_risk_revise_rule"
+                  }
+                ]
               }
             }
           }
@@ -24558,7 +25135,7 @@
     "/v1/operators/{operatorId}/operators/{id}/invite_owner": {
       "post": {
         "operationId": "post__v1_operators_operatorId_operators_id_invite_owner",
-        "summary": "邀请首位负责人",
+        "summary": "开通首位负责人",
         "tags": [
           "Operator browser API"
         ],
@@ -24693,7 +25270,7 @@
             }
           }
         },
-        "description": "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。 Requires organization.create. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。 Requires organization.create. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "organization.create"
       }
     },
@@ -25403,8 +25980,8 @@
             }
           }
         },
-        "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "cooperation.manage"
+        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/procurement/{id}/fulfill": {
@@ -36418,6 +36995,9 @@
                 "const": "staff",
                 "type": "string"
               },
+              "requires_password_change": {
+                "type": "boolean"
+              },
               "staff": {
                 "type": "object",
                 "properties": {
@@ -36584,6 +37164,464 @@
           "propertyName": "kind"
         }
       },
+      "LoginResult": {
+        "anyOf": [
+          {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "anonymous",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "customer",
+                    "type": "string"
+                  },
+                  "customer": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "email",
+                      "display_name"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "brand": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "api_base_url": {
+                        "type": "string"
+                      },
+                      "theme": {
+                        "type": "object",
+                        "properties": {
+                          "primary_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "accent_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "background_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "text_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "support_url": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "logo_url": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "api_base_url",
+                      "theme"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "operator": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "platform",
+                          "oem",
+                          "channel"
+                        ]
+                      },
+                      "brand_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "contact_email": {
+                        "type": "string"
+                      },
+                      "legal_name": {
+                        "type": "string"
+                      },
+                      "theme": {
+                        "type": "object",
+                        "properties": {
+                          "primary_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "accent_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "background_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "text_color": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^#[\\da-fA-F]{6}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "support_url": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "logo_url": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "kind",
+                      "brand_id"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "csrf_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "customer",
+                  "brand",
+                  "operator"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "staff",
+                    "type": "string"
+                  },
+                  "requires_password_change": {
+                    "type": "boolean"
+                  },
+                  "staff": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "email",
+                      "display_name"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "workspaces": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "operator": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "platform",
+                                "oem",
+                                "channel"
+                              ]
+                            },
+                            "brand_id": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "contact_email": {
+                              "type": "string"
+                            },
+                            "legal_name": {
+                              "type": "string"
+                            },
+                            "theme": {
+                              "type": "object",
+                              "properties": {
+                                "primary_color": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^#[\\da-fA-F]{6}$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accent_color": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^#[\\da-fA-F]{6}$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "background_color": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^#[\\da-fA-F]{6}$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "text_color": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^#[\\da-fA-F]{6}$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "support_url": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "logo_url": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "kind",
+                            "brand_id"
+                          ],
+                          "additionalProperties": true
+                        },
+                        "permissions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "operator",
+                        "permissions"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "active_operator_id": {
+                    "type": "string"
+                  },
+                  "csrf_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "staff",
+                  "workspaces"
+                ],
+                "additionalProperties": true
+              }
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "workspace_choice",
+                "type": "string"
+              },
+              "choices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "customer",
+                    "staff"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "choices"
+            ],
+            "additionalProperties": true
+          }
+        ]
+      },
       "APIError": {
         "type": "object",
         "properties": {
@@ -36635,6 +37673,15 @@
           },
           "message": {
             "type": "string"
+          },
+          "access_url": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "requires_password_change": {
+            "type": "boolean"
           },
           "order": {
             "type": "object",
@@ -37089,6 +38136,13 @@
           },
           "description": {
             "type": "string"
+          },
+          "terms_summary": {
+            "type": "string"
+          },
+          "quote_id": {
+            "type": "string",
+            "minLength": 1
           },
           "version": {
             "type": "integer"
@@ -37640,6 +38694,9 @@
           "terms_version": {
             "type": "string"
           },
+          "terms_summary": {
+            "type": "string"
+          },
           "expires_at": {
             "type": "string"
           },
@@ -37719,6 +38776,54 @@
             "items": {
               "type": "string"
             }
+          },
+          "terms_summary": {
+            "type": "string"
+          },
+          "renewal_quote": {
+            "type": "object",
+            "properties": {
+              "quote_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plan_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "price_usd": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "purchase_atg": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "gift_atg": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
+              },
+              "validity": {
+                "type": "string"
+              },
+              "terms_summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "quote_id",
+              "plan_id",
+              "name",
+              "price_usd",
+              "purchase_atg",
+              "gift_atg",
+              "validity",
+              "terms_summary"
+            ],
+            "additionalProperties": true
           },
           "version": {
             "type": "integer"
@@ -39938,6 +41043,30 @@
       "Entity": {
         "type": "object",
         "properties": {
+          "presentation": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "title_kind": {
+                "type": "string"
+              },
+              "subtitle": {
+                "type": "string"
+              },
+              "labels": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "labels"
+            ],
+            "additionalProperties": true
+          },
           "id": {
             "type": "string",
             "minLength": 1
@@ -41003,6 +42132,15 @@
                 "type": "string"
               },
               "values": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "not": {
+                "type": "boolean"
+              },
+              "fallback_fields": {
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -42119,6 +43257,15 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "not": {
+                      "type": "boolean"
+                    },
+                    "fallback_fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -42924,6 +44071,30 @@
             "items": {
               "type": "object",
               "properties": {
+                "presentation": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "title_kind": {
+                      "type": "string"
+                    },
+                    "subtitle": {
+                      "type": "string"
+                    },
+                    "labels": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "labels"
+                  ],
+                  "additionalProperties": true
+                },
                 "id": {
                   "type": "string",
                   "minLength": 1
@@ -43682,6 +44853,9 @@
                 "label": {
                   "type": "string"
                 },
+                "help": {
+                  "type": "string"
+                },
                 "kind": {
                   "type": "string",
                   "enum": [
@@ -43772,6 +44946,15 @@
                             "type": "string"
                           },
                           "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "not": {
+                            "type": "boolean"
+                          },
+                          "fallback_fields": {
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -44248,6 +45431,15 @@
                             "type": "string"
                           },
                           "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "not": {
+                            "type": "boolean"
+                          },
+                          "fallback_fields": {
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -45889,7 +47081,6 @@
           }
         },
         "required": [
-          "kind",
           "email",
           "password"
         ],
@@ -47025,10 +48216,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -47053,7 +48240,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -47301,9 +48487,9 @@
             "type": "string",
             "description": "经营时区"
           },
-          "terms_reference": {
+          "terms_summary": {
             "type": "string",
-            "description": "对客户公示条款编号"
+            "description": "对客户公示的服务约定（可选） — 留空采用默认规则：通用额度按调用时报价使用，按成交期限有效；到期余量不结转，套餐不支持一般性退款，可停止未来续费；交易错误、未正确交付或无法履约走异常流程。新条款会固定到本次报价，变更须按续费规则重新确认。"
           },
           "new_purchase_enabled": {
             "type": "boolean",
@@ -47316,7 +48502,7 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前版本（首次填写0）"
+            "description": "当前版本"
           }
         },
         "required": [
@@ -47326,7 +48512,6 @@
           "gift_atg",
           "period",
           "timezone",
-          "terms_reference",
           "new_purchase_enabled",
           "renewal_enabled",
           "expected_version"
@@ -47635,6 +48820,20 @@
         ],
         "additionalProperties": false
       },
+      "Operator_contracts_upload": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "PDF/PNG/JPEG合同（不超过10MiB）"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "additionalProperties": false
+      },
       "Operator_pricing_price": {
         "$ref": "#/components/schemas/PricingWrite"
       },
@@ -47898,35 +49097,56 @@
             "type": "string",
             "description": "OEM品牌名称"
           },
-          "api_base_url": {
+          "supply_terms": {
             "type": "string",
-            "description": "OEM API入口"
+            "description": "合作约定说明（可选）"
           },
-          "quote_reference": {
+          "exit_policy": {
             "type": "string",
-            "description": "供货条款编号"
+            "enum": [
+              "non_refundable",
+              "remaining_paid_proportional"
+            ],
+            "description": "主动退出时的余额处理 — 报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
           },
-          "exit_terms_reference": {
+          "contract_attachment_id": {
             "type": "string",
-            "description": "退出条款编号"
+            "description": "已上传合作合同（可选）"
           }
         },
         "required": [
           "kind",
           "name",
           "legal_name",
-          "quote_reference",
-          "exit_terms_reference"
+          "brand_name",
+          "exit_policy"
         ],
         "additionalProperties": false
       },
       "Operator_operators_invite_owner": {
         "type": "object",
         "properties": {
+          "delivery_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "email"
+            ],
+            "description": "开通方式"
+          },
           "email": {
             "type": "string",
             "format": "email",
-            "description": "负责人邮箱"
+            "description": "登录邮箱"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "人员姓名"
+          },
+          "initial_password": {
+            "type": "string",
+            "description": "新账号初始密码",
+            "writeOnly": true
           },
           "role": {
             "type": "string",
@@ -47934,6 +49154,7 @@
           }
         },
         "required": [
+          "delivery_mode",
           "email",
           "role"
         ],
@@ -47948,7 +49169,11 @@
           },
           "buyer_id": {
             "type": "string",
-            "description": "直属采购方编号"
+            "description": "直属采购方"
+          },
+          "name": {
+            "type": "string",
+            "description": "报价名称（留空自动命名）"
           },
           "price_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -47962,42 +49187,21 @@
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "赠送库存ATG"
           },
-          "terms_reference": {
+          "terms_summary": {
             "type": "string",
-            "description": "成交条款编号"
+            "description": "补充合作约定（可选）"
           },
-          "exit_terms": {
-            "type": "object",
-            "properties": {
-              "version": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "退出条款版本"
-              },
-              "voluntary_refund": {
-                "type": "boolean",
-                "description": "允许自愿退出退款"
-              },
-              "method": {
-                "type": "string",
-                "enum": [
-                  "remaining_paid_proportional",
-                  "non_refundable"
-                ],
-                "description": "合同退款算法"
-              },
-              "terms_reference": {
-                "type": "string",
-                "description": "退出条款编号"
-              }
-            },
-            "required": [
-              "version",
-              "voluntary_refund",
-              "method",
-              "terms_reference"
+          "exit_policy": {
+            "type": "string",
+            "enum": [
+              "non_refundable",
+              "remaining_paid_proportional"
             ],
-            "additionalProperties": false
+            "description": "主动退出时的余额处理 — 报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
+          },
+          "contract_attachment_id": {
+            "type": "string",
+            "description": "已上传合作合同（可选）"
           },
           "valid_until": {
             "type": "string",
@@ -48015,8 +49219,7 @@
           "price_usd",
           "paid_atg",
           "gift_atg",
-          "terms_reference",
-          "exit_terms",
+          "exit_policy",
           "enabled"
         ],
         "additionalProperties": false
@@ -48030,11 +49233,11 @@
           },
           "quote_id": {
             "type": "string",
-            "description": "固定成交报价编号"
+            "description": "已确认的供货报价"
           },
           "supplier_id": {
             "type": "string",
-            "description": "报价供货方编号"
+            "description": "报价供货方"
           },
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -48088,7 +49291,7 @@
           },
           "consent_reference": {
             "type": "string",
-            "description": "独立自动付款授权凭证"
+            "description": "本次补货范围与付款授权说明"
           },
           "enabled": {
             "type": "boolean",
@@ -48097,13 +49300,12 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前授权版本（首次0）"
+            "description": "当前授权版本"
           }
         },
         "required": [
           "action",
           "quote_id",
-          "supplier_id",
           "trigger_available_atg",
           "single_limit_usd",
           "period_limit_usd",
@@ -48128,11 +49330,11 @@
           },
           "quote_id": {
             "type": "string",
-            "description": "固定成交报价编号"
+            "description": "已确认的供货报价"
           },
           "supplier_id": {
             "type": "string",
-            "description": "报价供货方编号"
+            "description": "报价供货方"
           },
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -48195,14 +49397,13 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0,
-            "description": "当前授权版本（首次0）"
+            "description": "当前授权版本"
           }
         },
         "required": [
           "id",
           "action",
           "quote_id",
-          "supplier_id",
           "trigger_available_atg",
           "single_limit_usd",
           "period_limit_usd",
@@ -48225,7 +49426,7 @@
         "properties": {
           "merchant_id": {
             "type": "string",
-            "description": "供货方收款配置编号"
+            "description": "付款方式"
           }
         },
         "required": [
@@ -48454,6 +49655,10 @@
       "Operator_alerts_risk_rule": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称（留空按指标命名）"
+          },
           "id": {
             "type": "string",
             "description": "规则编号"
@@ -48490,14 +49695,14 @@
             "items": {
               "type": "string"
             },
-            "description": "通知收件人ID（逗号分隔）"
+            "description": "通知负责人"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级收件人ID（逗号分隔）"
+            "description": "升级负责人"
           },
           "reminder_seconds": {
             "type": "integer",
@@ -48520,7 +49725,6 @@
           }
         },
         "required": [
-          "id",
           "metric",
           "warning",
           "critical",
@@ -48536,6 +49740,10 @@
       "Operator_alerts_revise_rule": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称（留空按指标命名）"
+          },
           "id": {
             "type": "string",
             "description": "规则编号"
@@ -48572,14 +49780,14 @@
             "items": {
               "type": "string"
             },
-            "description": "通知收件人ID（逗号分隔）"
+            "description": "通知负责人"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级收件人ID（逗号分隔）"
+            "description": "升级负责人"
           },
           "reminder_seconds": {
             "type": "integer",
@@ -48764,10 +49972,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -48792,7 +49996,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -48843,10 +50046,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -48871,7 +50070,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -49075,10 +50273,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -49103,7 +50297,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -49212,10 +50405,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -49240,7 +50429,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -49316,10 +50504,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -49344,7 +50528,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -49578,10 +50761,27 @@
       "Operator_staff_invite": {
         "type": "object",
         "properties": {
+          "delivery_mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "email"
+            ],
+            "description": "开通方式"
+          },
           "email": {
             "type": "string",
             "format": "email",
-            "description": "邮箱"
+            "description": "登录邮箱"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "人员姓名"
+          },
+          "initial_password": {
+            "type": "string",
+            "description": "新账号初始密码",
+            "writeOnly": true
           },
           "role": {
             "type": "string",
@@ -49592,10 +50792,11 @@
               "support",
               "readonly"
             ],
-            "description": "受邀角色"
+            "description": "角色"
           }
         },
         "required": [
+          "delivery_mode",
           "email",
           "role"
         ],
@@ -49638,6 +50839,10 @@
       "Operator_risk_risk_rule": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称（留空按指标命名）"
+          },
           "id": {
             "type": "string",
             "description": "规则编号"
@@ -49674,14 +50879,14 @@
             "items": {
               "type": "string"
             },
-            "description": "通知收件人ID（逗号分隔）"
+            "description": "通知负责人"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级收件人ID（逗号分隔）"
+            "description": "升级负责人"
           },
           "reminder_seconds": {
             "type": "integer",
@@ -49704,7 +50909,6 @@
           }
         },
         "required": [
-          "id",
           "metric",
           "warning",
           "critical",
@@ -49720,6 +50924,10 @@
       "Operator_risk_revise_rule": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称（留空按指标命名）"
+          },
           "id": {
             "type": "string",
             "description": "规则编号"
@@ -49756,14 +50964,14 @@
             "items": {
               "type": "string"
             },
-            "description": "通知收件人ID（逗号分隔）"
+            "description": "通知负责人"
           },
           "escalation_recipients": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "升级收件人ID（逗号分隔）"
+            "description": "升级负责人"
           },
           "reminder_seconds": {
             "type": "integer",
@@ -50252,10 +51460,6 @@
           "refund_valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50279,7 +51483,13 @@
                 "description": "本次估值失效"
               }
             },
-            "required": [],
+            "required": [
+              "currency",
+              "usd_per_unit",
+              "source",
+              "effective_at",
+              "expires_at"
+            ],
             "additionalProperties": false
           },
           "valued_at": {
@@ -50293,7 +51503,10 @@
           }
         },
         "required": [
-          "money"
+          "money",
+          "refund_valuation",
+          "valued_at",
+          "fx_execution_reference"
         ],
         "additionalProperties": false
       },
@@ -50418,10 +51631,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50446,7 +51655,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -50527,10 +51735,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50555,7 +51759,6 @@
               }
             },
             "required": [
-              "id",
               "currency",
               "usd_per_unit",
               "source",
@@ -50615,10 +51818,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50642,7 +51841,13 @@
                 "description": "本次估值失效"
               }
             },
-            "required": [],
+            "required": [
+              "currency",
+              "usd_per_unit",
+              "source",
+              "effective_at",
+              "expires_at"
+            ],
             "additionalProperties": false
           },
           "valued_at": {
@@ -50658,7 +51863,10 @@
         "required": [
           "merchant_id",
           "evm",
-          "verification_evidence"
+          "verification_evidence",
+          "valuation",
+          "valued_at",
+          "fx_execution_reference"
         ],
         "additionalProperties": false
       },
@@ -50719,10 +51927,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50746,7 +51950,13 @@
                 "description": "本次估值失效"
               }
             },
-            "required": [],
+            "required": [
+              "currency",
+              "usd_per_unit",
+              "source",
+              "effective_at",
+              "expires_at"
+            ],
             "additionalProperties": false
           },
           "valued_at": {
@@ -50762,7 +51972,10 @@
         "required": [
           "merchant_id",
           "external",
-          "verification_evidence"
+          "verification_evidence",
+          "valuation",
+          "valued_at",
+          "fx_execution_reference"
         ],
         "additionalProperties": false
       },
@@ -50823,10 +52036,6 @@
           "valuation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "description": "本次估值事实编号"
-              },
               "currency": {
                 "type": "string",
                 "description": "本次估值币种"
@@ -50850,7 +52059,13 @@
                 "description": "本次估值失效"
               }
             },
-            "required": [],
+            "required": [
+              "currency",
+              "usd_per_unit",
+              "source",
+              "effective_at",
+              "expires_at"
+            ],
             "additionalProperties": false
           },
           "valued_at": {
@@ -50866,7 +52081,10 @@
         "required": [
           "merchant_id",
           "external",
-          "verification_evidence"
+          "verification_evidence",
+          "valuation",
+          "valued_at",
+          "fx_execution_reference"
         ],
         "additionalProperties": false
       },

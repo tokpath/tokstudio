@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -266,6 +267,7 @@ func (a *Application) operatorRoutes(r *gin.RouterGroup) {
 	r.GET("/:resource/:id/files", a.invoiceFiles)
 	r.GET("/:resource/:id/files/:fileID", a.downloadInvoiceFile)
 	r.GET("/evidence/:id/content", a.downloadEvidence)
+	r.GET("/contracts/:id/content", a.downloadContract)
 	r.POST("/invoices/:id/files", a.uploadInvoiceFile)
 	r.POST("/:resource/:id/replacement", a.replaceInvoice)
 	r.POST("/branding/logo", a.uploadLogo)
@@ -290,7 +292,7 @@ func permissionFor(resource string) string {
 		return "ledger.read"
 	case "operators", "agreements":
 		return "organization.read"
-	case "procurement", "coverage", "exits", "procurement-invoices":
+	case "procurement", "coverage", "exits", "procurement-invoices", "contracts":
 		return "cooperation.manage"
 	case "branding", "channel-themes", "domains":
 		return "organization.read"
@@ -405,6 +407,9 @@ func (a *Application) operatorResource(c *gin.Context) {
 	case "disputes":
 		a.disputesResource(c, op, actor, p, base)
 		return
+	case "contracts":
+		a.contractResource(c, op, actor, p, base)
+		return
 	case "procurement":
 		a.procurementResource(c, op, actor, p, base)
 		return
@@ -424,7 +429,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		}
 		p["columns"] = []gin.H{col("email", "邮箱", "text"), col("name", "名称", "text"), col("registered_at", "注册", "datetime")}
 	case "plans":
-		rows, e := a.Commerce.ListPackages(ctx, nil, op.ID)
+		rows := []commerce.Package{}
+		e := a.DB.WithContext(ctx).Table("commerce_packages").Where("operator_id=?", op.ID).Order("created_at,id").Find(&rows).Error
 		if e != nil {
 			handleError(c, e)
 			return
@@ -445,7 +451,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			}
 			items = append(items, entity(row.ID, "configured", ver, v))
 		}
-		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_usd", "价格", "usd"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
+		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_usd", "价格", "usd"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("terms_summary", "服务约定", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
 		p["operations"] = []operation{{Name: "publish", Label: "发布套餐版本", Method: "POST", Path: base, Fields: []field{jsonField("name、package_id（新建留空）、price_usd、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version")}}}
 	case "orders":
 		p["search_supported"], p["status_supported"] = true, true
@@ -530,8 +536,28 @@ func (a *Application) operatorResource(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		childIDs := make([]string, 0, len(rows))
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.Lifecycle, 1, row))
+			childIDs = append(childIDs, row.ID)
+		}
+		owned := map[string]bool{}
+		if len(childIDs) > 0 {
+			var existing []struct{ OperatorID string }
+			if e := a.DB.WithContext(ctx).Table("organization_staff_memberships").Select("DISTINCT operator_id").Where("operator_id IN ? AND role='owner'", childIDs).Scan(&existing).Error; e != nil {
+				handleError(c, e)
+				return
+			}
+			for _, membership := range existing {
+				owned[membership.OperatorID] = true
+			}
+		}
+		for _, row := range rows {
+			item := entity(row.ID, row.Lifecycle, 1, row)
+			item["allowed_actions"] = []string{}
+			if !owned[row.ID] {
+				item["allowed_actions"] = []string{"invite_owner"}
+			}
+			items = append(items, item)
 		}
 		p["columns"] = []gin.H{col("name", "经营方", "text"), col("kind", "类型", "text"), col("legal_name", "经营主体", "text"), col("brand_id", "品牌", "text")}
 		p["operations"] = []operation{{Name: "create", Label: "建立 OEM / 渠道", Method: "POST", Path: base, Fields: []field{jsonField("kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。")}}}
@@ -553,7 +579,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 		} else if op.Kind == organization.Channel {
 			p["operations"] = []operation{}
 		}
-		p["row_operations"] = []operation{{Name: "invite_owner", Label: "邀请首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: []field{f("email", "负责人邮箱", "email"), {Name: "role", Label: "角色", Kind: "text", Required: true, Default: "owner"}}, Description: "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。"}}
+		p["row_operations"] = []operation{{Name: "invite_owner", Label: "开通首位负责人", Method: "POST", Path: base + "/{id}/invite_owner", Fields: ownerAccessFields(true), Description: "为尚无有效负责人的直属经营方开通首位负责人。可手动交付登录信息或发送邮件邀请；已有账号须本人接受邀请。"}}
 	case "agreements":
 		rows, e := a.Organization.ListSupplies(ctx, nil, actor, op.ID)
 		if e != nil {
@@ -561,9 +587,14 @@ func (a *Application) operatorResource(c *gin.Context) {
 			return
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, row.Status, 1, row))
+			v := values(row)
+			v["exit_policy_summary"] = cooperation.ProcurementExitPolicySummary(row.ExitPolicy)
+			if row.ContractAttachmentID != "" {
+				v["contract_url"] = "/api/v1/operators/" + op.ID + "/contracts/" + row.ContractAttachmentID + "/content"
+			}
+			items = append(items, entity(row.ID, row.Status, 1, v))
 		}
-		p["columns"] = []gin.H{col("supplier_id", "供货方", "text"), col("buyer_id", "采购方", "text"), col("quote_reference", "供货条款", "text"), col("exit_terms_reference", "退出条款", "text")}
+		p["columns"] = []gin.H{col("supplier_id", "供货方", "text"), col("buyer_id", "采购方", "text"), col("supply_terms", "合作约定", "text"), col("exit_policy_summary", "采购余额退出方式", "text"), col("contract_url", "合作合同", "link")}
 	case "coverage":
 		a.coverageResource(c, op, base, p)
 		return
@@ -663,7 +694,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			return
 		}
 		p["row_operations"] = []operation{{Name: "membership", Label: "调整当前成员角色", Method: "POST", Path: base + "/{id}/membership", Fields: []field{selectField("role", "角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读", "custom|明确自定义"), selectField("status", "成员状态", "active|启用", "suspended|停用"), grants}, Confirmation: "仅调整当前经营方成员；最后一位负责人不能被移除。"}}
-		p["operations"] = []operation{{Name: "invite", Label: "邮件邀请经营人员", Method: "POST", Path: base, Fields: []field{f("email", "邮箱", "email"), selectField("role", "受邀角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读")}}}
+		p["operations"] = []operation{{Name: "invite", Label: "开通或邀请经营人员", Method: "POST", Path: base, Fields: ownerAccessFields(false), Description: "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。"}}
 	case "refunds":
 		a.refundStaffResource(c, op, actor, p, base)
 		return
@@ -683,4 +714,16 @@ func (a *Application) operatorResource(c *gin.Context) {
 	}
 	p["items"] = items
 	a.resourceResponse(c, p)
+}
+
+func ownerAccessFields(owner bool) []field {
+	mode := selectField("delivery_mode", "开通方式", "manual|手动开通并交付", "email|发送邮件邀请")
+	mode.Default = "manual"
+	password := optional("initial_password", "新账号初始密码", "password")
+	password.VisibleWhen = &fieldVisibility{Field: "delivery_mode", Values: []string{"manual"}}
+	role := selectField("role", "角色", "owner|负责人", "operations|运营", "finance|财务", "support|客服", "readonly|只读")
+	if owner {
+		role = defaultField("role", "角色", "hidden", "owner")
+	}
+	return []field{mode, f("email", "登录邮箱", "email"), optional("display_name", "人员姓名", "text"), password, role}
 }

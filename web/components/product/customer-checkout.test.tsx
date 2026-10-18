@@ -8,7 +8,7 @@ import { Checkout, CustomerPlans, PaymentAction } from "./customer-plans";
 
 vi.mock("./context", () => ({ useProduct: () => ({ context: { payment_methods: [{ id: "bank", name: "银行转账", status: "ready" }] } }) }));
 const credits = { customer_atg: { available: "0", held: "0", purchased_remaining: "0", gift_remaining: "0" }, usd_balance: { available: "3.000000000000000001", held: "0" }, commission_usd: { available: "2.000000000000000001", held: "0", frozen: "50", recovery_due: "0" }, qualification: { confirmed_usd: "0", pending_usd: "0", threshold_usd: "100", qualified_at: null, function_status: "normal" } };
-const quote: Quote = { id: "quote-one", plan_id: "plan-one", plan_name: "通用套餐", operator_name: "本次经营方", amount_usd: "10.000000000000000001", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
+const quote: Quote = { id: "quote-one", plan_id: "plan-one", plan_name: "通用套餐", operator_name: "本次经营方", amount_usd: "10.000000000000000001", purchase_atg: "20", plan_gift_atg: "2", operator_gift_atg: "0", kol_gift_atg: "0", total_atg: "22", validity: "month", terms_version: "terms-one", terms_summary: "按成交订单内购赠比例耗用。", expires_at: "2099-10-18T00:00:00Z", warnings: [] };
 const order = { id: "order-one", status: "pending_payment", kind: "package", operator_name: "本次经营方", amount_usd: quote.amount_usd, paid_usd: "0", created_at: "2026-10-18T00:00:00Z", payment_action: { kind: "offline", instructions: "请核对原订单后付款" } };
 const response = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
 function mount(children: ReactNode) {
@@ -24,6 +24,8 @@ it("keeps present commission payment and future renewal permission as separate o
   const fetch = vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => response(init?.method === "POST" ? order : credits));
   vi.stubGlobal("fetch", fetch);
   mount(<Checkout quote={quote} supportsRenewal changeOffers={vi.fn()} />);
+  expect(screen.getByText("按成交订单内购赠比例耗用。")).toBeTruthy();
+  expect(screen.queryByText("terms-one")).toBeNull();
   await waitFor(() => expect((screen.getByLabelText("本次使用 USD 支付余额") as HTMLInputElement).value).toBe(credits.usd_balance.available));
   expect((screen.getByLabelText(/使用可用佣金补足/) as HTMLInputElement).checked).toBe(false);
   expect((screen.getByLabelText("授权到期自动续费") as HTMLInputElement).checked).toBe(false);
@@ -112,7 +114,7 @@ it("requires the current renewal plan and explicit acceptance when takeover term
   vi.stubGlobal("fetch", vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "PATCH") { calls.push(init); return response({ id: subscription.id, status: "saved" }); }
     if (String(path).endsWith("/api/v1/me/plans")) return response({ items: [subscription] });
-    if (String(path).endsWith("/api/v1/public/plans")) return response({ items: [{ id: "renewal-plan", name: "新经营方套餐", price_usd: "12", purchase_atg: "20", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 2 }] });
+    if (String(path).endsWith("/api/v1/public/plans")) return response({ items: [{ id: "renewal-plan", quote_id: "renewal-quote", terms_summary: "新经营方的实际服务约定。", name: "新经营方套餐", price_usd: "12", purchase_atg: "20", gift_atg: "2", validity: "month", auto_renew_available: true, status: "active", version: 2 }] });
     return response({ items: [] });
   }));
   mount(<CustomerPlans />);
@@ -120,11 +122,12 @@ it("requires the current renewal plan and explicit acceptance when takeover term
   expect((save as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(await screen.findByLabelText("接管后续费套餐"), { target: { value: "renewal-plan" } });
   expect((save as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText("新经营方的实际服务约定。")).toBeTruthy();
   fireEvent.click(screen.getByLabelText("确认以上新条款"));
   fireEvent.click(screen.getByLabelText("续费可用佣金补足"));
   fireEvent.click(save);
   await screen.findByText("续费设置已保存");
-  expect(JSON.parse(String(calls[0].body))).toEqual({ auto_renew: true, allow_commission: true, version: 4, confirmed_changed_terms: true, plan_id: "renewal-plan" });
+  expect(JSON.parse(String(calls[0].body))).toEqual({ auto_renew: true, allow_commission: true, version: 4, confirmed_changed_terms: true, plan_id: "renewal-plan", quote_id: "renewal-quote" });
 });
 
 it("allows stopping renewal without accepting changed terms and clears future commission permission", async () => {

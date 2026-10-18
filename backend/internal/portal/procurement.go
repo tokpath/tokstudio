@@ -12,6 +12,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strings"
 	"time"
 )
 
@@ -50,9 +51,14 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	for _, q := range quotes {
 		v := values(q)
 		v["record_kind"] = "quote"
+		v["exit_policy_summary"] = cooperation.ProcurementExitTermsSummary(q.ExitTerms)
+		a.procurementPartyNames(ctx, v, q.SupplierID, q.BuyerID)
+		if q.ContractAttachmentID != "" {
+			v["contract_url"] = "/api/v1/operators/" + op.ID + "/contracts/" + q.ContractAttachmentID + "/content"
+		}
 		row := entity(q.ID, "quote", 0, v)
 		row["allowed_actions"] = []string{}
-		if view == "buyer" && q.Enabled {
+		if view == "buyer" && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
 			row["allowed_actions"] = []string{"purchase"}
 		}
 		items = append(items, row)
@@ -65,6 +71,11 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	for _, o := range orders {
 		v := values(o)
 		v["record_kind"] = "order"
+		v["exit_policy_summary"] = cooperation.ProcurementExitTermsSummary(o.ExitTerms)
+		a.procurementPartyNames(ctx, v, o.SupplierID, o.BuyerID)
+		if o.ContractAttachmentID != "" {
+			v["contract_url"] = "/api/v1/operators/" + op.ID + "/contracts/" + o.ContractAttachmentID + "/content"
+		}
 		v["price_usd"] = o.DueUSD
 		row := entity(o.ID, o.Status, 0, v)
 		row["allowed_actions"] = []string{}
@@ -86,6 +97,11 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		for _, auth := range authorizations {
 			v := values(auth)
 			v["record_kind"] = "authorization"
+			if q, err := a.Cooperation.GetPurchaseQuote(ctx, nil, actor, op.ID, auth.QuoteID); err == nil {
+				v["name"] = q.Name
+				v["exit_policy_summary"] = cooperation.ProcurementExitTermsSummary(q.ExitTerms)
+			}
+			a.procurementPartyNames(ctx, v, auth.SupplierID, auth.BuyerID)
 			row := entity(auth.ID, "authorization", auth.Version, v)
 			row["allowed_actions"] = []string{"authorization", "cancel_authorization"}
 			items = append(items, row)
@@ -108,10 +124,19 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	if op.Kind == organization.Channel {
 		p["views"] = []gin.H{{"value": "buyer", "label": "我方采购"}}
 	}
-	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("buyer_id", "采购方", "text"), col("supplier_id", "供货方", "text"), col("price_usd", "成交USD", "usd"), col("allocated_usd", "已分配USD", "usd"), col("paid_atg", "购买库存", "atg"), col("gift_atg", "赠送库存", "atg"), col("exit_terms", "原退出条款", "text"), col("state", "执行状态", "status")}
-	p["operations"] = []operation{{Name: "quote", Label: "向直属采购方发布供货报价", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "quote"), f("buyer_id", "直属采购方编号", "text"), f("price_usd", "收款USD", "decimal"), f("paid_atg", "购买库存ATG", "decimal"), f("gift_atg", "赠送库存ATG", "decimal"), f("terms_reference", "成交条款编号", "text"), defaultField("exit_terms.version", "退出条款版本", "integer", 1), f("exit_terms.voluntary_refund", "允许自愿退出退款", "boolean"), selectField("exit_terms.method", "合同退款算法", "remaining_paid_proportional|剩余购买库存原价比例", "non_refundable|合同不退款"), f("exit_terms.terms_reference", "退出条款编号", "text"), optional("valid_until", "报价截止时间", "datetime"), defaultField("enabled", "允许按报价下单", "boolean", true)}}, {Name: "authorization", Label: "设定有限自动补货授权", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "authorization"), f("quote_id", "固定成交报价编号", "text"), f("supplier_id", "报价供货方编号", "text"), f("trigger_available_atg", "采购可用库存低于ATG时触发", "decimal"), f("single_limit_usd", "每次最高USD", "decimal"), f("period_limit_usd", "周期最高USD", "decimal"), selectField("period", "UTC自然周期", "month|月", "quarter|季", "year|年"), selectField("mode", "执行方式", "offline|仅建立待付订单", "automatic|已获授权Stripe自动扣款"), optional("merchant_id", "真实供货收款商户配置编号", "text"), optional("payment.payment_method", "Stripe已授权pm_编号", "password"), optional("payment.customer_ref", "Stripe已授权cus_编号", "password"), f("consent_reference", "独立自动付款授权凭证", "text"), defaultField("enabled", "启用授权", "boolean", true), defaultField("expected_version", "当前授权版本（首次0）", "integer", 0)}, Confirmation: "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。"}}
-	p["row_operations"] = []operation{{Name: "purchase", Label: "按原报价创建采购订单", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{}, Confirmation: "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "供货方收款配置编号", "text")}, Description: "付款操作返回实际支付步骤，核实付款并交付后才可用。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "wallet_receipt", Label: "提交链上付款查找线索", Method: "POST", Path: base + "/{id}/wallet_receipt", Fields: []field{f("transaction_hash", "实际交易Hash（仅查找线索）", "text"), f("log_index", "目标Transfer事件索引（十六进制）", "text")}, Description: "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。"}, {Name: "fund", Label: "分配已核实收款", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实收款编号", "text"), f("amount_usd", "本次分配USD", "decimal")}}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
+	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("name", "报价或订单名称", "text"), col("buyer_name", "采购方", "text"), col("supplier_name", "供货方", "text"), col("price_usd", "成交USD", "usd"), col("allocated_usd", "已分配USD", "usd"), col("paid_atg", "购买库存", "atg"), col("gift_atg", "赠送库存", "atg"), col("exit_policy_summary", "成交时的退出规则", "text"), col("terms_summary", "合作约定", "text"), col("contract_url", "合作合同", "link"), col("state", "执行状态", "status")}
+	p["operations"] = []operation{{Name: "quote", Label: "向直属采购方发布供货报价", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "quote"), f("buyer_id", "直属采购方", "text"), optional("name", "报价名称（留空自动命名）", "text"), f("price_usd", "收款USD", "decimal"), f("paid_atg", "购买库存ATG", "decimal"), defaultField("gift_atg", "赠送库存ATG", "decimal", "0"), optional("terms_summary", "补充合作约定（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text"), optional("valid_until", "报价截止时间", "datetime"), defaultField("enabled", "允许按报价下单", "boolean", true)}}, {Name: "authorization", Label: "设定有限自动补货授权", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "authorization"), f("quote_id", "已确认的供货报价", "text"), optional("supplier_id", "报价供货方", "hidden"), f("trigger_available_atg", "采购可用库存低于ATG时触发", "decimal"), f("single_limit_usd", "每次最高USD", "decimal"), f("period_limit_usd", "周期最高USD", "decimal"), selectField("period", "UTC自然周期", "month|月", "quarter|季", "year|年"), selectField("mode", "执行方式", "offline|仅建立待付订单", "automatic|已获授权Stripe自动扣款"), optional("merchant_id", "真实供货收款商户配置编号", "text"), optional("payment.payment_method", "Stripe已授权pm_编号", "password"), optional("payment.customer_ref", "Stripe已授权cus_编号", "password"), f("consent_reference", "本次补货范围与付款授权说明", "textarea"), defaultField("enabled", "启用授权", "boolean", true), defaultField("expected_version", "当前授权版本", "hidden", 0)}, Confirmation: "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。"}}
+	p["row_operations"] = []operation{{Name: "purchase", Label: "按原报价创建采购订单", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{}, Confirmation: "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "付款方式", "text")}, Description: "付款操作返回实际支付步骤，核实付款并交付后才可用。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "wallet_receipt", Label: "提交链上付款查找线索", Method: "POST", Path: base + "/{id}/wallet_receipt", Fields: []field{f("transaction_hash", "实际交易Hash（仅查找线索）", "text"), f("log_index", "目标Transfer事件索引（十六进制）", "text")}, Description: "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。"}, {Name: "fund", Label: "分配已核实收款", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实收款编号", "text"), f("amount_usd", "本次分配USD", "decimal")}}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
 	ops := p["operations"].([]operation)
+	for i := range ops[1].Fields {
+		f := &ops[1].Fields[i]
+		if f.Name == "merchant_id" || strings.HasPrefix(f.Name, "payment.") {
+			f.VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"automatic"}}
+		}
+		if f.Name == "mode" {
+			f.Default = "offline"
+		}
+	}
 	p["operations"] = []operation{}
 	if view == "supplier" && op.Kind != organization.Channel {
 		p["operations"] = []operation{ops[0]}
@@ -176,6 +201,14 @@ func (a *Application) procurementCommand(c *gin.Context, op organization.Operato
 		result, err := a.command(c, "procurement-authorization:"+op.ID, raw, func(tx *gorm.DB) (any, error) {
 			svc, coop := *a.AutoReplenishments, *a.Cooperation
 			coop.DB, svc.Cooperation = tx, &coop
+			quote, err := a.Cooperation.GetPurchaseQuote(ctx, tx, actor, op.ID, in.QuoteID)
+			if err != nil {
+				return nil, err
+			}
+			if quote.BuyerID != op.ID || (in.SupplierID != "" && in.SupplierID != quote.SupplierID) {
+				return nil, organization.ErrForbidden
+			}
+			in.SupplierID = quote.SupplierID
 			out, err := svc.SaveAuthorization(ctx, actor, in)
 			if errors.Is(err, cooperation.ErrConflict) {
 				return nil, organization.ErrConflict
@@ -410,4 +443,13 @@ func procurementPaymentAction(ch payments.Checkout) gin.H {
 		p["currency"] = ch.PayMoney.Currency
 	}
 	return p
+}
+
+func (a *Application) procurementPartyNames(ctx context.Context, v gin.H, supplierID, buyerID string) {
+	if supplier, err := a.Organization.GetOperator(ctx, nil, supplierID); err == nil {
+		v["supplier_name"] = supplier.Name
+	}
+	if buyer, err := a.Organization.GetOperator(ctx, nil, buyerID); err == nil {
+		v["buyer_name"] = buyer.Name
+	}
 }

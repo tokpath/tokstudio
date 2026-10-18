@@ -13,13 +13,13 @@ import (
 // Model outputs and regenerated report exports are deliberately absent from
 // long-lived backups. Private invoice/evidence/branding objects are immutable.
 func durableKey(key string) bool {
-	return validKey(key) && (strings.HasPrefix(key, "branding/") || strings.HasPrefix(key, "invoices/") || strings.HasPrefix(key, "finance-evidence/"))
+	return validKey(key) && (strings.HasPrefix(key, "branding/") || strings.HasPrefix(key, "invoices/") || strings.HasPrefix(key, "finance-evidence/") || strings.HasPrefix(key, "cooperation-contracts/"))
 }
 func (s *Store) VisitDurable(ctx context.Context, visit func(key, contentType string, data []byte) error) error {
 	if s == nil || s.client == nil {
 		return ErrUnavailable
 	}
-	for _, prefix := range []string{"branding/", "finance-evidence/", "invoices/"} {
+	for _, prefix := range []string{"branding/", "finance-evidence/", "invoices/", "cooperation-contracts/"} {
 		pages := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{Bucket: aws.String(s.bucket), Prefix: aws.String(prefix)})
 		for pages.HasMorePages() {
 			page, e := pages.NextPage(ctx)

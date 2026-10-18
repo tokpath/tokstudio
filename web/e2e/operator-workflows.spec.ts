@@ -30,7 +30,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
     else if (path === `${base}/customer-context/customer-one`) data = { subject: customer, next_actions: [], sections: [
       { resource: "orders", title: "购买与交付", page: resource("购买与交付", [order()], { row_operations: [fulfill] }) },
       { resource: "assets", title: "客户资产", page: resource("客户资产", [{ id: "wallet-one", status: "open", values: { balance: "3.000000000000000001", held: "0", purpose: "customer:usd" } }], { columns: [{ key: "purpose", label: "资产用途", kind: "text" }, { key: "balance", label: "余额", kind: "usd" }] }) },
-      { resource: "requests", title: "模型调用", page: resource("模型调用", [{ id: "retail-request-one", status: "succeeded", values: { model_id: "public-chat", charged_atg: "0.001" } }]) },
+      { resource: "requests", title: "模型调用", page: resource("模型调用", [{ id: "retail-request-one", presentation: {title:"公开聊天模型 · 10月16日调用",labels:{}}, status: "succeeded", values: { model_id: "public-chat", charged_atg: "0.001" } }]) },
       { resource: "commissions", title: "推广收益", page: resource("推广收益", [], { summary: [{ label: "分佣资格", value: "已正式取得" }] }) },
       { resource: "refunds", title: "退款与异常", page: resource("退款与异常", [{ id: "case-one", status: "pending_review", values: { manage_url: "/manage/operator-one/refunds?record=case-one" } }], { columns: [{ key: "id", label: "原申请", kind: "text" }, { key: "manage_url", label: "办理", kind: "link" }] }) },
     ] };
@@ -40,7 +40,7 @@ async function businessAPI(page: Page, financeOnly = false, uncertainAllocation 
       { resource: "assets", title: "交付权益", page: resource("交付权益", delivered ? [{ id: "grant-one", status: "issued", values: { total: quantity, consumed: "0", effective_at: "2026-10-17T01:00:00Z" } }] : [], { columns: [{ key: "total", label: "已发放 ATG", kind: "atg" }, { key: "effective_at", label: "生效时间", kind: "datetime" }] }) },
     ] };
     else if (path === `${base}/references/receipts`) data = { items: [{ value: "receipt-one", label: "已核实银行收款 · 原流水 bank-one", defaults: { receipt_id: "receipt-one", amount_usd: due, currency: "USD" } }] };
-    else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
+    else if (path === `${base}/refunds`) { exactRecords.push(url.searchParams.get("record") || ""); data = resource("退款与原路执行", [{ id: "case-one", status: "pending_review", values: { record_kind: "case" } }, { id: "leg-one", presentation: {title:"原银行付款退款 · 10 USD",labels:{}}, status: "pending", values: { record_kind: "leg", case_id: "case-one" } }]); }
     else throw new Error(`Unexpected read ${path}`);
     await route.fulfill({ json: data });
   });
@@ -57,7 +57,7 @@ test("operator handles customer, original receipt, delivery and precise refund c
   await workspace.getByRole("tab", { name: "客户资产" }).click();
   await expect(workspace.getByLabel("3.000000000000000001 USD", { exact: true })).toBeVisible();
   await workspace.getByRole("tab", { name: "模型调用" }).click();
-  await expect(workspace.getByText("retail-request-one", { exact: true })).toBeVisible();
+  await expect(workspace.getByText("公开聊天模型 · 10月16日调用", { exact: true })).toBeVisible();
   await workspace.getByRole("tab", { name: "推广收益" }).click();
   await expect(workspace.getByText("已正式取得", { exact: true })).toBeVisible();
   await workspace.getByRole("tab", { name: "购买与交付" }).click();
@@ -89,7 +89,7 @@ test("operator handles customer, original receipt, delivery and precise refund c
   await workspace.getByRole("link", { name: "进入业务办理", exact: true }).click();
   await expect(page).toHaveURL(/\/refunds\?record=case-one$/);
   await expect(page.getByText("正在办理关联事项", { exact: false })).toBeVisible();
-  await expect(page.getByText("leg-one", { exact: true })).toBeVisible();
+  await expect(page.getByText("原银行付款退款 · 10 USD", { exact: true })).toBeVisible();
   expect(exactRecords).toContain("case-one");
   expect(mutations.map(item => item.path)).toEqual([`${base}/order-context/order-one/allocate`, `${base}/orders/order-one/fulfill`]);
   expect(mutations.every(item => /^[0-9a-f-]{36}$/.test(item.key || ""))).toBe(true);

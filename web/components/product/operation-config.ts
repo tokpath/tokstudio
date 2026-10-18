@@ -13,7 +13,8 @@ export type ConfigNode = {
   item?: ConfigNode;
   options?: [string, string][];
   when?: { field: string; values: string[] };
-  lookup?: "models" | "credentials" | "buyers" | "suppliers";
+  lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes";
+  lookupBy?: { field: string; values: Record<string, "buyers" | "routes"> };
   lookupWhen?: { field: string; values: string[] };
   wildcard?: boolean;
   signed?: boolean;
@@ -46,8 +47,8 @@ const capability = object("能力", {
 }, "仅填写已核实的真实能力。参数、计量、上界和恢复证据全部通过后才可开放。");
 const scope = (label: string, operatorID?: string) => object(label, {
   kind: select("价目用途", [["retail", "客户零售价"], ["supply", "对下级供货价"], ["supplier", "供应商成本价（USD）"]], "retail"),
-  seller_id: { ...text("卖方经营方 / 供应商引用", true, "供应商成本价填写供应商引用；其他价格填写负责定价的经营方。"), default: operatorID },
-  buyer_id: { ...text("买方经营方 / 上游路由"), lookup: "buyers", lookupWhen: { field: "kind", values: ["supply"] }, when: { field: "kind", values: ["supply", "supplier"] } },
+  seller_id: { ...text("定价经营方或供应商（自动带入）"), default: operatorID, readOnly: true },
+  buyer_id: { ...text("供货采购方或成本上游路由"), lookupBy: {field:"kind",values:{supply:"buyers",supplier:"routes"}}, when: { field: "kind", values: ["supply", "supplier"] } },
 });
 const tier = object("阶梯", { from: decimal("起始数量（含）"), to: decimal("结束数量（不含，最后一阶可留空）", false), rate: decimal("本阶梯单价") });
 const component = object("计费组件", {
@@ -65,7 +66,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   if (/\/routes$/.test(operation.path)) return object("上游路由", {
     upstream: object("路由身份与供应商", {
       id: { ...text("路由标识"), generated: "uuid", readOnly: true }, public_model_id: { ...text("对应公开模型"), lookup: "models" }, identity: text("与公开模型一致的身份与版本"),
-      provider_id: text("供应商引用"), provider: text("供应商协议名称"), model: text("供应商模型名称"), credential_id: { ...text("已保存的供应商凭据引用"), lookup: "credentials" },
+      provider_id: {...text("供应商引用（选择凭据后自动带入）"),readOnly:true}, provider: text("供应商协议名称"), model: text("供应商模型名称"), credential_id: { ...text("已保存的供应商凭据引用"), lookup: "credentials" },
       enabled: boolean("允许进入选路"), healthy: boolean("已核实健康"), priority: { ...integer("选路优先级", 0), signed: true },
       endpoints: record("已核实的完整服务端点", text("HTTPS 服务地址"), "键为调用能力，例如 chat、video_generation、video_retrieve、video_download；视频查询/下载必须使用 {task_id} 路径模板。"),
       routing: { ...object("容量、熔断与恢复", { max_concurrent: { ...integer("最大同时在途（0 不额外限制）", 0), max: 100000 }, failure_threshold: { ...integer("连续失败阈值（0 使用默认 3）", 0), max: 100 }, unknown_usage_threshold: { ...integer("未知用量阈值（0 使用默认 2）", 0), max: 100 }, recovery_successes: { ...integer("恢复成功探测次数（0 使用默认 2）", 0), max: 20 }, cooldown_seconds: { ...integer("冷却秒数（0 使用默认 60）", 0), max: 86400 } }), required: false },

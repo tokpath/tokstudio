@@ -27,6 +27,7 @@ export function CustomerOverview() {
   const needsRenewal = subscriptions.data?.items.some(plan => plan.status === "active" && plan.requires_confirmation);
   return <>
     <Heading eyebrow={t("YOUR WORKSPACE")} title={firstUse && session?.kind === "customer" ? t("{name}，开始使用模型", { name: session.customer.display_name }) : t("服务概览")} description={firstUse ? t("准备额度和 Key，完成第一次调用。") : t("查看可用额度、近期调用和套餐到期情况。")} actions={<Button asChild><Link href="/workspace/plans">{t("购买套餐")}<ArrowRight /></Link></Button>} />
+    {!baseURL && <div className="mb-5"><Notice>{t("品牌 API 入口尚未配置，请联系经营方完成域名接入。")}</Notice></div>}
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
       {credits.isPending ? <Loading /> : credits.isError ? <ErrorPanel error={credits.error} retry={() => void credits.refetch()} /> : value && <Card className="bg-brand-soft/25">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm text-ink-secondary">{t("当前可用服务额度")}</p><p className="my-4 break-words text-4xl font-semibold sm:text-5xl"><Money value={value.customer_atg.available} /></p></div><span className="rounded-stamp border border-hairline px-3 py-1.5 text-xs text-ink-secondary">{t("所有 Key 共享")}</span></div>

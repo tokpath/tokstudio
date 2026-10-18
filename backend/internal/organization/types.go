@@ -54,13 +54,17 @@ type Operator struct {
 	CreatedAt        time.Time    `json:"created_at"`
 }
 type SupplyAgreement struct {
-	ID                 string    `json:"id"`
-	SupplierID         string    `json:"supplier_id"`
-	BuyerID            string    `json:"buyer_id"`
-	Status             string    `json:"status"`
-	QuoteReference     string    `json:"quote_reference"`
-	ExitTermsReference string    `json:"exit_terms_reference"`
-	CreatedAt          time.Time `json:"created_at"`
+	ID                   string    `json:"id"`
+	SupplierID           string    `json:"supplier_id"`
+	BuyerID              string    `json:"buyer_id"`
+	Status               string    `json:"status"`
+	QuoteReference       string    `json:"quote_reference"`
+	ExitTermsReference   string    `json:"exit_terms_reference"`
+	SupplyTerms          string    `json:"supply_terms"`
+	ExitPolicy           string    `json:"exit_policy"`
+	ContractAttachmentID string    `json:"contract_attachment_id,omitempty"`
+	Version              int64     `json:"version"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 type BusinessFeature string
 
@@ -89,6 +93,7 @@ type CreateOperatorInput struct {
 	ActorStaffID, ParentOperatorID                                             string
 	Kind                                                                       OperatorKind
 	Name, LegalName, BrandName, APIBaseURL, QuoteReference, ExitTermsReference string
+	SupplyTerms, ExitPolicy, ContractAttachmentID                              string
 }
 type OperatorCreated struct {
 	Operator   Operator         `json:"operator"`

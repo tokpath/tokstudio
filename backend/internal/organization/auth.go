@@ -40,36 +40,46 @@ type accessTokenRow struct {
 
 func (accessTokenRow) TableName() string { return "organization_access_tokens" }
 
-func (s *Service) Login(ctx context.Context, tx *gorm.DB, brandID, email, password string) (out LoginResult, err error) {
+// AuthenticateCredentials validates the current brand and permissions without issuing a token.
+func (s *Service) AuthenticateCredentials(ctx context.Context, tx *gorm.DB, brandID, email, password string) (out Principal, err error) {
 	email, err = NormalizeEmail(email)
 	if err != nil || !validID(brandID) {
 		return out, ErrInvalidCredentials
 	}
+	tx = s.dbFor(ctx, tx)
+	var auth credentialRow
+	q := tx.Table("organization_customer_credentials AS c").Select("c.*").Joins("JOIN organization_customer_identities i ON i.customer_id=c.customer_id").Joins("JOIN organization_customers u ON u.id=c.customer_id").Where("i.brand_id=? AND i.email_normalized=? AND i.is_current=true AND u.status IN ('active','stopped','closing')", brandID, email).Limit(1).Find(&auth)
+	if q.Error != nil {
+		return out, q.Error
+	}
+	if q.RowsAffected == 0 || !CheckPassword(auth.PasswordHash, password) {
+		return out, ErrInvalidCredentials
+	}
+	customer, err := s.GetCustomer(ctx, tx, auth.CustomerID)
+	if err != nil {
+		return out, err
+	}
+	ownership, err := s.CurrentOwnership(ctx, tx, auth.CustomerID)
+	if err != nil {
+		return out, err
+	}
+	brand, err := s.GetBrand(ctx, tx, customer.BrandID)
+	if err != nil {
+		return out, err
+	}
+	if brand.Status != "active" {
+		return out, ErrBusinessClosed
+	}
+	if err = s.RequireUnfrozen(ctx, tx, customer.BrandID, ownership.OperatorID, customer.ID, "customer_login"); err != nil {
+		return out, err
+	}
+
+	return Principal{Customer: customer, Ownership: ownership, CredentialVersion: auth.Version}, nil
+}
+func (s *Service) Login(ctx context.Context, tx *gorm.DB, brandID, email, password string) (out LoginResult, err error) {
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
-		var auth credentialRow
-		q := tx.Table("organization_customer_credentials AS c").Select("c.*").Joins("JOIN organization_customer_identities i ON i.customer_id=c.customer_id").Joins("JOIN organization_customers u ON u.id=c.customer_id").Where("i.brand_id=? AND i.email_normalized=? AND i.is_current=true AND u.status IN ('active','stopped','closing')", brandID, email).Limit(1).Find(&auth)
-		if q.Error != nil {
-			return q.Error
-		}
-		if q.RowsAffected == 0 || !CheckPassword(auth.PasswordHash, password) {
-			return ErrInvalidCredentials
-		}
-		customer, err := s.GetCustomer(ctx, tx, auth.CustomerID)
+		principal, err := s.AuthenticateCredentials(ctx, tx, brandID, email, password)
 		if err != nil {
-			return err
-		}
-		ownership, err := s.CurrentOwnership(ctx, tx, auth.CustomerID)
-		if err != nil {
-			return err
-		}
-		brand, err := s.GetBrand(ctx, tx, customer.BrandID)
-		if err != nil {
-			return err
-		}
-		if brand.Status != "active" {
-			return ErrBusinessClosed
-		}
-		if err = s.RequireUnfrozen(ctx, tx, customer.BrandID, ownership.OperatorID, customer.ID, "customer_login"); err != nil {
 			return err
 		}
 		raw, err := token()
@@ -77,11 +87,11 @@ func (s *Service) Login(ctx context.Context, tx *gorm.DB, brandID, email, passwo
 			return err
 		}
 		now := s.now()
-		t := accessTokenRow{ID: newID(), CustomerID: auth.CustomerID, TokenHash: tokenHash(raw), CredentialVersion: auth.Version, ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now}
+		t := accessTokenRow{ID: newID(), CustomerID: principal.Customer.ID, TokenHash: tokenHash(raw), CredentialVersion: principal.CredentialVersion, ExpiresAt: now.Add(24 * time.Hour), CreatedAt: now}
 		if err = tx.Create(&t).Error; err != nil {
 			return err
 		}
-		out = LoginResult{Principal: Principal{Customer: customer, Ownership: ownership, CredentialVersion: auth.Version}, AccessToken: raw, ExpiresAt: t.ExpiresAt}
+		out = LoginResult{Principal: principal, AccessToken: raw, ExpiresAt: t.ExpiresAt}
 		return nil
 	})
 	return

@@ -56,6 +56,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 		a.issueManualGift(c, op, actor)
 		return
 	}
+	if resource == "contracts" {
+		a.uploadContract(c, op, actor)
+		return
+	}
 	if resource == "evidence" {
 		a.uploadEvidence(c, op, actor)
 		return
@@ -198,6 +202,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			var in struct {
 				Kind                                                                       organization.OperatorKind `json:"kind"`
 				Name, LegalName, BrandName, APIBaseURL, QuoteReference, ExitTermsReference string
+				SupplyTerms, ExitPolicy, ContractAttachmentID                              string
 			}
 			var fields map[string]json.RawMessage
 			if json.Unmarshal(config, &fields) != nil {
@@ -210,7 +215,10 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			_ = json.Unmarshal(fields["api_base_url"], &in.APIBaseURL)
 			_ = json.Unmarshal(fields["quote_reference"], &in.QuoteReference)
 			_ = json.Unmarshal(fields["exit_terms_reference"], &in.ExitTermsReference)
-			out, e := a.Organization.CreateOperator(ctx, tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: op.ID, Kind: in.Kind, Name: in.Name, LegalName: in.LegalName, BrandName: in.BrandName, APIBaseURL: in.APIBaseURL, QuoteReference: in.QuoteReference, ExitTermsReference: in.ExitTermsReference})
+			_ = json.Unmarshal(fields["supply_terms"], &in.SupplyTerms)
+			_ = json.Unmarshal(fields["exit_policy"], &in.ExitPolicy)
+			_ = json.Unmarshal(fields["contract_attachment_id"], &in.ContractAttachmentID)
+			out, e := a.Organization.CreateOperator(ctx, tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: op.ID, Kind: in.Kind, Name: in.Name, LegalName: in.LegalName, BrandName: in.BrandName, APIBaseURL: in.APIBaseURL, QuoteReference: in.QuoteReference, ExitTermsReference: in.ExitTermsReference, SupplyTerms: in.SupplyTerms, ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID})
 			return gin.H{"id": out.Operator.ID, "status": "configured", "message": "经营方已建立，请继续配置人员、供货、价格、收款与开业检查"}, e
 		case "marketing":
 			var action struct {

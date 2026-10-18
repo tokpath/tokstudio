@@ -3,7 +3,6 @@ package portal
 import (
 	"encoding/json"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -273,7 +272,7 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 
 	p["columns"] = append(p["columns"].([]gin.H), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确接收地址", "text"), col("authorization_id", "不可变目的地授权", "text"))
 	authorizationFields := []field{f("proposal_id", "本人最新确认", "hidden"), f("payer_authorization_reference", "原付款人明确授权证据", "textarea"), f("verification_evidence", "地址及原付款人核实依据", "textarea"), defaultField("responsible_execution", "已明确选择责任方付款", "hidden", false), optional("route_exception_reference", "同经营方原路受限的替代依据（跨经营方接管可留空）", "textarea")}
-	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "authorize_destination", Label: "核实客户已确认的退款目的地", Method: "POST", Path: base + "/{id}/authorize_destination", Fields: authorizationFields, Confirmation: "已核实当前行本人最新提案、原付款人授权和接收地址；锁定后不可改为其它地址。"}, operation{Name: "authorize_unallocated_destination", Label: "核实未分配款原付款人授权目的地", Method: "POST", Path: base + "/{id}/authorize_unallocated_destination", Fields: append(refundDestinationFields(), authorizationFields[1:]...), Confirmation: "已核实原付款人明确授权，未从原交易sender推定退款地址。"}, operation{Name: "verify_evm", Label: "只读核实已执行链上退款", Method: "POST", Path: base + "/{id}/verify_evm", Fields: append([]field{f("evm.transaction_hash", "实际退款交易哈希", "text"), f("evm.log_index", "真实ERC20 Transfer日志索引（0x）", "text"), f("verification_evidence", "本次链上查验依据", "textarea")}, executionValuationFields()...), Confirmation: "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。"}, operation{Name: "verify_external", Label: "登记NOWPayments外部已核实退款", Method: "POST", Path: base + "/{id}/verify_external", Fields: append([]field{f("external.external_reference", "实际外部退款唯一流水", "text"), f("external.money.currency", "原准确资产代码", "text"), f("external.money.amount", "实际退回原币种金额", "decimal"), f("external.executed_at", "实际执行时刻", "datetime"), f("external.evidence_reference", "外部执行真实凭据", "textarea"), f("verification_evidence", "本次收款地址及事实查验依据", "textarea")}, executionValuationFields()...), Confirmation: "已在外部渠道核实实际转账。本操作登记真实执行事实，不调用自动退款API。"})
+	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "authorize_destination", Label: "核实客户已确认的退款目的地", Method: "POST", Path: base + "/{id}/authorize_destination", Fields: authorizationFields, Confirmation: "已核实当前行本人最新提案、原付款人授权和接收地址；锁定后不可改为其它地址。"}, operation{Name: "authorize_unallocated_destination", Label: "核实未分配款原付款人授权目的地", Method: "POST", Path: base + "/{id}/authorize_unallocated_destination", Fields: append(refundDestinationFields(), authorizationFields[1:]...), Confirmation: "已核实原付款人明确授权，未从原交易sender推定退款地址。"}, operation{Name: "verify_evm", Label: "只读核实已执行链上退款", Method: "POST", Path: base + "/{id}/verify_evm", Fields: append([]field{f("evm.transaction_hash", "实际退款交易哈希", "text"), f("evm.log_index", "真实ERC20 Transfer日志索引（0x）", "text"), f("verification_evidence", "本次链上查验依据", "textarea")}, executionValuationFields("asset")...), Confirmation: "本操作只读查询实际链上交易，不会签名或发送交易；准确接收地址由已锁定授权取值。"}, operation{Name: "verify_external", Label: "登记NOWPayments外部已核实退款", Method: "POST", Path: base + "/{id}/verify_external", Fields: append([]field{f("external.external_reference", "实际外部退款唯一流水", "text"), f("external.money.currency", "原准确资产代码", "text"), f("external.money.amount", "实际退回原币种金额", "decimal"), f("external.executed_at", "实际执行时刻", "datetime"), f("external.evidence_reference", "外部执行真实凭据", "textarea"), f("verification_evidence", "本次收款地址及事实查验依据", "textarea")}, executionValuationFields("external.money.currency")...), Confirmation: "已在外部渠道核实实际转账。本操作登记真实执行事实，不调用自动退款API。"})
 	p["row_operations"] = append(p["row_operations"].([]operation), responsibleRefundOperations(base)...)
 	p["row_operations"] = append(p["row_operations"].([]operation), operation{Name: "confirm_fee", Label: "核实本次实际退款手续费", Method: "POST", Path: base + "/{id}/confirm_fee", Fields: []field{f("leg_id", "原退款责任", "hidden"), f("fee_usd", "实际已核实经营手续费USD（确为零时填0）", "decimal"), f("reference", "实际结算流水", "text"), f("evidence", "最终费用核实证据", "textarea"), f("occurred_at", "实际费用发生时刻", "datetime")}, Confirmation: "只补本次经营费用，不更改客户实际收到金额和原清偿事实。"})
 	p["columns"] = append(p["columns"].([]gin.H), col("actual_payment_usd", "本次实际支付USD", "usd"), col("fee_status", "手续费核实状态", "status"), col("fee_usd", "已核实手续费（待核实为空）", "usd"))
@@ -415,14 +414,12 @@ func (a *Application) refundStaffAction(c *gin.Context, op organization.Operator
 				handleError(c, payments.ErrInvalid)
 				return
 			}
+			in.RefundValuation = payments.EnsureValuationIdentity(in.RefundValuation, "retail-api:"+op.ID+":"+leg.ID, in.Money.Currency)
 			in.ID = leg.ID
 			in.Order = source.OriginalOrder
 			in.USDAmount = leg.AmountUSD
 			if in.Money.Currency == "USD" && in.Money.Amount.IsZero() {
 				in.Money.Amount = leg.AmountUSD
-			}
-			if in.ValuedAt.IsZero() {
-				in.ValuedAt = time.Now().UTC()
 			}
 			_, e = a.Payments.SubmitRefund(ctx, actor, op.ID, source.MerchantID, in)
 		}

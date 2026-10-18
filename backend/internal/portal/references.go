@@ -1,9 +1,10 @@
 package portal
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"strings"
@@ -45,11 +46,8 @@ func (a *Application) references(c *gin.Context) {
 		return false
 	}
 	add := func(value, label string, defaults gin.H) {
-		if len(items) >= 50 {
-			return
-		}
 		if contains([]string{"customers", "orders", "receipts"}, kind) || query == "" || strings.Contains(strings.ToLower(label+value), query) {
-			items = append(items, referenceChoice{value, label + " · " + value, defaults})
+			items = append(items, referenceChoice{value, label, defaults})
 		}
 	}
 	switch kind {
@@ -71,6 +69,84 @@ func (a *Application) references(c *gin.Context) {
 			if target.Kind != organization.Channel && a.Organization.RequireBrandBranding(ctx, nil, actor, target.BrandID) == nil {
 				add(target.ID, target.Name, nil)
 			}
+		}
+	case "export-subjects":
+		if customer || !require("reports.export") {
+			return
+		}
+		var e error
+		items, next, e = a.exportSubjectChoices(c, operator, actor, query)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+	case "supply-failure-approvals":
+		if customer || !require("cooperation.manage") {
+			return
+		}
+		rows := []cooperation.SupplyFailureApproval{}
+		if e := a.DB.WithContext(ctx).Where("buyer_id=?", operator).Order("approved_at DESC,id DESC").Find(&rows).Error; e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, r := range rows {
+			add(r.ID, humanJoin("已批准供货失约", r.ApprovedAt.UTC().Format("2006-01-02 15:04:05 UTC"), r.Evidence), nil)
+		}
+	case "recipients":
+		if customer || !require("operations.manage") {
+			return
+		}
+		mayEmail := a.Organization.RequirePermission(ctx, nil, actor, operator, "customers.read") == nil
+		customerLabel := "c.display_name || ' · 客户'"
+		if mayEmail {
+			customerLabel = "concat_ws(' · ',NULLIF(c.display_name,''),NULLIF(e.email_normalized,''),'客户')"
+		}
+		var rows []humanLabelRow
+		sql := `SELECT id,label FROM (
+            SELECT s.id::text AS id,concat_ws(' · ',NULLIF(s.display_name,''),s.email,'经营人员') AS label FROM portal_staff s
+            WHERE s.status='active' AND EXISTS (SELECT 1 FROM organization_staff_memberships m WHERE m.staff_id=s.id AND m.operator_id=? AND m.status='active')
+            UNION ALL SELECT c.id::text AS id,` + customerLabel + ` AS label FROM organization_customers c
+            LEFT JOIN organization_customer_identities e ON e.customer_id=c.id AND e.is_current=true
+            WHERE EXISTS(SELECT 1 FROM organization_service_ownerships own WHERE own.customer_id=c.id AND own.operator_id=? AND own.ended_at IS NULL)
+        ) recipients WHERE id>? AND (label ILIKE ? OR id ILIKE ?) ORDER BY id LIMIT 51`
+		if e := a.DB.WithContext(ctx).Raw(sql, operator, operator, c.Query("cursor"), "%"+query+"%", "%"+query+"%").Scan(&rows).Error; e != nil {
+			handleError(c, e)
+			return
+		}
+		if len(rows) > 50 {
+			rows = rows[:50]
+			next = rows[49].ID
+		}
+		for _, r := range rows {
+			items = append(items, referenceChoice{Value: r.ID, Label: r.Label})
+		}
+	case "contracts":
+		if customer || !require("cooperation.manage", "organization.create") {
+			return
+		}
+		rows, e := a.listOwnedCooperationContracts(ctx, operator)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, r := range rows {
+			add(r.ID, r.Filename, nil)
+		}
+	case "routes":
+		if customer || !require("catalog.manage", "sales.manage") {
+			return
+		}
+		if operator != a.Installation.OperatorID {
+			handleError(c, organization.ErrForbidden)
+			return
+		}
+		var rows []struct{ ID, ProviderID, Provider, Model, PublicModelID string }
+		if e := a.DB.WithContext(ctx).Table("tokenhub_upstreams").Select("id,provider_id,public_model_id,definition->>'provider' AS provider,definition->>'model' AS model").Order("id").Scan(&rows).Error; e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, r := range rows {
+			add(r.ID, humanJoin(r.Model, r.Provider, r.PublicModelID), gin.H{"provider_id": r.ProviderID})
 		}
 	case "models":
 		if customer {
@@ -164,7 +240,7 @@ func (a *Application) references(c *gin.Context) {
 		}
 		next = cursor
 		for _, r := range rows {
-			items = append(items, referenceChoice{Value: r.ID, Label: r.DisplayName + " · " + r.ID, Defaults: gin.H{"scope_kind": "customer"}})
+			items = append(items, referenceChoice{Value: r.ID, Label: humanJoin(r.DisplayName, r.Email, "客户"), Defaults: gin.H{"scope_kind": "customer"}})
 		}
 	case "customers":
 		if customer {
@@ -178,13 +254,19 @@ func (a *Application) references(c *gin.Context) {
 		}
 		next = cursor
 		for _, r := range rows {
-			add(r.ID, r.DisplayName+" · "+r.Email, gin.H{"customer_id": r.ID})
+			add(r.ID, humanJoin(r.DisplayName, r.Email), gin.H{"customer_id": r.ID})
 		}
 	case "plans":
 		if !require("sales.manage", "marketing.manage", "refunds.manage") {
 			return
 		}
-		rows, e := a.Commerce.ListPackages(ctx, nil, operator)
+		rows := []commerce.Package{}
+		var e error
+		if customer {
+			rows, e = a.Commerce.ListPackages(ctx, nil, operator)
+		} else {
+			e = a.DB.WithContext(ctx).Table("commerce_packages").Where("operator_id=?", operator).Order("created_at,id").Find(&rows).Error
+		}
 		if e != nil {
 			handleError(c, e)
 			return
@@ -216,13 +298,17 @@ func (a *Application) references(c *gin.Context) {
 		if !require("sales.manage", "refunds.manage", "payments.manage") {
 			return
 		}
-		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, operator, c.Query("cursor"), query, 50)
+		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, operator, c.Query("cursor"), query, 51)
 		if e != nil {
 			handleError(c, e)
 			return
 		}
+		if len(rows) > 50 {
+			rows = rows[:50]
+			next = commerce.NextOrderCursor(rows[49])
+		}
 		for _, r := range rows {
-			add(r.ID, r.Kind+" · "+r.DueUSD.String()+" USD · "+r.Status, gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
+			add(r.ID, humanJoin(map[string]string{"topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}[r.Kind], r.DueUSD.String()+" USD", r.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC")), gin.H{"order_id": r.ID, "customer_id": r.CustomerID})
 		}
 	case "receipts":
 		if customer {
@@ -231,8 +317,18 @@ func (a *Application) references(c *gin.Context) {
 				handleError(c, e)
 				return
 			}
+			if len(rows) == 50 {
+				more, e := a.Commerce.CustomerHistoricalReceiptReferences(ctx, nil, actor, query, rows[49].ID, 1)
+				if e != nil {
+					handleError(c, e)
+					return
+				}
+				if len(more) > 0 {
+					next = rows[49].ID
+				}
+			}
 			for _, r := range rows {
-				add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · 原开票方 "+r.OperatorID, gin.H{"issuer_id": r.OperatorID})
+				add(r.ID, humanJoin(r.Provider, r.GrossUSD.String()+" USD", readableIdentifier(r.ProviderReceiptID)), gin.H{"issuer_id": r.OperatorID})
 			}
 			break
 		}
@@ -243,6 +339,16 @@ func (a *Application) references(c *gin.Context) {
 		if e != nil {
 			handleError(c, e)
 			return
+		}
+		if len(rows) == 50 {
+			more, e := a.Commerce.SearchOperatorReceipts(ctx, nil, operator, query, rows[49].ID, 1)
+			if e != nil {
+				handleError(c, e)
+				return
+			}
+			if len(more) > 0 {
+				next = rows[49].ID
+			}
 		}
 		for _, r := range rows {
 			add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_usd": r.GrossUSD.Sub(r.AllocatedUSD).String(), "currency": r.Currency})
@@ -261,7 +367,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, "供应商 "+r.ProviderID+" · "+r.Fingerprint, gin.H{"id": r.ID, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version})
+			add(r.ID, humanJoin("供应商凭据", readableIdentifier(r.ProviderID), r.Fingerprint), gin.H{"id": r.ID, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version})
 		}
 	case "merchants":
 		if customer {
@@ -277,7 +383,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, r.Driver+" · "+fmt.Sprint(r.Enabled), gin.H{"id": r.ID, "driver": r.Driver, "enabled": r.Enabled, "asset_network_version_id": r.AssetNetworkVersionID, "expected_version": r.Version})
+			add(r.ID, humanJoin(r.Driver, map[bool]string{true: "已启用", false: "未启用"}[r.Enabled]), gin.H{"id": r.ID, "driver": r.Driver, "enabled": r.Enabled, "asset_network_version_id": r.AssetNetworkVersionID, "expected_version": r.Version})
 		}
 	case "supplier-methods":
 		if customer {
@@ -344,7 +450,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, r.PriceUSD.String()+" USD · "+r.PaidATG.String()+" + "+r.GiftATG.String()+" ATG", gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID})
+			add(r.ID, humanJoin(r.Name, r.PriceUSD.String()+" USD", r.PaidATG.String()+" + "+r.GiftATG.String()+" ATG"), gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID})
 		}
 	case "campaigns":
 		if customer {
@@ -378,6 +484,24 @@ func (a *Application) references(c *gin.Context) {
 	default:
 		handleError(c, organization.ErrInvalidInput)
 		return
+	}
+	if !contains([]string{"customers", "scope-subjects", "orders", "receipts", "recipients", "export-subjects"}, kind) {
+		start := 0
+		if cursor := c.Query("cursor"); cursor != "" {
+			for i, item := range items {
+				if item.Value == cursor {
+					start = i + 1
+					break
+				}
+			}
+		}
+		if start > 0 {
+			items = items[start:]
+		}
+		if len(items) > 50 {
+			items = items[:50]
+			next = items[49].Value
+		}
 	}
 	c.JSON(200, gin.H{"items": items, "next_cursor": next})
 }

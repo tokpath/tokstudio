@@ -3,16 +3,20 @@ package operations
 import (
 	"context"
 	"encoding/json"
+	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type RiskRule struct {
 	OperatorID           string          `gorm:"primaryKey" json:"operator_id"`
 	ID                   string          `gorm:"primaryKey" json:"id"`
+	Name                 string          `json:"name"`
 	Metric               string          `json:"metric"`
 	Warning              ledger.Decimal  `json:"warning"`
 	Critical             ledger.Decimal  `json:"critical"`
@@ -44,13 +48,43 @@ func (RiskState) TableName() string { return "operations_risk_states" }
 
 var riskMetrics = map[string]bool{"sales_space_atg": true, "procurement_available_atg": true, "oversell_used_atg": true, "pending_usage": true, "unverified_costs": true}
 
+// RiskMetricName keeps the default rule name and notifications understandable
+// without exposing the internal metric key to the person responding to it.
+func RiskMetricName(metric string) string {
+	switch metric {
+	case "sales_space_atg":
+		return "剩余销售空间 ATG"
+	case "procurement_available_atg":
+		return "采购可用余额 ATG"
+	case "oversell_used_atg":
+		return "已用超卖额度 ATG"
+	case "pending_usage":
+		return "在途及待结算请求数"
+	case "unverified_costs":
+		return "待核实上游成本数"
+	default:
+		return metric
+	}
+}
+
+func (r RiskRule) DisplayName() string {
+	if name := strings.TrimSpace(r.Name); name != "" {
+		return name
+	}
+	return RiskMetricName(r.Metric) + "预警"
+}
+
 func (s *Service) SaveRiskRule(ctx context.Context, actor string, r RiskRule, expected int64) (RiskRule, error) {
 	return s.SaveRiskRuleTx(ctx, nil, actor, r, expected)
 }
 
 func (s *Service) SaveRiskRuleTx(ctx context.Context, tx *gorm.DB, actor string, r RiskRule, expected int64) (RiskRule, error) {
-	if r.ID == "" || len(r.ID) > 100 || !riskMetrics[r.Metric] || r.ReminderSeconds < 60 || r.ReminderSeconds > 86400*30 || r.EscalateSeconds < 60 || r.EscalateSeconds > 86400*30 || !r.Warning.Valid() || !r.Critical.Valid() {
+	r.Name = strings.TrimSpace(r.Name)
+	if expected < 0 || (r.ID == "" && expected != 0) || len(r.ID) > 100 || utf8.RuneCountInString(r.Name) > 100 || !riskMetrics[r.Metric] || r.ReminderSeconds < 60 || r.ReminderSeconds > 86400*30 || r.EscalateSeconds < 60 || r.EscalateSeconds > 86400*30 || !r.Warning.Valid() || !r.Critical.Valid() {
 		return r, ErrInvalid
+	}
+	if r.ID == "" {
+		r.ID = uuid.NewString()
 	}
 	if (r.Direction == "below" && r.Critical.Cmp(r.Warning) > 0) || (r.Direction == "above" && r.Critical.Cmp(r.Warning) < 0) || (r.Direction != "below" && r.Direction != "above") {
 		return r, ErrInvalid
@@ -80,6 +114,7 @@ func (s *Service) SaveRiskRuleTx(ctx context.Context, tx *gorm.DB, actor string,
 		if (q.RowsAffected == 0 && expected != 0) || (q.RowsAffected > 0 && old.Version != expected) {
 			return ErrConflict
 		}
+		r.Name = r.DisplayName()
 		r.Version = expected + 1
 		r.UpdatedBy = actor
 		r.UpdatedAt = time.Now().UTC()
@@ -93,7 +128,7 @@ func (s *Service) ListRiskRules(ctx context.Context, actor, operator string) ([]
 		if e := s.require(ctx, t, actor, operator, "operations.manage"); e != nil {
 			return e
 		}
-		return t.Where("operator_id=?", operator).Order("id").Find(&out).Error
+		return t.Where("operator_id=?", operator).Order("name,id").Find(&out).Error
 	})
 	return out, e
 }
@@ -187,9 +222,9 @@ func (s *Service) RunRisks(ctx context.Context, operator string) ([]RiskState, e
 				if severity == "normal" {
 					severity = "info"
 				}
-				title := "经营预警：" + r.Metric
+				title := "经营预警：" + r.DisplayName()
 				if next == "normal" {
-					title = "经营预警已恢复：" + r.Metric
+					title = "经营预警已恢复：" + r.DisplayName()
 				}
 				for _, id := range recipients {
 					if seen[id] {

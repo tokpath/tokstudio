@@ -151,9 +151,10 @@ it("reads authorization revisions for the selected buyer and clears stale model 
   const buyer=screen.getByRole("combobox",{name:"被授权的直属下级"});await waitFor(()=>expect((buyer as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(buyer,{target:{value:"buyer-one"}});await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(model,{target:{value:"model-one"}});
-  const version=screen.getByLabelText(/^当前上架 \/ 授权版本/);expect((version as HTMLInputElement).disabled).toBe(true);expect((version as HTMLInputElement).value).toBe("3");
-  fireEvent.change(buyer,{target:{value:"buyer-two"}});expect((model as HTMLSelectElement).value).toBe("");expect((version as HTMLInputElement).value).toBe("");
-  await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));fireEvent.change(model,{target:{value:"model-one"}});expect((version as HTMLInputElement).value).toBe("9");
+  expect(screen.queryByLabelText(/^当前上架 \/ 授权版本/)).toBeNull();
+  const technical=screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement;expect(JSON.parse(technical.value).expected_version).toBe(3);
+  fireEvent.change(buyer,{target:{value:"buyer-two"}});expect((model as HTMLSelectElement).value).toBe("");expect(JSON.parse(technical.value).expected_version).toBe("");
+  await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));fireEvent.change(model,{target:{value:"model-one"}});expect(JSON.parse(technical.value).expected_version).toBe(9);
   fireEvent.click(screen.getByRole("button",{name:"授权或上架模型",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body)).configuration).toMatchObject({action:"authorization",buyer_id:"buyer-two",model_id:"model-one",expected_version:9});
   expect(fetch.mock.calls.some(call=>String(call[0]).includes("buyer_id=buyer-one"))).toBe(true);expect(fetch.mock.calls.some(call=>String(call[0]).includes("buyer_id=buyer-two"))).toBe(true);
@@ -269,4 +270,25 @@ it("copies only explicit order and receipt dependencies without unrelated defaul
   for(const [label,value]of [["原订单","order-one"],["原收款","receipt-one"]]){const select=screen.getByRole("combobox",{name:label});await waitFor(()=>expect((select as HTMLSelectElement).disabled).toBe(false));fireEvent.change(select,{target:{value}});}
   fireEvent.click(screen.getByRole("button",{name:"关联收款",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body))).toEqual({order_id:"order-one",customer_id:"customer-one",receipt_id:"receipt-one",amount_usd:"4.123456789012345678",currency:"USD",issuer_id:"issuer-one",gift_atg:"2",expected_version:7});
+});
+
+it("shows real FX fields for unknown and stablecoin currencies and omits them for native USD",async()=>{
+  const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"refund",status:"verified"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  mount({name:"verify",label:"核实退款",method:"POST",path:"/api/v1/operators/operator-one/exits/leg/verify_manual",fields:[{name:"proof.money.currency",label:"实际退款币种",kind:"text",required:true},{name:"proof.external_reference",label:"实际银行流水",kind:"text",required:true},{name:"valuation.usd_per_unit",label:"本次真实汇率",kind:"decimal",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}},{name:"fx_execution_reference",label:"真实换汇凭据",kind:"text",required:true,visible_when:{field:"proof.money.currency",values:["USD"],not:true,fallback_fields:["asset","currency"]}}]});
+  expect(screen.getByLabelText(/本次真实汇率/,{selector:"input"})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText(/实际退款币种/,{selector:"input"}),{target:{value:"USDC"}});
+  expect(screen.getByLabelText(/真实换汇凭据/,{selector:"input"})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText(/实际银行流水/,{selector:"input"}),{target:{value:"actual-bank-reference"}});
+  fireEvent.change(screen.getByLabelText(/实际退款币种/,{selector:"input"}),{target:{value:"USD"}});
+  expect(screen.queryByLabelText(/本次真实汇率/,{selector:"input"})).toBeNull();
+  expect(screen.queryByLabelText(/真实换汇凭据/,{selector:"input"})).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:"核实退款",exact:true}));
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({proof:{money:{currency:"USD"},external_reference:"actual-bank-reference"}});
+});
+
+it("reads the locked EVM asset for FX visibility even when no money currency field exists",()=>{
+  const operation:Operation={name:"verify",label:"查验链上退款",method:"POST",path:"/api/v1/operators/operator-one/refunds/leg/verify_evm",fields:[{name:"valuation.source",label:"实际估值来源",kind:"text",required:true,visible_when:{field:"asset",values:["USD"],not:true,fallback_fields:["currency"]}}]};
+  show(operation,{id:"leg",values:{asset:"USDC"}});
+  expect(screen.getByLabelText(/实际估值来源/,{selector:"input"})).toBeTruthy();
 });

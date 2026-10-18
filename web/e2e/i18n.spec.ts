@@ -125,8 +125,8 @@ test("operator server metadata translates while authored Chinese names and evide
   await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource(), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_usd: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_usd", label: "申请金额 USD", kind: "usd" }] } }));
   await page.goto(`/manage/${operator.id}/invoices`); await page.getByTestId("language-selector").selectOption("en");
   await expect(page.getByRole("heading", { name: "Items awaiting review", exact: true })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: text("en", "名称与编号"), exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "核实收款 invoice-i18n", exact: true })).toBeVisible(); await expect(page.getByRole("cell", { name: "查看详情", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: text("en", "名称与事项"), exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "核实收款", exact: true })).toBeVisible(); await expect(page.getByRole("cell", { name: "查看详情", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "View details", exact: true }).click(); const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "核实收款", exact: true })).toBeVisible();
   await expect(dialog.getByText("Record type", { exact: true }).filter({ visible: true })).toBeVisible();

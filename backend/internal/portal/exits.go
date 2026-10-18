@@ -187,13 +187,21 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 	p["items"] = items
 	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("buyer_id", "采购方", "text"), col("supplier_id", "供货方", "text"), col("contract_usd", "合同退款责任", "usd"), col("book_cost_usd", "退出账面成本", "usd"), col("cost_difference_usd", "合同与成本差额", "usd"), col("refunded_usd", "已核实退回", "usd"), col("receipt_id", "原收款", "text")}
 	p["operations"] = []operation{{Name: "request", Label: "按合同申请退出库存", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "request"), selectField("mode", "退出原因", "voluntary_exit|按合同自愿退出", "supply_failure|已有供货失约批准"), f("quantity", "拟移除采购库存ATG", "decimal"), optional("approval_id", "供货失约批准编号（失约退出必填）", "text"), f("evidence", "合同依据与未了责任处理证据", "textarea")}, Confirmation: "将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。"}, {Name: "approve_failure", Label: "供货方批准真实供货失约", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "approve_failure"), f("buyer_id", "直属采购方编号", "text"), f("evidence", "实际供货失约与承接责任依据", "textarea")}}}
-	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录原路银行退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "原银行路线与付款计划证据", "textarea")}, Confirmation: "仅保存唯一付款意图，不能把计划当作银行退款成功。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{f("proof.receipt_id", "原收款ID", "text"), f("proof.external_reference", "真实银行退款唯一流水", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "银行核实证据", "textarea"), f("proof.recipient_reference", "原已核实付款人账户", "text")}, executionValuationFields()...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields()...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
+	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录原路银行退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "原银行路线与付款计划证据", "textarea")}, Confirmation: "仅保存唯一付款意图，不能把计划当作银行退款成功。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{f("proof.receipt_id", "原收款ID", "text"), f("proof.external_reference", "真实银行退款唯一流水", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "银行核实证据", "textarea"), f("proof.recipient_reference", "原已核实付款人账户", "text")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
 	p["row_operations"] = append(p["row_operations"].([]operation), procurementDestinationOperations(base)...)
 	p["columns"] = append(p["columns"].([]gin.H), col("actual_usd", "实际累计退付USD", "usd"), col("settled_usd", "清偿责任USD", "usd"), col("remaining_usd", "待付余量USD", "usd"), col("excess_usd", "多付异常USD", "usd"), col("network", "准确网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "明确授权地址", "text"), col("authorization_id", "独立核实授权", "text"), col("route_version", "剩余款路线版本", "text"), col("route_history", "已封存历史", "details"))
 	a.resourceResponse(c, p)
 }
-func executionValuationFields() []field {
-	return []field{f("valuation.id", "本次估值事实编号", "text"), f("valuation.currency", "本次估值币种", "text"), f("valuation.usd_per_unit", "本次真实每单位USD", "decimal"), f("valuation.source", "本次授权汇率/实际换汇依据", "text"), f("valuation.effective_at", "本次估值生效", "datetime"), f("valuation.expires_at", "本次估值失效", "datetime"), f("valued_at", "实际估值时刻", "datetime"), f("fx_execution_reference", "本次执行凭证/原币种结算依据", "text")}
+func executionValuationFields(currencyFields ...string) []field {
+	currency := "currency"
+	if len(currencyFields) > 0 {
+		currency = currencyFields[0]
+	}
+	fields := []field{f("valuation.currency", "本次估值币种", "text"), f("valuation.usd_per_unit", "本次真实每单位USD", "decimal"), f("valuation.source", "本次授权汇率/实际换汇依据", "text"), f("valuation.effective_at", "本次估值生效", "datetime"), f("valuation.expires_at", "本次估值失效", "datetime"), f("valued_at", "实际估值时刻", "datetime"), f("fx_execution_reference", "本次执行凭证/原币种结算依据", "text")}
+	for i := range fields {
+		fields[i].VisibleWhen = &fieldVisibility{Field: currency, Values: []string{"USD"}, Not: true, FallbackFields: []string{"asset", "currency"}}
+	}
+	return fields
 }
 func (a *Application) exitsCommand(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
@@ -262,6 +270,7 @@ func (a *Application) exitsAction(c *gin.Context, op organization.Operator, acto
 		e = err
 		result = commandResult(out.ID, out.State)
 	case "execute_refund":
+		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-api:"+op.ID+":"+id, in.Money.Currency)
 		out, err := a.ProcurementRefunds.Execute(ctx, actor, id, in.Money, in.Valuation, in.ValuedAt, in.FX)
 		e = err
 		result = commandResult(id, out.State)
@@ -270,6 +279,7 @@ func (a *Application) exitsAction(c *gin.Context, op organization.Operator, acto
 		e = err
 		result = commandResult(id, out.State)
 	case "verify_manual":
+		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-bank:"+op.ID+":"+id+":"+in.Proof.ExternalReference, in.Proof.Money.Currency)
 		out, err := a.ProcurementRefunds.RecordManualRefund(ctx, actor, id, in.Proof, in.Valuation, in.ValuedAt, in.FX)
 		e = err
 		result = commandResult(id, out.State)

@@ -35,6 +35,7 @@ func (a *Application) receiptValuationsResource(c *gin.Context, op organization.
 		v["actual_paid_at"] = v["paid_at"]
 		delete(v, "paid_at") // Known immutable provider time is displayed, never resubmitted with browser datetime precision loss.
 		v["currency"] = r.Money.Currency
+		v["valuation"] = gin.H{"currency": r.Money.Currency}
 		items = append(items, entity(r.FactID, r.State, 0, v))
 	}
 	p["items"], p["next_cursor"] = items, next

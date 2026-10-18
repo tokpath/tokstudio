@@ -144,3 +144,21 @@ test('generator check is reproducible and does not write reviewed or generated a
   assert.match(output, /Verified .* paths, .* schemas and all references/);
   assert.deepEqual(files.map(file => fs.readFileSync(path.join(__dirname, file), 'utf8')), before);
 });
+
+test('automatic login and managed staff onboarding do not require an upfront identity or expose passwords', () => {
+  assert.deepEqual(document.components.schemas.LoginInput.required, ['email', 'password']);
+  const login = document.paths['/v1/auth/login'].post.responses['200'].content['application/json'].schema;
+  assert.equal(login.$ref, '#/components/schemas/LoginResult');
+  const staff = body('staff');
+  assert.equal(staff.properties.initial_password.writeOnly, true);
+  assert.equal(document.components.schemas.CommandResult.properties.initial_password, undefined);
+  assert.ok(document.paths['/v1/auth/staff-password'].post);
+});
+
+test('contracts are private multipart uploads and renewal consent can identify the reviewed quote', () => {
+  assert.ok(operation('contracts').requestBody.content['multipart/form-data']);
+  assert.ok(operation('contracts/{id}/content', 'get').security.length);
+  const renewal = document.paths['/v1/me/plans/{id}/renewal'].patch;
+  assert.equal(renewal.requestBody.content['application/json'].schema.properties.quote_id.format, 'uuid');
+  assert.ok(document.components.schemas.Quote.properties.terms_summary);
+});

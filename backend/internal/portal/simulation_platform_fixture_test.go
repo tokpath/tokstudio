@@ -75,7 +75,13 @@ func TestPostgresStaffWorkspaceIdentifiesPeopleAndOffersNamedInvitationRoles(t *
 		t.Fatal("staff cannot be identified by name and email", person)
 	}
 	operation := page["operations"].([]any)[0].(map[string]any)
-	role := operation["fields"].([]any)[1].(map[string]any)
+	var role map[string]any
+	for _, value := range operation["fields"].([]any) {
+		field := value.(map[string]any)
+		if field["name"] == "role" {
+			role = field
+		}
+	}
 	if role["kind"] != "select" || len(role["options"].([]any)) != 5 {
 		t.Fatal("invitation requires guessing role enum instead of a named choice", role)
 	}

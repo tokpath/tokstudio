@@ -13,7 +13,6 @@ function control(scope: Page | Locator, label: string, exact = false) {
 
 async function login(page: Page, account: { email: string; password: string }, kind = "staff") {
   await page.goto("/login");
-  await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
   await control(page, "邮箱", true).fill(account.email);
   await control(page, "密码", true).fill(account.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -37,7 +36,17 @@ async function submit(page: Page, dialog: Locator, label: string, path: string):
   return result;
 }
 async function close(dialog: Locator) { await dialog.getByRole("button", { name: "关闭办理面板", exact: true }).click(); }
-async function config(dialog: Locator, value: unknown) { await control(dialog, "完整技术配置 JSON", true).fill(JSON.stringify(value)); }
+function mergeConfig(current: unknown, next: unknown): unknown {
+  if (!current || !next || typeof current !== "object" || typeof next !== "object" || Array.isArray(current) || Array.isArray(next)) return next;
+  const before = current as Record<string, unknown>, after = next as Record<string, unknown>;
+  return Object.fromEntries(Object.entries({ ...before, ...after }).map(([key, value]) => [key, key in before && key in after ? mergeConfig(before[key], after[key]) : value]));
+}
+async function config(dialog: Locator, value: unknown) {
+  const input = control(dialog, "完整技术配置 JSON", true);
+  // Preserve the form's generated identities and automatic revision defaults.
+  // Assertions obtain those identifiers from the successful POST afterwards.
+  await input.fill(JSON.stringify(mergeConfig(JSON.parse(await input.inputValue()), value)));
+}
 const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 async function evidence(info: TestInfo, name: string, facts: unknown) {
   const path = info.outputPath(`${name}.json`); writeFileSync(path, JSON.stringify(facts, null, 2));
@@ -54,7 +63,7 @@ test("technical administrator configures a real provider, verified model and rou
   const techContext = await browser.newContext(), ownerContext = await browser.newContext(), customerContext = await browser.newContext();
   const tech = await techContext.newPage(), owner = await ownerContext.newPage(), customer = await customerContext.newPage();
   const errors: string[] = []; for (const page of [tech, owner, customer]) { page.setDefaultTimeout(20_000); page.on("pageerror", error => errors.push(error.message)); }
-  const model = `simulation-${randomUUID()}`, base = `/api/v1/operators/${p.operator_id}`;
+  const model = `simulation-${randomUUID()}`, modelName = `平台仿真聊天模型-${randomUUID()}`, revisedModelName = `${modelName}（已修订）`, base = `/api/v1/operators/${p.operator_id}`;
   let route = "";
   const cap = { operation: "chat", streaming: false, input_types: ["text"], parameters: ["max_completion_tokens"], required_parameters: ["max_completion_tokens"], output_limit_parameter: "max_completion_tokens", max_input_bytes: 10000, max_output: 1000, billable_bounds: { input: "1000", output: "1000" }, usage_rules: [{ component: "input", unit: "token", path: "/prompt_tokens", zero_when_absent: false }, { component: "output", unit: "token", path: "/completion_tokens", zero_when_absent: false }], evidence_id: `independent-protocol:${p.lab_url}`, verified_at: new Date().toISOString(), parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true };
   try {
@@ -69,9 +78,11 @@ test("technical administrator configures a real provider, verified model and rou
     const credentialResponse = await submit(tech, dialog, "创建或轮换凭据", `${base}/providers`);
     const credential = await credentialResponse.json(); await close(dialog);
     const credentials = await (await tech.request.get(`${base}/providers`)).json();
-    const provider = credentials.items.find((row: any) => row.id === credential.id).values.provider_id;
+    const credentialView = credentials.items.find((row: any) => row.id === credential.id);
+    const provider = credentialView.values.provider_id;
+    expect(credentialView.presentation?.title).toBeTruthy();
     expect(JSON.stringify(credentials)).not.toContain("isolated-simulation-provider-key");
-    dialog = await panel(tech, "轮换凭据", tech.getByRole("row").filter({ hasText: credential.id }));
+    dialog = await panel(tech, "轮换凭据", tech.getByRole("row").filter({ hasText: credentialView.presentation.title }));
     await control(dialog, "新的供应商密钥", false).fill("isolated-simulation-provider-key-rotated");
     const rotated = await submit(tech, dialog, "创建或轮换凭据", `${base}/providers`);
     expect((await rotated.json()).version).toBe(2);
@@ -81,35 +92,33 @@ test("technical administrator configures a real provider, verified model and rou
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "维护公开模型与能力证据");
-    await config(dialog, { model: { id: model, identity: model, display_name: "平台仿真聊天模型", enabled: false, capabilities: [cap] }, expected_version: 0 });
+    await config(dialog, { model: { id: model, identity: model, display_name: modelName, enabled: false, capabilities: [cap] }, expected_version: 0 });
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
-    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: model }));
+    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: modelName }));
     await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
-    await control(dialog, "客户看到的模型名称", false).fill("平台仿真聊天模型（已修订）");
+    await control(dialog, "客户看到的模型名称", false).fill(revisedModelName);
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
     dialog = await panel(tech, "维护已验证路由");
-    const generatedRoute = dialog.locator('[data-config-path="upstream.id"] input');
-    await expect(generatedRoute).toBeDisabled();
-    route = await generatedRoute.inputValue();
-    expect(route).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    await config(dialog, { upstream: { id: route, public_model_id: model, identity: model, provider_id: provider, provider: "openai", model: "test-chat", credential_id: credential.id, enabled: true, healthy: true, priority: 10, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap] }, expected_version: 0 });
+    await expect(dialog.locator('[data-config-path="upstream.id"] input')).toHaveCount(0);
+    await config(dialog, { upstream: { public_model_id: model, identity: model, provider_id: provider, provider: "openai", model: "test-chat", credential_id: credential.id, enabled: true, healthy: true, priority: 10, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap] }, expected_version: 0 });
     const routeCreated = await submit(tech, dialog, "维护已验证路由", `${base}/routes`);
+    route = (await routeCreated.json()).id;
+    expect(route).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(routeCreated.request().postDataJSON().configuration.upstream.id).toBe(route);
-    expect((await routeCreated.json()).id).toBe(route);
     await close(dialog);
-    dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: model }));
+    dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await control(dialog, "选路优先级", false).fill("11");
     await submit(tech, dialog, "维护已验证路由", `${base}/routes`); await close(dialog);
-    dialog = await panel(tech, "设置并发、熔断与恢复", tech.getByRole("row").filter({ hasText: model }));
+    dialog = await panel(tech, "设置并发、熔断与恢复", tech.getByRole("row").filter({ hasText: revisedModelName }));
     for (const [label, value] of [["此上游最大同时在途", "5"], ["连续失败熔断阈值", "3"], ["未知用量熔断阈值", "2"], ["恢复所需成功探测次数", "2"], ["熔断冷却秒数", "60"]]) await control(dialog, label, false).fill(value);
     await submit(tech, dialog, "设置并发、熔断与恢复", `${base}/routes/${route}/limits`); await close(dialog);
     const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === route);
     expect(savedRoute.version).toBe(3); expect(savedRoute.values.priority).toBe(11); expect(savedRoute.values.credential_id).toBe(credential.id);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: model }));
+    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await dialog.getByRole("checkbox", { name: "开放模型", exact: false }).check();
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
@@ -139,14 +148,12 @@ test("technical administrator configures a real provider, verified model and rou
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
     for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supplier", seller_id: provider, buyer_id: route }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
       dialog = await panel(owner, "发布价格版本");
-      const generatedPrice = dialog.locator('[data-config-path="price.id"] input');
-      await expect(generatedPrice).toBeDisabled();
-      const priceID = await generatedPrice.inputValue();
-      expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-      await config(dialog, { action: scope.kind === "supplier" ? "bootstrap_price" : "price", price: { id: priceID, scope, model_id: model, layer: "regular", effective_at: scope.kind === "supplier" ? new Date(Date.now() - 60_000).toISOString() : effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
+      await expect(dialog.locator('[data-config-path="price.id"] input')).toHaveCount(0);
+      await config(dialog, { action: scope.kind === "supplier" ? "bootstrap_price" : "price", price: { scope, model_id: model, layer: "regular", effective_at: scope.kind === "supplier" ? new Date(Date.now() - 60_000).toISOString() : effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
       const publication = await submit(owner, dialog, "发布价格版本", `${base}/pricing`);
-      expect(publication.request().postDataJSON().configuration.price.id).toBe(priceID);
       const published = await publication.json();
+      const priceID = publication.request().postDataJSON().configuration.price.id;
+      expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
       if (scope.kind === "supplier") expect(published.id).toBe(priceID);
       else {
         const changes = await (await owner.request.get(`${base}/catalog-changes`)).json();
@@ -277,18 +284,19 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
   try {
     await login(employee, p.restricted);
     await employee.goto(`/manage/${p.operator_id}/staff`);
-    await expect(employee.getByRole("button", { name: "邮件邀请经营人员", exact: true })).toHaveCount(0);
+    await expect(employee.getByRole("button", { name: "开通或邀请经营人员", exact: true })).toHaveCount(0);
     expect((await employee.request.get(`${base}/catalog`)).status()).toBe(403);
     expect((await employee.request.get(`${base}/payments`)).status()).toBe(403);
     await employee.getByRole("button", { name: "退出", exact: true }).click();
     await expect(employee.getByRole("button", { name: "退出", exact: true })).toHaveCount(0);
     await login(page, { email: fixture.owner_email, password: fixture.owner_password });
     await page.goto(`/manage/${p.operator_id}/staff`);
-    let dialog = await panel(page, "邮件邀请经营人员");
+    let dialog = await panel(page, "开通或邀请经营人员");
     const email = `invited-${randomUUID()}@simulation.test`, password = "invited-simulation-password";
-    await control(dialog, "邮箱", false).fill(email);
-    await dialog.getByRole("combobox", { name: "受邀角色", exact: false }).selectOption("readonly");
-    await submit(page, dialog, "邮件邀请经营人员", `${base}/staff`); await close(dialog);
+    await dialog.getByRole("combobox", { name: "开通方式", exact: true }).selectOption("email");
+    await control(dialog, "登录邮箱", true).fill(email);
+    await dialog.getByRole("combobox", { name: "角色", exact: true }).selectOption("readonly");
+    await submit(page, dialog, "开通或邀请经营人员", `${base}/staff`); await close(dialog);
     let invitationURL = "";
     await expect.poll(() => {
       try {
@@ -302,14 +310,14 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await employee.goto(new URL(invitationURL).pathname + new URL(invitationURL).search);
     await control(employee, "显示名称", false).fill("已邀请受限员工");
     await control(employee, "经营人员密码", false).fill(password);
-    await employee.getByRole("button", { name: "验证邮箱并接受邀请", exact: true }).click();
+    await employee.getByRole("button", { name: "接受邀请", exact: true }).click();
     await expect(employee.getByText("邀请已接受。", { exact: false })).toBeVisible();
     await login(employee, { email, password });
     const session = await (await employee.request.get("/api/v1/auth/me")).json(), staffID = session.staff.id;
     const memberships = await (await page.request.get(`${base}/staff`)).json();
     const membershipID = memberships.items.find((item: any) => item.values.staff_id === staffID).id;
     await page.reload();
-    const staffRow = page.getByRole("row").filter({ hasText: staffID });
+    const staffRow = page.getByRole("row").filter({ hasText: email });
     dialog = await panel(page, "调整当前成员角色", staffRow);
     await dialog.getByRole("combobox", { name: "角色", exact: false }).selectOption("custom");
     for (const label of ["查看合作主体", "查看人员", "查看经营汇总", "维护平台模型与路由"]) await dialog.getByRole("checkbox", { name: label, exact: true }).check();
@@ -325,17 +333,20 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     expect((await employee.request.get(`${base}/exports`)).status()).toBe(403);
     await employee.goto(`/manage/${p.operator_id}/staff`);
     await expect(employee.getByRole("button", { name: "调整当前成员角色", exact: true })).toHaveCount(0);
-    await expect(employee.getByRole("button", { name: "邮件邀请经营人员", exact: true })).toHaveCount(0);
+    await expect(employee.getByRole("button", { name: "开通或邀请经营人员", exact: true })).toHaveCount(0);
 
     await page.goto(`/manage/${p.operator_id}/risk`);
     dialog = await panel(page, "新增预警规则");
-    const rule = `simulation-rule-${randomUUID()}`;
-    await control(dialog, "规则编号", false).fill(rule);
+    const rule = `仿真请求积压提醒-${randomUUID()}`;
+    await expect(control(dialog, "规则编号", false)).toHaveCount(0);
+    await control(dialog, "规则名称", false).fill(rule);
     await dialog.getByRole("combobox", { name: "真实指标", exact: false }).selectOption("pending_usage");
     await control(dialog, "预警阈值", false).fill("1"); await control(dialog, "严重阈值", false).fill("3");
     await dialog.getByRole("combobox", { name: "触发方向", exact: false }).selectOption("above");
-    await control(dialog, "通知收件人ID", false).fill(p.customer.id);
-    await submit(page, dialog, "新增预警规则", `${base}/risk`); await close(dialog);
+    await dialog.locator('[data-command-field="recipients"] label').filter({ hasText: fixture.owner_email }).getByRole("checkbox").check();
+    const createdRule = await (await submit(page, dialog, "新增预警规则", `${base}/risk`)).json();
+    expect(createdRule.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    await close(dialog);
     dialog = await panel(page, "修订此预警规则", page.getByRole("row").filter({ hasText: rule }));
     await expect(control(dialog, "预警阈值", false)).toHaveValue("1");
     await control(dialog, "预警阈值", false).fill("2");
@@ -345,7 +356,9 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await page.goto(`/manage/${p.operator_id}/notifications`);
     dialog = await panel(page, "发送业务通知");
     const title = `仿真业务通知-${randomUUID()}`;
-    await control(dialog, "本经营范围收件人编号", false).fill(p.customer.id);
+    const recipient = dialog.locator('[data-command-field="recipient_id"]');
+    await recipient.getByRole("textbox").fill(p.customer.email);
+    await recipient.getByRole("combobox").selectOption(p.customer.id);
     await dialog.getByRole("combobox", { name: "通知类别", exact: false }).selectOption("mandatory");
     await dialog.getByRole("combobox", { name: "级别", exact: false }).selectOption("info");
     await control(dialog, "标题", false).fill(title); await control(dialog, "通知正文", false).fill("平台模型和品牌配置实际仿真完成，本通知关联真实业务记录。");
@@ -373,6 +386,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
       await page.reload();
       const exports = await (await page.request.get(`${base}/exports`)).json(), exportRow = exports.items.find((item: any) => item.id === exportResult.id);
       const downloadLink = page.locator(`a[href="${base}/exports/${exportResult.id}/download"]`);
+      await expect(page.getByRole("columnheader", { name: "记录数", exact: true })).toBeVisible();
       const countColumn = await page.getByRole("columnheader").allTextContents();
       const countIndex = countColumn.findIndex(label => label.trim() === "记录数");
       expect(countIndex).toBeGreaterThanOrEqual(0);

@@ -9,7 +9,6 @@ const fixture = () => JSON.parse(readFileSync(fixturePath!, "utf8"));
 type Persona = { id: string; email: string; password: string; invite_code: string };
 async function login(page: Page, person: Persona | { email: string; password: string }, staff = false) {
   await page.goto("/login");
-  await page.getByRole("radio", { name: staff ? "经营人员" : "客户", exact: true }).check();
   await page.getByLabel("邮箱", { exact: true }).fill(person.email);
   await page.getByLabel("密码", { exact: true }).fill(person.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -241,7 +240,9 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await staff.goto(`/manage/${f.operator_id}/notifications`);
     await staff.getByRole("button", { name: "发送业务通知", exact: true }).click();
     const noticePanel = staff.getByRole("dialog").last();
-    await noticePanel.getByLabel("本经营范围收件人编号", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(f.buyer.id);
+    const recipient = noticePanel.locator('[data-command-field="recipient_id"]');
+    await recipient.getByRole("textbox").fill(f.buyer.email);
+    await recipient.getByRole("combobox").selectOption(f.buyer.id);
     await noticePanel.getByLabel("通知类别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("mandatory");
     await noticePanel.getByLabel("级别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("info");
     const necessaryTitle = "已退订营销后仍收到的必要履约通知 " + randomUUID().slice(0,8);

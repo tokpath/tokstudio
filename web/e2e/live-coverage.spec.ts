@@ -115,7 +115,6 @@ async function login(browser: Browser, kind: "staff" | "customer") {
   try {
     const page = await context.newPage();
     await page.goto("/login");
-    await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
     await page.getByLabel("邮箱", { exact: true }).fill(kind === "staff" ? fixture.owner_email : fixture.customer_email);
     await page.getByLabel("密码", { exact: true }).fill(kind === "staff" ? fixture.owner_password : fixture.customer_password);
     const response = page.waitForResponse(response => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/v1/auth/login");

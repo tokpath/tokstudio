@@ -48,6 +48,7 @@ type PackageQuote struct {
 	Period         ledger.Period  `json:"period"`
 	Timezone       string         `json:"timezone"`
 	TermsReference string         `json:"terms_reference"`
+	TermsSummary   string         `json:"terms_summary"`
 	CreatedAt      time.Time      `json:"created_at"`
 }
 type PublishPackageInput struct {
@@ -56,6 +57,7 @@ type PublishPackageInput struct {
 	PackageID          string         `json:"package_id"`
 	Name               string         `json:"name"`
 	TermsReference     string         `json:"terms_reference"`
+	TermsSummary       string         `json:"terms_summary"`
 	Timezone           string         `json:"timezone"`
 	ExpectedVersion    int64          `json:"expected_version"`
 	PriceUSD           ledger.Decimal `json:"price_usd"`

@@ -18,14 +18,14 @@ func businessFields(o operation) []field {
 			resource = parts[i+1]
 		}
 	}
-	version := defaultField("expected_version", "当前版本（首次填写0）", "integer", 0)
+	version := defaultField("expected_version", "当前版本", "hidden", 0)
 	switch resource {
 	case "plans":
 		period := selectField("period", "有效期", "lifetime|不限期", "month|一个日历月", "quarter|三个日历月", "year|十二个日历月")
 		period.Help = "套餐期限从每次成功交付时开始，按经营时区计算一个、三个或十二个日历月，到期后剩余额度不可用；不限期额度不过期。是否续费由客户授权决定，与 API Key 的自然周期预算分别管理。"
-		return []field{optional("package_id", "现有套餐编号（新建留空）", "text"), f("name", "套餐名称", "text"), f("price_usd", "成交价格 USD", "decimal"), f("paid_atg", "购买权益 ATG", "decimal"), defaultField("gift_atg", "套餐赠送 ATG", "decimal", "0"), period, defaultField("timezone", "经营时区", "text", "Asia/Shanghai"), f("terms_reference", "对客户公示条款编号", "text"), defaultField("new_purchase_enabled", "允许新购", "boolean", true), defaultField("renewal_enabled", "允许续费", "boolean", false), version}
+		return []field{optional("package_id", "现有套餐编号（新建留空）", "text"), f("name", "套餐名称", "text"), f("price_usd", "成交价格 USD", "decimal"), f("paid_atg", "购买权益 ATG", "decimal"), defaultField("gift_atg", "套餐赠送 ATG", "decimal", "0"), period, defaultField("timezone", "经营时区", "text", "Asia/Shanghai"), packageTermsField(), defaultField("new_purchase_enabled", "允许新购", "boolean", true), defaultField("renewal_enabled", "允许续费", "boolean", false), version}
 	case "operators":
-		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), optional("brand_name", "OEM品牌名称", "text"), optional("api_base_url", "OEM API入口", "text"), f("quote_reference", "供货条款编号", "text"), f("exit_terms_reference", "退出条款编号", "text")}
+		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
 	case "commissions":
 		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), f("confirmation_seconds", "消费确认等待秒数", "integer"), f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), f("reward_validity_seconds", "注册奖励有效秒数", "integer"), f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
 	case "activities", "marketing":
@@ -37,9 +37,9 @@ func businessFields(o operation) []field {
 	case "notifications":
 		return []field{f("recipient_id", "本经营范围收件人编号", "text"), selectField("category", "通知类别", "mandatory|必要业务通知", "usage|用量提醒", "marketing|已获授权营销"), selectField("severity", "级别", "info|一般", "warning|预警", "critical|紧急"), f("title", "标题", "text"), f("body", "通知正文", "textarea"), f("reference", "业务关联依据", "text")}
 	case "exports":
-		return []field{selectField("kind", "导出业务", "ledger|账本", "requests|请求", "procurement|采购"), optional("owner_id", "限定主体编号（留空当前范围）", "text"), f("from", "起始时间", "datetime"), f("to", "截至时间", "datetime")}
+		return []field{selectField("kind", "导出业务", "ledger|账本", "requests|请求", "procurement|采购"), optional("owner_id", "限定客户或合作方（留空导出当前范围）", "text"), f("from", "起始时间", "datetime"), f("to", "截至时间", "datetime")}
 	case "risk", "alerts":
-		return []field{f("id", "规则编号", "text"), selectField("metric", "真实指标", "sales_space_atg|剩余销售空间ATG", "procurement_available_atg|采购可用ATG", "oversell_used_atg|已用超卖ATG", "pending_usage|待结请求数", "unverified_costs|未知成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|低于阈值", "above|高于阈值"), f("recipients", "通知收件人ID（逗号分隔）", "csv"), optional("escalation_recipients", "升级收件人ID（逗号分隔）", "csv"), defaultField("reminder_seconds", "持续风险提醒间隔秒数", "integer", 3600), defaultField("escalate_seconds", "升级等待秒数", "integer", 86400), defaultField("enabled", "启用规则", "boolean", true), version}
+		return []field{optional("name", "规则名称（留空按指标命名）", "text"), optional("id", "规则编号", "hidden"), selectField("metric", "真实指标", "sales_space_atg|剩余销售空间ATG", "procurement_available_atg|采购可用余额 ATG", "oversell_used_atg|已用超卖额度 ATG", "pending_usage|在途及待结算请求数", "unverified_costs|待核实上游成本数"), f("warning", "预警阈值", "decimal"), f("critical", "严重阈值", "decimal"), selectField("direction", "触发方向", "below|达到或低于阈值", "above|达到或高于阈值"), f("recipients", "通知负责人", "csv"), optional("escalation_recipients", "升级负责人", "csv"), defaultField("reminder_seconds", "持续风险提醒间隔秒数", "integer", 3600), defaultField("escalate_seconds", "升级等待秒数", "integer", 86400), defaultField("enabled", "启用规则", "boolean", true), version}
 	case "payments":
 		return []field{defaultField("provider", "人工核实通道", "text", "manual"), f("provider_receipt_id", "外部唯一收款流水", "text"), f("gross_usd", "实际入账总额USD", "decimal"), selectField("fee_status", "手续费证据", "pending|尚待核实", "confirmed|已核实"), optional("fee_usd", "已核实手续费USD", "decimal"), optional("net_usd", "已核实净入账USD", "decimal"), f("currency", "实际入账币种", "text"), f("original_amount", "原币种实收金额", "decimal"), optional("network", "原网络（链上收款必填）", "text"), f("recipient_reference", "实际收款账号证明", "text"), f("payer_reference", "实际付款人账号证明", "text"), f("valuation_evidence", "本次USD估值依据", "text"), f("verification_evidence", "真实银行核实凭证", "textarea"), f("paid_at", "真实付款时刻", "datetime"), f("observed_at", "核实时刻", "datetime"), optional("settled_at", "费用结算时刻（已确认必填）", "datetime")}
 	case "payment-methods":
@@ -67,22 +67,40 @@ func businessFields(o operation) []field {
 	case "refunds":
 		switch o.Name {
 		case "package_exception":
-			return []field{defaultField("action", "办理类型", "text", "package_exception"), f("customer_id", "客户编号", "text"), f("order_id", "原成交订单", "text"), selectField("reason", "真实异常原因", "transaction_error|交易错误", "unable_to_fulfill|无法履行服务"), f("evidence", "事实证据", "textarea")}
+			return []field{defaultField("action", "办理类型", "hidden", "package_exception"), f("customer_id", "客户编号", "text"), f("order_id", "原成交订单", "text"), selectField("reason", "真实异常原因", "transaction_error|交易错误", "unable_to_fulfill|无法履行服务"), f("evidence", "事实证据", "textarea")}
 		case "unallocated":
-			return []field{defaultField("action", "办理类型", "text", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_usd", "退回 USD", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
+			return []field{defaultField("action", "办理类型", "hidden", "unallocated"), f("receipt_id", "原收款编号", "text"), f("amount_usd", "退回 USD", "decimal"), f("reason", "退款原因", "text"), f("evidence", "核实依据", "textarea")}
 		case "policy":
-			return []field{defaultField("action", "办理类型", "text", "policy"), optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal"), version}
+			return []field{defaultField("action", "办理类型", "hidden", "policy"), optional("second_review_above", "需独立复核的USD阈值（留空关闭）", "decimal"), version}
 		case "verify_manual":
 			return []field{f("reference", "唯一银行退款流水", "text"), f("currency", "实际付款币种", "text"), f("amount", "实际币种金额", "decimal"), f("actual_usd", "本次折合USD", "decimal"), f("fee_usd", "付款方手续费USD", "decimal"), f("occurred_at", "实际付款时间", "datetime"), f("evidence", "银行核实及本次估值证据", "textarea")}
 		case "execute_api":
 			fields := []field{f("money.currency", "原付款币种", "text"), f("money.amount", "本次实际执行币种金额", "decimal")}
-			for _, v := range executionValuationFields() {
+			for _, v := range executionValuationFields("money.currency") {
 				v.Name = strings.Replace(v.Name, "valuation.", "refund_valuation.", 1)
-				v.Required = false
 				fields = append(fields, v)
 			}
 			return fields
 		}
 	}
 	return o.Fields
+}
+
+func supplyExitPolicyField() field {
+	v := selectField("exit_policy", "主动退出时的余额处理", "non_refundable|剩余采购余额不退", "remaining_paid_proportional|清算存量责任后，剩余购买额度按原实付比例退；赠送不退")
+	v.Default = "non_refundable"
+	v.Help = "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
+	return v
+}
+
+func packageTermsField() field {
+	v := optional("terms_summary", "对客户公示的服务约定（可选）", "textarea")
+	v.Help = "留空采用默认规则：通用额度按调用时报价使用，按成交期限有效；到期余量不结转，套餐不支持一般性退款，可停止未来续费；交易错误、未正确交付或无法履约走异常流程。新条款会固定到本次报价，变更须按续费规则重新确认。"
+	return v
+}
+
+func cooperationBrandNameField() field {
+	v := f("brand_name", "OEM品牌名称", "text")
+	v.VisibleWhen = &fieldVisibility{Field: "kind", Values: []string{"oem"}}
+	return v
 }

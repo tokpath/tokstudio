@@ -7,7 +7,6 @@ test.skip(!fixturePath, "Requires opt-in isolated PostgreSQL application and ind
 
 async function login(page: Page, kind: string, email: string, password: string) {
   await page.goto("/login");
-  await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
   await page.getByLabel("邮箱", { exact: true }).fill(email);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -95,7 +94,8 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await customer.getByRole("button", { name: "关闭", exact: true }).click();
     await expect(customer.getByText(key.secret, { exact: true })).toHaveCount(0);
     const requestID = randomUUID(), body = { model: fixture.model_id, messages: [{ role: "user", content: "Synthetic frontend acceptance" }], max_completion_tokens: 20 };
-    const invoke = () => customer.request.post("/api/v1/chat/completions", { headers: { Authorization: `Bearer ${key.secret}`, "Idempotency-Key": requestID }, data: body });
+    // Exercise the public Base URL advertised to clients, including the local reverse proxy.
+    const invoke = () => customer.request.post("/v1/chat/completions", { headers: { Authorization: `Bearer ${key.secret}`, "Idempotency-Key": requestID }, data: body });
     const call = await invoke(); expect(call.status()).toBe(200); expect((await call.json()).choices.length).toBeGreaterThan(0);
     const recordedRequestID = call.headers()["x-tokenhub-request-id"];
     expect(recordedRequestID).toBeTruthy();
@@ -115,7 +115,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await expect(staff.getByRole("link", { name: "客户工作台", exact: true })).toHaveCount(1);
     await staff.getByRole("link", { name: "客户工作台", exact: true }).click();
     await staff.getByRole("tab", { name: "模型调用", exact: true }).click();
-    await expect(staff.getByRole("tabpanel", { name: "模型调用", exact: true }).getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
+    await expect(staff.getByRole("tabpanel", { name: "模型调用", exact: true }).getByText(`Independent HTTP contract model · ${fixture.model_id}`, { exact: true }).first()).toBeVisible();
     await staff.screenshot({ path: testInfo.outputPath("real-operator-customer.png"), fullPage: true });
     expect(failures).toEqual([]);
     await testInfo.attach("verified-business-facts", { body: JSON.stringify({ order_id: order.id, receipt_id: receipt.id, granted_atg: "120", request_id: recordedRequestID, charged_atg: recordedRequest.charged_atg, replay_did_not_charge_again: true }), contentType: "application/json" });

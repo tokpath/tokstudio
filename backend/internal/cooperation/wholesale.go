@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,39 +17,48 @@ import (
 )
 
 type PurchaseQuote struct {
-	ID             string          `json:"id"`
-	SupplierID     string          `json:"supplier_id"`
-	BuyerID        string          `json:"buyer_id"`
-	PriceUSD       ledger.Decimal  `json:"price_usd"`
-	PaidATG        ledger.Decimal  `json:"paid_atg"`
-	GiftATG        ledger.Decimal  `json:"gift_atg"`
-	ExitTerms      json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
-	TermsReference string          `json:"terms_reference"`
-	ValidUntil     *time.Time      `json:"valid_until"`
-	Enabled        bool            `json:"enabled"`
-	CreatedBy      string          `json:"created_by"`
-	CreatedAt      time.Time       `json:"created_at"`
+	Name                 string          `json:"name"`
+	TermsSummary         string          `json:"terms_summary"`
+	ContractAttachmentID string          `json:"contract_attachment_id,omitempty"`
+	Version              int64           `json:"version"`
+	ExitPolicy           string          `json:"exit_policy,omitempty" gorm:"-"`
+	ID                   string          `json:"id"`
+	SupplierID           string          `json:"supplier_id"`
+	BuyerID              string          `json:"buyer_id"`
+	PriceUSD             ledger.Decimal  `json:"price_usd"`
+	PaidATG              ledger.Decimal  `json:"paid_atg"`
+	GiftATG              ledger.Decimal  `json:"gift_atg"`
+	ExitTerms            json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
+	TermsReference       string          `json:"terms_reference"`
+	ValidUntil           *time.Time      `json:"valid_until"`
+	Enabled              bool            `json:"enabled"`
+	CreatedBy            string          `json:"created_by"`
+	CreatedAt            time.Time       `json:"created_at"`
 }
 
 func (PurchaseQuote) TableName() string { return "cooperation_purchase_quotes" }
 
 type PurchaseOrder struct {
-	ID             string          `json:"id"`
-	SupplierID     string          `json:"supplier_id"`
-	BuyerID        string          `json:"buyer_id"`
-	QuoteID        string          `json:"quote_id"`
-	BusinessKey    string          `json:"business_key"`
-	Fingerprint    string          `json:"-"`
-	DueUSD         ledger.Decimal  `json:"due_usd"`
-	AllocatedUSD   ledger.Decimal  `json:"allocated_usd"`
-	PaidATG        ledger.Decimal  `json:"paid_atg"`
-	GiftATG        ledger.Decimal  `json:"gift_atg"`
-	ExitTerms      json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
-	TermsReference string          `json:"terms_reference"`
-	Status         string          `json:"status"`
-	ExpiresAt      time.Time       `json:"expires_at"`
-	CreatedAt      time.Time       `json:"created_at"`
-	CompletedAt    *time.Time      `json:"completed_at"`
+	Name                 string          `json:"name"`
+	TermsSummary         string          `json:"terms_summary"`
+	ContractAttachmentID string          `json:"contract_attachment_id,omitempty"`
+	QuoteVersion         int64           `json:"quote_version"`
+	ID                   string          `json:"id"`
+	SupplierID           string          `json:"supplier_id"`
+	BuyerID              string          `json:"buyer_id"`
+	QuoteID              string          `json:"quote_id"`
+	BusinessKey          string          `json:"business_key"`
+	Fingerprint          string          `json:"-"`
+	DueUSD               ledger.Decimal  `json:"due_usd"`
+	AllocatedUSD         ledger.Decimal  `json:"allocated_usd"`
+	PaidATG              ledger.Decimal  `json:"paid_atg"`
+	GiftATG              ledger.Decimal  `json:"gift_atg"`
+	ExitTerms            json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
+	TermsReference       string          `json:"terms_reference"`
+	Status               string          `json:"status"`
+	ExpiresAt            time.Time       `json:"expires_at"`
+	CreatedAt            time.Time       `json:"created_at"`
+	CompletedAt          *time.Time      `json:"completed_at"`
 }
 
 func (PurchaseOrder) TableName() string { return "cooperation_purchase_orders" }
@@ -62,10 +73,11 @@ func (PurchaseAllocation) TableName() string { return "cooperation_purchase_allo
 
 func (s *Service) PublishPurchaseQuote(ctx context.Context, tx *gorm.DB, actor string, in PurchaseQuote) (PurchaseQuote, error) {
 	var out PurchaseQuote
-	if _, e := ParseProcurementExitTerms(in.ExitTerms); e != nil {
-		return out, e
+	policy, err := quoteExitPolicy(in.ExitPolicy, in.ExitTerms)
+	if err != nil {
+		return out, err
 	}
-	if in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !json.Valid(in.ExitTerms) || in.TermsReference == "" {
+	if in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || len(in.Name) > 200 || len(in.TermsSummary) > 10000 {
 		return out, ledger.ErrAmount
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
@@ -86,7 +98,24 @@ func (s *Service) PublishPurchaseQuote(ctx context.Context, tx *gorm.DB, actor s
 		if in.ValidUntil != nil && !in.ValidUntil.After(now) {
 			return ErrConflict
 		}
+		in.ContractAttachmentID = strings.TrimSpace(in.ContractAttachmentID)
+		if e = s.Organization.RequireSupplyContract(ctx, t, in.SupplierID, in.ContractAttachmentID); e != nil {
+			return e
+		}
+		if e = t.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "quote-version:"+in.SupplierID+":"+in.BuyerID).Error; e != nil {
+			return e
+		}
+		if e = t.Model(&PurchaseQuote{}).Where("supplier_id=? AND buyer_id=?", in.SupplierID, in.BuyerID).Select("COALESCE(MAX(version),0)+1").Scan(&in.Version).Error; e != nil {
+			return e
+		}
 		in.ID = uuid.NewString()
+		in.Name, in.TermsSummary = strings.TrimSpace(in.Name), strings.TrimSpace(in.TermsSummary)
+		if in.Name == "" {
+			in.Name = fmt.Sprintf("%s ATG / %s USD 供货报价", in.PaidATG.String(), in.PriceUSD.String())
+		}
+		in.TermsReference = fmt.Sprintf("procurement-quote:%s:v%d", in.ID, in.Version)
+		in.ExitTerms, _ = json.Marshal(ProcurementExitTerms{Version: 1, VoluntaryRefund: policy == "remaining_paid_proportional", Method: policy, TermsReference: fmt.Sprintf("procurement-exit:%s:v%d", in.ID, in.Version)})
+		in.ExitPolicy = policy
 		in.CreatedBy = actor
 		in.CreatedAt = now
 		out = in
@@ -164,7 +193,7 @@ func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 				return ErrCoverage
 			}
 		}
-		out = PurchaseOrder{ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: q.PriceUSD, PaidATG: q.PaidATG, GiftATG: q.GiftATG, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: now.Add(30 * time.Minute), CreatedAt: now}
+		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: q.PriceUSD, PaidATG: q.PaidATG, GiftATG: q.GiftATG, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: now.Add(30 * time.Minute), CreatedAt: now}
 		if q.ValidUntil != nil && q.ValidUntil.Before(out.ExpiresAt) {
 			out.ExpiresAt = *q.ValidUntil
 		}
@@ -306,4 +335,50 @@ func (s *Service) ClosePurchase(ctx context.Context, tx *gorm.DB, actor, id stri
 		}
 		return t.Model(&SalesCommitment{}).Where("order_id=?", id).Updates(map[string]any{"status": "released", "updated_at": gorm.Expr("clock_timestamp()")}).Error
 	})
+}
+
+// quoteExitPolicy translates the business choice into the sole accepted rule.
+// Schema versions and references are generated by the service, never by a form.
+func quoteExitPolicy(policy string, raw json.RawMessage) (string, error) {
+	policy = strings.TrimSpace(policy)
+	if len(raw) > 0 && string(raw) != "null" {
+		var legacy ProcurementExitTerms
+		if json.Unmarshal(raw, &legacy) != nil || (legacy.Version != 0 && legacy.Version != 1) || (legacy.Method != "remaining_paid_proportional" && legacy.Method != "non_refundable") || (legacy.VoluntaryRefund && legacy.Method != "remaining_paid_proportional") {
+			return "", ErrExitTerms
+		}
+		legacyPolicy := "non_refundable"
+		if legacy.VoluntaryRefund {
+			legacyPolicy = "remaining_paid_proportional"
+		}
+		if policy != "" && policy != legacyPolicy {
+			return "", ErrExitTerms
+		}
+		policy = legacyPolicy
+	}
+	if policy == "" {
+		policy = "non_refundable"
+	}
+	if policy != "non_refundable" && policy != "remaining_paid_proportional" {
+		return "", ErrExitTerms
+	}
+	return policy, nil
+}
+
+func ProcurementExitPolicySummary(policy string) string {
+	if policy == "remaining_paid_proportional" {
+		return "主动退出并清算存量责任后，剩余购买额度按原实付比例退回；赠送额度不退。须另行办理退出及实际退款。"
+	}
+	return "主动退出时剩余采购余额不退；须先清算存量责任。供货方不能履约时另行办理异常退款。"
+}
+
+func ProcurementExitTermsSummary(raw json.RawMessage) string {
+	t, err := ParseProcurementExitTerms(raw)
+	if err != nil {
+		return "原成交退出规则待核实"
+	}
+	policy := "non_refundable"
+	if t.VoluntaryRefund {
+		policy = t.Method
+	}
+	return ProcurementExitPolicySummary(policy)
 }

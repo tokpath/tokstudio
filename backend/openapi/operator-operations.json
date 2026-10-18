@@ -5,40 +5,89 @@
     "description": "",
     "fields": [
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "paid_at",
@@ -363,10 +412,10 @@
         "default_value": "Asia/Shanghai"
       },
       {
-        "name": "terms_reference",
-        "label": "对客户公示条款编号",
-        "kind": "text",
-        "required": true
+        "name": "terms_summary",
+        "label": "对客户公示的服务约定（可选）",
+        "kind": "textarea",
+        "help": "留空采用默认规则：通用额度按调用时报价使用，按成交期限有效；到期余量不结转，套餐不支持一般性退款，可停止未来续费；交易错误、未正确交付或无法履约走异常流程。新条款会固定到本次报价，变更须按续费规则重新确认。"
       },
       {
         "name": "new_purchase_enabled",
@@ -384,9 +433,10 @@
       },
       {
         "name": "expected_version",
-        "label": "当前版本（首次填写0）",
+        "label": "当前版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       }
     ],
     "include_version": false,
@@ -917,6 +967,25 @@
     "permission": "payments.manage"
   },
   {
+    "resource": "contracts",
+    "confirmation": "",
+    "description": "",
+    "fields": [
+      {
+        "name": "file",
+        "label": "PDF/PNG/JPEG合同（不超过10MiB）",
+        "kind": "file",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "上传可选合作合同",
+    "method": "POST",
+    "name": "upload",
+    "path": "/v1/operators/{operatorId}/contracts",
+    "permission": "cooperation.manage"
+  },
+  {
     "resource": "pricing",
     "confirmation": "",
     "description": "",
@@ -1308,24 +1377,43 @@
       {
         "name": "brand_name",
         "label": "OEM品牌名称",
-        "kind": "text"
-      },
-      {
-        "name": "api_base_url",
-        "label": "OEM API入口",
-        "kind": "text"
-      },
-      {
-        "name": "quote_reference",
-        "label": "供货条款编号",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "kind",
+          "values": [
+            "oem"
+          ]
+        }
       },
       {
-        "name": "exit_terms_reference",
-        "label": "退出条款编号",
+        "name": "supply_terms",
+        "label": "合作约定说明（可选）",
+        "kind": "textarea"
+      },
+      {
+        "name": "exit_policy",
+        "label": "主动退出时的余额处理",
+        "kind": "select",
+        "required": true,
+        "options": [
+          {
+            "label": "剩余采购余额不退",
+            "value": "non_refundable"
+          },
+          {
+            "label": "清算存量责任后，剩余购买额度按原实付比例退；赠送不退",
+            "value": "remaining_paid_proportional"
+          }
+        ],
+        "default_value": "non_refundable",
+        "help": "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
+      },
+      {
+        "name": "contract_attachment_id",
+        "label": "已上传合作合同（可选）",
         "kind": "text",
-        "required": true
+        "lookup_url": "/api/v1/operators/{operatorId}/references/contracts"
       }
     ],
     "include_version": false,
@@ -1338,24 +1426,59 @@
   {
     "resource": "operators",
     "confirmation": "",
-    "description": "只允许父级邀请尚无有效负责人的新经营方首位owner，不授予父级查看子级客户和账务的权限。",
+    "description": "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。",
     "fields": [
       {
+        "name": "delivery_mode",
+        "label": "开通方式",
+        "kind": "select",
+        "required": true,
+        "default_value": "manual",
+        "options": [
+          {
+            "value": "manual",
+            "label": "手动开通并交付"
+          },
+          {
+            "value": "email",
+            "label": "发送邮件邀请"
+          }
+        ]
+      },
+      {
         "name": "email",
-        "label": "负责人邮箱",
+        "label": "登录邮箱",
         "kind": "email",
         "required": true
       },
       {
+        "name": "display_name",
+        "label": "人员姓名",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "initial_password",
+        "label": "新账号初始密码",
+        "kind": "password",
+        "required": false,
+        "visible_when": {
+          "field": "delivery_mode",
+          "values": [
+            "manual"
+          ]
+        }
+      },
+      {
         "name": "role",
         "label": "角色",
-        "kind": "text",
+        "kind": "hidden",
         "required": true,
         "default_value": "owner"
       }
     ],
     "include_version": false,
-    "label": "邀请首位负责人",
+    "label": "开通首位负责人",
     "method": "POST",
     "name": "invite_owner",
     "path": "/v1/operators/{operatorId}/operators/{id}/invite_owner",
@@ -1369,16 +1492,21 @@
       {
         "name": "action",
         "label": "办理类型",
-        "kind": "text",
+        "kind": "hidden",
         "required": true,
         "default_value": "quote"
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/buyers",
         "name": "buyer_id",
-        "label": "直属采购方编号",
+        "label": "直属采购方",
         "kind": "text",
         "required": true
+      },
+      {
+        "name": "name",
+        "label": "报价名称（留空自动命名）",
+        "kind": "text"
       },
       {
         "name": "price_usd",
@@ -1396,48 +1524,37 @@
         "name": "gift_atg",
         "label": "赠送库存ATG",
         "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "terms_reference",
-        "label": "成交条款编号",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "exit_terms.version",
-        "label": "退出条款版本",
-        "kind": "integer",
         "required": true,
-        "default_value": 1
+        "default_value": "0"
       },
       {
-        "name": "exit_terms.voluntary_refund",
-        "label": "允许自愿退出退款",
-        "kind": "boolean",
-        "required": true
+        "name": "terms_summary",
+        "label": "补充合作约定（可选）",
+        "kind": "textarea"
       },
       {
-        "name": "exit_terms.method",
-        "label": "合同退款算法",
+        "name": "exit_policy",
+        "label": "主动退出时的余额处理",
         "kind": "select",
         "required": true,
         "options": [
           {
-            "label": "剩余购买库存原价比例",
-            "value": "remaining_paid_proportional"
+            "label": "剩余采购余额不退",
+            "value": "non_refundable"
           },
           {
-            "label": "合同不退款",
-            "value": "non_refundable"
+            "label": "清算存量责任后，剩余购买额度按原实付比例退；赠送不退",
+            "value": "remaining_paid_proportional"
           }
-        ]
+        ],
+        "default_value": "non_refundable",
+        "help": "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
       },
       {
-        "name": "exit_terms.terms_reference",
-        "label": "退出条款编号",
+        "name": "contract_attachment_id",
+        "label": "已上传合作合同（可选）",
         "kind": "text",
-        "required": true
+        "lookup_url": "/api/v1/operators/{operatorId}/references/contracts"
       },
       {
         "name": "valid_until",
@@ -1467,23 +1584,22 @@
       {
         "name": "action",
         "label": "办理类型",
-        "kind": "text",
+        "kind": "hidden",
         "required": true,
         "default_value": "authorization"
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/purchase-quotes",
         "name": "quote_id",
-        "label": "固定成交报价编号",
+        "label": "已确认的供货报价",
         "kind": "text",
         "required": true
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
         "name": "supplier_id",
-        "label": "报价供货方编号",
-        "kind": "text",
-        "required": true
+        "label": "报价供货方",
+        "kind": "hidden"
       },
       {
         "name": "trigger_available_atg",
@@ -1537,28 +1653,47 @@
             "label": "已获授权Stripe自动扣款",
             "value": "automatic"
           }
-        ]
+        ],
+        "default_value": "offline"
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
         "name": "merchant_id",
         "label": "真实供货收款商户配置编号",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        }
       },
       {
         "name": "payment.payment_method",
         "label": "Stripe已授权pm_编号",
-        "kind": "password"
+        "kind": "password",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        }
       },
       {
         "name": "payment.customer_ref",
         "label": "Stripe已授权cus_编号",
-        "kind": "password"
+        "kind": "password",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "automatic"
+          ]
+        }
       },
       {
         "name": "consent_reference",
-        "label": "独立自动付款授权凭证",
-        "kind": "text",
+        "label": "本次补货范围与付款授权说明",
+        "kind": "textarea",
         "required": true
       },
       {
@@ -1570,9 +1705,10 @@
       },
       {
         "name": "expected_version",
-        "label": "当前授权版本（首次0）",
+        "label": "当前授权版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       }
     ],
     "include_version": false,
@@ -1603,16 +1739,15 @@
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/purchase-quotes",
         "name": "quote_id",
-        "label": "固定成交报价编号",
+        "label": "已确认的供货报价",
         "kind": "text",
         "required": true
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/suppliers",
         "name": "supplier_id",
-        "label": "报价供货方编号",
-        "kind": "text",
-        "required": true
+        "label": "报价供货方",
+        "kind": "hidden"
       },
       {
         "name": "trigger_available_atg",
@@ -1666,7 +1801,8 @@
             "label": "已获授权Stripe自动扣款",
             "value": "automatic"
           }
-        ]
+        ],
+        "default_value": "offline"
       },
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
@@ -1707,7 +1843,7 @@
       {
         "name": "renewed_consent_reference",
         "label": "本次修订的独立授权凭证（请重新确认并填写）",
-        "kind": "text",
+        "kind": "textarea",
         "required": true
       },
       {
@@ -1719,9 +1855,10 @@
       },
       {
         "name": "expected_version",
-        "label": "当前授权版本（首次0）",
+        "label": "当前授权版本",
         "kind": "hidden",
-        "required": true
+        "required": true,
+        "default_value": 0
       }
     ],
     "include_version": false,
@@ -1752,7 +1889,7 @@
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
         "name": "merchant_id",
-        "label": "供货方收款配置编号",
+        "label": "付款方式",
         "kind": "text",
         "required": true
       }
@@ -1825,7 +1962,7 @@
     "method": "POST",
     "name": "fund",
     "path": "/v1/operators/{operatorId}/procurement/{id}/fund",
-    "permission": "cooperation.manage"
+    "permission": "payments.manage"
   },
   {
     "resource": "procurement",
@@ -2003,10 +2140,16 @@
     "description": "",
     "fields": [
       {
+        "name": "name",
+        "label": "规则名称（留空按指标命名）",
+        "kind": "text",
+        "required": false
+      },
+      {
         "name": "id",
         "label": "规则编号",
-        "kind": "text",
-        "required": true
+        "kind": "hidden",
+        "required": false
       },
       {
         "name": "metric",
@@ -2066,13 +2209,13 @@
       },
       {
         "name": "recipients",
-        "label": "通知收件人ID（逗号分隔）",
+        "label": "通知负责人",
         "kind": "csv",
         "required": true
       },
       {
         "name": "escalation_recipients",
-        "label": "升级收件人ID（逗号分隔）",
+        "label": "升级负责人",
         "kind": "csv"
       },
       {
@@ -2116,6 +2259,12 @@
     "description": "沿用此规则真实版本，修改通知阈值、负责人、提醒、升级或启停；不会把风险观察记录当作规则保存。",
     "fields": [
       {
+        "name": "name",
+        "label": "规则名称（留空按指标命名）",
+        "kind": "text",
+        "required": false
+      },
+      {
         "name": "id",
         "label": "规则编号",
         "kind": "hidden",
@@ -2179,13 +2328,13 @@
       },
       {
         "name": "recipients",
-        "label": "通知收件人ID（逗号分隔）",
+        "label": "通知负责人",
         "kind": "csv",
         "required": true
       },
       {
         "name": "escalation_recipients",
-        "label": "升级收件人ID（逗号分隔）",
+        "label": "升级负责人",
         "kind": "csv"
       },
       {
@@ -2403,52 +2552,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "proof.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -2476,52 +2696,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -2738,52 +3029,123 @@
         "kind": "textarea"
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -2878,52 +3240,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -2969,52 +3402,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -3214,30 +3718,80 @@
   {
     "resource": "staff",
     "confirmation": "",
-    "description": "",
+    "description": "为新账号设置初始密码并手动交付，或选择邮件邀请。已有账号保留原密码，由本人接受邀请加入当前经营方。",
     "fields": [
       {
+        "name": "delivery_mode",
+        "label": "开通方式",
+        "kind": "select",
+        "required": true,
+        "default_value": "manual",
+        "options": [
+          {
+            "value": "manual",
+            "label": "手动开通并交付"
+          },
+          {
+            "value": "email",
+            "label": "发送邮件邀请"
+          }
+        ]
+      },
+      {
         "name": "email",
-        "label": "邮箱",
+        "label": "登录邮箱",
         "kind": "email",
         "required": true
       },
       {
+        "name": "display_name",
+        "label": "人员姓名",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "initial_password",
+        "label": "新账号初始密码",
+        "kind": "password",
+        "required": false,
+        "visible_when": {
+          "field": "delivery_mode",
+          "values": [
+            "manual"
+          ]
+        }
+      },
+      {
         "name": "role",
-        "label": "受邀角色",
+        "label": "角色",
         "kind": "select",
         "required": true,
         "options": [
-          { "label": "负责人", "value": "owner" },
-          { "label": "运营", "value": "operations" },
-          { "label": "财务", "value": "finance" },
-          { "label": "客服", "value": "support" },
-          { "label": "只读", "value": "readonly" }
+          {
+            "value": "owner",
+            "label": "负责人"
+          },
+          {
+            "value": "operations",
+            "label": "运营"
+          },
+          {
+            "value": "finance",
+            "label": "财务"
+          },
+          {
+            "value": "support",
+            "label": "客服"
+          },
+          {
+            "value": "readonly",
+            "label": "只读"
+          }
         ]
       }
     ],
     "include_version": false,
-    "label": "邮件邀请经营人员",
+    "label": "开通或邀请经营人员",
     "method": "POST",
     "name": "invite",
     "path": "/v1/operators/{operatorId}/staff",
@@ -3316,10 +3870,16 @@
     "description": "",
     "fields": [
       {
+        "name": "name",
+        "label": "规则名称（留空按指标命名）",
+        "kind": "text",
+        "required": false
+      },
+      {
         "name": "id",
         "label": "规则编号",
-        "kind": "text",
-        "required": true
+        "kind": "hidden",
+        "required": false
       },
       {
         "name": "metric",
@@ -3379,13 +3939,13 @@
       },
       {
         "name": "recipients",
-        "label": "通知收件人ID（逗号分隔）",
+        "label": "通知负责人",
         "kind": "csv",
         "required": true
       },
       {
         "name": "escalation_recipients",
-        "label": "升级收件人ID（逗号分隔）",
+        "label": "升级负责人",
         "kind": "csv"
       },
       {
@@ -3429,6 +3989,12 @@
     "description": "沿用此规则真实版本，修改通知阈值、负责人、提醒、升级或启停；不会把风险观察记录当作规则保存。",
     "fields": [
       {
+        "name": "name",
+        "label": "规则名称（留空按指标命名）",
+        "kind": "text",
+        "required": false
+      },
+      {
         "name": "id",
         "label": "规则编号",
         "kind": "hidden",
@@ -3492,13 +4058,13 @@
       },
       {
         "name": "recipients",
-        "label": "通知收件人ID（逗号分隔）",
+        "label": "通知负责人",
         "kind": "csv",
         "required": true
       },
       {
         "name": "escalation_recipients",
-        "label": "升级收件人ID（逗号分隔）",
+        "label": "升级负责人",
         "kind": "csv"
       },
       {
@@ -4184,44 +4750,123 @@
         "required": true
       },
       {
-        "name": "refund_valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text"
-      },
-      {
         "name": "refund_valuation.currency",
         "label": "本次估值币种",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "refund_valuation.usd_per_unit",
         "label": "本次真实每单位USD",
-        "kind": "decimal"
+        "kind": "decimal",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "refund_valuation.source",
         "label": "本次授权汇率/实际换汇依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "refund_valuation.effective_at",
         "label": "本次估值生效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "refund_valuation.expires_at",
         "label": "本次估值失效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       }
     ],
     "include_version": false,
@@ -4370,52 +5015,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "asset",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -4467,52 +5183,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
         "kind": "decimal",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
         "kind": "datetime",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
         "kind": "text",
-        "required": true
+        "required": true,
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        }
       }
     ],
     "include_version": false,
@@ -4553,44 +5340,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text"
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
-        "kind": "decimal"
+        "kind": "decimal",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       }
     ],
     "include_version": false,
@@ -4649,44 +5515,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text"
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
-        "kind": "decimal"
+        "kind": "decimal",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       }
     ],
     "include_version": false,
@@ -4745,44 +5690,123 @@
         "required": true
       },
       {
-        "name": "valuation.id",
-        "label": "本次估值事实编号",
-        "kind": "text"
-      },
-      {
         "name": "valuation.currency",
         "label": "本次估值币种",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.usd_per_unit",
         "label": "本次真实每单位USD",
-        "kind": "decimal"
+        "kind": "decimal",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.source",
         "label": "本次授权汇率/实际换汇依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.effective_at",
         "label": "本次估值生效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valuation.expires_at",
         "label": "本次估值失效",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "valued_at",
         "label": "实际估值时刻",
-        "kind": "datetime"
+        "kind": "datetime",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       },
       {
         "name": "fx_execution_reference",
         "label": "本次执行凭证/原币种结算依据",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "external.money.currency",
+          "values": [
+            "USD"
+          ],
+          "not": true,
+          "fallback_fields": [
+            "asset",
+            "currency"
+          ]
+        },
+        "required": true
       }
     ],
     "include_version": false,

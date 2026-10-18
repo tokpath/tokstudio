@@ -8,6 +8,14 @@ const credits = { customer_atg: { available: "12.000000000000000001", held: "0.0
 const model = { id: "public-chat", name: "公开文本模型", capabilities: ["chat"], status: "published", prices: [{ component: "输入", amount_atg: "0.00000001", unit: "token" }] };
 const key = { id: "key-1", name: "应用 Key", prefix: "th_lab_prefix", status: "active", model_ids: null, budget: { limit_atg: "5.000000000000000001", period: "month", timezone: "Asia/Shanghai", spent_atg: "0", held_atg: "0", overage_atg: "0", window_start: null, window_end: null }, rate_limit_rpm: null, concurrency_limit: null, version: 1, created_at: "2026-10-16T00:00:00Z" };
 function resource(title: string) { return { title, description: "核实实际事实后办理，结果不明时继续查询。", items: [], columns: [{ key: "id", label: "事项", kind: "text" }], operations: [], row_operations: [] }; }
+test("invitation and recovery links never forward their token through Referer", async ({ request }) => {
+  for (const path of ["/staff-invitation", "/verify-email", "/reset-password"]) {
+    const response = await request.get(`${path}?token=synthetic-proof`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["referrer-policy"]).toBe("no-referrer");
+    expect(response.headers()["cache-control"]).toContain("no-store");
+  }
+});
 async function api(page: Page, session: unknown = customer) {
   await page.route("**/api/v1/**", async route => {
     const url = new URL(route.request().url()), path = url.pathname;

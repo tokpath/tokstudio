@@ -204,6 +204,16 @@ func (a *Application) customerContext(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
+	for _, section := range out.Sections {
+		if err := a.projectResourceLabels(c, section.Page, section.Resource); err != nil {
+			handleError(c, err)
+			return
+		}
+	}
+	if err := a.projectResourceLabels(c, gin.H{"items": []any{out.Subject}}, "orders"); err != nil {
+		handleError(c, err)
+		return
+	}
 	c.JSON(200, out)
 }
 func refundContextPage(op string, rows []remediation.Case) gin.H {
@@ -292,6 +302,16 @@ func (a *Application) orderContext(c *gin.Context) {
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
+		handleError(c, err)
+		return
+	}
+	for _, section := range out.Sections {
+		if err := a.projectResourceLabels(c, section.Page, section.Resource); err != nil {
+			handleError(c, err)
+			return
+		}
+	}
+	if err := a.projectResourceLabels(c, gin.H{"items": []any{out.Subject}}, "orders"); err != nil {
 		handleError(c, err)
 		return
 	}

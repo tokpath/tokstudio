@@ -153,6 +153,11 @@ func (s *Service) VerifyAndActivateDomain(ctx context.Context, actorID, domainID
 				r.FailureReason = "domain ownership verification failed"
 			}
 		}
+		// Rechecking evidence must not reverse an explicit stop decision. A
+		// disabled hostname requires the separate enable operation after checks.
+		if before.Status == "disabled" {
+			r.Status = "disabled"
+		}
 		if err := tx.Save(&r).Error; err != nil {
 			return err
 		}

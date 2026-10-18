@@ -117,6 +117,17 @@ func (s *Service) AcceptStaffInvitation(ctx context.Context, tx *gorm.DB, rawTok
 	if !staff.EmailVerified || !validID(staff.ID) {
 		return out, ErrForbidden
 	}
+	return s.AcceptAuthenticatedStaffInvitation(ctx, tx, rawToken, staff.ID, staff.Email)
+}
+
+// AcceptAuthenticatedStaffInvitation is for adapters that already authenticated
+// an existing staff account or administratively provisioned a new one. Possession
+// of an invitation never claims ownership of the email address.
+func (s *Service) AcceptAuthenticatedStaffInvitation(ctx context.Context, tx *gorm.DB, rawToken, staffID, staffEmail string) (out Membership, err error) {
+	if !validID(staffID) {
+		return out, ErrForbidden
+	}
+	staff := VerifiedStaff{ID: staffID, Email: staffEmail}
 	email, err := NormalizeEmail(staff.Email)
 	if err != nil {
 		return out, err

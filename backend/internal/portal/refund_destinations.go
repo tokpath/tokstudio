@@ -177,6 +177,7 @@ func (a *Application) externalRefundAction(c *gin.Context, actor, operator, acti
 		}
 		d := status.AuthorizedDestination
 		destination := payments.ExternalRefundDestination{Network: d.Network, Asset: d.Asset, TokenContract: d.TokenContract, Address: d.Address, AuthorizationReference: status.AuthorizationID, VerificationEvidence: in.VerificationEvidence}
+		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "retail-external:"+operator+":"+leg.ID+":"+in.External.ExternalReference+":"+in.EVM.TransactionHash+":"+in.EVM.LogIndex, d.Asset)
 		refund := payments.Refund{ID: leg.ID, USDAmount: leg.AmountUSD, RefundValuation: in.Valuation, ValuedAt: in.ValuedAt, FXExecutionReference: in.FX}
 		in.EVM.ReceiptID, in.EVM.Destination = leg.ReceiptID, destination
 		in.External.ReceiptID, in.External.Destination = leg.ReceiptID, destination

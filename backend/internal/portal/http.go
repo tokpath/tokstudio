@@ -21,6 +21,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/branding"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
+	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
@@ -74,6 +75,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 404, "not_found", "记录不存在或不属于当前范围", false
 	case errors.Is(err, remediation.ErrScope), errors.Is(err, operations.ErrForbidden), errors.Is(err, payments.ErrForbidden), errors.Is(err, catalog.ErrCatalogForbidden), errors.Is(err, incentives.ErrNotEligible), errors.Is(err, organization.ErrForbidden), errors.Is(err, commerce.ErrScope), errors.Is(err, ledger.ErrScope):
 		status, code, msg, retry = 403, "forbidden", "当前身份没有此经营范围的操作权限", false
+	case errors.Is(err, errStaffPasswordLength):
+		status, code, msg, retry = 400, "password_length", "初始密码长度需为 10 至 72 字节，建议使用英文字母、数字和符号", false
 	case errors.Is(err, organization.ErrInvalidCredentials):
 		status, code, msg, retry = 401, "invalid_credentials", "邮箱或密码错误", false
 	case errors.Is(err, organization.ErrEmailAlreadyRegistered):
@@ -82,11 +85,11 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_invite_code", "邀请码无效，请更正或显式移除；不会自动更改经营归属", false
 	case errors.Is(err, organization.ErrInvalidVerification):
 		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
-	case errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
+	case errors.Is(err, ledger.ErrAmount), errors.Is(err, cooperation.ErrExitTerms), errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
 		status, code, msg, retry = 400, "invalid_input", "输入不完整、不符合限制或身份凭据不可用", false
 	case errors.Is(err, usage.ErrSecretDisplayed):
 		status, code, msg, retry = 409, "secret_already_displayed", "此 Key 操作已完成；完整密钥只显示一次，请从列表重置以获得新密钥", false
-	case errors.Is(err, organization.ErrConflict), errors.Is(err, remediation.ErrConflict), errors.Is(err, ledger.ErrConflict), errors.Is(err, catalog.ErrCatalogVersion), errors.Is(err, incentives.ErrConflict), errors.Is(err, payments.ErrConflict), errors.Is(err, operations.ErrConflict), errors.Is(err, commerce.ErrConflict), errors.Is(err, usage.ErrConflict), errors.Is(err, branding.ErrConflict):
+	case errors.Is(err, cooperation.ErrConflict), errors.Is(err, organization.ErrConflict), errors.Is(err, remediation.ErrConflict), errors.Is(err, ledger.ErrConflict), errors.Is(err, catalog.ErrCatalogVersion), errors.Is(err, incentives.ErrConflict), errors.Is(err, payments.ErrConflict), errors.Is(err, operations.ErrConflict), errors.Is(err, commerce.ErrConflict), errors.Is(err, usage.ErrConflict), errors.Is(err, branding.ErrConflict):
 		status, code, msg, retry = 409, "version_conflict", "内容已变化或操作编号已被其它内容使用，请刷新后重新确认", false
 	case errors.Is(err, usage.ErrBudget):
 		status, code, msg, retry = 429, "request_limit", "API Key 预算已用尽", false
@@ -116,7 +119,7 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "receipt_awaiting_valuation", "原币实际款已保留，等待财务核实真实付款时点估值；请勿重复付款", false
 	case errors.Is(err, remediation.ErrReview):
 		status, code, msg, retry = 409, "independent_review_required", "此事项需要另一位有权限的人员独立复核", false
-	case errors.Is(err, remediation.ErrState), errors.Is(err, commerce.ErrOrderState), errors.Is(err, commerce.ErrNotPaid), errors.Is(err, incentives.ErrWithdrawalState):
+	case errors.Is(err, cooperation.ErrLiability), errors.Is(err, cooperation.ErrCoverage), errors.Is(err, remediation.ErrState), errors.Is(err, commerce.ErrOrderState), errors.Is(err, commerce.ErrNotPaid), errors.Is(err, incentives.ErrWithdrawalState):
 		status, code, msg, retry = 409, "state_restricted", "当前业务状态或资金条件不允许此操作，请查询原记录", false
 	case errors.Is(err, ledger.ErrInsufficient):
 		status, code, msg, retry = 409, "insufficient_asset", "可用资产不足；占用与各类资产不能互相替代", false
@@ -212,6 +215,7 @@ func (a *Application) Router() *gin.Engine {
 	v.POST("/auth/verify", a.originGuard, a.verify)
 	v.POST("/auth/password-resets", a.originGuard, a.passwordReset)
 	v.POST("/auth/password-resets/complete", a.originGuard, a.passwordResetComplete)
+	v.POST("/auth/staff-password", a.loadIdentity(true), a.requireCSRF, a.changeStaffPassword)
 	v.POST("/auth/logout", a.loadIdentity(true), a.requireCSRF, a.logout)
 	me := v.Group("/me", a.loadIdentity(true), a.requireCustomer, a.requireCSRF)
 	a.customerRoutes(me)
@@ -345,6 +349,10 @@ func (a *Application) requireStaff(c *gin.Context) {
 	id := subject(c)
 	if id == nil || id.Session.Kind != "staff" {
 		fail(c, 403, "staff_required", "此操作需要独立的经营人员身份", false)
+		return
+	}
+	if id.Staff.MustChangePassword {
+		fail(c, 403, "password_change_required", "请先修改初始密码，再进入经营空间", false)
 	}
 }
 func (a *Application) setCookie(c *gin.Context, token string, expires time.Time) {

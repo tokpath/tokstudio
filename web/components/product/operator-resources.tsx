@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { readResourceListState, updateResourceListURL, subjectURL, type ResourceFilter } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
+import { businessFieldHelp } from "./business-field-help";
+import { readableResourceValue, resourceColumnVisible } from "@/lib/resource-presentation";
 
 export type InspectResource = (resource: string, row: Entity) => void;
 const PanelLockContext = createContext<((id: string, blocked: boolean) => void) | undefined>(undefined);
@@ -74,7 +76,7 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const save = () => { const next = [{ q: filters.q, status: filters.status, view: filters.view }, ...saved.filter(item => item.q !== filters.q || item.status !== filters.status || item.view !== filters.view)].slice(0, 5); setSaved(next); try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Filtering remains available when browser storage is unavailable. */ } };
   const statuses = [...new Set([...(resourceFilterStatuses[resourceName] || []), ...page.items.flatMap(item => item.status ? [item.status] : []), filters.status].filter(Boolean))];
   return <>
-    {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")} <span className="break-all font-mono text-xs">{record}</span></span><Link className="text-brand-emphasis underline" href={operatorID ? `/manage/${encodeURIComponent(operatorID)}/${resource}` : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
+    {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? `/manage/${encodeURIComponent(operatorID)}/${resource}` : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
     {page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value })}>{t(item.label)}</Button>)}</div>}
     <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} record={record} toolbar={<div className="w-full"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "invoices" ? t("搜索发票编号、开票凭证或原始收款编号") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
@@ -133,9 +135,9 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const kinds = [...new Set(page.items.map(row => row.values.record_kind).filter((value): value is string => typeof value === "string"))];
   const procurementGroups: Record<string, string[]> = { orders: ["order"], quotes: ["quote"], automatic: ["authorization", "replenishment_attempt"] };
   const rows = resourceName === "procurement" ? page.items.filter(row => procurementGroups[procurementTab].includes(String(row.values.record_kind))) : recordKind ? page.items.filter(row => row.values.record_kind === recordKind) : page.items;
-  const populatedColumns = page.columns.filter(column => !["id", "status", "name", "display_name", "record_kind"].includes(column.key) && rows.some(row => hasResourceValue(row.values[column.key])));
-  const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p><p className="mt-1 break-all font-mono text-[11px] text-ink-mute">{row.id}</p></div>;
-  const renderTable = (items: Entity[]) => <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与编号"), cell: identity }, ...populatedColumns.filter(column => column.key !== "state").map(column => ({ label: column.label, cell: (row: Entity) => <ResourceValue value={row.values[column.key]} kind={column.kind} field={column.key} /> })), { label: t("状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
+  const populatedColumns = page.columns.filter(column => resourceColumnVisible(column.key, resourceName) && !["id", "status", "name", "display_name", "record_kind"].includes(column.key) && rows.some(row => hasResourceValue(row.values[column.key])));
+  const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p>{row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}</div>;
+  const renderTable = (items: Entity[]) => <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...populatedColumns.filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), cell: (row: Entity) => <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} /> })), { label: t("状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
   const renderRefund = (row: Entity, children: Entity[]) => <section key={row.id} className="rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap items-start justify-between gap-3">{identity(row)}{row.status && <Status value={row.status} />}</div><div className="my-4 grid gap-4 sm:grid-cols-3"><div><p className="mb-1 text-xs text-ink-mute">{t("退款责任")}</p><ResourceValue value={row.values.amount_usd} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已真实清偿")}</p><ResourceValue value={sumResourceAmounts(children, "settled_usd")} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("仍待付款")}</p><ResourceValue value={sumResourceAmounts(children, "remaining_usd")} kind="usd" /></div></div><p className="mb-4 text-sm text-ink-secondary">{t(refundNextStep(row, children))}</p>{actions(row)}{children.length > 0 && <details className="mt-5 border-t border-hairline pt-4" open={!!record}><summary className="cursor-pointer text-sm text-brand-emphasis">{t("关联退款明细与付款")} · {children.length}</summary><div className="mt-4 space-y-4">{children.map(leg => <div key={leg.id} className="rounded-control border border-hairline p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3">{identity(leg)}{leg.status && <Status value={leg.status} />}</div><div className="mb-4 grid gap-3 sm:grid-cols-3">{["amount_usd", "settled_usd", "remaining_usd"].map(key => <div key={key}><p className="mb-1 text-xs text-ink-mute">{t(page.columns.find(column => column.key === key)?.label || key)}</p><ResourceValue value={leg.values[key]} kind="usd" /></div>)}</div>{actions(leg)}{page.items.filter(payment => payment.values.record_kind === "actual_refund_payment" && payment.values.leg_id === leg.id).map(payment => <div key={payment.id} className="mt-4 border-l-2 border-hairline pl-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2">{identity(payment)}{payment.status && <Status value={payment.status} />}</div><p className="mb-3 text-xs text-ink-secondary">{t("本次实际付款")} <ResourceValue value={payment.values.actual_payment_usd ?? payment.values.actual_usd} kind="usd" /> · {t("手续费")} <ResourceValue value={payment.values.fee_usd} kind="usd" /></p>{actions(payment)}</div>)}</div>)}</div></details>}</section>;
   const refundCases = resourceName === "refunds" ? rows.filter(row => row.values.record_kind === "case") : [];
   const linkedRefundIDs = new Set(refundCases.flatMap(row => { const legs = rows.filter(leg => leg.values.record_kind === "leg" && leg.values.case_id === row.id); return [row.id, ...legs.map(leg => leg.id), ...rows.filter(payment => legs.some(leg => payment.values.leg_id === leg.id)).map(payment => payment.id)]; }));
@@ -147,7 +149,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   </div>;
   return <>
     {!embedded && <Heading title={page.title === resourceName ? resourceLabel(resourceName) : page.title} description={page.description} />}
-    {page.summary && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} />{item.detail && <FieldHelp title={t(item.label)}>{t(item.detail)}</FieldHelp>}</div>)}
+    {page.summary && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
     </div>}
     {page.availability?.filter(item => !item.enabled).map(item => <div key={item.capability} className="mb-4">
       <Notice>{t(item.reason || "相应业务暂未开放")}{item.next_action && <p>{t(item.next_action)}
@@ -155,6 +157,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
       </Notice>
     </div>)}
     {resourceName === "procurement" && <div className="mb-5"><div className="flex flex-wrap items-center justify-between gap-3"><div role="tablist" aria-label={t("采购办理事项")} className="flex flex-wrap gap-2">{[["orders", businessView === "supplier" ? "供货订单" : "采购订单"], ["quotes", businessView === "supplier" ? "供货报价" : "采购报价"], ["automatic", "自动补货"]].filter(([key]) => key !== "automatic" || businessView !== "supplier").map(([key, title]) => <Button key={key} role="tab" aria-selected={procurementTab === key} variant={procurementTab === key ? "default" : "outline"} onClick={() => setProcurementTab(key)}>{t(title)}</Button>)}</div><Button variant="outline" onClick={() => setProcurementTab("quotes")}>{t(businessView === "supplier" ? "发布供货报价" : "立即补货")}</Button></div><p className="mt-3 text-xs leading-6 text-ink-mute">{t(businessView === "supplier" ? "核对我方供货报价，并追踪采购方原订单的收款与库存交付。" : procurementTab === "quotes" ? "选择已生效报价创建采购订单，付款并交付后增加采购余额。" : procurementTab === "automatic" ? "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。" : "追踪原采购订单的付款与交付。需要新增采购时选择立即补货。")}</p></div>}
+    {operatorID && ["agreements", "procurement", "operators"].includes(resourceName) && workspace?.permissions.some(permission => ["*", "cooperation.manage"].includes(permission)) && <p className="mb-4 text-sm"><Link className="text-brand-emphasis underline" href={`/manage/${encodeURIComponent(operatorID)}/contracts`}>{t("上传或查看可选合作合同")}</Link></p>}
     {(toolbar || operations.length > 0) && <div className="mb-5 flex flex-wrap items-center justify-between gap-3">{toolbar}
       <div className="flex flex-wrap gap-2">{operations.map((operation, index) => <Button key={operation.name} type="button" variant={index === 0 ? "default" : "outline"} onClick={() => selectOperation(operation)}>{t(operation.label)}
       </Button>)}
@@ -172,15 +175,14 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
         <div className="min-w-0">
           <h3 className="text-base font-semibold">{recordTitle(row, resourceName, locale)}
           </h3>
-          <p className="mt-1 break-all font-mono text-[11px] text-ink-mute">{row.id}
-          </p>
+          {row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}
         </div>{row.status && <Status value={row.status} />}
       </div>
       <dl className="mb-5 grid gap-x-5 gap-y-4 sm:grid-cols-2">{populatedColumns.filter(column => hasResourceValue(row.values[column.key])).slice(0, 6).map(column => <div key={column.key} className="min-w-0">
-        <dt className="mb-1 text-xs text-ink-mute">{t(column.label)}
+        <dt className="mb-1 text-xs text-ink-mute">{t(column.label)}{businessFieldHelp(`${resourceName}.${column.key}`, column.help) && <FieldHelp title={t(column.label)}>{t(businessFieldHelp(`${resourceName}.${column.key}`, column.help)!)}</FieldHelp>}
         </dt>
         <dd className="min-w-0 text-sm">
-          <ResourceValue value={row.values[column.key]} kind={column.kind} field={column.key} />
+          <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} />
         </dd>
       </div>)}
       </dl>{actions(row)}
@@ -188,18 +190,18 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
       <Empty>{t("当前筛选下没有记录。")}</Empty>
     </div>}
     </div> : renderTable(rows)}
-    {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? `${recordTitle(selection.row, resourceName, locale)} · ${selection.row.id}` : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
+    {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
       <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} />
     </OperatorPanel>}
     {invoiceID && <InvoiceFiles scope={`${scope}/${resourceName}`} invoiceID={invoiceID} upload={!customer && resourceName === "invoices"} close={() => setInvoiceID("")} />}
     {facts && <OperatorPanel open title={recordTitle(facts, resourceName, locale)} description={t("记录 {id}", { id: facts.id })} close={() => setFacts(undefined)}>
-      <div className="mb-5">{facts.status && <Status value={facts.status} />}
+      <div className="mb-5 space-y-3"><OriginalRecordID id={facts.id} />{facts.status && <Status value={facts.status} />}
       </div>
       <dl className="grid gap-5 sm:grid-cols-2">{page.columns.filter(column => column.key !== "id" && (column.key === "status" || hasResourceValue(facts.values[column.key]))).map(column => <div key={column.key} className="min-w-0">
-        <dt className="mb-2 text-xs text-ink-mute">{t(column.label)}
+        <dt className="mb-2 text-xs text-ink-mute">{t(column.label)}{businessFieldHelp(`${resourceName}.${column.key}`, column.help) && <FieldHelp title={t(column.label)}>{t(businessFieldHelp(`${resourceName}.${column.key}`, column.help)!)}</FieldHelp>}
         </dt>
         <dd>
-          <ResourceValue value={column.key === "status" ? facts.status : facts.values[column.key]} kind={column.kind} field={column.key} />
+          <ResourceValue value={column.key === "status" ? facts.status : readableResourceValue(facts, column.key, locale)} kind={column.kind} field={column.key} />
         </dd>
       </div>)}
       </dl>
@@ -214,6 +216,12 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
       </div>
     </OperatorPanel>}
   </>;
+}
+
+function OriginalRecordID({ id }: { id: string }) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  return <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-ink-mute">{t("原始记录编号")}</span><code className="break-all">{id}</code><Button type="button" variant="outline" size="sm" onClick={async () => { try { await navigator.clipboard.writeText(id); setCopied(true); } catch { setCopied(false); } }}>{t(copied ? "已复制" : "复制编号")}</Button></div>;
 }
 
 export function OperatorPage({ title, description, close, children, onBlockedChange }: { title: string; description: string; close: () => void; children: ReactNode; onBlockedChange?: (blocked: boolean) => void }) {
@@ -281,7 +289,7 @@ export function ResourceValue({ value, kind = "text", field }: { value?: JSONVal
   const { t, locale } = useI18n();
   if (value === null || value === undefined) return <span className="text-ink-mute">—</span>;
   if (field === "record_kind" && typeof value === "string") return <span>{recordKindLabel(value, locale)}</span>;
-  if (kind === "link" && typeof value === "string" && (value.startsWith("/manage/") || value.startsWith("/api/v1/operators/"))) return <a className="text-brand-emphasis underline" href={value}>{value.includes("download") ? t("下载私有文件") : t("进入业务办理")}
+  if (kind === "link" && typeof value === "string" && (value.startsWith("/manage/") || value.startsWith("/api/v1/operators/"))) return <a className="text-brand-emphasis underline" href={value}>{field === "contract_url" ? t("查看私有合同") : value.includes("download") || value.endsWith("/content") ? t("下载私有文件") : t("进入业务办理")}
   </a>;
   if (kind === "details" || typeof value === "object") return <details>
     <summary className="cursor-pointer text-brand-emphasis">{t("查看明细与证据")}</summary>
@@ -315,7 +323,11 @@ export function ReadFacts({ value, field }: { value: JSONValue; field?: string }
 }
 
 export function recordTitle(row: Entity, resource: string, locale: Locale = "zh") {
-  for (const key of ["name", "display_name", "model", "provider", "kind", "record_kind", "purpose"]) {
+  if (row.presentation?.title) {
+    const title = row.presentation.title, prefix = row.presentation.title_kind;
+    return prefix && title.startsWith(prefix) ? translate(locale,prefix) + title.slice(prefix.length) : title;
+  }
+  for (const key of ["name", "display_name", "filename", "hostname", "invoice_reference", "provider_receipt_id", "model", "provider", "kind", "record_kind", "purpose"]) {
     const value = row.values[key];
     if (typeof value === "string" && value) return key === "record_kind" ? recordKindLabel(value, locale) : ["kind", "purpose"].includes(key) ? resourceValueText(value, key, locale) : value;
   }
@@ -332,6 +344,8 @@ export function resourceValueText(value: JSONValue | undefined, field: string | 
   if (typeof value === "boolean") return translate(locale, value ? "是" : "否");
   if (typeof value !== "string") return String(value ?? "—");
   if (field === "record_kind") return recordKindLabel(value, locale);
+  if (field && ["metric_name", "direction_name", "api_entry_note"].includes(field)) return translate(locale,value);
+  if (field === "action") return translate(locale, ({registration:"注册",new_purchase:"新购",renewal:"续费",model_usage:"模型调用",activity:"营销活动",withdrawal:"佣金提现",wallet_refund:"余额退款",customer_login:"登录",all_new_business:"所有新增业务"} as Record<string,string>)[value] || value);
   if (field && enumLabelsByField[field]?.[value]) return translate(locale, enumLabelsByField[field][value]);
   if (field && ["status", "state", "fee_status"].includes(field)) return translate(locale, statusLabels[value] || value);
   if (field === "purpose" && value.startsWith("customer:atg:")) return `${translate(locale, "客户 ATG 权益")} · ${value.slice("customer:atg:".length)}`;

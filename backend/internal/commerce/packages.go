@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPackageInput) (out PackageQuote, err error) {
-	if !validID(in.OperatorID) || strings.TrimSpace(in.Name) == "" || strings.TrimSpace(in.TermsReference) == "" || in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !in.PriceUSD.Valid() || !in.PaidATG.Valid() || !in.GiftATG.Valid() {
+	if !validID(in.OperatorID) || strings.TrimSpace(in.Name) == "" || len(in.TermsSummary) > 10000 || in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !in.PriceUSD.Valid() || !in.PaidATG.Valid() || !in.GiftATG.Valid() {
 		return out, ErrInvalidInput
 	}
 	if _, err = ledger.PeriodEnd(s.now(), in.Period, in.Timezone); err != nil {
@@ -59,7 +60,14 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 			version = old.Version + 1
 			before = PackageQuote(old)
 		}
-		q := quoteRow{ID: uuid.NewString(), PackageID: p.ID, OperatorID: in.OperatorID, Version: version, PriceUSD: in.PriceUSD, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Period: in.Period, Timezone: in.Timezone, TermsReference: in.TermsReference, CreatedAt: s.now()}
+		terms := strings.TrimSpace(in.TermsSummary)
+		if terms == "" {
+			terms = DefaultPackageTerms
+		} else if !strings.HasPrefix(terms, DefaultPackageTerms) {
+			terms = DefaultPackageTerms + "\n" + terms
+		}
+		quoteID := uuid.NewString()
+		q := quoteRow{ID: quoteID, PackageID: p.ID, OperatorID: in.OperatorID, Version: version, PriceUSD: in.PriceUSD, PaidATG: in.PaidATG, GiftATG: in.GiftATG, Period: in.Period, Timezone: in.Timezone, TermsReference: fmt.Sprintf("package-terms:%s:v%d", p.ID, version), TermsSummary: terms, CreatedAt: s.now()}
 		if err := tx.Create(&q).Error; err != nil {
 			return err
 		}
@@ -67,7 +75,7 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 			return err
 		}
 		out = PackageQuote(q)
-		return s.event(tx, p.OperatorID, p.ID, "package.published", map[string]any{"actor_id": in.ActorStaffID, "evidence": in.TermsReference, "before": before, "after": out})
+		return s.event(tx, p.OperatorID, p.ID, "package.published", map[string]any{"actor_id": in.ActorStaffID, "evidence": q.TermsReference, "before": before, "after": out})
 	})
 	return
 }
@@ -92,11 +100,31 @@ func (s *Service) GetPackage(ctx context.Context, tx *gorm.DB, operator, id stri
 // higher USD debit always needs consent, even when the ATG quantity increases.
 func RequiresRenewalConfirmation(old, next PackageQuote) bool {
 	rank := map[ledger.Period]int{ledger.Month: 1, ledger.Quarter: 3, ledger.Year: 12, ledger.Lifetime: 100000}
-	return old.PackageID != next.PackageID || old.OperatorID != next.OperatorID || next.PriceUSD.Cmp(old.PriceUSD) > 0 || next.PaidATG.Add(next.GiftATG).Cmp(old.PaidATG.Add(old.GiftATG)) < 0 || next.PaidATG.Cmp(old.PaidATG) < 0 || rank[next.Period] < rank[old.Period] || old.Timezone != next.Timezone || old.TermsReference != next.TermsReference
+	return old.PackageID != next.PackageID || old.OperatorID != next.OperatorID || next.PriceUSD.Cmp(old.PriceUSD) > 0 || next.PaidATG.Add(next.GiftATG).Cmp(old.PaidATG.Add(old.GiftATG)) < 0 || next.PaidATG.Cmp(old.PaidATG) < 0 || rank[next.Period] < rank[old.Period] || old.Timezone != next.Timezone || packageTermsChanged(old, next)
 }
 func validity(d time.Duration) time.Duration {
 	if d == 0 {
 		return 30 * time.Minute
 	}
 	return d
+}
+
+// DefaultPackageTerms states the fixed business policy; a display reference
+// supplied by a client never becomes the legal rule or a renewal comparison.
+const DefaultPackageTerms = "通用ATG额度可用于当前经营方已上架模型，模型价格按调用时生效报价计算。先到期的额度先使用，同一订单内购买与各来源赠送额度按比例消耗。购买与套餐赠送额度按成交期限有效，到期余量不结转。套餐不支持一般性退款，可停止未来续费；重复或错误交易、未正确交付及无法履约按异常流程办理。"
+
+func packageTermsChanged(old, next PackageQuote) bool {
+	if old.TermsSummary == "" || next.TermsSummary == "" {
+		// Existing accepted quotes without readable content cannot silently
+		// acquire new legal terms from a later publication.
+		return old.TermsSummary != next.TermsSummary || old.TermsReference != next.TermsReference
+	}
+	return old.TermsSummary != next.TermsSummary
+}
+
+func PackageTermsSummary(q PackageQuote) string {
+	if strings.TrimSpace(q.TermsSummary) == "" {
+		return DefaultPackageTerms
+	}
+	return q.TermsSummary
 }

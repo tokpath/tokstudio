@@ -20,7 +20,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (["component", "key", "unit"].includes(key)) return "匹配调用实际用量的计费组件，例如 input_tokens。组件标识、单位和模型能力定义必须一致；价格填写每个计价基数对应的金额。";
   if (["per", "rate"].includes(key)) return "例如每百万 token 收取 2 ATG：每多少单位填 1000000，基础单价填 2。零售价和供货价的单位为各自 ATG，供应商成本价为 USD。";
   if (["multiplier", "model_multipliers"].includes(key)) return "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。";
-  if (["api_base_url"].includes(key)) return "填写客户实际调用的完整 API 入口，例如 https://api.example.com/v1。OEM 使用自己的已验证品牌域名；不要填写上游模型供应商地址。";
+  if (["api_base_url"].includes(key)) return "由品牌已验证并启用的域名自动生成 https://域名/v1；渠道沿用品牌入口。未完成域名接入时不提供可用 API 地址。";
   if (["hostname"].includes(key)) return "将该域名解析到平台指定入口，再按页面提示添加验证记录。填写不代表立即生效；必须完成域名所有权和 TLS 检查。";
   if (["instructions"].includes(key)) return "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。";
   if (key === "per_customer_limit") return "每位客户使用本活动的次数上限。KOL 活动还受同一 KOL 的跨活动累计次数限制，只对有效直属受邀客户生效；单笔最多一个 KOL 活动，不自动延续至后续购买或续费。";
@@ -28,6 +28,16 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (["trigger_available_atg", "single_limit_usd", "period_limit_usd"].includes(key)) return "达到触发条件后按已授权报价补货，受单次金额及 UTC 自然月、季、年累计金额上限约束，同一采购账户不重复发起未完成的自动补货。线下模式只生成待付款订单；实际核实足额收款并交付后才增加采购余额，不能先授信。";
   if (key === "kol_cross_activity_limit") return "同一客户在同一 KOL 的不同活动中累计可用次数上限，0 表示不单独限制这项累计次数。各活动自身的每人及总次数限制仍同时适用；待成交名额先占用，成交核销，失败或关闭释放。";
   if (key === "discount_budget_usd") return "限制本活动累计 USD 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。";
+  if (["warning_buffer", "warning_buffer_atg", "warning_atg"].includes(key) || name === "coverage.warning") return "当可用采购余额减去已承诺责任和待交付责任后的余量，小于或等于此值时，系统提示提前补货。例如采购可用 100、已承诺 60、待交付 10、缓冲 30，就会进入提前补货提醒。超卖额度不计入这项余量；采购余额不足仍不能受理新调用。若已出现更严重的缺货或覆盖不足，优先显示更严重状态。";
+  if (["space", "sales_space"].includes(key)) return "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。";
+  if (["required", "required_atg"].includes(key)) return "覆盖已经售出和赠送、仍需履约的权益，按开放模型最大采购成本核算。它是履约责任，不等于客户实际已经消耗的金额。";
+  if (["pending", "pending_atg"].includes(key)) return "待付款或待交付订单已经预留的销售责任，避免多笔订单重复使用同一份销售空间。关闭或失败后按业务规则释放。";
+  if (["procurement_available", "procurement_available_atg"].includes(key)) return "真实已交付采购余额扣除调用预占后的可用金额。报价、未付款采购订单和超卖额度不会增加这里的余额。";
+  if (key === "delivery_mode") return "手动开通可直接设置新账号初始密码，并把登录信息交给本人；首次登录须修改密码。已有账号不会被重设密码，应把接受邀请链接交给本人。邮件邀请需要先配置可用发信服务。";
+  if (key === "initial_password") return "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。";
+  if (key === "role") return "负责人可管理当前经营方；运营、财务、客服、只读角色按实际职责授予权限。上级负责人不会因此取得下级客户与账务的访问权。";
+  if (key === "exit_policy") return "选择合作双方实际约定的未使用采购余额退出方式。退款责任依原成交约定核算；填写新约定不会改写历史订单。";
+  if (key === "contract_attachment_id") return "选择当前经营方上传的私有合作合同。附件仅向有权查看该合作关系的双方开放，请先上传文件再选择。";
   if (key.endsWith("_seconds")) return "按秒填写等待或有效时长：1 小时为 3600，1 天为 86400。0 是否允许以当前字段规则为准，不要把 0 默认理解为永久有效。";
   if (name.startsWith("credentials.")) return "材料来自对应支付商户后台，必须属于本经营方的实际商户。保存后不回显敏感值；修改时留空通常表示沿用，实际启用仍会检查必需材料。";
   if (/verified$|billable_bounds|usage_rules|capabilities/.test(key)) return "填写已经核实的供应商能力与证据。只有参数保留、用量可靠、上界和失败恢复均验证通过，才可开放调用；勾选不能代替联调。";

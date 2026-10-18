@@ -71,7 +71,7 @@ func validKey(key string) bool {
 	if key == "" || len(key) > 512 || path.Clean(key) != key || strings.HasPrefix(key, "/") || strings.ContainsAny(key, "\\\r\n\x00") {
 		return false
 	}
-	for _, prefix := range []string{"temporary-results/", "branding/", "finance-evidence/", "invoices/", "exports/"} {
+	for _, prefix := range []string{"temporary-results/", "branding/", "finance-evidence/", "invoices/", "exports/", "cooperation-contracts/"} {
 		if strings.HasPrefix(key, prefix) && len(key) > len(prefix) {
 			return true
 		}

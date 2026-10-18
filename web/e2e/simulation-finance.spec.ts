@@ -15,7 +15,6 @@ function control(scope: Page | Locator, label: string, exact = false) {
 
 async function login(page: Page, kind: "staff" | "customer", account: { email: string; password: string }) {
   await page.goto("/login");
-  await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
   await control(page, "邮箱", true).fill(account.email);
   await control(page, "密码", true).fill(account.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -94,7 +93,7 @@ test("finance and customer reconcile partial receipts, independently review a re
     await customer.goto("/workspace/refunds");
     await customer.getByRole("button", { name: "申请USD余额原路退回", exact: true }).click();
     const refund = await submit(customer, "申请USD余额原路退回", "/api/v1/me/refunds", { amount_usd: "20", reason: "Synthetic unused payment balance return" });
-    const readCase = async () => (await (await finance.request.get(`${base}/refunds?record=${refund.id}`)).json()).items as { id: string; status: string; values: Record<string, unknown> }[];
+    const readCase = async () => (await (await finance.request.get(`${base}/refunds?record=${refund.id}`)).json()).items as { id: string; status: string; values: Record<string, unknown>; presentation?: { title?: string } }[];
     for (const staff of [finance, reviewer]) {
       await staff.goto(`${manage}/refunds?record=${refund.id}`);
       await staff.getByRole("button", { name: "审批/独立复核", exact: true }).click();
@@ -165,12 +164,21 @@ test("finance and customer reconcile partial receipts, independently review a re
     await expect(customer.getByText("已完成", { exact: true }).first()).toBeVisible();
     await expect(customer.getByRole("button", { name: "撤销未执行申请", exact: true })).toHaveCount(0);
     await finance.goto(`${manage}/refunds?record=${refund.id}`);
-    const refundCase = finance.locator("section.rounded-card").filter({ has: finance.getByText(refund.id, { exact: true }) });
+    const refundTitle = settled.find(row => row.id === refund.id)?.presentation?.title;
+    expect(refundTitle).toBeTruthy();
+    const refundCase = finance.locator("section.rounded-card").filter({ has: finance.getByText(refundTitle!, { exact: true }) });
     await expect(refundCase.locator(":scope > div").first().getByText("已完成", { exact: true })).toBeVisible();
     await expect(refundCase.getByText("退款责任", { exact: true })).toBeVisible();
     await expect(refundCase.getByText("关联退款明细与付款", { exact: false })).toBeVisible();
-    await expect(refundCase.getByText(legID, { exact: true })).toBeVisible();
-    for (const payment of settled.filter(row => row.values.record_kind === "actual_refund_payment")) await expect(refundCase.getByText(payment.id, { exact: true })).toBeVisible();
+    const legTitle = settled.find(row => row.id === legID)?.presentation?.title;
+    expect(legTitle).toBeTruthy();
+    await expect(refundCase.getByText(legTitle!, { exact: true })).toBeVisible();
+    for (const payment of settled.filter(row => row.values.record_kind === "actual_refund_payment")) {
+      expect(payment.presentation?.title).toBeTruthy();
+      await expect(refundCase.getByText(payment.presentation!.title!, { exact: true })).toBeVisible();
+    }
+    await expect(refundCase.getByText(refund.id, { exact: true })).toHaveCount(0);
+    await expect(refundCase.getByText(legID, { exact: true })).toHaveCount(0);
     expect(settled.filter(row => row.values.record_kind === "actual_refund_payment")).toHaveLength(1);
     await finance.screenshot({ path: info.outputPath("finance-refund-reconciled.png"), fullPage: true });
     expect(errors).toEqual([]);

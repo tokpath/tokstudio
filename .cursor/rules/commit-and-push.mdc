@@ -1,0 +1,10 @@
+---
+description: Commit and push finished work unless the user asked to wait
+alwaysApply: true
+---
+
+# Commit and push finished work
+
+After a requested code change is implemented and checked, commit it and push the current branch. Do this without waiting for a separate commit request.
+
+Skip the commit and push only when the user said beforehand to leave the change local, or when the change is still unfinished. Do not commit secrets or local `.env` files.

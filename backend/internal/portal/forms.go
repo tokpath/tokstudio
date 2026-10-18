@@ -21,7 +21,9 @@ func businessFields(o operation) []field {
 	version := defaultField("expected_version", "当前版本（首次填写0）", "integer", 0)
 	switch resource {
 	case "plans":
-		return []field{optional("package_id", "现有套餐编号（新建留空）", "text"), f("name", "套餐名称", "text"), f("price_usd", "成交价格 USD", "decimal"), f("paid_atg", "购买权益 ATG", "decimal"), defaultField("gift_atg", "套餐赠送 ATG", "decimal", "0"), selectField("period", "有效期", "lifetime|不限期", "month|自然月", "quarter|自然季", "year|自然年"), defaultField("timezone", "经营时区", "text", "Asia/Shanghai"), f("terms_reference", "对客户公示条款编号", "text"), defaultField("new_purchase_enabled", "允许新购", "boolean", true), defaultField("renewal_enabled", "允许续费", "boolean", false), version}
+		period := selectField("period", "有效期", "lifetime|不限期", "month|一个日历月", "quarter|三个日历月", "year|十二个日历月")
+		period.Help = "套餐期限从每次成功交付时开始，按经营时区计算一个、三个或十二个日历月，到期后剩余额度不可用；不限期额度不过期。是否续费由客户授权决定，与 API Key 的自然周期预算分别管理。"
+		return []field{optional("package_id", "现有套餐编号（新建留空）", "text"), f("name", "套餐名称", "text"), f("price_usd", "成交价格 USD", "decimal"), f("paid_atg", "购买权益 ATG", "decimal"), defaultField("gift_atg", "套餐赠送 ATG", "decimal", "0"), period, defaultField("timezone", "经营时区", "text", "Asia/Shanghai"), f("terms_reference", "对客户公示条款编号", "text"), defaultField("new_purchase_enabled", "允许新购", "boolean", true), defaultField("renewal_enabled", "允许续费", "boolean", false), version}
 	case "operators":
 		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), optional("brand_name", "OEM品牌名称", "text"), optional("api_base_url", "OEM API入口", "text"), f("quote_reference", "供货条款编号", "text"), f("exit_terms_reference", "退出条款编号", "text")}
 	case "commissions":

@@ -138,5 +138,10 @@
     "en": "Caps this campaign’s cumulative USD price reductions, including used amounts and pending-order holds, separately from the ATG gift budget. Unpaid orders reserve budget; completion consumes it, while failure or closure releases it. Zero does not mean unlimited discounts. Paid usage is allocated from the order’s actual discounted payment; the discount is not deducted again as a cost.",
     "ja": "本キャンペーンの USD 値引き累計を制限し、使用済みと未成立注文の仮押さえを含みます。ATG 付与予算とは別に確認します。未払注文で仮押さえし、成立時に使用確定、失敗・終了時に解放します。0 は無制限値引きを意味しません。有償消費基数は値引き後の実支払額から配分し、値引き額を原価として二重控除しません。",
     "ru": "Ограничивает суммарные снижения цены в USD, включая использованные суммы и резервы ожидающих заказов, отдельно от бюджета подарочных ATG. Неоплаченные заказы резервируют бюджет; завершение расходует его, сбой или закрытие освобождает. Ноль не означает безлимитные скидки. База оплаченного использования распределяется из фактической оплаты со скидкой; скидка повторно не вычитается как расход."
+  },
+  "套餐期限从每次成功交付时开始，按经营时区计算一个、三个或十二个日历月，到期后剩余额度不可用；不限期额度不过期。是否续费由客户授权决定，与 API Key 的自然周期预算分别管理。": {
+    "en": "Each package term starts when delivery succeeds and lasts one, three or twelve calendar months in the operator’s timezone. Unused credits expire at the end; lifetime credits do not expire. Renewal requires customer authorization and is separate from an API key’s calendar-period budget.",
+    "ja": "プランの期限は各回の提供完了時から始まり、運営者のタイムゾーンで1・3・12暦月を計算します。期限後の残高は使用できず、無期限枠には失効がありません。更新には顧客の承認が必要で、APIキーの暦期間予算とは別に管理します。",
+    "ru": "Срок каждого пакета начинается при успешном предоставлении и составляет один, три или двенадцать календарных месяцев в часовом поясе оператора. По окончании неиспользованные единицы истекают; бессрочные не истекают. Продление требует согласия клиента и учитывается отдельно от бюджета API-ключа по календарным периодам."
   }
 }

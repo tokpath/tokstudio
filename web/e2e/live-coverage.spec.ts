@@ -96,7 +96,11 @@ async function visit(page: Page, route: RouteCase, testInfo: TestInfo, mobileVie
       const resource = groups[i].items[0][0];
       await expect(groupLinks.nth(i)).toHaveAttribute("href", `${base}${resource ? `/${resource}` : ""}`);
     }
-    await expect(page.getByRole("navigation", { name: "移动工作台工具", exact: true }).getByRole("link")).toHaveCount(operatorView ? 1 : 2);
+    const tools = page.getByRole("navigation", { name: "移动工作台工具", exact: true });
+    if (operatorView) {
+      await expect(tools).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "通知管理", exact: true })).toHaveAttribute("href", `${base}/notifications`);
+    } else await expect(tools.getByRole("link")).toHaveCount(2);
     await noHorizontalOverflow(page);
     await page.getByRole("button", { name: "收起工作台导航", exact: true }).click();
   }

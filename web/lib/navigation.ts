@@ -28,6 +28,12 @@ export const operatorSections = operatorNav;
 const platformOnly = new Set(["catalog", "providers", "routes", "routing", "requests", "jobs", "mail", "payment-assets"]);
 const parentOnly = new Set(["operators", "channel-themes", "domains", "takeovers", "takeover-settlements"]);
 type Workspace = { operator: { kind: string }; permissions: readonly string[] };
+export function staffNotificationPath(workspaces: readonly (Workspace & { operator: { id: string } })[], pathname: string, activeOperatorID?: string): string | undefined {
+  const current = workspaces.find(item => pathname === `/manage/${item.operator.id}` || pathname.startsWith(`/manage/${item.operator.id}/`));
+  const candidates = current ? [current] : [workspaces.find(item => item.operator.id === activeOperatorID), ...workspaces];
+  const workspace = candidates.find(item => item && canReadResource(item, "notifications"));
+  return workspace ? `/manage/${encodeURIComponent(workspace.operator.id)}/notifications` : undefined;
+}
 export function canReadResource(workspace: Workspace | undefined, resource: string): boolean {
   if (!workspace) return false;
   const base = resource.split("/")[0];

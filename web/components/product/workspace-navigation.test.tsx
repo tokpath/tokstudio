@@ -30,7 +30,7 @@ it("places account and notifications in the sidebar tools and expands only the c
   expect(within(business).queryByRole("navigation", { name: "模型与接入内导航" })).toBeNull();
 });
 
-it("expands authorized operator links vertically and keeps notifications in tools", () => {
+it("expands authorized operator links vertically and leaves notifications out of the sidebar", () => {
   state.session = staff(["payments.read", "refunds.read", "notifications.read", "providers.read"]); state.path = "/manage/one/payments"; mount("one");
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });
   const finance = within(business).getByRole("navigation", { name: "资金办理内导航" });
@@ -38,7 +38,8 @@ it("expands authorized operator links vertically and keeps notifications in tool
   expect(within(finance).getByRole("link", { name: "收款与分配" }).getAttribute("aria-current")).toBe("page");
   expect(within(business).queryByRole("link", { name: "订单与交付" })).toBeNull();
   expect(within(business).queryByRole("link", { name: "通知管理" })).toBeNull();
-  expect(within(screen.getByRole("navigation", { name: "工作台工具", exact: true })).getByRole("link", { name: "通知管理" })).toBeTruthy();
+  expect(screen.queryByRole("navigation", { name: "工作台工具", exact: true })).toBeNull();
+  expect(screen.queryByRole("link", { name: "通知管理" })).toBeNull();
 });
 
 it("collapses an open operator group on a second click and expands it again", () => {
@@ -59,7 +60,8 @@ it("keeps platform-only resources and unauthorized notification tools out of a c
   state.session = staff(["payments.read", "providers.read"], "channel"); state.path = "/manage/one/payments"; mount("one");
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });
   expect(within(business).queryByRole("link", { name: "平台技术" })).toBeNull();
-  expect(within(screen.getByRole("navigation", { name: "工作台工具", exact: true })).queryByRole("link")).toBeNull();
+  expect(screen.queryByRole("navigation", { name: "工作台工具", exact: true })).toBeNull();
+  expect(screen.queryByRole("link", { name: "通知管理" })).toBeNull();
 });
 
 it("retains the navigation guard for sidebar links and workspace switching", async () => {

@@ -11,6 +11,7 @@ import { safeAssetURL } from "@/lib/decimal";
 import { resolveTheme } from "@/lib/theme";
 import { operatorLanding } from "@/lib/navigation";
 import { Monitor } from "lucide-react";
+import { StaffNotificationBell } from "./staff-notification-bell";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { ErrorPanel, useCommand } from "./shared";
@@ -38,7 +39,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-6 px-5 py-4 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap font-semibold tracking-tight">{logo ? <img alt="" src={logo} className="h-8 w-8 object-contain" /> : <span className="grid h-8 w-8 place-items-center rounded-stamp bg-brand text-on-brand">T</span>}<span>{context.data?.brand.name || "TokenHub"}</span></Link>
           <nav aria-label={t("网站")} className={`${insideWorkspace ? "hidden md:flex" : "order-3 flex w-full sm:order-none sm:w-auto"} items-center gap-5 whitespace-nowrap text-sm text-ink-secondary sm:flex-1`}><Link href="/models" aria-current={pathname === "/models" ? "page" : undefined}>{t("模型与价格")}</Link><Link href="/plans" aria-current={pathname === "/plans" ? "page" : undefined}>{t("通用套餐")}</Link></nav>
-          {current?.kind === "customer" ? <div className="ml-auto flex shrink-0 items-center gap-3 text-sm"><Link href="/workspace">{t("客户工作台")}</Link><span className="hidden text-ink-mute md:inline">{current.customer.display_name}</span><Logout /></div> : current?.kind === "staff" ? <div className="ml-auto flex shrink-0 items-center gap-3 text-sm"><Link href={current.workspaces.length ? operatorLanding(current.workspaces.find(item => item.operator.id === current.active_operator_id) || current.workspaces[0]) : "/login"}>{t("经营管理")}</Link><span className="hidden text-ink-mute md:inline">{current.staff.display_name}</span><Logout /></div> : <div className="ml-auto flex shrink-0 items-center gap-4 text-sm"><Link href="/login">{t("登录")}</Link><Button asChild size="sm"><Link href="/register">{t("创建账号")}</Link></Button></div>}
+          {current?.kind === "customer" ? <div className="ml-auto flex shrink-0 items-center gap-3 text-sm"><Link href="/workspace">{t("客户工作台")}</Link><span className="hidden text-ink-mute md:inline">{current.customer.display_name}</span><Logout /></div> : current?.kind === "staff" ? <div className="ml-auto flex shrink-0 items-center gap-3 text-sm"><Link href={current.workspaces.length ? operatorLanding(current.workspaces.find(item => item.operator.id === current.active_operator_id) || current.workspaces[0]) : "/login"}>{t("经营管理")}</Link><StaffNotificationBell workspaces={current.workspaces} activeOperatorID={current.active_operator_id} pathname={pathname} /><span className="hidden text-ink-mute md:inline">{current.staff.display_name}</span><Logout /></div> : <div className="ml-auto flex shrink-0 items-center gap-4 text-sm"><Link href="/login">{t("登录")}</Link><Button asChild size="sm"><Link href="/register">{t("创建账号")}</Link></Button></div>}
           <LanguageControl /><ThemeControl />
         </div>
       </header>

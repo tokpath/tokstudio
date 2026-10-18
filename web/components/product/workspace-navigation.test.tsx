@@ -42,6 +42,15 @@ it("expands authorized operator links vertically and leaves notifications out of
   expect(screen.queryByRole("link", { name: "通知管理" })).toBeNull();
 });
 
+it("keeps settings collapsed on the notification page and pins the sidebar note", () => {
+  state.session = staff(["business-status.read", "staff.read", "notifications.read"]); state.path = "/manage/one/notifications"; mount("one");
+  const business = screen.getByRole("navigation", { name: "工作台", exact: true });
+  const settings = within(business).getByRole("link", { name: "设置" });
+  expect(settings.getAttribute("aria-expanded")).toBe("false");
+  expect(within(business).queryByRole("navigation", { name: "设置内导航" })).toBeNull();
+  expect(screen.getByText("仅显示当前经营空间已授权的业务。").closest("div")?.className).toContain("mt-auto");
+});
+
 it("collapses an open operator group on a second click and expands it again", () => {
   state.session = staff(["operators.read", "procurement.read"]); state.path = "/manage/one/operators"; mount("one");
   const business = screen.getByRole("navigation", { name: "工作台", exact: true });

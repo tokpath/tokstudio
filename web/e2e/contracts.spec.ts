@@ -70,7 +70,7 @@ test("unknown financial action freezes input and retries its exact key and body"
 });
 
 test("staff notification entry is a bell beside the signed-in account", async ({ page }) => {
-  await api(page, { kind: "staff", staff: { id: "staff-1", email: "owner@example.test", display_name: "负责人" }, workspaces: [{ operator: { ...operator, kind: "platform" }, permissions: ["invoices.read", "notifications.read"] }], active_operator_id: operator.id, csrf_token: "csrf_test" });
+  await api(page, { kind: "staff", staff: { id: "staff-1", email: "owner@example.test", display_name: "负责人" }, workspaces: [{ operator: { ...operator, kind: "platform" }, permissions: ["invoices.read", "notifications.read", "business-status.read", "staff.read"] }], active_operator_id: operator.id, csrf_token: "csrf_test" });
   await page.goto(`/manage/${operator.id}/invoices`);
   await expect(page.getByRole("heading", { name: "票据办理" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "工作台", exact: true }).getByRole("link", { name: "通知管理" })).toHaveCount(0);
@@ -82,6 +82,14 @@ test("staff notification entry is a bell beside the signed-in account", async ({
   const bellBox = await bell.boundingBox();
   const nameBox = await name.boundingBox();
   expect(bellBox && nameBox && bellBox.x < nameBox.x && Math.abs(bellBox.y - nameBox.y) < 24).toBeTruthy();
+  await bell.click();
+  await expect(page).toHaveURL(new RegExp(`/manage/${operator.id}/notifications$`));
+  await expect(page.getByRole("navigation", { name: "设置内导航", exact: true })).toHaveCount(0);
+  const aside = page.locator("aside");
+  const note = page.locator("aside").locator("div.mt-auto");
+  const asideBox = await aside.boundingBox();
+  const noteBox = await note.boundingBox();
+  expect(asideBox && noteBox && asideBox.y + asideBox.height - (noteBox.y + noteBox.height) < 32).toBeTruthy();
 });
 
 test("staff sees only granted workspace resources; customer cannot open management", async ({ page }) => {

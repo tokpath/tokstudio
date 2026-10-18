@@ -1,5 +1,6 @@
 import { Decimal, type JSONValue, type Operation } from "@/lib/contracts";
 import { compareDecimal } from "@/lib/decimal";
+import { translate, type Locale } from "@/lib/i18n";
 
 export type ConfigNode = {
   label: string;
@@ -107,8 +108,18 @@ export function nodeVisible(node: ConfigNode, parent: Record<string, JSONValue>)
 
 // Prune only fields that are explicitly conditional. All unknown extension
 // fields survive a structured edit, and all monetary values stay as strings.
+type ConfigurationPathPart = { source: string; separator?: string; literal?: boolean };
+
 export class ConfigurationError extends Error {
-  constructor(message: string, public fieldPath: string) { super(message); this.name = "ConfigurationError"; }
+  constructor(public source: string, public fieldPath = "", public values: Record<string, string | number> = {}, private pathParts?: ConfigurationPathPart[]) {
+    super(translate("zh", source, values)); this.name = "ConfigurationError";
+  }
+  localized(locale: Locale): string {
+    const values = Object.fromEntries(Object.entries(this.values).map(([key, value]) => [key,
+      key === "path" && this.pathParts ? this.pathParts.map(part => `${part.separator || ""}${part.literal ? part.source : translate(locale, part.source)}`).join("")
+        : typeof value === "string" ? translate(locale, value) : value]));
+    return translate(locale, this.source, values);
+  }
 }
 
 // Capability quantities and constraints are rational strings, unlike prices.
@@ -159,43 +170,43 @@ function compareRational(left: string, right: string): number {
   return delta < 0n ? -1 : delta > 0n ? 1 : 0;
 }
 
-export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = node.label, fieldPath = ""): JSONValue {
-  const fail = (message: string): never => { throw new ConfigurationError(message, fieldPath); };
+export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = node.label, fieldPath = "", pathParts: ConfigurationPathPart[] = [{ source: path }]): JSONValue {
+  const fail = (message: string, values: Record<string, string | number> = { path }): never => { throw new ConfigurationError(message, fieldPath, values, pathParts); };
   if (value === null && node.nullable) return null;
   if (value === null && !node.required && ["object", "array", "record"].includes(node.kind)) return null;
   if (node.kind === "object") {
-    if (!value || Array.isArray(value) || typeof value !== "object") return fail(`${path}应为一组业务字段`);
+    if (!value || Array.isArray(value) || typeof value !== "object") return fail("{path}应为一组业务字段");
     const out = { ...value };
     for (const [key, child] of Object.entries(node.fields || {})) {
       if (!nodeVisible(child, value)) { delete out[key]; continue; }
-      if (out[key] !== undefined && out[key] !== "") out[key] = prepareConfiguration(out[key], child, `${path} · ${child.label}`, fieldPath ? `${fieldPath}.${key}` : key);
-      else if (child.required) throw new ConfigurationError(child.readOnly ? `无法核实${child.label}，请重新选择业务记录后重试。` : `请填写${path} · ${child.label}`, child.readOnly && node.fields?.model_id?.lookup ? (fieldPath ? `${fieldPath}.model_id` : "model_id") : (fieldPath ? `${fieldPath}.${key}` : key));
+      if (out[key] !== undefined && out[key] !== "") out[key] = prepareConfiguration(out[key], child, `${path} · ${child.label}`, fieldPath ? `${fieldPath}.${key}` : key, [...pathParts, { source: child.label, separator: " · " }]);
+      else if (child.required) throw new ConfigurationError(child.readOnly ? "无法核实{label}，请重新选择业务记录后重试。" : "请填写{path} · {label}", child.readOnly && node.fields?.model_id?.lookup ? (fieldPath ? `${fieldPath}.model_id` : "model_id") : (fieldPath ? `${fieldPath}.${key}` : key), { path, label: child.label }, pathParts);
       else if (out[key] === "") delete out[key];
     }
     return out;
   }
   if (node.kind === "array") {
-    if (!Array.isArray(value)) return fail(`${path}应为列表`);
-    return value.map((item, index) => prepareConfiguration(item, node.item!, `${path} ${index + 1}`, `${fieldPath}.${index}`));
+    if (!Array.isArray(value)) return fail("{path}应为列表");
+    return value.map((item, index) => prepareConfiguration(item, node.item!, `${path} ${index + 1}`, `${fieldPath}.${index}`, [...pathParts, { source: String(index + 1), separator: " ", literal: true }]));
   }
   if (node.kind === "record") {
-    if (!value || Array.isArray(value) || typeof value !== "object") return fail(`${path}应为按名称配置的字段`);
+    if (!value || Array.isArray(value) || typeof value !== "object") return fail("{path}应为按名称配置的字段");
     return Object.fromEntries(Object.entries(value).map(([key, item]) => {
-      if (!key.trim()) return fail(`请填写${path}的项目名称`);
-      return [key, prepareConfiguration(item, node.item!, `${path} · ${key}`, `${fieldPath}.${key}`)];
+      if (!key.trim()) return fail("请填写{path}的项目名称");
+      return [key, prepareConfiguration(item, node.item!, `${path} · ${key}`, `${fieldPath}.${key}`, [...pathParts, { source: key, separator: " · ", literal: true }])];
     }));
   }
-  if (node.kind === "decimal") { if (typeof value !== "string" || !Decimal.safeParse(value).success) return fail(`${path}请输入非负十进制数，最多 24 位小数`); }
-  else if (node.kind === "rational") { const parsed = typeof value === "string" ? rational(value) : undefined; if (!parsed || (!node.signed && parsed[0] < 0n)) return fail(`${path}请输入${node.signed ? "" : "非负"}精确数量或有效分数，分母须大于 0`); }
+  if (node.kind === "decimal") { if (typeof value !== "string" || !Decimal.safeParse(value).success) return fail("{path}请输入非负十进制数，最多 24 位小数"); }
+  else if (node.kind === "rational") { const parsed = typeof value === "string" ? rational(value) : undefined; if (!parsed || (!node.signed && parsed[0] < 0n)) return fail(node.signed ? "{path}请输入精确数量或有效分数，分母须大于 0" : "{path}请输入非负精确数量或有效分数，分母须大于 0"); }
   else if (node.kind === "integer") {
-    if (typeof value !== "number" || !Number.isSafeInteger(value) || (!node.signed && value < 0)) return fail(`${path}应为${node.signed ? "安全整数" : "非负整数"}`);
-    if (node.min !== undefined && value < node.min) return fail(`${path}不能小于 ${node.min}`);
-    if (node.max !== undefined && value > node.max) return fail(`${path}不能大于 ${node.max}`);
+    if (typeof value !== "number" || !Number.isSafeInteger(value) || (!node.signed && value < 0)) return fail(node.signed ? "{path}应为安全整数" : "{path}应为非负整数");
+    if (node.min !== undefined && value < node.min) return fail("{path}不能小于 {min}", { path, min: node.min });
+    if (node.max !== undefined && value > node.max) return fail("{path}不能大于 {max}", { path, max: node.max });
   }
-  else if (node.kind === "boolean") { if (typeof value !== "boolean") return fail(`${path}应选择是否启用`); }
-  else if (node.kind === "datetime") { if (typeof value !== "string" || Number.isNaN(new Date(value).getTime())) return fail(`${path}时间无效`); return new Date(value).toISOString(); }
-  else if (typeof value !== "string" || (node.required && !value.trim())) return fail(`请填写${path}`);
-  if (node.kind === "select" && !node.options?.some(([option]) => option === value)) return fail(`${path}请选择有效选项`);
+  else if (node.kind === "boolean") { if (typeof value !== "boolean") return fail("{path}应选择是否启用"); }
+  else if (node.kind === "datetime") { if (typeof value !== "string" || Number.isNaN(new Date(value).getTime())) return fail("{path}时间无效"); return new Date(value).toISOString(); }
+  else if (typeof value !== "string" || (node.required && !value.trim())) return fail("请填写{path}");
+  if (node.kind === "select" && !node.options?.some(([option]) => option === value)) return fail("{path}请选择有效选项");
   return value;
 }
 

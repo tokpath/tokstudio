@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/i18n";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -15,14 +16,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export function OperatorWorkflowScreen({ operatorID, resource, record }: { operatorID: string; resource: string; record?: string }) {
+  const { t } = useI18n();
   const [subject, setSubject] = useState<{ resource: "customers" | "orders"; row: Entity }>();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const workflow = workflows[resource];
-  if (!canReadResource(workspace, resource)) return <Empty title="没有查看权限">此页面需要当前经营方明确授予相应权限。</Empty>;
+  if (!canReadResource(workspace, resource)) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   return <>
     {workflow && <>
-      <Heading eyebrow={workflow.eyebrow} title={workflow.title} description={workflow.description} />
+      <Heading eyebrow={t(workflow.eyebrow)} title={t(workflow.title)} description={t(workflow.description)} />
       <WorkflowGuide operatorID={operatorID} resource={resource} />
     </>}
     <ResourceScreen key={`${operatorID}:${resource}`} operatorID={operatorID} resource={resource} record={record} embedded={!!workflow} layout={cardResources.has(resource) ? "cards" : "table"} onInspect={(name, row) => { if (name === "customers" || name === "orders") setSubject({ resource: name, row }); }} />
@@ -31,6 +33,7 @@ export function OperatorWorkflowScreen({ operatorID, resource, record }: { opera
 }
 
 export function OperatorOverview({ operatorID }: { operatorID: string }) {
+  const { t } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const resources = ["overview", "business-status", "alerts", "approvals"];
@@ -45,21 +48,21 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
   const businessRow = business.data?.items[0];
   const destination = (resource: string) => `/manage/${encodeURIComponent(operatorID)}/${resource}`;
   return <>
-    <Heading eyebrow="经营工作台" title={`今天，先把要紧的事办好`} description={`${workspace?.operator.name || "当前经营方"}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。`} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.operator.kind === "platform" ? "平台经营" : workspace?.operator.kind === "oem" ? "OEM 独立经营" : "渠道独立经营"}
+    <Heading eyebrow={t("经营工作台")} title={t("今天，先把要紧的事办好")} description={t("{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。", { operator: workspace?.operator.name || t("当前经营方") })} actions={<span className="rounded-full border border-hairline bg-canvas-raised px-3 py-2 text-xs text-ink-mute">{workspace?.operator.kind === "platform" ? t("平台经营") : workspace?.operator.kind === "oem" ? t("OEM 独立经营") : t("渠道独立经营")}
     </span>} />
     {overview.isLoading && <Loading />}{overview.isError && <div className="mb-5">
       <ErrorPanel error={overview.error} retry={() => void overview.refetch()} />
     </div>}
-    {isPlatform && <div className="mb-7"><Notice><p className="font-medium text-ink">平台直接维护供应商与上游路由</p><p>平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。</p><div className="mt-3 flex flex-wrap gap-4">{[["providers", "维护模型供应商"], ["routes", "维护上游路由"]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, label]) => <Link key={resource} className="text-brand-emphasis underline" href={destination(resource)}>{label}</Link>)}</div></Notice></div>}
-    {overview.data && applicableMetrics.some(metric => metric.unit) && <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{applicableMetrics.filter(metric => metric.unit).map(metric => <Stat key={metric.key} label={metric.label} value={metrics[metric.key] ?? "尚未核实"} unit={metrics[metric.key] !== undefined ? metric.unit : undefined} detail={metrics[metric.key] !== undefined ? metric.detail : "尚未取得可核实的指标，请到履约与超卖或采购页面查询原始责任。"} />)}
+    {isPlatform && <div className="mb-7"><Notice><p className="font-medium text-ink">{t("平台直接维护供应商与上游路由")}</p><p>{t("平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。")}</p><div className="mt-3 flex flex-wrap gap-4">{[["providers", t("维护模型供应商")], ["routes", t("维护上游路由")]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, label]) => <Link key={resource} className="text-brand-emphasis underline" href={destination(resource)}>{t(label)}</Link>)}</div></Notice></div>}
+    {overview.data && applicableMetrics.some(metric => metric.unit) && <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{applicableMetrics.filter(metric => metric.unit).map(metric => <Stat key={metric.key} label={t(metric.label)} value={metrics[metric.key] ?? t("尚未核实")} unit={metrics[metric.key] !== undefined ? metric.unit : undefined} detail={metrics[metric.key] !== undefined ? metric.detail : t("尚未取得可核实的指标，请到履约与超卖或采购页面查询原始责任。")} />)}
     </div>}
     <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_1fr]">
       <Card className="min-w-0">
         <div className="mb-5 flex items-center gap-3">
           <ClipboardCheck size={19} className="text-brand-emphasis" />
-          <h2 className="text-lg font-semibold">待办事项</h2>
+          <h2 className="text-lg font-semibold">{t("待办事项")}</h2>
         </div>
-        <div className="space-y-3">{outstanding.map(metric => <TaskRow key={metric.key} title={metric.task!} description={metric.detail} count={`${metrics[metric.key]} 笔`} href={canReadResource(workspace, metric.resource) ? destination(metric.resource) : undefined} />)}{approvals.data && approvals.data.items.length > 0 && <TaskRow title="完成独立复核" description="到原业务核对来源、条款和证据，再由具备权限的人员办理。" count={`${approvals.data.items.length} 条已读取`} href={destination("approvals")} />}{!outstanding.length && !(approvals.data?.items.length) && <p className="py-6 text-sm leading-7 text-ink-mute">{unknownTasks ? "部分待办指标尚未核实，请到相应业务页继续查询。" : overview.data || approvals.data ? "已读取范围内暂无未决待办。其他业务仍可从对应板块查询。" : "当前权限未提供经营待办数据。可从下方已授权入口继续工作。"}
+        <div className="space-y-3">{outstanding.map(metric => <TaskRow key={metric.key} title={metric.task!} description={t(metric.detail)} count={t("{count} 笔", { count: metrics[metric.key] })} href={canReadResource(workspace, metric.resource) ? destination(metric.resource) : undefined} />)}{approvals.data && approvals.data.items.length > 0 && <TaskRow title={t("完成独立复核")} description={t("到原业务核对来源、条款和证据，再由具备权限的人员办理。")} count={t("{count} 条已读取", { count: approvals.data.items.length })} href={destination("approvals")} />}{!outstanding.length && !(approvals.data?.items.length) && <p className="py-6 text-sm leading-7 text-ink-mute">{unknownTasks ? t("部分待办指标尚未核实，请到相应业务页继续查询。") : overview.data || approvals.data ? t("已读取范围内暂无未决待办。其他业务仍可从对应板块查询。") : t("当前权限未提供经营待办数据。可从下方已授权入口继续工作。")}
         </p>}
         </div>{approvals.isError && <div className="mt-4">
           <ErrorPanel error={approvals.error} retry={() => void approvals.refetch()} compact />
@@ -68,18 +71,18 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
       <Card className="min-w-0">
         <div className="mb-5 flex items-center gap-3">
           <ShieldCheck size={19} className="text-brand-emphasis" />
-          <h2 className="text-lg font-semibold">服务风险</h2>
+          <h2 className="text-lg font-semibold">{t("服务风险")}</h2>
         </div>{canReadResource(workspace, "alerts") ? risks.isLoading ? <Loading /> : risks.isError ? <ErrorPanel error={risks.error} retry={() => void risks.refetch()} compact /> : activeRisks.length ? <div className="space-y-4">{activeRisks.slice(0, 5).map(row => <div key={row.id} className="border-b border-hairline pb-4 last:border-0 last:pb-0">
           <div className="flex justify-between gap-3">
-            <p className="text-sm font-medium">{metricDefinitions.find(metric => metric.key === row.values.metric)?.label || "经营风险预警"}
+            <p className="text-sm font-medium">{t(metricDefinitions.find(metric => metric.key === row.values.metric)?.label || "经营风险预警")}
             </p>{row.status && <Status value={row.status} />}
           </div>
-          <p className="mt-2 text-xs text-ink-mute">当前值 <ResourceValue value={row.values.value} /> · 检查于 <When value={typeof row.values.observed_at === "string" ? row.values.observed_at : undefined} />
+          <p className="mt-2 text-xs text-ink-mute">{t("当前值")} <ResourceValue value={row.values.value} /> {t("· 检查于")} <When value={typeof row.values.observed_at === "string" ? row.values.observed_at : undefined} />
           </p>
         </div>)}
-          <Link className="inline-flex items-center gap-2 text-sm text-brand-emphasis" href={destination("alerts")}>查看风险与处置<ArrowRight size={14} />
+          <Link className="inline-flex items-center gap-2 text-sm text-brand-emphasis" href={destination("alerts")}>{t("查看风险与处置")}<ArrowRight size={14} />
           </Link>
-        </div> : <p className="py-4 text-sm leading-7 text-ink-mute">{isPlatform ? "已读取的适用风险规则暂无异常。平台继续核实供应商健康、路由容量和调用成本。" : "已读取的风险规则暂无异常。模型调用仍须具备足额采购余额和合格路由。"}</p> : <p className="py-4 text-sm leading-7 text-ink-mute">风险详情需要当前空间的运营权限。</p>}
+        </div> : <p className="py-4 text-sm leading-7 text-ink-mute">{isPlatform ? t("已读取的适用风险规则暂无异常。平台继续核实供应商健康、路由容量和调用成本。") : t("已读取的风险规则暂无异常。模型调用仍须具备足额采购余额和合格路由。")}</p> : <p className="py-4 text-sm leading-7 text-ink-mute">{t("风险详情需要当前空间的运营权限。")}</p>}
       </Card>
     </div>
     <Card className="mt-6">
@@ -87,36 +90,36 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
         <div>
           <div className="flex items-center gap-3">
             <Sparkles size={19} className="text-brand-emphasis" />
-            <h2 className="text-lg font-semibold">营业与开业检查</h2>
+            <h2 className="text-lg font-semibold">{t("营业与开业检查")}</h2>
           </div>
-          <p className="mt-2 text-sm leading-6 text-ink-mute">逐项开放注册、销售、调用和结算。暂停新增业务后，存量权益和资金责任继续办理。</p>
+          <p className="mt-2 text-sm leading-6 text-ink-mute">{t("逐项开放注册、销售、调用和结算。暂停新增业务后，存量权益和资金责任继续办理。")}</p>
         </div>{canReadResource(workspace, "business-status") && <Button asChild size="sm" variant="outline">
-          <Link href={destination("business-status")}>检查并调整营业项目</Link>
+          <Link href={destination("business-status")}>{t("检查并调整营业项目")}</Link>
         </Button>}
       </div>{business.isLoading ? <Loading /> : business.isError ? <ErrorPanel error={business.error} retry={() => void business.refetch()} compact /> : businessRow ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{businessFeatures.map(([key, label, help]) => <div key={key} className="rounded-control border border-hairline p-4">
         <div className="flex items-center gap-2">{businessRow.values[key] ? <Check size={16} className="text-success" /> : <Circle size={15} className="text-ink-mute" />}
-          <h3 className="text-sm font-medium">{label}
+          <h3 className="text-sm font-medium">{t(label)}
           </h3>
-          <span className="ml-auto text-xs text-ink-mute">{businessRow.values[key] ? "已开放" : "未开放"}
+          <span className="ml-auto text-xs text-ink-mute">{businessRow.values[key] ? t("已开放") : t("未开放")}
           </span>
         </div>
-        <p className="mt-2 text-xs leading-6 text-ink-mute">{isPlatform && key === "model_usage" ? "公开模型、有效成本价与合格上游路由须就绪" : help}
+        <p className="mt-2 text-xs leading-6 text-ink-mute">{isPlatform && key === "model_usage" ? t("公开模型、有效成本价与合格上游路由须就绪") : t(help)}
         </p>
       </div>)}
-      </div> : <p className="text-sm text-ink-mute">营业项目详情需业务管理权限。</p>}
+      </div> : <p className="text-sm text-ink-mute">{t("营业项目详情需业务管理权限。")}</p>}
     </Card>
-    <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[["customers", "服务客户", "订单、资产和售后统一查看"], ["plans", "维护商品", "套餐版本、续费和销售条款"], ["payments", "核实收款", "真实到账、分配和交付"], isPlatform ? ["providers", "模型供应商", "维护供应商接入、凭据与健康"] : ["procurement", "采购补货", "查看报价、付款与库存交付"]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, title, detail]) => <Link key={resource} href={destination(resource)} className="rounded-card border border-hairline bg-canvas-raised p-5 transition-colors hover:border-brand">
-      <span className="flex items-center justify-between font-medium">{title}
+    <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[["customers", t("服务客户"), t("订单、资产和售后统一查看")], ["plans", t("维护商品"), t("套餐版本、续费和销售条款")], ["payments", t("核实收款"), t("真实到账、分配和交付")], isPlatform ? ["providers", t("模型供应商"), t("维护供应商接入、凭据与健康")] : ["procurement", t("采购补货"), t("查看报价、付款与库存交付")]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, title, detail]) => <Link key={resource} href={destination(resource)} className="rounded-card border border-hairline bg-canvas-raised p-5 transition-colors hover:border-brand">
+      <span className="flex items-center justify-between font-medium">{t(title)}
         <ArrowRight size={16} className="text-brand-emphasis" />
       </span>
-      <p className="mt-2 text-xs leading-6 text-ink-mute">{detail}
+      <p className="mt-2 text-xs leading-6 text-ink-mute">{t(detail)}
       </p>
     </Link>)}
     </div>
     {overview.data && metricDefinitions.filter(metric => !metric.unit && metrics[metric.key] !== undefined).length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metricDefinitions.filter(metric => !metric.unit && metrics[metric.key] !== undefined).map(metric => <div key={metric.key} className="rounded-control border border-hairline px-4 py-3">
-      <p className="text-xs text-ink-mute">{metric.label}
+      <p className="text-xs text-ink-mute">{t(metric.label)}
       </p>
-      <p className="mt-2 text-lg font-semibold">{metrics[metric.key]} <span className="text-xs font-normal text-ink-mute">笔</span>
+      <p className="mt-2 text-lg font-semibold">{metrics[metric.key]} <span className="text-xs font-normal text-ink-mute">{t("笔")}</span>
       </p>
     </div>)}
     </div>}
@@ -125,6 +128,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
 
 const SubjectContextSchema = z.object({ subject: EntitySchema, sections: z.array(z.object({ resource: z.string(), title: z.string(), page: ResourcePageSchema })), next_actions: z.array(z.string()).optional(), subject_operations: z.array(OperationSchema).optional() });
 export function OperatorSubjectPanel({ operatorID, resource, row, close }: { operatorID: string; resource: "customers" | "orders"; row: Entity; close: () => void }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(""), [cursor, setCursor] = useState(""), [history, setHistory] = useState<string[]>([]);
   const [nestedOrder, setNestedOrder] = useState<Entity>();
   const [blocked, setBlocked] = useState(false);
@@ -137,33 +141,33 @@ export function OperatorSubjectPanel({ operatorID, resource, row, close }: { ope
   const currentSection = sections.find(item => item.resource === active) || sections[0];
   const section = cursor ? paged.data?.sections.find(item => item.resource === active) || currentSection : currentSection;
   const profile = resource === "customers";
-  const title = profile ? String(subject.values.name || subject.values.display_name || "客户工作台") : "订单与收款办理";
-  return <OperatorPanel open title={title} description={`${profile ? "客户" : "订单"} ${row.id} · 仅查看当前经营范围内明确授权的关联记录`} close={close} onBlockedChange={setBlocked}>
+  const title = profile ? String(subject.values.name || subject.values.display_name || t("客户工作台")) : t("订单与收款办理");
+  return <OperatorPanel open title={title} description={t("{subject} {id} · 仅查看当前经营范围内明确授权的关联记录", { subject: t(profile ? "客户" : "订单"), id: row.id })} close={close} onBlockedChange={setBlocked}>
     {data.isPending ? <Loading /> : data.isError ? <ErrorPanel error={data.error} retry={() => void data.refetch()} /> : <>
       <Card className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="font-semibold">{profile ? String(subject.values.email || "客户资料") : orderKindLabel(subject.values.kind)}
-            </h3>{profile && <p className="mt-2 text-xs text-ink-mute">注册于 <When value={typeof subject.values.registered_at === "string" ? subject.values.registered_at : undefined} />
+            <h3 className="font-semibold">{profile ? String(subject.values.email || t("客户资料")) : t(orderKindLabel(subject.values.kind))}
+            </h3>{profile && <p className="mt-2 text-xs text-ink-mute">{t("注册于")} <When value={typeof subject.values.registered_at === "string" ? subject.values.registered_at : undefined} />
             </p>}
           </div>{subject.status && <Status value={subject.status} />}
         </div>{!profile && <>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <AmountFact label="订单应付" value={subject.values.due_usd} />
-            <AmountFact label="外部款已分配" value={subject.values.external_allocated_usd} />
-            <AmountFact label="USD 余额支付" value={subject.values.internal_usd} />
-            <AmountFact label="佣金支付" value={subject.values.commission_usd} />
-            <AmountFact label="购买权益" value={subject.values.paid_atg} unit="ATG" />
+            <AmountFact label={t("订单应付")} value={subject.values.due_usd} />
+            <AmountFact label={t("外部款已分配")} value={subject.values.external_allocated_usd} />
+            <AmountFact label={t("USD 余额支付")} value={subject.values.internal_usd} />
+            <AmountFact label={t("佣金支付")} value={subject.values.commission_usd} />
+            <AmountFact label={t("购买权益")} value={subject.values.paid_atg} unit="ATG" />
             <div>
-              <p className="mb-1 text-xs text-ink-mute">实际交付</p>
+              <p className="mb-1 text-xs text-ink-mute">{t("实际交付")}</p>
               <When value={typeof subject.values.completed_at === "string" ? subject.values.completed_at : undefined} />
             </div>
           </div>
           <OrderProgress subject={subject} />{!!data.data?.subject_operations?.length && <div className="mt-5">
-            <ResourceCollection operatorID={operatorID} resource="orders" page={{ title: "订单办理", description: "", items: [subject], columns: [], operations: [], row_operations: data.data.subject_operations }} embedded actionsOnly />
+            <ResourceCollection operatorID={operatorID} resource="orders" page={{ title: t("订单办理"), description: "", items: [subject], columns: [], operations: [], row_operations: data.data.subject_operations }} embedded actionsOnly />
           </div>}</>}
         <details className="mt-5 border-t border-hairline pt-4">
-          <summary className="cursor-pointer text-sm text-brand-emphasis">{profile ? "客户归属与保存资料" : "成交条款与原始订单"}
+          <summary className="cursor-pointer text-sm text-brand-emphasis">{profile ? t("客户归属与保存资料") : t("成交条款与原始订单")}
           </summary>
           <div className="mt-4">
             <ReadFacts value={subject.values} />
@@ -172,70 +176,74 @@ export function OperatorSubjectPanel({ operatorID, resource, row, close }: { ope
       </Card>
       {!!data.data?.next_actions?.length && <div className="mb-6">
         <Notice>
-          <p className="font-medium text-ink">下一步办理</p>
-          <ul className="mt-2 list-disc space-y-1 pl-4">{data.data.next_actions.map((action, index) => <li key={index}>{action}
+          <p className="font-medium text-ink">{t("下一步办理")}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4">{data.data.next_actions.map((action, index) => <li key={index}>{t(action)}
           </li>)}
           </ul>
         </Notice>
       </div>}
       {sections.length ? <>
-        <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label={profile ? "客户关联业务" : "订单关联业务"}>{sections.map(item => <button key={item.resource} type="button" role="tab" disabled={blocked} aria-selected={section?.resource === item.resource} onClick={() => { setActive(item.resource); setCursor(""); setHistory([]); }} className={`rounded-control border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${section?.resource === item.resource ? "border-brand bg-brand-soft text-brand-emphasis" : "border-hairline bg-canvas-raised text-ink-secondary"}`}>{item.title}
+        <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label={profile ? t("客户关联业务") : t("订单关联业务")}>{sections.map(item => <button key={item.resource} type="button" role="tab" disabled={blocked} aria-selected={section?.resource === item.resource} onClick={() => { setActive(item.resource); setCursor(""); setHistory([]); }} className={`rounded-control border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${section?.resource === item.resource ? "border-brand bg-brand-soft text-brand-emphasis" : "border-hairline bg-canvas-raised text-ink-secondary"}`}>{t(item.title)}
         </button>)}
-        </div>{section && <div role="tabpanel" aria-label={section.title}>
+        </div>{section && <div role="tabpanel" aria-label={t(section.title)}>
           <div className="mb-4">
-            <h3 className="font-semibold">{section.title}
+            <h3 className="font-semibold">{t(section.title)}
             </h3>
-            <p className="mt-1 text-xs leading-6 text-ink-mute">{section.page.description}
+            <p className="mt-1 text-xs leading-6 text-ink-mute">{t(section.page.description)}
             </p>
           </div>{cursor && paged.isPending ? <Loading /> : cursor && paged.isError ? <ErrorPanel error={paged.error} retry={() => void paged.refetch()} /> : <ResourceCollection key={`${row.id}:${section.resource}`} page={section.page} operatorID={operatorID} resource={section.resource} embedded initialValues={resource === "orders" ? { order_id: row.id } : undefined} onInspect={(name, item) => { if (name === "orders" && resource === "customers") setNestedOrder(item); }} />}
-          <div className="mt-5 flex justify-end gap-2">{!!history.length && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { const previous = [...history]; setCursor(previous.pop() || ""); setHistory(previous); }}>上一页关联记录</Button>}{section.page.next_cursor && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { setActive(section.resource); setHistory(previous => [...previous, cursor]); setCursor(section.page.next_cursor!); }}>下一页关联记录</Button>}
+          <div className="mt-5 flex justify-end gap-2">{!!history.length && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { const previous = [...history]; setCursor(previous.pop() || ""); setHistory(previous); }}>{t("上一页关联记录")}</Button>}{section.page.next_cursor && <Button variant="outline" size="sm" disabled={blocked} onClick={() => { setActive(section.resource); setHistory(previous => [...previous, cursor]); setCursor(section.page.next_cursor!); }}>{t("下一页关联记录")}</Button>}
           </div>
-        </div>}</> : <Empty title="暂无可查看的关联业务">当前授权范围内没有其他业务记录。</Empty>}
+        </div>}</> : <Empty title={t("暂无可查看的关联业务")}>{t("当前授权范围内没有其他业务记录。")}</Empty>}
     </>}
     {nestedOrder && <OperatorSubjectPanel operatorID={operatorID} resource="orders" row={nestedOrder} close={() => setNestedOrder(undefined)} />}
   </OperatorPanel>;
 }
 
 function AmountFact({ label, value, unit = "USD" }: { label: string; value?: JSONValue; unit?: string }) {
+  const { t } = useI18n();
   return <div>
-    <p className="mb-1 text-xs text-ink-mute">{label}
+    <p className="mb-1 text-xs text-ink-mute">{t(label)}
     </p>{typeof value === "string" ? <Money value={value} unit={unit} /> : <span className="text-ink-mute">—</span>}
   </div>;
 }
 function OrderProgress({ subject }: { subject: Entity }) {
+  const { t } = useI18n();
   const complete = subject.status === "completed" || subject.status === "fulfilled";
   return <div className="mt-5 grid gap-3 rounded-control bg-canvas p-4 sm:grid-cols-3">
     <div>
-      <p className="text-xs text-ink-mute">订单</p>
-      <p className="mt-1 text-sm">{complete ? "成交已交付" : "保留原成交条款"}
+      <p className="text-xs text-ink-mute">{t("订单")}</p>
+      <p className="mt-1 text-sm">{complete ? t("成交已交付") : t("保留原成交条款")}
       </p>
     </div>
     <div>
-      <p className="text-xs text-ink-mute">款项</p>
-      <p className="mt-1 text-sm">收款、分配与手续费独立核实</p>
+      <p className="text-xs text-ink-mute">{t("款项")}</p>
+      <p className="mt-1 text-sm">{t("收款、分配与手续费独立核实")}</p>
     </div>
     <div>
-      <p className="text-xs text-ink-mute">交付</p>
-      <p className="mt-1 text-sm">{complete ? "查看已发放权益与来源" : subject.status === "paid_pending_delivery" || subject.status === "paid" ? "资金足额，检查覆盖后交付" : "以原订单资金状态为准"}
+      <p className="text-xs text-ink-mute">{t("交付")}</p>
+      <p className="mt-1 text-sm">{complete ? t("查看已发放权益与来源") : subject.status === "paid_pending_delivery" || subject.status === "paid" ? t("资金足额，检查覆盖后交付") : t("以原订单资金状态为准")}
       </p>
     </div>
   </div>;
 }
 function orderKindLabel(kind?: JSONValue) { return ({ package: "套餐购买订单", topup: "USD 余额充值订单", renewal: "套餐续费订单", package_purchase: "套餐购买订单", package_renewal: "套餐续费订单", customer_usd_topup: "USD 余额充值订单" } as Record<string, string>)[String(kind)] || "原始订单"; }
 function TaskRow({ title, description, count, href }: { title: string; description: string; count: string; href?: string }) {
+  const { t } = useI18n();
   const body = <>
     <div className="flex items-center justify-between gap-3">
-      <span className="text-sm font-medium">{title}
+      <span className="text-sm font-medium">{t(title)}
       </span>
       <span className="rounded-full bg-brand-soft px-2 py-1 text-xs text-brand-emphasis">{count}
       </span>
     </div>
-    <p className="mt-2 text-xs leading-6 text-ink-mute">{description}
-    </p>{!href && <p className="mt-1 text-xs text-ink-mute">请由具备相应权限的人员办理。</p>}</>; return href ? <Link className="block rounded-control border border-hairline p-4 transition-colors hover:border-brand" href={href}>{body}
+    <p className="mt-2 text-xs leading-6 text-ink-mute">{t(description)}
+    </p>{!href && <p className="mt-1 text-xs text-ink-mute">{t("请由具备相应权限的人员办理。")}</p>}</>; return href ? <Link className="block rounded-control border border-hairline p-4 transition-colors hover:border-brand" href={href}>{body}
     </Link> : <div className="rounded-control border border-hairline p-4">{body}
     </div>;
 }
 function WorkflowGuide({ operatorID, resource }: { operatorID: string; resource: string }) {
+  const { t } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const flow = workflows[resource];
@@ -244,15 +252,15 @@ function WorkflowGuide({ operatorID, resource }: { operatorID: string; resource:
       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-emphasis">{index + 1}
       </span>
       <div>
-        <h2 className="text-sm font-medium">{title}
+        <h2 className="text-sm font-medium">{t(title)}
         </h2>
-        <p className="mt-1 text-xs leading-6 text-ink-mute">{text}
+        <p className="mt-1 text-xs leading-6 text-ink-mute">{t(text)}
         </p>
       </div>
     </li>)}
     </ol>{flow.links.some(link => canReadResource(workspace, link)) && <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-4">
-      <span className="mr-1 text-xs text-ink-mute">相关办理</span>{flow.links.filter(link => canReadResource(workspace, link)).map(link => <Button asChild variant="ghost" size="sm" key={link}>
-        <Link href={`/manage/${encodeURIComponent(operatorID)}/${link}`}>{resourceLabel(link)}
+      <span className="mr-1 text-xs text-ink-mute">{t("相关办理")}</span>{flow.links.filter(link => canReadResource(workspace, link)).map(link => <Button asChild variant="ghost" size="sm" key={link}>
+        <Link href={`/manage/${encodeURIComponent(operatorID)}/${link}`}>{t(resourceLabel(link))}
           <ArrowRight size={12} className="ml-1" aria-hidden />
         </Link>
       </Button>)}

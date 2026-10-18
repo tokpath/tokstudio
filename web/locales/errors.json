@@ -1,0 +1,675 @@
+{
+  "The image dimensions do not meet the upload requirements.": {
+    "zh": "图片尺寸不符合上传要求。",
+    "en": "The image dimensions do not meet the upload requirements.",
+    "ja": "画像サイズがアップロード要件を満たしていません。",
+    "ru": "Размеры изображения не соответствуют требованиям загрузки."
+  },
+  "This asset kind is not supported.": {
+    "zh": "不支持此资源类型。",
+    "en": "This asset kind is not supported.",
+    "ja": "このリソース種別には対応していません。",
+    "ru": "Этот тип ресурса не поддерживается."
+  },
+  "This SVG is invalid or contains unsupported content.": {
+    "zh": "SVG 无效或包含不支持的内容。",
+    "en": "This SVG is invalid or contains unsupported content.",
+    "ja": "SVG が無効か、未対応の内容を含んでいます。",
+    "ru": "SVG недействителен или содержит неподдерживаемые данные."
+  },
+  "The file exceeds the upload size limit.": {
+    "zh": "文件超过上传大小限制。",
+    "en": "The file exceeds the upload size limit.",
+    "ja": "ファイルがアップロードのサイズ上限を超えています。",
+    "ru": "Файл превышает допустимый размер загрузки."
+  },
+  "This file type is not supported.": {
+    "zh": "不支持此文件类型。",
+    "en": "This file type is not supported.",
+    "ja": "このファイル形式には対応していません。",
+    "ru": "Этот тип файла не поддерживается."
+  },
+  "Sign-in failed. Check the account and credentials.": {
+    "zh": "登录失败，请核对账号和凭据。",
+    "en": "Sign-in failed. Check the account and credentials.",
+    "ja": "ログインに失敗しました。アカウントと認証情報を確認してください。",
+    "ru": "Не удалось войти. Проверьте аккаунт и данные для входа."
+  },
+  "The brand API address is unavailable.": {
+    "zh": "品牌 API 地址不可用。",
+    "en": "The brand API address is unavailable.",
+    "ja": "ブランドの API アドレスを利用できません。",
+    "ru": "API-адрес бренда недоступен."
+  },
+  "This account or record belongs to a different brand.": {
+    "zh": "此账号或记录属于其他品牌。",
+    "en": "This account or record belongs to a different brand.",
+    "ja": "このアカウントまたは記録は別のブランドに属しています。",
+    "ru": "Аккаунт или запись принадлежит другому бренду."
+  },
+  "This brand cannot be customized.": {
+    "zh": "此品牌无法定制。",
+    "en": "This brand cannot be customized.",
+    "ja": "このブランドはカスタマイズできません。",
+    "ru": "Настройка этого бренда недоступна."
+  },
+  "The model catalog is temporarily unavailable.": {
+    "zh": "模型目录暂时不可用。",
+    "en": "The model catalog is temporarily unavailable.",
+    "ja": "モデルカタログを一時的に利用できません。",
+    "ru": "Каталог моделей временно недоступен."
+  },
+  "This channel is disabled. New usage is unavailable.": {
+    "zh": "此渠道已停用，不能新增使用。",
+    "en": "This channel is disabled. New usage is unavailable.",
+    "ja": "このチャネルは無効です。新規利用はできません。",
+    "ru": "Канал отключён. Новые обращения недоступны."
+  },
+  "This Google client ID is already assigned to another brand.": {
+    "zh": "此 Google 客户端编号已被其他品牌使用。",
+    "en": "This Google client ID is already assigned to another brand.",
+    "ja": "この Google クライアント ID は別のブランドで使用されています。",
+    "ru": "Этот идентификатор клиента Google уже назначен другому бренду."
+  },
+  "The commission record has changed. Reload and review it.": {
+    "zh": "佣金记录已变化，请重新读取并核实。",
+    "en": "The commission record has changed. Reload and review it.",
+    "ja": "コミッション記録が変更されています。再読み込みして確認してください。",
+    "ru": "Запись комиссии изменилась. Обновите и проверьте её."
+  },
+  "The commission wallet does not match the settlement facts.": {
+    "zh": "佣金钱包与精算事实不一致。",
+    "en": "The commission wallet does not match the settlement facts.",
+    "ja": "コミッションウォレットが精算記録と一致しません。",
+    "ru": "Комиссионный кошелёк не соответствует фактам расчёта."
+  },
+  "The service configuration is incomplete or invalid.": {
+    "zh": "服务配置不完整或无效。",
+    "en": "The service configuration is incomplete or invalid.",
+    "ja": "サービス設定が未完了または無効です。",
+    "ru": "Настройки сервиса неполные или недействительные."
+  },
+  "Confirm this operation before submitting it.": {
+    "zh": "请确认本次操作后再提交。",
+    "en": "Confirm this operation before submitting it.",
+    "ja": "送信前にこの操作を確認してください。",
+    "ru": "Подтвердите операцию перед отправкой."
+  },
+  "OEM delivery requirements are incomplete.": {
+    "zh": "OEM 交付条件尚未齐全。",
+    "en": "OEM delivery requirements are incomplete.",
+    "ja": "OEM の納品要件が未完了です。",
+    "ru": "Требования к предоставлению услуг OEM не выполнены."
+  },
+  "This email link is invalid, expired or already used. Request a new one.": {
+    "zh": "邮件链接无效、已到期或已使用，请重新申请。",
+    "en": "This email link is invalid, expired or already used. Request a new one.",
+    "ja": "メールリンクが無効、期限切れ、または使用済みです。新しいリンクを申請してください。",
+    "ru": "Ссылка из письма недействительна, просрочена или уже использована. Запросите новую."
+  },
+  "Email service is unavailable. Contact the platform administrator.": {
+    "zh": "邮件服务不可用，请联系平台负责人。",
+    "en": "Email service is unavailable. Contact the platform administrator.",
+    "ja": "メールサービスを利用できません。プラットフォーム管理者に連絡してください。",
+    "ru": "Почтовая служба недоступна. Обратитесь к администратору платформы."
+  },
+  "This external reference is already used by another operation.": {
+    "zh": "此外部依据已被其他操作使用。",
+    "en": "This external reference is already used by another operation.",
+    "ja": "この外部参照は別の操作で使用されています。",
+    "ru": "Эта внешняя ссылка уже используется другой операцией."
+  },
+  "This external transaction is already recorded.": {
+    "zh": "此外部交易已经登记。",
+    "en": "This external transaction is already recorded.",
+    "ja": "この外部取引は記録済みです。",
+    "ru": "Эта внешняя транзакция уже зарегистрирована."
+  },
+  "You do not have permission to perform this operation.": {
+    "zh": "你没有执行此操作的权限。",
+    "en": "You do not have permission to perform this operation.",
+    "ja": "この操作を行う権限がありません。",
+    "ru": "У вас нет прав для выполнения этой операции."
+  },
+  "This resource is no longer available.": {
+    "zh": "此资源已不可用。",
+    "en": "This resource is no longer available.",
+    "ja": "このリソースは利用できなくなりました。",
+    "ru": "Этот ресурс больше недоступен."
+  },
+  "Verify this Google configuration before enabling it.": {
+    "zh": "请先验证 Google 配置后再启用。",
+    "en": "Verify this Google configuration before enabling it.",
+    "ja": "有効化する前に Google 設定を検証してください。",
+    "ru": "Проверьте настройки Google перед включением."
+  },
+  "This operation ID was used with different details. Check the original operation.": {
+    "zh": "此操作编号曾用于不同内容，请核对原操作。",
+    "en": "This operation ID was used with different details. Check the original operation.",
+    "ja": "この操作 ID は異なる内容で使用されています。元の操作を確認してください。",
+    "ru": "Этот идентификатор операции использовался с другими данными. Проверьте исходную операцию."
+  },
+  "Eligible credit is insufficient. Add credit or purchase a valid plan.": {
+    "zh": "可用额度不足，请补充额度或购买有效套餐。",
+    "en": "Eligible credit is insufficient. Add credit or purchase a valid plan.",
+    "ja": "利用可能な枠が不足しています。チャージまたは有効なプランの購入を行ってください。",
+    "ru": "Недостаточно доступных кредитов. Пополните баланс или купите действующий пакет."
+  },
+  "Available service credit is insufficient.": {
+    "zh": "可用服务额度不足。",
+    "en": "Available service credit is insufficient.",
+    "ja": "利用可能なサービス枠が不足しています。",
+    "ru": "Недостаточно доступных кредитов для услуг."
+  },
+  "The operation could not be completed. Check its result before retrying.": {
+    "zh": "操作未能完成，请核对结果后再重试。",
+    "en": "The operation could not be completed. Check its result before retrying.",
+    "ja": "操作を完了できませんでした。再試行前に結果を確認してください。",
+    "ru": "Операцию не удалось завершить. Проверьте результат перед повторной попыткой."
+  },
+  "Enter a valid amount within the allowed limits.": {
+    "zh": "请填写符合范围限制的有效金额。",
+    "en": "Enter a valid amount within the allowed limits.",
+    "ja": "許容範囲内の有効な金額を入力してください。",
+    "ru": "Введите допустимую сумму в установленных пределах."
+  },
+  "The channel administrator is invalid or cannot be changed this way.": {
+    "zh": "渠道管理员无效或不能以此方式变更。",
+    "en": "The channel administrator is invalid or cannot be changed this way.",
+    "ja": "チャネル管理者が無効か、この方法では変更できません。",
+    "ru": "Администратор канала недействителен или не может быть изменён таким способом."
+  },
+  "The pagination cursor is invalid. Return to the first page.": {
+    "zh": "分页游标无效，请返回第一页。",
+    "en": "The pagination cursor is invalid. Return to the first page.",
+    "ja": "ページ移動のカーソルが無効です。最初のページに戻ってください。",
+    "ru": "Указатель страницы недействителен. Вернитесь на первую страницу."
+  },
+  "The API key limits are invalid.": {
+    "zh": "API Key 限制设置无效。",
+    "en": "The API key limits are invalid.",
+    "ja": "API キーの制限設定が無効です。",
+    "ru": "Ограничения API-ключа недействительны."
+  },
+  "Select a valid recipient within your scope.": {
+    "zh": "请选择权限范围内的有效收件人。",
+    "en": "Select a valid recipient within your scope.",
+    "ja": "管理範囲内の有効な受取人を選択してください。",
+    "ru": "Выберите допустимого получателя в пределах своих полномочий."
+  },
+  "The request is invalid. Check the fields and try again.": {
+    "zh": "请求无效，请核对各项输入后重试。",
+    "en": "The request is invalid. Check the fields and try again.",
+    "ja": "リクエストが無効です。入力項目を確認して再試行してください。",
+    "ru": "Запрос недействителен. Проверьте поля и повторите попытку."
+  },
+  "Check the SMTP server, port, sender address and secure connection settings.": {
+    "zh": "请核对 SMTP 服务、端口、发件地址和安全连接设置。",
+    "en": "Check the SMTP server, port, sender address and secure connection settings.",
+    "ja": "SMTP サーバー、ポート、送信元、セキュア接続の設定を確認してください。",
+    "ru": "Проверьте SMTP-сервер, порт, адрес отправителя и настройки защищённого соединения."
+  },
+  "This API key has reached its spending limit.": {
+    "zh": "此 API Key 已达到使用预算上限。",
+    "en": "This API key has reached its spending limit.",
+    "ja": "この API キーは利用金額の上限に達しています。",
+    "ru": "Этот API-ключ достиг лимита расходов."
+  },
+  "This API key has expired.": {
+    "zh": "此 API Key 已到期。",
+    "en": "This API key has expired.",
+    "ja": "この API キーは有効期限が切れています。",
+    "ru": "Срок действия API-ключа истёк."
+  },
+  "This API key is invalid.": {
+    "zh": "此 API Key 无效。",
+    "en": "This API key is invalid.",
+    "ja": "この API キーは無効です。",
+    "ru": "API-ключ недействителен."
+  },
+  "This API key was not found.": {
+    "zh": "未找到此 API Key。",
+    "en": "This API key was not found.",
+    "ja": "この API キーが見つかりません。",
+    "ru": "API-ключ не найден."
+  },
+  "The API key operation conflicts with its current state. Refresh and review it.": {
+    "zh": "API Key 操作与当前状态冲突，请刷新后核实。",
+    "en": "The API key operation conflicts with its current state. Refresh and review it.",
+    "ja": "API キーの現在の状態と操作が競合しています。更新して確認してください。",
+    "ru": "Операция с API-ключом противоречит его текущему состоянию. Обновите данные и проверьте их."
+  },
+  "This API key cannot currently be used.": {
+    "zh": "此 API Key 当前不可使用。",
+    "en": "This API key cannot currently be used.",
+    "ja": "この API キーは現在利用できません。",
+    "ru": "Этот API-ключ сейчас недоступен для использования."
+  },
+  "The media result is not ready yet. Check the job status.": {
+    "zh": "媒体结果尚未就绪，请查询任务状态。",
+    "en": "The media result is not ready yet. Check the job status.",
+    "ja": "メディア結果はまだ準備できていません。ジョブの状態を確認してください。",
+    "ru": "Медиарезультат ещё не готов. Проверьте состояние задачи."
+  },
+  "This model is unavailable or is not granted to this account.": {
+    "zh": "此模型不可用或未授权给当前账号。",
+    "en": "This model is unavailable or is not granted to this account.",
+    "ja": "このモデルは利用できないか、このアカウントに許可されていません。",
+    "ru": "Модель недоступна или не разрешена этому аккаунту."
+  },
+  "The requested record was not found.": {
+    "zh": "未找到请求的记录。",
+    "en": "The requested record was not found.",
+    "ja": "対象の記録が見つかりません。",
+    "ru": "Запрошенная запись не найдена."
+  },
+  "There are no eligible commissions to settle.": {
+    "zh": "当前没有可精算的佣金。",
+    "en": "There are no eligible commissions to settle.",
+    "ja": "精算対象のコミッションがありません。",
+    "ru": "Нет комиссий, доступных для расчёта."
+  },
+  "Check SMTP configuration, email verification and whether this notification is expired or already sent.": {
+    "zh": "请核对 SMTP、邮箱验证和通知是否已到期或已发送。",
+    "en": "Check SMTP configuration, email verification and whether this notification is expired or already sent.",
+    "ja": "SMTP 設定、メール認証、通知の有効期限と送信済み状態を確認してください。",
+    "ru": "Проверьте SMTP, подтверждение email и то, не истёк ли срок уведомления и не было ли оно уже отправлено."
+  },
+  "This notification was not found.": {
+    "zh": "未找到此通知。",
+    "en": "This notification was not found.",
+    "ja": "この通知が見つかりません。",
+    "ru": "Уведомление не найдено."
+  },
+  "The operation conflicts with the current state. Reload the original record.": {
+    "zh": "操作与当前状态冲突，请重新读取原记录。",
+    "en": "The operation conflicts with the current state. Reload the original record.",
+    "ja": "現在の状態と操作が競合しています。元の記録を再読み込みしてください。",
+    "ru": "Операция противоречит текущему состоянию. Обновите исходную запись."
+  },
+  "The order status has changed or does not permit this action.": {
+    "zh": "订单状态已变化或不允许此操作。",
+    "en": "The order status has changed or does not permit this action.",
+    "ja": "注文の状態が変更されているか、この操作を許可していません。",
+    "ru": "Состояние заказа изменилось или не допускает это действие."
+  },
+  "The payment provider could not complete the operation. Check the payment result.": {
+    "zh": "支付通道未能完成操作，请核对支付结果。",
+    "en": "The payment provider could not complete the operation. Check the payment result.",
+    "ja": "決済事業者が操作を完了できませんでした。決済結果を確認してください。",
+    "ru": "Платёжный провайдер не смог завершить операцию. Проверьте результат платежа."
+  },
+  "This payment method is currently unavailable.": {
+    "zh": "此支付方式当前不可用。",
+    "en": "This payment method is currently unavailable.",
+    "ja": "この決済手段は現在利用できません。",
+    "ru": "Этот способ оплаты сейчас недоступен."
+  },
+  "You do not have permission to access this record or perform this operation.": {
+    "zh": "你没有访问此记录或执行此操作的权限。",
+    "en": "You do not have permission to access this record or perform this operation.",
+    "ja": "この記録へのアクセスまたは操作の権限がありません。",
+    "ru": "У вас нет прав для просмотра записи или выполнения операции."
+  },
+  "A plan with this name already exists.": {
+    "zh": "同名套餐已经存在。",
+    "en": "A plan with this name already exists.",
+    "ja": "同じ名前のプランが既に存在します。",
+    "ru": "Пакет с таким названием уже существует."
+  },
+  "The preview has changed. Reload and confirm the updated result.": {
+    "zh": "预览已变化，请重新读取并确认新结果。",
+    "en": "The preview has changed. Reload and confirm the updated result.",
+    "ja": "プレビューが変更されています。再読み込みして最新の結果を確認してください。",
+    "ru": "Предварительный расчёт изменился. Обновите и подтвердите новый результат."
+  },
+  "A reliable price estimate is unavailable for this request.": {
+    "zh": "无法为此请求提供可靠费用预估。",
+    "en": "A reliable price estimate is unavailable for this request.",
+    "ja": "このリクエストの価格を正確に見積もれません。",
+    "ru": "Надёжная оценка стоимости этого запроса недоступна."
+  },
+  "This provider does not support this probe.": {
+    "zh": "此供应商不支持该探测。",
+    "en": "This provider does not support this probe.",
+    "ja": "このプロバイダーはこのプローブに対応していません。",
+    "ru": "Провайдер не поддерживает эту проверку."
+  },
+  "The upstream provider is currently unavailable.": {
+    "zh": "上游供应商当前不可用。",
+    "en": "The upstream provider is currently unavailable.",
+    "ja": "上流プロバイダーは現在利用できません。",
+    "ru": "Поставщик сейчас недоступен."
+  },
+  "This credit cannot be recovered in its current state.": {
+    "zh": "此额度在当前状态下不可回收。",
+    "en": "This credit cannot be recovered in its current state.",
+    "ja": "この枠は現在の状態では回収できません。",
+    "ru": "Эти кредиты нельзя вернуть в текущем состоянии."
+  },
+  "The request rate limit has been reached. Try again later.": {
+    "zh": "已达到调用频率限制，请稍后重试。",
+    "en": "The request rate limit has been reached. Try again later.",
+    "ja": "リクエスト数の上限に達しました。時間をおいて再試行してください。",
+    "ru": "Достигнут лимит частоты запросов. Повторите позже."
+  },
+  "Too many requests. Try again later.": {
+    "zh": "请求过于频繁，请稍后重试。",
+    "en": "Too many requests. Try again later.",
+    "ja": "リクエストが多すぎます。時間をおいて再試行してください。",
+    "ru": "Слишком много запросов. Повторите позже."
+  },
+  "Could not load the record. Please retry.": {
+    "zh": "读取记录失败，请重试。",
+    "en": "Could not load the record. Please retry.",
+    "ja": "記録を読み込めませんでした。再試行してください。",
+    "ru": "Не удалось загрузить запись. Повторите попытку."
+  },
+  "The recovery record has changed. Reload the original record.": {
+    "zh": "回收记录已变化，请重新读取原记录。",
+    "en": "The recovery record has changed. Reload the original record.",
+    "ja": "回収記録が変更されています。元の記録を再読み込みしてください。",
+    "ru": "Запись возврата изменилась. Обновите исходную запись."
+  },
+  "The refund could not be completed. Check the original operation before retrying.": {
+    "zh": "退款未能完成，请核对原操作后再重试。",
+    "en": "The refund could not be completed. Check the original operation before retrying.",
+    "ja": "返金を完了できませんでした。再試行前に元の操作を確認してください。",
+    "ru": "Возврат не завершён. Проверьте исходную операцию перед повторной попыткой."
+  },
+  "This refund requires a financial review before it can proceed.": {
+    "zh": "此退款需要先完成财务复核。",
+    "en": "This refund requires a financial review before it can proceed.",
+    "ja": "この返金を進めるには財務による確認が必要です。",
+    "ru": "Для продолжения возврата требуется финансовая проверка."
+  },
+  "The request result is unconfirmed. Check the original request before retrying.": {
+    "zh": "请求结果尚未确认，请核对原请求后再重试。",
+    "en": "The request result is unconfirmed. Check the original request before retrying.",
+    "ja": "リクエスト結果が未確認です。再試行前に元のリクエストを確認してください。",
+    "ru": "Результат запроса не подтверждён. Проверьте исходный запрос перед повторной попыткой."
+  },
+  "The result is unconfirmed. Check the original operation rather than creating a new one.": {
+    "zh": "结果尚未确认，请核对原操作，不要另建新操作。",
+    "en": "The result is unconfirmed. Check the original operation rather than creating a new one.",
+    "ja": "結果が未確認です。新しい操作を作成せず、元の操作を確認してください。",
+    "ru": "Результат не подтверждён. Проверьте исходную операцию, не создавая новую."
+  },
+  "The service is temporarily unavailable. Try again later.": {
+    "zh": "服务暂时不可用，请稍后重试。",
+    "en": "The service is temporarily unavailable. Try again later.",
+    "ja": "サービスを一時的に利用できません。時間をおいて再試行してください。",
+    "ru": "Сервис временно недоступен. Повторите позже."
+  },
+  "The settlement facts have changed. Reload the preview before confirming.": {
+    "zh": "精算事实已变化，请重新读取预览后确认。",
+    "en": "The settlement facts have changed. Reload the preview before confirming.",
+    "ja": "精算内容が変更されています。確認前にプレビューを再読み込みしてください。",
+    "ru": "Факты расчёта изменились. Обновите предварительный расчёт перед подтверждением."
+  },
+  "Email delivery is unavailable. Check SMTP and platform encryption settings.": {
+    "zh": "邮件发送不可用，请核对 SMTP 和平台加密设置。",
+    "en": "Email delivery is unavailable. Check SMTP and platform encryption settings.",
+    "ja": "メール配信を利用できません。SMTP と暗号化設定を確認してください。",
+    "ru": "Отправка писем недоступна. Проверьте SMTP и настройки шифрования платформы."
+  },
+  "The original snapshot is unavailable. This operation needs review.": {
+    "zh": "原始快照不可用，此操作需要复核。",
+    "en": "The original snapshot is unavailable. This operation needs review.",
+    "ja": "元のスナップショットを利用できません。この操作には確認が必要です。",
+    "ru": "Исходный снимок данных недоступен. Операция требует проверки."
+  },
+  "Storage is unavailable.": {
+    "zh": "存储暂时不可用。",
+    "en": "Storage is unavailable.",
+    "ja": "ストレージを利用できません。",
+    "ru": "Хранилище недоступно."
+  },
+  "The supplier record conflicts with existing financial facts.": {
+    "zh": "供应商记录与现有资金事实冲突。",
+    "en": "The supplier record conflicts with existing financial facts.",
+    "ja": "仕入先の記録が既存の会計記録と競合しています。",
+    "ru": "Запись поставщика противоречит существующим финансовым фактам."
+  },
+  "The top-up status does not permit this operation.": {
+    "zh": "充值状态不允许此操作。",
+    "en": "The top-up status does not permit this operation.",
+    "ja": "チャージの状態がこの操作を許可していません。",
+    "ru": "Состояние пополнения не допускает эту операцию."
+  },
+  "Enter a valid authenticator code for this operation.": {
+    "zh": "请填写有效的动态验证器代码。",
+    "en": "Enter a valid authenticator code for this operation.",
+    "ja": "この操作には有効な認証アプリのコードを入力してください。",
+    "ru": "Введите действительный код приложения-аутентификатора."
+  },
+  "Sign in again to continue.": {
+    "zh": "请重新登录后继续。",
+    "en": "Sign in again to continue.",
+    "ja": "再度ログインして続行してください。",
+    "ru": "Войдите снова, чтобы продолжить."
+  },
+  "This request contains unsupported control parameters.": {
+    "zh": "请求中包含不支持的控制参数。",
+    "en": "This request contains unsupported control parameters.",
+    "ja": "リクエストに未対応の制御パラメーターが含まれています。",
+    "ru": "Запрос содержит неподдерживаемые управляющие параметры."
+  },
+  "This operation is not supported.": {
+    "zh": "不支持此操作。",
+    "en": "This operation is not supported.",
+    "ja": "この操作には対応していません。",
+    "ru": "Операция не поддерживается."
+  },
+  "The configuration has changed. Reload it before saving.": {
+    "zh": "配置已变化，请重新读取后再保存。",
+    "en": "The configuration has changed. Reload it before saving.",
+    "ja": "設定が変更されています。保存前に再読み込みしてください。",
+    "ru": "Настройки изменились. Обновите их перед сохранением."
+  },
+  "未授权": {
+    "en": "Authentication is required.",
+    "ja": "認証が必要です。",
+    "ru": "Требуется аутентификация."
+  },
+  "存储不可用": {
+    "en": "Storage unavailable",
+    "ja": "ストレージを利用できません",
+    "ru": "Хранилище недоступно"
+  },
+  "未登录": {
+    "en": "Sign in to continue.",
+    "ja": "ログインして続行してください。",
+    "ru": "Войдите, чтобы продолжить."
+  },
+  "模型不可用": {
+    "en": "Model unavailable",
+    "ja": "モデルが利用できない",
+    "ru": "Модель недоступна"
+  },
+  "读取路由失败": {
+    "en": "Could not load the route",
+    "ja": "ルートを読み込めませんでした",
+    "ru": "Не удалось загрузить маршрут"
+  },
+  "读取品牌失败": {
+    "en": "Could not load the brand",
+    "ja": "ブランドを読み込めませんでした",
+    "ru": "Не удалось загрузить бренд"
+  },
+  "请填写有效邮箱": {
+    "en": "Enter a valid email",
+    "ja": "有効なメールを入力してください",
+    "ru": "Введите действительный email"
+  },
+  "不是推广主体": {
+    "en": "Not a promotion principal",
+    "ja": "紹介主体ではありません",
+    "ru": "Аккаунт не является участником продвижения"
+  },
+  "结果尚未确认，请回查或重试原操作。": {
+    "en": "The result is unconfirmed. Check or retry the original operation.",
+    "ja": "結果が未確認です。元の操作を確認するか再試行してください。",
+    "ru": "Результат не подтверждён. Проверьте или повторите исходную операцию."
+  },
+  "请先登录": {
+    "en": "Sign in first.",
+    "ja": "先にログインしてください。",
+    "ru": "Сначала войдите в аккаунт."
+  },
+  "送入待对账失败": {
+    "en": "Could not flag the mismatch",
+    "ja": "キュー投入に失敗しました",
+    "ru": "Не удалось передать расхождение на сверку"
+  },
+  "标记已解失败": {
+    "en": "Could not mark resolved",
+    "ja": "解除に失敗しました",
+    "ru": "Не удалось отметить расхождение как устранённое"
+  },
+  "发布价格失败": {
+    "en": "Price publication failed",
+    "ja": "価格の公開に失敗しました",
+    "ru": "Не удалось опубликовать цену"
+  },
+  "读取账单失败，请重试。": {
+    "en": "Could not load the bill. Please try again.",
+    "ja": "請求を読み込めませんでした。再試行してください。",
+    "ru": "Не удалось загрузить счёт. Повторите попытку."
+  },
+  "Google 登录失败": {
+    "en": "Google sign-in failed.",
+    "ja": "Google ログインに失敗しました。",
+    "ru": "Не удалось войти через Google."
+  },
+  "读取 2FA 失败": {
+    "en": "Could not read 2FA status",
+    "ja": "2FA の状態を読み込めませんでした",
+    "ru": "Не удалось прочитать состояние двухфакторной аутентификации"
+  },
+  "邮箱已注册": {
+    "en": "This email is already registered for this brand.",
+    "ja": "このメールはこのブランドで登録済みです。",
+    "ru": "Этот email уже зарегистрирован у данного бренда."
+  },
+  "密码至少 8 位，UTF-8 编码不超过 72 字节": {
+    "en": "Use at least 8 characters and no more than 72 UTF-8 bytes for the password.",
+    "ja": "パスワードは8文字以上、UTF-8で72バイト以内にしてください。",
+    "ru": "Пароль должен содержать не менее 8 символов и занимать не более 72 байтов UTF-8."
+  },
+  "推广码无效": {
+    "en": "The promotion code is invalid.",
+    "ja": "紹介コードが無効です。",
+    "ru": "Код приглашения недействителен."
+  },
+  "渠道归属不可自行切换": {
+    "en": "You cannot change your channel membership yourself.",
+    "ja": "チャネルの所属は自分で変更できません。",
+    "ru": "Вы не можете самостоятельно изменить принадлежность к каналу."
+  },
+  "记录不存在": {
+    "en": "The record does not exist.",
+    "ja": "記録が存在しません。",
+    "ru": "Запись не существует."
+  },
+  "账号或密码错误": {
+    "en": "The account or password is incorrect.",
+    "ja": "アカウントまたはパスワードが正しくありません。",
+    "ru": "Неверный аккаунт или пароль."
+  },
+  "显示名过长": {
+    "en": "The display name is too long.",
+    "ja": "表示名が長すぎます。",
+    "ru": "Отображаемое имя слишком длинное."
+  },
+  "必须填写原因": {
+    "en": "Enter a reason for this operation.",
+    "ja": "操作の理由を入力してください。",
+    "ru": "Укажите причину операции."
+  },
+  "不能对自己执行该操作": {
+    "en": "You cannot perform this operation on your own account.",
+    "ja": "自分のアカウントにはこの操作を実行できません。",
+    "ru": "Вы не можете выполнить эту операцию со своим аккаунтом."
+  },
+  "不能操作后台管理员": {
+    "en": "This operation cannot be applied to an administrator account.",
+    "ja": "管理者アカウントにはこの操作を実行できません。",
+    "ru": "Эта операция неприменима к аккаунту администратора."
+  },
+  "请求体无效": {
+    "en": "The request body is invalid.",
+    "ja": "リクエスト本文が無効です。",
+    "ru": "Тело запроса недействительно."
+  },
+  "账号已停用": {
+    "en": "This account has been disabled.",
+    "ja": "このアカウントは無効化されています。",
+    "ru": "Аккаунт отключён."
+  },
+  "未配置 Google 登录": {
+    "en": "Google sign-in has not been configured.",
+    "ja": "Google ログインは未設定です。",
+    "ru": "Вход через Google не настроен."
+  },
+  "请填写有效邮箱和密码": {
+    "en": "Enter a valid email and password.",
+    "ja": "有効なメールとパスワードを入力してください。",
+    "ru": "Введите действительные email и пароль."
+  },
+  "该邮箱在本品牌已注册，请直接登录": {
+    "en": "This email is already registered for this brand. Sign in instead.",
+    "ja": "このメールはこのブランドで登録済みです。ログインしてください。",
+    "ru": "Этот email уже зарегистрирован у данного бренда. Войдите в существующий аккаунт."
+  },
+  "邮箱密码账号需要先登录后绑定 Google": {
+    "en": "Sign in with your password before linking Google.",
+    "ja": "パスワードでログインしてから Google を連携してください。",
+    "ru": "Войдите с паролем перед привязкой Google."
+  },
+  "该品牌不支持自定义配置": {
+    "en": "This brand does not support custom configuration.",
+    "ja": "このブランドは独自設定に対応していません。",
+    "ru": "Этот бренд не поддерживает индивидуальные настройки."
+  },
+  "请求参数无效": {
+    "en": "The request parameters are invalid.",
+    "ja": "リクエストのパラメーターが無効です。",
+    "ru": "Параметры запроса недействительны."
+  },
+  "渠道不存在": {
+    "en": "This channel does not exist.",
+    "ja": "このチャネルは存在しません。",
+    "ru": "Канал не существует."
+  },
+  "用户不存在": {
+    "en": "This user does not exist.",
+    "ja": "このユーザーは存在しません。",
+    "ru": "Пользователь не существует."
+  },
+  "只能查看自己的渠道": {
+    "en": "You can only view your own channel.",
+    "ja": "自分のチャネルのみ表示できます。",
+    "ru": "Вы можете просматривать только свой канал."
+  },
+  "只能管理自己的直属下属渠道": {
+    "en": "You can only manage your own direct child channels.",
+    "ja": "自分の直属の下位チャネルのみ管理できます。",
+    "ru": "Вы можете управлять только своими прямыми подчинёнными каналами."
+  },
+  "只能上传图片资源": {
+    "en": "Only image assets can be uploaded.",
+    "ja": "画像リソースのみアップロードできます。",
+    "ru": "Можно загружать только изображения."
+  },
+  "文件过大": {
+    "en": "The file is too large.",
+    "ja": "ファイルが大きすぎます。",
+    "ru": "Файл слишком большой."
+  },
+  "语言只支持 zh、en、ja、ru": {
+    "en": "Supported languages are Chinese, English, Japanese and Russian.",
+    "ja": "対応言語は中国語、英語、日本語、ロシア語です。",
+    "ru": "Поддерживаются китайский, английский, японский и русский языки."
+  }
+}

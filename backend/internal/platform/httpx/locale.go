@@ -13,8 +13,8 @@ func RequestLocale(r *http.Request) string {
 		return "zh"
 	}
 	if cookie, err := r.Cookie("NEXT_LOCALE"); err == nil {
-		if cookie.Value == "zh" || cookie.Value == "en" || cookie.Value == "ja" {
-			return cookie.Value
+		if locale := supportedLocale(cookie.Value); locale != "" {
+			return locale
 		}
 	}
 	type preference struct {
@@ -40,11 +40,19 @@ func RequestLocale(r *http.Request) string {
 	}
 	sort.SliceStable(preferences, func(i, j int) bool { return preferences[i].q > preferences[j].q })
 	for _, p := range preferences {
-		for _, locale := range []string{"zh", "en", "ja"} {
-			if p.tag == locale || strings.HasPrefix(p.tag, locale+"-") {
-				return locale
-			}
+		if locale := supportedLocale(p.tag); locale != "" {
+			return locale
 		}
 	}
 	return "zh"
+}
+
+func supportedLocale(value string) string {
+	language := strings.SplitN(strings.ReplaceAll(strings.ToLower(strings.TrimSpace(value)), "_", "-"), "-", 2)[0]
+	switch language {
+	case "zh", "en", "ja", "ru":
+		return language
+	default:
+		return ""
+	}
 }

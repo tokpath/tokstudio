@@ -27,6 +27,22 @@ type Notification struct {
 
 func (Notification) TableName() string { return "operations_notifications" }
 
+// SystemGenerated identifies notices emitted by trusted domain hooks. Operator
+// announcements cannot use those namespaces, regardless of their content.
+func (n Notification) SystemGenerated() bool {
+	prefix := systemNotificationNamespace(n.BusinessKey)
+	return prefix != "" && len(n.BusinessKey) > len(prefix)
+}
+
+func systemNotificationNamespace(key string) string {
+	for _, prefix := range []string{"commerce:", "incentive:", "catalog:", "renewal-notice:", "replenishment:", "risk:", restrictionReviewKey, "remediation:", "price-check:"} {
+		if strings.HasPrefix(key, prefix) {
+			return prefix
+		}
+	}
+	return ""
+}
+
 type Preference struct {
 	OperatorID  string    `gorm:"primaryKey" json:"operator_id"`
 	RecipientID string    `gorm:"primaryKey" json:"recipient_id"`
@@ -95,6 +111,9 @@ func (s *Service) Emit(ctx context.Context, tx *gorm.DB, in Notification) (Notif
 	return out, e
 }
 func (s *Service) Announce(ctx context.Context, actor string, in Notification) (Notification, error) {
+	if systemNotificationNamespace(in.BusinessKey) != "" {
+		return Notification{}, ErrInvalid
+	}
 	var out Notification
 	e := s.within(ctx, nil, func(t *gorm.DB) error {
 		if e := s.require(ctx, t, actor, in.OperatorID, "operations.manage"); e != nil {

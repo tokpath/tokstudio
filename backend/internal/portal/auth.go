@@ -13,6 +13,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	pc "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
+	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"github.com/tokpath/tokstudio/backend/internal/platform/mail"
 	"gorm.io/gorm"
 )
@@ -209,7 +210,9 @@ func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Co
 		scheme = "http"
 	}
 	link := scheme + "://" + a.requestHost(c) + path + "?token=" + url.QueryEscape(token)
-	message := mail.Message{ID: uuid.NewString(), To: ch.Intent.Email, Brand: brand(c).Name, Subject: title, Text: title + "：\n" + link + "\n链接过期后请重新发起。若非本人操作，请忽略。"}
+	locale := httpx.RequestLocale(c.Request)
+	title = httpx.LocalizedText(locale, title)
+	message := mail.Message{ID: uuid.NewString(), To: ch.Intent.Email, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(locale, "\n链接过期后请重新发起。若非本人操作，请忽略。")}
 	raw, _ := json.Marshal(message)
 	cipher, e := pc.Seal(a.Config.AppKey, string(raw))
 	if e != nil {

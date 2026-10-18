@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useI18n } from "@/components/i18n";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -27,7 +27,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const t = useTranslations("common");
+  const { t } = useI18n();
   return (
   <DialogPortal>
     <DialogOverlay />
@@ -42,7 +42,7 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-control text-ink-mute transition-colors duration-150 hover:bg-canvas hover:text-ink focus-visible:outline-none disabled:pointer-events-none">
         <X className="size-4" strokeWidth={1.75} />
-        <span className="sr-only">{t("close")}</span>
+        <span className="sr-only">{t("关闭")}</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>

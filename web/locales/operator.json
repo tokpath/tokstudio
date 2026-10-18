@@ -1,0 +1,2678 @@
+{
+  "没有查看权限": {
+    "en": "No viewing permission",
+    "ja": "閲覧権限がありません",
+    "ru": "Нет разрешения на просмотр"
+  },
+  "此页面需要当前经营方明确授予相应权限。": {
+    "en": "This page requires explicit permission from the current operator.",
+    "ja": "このページには、現在の事業者による明示的な権限付与が必要です。",
+    "ru": "Для этой страницы требуется явное разрешение текущего оператора."
+  },
+  "正在办理关联事项": {
+    "en": "Handling linked record",
+    "ja": "関連案件を処理中",
+    "ru": "Обработка связанной записи"
+  },
+  "返回全部记录": {
+    "en": "Back to all records",
+    "ja": "すべての記録に戻る",
+    "ru": "Вернуться ко всем записям"
+  },
+  "业务视图": {
+    "en": "Business views",
+    "ja": "業務ビュー",
+    "ru": "Представления операций"
+  },
+  "搜索记录": {
+    "en": "Search records",
+    "ja": "記録を検索",
+    "ru": "Поиск записей"
+  },
+  "搜索客户名称或邮箱": {
+    "en": "Search customer name or email",
+    "ja": "顧客名またはメールアドレスで検索",
+    "ru": "Поиск по имени или почте клиента"
+  },
+  "搜索发票编号、开票凭证或原始收款编号": {
+    "en": "Search invoice number, invoice evidence, or original receipt ID",
+    "ja": "請求書番号、発行証憑、元の入金番号で検索",
+    "ru": "Поиск по номеру счёта, документу или исходному поступлению"
+  },
+  "搜索业务编号、名称或关联记录": {
+    "en": "Search business ID, name, or linked record",
+    "ja": "業務番号、名称、関連記録で検索",
+    "ru": "Поиск по номеру операции, имени или связанной записи"
+  },
+  "筛选本页编号或已显示字段": {
+    "en": "Filter IDs or displayed fields on this page",
+    "ja": "このページの番号または表示項目を絞り込む",
+    "ru": "Фильтр по номеру или полям текущей страницы"
+  },
+  "查询": {
+    "en": "Search",
+    "ja": "検索",
+    "ru": "Найти"
+  },
+  "筛选本页": {
+    "en": "Filter this page",
+    "ja": "このページを絞り込む",
+    "ru": "Фильтровать страницу"
+  },
+  "清除": {
+    "en": "Clear",
+    "ja": "クリア",
+    "ru": "Очистить"
+  },
+  "在当前权限范围内检索记录，结果按当前列表规则分页。": {
+    "en": "Search within your permissions; results follow the current list's pagination rules.",
+    "ja": "権限の範囲内で検索し、現在の一覧の規則でページ分割します。",
+    "ru": "Поиск выполняется в пределах разрешений; результаты разбиваются на страницы по правилам списка."
+  },
+  "仅筛选当前已载入页；其他页尚未检索，可翻页继续筛选。": {
+    "en": "Only the loaded page is filtered. Other pages have not been searched; continue by paging.",
+    "ja": "読み込み済みのページのみを絞り込みます。他のページは未検索です。ページを移動して続けられます。",
+    "ru": "Фильтруется только загруженная страница. Для остальных страниц перейдите дальше и повторите фильтр."
+  },
+  "本页匹配 {matched} / {count} 条": {
+    "en": "{matched} / {count} records match on this page",
+    "ja": "このページで {matched} / {count} 件が一致",
+    "ru": "На странице найдено {matched} из {count}"
+  },
+  "当前页 {count} 条": {
+    "en": "{count} records on this page",
+    "ja": "現在のページ：{count} 件",
+    "ru": "На странице: {count}"
+  },
+  " · 还有后续记录": {
+    "en": " · More records available",
+    "ja": " · 続きの記録があります",
+    "ru": " · Есть ещё записи"
+  },
+  "上一页": {
+    "en": "Previous page",
+    "ja": "前のページ",
+    "ru": "Предыдущая страница"
+  },
+  "下一页": {
+    "en": "Next page",
+    "ja": "次のページ",
+    "ru": "Следующая страница"
+  },
+  "客户工作台": {
+    "en": "Customer workspace",
+    "ja": "顧客ワークスペース",
+    "ru": "Рабочее место клиента"
+  },
+  "查看并办理": {
+    "en": "View and handle",
+    "ja": "表示して処理",
+    "ru": "Просмотр и обработка"
+  },
+  "查看详情": {
+    "en": "View details",
+    "ja": "詳細を表示",
+    "ru": "Подробнее"
+  },
+  "文件与下载": {
+    "en": "Files and downloads",
+    "ja": "ファイルとダウンロード",
+    "ru": "Файлы и загрузки"
+  },
+  "相应业务暂未开放": {
+    "en": "This operation is not available yet",
+    "ja": "この業務はまだ利用できません",
+    "ru": "Эта операция пока недоступна"
+  },
+  "本页类型": {
+    "en": "Types on this page",
+    "ja": "このページの種類",
+    "ru": "Типы на странице"
+  },
+  "全部": {
+    "en": "All",
+    "ja": "すべて",
+    "ru": "Все"
+  },
+  "当前筛选下没有记录。": {
+    "en": "No records match the current filter.",
+    "ja": "現在の条件に一致する記録はありません。",
+    "ru": "Нет записей по текущему фильтру."
+  },
+  "当前筛选下没有记录。可查询其他编号或继续办理新事项。": {
+    "en": "No records match the current filter. Search another ID or start a new operation.",
+    "ja": "現在の条件に一致する記録はありません。他の番号を検索するか、新しい案件を処理してください。",
+    "ru": "Нет записей по текущему фильтру. Найдите другой номер или начните новую операцию."
+  },
+  "状态": {
+    "en": "Status",
+    "ja": "状態",
+    "ru": "Статус"
+  },
+  "办理": {
+    "en": "Actions",
+    "ja": "処理",
+    "ru": "Действия"
+  },
+  "在当前客户范围内办理": {
+    "en": "Handle within the current customer scope",
+    "ja": "現在の顧客範囲内で処理",
+    "ru": "Обработка в рамках текущего клиента"
+  },
+  "在当前经营范围内办理": {
+    "en": "Handle within the current operator scope",
+    "ja": "現在の事業者範囲内で処理",
+    "ru": "Обработка в рамках текущего оператора"
+  },
+  "记录 {id}": {
+    "en": "Record {id}",
+    "ja": "記録 {id}",
+    "ru": "Запись {id}"
+  },
+  "完整保存记录与证据": {
+    "en": "Full saved record and evidence",
+    "ja": "保存された全記録と証憑",
+    "ru": "Полная сохранённая запись и подтверждения"
+  },
+  "关闭办理面板": {
+    "en": "Close action panel",
+    "ja": "処理パネルを閉じる",
+    "ru": "Закрыть панель действий"
+  },
+  "本次办理尚未取得确定结果，请保持此面板并重试原操作；确认完成后再离开。": {
+    "en": "The result is still uncertain. Keep this panel open and retry the original operation; leave after completion is confirmed.",
+    "ja": "今回の処理結果は未確定です。このパネルを開いたまま元の操作を再試行し、完了を確認してから移動してください。",
+    "ru": "Результат ещё не подтверждён. Оставьте панель открытой и повторите исходную операцию; закройте её после подтверждения завершения."
+  },
+  "下载私有文件": {
+    "en": "Download private file",
+    "ja": "非公開ファイルをダウンロード",
+    "ru": "Скачать закрытый файл"
+  },
+  "进入业务办理": {
+    "en": "Open operation",
+    "ja": "業務処理を開く",
+    "ru": "Перейти к операции"
+  },
+  "查看明细与证据": {
+    "en": "View details and evidence",
+    "ja": "明細と証憑を表示",
+    "ru": "Просмотреть детали и подтверждения"
+  },
+  "已开启": {
+    "en": "Enabled",
+    "ja": "有効",
+    "ru": "Включено"
+  },
+  "未开启": {
+    "en": "Disabled",
+    "ja": "無効",
+    "ru": "Выключено"
+  },
+  "是": {
+    "en": "Yes",
+    "ja": "はい",
+    "ru": "Да"
+  },
+  "否": {
+    "en": "No",
+    "ja": "いいえ",
+    "ru": "Нет"
+  },
+  "未记录": {
+    "en": "Not recorded",
+    "ja": "記録なし",
+    "ru": "Не записано"
+  },
+  "退款事项": {
+    "en": "Refund case",
+    "ja": "返金案件",
+    "ru": "Дело о возврате"
+  },
+  "退款分项": {
+    "en": "Refund component",
+    "ja": "返金明細",
+    "ru": "Составляющая возврата"
+  },
+  "实际退款付款": {
+    "en": "Actual refund payment",
+    "ja": "実際の返金支払い",
+    "ru": "Фактическая выплата возврата"
+  },
+  "采购退出事项": {
+    "en": "Procurement exit case",
+    "ja": "調達終了案件",
+    "ru": "Выход из закупки"
+  },
+  "退出退款分项": {
+    "en": "Exit refund component",
+    "ja": "終了時の返金明細",
+    "ru": "Составляющая возврата при выходе"
+  },
+  "采购方退款分项": {
+    "en": "Buyer refund component",
+    "ja": "購入者向け返金明細",
+    "ru": "Составляющая возврата покупателю"
+  },
+  "采购报价": {
+    "en": "Procurement quote",
+    "ja": "調達見積もり",
+    "ru": "Предложение на закупку"
+  },
+  "采购订单": {
+    "en": "Procurement order",
+    "ja": "調達注文",
+    "ru": "Заказ на закупку"
+  },
+  "自动补货授权": {
+    "en": "Automatic replenishment authorization",
+    "ja": "自動補充の承認",
+    "ru": "Разрешение на автопополнение"
+  },
+  "自动补货执行": {
+    "en": "Automatic replenishment attempt",
+    "ja": "自動補充の実行",
+    "ru": "Попытка автопополнения"
+  },
+  "客户": {
+    "en": "Customer",
+    "ja": "顧客",
+    "ru": "Клиент"
+  },
+  "客户编号": {
+    "en": "Customer ID",
+    "ja": "顧客番号",
+    "ru": "ID клиента"
+  },
+  "订单编号": {
+    "en": "Order ID",
+    "ja": "注文番号",
+    "ru": "ID заказа"
+  },
+  "收款编号": {
+    "en": "Receipt ID",
+    "ja": "入金番号",
+    "ru": "ID поступления"
+  },
+  "收款通道": {
+    "en": "Payment channel",
+    "ja": "入金チャネル",
+    "ru": "Платёжный канал"
+  },
+  "实际币种": {
+    "en": "Actual currency",
+    "ja": "実際の通貨",
+    "ru": "Фактическая валюта"
+  },
+  "原币金额": {
+    "en": "Original currency amount",
+    "ja": "原通貨額",
+    "ru": "Сумма в исходной валюте"
+  },
+  "金额 USD": {
+    "en": "Amount USD",
+    "ja": "金額 USD",
+    "ru": "Сумма USD"
+  },
+  "已分配 USD": {
+    "en": "Allocated USD",
+    "ja": "割当済み USD",
+    "ru": "Распределено USD"
+  },
+  "实际入账 USD": {
+    "en": "Actually posted USD",
+    "ja": "実際の計上額 USD",
+    "ru": "Фактически зачислено USD"
+  },
+  "手续费 USD": {
+    "en": "Fee USD",
+    "ja": "手数料 USD",
+    "ru": "Комиссия USD"
+  },
+  "手续费核实状态": {
+    "en": "Fee verification status",
+    "ja": "手数料の確認状態",
+    "ru": "Статус проверки комиссии"
+  },
+  "应付 USD": {
+    "en": "Due USD",
+    "ja": "支払額 USD",
+    "ru": "К оплате USD"
+  },
+  "外部款项已分配 USD": {
+    "en": "External funds allocated USD",
+    "ja": "外部資金の割当済み額 USD",
+    "ru": "Распределено внешних средств USD"
+  },
+  "USD 余额支付": {
+    "en": "USD balance payment",
+    "ja": "USD 残高払い",
+    "ru": "Оплата с баланса USD"
+  },
+  "佣金支付": {
+    "en": "Commission payment",
+    "ja": "紹介報酬払い",
+    "ru": "Оплата из партнёрского вознаграждения"
+  },
+  "购买权益 ATG": {
+    "en": "Purchased credits ATG",
+    "ja": "購入済み利用枠 ATG",
+    "ru": "Купленные единицы ATG"
+  },
+  "赠送权益 ATG": {
+    "en": "Gift credits ATG",
+    "ja": "特典利用枠 ATG",
+    "ru": "Бонусные единицы ATG"
+  },
+  "套餐赠送 ATG": {
+    "en": "Package gift ATG",
+    "ja": "プラン特典 ATG",
+    "ru": "Бонусы пакета ATG"
+  },
+  "经营方赠送 ATG": {
+    "en": "Operator gift ATG",
+    "ja": "事業者特典 ATG",
+    "ru": "Бонусы оператора ATG"
+  },
+  "KOL 赠送 ATG": {
+    "en": "KOL gift ATG",
+    "ja": "KOL 特典 ATG",
+    "ru": "Бонусы KOL ATG"
+  },
+  "余额": {
+    "en": "Balance",
+    "ja": "残高",
+    "ru": "Баланс"
+  },
+  "占用": {
+    "en": "Held",
+    "ja": "保留中",
+    "ru": "Зарезервировано"
+  },
+  "资产目的": {
+    "en": "Asset purpose",
+    "ja": "資産用途",
+    "ru": "Назначение актива"
+  },
+  "单位": {
+    "en": "Unit",
+    "ja": "単位",
+    "ru": "Единица"
+  },
+  "创建时间": {
+    "en": "Created at",
+    "ja": "作成日時",
+    "ru": "Дата создания"
+  },
+  "真实付款时间": {
+    "en": "Actual payment time",
+    "ja": "実際の支払日時",
+    "ru": "Время фактического платежа"
+  },
+  "交付时间": {
+    "en": "Delivered at",
+    "ja": "提供日時",
+    "ru": "Время предоставления"
+  },
+  "到期时间": {
+    "en": "Expires at",
+    "ja": "有効期限",
+    "ru": "Срок действия"
+  },
+  "异常原因": {
+    "en": "Exception reason",
+    "ja": "例外理由",
+    "ru": "Причина исключения"
+  },
+  "核实依据": {
+    "en": "Verification evidence",
+    "ja": "確認根拠",
+    "ru": "Основание проверки"
+  },
+  "银行核实凭证": {
+    "en": "Bank verification evidence",
+    "ja": "銀行確認証憑",
+    "ru": "Банковское подтверждение"
+  },
+  "估值依据": {
+    "en": "Valuation evidence",
+    "ja": "評価根拠",
+    "ru": "Основание оценки"
+  },
+  "收款账号证明": {
+    "en": "Recipient account evidence",
+    "ja": "受取口座の証明",
+    "ru": "Подтверждение счёта получателя"
+  },
+  "付款账号证明": {
+    "en": "Payer account evidence",
+    "ja": "支払口座の証明",
+    "ru": "Подтверждение счёта плательщика"
+  },
+  "业务状态": {
+    "en": "Business status",
+    "ja": "業務状態",
+    "ru": "Статус операции"
+  },
+  "办理状态": {
+    "en": "Processing status",
+    "ja": "処理状態",
+    "ru": "Статус обработки"
+  },
+  "已配置": {
+    "en": "Configured",
+    "ja": "設定済み",
+    "ru": "Настроено"
+  },
+  "客户 USD 充值": {
+    "en": "Customer USD top-up",
+    "ja": "顧客 USD チャージ",
+    "ru": "Пополнение USD клиентом"
+  },
+  "套餐购买": {
+    "en": "Package purchase",
+    "ja": "プラン購入",
+    "ru": "Покупка пакета"
+  },
+  "套餐续费": {
+    "en": "Package renewal",
+    "ja": "プラン更新",
+    "ru": "Продление пакета"
+  },
+  "套餐订单": {
+    "en": "Package order",
+    "ja": "プラン注文",
+    "ru": "Заказ пакета"
+  },
+  "余额充值": {
+    "en": "Balance top-up",
+    "ja": "残高チャージ",
+    "ru": "Пополнение баланса"
+  },
+  "修订套餐": {
+    "en": "Revise package",
+    "ja": "プランを改訂",
+    "ru": "Изменить пакет"
+  },
+  "修订活动": {
+    "en": "Revise campaign",
+    "ja": "キャンペーンを改訂",
+    "ru": "Изменить акцию"
+  },
+  "轮换凭据": {
+    "en": "Rotate credentials",
+    "ja": "認証情報を更新",
+    "ru": "Заменить учётные данные"
+  },
+  "编辑模型": {
+    "en": "Edit model",
+    "ja": "モデルを編集",
+    "ru": "Изменить модель"
+  },
+  "编辑路由": {
+    "en": "Edit route",
+    "ja": "ルートを編集",
+    "ru": "Изменить маршрут"
+  },
+  "调整配置": {
+    "en": "Adjust configuration",
+    "ja": "設定を調整",
+    "ru": "Изменить настройки"
+  },
+  "经营工作台": {
+    "en": "Operator workspace",
+    "ja": "事業者ワークスペース",
+    "ru": "Рабочее место оператора"
+  },
+  "今天，先把要紧的事办好": {
+    "en": "Start with what matters today",
+    "ja": "今日の大切な業務から",
+    "ru": "Начните с важных дел на сегодня"
+  },
+  "{operator}的待办、营业项目和服务责任。所有数据均来自当前空间已授权的经营范围。": {
+    "en": "Tasks, business features, and service obligations for {operator}. All data is within the authorized scope of this workspace.",
+    "ja": "{operator}のタスク、営業項目、サービス責任です。すべて現在のワークスペースで許可された事業範囲のデータです。",
+    "ru": "Задачи, направления работы и обязательства {operator}. Все данные относятся к разрешённой области этого пространства."
+  },
+  "当前经营方": {
+    "en": "Current operator",
+    "ja": "現在の事業者",
+    "ru": "Текущий оператор"
+  },
+  "平台经营": {
+    "en": "Platform operation",
+    "ja": "プラットフォーム運営",
+    "ru": "Управление платформой"
+  },
+  "OEM 独立经营": {
+    "en": "Independent OEM operation",
+    "ja": "OEM 独立運営",
+    "ru": "Независимое управление OEM"
+  },
+  "渠道独立经营": {
+    "en": "Independent channel operation",
+    "ja": "チャネル独立運営",
+    "ru": "Независимое управление каналом"
+  },
+  "平台直接维护供应商与上游路由": {
+    "en": "The platform manages suppliers and upstream routes directly",
+    "ja": "プラットフォームが供給元と上流ルートを直接管理",
+    "ru": "Платформа напрямую управляет поставщиками и внешними маршрутами"
+  },
+  "平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。": {
+    "en": "The platform has no upstream procurement account. Model fulfillment requires supplier access, valid cost prices, and eligible upstream routes. The platform remains responsible for customer service and downstream supply.",
+    "ja": "プラットフォームに上位の調達口座はありません。モデルの提供には供給元接続、有効な原価、適格な上流ルートが必要です。顧客サービスと下位への供給責任は引き続き負います。",
+    "ru": "У платформы нет вышестоящего закупочного счёта. Для работы моделей нужны подключённые поставщики, действующая себестоимость и подходящие внешние маршруты. Платформа сохраняет ответственность за клиентов и поставки нижестоящим операторам."
+  },
+  "维护模型供应商": {
+    "en": "Manage model suppliers",
+    "ja": "モデル供給元を管理",
+    "ru": "Управление поставщиками моделей"
+  },
+  "维护上游路由": {
+    "en": "Manage upstream routes",
+    "ja": "上流ルートを管理",
+    "ru": "Управление внешними маршрутами"
+  },
+  "尚未核实": {
+    "en": "Not yet verified",
+    "ja": "未確認",
+    "ru": "Ещё не проверено"
+  },
+  "尚未取得可核实的指标，请到履约与超卖或采购页面查询原始责任。": {
+    "en": "No verifiable metric is available yet. Check the original obligations under fulfillment and overselling or procurement.",
+    "ja": "確認可能な指標はまだ取得されていません。履行・販売超過または調達ページで元の責任を確認してください。",
+    "ru": "Проверяемый показатель ещё не получен. Проверьте исходные обязательства в разделе обеспечения продаж или закупок."
+  },
+  "待办事项": {
+    "en": "Tasks",
+    "ja": "タスク",
+    "ru": "Задачи"
+  },
+  "{count} 笔": {
+    "en": "{count} items",
+    "ja": "{count} 件",
+    "ru": "Записей: {count}"
+  },
+  "完成独立复核": {
+    "en": "Complete independent review",
+    "ja": "独立審査を完了",
+    "ru": "Завершить независимую проверку"
+  },
+  "到原业务核对来源、条款和证据，再由具备权限的人员办理。": {
+    "en": "Check sources, terms, and evidence in the original transaction, then have authorized staff process it.",
+    "ja": "元の業務で出所、条件、証憑を確認し、権限を持つ担当者が処理してください。",
+    "ru": "Проверьте источники, условия и подтверждения в исходной операции, затем передайте обработку уполномоченному сотруднику."
+  },
+  "{count} 条已读取": {
+    "en": "{count} records loaded",
+    "ja": "{count} 件を取得済み",
+    "ru": "Загружено записей: {count}"
+  },
+  "部分待办指标尚未核实，请到相应业务页继续查询。": {
+    "en": "Some task metrics are unverified. Continue checking on the relevant business pages.",
+    "ja": "一部のタスク指標は未確認です。該当する業務ページで確認を続けてください。",
+    "ru": "Некоторые показатели задач не проверены. Продолжите проверку в соответствующих разделах."
+  },
+  "已读取范围内暂无未决待办。其他业务仍可从对应板块查询。": {
+    "en": "No unresolved tasks in the loaded scope. Other business records remain available in their sections.",
+    "ja": "取得済みの範囲に未解決タスクはありません。他の業務は各セクションで確認できます。",
+    "ru": "В загруженной области нет нерешённых задач. Остальные операции доступны в своих разделах."
+  },
+  "当前权限未提供经营待办数据。可从下方已授权入口继续工作。": {
+    "en": "Current permissions provide no operator task data. Continue using the authorized links below.",
+    "ja": "現在の権限では事業タスクを取得できません。以下の許可済みの入口から作業できます。",
+    "ru": "Текущие разрешения не дают доступа к задачам оператора. Используйте доступные ссылки ниже."
+  },
+  "服务风险": {
+    "en": "Service risks",
+    "ja": "サービスリスク",
+    "ru": "Риски обслуживания"
+  },
+  "经营风险预警": {
+    "en": "Operator risk alert",
+    "ja": "事業リスク警告",
+    "ru": "Предупреждение о риске оператора"
+  },
+  "当前值": {
+    "en": "Current value",
+    "ja": "現在値",
+    "ru": "Текущее значение"
+  },
+  "· 检查于": {
+    "en": "· Checked at",
+    "ja": "· 確認日時",
+    "ru": "· Проверено"
+  },
+  "查看风险与处置": {
+    "en": "View risks and responses",
+    "ja": "リスクと対応を表示",
+    "ru": "Риски и меры"
+  },
+  "已读取的适用风险规则暂无异常。平台继续核实供应商健康、路由容量和调用成本。": {
+    "en": "No anomalies in the applicable rules loaded. Continue checking supplier health, route capacity, and invocation costs.",
+    "ja": "取得した適用対象のリスク規則に異常はありません。供給元の稼働状態、ルート容量、呼出原価の確認を続けてください。",
+    "ru": "В загруженных применимых правилах отклонений нет. Продолжайте проверять состояние поставщиков, ёмкость маршрутов и стоимость вызовов."
+  },
+  "已读取的风险规则暂无异常。模型调用仍须具备足额采购余额和合格路由。": {
+    "en": "No anomalies in the loaded risk rules. Model calls still require sufficient prepaid procurement balance and an eligible route.",
+    "ja": "取得したリスク規則に異常はありません。モデル呼出には十分な前払い調達残高と適格なルートが必要です。",
+    "ru": "В загруженных правилах отклонений нет. Для вызовов моделей по-прежнему нужны достаточный предоплаченный закупочный остаток и подходящий маршрут."
+  },
+  "风险详情需要当前空间的运营权限。": {
+    "en": "Risk details require operations permission in this workspace.",
+    "ja": "リスク詳細には、このワークスペースの運営権限が必要です。",
+    "ru": "Для сведений о рисках нужны права на операционное управление в этом пространстве."
+  },
+  "营业与开业检查": {
+    "en": "Business features and opening checks",
+    "ja": "営業項目と開業チェック",
+    "ru": "Направления работы и проверка запуска"
+  },
+  "逐项开放注册、销售、调用和结算。暂停新增业务后，存量权益和资金责任继续办理。": {
+    "en": "Enable registration, sales, calls, and settlements individually. Existing credits and financial obligations continue after new business is paused.",
+    "ja": "登録、販売、呼出、決済を項目別に開放します。新規業務を停止しても、既存の利用権と資金責任の処理は続きます。",
+    "ru": "Включайте регистрацию, продажи, вызовы и расчёты отдельно. После приостановки новых операций обязательства по существующим единицам и средствам сохраняются."
+  },
+  "检查并调整营业项目": {
+    "en": "Check and adjust business features",
+    "ja": "営業項目を確認・調整",
+    "ru": "Проверить и настроить направления работы"
+  },
+  "已开放": {
+    "en": "Open",
+    "ja": "開放済み",
+    "ru": "Открыто"
+  },
+  "未开放": {
+    "en": "Closed",
+    "ja": "未開放",
+    "ru": "Закрыто"
+  },
+  "公开模型、有效成本价与合格上游路由须就绪": {
+    "en": "Public models, valid cost prices, and eligible upstream routes must be ready",
+    "ja": "公開モデル、有効な原価、適格な上流ルートの準備が必要",
+    "ru": "Нужны доступные публичные модели, действующая себестоимость и подходящие внешние маршруты"
+  },
+  "营业项目详情需业务管理权限。": {
+    "en": "Business feature details require business management permission.",
+    "ja": "営業項目の詳細には業務管理権限が必要です。",
+    "ru": "Для сведений о направлениях работы нужны права управления бизнесом."
+  },
+  "服务客户": {
+    "en": "Serve customers",
+    "ja": "顧客に対応",
+    "ru": "Обслуживание клиентов"
+  },
+  "订单、资产和售后统一查看": {
+    "en": "View orders, assets, and support together",
+    "ja": "注文、資産、アフターサポートをまとめて表示",
+    "ru": "Заказы, активы и поддержка в одном месте"
+  },
+  "维护商品": {
+    "en": "Manage products",
+    "ja": "商品を管理",
+    "ru": "Управление продуктами"
+  },
+  "套餐版本、续费和销售条款": {
+    "en": "Package versions, renewals, and sales terms",
+    "ja": "プランのバージョン、更新、販売条件",
+    "ru": "Версии пакетов, продления и условия продаж"
+  },
+  "核实收款": {
+    "en": "Verify receipts",
+    "ja": "入金を確認",
+    "ru": "Проверка поступлений"
+  },
+  "真实到账、分配和交付": {
+    "en": "Actual receipt, allocation, and delivery",
+    "ja": "実際の入金、割当、提供",
+    "ru": "Фактические поступления, распределение и предоставление"
+  },
+  "模型供应商": {
+    "en": "Model suppliers",
+    "ja": "モデル供給元",
+    "ru": "Поставщики моделей"
+  },
+  "维护供应商接入、凭据与健康": {
+    "en": "Manage supplier access, credentials, and health",
+    "ja": "供給元接続、認証情報、稼働状態を管理",
+    "ru": "Подключения, учётные данные и состояние поставщиков"
+  },
+  "采购补货": {
+    "en": "Replenish procurement",
+    "ja": "調達を補充",
+    "ru": "Пополнение закупки"
+  },
+  "查看报价、付款与库存交付": {
+    "en": "View quotes, payments, and inventory delivery",
+    "ja": "見積もり、支払い、在庫提供を表示",
+    "ru": "Предложения, платежи и поставки запаса"
+  },
+  "笔": {
+    "en": "items",
+    "ja": "件",
+    "ru": "записей"
+  },
+  "订单与收款办理": {
+    "en": "Orders and receipts",
+    "ja": "注文と入金の処理",
+    "ru": "Заказы и поступления"
+  },
+  "{subject} {id} · 仅查看当前经营范围内明确授权的关联记录": {
+    "en": "{subject} {id} · Only explicitly authorized linked records within the current operator scope",
+    "ja": "{subject} {id} · 現在の事業範囲で明示的に許可された関連記録のみ",
+    "ru": "{subject} {id} · Только явно разрешённые связанные записи текущего оператора"
+  },
+  "订单": {
+    "en": "Order",
+    "ja": "注文",
+    "ru": "Заказ"
+  },
+  "客户资料": {
+    "en": "Customer profile",
+    "ja": "顧客情報",
+    "ru": "Профиль клиента"
+  },
+  "注册于": {
+    "en": "Registered at",
+    "ja": "登録日時",
+    "ru": "Дата регистрации"
+  },
+  "订单应付": {
+    "en": "Order amount due",
+    "ja": "注文の支払額",
+    "ru": "Сумма к оплате по заказу"
+  },
+  "外部款已分配": {
+    "en": "External funds allocated",
+    "ja": "外部資金の割当済み額",
+    "ru": "Распределено внешних средств"
+  },
+  "购买权益": {
+    "en": "Purchased credits",
+    "ja": "購入済み利用枠",
+    "ru": "Купленные единицы"
+  },
+  "实际交付": {
+    "en": "Actual delivery",
+    "ja": "実際の提供",
+    "ru": "Фактическое предоставление"
+  },
+  "订单办理": {
+    "en": "Order actions",
+    "ja": "注文処理",
+    "ru": "Действия с заказом"
+  },
+  "客户归属与保存资料": {
+    "en": "Customer ownership and saved profile",
+    "ja": "顧客の帰属と保存情報",
+    "ru": "Принадлежность клиента и сохранённые данные"
+  },
+  "成交条款与原始订单": {
+    "en": "Agreed terms and original order",
+    "ja": "成約条件と元の注文",
+    "ru": "Согласованные условия и исходный заказ"
+  },
+  "下一步办理": {
+    "en": "Next actions",
+    "ja": "次の処理",
+    "ru": "Следующие действия"
+  },
+  "客户关联业务": {
+    "en": "Customer related records",
+    "ja": "顧客の関連業務",
+    "ru": "Связанные операции клиента"
+  },
+  "订单关联业务": {
+    "en": "Order related records",
+    "ja": "注文の関連業務",
+    "ru": "Связанные операции заказа"
+  },
+  "上一页关联记录": {
+    "en": "Previous related records",
+    "ja": "前の関連記録",
+    "ru": "Предыдущие связанные записи"
+  },
+  "下一页关联记录": {
+    "en": "Next related records",
+    "ja": "次の関連記録",
+    "ru": "Следующие связанные записи"
+  },
+  "暂无可查看的关联业务": {
+    "en": "No related records available",
+    "ja": "閲覧可能な関連業務はありません",
+    "ru": "Нет доступных связанных операций"
+  },
+  "当前授权范围内没有其他业务记录。": {
+    "en": "No other business records within the authorized scope.",
+    "ja": "現在の許可範囲に他の業務記録はありません。",
+    "ru": "В разрешённой области нет других записей операций."
+  },
+  "成交已交付": {
+    "en": "Order delivered",
+    "ja": "成約分は提供済み",
+    "ru": "Заказ исполнен"
+  },
+  "保留原成交条款": {
+    "en": "Original agreed terms retained",
+    "ja": "元の成約条件を維持",
+    "ru": "Исходные условия сохранены"
+  },
+  "款项": {
+    "en": "Funds",
+    "ja": "資金",
+    "ru": "Средства"
+  },
+  "收款、分配与手续费独立核实": {
+    "en": "Receipts, allocation, and fees are verified separately",
+    "ja": "入金、割当、手数料を個別に確認",
+    "ru": "Поступления, распределение и комиссии проверяются отдельно"
+  },
+  "交付": {
+    "en": "Delivery",
+    "ja": "提供",
+    "ru": "Предоставление"
+  },
+  "查看已发放权益与来源": {
+    "en": "View issued credits and their sources",
+    "ja": "付与済みの利用枠と出所を表示",
+    "ru": "Просмотреть предоставленные единицы и их источники"
+  },
+  "资金足额，检查覆盖后交付": {
+    "en": "Fully funded; check coverage before delivery",
+    "ja": "資金は充足。カバレッジ確認後に提供",
+    "ru": "Средств достаточно; проверьте обеспечение перед исполнением"
+  },
+  "以原订单资金状态为准": {
+    "en": "Follow the original order's funding status",
+    "ja": "元の注文の資金状態に従う",
+    "ru": "Ориентируйтесь на статус средств исходного заказа"
+  },
+  "套餐购买订单": {
+    "en": "Package purchase order",
+    "ja": "プラン購入注文",
+    "ru": "Заказ на покупку пакета"
+  },
+  "USD 余额充值订单": {
+    "en": "USD balance top-up order",
+    "ja": "USD 残高チャージ注文",
+    "ru": "Заказ на пополнение баланса USD"
+  },
+  "套餐续费订单": {
+    "en": "Package renewal order",
+    "ja": "プラン更新注文",
+    "ru": "Заказ на продление пакета"
+  },
+  "原始订单": {
+    "en": "Original order",
+    "ja": "元の注文",
+    "ru": "Исходный заказ"
+  },
+  "请由具备相应权限的人员办理。": {
+    "en": "An appropriately authorized staff member must handle this.",
+    "ja": "該当する権限を持つ担当者が処理してください。",
+    "ru": "Обработку должен выполнить сотрудник с соответствующими правами."
+  },
+  "相关办理": {
+    "en": "Related actions",
+    "ja": "関連処理",
+    "ru": "Связанные действия"
+  },
+  "新客户注册": {
+    "en": "New customer registration",
+    "ja": "新規顧客登録",
+    "ru": "Регистрация новых клиентов"
+  },
+  "正式验证后建立归属与邀请关系": {
+    "en": "Establish ownership and referral relationships after formal verification",
+    "ja": "正式な確認後に帰属と招待関係を作成",
+    "ru": "Принадлежность и реферальные связи создаются после проверки"
+  },
+  "套餐新购": {
+    "en": "New package purchases",
+    "ja": "プランの新規購入",
+    "ru": "Новые покупки пакетов"
+  },
+  "商品、收款与销售承载能力须就绪": {
+    "en": "Products, payments, and sales capacity must be ready",
+    "ja": "商品、入金、販売許容量の準備が必要",
+    "ru": "Нужны продукты, приём платежей и достаточная ёмкость продаж"
+  },
+  "按客户确认和当前成交条款办理": {
+    "en": "Follow customer confirmation and current agreed terms",
+    "ja": "顧客の確認と現在の成約条件に従って処理",
+    "ru": "Обработка по подтверждению клиента и действующим условиям"
+  },
+  "模型调用": {
+    "en": "Model calls",
+    "ja": "モデル呼出",
+    "ru": "Вызовы моделей"
+  },
+  "授权、价格、路由和采购余额须就绪": {
+    "en": "Authorization, pricing, routes, and prepaid procurement balance must be ready",
+    "ja": "権限、価格、ルート、前払い調達残高の準備が必要",
+    "ru": "Нужны разрешения, цены, маршруты и предоплаченный закупочный остаток"
+  },
+  "活动参与": {
+    "en": "Campaign participation",
+    "ja": "キャンペーン参加",
+    "ru": "Участие в акциях"
+  },
+  "规则、预算与赠送履约能力须就绪": {
+    "en": "Rules, budgets, and gift fulfillment capacity must be ready",
+    "ja": "規則、予算、特典提供能力の準備が必要",
+    "ru": "Нужны правила, бюджет и обеспечение бонусных обязательств"
+  },
+  "资金结算": {
+    "en": "Financial settlements",
+    "ja": "資金決済",
+    "ru": "Денежные расчёты"
+  },
+  "继续处理存量退款、佣金与资金责任": {
+    "en": "Continue handling existing refunds, commissions, and financial obligations",
+    "ja": "既存の返金、紹介報酬、資金責任の処理を継続",
+    "ru": "Продолжайте обработку существующих возвратов, вознаграждений и финансовых обязательств"
+  },
+  "剩余销售承载空间": {
+    "en": "Remaining sales capacity",
+    "ja": "残りの販売許容量",
+    "ru": "Оставшаяся ёмкость продаж"
+  },
+  "已扣除承诺及待交付责任，用于判断能否新增销售。": {
+    "en": "Net of committed and pending delivery obligations; used to assess new sales capacity.",
+    "ja": "約束済み・提供待ちの責任を差し引いた値で、新規販売の可否を判断します。",
+    "ru": "Уже вычтены принятые и ожидающие исполнения обязательства; показатель используется для оценки новых продаж."
+  },
+  "可用采购余额": {
+    "en": "Available prepaid procurement balance",
+    "ja": "利用可能な調達残高",
+    "ru": "Доступный предоплаченный закупочный остаток"
+  },
+  "用于真实模型调用；不提供采购授信。": {
+    "en": "Used for actual model calls; procurement credit is not provided.",
+    "ja": "実際のモデル呼出に使用します。調達の信用供与はありません。",
+    "ru": "Используется для фактических вызовов моделей; закупки в кредит не предоставляются."
+  },
+  "已使用超卖空间": {
+    "en": "Oversell capacity used",
+    "ja": "使用済み販売超過枠",
+    "ru": "Использованный лимит сверхпродаж"
+  },
+  "只影响销售承载，不代表可以欠款调用。": {
+    "en": "Only affects sales capacity; it does not allow calls on credit.",
+    "ja": "販売許容量のみに影響し、未払いでの呼出を認めるものではありません。",
+    "ru": "Влияет только на ёмкость продаж и не разрешает вызовы в долг."
+  },
+  "实际款待核实与入账": {
+    "en": "Actual receipts awaiting verification and posting",
+    "ja": "実入金の確認・計上待ち",
+    "ru": "Фактические поступления ожидают проверки и зачисления"
+  },
+  "先核实已收款原事实，避免让客户重复付款。": {
+    "en": "Verify the original receipt facts first to avoid charging the customer twice.",
+    "ja": "顧客に再度支払わせないよう、まず元の入金事実を確認します。",
+    "ru": "Сначала проверьте исходные факты поступления, чтобы клиент не платил повторно."
+  },
+  "处理实际款入账": {
+    "en": "Post actual receipts",
+    "ja": "実入金を計上",
+    "ru": "Зачислить фактические поступления"
+  },
+  "实际款待估值": {
+    "en": "Actual receipts awaiting valuation",
+    "ja": "実入金の評価待ち",
+    "ru": "Фактические поступления ожидают оценки"
+  },
+  "按实际付款时点的独立估值证据办理。": {
+    "en": "Use independent valuation evidence for the actual payment time.",
+    "ja": "実際の支払時点に対応する独立した評価根拠で処理します。",
+    "ru": "Используйте независимое основание оценки на момент фактического платежа."
+  },
+  "核实原币收款估值": {
+    "en": "Verify original currency receipt valuation",
+    "ja": "原通貨入金の評価を確認",
+    "ru": "Проверить оценку поступлений в исходной валюте"
+  },
+  "用量待核实请求": {
+    "en": "Requests awaiting usage verification",
+    "ja": "使用量確認待ちのリクエスト",
+    "ru": "Запросы ожидают проверки использования"
+  },
+  "先查询原请求结果，再核实占用与结算。": {
+    "en": "Query the original request result before verifying holds and settlement.",
+    "ja": "先に元のリクエスト結果を照会し、保留と精算を確認します。",
+    "ru": "Сначала запросите результат исходного запроса, затем проверьте резервы и расчёты."
+  },
+  "排查未决模型请求": {
+    "en": "Investigate unresolved model requests",
+    "ja": "未確定モデルリクエストを調査",
+    "ru": "Проверить незавершённые запросы к моделям"
+  },
+  "供应成本待核实": {
+    "en": "Supplier costs awaiting verification",
+    "ja": "供給原価の確認待ち",
+    "ru": "Стоимость поставщика ожидает проверки"
+  },
+  "保留未决成本，不将未知金额计作零成本。": {
+    "en": "Retain pending costs; unknown amounts are not zero costs.",
+    "ja": "未確定原価を保持し、不明額をゼロ原価にしません。",
+    "ru": "Сохраняйте неподтверждённые затраты; неизвестные суммы не считаются нулевыми."
+  },
+  "核实供应商成本": {
+    "en": "Verify supplier costs",
+    "ja": "供給元原価を確認",
+    "ru": "Проверить стоимость поставщика"
+  },
+  "客户服务": {
+    "en": "Customer service",
+    "ja": "顧客サービス",
+    "ru": "Обслуживание клиентов"
+  },
+  "围绕一个客户，处理完整服务": {
+    "en": "Handle the full service history around each customer",
+    "ja": "顧客を中心にサービス全体を処理",
+    "ru": "Все операции обслуживания клиента в одном месте"
+  },
+  "按姓名、邮箱或编号找到本经营方客户，进入客户工作台查看订单、资产和已授权的服务记录。": {
+    "en": "Find this operator's customers by name, email, or ID. Open their workspace to view orders, assets, and authorized service records.",
+    "ja": "名前、メールアドレス、番号で自社の顧客を検索し、顧客ワークスペースで注文、資産、許可済みのサービス記録を確認します。",
+    "ru": "Найдите клиента оператора по имени, почте или ID. Откройте его рабочее место для просмотра заказов, активов и разрешённых записей обслуживания."
+  },
+  "找到客户": {
+    "en": "Find the customer",
+    "ja": "顧客を検索",
+    "ru": "Найти клиента"
+  },
+  "核对邮箱、注册时间与当前归属。": {
+    "en": "Check email, registration time, and current ownership.",
+    "ja": "メールアドレス、登録日時、現在の帰属を確認します。",
+    "ru": "Проверьте почту, время регистрации и текущую принадлежность."
+  },
+  "查看业务上下文": {
+    "en": "View business context",
+    "ja": "業務の関連情報を表示",
+    "ru": "Просмотреть контекст операций"
+  },
+  "客户工作台集中展示精确关联的订单、资产和售后。": {
+    "en": "The customer workspace brings together exactly linked orders, assets, and support records.",
+    "ja": "顧客ワークスペースに、正確に関連付けられた注文、資産、サポートを集約します。",
+    "ru": "Рабочее место клиента объединяет точно связанные заказы, активы и записи поддержки."
+  },
+  "在原业务办理": {
+    "en": "Act on the original transaction",
+    "ja": "元の業務で処理",
+    "ru": "Обработать исходную операцию"
+  },
+  "保留收款、交付、退款与推广记录各自的状态。": {
+    "en": "Keep receipts, delivery, refunds, and referral records in their own statuses.",
+    "ja": "入金、提供、返金、プロモーションの各記録は、それぞれの状態を保持します。",
+    "ru": "Поступления, исполнение, возвраты и продвижение сохраняют собственные статусы."
+  },
+  "资金办理 · 订单": {
+    "en": "Funds · Orders",
+    "ja": "資金処理 · 注文",
+    "ru": "Средства · Заказы"
+  },
+  "从成交到交付，一笔订单办到底": {
+    "en": "Handle each order from agreement through delivery",
+    "ja": "成約から提供まで、一つの注文で処理",
+    "ru": "Ведите заказ от согласования до исполнения"
+  },
+  "收款事实、资金分配和权益发放分别核实。打开订单查看关联收款、付款证据与下一步办理。": {
+    "en": "Verify receipt facts, fund allocation, and credit delivery separately. Open the order to see linked receipts, payment evidence, and next actions.",
+    "ja": "入金事実、資金割当、利用枠付与を個別に確認します。注文を開くと関連入金、支払証憑、次の処理を確認できます。",
+    "ru": "Отдельно проверяйте поступления, распределение средств и выдачу единиц. В заказе доступны связанные поступления, платёжные подтверждения и следующие действия."
+  },
+  "核对成交": {
+    "en": "Check agreed terms",
+    "ja": "成約内容を確認",
+    "ru": "Проверить согласованные условия"
+  },
+  "保留套餐版本、应付金额和购买/赠送条款。": {
+    "en": "Retain the package version, amount due, and purchased/gift credit terms.",
+    "ja": "プランのバージョン、支払額、購入・特典利用枠の条件を保持します。",
+    "ru": "Сохраните версию пакета, сумму к оплате и условия купленных и бонусных единиц."
+  },
+  "核实资金": {
+    "en": "Verify funds",
+    "ja": "資金を確認",
+    "ru": "Проверить средства"
+  },
+  "核实真实到账，按原订单分配，差额与费用独立记录。": {
+    "en": "Verify actual receipt and allocate to the original order; record differences and fees separately.",
+    "ja": "実際の着金を確認して元の注文に割り当て、差額と手数料を個別に記録します。",
+    "ru": "Проверьте фактическое поступление и распределите его на исходный заказ; разницы и комиссии учитывайте отдельно."
+  },
+  "完成交付": {
+    "en": "Complete delivery",
+    "ja": "提供を完了",
+    "ru": "Завершить исполнение"
+  },
+  "资金足额且覆盖满足后发放；异常沿用原订单重试。": {
+    "en": "Issue credits once funding and coverage are sufficient; retry exceptions on the original order.",
+    "ja": "資金とカバレッジが十分な場合に付与し、例外時は元の注文で再試行します。",
+    "ru": "Выдавайте единицы при достаточных средствах и обеспечении; при сбое повторяйте исходный заказ."
+  },
+  "资金办理 · 收款": {
+    "en": "Funds · Receipts",
+    "ja": "資金処理 · 入金",
+    "ru": "Средства · Поступления"
+  },
+  "核实真实到账，再分配至原订单": {
+    "en": "Verify actual receipt, then allocate to the original order",
+    "ja": "実際の着金を確認してから元の注文に割当",
+    "ru": "Проверьте поступление и распределите на исходный заказ"
+  },
+  "每笔收款保留实际币种、付款时点、估值和银行或通道证据。查看详情核对原始事实，按需办理分配。": {
+    "en": "Keep the actual currency, payment time, valuation, and bank or channel evidence for every receipt. Inspect the original facts and allocate as needed.",
+    "ja": "入金ごとに実際の通貨、支払時点、評価、銀行・チャネルの証憑を保持します。詳細で元の事実を確認し、必要に応じて割り当てます。",
+    "ru": "Сохраняйте для каждого поступления фактическую валюту, время платежа, оценку и банковские или платёжные подтверждения. Проверьте исходные факты и выполните распределение."
+  },
+  "确认收款事实": {
+    "en": "Confirm receipt facts",
+    "ja": "入金事実を確認",
+    "ru": "Подтвердить факты поступления"
+  },
+  "先核查外部唯一流水、收款账号和原币金额。": {
+    "en": "First check the unique external reference, recipient account, and original currency amount.",
+    "ja": "まず外部の一意な取引番号、受取口座、原通貨額を確認します。",
+    "ru": "Сначала проверьте уникальный внешний номер, счёт получателя и сумму в исходной валюте."
+  },
+  "核实本次估值": {
+    "en": "Verify this valuation",
+    "ja": "今回の評価を確認",
+    "ru": "Проверить текущую оценку"
+  },
+  "尚未确定 USD 价值的真实款，先到估值待办核实。": {
+    "en": "For actual receipts with no confirmed USD value, verify the valuation first.",
+    "ja": "USD 価値が未確定の実入金は、先に評価タスクで確認します。",
+    "ru": "Если стоимость фактического поступления в USD не определена, сначала проверьте оценку."
+  },
+  "分配并追踪交付": {
+    "en": "Allocate and track delivery",
+    "ja": "割当と提供を追跡",
+    "ru": "Распределить и отследить исполнение"
+  },
+  "选取原订单及可分配金额，随后查看订单交付。": {
+    "en": "Select the original order and allocatable amount, then check its delivery.",
+    "ja": "元の注文と割当可能額を選び、その後に注文の提供状況を確認します。",
+    "ru": "Выберите исходный заказ и доступную сумму, затем проверьте исполнение заказа."
+  },
+  "商品与定价": {
+    "en": "Products and pricing",
+    "ja": "商品と価格設定",
+    "ru": "Продукты и цены"
+  },
+  "把套餐条款做成清楚的商品": {
+    "en": "Turn package terms into clear products",
+    "ja": "プラン条件を分かりやすい商品に",
+    "ru": "Понятные продукты с ясными условиями пакетов"
+  },
+  "购买额度与赠送额度分别定价和追溯。每次修改发布新版本，已有成交保留原条款。": {
+    "en": "Price and trace purchased and gift credits separately. Every revision creates a new version; existing sales keep their original terms.",
+    "ja": "購入枠と特典枠を個別に価格設定・追跡します。変更ごとに新しいバージョンを公開し、既存の成約は元の条件を保持します。",
+    "ru": "Раздельно оценивайте и отслеживайте купленные и бонусные единицы. Каждое изменение создаёт новую версию; существующие продажи сохраняют исходные условия."
+  },
+  "定义商品": {
+    "en": "Define the product",
+    "ja": "商品を定義",
+    "ru": "Определить продукт"
+  },
+  "确认成交 USD、购买/赠送 ATG、有效期和公开条款。": {
+    "en": "Confirm the agreed USD price, purchased/gift ATG, validity, and public terms.",
+    "ja": "成約額 USD、購入・特典 ATG、有効期間、公開条件を確認します。",
+    "ru": "Проверьте согласованную цену USD, купленные и бонусные ATG, срок и публичные условия."
+  },
+  "准备销售": {
+    "en": "Prepare for sales",
+    "ja": "販売を準備",
+    "ru": "Подготовить продажи"
+  },
+  "核对收款就绪、模型价格和销售承载空间。": {
+    "en": "Check payment readiness, model prices, and sales capacity.",
+    "ja": "入金準備、モデル価格、販売許容量を確認します。",
+    "ru": "Проверьте готовность приёма платежей, цены моделей и ёмкость продаж."
+  },
+  "发布与续费": {
+    "en": "Publish and renew",
+    "ja": "公開と更新",
+    "ru": "Опубликовать и продлевать"
+  },
+  "分别控制新购与续费，条款变化需要客户确认。": {
+    "en": "Control new purchases and renewals separately; changes to terms need customer confirmation.",
+    "ja": "新規購入と更新を個別に制御し、条件変更は顧客の確認を得ます。",
+    "ru": "Управляйте новыми покупками и продлениями отдельно; изменение условий требует подтверждения клиента."
+  },
+  "管理上架模型与各层调用价": {
+    "en": "Manage listed models and call prices at each tier",
+    "ja": "掲載モデルと各層の呼出価格を管理",
+    "ru": "Управляйте моделями и ценами вызовов на каждом уровне"
+  },
+  "模型调用价格与采购额度的购买报价分别管理。新价格适用于新受理请求，已有请求保留受理快照。": {
+    "en": "Manage model call prices separately from procurement credit purchase quotes. New prices apply to newly accepted requests; existing requests keep their acceptance snapshot.",
+    "ja": "モデル呼出価格と調達枠の購入見積もりを別々に管理します。新価格は新規受理分に適用し、既存リクエストは受理時のスナップショットを保持します。",
+    "ru": "Цены вызовов моделей и предложения на покупку закупочных единиц управляются отдельно. Новые цены действуют для новых принятых запросов; существующие сохраняют снимок на момент приёма."
+  },
+  "核对模型授权": {
+    "en": "Check model authorization",
+    "ja": "モデル利用許可を確認",
+    "ru": "Проверить разрешение на модели"
+  },
+  "在已授权范围选择上架，平台停用后不能继续受理。": {
+    "en": "List models only within authorized scope; stop accepting new requests after the platform disables a model.",
+    "ja": "許可された範囲内で掲載します。プラットフォームが停止したモデルは新規受理できません。",
+    "ru": "Публикуйте модели только в разрешённой области; после отключения платформой новые запросы не принимаются."
+  },
+  "设置有效价格": {
+    "en": "Set valid prices",
+    "ja": "有効な価格を設定",
+    "ru": "Установить действующие цены"
+  },
+  "按零售/批发对象配置手动或跟随价格及生效时间。": {
+    "en": "Configure manual or following prices and effective times for retail and wholesale customers.",
+    "ja": "小売・卸売の対象別に、手動または追従価格と適用時点を設定します。",
+    "ru": "Задайте ручные или следуемые цены и время их вступления в силу для розничных и оптовых клиентов."
+  },
+  "通知并检查覆盖": {
+    "en": "Notify and check coverage",
+    "ja": "通知してカバレッジを確認",
+    "ru": "Уведомить и проверить обеспечение"
+  },
+  "调价按提前通知规则执行，同时重算承载风险。": {
+    "en": "Apply price changes under advance notice rules and recalculate capacity risks.",
+    "ja": "事前通知規則に従って価格を変更し、許容量のリスクを再計算します。",
+    "ru": "Меняйте цены по правилам предварительного уведомления и пересчитывайте риски ёмкости."
+  },
+  "营销与推广": {
+    "en": "Marketing and referrals",
+    "ja": "マーケティングと紹介",
+    "ru": "Маркетинг и продвижение"
+  },
+  "让活动预算、资格与交付一起生效": {
+    "en": "Align campaign budgets, eligibility, and delivery",
+    "ja": "キャンペーンの予算・資格・提供を連動",
+    "ru": "Согласуйте бюджет, условия участия и исполнение акций"
+  },
+  "活动的折扣、额外赠送、参与对象和次数都按成交校验。经营方活动与 KOL 活动须明确配对后才可组合。": {
+    "en": "Validate campaign discounts, extra gifts, participants, and usage limits at sale. Operator and KOL campaigns can combine only when explicitly paired.",
+    "ja": "割引、追加特典、参加対象、回数を成約時に検証します。事業者と KOL のキャンペーンは明示的に組み合わせた場合のみ併用できます。",
+    "ru": "При продаже проверяются скидки, дополнительные бонусы, участники и лимиты акции. Акции оператора и KOL совмещаются только при явном связывании."
+  },
+  "选定套餐与对象": {
+    "en": "Select package and audience",
+    "ja": "プランと対象を選択",
+    "ru": "Выбрать пакет и аудиторию"
+  },
+  "使用已发布套餐，明确时间窗口和参与资格。": {
+    "en": "Use published packages and define the time window and participation rules.",
+    "ja": "公開済みプランを使用し、期間と参加資格を明確にします。",
+    "ru": "Используйте опубликованные пакеты, укажите период и условия участия."
+  },
+  "设置预算与限次": {
+    "en": "Set budgets and limits",
+    "ja": "予算と回数制限を設定",
+    "ru": "Задать бюджет и лимиты"
+  },
+  "核对赠送履约、折扣预算及每位客户/全场次数。": {
+    "en": "Check gift fulfillment, discount budget, and per-customer and campaign limits.",
+    "ja": "特典提供能力、割引予算、顧客別・全体の回数を確認します。",
+    "ru": "Проверьте обеспечение бонусов, бюджет скидок и лимиты на клиента и на всю акцию."
+  },
+  "追踪推广效果": {
+    "en": "Track promotion performance",
+    "ja": "プロモーション効果を追跡",
+    "ru": "Отслеживать результаты продвижения"
+  },
+  "保留活动版本与历史资格；暂停后续分佣独立办理。": {
+    "en": "Retain campaign versions and historical eligibility; pause future commissions separately.",
+    "ja": "キャンペーンのバージョンと過去の資格を保持し、今後の紹介報酬停止は別に処理します。",
+    "ru": "Сохраняйте версии акций и историю права участия; приостановку будущих вознаграждений обрабатывайте отдельно."
+  },
+  "公布推荐规则，保留每笔佣金依据": {
+    "en": "Publish referral rules and retain the basis for every commission",
+    "ja": "紹介規則を公開し、報酬ごとの根拠を保持",
+    "ru": "Публикуйте реферальные правила и сохраняйте основание каждого вознаграждения"
+  },
+  "客户达到终身资格门槛后按两跳关系分佣。资格累计、佣金应计、冻结解冻与提现分别记录。": {
+    "en": "After customers reach the lifetime eligibility threshold, distribute commissions over two referral levels. Record qualification totals, accruals, freezes, releases, and withdrawals separately.",
+    "ja": "顧客が生涯資格基準に達すると、2 段階の紹介関係で報酬を分配します。資格累計、報酬計上、凍結・解除、出金は別々に記録します。",
+    "ru": "После достижения пожизненного порога участия клиент получает вознаграждение по двум уровням рефералов. Накопление квалификации, начисление, заморозка, разблокировка и вывод учитываются отдельно."
+  },
+  "公布资格规则": {
+    "en": "Publish eligibility rules",
+    "ja": "資格規則を公開",
+    "ru": "Опубликовать правила участия"
+  },
+  "确定净消费门槛、两跳比例和确认等待。": {
+    "en": "Set the net spend threshold, two-level rates, and confirmation wait.",
+    "ja": "純消費額の基準、2 段階の比率、確定待機期間を設定します。",
+    "ru": "Укажите порог чистого потребления, ставки двух уровней и срок ожидания подтверждения."
+  },
+  "管理后续资格": {
+    "en": "Manage future eligibility",
+    "ja": "今後の資格を管理",
+    "ru": "Управлять дальнейшим участием"
+  },
+  "审核风险不抹去历史合法佣金，暂停与终止分别处理。": {
+    "en": "Risk review does not erase valid past commissions; handle suspension and termination separately.",
+    "ja": "リスク審査で過去の正当な報酬は消去せず、一時停止と終了を別々に処理します。",
+    "ru": "Проверка рисков не отменяет законные прошлые начисления; приостановка и прекращение обрабатываются отдельно."
+  },
+  "办理真实付款": {
+    "en": "Process actual payments",
+    "ja": "実際の支払いを処理",
+    "ru": "Обработать фактические выплаты"
+  },
+  "佣金可用后按提现规则申请、复核和核实付款。": {
+    "en": "Once commissions are available, apply, review, and verify payments under withdrawal rules.",
+    "ja": "報酬が利用可能になったら、出金規則に従って申請・審査・支払確認を行います。",
+    "ru": "Когда вознаграждение доступно, подайте заявку, проведите проверку и подтвердите платёж по правилам вывода."
+  },
+  "采购与合作": {
+    "en": "Procurement and cooperation",
+    "ja": "調達と提携",
+    "ru": "Закупки и сотрудничество"
+  },
+  "采购补货与对下供货分开办理": {
+    "en": "Handle procurement and downstream supply separately",
+    "ja": "調達補充と下位への供給を別々に処理",
+    "ru": "Раздельно ведите закупки и поставки нижестоящим операторам"
+  },
+  "选择我方采购或我方供货视图，沿报价、付款和交付追踪。采购余额不过期，补货不锁定未来模型调用价。": {
+    "en": "Choose our purchasing or supplying view and track quotes, payments, and delivery. Procurement balance does not expire; replenishment does not lock future model call prices.",
+    "ja": "自社の調達・供給ビューを選び、見積もり、支払い、提供を追跡します。調達残高に期限はなく、補充は将来のモデル呼出価格を固定しません。",
+    "ru": "Выберите наши закупки или поставки и отслеживайте предложения, оплату и исполнение. Закупочный остаток не истекает; пополнение не фиксирует будущие цены вызовов моделей."
+  },
+  "确认固定报价": {
+    "en": "Confirm the fixed quote",
+    "ja": "固定見積もりを確認",
+    "ru": "Подтвердить фиксированное предложение"
+  },
+  "核对供货关系、购买/赠送采购 ATG 和退出条款。": {
+    "en": "Check the supply relationship, purchased/gift procurement ATG, and exit terms.",
+    "ja": "供給関係、購入・特典の調達 ATG、終了条件を確認します。",
+    "ru": "Проверьте отношения поставки, купленные и бонусные закупочные ATG и условия выхода."
+  },
+  "先全款到账": {
+    "en": "Receive full payment first",
+    "ja": "先に全額入金",
+    "ru": "Сначала получить полную оплату"
+  },
+  "真实支付或已核实人工收款；建单不增加余额。": {
+    "en": "Use actual payment or verified manual receipts; creating an order does not increase balance.",
+    "ja": "実際の支払いまたは確認済み手動入金を使用します。注文作成だけでは残高は増えません。",
+    "ru": "Используйте фактический платёж или проверенное ручное поступление; создание заказа не увеличивает остаток."
+  },
+  "交付与有限补货": {
+    "en": "Deliver and replenish within limits",
+    "ja": "提供と制限内の補充",
+    "ru": "Исполнить и пополнять в пределах лимитов"
+  },
+  "完成库存交付；自动补货须有独立授权和限额。": {
+    "en": "Complete inventory delivery; automatic replenishment requires separate authorization and limits.",
+    "ja": "在庫提供を完了します。自動補充には独立した承認と限度額が必要です。",
+    "ru": "Завершите поставку запаса; для автопополнения нужны отдельное разрешение и лимиты."
+  },
+  "看清销售责任，提前安排补货": {
+    "en": "Understand sales obligations and plan replenishment early",
+    "ja": "販売責任を把握し、早めに補充を計画",
+    "ru": "Учитывайте обязательства по продажам и заранее планируйте пополнение"
+  },
+  "采购余额、已承诺服务与待交付责任共同影响销售承载。超卖授权用于销售管理，真实调用必须采购余额充足。": {
+    "en": "Procurement balance, committed service, and pending deliveries jointly determine sales capacity. Oversell authorization manages sales; actual calls require sufficient prepaid procurement balance.",
+    "ja": "調達残高、約束済みサービス、提供待ちの責任が販売許容量を決めます。販売超過枠は販売管理用で、実際の呼出には十分な前払い調達残高が必要です。",
+    "ru": "Закупочный остаток, принятые сервисные обязательства и ожидающее исполнение определяют ёмкость продаж. Лимит сверхпродаж служит для управления продажами; вызовы требуют достаточного предоплаченного закупочного остатка."
+  },
+  "核对当前责任": {
+    "en": "Check current obligations",
+    "ja": "現在の責任を確認",
+    "ru": "Проверить текущие обязательства"
+  },
+  "查看购买与赠送服务所需的实际采购覆盖。": {
+    "en": "Check the actual procurement coverage needed for purchased and gift service.",
+    "ja": "購入・特典サービスに必要な実際の調達カバレッジを確認します。",
+    "ru": "Проверьте фактическое закупочное обеспечение купленных и бонусных услуг."
+  },
+  "设置授权和缓冲": {
+    "en": "Set authorization and buffer",
+    "ja": "承認枠とバッファを設定",
+    "ru": "Задать лимит и резерв предупреждения"
+  },
+  "按明确权限设置销售超卖与预警缓冲。": {
+    "en": "Set sales oversell allowance and warning buffer under explicit permissions.",
+    "ja": "明示的な権限に基づき、販売超過枠と警告バッファを設定します。",
+    "ru": "Настройте лимит сверхпродаж и резерв предупреждения в пределах явных разрешений."
+  },
+  "采购与风险处置": {
+    "en": "Procure and manage risks",
+    "ja": "調達とリスク対応",
+    "ru": "Закупать и обрабатывать риски"
+  },
+  "承载不足时补货或限制新增销售，保留存量责任。": {
+    "en": "When capacity is insufficient, replenish or limit new sales while retaining existing obligations.",
+    "ja": "許容量が不足する場合は補充または新規販売制限を行い、既存の責任を保持します。",
+    "ru": "При нехватке ёмкости пополните закупку или ограничьте новые продажи, сохраняя существующие обязательства."
+  },
+  "开通合作主体，明确各自经营责任": {
+    "en": "Create partner entities and define each operator's responsibilities",
+    "ja": "提携主体を開設し、各自の事業責任を明確化",
+    "ru": "Создавайте партнёров с чёткими обязательствами каждого оператора"
+  },
+  "平台可创建 OEM 和直属渠道，OEM 可创建自己的直属渠道。渠道没有下级经营方。": {
+    "en": "The platform can create OEMs and direct channels; OEMs can create their own direct channels. Channels have no downstream operators.",
+    "ja": "プラットフォームは OEM と直属チャネルを作成でき、OEM は自社の直属チャネルを作成できます。チャネルに下位事業者はありません。",
+    "ru": "Платформа может создавать OEM и прямые каналы, OEM — свои прямые каналы. У каналов нет нижестоящих операторов."
+  },
+  "确定主体与品牌": {
+    "en": "Define entity and brand",
+    "ja": "主体とブランドを決定",
+    "ru": "Определить организацию и бренд"
+  },
+  "明确实际经营主体、品牌和直接供货关系。": {
+    "en": "Identify the actual operating entity, brand, and direct supply relationship.",
+    "ja": "実際の事業主体、ブランド、直接の供給関係を明確にします。",
+    "ru": "Укажите фактическую организацию, бренд и прямые отношения поставки."
+  },
+  "邀请负责人": {
+    "en": "Invite the owner",
+    "ja": "責任者を招待",
+    "ru": "Пригласить ответственного"
+  },
+  "合作主体负责人在自己的空间配置人员和收款。": {
+    "en": "The partner's owner configures staff and payment collection in their own workspace.",
+    "ja": "提携主体の責任者が自分のワークスペースで担当者と入金方法を設定します。",
+    "ru": "Ответственный партнёра настраивает сотрудников и приём платежей в собственном пространстве."
+  },
+  "定制并开业": {
+    "en": "Customize and open",
+    "ja": "カスタマイズして開業",
+    "ru": "Настроить и запустить"
+  },
+  "上级按授权定制域名及外观，开通不自动开放营业。": {
+    "en": "The upstream operator customizes domains and appearance under authorization; account creation does not automatically open business.",
+    "ja": "上位事業者は権限に従ってドメインと外観を調整します。開設だけでは営業は自動的に開放されません。",
+    "ru": "Вышестоящий оператор настраивает домены и оформление по разрешению; создание оператора не запускает деятельность автоматически."
+  },
+  "设置 · 营业": {
+    "en": "Settings · Business",
+    "ja": "設定 · 営業",
+    "ru": "Настройки · Деятельность"
+  },
+  "按真实依赖逐项开放营业": {
+    "en": "Enable business features as their real dependencies become ready",
+    "ja": "実際の依存条件に応じて営業を項目別に開放",
+    "ru": "Запускайте направления работы по мере готовности их условий"
+  },
+  "先保存配置，再逐项执行开业检查。不同支付方式独立就绪，暂停新业务不消除存量权益和结算责任。": {
+    "en": "Save configuration first, then run opening checks for each feature. Payment methods become ready independently; pausing new business does not remove existing credits or settlement obligations.",
+    "ja": "設定を保存してから、項目別に開業チェックを実行します。支払方法は個別に準備し、新規業務の停止でも既存の利用権と決済責任は残ります。",
+    "ru": "Сначала сохраните настройки, затем проверьте запуск каждого направления. Платёжные методы готовятся независимо; приостановка новых операций не снимает существующих обязательств по единицам и расчётам."
+  },
+  "准备必要配置": {
+    "en": "Prepare required configuration",
+    "ja": "必要な設定を準備",
+    "ru": "Подготовить необходимые настройки"
+  },
+  "核对商品、收款、模型授权、价格和采购余额。": {
+    "en": "Check products, payments, model authorization, prices, and prepaid procurement balance.",
+    "ja": "商品、入金、モデル権限、価格、前払い調達残高を確認します。",
+    "ru": "Проверьте продукты, платежи, разрешения на модели, цены и предоплаченный закупочный остаток."
+  },
+  "逐项检查开放": {
+    "en": "Check and enable each feature",
+    "ja": "項目別に確認して開放",
+    "ru": "Проверить и включить каждое направление"
+  },
+  "分别控制注册、新购、续费、调用、活动与结算。": {
+    "en": "Control registration, new purchases, renewals, calls, campaigns, and settlements separately.",
+    "ja": "登録、新規購入、更新、呼出、キャンペーン、決済を個別に制御します。",
+    "ru": "Управляйте регистрацией, покупками, продлениями, вызовами, акциями и расчётами отдельно."
+  },
+  "持续处理存量": {
+    "en": "Keep handling existing obligations",
+    "ja": "既存責任の処理を継続",
+    "ru": "Продолжать исполнение существующих обязательств"
+  },
+  "遇到风险按项目暂停，继续处理退款、佣金和账单。": {
+    "en": "Pause affected features when risks arise, and continue refunds, commissions, and billing.",
+    "ja": "リスク時は該当項目を停止し、返金、紹介報酬、請求の処理を続けます。",
+    "ru": "При рисках приостанавливайте соответствующее направление, продолжая возвраты, вознаграждения и расчёты по счетам."
+  },
+  "平台技术": {
+    "en": "Platform technology",
+    "ja": "プラットフォーム技術",
+    "ru": "Технологии платформы"
+  },
+  "先保管凭据，再验证模型与路由": {
+    "en": "Secure credentials, then verify models and routes",
+    "ja": "認証情報を保管し、モデルとルートを検証",
+    "ru": "Сохраните учётные данные, затем проверьте модели и маршруты"
+  },
+  "供应商密钥加密保存，只返回引用和版本。平台统一管理上游，OEM 和渠道使用授权的公开模型。": {
+    "en": "Supplier keys are encrypted; only references and versions are returned. The platform manages upstream services; OEMs and channels use authorized public models.",
+    "ja": "供給元キーは暗号化して保存し、参照とバージョンのみ返します。プラットフォームが上流を一括管理し、OEM とチャネルは許可済み公開モデルを使用します。",
+    "ru": "Ключи поставщиков хранятся зашифрованными; возвращаются только ссылки и версии. Платформа управляет внешними сервисами, а OEM и каналы используют разрешённые публичные модели."
+  },
+  "登记供应商凭据": {
+    "en": "Register supplier credentials",
+    "ja": "供給元の認証情報を登録",
+    "ru": "Зарегистрировать учётные данные поставщика"
+  },
+  "创建或轮换真实密钥，保留供应商引用与版本。": {
+    "en": "Create or rotate actual keys, retaining supplier references and versions.",
+    "ja": "実際のキーを作成・更新し、供給元参照とバージョンを保持します。",
+    "ru": "Создавайте или заменяйте действующие ключи, сохраняя ссылки поставщика и версии."
+  },
+  "核实公开模型": {
+    "en": "Verify public models",
+    "ja": "公開モデルを確認",
+    "ru": "Проверить публичные модели"
+  },
+  "确认模型身份、能力、参数、计量及恢复证据。": {
+    "en": "Confirm model identity, capabilities, parameters, metering, and recovery evidence.",
+    "ja": "モデルの識別、能力、パラメータ、計量、復旧証憑を確認します。",
+    "ru": "Проверьте идентичность модели, возможности, параметры, учёт использования и подтверждения восстановления."
+  },
+  "配置合格路由": {
+    "en": "Configure eligible routes",
+    "ja": "適格なルートを設定",
+    "ru": "Настроить подходящие маршруты"
+  },
+  "绑定已核实上游，检查健康、容量与故障切换。": {
+    "en": "Bind verified upstream services and check health, capacity, and failover.",
+    "ja": "検証済みの上流に接続し、稼働状態、容量、フェイルオーバーを確認します。",
+    "ru": "Подключите проверенные внешние сервисы, проверьте состояние, ёмкость и переключение при сбоях."
+  },
+  "用能力证据维护公开模型": {
+    "en": "Maintain public models with capability evidence",
+    "ja": "能力の証憑で公開モデルを維持",
+    "ru": "Поддерживайте публичные модели на основе подтверждений возможностей"
+  },
+  "公开模型是客户选定的服务身份。授权与路由变化保持身份、参数和能力一致。": {
+    "en": "A public model is the service identity chosen by the customer. Authorization and route changes preserve identity, parameters, and capabilities.",
+    "ja": "公開モデルは顧客が選択したサービスの識別です。権限やルートを変更しても、識別、パラメータ、能力の一貫性を保ちます。",
+    "ru": "Публичная модель определяет выбранную клиентом услугу. Изменения разрешений и маршрутов сохраняют её идентичность, параметры и возможности."
+  },
+  "确认模型身份": {
+    "en": "Confirm model identity",
+    "ja": "モデルの識別を確認",
+    "ru": "Подтвердить идентичность модели"
+  },
+  "录入公开标识及供应商模型身份。": {
+    "en": "Enter the public identifier and supplier model identity.",
+    "ja": "公開識別子と供給元モデルの識別を登録します。",
+    "ru": "Укажите публичный идентификатор и идентичность модели поставщика."
+  },
+  "核实能力证据": {
+    "en": "Verify capability evidence",
+    "ja": "能力の証憑を確認",
+    "ru": "Проверить подтверждения возможностей"
+  },
+  "核对输入输出、参数、限制、用量上界与恢复事实。": {
+    "en": "Check input/output, parameters, limits, usage bounds, and recovery facts.",
+    "ja": "入出力、パラメータ、制限、使用量上限、復旧事実を確認します。",
+    "ru": "Проверьте ввод и вывод, параметры, ограничения, верхние границы использования и факты восстановления."
+  },
+  "授权并开放": {
+    "en": "Authorize and enable",
+    "ja": "許可して開放",
+    "ru": "Разрешить и включить"
+  },
+  "配置合格路由及价格后，按通知规则发布变更。": {
+    "en": "Configure eligible routes and prices, then publish changes under notification rules.",
+    "ja": "適格なルートと価格を設定し、通知規則に従って変更を公開します。",
+    "ru": "Настройте подходящие маршруты и цены, затем опубликуйте изменения по правилам уведомления."
+  },
+  "把公开模型连接到合格上游": {
+    "en": "Connect public models to eligible upstream services",
+    "ja": "公開モデルを適格な上流に接続",
+    "ru": "Подключайте публичные модели к подходящим внешним сервисам"
+  },
+  "每条路由保留供应商、凭据、能力和恢复证据。能力不匹配时不静默降级或替换用户指定模型。": {
+    "en": "Every route retains supplier, credential, capability, and recovery evidence. Capability mismatches never silently downgrade or replace the user's chosen model.",
+    "ja": "ルートごとに供給元、認証、能力、復旧の証憑を保持します。能力不一致でも、利用者の指定モデルを無断で機能低下・置換しません。",
+    "ru": "Для каждого маршрута сохраняются подтверждения поставщика, учётных данных, возможностей и восстановления. Несоответствие возможностей не приводит к скрытому ухудшению или замене выбранной модели."
+  },
+  "选择模型与凭据": {
+    "en": "Select model and credentials",
+    "ja": "モデルと認証情報を選択",
+    "ru": "Выбрать модель и учётные данные"
+  },
+  "绑定已核实公开模型和已保存供应商凭据。": {
+    "en": "Bind a verified public model and saved supplier credentials.",
+    "ja": "確認済み公開モデルと保存済みの供給元認証情報を関連付けます。",
+    "ru": "Свяжите проверенную публичную модель с сохранёнными учётными данными поставщика."
+  },
+  "校验真实能力": {
+    "en": "Validate actual capabilities",
+    "ja": "実際の能力を検証",
+    "ru": "Проверить фактические возможности"
+  },
+  "核对端点、参数、输入输出及用量结算上界。": {
+    "en": "Check endpoints, parameters, input/output, and usage settlement bounds.",
+    "ja": "エンドポイント、パラメータ、入出力、使用量精算の上限を確認します。",
+    "ru": "Проверьте конечные точки, параметры, ввод и вывод и верхние границы расчёта использования."
+  },
+  "管理容量与恢复": {
+    "en": "Manage capacity and recovery",
+    "ja": "容量と復旧を管理",
+    "ru": "Управлять ёмкостью и восстановлением"
+  },
+  "配置并发、熔断和探测，查看实际路由健康。": {
+    "en": "Configure concurrency, circuit breakers, and probes; inspect actual route health.",
+    "ja": "同時実行、サーキットブレーカー、プローブを設定し、実際のルート稼働状態を確認します。",
+    "ru": "Настройте параллельность, защитное отключение и пробы; проверяйте фактическое состояние маршрутов."
+  },
+  "需要品牌经营方的合作与退款权限。": {
+    "en": "Cooperation and refund permissions from the brand operator are required.",
+    "ja": "ブランド事業者の提携・返金権限が必要です。",
+    "ru": "Нужны права на сотрудничество и возвраты у оператора бренда."
+  },
+  "接管资金结清": {
+    "en": "Takeover settlement",
+    "ja": "引継ぎ資金精算",
+    "ru": "Расчёты по передаче канала"
+  },
+  "渠道接管": {
+    "en": "Channel takeover",
+    "ja": "チャネル引継ぎ",
+    "ru": "Передача канала"
+  },
+  "客户权益接管完成后，双方实际收付款仍独立办理。登记真实银行凭证与当次USD估值，支持分批结清。": {
+    "en": "After customer credits are transferred, actual payments between both parties are handled separately. Record genuine bank evidence and the current USD valuation; partial settlements are supported.",
+    "ja": "顧客の利用権を引き継いだ後も、双方の実際の入出金は別に処理します。実際の銀行証憑と今回の USD 評価を記録し、分割精算にも対応します。",
+    "ru": "После передачи клиентских единиц фактические платежи сторон обрабатываются отдельно. Записывайте реальные банковские подтверждения и текущую оценку в USD; допускаются частичные расчёты."
+  },
+  "先暂停新增业务，等待在途事项结清，再审阅完整资产与责任快照。执行接管不会继承原渠道商户密钥。": {
+    "en": "Pause new business, wait for in-flight operations to settle, then review the full asset and obligation snapshot. The original channel's merchant keys are not inherited.",
+    "ja": "新規業務を停止し、進行中の案件の精算を待ってから、資産と責任の全スナップショットを審査します。元のチャネルの加盟店キーは継承しません。",
+    "ru": "Приостановите новые операции, дождитесь завершения текущих и проверьте полный снимок активов и обязательств. Ключи мерчанта исходного канала не передаются."
+  },
+  "发起接管准备": {
+    "en": "Start takeover preparation",
+    "ja": "引継ぎ準備を開始",
+    "ru": "Начать подготовку передачи"
+  },
+  "暂无已完成接管的结清事项。": {
+    "en": "No settlement cases for completed takeovers yet.",
+    "ja": "引継ぎ完了後の精算案件はまだありません。",
+    "ru": "Пока нет расчётов по завершённым передачам."
+  },
+  "尚未建立接管方案。": {
+    "en": "No takeover plan has been created.",
+    "ja": "引継ぎ計画はまだ作成されていません。",
+    "ru": "План передачи ещё не создан."
+  },
+  "金额须为精确十进制字符串。": {
+    "en": "Amounts must be exact decimal strings.",
+    "ja": "金額は正確な十進数文字列で入力してください。",
+    "ru": "Суммы должны быть точными десятичными строками."
+  },
+  "准备接管方案": {
+    "en": "Prepare takeover plan",
+    "ja": "引継ぎ計画を準備",
+    "ru": "Подготовить план передачи"
+  },
+  "选择直属渠道并保存双方合同条款，先暂停新增业务再复核存量责任。": {
+    "en": "Choose a direct channel and save the contract terms. Pause new business before reviewing existing obligations.",
+    "ja": "直属チャネルを選んで双方の契約条件を保存します。新規業務を停止してから既存の責任を審査します。",
+    "ru": "Выберите прямой канал и сохраните договорные условия. Приостановите новые операции перед проверкой существующих обязательств."
+  },
+  "直属渠道": {
+    "en": "Direct channel",
+    "ja": "直属チャネル",
+    "ru": "Прямой канал"
+  },
+  "请选择": {
+    "en": "Please select",
+    "ja": "選択してください",
+    "ru": "Выберите"
+  },
+  "合同作价方式": {
+    "en": "Contract valuation method",
+    "ja": "契約上の評価方式",
+    "ru": "Метод договорной оценки"
+  },
+  "按供货覆盖计算": {
+    "en": "Based on supply coverage",
+    "ja": "供給カバレッジで計算",
+    "ru": "По обеспечению поставок"
+  },
+  "按约定ATG价格": {
+    "en": "At the agreed ATG price",
+    "ja": "合意済み ATG 価格",
+    "ru": "По согласованной цене ATG"
+  },
+  "承接服务每ATG合同作价 USD（大于0）": {
+    "en": "Contract service value per ATG in USD (> 0)",
+    "ja": "引継ぎサービスの契約単価 USD/ATG（0 超）",
+    "ru": "Договорная цена принятой услуги USD/ATG (> 0)"
+  },
+  "采购库存每ATG合同抵扣 USD（大于0）": {
+    "en": "Contract procurement offset per ATG in USD (> 0)",
+    "ja": "調達在庫の契約相殺単価 USD/ATG（0 超）",
+    "ru": "Договорный зачёт закупочного запаса USD/ATG (> 0)"
+  },
+  "合同额外结清 USD（可负数）": {
+    "en": "Additional contract settlement USD (may be negative)",
+    "ja": "契約上の追加精算 USD（負数可）",
+    "ru": "Дополнительный расчёт по договору USD (может быть отрицательным)"
+  },
+  "双方接管合同编号": {
+    "en": "Bilateral takeover contract reference",
+    "ja": "双方の引継ぎ契約番号",
+    "ru": "Номер двустороннего договора передачи"
+  },
+  "发起依据与证据引用": {
+    "en": "Initiation basis and evidence reference",
+    "ja": "開始根拠と証憑参照",
+    "ru": "Основание начала и ссылка на подтверждение"
+  },
+  "确认暂停此渠道新增注册、购买、调用和自动补货。取消方案后也需要另行检查再恢复营业。": {
+    "en": "Confirm pausing this channel's new registrations, purchases, calls, and automatic replenishment. Even after cancellation, check separately before reopening business.",
+    "ja": "このチャネルの新規登録、購入、呼出、自動補充の停止を確認します。計画を取り消した場合も、営業再開前に別途確認が必要です。",
+    "ru": "Подтверждаю приостановку новых регистраций, покупок, вызовов и автопополнений канала. Даже после отмены плана перед возобновлением нужна отдельная проверка."
+  },
+  "方案办理结果待核实，请保持此面板。重试沿用原始填写内容和同一操作编号。": {
+    "en": "The plan's result is unverified. Keep this panel open. Retries reuse the original input and operation ID.",
+    "ja": "計画の処理結果は未確認です。このパネルを開いたままにしてください。再試行では元の入力内容と同じ操作番号を使用します。",
+    "ru": "Результат плана не подтверждён. Оставьте панель открытой. Повтор использует исходные данные и тот же ID операции."
+  },
+  "重试原方案": {
+    "en": "Retry original plan",
+    "ja": "元の計画を再試行",
+    "ru": "Повторить исходный план"
+  },
+  "建立准备事项": {
+    "en": "Create preparation case",
+    "ja": "準備案件を作成",
+    "ru": "Создать подготовку"
+  },
+  "暂停与排空": {
+    "en": "Pause and drain",
+    "ja": "停止と進行中処理の完了",
+    "ru": "Приостановка и завершение текущих операций"
+  },
+  "完整责任复核": {
+    "en": "Review all obligations",
+    "ja": "全責任を審査",
+    "ru": "Проверка всех обязательств"
+  },
+  "权益承接完成": {
+    "en": "Credits transferred",
+    "ja": "利用権引継ぎ完了",
+    "ru": "Передача единиц завершена"
+  },
+  "实际资金结清": {
+    "en": "Actual funds settled",
+    "ja": "実資金の精算",
+    "ru": "Фактический денежный расчёт"
+  },
+  "品牌向渠道付款": {
+    "en": "Brand pays channel",
+    "ja": "ブランドからチャネルへ支払い",
+    "ru": "Бренд платит каналу"
+  },
+  "渠道向品牌付款": {
+    "en": "Channel pays brand",
+    "ja": "チャネルからブランドへ支払い",
+    "ru": "Канал платит бренду"
+  },
+  "合同": {
+    "en": "Contract",
+    "ja": "契約",
+    "ru": "Договор"
+  },
+  "接管办理进度": {
+    "en": "Takeover progress",
+    "ja": "引継ぎ処理の進捗",
+    "ru": "Ход передачи канала"
+  },
+  "已完成": {
+    "en": "Completed",
+    "ja": "完了",
+    "ru": "Завершено"
+  },
+  "承接服务作价": {
+    "en": "Transferred service value",
+    "ja": "引継ぎサービス評価額",
+    "ru": "Стоимость принятых услуг"
+  },
+  "承接现金与佣金责任": {
+    "en": "Transferred cash and commission obligations",
+    "ja": "引継ぎ現金・紹介報酬責任",
+    "ru": "Принятые обязательства по средствам и вознаграждениям"
+  },
+  "采购库存抵扣": {
+    "en": "Procurement inventory offset",
+    "ja": "調達在庫の相殺",
+    "ru": "Зачёт закупочного запаса"
+  },
+  "合同可退采购余额": {
+    "en": "Contract-refundable procurement balance",
+    "ja": "契約上返金可能な調達残高",
+    "ru": "Закупочный остаток, возвращаемый по договору"
+  },
+  "结清方向：{direction}，合同结清额": {
+    "en": "Settlement direction: {direction}; contract amount",
+    "ja": "精算方向：{direction}、契約精算額",
+    "ru": "Направление расчёта: {direction}; сумма по договору"
+  },
+  "；已登记结清": {
+    "en": "; recorded as settled",
+    "ja": "；精算登録済み",
+    "ru": "; зарегистрировано как оплачено"
+  },
+  "客户权益转移与双方现金支付分别记账。收款方资产、原付款来源和历史凭证保留；不因点击办理推定已收付款。": {
+    "en": "Customer credit transfers and bilateral cash payments are recorded separately. Recipient assets, original funding sources, and historical evidence are retained. Clicking an action does not establish actual payment or receipt.",
+    "ja": "顧客利用権の移転と双方の現金支払いは別々に記帳します。受取側の資産、元の支払財源、過去の証憑を保持し、操作しただけで入出金済みとは見なしません。",
+    "ru": "Передача клиентских единиц и денежные платежи сторон учитываются раздельно. Активы получателя, исходные источники средств и история подтверждений сохраняются. Нажатие кнопки не подтверждает фактический платёж."
+  },
+  "收起完整快照": {
+    "en": "Hide full snapshot",
+    "ja": "全スナップショットを閉じる",
+    "ru": "Скрыть полный снимок"
+  },
+  "审阅完整快照": {
+    "en": "Review full snapshot",
+    "ja": "全スナップショットを審査",
+    "ru": "Проверить полный снимок"
+  },
+  "重试原快照检查": {
+    "en": "Retry original snapshot check",
+    "ja": "元のスナップショット確認を再試行",
+    "ru": "Повторить исходную проверку снимка"
+  },
+  "排空检查并刷新快照": {
+    "en": "Check drained operations and refresh snapshot",
+    "ja": "進行中処理の完了を確認して更新",
+    "ru": "Проверить завершение операций и обновить снимок"
+  },
+  "取消方案": {
+    "en": "Cancel plan",
+    "ja": "計画を取り消す",
+    "ru": "Отменить план"
+  },
+  "复核并执行接管": {
+    "en": "Review and execute takeover",
+    "ja": "審査して引継ぎを実行",
+    "ru": "Проверить и выполнить передачу"
+  },
+  "登记实际收付款": {
+    "en": "Record actual payment or receipt",
+    "ja": "実際の入出金を登録",
+    "ru": "Зарегистрировать фактический платёж"
+  },
+  "完整责任快照 ·": {
+    "en": "Full obligation snapshot ·",
+    "ja": "全責任スナップショット ·",
+    "ru": "Полный снимок обязательств ·"
+  },
+  "完整客户范围": {
+    "en": "Full customer scope",
+    "ja": "全顧客範囲",
+    "ru": "Полный состав клиентов"
+  },
+  "归属版本": {
+    "en": "Ownership version",
+    "ja": "帰属バージョン",
+    "ru": "Версия принадлежности"
+  },
+  "客户 / 账户": {
+    "en": "Customer / account",
+    "ja": "顧客 / 口座",
+    "ru": "Клиент / счёт"
+  },
+  "总余额": {
+    "en": "Total balance",
+    "ja": "総残高",
+    "ru": "Общий баланс"
+  },
+  "版本": {
+    "en": "Version",
+    "ja": "バージョン",
+    "ru": "Версия"
+  },
+  "覆盖与责任计算": {
+    "en": "Coverage and obligation calculation",
+    "ja": "カバレッジと責任の計算",
+    "ru": "Расчёт обеспечения и обязательств"
+  },
+  "采购库存原始头寸": {
+    "en": "Original procurement inventory position",
+    "ja": "元の調達在庫ポジション",
+    "ru": "Исходная позиция закупочного запаса"
+  },
+  "每笔采购批次及合同退出条款": {
+    "en": "Each procurement lot and contractual exit terms",
+    "ja": "各調達ロットと契約上の終了条件",
+    "ru": "Закупочные партии и договорные условия выхода"
+  },
+  "计价与舍入依据": {
+    "en": "Valuation and rounding basis",
+    "ja": "評価と丸めの根拠",
+    "ru": "Основание оценки и округления"
+  },
+  "请填写有效收付款时间及精确十进制金额。": {
+    "en": "Enter a valid payment time and exact decimal amounts.",
+    "ja": "有効な入出金日時と正確な十進数の金額を入力してください。",
+    "ru": "Укажите действительное время платежа и точные десятичные суммы."
+  },
+  "复核完整责任并执行": {
+    "en": "Review all obligations and execute",
+    "ja": "全責任を審査して実行",
+    "ru": "Проверить все обязательства и выполнить"
+  },
+  "取消准备方案": {
+    "en": "Cancel preparation plan",
+    "ja": "準備計画を取り消す",
+    "ru": "Отменить подготовительный план"
+  },
+  "登记本次实际结清": {
+    "en": "Record this actual settlement",
+    "ja": "今回の実精算を登録",
+    "ru": "Зарегистрировать текущий фактический расчёт"
+  },
+  "渠道接管 {id} · 合同 {contract}": {
+    "en": "Channel takeover {id} · Contract {contract}",
+    "ja": "チャネル引継ぎ {id} · 契約 {contract}",
+    "ru": "Передача канала {id} · Договор {contract}"
+  },
+  "取消依据": {
+    "en": "Cancellation evidence",
+    "ja": "取消根拠",
+    "ru": "Основание отмены"
+  },
+  "{direction}。填写实际执行币种和金额、本次折合USD以及付款方手续费；不得使用原订单汇率代替本次真实执行事实。": {
+    "en": "{direction}. Enter the actual currency and amount, this settlement's USD value, and payer fees. Do not substitute the original order's exchange rate for the actual execution facts.",
+    "ja": "{direction}。実際の通貨と金額、今回の USD 換算額、支払側の手数料を入力してください。元の注文の為替レートを今回の実行事実の代わりに使用しないでください。",
+    "ru": "{direction}. Укажите фактическую валюту и сумму, стоимость текущего расчёта в USD и комиссии плательщика. Не заменяйте факты исполнения курсом исходного заказа."
+  },
+  "实际币种金额": {
+    "en": "Actual currency amount",
+    "ja": "実際の通貨額",
+    "ru": "Сумма в фактической валюте"
+  },
+  "本次实际结清 USD": {
+    "en": "Actual settlement USD",
+    "ja": "今回の実精算 USD",
+    "ru": "Фактический расчёт USD"
+  },
+  "付款方另付手续费 USD": {
+    "en": "Payer's additional fee USD",
+    "ja": "支払側の別途手数料 USD",
+    "ru": "Дополнительная комиссия плательщика USD"
+  },
+  "唯一银行流水 / 支付凭证": {
+    "en": "Unique bank transaction / payment reference",
+    "ja": "一意な銀行取引番号 / 支払証憑",
+    "ru": "Уникальная банковская операция / платёжный документ"
+  },
+  "核实依据与当次估值证据": {
+    "en": "Verification and current valuation evidence",
+    "ja": "確認根拠と今回の評価証憑",
+    "ru": "Подтверждение проверки и текущей оценки"
+  },
+  "实际收付款时间": {
+    "en": "Actual payment time",
+    "ja": "実際の入出金日時",
+    "ru": "Время фактического платежа"
+  },
+  "我已审阅上述完整客户、四类资产、采购批次、覆盖计算、合同及正负结清额。服务器会重新核对快照并执行独立复核策略。": {
+    "en": "I have reviewed all customers, four asset types, procurement lots, coverage calculations, contracts, and positive or negative settlement amounts above. The server will recheck the snapshot and apply independent review rules.",
+    "ja": "上記の全顧客、4 種類の資産、調達ロット、カバレッジ計算、契約、正負の精算額を審査しました。サーバーがスナップショットを再確認し、独立審査規則を適用します。",
+    "ru": "Я проверил всех клиентов, четыре типа активов, закупочные партии, расчёты обеспечения, договор и положительные или отрицательные суммы расчёта. Сервер повторно проверит снимок и применит правила независимой проверки."
+  },
+  "确认取消方案；不会自动恢复渠道营业。": {
+    "en": "Confirm cancellation; channel business will not reopen automatically.",
+    "ja": "計画の取消を確認します。チャネル営業は自動では再開されません。",
+    "ru": "Подтверждаю отмену плана; работа канала не возобновится автоматически."
+  },
+  "已向银行或支付通道核实本次实际收付款，凭证真实且未重复登记。": {
+    "en": "I verified this actual payment with the bank or payment channel. The evidence is genuine and has not been recorded twice.",
+    "ja": "今回の実際の入出金を銀行または決済チャネルで確認し、証憑が真正かつ未重複であることを確認しました。",
+    "ru": "Я проверил фактический платёж у банка или платёжного канала. Подтверждение подлинное и не зарегистрировано повторно."
+  },
+  "本次办理结果待核实，请保持此面板。重试沿用原始凭证和同一操作编号，不重复办理。": {
+    "en": "This result is unverified. Keep this panel open. Retries reuse the original evidence and operation ID without duplicating the action.",
+    "ja": "今回の結果は未確認です。このパネルを開いたままにしてください。再試行では元の証憑と同じ操作番号を使い、重複処理しません。",
+    "ru": "Результат не подтверждён. Оставьте панель открытой. Повтор использует исходные подтверждения и тот же ID без дублирования операции."
+  },
+  "重试原操作": {
+    "en": "Retry original operation",
+    "ja": "元の操作を再試行",
+    "ru": "Повторить исходную операцию"
+  },
+  "确认提交": {
+    "en": "Confirm and submit",
+    "ja": "確認して送信",
+    "ru": "Подтвердить и отправить"
+  },
+  "返回": {
+    "en": "Back",
+    "ja": "戻る",
+    "ru": "Назад"
+  },
+  "需要当前经营方财务报表权限。": {
+    "en": "Financial report permission for the current operator is required.",
+    "ja": "現在の事業者の財務レポート権限が必要です。",
+    "ru": "Нужно разрешение на финансовые отчёты текущего оператора."
+  },
+  "已确认收入": {
+    "en": "Recognized revenue",
+    "ja": "認識済み収益",
+    "ru": "Признанная выручка"
+  },
+  "有偿调用确认": {
+    "en": "Paid call revenue recognized",
+    "ja": "有償呼出の収益認識",
+    "ru": "Выручка по платным вызовам"
+  },
+  "购买权益到期确认": {
+    "en": "Purchased credit expiry revenue recognized",
+    "ja": "購入利用枠の期限切れ収益認識",
+    "ru": "Выручка от истечения купленных единиц"
+  },
+  "已消费供货收入": {
+    "en": "Consumed wholesale supply revenue",
+    "ja": "消費済み供給の収益",
+    "ru": "Выручка от потреблённых оптовых поставок"
+  },
+  "提现手续费保留": {
+    "en": "Retained withdrawal fees",
+    "ja": "留保した出金手数料",
+    "ru": "Удержанные комиссии за вывод"
+  },
+  "收入合计": {
+    "en": "Total revenue",
+    "ja": "収益合計",
+    "ru": "Итого выручка"
+  },
+  "已确认成本": {
+    "en": "Recognized costs",
+    "ja": "認識済み原価",
+    "ru": "Признанные затраты"
+  },
+  "全部履约成本": {
+    "en": "Total fulfillment cost",
+    "ja": "全履行原価",
+    "ru": "Все затраты на исполнение"
+  },
+  "其中赠送履约成本（子集）": {
+    "en": "Gift fulfillment cost (subset)",
+    "ja": "うち特典履行原価（内数）",
+    "ru": "В том числе затраты на бонусы (подмножество)"
+  },
+  "推荐佣金成本": {
+    "en": "Referral commission cost",
+    "ja": "紹介報酬原価",
+    "ru": "Затраты на реферальные вознаграждения"
+  },
+  "已核实收付手续费": {
+    "en": "Verified payment fees",
+    "ja": "確認済み入出金手数料",
+    "ru": "Проверенные платёжные комиссии"
+  },
+  "异常收款与履约损失": {
+    "en": "Exceptional collection and fulfillment loss",
+    "ja": "例外入金・履行損失",
+    "ru": "Потери по исключениям поступлений и исполнения"
+  },
+  "成本合计": {
+    "en": "Total costs",
+    "ja": "原価合計",
+    "ru": "Итого затраты"
+  },
+  "实际资金与通道往来": {
+    "en": "Actual funds and payment channel balances",
+    "ja": "実資金と決済チャネル取引",
+    "ru": "Фактические средства и расчёты с платёжными каналами"
+  },
+  "已核实流入": {
+    "en": "Verified inflows",
+    "ja": "確認済み流入",
+    "ru": "Проверенные поступления"
+  },
+  "已核实流出": {
+    "en": "Verified outflows",
+    "ja": "確認済み流出",
+    "ru": "Проверенные выплаты"
+  },
+  "采购付款": {
+    "en": "Procurement payments",
+    "ja": "調達支払い",
+    "ru": "Платежи за закупки"
+  },
+  "佣金提现付款": {
+    "en": "Commission withdrawal payments",
+    "ja": "紹介報酬の出金支払い",
+    "ru": "Выплаты вознаграждений"
+  },
+  "其中接管流入": {
+    "en": "Including takeover inflows",
+    "ja": "うち引継ぎ流入",
+    "ru": "В том числе поступления по передаче"
+  },
+  "其中接管流出": {
+    "en": "Including takeover outflows",
+    "ja": "うち引継ぎ流出",
+    "ru": "В том числе выплаты по передаче"
+  },
+  "通道未结应收": {
+    "en": "Unsettled channel receivables",
+    "ja": "チャネル未決済債権",
+    "ru": "Непогашенная дебиторская задолженность канала"
+  },
+  "当前未履行责任": {
+    "en": "Current unfulfilled obligations",
+    "ja": "現在の未履行責任",
+    "ru": "Текущие неисполненные обязательства"
+  },
+  "客户USD余额责任": {
+    "en": "Customer USD wallet obligations",
+    "ja": "顧客 USD 残高の責任",
+    "ru": "Обязательства по балансу USD клиентов"
+  },
+  "购买权益剩余成交价值": {
+    "en": "Remaining sale value of purchased credits",
+    "ja": "購入利用枠の残存成約価値",
+    "ru": "Оставшаяся стоимость продажи купленных единиц"
+  },
+  "待服务ATG": {
+    "en": "ATG service outstanding",
+    "ja": "未提供サービス ATG",
+    "ru": "ATG к обслуживанию"
+  },
+  "佣金责任": {
+    "en": "Commission obligations",
+    "ja": "紹介報酬責任",
+    "ru": "Обязательства по вознаграждениям"
+  },
+  "未交付订单资金": {
+    "en": "Funds for undelivered orders",
+    "ja": "未提供注文の資金",
+    "ru": "Средства по неисполненным заказам"
+  },
+  "供货退款待付": {
+    "en": "Supply refunds payable",
+    "ja": "供給返金の未払額",
+    "ru": "Возвраты по поставкам к выплате"
+  },
+  "经营财务报表": {
+    "en": "Operating financial report",
+    "ja": "事業財務レポート",
+    "ru": "Финансовый отчёт оператора"
+  },
+  "精确经营范围、同一数据库快照。收入按真实调用、到期与供货履约确认；资金入账不直接当作收入。": {
+    "en": "Exact operator scope, one database snapshot. Recognize revenue from actual calls, expiry, and fulfilled supply; cash posting is not automatically revenue.",
+    "ja": "正確な事業範囲を単一のデータベーススナップショットで取得します。収益は実際の呼出、期限切れ、供給履行で認識し、入金計上をそのまま収益にはしません。",
+    "ru": "Точная область оператора и единый снимок базы данных. Выручка признаётся по фактическим вызовам, истечению и исполнению поставок; зачисление денег само по себе не является выручкой."
+  },
+  "请选择有效区间，截止时间须晚于起始时间。": {
+    "en": "Select a valid interval; the end must be later than the start.",
+    "ja": "有効な期間を選んでください。終了日時は開始日時より後にしてください。",
+    "ru": "Выберите допустимый период; конец должен быть позже начала."
+  },
+  "起始（UTC）": {
+    "en": "Start (UTC)",
+    "ja": "開始（UTC）",
+    "ru": "Начало (UTC)"
+  },
+  "截至（UTC，含所选分钟）": {
+    "en": "End (UTC, selected minute included)",
+    "ja": "終了（UTC、選択した分を含む）",
+    "ru": "Конец (UTC, выбранная минута включительно)"
+  },
+  "按实际区间读取": {
+    "en": "Load actual interval",
+    "ja": "指定期間を取得",
+    "ru": "Загрузить за выбранный период"
+  },
+  "快照": {
+    "en": "Snapshot",
+    "ja": "スナップショット",
+    "ru": "Снимок"
+  },
+  "经营结果（未决项另列）": {
+    "en": "Operating result (pending items listed separately)",
+    "ja": "事業損益（未確定項目は別記）",
+    "ru": "Операционный результат (неподтверждённое указано отдельно)"
+  },
+  "未核实供应成本 {costs} 笔 · 待确认手续费 {fees} 笔 · 退款执行未决 {refunds} 笔 · 退款实际差额待处理 {mismatches} 笔，剩余责任": {
+    "en": "Unverified supplier costs: {costs} · Pending fees: {fees} · Pending refund executions: {refunds} · Refund mismatches: {mismatches}; remaining obligation",
+    "ja": "未確認供給原価 {costs} 件 · 未確認手数料 {fees} 件 · 返金実行未確定 {refunds} 件 · 返金差額対応待ち {mismatches} 件、残存責任",
+    "ru": "Непроверенные затраты поставщиков: {costs} · Неподтверждённые комиссии: {fees} · Незавершённые возвраты: {refunds} · Расхождения возвратов: {mismatches}; оставшееся обязательство"
+  },
+  "。这些项目不按零费用或债务免除处理。": {
+    "en": ". These items are not treated as zero fees or forgiven obligations.",
+    "ja": "。これらはゼロ費用や責任免除として扱いません。",
+    "ru": ". Эти позиции не считаются нулевыми расходами или списанными обязательствами."
+  },
+  "原币实际款尚待入账 {receipts} 笔，其中估值待核实 {valuations} 笔。": {
+    "en": "Actual original currency receipts awaiting posting: {receipts}, including {valuations} awaiting valuation.",
+    "ja": "原通貨の実入金計上待ち {receipts} 件、うち評価未確認 {valuations} 件。",
+    "ru": "Фактических поступлений в исходной валюте к зачислению: {receipts}, из них ожидают оценки: {valuations}."
+  },
+  "（{count}笔）": {
+    "en": " ({count} items)",
+    "ja": "（{count} 件）",
+    "ru": " (записей: {count})"
+  },
+  "这些原币款未按零USD或固定币价处理。": {
+    "en": "These original currency receipts are not assigned zero USD or a fixed currency price.",
+    "ja": "これらの原通貨入金をゼロ USD や固定通貨価格で扱いません。",
+    "ru": "Этим поступлениям не присваивается нулевая стоимость в USD или фиксированная цена валюты."
+  },
+  "办理未入账实际款": {
+    "en": "Handle unposted actual receipts",
+    "ja": "未計上の実入金を処理",
+    "ru": "Обработать незачисленные поступления"
+  },
+  "处理退款未决": {
+    "en": "Resolve pending refunds",
+    "ja": "未確定返金を処理",
+    "ru": "Обработать незавершённые возвраты"
+  },
+  "核对账务差额": {
+    "en": "Reconcile accounting differences",
+    "ja": "帳簿の差額を照合",
+    "ru": "Сверить расхождения учёта"
+  },
+  "核实供应成本": {
+    "en": "Verify supply costs",
+    "ja": "供給原価を確認",
+    "ru": "Проверить затраты поставок"
+  },
+  "创建私有导出": {
+    "en": "Create private export",
+    "ja": "非公開エクスポートを作成",
+    "ru": "Создать закрытую выгрузку"
+  },
+  "接管资金独立明细": {
+    "en": "Separate takeover fund details",
+    "ja": "引継ぎ資金の独立明細",
+    "ru": "Отдельные денежные потоки по передаче"
+  },
+  "账务目的": {
+    "en": "Accounting purpose",
+    "ja": "会計用途",
+    "ru": "Назначение учёта"
+  },
+  "实际流入": {
+    "en": "Actual inflows",
+    "ja": "実際の流入",
+    "ru": "Фактические поступления"
+  },
+  "实际流出": {
+    "en": "Actual outflows",
+    "ja": "実際の流出",
+    "ru": "Фактические выплаты"
+  },
+  "净变动": {
+    "en": "Net change",
+    "ja": "純変動",
+    "ru": "Чистое изменение"
+  },
+  "经营方编号": {
+    "en": "Operator ID",
+    "ja": "事業者番号",
+    "ru": "ID оператора"
+  },
+  "账户编号": {
+    "en": "Account ID",
+    "ja": "口座番号",
+    "ru": "ID счёта"
+  },
+  "采购方编号": {
+    "en": "Buyer ID",
+    "ja": "調達者番号",
+    "ru": "ID покупателя"
+  },
+  "供货方编号": {
+    "en": "Supplier ID",
+    "ja": "供給者番号",
+    "ru": "ID поставщика"
+  },
+  "渠道编号": {
+    "en": "Channel ID",
+    "ja": "チャネル番号",
+    "ru": "ID канала"
+  },
+  "品牌经营方编号": {
+    "en": "Brand operator ID",
+    "ja": "ブランド事業者番号",
+    "ru": "ID оператора бренда"
+  },
+  "采购库存 ATG": {
+    "en": "Procurement inventory ATG",
+    "ja": "調達在庫 ATG",
+    "ru": "Закупочный запас ATG"
+  },
+  "采购账面成本 USD": {
+    "en": "Procurement book cost USD",
+    "ja": "調達帳簿原価 USD",
+    "ru": "Балансовая стоимость закупки USD"
+  },
+  "存在上级供货方": {
+    "en": "Has upstream supplier",
+    "ja": "上位供給者あり",
+    "ru": "Есть вышестоящий поставщик"
+  },
+  "已承诺服务所需覆盖 ATG": {
+    "en": "Coverage for committed service ATG",
+    "ja": "約束済みサービスの必要カバレッジ ATG",
+    "ru": "Обеспечение принятых услуг ATG"
+  },
+  "待交付所需覆盖 ATG": {
+    "en": "Coverage for pending delivery ATG",
+    "ja": "提供待ちの必要カバレッジ ATG",
+    "ru": "Обеспечение ожидающего исполнения ATG"
+  },
+  "承接服务 ATG": {
+    "en": "Transferred service ATG",
+    "ja": "引継ぎサービス ATG",
+    "ru": "Принятые услуги ATG"
+  },
+  "采购库存抵扣 ATG": {
+    "en": "Procurement inventory offset ATG",
+    "ja": "調達在庫の相殺 ATG",
+    "ru": "Зачёт закупочного запаса ATG"
+  },
+  "采购库存抵扣 USD": {
+    "en": "Procurement inventory offset USD",
+    "ja": "調達在庫の相殺 USD",
+    "ru": "Зачёт закупочного запаса USD"
+  },
+  "剩余合同可退采购款 USD": {
+    "en": "Remaining contract-refundable procurement USD",
+    "ja": "契約上返金可能な残りの調達額 USD",
+    "ru": "Оставшаяся возвращаемая закупочная сумма по договору USD"
+  },
+  "合同结清额 USD": {
+    "en": "Contract settlement amount USD",
+    "ja": "契約精算額 USD",
+    "ru": "Сумма расчёта по договору USD"
+  },
+  "收款凭证引用": {
+    "en": "Receipt evidence reference",
+    "ja": "入金証憑の参照",
+    "ru": "Ссылка на подтверждение поступления"
+  },
+  "原成交 USD": {
+    "en": "Original sale value USD",
+    "ja": "元の成約額 USD",
+    "ru": "Исходная стоимость продажи USD"
+  },
+  "剩余采购库存 ATG": {
+    "en": "Remaining procurement inventory ATG",
+    "ja": "残りの調達在庫 ATG",
+    "ru": "Оставшийся закупочный запас ATG"
+  },
+  "已消费购买库存 ATG": {
+    "en": "Purchased inventory consumed ATG",
+    "ja": "消費済み購入在庫 ATG",
+    "ru": "Потреблённый купленный запас ATG"
+  },
+  "已消费赠送库存 ATG": {
+    "en": "Gift inventory consumed ATG",
+    "ja": "消費済み特典在庫 ATG",
+    "ru": "Потреблённый бонусный запас ATG"
+  },
+  "已移除购买库存 ATG": {
+    "en": "Purchased inventory removed ATG",
+    "ja": "除去済み購入在庫 ATG",
+    "ru": "Удалённый купленный запас ATG"
+  },
+  "已移除赠送库存 ATG": {
+    "en": "Gift inventory removed ATG",
+    "ja": "除去済み特典在庫 ATG",
+    "ru": "Удалённый бонусный запас ATG"
+  },
+  "记录指纹": {
+    "en": "Record fingerprint",
+    "ja": "記録の指紋",
+    "ru": "Отпечаток записи"
+  },
+  "采购批次退款 USD": {
+    "en": "Procurement lot refund USD",
+    "ja": "調達ロット返金 USD",
+    "ru": "Возврат по закупочной партии USD"
+  },
+  "舍入依据": {
+    "en": "Rounding evidence",
+    "ja": "丸めの根拠",
+    "ru": "Основание округления"
+  },
+  "采购批次": {
+    "en": "Procurement lots",
+    "ja": "調達ロット",
+    "ru": "Закупочные партии"
+  },
+  "资产明细": {
+    "en": "Asset details",
+    "ja": "資産明細",
+    "ru": "Сведения об активах"
+  },
+  "显示名称": {
+    "en": "Display name",
+    "ja": "表示名",
+    "ru": "Отображаемое имя"
+  },
+  "法定名称": {
+    "en": "Legal name",
+    "ja": "法的名称",
+    "ru": "Юридическое наименование"
+  },
+  "备注": {
+    "en": "Notes",
+    "ja": "備考",
+    "ru": "Примечания"
+  },
+  "业务类型": {
+    "en": "Business type",
+    "ja": "業務種別",
+    "ru": "Тип операции"
+  },
+  "办理方式": {
+    "en": "Processing method",
+    "ja": "処理方式",
+    "ru": "Способ обработки"
+  },
+  "内容": {
+    "en": "Content",
+    "ja": "内容",
+    "ru": "Содержимое"
+  },
+  "主题": {
+    "en": "Subject",
+    "ja": "件名",
+    "ru": "Тема"
+  },
+  "原始快照": {
+    "en": "Original snapshot",
+    "ja": "元のスナップショット",
+    "ru": "Исходный снимок"
+  },
+  "已结清 USD": {
+    "en": "Settled USD",
+    "ja": "精算済み USD",
+    "ru": "Погашено USD"
+  },
+  "实际价值 USD": {
+    "en": "Actual value USD",
+    "ja": "実際の価値 USD",
+    "ru": "Фактическая стоимость USD"
+  },
+  "多付金额 USD": {
+    "en": "Overpaid amount USD",
+    "ja": "過払額 USD",
+    "ru": "Переплата USD"
+  },
+  "剩余责任 USD": {
+    "en": "Remaining obligation USD",
+    "ja": "残存責任 USD",
+    "ru": "Оставшееся обязательство USD"
+  },
+  "实际发生时间": {
+    "en": "Actual occurrence time",
+    "ja": "実際の発生日時",
+    "ru": "Фактическое время события"
+  },
+  "资金来源类型": {
+    "en": "Funding source type",
+    "ja": "資金源の種類",
+    "ru": "Тип источника средств"
+  },
+  "来源编号": {
+    "en": "Source ID",
+    "ja": "出所番号",
+    "ru": "ID источника"
+  },
+  "创建人编号": {
+    "en": "Created by ID",
+    "ja": "作成者番号",
+    "ru": "ID создателя"
+  },
+  "更新人编号": {
+    "en": "Updated by ID",
+    "ja": "更新者番号",
+    "ru": "ID изменившего"
+  },
+  "更新时间": {
+    "en": "Updated at",
+    "ja": "更新日時",
+    "ru": "Дата изменения"
+  },
+  "删除时间": {
+    "en": "Deleted at",
+    "ja": "削除日時",
+    "ru": "Дата удаления"
+  },
+  "业务操作编号": {
+    "en": "Business operation ID",
+    "ja": "業務操作番号",
+    "ru": "ID операции"
+  },
+  "准备中": {
+    "en": "Preparing",
+    "ja": "準備中",
+    "ru": "Подготовка"
+  },
+  "待独立复核": {
+    "en": "Awaiting independent review",
+    "ja": "独立審査待ち",
+    "ru": "Ожидает независимой проверки"
+  },
+  "成本待核实": {
+    "en": "Costs pending verification",
+    "ja": "原価確認待ち",
+    "ru": "Затраты ожидают проверки"
+  },
+  "事实已确认": {
+    "en": "Facts confirmed",
+    "ja": "事実確認済み",
+    "ru": "Факты подтверждены"
+  },
+  "客户 ATG 权益": {
+    "en": "Customer ATG credits",
+    "ja": "顧客 ATG 利用枠",
+    "ru": "Единицы ATG клиента"
+  },
+  "客户 USD 现金余额": {
+    "en": "Customer USD cash balance",
+    "ja": "顧客 USD 現金残高",
+    "ru": "Денежный баланс клиента USD"
+  },
+  "可用佣金": {
+    "en": "Available commission",
+    "ja": "利用可能な紹介報酬",
+    "ru": "Доступное вознаграждение"
+  },
+  "冻结佣金": {
+    "en": "Frozen commission",
+    "ja": "凍結中の紹介報酬",
+    "ru": "Замороженное вознаграждение"
+  },
+  "接管权益对账": {
+    "en": "Takeover credit control",
+    "ja": "引継ぎ利用権の照合",
+    "ru": "Контроль переданных единиц"
+  },
+  "接管结清对账": {
+    "en": "Takeover settlement control",
+    "ja": "引継ぎ精算の照合",
+    "ru": "Контроль расчётов по передаче"
+  },
+  "外部现金往来": {
+    "en": "External cash transfers",
+    "ja": "外部現金取引",
+    "ru": "Внешние денежные переводы"
+  },
+  "经营方手续费": {
+    "en": "Operator payment fees",
+    "ja": "事業者の手数料",
+    "ru": "Комиссии оператора"
+  },
+  "接管实际资金结清": {
+    "en": "Actual takeover cash settlement",
+    "ja": "引継ぎ実資金精算",
+    "ru": "Фактический денежный расчёт по передаче"
+  },
+  "接管对手方结清": {
+    "en": "Takeover counterparty settlement",
+    "ja": "引継ぎ相手方精算",
+    "ru": "Расчёт с контрагентом по передаче"
+  },
+  "Revenue is paid consumption less corrections, posted unused paid expiry, direct-buyer wholesale consumption less reversals, and explicitly retained withdrawal fees. Sales and wallet deposits are not added again.": {
+    "zh": "收入包括扣除更正后的有偿消费、已入账的未使用购买权益到期确认、扣除冲销后的直属采购方供货消费，以及明确保留的提现手续费。销售成交额与钱包充值不重复计入。",
+    "en": "Revenue is paid consumption less corrections, posted unused paid expiry, direct-buyer wholesale consumption less reversals, and explicitly retained withdrawal fees. Sales and wallet deposits are not added again.",
+    "ja": "収益は、更正控除後の有償消費、計上済みの未使用購入利用枠の期限切れ、取消控除後の直属購入者の卸売消費、明示的に留保した出金手数料です。販売額とウォレット入金は重複計上しません。",
+    "ru": "Выручка включает платное потребление за вычетом корректировок, отражённое истечение неиспользованных купленных единиц, оптовое потребление прямых покупателей за вычетом сторно и явно удержанные комиссии за вывод. Продажи и пополнения кошелька повторно не прибавляются."
+  },
+  "Fulfillment cost is consumed weighted procurement cost, or verified supplier cost for the platform. Gift cost is a subset and is not deducted twice. Pending costs are unknown, not zero.": {
+    "zh": "履约成本为已消费的加权采购成本；平台则采用已核实的供应商成本。赠送成本是其中的子集，不重复扣除。未决成本为未知，并非零。",
+    "en": "Fulfillment cost is consumed weighted procurement cost, or verified supplier cost for the platform. Gift cost is a subset and is not deducted twice. Pending costs are unknown, not zero.",
+    "ja": "履行原価は消費済みの加重調達原価で、プラットフォームでは確認済み供給元原価を用います。特典原価は内数のため二重控除しません。未確定原価は不明であり、ゼロではありません。",
+    "ru": "Затраты на исполнение — потреблённая средневзвешенная закупочная стоимость, а для платформы — проверенная стоимость поставщика. Затраты на бонусы входят в эту сумму и не вычитаются повторно. Неподтверждённые затраты неизвестны, а не равны нулю."
+  },
+  "Cash shows verified recorded transfers. Procurement payments and net commission payouts are included once; supplier payables are accrued obligations, not confirmed supplier cash payments.": {
+    "zh": "资金项目展示已核实并入账的转账。采购付款与佣金净提现只计入一次；供应商应付款属于已计提责任，并不代表已核实的供应商现金付款。",
+    "en": "Cash shows verified recorded transfers. Procurement payments and net commission payouts are included once; supplier payables are accrued obligations, not confirmed supplier cash payments.",
+    "ja": "資金欄は確認・記帳済みの送金を表示します。調達支払いと紹介報酬の純出金は一度だけ計上します。供給元未払金は計上済み責任であり、確認済み現金支払いではありません。",
+    "ru": "Денежные потоки отражают проверенные и записанные переводы. Закупочные платежи и чистые выплаты вознаграждений учитываются один раз; задолженность поставщикам — начисленные обязательства, а не подтверждённые денежные выплаты поставщикам."
+  },
+  "Takeover settlements and their fees are shown separately and excluded from operating result. This is an operating projection from recorded facts, not a tax or statutory profit statement.": {
+    "zh": "接管结清及其手续费单独列示，不计入经营结果。本报表根据已记录事实形成经营视图，不属于税务或法定利润报表。",
+    "en": "Takeover settlements and their fees are shown separately and excluded from operating result. This is an operating projection from recorded facts, not a tax or statutory profit statement.",
+    "ja": "引継ぎ精算と関連手数料は別記し、事業損益から除外します。これは記録済み事実による事業上の集計であり、税務・法定利益計算書ではありません。",
+    "ru": "Расчёты по передаче канала и их комиссии показаны отдельно и исключены из операционного результата. Это операционное представление по записанным фактам, а не налоговый или обязательный отчёт о прибыли."
+  },
+  "Flows use the selected window; closing balances use To. Pending statuses and CurrentHeld are current at CapturedAt, including earlier unresolved items.": {
+    "zh": "资金流使用所选区间；期末余额截至区间截止时间。待处理状态与当前占用均以快照采集时间为准，包含此前仍未解决的事项。",
+    "en": "Flows use the selected window; closing balances use To. Pending statuses and CurrentHeld are current at CapturedAt, including earlier unresolved items.",
+    "ja": "フローは選択期間、期末残高は終了時点に基づきます。未確定状態と現在の保留額はスナップショット取得時点の値で、以前からの未解決案件も含みます。",
+    "ru": "Потоки относятся к выбранному периоду, конечные остатки — к его окончанию. Неподтверждённые статусы и текущие резервы указаны на момент снимка, включая более ранние нерешённые позиции."
+  },
+  "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented USD amount. They remain current obligations regardless of commercial order expiry.": {
+    "zh": "已核实但尚待按实际执行时点评估的原币付款按币种列示，不虚构 USD 金额。无论商业订单是否到期，这些款项仍属于当前责任。",
+    "en": "Verified original-currency payments awaiting execution-time valuation are listed by currency, without an invented USD amount. They remain current obligations regardless of commercial order expiry.",
+    "ja": "確認済みで実行時点の評価待ちの原通貨支払いは、架空の USD 額を付けず通貨別に表示します。注文の期限切れにかかわらず、現在の責任として残ります。",
+    "ru": "Проверенные платежи в исходной валюте, ожидающие оценки на момент исполнения, приведены по валютам без вымышленной суммы USD. Они остаются текущими обязательствами независимо от истечения коммерческого заказа."
+  },
+  "。": {
+    "en": ".",
+    "ja": "。",
+    "ru": "."
+  },
+  "编号": {
+    "en": "ID",
+    "ja": "番号",
+    "ru": "ID"
+  },
+  "注册时间": {
+    "en": "Registration time",
+    "ja": "登録日時",
+    "ru": "Время регистрации"
+  }
+}

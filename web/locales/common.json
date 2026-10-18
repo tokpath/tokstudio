@@ -1,0 +1,1222 @@
+{
+  "跳到页面内容": {
+    "en": "Skip to page content",
+    "ja": "ページ内容へ移動",
+    "ru": "Перейти к содержимому"
+  },
+  "网站": {
+    "en": "Website",
+    "ja": "ウェブサイト",
+    "ru": "Сайт"
+  },
+  "模型与价格": {
+    "en": "Models & pricing",
+    "ja": "モデルと料金",
+    "ru": "Модели и цены"
+  },
+  "通用套餐": {
+    "en": "Universal plans",
+    "ja": "共通クレジットプラン",
+    "ru": "Универсальные пакеты"
+  },
+  "客户工作台": {
+    "en": "Customer workspace",
+    "ja": "お客様ワークスペース",
+    "ru": "Кабинет клиента"
+  },
+  "经营管理": {
+    "en": "Business management",
+    "ja": "事業管理",
+    "ru": "Управление бизнесом"
+  },
+  "登录": {
+    "en": "Sign in",
+    "ja": "ログイン",
+    "ru": "Войти"
+  },
+  "创建账号": {
+    "en": "Create account",
+    "ja": "アカウント作成",
+    "ru": "Создать аккаунт"
+  },
+  "品牌：": {
+    "en": "Brand:",
+    "ja": "ブランド：",
+    "ru": "Бренд:"
+  },
+  "实际经营方：": {
+    "en": "Service operator:",
+    "ja": "サービス提供事業者：",
+    "ru": "Оператор услуг:"
+  },
+  "· 模型服务与独立经营": {
+    "en": "· Model services and independent operations",
+    "ja": "· モデルサービスと独立した事業運営",
+    "ru": "· Модельные услуги и самостоятельное управление"
+  },
+  "价格和权益以本次成交条款为准。账单、资金和服务责任均可追溯。": {
+    "en": "Prices and entitlements follow the terms of each purchase. Billing, funds and service obligations are traceable.",
+    "ja": "料金と利用権は各購入時の条件に従います。請求、資金、サービス提供責任を追跡できます。",
+    "ru": "Цены и права на услуги определяются условиями покупки. Платежи, средства и обязательства по обслуживанию можно проследить."
+  },
+  "重试退出": {
+    "en": "Retry sign-out",
+    "ja": "ログアウトを再試行",
+    "ru": "Повторить выход"
+  },
+  "退出": {
+    "en": "Sign out",
+    "ja": "ログアウト",
+    "ru": "Выйти"
+  },
+  "退出失败": {
+    "en": "Sign-out failed",
+    "ja": "ログアウトに失敗しました",
+    "ru": "Не удалось выйти"
+  },
+  "显示主题": {
+    "en": "Display theme",
+    "ja": "表示テーマ",
+    "ru": "Тема оформления"
+  },
+  "跟随系统": {
+    "en": "System default",
+    "ja": "システム設定に従う",
+    "ru": "Как в системе"
+  },
+  "浅色": {
+    "en": "Light",
+    "ja": "ライト",
+    "ru": "Светлая"
+  },
+  "深色": {
+    "en": "Dark",
+    "ja": "ダーク",
+    "ru": "Тёмная"
+  },
+  "平台经营空间": {
+    "en": "Platform workspace",
+    "ja": "プラットフォーム事業スペース",
+    "ru": "Кабинет платформы"
+  },
+  "OEM 经营空间": {
+    "en": "OEM workspace",
+    "ja": "OEM 事業スペース",
+    "ru": "Кабинет OEM"
+  },
+  "渠道经营空间": {
+    "en": "Channel workspace",
+    "ja": "チャネル事業スペース",
+    "ru": "Кабинет канала"
+  },
+  "登录后查看你的工作空间": {
+    "en": "Sign in to view your workspace",
+    "ja": "ログインしてワークスペースを表示",
+    "ru": "Войдите, чтобы открыть кабинет"
+  },
+  "前往登录": {
+    "en": "Go to sign-in",
+    "ja": "ログインへ",
+    "ru": "Перейти ко входу"
+  },
+  "当前登录身份无法访问此空间。": {
+    "en": "Your current sign-in role cannot access this workspace.",
+    "ja": "現在のログイン区分ではこのスペースにアクセスできません。",
+    "ru": "Текущая роль не позволяет открыть этот кабинет."
+  },
+  "使用对应身份登录": {
+    "en": "Sign in with the appropriate role",
+    "ja": "対応する区分でログイン",
+    "ru": "Войти с нужной ролью"
+  },
+  "没有这个经营空间的访问权限": {
+    "en": "You do not have access to this workspace",
+    "ja": "この事業スペースへのアクセス権がありません",
+    "ru": "Нет доступа к этому кабинету"
+  },
+  "请联系经营方负责人授予相应人员权限。": {
+    "en": "Contact the operator's owner for the required staff permissions.",
+    "ja": "必要なスタッフ権限について事業者の責任者にお問い合わせください。",
+    "ru": "Обратитесь к руководителю оператора за необходимыми правами сотрудника."
+  },
+  "工作空间": {
+    "en": "Workspace",
+    "ja": "ワークスペース",
+    "ru": "Кабинет"
+  },
+  "收起工作台导航": {
+    "en": "Collapse workspace navigation",
+    "ja": "ワークスペースのナビゲーションを閉じる",
+    "ru": "Свернуть меню кабинета"
+  },
+  "打开工作台导航": {
+    "en": "Open workspace navigation",
+    "ja": "ワークスペースのナビゲーションを開く",
+    "ru": "Открыть меню кабинета"
+  },
+  "导航": {
+    "en": "Navigation",
+    "ja": "ナビゲーション",
+    "ru": "Навигация"
+  },
+  "切换已授权经营空间": {
+    "en": "Switch authorized workspace",
+    "ja": "権限のある事業スペースに切り替え",
+    "ru": "Выбрать доступный кабинет"
+  },
+  "经营空间": {
+    "en": "Business workspace",
+    "ja": "事業スペース",
+    "ru": "Кабинет оператора"
+  },
+  "工作台": {
+    "en": "Dashboard",
+    "ja": "ダッシュボード",
+    "ru": "Обзор"
+  },
+  "移动工作台": {
+    "en": "Mobile workspace",
+    "ja": "モバイル用ワークスペース",
+    "ru": "Мобильное меню кабинета"
+  },
+  "仅显示当前经营空间已授权的业务。": {
+    "en": "Only authorized business functions in this workspace are shown.",
+    "ja": "この事業スペースで許可された業務のみ表示します。",
+    "ru": "Показаны только доступные функции текущего кабинета."
+  },
+  "套餐、额度和 Key 均由当前经营方提供。": {
+    "en": "Plans, credits and keys are provided by the current operator.",
+    "ja": "プラン、クレジット、キーは現在の事業者が提供します。",
+    "ru": "Пакеты, кредиты и ключи предоставляет текущий оператор."
+  },
+  "查看品牌网站": {
+    "en": "View brand website",
+    "ja": "ブランドサイトを見る",
+    "ru": "Открыть сайт бренда"
+  },
+  "查看接入指南": {
+    "en": "View integration guide",
+    "ja": "接続ガイドを見る",
+    "ru": "Открыть руководство по подключению"
+  },
+  "我的服务": {
+    "en": "My services",
+    "ja": "マイサービス",
+    "ru": "Мои услуги"
+  },
+  "业务详情": {
+    "en": "Business details",
+    "ja": "業務詳細",
+    "ru": "Подробности операции"
+  },
+  "通知": {
+    "en": "Notifications",
+    "ja": "通知",
+    "ru": "Уведомления"
+  },
+  "{value0}内导航": {
+    "en": "{value0} navigation",
+    "ja": "{value0}のナビゲーション",
+    "ru": "Навигация: {value0}"
+  },
+  "{value} {unit} · 双击复制精确值": {
+    "en": "{value} {unit} · Double-click to copy the exact value",
+    "ja": "{value} {unit} · ダブルクリックで正確な値をコピー",
+    "ru": "{value} {unit} · Двойной щелчок для копирования точного значения"
+  },
+  "已发送": {
+    "en": "Sent",
+    "ja": "送信済み",
+    "ru": "Отправлено"
+  },
+  "已送达": {
+    "en": "Delivered",
+    "ja": "配信済み",
+    "ru": "Доставлено"
+  },
+  "等待发送": {
+    "en": "Queued for delivery",
+    "ja": "送信待ち",
+    "ru": "В очереди на отправку"
+  },
+  "延后发送": {
+    "en": "Delivery deferred",
+    "ja": "送信延期",
+    "ru": "Отправка отложена"
+  },
+  "不再发送": {
+    "en": "Delivery stopped",
+    "ja": "送信停止",
+    "ru": "Отправка прекращена"
+  },
+  "投递失败": {
+    "en": "Delivery failed",
+    "ja": "配信失敗",
+    "ru": "Ошибка доставки"
+  },
+  "预警": {
+    "en": "Warning",
+    "ja": "警告",
+    "ru": "Предупреждение"
+  },
+  "严重风险": {
+    "en": "Critical risk",
+    "ja": "重大なリスク",
+    "ru": "Критический риск"
+  },
+  "已解除": {
+    "en": "Resolved",
+    "ja": "解消済み",
+    "ru": "Устранено"
+  },
+  "已拒绝": {
+    "en": "Rejected",
+    "ja": "却下済み",
+    "ru": "Отклонено"
+  },
+  "已授权": {
+    "en": "Authorized",
+    "ja": "許可済み",
+    "ru": "Разрешено"
+  },
+  "采购余额不足": {
+    "en": "Insufficient procurement balance",
+    "ja": "仕入残高不足",
+    "ru": "Недостаточный закупочный баланс"
+  },
+  "履约覆盖不足": {
+    "en": "Insufficient fulfillment coverage",
+    "ja": "履行準備額不足",
+    "ru": "Недостаточное обеспечение обязательств"
+  },
+  "暂停售卖": {
+    "en": "Sales paused",
+    "ja": "販売停止中",
+    "ru": "Продажи приостановлены"
+  },
+  "已使用超卖额度": {
+    "en": "Oversell allowance in use",
+    "ja": "超過販売枠を使用中",
+    "ru": "Используется лимит сверхпродаж"
+  },
+  "请提前补货": {
+    "en": "Replenish in advance",
+    "ja": "早めに仕入を補充してください",
+    "ru": "Пополните закупочный баланс заранее"
+  },
+  "已受理": {
+    "en": "Accepted",
+    "ja": "受付済み",
+    "ru": "Принято"
+  },
+  "取消待确认": {
+    "en": "Cancellation awaiting confirmation",
+    "ja": "取消確認待ち",
+    "ru": "Отмена ожидает подтверждения"
+  },
+  "已提交核实": {
+    "en": "Verification requested",
+    "ja": "確認依頼済み",
+    "ru": "Передано на проверку"
+  },
+  "已核实": {
+    "en": "Verified",
+    "ja": "確認済み",
+    "ru": "Проверено"
+  },
+  "已分配": {
+    "en": "Allocated",
+    "ja": "割当済み",
+    "ru": "Распределено"
+  },
+  "有效报价": {
+    "en": "Valid quote",
+    "ja": "有効な見積",
+    "ru": "Действующее предложение"
+  },
+  "已启用": {
+    "en": "Enabled",
+    "ja": "有効化済み",
+    "ru": "Включено"
+  },
+  "已停用": {
+    "en": "Disabled",
+    "ja": "無効化済み",
+    "ru": "Отключено"
+  },
+  "不限时": {
+    "en": "No expiry",
+    "ja": "無期限",
+    "ru": "Без срока действия"
+  },
+  "每月": {
+    "en": "Monthly",
+    "ja": "毎月",
+    "ru": "Ежемесячно"
+  },
+  "每季": {
+    "en": "Quarterly",
+    "ja": "四半期ごと",
+    "ru": "Ежеквартально"
+  },
+  "每年": {
+    "en": "Yearly",
+    "ja": "毎年",
+    "ru": "Ежегодно"
+  },
+  "费用待确认": {
+    "en": "Fee confirmation pending",
+    "ja": "手数料確認待ち",
+    "ru": "Ожидается подтверждение комиссии"
+  },
+  "付款核实中": {
+    "en": "Payment verification in progress",
+    "ja": "支払確認中",
+    "ru": "Проверка платежа"
+  },
+  "已发放": {
+    "en": "Granted",
+    "ja": "付与済み",
+    "ru": "Начислено"
+  },
+  "已读": {
+    "en": "Read",
+    "ja": "既読",
+    "ru": "Прочитано"
+  },
+  "未读": {
+    "en": "Unread",
+    "ja": "未読",
+    "ru": "Не прочитано"
+  },
+  "已配置": {
+    "en": "Configured",
+    "ja": "設定済み",
+    "ru": "Настроено"
+  },
+  "已生效": {
+    "en": "Effective",
+    "ja": "適用済み",
+    "ru": "Действует"
+  },
+  "已核算": {
+    "en": "Calculated",
+    "ja": "計算済み",
+    "ru": "Рассчитано"
+  },
+  "已更新": {
+    "en": "Updated",
+    "ja": "更新済み",
+    "ru": "Обновлено"
+  },
+  "未收费": {
+    "en": "Not charged",
+    "ja": "未課金",
+    "ru": "Не списано"
+  },
+  "已发布": {
+    "en": "Published",
+    "ja": "公開済み",
+    "ru": "Опубликовано"
+  },
+  "待付款": {
+    "en": "Awaiting payment",
+    "ja": "支払待ち",
+    "ru": "Ожидает оплаты"
+  },
+  "已申请待办理": {
+    "en": "Requested, awaiting handling",
+    "ja": "申請済み・処理待ち",
+    "ru": "Заявка подана, ожидает обработки"
+  },
+  "须重新复核": {
+    "en": "Review required again",
+    "ja": "再審査が必要",
+    "ru": "Требуется повторная проверка"
+  },
+  "已作废": {
+    "en": "Voided",
+    "ja": "無効処理済み",
+    "ru": "Аннулировано"
+  },
+  "已预留待执行": {
+    "en": "Reserved, awaiting execution",
+    "ja": "確保済み・実行待ち",
+    "ru": "Зарезервировано, ожидает исполнения"
+  },
+  "已登记意图待核实": {
+    "en": "Intent recorded, awaiting verification",
+    "ja": "実行予定記録済み・確認待ち",
+    "ru": "Намерение зарегистрировано, ожидает проверки"
+  },
+  "执行中": {
+    "en": "Executing",
+    "ja": "実行中",
+    "ru": "Выполняется"
+  },
+  "用量待核实": {
+    "en": "Usage awaiting verification",
+    "ja": "使用量確認待ち",
+    "ru": "Ожидается проверка расхода"
+  },
+  "已提交原任务": {
+    "en": "Original task submitted",
+    "ja": "元のタスクを送信済み",
+    "ru": "Исходная задача отправлена"
+  },
+  "已结算": {
+    "en": "Settled",
+    "ja": "精算済み",
+    "ru": "Расчёт завершён"
+  },
+  "异常待复核": {
+    "en": "Exception awaiting review",
+    "ja": "例外の再確認待ち",
+    "ru": "Исключение ожидает проверки"
+  },
+  "事实已核实，责任待清偿": {
+    "en": "Facts verified, obligation outstanding",
+    "ja": "事実確認済み・責任精算待ち",
+    "ru": "Факты подтверждены, обязательство не погашено"
+  },
+  "待审批": {
+    "en": "Awaiting approval",
+    "ja": "承認待ち",
+    "ru": "Ожидает одобрения"
+  },
+  "已停止使用": {
+    "en": "Service stopped",
+    "ja": "利用停止済み",
+    "ru": "Использование прекращено"
+  },
+  "注销清算中": {
+    "en": "Account closure settlement",
+    "ja": "退会精算中",
+    "ru": "Расчёт при закрытии аккаунта"
+  },
+  "已暂停后续分佣": {
+    "en": "Future commissions suspended",
+    "ja": "今後のコミッションを停止中",
+    "ru": "Будущие комиссии приостановлены"
+  },
+  "已终止后续分佣": {
+    "en": "Future commissions terminated",
+    "ja": "今後のコミッションを終了",
+    "ru": "Будущие комиссии прекращены"
+  },
+  "需要本人重确认": {
+    "en": "Account holder must reconfirm",
+    "ja": "本人による再確認が必要",
+    "ru": "Требуется повторное подтверждение владельца"
+  },
+  "通知迟到待重排": {
+    "en": "Late notice, rescheduling required",
+    "ja": "通知遅延・日程再設定待ち",
+    "ru": "Уведомление опоздало, требуется перенос"
+  },
+  "生效待复核": {
+    "en": "Activation awaiting review",
+    "ja": "適用の再確認待ち",
+    "ru": "Активация ожидает проверки"
+  },
+  "待处理": {
+    "en": "Pending",
+    "ja": "対応待ち",
+    "ru": "Ожидает обработки"
+  },
+  "部分付款": {
+    "en": "Partially paid",
+    "ja": "一部入金済み",
+    "ru": "Оплачено частично"
+  },
+  "足额待交付": {
+    "en": "Fully paid, awaiting delivery",
+    "ja": "全額入金済み・付与待ち",
+    "ru": "Полностью оплачено, ожидает предоставления"
+  },
+  "已交付": {
+    "en": "Fulfilled",
+    "ja": "提供済み",
+    "ru": "Предоставлено"
+  },
+  "已完成": {
+    "en": "Completed",
+    "ja": "完了",
+    "ru": "Завершено"
+  },
+  "已成功": {
+    "en": "Succeeded",
+    "ja": "成功",
+    "ru": "Успешно"
+  },
+  "失败": {
+    "en": "Failed",
+    "ja": "失敗",
+    "ru": "Ошибка"
+  },
+  "重试耗尽": {
+    "en": "Retries exhausted",
+    "ja": "再試行上限到達",
+    "ru": "Попытки исчерпаны"
+  },
+  "有效": {
+    "en": "Active",
+    "ja": "有効",
+    "ru": "Активно"
+  },
+  "已删除": {
+    "en": "Deleted",
+    "ja": "削除済み",
+    "ru": "Удалено"
+  },
+  "已到期": {
+    "en": "Expired",
+    "ja": "期限切れ",
+    "ru": "Срок истёк"
+  },
+  "已取消": {
+    "en": "Cancelled",
+    "ja": "取消済み",
+    "ru": "Отменено"
+  },
+  "已关闭": {
+    "en": "Closed",
+    "ja": "終了済み",
+    "ru": "Закрыто"
+  },
+  "处理中": {
+    "en": "Processing",
+    "ja": "処理中",
+    "ru": "Обрабатывается"
+  },
+  "待核实": {
+    "en": "Awaiting verification",
+    "ja": "確認待ち",
+    "ru": "Ожидает проверки"
+  },
+  "结果待核实": {
+    "en": "Outcome unconfirmed",
+    "ja": "結果未確認",
+    "ru": "Результат не подтверждён"
+  },
+  "冻结": {
+    "en": "Frozen",
+    "ja": "凍結中",
+    "ru": "Заморожено"
+  },
+  "可用": {
+    "en": "Available",
+    "ja": "利用可能",
+    "ru": "Доступно"
+  },
+  "已占用": {
+    "en": "Reserved",
+    "ja": "確保済み",
+    "ru": "Зарезервировано"
+  },
+  "待配置": {
+    "en": "Configuration pending",
+    "ja": "設定待ち",
+    "ru": "Ожидает настройки"
+  },
+  "草稿": {
+    "en": "Draft",
+    "ja": "下書き",
+    "ru": "Черновик"
+  },
+  "已就绪": {
+    "en": "Ready",
+    "ja": "準備完了",
+    "ru": "Готово"
+  },
+  "已批准待执行": {
+    "en": "Approved, awaiting execution",
+    "ja": "承認済み・実行待ち",
+    "ru": "Одобрено, ожидает исполнения"
+  },
+  "已核实付款": {
+    "en": "Payment verified",
+    "ja": "支払確認済み",
+    "ru": "Платёж подтверждён"
+  },
+  "已核实退款": {
+    "en": "Refund verified",
+    "ja": "返金確認済み",
+    "ru": "Возврат подтверждён"
+  },
+  "待确认": {
+    "en": "Awaiting confirmation",
+    "ja": "確定待ち",
+    "ru": "Ожидает подтверждения"
+  },
+  "受限": {
+    "en": "Restricted",
+    "ja": "制限中",
+    "ru": "Ограничено"
+  },
+  "已取得资格": {
+    "en": "Qualified",
+    "ja": "資格取得済み",
+    "ru": "Квалификация получена"
+  },
+  "正常": {
+    "en": "Normal",
+    "ja": "正常",
+    "ru": "Норма"
+  },
+  "正在加载当前记录…": {
+    "en": "Loading current records…",
+    "ja": "現在の記録を読み込み中…",
+    "ru": "Загрузка записей…"
+  },
+  "暂无记录": {
+    "en": "No records",
+    "ja": "記録はありません",
+    "ru": "Нет записей"
+  },
+  "暂时无法完成请求。": {
+    "en": "The request cannot be completed right now.",
+    "ja": "現在リクエストを完了できません。",
+    "ru": "Сейчас не удаётся выполнить запрос."
+  },
+  "请求编号": {
+    "en": "Request ID",
+    "ja": "リクエスト ID",
+    "ru": "Идентификатор запроса"
+  },
+  "重试读取": {
+    "en": "Retry loading",
+    "ja": "再読み込み",
+    "ru": "Повторить загрузку"
+  },
+  "概览": {
+    "en": "Overview",
+    "ja": "概要",
+    "ru": "Обзор"
+  },
+  "模型与接入": {
+    "en": "Models & integration",
+    "ja": "モデルと接続",
+    "ru": "Модели и подключение"
+  },
+  "在线体验": {
+    "en": "Playground",
+    "ja": "オンライン体験",
+    "ru": "Площадка для тестирования"
+  },
+  "用量与账单": {
+    "en": "Usage & billing",
+    "ja": "使用量と請求",
+    "ru": "Расход и счета"
+  },
+  "调用账单": {
+    "en": "Usage statements",
+    "ja": "呼び出し明細",
+    "ru": "Счета за запросы"
+  },
+  "套餐与资金": {
+    "en": "Plans & funds",
+    "ja": "プランと資金",
+    "ru": "Пакеты и средства"
+  },
+  "套餐与续费": {
+    "en": "Plans & renewals",
+    "ja": "プランと更新",
+    "ru": "Пакеты и продление"
+  },
+  "购买记录": {
+    "en": "Purchase history",
+    "ja": "購入履歴",
+    "ru": "История покупок"
+  },
+  "额度来源": {
+    "en": "Credit sources",
+    "ja": "クレジットの出所",
+    "ru": "Источники кредитов"
+  },
+  "USD 充值": {
+    "en": "Add USD balance",
+    "ja": "USD チャージ",
+    "ru": "Пополнение USD"
+  },
+  "支付余额退款": {
+    "en": "Payment balance refunds",
+    "ja": "支払残高の返金",
+    "ru": "Возврат платёжного баланса"
+  },
+  "开票与凭证": {
+    "en": "Invoices & receipts",
+    "ja": "請求書と証憑",
+    "ru": "Счета и документы"
+  },
+  "邀请与收益": {
+    "en": "Referrals & earnings",
+    "ja": "招待と収益",
+    "ru": "Приглашения и доход"
+  },
+  "邀请与资格": {
+    "en": "Invitations & qualification",
+    "ja": "招待と資格",
+    "ru": "Приглашения и квалификация"
+  },
+  "佣金明细": {
+    "en": "Commission details",
+    "ja": "コミッション明細",
+    "ru": "Детализация комиссий"
+  },
+  "我的推广活动": {
+    "en": "My referral campaigns",
+    "ja": "自分の紹介キャンペーン",
+    "ru": "Мои реферальные акции"
+  },
+  "佣金提现": {
+    "en": "Withdraw commissions",
+    "ja": "コミッション出金",
+    "ru": "Вывод комиссий"
+  },
+  "账号设置": {
+    "en": "Account settings",
+    "ja": "アカウント設定",
+    "ru": "Настройки аккаунта"
+  },
+  "账号与安全": {
+    "en": "Account & security",
+    "ja": "アカウントとセキュリティ",
+    "ru": "Аккаунт и безопасность"
+  },
+  "通知与订阅": {
+    "en": "Notifications & subscriptions",
+    "ja": "通知と購読",
+    "ru": "Уведомления и подписки"
+  },
+  "客户": {
+    "en": "Customers",
+    "ja": "顧客",
+    "ru": "Клиенты"
+  },
+  "客户服务": {
+    "en": "Customer service",
+    "ja": "顧客対応",
+    "ru": "Обслуживание клиентов"
+  },
+  "商品与定价": {
+    "en": "Products & pricing",
+    "ja": "商品と料金",
+    "ru": "Товары и цены"
+  },
+  "模型与定价": {
+    "en": "Model pricing",
+    "ja": "モデル料金",
+    "ru": "Цены моделей"
+  },
+  "价格与模型变更": {
+    "en": "Price & model changes",
+    "ja": "料金とモデルの変更",
+    "ru": "Изменения цен и моделей"
+  },
+  "营销与推广": {
+    "en": "Marketing & referrals",
+    "ja": "マーケティングと紹介",
+    "ru": "Маркетинг и продвижение"
+  },
+  "活动管理": {
+    "en": "Campaign management",
+    "ja": "キャンペーン管理",
+    "ru": "Управление акциями"
+  },
+  "邀请与分佣规则": {
+    "en": "Referral & commission rules",
+    "ja": "紹介とコミッションのルール",
+    "ru": "Правила приглашений и комиссий"
+  },
+  "赠送与补偿": {
+    "en": "Gifts & compensation",
+    "ja": "付与と補償",
+    "ru": "Бонусы и компенсации"
+  },
+  "资金办理": {
+    "en": "Financial operations",
+    "ja": "資金業務",
+    "ru": "Финансовые операции"
+  },
+  "订单与交付": {
+    "en": "Orders & fulfillment",
+    "ja": "注文と提供",
+    "ru": "Заказы и предоставление услуг"
+  },
+  "收款与分配": {
+    "en": "Receipts & allocation",
+    "ja": "入金と割当",
+    "ru": "Поступления и распределение"
+  },
+  "收款待估值": {
+    "en": "Receipts awaiting valuation",
+    "ja": "入金の評価待ち",
+    "ru": "Поступления, ожидающие оценки"
+  },
+  "退款与冲正": {
+    "en": "Refunds & reversals",
+    "ja": "返金と訂正仕訳",
+    "ru": "Возвраты и сторнирование"
+  },
+  "提现办理": {
+    "en": "Withdrawal processing",
+    "ja": "出金処理",
+    "ru": "Обработка вывода средств"
+  },
+  "争议与扣回": {
+    "en": "Disputes & chargebacks",
+    "ja": "異議申立とチャージバック",
+    "ru": "Споры и возвратные списания"
+  },
+  "票据办理": {
+    "en": "Invoice processing",
+    "ja": "請求書処理",
+    "ru": "Обработка счетов"
+  },
+  "对账与差额": {
+    "en": "Reconciliation & differences",
+    "ja": "照合と差額",
+    "ru": "Сверка и расхождения"
+  },
+  "资产账户": {
+    "en": "Asset accounts",
+    "ja": "資産口座",
+    "ru": "Счета активов"
+  },
+  "账本与占用": {
+    "en": "Ledger & reservations",
+    "ja": "台帳と確保額",
+    "ru": "Реестр и резервы"
+  },
+  "估值依据": {
+    "en": "Valuation evidence",
+    "ja": "評価根拠",
+    "ru": "Основания оценки"
+  },
+  "付款凭据": {
+    "en": "Payment evidence",
+    "ja": "支払証憑",
+    "ru": "Платёжные документы"
+  },
+  "采购与合作": {
+    "en": "Procurement & partnerships",
+    "ja": "仕入と提携",
+    "ru": "Закупки и партнёрство"
+  },
+  "采购与补货": {
+    "en": "Procurement & replenishment",
+    "ja": "仕入と補充",
+    "ru": "Закупки и пополнение"
+  },
+  "下属经营方": {
+    "en": "Downstream operators",
+    "ja": "下位事業者",
+    "ru": "Подчинённые операторы"
+  },
+  "供货关系": {
+    "en": "Supply relationships",
+    "ja": "供給関係",
+    "ru": "Отношения поставки"
+  },
+  "履约与超卖": {
+    "en": "Fulfillment & overselling",
+    "ja": "履行と超過販売",
+    "ru": "Исполнение обязательств и сверхпродажи"
+  },
+  "风险预警": {
+    "en": "Risk alerts",
+    "ja": "リスク警告",
+    "ru": "Предупреждения о рисках"
+  },
+  "采购开票": {
+    "en": "Procurement invoicing",
+    "ja": "仕入請求書",
+    "ru": "Закупочные счета"
+  },
+  "渠道接管": {
+    "en": "Channel takeover",
+    "ja": "チャネル引継ぎ",
+    "ru": "Принятие клиентов канала"
+  },
+  "接管结清": {
+    "en": "Takeover settlement",
+    "ja": "引継ぎ精算",
+    "ru": "Расчёты при принятии клиентов"
+  },
+  "合作退出": {
+    "en": "End partnership",
+    "ja": "提携終了",
+    "ru": "Завершение сотрудничества"
+  },
+  "品牌外观": {
+    "en": "Brand appearance",
+    "ja": "ブランド外観",
+    "ru": "Оформление бренда"
+  },
+  "品牌域名": {
+    "en": "Brand domains",
+    "ja": "ブランドドメイン",
+    "ru": "Домены бренда"
+  },
+  "渠道外观": {
+    "en": "Channel appearance",
+    "ja": "チャネル外観",
+    "ru": "Оформление канала"
+  },
+  "报表": {
+    "en": "Reports",
+    "ja": "レポート",
+    "ru": "Отчёты"
+  },
+  "经营报表": {
+    "en": "Business reports",
+    "ja": "経営レポート",
+    "ru": "Отчёты о деятельности"
+  },
+  "导出记录": {
+    "en": "Export history",
+    "ja": "エクスポート履歴",
+    "ru": "История выгрузок"
+  },
+  "设置": {
+    "en": "Settings",
+    "ja": "設定",
+    "ru": "Настройки"
+  },
+  "营业设置": {
+    "en": "Business availability",
+    "ja": "営業設定",
+    "ru": "Настройки работы"
+  },
+  "收款方式": {
+    "en": "Payment methods",
+    "ja": "入金方法",
+    "ru": "Способы приёма оплаты"
+  },
+  "人员与权限": {
+    "en": "Staff & permissions",
+    "ja": "スタッフと権限",
+    "ru": "Сотрудники и права"
+  },
+  "复核办理": {
+    "en": "Review processing",
+    "ja": "審査処理",
+    "ru": "Обработка проверок"
+  },
+  "风险阈值": {
+    "en": "Risk thresholds",
+    "ja": "リスクしきい値",
+    "ru": "Пороговые значения риска"
+  },
+  "业务限制": {
+    "en": "Business restrictions",
+    "ja": "業務制限",
+    "ru": "Ограничения операций"
+  },
+  "通知管理": {
+    "en": "Notification management",
+    "ja": "通知管理",
+    "ru": "Управление уведомлениями"
+  },
+  "操作审计": {
+    "en": "Audit log",
+    "ja": "操作監査",
+    "ru": "Журнал аудита"
+  },
+  "数据保留": {
+    "en": "Data retention",
+    "ja": "データ保管",
+    "ru": "Хранение данных"
+  },
+  "平台技术": {
+    "en": "Platform technology",
+    "ja": "プラットフォーム技術",
+    "ru": "Техническая часть платформы"
+  },
+  "公开模型": {
+    "en": "Public models",
+    "ja": "公開モデル",
+    "ru": "Публичные модели"
+  },
+  "模型供应商": {
+    "en": "Model providers",
+    "ja": "モデルプロバイダー",
+    "ru": "Поставщики моделей"
+  },
+  "上游路由": {
+    "en": "Upstream routes",
+    "ja": "上流ルート",
+    "ru": "Маршруты к поставщикам"
+  },
+  "选路与熔断": {
+    "en": "Routing & circuit breakers",
+    "ja": "経路選択と遮断",
+    "ru": "Маршрутизация и защита от сбоев"
+  },
+  "调用与成本核实": {
+    "en": "Usage & cost verification",
+    "ja": "呼び出しとコスト確認",
+    "ru": "Проверка запросов и затрат"
+  },
+  "任务恢复": {
+    "en": "Task recovery",
+    "ja": "タスク復旧",
+    "ru": "Восстановление задач"
+  },
+  "支付资产与网络": {
+    "en": "Payment assets & networks",
+    "ja": "決済資産とネットワーク",
+    "ru": "Платёжные активы и сети"
+  },
+  "邮件服务": {
+    "en": "Email service",
+    "ja": "メールサービス",
+    "ru": "Почтовая служба"
+  },
+  "连接中断，操作结果尚未核实。请沿用本次操作重试或查询记录。": {
+    "en": "The connection was interrupted and the outcome is unconfirmed. Retry the same operation or check its record.",
+    "ja": "接続が中断され、結果が未確認です。同じ操作を再試行するか、記録を確認してください。",
+    "ru": "Соединение прервано, результат не подтверждён. Повторите ту же операцию или проверьте её запись."
+  },
+  "服务返回了无法识别的结果，请稍后查询操作状态。": {
+    "en": "The service returned an unrecognized response. Check the operation status later.",
+    "ja": "サービスから認識できない応答が返されました。後ほど操作状況を確認してください。",
+    "ru": "Сервис вернул нераспознанный ответ. Проверьте состояние операции позже."
+  },
+  "请先登录。": {
+    "en": "Please sign in first.",
+    "ja": "先にログインしてください。",
+    "ru": "Сначала войдите в аккаунт."
+  },
+  "服务暂时无法完成操作，请稍后重试。": {
+    "en": "The service cannot complete the operation right now. Try again later.",
+    "ja": "現在サービスで操作を完了できません。後ほど再試行してください。",
+    "ru": "Сервис временно не может выполнить операцию. Повторите позже."
+  },
+  "服务数据格式与当前页面不一致，请联系经营方核实。": {
+    "en": "The service data does not match this page's expected format. Contact the operator for verification.",
+    "ja": "サービスのデータ形式がこのページと一致しません。事業者に確認を依頼してください。",
+    "ru": "Формат данных сервиса не соответствует странице. Обратитесь к оператору для проверки."
+  },
+  "显示语言": {
+    "en": "Display language",
+    "ja": "表示言語",
+    "ru": "Язык интерфейса"
+  },
+  "品牌模型服务、独立经营与统一资产账务": {
+    "en": "Branded model services, independent operations and unified asset accounting",
+    "ja": "ブランド別モデルサービス、独立した事業運営、統一資産会計",
+    "ru": "Модельные услуги под вашим брендом, самостоятельное управление и единый учёт активов"
+  },
+  "订单 {id}": {
+    "en": "Order {id}",
+    "ja": "注文 {id}",
+    "ru": "Заказ {id}"
+  },
+  "权益来源 {id}": {
+    "en": "Credit source {id}",
+    "ja": "クレジットの付与元 {id}",
+    "ru": "Источник квоты {id}"
+  },
+  "通道材料 · {name}": {
+    "en": "Channel credentials · {name}",
+    "ja": "決済経路の設定資料 · {name}",
+    "ru": "Реквизиты платёжного канала · {name}"
+  },
+  "本经营方 · {name}": {
+    "en": "This operator · {name}",
+    "ja": "現在の事業者 · {name}",
+    "ru": "Текущий оператор · {name}"
+  },
+  "{driver} · {asset} · 网络 {network} · 合约 {contract}": {
+    "en": "{driver} · {asset} · Network {network} · Contract {contract}",
+    "ja": "{driver} · {asset} · ネットワーク {network} · コントラクト {contract}",
+    "ru": "{driver} · {asset} · Сеть {network} · Контракт {contract}"
+  },
+  "{provider} · {amount} USD · 原开票方 {issuer}": {
+    "en": "{provider} · {amount} USD · Original invoice issuer {issuer}",
+    "ja": "{provider} · {amount} USD · 元の請求書発行者 {issuer}",
+    "ru": "{provider} · {amount} USD · Первоначальный выставитель счёта {issuer}"
+  },
+  "供应商 {id} · {fingerprint}": {
+    "en": "Provider {id} · {fingerprint}",
+    "ja": "プロバイダー {id} · {fingerprint}",
+    "ru": "Поставщик {id} · {fingerprint}"
+  },
+  "赠送 {amount} ATG；组合资格以确认报价为准": {
+    "en": "Bonus {amount} ATG; combination eligibility is subject to the confirmed quote",
+    "ja": "{amount} ATG を付与。併用条件は確定した見積もりに従います",
+    "ru": "Бонус {amount} ATG; возможность сочетания определяется подтверждённым предложением"
+  },
+  "请设置 TXT {name} = {value} 并确保有效 TLS": {
+    "en": "Set TXT {name} = {value} and ensure valid TLS",
+    "ja": "TXT {name} = {value} を設定し、有効な TLS を確認してください",
+    "ru": "Настройте TXT {name} = {value} и действующий TLS"
+  },
+  "Logo已存入私有对象存储。请在主题Logo字段使用此地址并保存版本：{url}": {
+    "en": "The logo is stored privately. Enter this URL in the theme logo field and save the version: {url}",
+    "ja": "ロゴを非公開ストレージに保存しました。テーマのロゴ欄にこの URL を指定し、バージョンを保存してください：{url}",
+    "ru": "Логотип сохранён в закрытом хранилище. Укажите этот адрес в поле логотипа темы и сохраните версию: {url}"
+  },
+  "总额 {amount} USD，手续费 {fee} USD，实付 {net} USD。请刷新列表核对后，在此报价行确认收款资料。": {
+    "en": "Total {amount} USD, fee {fee} USD, net payment {net} USD. Refresh and verify the list, then confirm recipient details on this quote.",
+    "ja": "総額 {amount} USD、手数料 {fee} USD、実支払額 {net} USD。一覧を更新して確認し、この見積もり行で受取情報を確定してください。",
+    "ru": "Всего {amount} USD, комиссия {fee} USD, к выплате {net} USD. Обновите и проверьте список, затем подтвердите реквизиты получателя в этой строке предложения."
+  },
+  "下次续费于 {date} 到期，价格 {price} USD，购买 {paid} ATG，赠送 {gift} ATG，有效期 {period}。请核对条款；不利变化需要本人重新确认，资金不足不会产生客户欠款。": {
+    "en": "The next renewal is due {date}: price {price} USD, purchased credits {paid} ATG, bonus {gift} ATG, term {period}. Review the terms; adverse changes require your confirmation. Insufficient funds will not create customer debt.",
+    "ja": "次回更新は {date}、料金 {price} USD、購入分 {paid} ATG、付与分 {gift} ATG、有効期間 {period} です。条件をご確認ください。不利な変更には本人の再確認が必要です。資金不足でお客様の債務が発生することはありません。",
+    "ru": "Следующее продление: {date}; цена {price} USD, оплаченная квота {paid} ATG, бонус {gift} ATG, срок {period}. Проверьте условия: ухудшение требует вашего подтверждения. Нехватка средств не создаёт задолженность клиента."
+  },
+  " 本次申请金额 {amount} USD。": {
+    "en": " Amount requested: {amount} USD.",
+    "ja": " 今回の申請額は {amount} USD です。",
+    "ru": " Сумма заявки: {amount} USD."
+  },
+  "公开模型 {id} 的 {kind} 变更计划于 {date} 生效。请在模型目录或合作报价中查看具体条件；已受理请求继续按原快照结算。": {
+    "en": "Change {kind} for public model {id} is scheduled for {date}. Review the terms in the model catalog or supply quote; accepted requests retain their original billing snapshots.",
+    "ja": "公開モデル {id} の変更 {kind} は {date} に有効になる予定です。詳細はモデル一覧または取引見積もりで確認してください。受理済みリクエストは元の料金スナップショットで精算します。",
+    "ru": "Изменение {kind} для публичной модели {id} запланировано на {date}. Условия доступны в каталоге моделей или предложении поставки. Принятые запросы рассчитываются по исходному снимку цен."
+  },
+  "公开模型 {id} 已紧急停止受理新请求。已受理请求按原规则处理；可在模型目录查看状态。": {
+    "en": "Public model {id} has stopped accepting new requests on an emergency basis. Accepted requests follow their original rules; check the model catalog for status.",
+    "ja": "公開モデル {id} は緊急対応により新規リクエストの受付を停止しました。受理済みリクエストは元のルールで処理します。状態はモデル一覧で確認できます。",
+    "ru": "Приём новых запросов к публичной модели {id} экстренно остановлен. Принятые запросы обрабатываются по исходным правилам. Статус доступен в каталоге моделей."
+  },
+  "当前值：{value}；状态：{status}。请核对经营资源与待办事项。": {
+    "en": "Current value: {value}; status: {status}. Review operating resources and pending tasks.",
+    "ja": "現在値：{value}、状態：{status}。経営資源と未処理の事項をご確認ください。",
+    "ru": "Текущее значение: {value}; статус: {status}. Проверьте ресурсы оператора и ожидающие задачи."
+  },
+  "范围：{scope} / {id}；限制事项：{action}；复核期限：{date}。请在业务限制页面核查并记录处理决定。限制不会因超期自动解除；未处理时每小时提醒，逾期24小时升级给本经营方负责人。": {
+    "en": "Scope: {scope} / {id}; restriction: {action}; review deadline: {date}. Review and record the decision on the business restrictions page. Restrictions do not expire automatically; unresolved cases trigger hourly reminders and escalate to this operator’s owner after 24 hours overdue.",
+    "ja": "対象：{scope} / {id}、制限事項：{action}、審査期限：{date}。業務制限ページで確認し、判断を記録してください。期限超過で自動解除されることはありません。未処理の場合は毎時通知し、24 時間超過で当該事業者の責任者に報告します。",
+    "ru": "Область: {scope} / {id}; ограничение: {action}; срок проверки: {date}. Проверьте и зафиксируйте решение на странице ограничений. Ограничения не снимаются автоматически по истечении срока. По нерешённым случаям отправляются ежечасные напоминания, через 24 часа просрочки — руководителю оператора."
+  },
+  "原采购付款或交付尚未核实，系统持续核对原记录，不会重复发起收款。原因：{reason}": {
+    "en": "The original procurement payment or delivery is unverified. The system continues checking the original record without initiating another collection. Reason: {reason}",
+    "ja": "元の仕入れの支払いまたは納品が未確認です。元の記録を継続確認し、重複請求は行いません。理由：{reason}",
+    "ru": "Оплата или поставка исходной закупки не подтверждена. Система продолжает проверять исходную запись без повторного списания. Причина: {reason}"
+  },
+  "已保存": {
+    "en": "Saved",
+    "ja": "保存済み",
+    "ru": "Сохранено"
+  },
+  "API Key 预算已用尽": {
+    "en": "The API Key budget is exhausted.",
+    "ja": "API Key の予算を使い切りました。",
+    "ru": "Бюджет API Key исчерпан."
+  },
+  "API Key 请求频率已达到上限": {
+    "en": "The API Key request rate limit has been reached.",
+    "ja": "API Key のリクエスト頻度の上限に達しました。",
+    "ru": "Достигнут лимит частоты запросов API Key."
+  },
+  "API Key 同时请求数已达到上限": {
+    "en": "The API Key concurrent request limit has been reached.",
+    "ja": "API Key の同時リクエスト数の上限に達しました。",
+    "ru": "Достигнут лимит одновременных запросов API Key."
+  }
+}

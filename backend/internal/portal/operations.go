@@ -63,7 +63,7 @@ func (a *Application) notifications(c *gin.Context) {
 	}
 	items := []any{}
 	for _, n := range rows {
-		items = append(items, gin.H{"id": n.ID, "title": n.Title, "body": n.Body, "category": n.Category, "necessary": n.Category == "mandatory", "read_at": n.ReadAt, "created_at": n.CreatedAt})
+		items = append(items, gin.H{"id": n.ID, "title": n.Title, "body": n.Body, "category": n.Category, "necessary": n.Category == "mandatory", "system_generated": n.SystemGenerated(), "read_at": n.ReadAt, "created_at": n.CreatedAt})
 	}
 	c.JSON(200, gin.H{"items": items, "next_cursor": next})
 }

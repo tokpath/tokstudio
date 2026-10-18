@@ -29,6 +29,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	pc "github.com/tokpath/tokstudio/backend/internal/platform/crypto"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db"
+	"github.com/tokpath/tokstudio/backend/internal/platform/httpx"
 	"github.com/tokpath/tokstudio/backend/internal/platform/objectstore"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
 	"github.com/tokpath/tokstudio/backend/internal/usage"
@@ -51,6 +52,7 @@ type identity struct {
 }
 
 func fail(c *gin.Context, status int, code, message string, retry bool) {
+	message = httpx.LocalizedErrorMessage(httpx.RequestLocale(c.Request), code, message)
 	c.AbortWithStatusJSON(status, gin.H{"error": gin.H{"code": code, "message": message, "retryable": retry, "request_id": c.GetString("request_id")}})
 }
 func handleError(c *gin.Context, err error) {
@@ -86,8 +88,12 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "secret_already_displayed", "此 Key 操作已完成；完整密钥只显示一次，请从列表重置以获得新密钥", false
 	case errors.Is(err, organization.ErrConflict), errors.Is(err, remediation.ErrConflict), errors.Is(err, ledger.ErrConflict), errors.Is(err, catalog.ErrCatalogVersion), errors.Is(err, incentives.ErrConflict), errors.Is(err, payments.ErrConflict), errors.Is(err, operations.ErrConflict), errors.Is(err, commerce.ErrConflict), errors.Is(err, usage.ErrConflict), errors.Is(err, branding.ErrConflict):
 		status, code, msg, retry = 409, "version_conflict", "内容已变化或操作编号已被其它内容使用，请刷新后重新确认", false
-	case errors.Is(err, usage.ErrBudget), errors.Is(err, usage.ErrRate), errors.Is(err, usage.ErrConcurrency):
-		status, code, msg, retry = 429, "request_limit", err.Error(), false
+	case errors.Is(err, usage.ErrBudget):
+		status, code, msg, retry = 429, "request_limit", "API Key 预算已用尽", false
+	case errors.Is(err, usage.ErrRate):
+		status, code, msg, retry = 429, "request_limit", "API Key 请求频率已达到上限", false
+	case errors.Is(err, usage.ErrConcurrency):
+		status, code, msg, retry = 429, "request_limit", "API Key 同时请求数已达到上限", false
 	case errors.Is(err, usage.ErrInProgress):
 		status, code, msg, retry = 409, "in_progress", "原请求仍在处理中，请查询原请求状态", true
 	case errors.Is(err, remediation.ErrTakeoverBlocked):

@@ -1,0 +1,3207 @@
+{
+  "我的 KOL 活动": {
+    "en": "My KOL campaigns",
+    "ja": "自分の KOL キャンペーン",
+    "ru": "Мои кампании KOL"
+  },
+  "从本人的直接佣金比例中让利，为直属受邀客户提供套餐加赠。": {
+    "en": "Share part of your direct commission rate to give extra package credits to customers you invited directly.",
+    "ja": "自身の直接紹介コミッション率の一部を還元し、直接招待した顧客にプランの追加特典を提供します。",
+    "ru": "Передавайте часть своей прямой комиссии в виде дополнительных кредитов к пакетам для лично приглашённых клиентов."
+  },
+  "当前尚未取得可用的 KOL 推广资格。可以在邀请与收益页查看资格金额及功能状态。": {
+    "en": "KOL promotion is not currently available to you. Check your qualifying spend and feature status on Referrals & earnings.",
+    "ja": "現在、有効な KOL 紹介資格がありません。「招待と報酬」で資格対象額と機能の状態を確認できます。",
+    "ru": "Продвижение KOL пока недоступно. Проверьте зачтённые расходы и состояние функции на странице приглашений и доходов."
+  },
+  "创建推广活动": {
+    "en": "Create campaign",
+    "ja": "キャンペーンを作成",
+    "ru": "Создать кампанию"
+  },
+  "还没有推广活动": {
+    "en": "No campaigns yet",
+    "ja": "キャンペーンはまだありません",
+    "ru": "Кампаний пока нет"
+  },
+  "取得有效资格后，选择套餐、让利比例及活动期限即可发布。": {
+    "en": "Once qualified, choose a package, a concession rate and campaign dates to publish.",
+    "ja": "資格を取得すると、プラン、還元率、開催期間を選んで公開できます。",
+    "ru": "После получения права на продвижение выберите пакет, долю комиссии и сроки кампании."
+  },
+  "历史套餐活动": {
+    "en": "Past package campaign",
+    "ja": "過去のプランキャンペーン",
+    "ru": "Кампания для прежнего пакета"
+  },
+  "让利 {points} 个百分点": {
+    "en": "Concession: {points} percentage points",
+    "ja": "還元 {points} ポイント",
+    "ru": "Передаваемая доля: {points} п. п."
+  },
+  "已启用": {
+    "en": "Enabled",
+    "ja": "有効",
+    "ru": "Включено"
+  },
+  "已停用": {
+    "en": "Disabled",
+    "ja": "無効",
+    "ru": "Отключено"
+  },
+  "至": {
+    "en": "to",
+    "ja": "～",
+    "ru": "до"
+  },
+  "每位客户最多 {count} 次": {
+    "en": "Up to {count} uses per customer",
+    "ja": "顧客 1 人につき最大 {count} 回",
+    "ru": "До {count} использований на клиента"
+  },
+  "总次数": {
+    "en": "Total uses",
+    "ja": "合計利用回数",
+    "ru": "Всего использований"
+  },
+  "最多 {count} 次": {
+    "en": "Up to {count} uses",
+    "ja": "最大 {count} 回",
+    "ru": "До {count} использований"
+  },
+  "不单独限制": {
+    "en": "No separate limit",
+    "ja": "個別の上限なし",
+    "ru": "Без отдельного ограничения"
+  },
+  "· 活动版本": {
+    "en": "· Campaign version",
+    "ja": "· キャンペーン版",
+    "ru": "· Версия кампании"
+  },
+  "赠送预算": {
+    "en": "Bonus budget",
+    "ja": "付与予算",
+    "ru": "Бюджет бонусов"
+  },
+  "所有直属受邀客户": {
+    "en": "All directly invited customers",
+    "ja": "直接招待したすべての顧客",
+    "ru": "Все лично приглашённые клиенты"
+  },
+  "首次购买客户": {
+    "en": "First-time buyers",
+    "ja": "初回購入の顧客",
+    "ru": "Клиенты с первой покупкой"
+  },
+  "已有购买记录客户": {
+    "en": "Customers with past purchases",
+    "ja": "購入履歴のある顧客",
+    "ru": "Клиенты с предыдущими покупками"
+  },
+  "修订活动": {
+    "en": "Revise campaign",
+    "ja": "キャンペーンを改訂",
+    "ru": "Изменить кампанию"
+  },
+  "活动让利与组合规则": {
+    "en": "Concessions and combining campaigns",
+    "ja": "還元とキャンペーン併用のルール",
+    "ru": "Передача комиссии и совмещение кампаний"
+  },
+  "可让利上限为本人当前直接佣金比例。额外赠送按套餐原始购买额度和套餐自带赠送之和计算，经营方活动加赠不再计入计算基数。": {
+    "en": "You can offer up to your current direct commission rate. Extra credits are calculated from the package's original purchased credits plus its included bonus; operator campaign bonuses are excluded.",
+    "ja": "還元の上限は現在の直接紹介コミッション率です。追加特典はプラン本来の購入分とプラン付属の付与分の合計を基準とし、運営者のキャンペーン特典は基準に含めません。",
+    "ru": "Максимальная доля ограничена вашей текущей прямой комиссией. Дополнительные кредиты рассчитываются от суммы исходных купленных кредитов и бонуса пакета; бонусы кампаний оператора в базу не входят."
+  },
+  "活动仅对有效直属受邀客户生效。是否可以叠加经营方活动，由经营方明确开放，以客户购买报价为准。修订只影响后续订单，已成交的权益和比例保留。": {
+    "en": "Campaigns apply only to eligible customers you invited directly. Combining with operator campaigns requires the operator's permission and is confirmed in the purchase quote. Revisions affect future orders only; completed orders retain their credits and rates.",
+    "ja": "有効な直接招待関係のある顧客のみ対象です。運営者キャンペーンとの併用は運営者の許可が必要で、購入見積もりで確定します。改訂は今後の注文にのみ適用され、成立済みの特典と比率は維持されます。",
+    "ru": "Кампании действуют только для подходящих лично приглашённых клиентов. Совмещение с кампаниями оператора должно быть разрешено и подтверждено в расчёте покупки. Изменения касаются будущих заказов; завершённые сохраняют исходные кредиты и ставки."
+  },
+  "请填写大于 0 且不超过 {maximum} 的让利百分点，最多 16 位小数。": {
+    "en": "Enter a concession greater than 0 and no more than {maximum} percentage points, with up to 16 decimal places.",
+    "ja": "0 より大きく {maximum} ポイント以下の還元値を、小数点以下 16 桁以内で入力してください。",
+    "ru": "Введите долю больше 0 и не выше {maximum} п. п., до 16 знаков после запятой."
+  },
+  "启用活动时，请填写大于 0 的赠送预算 ATG，最多 18 位小数。": {
+    "en": "To enable the campaign, enter a bonus budget greater than 0 ATG, with up to 18 decimal places.",
+    "ja": "有効にするには、0 より大きい付与予算 ATG を小数点以下 18 桁以内で入力してください。",
+    "ru": "Для включения кампании укажите бюджет бонусов больше 0 ATG, до 18 знаков после запятой."
+  },
+  "使用次数须为有效整数，每位客户至少可使用一次。": {
+    "en": "Usage limits must be valid integers, allowing at least one use per customer.",
+    "ja": "利用回数は整数で入力し、顧客 1 人につき最低 1 回を指定してください。",
+    "ru": "Лимиты должны быть целыми числами; каждому клиенту доступно как минимум одно использование."
+  },
+  "请核对套餐、活动起止时间并确认活动条款。": {
+    "en": "Check the package and campaign dates, then confirm the terms.",
+    "ja": "プランと開催期間を確認し、キャンペーン条件に同意してください。",
+    "ru": "Проверьте пакет и даты кампании и подтвердите условия."
+  },
+  "修订推广活动": {
+    "en": "Revise promotion campaign",
+    "ja": "紹介キャンペーンを改訂",
+    "ru": "Изменить рекламную кампанию"
+  },
+  "适用套餐": {
+    "en": "Eligible package",
+    "ja": "対象プラン",
+    "ru": "Подходящий пакет"
+  },
+  "原套餐（当前未开放购买）": {
+    "en": "Original package (not currently for sale)",
+    "ja": "元のプラン（現在購入不可）",
+    "ru": "Исходный пакет (сейчас не продаётся)"
+  },
+  "本人让利百分点": {
+    "en": "Percentage points you give up",
+    "ja": "自分が還元するポイント数",
+    "ru": "Передаваемая доля в п. п."
+  },
+  "最高 {maximum}": {
+    "en": "Maximum {maximum}",
+    "ja": "最大 {maximum}",
+    "ru": "Максимум {maximum}"
+  },
+  "例如填写 10，表示让出直接佣金的 10 个百分点。": {
+    "en": "For example, enter 10 to give up 10 percentage points of your direct commission.",
+    "ja": "例えば 10 と入力すると、直接紹介コミッション率の 10 ポイント分を還元します。",
+    "ru": "Например, значение 10 передаёт клиенту 10 процентных пунктов вашей прямой комиссии."
+  },
+  "活动开始": {
+    "en": "Campaign starts",
+    "ja": "開始日時",
+    "ru": "Начало кампании"
+  },
+  "活动结束": {
+    "en": "Campaign ends",
+    "ja": "終了日時",
+    "ru": "Окончание кампании"
+  },
+  "适用客户": {
+    "en": "Eligible customers",
+    "ja": "対象顧客",
+    "ru": "Подходящие клиенты"
+  },
+  "每位客户最多使用次数": {
+    "en": "Maximum uses per customer",
+    "ja": "顧客 1 人あたりの利用上限",
+    "ru": "Максимум использований на клиента"
+  },
+  "活动总使用次数上限": {
+    "en": "Total campaign usage limit",
+    "ja": "キャンペーン全体の利用上限",
+    "ru": "Общий лимит использований кампании"
+  },
+  "0 表示不单独限制总次数。": {
+    "en": "0 means no separate total usage limit.",
+    "ja": "0 は合計回数を個別に制限しないことを意味します。",
+    "ru": "0 означает отсутствие отдельного общего лимита."
+  },
+  "活动赠送预算 ATG": {
+    "en": "Campaign bonus budget (ATG)",
+    "ja": "キャンペーン付与予算 ATG",
+    "ru": "Бюджет бонусов кампании, ATG"
+  },
+  "本活动额外赠送总量的上限；启用时须大于 0，用完后不再受理新订单。": {
+    "en": "The maximum extra credits this campaign can grant. It must be greater than 0 when enabled; new orders stop when the budget is exhausted.",
+    "ja": "このキャンペーンによる追加付与の総上限です。有効時は 0 より大きい値が必要で、予算消化後は新規注文を受け付けません。",
+    "ru": "Максимум дополнительных кредитов кампании. Для включения бюджет должен быть больше 0; после исчерпания новые заказы не принимаются."
+  },
+  "启用活动": {
+    "en": "Enable campaign",
+    "ja": "キャンペーンを有効化",
+    "ru": "Включить кампанию"
+  },
+  "我确认活动让利、期限和使用上限，发布后仅对有效直属受邀客户生效。": {
+    "en": "I confirm the concession, dates and usage limits. Once published, the campaign applies only to eligible customers I invited directly.",
+    "ja": "還元内容、期間、利用上限を確認しました。公開後は有効な直接招待関係のある顧客のみ対象となります。",
+    "ru": "Подтверждаю передаваемую долю, сроки и лимиты. После публикации кампания действует только для подходящих лично приглашённых клиентов."
+  },
+  "正在发布…": {
+    "en": "Publishing…",
+    "ja": "公開中…",
+    "ru": "Публикация…"
+  },
+  "重试原活动发布": {
+    "en": "Retry original campaign publication",
+    "ja": "元の公開操作を再試行",
+    "ru": "Повторить исходную публикацию"
+  },
+  "确认发布活动": {
+    "en": "Confirm and publish campaign",
+    "ja": "確認して公開",
+    "ru": "Подтвердить публикацию"
+  },
+  "取消编辑": {
+    "en": "Cancel editing",
+    "ja": "編集をキャンセル",
+    "ru": "Отменить редактирование"
+  },
+  "所选 USD 支付余额超过当前可用金额。": {
+    "en": "The selected USD balance exceeds the available amount.",
+    "ja": "指定した USD 残高が現在の利用可能額を超えています。",
+    "ru": "Выбранная сумма с USD-баланса превышает доступную."
+  },
+  "所选佣金超过当前可用金额。": {
+    "en": "The selected commission exceeds the available amount.",
+    "ja": "指定したコミッションが現在の利用可能額を超えています。",
+    "ru": "Выбранная комиссия превышает доступную сумму."
+  },
+  "支付来源合计超过本次应付，请调整分配。": {
+    "en": "Payment sources exceed the amount due. Adjust the allocation.",
+    "ja": "支払元の合計が今回の請求額を超えています。配分を調整してください。",
+    "ru": "Сумма источников оплаты превышает сумму к оплате. Измените распределение."
+  },
+  "请输入非负十进制 USD 金额，最多 24 位小数。": {
+    "en": "Enter a non-negative decimal USD amount with up to 24 decimal places.",
+    "ja": "0 以上の USD 金額を、小数点以下 24 桁以内で入力してください。",
+    "ru": "Введите неотрицательную сумму USD, до 24 знаков после запятой."
+  },
+  "为应用创建访问凭据，按需设置预算和模型范围。": {
+    "en": "Create application credentials and set budgets and model access as needed.",
+    "ja": "アプリ用の認証情報を作成し、予算と利用モデルを設定できます。",
+    "ru": "Создавайте ключи доступа для приложений, задавайте бюджет и доступные модели."
+  },
+  "创建 Key": {
+    "en": "Create Key",
+    "ja": "Key を作成",
+    "ru": "Создать ключ"
+  },
+  "所有 Key 使用同一个账号额度池": {
+    "en": "All Keys share the same account credit pool",
+    "ja": "すべての Key でアカウントの共通クレジットを使用",
+    "ru": "Все ключи используют общий баланс кредитов аккаунта"
+  },
+  "预算是使用上限，创建 Key 不会划走额度。Key 的自然预算周期与套餐有效期分别计算。": {
+    "en": "A budget is a spending limit; creating a Key does not transfer credits. Key budget periods and package validity are calculated separately.",
+    "ja": "予算は利用上限です。Key を作成してもクレジットは移動しません。Key の暦ベースの予算期間とプランの有効期間は別々に計算されます。",
+    "ru": "Бюджет ограничивает расходы; создание ключа не переводит кредиты. Календарные периоды бюджета ключа и срок пакета рассчитываются отдельно."
+  },
+  "复制 Base URL 与接入代码": {
+    "en": "Copy Base URL and integration code",
+    "ja": "Base URL と接続コードをコピー",
+    "ru": "Скопировать Base URL и код подключения"
+  },
+  "为第一个应用创建 Key": {
+    "en": "Create a Key for your first application",
+    "ja": "最初のアプリ用に Key を作成",
+    "ru": "Создайте ключ для первого приложения"
+  },
+  "完整密钥仅展示一次。你可以随时停用、重置或调整预算。": {
+    "en": "The full secret is shown once. You can disable, reset or adjust its budget at any time.",
+    "ja": "完全なキーは一度だけ表示されます。いつでも無効化、再発行、予算調整ができます。",
+    "ru": "Полный секретный ключ показывается один раз. Его можно отключить, перевыпустить или изменить бюджет в любой момент."
+  },
+  "创建第一个 Key": {
+    "en": "Create your first Key",
+    "ja": "最初の Key を作成",
+    "ru": "Создать первый ключ"
+  },
+  "编辑配置": {
+    "en": "Edit settings",
+    "ja": "設定を編集",
+    "ru": "Изменить настройки"
+  },
+  "{period}预算上限": {
+    "en": "{period} budget limit",
+    "ja": "{period}の予算上限",
+    "ru": "Лимит бюджета: {period}"
+  },
+  "使用账号有效额度，不额外限额": {
+    "en": "Use available account credits without an extra limit",
+    "ja": "アカウントの有効クレジットを使用し、追加上限なし",
+    "ru": "Доступные кредиты аккаунта без отдельного лимита"
+  },
+  "· 本窗口至": {
+    "en": "· Current period ends",
+    "ja": "· 現在の期間の終了",
+    "ru": "· Текущий период до"
+  },
+  "当前窗口": {
+    "en": "Current period",
+    "ja": "現在の予算期間",
+    "ru": "Текущий период"
+  },
+  "已用": {
+    "en": "Used",
+    "ja": "使用済み",
+    "ru": "Израсходовано"
+  },
+  "在途预占": {
+    "en": "Reserved for in-flight requests",
+    "ja": "処理中リクエストの仮確保",
+    "ru": "Резерв для текущих запросов"
+  },
+  "实际超额": {
+    "en": "Actual overage",
+    "ja": "実際の超過分",
+    "ru": "Фактическое превышение"
+  },
+  "访问范围": {
+    "en": "Access scope",
+    "ja": "アクセス範囲",
+    "ru": "Область доступа"
+  },
+  "全部当前已授权并上架模型": {
+    "en": "All currently authorized and listed models",
+    "ja": "現在認可・公開されているすべてのモデル",
+    "ru": "Все авторизованные и опубликованные модели"
+  },
+  "未允许任何模型": {
+    "en": "No models allowed",
+    "ja": "許可されているモデルなし",
+    "ru": "Нет разрешённых моделей"
+  },
+  "不额外限频": {
+    "en": "No extra rate limit",
+    "ja": "追加の頻度制限なし",
+    "ru": "Без отдельного лимита частоты"
+  },
+  "{value0} 次/分钟": {
+    "en": "{value0} requests/min",
+    "ja": "毎分 {value0} 回",
+    "ru": "{value0} запросов/мин"
+  },
+  "不额外限并发": {
+    "en": "No extra concurrency limit",
+    "ja": "追加の同時実行制限なし",
+    "ru": "Без отдельного лимита параллельности"
+  },
+  "{value0} 并发": {
+    "en": "{value0} concurrent requests",
+    "ja": "同時実行 {value0} 件",
+    "ru": "Параллельных запросов: {value0}"
+  },
+  "创建于": {
+    "en": "Created",
+    "ja": "作成日時",
+    "ru": "Создан"
+  },
+  "密钥已永久失效，历史继续保留": {
+    "en": "Permanently invalid; history is retained",
+    "ja": "キーは永久に無効です。履歴は保持されます",
+    "ru": "Ключ навсегда недействителен; история сохранена"
+  },
+  "预算、重置和在途请求如何处理": {
+    "en": "Budgets, resets and in-flight requests",
+    "ja": "予算、再発行、処理中リクエストの扱い",
+    "ru": "Бюджеты, перевыпуск и текущие запросы"
+  },
+  "月、季、年预算按经营时区的自然周期重置；不限时累计预算不重置。套餐则从每次交付时起按日历期间生效，两者不会互相续期。": {
+    "en": "Monthly, quarterly and annual budgets reset on calendar boundaries in the operator's timezone. Lifetime budgets never reset. Package validity starts at each delivery and follows calendar durations; the two do not renew each other.",
+    "ja": "月・四半期・年の予算は運営タイムゾーンの暦に従ってリセットされ、累計予算はリセットされません。プランは各付与日から暦上の期間で有効となり、双方の期間は互いに更新されません。",
+    "ru": "Месячные, квартальные и годовые бюджеты сбрасываются по календарю в часовом поясе оператора. Накопительный бюджет не сбрасывается. Срок пакета начинается с предоставления и исчисляется календарными периодами; эти сроки не продлевают друг друга."
+  },
+  "调整预算、停用或重置密钥都不清零当前已用与预占。停用后不再受理新请求，已受理请求继续结算。请求预占与最终扣费可在用量账单核对。": {
+    "en": "Changing budgets, disabling or resetting a Key does not clear spent or reserved amounts. Disabling blocks new requests while accepted requests continue to settle. Check reservations and final charges in Usage & billing.",
+    "ja": "予算の変更、無効化、再発行をしても使用済み額と仮確保額は消去されません。無効化後は新規受付を停止し、受付済みリクエストは精算を続けます。仮確保と最終料金は利用明細で確認できます。",
+    "ru": "Изменение бюджета, отключение или перевыпуск ключа не обнуляет расходы и резерв. После отключения новые запросы не принимаются, а принятые продолжают рассчитываться. Резервы и итоговые списания доступны в расходах и счетах."
+  },
+  "查看请求与用量": {
+    "en": "View requests and usage",
+    "ja": "リクエストと利用状況を確認",
+    "ru": "Запросы и использование"
+  },
+  "编辑 Key 配置": {
+    "en": "Edit Key settings",
+    "ja": "Key 設定を編集",
+    "ru": "Настройки ключа"
+  },
+  "创建新的 API Key": {
+    "en": "Create a new API Key",
+    "ja": "新しい API Key を作成",
+    "ru": "Создать новый API-ключ"
+  },
+  "关闭": {
+    "en": "Close",
+    "ja": "閉じる",
+    "ru": "Закрыть"
+  },
+  "已保存密钥，查看接入指南": {
+    "en": "Secret saved — view integration guide",
+    "ja": "キーを保存済み・接続ガイドへ",
+    "ru": "Ключ сохранён — к руководству"
+  },
+  "本次 Key 操作已完成，完整密钥不能再次显示。请关闭本表单，从最新 Key 列表重置密钥并保存新值。": {
+    "en": "This Key operation is complete and the full secret cannot be shown again. Close this form, reset the Key from the latest list and save the new value.",
+    "ja": "今回の Key 操作は完了しており、完全なキーは再表示できません。このフォームを閉じ、最新の Key 一覧から再発行して新しい値を保存してください。",
+    "ru": "Операция завершена; полный ключ больше не показывается. Закройте форму, перевыпустите ключ из обновлённого списка и сохраните новое значение."
+  },
+  "返回 Key 列表": {
+    "en": "Back to Keys",
+    "ja": "Key 一覧に戻る",
+    "ru": "К списку ключей"
+  },
+  "请为 Key 填写便于识别的名称。": {
+    "en": "Enter an identifiable name for the Key.",
+    "ja": "Key を識別できる名前を入力してください。",
+    "ru": "Укажите понятное имя ключа."
+  },
+  "请检查预算金额；请求和并发上限须为正整数，留空表示不额外限制。": {
+    "en": "Check the budget amount. Request and concurrency limits must be positive integers; leave blank for no extra limit.",
+    "ja": "予算額を確認してください。リクエスト数と同時実行数は正の整数で、空欄は追加制限なしです。",
+    "ru": "Проверьте бюджет. Лимиты запросов и параллельности должны быть положительными целыми; пустое поле означает отсутствие отдельного лимита."
+  },
+  "名称": {
+    "en": "Name",
+    "ja": "名前",
+    "ru": "Имя"
+  },
+  "例如：生产应用、开发测试、个人 Agent": {
+    "en": "For example: Production, Development, Personal Agent",
+    "ja": "例：本番アプリ、開発テスト、個人 Agent",
+    "ru": "Например: Продакшен, Разработка, Личный агент"
+  },
+  "ATG 预算上限": {
+    "en": "ATG budget limit",
+    "ja": "ATG 予算上限",
+    "ru": "Лимит бюджета ATG"
+  },
+  "留空表示不额外限额": {
+    "en": "Leave blank for no extra spending limit",
+    "ja": "空欄は追加の金額上限なし",
+    "ru": "Оставьте пустым без отдельного лимита расходов"
+  },
+  "预算窗口": {
+    "en": "Budget period",
+    "ja": "予算期間",
+    "ru": "Период бюджета"
+  },
+  "Key 与其他 Key 共享账号额度。": {
+    "en": "This Key shares account credits with other Keys.",
+    "ja": "この Key は他の Key とアカウントのクレジットを共有します。",
+    "ru": "Ключ использует общие кредиты аккаунта вместе с остальными ключами."
+  },
+  "预算时区：{value0}。": {
+    "en": "Budget timezone: {value0}.",
+    "ja": "予算のタイムゾーン：{value0}。",
+    "ru": "Часовой пояс бюджета: {value0}."
+  },
+  "自然周期以经营方配置的时区为准，创建后可查看。": {
+    "en": "Calendar periods use the operator's timezone, which is shown after creation.",
+    "ja": "暦の区切りは運営者のタイムゾーンに従い、作成後に確認できます。",
+    "ru": "Календарные периоды используют часовой пояс оператора, доступный после создания."
+  },
+  "这不会改变套餐的交付与到期时间。": {
+    "en": "This does not change package delivery or expiry times.",
+    "ja": "プランの付与時刻や有効期限は変わりません。",
+    "ru": "Это не меняет время предоставления и окончания пакета."
+  },
+  "进阶限制 · 模型、频率与并发": {
+    "en": "Advanced limits · models, rate and concurrency",
+    "ja": "詳細制限 · モデル、頻度、同時実行",
+    "ru": "Расширенные лимиты · модели, частота, параллельность"
+  },
+  "每分钟请求上限": {
+    "en": "Requests per minute limit",
+    "ja": "毎分リクエスト数の上限",
+    "ru": "Лимит запросов в минуту"
+  },
+  "留空表示不额外限制": {
+    "en": "Leave blank for no extra limit",
+    "ja": "空欄は追加制限なし",
+    "ru": "Оставьте пустым без отдельного лимита"
+  },
+  "并发上限": {
+    "en": "Concurrency limit",
+    "ja": "同時実行数の上限",
+    "ru": "Лимит параллельных запросов"
+  },
+  "不额外限定模型": {
+    "en": "No extra model restriction",
+    "ja": "モデルを追加で制限しない",
+    "ru": "Без отдельного ограничения моделей"
+  },
+  "当前没有可授权模型": {
+    "en": "No models available to authorize",
+    "ja": "認可できるモデルがありません",
+    "ru": "Нет моделей для предоставления доступа"
+  },
+  "允许访问的模型（不勾选即无模型访问）": {
+    "en": "Allowed models (none selected means no model access)",
+    "ja": "許可するモデル（未選択はモデルへのアクセス不可）",
+    "ru": "Разрешённые модели (пустой выбор закрывает доступ)"
+  },
+  "· 当前目录不可用，可取消保留限制": {
+    "en": "· Unavailable in the current catalog; uncheck to remove this restriction",
+    "ja": "· 現在の一覧では利用不可。チェックを外すとこの制限から除外されます",
+    "ru": "· Недоступна в текущем каталоге; снимите флажок, чтобы убрать из ограничения"
+  },
+  "操作结果待核实，配置已锁定，再次提交会重试原请求。": {
+    "en": "The result is being verified and settings are locked. Submitting again retries the original request.",
+    "ja": "結果を確認中のため設定はロックされています。再送信すると元のリクエストを再試行します。",
+    "ru": "Результат проверяется, настройки заблокированы. Повторная отправка повторяет исходный запрос."
+  },
+  "提交中…": {
+    "en": "Submitting…",
+    "ja": "送信中…",
+    "ru": "Отправка…"
+  },
+  "重试本次操作": {
+    "en": "Retry this operation",
+    "ja": "今回の操作を再試行",
+    "ru": "Повторить эту операцию"
+  },
+  "保存配置": {
+    "en": "Save settings",
+    "ja": "設定を保存",
+    "ru": "Сохранить настройки"
+  },
+  "取消": {
+    "en": "Cancel",
+    "ja": "キャンセル",
+    "ru": "Отмена"
+  },
+  "配置已保存，Key 历史和预算记录继续保留。": {
+    "en": "Settings saved. Key history and budget records are retained.",
+    "ja": "設定を保存しました。Key の履歴と予算記録は保持されます。",
+    "ru": "Настройки сохранены. История ключа и бюджета сохранена."
+  },
+  "重置密钥": {
+    "en": "Reset secret",
+    "ja": "キーを再発行",
+    "ru": "Перевыпустить ключ"
+  },
+  "恢复使用": {
+    "en": "Enable again",
+    "ja": "利用を再開",
+    "ru": "Включить снова"
+  },
+  "停用": {
+    "en": "Disable",
+    "ja": "無効化",
+    "ru": "Отключить"
+  },
+  "删除": {
+    "en": "Delete",
+    "ja": "削除",
+    "ru": "Удалить"
+  },
+  "重置后旧密钥立即停止受理新请求，配置与当前预算保留。": {
+    "en": "The old secret stops accepting new requests immediately after reset. Settings and current budget are retained.",
+    "ja": "再発行後、古いキーは直ちに新規受付を停止します。設定と現在の予算は維持されます。",
+    "ru": "После перевыпуска старый ключ сразу перестанет принимать новые запросы. Настройки и текущий бюджет сохраняются."
+  },
+  "停用后停止受理新请求，已受理请求继续结算。": {
+    "en": "Disabling stops new requests; accepted requests continue to settle.",
+    "ja": "無効化後は新規受付を停止し、受付済みリクエストの精算は続行します。",
+    "ru": "После отключения новые запросы не принимаются, принятые продолжают рассчитываться."
+  },
+  "恢复后继续使用当前预算记录。": {
+    "en": "Enabling continues with the current budget records.",
+    "ja": "再開後も現在の予算記録を引き継ぎます。",
+    "ru": "После включения сохраняются текущие записи бюджета."
+  },
+  "删除后永久失效，必要账务历史继续保留。": {
+    "en": "Deletion permanently invalidates the Key. Required accounting history is retained.",
+    "ja": "削除後は永久に無効となり、必要な会計履歴は保持されます。",
+    "ru": "Удаление навсегда делает ключ недействительным. Нужная история расчётов сохраняется."
+  },
+  "确认{action}「{name}」": {
+    "en": "Confirm {action}: “{name}”",
+    "ja": "「{name}」の{action}を確認",
+    "ru": "Подтвердите действие «{action}» для «{name}»"
+  },
+  "重置": {
+    "en": "reset",
+    "ja": "再発行",
+    "ru": "Перевыпуск"
+  },
+  "恢复": {
+    "en": "enable",
+    "ja": "再開",
+    "ru": "Включение"
+  },
+  "结果待核实，请沿用原操作重试。": {
+    "en": "The result is being verified. Retry the original operation.",
+    "ja": "結果を確認中です。元の操作を再試行してください。",
+    "ru": "Результат проверяется. Повторите исходную операцию."
+  },
+  "处理中…": {
+    "en": "Processing…",
+    "ja": "処理中…",
+    "ru": "Обработка…"
+  },
+  "重试原操作": {
+    "en": "Retry original operation",
+    "ja": "元の操作を再試行",
+    "ru": "Повторить исходную операцию"
+  },
+  "确认": {
+    "en": "Confirm",
+    "ja": "確認",
+    "ru": "Подтвердить"
+  },
+  "本次操作已完成，请关闭面板后从列表重新重置密钥，并立即保存新值。": {
+    "en": "This operation is complete. Close the panel, reset the Key from the list and save the new value immediately.",
+    "ja": "操作は完了しました。パネルを閉じ、一覧から再発行し、新しいキーをすぐに保存してください。",
+    "ru": "Операция завершена. Закройте панель, перевыпустите ключ из списка и сразу сохраните новое значение."
+  },
+  "操作已完成": {
+    "en": "Operation complete",
+    "ja": "操作が完了しました",
+    "ru": "Операция завершена"
+  },
+  "完整密钥仅本次显示，请立即保存。": {
+    "en": "The full secret is shown only now. Save it immediately.",
+    "ja": "完全なキーは今回のみ表示されます。すぐに保存してください。",
+    "ru": "Полный ключ показывается только сейчас. Сразу сохраните его."
+  },
+  "关闭后无法再次查看。请保存在应用的环境变量中，避免放进网页代码或公开仓库。": {
+    "en": "You cannot view it again after closing. Store it in your application's environment variables, away from webpage code or public repositories.",
+    "ja": "閉じると再表示できません。アプリの環境変数に保存し、Web ページのコードや公開リポジトリには含めないでください。",
+    "ru": "После закрытия посмотреть ключ снова нельзя. Храните его в переменных окружения приложения, не в коде веб-страницы или открытом репозитории."
+  },
+  "复制密钥": {
+    "en": "Copy secret",
+    "ja": "キーをコピー",
+    "ru": "Скопировать ключ"
+  },
+  "你好": {
+    "en": "Hello",
+    "ja": "こんにちは",
+    "ru": "Здравствуйте"
+  },
+  "<模型支持的音色>": {
+    "en": "<supported voice>",
+    "ja": "<モデルが対応する音声>",
+    "ru": "<поддерживаемый голос>"
+  },
+  "<你的描述>": {
+    "en": "<your prompt>",
+    "ja": "<説明を入力>",
+    "ru": "<ваше описание>"
+  },
+  "<为本次请求生成唯一编号>": {
+    "en": "<unique ID for this request>",
+    "ja": "<このリクエスト固有の ID>",
+    "ru": "<уникальный ID этого запроса>"
+  },
+  "<本地音频路径>": {
+    "en": "<local audio path>",
+    "ja": "<ローカル音声ファイルのパス>",
+    "ru": "<путь к локальному аудио>"
+  },
+  "<公开模型 ID>": {
+    "en": "<public model ID>",
+    "ja": "<公開モデル ID>",
+    "ru": "<ID публичной модели>"
+  },
+  "QUICK START": {
+    "en": "QUICK START",
+    "ja": "クイックスタート",
+    "ru": "БЫСТРЫЙ СТАРТ"
+  },
+  "将模型接入你的应用": {
+    "en": "Connect models to your application",
+    "ja": "モデルをアプリに接続",
+    "ru": "Подключите модели к приложению"
+  },
+  "配置品牌入口、保存 Key，再运行一笔请求。": {
+    "en": "Set the branded endpoint, save your Key, then run a request.",
+    "ja": "ブランドの接続先を設定し、Key を保存してリクエストを実行します。",
+    "ru": "Укажите адрес API бренда, сохраните ключ и выполните запрос."
+  },
+  "管理 API Key": {
+    "en": "Manage API Keys",
+    "ja": "API Key を管理",
+    "ru": "Управление API-ключами"
+  },
+  "品牌尚未配置 API Base URL": {
+    "en": "The brand has not configured an API Base URL",
+    "ja": "ブランドの API Base URL は未設定です",
+    "ru": "API Base URL бренда ещё не настроен"
+  },
+  "复制 Base URL": {
+    "en": "Copy Base URL",
+    "ja": "Base URL をコピー",
+    "ru": "Скопировать Base URL"
+  },
+  "2 · 在 API Key 页面创建密钥并保存到环境变量": {
+    "en": "2 · Create a secret on the API Key page and store it in the environment variable",
+    "ja": "2 · API Key ページでキーを作成し、環境変数に保存します：",
+    "ru": "2 · Создайте ключ на странице API-ключей и сохраните в переменной окружения"
+  },
+  "。完整密钥仅在创建或重置时显示。": {
+    "en": ". The full secret is shown only when created or reset.",
+    "ja": "。完全なキーは作成時または再発行時のみ表示されます。",
+    "ru": ". Полный ключ показывается только при создании или перевыпуске."
+  },
+  "示例模型": {
+    "en": "Example model",
+    "ja": "サンプルのモデル",
+    "ru": "Модель для примера"
+  },
+  "3 · 选择公开模型": {
+    "en": "3 · Select a public model",
+    "ja": "3 · 公開モデルを選択",
+    "ru": "3 · Выберите публичную модель"
+  },
+  "暂无可选模型": {
+    "en": "No models available",
+    "ja": "選択可能なモデルなし",
+    "ru": "Нет доступных моделей"
+  },
+  "调用能力": {
+    "en": "Capability",
+    "ja": "利用する機能",
+    "ru": "Возможность модели"
+  },
+  "复制模型 ID": {
+    "en": "Copy model ID",
+    "ja": "モデル ID をコピー",
+    "ru": "Скопировать ID модели"
+  },
+  "代码语言": {
+    "en": "Code language",
+    "ja": "コード言語",
+    "ru": "Язык кода"
+  },
+  "复制代码": {
+    "en": "Copy code",
+    "ja": "コードをコピー",
+    "ru": "Скопировать код"
+  },
+  "先替换示例中的占位内容；同一次请求重试沿用原幂等编号与内容，新请求生成新编号。运行示例会按实际用量扣减 ATG。": {
+    "en": "Replace the placeholders first. Retries of the same request must keep the original idempotency ID and content; generate a new ID for a new request. Running the example spends ATG based on actual usage.",
+    "ja": "まずサンプルのプレースホルダーを置き換えてください。同じリクエストの再試行では同じ冪等 ID と内容を使用し、新規リクエストには新しい ID を発行します。実行すると実際の利用量に応じて ATG が消費されます。",
+    "ru": "Сначала замените заполнители. При повторе того же запроса сохраняйте исходные ключ идемпотентности и содержимое; для нового запроса создавайте новый ключ. Запуск примера списывает ATG по фактическому использованию."
+  },
+  " Python 转写示例需要 requests。": {
+    "en": " The Python transcription example requires requests.",
+    "ja": " Python の文字起こしサンプルには requests が必要です。",
+    "ru": " Для примера транскрибации на Python требуется requests."
+  },
+  "此模型当前不可调用：": {
+    "en": "This model is currently unavailable: ",
+    "ja": "このモデルは現在利用できません：",
+    "ru": "Эта модель сейчас недоступна: "
+  },
+  "请查看模型状态或联系经营方。": {
+    "en": "Check the model status or contact the operator.",
+    "ja": "モデルの状態を確認するか、運営者にお問い合わせください。",
+    "ru": "Проверьте статус модели или обратитесь к оператору."
+  },
+  "API 入口尚未配置。可先查看模型与创建 Key，待经营方完成入口配置后接入。": {
+    "en": "The API endpoint is not configured yet. You can browse models and create a Key now, then integrate after the operator configures the endpoint.",
+    "ja": "API の接続先は未設定です。モデルの確認と Key の作成は可能です。運営者が接続先を設定した後に接続してください。",
+    "ru": "Адрес API ещё не настроен. Пока можно просмотреть модели и создать ключ, а подключение выполнить после настройки адреса оператором."
+  },
+  "打开模型体验": {
+    "en": "Open model playground",
+    "ja": "モデル体験を開く",
+    "ru": "Открыть тестирование моделей"
+  },
+  "搜索模型": {
+    "en": "Search models",
+    "ja": "モデルを検索",
+    "ru": "Поиск моделей"
+  },
+  "搜索模型名称或 ID": {
+    "en": "Search model name or ID",
+    "ja": "モデル名または ID で検索",
+    "ru": "Поиск по имени или ID модели"
+  },
+  "按模型能力筛选": {
+    "en": "Filter by capability",
+    "ja": "モデル機能で絞り込む",
+    "ru": "Фильтр по возможностям"
+  },
+  "全部能力": {
+    "en": "All capabilities",
+    "ja": "すべての機能",
+    "ru": "Все возможности"
+  },
+  "没有匹配的模型": {
+    "en": "No matching models",
+    "ja": "一致するモデルがありません",
+    "ru": "Подходящих моделей нет"
+  },
+  "暂未上架模型": {
+    "en": "No models listed yet",
+    "ja": "公開済みのモデルがありません",
+    "ru": "Модели ещё не опубликованы"
+  },
+  "换一个名称或能力试试。": {
+    "en": "Try another name or capability.",
+    "ja": "別の名前や機能でお試しください。",
+    "ru": "Попробуйте другое имя или возможность."
+  },
+  "经营方完成授权、价格和路由验证后会在这里开放调用。": {
+    "en": "Models become available here after the operator verifies authorization, prices and routing.",
+    "ja": "運営者が認可、価格、ルーティングを検証すると、ここで利用可能になります。",
+    "ru": "Модели появятся здесь после проверки оператором разрешений, цен и маршрутизации."
+  },
+  "复制 ID": {
+    "en": "Copy ID",
+    "ja": "ID をコピー",
+    "ru": "Скопировать ID"
+  },
+  "价格待公布": {
+    "en": "Pricing not yet published",
+    "ja": "価格未公開",
+    "ru": "Цены ещё не опубликованы"
+  },
+  "以上": {
+    "en": "and above",
+    "ja": "以上",
+    "ru": "и выше"
+  },
+  "能力与调用限制": {
+    "en": "Capabilities and request limits",
+    "ja": "機能と呼び出し制限",
+    "ru": "Возможности и ограничения запросов"
+  },
+  "最大上下文：{count} token": {
+    "en": "Maximum context: {count} tokens",
+    "ja": "最大コンテキスト：{count} トークン",
+    "ru": "Максимальный контекст: {count} токенов"
+  },
+  "输入类型": {
+    "en": "Input types",
+    "ja": "入力形式",
+    "ru": "Типы входных данных"
+  },
+  "未公布": {
+    "en": "Not published",
+    "ja": "未公開",
+    "ru": "Не опубликовано"
+  },
+  "流式输出": {
+    "en": "Streaming output",
+    "ja": "ストリーミング出力",
+    "ru": "Потоковый вывод"
+  },
+  "支持": {
+    "en": "Supported",
+    "ja": "対応",
+    "ru": "Поддерживается"
+  },
+  "不支持": {
+    "en": "Not supported",
+    "ja": "非対応",
+    "ru": "Не поддерживается"
+  },
+  "输入上限": {
+    "en": "Input limit",
+    "ja": "入力上限",
+    "ru": "Лимит входных данных"
+  },
+  "输出上限": {
+    "en": "Output limit",
+    "ja": "出力上限",
+    "ru": "Лимит вывода"
+  },
+  "支持参数": {
+    "en": "Supported parameters",
+    "ja": "対応パラメーター",
+    "ru": "Поддерживаемые параметры"
+  },
+  "必填参数": {
+    "en": "Required parameters",
+    "ja": "必須パラメーター",
+    "ru": "Обязательные параметры"
+  },
+  "无额外必填参数": {
+    "en": "No additional required parameters",
+    "ja": "追加の必須パラメーターなし",
+    "ru": "Без дополнительных обязательных параметров"
+  },
+  "{value0} 至 {value1}": {
+    "en": "{value0} to {value1}",
+    "ja": "{value0} ～ {value1}",
+    "ru": "От {value0} до {value1}"
+  },
+  "经营方尚未公布更多能力参数，请在调用前核实所需能力。": {
+    "en": "The operator has not published further capability details. Verify the capabilities you need before making requests.",
+    "ja": "運営者による追加の機能情報は未公開です。呼び出し前に必要な機能をご確認ください。",
+    "ru": "Оператор ещё не опубликовал подробные параметры. Проверьте нужные возможности перед запросом."
+  },
+  "计划变更 · {kind}": {
+    "en": "Scheduled change · {kind}",
+    "ja": "予定されている変更 · {kind}",
+    "ru": "Запланированное изменение · {kind}"
+  },
+  "生效于": {
+    "en": "Effective",
+    "ja": "適用日時",
+    "ru": "Вступает в силу"
+  },
+  "/ 每": {
+    "en": "/ per",
+    "ja": "/ 単位",
+    "ru": "/ за"
+  },
+  "获取接入代码": {
+    "en": "Get integration code",
+    "ja": "接続コードを取得",
+    "ru": "Получить код подключения"
+  },
+  "查看接入指南": {
+    "en": "View integration guide",
+    "ja": "接続ガイドを確認",
+    "ru": "Руководство по подключению"
+  },
+  "模型与接入": {
+    "en": "Models & integration",
+    "ja": "モデルと接続",
+    "ru": "Модели и подключение"
+  },
+  "选择模型，复制接入代码，将品牌 API 连接到你的应用。": {
+    "en": "Choose a model, copy the code and connect the brand's API to your application.",
+    "ja": "モデルを選んで接続コードをコピーし、ブランド API をアプリに接続します。",
+    "ru": "Выберите модель, скопируйте код и подключите API бренда к приложению."
+  },
+  "创建或管理 Key": {
+    "en": "Create or manage Keys",
+    "ja": "Key の作成・管理",
+    "ru": "Создать или настроить ключи"
+  },
+  "模型目录与价格": {
+    "en": "Model catalog & pricing",
+    "ja": "モデル一覧と価格",
+    "ru": "Каталог моделей и цены"
+  },
+  "{count} 个已展示模型 · 调用还受 Key 范围限制": {
+    "en": "{count} models listed · Key access restrictions also apply",
+    "ja": "{count} 件のモデルを表示 · Key の範囲制限も適用されます",
+    "ru": "Опубликовано моделей: {count} · Также действуют ограничения ключа"
+  },
+  "价格与模型发生变化时": {
+    "en": "When prices or models change",
+    "ja": "価格やモデルが変わるとき",
+    "ru": "При изменении цен или моделей"
+  },
+  "每次请求受理时锁定价格。模型不会被自动替换，已受理的流式及异步请求沿用原价格。模型访问同时取决于经营方开放状态和 Key 的模型范围。": {
+    "en": "Prices are locked when each request is accepted. Models are never replaced automatically; accepted streaming and asynchronous requests retain the original prices. Access depends on both the operator's availability and the Key's model scope.",
+    "ja": "リクエスト受付時に価格が確定します。モデルは自動変更されず、受付済みのストリーミング・非同期リクエストには元の価格が適用されます。アクセスは運営者の公開状況と Key のモデル範囲の両方に従います。",
+    "ru": "Цена фиксируется при приёме запроса. Модель автоматически не заменяется; принятые потоковые и асинхронные запросы сохраняют исходные цены. Доступ зависит от статуса модели у оператора и разрешений ключа."
+  },
+  "YOUR WORKSPACE": {
+    "en": "YOUR WORKSPACE",
+    "ja": "ワークスペース",
+    "ru": "ВАШЕ ПРОСТРАНСТВО"
+  },
+  "{name}，开始使用模型": {
+    "en": "{name}, start using models",
+    "ja": "{name}さん、モデルを使ってみましょう",
+    "ru": "{name}, начните пользоваться моделями"
+  },
+  "服务概览": {
+    "en": "Service overview",
+    "ja": "サービス概要",
+    "ru": "Обзор сервиса"
+  },
+  "查看可用额度、接入应用，核对每一笔消费。": {
+    "en": "Check available credits, connect applications and track every charge.",
+    "ja": "利用可能クレジットを確認し、アプリを接続して、すべての利用料金を確認できます。",
+    "ru": "Проверяйте доступные кредиты, подключайте приложения и отслеживайте каждый расход."
+  },
+  "购买套餐": {
+    "en": "Buy a package",
+    "ja": "プランを購入",
+    "ru": "Купить пакет"
+  },
+  "当前可用服务额度": {
+    "en": "Available service credits",
+    "ja": "現在利用可能なサービスクレジット",
+    "ru": "Доступные сервисные кредиты"
+  },
+  "所有 Key 共享": {
+    "en": "Shared by all Keys",
+    "ja": "すべての Key で共有",
+    "ru": "Общий баланс для всех ключей"
+  },
+  "购买来源剩余": {
+    "en": "Purchased credits remaining",
+    "ja": "購入分の残高",
+    "ru": "Остаток купленных кредитов"
+  },
+  "赠送来源剩余": {
+    "en": "Bonus credits remaining",
+    "ja": "付与分の残高",
+    "ru": "Остаток бонусных кредитов"
+  },
+  "请求在途预占": {
+    "en": "Reserved for requests in progress",
+    "ja": "処理中リクエストの仮確保",
+    "ru": "Резерв для выполняемых запросов"
+  },
+  "查看来源与到期记录": {
+    "en": "View sources and expiry records",
+    "ja": "出所と有効期限の記録を確認",
+    "ru": "Источники и сроки действия"
+  },
+  "用于购买与续费的 USD 余额": {
+    "en": "USD balance for purchases and renewals",
+    "ja": "購入・更新用の USD 残高",
+    "ru": "USD-баланс для покупок и продления"
+  },
+  "另有占用": {
+    "en": "Also reserved: ",
+    "ja": "別途確保中：",
+    "ru": "Также зарезервировано: "
+  },
+  "。支付余额不会自动兑换为调用额度。": {
+    "en": ". Payment balance is not automatically converted to model credits.",
+    "ja": "。支払残高は呼び出し用クレジットには自動交換されません。",
+    "ru": ". Платёжный баланс не конвертируется автоматически в кредиты для моделей."
+  },
+  "充值余额": {
+    "en": "Top up balance",
+    "ja": "残高をチャージ",
+    "ru": "Пополнить баланс"
+  },
+  "订单与到账": {
+    "en": "Orders & delivery",
+    "ja": "注文と反映",
+    "ru": "Заказы и зачисления"
+  },
+  "当前没有可用调用额度。可购买套餐；已付款订单可在订单记录核对交付状态。": {
+    "en": "No model credits are available. Buy a package, or check delivery status in your order records if you have already paid.",
+    "ja": "現在、利用可能な呼び出しクレジットがありません。プランを購入するか、支払済みの場合は注文記録で付与状況を確認してください。",
+    "ru": "Доступных кредитов нет. Купите пакет; если уже оплатили, проверьте предоставление кредитов в заказах."
+  },
+  "查看订单": {
+    "en": "View orders",
+    "ja": "注文を確認",
+    "ru": "Просмотреть заказы"
+  },
+  "选择模型并接入": {
+    "en": "Choose and integrate a model",
+    "ja": "モデルを選んで接続",
+    "ru": "Выбрать и подключить модель"
+  },
+  "复制品牌 API 入口、模型 ID 和调用示例": {
+    "en": "Copy the brand's API endpoint, model ID and example request",
+    "ja": "ブランドの API 接続先、モデル ID、呼び出し例をコピー",
+    "ru": "Скопировать адрес API бренда, ID модели и пример запроса"
+  },
+  "管理应用 Key": {
+    "en": "Manage application Keys",
+    "ja": "アプリの Key を管理",
+    "ru": "Ключи приложений"
+  },
+  "创建 API Key": {
+    "en": "Create API Key",
+    "ja": "API Key を作成",
+    "ru": "Создать API-ключ"
+  },
+  "正在读取 Key 状态": {
+    "en": "Loading Key status",
+    "ja": "Key の状態を読込中",
+    "ru": "Загрузка статуса ключей"
+  },
+  "打开 Key 页面核实访问凭据": {
+    "en": "Open Keys to verify credentials",
+    "ja": "Key ページで認証情報を確認",
+    "ru": "Откройте ключи для проверки доступа"
+  },
+  "{count} 个有效 Key，分别管理应用预算": {
+    "en": "{count} active Keys with separate application budgets",
+    "ja": "有効な Key {count} 件でアプリごとの予算を管理",
+    "ru": "Активных ключей: {count}; бюджеты приложений задаются отдельно"
+  },
+  "查看用量账单": {
+    "en": "View usage bills",
+    "ja": "利用明細を確認",
+    "ru": "Расходы и счета"
+  },
+  "追溯实际扣费、在途预占和结果": {
+    "en": "Trace actual charges, reservations and results",
+    "ja": "実際の料金、仮確保、結果を追跡",
+    "ru": "Проверить списания, резервы и результаты"
+  },
+  "接入你的第一个应用": {
+    "en": "Connect your first application",
+    "ja": "最初のアプリを接続",
+    "ru": "Подключите первое приложение"
+  },
+  "先体验模型": {
+    "en": "Try a model first",
+    "ja": "まずモデルを体験",
+    "ru": "Сначала попробовать модель"
+  },
+  "准备服务额度": {
+    "en": "Prepare service credits",
+    "ja": "サービスクレジットを用意",
+    "ru": "Подготовить сервисные кредиты"
+  },
+  "已有可用 ATG，可以继续创建或使用 Key。": {
+    "en": "ATG is available. You can create or use a Key.",
+    "ja": "利用可能な ATG があります。Key を作成または使用できます。",
+    "ru": "ATG доступны. Можно создать или использовать ключ."
+  },
+  "购买套餐，成功交付后额度即可用于调用。": {
+    "en": "Buy a package; credits become available after successful delivery.",
+    "ja": "プランを購入し、付与が完了すると呼び出しに使用できます。",
+    "ru": "Купите пакет; кредиты доступны после успешного предоставления."
+  },
+  "额度状态未读取，请先核实资产。": {
+    "en": "Credits have not loaded. Verify your assets first.",
+    "ja": "クレジット情報を取得できていません。先に資産を確認してください。",
+    "ru": "Кредиты не загружены. Сначала проверьте баланс."
+  },
+  "查看套餐": {
+    "en": "View packages",
+    "ja": "プランを見る",
+    "ru": "Посмотреть пакеты"
+  },
+  "创建并保存 API Key": {
+    "en": "Create and save an API Key",
+    "ja": "API Key を作成して保存",
+    "ru": "Создать и сохранить API-ключ"
+  },
+  "已有有效 Key。若未保存完整密钥，可重置或为新应用单独创建。": {
+    "en": "You have an active Key. If you did not save the full secret, reset it or create a separate Key for a new application.",
+    "ja": "有効な Key があります。完全なキーを保存していない場合は再発行するか、新しいアプリ用に別の Key を作成してください。",
+    "ru": "У вас есть активный ключ. Если полный ключ не сохранён, перевыпустите его или создайте отдельный для нового приложения."
+  },
+  "每个应用使用独立 Key，可设置使用预算和模型范围。": {
+    "en": "Use a separate Key per application, with its own budget and model access.",
+    "ja": "アプリごとに Key を分け、予算と利用モデルを設定できます。",
+    "ru": "Используйте отдельный ключ для каждого приложения с собственным бюджетом и доступом к моделям."
+  },
+  "管理 Key": {
+    "en": "Manage Keys",
+    "ja": "Key を管理",
+    "ru": "Управлять ключами"
+  },
+  "运行请求，核对消费": {
+    "en": "Run a request and check the charge",
+    "ja": "リクエストを実行し料金を確認",
+    "ru": "Выполнить запрос и проверить расход"
+  },
+  "在接入页选择模型并复制代码。运行后在用量账单查看稳定请求编号。": {
+    "en": "Select a model and copy code on the integration page. After running it, find the stable request ID in Usage & billing.",
+    "ja": "接続ページでモデルを選び、コードをコピーします。実行後、利用明細で一意のリクエスト ID を確認できます。",
+    "ru": "Выберите модель и скопируйте код на странице подключения. После запуска найдите постоянный ID запроса в расходах и счетах."
+  },
+  "品牌 API Base URL": {
+    "en": "Brand API Base URL",
+    "ja": "ブランドの API Base URL",
+    "ru": "API Base URL бренда"
+  },
+  "套餐与下一次续费": {
+    "en": "Packages & next renewal",
+    "ja": "プランと次回の更新",
+    "ru": "Пакеты и следующее продление"
+  },
+  "管理全部": {
+    "en": "Manage all",
+    "ja": "すべて管理",
+    "ru": "Управлять всеми"
+  },
+  "最近到期时间": {
+    "en": "Next expiry",
+    "ja": "次の有効期限",
+    "ru": "Ближайшее окончание срока"
+  },
+  "购买剩余": {
+    "en": "Purchased remaining",
+    "ja": "購入分の残り",
+    "ru": "Остаток купленных"
+  },
+  "赠送剩余": {
+    "en": "Bonus remaining",
+    "ja": "付与分の残り",
+    "ru": "Остаток бонусных"
+  },
+  "到期续费：": {
+    "en": "Renew at expiry: ",
+    "ja": "期限時の更新：",
+    "ru": "Продление по окончании: "
+  },
+  "已开启": {
+    "en": "Enabled",
+    "ja": "有効",
+    "ru": "Включено"
+  },
+  "未开启": {
+    "en": "Not enabled",
+    "ja": "未設定",
+    "ru": "Выключено"
+  },
+  "续费条款已变化，需要你重新确认。": {
+    "en": "Renewal terms have changed and need your confirmation.",
+    "ja": "更新条件が変更されました。再確認が必要です。",
+    "ru": "Условия продления изменились и требуют подтверждения."
+  },
+  "核对套餐与续费设置": {
+    "en": "Check packages and renewal settings",
+    "ja": "プランと更新設定を確認",
+    "ru": "Проверить пакеты и настройки продления"
+  },
+  "当前没有即将到期的限时套餐": {
+    "en": "No time-limited packages expire soon",
+    "ja": "まもなく期限を迎える期間限定プランはありません",
+    "ru": "Нет срочных пакетов с близким окончанием"
+  },
+  "当前没有有效套餐": {
+    "en": "No active packages",
+    "ja": "有効なプランがありません",
+    "ru": "Нет действующих пакетов"
+  },
+  "不限时套餐及全部历史可在套餐页查看。": {
+    "en": "View unlimited packages and the full history on the packages page.",
+    "ja": "無期限プランと全履歴はプランページで確認できます。",
+    "ru": "Бессрочные пакеты и полная история доступны на странице пакетов."
+  },
+  "选择套餐后按需购买，已有赠送额度仍按其来源规则使用。": {
+    "en": "Choose a package when needed. Existing bonus credits continue under their source rules.",
+    "ja": "必要に応じてプランを購入できます。すでにある付与クレジットは各出所のルールに従って利用できます。",
+    "ru": "Покупайте пакеты по мере необходимости. Имеющиеся бонусные кредиты действуют по правилам своих источников."
+  },
+  "到期不会结转剩余额度，提前用完也不会提前自动续费。账户中多份套餐分别保留有效期。": {
+    "en": "Unused credits do not roll over at expiry, and early exhaustion does not trigger early renewal. Each package in the account keeps its own validity period.",
+    "ja": "期限切れの残りは繰り越されず、早く使い切っても自動更新は前倒しされません。アカウント内の各プランはそれぞれの有効期間を維持します。",
+    "ru": "Неиспользованные кредиты не переносятся, а досрочное исчерпание не запускает раннее продление. Каждый пакет сохраняет собственный срок."
+  },
+  "最近调用": {
+    "en": "Recent requests",
+    "ja": "最近のリクエスト",
+    "ru": "Последние запросы"
+  },
+  "查看全部用量": {
+    "en": "View all usage",
+    "ja": "すべての利用状況を確認",
+    "ru": "Всё использование"
+  },
+  "还没有调用记录": {
+    "en": "No requests yet",
+    "ja": "呼び出し履歴はまだありません",
+    "ru": "Запросов пока нет"
+  },
+  "接入应用": {
+    "en": "Connect an application",
+    "ja": "アプリを接続",
+    "ru": "Подключить приложение"
+  },
+  "或": {
+    "en": "or",
+    "ja": "または",
+    "ru": "или"
+  },
+  "，首笔调用后在这里核对费用。": {
+    "en": ", then check the cost here after your first request.",
+    "ja": "。最初の呼び出し後にここで料金を確認できます。",
+    "ru": ", затем проверьте стоимость первого запроса здесь."
+  },
+  "邀请朋友与推广收益": {
+    "en": "Invite friends & earn",
+    "ja": "友達紹介と報酬",
+    "ru": "Приглашения и доход"
+  },
+  "每个正式客户都有邀请链接。可用佣金": {
+    "en": "Every registered customer has an invite link. Available commission: ",
+    "ja": "正式登録済みの顧客には招待リンクがあります。利用可能コミッション：",
+    "ru": "У каждого зарегистрированного клиента есть ссылка приглашения. Доступная комиссия: "
+  },
+  "，待确认冻结": {
+    "en": "; frozen pending confirmation: ",
+    "ja": "、確認待ち凍結額：",
+    "ru": "; заморожено до подтверждения: "
+  },
+  "查看邀请链接、资格与佣金": {
+    "en": "View invite link, qualification and commission",
+    "ja": "招待リンク・資格・コミッションを確認",
+    "ru": "Ссылка приглашения, право на продвижение и комиссия"
+  },
+  "套餐与资金": {
+    "en": "Packages & funds",
+    "ja": "プランと資金",
+    "ru": "Пакеты и средства"
+  },
+  "选择通用额度套餐，确认本次权益与支付方式。购买后可接入任一已开放模型。": {
+    "en": "Choose a shared-credit package and confirm the credits and payment method. After purchase, use any available model.",
+    "ja": "共通クレジットのプランを選び、特典と支払方法を確認します。購入後は公開されている任意のモデルを利用できます。",
+    "ru": "Выберите пакет общих кредитов и подтвердите его состав и оплату. После покупки доступны любые открытые модели."
+  },
+  "查看订单与到账": {
+    "en": "View orders and delivery",
+    "ja": "注文と反映を確認",
+    "ru": "Заказы и зачисления"
+  },
+  "充值支付余额": {
+    "en": "Top up payment balance",
+    "ja": "支払残高をチャージ",
+    "ru": "Пополнить платёжный баланс"
+  },
+  "为后续购买与续费备款": {
+    "en": "Prepare funds for future purchases and renewals",
+    "ja": "今後の購入・更新用に入金",
+    "ru": "Подготовить средства для покупок и продления"
+  },
+  "额度与到期记录": {
+    "en": "Credits & expiry records",
+    "ja": "クレジットと期限の記録",
+    "ru": "Кредиты и сроки действия"
+  },
+  "查看购买、赠送及来源": {
+    "en": "View purchased credits, bonuses and sources",
+    "ja": "購入分・付与分・出所を確認",
+    "ru": "Купленные кредиты, бонусы и источники"
+  },
+  "USD 余额退款": {
+    "en": "USD balance refund",
+    "ja": "USD 残高の返金",
+    "ru": "Возврат USD-баланса"
+  },
+  "退回未使用且未占用余额": {
+    "en": "Return unused and unreserved balance",
+    "ja": "未使用・未確保の残高を返金",
+    "ru": "Вернуть неиспользованный и незарезервированный остаток"
+  },
+  "购买通用套餐": {
+    "en": "Buy shared-credit packages",
+    "ja": "共通クレジットのプランを購入",
+    "ru": "Купить пакет общих кредитов"
+  },
+  "可直接购包，无须预先充值": {
+    "en": "Buy directly without topping up first",
+    "ja": "事前チャージなしで直接購入可能",
+    "ru": "Можно купить без предварительного пополнения"
+  },
+  "暂无可购买套餐": {
+    "en": "No packages available to buy",
+    "ja": "購入可能なプランがありません",
+    "ru": "Нет пакетов для покупки"
+  },
+  "经营方完成商品、收款及履约配置后开放购买，已有权益仍可在下方查询。": {
+    "en": "Purchases open after the operator configures products, payments and delivery. Existing credits remain visible below.",
+    "ja": "運営者による商品、決済、付与の設定後に購入できます。既存の特典は以下で引き続き確認できます。",
+    "ru": "Покупка откроется после настройки продуктов, платежей и предоставления кредитов оператором. Имеющиеся пакеты доступны ниже."
+  },
+  "购买额度": {
+    "en": "Purchased credits",
+    "ja": "購入クレジット",
+    "ru": "Купленные кредиты"
+  },
+  "套餐赠送": {
+    "en": "Package bonus",
+    "ja": "プラン付属の特典",
+    "ru": "Бонус пакета"
+  },
+  "可授权到期续费": {
+    "en": "Renewal at expiry can be authorized",
+    "ja": "期限時の自動更新を設定可能",
+    "ru": "Доступно разрешение на продление"
+  },
+  "单次购买": {
+    "en": "One-time purchase",
+    "ja": "単発購入",
+    "ru": "Разовая покупка"
+  },
+  "已选择 · 查看本次购买": {
+    "en": "Selected · Review this purchase",
+    "ja": "選択済み · 今回の購入を確認",
+    "ru": "Выбрано · Проверить покупку"
+  },
+  "选择此套餐": {
+    "en": "Choose this package",
+    "ja": "このプランを選択",
+    "ru": "Выбрать пакет"
+  },
+  "链接中的套餐当前不可购买，请选择目录中的可用套餐。": {
+    "en": "The package in the link is not currently available. Choose an available package from the catalog.",
+    "ja": "リンク先のプランは現在購入できません。一覧から購入可能なプランを選択してください。",
+    "ru": "Пакет по ссылке сейчас недоступен. Выберите доступный пакет из каталога."
+  },
+  "我的套餐与续费": {
+    "en": "My packages & renewals",
+    "ja": "自分のプランと更新",
+    "ru": "Мои пакеты и продления"
+  },
+  "查看所有额度来源": {
+    "en": "View all credit sources",
+    "ja": "すべてのクレジットの出所を確認",
+    "ru": "Все источники кредитов"
+  },
+  "还没有已交付套餐": {
+    "en": "No delivered packages yet",
+    "ja": "付与済みのプランはまだありません",
+    "ru": "Предоставленных пакетов пока нет"
+  },
+  "完成付款并交付后，剩余额度、有效期与续费设置会显示在这里。": {
+    "en": "Remaining credits, validity and renewal settings appear here after payment and delivery.",
+    "ja": "支払と付与が完了すると、残高、有効期間、更新設定がここに表示されます。",
+    "ru": "После оплаты и предоставления здесь появятся остаток кредитов, срок действия и настройки продления."
+  },
+  "生效时间": {
+    "en": "Effective from",
+    "ja": "有効開始",
+    "ru": "Начало действия"
+  },
+  "到期时间": {
+    "en": "Expires",
+    "ja": "有効期限",
+    "ru": "Окончание действия"
+  },
+  "不限时": {
+    "en": "No expiry",
+    "ja": "無期限",
+    "ru": "Бессрочно"
+  },
+  "权益编号": {
+    "en": "Credit grant ID",
+    "ja": "特典 ID",
+    "ru": "ID предоставления кредитов"
+  },
+  "购买、到期与退款规则": {
+    "en": "Purchases, expiry and refunds",
+    "ja": "購入・期限・返金のルール",
+    "ru": "Покупка, срок действия и возврат"
+  },
+  "每次成功交付形成独立权益和有效期。月、季、年按交付日起的日历期间计算；多份套餐可以并存，正常到期余量不结转，提前用完不会提前自动续费。": {
+    "en": "Each successful delivery creates a separate credit grant and validity period. Monthly, quarterly and annual terms follow calendar durations from delivery. Packages can coexist; unused credits do not roll over at normal expiry, and early exhaustion does not trigger early renewal.",
+    "ja": "付与ごとに独立した特典と有効期間が生じます。月・四半期・年は付与日から暦で計算されます。複数プランは併存でき、期限切れの残りは繰り越されず、早期消化で自動更新が前倒しされることもありません。",
+    "ru": "Каждое предоставление создаёт отдельные кредиты и срок. Месяц, квартал и год исчисляются по календарю от даты предоставления. Пакеты могут действовать одновременно; остаток не переносится, досрочное исчерпание не вызывает раннего продления."
+  },
+  "套餐不提供一般性退款。重复、错误交易、未交付或无法履约的问题通过异常流程办理；未使用且未占用的 USD 支付余额可申请退回。": {
+    "en": "Packages do not offer general refunds. Duplicate or incorrect transactions, non-delivery and inability to fulfill are handled through the exception process. Unused, unreserved USD balance can be refunded.",
+    "ja": "プランの通常返金はありません。重複・誤取引、未付与、履行不能は例外対応で処理します。未使用・未確保の USD 支払残高は返金を申請できます。",
+    "ru": "Обычный возврат пакетов не предусмотрен. Дубли, ошибочные транзакции, непредоставление и невозможность исполнения решаются через разбор исключений. Неиспользованный и незарезервированный USD-баланс можно вернуть."
+  },
+  "购买进度": {
+    "en": "Purchase progress",
+    "ja": "購入の進捗",
+    "ru": "Этапы покупки"
+  },
+  "1 · 已选": {
+    "en": "1 · Selected",
+    "ja": "1 · 選択済み",
+    "ru": "1 · Выбрано"
+  },
+  "2 · 核对活动与成交条款": {
+    "en": "2 · Review offers and terms",
+    "ja": "2 · キャンペーンと取引条件を確認",
+    "ru": "2 · Проверить акции и условия"
+  },
+  "3 · 确认支付与到账": {
+    "en": "3 · Confirm payment and delivery",
+    "ja": "3 · 支払と反映を確認",
+    "ru": "3 · Подтвердить оплату и зачисление"
+  },
+  "确认本次购买": {
+    "en": "Confirm this purchase",
+    "ja": "今回の購入を確認",
+    "ru": "Подтвердить покупку"
+  },
+  "活动可选。核实报价后统一展示最终价格、权益和有效期。": {
+    "en": "Offers are optional. The final price, credits and validity appear together after quote verification.",
+    "ja": "キャンペーン利用は任意です。見積もり確認後、最終価格、特典、有効期間をまとめて表示します。",
+    "ru": "Акции необязательны. Итоговая цена, кредиты и срок будут показаны после проверки расчёта."
+  },
+  "经营方套餐活动": {
+    "en": "Operator package campaign",
+    "ja": "運営者のプランキャンペーン",
+    "ru": "Кампания пакета от оператора"
+  },
+  "直属邀请 KOL 活动": {
+    "en": "Direct inviter's KOL campaign",
+    "ja": "直接招待した KOL のキャンペーン",
+    "ru": "Кампания пригласившего вас KOL"
+  },
+  "不使用本类活动": {
+    "en": "Do not use this type of offer",
+    "ja": "この種類のキャンペーンを使わない",
+    "ru": "Не использовать акции этого типа"
+  },
+  "正在加载可用活动，也可以不使用活动继续购买。": {
+    "en": "Loading available offers. You can also continue without an offer.",
+    "ja": "利用可能なキャンペーンを読込中です。使わずに購入を続けることもできます。",
+    "ru": "Загрузка акций. Можно продолжить покупку без акции."
+  },
+  "活动暂不可用，可重试或按不使用活动的条款继续。": {
+    "en": "Offers are temporarily unavailable. Retry or continue without an offer.",
+    "ja": "キャンペーンは一時的に利用できません。再試行するか、使わずに続けてください。",
+    "ru": "Акции временно недоступны. Повторите попытку или продолжите без акции."
+  },
+  "所选活动未开放组合，请只保留一种。": {
+    "en": "These offers cannot be combined. Keep only one.",
+    "ja": "選択したキャンペーンは併用できません。いずれか一つにしてください。",
+    "ru": "Выбранные акции нельзя совмещать. Оставьте одну."
+  },
+  "正在核实报价…": {
+    "en": "Verifying quote…",
+    "ja": "見積もりを確認中…",
+    "ru": "Проверка расчёта…"
+  },
+  "重试原报价": {
+    "en": "Retry original quote",
+    "ja": "元の見積もりを再試行",
+    "ru": "Повторить исходный расчёт"
+  },
+  "继续，核对成交条款": {
+    "en": "Continue to review terms",
+    "ja": "続けて取引条件を確認",
+    "ru": "Продолжить к проверке условий"
+  },
+  "本次报价结果待核实，重试将沿用原选择。": {
+    "en": "This quote is being verified. Retrying keeps your original choices.",
+    "ja": "見積もり結果を確認中です。再試行では元の選択を使用します。",
+    "ru": "Результат расчёта проверяется. При повторе сохраняется исходный выбор."
+  },
+  "订单已建立。请按下方状态完成支付与到账核实。": {
+    "en": "Order created. Use the status below to complete payment and verify delivery.",
+    "ja": "注文を作成しました。以下の状態を確認して支払と反映確認を完了してください。",
+    "ru": "Заказ создан. Завершите оплату и проверьте зачисление по статусу ниже."
+  },
+  "本次成交摘要": {
+    "en": "Purchase summary",
+    "ja": "今回の取引概要",
+    "ru": "Сводка покупки"
+  },
+  "含相关税费 · 实际经营方": {
+    "en": "Applicable taxes included · Operator",
+    "ja": "関連税金込み · 実際の運営者",
+    "ru": "Налоги включены · Оператор"
+  },
+  "经营方活动赠送": {
+    "en": "Operator campaign bonus",
+    "ja": "運営者キャンペーンの付与分",
+    "ru": "Бонус кампании оператора"
+  },
+  "KOL 活动加赠": {
+    "en": "Extra KOL campaign bonus",
+    "ja": "KOL キャンペーンの追加特典",
+    "ru": "Дополнительный бонус кампании KOL"
+  },
+  "合计服务额度": {
+    "en": "Total service credits",
+    "ja": "サービスクレジット合計",
+    "ru": "Всего сервисных кредитов"
+  },
+  "权益期限：": {
+    "en": "Credit validity: ",
+    "ja": "特典の有効期間：",
+    "ru": "Срок действия кредитов: "
+  },
+  "付款并成功交付后生效，精确时间见交付记录。": {
+    "en": "Valid after payment and successful delivery. See the delivery record for exact times.",
+    "ja": "支払・付与の完了後に有効になります。正確な日時は付与記録をご確認ください。",
+    "ru": "Действуют после оплаты и предоставления. Точное время указано в записи предоставления."
+  },
+  "报价有效至": {
+    "en": "Quote valid until",
+    "ja": "見積もり有効期限",
+    "ru": "Расчёт действителен до"
+  },
+  "条款版本：": {
+    "en": "Terms version: ",
+    "ja": "条件の版：",
+    "ru": "Версия условий: "
+  },
+  "报价已到期，重新核实": {
+    "en": "Quote expired — verify again",
+    "ja": "見積もり期限切れ · 再確認",
+    "ru": "Расчёт истёк — проверить снова"
+  },
+  "返回调整活动或重新报价": {
+    "en": "Back to adjust offers or get a new quote",
+    "ja": "戻ってキャンペーン変更・再見積もり",
+    "ru": "Назад к выбору акций или новому расчёту"
+  },
+  "请检查本次支付来源金额。": {
+    "en": "Check the amounts allocated to payment sources.",
+    "ja": "今回の支払元の金額を確認してください。",
+    "ru": "Проверьте суммы выбранных источников оплаты."
+  },
+  "选择付款来源": {
+    "en": "Choose payment sources",
+    "ja": "支払元を選択",
+    "ru": "Выберите источники оплаты"
+  },
+  "优先建议使用 USD 支付余额，剩余直接付款。佣金由你主动选择。": {
+    "en": "We suggest using your USD balance first, then paying the rest directly. Using commission is your choice.",
+    "ja": "USD 支払残高を先に使い、残りを直接支払う配分を提案します。コミッションの利用は任意です。",
+    "ru": "Рекомендуется сначала использовать USD-баланс, остаток оплатить напрямую. Комиссию можно выбрать самостоятельно."
+  },
+  "正在读取可用余额…": {
+    "en": "Loading available balance…",
+    "ja": "利用可能残高を読込中…",
+    "ru": "Загрузка доступного баланса…"
+  },
+  "余额暂未读取，可不使用内部资金直接付款。": {
+    "en": "Balance is not available yet. You can pay directly without using internal funds.",
+    "ja": "残高を取得できていません。内部資金を使わず、直接支払うこともできます。",
+    "ru": "Баланс пока не загружен. Можно оплатить напрямую без внутренних средств."
+  },
+  "USD 支付余额": {
+    "en": "USD payment balance",
+    "ja": "USD 支払残高",
+    "ru": "Платёжный баланс USD"
+  },
+  "尚未读取": {
+    "en": "Not loaded yet",
+    "ja": "未取得",
+    "ru": "Ещё не загружено"
+  },
+  "本次使用 USD 支付余额": {
+    "en": "USD balance to use now",
+    "ja": "今回使う USD 支払残高",
+    "ru": "Использовать с USD-баланса"
+  },
+  "使用可用佣金补足": {
+    "en": "Use available commission for the shortfall",
+    "ja": "不足分に利用可能コミッションを使用",
+    "ru": "Покрыть остаток доступной комиссией"
+  },
+  "（可用": {
+    "en": "(available ",
+    "ja": "（利用可能 ",
+    "ru": "(доступно "
+  },
+  "本次使用可用佣金 USD": {
+    "en": "Available commission to use now (USD)",
+    "ja": "今回使うコミッション USD",
+    "ru": "Использовать комиссию, USD"
+  },
+  "恢复建议分配": {
+    "en": "Restore suggested allocation",
+    "ja": "提案された配分に戻す",
+    "ru": "Восстановить рекомендуемое распределение"
+  },
+  "其余直接支付": {
+    "en": "Pay the remainder directly",
+    "ja": "残りを直接支払う",
+    "ru": "Оплатить остаток напрямую"
+  },
+  "支付方式": {
+    "en": "Payment method",
+    "ja": "支払方法",
+    "ru": "Способ оплаты"
+  },
+  "选择已就绪的支付方式": {
+    "en": "Select a ready payment method",
+    "ja": "利用可能な支払方法を選択",
+    "ru": "Выберите готовый способ оплаты"
+  },
+  "经营方尚未提供已就绪的外部支付方式。可使用足额内部余额，或联系经营方完成配置。": {
+    "en": "The operator has no ready external payment method. Use sufficient internal funds or ask the operator to finish setup.",
+    "ja": "運営者による外部決済の準備が整っていません。十分な内部残高を使うか、運営者に設定の完了を依頼してください。",
+    "ru": "Оператор ещё не подготовил внешний способ оплаты. Используйте достаточный внутренний баланс или попросите оператора завершить настройку."
+  },
+  "本次由所选内部资金支付，无须进入外部通道。": {
+    "en": "The selected internal funds cover this purchase. No external payment is needed.",
+    "ja": "選択した内部資金で全額支払うため、外部決済は不要です。",
+    "ru": "Покупка полностью оплачивается выбранными внутренними средствами. Внешняя оплата не нужна."
+  },
+  "分配仅为付款建议，以服务端核实和订单实际收款为准。可以直接购包，无须先充值。": {
+    "en": "This allocation is a payment suggestion only. Server verification and actual receipts determine the result. You can buy a package directly without topping up first.",
+    "ja": "配分は支払提案であり、サーバーでの確認と実際の入金に従います。事前チャージなしで直接購入できます。",
+    "ru": "Распределение — лишь рекомендация. Результат определяется серверной проверкой и фактическим поступлением. Пакет можно купить без предварительного пополнения."
+  },
+  "授权到期自动续费": {
+    "en": "Authorize automatic renewal at expiry",
+    "ja": "期限時の自動更新を許可",
+    "ru": "Разрешить автопродление по окончании"
+  },
+  "到期时优先用 USD 支付余额，不会自动向外部钱包扣款。条件变差时须重新授权，提前用完不触发提前续费。": {
+    "en": "Renewal uses USD balance first and never automatically charges an external wallet. Less favorable terms require new authorization. Early exhaustion does not trigger early renewal.",
+    "ja": "更新時は USD 支払残高を優先し、外部ウォレットから自動引き落としはしません。不利な条件変更には再同意が必要です。早期消化で更新は前倒しされません。",
+    "ru": "При продлении сначала используется USD-баланс; внешние кошельки автоматически не списываются. Ухудшение условий требует нового разрешения. Досрочное исчерпание не запускает раннее продление."
+  },
+  "未来续费也允许使用可用佣金补足": {
+    "en": "Also allow available commission for future renewals",
+    "ja": "今後の更新でも不足分にコミッションを使用可",
+    "ru": "Разрешить доступную комиссию для будущих продлений"
+  },
+  "我确认本次价格、购赠组成和有效期。套餐无一般退款；续费条件变差须重新授权。": {
+    "en": "I confirm the price, purchased and bonus credits, and validity. Packages have no general refund; less favorable renewal terms require new authorization.",
+    "ja": "価格、購入分・付与分の内訳、有効期間を確認しました。プランの通常返金はなく、不利な更新条件には再同意が必要です。",
+    "ru": "Подтверждаю цену, купленные и бонусные кредиты и срок. Обычный возврат пакетов не предусмотрен; ухудшение условий продления требует нового разрешения."
+  },
+  "报价已到期，请返回重新核实价格与权益。": {
+    "en": "The quote has expired. Go back to verify the price and credits again.",
+    "ja": "見積もりの期限が切れました。戻って価格と特典を再確認してください。",
+    "ru": "Расчёт истёк. Вернитесь и снова проверьте цену и кредиты."
+  },
+  "订单结果待核实，支付选择已锁定。请重试原操作，避免再次付款。": {
+    "en": "The order result is being verified and payment choices are locked. Retry the original operation to avoid paying again.",
+    "ja": "注文結果を確認中のため支払設定はロックされています。重複支払を避けるため、元の操作を再試行してください。",
+    "ru": "Результат заказа проверяется, выбор оплаты заблокирован. Повторите исходную операцию, чтобы не заплатить повторно."
+  },
+  "在新窗口核对订单记录": {
+    "en": "Check order records in a new window",
+    "ja": "新しいウィンドウで注文記録を確認",
+    "ru": "Проверить заказы в новом окне"
+  },
+  "正在建立订单…": {
+    "en": "Creating order…",
+    "ja": "注文を作成中…",
+    "ru": "Создание заказа…"
+  },
+  "重试原订单操作": {
+    "en": "Retry original order operation",
+    "ja": "元の注文操作を再試行",
+    "ru": "Повторить исходное создание заказа"
+  },
+  "确认订单，继续支付": {
+    "en": "Confirm order and continue to payment",
+    "ja": "注文を確定して支払へ",
+    "ru": "Подтвердить заказ и перейти к оплате"
+  },
+  "确认购买并核实到账": {
+    "en": "Confirm purchase and verify delivery",
+    "ja": "購入を確定して反映を確認",
+    "ru": "Подтвердить покупку и проверить зачисление"
+  },
+  "到期续费设置": {
+    "en": "Renewal at expiry settings",
+    "ja": "期限時の更新設定",
+    "ru": "Настройки продления по окончании"
+  },
+  "续费条件已变化，需要你重新确认": {
+    "en": "Renewal terms changed — please confirm again",
+    "ja": "更新条件が変更されました。再確認が必要です",
+    "ru": "Условия продления изменились — подтвердите снова"
+  },
+  "接管后续费套餐": {
+    "en": "Renewal package after takeover",
+    "ja": "運営引継ぎ後の更新プラン",
+    "ru": "Пакет продления после передачи управления"
+  },
+  "选择当前品牌方套餐": {
+    "en": "Select a package from the current brand",
+    "ja": "現在のブランドのプランを選択",
+    "ru": "Выберите пакет текущего бренда"
+  },
+  "正在读取可续费套餐…": {
+    "en": "Loading renewable packages…",
+    "ja": "更新可能なプランを読込中…",
+    "ru": "Загрузка пакетов для продления…"
+  },
+  "确认以上新条款": {
+    "en": "Confirm the new terms above",
+    "ja": "上記の新条件を確認",
+    "ru": "Подтвердить новые условия выше"
+  },
+  "到期自动续费": {
+    "en": "Automatically renew at expiry",
+    "ja": "期限時に自動更新",
+    "ru": "Автопродление по окончании"
+  },
+  "续费可用佣金补足": {
+    "en": "Allow commission for renewal shortfalls",
+    "ja": "更新の不足分にコミッションを使用可",
+    "ru": "Разрешить комиссию для продления"
+  },
+  "续费优先使用 USD 支付余额；佣金须单独授权。可停止未来续费，当前权益按原期限保留。": {
+    "en": "Renewal uses USD balance first; commission requires separate authorization. You can stop future renewals while keeping current credits until their original expiry.",
+    "ja": "更新には USD 支払残高を優先します。コミッションは別途許可が必要です。今後の更新は停止でき、現在の特典は元の期限まで維持されます。",
+    "ru": "Сначала используется USD-баланс; для комиссии нужно отдельное разрешение. Будущие продления можно отключить, текущие кредиты действуют до исходного срока."
+  },
+  "保存中…": {
+    "en": "Saving…",
+    "ja": "保存中…",
+    "ru": "Сохранение…"
+  },
+  "重试原授权": {
+    "en": "Retry original authorization",
+    "ja": "元の許可操作を再試行",
+    "ru": "Повторить исходное разрешение"
+  },
+  "保存续费设置": {
+    "en": "Save renewal settings",
+    "ja": "更新設定を保存",
+    "ru": "Сохранить настройки продления"
+  },
+  "续费设置已保存": {
+    "en": "Renewal settings saved",
+    "ja": "更新設定を保存しました",
+    "ru": "Настройки продления сохранены"
+  },
+  "授权结果待核实，请重试原授权；当前选择已锁定。": {
+    "en": "The authorization result is being verified. Retry the original authorization; current choices are locked.",
+    "ja": "許可結果を確認中です。元の操作を再試行してください。現在の選択はロックされています。",
+    "ru": "Результат разрешения проверяется. Повторите исходное действие; текущий выбор заблокирован."
+  },
+  "USD 支付余额充值": {
+    "en": "USD payment balance top-up",
+    "ja": "USD 支払残高のチャージ",
+    "ru": "Пополнение платёжного USD-баланса"
+  },
+  "本次订单": {
+    "en": "This order",
+    "ja": "今回の注文",
+    "ru": "Этот заказ"
+  },
+  "订单状态": {
+    "en": "Order status",
+    "ja": "注文の状態",
+    "ru": "Статус заказа"
+  },
+  "订单已建立": {
+    "en": "Order created",
+    "ja": "注文作成済み",
+    "ru": "Заказ создан"
+  },
+  "收款已核实": {
+    "en": "Payment verified",
+    "ja": "入金確認済み",
+    "ru": "Оплата подтверждена"
+  },
+  "等待足额核实": {
+    "en": "Awaiting full payment verification",
+    "ja": "全額の入金確認待ち",
+    "ru": "Ожидается проверка полной оплаты"
+  },
+  "资产已交付": {
+    "en": "Credits delivered",
+    "ja": "クレジット付与済み",
+    "ru": "Кредиты предоставлены"
+  },
+  "等待交付": {
+    "en": "Awaiting delivery",
+    "ja": "付与待ち",
+    "ru": "Ожидается предоставление"
+  },
+  "最终应付": {
+    "en": "Final amount due",
+    "ja": "最終請求額",
+    "ru": "Итог к оплате"
+  },
+  "已核实收款": {
+    "en": "Verified receipts",
+    "ja": "確認済み入金額",
+    "ru": "Подтверждённые поступления"
+  },
+  "实际经营方": {
+    "en": "Operating merchant",
+    "ja": "実際の運営者",
+    "ru": "Фактический оператор"
+  },
+  "订单建立": {
+    "en": "Order created",
+    "ja": "注文作成日時",
+    "ru": "Время создания заказа"
+  },
+  "付款截止": {
+    "en": "Payment deadline",
+    "ja": "支払期限",
+    "ru": "Срок оплаты"
+  },
+  "交付时间": {
+    "en": "Delivered at",
+    "ja": "付与日時",
+    "ru": "Время предоставления"
+  },
+  "购买服务额度": {
+    "en": "Purchased service credits",
+    "ja": "購入サービスクレジット",
+    "ru": "Купленные сервисные кредиты"
+  },
+  "赠送服务额度": {
+    "en": "Bonus service credits",
+    "ja": "付与サービスクレジット",
+    "ru": "Бонусные сервисные кредиты"
+  },
+  "USD 余额已到账，可继续购买套餐。": {
+    "en": "USD balance credited. You can now buy a package.",
+    "ja": "USD 残高が反映されました。プランを購入できます。",
+    "ru": "USD зачислены. Можно купить пакет."
+  },
+  "服务额度已到账，可以开始使用。": {
+    "en": "Service credits delivered. You can start using them.",
+    "ja": "サービスクレジットが反映されました。利用を開始できます。",
+    "ru": "Сервисные кредиты зачислены. Можно начинать использование."
+  },
+  "选择套餐": {
+    "en": "Choose a package",
+    "ja": "プランを選択",
+    "ru": "Выбрать пакет"
+  },
+  "查看接入代码": {
+    "en": "View integration code",
+    "ja": "接続コードを確認",
+    "ru": "Посмотреть код подключения"
+  },
+  "此订单已结束。若已实际付款且仍未到账，请凭本订单联系经营方核实，勿重新向原订单转账。": {
+    "en": "This order has ended. If you paid but have not received credit, contact the operator with this order. Do not transfer funds to the original order again.",
+    "ja": "この注文は終了しています。支払済みで未反映の場合は、この注文を添えて運営者に確認してください。元の注文に再送金しないでください。",
+    "ru": "Заказ закрыт. Если вы оплатили, но зачисления нет, обратитесь к оператору с этим заказом. Не переводите деньги повторно по старым реквизитам."
+  },
+  "已足额核实收款，正在处理资产交付。请保留本订单，经营方会继续办理，无须再次付款。": {
+    "en": "Full payment is verified and credits are being delivered. Keep this order; the operator will continue processing it. No further payment is needed.",
+    "ja": "全額の入金を確認し、付与を処理中です。この注文を保管してください。運営者が継続して処理するため、再支払は不要です。",
+    "ru": "Полная оплата подтверждена, кредиты предоставляются. Сохраните заказ; оператор продолжит обработку. Повторная оплата не нужна."
+  },
+  "付款期限已过，请先刷新原订单并核实收款状态，勿继续向原指引付款。已实际付款的款项仍按原订单处理。": {
+    "en": "The payment deadline passed. Refresh the original order and verify receipts before paying; do not follow expired instructions. Funds already paid are still handled under this order.",
+    "ja": "支払期限を過ぎています。元の注文を更新して入金状況を確認し、古い案内に従って支払わないでください。支払済みの資金は引き続き元の注文で処理されます。",
+    "ru": "Срок оплаты прошёл. Обновите исходный заказ и проверьте поступления; не платите по просроченной инструкции. Уже оплаченные средства обрабатываются в этом же заказе."
+  },
+  "目前仅核实部分款项，请按原订单核对付款。": {
+    "en": "Only part of the payment is verified. Check payment against the original order.",
+    "ja": "一部の入金のみ確認されています。元の注文に沿って支払をご確認ください。",
+    "ru": "Подтверждена только часть оплаты. Проверьте её по исходному заказу."
+  },
+  "付款结果正在核实，请保留原订单及付款依据。": {
+    "en": "Payment is being verified. Keep the original order and payment evidence.",
+    "ja": "支払結果を確認中です。元の注文と支払証明を保管してください。",
+    "ru": "Оплата проверяется. Сохраните исходный заказ и подтверждение платежа."
+  },
+  "订单尚未足额核实付款，完成支付后在此查看到账与交付。": {
+    "en": "Full payment has not been verified. Complete payment, then check credit and delivery here.",
+    "ja": "全額の支払が未確認です。支払後、ここで入金と付与をご確認ください。",
+    "ru": "Полная оплата ещё не подтверждена. Завершите оплату и проверьте зачисление здесь."
+  },
+  "完成本订单付款": {
+    "en": "Complete payment for this order",
+    "ja": "この注文の支払を完了",
+    "ru": "Завершить оплату заказа"
+  },
+  "前往支付通道": {
+    "en": "Go to payment provider",
+    "ja": "決済サービスへ",
+    "ru": "Перейти к оплате"
+  },
+  "付款币种": {
+    "en": "Payment currency",
+    "ja": "支払通貨",
+    "ru": "Валюта оплаты"
+  },
+  "以本订单收款说明为准": {
+    "en": "Follow this order's payment instructions",
+    "ja": "この注文の入金案内に従ってください",
+    "ru": "Согласно инструкции по оплате этого заказа"
+  },
+  "应付原币金额": {
+    "en": "Amount due in payment currency",
+    "ja": "支払通貨での請求額",
+    "ru": "Сумма в валюте оплаты"
+  },
+  "原币": {
+    "en": "Payment currency",
+    "ja": "支払通貨",
+    "ru": "Валюта оплаты"
+  },
+  "收款账号 / 收款参考": {
+    "en": "Payee account / payment reference",
+    "ja": "入金口座 / 支払参照",
+    "ru": "Счёт получателя / назначение платежа"
+  },
+  "收款信息见本订单付款说明": {
+    "en": "See this order's payment instructions for payee details",
+    "ja": "入金情報はこの注文の支払案内をご確認ください",
+    "ru": "Реквизиты указаны в инструкции по оплате заказа"
+  },
+  "复制收款账号": {
+    "en": "Copy payee account",
+    "ja": "入金口座をコピー",
+    "ru": "Скопировать счёт получателя"
+  },
+  "请按本订单说明付款并保留银行回单或付款凭据。人工核实后更新原订单收款与交付状态。": {
+    "en": "Follow this order's instructions and keep the bank receipt or payment proof. The original order's payment and delivery status updates after manual verification.",
+    "ja": "注文の案内に従って支払い、銀行の控えや支払証明を保管してください。手動確認後に元の注文の入金・付与状況が更新されます。",
+    "ru": "Платите по инструкции заказа и сохраните банковскую квитанцию или подтверждение. После ручной проверки обновятся статусы оплаты и предоставления исходного заказа."
+  },
+  "准确网络": {
+    "en": "Exact network",
+    "ja": "正確なネットワーク",
+    "ru": "Точная сеть"
+  },
+  "未提供，勿转账": {
+    "en": "Not provided — do not transfer",
+    "ja": "未提供のため送金しないでください",
+    "ru": "Не указано — не переводите средства"
+  },
+  "币种": {
+    "en": "Currency",
+    "ja": "通貨",
+    "ru": "Валюта"
+  },
+  "足额要求": {
+    "en": "Required full amount",
+    "ja": "必要な全額",
+    "ru": "Требуемая полная сумма"
+  },
+  "待核实，勿转账": {
+    "en": "Unverified — do not transfer",
+    "ja": "未確認のため送金しないでください",
+    "ru": "Не проверено — не переводите средства"
+  },
+  "收款地址": {
+    "en": "Receiving address",
+    "ja": "入金アドレス",
+    "ru": "Адрес получателя"
+  },
+  "尚未提供收款地址": {
+    "en": "Receiving address not provided yet",
+    "ja": "入金アドレスは未提供です",
+    "ru": "Адрес получателя ещё не указан"
+  },
+  "复制地址": {
+    "en": "Copy address",
+    "ja": "アドレスをコピー",
+    "ru": "Скопировать адрес"
+  },
+  "准确代币合约": {
+    "en": "Exact token contract",
+    "ja": "正確なトークンコントラクト",
+    "ru": "Точный контракт токена"
+  },
+  "复制代币合约": {
+    "en": "Copy token contract",
+    "ja": "トークンコントラクトをコピー",
+    "ru": "Скопировать контракт токена"
+  },
+  "核对币种、网络、地址及足额要求后再转账；发送手续费由付款方承担。交易哈希只作核实线索，错币、错网或确认不足不会自动记账。": {
+    "en": "Verify the currency, network, address and full amount before transferring. The payer covers transfer fees. A transaction hash is only a verification clue; incorrect currency, network or insufficient confirmations do not credit automatically.",
+    "ja": "通貨、ネットワーク、アドレス、必要全額を確認して送金してください。送金手数料は支払者負担です。取引ハッシュは確認の手掛かりにすぎず、通貨・ネットワークの誤りや確認不足では自動反映されません。",
+    "ru": "Проверьте валюту, сеть, адрес и полную сумму перед переводом. Комиссии перевода оплачивает отправитель. Хеш служит лишь для проверки; неверная валюта, сеть или недостаток подтверждений не приводят к автоматическому зачислению."
+  },
+  "本订单尚未提供外部付款指引。可刷新记录或联系经营方核实，确认原订单状态后再付款。": {
+    "en": "External payment instructions are not available yet. Refresh the record or contact the operator, and verify the original order status before paying.",
+    "ja": "外部決済の案内はまだありません。記録の更新または運営者への問い合わせにより、元の注文状態を確認してからお支払いください。",
+    "ru": "Инструкция по внешней оплате ещё не доступна. Обновите запись или обратитесь к оператору; перед оплатой проверьте статус исходного заказа."
+  },
+  "支付组件尚未就绪，请联系经营方检查配置，勿重复创建订单。": {
+    "en": "The payment component is not ready. Ask the operator to check the setup; do not create duplicate orders.",
+    "ja": "決済画面の準備が整っていません。運営者に設定の確認を依頼し、注文を重複作成しないでください。",
+    "ru": "Платёжный компонент не готов. Попросите оператора проверить настройки; не создавайте дубли заказов."
+  },
+  "支付链接暂不可用，请刷新原订单或联系经营方。": {
+    "en": "The payment link is temporarily unavailable. Refresh the original order or contact the operator.",
+    "ja": "支払リンクは一時的に利用できません。元の注文を更新するか運営者にお問い合わせください。",
+    "ru": "Ссылка оплаты временно недоступна. Обновите исходный заказ или обратитесь к оператору."
+  },
+  "更新中…": {
+    "en": "Updating…",
+    "ja": "更新中…",
+    "ru": "Обновление…"
+  },
+  "刷新订单记录": {
+    "en": "Refresh order record",
+    "ja": "注文記録を更新",
+    "ru": "Обновить запись заказа"
+  },
+  "正在核实原交易…": {
+    "en": "Verifying original transaction…",
+    "ja": "元の取引を確認中…",
+    "ru": "Проверка исходной транзакции…"
+  },
+  "重试原状态核实": {
+    "en": "Retry original status verification",
+    "ja": "元の状態確認を再試行",
+    "ru": "Повторить исходную проверку статуса"
+  },
+  "我已付款，核实原通道": {
+    "en": "I've paid — verify with original provider",
+    "ja": "支払済み · 元の決済先で確認",
+    "ru": "Я оплатил — проверить через исходный канал"
+  },
+  "全部订单": {
+    "en": "All orders",
+    "ja": "すべての注文",
+    "ru": "Все заказы"
+  },
+  "已提交原通道核实，最新结果将更新到本订单记录。": {
+    "en": "Verification with the original provider has been requested. The latest result will appear in this order.",
+    "ja": "元の決済先への確認を依頼しました。最新の結果はこの注文に反映されます。",
+    "ru": "Проверка через исходный канал запрошена. Последний результат появится в этом заказе."
+  },
+  "付款与到账为什么分开显示": {
+    "en": "Why payment and delivery appear separately",
+    "ja": "支払と反映を別々に表示する理由",
+    "ru": "Почему оплата и зачисление показаны отдельно"
+  },
+  "支付通道成功不等于权益已交付，资产以本订单的核实与交付记录为准。少付、多付、迟付和已收款未交付均处理原订单；重复查询不会再扣款。": {
+    "en": "Payment provider success does not mean credits were delivered; this order's verification and delivery records determine your assets. Underpayment, overpayment, late payment and paid-but-undelivered cases stay with the original order. Rechecking never charges again.",
+    "ja": "決済成功だけでは特典の付与完了を意味しません。資産はこの注文の確認・付与記録に従います。不足・過払・遅延・入金済み未付与は元の注文で処理され、再照会で再請求は発生しません。",
+    "ru": "Успех у платёжного провайдера не означает предоставление кредитов; баланс определяется проверкой и записями этого заказа. Недоплата, переплата, поздняя оплата и оплата без предоставления обрабатываются в исходном заказе. Повторная проверка не списывает деньги."
+  },
+  "支付组件加载失败": {
+    "en": "Failed to load payment component",
+    "ja": "決済コンポーネントの読込に失敗しました",
+    "ru": "Не удалось загрузить платёжный компонент"
+  },
+  "支付已提交，服务端将继续核实收款与交付，请刷新原订单记录。": {
+    "en": "Payment submitted. The server will continue verifying receipts and delivery. Refresh the original order record.",
+    "ja": "支払を送信しました。サーバーで入金と付与を確認します。元の注文記録を更新してください。",
+    "ru": "Оплата отправлена. Сервер продолжит проверять поступление и предоставление. Обновите исходный заказ."
+  },
+  "支付未完成": {
+    "en": "Payment not completed",
+    "ja": "支払が完了していません",
+    "ru": "Оплата не завершена"
+  },
+  "支付提交结果待核实，请刷新原订单核对收款状态。": {
+    "en": "The payment submission result is being verified. Refresh the original order to check receipts.",
+    "ja": "支払送信の結果を確認中です。元の注文を更新して入金状況を確認してください。",
+    "ru": "Результат отправки оплаты проверяется. Обновите исходный заказ и проверьте поступление."
+  },
+  "正在提交支付…": {
+    "en": "Submitting payment…",
+    "ja": "支払を送信中…",
+    "ru": "Отправка оплаты…"
+  },
+  "确认通道支付": {
+    "en": "Confirm provider payment",
+    "ja": "決済を確定",
+    "ru": "Подтвердить оплату через провайдера"
+  },
+  "搜索明细": {
+    "en": "Search records",
+    "ja": "明細を検索",
+    "ru": "Поиск записей"
+  },
+  "查询": {
+    "en": "Search",
+    "ja": "検索",
+    "ru": "Найти"
+  },
+  "清除": {
+    "en": "Clear",
+    "ja": "クリア",
+    "ru": "Очистить"
+  },
+  "第 {page} 页": {
+    "en": "Page {page}",
+    "ja": "{page} ページ",
+    "ru": "Страница {page}"
+  },
+  "上一页": {
+    "en": "Previous",
+    "ja": "前へ",
+    "ru": "Назад"
+  },
+  "下一页": {
+    "en": "Next",
+    "ja": "次へ",
+    "ru": "Далее"
+  },
+  "从付款到交付，核对每笔购包和充值。已收款未交付时继续处理原订单。": {
+    "en": "Track every package purchase and top-up from payment to delivery. Paid but undelivered orders continue under the original order.",
+    "ja": "支払から付与まで、すべてのプラン購入とチャージを確認できます。入金済み・未付与は元の注文で処理を続けます。",
+    "ru": "Отслеживайте каждую покупку и пополнение от оплаты до зачисления. Оплаченные, но не исполненные заказы продолжают обрабатываться в исходном заказе."
+  },
+  "搜索订单编号或套餐名称": {
+    "en": "Search order ID or package name",
+    "ja": "注文 ID またはプラン名で検索",
+    "ru": "Поиск по ID заказа или названию пакета"
+  },
+  "订单详情": {
+    "en": "Order details",
+    "ja": "注文の詳細",
+    "ru": "Детали заказа"
+  },
+  "收起详情": {
+    "en": "Hide details",
+    "ja": "詳細を閉じる",
+    "ru": "Скрыть подробности"
+  },
+  "开票与交易凭证": {
+    "en": "Invoices & transaction receipts",
+    "ja": "請求書と取引証明",
+    "ru": "Счета и подтверждения транзакций"
+  },
+  "退款与异常办理": {
+    "en": "Refunds & exceptions",
+    "ja": "返金と例外対応",
+    "ru": "Возвраты и разбор исключений"
+  },
+  "没有找到匹配订单": {
+    "en": "No matching orders",
+    "ja": "一致する注文がありません",
+    "ru": "Подходящих заказов нет"
+  },
+  "还没有购买或充值订单": {
+    "en": "No purchase or top-up orders yet",
+    "ja": "購入・チャージの注文はまだありません",
+    "ru": "Заказов на покупку или пополнение пока нет"
+  },
+  "检查订单编号或清除搜索后重试。": {
+    "en": "Check the order ID or clear the search and try again.",
+    "ja": "注文 ID を確認するか、検索をクリアして再試行してください。",
+    "ru": "Проверьте ID заказа или очистите поиск и повторите попытку."
+  },
+  "可以直接购买套餐，也可先充值 USD 支付余额。": {
+    "en": "Buy a package directly, or top up your USD balance first.",
+    "ja": "プランは直接購入することも、先に USD 残高をチャージすることもできます。",
+    "ru": "Можно купить пакет напрямую или сначала пополнить USD-баланс."
+  },
+  "查看可购买套餐": {
+    "en": "View available packages",
+    "ja": "購入可能なプランを確認",
+    "ru": "Доступные пакеты"
+  },
+  "USD 余额充值": {
+    "en": "USD balance top-up",
+    "ja": "USD 残高のチャージ",
+    "ru": "Пополнение USD-баланса"
+  },
+  "套餐订单": {
+    "en": "Package order",
+    "ja": "プランの注文",
+    "ru": "Заказ пакета"
+  },
+  "继续付款 / 查看详情": {
+    "en": "Continue payment / view details",
+    "ja": "支払を続ける / 詳細を確認",
+    "ru": "Продолжить оплату / подробности"
+  },
+  "查看订单详情": {
+    "en": "View order details",
+    "ja": "注文詳細を確認",
+    "ru": "Посмотреть детали заказа"
+  },
+  "付款成功后为什么还未到账": {
+    "en": "Why hasn't credit arrived after successful payment?",
+    "ja": "支払成功後に反映されない理由",
+    "ru": "Почему после успешной оплаты нет зачисления?"
+  },
+  "足额付款和资产交付是两个步骤。请先刷新原订单记录；已收款未交付不需要重新支付。金额、时间或币种存在差异时，经营方将保留异常记录继续核实。": {
+    "en": "Full payment and credit delivery are separate steps. Refresh the original order first; paid but undelivered orders do not need another payment. If amount, timing or currency differs, the operator keeps the exception record and continues verification.",
+    "ja": "全額支払とクレジット付与は別の工程です。まず元の注文を更新してください。入金済み・未付与であれば再支払は不要です。金額・時刻・通貨に差異がある場合は、運営者が例外記録を保管して確認を続けます。",
+    "ru": "Полная оплата и предоставление кредитов — отдельные этапы. Сначала обновите исходный заказ; повторная оплата не нужна. При расхождении суммы, времени или валюты оператор сохраняет запись исключения и продолжает проверку."
+  },
+  "用量与账单": {
+    "en": "Usage & billing",
+    "ja": "利用状況と請求",
+    "ru": "Использование и счета"
+  },
+  "按请求核对模型、Key 和费用，获取尚在保留期的异步结果。": {
+    "en": "Check models, Keys and charges per request, and retrieve asynchronous results within their retention period.",
+    "ja": "リクエストごとにモデル、Key、料金を確認し、保存期間内の非同期結果を取得できます。",
+    "ru": "Проверяйте модели, ключи и расходы по запросам, получайте асинхронные результаты до окончания срока хранения."
+  },
+  "刷新记录": {
+    "en": "Refresh records",
+    "ja": "記録を更新",
+    "ru": "Обновить записи"
+  },
+  "本次请求如何计费": {
+    "en": "How this request was charged",
+    "ja": "今回のリクエストの料金内訳",
+    "ru": "Как рассчитана стоимость запроса"
+  },
+  "没有找到匹配请求": {
+    "en": "No matching requests",
+    "ja": "一致するリクエストがありません",
+    "ru": "Подходящих запросов нет"
+  },
+  "还没有模型调用": {
+    "en": "No model requests yet",
+    "ja": "モデルの呼び出しはまだありません",
+    "ru": "Запросов к моделям пока нет"
+  },
+  "检查请求编号或清除搜索后重试。": {
+    "en": "Check the request ID or clear the search and try again.",
+    "ja": "リクエスト ID を確認するか、検索をクリアして再試行してください。",
+    "ru": "Проверьте ID запроса или очистите поиск и повторите попытку."
+  },
+  "体验模型": {
+    "en": "Try a model",
+    "ja": "モデルを体験",
+    "ru": "Попробовать модель"
+  },
+  "实际净扣费": {
+    "en": "Actual net charge",
+    "ja": "実際の正味請求額",
+    "ru": "Фактическое чистое списание"
+  },
+  "费用明细与结果": {
+    "en": "Charge details & result",
+    "ja": "料金内訳と結果",
+    "ru": "Детали расходов и результат"
+  },
+  "预占、实际费用与内容保留": {
+    "en": "Reservations, actual charges and retention",
+    "ja": "仮確保・実費・内容の保存",
+    "ru": "Резервы, фактическая стоимость и хранение"
+  },
+  "预占是请求执行中的临时占用，实际结算后释放差额；重复查询或取得同一结果不会新增调用费。模型价格在受理时锁定，账单保留元数据及纠正关联。": {
+    "en": "Reservations temporarily hold credits during execution; the difference is released after settlement. Rechecking or retrieving the same result adds no model charge. Prices are locked at acceptance, and bills retain metadata and correction links.",
+    "ja": "仮確保は実行中の一時的な確保で、精算後に差額を解放します。再照会や同じ結果の取得で追加のモデル料金は発生しません。受付時に価格を固定し、明細にはメタデータと訂正の関連を保持します。",
+    "ru": "Резерв временно удерживает кредиты во время выполнения; разница освобождается после расчёта. Повторная проверка или получение того же результата не добавляет плату за модель. Цены фиксируются при приёме; счета сохраняют метаданные и связи с исправлениями."
+  },
+  "不提供长期会话或请求内容存储。暂存结果请在显示期限内取得，到期清理不会撤销已正确发生的费用。": {
+    "en": "Long-term conversation or request content storage is not provided. Retrieve temporary results before the displayed deadline; expiry cleanup does not reverse valid charges.",
+    "ja": "会話やリクエスト内容の長期保存は提供していません。一時結果は表示期限までに取得してください。期限後の削除によって正しく発生した料金が取り消されることはありません。",
+    "ru": "Долгосрочное хранение переписок и содержимого запросов не предоставляется. Получите временные результаты до указанного срока; удаление по истечении срока не отменяет корректные списания."
+  },
+  "复制请求编号": {
+    "en": "Copy request ID",
+    "ja": "リクエスト ID をコピー",
+    "ru": "Скопировать ID запроса"
+  },
+  "请求编号": {
+    "en": "Request ID",
+    "ja": "リクエスト ID",
+    "ru": "ID запроса"
+  },
+  "受理时间": {
+    "en": "Accepted at",
+    "ja": "受付日時",
+    "ru": "Время приёма"
+  },
+  "公开模型": {
+    "en": "Public model",
+    "ja": "公開モデル",
+    "ru": "Публичная модель"
+  },
+  "使用 Key": {
+    "en": "Key used",
+    "ja": "使用した Key",
+    "ru": "Использованный ключ"
+  },
+  "实际用量计价": {
+    "en": "Actual usage cost",
+    "ja": "実利用量に基づく金額",
+    "ru": "Стоимость фактического использования"
+  },
+  "尚未结算": {
+    "en": "Not settled yet",
+    "ja": "未精算",
+    "ru": "Ещё не рассчитано"
+  },
+  "实际用量超出可扣服务额度的部分，由经营方承担": {
+    "en": "Usage exceeding deductible service credits is covered by the operator: ",
+    "ja": "控除可能なクレジットを超えた実利用分は運営者が負担します：",
+    "ru": "Использование сверх доступных для списания кредитов покрывает оператор: "
+  },
+  "，此部分未从你的其他资产扣除。": {
+    "en": ". This amount was not deducted from your other assets.",
+    "ja": "。この分は他の資産から差し引かれていません。",
+    "ru": ". Эта сумма не списана с других ваших средств."
+  },
+  "此请求有费用纠正，查看原始与净额": {
+    "en": "This request has corrections — view original and net amounts",
+    "ja": "料金訂正あり · 元の金額と正味額を確認",
+    "ru": "Есть исправления — исходные и чистые суммы"
+  },
+  "原始用量计价": {
+    "en": "Original usage cost",
+    "ja": "元の利用量計算額",
+    "ru": "Исходная стоимость использования"
+  },
+  "原始实扣": {
+    "en": "Original debit",
+    "ja": "元の実際の控除額",
+    "ru": "Исходное списание"
+  },
+  "已纠正计价": {
+    "en": "Corrected usage cost",
+    "ja": "訂正した計算額",
+    "ru": "Исправленная стоимость"
+  },
+  "已返还实扣": {
+    "en": "Debit returned",
+    "ja": "返還済みの控除額",
+    "ru": "Возвращённое списание"
+  },
+  "以下明细保留原始受理和扣减事实，纠正不会覆盖原记录。": {
+    "en": "Details below retain the original acceptance and debit facts. Corrections do not overwrite the original record.",
+    "ja": "以下の明細には元の受付・控除の事実を保持します。訂正で元の記録は上書きされません。",
+    "ru": "Подробности ниже сохраняют исходные факты приёма и списания. Исправления не перезаписывают первоначальную запись."
+  },
+  "价格快照与计量": {
+    "en": "Price snapshot & metering",
+    "ja": "価格スナップショットと計量",
+    "ru": "Снимок цен и учёт использования"
+  },
+  "计量组成": {
+    "en": "Metered component",
+    "ja": "計量の内訳",
+    "ru": "Компонент учёта"
+  },
+  "累计精度调整": {
+    "en": "Cumulative precision adjustment",
+    "ja": "累積精度調整",
+    "ru": "Корректировка накопленной точности"
+  },
+  "实际用量": {
+    "en": "Actual usage",
+    "ja": "実際の利用量",
+    "ru": "Фактическое использование"
+  },
+  "受理时单价": {
+    "en": "Unit price at acceptance",
+    "ja": "受付時の単価",
+    "ru": "Цена единицы при приёме"
+  },
+  "未提供": {
+    "en": "Not provided",
+    "ja": "未提供",
+    "ru": "Не указано"
+  },
+  "金额": {
+    "en": "Amount",
+    "ja": "金額",
+    "ru": "Сумма"
+  },
+  "请求仍在处理，结算后展示计量及价格依据。": {
+    "en": "The request is still processing. Metering and pricing details appear after settlement.",
+    "ja": "リクエストを処理中です。精算後に計量と価格の根拠を表示します。",
+    "ru": "Запрос обрабатывается. Данные учёта и цены появятся после расчёта."
+  },
+  "该请求尚无计量明细。": {
+    "en": "No metering details for this request yet.",
+    "ja": "このリクエストの計量明細はまだありません。",
+    "ru": "Детали учёта для запроса пока отсутствуют."
+  },
+  "扣减了哪些额度": {
+    "en": "Which credits were deducted?",
+    "ja": "どのクレジットが控除されたか",
+    "ru": "Какие кредиты списаны"
+  },
+  "经营方赠送": {
+    "en": "Operator bonus",
+    "ja": "運営者による付与",
+    "ru": "Бонус оператора"
+  },
+  "KOL 赠送": {
+    "en": "KOL bonus",
+    "ja": "KOL による付与",
+    "ru": "Бонус KOL"
+  },
+  "赠送额度": {
+    "en": "Bonus credits",
+    "ja": "付与クレジット",
+    "ru": "Бонусные кредиты"
+  },
+  "有偿基数": {
+    "en": "Paid-spend basis",
+    "ja": "有償利用の基準額",
+    "ru": "База оплаченного использования"
+  },
+  "查看来源订单与交付": {
+    "en": "View source order and delivery",
+    "ja": "元の注文と付与を確認",
+    "ru": "Исходный заказ и предоставление"
+  },
+  "尚无额度扣减来源记录。": {
+    "en": "No credit allocation records yet.",
+    "ja": "クレジットの控除元記録はまだありません。",
+    "ru": "Записей об источниках списания пока нет."
+  },
+  "本次暂存结果": {
+    "en": "Temporary result for this request",
+    "ja": "今回の一時保存結果",
+    "ru": "Временный результат запроса"
+  },
+  "保留至": {
+    "en": "Retained until",
+    "ja": "保存期限",
+    "ru": "Хранится до"
+  },
+  "，请及时获取。": {
+    "en": ". Retrieve it before it expires.",
+    "ja": "。期限内に取得してください。",
+    "ru": ". Получите его до окончания срока."
+  },
+  "取得暂存结果": {
+    "en": "Retrieve temporary result",
+    "ja": "一時結果を取得",
+    "ru": "Получить временный результат"
+  },
+  "读取同一结果不会重新调用模型或新增模型费用。": {
+    "en": "Reading the same result does not call the model again or add model fees.",
+    "ja": "同じ結果の読取りでモデルを再呼び出ししたり追加の料金が発生したりすることはありません。",
+    "ru": "Получение того же результата не вызывает модель повторно и не добавляет плату за модель."
+  },
+  "申请取消原请求": {
+    "en": "Request cancellation",
+    "ja": "元のリクエストの取消を申請",
+    "ru": "Запросить отмену"
+  },
+  "确认取消此请求？取消按已发生且可核实的用量结算；提交取消申请后仍需等待任务确认。": {
+    "en": "Cancel this request? Charges are settled for verifiable usage already incurred. After submitting, wait for the task to confirm cancellation.",
+    "ja": "このリクエストを取り消しますか？発生済みかつ確認可能な利用量は精算されます。申請後もタスクによる取消確認を待つ必要があります。",
+    "ru": "Отменить запрос? Проверяемое уже выполненное использование подлежит оплате. После отправки заявки дождитесь подтверждения отмены задачей."
+  },
+  "正在申请…": {
+    "en": "Requesting…",
+    "ja": "申請中…",
+    "ru": "Отправка заявки…"
+  },
+  "重试原取消操作": {
+    "en": "Retry original cancellation",
+    "ja": "元の取消操作を再試行",
+    "ru": "Повторить исходную отмену"
+  },
+  "确认取消请求": {
+    "en": "Confirm request cancellation",
+    "ja": "リクエストの取消を確認",
+    "ru": "Подтвердить отмену запроса"
+  },
+  "收起": {
+    "en": "Hide",
+    "ja": "閉じる",
+    "ru": "Свернуть"
+  },
+  "取消申请已提交，最终费用与状态以原请求记录为准。": {
+    "en": "Cancellation requested. Final charges and status are determined by the original request record.",
+    "ja": "取消を申請しました。最終料金と状態は元のリクエスト記録に従います。",
+    "ru": "Заявка на отмену отправлена. Итоговая стоимость и статус определяются записью исходного запроса."
+  },
+  "邀请与收益": {
+    "en": "Referrals & earnings",
+    "ja": "招待と報酬",
+    "ru": "Приглашения и доходы"
+  },
+  "分享专属入口，查看邀请效果和 KOL 资格。同一账号即可管理普通邀请与 KOL 推广。": {
+    "en": "Share your link, track referrals and check KOL qualification. Manage regular referrals and KOL promotion with one account.",
+    "ja": "専用リンクの共有、紹介実績、KOL 資格を確認できます。通常の紹介と KOL 紹介を同じアカウントで管理できます。",
+    "ru": "Делитесь ссылкой, отслеживайте приглашения и право на продвижение KOL. Обычные приглашения и продвижение KOL доступны в одном аккаунте."
+  },
+  "佣金明细": {
+    "en": "Commission details",
+    "ja": "コミッション明細",
+    "ru": "Детали комиссии"
+  },
+  "INVITE FRIENDS": {
+    "en": "INVITE FRIENDS",
+    "ja": "友達を招待",
+    "ru": "ПРИГЛАСИТЬ ДРУЗЕЙ"
+  },
+  "邀请朋友使用模型": {
+    "en": "Invite friends to use models",
+    "ja": "友達を招待してモデルを利用",
+    "ru": "Приглашайте друзей пользоваться моделями"
+  },
+  "新用户完成注册时确认邀请关系和所属经营方。": {
+    "en": "New users confirm their inviter and operator when completing registration.",
+    "ja": "新規ユーザーは正式登録の完了時に紹介関係と所属運営者を確認します。",
+    "ru": "Новые пользователи подтверждают пригласившего и оператора при завершении регистрации."
+  },
+  "你的邀请链接": {
+    "en": "Your invite link",
+    "ja": "自分の招待リンク",
+    "ru": "Ваша ссылка приглашения"
+  },
+  "复制邀请链接": {
+    "en": "Copy invite link",
+    "ja": "招待リンクをコピー",
+    "ru": "Скопировать ссылку приглашения"
+  },
+  "邀请码：": {
+    "en": "Invite code: ",
+    "ja": "招待コード：",
+    "ru": "Код приглашения: "
+  },
+  "复制邀请码": {
+    "en": "Copy invite code",
+    "ja": "招待コードをコピー",
+    "ru": "Скопировать код приглашения"
+  },
+  "邀请仅限同一经营方。已注册客户打开其他链接不会改变已有归属或邀请人。": {
+    "en": "Referrals must be within the same operator. Opening another link does not change an existing customer's operator or inviter.",
+    "ja": "招待は同じ運営者内に限られます。登録済み顧客が他のリンクを開いても、所属や紹介者は変わりません。",
+    "ru": "Приглашения действуют в рамках одного оператора. Открытие другой ссылки не меняет оператора и пригласившего у зарегистрированного клиента."
+  },
+  "直接邀请": {
+    "en": "Direct referrals",
+    "ja": "直接招待",
+    "ru": "Прямые приглашения"
+  },
+  "通过你的邀请入口完成注册的客户": {
+    "en": "Customers who registered through your invite link",
+    "ja": "自分の招待リンクで登録した顧客",
+    "ru": "Клиенты, зарегистрировавшиеся по вашей ссылке"
+  },
+  "间接邀请": {
+    "en": "Indirect referrals",
+    "ja": "間接招待",
+    "ru": "Косвенные приглашения"
+  },
+  "直接邀请客户继续邀请的客户，仅保留两跳关系": {
+    "en": "Customers invited by your direct referrals; only two referral levels are retained",
+    "ja": "直接招待した顧客が招待した顧客。紹介関係は 2 段階まで保持",
+    "ru": "Клиенты, приглашённые вашими прямыми приглашёнными; сохраняются только два уровня"
+  },
+  "已取得 KOL 资格": {
+    "en": "KOL qualification earned",
+    "ja": "KOL 資格を取得済み",
+    "ru": "Право на продвижение KOL получено"
+  },
+  "成为 KOL，开启推广收益": {
+    "en": "Become a KOL and earn from referrals",
+    "ja": "KOL になって紹介報酬を得る",
+    "ru": "Станьте KOL и зарабатывайте на приглашениях"
+  },
+  "资格取得记录与当前推广功能状态分别保留。": {
+    "en": "Qualification history and current promotion feature status are tracked separately.",
+    "ja": "資格の取得履歴と現在の紹介機能の状態は別々に記録されます。",
+    "ru": "История получения права и текущий статус продвижения учитываются отдельно."
+  },
+  "按本账号已确认的真实有偿支出累计，达到经营方公布门槛后取得资格。": {
+    "en": "Qualification is earned when confirmed paid spending on this account reaches the operator's published threshold.",
+    "ja": "このアカウントの確認済み有償支出の累計が運営者の公開基準に達すると、資格を取得できます。",
+    "ru": "Право возникает, когда подтверждённые оплаченные расходы аккаунта достигают опубликованного порога оператора."
+  },
+  "已确认资格金额": {
+    "en": "Confirmed qualifying spend",
+    "ja": "確認済みの資格対象額",
+    "ru": "Зачтённые расходы"
+  },
+  "待确认金额": {
+    "en": "Pending amount",
+    "ja": "確認待ち金額",
+    "ru": "Сумма к подтверждению"
+  },
+  "当前资格门槛": {
+    "en": "Current qualification threshold",
+    "ja": "現在の資格基準額",
+    "ru": "Текущий порог получения права"
+  },
+  "待确认金额尚不计入资格。购买部分的实际有偿调用、按规则确认的到期未用价值计入资格；赠送部分不计入。充值或购包金额本身不会立即全部确认为资格金额。": {
+    "en": "Pending amounts do not count yet. Actual paid usage of purchased credits and unused value recognized at expiry under the rules count; bonus credits do not. Top-up or purchase amounts are not immediately counted in full.",
+    "ja": "確認待ち金額はまだ資格に含まれません。購入分の実際の有償利用と、規則に従って期限時に認識された未使用価値が対象です。付与分は対象外で、チャージ額や購入額が直ちに全額加算されるわけではありません。",
+    "ru": "Неподтверждённые суммы пока не учитываются. Учитывается фактическое платное использование купленных кредитов и признанная по правилам неиспользованная стоимость при истечении срока; бонусы не учитываются. Пополнение и покупка не засчитываются сразу целиком."
+  },
+  "管理 KOL 推广活动": {
+    "en": "Manage KOL campaigns",
+    "ja": "KOL キャンペーンを管理",
+    "ru": "Управлять кампаниями KOL"
+  },
+  "佣金提现与付款记录": {
+    "en": "Commission withdrawals & payments",
+    "ja": "コミッション出金と支払記録",
+    "ru": "Вывод комиссии и платежи"
+  },
+  "取得资格后可在此管理 KOL 套餐加赠活动与佣金提现。": {
+    "en": "After qualifying, manage KOL package bonus campaigns and commission withdrawals here.",
+    "ja": "資格取得後、ここで KOL のプラン追加特典キャンペーンとコミッション出金を管理できます。",
+    "ru": "После получения права здесь можно управлять бонусными кампаниями KOL и выводом комиссии."
+  },
+  "邀请奖励、KOL 活动与两跳佣金如何计算": {
+    "en": "Referral rewards, KOL campaigns and two-level commissions",
+    "ja": "招待報酬・KOL 活動・2 段階コミッションの計算",
+    "ru": "Награды за приглашения, кампании KOL и комиссии двух уровней"
+  },
+  "正式注册完成后，按适用规则发放注册奖励；普通用户与 KOL 邀请人的奖励规则，以被邀请人正式注册时的身份确定。具体活动权益在购买报价中核实。": {
+    "en": "Registration rewards are granted after registration completes under the applicable rules. Reward rules for regular and KOL inviters use their status when the invitee registers. Specific campaign benefits are verified in the purchase quote.",
+    "ja": "正式登録後、適用ルールに従って登録報酬を付与します。通常紹介者・KOL 紹介者の報酬ルールは、招待された人の正式登録時の紹介者の身分で決まります。具体的な特典は購入見積もりで確認します。",
+    "ru": "Награды за регистрацию выдаются после её завершения по применимым правилам. Правила для обычного пригласившего и KOL определяются его статусом при регистрации приглашённого. Конкретные бонусы проверяются в расчёте покупки."
+  },
+  "购买时固定直接比例": {
+    "en": "At purchase, the direct rate is fixed at ",
+    "ja": "購入時に直接比率を固定：",
+    "ru": "При покупке фиксируется прямая ставка: "
+  },
+  "、间接比例": {
+    "en": " and the indirect rate at ",
+    "ja": "、間接比率：",
+    "ru": ", косвенная ставка: "
+  },
+  "；下级实际发生有偿调用时，分别核实两跳邀请人的有效资格。赠送、到期金额及经营方承担的额度缺口不产生佣金。": {
+    "en": ". When downstream customers incur actual paid usage, each of the two inviters' qualifications is verified. Bonuses, expired value and operator-covered shortfalls generate no commission.",
+    "ja": "。下位顧客の有償利用時に、2 段階それぞれの紹介者の有効資格を確認します。付与分、期限切れ額、運営者負担の不足分からコミッションは生じません。",
+    "ru": ". При фактическом платном использовании нижестоящего клиента проверяется право обоих пригласивших. Бонусы, истёкшая стоимость и покрытый оператором дефицит не создают комиссию."
+  },
+  "KOL 活动可在允许范围内提供套餐加赠，组合条件以本次报价为准。下级客户身份脱敏，其余额、Key 和请求内容不会向推广者开放。": {
+    "en": "KOL campaigns can offer extra package credits within permitted limits. Combination rules follow the quote. Downstream identities are masked; their balances, Keys and request content are never shared with promoters.",
+    "ja": "KOL 活動は許可範囲内でプラン特典を追加できます。併用条件は今回の見積もりに従います。下位顧客の身元は匿名化され、残高、Key、リクエスト内容は紹介者に公開されません。",
+    "ru": "Кампании KOL могут давать дополнительные кредиты в разрешённых пределах. Совмещение определяется расчётом. Личности нижестоящих клиентов скрыты; их баланс, ключи и содержимое запросов недоступны продвигающим."
+  },
+  "佣金钱包": {
+    "en": "Commission wallet",
+    "ja": "コミッションウォレット",
+    "ru": "Кошелёк комиссии"
+  },
+  "查看来源与确认明细": {
+    "en": "View sources and confirmation details",
+    "ja": "出所と確認明細を見る",
+    "ru": "Источники и подтверждения"
+  },
+  "当前可用": {
+    "en": "Available now",
+    "ja": "現在利用可能",
+    "ru": "Доступно сейчас"
+  },
+  "待确认冻结": {
+    "en": "Frozen pending confirmation",
+    "ja": "確認待ちで凍結中",
+    "ru": "Заморожено до подтверждения"
+  },
+  "已经占用": {
+    "en": "Reserved",
+    "ja": "確保済み",
+    "ru": "Зарезервировано"
+  },
+  "错误佣金待抵扣": {
+    "en": "Incorrect commission to recover",
+    "ja": "誤コミッションの控除待ち",
+    "ru": "Ошибочная комиссия к возмещению"
+  },
+  "来源受限": {
+    "en": "Source-restricted amount: ",
+    "ja": "出所制限額：",
+    "ru": "Ограничено по источнику: "
+  },
+  "，限制部分不可新花或提现。": {
+    "en": ". Restricted funds cannot be newly spent or withdrawn.",
+    "ja": "。制限対象分は新規支出や出金に使えません。",
+    "ru": ". Ограниченные средства нельзя тратить или выводить."
+  },
+  "用可用佣金购买套餐": {
+    "en": "Buy packages with available commission",
+    "ja": "利用可能コミッションでプランを購入",
+    "ru": "Купить пакет за доступную комиссию"
+  },
+  "申请提现 / 查看付款": {
+    "en": "Request withdrawal / view payments",
+    "ja": "出金を申請 / 支払を確認",
+    "ru": "Запросить вывод / платежи"
+  },
+  "佣金购买须主动选择；提现申请与审批都不等于已付款。冻结、占用及待抵扣分别记录，不动用正常支付余额或 ATG。": {
+    "en": "Using commission for purchases requires your choice. A withdrawal request or approval does not mean payment has been made. Frozen, reserved and recovery amounts are tracked separately, without using normal USD balance or ATG.",
+    "ja": "購入へのコミッション利用は明示的な選択が必要です。出金の申請・承認は支払完了を意味しません。凍結・確保・控除待ちは別々に記録し、通常の支払残高や ATG は使用しません。",
+    "ru": "Использование комиссии для покупок нужно выбрать явно. Заявка на вывод или её одобрение не означают выплату. Замороженные, зарезервированные суммы и суммы к возмещению учитываются отдельно и не затрагивают обычный USD-баланс или ATG."
+  },
+  "核对每笔推广收益的来源、有偿基数和确认时间。": {
+    "en": "Check the source, paid-spend basis and confirmation time of every commission.",
+    "ja": "各コミッションの出所、有償利用基準額、確認時刻を確認できます。",
+    "ru": "Проверяйте источник, базу оплаченного использования и время подтверждения каждой комиссии."
+  },
+  "提现与付款记录": {
+    "en": "Withdrawals & payment records",
+    "ja": "出金と支払記録",
+    "ru": "Выводы и записи выплат"
+  },
+  "没有匹配的佣金记录": {
+    "en": "No matching commission records",
+    "ja": "一致するコミッション記録がありません",
+    "ru": "Подходящих записей комиссии нет"
+  },
+  "还没有佣金记录": {
+    "en": "No commission records yet",
+    "ja": "コミッション記録はまだありません",
+    "ru": "Записей комиссии пока нет"
+  },
+  "取得有效 KOL 资格后，两跳下级的实际有偿调用按已固定的订单规则产生佣金。": {
+    "en": "After obtaining active KOL qualification, actual paid usage from two downstream levels earns commission under the order's fixed rules.",
+    "ja": "有効な KOL 資格の取得後、2 段階下位の実際の有償利用から、注文時に固定した規則でコミッションが発生します。",
+    "ru": "После получения действующего права KOL фактическое платное использование клиентов двух уровней создаёт комиссию по зафиксированным правилам заказа."
+  },
+  "调用佣金": {
+    "en": "Usage commission",
+    "ja": "利用コミッション",
+    "ru": "Комиссия за использование"
+  },
+  "佣金纠正": {
+    "en": "Commission correction",
+    "ja": "コミッション訂正",
+    "ru": "Исправление комиссии"
+  },
+  "错误佣金抵扣": {
+    "en": "Incorrect commission recovery",
+    "ja": "誤コミッションの控除",
+    "ru": "Возмещение ошибочной комиссии"
+  },
+  "第 {hop} 跳": {
+    "en": "Level {hop}",
+    "ja": "第 {hop} 段階",
+    "ru": "Уровень {hop}"
+  },
+  "本笔佣金": {
+    "en": "This commission",
+    "ja": "今回のコミッション",
+    "ru": "Эта комиссия"
+  },
+  "有偿消费基数": {
+    "en": "Paid-spend basis",
+    "ja": "有償消費の基準額",
+    "ru": "База оплаченных расходов"
+  },
+  "应确认时间": {
+    "en": "Scheduled confirmation",
+    "ja": "確認予定日時",
+    "ru": "Ожидаемое подтверждение"
+  },
+  "查看关联编号": {
+    "en": "View related IDs",
+    "ja": "関連 ID を確認",
+    "ru": "Связанные идентификаторы"
+  },
+  "佣金记录编号": {
+    "en": "Commission record ID",
+    "ja": "コミッション記録 ID",
+    "ru": "ID записи комиссии"
+  },
+  "来源记录编号": {
+    "en": "Source record ID",
+    "ja": "出所の記録 ID",
+    "ru": "ID исходной записи"
+  },
+  "来源用于核对自己的佣金依据，不开放下级客户的账单、余额、Key 或调用内容。": {
+    "en": "Sources let you verify your own commission basis; downstream customers' bills, balances, Keys and request content are not exposed.",
+    "ja": "出所は自分のコミッション根拠の確認用です。下位顧客の請求、残高、Key、呼び出し内容は公開されません。",
+    "ru": "Источники позволяют проверить основание своей комиссии; счета, балансы, ключи и содержимое запросов нижестоящих клиентов не раскрываются."
+  },
+  "冻结、冲正与结清规则": {
+    "en": "Freezing, reversals and settlement",
+    "ja": "凍結・取消訂正・精算ルール",
+    "ru": "Заморозка, сторнирование и расчёт"
+  },
+  "佣金在消费确认且无相关争议后按规则释放。正确佣金不因后续调价或善意补偿追溯修改；错误佣金单独冲正，余额不足时进入待抵扣。": {
+    "en": "Commission is released under the rules after usage confirmation and resolution of related disputes. Correct commission is not changed retroactively by later price changes or goodwill compensation. Incorrect commission is reversed separately and becomes a recovery balance if funds are insufficient.",
+    "ja": "コミッションは利用確認と関連紛争の解決後、規則に従って解放されます。正しいコミッションは後日の価格変更や善意の補償で遡及変更されません。誤りは別途訂正し、残高不足時は控除待ちに記録します。",
+    "ru": "Комиссия освобождается по правилам после подтверждения использования и разрешения споров. Корректная комиссия не пересчитывается задним числом из-за изменения цен или компенсации доброй воли. Ошибочная сторнируется отдельно; при нехватке средств возникает остаток к возмещению."
+  },
+  "已复制": {
+    "en": "Copied",
+    "ja": "コピーしました",
+    "ru": "Скопировано"
+  },
+  "复制失败，请选中文本手动复制。": {
+    "en": "Copy failed. Select the text and copy it manually.",
+    "ja": "コピーできませんでした。テキストを選択して手動でコピーしてください。",
+    "ru": "Не удалось скопировать. Выделите текст и скопируйте вручную."
+  },
+  "本次操作正在处理或结果待核实，请先完成原操作核实，再离开此页。": {
+    "en": "This operation is processing or awaiting verification. Complete verification of the original operation before leaving this page.",
+    "ja": "今回の操作は処理中または結果確認待ちです。元の操作の確認を完了してから、このページを離れてください。",
+    "ru": "Операция выполняется или ожидает проверки. Завершите проверку исходной операции перед уходом со страницы."
+  },
+  "页面不存在": {
+    "en": "Page not found",
+    "ja": "ページが見つかりません",
+    "ru": "Страница не найдена"
+  },
+  "返回概览": {
+    "en": "Back to overview",
+    "ja": "概要に戻る",
+    "ru": "Вернуться к обзору"
+  },
+  "通知": {
+    "en": "Notifications",
+    "ja": "通知",
+    "ru": "Уведомления"
+  },
+  "资金、资产、安全、履约与重要规则属于必要业务通知。营销退订不关闭这些通知；需要重新授权的事项会单独提供确认操作。": {
+    "en": "Funds, assets, security, fulfillment and important rules are essential business notifications. Unsubscribing from marketing does not turn them off. Items requiring renewed authorization include a separate confirmation action.",
+    "ja": "資金、資産、安全、履行、重要ルールに関する通知は必要な業務通知です。マーケティング配信を解除しても停止されません。再同意が必要な事項には個別の確認操作が用意されます。",
+    "ru": "Средства, активы, безопасность, исполнение и важные правила относятся к обязательным деловым уведомлениям. Отказ от маркетинга их не отключает. Для повторного разрешения предусмотрено отдельное подтверждение."
+  },
+  "暂无通知": {
+    "en": "No notifications",
+    "ja": "通知はありません",
+    "ru": "Уведомлений нет"
+  },
+  "必要业务通知": {
+    "en": "Essential business notification",
+    "ja": "必要な業務通知",
+    "ru": "Обязательное деловое уведомление"
+  },
+  "营销通知": {
+    "en": "Marketing notification",
+    "ja": "マーケティング通知",
+    "ru": "Маркетинговое уведомление"
+  },
+  "邮件：": {
+    "en": "Email: ",
+    "ja": "メール：",
+    "ru": "Почта: "
+  },
+  "查看相关事项": {
+    "en": "View related item",
+    "ja": "関連事項を確認",
+    "ru": "Просмотреть связанное"
+  },
+  "标为已读": {
+    "en": "Mark as read",
+    "ja": "既読にする",
+    "ru": "Отметить прочитанным"
+  },
+  "复制": {
+    "en": "Copy",
+    "ja": "コピー",
+    "ru": "Скопировать"
+  },
+  "了解规则": {
+    "en": "Learn the rules",
+    "ja": "ルールを確認",
+    "ru": "Правила"
+  },
+  "搜索业务编号、模型或关联记录": {
+    "en": "Search business ID, model or related record",
+    "ja": "業務 ID、モデル、関連記録で検索",
+    "ru": "Поиск по ID операции, модели или связанной записи"
+  },
+  "文本对话": {
+    "en": "Text chat",
+    "ja": "テキスト対話",
+    "ru": "Текстовый чат"
+  },
+  "向量": {
+    "en": "Embeddings",
+    "ja": "埋め込みベクトル",
+    "ru": "Эмбеддинги"
+  },
+  "图像生成": {
+    "en": "Image generation",
+    "ja": "画像生成",
+    "ru": "Генерация изображений"
+  },
+  "语音合成": {
+    "en": "Text to speech",
+    "ja": "音声合成",
+    "ru": "Синтез речи"
+  },
+  "语音转写": {
+    "en": "Transcription",
+    "ja": "音声文字起こし",
+    "ru": "Транскрибация"
+  },
+  "视频生成": {
+    "en": "Video generation",
+    "ja": "動画生成",
+    "ru": "Генерация видео"
+  },
+  "一个日历月": {
+    "en": "One calendar month",
+    "ja": "1 暦月",
+    "ru": "Один календарный месяц"
+  },
+  "三个日历月": {
+    "en": "Three calendar months",
+    "ja": "3 暦月",
+    "ru": "Три календарных месяца"
+  },
+  "十二个日历月": {
+    "en": "Twelve calendar months",
+    "ja": "12 暦月",
+    "ru": "Двенадцать календарных месяцев"
+  },
+  "不限时累计": {
+    "en": "Lifetime cumulative",
+    "ja": "無期限累計",
+    "ru": "За всё время"
+  },
+  "自然月": {
+    "en": "Calendar month",
+    "ja": "暦月",
+    "ru": "Календарный месяц"
+  },
+  "自然季": {
+    "en": "Calendar quarter",
+    "ja": "暦四半期",
+    "ru": "Календарный квартал"
+  },
+  "自然年": {
+    "en": "Calendar year",
+    "ja": "暦年",
+    "ru": "Календарный год"
+  },
+  "无下限": {
+    "en": "No minimum",
+    "ja": "下限なし",
+    "ru": "Без минимума"
+  },
+  "无上限": {
+    "en": "No maximum",
+    "ja": "上限なし",
+    "ru": "Без максимума"
+  },
+  "输入": {
+    "en": "Input",
+    "ja": "入力",
+    "ru": "Вход"
+  },
+  "输出": {
+    "en": "Output",
+    "ja": "出力",
+    "ru": "Выход"
+  },
+  "输入 token": {
+    "en": "Input tokens",
+    "ja": "入力トークン",
+    "ru": "Входные токены"
+  },
+  "输出 token": {
+    "en": "Output tokens",
+    "ja": "出力トークン",
+    "ru": "Выходные токены"
+  },
+  "缓存输入": {
+    "en": "Cached input",
+    "ja": "キャッシュ入力",
+    "ru": "Кэшированный вход"
+  },
+  "缓存输入 token": {
+    "en": "Cached input tokens",
+    "ja": "キャッシュ入力トークン",
+    "ru": "Кэшированные входные токены"
+  },
+  "缓存读取": {
+    "en": "Cache read",
+    "ja": "キャッシュ読取",
+    "ru": "Чтение кэша"
+  },
+  "缓存写入": {
+    "en": "Cache write",
+    "ja": "キャッシュ書込",
+    "ru": "Запись кэша"
+  },
+  "token 数": {
+    "en": "Tokens",
+    "ja": "トークン数",
+    "ru": "Токены"
+  },
+  "token": {
+    "en": "token",
+    "ja": "トークン",
+    "ru": "токен"
+  },
+  "请求": {
+    "en": "Request",
+    "ja": "リクエスト",
+    "ru": "Запрос"
+  },
+  "图像": {
+    "en": "Image",
+    "ja": "画像",
+    "ru": "Изображение"
+  },
+  "音频": {
+    "en": "Audio",
+    "ja": "音声",
+    "ru": "Аудио"
+  },
+  "视频": {
+    "en": "Video",
+    "ja": "動画",
+    "ru": "Видео"
+  },
+  "文本": {
+    "en": "Text",
+    "ja": "テキスト",
+    "ru": "Текст"
+  },
+  "文件": {
+    "en": "File",
+    "ja": "ファイル",
+    "ru": "Файл"
+  },
+  "秒": {
+    "en": "Seconds",
+    "ja": "秒",
+    "ru": "Секунды"
+  },
+  "分钟": {
+    "en": "Minutes",
+    "ja": "分",
+    "ru": "Минуты"
+  },
+  "字符": {
+    "en": "Characters",
+    "ja": "文字",
+    "ru": "Символы"
+  },
+  "字节": {
+    "en": "Bytes",
+    "ja": "バイト",
+    "ru": "Байты"
+  },
+  "调整": {
+    "en": "Adjustment",
+    "ja": "調整",
+    "ru": "Корректировка"
+  },
+  "价格": {
+    "en": "Price",
+    "ja": "価格",
+    "ru": "Цена"
+  },
+  "常规价格": {
+    "en": "Regular price",
+    "ja": "通常価格",
+    "ru": "Обычная цена"
+  },
+  "促销价格": {
+    "en": "Promotional price",
+    "ja": "キャンペーン価格",
+    "ru": "Акционная цена"
+  },
+  "模型停用": {
+    "en": "Model disabled",
+    "ja": "モデル無効化",
+    "ru": "Отключение модели"
+  },
+  "模型紧急停用": {
+    "en": "Emergency model shutdown",
+    "ja": "モデル緊急停止",
+    "ru": "Экстренное отключение модели"
+  },
+  "模型启用": {
+    "en": "Model enabled",
+    "ja": "モデル有効化",
+    "ru": "Включение модели"
+  },
+  "{count} 字节": {
+    "en": "{count} bytes",
+    "ja": "{count} バイト",
+    "ru": "{count} байт"
+  },
+  "模型": {
+    "en": "Model",
+    "ja": "モデル",
+    "ru": "Модель"
+  },
+  "模型上架状态": {
+    "en": "Model listing",
+    "ja": "モデル公開状態",
+    "ru": "Публикация модели"
+  },
+  "模型授权": {
+    "en": "Model authorization",
+    "ja": "モデル認可",
+    "ru": "Разрешение модели"
+  },
+  "非缓存输入": {
+    "en": "Uncached input",
+    "ja": "非キャッシュ入力",
+    "ru": "Некэшированный вход"
+  },
+  "普通输出": {
+    "en": "Standard output",
+    "ja": "通常出力",
+    "ru": "Обычный вывод"
+  },
+  "推理": {
+    "en": "Reasoning",
+    "ja": "推論",
+    "ru": "Рассуждение"
+  },
+  "视频秒数": {
+    "en": "Video seconds",
+    "ja": "動画秒数",
+    "ru": "Секунды видео"
+  },
+  "支付宝": {
+    "en": "Alipay",
+    "ja": "Alipay",
+    "ru": "Alipay"
+  },
+  "微信支付": {
+    "en": "WeChat Pay",
+    "ja": "WeChat Pay",
+    "ru": "WeChat Pay"
+  },
+  "链上钱包付款": {
+    "en": "On-chain wallet payment",
+    "ja": "オンチェーンウォレット決済",
+    "ru": "Оплата кошельком в блокчейне"
+  },
+  "人工核实付款": {
+    "en": "Manually verified payment",
+    "ja": "手動確認の支払",
+    "ru": "Оплата с ручной проверкой"
+  },
+  "注册赠送": {
+    "en": "Registration bonus",
+    "ja": "登録特典",
+    "ru": "Бонус регистрации"
+  },
+  "独立赠送": {
+    "en": "Separate bonus",
+    "ja": "独立した付与",
+    "ru": "Отдельный бонус"
+  }
+}

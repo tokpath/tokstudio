@@ -5,9 +5,10 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "test": "vitest run",
+    "test": "node scripts/sync-i18n.mjs --check && vitest run",
     "e2e:web": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "i18n:sync": "node scripts/sync-i18n.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

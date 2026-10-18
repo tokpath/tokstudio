@@ -1,0 +1,2591 @@
+{
+  "对话": {
+    "en": "Chat",
+    "ja": "チャット",
+    "ru": "Чат"
+  },
+  "Responses": {
+    "en": "Responses",
+    "ja": "Responses",
+    "ru": "Responses"
+  },
+  "向量": {
+    "en": "Embeddings",
+    "ja": "埋め込み",
+    "ru": "Эмбеддинги"
+  },
+  "图片生成": {
+    "en": "Image generation",
+    "ja": "画像生成",
+    "ru": "Генерация изображений"
+  },
+  "语音生成": {
+    "en": "Speech generation",
+    "ja": "音声生成",
+    "ru": "Генерация речи"
+  },
+  "语音转写": {
+    "en": "Transcription",
+    "ja": "音声文字起こし",
+    "ru": "Транскрибация"
+  },
+  "视频生成": {
+    "en": "Video generation",
+    "ja": "動画生成",
+    "ru": "Генерация видео"
+  },
+  "视频任务查询": {
+    "en": "Video task status",
+    "ja": "動画タスク照会",
+    "ru": "Статус видеозадачи"
+  },
+  "视频结果下载": {
+    "en": "Video result download",
+    "ja": "動画結果ダウンロード",
+    "ru": "Загрузка результата видео"
+  },
+  "值": {
+    "en": "Value",
+    "ja": "値",
+    "ru": "Значение"
+  },
+  "能力": {
+    "en": "Capability",
+    "ja": "機能",
+    "ru": "Возможность"
+  },
+  "调用能力": {
+    "en": "API capability",
+    "ja": "呼び出し機能",
+    "ru": "Возможность API"
+  },
+  "支持流式输出": {
+    "en": "Supports streaming",
+    "ja": "ストリーミング対応",
+    "ru": "Поддержка потокового вывода"
+  },
+  "允许输入类型": {
+    "en": "Allowed input types",
+    "ja": "許可する入力形式",
+    "ru": "Допустимые типы ввода"
+  },
+  "保留并支持的参数": {
+    "en": "Preserved and supported parameters",
+    "ja": "保持・対応するパラメータ",
+    "ru": "Сохраняемые и поддерживаемые параметры"
+  },
+  "调用必填参数": {
+    "en": "Required request parameters",
+    "ja": "呼び出しに必須のパラメータ",
+    "ru": "Обязательные параметры запроса"
+  },
+  "最大输入大小（字节）": {
+    "en": "Maximum input size (bytes)",
+    "ja": "最大入力サイズ（バイト）",
+    "ru": "Максимальный размер ввода (байты)"
+  },
+  "最大输出数量（无输出上限参数时可为 0）": {
+    "en": "Maximum output count (0 if no output limit parameter)",
+    "ja": "最大出力量（出力上限パラメータがなければ 0）",
+    "ru": "Максимальный объём вывода (0 при отсутствии параметра ограничения)"
+  },
+  "输出上限参数名称": {
+    "en": "Output limit parameter name",
+    "ja": "出力上限パラメータ名",
+    "ru": "Имя параметра ограничения вывода"
+  },
+  "各计费组件的有限用量上界": {
+    "en": "Finite usage bounds for each billing component",
+    "ja": "各課金項目の有限な使用量上限",
+    "ru": "Конечные пределы использования для каждого компонента оплаты"
+  },
+  "用量上界": {
+    "en": "Usage upper bound",
+    "ja": "使用量上限",
+    "ru": "Верхний предел использования"
+  },
+  "使用精确数量；可填写经验证的分数，例如 1/2。": {
+    "en": "Use exact quantities; verified fractions such as 1/2 are accepted.",
+    "ja": "正確な数量を入力してください。1/2 など検証済みの分数も使用できます。",
+    "ru": "Укажите точное количество; допустимы проверенные дроби, например 1/2."
+  },
+  "计量组件": {
+    "en": "Metering components",
+    "ja": "計量項目",
+    "ru": "Компоненты учёта"
+  },
+  "计量规则": {
+    "en": "Metering rule",
+    "ja": "計量ルール",
+    "ru": "Правило учёта"
+  },
+  "组件标识": {
+    "en": "Component ID",
+    "ja": "項目 ID",
+    "ru": "Идентификатор компонента"
+  },
+  "计量单位": {
+    "en": "Metering unit",
+    "ja": "計量単位",
+    "ru": "Единица учёта"
+  },
+  "用量路径": {
+    "en": "Usage path",
+    "ja": "使用量パス",
+    "ru": "Путь к использованию"
+  },
+  "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。": {
+    "en": "RFC 6901 path in normalized supplier usage, such as /input_tokens.",
+    "ja": "供給元の正規化済み使用量における RFC 6901 パス。例：/input_tokens。",
+    "ru": "Путь RFC 6901 в нормализованных данных использования поставщика, например /input_tokens."
+  },
+  "缺少此用量时可确认是零": {
+    "en": "Missing usage is verified as zero",
+    "ja": "使用量の欠落をゼロと確認済み",
+    "ru": "Отсутствующее значение использования подтверждено как нулевое"
+  },
+  "参数允许范围": {
+    "en": "Allowed parameter ranges",
+    "ja": "パラメータの許容範囲",
+    "ru": "Допустимые диапазоны параметров"
+  },
+  "参数限制": {
+    "en": "Parameter constraint",
+    "ja": "パラメータ制約",
+    "ru": "Ограничение параметра"
+  },
+  "最小值": {
+    "en": "Minimum",
+    "ja": "最小値",
+    "ru": "Минимум"
+  },
+  "最大值": {
+    "en": "Maximum",
+    "ja": "最大値",
+    "ru": "Максимум"
+  },
+  "允许值（与数值范围二选一）": {
+    "en": "Allowed values (instead of a numeric range)",
+    "ja": "許容値（数値範囲といずれか一方）",
+    "ru": "Допустимые значения (вместо числового диапазона)"
+  },
+  "需要扣除的重复子用量": {
+    "en": "Duplicate subusage to subtract",
+    "ja": "差し引く重複使用量",
+    "ru": "Дублирующее подиспользование для вычитания"
+  },
+  "扣除路径": {
+    "en": "Subtraction paths",
+    "ja": "差し引きパス",
+    "ru": "Пути вычитания"
+  },
+  "能力验证证据引用": {
+    "en": "Capability verification evidence reference",
+    "ja": "機能検証の証拠参照",
+    "ru": "Ссылка на подтверждение проверки возможности"
+  },
+  "验证完成时间": {
+    "en": "Verification completed at",
+    "ja": "検証完了日時",
+    "ru": "Время завершения проверки"
+  },
+  "已验证参数完整保留": {
+    "en": "Complete parameter preservation verified",
+    "ja": "パラメータの完全保持を検証済み",
+    "ru": "Полное сохранение параметров проверено"
+  },
+  "已验证用量可靠": {
+    "en": "Usage reliability verified",
+    "ja": "使用量の信頼性を検証済み",
+    "ru": "Достоверность использования проверена"
+  },
+  "已验证用量上界": {
+    "en": "Usage bounds verified",
+    "ja": "使用量上限を検証済み",
+    "ru": "Пределы использования проверены"
+  },
+  "已验证失败恢复": {
+    "en": "Failure recovery verified",
+    "ja": "障害復旧を検証済み",
+    "ru": "Восстановление после сбоя проверено"
+  },
+  "仅填写已核实的真实能力。参数、计量、上界和恢复证据全部通过后才可开放。": {
+    "en": "Enter only verified capabilities. Enable access only after parameter, metering, bound, and recovery evidence all pass verification.",
+    "ja": "確認済みの実際の機能のみ入力してください。パラメータ、計量、上限、復旧の証拠がすべて検証されてから公開できます。",
+    "ru": "Указывайте только проверенные возможности. Доступ можно открыть после проверки параметров, учёта, пределов и восстановления."
+  },
+  "价目用途": {
+    "en": "Price list purpose",
+    "ja": "価格表の用途",
+    "ru": "Назначение прайс-листа"
+  },
+  "客户零售价": {
+    "en": "Customer retail price",
+    "ja": "顧客向け小売価格",
+    "ru": "Розничная цена для клиентов"
+  },
+  "对下级供货价": {
+    "en": "Supply price for subordinate operators",
+    "ja": "下位事業者への供給価格",
+    "ru": "Цена поставки нижестоящим операторам"
+  },
+  "供应商成本价（USD）": {
+    "en": "Supplier cost (USD)",
+    "ja": "供給元の原価（USD）",
+    "ru": "Себестоимость поставщика (USD)"
+  },
+  "卖方经营方 / 供应商引用": {
+    "en": "Selling operator / supplier reference",
+    "ja": "販売事業者 / 供給元参照",
+    "ru": "Оператор-продавец / ссылка на поставщика"
+  },
+  "供应商成本价填写供应商引用；其他价格填写负责定价的经营方。": {
+    "en": "For supplier costs, enter the supplier reference; for other prices, enter the operator responsible for pricing.",
+    "ja": "供給元原価には供給元参照を、その他の価格には価格設定を担当する事業者を入力してください。",
+    "ru": "Для себестоимости укажите ссылку на поставщика, для остальных цен — оператора, отвечающего за ценообразование."
+  },
+  "买方经营方 / 上游路由": {
+    "en": "Buying operator / upstream route",
+    "ja": "購入事業者 / 上流ルート",
+    "ru": "Оператор-покупатель / вышестоящий маршрут"
+  },
+  "阶梯": {
+    "en": "Tier",
+    "ja": "段階",
+    "ru": "Ступень"
+  },
+  "起始数量（含）": {
+    "en": "Starting quantity (inclusive)",
+    "ja": "開始数量（含む）",
+    "ru": "Начальное количество (включительно)"
+  },
+  "结束数量（不含，最后一阶可留空）": {
+    "en": "Ending quantity (exclusive; leave blank for the final tier)",
+    "ja": "終了数量（含まない。最終段階は空欄可）",
+    "ru": "Конечное количество (не включается; для последней ступени можно оставить пустым)"
+  },
+  "本阶梯单价": {
+    "en": "Unit price for this tier",
+    "ja": "この段階の単価",
+    "ru": "Цена единицы на этой ступени"
+  },
+  "计费组件": {
+    "en": "Billing component",
+    "ja": "課金項目",
+    "ru": "Компонент оплаты"
+  },
+  "与模型计量组件完全一致，例如 input_tokens 或 image:1024x1024:high。": {
+    "en": "Must exactly match the model's metering component, such as input_tokens or image:1024x1024:high.",
+    "ja": "モデルの計量項目と完全に一致させてください。例：input_tokens、image:1024x1024:high。",
+    "ru": "Должен точно совпадать с компонентом учёта модели, например input_tokens или image:1024x1024:high."
+  },
+  "例如 token、image、second、request。": {
+    "en": "For example: token, image, second, request.",
+    "ja": "例：token、image、second、request。",
+    "ru": "Например: token, image, second, request."
+  },
+  "每多少单位": {
+    "en": "Units per price",
+    "ja": "価格あたりの単位数",
+    "ru": "Количество единиц на цену"
+  },
+  "基础单价": {
+    "en": "Base unit price",
+    "ja": "基本単価",
+    "ru": "Базовая цена единицы"
+  },
+  "渐进阶梯价格（可选）": {
+    "en": "Progressive tiered prices (optional)",
+    "ja": "累進段階料金（任意）",
+    "ru": "Прогрессивные ступенчатые цены (необязательно)"
+  },
+  "从 0 连续衔接，区间左闭右开；最后一阶结束数量留空表示不限上界。": {
+    "en": "Start at 0 with contiguous ranges, inclusive at the start and exclusive at the end. Leave the final end blank for no upper limit.",
+    "ja": "0 から連続した範囲を設定します。開始値を含み終了値は含みません。最終段階の終了値が空欄なら上限なしです。",
+    "ru": "Начните с 0 и задайте непрерывные диапазоны: начало включается, конец — нет. Пустой конец последней ступени означает отсутствие верхнего предела."
+  },
+  "公开模型": {
+    "en": "Public model",
+    "ja": "公開モデル",
+    "ru": "Публичная модель"
+  },
+  "模型身份与公开能力": {
+    "en": "Model identity and public capabilities",
+    "ja": "モデルの同一性と公開機能",
+    "ru": "Идентичность модели и публичные возможности"
+  },
+  "公开模型标识": {
+    "en": "Public model ID",
+    "ja": "公開モデル ID",
+    "ru": "Идентификатор публичной модели"
+  },
+  "客户看到的模型名称": {
+    "en": "Model name shown to customers",
+    "ja": "顧客に表示するモデル名",
+    "ru": "Название модели для клиентов"
+  },
+  "已核实模型身份与修订版本": {
+    "en": "Verified model identity and revision",
+    "ja": "確認済みのモデル同一性とリビジョン",
+    "ru": "Проверенная идентичность и версия модели"
+  },
+  "开放模型": {
+    "en": "Enable model",
+    "ja": "モデルを公開",
+    "ru": "Открыть доступ к модели"
+  },
+  "已验证能力": {
+    "en": "Verified capabilities",
+    "ja": "検証済み機能",
+    "ru": "Проверенные возможности"
+  },
+  "当前记录版本（自动带入）": {
+    "en": "Current record version (filled automatically)",
+    "ja": "現在のレコードバージョン（自動入力）",
+    "ru": "Текущая версия записи (заполняется автоматически)"
+  },
+  "计划生效时间（修订已开放模型时填写）": {
+    "en": "Scheduled effective time (required when revising an enabled model)",
+    "ja": "適用予定日時（公開済みモデルの変更時に入力）",
+    "ru": "Запланированное время вступления в силу (при изменении доступной модели)"
+  },
+  "变更及通知依据": {
+    "en": "Change and notification evidence",
+    "ja": "変更と通知の根拠",
+    "ru": "Основание изменения и уведомления"
+  },
+  "紧急停用（须有真实事件依据）": {
+    "en": "Emergency disable (requires actual incident evidence)",
+    "ja": "緊急停止（実際の事象の根拠が必要）",
+    "ru": "Экстренное отключение (требует подтверждения реального инцидента)"
+  },
+  "上游路由": {
+    "en": "Upstream route",
+    "ja": "上流ルート",
+    "ru": "Вышестоящий маршрут"
+  },
+  "路由身份与供应商": {
+    "en": "Route identity and supplier",
+    "ja": "ルートの同一性と供給元",
+    "ru": "Идентичность маршрута и поставщик"
+  },
+  "路由标识": {
+    "en": "Route ID",
+    "ja": "ルート ID",
+    "ru": "Идентификатор маршрута"
+  },
+  "对应公开模型": {
+    "en": "Corresponding public model",
+    "ja": "対応する公開モデル",
+    "ru": "Соответствующая публичная модель"
+  },
+  "与公开模型一致的身份与版本": {
+    "en": "Identity and revision matching the public model",
+    "ja": "公開モデルと一致する同一性とバージョン",
+    "ru": "Идентичность и версия, совпадающие с публичной моделью"
+  },
+  "供应商引用": {
+    "en": "Supplier reference",
+    "ja": "供給元参照",
+    "ru": "Ссылка на поставщика"
+  },
+  "供应商协议名称": {
+    "en": "Supplier protocol name",
+    "ja": "供給元プロトコル名",
+    "ru": "Название протокола поставщика"
+  },
+  "供应商模型名称": {
+    "en": "Supplier model name",
+    "ja": "供給元のモデル名",
+    "ru": "Название модели поставщика"
+  },
+  "已保存的供应商凭据引用": {
+    "en": "Saved supplier credential reference",
+    "ja": "保存済みの供給元認証情報参照",
+    "ru": "Ссылка на сохранённые учётные данные поставщика"
+  },
+  "允许进入选路": {
+    "en": "Eligible for routing",
+    "ja": "ルーティング対象にする",
+    "ru": "Допустить к маршрутизации"
+  },
+  "已核实健康": {
+    "en": "Health verified",
+    "ja": "正常性を確認済み",
+    "ru": "Работоспособность подтверждена"
+  },
+  "选路优先级": {
+    "en": "Routing priority",
+    "ja": "ルーティング優先度",
+    "ru": "Приоритет маршрутизации"
+  },
+  "已核实的完整服务端点": {
+    "en": "Verified complete service endpoints",
+    "ja": "確認済みの完全なサービスエンドポイント",
+    "ru": "Проверенные полные адреса сервиса"
+  },
+  "HTTPS 服务地址": {
+    "en": "HTTPS service URL",
+    "ja": "HTTPS サービス URL",
+    "ru": "HTTPS-адрес сервиса"
+  },
+  "键为调用能力，例如 chat、video_generation、video_retrieve、video_download；视频查询/下载必须使用 {task_id} 路径模板。": {
+    "en": "Keys are API capabilities, such as chat, video_generation, video_retrieve, and video_download. Video status/download endpoints must use the {task_id} path template.",
+    "ja": "キーは chat、video_generation、video_retrieve、video_download などの呼び出し機能です。動画の照会・ダウンロードには {task_id} パステンプレートが必要です。",
+    "ru": "Ключи — возможности API, например chat, video_generation, video_retrieve, video_download. Для статуса и загрузки видео обязателен шаблон пути {task_id}."
+  },
+  "容量、熔断与恢复": {
+    "en": "Capacity, circuit breaking, and recovery",
+    "ja": "容量、サーキットブレーカー、復旧",
+    "ru": "Ёмкость, автоматическое отключение и восстановление"
+  },
+  "最大同时在途（0 不额外限制）": {
+    "en": "Maximum concurrent requests (0 for no additional limit)",
+    "ja": "最大同時実行数（0 は追加制限なし）",
+    "ru": "Максимум одновременных запросов (0 — без дополнительного ограничения)"
+  },
+  "连续失败阈值（0 使用默认 3）": {
+    "en": "Consecutive failure threshold (0 uses default 3)",
+    "ja": "連続失敗しきい値（0 は既定の 3）",
+    "ru": "Порог последовательных сбоев (0 — по умолчанию 3)"
+  },
+  "未知用量阈值（0 使用默认 2）": {
+    "en": "Unknown usage threshold (0 uses default 2)",
+    "ja": "使用量不明のしきい値（0 は既定の 2）",
+    "ru": "Порог неизвестного использования (0 — по умолчанию 2)"
+  },
+  "恢复成功探测次数（0 使用默认 2）": {
+    "en": "Successful recovery probes (0 uses default 2)",
+    "ja": "復旧に必要な成功プローブ回数（0 は既定の 2）",
+    "ru": "Успешные проверки для восстановления (0 — по умолчанию 2)"
+  },
+  "冷却秒数（0 使用默认 60）": {
+    "en": "Cooldown seconds (0 uses default 60)",
+    "ja": "クールダウン秒数（0 は既定の 60）",
+    "ru": "Пауза в секундах (0 — по умолчанию 60)"
+  },
+  "路由已验证能力": {
+    "en": "Verified route capabilities",
+    "ja": "ルートの検証済み機能",
+    "ru": "Проверенные возможности маршрута"
+  },
+  "当前路由版本（自动带入）": {
+    "en": "Current route version (filled automatically)",
+    "ja": "現在のルートバージョン（自動入力）",
+    "ru": "Текущая версия маршрута (заполняется автоматически)"
+  },
+  "授权与上架": {
+    "en": "Authorization and listing",
+    "ja": "権限と公開設定",
+    "ru": "Разрешения и публикация"
+  },
+  "办理事项": {
+    "en": "Requested action",
+    "ja": "手続き内容",
+    "ru": "Запрашиваемое действие"
+  },
+  "本经营方上架 / 下架": {
+    "en": "List / unlist for this operator",
+    "ja": "この事業者で公開 / 非公開",
+    "ru": "Опубликовать / снять с публикации у этого оператора"
+  },
+  "授权 / 撤销下级模型权限": {
+    "en": "Grant / revoke subordinate model access",
+    "ja": "下位事業者のモデル権限を付与 / 取消",
+    "ru": "Выдать / отозвать доступ нижестоящего оператора к модели"
+  },
+  "被授权的直属下级": {
+    "en": "Direct subordinate receiving access",
+    "ja": "権限を付与する直属の下位事業者",
+    "ru": "Прямой нижестоящий оператор для выдачи доступа"
+  },
+  "允许使用此模型": {
+    "en": "Allow use of this model",
+    "ja": "このモデルの使用を許可",
+    "ru": "Разрешить использование этой модели"
+  },
+  "当前上架 / 授权版本（自动带入）": {
+    "en": "Current listing / authorization version (filled automatically)",
+    "ja": "現在の公開 / 権限バージョン（自動入力）",
+    "ru": "Текущая версия публикации / разрешения (заполняется автоматически)"
+  },
+  "计划生效时间": {
+    "en": "Scheduled effective time",
+    "ja": "適用予定日時",
+    "ru": "Запланированное время вступления в силу"
+  },
+  "模型价格": {
+    "en": "Model pricing",
+    "ja": "モデル料金",
+    "ru": "Цены моделей"
+  },
+  "发布方式": {
+    "en": "Publication method",
+    "ja": "公開方法",
+    "ru": "Способ публикации"
+  },
+  "按通知规则发布价格": {
+    "en": "Publish pricing under notification rules",
+    "ja": "通知ルールに従って料金を公開",
+    "ru": "Опубликовать цены по правилам уведомления"
+  },
+  "初始化价格（仅首次开通）": {
+    "en": "Initialize pricing (first activation only)",
+    "ja": "料金の初期設定（初回有効化のみ）",
+    "ru": "Инициализировать цены (только при первом запуске)"
+  },
+  "价目与适用范围": {
+    "en": "Price list and scope",
+    "ja": "価格表と適用範囲",
+    "ru": "Прайс-лист и область действия"
+  },
+  "本次价格版本标识": {
+    "en": "ID for this price version",
+    "ja": "今回の料金バージョン ID",
+    "ru": "Идентификатор этой версии цен"
+  },
+  "公开模型（自动跟随可用 * 表示默认规则）": {
+    "en": "Public model (* sets the default auto-follow rule)",
+    "ja": "公開モデル（自動追従では * で既定ルールを指定可）",
+    "ru": "Публичная модель (* — правило автоматического следования по умолчанию)"
+  },
+  "本次定价范围": {
+    "en": "Scope of this pricing",
+    "ja": "今回の料金設定範囲",
+    "ru": "Область действия этих цен"
+  },
+  "价格类别": {
+    "en": "Price category",
+    "ja": "料金区分",
+    "ru": "Категория цены"
+  },
+  "常规价格": {
+    "en": "Regular price",
+    "ja": "通常料金",
+    "ru": "Обычная цена"
+  },
+  "限时促销价": {
+    "en": "Limited-time promotional price",
+    "ja": "期間限定価格",
+    "ru": "Временная акционная цена"
+  },
+  "价格生效时间": {
+    "en": "Price effective time",
+    "ja": "料金適用日時",
+    "ru": "Время начала действия цены"
+  },
+  "价格结束时间（促销必填）": {
+    "en": "Price end time (required for promotions)",
+    "ja": "料金終了日時（キャンペーンは必須）",
+    "ru": "Время окончания действия цены (обязательно для акций)"
+  },
+  "计价方式": {
+    "en": "Pricing method",
+    "ja": "料金計算方法",
+    "ru": "Способ расчёта цены"
+  },
+  "逐组件手动定价": {
+    "en": "Set prices manually by component",
+    "ja": "項目ごとに手動で料金設定",
+    "ru": "Задать цены вручную по компонентам"
+  },
+  "自动跟随上级价目": {
+    "en": "Automatically follow the parent's price list",
+    "ja": "上位事業者の価格表に自動追従",
+    "ru": "Автоматически следовать прайс-листу вышестоящего оператора"
+  },
+  "组件价格": {
+    "en": "Component prices",
+    "ja": "項目料金",
+    "ru": "Цены компонентов"
+  },
+  "跟随的上级价目": {
+    "en": "Parent price list to follow",
+    "ja": "追従する上位の価格表",
+    "ru": "Прайс-лист вышестоящего оператора для следования"
+  },
+  "跟随价目用途": {
+    "en": "Purpose of followed price list",
+    "ja": "追従先価格表の用途",
+    "ru": "Назначение прайс-листа для следования"
+  },
+  "直接上级对本经营方的供货价": {
+    "en": "Direct parent's supply price for this operator",
+    "ja": "直属の上位事業者からの供給価格",
+    "ru": "Цена поставки этому оператору от прямого вышестоящего оператора"
+  },
+  "直接上级经营方": {
+    "en": "Direct parent operator",
+    "ja": "直属の上位事業者",
+    "ru": "Прямой вышестоящий оператор"
+  },
+  "供货买方（本经营方）": {
+    "en": "Supply buyer (this operator)",
+    "ja": "供給先の購入者（この事業者）",
+    "ru": "Покупатель поставки (этот оператор)"
+  },
+  "默认倍率（定价参数）": {
+    "en": "Default multiplier (pricing parameter)",
+    "ja": "既定倍率（料金パラメータ）",
+    "ru": "Множитель по умолчанию (параметр цены)"
+  },
+  "指定模型倍率覆盖（可选）": {
+    "en": "Model-specific multiplier overrides (optional)",
+    "ja": "モデル別倍率の上書き（任意）",
+    "ru": "Множители для отдельных моделей (необязательно)"
+  },
+  "模型倍率": {
+    "en": "Model multiplier",
+    "ja": "モデル倍率",
+    "ru": "Множитель модели"
+  },
+  "零售价使用客户 ATG，供货价使用采购 ATG，供应商成本价使用 USD。倍率不是利润率。": {
+    "en": "Retail prices use customer ATG, supply prices use procurement ATG, and supplier costs use USD. A multiplier is not a profit margin.",
+    "ja": "小売価格は顧客 ATG、供給価格は仕入 ATG、供給元原価は USD を使用します。倍率は利益率ではありません。",
+    "ru": "Розничные цены указываются в клиентских ATG, цены поставки — в закупочных ATG, себестоимость — в USD. Множитель не является нормой прибыли."
+  },
+  "客户通知记录引用": {
+    "en": "Customer notification record reference",
+    "ja": "顧客通知記録の参照",
+    "ru": "Ссылка на запись уведомления клиента"
+  },
+  "发布此价格版本": {
+    "en": "Publish this price version",
+    "ja": "この料金バージョンを公開",
+    "ru": "Опубликовать эту версию цен"
+  },
+  "发布与通知依据": {
+    "en": "Publication and notification evidence",
+    "ja": "公開と通知の根拠",
+    "ru": "Основание публикации и уведомления"
+  },
+  "非负": {
+    "en": "Nonnegative",
+    "ja": "非負",
+    "ru": "Неотрицательное"
+  },
+  "安全整数": {
+    "en": "Safe integer",
+    "ja": "安全な整数",
+    "ru": "Безопасное целое число"
+  },
+  "非负整数": {
+    "en": "Nonnegative integer",
+    "ja": "非負整数",
+    "ru": "Неотрицательное целое число"
+  },
+  "开放模型或路由前，至少需要一项已验证能力。": {
+    "en": "At least one verified capability is required before enabling a model or route.",
+    "ja": "モデルやルートを公開するには、検証済みの機能が 1 つ以上必要です。",
+    "ru": "Для открытия модели или маршрута требуется хотя бы одна проверенная возможность."
+  },
+  "已验证能力的最大输入大小必须大于 0。": {
+    "en": "The maximum input size of a verified capability must be greater than 0.",
+    "ja": "検証済み機能の最大入力サイズは 0 より大きい値にしてください。",
+    "ru": "Максимальный размер ввода проверенной возможности должен быть больше 0."
+  },
+  "能力的参数、计量、用量上界和恢复验证必须全部通过。": {
+    "en": "Capability parameter, metering, usage bound, and recovery checks must all pass.",
+    "ja": "機能のパラメータ、計量、使用量上限、復旧の検証をすべて完了してください。",
+    "ru": "Проверки параметров, учёта, пределов использования и восстановления должны быть успешно пройдены."
+  },
+  "调用必填参数必须包含在保留并支持的参数中。": {
+    "en": "Required request parameters must be included in the preserved and supported parameters.",
+    "ja": "呼び出しの必須パラメータは、保持・対応するパラメータに含めてください。",
+    "ru": "Обязательные параметры запроса должны входить в список сохраняемых и поддерживаемых параметров."
+  },
+  "输出上限参数须已验证支持，并填写大于 0 的最大输出数量。": {
+    "en": "Verify support for the output limit parameter and enter a maximum output count greater than 0.",
+    "ja": "出力上限パラメータへの対応を検証し、最大出力量を 0 より大きい値にしてください。",
+    "ru": "Подтвердите поддержку параметра ограничения вывода и укажите максимальный объём больше 0."
+  },
+  "至少需要一个可靠的计量组件及对应有限用量上界。": {
+    "en": "At least one reliable metering component and its finite usage bound are required.",
+    "ja": "信頼できる計量項目と対応する有限の使用量上限が 1 組以上必要です。",
+    "ru": "Требуется хотя бы один надёжный компонент учёта с соответствующим конечным пределом использования."
+  },
+  "计量组件标识不能重复。": {
+    "en": "Metering component IDs must be unique.",
+    "ja": "計量項目 ID は重複できません。",
+    "ru": "Идентификаторы компонентов учёта не должны повторяться."
+  },
+  "每个计量组件都须有对应的有限用量上界。": {
+    "en": "Each metering component needs a corresponding finite usage bound.",
+    "ja": "各計量項目に対応する有限の使用量上限が必要です。",
+    "ru": "Каждому компоненту учёта нужен соответствующий конечный предел использования."
+  },
+  "用量上界与计量组件须一一对应。": {
+    "en": "Usage bounds must match metering components one to one.",
+    "ja": "使用量上限と計量項目は一対一で対応させてください。",
+    "ru": "Пределы использования должны соответствовать компонентам учёта один к одному."
+  },
+  "参数限制只能用于已验证支持的参数。": {
+    "en": "Constraints may only apply to parameters with verified support.",
+    "ja": "制約は対応を検証済みのパラメータにのみ設定できます。",
+    "ru": "Ограничения можно задавать только для параметров с проверенной поддержкой."
+  },
+  "参数限制请在允许值与数值范围中选择一种。": {
+    "en": "Choose either allowed values or a numeric range for each parameter constraint.",
+    "ja": "パラメータ制約は許容値か数値範囲のどちらかを選択してください。",
+    "ru": "Для ограничения параметра выберите допустимые значения или числовой диапазон."
+  },
+  "参数最小值不能大于最大值。": {
+    "en": "The parameter minimum cannot exceed its maximum.",
+    "ja": "パラメータの最小値は最大値以下にしてください。",
+    "ru": "Минимум параметра не может превышать максимум."
+  },
+  "请确认发布此价格版本后再提交。": {
+    "en": "Confirm publication of this price version before submitting.",
+    "ja": "この料金バージョンの公開を確認してから送信してください。",
+    "ru": "Перед отправкой подтвердите публикацию этой версии цен."
+  },
+  "限时促销必须填写价格结束时间。": {
+    "en": "Limited-time promotions require a price end time.",
+    "ja": "期間限定価格には終了日時が必要です。",
+    "ru": "Для временной акции необходимо указать время окончания действия цены."
+  },
+  "价格结束时间必须晚于生效时间。": {
+    "en": "The price end time must be later than its effective time.",
+    "ja": "料金終了日時は適用日時より後にしてください。",
+    "ru": "Время окончания действия цены должно быть позже времени начала."
+  },
+  "请填写计价方式。": {
+    "en": "Enter a pricing method.",
+    "ja": "料金計算方法を入力してください。",
+    "ru": "Укажите способ расчёта цены."
+  },
+  "全部模型的默认规则仅适用于常规自动跟随价格。": {
+    "en": "The default rule for all models is only available for regular auto-follow pricing.",
+    "ja": "全モデルの既定ルールは、通常料金の自動追従にのみ使用できます。",
+    "ru": "Правило по умолчанию для всех моделей доступно только для обычных цен с автоматическим следованием."
+  },
+  "买方经营方或上游路由不能与卖方相同。": {
+    "en": "The buying operator or upstream route cannot be the same as the seller.",
+    "ja": "購入事業者または上流ルートを売り手と同じにすることはできません。",
+    "ru": "Оператор-покупатель или вышестоящий маршрут не может совпадать с продавцом."
+  },
+  "供应商成本价须逐组件手动定价。": {
+    "en": "Supplier costs must be set manually for each component.",
+    "ja": "供給元原価は項目ごとに手動で設定してください。",
+    "ru": "Себестоимость поставщика необходимо задавать вручную по компонентам."
+  },
+  "自动跟随须使用直接上级对本经营方的供货价。": {
+    "en": "Auto-follow must use the direct parent's supply price for this operator.",
+    "ja": "自動追従には直属の上位事業者からこの事業者への供給価格を使用してください。",
+    "ru": "Для автоматического следования используйте цену поставки этому оператору от прямого вышестоящего оператора."
+  },
+  "自动跟随的价目不能是本次定价范围本身。": {
+    "en": "The followed price list cannot be the same as the pricing scope being edited.",
+    "ja": "追従先の価格表を今回設定する価格範囲と同じにすることはできません。",
+    "ru": "Прайс-лист для следования не может совпадать с редактируемой областью цен."
+  },
+  "自动跟随倍率必须大于 0。": {
+    "en": "The auto-follow multiplier must be greater than 0.",
+    "ja": "自動追従倍率は 0 より大きい値にしてください。",
+    "ru": "Множитель автоматического следования должен быть больше 0."
+  },
+  "指定模型倍率须填写实际模型；默认倍率请使用上方字段。": {
+    "en": "Use an actual model for a model-specific multiplier; enter the default multiplier in the field above.",
+    "ja": "モデル別倍率には実際のモデルを指定してください。既定倍率は上の欄で設定します。",
+    "ru": "Для отдельного множителя укажите конкретную модель; множитель по умолчанию задаётся в поле выше."
+  },
+  "指定模型的倍率必须大于 0。": {
+    "en": "The model-specific multiplier must be greater than 0.",
+    "ja": "モデル別倍率は 0 より大きい値にしてください。",
+    "ru": "Множитель отдельной модели должен быть больше 0."
+  },
+  "手动定价至少需要一个计费组件。": {
+    "en": "Manual pricing requires at least one billing component.",
+    "ja": "手動料金設定には課金項目が 1 つ以上必要です。",
+    "ru": "Для ручного ценообразования требуется хотя бы один компонент оплаты."
+  },
+  "同一价格中，计费组件标识不能重复。": {
+    "en": "Billing component IDs must be unique within a price.",
+    "ja": "同じ料金内で課金項目 ID は重複できません。",
+    "ru": "В одной цене идентификаторы компонентов оплаты не должны повторяться."
+  },
+  "每多少单位必须大于 0。": {
+    "en": "Units per price must be greater than 0.",
+    "ja": "価格あたりの単位数は 0 より大きい値にしてください。",
+    "ru": "Количество единиц на цену должно быть больше 0."
+  },
+  "阶梯价格应从 0 开始，且与上一阶结束数量连续衔接。": {
+    "en": "Tiered pricing must start at 0 and each tier must start where the previous tier ends.",
+    "ja": "段階料金は 0 から開始し、各段階は前の終了数量から連続させてください。",
+    "ru": "Ступенчатые цены должны начинаться с 0, а каждая ступень — продолжать предыдущую без разрыва."
+  },
+  "最后一阶的结束数量请留空，覆盖剩余用量。": {
+    "en": "Leave the final tier's ending quantity blank to cover all remaining usage.",
+    "ja": "残りの使用量をすべて対象にするため、最終段階の終了数量は空欄にしてください。",
+    "ru": "Оставьте конечное количество последней ступени пустым для всего оставшегося использования."
+  },
+  "中间阶梯必须填写结束数量。": {
+    "en": "Intermediate tiers require an ending quantity.",
+    "ja": "中間段階には終了数量が必要です。",
+    "ru": "Для промежуточных ступеней требуется конечное количество."
+  },
+  "阶梯结束数量必须大于起始数量。": {
+    "en": "A tier's ending quantity must be greater than its starting quantity.",
+    "ja": "段階の終了数量は開始数量より大きい値にしてください。",
+    "ru": "Конечное количество ступени должно быть больше начального."
+  },
+  "高级配置内容无法读取，请展开技术高级配置并修正格式。": {
+    "en": "The advanced configuration cannot be read. Open the technical configuration and correct its format.",
+    "ja": "詳細設定を読み取れません。技術詳細設定を開いて形式を修正してください。",
+    "ru": "Не удалось прочитать расширенную конфигурацию. Откройте технические настройки и исправьте формат."
+  },
+  "技术高级配置": {
+    "en": "Advanced technical configuration",
+    "ja": "技術詳細設定",
+    "ru": "Расширенные технические настройки"
+  },
+  "供技术人员导入完整验证配置或维护扩展字段。结构化编辑会保留额外字段；此处修改后请重新核对所有业务条款。": {
+    "en": "For technical staff to import complete verified configurations or maintain extension fields. Structured editing preserves extra fields; review all business terms after editing here.",
+    "ja": "技術担当者向けの検証済み設定のインポートや拡張フィールドの管理用です。構造化編集では追加フィールドを保持します。ここで編集した後はすべての業務条件を再確認してください。",
+    "ru": "Для импорта проверенной конфигурации и работы с дополнительными полями техническими специалистами. Структурированное редактирование сохраняет дополнительные поля; после изменения проверьте все условия."
+  },
+  "完整技术配置 JSON": {
+    "en": "Complete technical configuration JSON",
+    "ja": "完全な技術設定 JSON",
+    "ru": "Полная техническая конфигурация JSON"
+  },
+  "项": {
+    "en": "items",
+    "ja": "件",
+    "ru": "элементов"
+  },
+  "添加": {
+    "en": "Add",
+    "ja": "追加",
+    "ru": "Добавить"
+  },
+  "项目": {
+    "en": "item",
+    "ja": "項目",
+    "ru": "элемент"
+  },
+  "尚未添加": {
+    "en": "Not yet added",
+    "ja": "未追加",
+    "ru": "Ещё не добавлено"
+  },
+  "项目名称": {
+    "en": "Item name",
+    "ja": "項目名",
+    "ru": "Название элемента"
+  },
+  "是": {
+    "en": "Yes",
+    "ja": "はい",
+    "ru": "Да"
+  },
+  "否": {
+    "en": "No",
+    "ja": "いいえ",
+    "ru": "Нет"
+  },
+  "请选择": {
+    "en": "Select an option",
+    "ja": "選択してください",
+    "ru": "Выберите вариант"
+  },
+  "按名称或业务编号搜索": {
+    "en": "Search by name or business ID",
+    "ja": "名称または業務 ID で検索",
+    "ru": "Поиск по названию или бизнес-идентификатору"
+  },
+  "请选择实际业务记录": {
+    "en": "Select an actual business record",
+    "ja": "実際の業務レコードを選択",
+    "ru": "Выберите существующую деловую запись"
+  },
+  "请先选择被授权的直属下级": {
+    "en": "Select the direct subordinate first",
+    "ja": "先に権限を付与する直属の下位事業者を選択",
+    "ru": "Сначала выберите прямого нижестоящего оператора"
+  },
+  "全部模型的默认跟随规则（*）": {
+    "en": "Default follow rule for all models (*)",
+    "ja": "全モデルの既定追従ルール（*）",
+    "ru": "Правило следования по умолчанию для всех моделей (*)"
+  },
+  "更多记录": {
+    "en": "More records",
+    "ja": "さらに表示",
+    "ru": "Ещё записи"
+  },
+  "字段路径不合法": {
+    "en": "Invalid field path",
+    "ja": "無効なフィールドパス",
+    "ru": "Недопустимый путь поля"
+  },
+  "通道接入材料": {
+    "en": "Channel connection credentials",
+    "ja": "チャネル接続情報",
+    "ru": "Данные подключения канала"
+  },
+  "依据与办理说明": {
+    "en": "Evidence and action details",
+    "ja": "根拠と手続き説明",
+    "ru": "Основания и описание действия"
+  },
+  "时间与有效期": {
+    "en": "Timing and validity",
+    "ja": "日時と有効期間",
+    "ru": "Время и срок действия"
+  },
+  "金额、额度与办理规则": {
+    "en": "Amounts, quotas, and action rules",
+    "ja": "金額、利用枠、手続きルール",
+    "ru": "Суммы, лимиты и правила действий"
+  },
+  "办理信息": {
+    "en": "Action details",
+    "ja": "手続き情報",
+    "ru": "Данные действия"
+  },
+  "选择实际业务记录，并填写本次要办理的事项。": {
+    "en": "Select the actual business record and enter the requested action.",
+    "ja": "実際の業務レコードを選択し、今回の手続き内容を入力してください。",
+    "ru": "Выберите существующую деловую запись и укажите запрашиваемое действие."
+  },
+  "按字段标示的 USD、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。": {
+    "en": "Use USD, ATG, or the original currency as indicated. Enter ratios as decimals from 0 to 1; exact values are submitted unchanged.",
+    "ja": "各欄に示す USD、ATG、または元の通貨で入力してください。比率は 0 から 1 の小数を使用し、正確な値のまま送信されます。",
+    "ru": "Используйте USD, ATG или исходную валюту, указанную у поля. Доли задавайте десятичными числами от 0 до 1; точные значения отправляются без изменения."
+  },
+  "时间按当前设备时区显示，提交时保存为统一时刻。": {
+    "en": "Times are shown in your device's time zone and saved as a universal instant.",
+    "ja": "時刻は端末のタイムゾーンで表示し、送信時に共通の時点として保存します。",
+    "ru": "Время отображается в часовом поясе устройства и сохраняется как единый момент времени."
+  },
+  "填写可追溯的原始凭证、规则或核实依据，便于后续复核。": {
+    "en": "Provide traceable original documents, rules, or verification evidence for later review.",
+    "ja": "後で確認できるよう、追跡可能な原本資料、ルール、確認根拠を入力してください。",
+    "ru": "Укажите проверяемые первичные документы, правила или подтверждения для последующей проверки."
+  },
+  "只展示所选通道需要的材料。启用前请确认材料与实际商户一致。": {
+    "en": "Only credentials required by the selected channel are shown. Verify that they match the actual merchant before enabling it.",
+    "ja": "選択したチャネルに必要な情報のみ表示します。有効化する前に実際の加盟店と一致することを確認してください。",
+    "ru": "Показаны только данные, необходимые выбранному каналу. Перед включением проверьте их соответствие реальному продавцу."
+  },
+  "操作不属于当前经营空间，已阻止提交。": {
+    "en": "This action is outside the current operator workspace and submission was blocked.",
+    "ja": "現在の事業者ワークスペースに属さない操作のため、送信を停止しました。",
+    "ru": "Действие не относится к текущему рабочему пространству оператора; отправка заблокирована."
+  },
+  "请阅读并确认本次办理影响后提交。": {
+    "en": "Read and confirm the effects of this action before submitting.",
+    "ja": "手続きの影響を読み、確認してから送信してください。",
+    "ru": "Перед отправкой прочитайте и подтвердите последствия действия."
+  },
+  "请检查输入": {
+    "en": "Check your input",
+    "ja": "入力内容を確認してください",
+    "ru": "Проверьте введённые данные"
+  },
+  "业务办理": {
+    "en": "Business action",
+    "ja": "業務手続き",
+    "ru": "Деловое действие"
+  },
+  "办理对象：": {
+    "en": "Record: ",
+    "ja": "対象：",
+    "ru": "Запись: "
+  },
+  "返回记录": {
+    "en": "Back to records",
+    "ja": "レコードに戻る",
+    "ru": "К записям"
+  },
+  "关闭": {
+    "en": "Close",
+    "ja": "閉じる",
+    "ru": "Закрыть"
+  },
+  "办理步骤": {
+    "en": "Action steps",
+    "ja": "手続きのステップ",
+    "ru": "Этапы действия"
+  },
+  "填写事项": {
+    "en": "Enter details",
+    "ja": "内容を入力",
+    "ru": "Ввод данных"
+  },
+  "核对影响": {
+    "en": "Review effects",
+    "ja": "影響を確認",
+    "ru": "Проверка последствий"
+  },
+  "已完成": {
+    "en": "Completed",
+    "ja": "完了",
+    "ru": "Завершено"
+  },
+  "提交办理": {
+    "en": "Submit action",
+    "ja": "手続きを送信",
+    "ru": "Отправка действия"
+  },
+  "已按当前业务对象带入": {
+    "en": "Filled from the current business record",
+    "ja": "現在の業務対象から入力済み",
+    "ru": "Заполнено из текущей деловой записи"
+  },
+  "提交前核对": {
+    "en": "Review before submitting",
+    "ja": "送信前の確認",
+    "ru": "Проверка перед отправкой"
+  },
+  "本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。": {
+    "en": "This action will be saved within the current operator scope. Once verified by the server, the latest result will appear in the business record.",
+    "ja": "この操作は現在の事業範囲に保存されます。サーバーで確認後、最新の結果が業務レコードに反映されます。",
+    "ru": "Действие сохранится в текущей области оператора. После проверки сервером последний результат появится в деловой записи."
+  },
+  "定位需要修改的字段": {
+    "en": "Go to the field to correct",
+    "ja": "修正するフィールドへ移動",
+    "ru": "Перейти к полю для исправления"
+  },
+  "本次办理结果待核实": {
+    "en": "This action's result is awaiting verification",
+    "ja": "手続き結果を確認中",
+    "ru": "Результат действия ожидает проверки"
+  },
+  "请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。": {
+    "en": "Keep this panel open, check the business record, or retry this action. Retrying reuses the original content and action ID to avoid duplicate processing.",
+    "ja": "このパネルを保持し、業務レコードを確認するか再試行してください。再試行では元の内容と操作 ID を再利用し、重複処理を防ぎます。",
+    "ru": "Сохраните эту панель открытой, проверьте запись или повторите действие. Повтор использует исходные данные и тот же идентификатор, чтобы избежать дублирования."
+  },
+  "查看核对编号": {
+    "en": "View verification ID",
+    "ja": "確認用 ID を表示",
+    "ru": "Показать идентификатор проверки"
+  },
+  "已受理": {
+    "en": "Accepted",
+    "ja": "受付済み",
+    "ru": "Принято"
+  },
+  "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。": {
+    "en": "This action has been saved. Return to the business record for the latest progress and available next steps.",
+    "ja": "手続きを保存しました。業務レコードに戻ると最新の進捗と次の操作を確認できます。",
+    "ru": "Действие сохранено. Вернитесь к деловой записи, чтобы увидеть ход обработки и доступные дальнейшие действия."
+  },
+  "正在提交，请稍候…": {
+    "en": "Submitting, please wait…",
+    "ja": "送信中です。お待ちください…",
+    "ru": "Отправка, подождите…"
+  },
+  "重试本次操作": {
+    "en": "Retry this action",
+    "ja": "この操作を再試行",
+    "ru": "Повторить это действие"
+  },
+  "本次操作已完成，关闭后查看最新记录": {
+    "en": "Action completed; close to view the latest record",
+    "ja": "操作が完了しました。閉じて最新レコードを確認",
+    "ru": "Действие завершено; закройте для просмотра обновлённой записи"
+  },
+  "正在保存，请保持页面。": {
+    "en": "Saving; keep this page open.",
+    "ja": "保存中です。このページを開いたままにしてください。",
+    "ru": "Сохранение; оставьте страницу открытой."
+  },
+  "原提交内容已锁定，等待核实。": {
+    "en": "The original submission is locked pending verification.",
+    "ja": "元の送信内容は確認待ちのためロックされています。",
+    "ru": "Исходные данные заблокированы до завершения проверки."
+  },
+  "请先核对填写内容与实际凭证。": {
+    "en": "Check the entered details against the actual documents first.",
+    "ja": "入力内容と実際の資料を先に照合してください。",
+    "ru": "Сначала сверьте введённые данные с фактическими документами."
+  },
+  "请核对当前记录及办理依据后确认提交。": {
+    "en": "Review the current record and supporting evidence before confirming submission.",
+    "ja": "現在のレコードと手続きの根拠を確認してから送信してください。",
+    "ru": "Перед подтверждением отправки проверьте текущую запись и основания действия."
+  },
+  "已填写，提交时安全发送": {
+    "en": "Entered; sent securely on submission",
+    "ja": "入力済み。送信時に安全に送付",
+    "ru": "Введено; будет безопасно передано при отправке"
+  },
+  "未追加自定义权限": {
+    "en": "No additional custom permissions",
+    "ja": "追加のカスタム権限なし",
+    "ru": "Дополнительные права не добавлены"
+  },
+  "配置 JSON": {
+    "en": "Configuration JSON",
+    "ja": "設定 JSON",
+    "ru": "Конфигурация JSON"
+  },
+  "业务配置": {
+    "en": "Business configuration",
+    "ja": "業務設定",
+    "ru": "Деловая конфигурация"
+  },
+  "业务配置尚未完整，请检查上方字段。": {
+    "en": "The business configuration is incomplete. Check the fields above.",
+    "ja": "業務設定が未完了です。上のフィールドを確認してください。",
+    "ru": "Деловая конфигурация не заполнена. Проверьте поля выше."
+  },
+  "待填写模型名称": {
+    "en": "Model name needed",
+    "ja": "モデル名を入力",
+    "ru": "Требуется название модели"
+  },
+  "待填写": {
+    "en": "Not entered",
+    "ja": "未入力",
+    "ru": "Не указано"
+  },
+  "路由": {
+    "en": "Route",
+    "ja": "ルート",
+    "ru": "Маршрут"
+  },
+  "将开放": {
+    "en": " will be enabled",
+    "ja": "を公開",
+    "ru": " будет открыт"
+  },
+  "保持停用": {
+    "en": " will remain disabled",
+    "ja": "を停止のまま維持",
+    "ru": " останется отключённым"
+  },
+  "项已登记能力": {
+    "en": "registered capabilities",
+    "ja": "件の登録済み機能",
+    "ru": "зарегистрированных возможностей"
+  },
+  "尚未确认健康": {
+    "en": "Health not yet verified",
+    "ja": "正常性は未確認",
+    "ru": "Работоспособность ещё не подтверждена"
+  },
+  "身份与版本：": {
+    "en": "Identity and revision: ",
+    "ja": "同一性とバージョン：",
+    "ru": "Идентичность и версия: "
+  },
+  "待核实": {
+    "en": "Pending verification",
+    "ja": "確認待ち",
+    "ru": "Ожидает проверки"
+  },
+  "选路优先级：": {
+    "en": "Routing priority: ",
+    "ja": "ルーティング優先度：",
+    "ru": "Приоритет маршрутизации: "
+  },
+  "。请核对路由与公开模型的身份、能力及计量是否一致。": {
+    "en": ". Verify that the route matches the public model's identity, capabilities, and metering.",
+    "ja": "。ルートと公開モデルの同一性、機能、計量が一致することを確認してください。",
+    "ru": ". Проверьте соответствие маршрута публичной модели по идентичности, возможностям и учёту."
+  },
+  "采购 ATG": {
+    "en": "Procurement ATG",
+    "ja": "仕入 ATG",
+    "ru": "Закупочные ATG"
+  },
+  "供应商成本价": {
+    "en": "Supplier cost",
+    "ja": "供給元原価",
+    "ru": "Себестоимость поставщика"
+  },
+  "限时促销": {
+    "en": "Limited-time promotion",
+    "ja": "期間限定キャンペーン",
+    "ru": "Временная акция"
+  },
+  "自动跟随上级价目，默认倍率": {
+    "en": "Automatically follows the parent's price list; default multiplier",
+    "ja": "上位価格表に自動追従。既定倍率",
+    "ru": "Автоматическое следование вышестоящему прайс-листу; множитель по умолчанию"
+  },
+  "项模型倍率覆盖。": {
+    "en": "model multiplier overrides.",
+    "ja": "件のモデル別倍率上書き。",
+    "ru": "переопределений множителей моделей."
+  },
+  "每": {
+    "en": "Per",
+    "ja": "各",
+    "ru": "На"
+  },
+  "单位": {
+    "en": "unit",
+    "ja": "単位",
+    "ru": "единицу"
+  },
+  "，基础单价": {
+    "en": ", base unit price",
+    "ja": "、基本単価",
+    "ru": ", базовая цена единицы"
+  },
+  "另按已填写的": {
+    "en": "Also uses the entered",
+    "ja": "追加で入力済みの",
+    "ru": "Также используются указанные"
+  },
+  "个连续阶梯计价，请核对每阶数量和单价。": {
+    "en": "contiguous tiers. Check the quantity and rate for each tier.",
+    "ja": "段階の連続料金を適用します。各段階の数量と単価を確認してください。",
+    "ru": "непрерывные ступени. Проверьте количество и цену каждой ступени."
+  },
+  "价格按请求受理时固定。本次变更将按通知规则生效，并重算已售责任覆盖；已受理请求保留原价格。": {
+    "en": "Prices are fixed when a request is accepted. This change takes effect under notification rules and recalculates coverage of sold obligations; accepted requests retain their original prices.",
+    "ja": "料金はリクエスト受付時に確定します。この変更は通知ルールに従って適用され、販売済み責任のカバー状況を再計算します。受付済みリクエストの料金は維持されます。",
+    "ru": "Цена фиксируется при принятии запроса. Изменение вступит в силу по правилам уведомления и пересчитает покрытие проданных обязательств; принятые запросы сохраняют исходные цены."
+  },
+  "调整直属下级模型授权": {
+    "en": "Adjust direct subordinate model access",
+    "ja": "直属の下位事業者のモデル権限を変更",
+    "ru": "Изменить доступ прямого нижестоящего оператора к модели"
+  },
+  "调整本经营方模型上架": {
+    "en": "Adjust this operator's model listing",
+    "ja": "この事業者のモデル公開設定を変更",
+    "ru": "Изменить публикацию модели этого оператора"
+  },
+  "本次将": {
+    "en": "This will ",
+    "ja": "今回の変更により",
+    "ru": "Это действие будет "
+  },
+  "允许": {
+    "en": "allow",
+    "ja": "許可",
+    "ru": "разрешать"
+  },
+  "停止": {
+    "en": "stop",
+    "ja": "停止",
+    "ru": "прекращать"
+  },
+  "后续使用此模型；已受理请求按原责任处理。": {
+    "en": " future use of this model; accepted requests remain subject to the original obligations.",
+    "ja": "今後のモデル使用に適用します。受付済みリクエストは元の責任に従って処理します。",
+    "ru": " дальнейшее использование модели; принятые запросы обрабатываются по исходным обязательствам."
+  },
+  "已填写业务配置，请核对上方条款与实际依据。": {
+    "en": "Business configuration entered. Review the terms above against the actual evidence.",
+    "ja": "業務設定は入力済みです。上の条件と実際の根拠を照合してください。",
+    "ru": "Деловая конфигурация заполнена. Сверьте условия выше с фактическими основаниями."
+  },
+  "已启用": {
+    "en": "Enabled",
+    "ja": "有効",
+    "ru": "Включено"
+  },
+  "未启用": {
+    "en": "Disabled",
+    "ja": "無効",
+    "ru": "Отключено"
+  },
+  "按名称或编号搜索": {
+    "en": "Search by name or ID",
+    "ja": "名称または ID で検索",
+    "ru": "Поиск по названию или идентификатору"
+  },
+  "新建 / 不选择现有记录": {
+    "en": "Create new / do not select an existing record",
+    "ja": "新規作成 / 既存レコードを選択しない",
+    "ru": "Создать новую / не выбирать существующую запись"
+  },
+  "登录你的空间": {
+    "en": "Sign in to your workspace",
+    "ja": "ワークスペースにログイン",
+    "ru": "Вход в рабочее пространство"
+  },
+  "创建客户账号": {
+    "en": "Create a customer account",
+    "ja": "顧客アカウントを作成",
+    "ru": "Создать клиентский аккаунт"
+  },
+  "验证邮箱": {
+    "en": "Verify email",
+    "ja": "メールアドレスを確認",
+    "ru": "Подтвердить почту"
+  },
+  "找回密码": {
+    "en": "Recover password",
+    "ja": "パスワードを再設定",
+    "ru": "Восстановить пароль"
+  },
+  "设置新密码": {
+    "en": "Set a new password",
+    "ja": "新しいパスワードを設定",
+    "ru": "Задать новый пароль"
+  },
+  "正式注册完成后确定经营归属和邀请关系，请核对后再提交。": {
+    "en": "Registration determines your operator and invitation relationship. Review them before submitting.",
+    "ja": "正式登録時に所属事業者と招待関係が確定します。確認してから送信してください。",
+    "ru": "При регистрации закрепляются оператор и связь с пригласившим. Проверьте их перед отправкой."
+  },
+  "账号由当前品牌识别。客户与经营人员使用各自的登录权限。": {
+    "en": "Accounts are identified by the current brand. Customers and operator staff use their respective sign-in permissions.",
+    "ja": "アカウントは現在のブランドに紐づきます。顧客と運営スタッフはそれぞれの権限でログインします。",
+    "ru": "Аккаунт определяется текущим брендом. Клиенты и сотрудники оператора используют соответствующие права входа."
+  },
+  "登录身份": {
+    "en": "Sign in as",
+    "ja": "ログイン区分",
+    "ru": "Тип входа"
+  },
+  "客户": {
+    "en": "Customer",
+    "ja": "顧客",
+    "ru": "Клиент"
+  },
+  "经营人员": {
+    "en": "Operator staff",
+    "ja": "運営スタッフ",
+    "ru": "Сотрудник оператора"
+  },
+  "显示名称": {
+    "en": "Display name",
+    "ja": "表示名",
+    "ru": "Отображаемое имя"
+  },
+  "邮箱": {
+    "en": "Email",
+    "ja": "メールアドレス",
+    "ru": "Электронная почта"
+  },
+  "密码": {
+    "en": "Password",
+    "ja": "パスワード",
+    "ru": "Пароль"
+  },
+  "邀请码（可选）": {
+    "en": "Invitation code (optional)",
+    "ja": "招待コード（任意）",
+    "ru": "Код приглашения (необязательно)"
+  },
+  "显式移除邀请码，改为品牌直属注册": {
+    "en": "Remove the invitation code and register directly under the brand",
+    "ja": "招待コードを削除してブランド直属で登録",
+    "ru": "Удалить код приглашения и зарегистрироваться напрямую у бренда"
+  },
+  "邀请码无效，请更正或显式移除。": {
+    "en": "Invalid invitation code. Correct it or remove it explicitly.",
+    "ja": "招待コードが無効です。修正するか、明示的に削除してください。",
+    "ru": "Код приглашения недействителен. Исправьте или явно удалите его."
+  },
+  "品牌：": {
+    "en": "Brand: ",
+    "ja": "ブランド：",
+    "ru": "Бренд: "
+  },
+  "正在核实": {
+    "en": "Verifying",
+    "ja": "確認中",
+    "ru": "Проверка"
+  },
+  "经营方：": {
+    "en": "Operator: ",
+    "ja": "事業者：",
+    "ru": "Оператор: "
+  },
+  "邀请人：": {
+    "en": "Inviter: ",
+    "ja": "招待者：",
+    "ru": "Пригласивший: "
+  },
+  "已核实的邀请人": {
+    "en": "Verified inviter",
+    "ja": "確認済みの招待者",
+    "ru": "Подтверждённый пригласивший"
+  },
+  "无用户邀请人": {
+    "en": "No user inviter",
+    "ja": "ユーザー招待者なし",
+    "ru": "Пригласивший пользователь отсутствует"
+  },
+  "点击下方按钮验证本次邮箱注册。重复验证不会重复建立账号或发放奖励。": {
+    "en": "Click below to verify this email registration. Repeated verification does not create duplicate accounts or rewards.",
+    "ja": "下のボタンで今回のメール登録を確認してください。繰り返し確認してもアカウントや特典は重複しません。",
+    "ru": "Нажмите кнопку ниже для подтверждения регистрации. Повторная проверка не создаёт дубликаты аккаунтов или вознаграждений."
+  },
+  "链接缺少验证凭据，请从邮箱中的完整链接进入。": {
+    "en": "The link is missing its verification token. Open the complete link from your email.",
+    "ja": "リンクに確認用トークンがありません。メール内の完全なリンクから開いてください。",
+    "ru": "В ссылке отсутствует токен подтверждения. Откройте полную ссылку из письма."
+  },
+  "上次操作结果尚未核实；输入已锁定，再次提交会沿用原操作编号。": {
+    "en": "The previous action's result is unverified. Input is locked; submitting again reuses the original action ID.",
+    "ja": "前回の操作結果は未確認です。入力はロックされ、再送信時も元の操作 ID を使用します。",
+    "ru": "Результат предыдущего действия ещё не проверен. Ввод заблокирован; повторная отправка использует исходный идентификатор действия."
+  },
+  "正在处理…": {
+    "en": "Processing…",
+    "ja": "処理中…",
+    "ru": "Обработка…"
+  },
+  "登录": {
+    "en": "Sign in",
+    "ja": "ログイン",
+    "ru": "Войти"
+  },
+  "确认归属并注册": {
+    "en": "Confirm operator and register",
+    "ja": "所属を確認して登録",
+    "ru": "Подтвердить оператора и зарегистрироваться"
+  },
+  "发送找回邮件": {
+    "en": "Send recovery email",
+    "ja": "再設定メールを送信",
+    "ru": "Отправить письмо для восстановления"
+  },
+  "更新密码": {
+    "en": "Update password",
+    "ja": "パスワードを更新",
+    "ru": "Обновить пароль"
+  },
+  "邮箱验证已完成。": {
+    "en": "Email verification completed.",
+    "ja": "メールアドレスの確認が完了しました。",
+    "ru": "Адрес почты подтверждён."
+  },
+  "前往登录": {
+    "en": "Go to sign in",
+    "ja": "ログインへ",
+    "ru": "Перейти ко входу"
+  },
+  "如该账号可找回，验证邮件将发送到对应邮箱。": {
+    "en": "If the account is eligible for recovery, a verification email will be sent to its address.",
+    "ja": "再設定が可能なアカウントの場合、登録先に確認メールを送信します。",
+    "ru": "Если аккаунт можно восстановить, письмо для подтверждения будет отправлено на соответствующий адрес."
+  },
+  "密码已更新。": {
+    "en": "Password updated.",
+    "ja": "パスワードを更新しました。",
+    "ru": "Пароль обновлён."
+  },
+  "重新登录": {
+    "en": "Sign in again",
+    "ja": "再ログイン",
+    "ru": "Войти снова"
+  },
+  "忘记密码": {
+    "en": "Forgot password",
+    "ja": "パスワードをお忘れの場合",
+    "ru": "Забыли пароль"
+  },
+  "购买额度": {
+    "en": "Purchased credit",
+    "ja": "購入利用枠",
+    "ru": "Купленный объём"
+  },
+  "套餐赠送": {
+    "en": "Plan bonus",
+    "ja": "プラン特典",
+    "ru": "Бонус плана"
+  },
+  "可单独授权到期续费": {
+    "en": "Renewal at expiry can be authorized separately",
+    "ja": "期限時の更新を別途承認可能",
+    "ru": "Продление по окончании можно разрешить отдельно"
+  },
+  "单次购买": {
+    "en": "One-time purchase",
+    "ja": "1 回限りの購入",
+    "ru": "Разовая покупка"
+  },
+  "选择套餐，核对成交条款": {
+    "en": "Choose a plan and review the terms",
+    "ja": "プランを選んで取引条件を確認",
+    "ru": "Выбрать план и проверить условия"
+  },
+  "一个品牌入口，": {
+    "en": "One brand, one gateway,",
+    "ja": "ひとつのブランド窓口で、",
+    "ru": "Один бренд, единая точка входа —"
+  },
+  "连接你的模型与应用。": {
+    "en": "connecting your models and apps.",
+    "ja": "モデルとアプリをつなぐ。",
+    "ru": "связь ваших моделей и приложений."
+  },
+  "选择模型，购买通用额度，用一个 API 入口接入你的应用。多个 Key 分别管理访问和预算，每笔消费都能找到依据。": {
+    "en": "Choose models, buy shared credit, and connect your apps through one API gateway. Manage access and budgets with separate keys, and trace every charge.",
+    "ja": "モデルを選び、共通利用枠を購入し、ひとつの API 窓口でアプリに接続。Key ごとにアクセスと予算を管理し、すべての料金の根拠を確認できます。",
+    "ru": "Выбирайте модели, покупайте общий объём и подключайте приложения через единый API. Управляйте доступом и бюджетом отдельными ключами и проверяйте каждое списание."
+  },
+  "接入模型": {
+    "en": "Connect a model",
+    "ja": "モデルを接続",
+    "ru": "Подключить модель"
+  },
+  "创建账号，开始接入": {
+    "en": "Create an account to get started",
+    "ja": "アカウントを作成して接続",
+    "ru": "Создать аккаунт и начать подключение"
+  },
+  "选择通用套餐": {
+    "en": "Choose a shared-credit plan",
+    "ja": "共通利用枠プランを選択",
+    "ru": "Выбрать план общего объёма"
+  },
+  "先查看模型与价格": {
+    "en": "Browse models and prices first",
+    "ja": "先にモデルと料金を確認",
+    "ru": "Сначала посмотреть модели и цены"
+  },
+  "品牌 API Base URL": {
+    "en": "Brand API base URL",
+    "ja": "ブランド API Base URL",
+    "ru": "Базовый URL API бренда"
+  },
+  "品牌 API 入口待配置": {
+    "en": "Brand API gateway is not configured yet",
+    "ja": "ブランド API の接続先は未設定です",
+    "ru": "Точка входа API бренда ещё не настроена"
+  },
+  "复制 Base URL": {
+    "en": "Copy base URL",
+    "ja": "Base URL をコピー",
+    "ru": "Копировать базовый URL"
+  },
+  "选择模型与套餐": {
+    "en": "Choose models and a plan",
+    "ja": "モデルとプランを選択",
+    "ru": "Выберите модели и план"
+  },
+  "同一账号额度适用于当前经营方开放的模型。": {
+    "en": "Your account credit works across models enabled by the current operator.",
+    "ja": "同じアカウントの利用枠を、現在の事業者が公開するモデルで使用できます。",
+    "ru": "Объём аккаунта доступен для моделей, открытых текущим оператором."
+  },
+  "创建应用 Key": {
+    "en": "Create an application key",
+    "ja": "アプリ用 Key を作成",
+    "ru": "Создайте ключ приложения"
+  },
+  "保存一次性密钥，按需限制预算与模型。": {
+    "en": "Save the key shown once, and set budget and model limits as needed.",
+    "ja": "一度だけ表示される秘密鍵を保存し、必要に応じて予算とモデルを制限します。",
+    "ru": "Сохраните ключ, показанный один раз, и при необходимости ограничьте бюджет и модели."
+  },
+  "复制代码，核对消费": {
+    "en": "Copy code and review charges",
+    "ja": "コードをコピーして料金を確認",
+    "ru": "Скопируйте код и проверьте расходы"
+  },
+  "在接入页获取示例，运行后查看请求账单。": {
+    "en": "Get examples on the integration page and review request charges after running them.",
+    "ja": "接続ページでサンプルを取得し、実行後にリクエスト明細を確認します。",
+    "ru": "Получите примеры на странице подключения и после запуска проверьте счета запросов."
+  },
+  "查看接入指南与代码": {
+    "en": "View integration guide and code",
+    "ja": "接続ガイドとコードを表示",
+    "ru": "Руководство по подключению и код"
+  },
+  "品牌": {
+    "en": "Brand ",
+    "ja": "ブランド",
+    "ru": "Бренд "
+  },
+  "· 当前由": {
+    "en": " · Operated by ",
+    "ja": " · 運営・集金・履行担当：",
+    "ru": " · Оператор: "
+  },
+  "经营、收款并履约。注册时确认的经营方决定账号、套餐、余额及推广关系的归属。": {
+    "en": ", which collects payments and delivers services. The operator confirmed at registration determines ownership of the account, plans, balances, and referral relationships.",
+    "ja": "。登録時に確認した事業者によって、アカウント、プラン、残高、紹介関係の所属が決まります。",
+    "ru": ", принимающий платежи и оказывающий услуги. Оператор, подтверждённый при регистрации, определяет принадлежность аккаунта, планов, остатков и реферальных связей."
+  },
+  "当前尚未开放：": {
+    "en": "Currently unavailable: ",
+    "ja": "現在利用できない機能：",
+    "ru": "Сейчас недоступно: "
+  },
+  "客户注册": {
+    "en": "Customer registration",
+    "ja": "顧客登録",
+    "ru": "Регистрация клиентов"
+  },
+  "套餐新购": {
+    "en": "New plan purchases",
+    "ja": "プラン新規購入",
+    "ru": "Новые покупки планов"
+  },
+  "自动续费": {
+    "en": "Automatic renewal",
+    "ja": "自動更新",
+    "ru": "Автоматическое продление"
+  },
+  "模型调用": {
+    "en": "Model requests",
+    "ja": "モデル呼び出し",
+    "ru": "Запросы к моделям"
+  },
+  "营销活动": {
+    "en": "Marketing campaigns",
+    "ja": "マーケティング施策",
+    "ru": "Маркетинговые акции"
+  },
+  "结算": {
+    "en": "Settlement",
+    "ja": "精算",
+    "ru": "Расчёты"
+  },
+  "选择适合应用的模型": {
+    "en": "Find the right models for your apps",
+    "ja": "アプリに合うモデルを選択",
+    "ru": "Выберите модели для ваших приложений"
+  },
+  "全部模型与价格": {
+    "en": "All models and prices",
+    "ja": "すべてのモデルと料金",
+    "ru": "Все модели и цены"
+  },
+  "模型目录准备中": {
+    "en": "Model catalog is being prepared",
+    "ja": "モデル一覧を準備中",
+    "ru": "Каталог моделей готовится"
+  },
+  "经营方完成授权、价格和路由验证后将开放调用。": {
+    "en": "Requests will be enabled after the operator verifies authorization, pricing, and routing.",
+    "ja": "事業者が権限、料金、ルートの検証を完了すると呼び出し可能になります。",
+    "ru": "Запросы станут доступны после проверки оператором разрешений, цен и маршрутизации."
+  },
+  "查看价格与能力": {
+    "en": "View pricing and capabilities",
+    "ja": "料金と機能を表示",
+    "ru": "Посмотреть цены и возможности"
+  },
+  "通用额度，按需购买": {
+    "en": "Shared credit, bought as needed",
+    "ja": "必要な分だけ共通利用枠を購入",
+    "ru": "Общий объём по потребности"
+  },
+  "全部套餐与条款": {
+    "en": "All plans and terms",
+    "ja": "すべてのプランと条件",
+    "ru": "Все планы и условия"
+  },
+  "当前没有可购买套餐": {
+    "en": "No plans available for purchase",
+    "ja": "現在購入できるプランはありません",
+    "ru": "Нет доступных для покупки планов"
+  },
+  "商品与收款方式就绪后在此展示。": {
+    "en": "Plans appear here once products and payment methods are ready.",
+    "ja": "商品と支払方法の準備が整うと、ここに表示されます。",
+    "ru": "Планы появятся здесь после настройки продуктов и способов оплаты."
+  },
+  "一个额度池，多种模型": {
+    "en": "One credit pool, multiple models",
+    "ja": "ひとつの利用枠で多様なモデル",
+    "ru": "Один общий объём для разных моделей"
+  },
+  "购买与赠送保留各自来源和期限，多个有效套餐可以并存。": {
+    "en": "Purchased and bonus credit retain their own sources and expiry dates. Multiple active plans can coexist.",
+    "ja": "購入分と特典分はそれぞれの出所と有効期限を維持し、複数の有効なプランを同時に持てます。",
+    "ru": "Купленный и бонусный объём сохраняют свои источники и сроки действия. Можно иметь несколько действующих планов одновременно."
+  },
+  "为每个应用单独建 Key": {
+    "en": "A separate key for each app",
+    "ja": "アプリごとに専用 Key",
+    "ru": "Отдельный ключ для каждого приложения"
+  },
+  "分别设定预算、模型与并发，所有 Key 共享账号有效额度。": {
+    "en": "Set budgets, models, and concurrency per key. All keys share the account's active credit.",
+    "ja": "Key ごとに予算、モデル、同時実行数を設定。すべての Key がアカウントの有効な利用枠を共有します。",
+    "ru": "Задавайте бюджет, модели и параллелизм для каждого ключа. Все ключи используют действующий объём аккаунта."
+  },
+  "从请求追溯每笔费用": {
+    "en": "Trace every charge to its request",
+    "ja": "各料金をリクエストから追跡",
+    "ru": "Прослеживайте каждое списание до запроса"
+  },
+  "查看受理价格、实际用量、额度来源和净扣费，预占与消费分开记录。": {
+    "en": "Inspect accepted prices, actual usage, credit sources, and net charges. Holds and consumption are recorded separately.",
+    "ja": "受付時の料金、実際の使用量、利用枠の出所、純請求額を確認。一時確保と消費は別々に記録します。",
+    "ru": "Проверяйте цену при принятии, фактическое использование, источник объёма и чистое списание. Резервы и расходы записываются отдельно."
+  },
+  "模型与价格": {
+    "en": "Models and pricing",
+    "ja": "モデルと料金",
+    "ru": "Модели и цены"
+  },
+  "查看当前经营方开放的模型、能力与计量价格，选择后即可前往接入。": {
+    "en": "Browse models, capabilities, and usage prices enabled by the current operator, then proceed to integration.",
+    "ja": "現在の事業者が公開するモデル、機能、従量料金を確認し、接続に進めます。",
+    "ru": "Посмотрите модели, возможности и цены использования, доступные у текущего оператора, и перейдите к подключению."
+  },
+  "接入指南": {
+    "en": "Integration guide",
+    "ja": "接続ガイド",
+    "ru": "Руководство по подключению"
+  },
+  "调用价格与服务范围": {
+    "en": "Request pricing and service scope",
+    "ja": "呼び出し料金とサービス範囲",
+    "ru": "Цены запросов и область обслуживания"
+  },
+  "调用按受理时的价格快照结算，始终使用你指定的公开模型。可调用范围同时受经营方上架状态、有效权益与 Key 范围约束。": {
+    "en": "Requests are settled at the price snapshot recorded on acceptance and always use your specified public model. Availability depends on operator listings, active entitlements, and key scope.",
+    "ja": "呼び出しは受付時の料金スナップショットで精算し、指定した公開モデルを使用します。利用範囲は事業者の公開状態、有効な権益、Key の範囲に従います。",
+    "ru": "Запросы оплачиваются по снимку цены на момент принятия и всегда используют указанную публичную модель. Доступ зависит от публикации оператором, действующих прав и области ключа."
+  },
+  "选择通用 ATG 套餐": {
+    "en": "Choose a shared ATG plan",
+    "ja": "共通 ATG プランを選択",
+    "ru": "Выбрать общий план ATG"
+  },
+  "通用 ATG 套餐": {
+    "en": "Shared ATG plans",
+    "ja": "共通 ATG プラン",
+    "ru": "Общие планы ATG"
+  },
+  "为当前经营方的开放模型购买通用服务额度。可直接购包，无须先充值。": {
+    "en": "Buy shared service credit for the current operator's enabled models. Purchase a plan directly without topping up first.",
+    "ja": "現在の事業者が公開するモデル用の共通利用枠を購入できます。事前チャージなしで直接プランを購入できます。",
+    "ru": "Покупайте общий сервисный объём для моделей текущего оператора. План можно приобрести напрямую без предварительного пополнения."
+  },
+  "由": {
+    "en": "Payments and delivery by ",
+    "ja": "集金・提供事業者：",
+    "ru": "Оплату принимает и услуги предоставляет "
+  },
+  "收款并负责交付，价格包含相关税费。最终活动权益、有效期和支付方式在结算前统一确认。": {
+    "en": ". Prices include applicable taxes and fees. Final promotional benefits, validity, and payment options are confirmed before checkout.",
+    "ja": "。料金には関連する税・手数料が含まれます。最終的な特典、有効期間、支払方法は決済前にまとめて確認します。",
+    "ru": ". Цены включают применимые налоги и сборы. Итоговые бонусы акций, срок действия и способы оплаты подтверждаются перед оплатой."
+  },
+  "当前没有可购买的套餐": {
+    "en": "No plans are currently available to purchase",
+    "ja": "現在購入できるプランはありません",
+    "ru": "Сейчас нет планов для покупки"
+  },
+  "经营方完成商品与收款配置后会在这里展示。": {
+    "en": "Plans will appear here once the operator finishes product and payment setup.",
+    "ja": "事業者が商品と決済の設定を完了すると、ここに表示されます。",
+    "ru": "Планы появятся здесь после завершения оператором настройки продуктов и приёма оплаты."
+  },
+  "套餐怎样生效与到期": {
+    "en": "Plan activation and expiry",
+    "ja": "プランの開始と有効期限",
+    "ru": "Активация и окончание планов"
+  },
+  "足额付款并成功交付后生效。每份套餐独立计算有效期，月、季、年均从交付日起按日历期间计算。多份可并存，正常到期余量不结转。": {
+    "en": "Plans activate after full payment and successful delivery. Each has its own validity; months, quarters, and years are calendar periods from delivery. Multiple plans can coexist; unused credit does not roll over on normal expiry.",
+    "ja": "全額の支払いと提供完了後に有効になります。各プランの有効期間は独立し、月・四半期・年は提供日から暦で計算します。複数を同時に持てますが、通常の期限終了時に残量は繰り越しません。",
+    "ru": "План активируется после полной оплаты и успешной выдачи. Срок каждого плана независим; месяцы, кварталы и годы считаются по календарю с даты выдачи. Несколько планов могут действовать одновременно; остаток при обычном окончании не переносится."
+  },
+  "自动续费需要单独授权；提前用完不会提前自动续费，续费条件变差须重新确认。": {
+    "en": "Automatic renewal requires separate authorization. Early exhaustion does not trigger early renewal, and less favorable renewal terms require confirmation again.",
+    "ja": "自動更新には別途承認が必要です。早く使い切っても早期更新は行われず、更新条件が不利になる場合は再確認が必要です。",
+    "ru": "Автопродление требует отдельного разрешения. Досрочное исчерпание не запускает продление, а ухудшение условий требует нового подтверждения."
+  },
+  "付款、退款与使用记录": {
+    "en": "Payments, refunds, and usage records",
+    "ja": "支払い、返金、利用記録",
+    "ru": "Оплата, возвраты и история использования"
+  },
+  "套餐不提供一般性退款；重复、错误交易、未交付或无法履约的问题通过异常流程办理。未使用且未占用的 USD 支付余额可申请退回。": {
+    "en": "Plans do not offer general refunds. Duplicate or incorrect transactions, non-delivery, and fulfillment failures follow the exception process. Unused, unreserved USD payment balances may be requested back.",
+    "ja": "プランの一般的な返金はありません。重複・誤取引、未提供、履行不能は例外手続きで対応します。未使用かつ未確保の USD 支払残高は返金申請が可能です。",
+    "ru": "Общий возврат по планам не предусмотрен. Дублирующие или ошибочные операции, невыдача и невозможность исполнения обрабатываются через исключения. Неиспользованный и незарезервированный остаток USD можно запросить к возврату."
+  },
+  "购买后在工作台创建 Key、获取接入代码，并在用量账单查看价格与费用依据。": {
+    "en": "After purchase, create keys and get integration code in your workspace, then review pricing and charge evidence in usage billing.",
+    "ja": "購入後、ワークスペースで Key を作成して接続コードを取得し、利用明細で料金の根拠を確認できます。",
+    "ru": "После покупки создавайте ключи и получайте код подключения в рабочем пространстве, а в счетах использования проверяйте цены и основания списаний."
+  },
+  "MODEL SERVICES": {
+    "en": "MODEL SERVICES",
+    "ja": "モデルサービス",
+    "ru": "СЕРВИСЫ МОДЕЛЕЙ",
+    "zh": "模型服务"
+  },
+  "YOUR MODEL WORKSPACE": {
+    "en": "YOUR MODEL WORKSPACE",
+    "ja": "モデルワークスペース",
+    "ru": "ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО МОДЕЛЕЙ",
+    "zh": "你的模型工作空间"
+  },
+  "MODELS": {
+    "en": "MODELS",
+    "ja": "モデル",
+    "ru": "МОДЕЛИ",
+    "zh": "模型"
+  },
+  "PLANS": {
+    "en": "PLANS",
+    "ja": "プラン",
+    "ru": "ПЛАНЫ",
+    "zh": "套餐"
+  },
+  "音色": {
+    "en": "Voice",
+    "ja": "声質",
+    "ru": "Голос"
+  },
+  "结果格式": {
+    "en": "Response format",
+    "ja": "結果形式",
+    "ru": "Формат результата"
+  },
+  "期望秒数": {
+    "en": "Requested duration (seconds)",
+    "ja": "希望の秒数",
+    "ru": "Желаемая длительность (секунды)"
+  },
+  "输出尺寸": {
+    "en": "Output size",
+    "ja": "出力サイズ",
+    "ru": "Размер вывода"
+  },
+  "质量": {
+    "en": "Quality",
+    "ja": "品質",
+    "ru": "Качество"
+  },
+  "输出数量": {
+    "en": "Output count",
+    "ja": "出力数",
+    "ru": "Количество результатов"
+  },
+  "随机程度": {
+    "en": "Temperature",
+    "ja": "ランダム性",
+    "ru": "Температура"
+  },
+  "采样范围": {
+    "en": "Sampling range",
+    "ja": "サンプリング範囲",
+    "ru": "Диапазон выборки"
+  },
+  "最大输出 token": {
+    "en": "Maximum output tokens",
+    "ja": "最大出力トークン数",
+    "ru": "Максимум токенов вывода"
+  },
+  "输入语言": {
+    "en": "Input language",
+    "ja": "入力言語",
+    "ru": "Язык ввода"
+  },
+  "语速": {
+    "en": "Speech speed",
+    "ja": "話す速度",
+    "ru": "Скорость речи"
+  },
+  "随机种子": {
+    "en": "Random seed",
+    "ja": "乱数シード",
+    "ru": "Случайное зерно"
+  },
+  "向量维度": {
+    "en": "Embedding dimensions",
+    "ja": "埋め込み次元数",
+    "ru": "Размерность эмбеддинга"
+  },
+  "模型体验": {
+    "en": "Model playground",
+    "ja": "モデル体験",
+    "ru": "Тестирование моделей"
+  },
+  "发送一次请求，检查结果与实际费用，再把模型接入应用。": {
+    "en": "Send a request, inspect its result and actual cost, then integrate the model into your app.",
+    "ja": "リクエストを送信し、結果と実際の料金を確認してからアプリにモデルを接続します。",
+    "ru": "Отправьте запрос, проверьте результат и фактическую стоимость, затем подключите модель к приложению."
+  },
+  "获取 API 接入代码": {
+    "en": "Get API integration code",
+    "ja": "API 接続コードを取得",
+    "ru": "Получить код подключения API"
+  },
+  "当前没有可体验模型": {
+    "en": "No models available to try",
+    "ja": "現在体験できるモデルはありません",
+    "ru": "Нет моделей для тестирования"
+  },
+  "经营方开放模型后可在此体验。": {
+    "en": "Try models here once the operator enables them.",
+    "ja": "事業者がモデルを公開すると、ここで体験できます。",
+    "ru": "Модели можно будет попробовать здесь после открытия доступа оператором."
+  },
+  "查看模型目录": {
+    "en": "View model catalog",
+    "ja": "モデル一覧を表示",
+    "ru": "Посмотреть каталог моделей"
+  },
+  "本次体验结果": {
+    "en": "Results of this request",
+    "ja": "今回の体験結果",
+    "ru": "Результат этого запроса"
+  },
+  "准备本次请求": {
+    "en": "Prepare a request",
+    "ja": "今回のリクエストを準備",
+    "ru": "Подготовить запрос"
+  },
+  "与 API 共用账号额度和模型计费规则": {
+    "en": "Uses the same account credit and model pricing rules as the API",
+    "ja": "API と同じアカウント利用枠・モデル料金を使用",
+    "ru": "Используются те же объём аккаунта и правила оплаты, что и в API"
+  },
+  "选择要体验的模型": {
+    "en": "Choose a model to try",
+    "ja": "体験するモデルを選択",
+    "ru": "Выберите модель для тестирования"
+  },
+  "选择模型支持的能力": {
+    "en": "Choose a supported capability",
+    "ja": "モデルが対応する機能を選択",
+    "ru": "Выберите поддерживаемую возможность"
+  },
+  "音频文件": {
+    "en": "Audio file",
+    "ja": "音声ファイル",
+    "ru": "Аудиофайл"
+  },
+  "需要向量化的文本": {
+    "en": "Text to embed",
+    "ja": "埋め込みを作成するテキスト",
+    "ru": "Текст для эмбеддинга"
+  },
+  "合成语音文本": {
+    "en": "Text for speech synthesis",
+    "ja": "読み上げるテキスト",
+    "ru": "Текст для синтеза речи"
+  },
+  "本次输入": {
+    "en": "Request input",
+    "ja": "今回の入力",
+    "ru": "Ввод запроса"
+  },
+  "描述你想生成的内容": {
+    "en": "Describe what you want to generate",
+    "ja": "生成したい内容を入力",
+    "ru": "Опишите, что нужно сгенерировать"
+  },
+  "输入要发送给模型的内容": {
+    "en": "Enter the content to send to the model",
+    "ja": "モデルに送信する内容を入力",
+    "ru": "Введите содержимое для отправки модели"
+  },
+  "模型参数": {
+    "en": "Model parameters",
+    "ja": "モデルパラメータ",
+    "ru": "Параметры модели"
+  },
+  " · 包含必填项": {
+    "en": " · Includes required fields",
+    "ja": " · 必須項目あり",
+    "ru": " · Есть обязательные поля"
+  },
+  " · 可选": {
+    "en": " · Optional",
+    "ja": " · 任意",
+    "ru": " · Необязательно"
+  },
+  "（必填）": {
+    "en": " (required)",
+    "ja": "（必須）",
+    "ru": " (обязательно)"
+  },
+  "（可选）": {
+    "en": " (optional)",
+    "ja": "（任意）",
+    "ru": " (необязательно)"
+  },
+  "使用模型默认行为": {
+    "en": "Use model defaults",
+    "ja": "モデルの既定動作を使用",
+    "ru": "Использовать настройки модели по умолчанию"
+  },
+  "此能力需要完整结构化参数": {
+    "en": "This capability requires full structured parameters: ",
+    "ja": "この機能には完全な構造化パラメータが必要です：",
+    "ru": "Для этой возможности требуются полные структурированные параметры: "
+  },
+  "，请前往接入页使用 API 提交。": {
+    "en": ". Submit them through the API using the integration page.",
+    "ja": "。接続ページから API を使用して送信してください。",
+    "ru": ". Отправьте их через API со страницы подключения."
+  },
+  "提交结果待核实，输入已锁定。重试将沿用同一幂等编号和原内容，不会创建另一笔请求。": {
+    "en": "The submission result is awaiting verification, and input is locked. Retrying uses the same idempotency ID and original content without creating another request.",
+    "ja": "送信結果を確認中のため入力をロックしています。再試行では同じ冪等 ID と元の内容を使用し、別のリクエストは作成しません。",
+    "ru": "Результат отправки ожидает проверки, ввод заблокирован. Повтор использует тот же ключ идемпотентности и исходные данные без создания нового запроса."
+  },
+  "点击发送会按实际用量计费。当前内容只用于本次体验，不建立长期会话历史。": {
+    "en": "Sending incurs charges based on actual usage. Content is used only for this request and does not create a long-term conversation history.",
+    "ja": "送信すると実際の使用量に応じて課金されます。内容は今回の体験にのみ使用し、長期的な会話履歴は作成しません。",
+    "ru": "При отправке взимается плата за фактическое использование. Содержимое используется только для этого запроса и не сохраняется как долгосрочная история диалога."
+  },
+  "受理与执行中…": {
+    "en": "Accepting and executing…",
+    "ja": "受付・実行中…",
+    "ru": "Принятие и выполнение…"
+  },
+  "核实或重试原请求": {
+    "en": "Verify or retry the original request",
+    "ja": "元のリクエストを確認・再試行",
+    "ru": "Проверить или повторить исходный запрос"
+  },
+  "确认计费并发送": {
+    "en": "Confirm charges and send",
+    "ja": "課金を確認して送信",
+    "ru": "Подтвердить оплату и отправить"
+  },
+  "清空输入": {
+    "en": "Clear input",
+    "ja": "入力を消去",
+    "ru": "Очистить ввод"
+  },
+  "复制请求编号": {
+    "en": "Copy request ID",
+    "ja": "リクエスト ID をコピー",
+    "ru": "Копировать идентификатор запроса"
+  },
+  "目前已扣费（仍在处理中）": {
+    "en": "Charged so far (still processing)",
+    "ja": "現在までの請求額（処理中）",
+    "ru": "Списано на данный момент (обработка продолжается)"
+  },
+  "本次实际扣费": {
+    "en": "Actual charge for this request",
+    "ja": "今回の実際の請求額",
+    "ru": "Фактическое списание за запрос"
+  },
+  "在途预占": {
+    "en": "In-flight hold ",
+    "ja": "処理中の一時確保 ",
+    "ru": "Резерв в обработке "
+  },
+  "正在跟进原任务。可离开本页，稍后到用量账单查询；查询原任务不会再次调用模型。": {
+    "en": "Tracking the original task. You can leave and check usage billing later; checking the task does not call the model again.",
+    "ja": "元のタスクを追跡しています。このページを離れ、後で利用明細から確認できます。タスク照会でモデルが再実行されることはありません。",
+    "ru": "Отслеживается исходная задача. Можно уйти и позже проверить счета использования; проверка задачи не вызывает модель повторно."
+  },
+  "取得暂存结果": {
+    "en": "Get temporary result",
+    "ja": "一時保存の結果を取得",
+    "ru": "Получить временный результат"
+  },
+  "保留至": {
+    "en": "Available until ",
+    "ja": "保存期限：",
+    "ru": "Доступно до "
+  },
+  "保留期限尚未返回，请尽快取得结果。": {
+    "en": "The retention deadline is not available yet. Retrieve the result soon.",
+    "ja": "保存期限がまだ返されていません。早めに結果を取得してください。",
+    "ru": "Срок хранения ещё не получен. Заберите результат как можно скорее."
+  },
+  "核对费用与任务状态": {
+    "en": "Review charges and task status",
+    "ja": "料金とタスク状態を確認",
+    "ru": "Проверить стоимость и статус задачи"
+  },
+  "开始新的体验": {
+    "en": "Start a new request",
+    "ja": "新しい体験を開始",
+    "ru": "Начать новый запрос"
+  },
+  "新体验会建立新的计费请求，当前结果不会保留为会话历史。": {
+    "en": "A new experience creates a new billable request. This result is not retained as conversation history.",
+    "ja": "新しい体験では新たな課金リクエストを作成します。現在の結果は会話履歴として保存しません。",
+    "ru": "Новое тестирование создаёт новый оплачиваемый запрос. Текущий результат не сохраняется как история диалога."
+  },
+  "本次模型与价格": {
+    "en": "Selected model and pricing",
+    "ja": "今回のモデルと料金",
+    "ru": "Выбранная модель и цены"
+  },
+  "以上": {
+    "en": "and above",
+    "ja": "以上",
+    "ru": "и выше"
+  },
+  "输入上限": {
+    "en": "Input limit ",
+    "ja": "入力上限 ",
+    "ru": "Предел ввода "
+  },
+  "bytes · 输出上限": {
+    "en": "bytes · Output limit ",
+    "ja": "バイト · 出力上限 ",
+    "ru": "байт · Предел вывода "
+  },
+  "模型支持流式": {
+    "en": "Streaming supported",
+    "ja": "ストリーミング対応",
+    "ru": "Потоковый вывод поддерживается"
+  },
+  "模型不支持流式": {
+    "en": "Streaming not supported",
+    "ja": "ストリーミング非対応",
+    "ru": "Потоковый вывод не поддерживается"
+  },
+  "先选择一个模型，在这里核对其公布的计量价格与限制。": {
+    "en": "Choose a model to review its published usage prices and limits here.",
+    "ja": "モデルを選択すると、公開されている従量料金と制限をここで確認できます。",
+    "ru": "Выберите модель, чтобы проверить её опубликованные цены использования и ограничения."
+  },
+  "最终按受理时的价格与可核实的实际用量结算，页面不会预先生成虚构费用。": {
+    "en": "Final charges use the price at acceptance and verified actual usage. The page does not invent estimated charges.",
+    "ja": "最終的な精算は受付時の料金と確認できる実際の使用量に基づきます。このページでは架空の料金を事前表示しません。",
+    "ru": "Итоговая стоимость определяется ценой при принятии и подтверждённым фактическим использованием. Страница не создаёт вымышленных предварительных сумм."
+  },
+  "结果暂存与请求安全": {
+    "en": "Temporary results and request safety",
+    "ja": "結果の一時保存とリクエストの安全性",
+    "ru": "Временные результаты и безопасность запросов"
+  },
+  "网页仅保留当前体验所需的上下文，离开后不建立长期历史。异步结果保留期限由任务记录返回，请及时获取。": {
+    "en": "The page keeps only the context needed for the current request and creates no long-term history after you leave. Retention deadlines for asynchronous results come from the task record; retrieve them promptly.",
+    "ja": "ページは今回の体験に必要な内容だけを保持し、離れた後の長期履歴は作成しません。非同期結果の保存期限はタスク記録で確認し、早めに取得してください。",
+    "ru": "Страница хранит только контекст текущего запроса и не создаёт долгосрочную историю после ухода. Срок хранения асинхронных результатов указан в записи задачи; забирайте их вовремя."
+  },
+  "结果不明时继续核实原任务；取消或中断按已发生且可确认的用量结算，可在请求明细申请取消。": {
+    "en": "If the outcome is unclear, keep checking the original task. Cancellation or interruption is settled on verified usage already incurred; request cancellation from the request details.",
+    "ja": "結果が不明な場合は元のタスクを引き続き確認してください。取消・中断時は確認できる発生済み使用量で精算し、取消はリクエスト詳細から申請できます。",
+    "ru": "Если результат неизвестен, продолжайте проверять исходную задачу. При отмене или прерывании оплачивается подтверждённое использование; отмену можно запросить в деталях запроса."
+  },
+  "查看之前的请求元数据与暂存结果": {
+    "en": "View previous request metadata and temporary results",
+    "ja": "以前のリクエスト情報と一時結果を表示",
+    "ru": "Предыдущие запросы: метаданные и временные результаты"
+  },
+  "接受经营人员邀请": {
+    "en": "Accept operator staff invitation",
+    "ja": "運営スタッフの招待を承諾",
+    "ru": "Принять приглашение сотрудника оператора"
+  },
+  "邀请邮箱与经营范围由邮件中的验证凭据确定。经营人员使用独立于客户账号的密码。": {
+    "en": "The invitation email and operator scope are determined by the email's verification token. Staff use a password separate from customer accounts.",
+    "ja": "招待先メールと事業範囲はメール内の確認トークンで確定します。運営スタッフは顧客アカウントと別のパスワードを使用します。",
+    "ru": "Почта приглашённого и область оператора определяются токеном из письма. Сотрудники используют пароль, отдельный от клиентского аккаунта."
+  },
+  "已有经营人员账号请使用原密码；首次加入请设置至少 12 位密码。接受后通过经营人员登录进入已授权范围。": {
+    "en": "Existing staff should use their current password. New staff must set a password of at least 12 characters. After accepting, sign in as staff to access the authorized scope.",
+    "ja": "既存スタッフは現在のパスワードを使用してください。初参加の場合は 12 文字以上のパスワードを設定します。承諾後、スタッフとしてログインすると許可された範囲に入れます。",
+    "ru": "Действующим сотрудникам следует использовать текущий пароль. Новым нужен пароль не короче 12 символов. После принятия войдите как сотрудник для доступа к разрешённой области."
+  },
+  "经营人员密码": {
+    "en": "Staff password",
+    "ja": "運営スタッフ用パスワード",
+    "ru": "Пароль сотрудника"
+  },
+  "重试原邀请确认": {
+    "en": "Retry the original invitation confirmation",
+    "ja": "元の招待承諾を再試行",
+    "ru": "Повторить исходное подтверждение приглашения"
+  },
+  "验证邮箱并接受邀请": {
+    "en": "Verify email and accept invitation",
+    "ja": "メールを確認して招待を承諾",
+    "ru": "Подтвердить почту и принять приглашение"
+  },
+  "邀请已接受。": {
+    "en": "Invitation accepted.",
+    "ja": "招待を承諾しました。",
+    "ru": "Приглашение принято."
+  },
+  "使用经营人员身份登录": {
+    "en": "Sign in as operator staff",
+    "ja": "運営スタッフとしてログイン",
+    "ru": "Войти как сотрудник оператора"
+  },
+  "邮件授权": {
+    "en": "Email consent",
+    "ja": "メール送信の同意",
+    "ru": "Согласие на письма"
+  },
+  "本人授权营销邮件（可随时撤回）": {
+    "en": "I consent to marketing emails (withdraw at any time)",
+    "ja": "マーケティングメールに同意する（いつでも撤回可能）",
+    "ru": "Я согласен на маркетинговые письма (можно отозвать в любое время)"
+  },
+  "用量邮件提醒": {
+    "en": "Usage email reminders",
+    "ja": "使用量のメール通知",
+    "ru": "Напоминания об использовании по почте"
+  },
+  "必要的资金、资产、安全与履约通知继续发送。修改会立即作用于尚未发送的邮件。": {
+    "en": "Essential payment, asset, security, and fulfillment notices will still be sent. Changes apply immediately to emails not yet sent.",
+    "ja": "必要な資金、資産、安全、履行に関する通知は引き続き送信します。変更は未送信のメールに直ちに適用されます。",
+    "ru": "Необходимые уведомления о платежах, активах, безопасности и исполнении продолжат поступать. Изменения сразу применяются к ещё не отправленным письмам."
+  },
+  "重试原授权修改": {
+    "en": "Retry the original consent change",
+    "ja": "元の同意変更を再試行",
+    "ru": "Повторить исходное изменение согласия"
+  },
+  "保存邮件授权": {
+    "en": "Save email consent",
+    "ja": "メール同意を保存",
+    "ru": "Сохранить согласие на письма"
+  },
+  "文件不得超过10MiB。": {
+    "en": "The file must not exceed 10 MiB.",
+    "ja": "ファイルは 10 MiB 以下にしてください。",
+    "ru": "Размер файла не должен превышать 10 МиБ."
+  },
+  "真实票据与收件资料": {
+    "en": "Issued invoices and recipient details",
+    "ja": "実際の請求書と受領者情報",
+    "ru": "Выданные документы и данные получателя"
+  },
+  "抬头": {
+    "en": "Invoice title",
+    "ja": "請求書の宛名",
+    "ru": "Наименование получателя документа"
+  },
+  "纳税识别号": {
+    "en": "Tax ID",
+    "ja": "納税者番号",
+    "ru": "ИНН"
+  },
+  "接收邮箱": {
+    "en": "Recipient email",
+    "ja": "受信メールアドレス",
+    "ru": "Почта получателя"
+  },
+  "地址": {
+    "en": "Address",
+    "ja": "住所",
+    "ru": "Адрес"
+  },
+  "未提供": {
+    "en": "Not provided",
+    "ja": "未提供",
+    "ru": "Не указано"
+  },
+  "尚未上传实际票据文件。": {
+    "en": "No issued invoice files have been uploaded.",
+    "ja": "実際の請求書ファイルはまだアップロードされていません。",
+    "ru": "Файлы выданных документов ещё не загружены."
+  },
+  "票据文件": {
+    "en": "Invoice file",
+    "ja": "請求書ファイル",
+    "ru": "Файл документа"
+  },
+  "状态": {
+    "en": "Status",
+    "ja": "状態",
+    "ru": "Статус"
+  },
+  "上传时间": {
+    "en": "Uploaded at",
+    "ja": "アップロード日時",
+    "ru": "Время загрузки"
+  },
+  "取得原文件": {
+    "en": "Get original file",
+    "ja": "元のファイルを取得",
+    "ru": "Получить исходный файл"
+  },
+  "授权下载": {
+    "en": "Authorized download",
+    "ja": "権限付きダウンロード",
+    "ru": "Авторизованная загрузка"
+  },
+  "尚未就绪": {
+    "en": "Not ready yet",
+    "ja": "未準備",
+    "ru": "Ещё не готово"
+  },
+  "上传已出具的真实票据文件。S3对象保持私有，下载时重新核对经营方或申请人身份。上传不代表已经开票，还需登记真实凭证编号。": {
+    "en": "Upload an actually issued invoice file. S3 objects remain private and downloads recheck operator or applicant identity. Uploading does not mark the invoice as issued; the actual document number must also be recorded.",
+    "ja": "実際に発行した請求書ファイルをアップロードしてください。S3 オブジェクトは非公開とし、取得時に事業者または申請者の本人確認を行います。アップロードだけでは発行済みにならず、実際の証憑番号の登録も必要です。",
+    "ru": "Загрузите файл фактически выданного документа. Объекты S3 остаются закрытыми; при загрузке проверяется оператор или заявитель. Загрузка файла не означает выдачу документа — нужно также зарегистрировать его реальный номер."
+  },
+  "票据文件（PDF/PNG/JPEG，不超过10MiB）": {
+    "en": "Invoice file (PDF/PNG/JPEG, up to 10 MiB)",
+    "ja": "請求書ファイル（PDF/PNG/JPEG、10 MiB 以下）",
+    "ru": "Файл документа (PDF/PNG/JPEG, до 10 МиБ)"
+  },
+  "重试原文件上传": {
+    "en": "Retry the original file upload",
+    "ja": "元のファイル送信を再試行",
+    "ru": "Повторить исходную загрузку файла"
+  },
+  "上传真实私有文件": {
+    "en": "Upload issued private file",
+    "ja": "実際の非公開ファイルをアップロード",
+    "ru": "Загрузить реальный закрытый файл"
+  },
+  "文件已保存，状态：": {
+    "en": "File saved. Status: ",
+    "ja": "ファイルを保存しました。状態：",
+    "ru": "Файл сохранён. Статус: "
+  },
+  "已转账后可提交查找线索。系统只读核实准确网络、合约、收款地址、Transfer事件和确认数；交易哈希不是付款成功凭据，足额核实后仍须等待原订单交付。": {
+    "en": "After transferring, submit details to locate the payment. The system performs read-only checks of the exact network, contract, recipient address, Transfer event, and confirmations. A transaction hash is not proof of successful payment; after full payment is verified, wait for the original order's delivery.",
+    "ja": "送金後、入金の検索情報を送信できます。システムは正確なネットワーク、コントラクト、受取先、Transfer イベント、確認数を読み取り専用で検証します。取引ハッシュだけでは支払成功の証明になりません。全額確認後も元の注文の提供完了をお待ちください。",
+    "ru": "После перевода укажите данные для поиска платежа. Система только читает и проверяет сеть, контракт, адрес получателя, событие Transfer и число подтверждений. Хеш транзакции не доказывает оплату; после проверки полной суммы дождитесь исполнения исходного заказа."
+  },
+  "实际转账交易哈希": {
+    "en": "Actual transfer transaction hash",
+    "ja": "実際の送金トランザクションハッシュ",
+    "ru": "Хеш фактической транзакции перевода"
+  },
+  "ERC20 Transfer日志索引": {
+    "en": "ERC20 Transfer log index",
+    "ja": "ERC20 Transfer ログインデックス",
+    "ru": "Индекс журнала ERC20 Transfer"
+  },
+  "正在只读核实链上事实…": {
+    "en": "Verifying on-chain facts (read-only)…",
+    "ja": "オンチェーン情報を読み取り検証中…",
+    "ru": "Проверка данных блокчейна (только чтение)…"
+  },
+  "重试原查找线索": {
+    "en": "Retry the original payment lookup",
+    "ja": "元の入金検索を再試行",
+    "ru": "Повторить исходный поиск платежа"
+  },
+  "提交链上查找线索": {
+    "en": "Submit on-chain payment details",
+    "ja": "オンチェーン検索情報を送信",
+    "ru": "Отправить данные для поиска в блокчейне"
+  },
+  "本次链上事实已核实并保留，请刷新原订单核对收款和交付。状态：": {
+    "en": "On-chain facts have been verified and saved. Refresh the original order to check payment and delivery. Status: ",
+    "ja": "オンチェーン情報を確認・保存しました。元の注文を更新し、入金と提供状況を確認してください。状態：",
+    "ru": "Данные блокчейна проверены и сохранены. Обновите исходный заказ для проверки оплаты и исполнения. Статус: "
+  },
+  "{label}（{context}）": {
+    "en": "{label} ({context})",
+    "ja": "{label}（{context}）",
+    "ru": "{label} ({context})"
+  },
+  "{count} 项": {
+    "en": "{count} items",
+    "ja": "{count} 件",
+    "ru": "Элементов: {count}"
+  },
+  "添加{item}": {
+    "en": "Add {item}",
+    "ja": "{item}を追加",
+    "ru": "Добавить: {item}"
+  },
+  "尚未添加{item}": {
+    "en": "No {item} added yet",
+    "ja": "{item}はまだ追加されていません",
+    "ru": "Ещё не добавлено: {item}"
+  },
+  "移除{item} {index}": {
+    "en": "Remove {item} {index}",
+    "ja": "{item} {index} を削除",
+    "ru": "Удалить: {item} {index}"
+  },
+  "添加{item}项目": {
+    "en": "Add a {item} entry",
+    "ja": "{item}の項目を追加",
+    "ru": "Добавить запись: {item}"
+  },
+  "{item}项目名称 {index}": {
+    "en": "{item} entry name {index}",
+    "ja": "{item}の項目名 {index}",
+    "ru": "Название записи {item} {index}"
+  },
+  "移除{item}项目 {index}": {
+    "en": "Remove {item} entry {index}",
+    "ja": "{item}の項目 {index} を削除",
+    "ru": "Удалить запись {item} {index}"
+  },
+  "搜索{label}": {
+    "en": "Search {label}",
+    "ja": "{label}を検索",
+    "ru": "Поиск: {label}"
+  },
+  "现有扩展权限 · {permission}": {
+    "en": "Existing extension permission · {permission}",
+    "ja": "既存の拡張権限 · {permission}",
+    "ru": "Существующее дополнительное право · {permission}"
+  },
+  "上游模型：{model}": {
+    "en": "Upstream model: {model}",
+    "ja": "上流モデル：{model}",
+    "ru": "Вышестоящая модель: {model}"
+  },
+  "组件 {index}": {
+    "en": "Component {index}",
+    "ja": "項目 {index}",
+    "ru": "Компонент {index}"
+  },
+  "{operation}已受理": {
+    "en": "{operation} accepted",
+    "ja": "{operation}を受け付けました",
+    "ru": "Принято: {operation}"
+  },
+  "本次将允许后续使用此模型；已受理请求按原责任处理。": {
+    "en": "This will allow future use of this model; accepted requests remain subject to the original obligations.",
+    "ja": "この変更により今後のモデル使用を許可します。受付済みリクエストは元の責任に従って処理します。",
+    "ru": "Дальнейшее использование модели будет разрешено; принятые запросы обрабатываются по исходным обязательствам."
+  },
+  "本次将停止后续使用此模型；已受理请求按原责任处理。": {
+    "en": "This will stop future use of this model; accepted requests remain subject to the original obligations.",
+    "ja": "この変更により今後のモデル使用を停止します。受付済みリクエストは元の責任に従って処理します。",
+    "ru": "Дальнейшее использование модели будет прекращено; принятые запросы обрабатываются по исходным обязательствам."
+  },
+  "{path}应为一组业务字段": {
+    "en": "{path} must be a set of business fields",
+    "ja": "{path}は業務フィールドの組にしてください",
+    "ru": "{path}: требуется набор деловых полей"
+  },
+  "无法核实{label}，请重新选择业务记录后重试。": {
+    "en": "Unable to verify {label}. Select the business record again and retry.",
+    "ja": "{label}を確認できません。業務レコードを選び直して再試行してください。",
+    "ru": "Не удалось проверить {label}. Выберите деловую запись заново и повторите попытку."
+  },
+  "请填写{path} · {label}": {
+    "en": "Enter {path} · {label}",
+    "ja": "{path} · {label}を入力してください",
+    "ru": "Заполните {path} · {label}"
+  },
+  "{path}应为列表": {
+    "en": "{path} must be a list",
+    "ja": "{path}はリストにしてください",
+    "ru": "{path}: требуется список"
+  },
+  "{path}应为按名称配置的字段": {
+    "en": "{path} must contain named fields",
+    "ja": "{path}は名前別のフィールドにしてください",
+    "ru": "{path}: требуются именованные поля"
+  },
+  "请填写{path}的项目名称": {
+    "en": "Enter an item name for {path}",
+    "ja": "{path}の項目名を入力してください",
+    "ru": "Укажите название элемента для {path}"
+  },
+  "{path}请输入非负十进制数，最多 24 位小数": {
+    "en": "{path}: enter a nonnegative decimal with up to 24 decimal places",
+    "ja": "{path}には小数点以下 24 桁以内の非負の十進数を入力してください",
+    "ru": "{path}: введите неотрицательное десятичное число, не более 24 знаков после запятой"
+  },
+  "{path}请输入精确数量或有效分数，分母须大于 0": {
+    "en": "{path}: enter an exact quantity or valid fraction with a denominator greater than 0",
+    "ja": "{path}には正確な数量または有効な分数を入力してください。分母は 0 より大きい値が必要です",
+    "ru": "{path}: введите точное количество или допустимую дробь со знаменателем больше 0"
+  },
+  "{path}请输入非负精确数量或有效分数，分母须大于 0": {
+    "en": "{path}: enter a nonnegative exact quantity or valid fraction with a denominator greater than 0",
+    "ja": "{path}には非負の正確な数量または有効な分数を入力してください。分母は 0 より大きい値が必要です",
+    "ru": "{path}: введите неотрицательное точное количество или допустимую дробь со знаменателем больше 0"
+  },
+  "{path}应为安全整数": {
+    "en": "{path} must be a safe integer",
+    "ja": "{path}は安全な整数にしてください",
+    "ru": "{path}: требуется безопасное целое число"
+  },
+  "{path}应为非负整数": {
+    "en": "{path} must be a nonnegative integer",
+    "ja": "{path}は非負整数にしてください",
+    "ru": "{path}: требуется неотрицательное целое число"
+  },
+  "{path}不能小于 {min}": {
+    "en": "{path} must be at least {min}",
+    "ja": "{path}は {min} 以上にしてください",
+    "ru": "{path} не может быть меньше {min}"
+  },
+  "{path}不能大于 {max}": {
+    "en": "{path} must not exceed {max}",
+    "ja": "{path}は {max} 以下にしてください",
+    "ru": "{path} не может превышать {max}"
+  },
+  "{path}应选择是否启用": {
+    "en": "{path}: choose whether to enable it",
+    "ja": "{path}の有効・無効を選択してください",
+    "ru": "{path}: выберите, включать ли это"
+  },
+  "{path}时间无效": {
+    "en": "{path} has an invalid date or time",
+    "ja": "{path}の日時が無効です",
+    "ru": "{path}: недопустимые дата или время"
+  },
+  "请填写{path}": {
+    "en": "Enter {path}",
+    "ja": "{path}を入力してください",
+    "ru": "Заполните {path}"
+  },
+  "{path}请选择有效选项": {
+    "en": "{path}: select a valid option",
+    "ja": "{path}で有効な選択肢を選んでください",
+    "ru": "{path}: выберите допустимый вариант"
+  },
+  "请上传{label}": {
+    "en": "Upload {label}",
+    "ja": "{label}をアップロードしてください",
+    "ru": "Загрузите {label}"
+  },
+  "请填写{label}": {
+    "en": "Enter {label}",
+    "ja": "{label}を入力してください",
+    "ru": "Заполните {label}"
+  },
+  "{label}请输入十进制数，最多 18 位小数": {
+    "en": "{label}: enter a decimal with up to 18 decimal places",
+    "ja": "{label}には小数点以下 18 桁以内の十進数を入力してください",
+    "ru": "{label}: введите десятичное число, не более 18 знаков после запятой"
+  },
+  "{label}请输入非负十进制数，最多 18 位小数": {
+    "en": "{label}: enter a nonnegative decimal with up to 18 decimal places",
+    "ja": "{label}には小数点以下 18 桁以内の非負の十進数を入力してください",
+    "ru": "{label}: введите неотрицательное десятичное число, не более 18 знаков после запятой"
+  },
+  "{label}应使用 0 到 1 的精确小数，例如 5% 填写 0.05": {
+    "en": "{label}: use an exact decimal from 0 to 1; for example, enter 0.05 for 5%",
+    "ja": "{label}は 0 から 1 の正確な小数で入力してください。例：5% は 0.05",
+    "ru": "{label}: используйте точное десятичное число от 0 до 1; например, для 5% введите 0.05"
+  },
+  "{label}应为非负整数": {
+    "en": "{label} must be a nonnegative integer",
+    "ja": "{label}は非負整数にしてください",
+    "ru": "{label}: требуется неотрицательное целое число"
+  },
+  "{label}格式无效，请检查技术高级配置。": {
+    "en": "{label} has an invalid format. Check the advanced technical configuration.",
+    "ja": "{label}の形式が無効です。技術詳細設定を確認してください。",
+    "ru": "Недопустимый формат {label}. Проверьте расширенные технические настройки."
+  },
+  "{label}时间无效": {
+    "en": "{label} has an invalid date or time",
+    "ja": "{label}の日時が無効です",
+    "ru": "{label}: недопустимые дата или время"
+  },
+  "请填写有效的{label}": {
+    "en": "Enter a valid {label}",
+    "ja": "有効な{label}を入力してください",
+    "ru": "Укажите допустимое значение: {label}"
+  },
+  "本次生成图像 {index}": {
+    "en": "Generated image {index}",
+    "ja": "今回生成した画像 {index}",
+    "ru": "Сгенерированное изображение {index}"
+  },
+  "、": {
+    "en": ", ",
+    "ja": "、",
+    "ru": ", "
+  },
+  "。": {
+    "en": ".",
+    "ja": "。",
+    "ru": "."
+  },
+  "；": {
+    "en": "; ",
+    "ja": "；",
+    "ru": "; "
+  }
+}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { APIErrorSchema } from "./contracts";
+import { getClientLocale } from "./i18n";
 
 export class APIError extends Error {
   constructor(public code: string, message: string, public requestId: string, public retryable: boolean, public nextAction?: string, public status?: number) { super(message); this.name = "APIError"; }
@@ -12,7 +13,7 @@ export function newActionKey() { return crypto.randomUUID(); }
 export async function request<T extends z.ZodTypeAny>(path: string, schema: T, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; actionKey?: string; signal?: AbortSignal } = {}): Promise<z.infer<T>> {
   const method = options.method || "GET";
   if (!path.startsWith("/api/v1/")) throw new Error("Business API path must start with /api/v1/");
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = new Headers({ Accept: "application/json", "Accept-Language": getClientLocale() });
   const multipart = options.body instanceof FormData;
   if (options.body !== undefined && !multipart) headers.set("Content-Type", "application/json");
   if (method !== "GET") {

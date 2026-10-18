@@ -37881,6 +37881,9 @@
           "necessary": {
             "type": "boolean"
           },
+          "system_generated": {
+            "type": "boolean"
+          },
           "read_at": {
             "anyOf": [
               {

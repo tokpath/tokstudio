@@ -19,7 +19,7 @@ import (
 func TestPostgresResourceSearchRunsBeforePaginationAndKeepsOperatorScope(t *testing.T) {
 	f := setupPortal(t)
 	op, brand, owner := f.a.Installation.OperatorID, f.a.Installation.BrandID, f.a.Installation.OwnerStaffID
-	child, err := f.a.Organization.CreateOperator(context.Background(), nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "Other operator", LegalName: "Other legal", QuoteReference: "synthetic quote", ExitTermsReference: "synthetic exit"})
+	child, err := f.a.Organization.CreateOperator(context.Background(), nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "Other operator", LegalName: "Other legal"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,11 +29,7 @@ func TestPostgresAPIEndpointUsesFirstAvailableVerifiedDomainAndRespectsDisable(t
 			t.Fatalf("endpoint=%q want=%q err=%v", got, want, err)
 		}
 	}
-	// Legacy free-text URLs and pending domain evidence cannot become a usable
-	// customer address. Verifier doubles here assert persistence boundaries only.
-	if err = f.db.Exec("UPDATE organization_brands SET api_base_url=? WHERE id=?", "https://unverified.invalid/api/v1", oem.Brand.ID).Error; err != nil {
-		t.Fatal(err)
-	}
+	// A requested domain is not a customer address until ownership and TLS are verified.
 	assertEndpoint("")
 	ready := DomainVerifierFunc(func(context.Context, string, string) (DomainVerification, error) {
 		return DomainVerification{OwnershipVerified: true, TLSReady: true, ProviderReference: "isolated-provider-evidence"}, nil

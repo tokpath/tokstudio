@@ -45,7 +45,7 @@ func TestPlatformAssetVersionsGateNewCollectionsPreserveHistoricalFacts(t *testi
 	if e != nil {
 		t.Fatal(e)
 	}
-	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: p.Operator.ID, Kind: organization.Channel, Name: "Child", QuoteReference: "signed quote", ExitTermsReference: "signed exit"})
+	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: p.Operator.ID, Kind: organization.Channel, Name: "Child"})
 	if e != nil {
 		t.Fatal(e)
 	}

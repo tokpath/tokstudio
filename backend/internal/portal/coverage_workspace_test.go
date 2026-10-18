@@ -19,7 +19,7 @@ func TestPostgresCoverageWorkspaceParentScopeAndPolicyCAS(t *testing.T) {
 	platform, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	create := func(parent string, kind organization.OperatorKind, name string) organization.Operator {
 		t.Helper()
-		created, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name + " legal", BrandName: name + " brand", APIBaseURL: "https://api.example.test/v1", QuoteReference: "supply-terms", ExitTermsReference: "exit-terms"})
+		created, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name + " legal", BrandName: name + " brand"})
 		if err != nil {
 			t.Fatal(err)
 		}

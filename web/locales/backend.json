@@ -1524,11 +1524,6 @@
     "ja": "実際の事業主体",
     "ru": "Фактическая организация-оператор"
   },
-  "供货条款编号": {
-    "en": "Supply terms reference",
-    "ja": "供給条件番号",
-    "ru": "Номер условий поставки"
-  },
   "间接推荐分佣比例（0到1）": {
     "en": "Indirect referral commission rate (0 to 1)",
     "ja": "間接紹介報酬率（0〜1）",
@@ -3819,10 +3814,10 @@
     "ja": "業務フィールドを入力してください",
     "ru": "Введите деловые поля"
   },
-  "经营方已建立，请继续配置人员、供货、价格、收款与开业检查": {
-    "en": "Operator created. Continue configuring staff, supply, prices, payments, and launch checks.",
-    "ja": "事業者を作成しました。スタッフ、供給、料金、決済、営業開始確認の設定を続けてください。",
-    "ru": "Оператор создан. Продолжите настройку сотрудников, поставок, цен, приёма оплаты и проверок запуска."
+  "经营方已建立。供货关系已经生效，请继续邀请负责人，并配置价格、收款与开业检查": {
+    "en": "Operator created. The supply relationship is already active. Invite the owner, then configure prices, payments, and launch checks.",
+    "ja": "事業者を作成しました。供給関係はすでに有効です。責任者を招待し、料金、決済、営業開始確認を続けてください。",
+    "ru": "Оператор создан. Отношение поставки уже действует. Пригласите ответственного, затем настройте цены, приём оплаты и проверки запуска."
   },
   "事实身份": {
     "en": "Factual identity",
@@ -4998,11 +4993,6 @@
     "en": "Business entity",
     "ja": "運営主体",
     "ru": "Бизнес-субъект"
-  },
-  "kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。": {
-    "en": "kind(oem/channel), name, legal_name, brand_name (OEM), api_base_url (OEM), quote_reference, exit_terms_reference. Creating does not automatically open for business.",
-    "ja": "kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。作成だけでは営業開始しません。",
-    "ru": "kind(oem/channel), name, legal_name, brand_name (OEM), api_base_url (OEM), quote_reference, exit_terms_reference. Создание не открывает деятельность автоматически."
   },
   "邀请首位负责人": {
     "en": "Invite first owner",

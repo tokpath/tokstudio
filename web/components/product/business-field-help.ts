@@ -6,7 +6,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (name === "model.id") return "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称；供应商模型名在上游路由中单独配置，不要把密钥或供应商地址填在这里。";
   if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";
   if (name === "upstream.provider_id") return "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。";
-  if (["terms_reference", "quote_reference", "exit_terms_reference", "rules_reference", "method_reference"].includes(key)) return "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。";
+  if (["terms_reference", "rules_reference", "method_reference"].includes(key)) return "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。";
   if (["evidence", "evidence_reference", "verification_evidence", "consent_reference", "renewed_consent_reference", "evidence_id"].includes(key)) return "填写能够核实本次操作的材料、文件编号或链接，并说明核实结果。系统保留此依据供复核；填写文字本身不代表付款、授权或验证成功。";
   if (["direct_rate", "indirect_rate"].includes(key)) return "例如 15% 填写 0.15。购买时固定订单的直接、间接比例及 KOL 让利，直接佣金比例须减去订单让利。实际有偿消费发生时分别判断两跳邀请人的有效分佣资格，之后取得资格不追溯；不合资格的份额不转给其他跳。";
   if (["threshold_usd"].includes(key)) return "本账号订单中，实际消耗和到期未用的购买额度按对应实付 USD 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。";

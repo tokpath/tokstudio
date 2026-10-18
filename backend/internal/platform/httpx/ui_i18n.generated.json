@@ -1277,12 +1277,6 @@
     "kind(ledger/requests/procurement)、owner_id（任意）、from、to。有限の期間を選択してください。",
     "kind(ledger/requests/procurement), owner_id(необязательно), from, to; выберите ограниченный период."
   ],
-  "kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。": [
-    "kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。",
-    "kind(oem/channel), name, legal_name, brand_name (OEM), api_base_url (OEM), quote_reference, exit_terms_reference. Creating does not automatically open for business.",
-    "kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。作成だけでは営業開始しません。",
-    "kind(oem/channel), name, legal_name, brand_name (OEM), api_base_url (OEM), quote_reference, exit_terms_reference. Создание не открывает деятельность автоматически."
-  ],
   "lines:[{receipt_id,amount_usd}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。": [
     "lines:[{receipt_id,amount_usd}]、details:{title,tax_id,email,address}。同一外部收款跨充值与购包只可开票一次。",
     "lines:[{receipt_id,amount_usd}], details:{title,tax_id,email,address}. The same external receipt can be invoiced only once across top-ups and package purchases.",
@@ -3454,12 +3448,6 @@
     "Supply terms",
     "供給条件",
     "Условия поставки"
-  ],
-  "供货条款编号": [
-    "供货条款编号",
-    "Supply terms reference",
-    "供給条件番号",
-    "Номер условий поставки"
   ],
   "供货订单": [
     "供货订单",
@@ -16769,11 +16757,11 @@
     "運営者による外部決済の準備が整っていません。十分な内部残高を使うか、運営者に設定の完了を依頼してください。",
     "Оператор ещё не подготовил внешний способ оплаты. Используйте достаточный внутренний баланс или попросите оператора завершить настройку."
   ],
-  "经营方已建立，请继续配置人员、供货、价格、收款与开业检查": [
-    "经营方已建立，请继续配置人员、供货、价格、收款与开业检查",
-    "Operator created. Continue configuring staff, supply, prices, payments, and launch checks.",
-    "事業者を作成しました。スタッフ、供給、料金、決済、営業開始確認の設定を続けてください。",
-    "Оператор создан. Продолжите настройку сотрудников, поставок, цен, приёма оплаты и проверок запуска."
+  "经营方已建立。供货关系已经生效，请继续邀请负责人，并配置价格、收款与开业检查": [
+    "经营方已建立。供货关系已经生效，请继续邀请负责人，并配置价格、收款与开业检查",
+    "Operator created. The supply relationship is already active. Invite the owner, then configure prices, payments, and launch checks.",
+    "事業者を作成しました。供給関係はすでに有効です。責任者を招待し、料金、決済、営業開始確認を続けてください。",
+    "Оператор создан. Отношение поставки уже действует. Пригласите ответственного, затем настройте цены, приём оплаты и проверки запуска."
   ],
   "经营方开放模型后可在此体验。": [
     "经营方开放模型后可在此体验。",

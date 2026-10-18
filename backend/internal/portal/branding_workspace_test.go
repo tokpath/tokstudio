@@ -14,7 +14,7 @@ func TestPostgresParentAppearanceWorkspaceTargetsAndVersions(t *testing.T) {
 	op, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
 	create := func(parent string, kind organization.OperatorKind, name string) organization.Operator {
 		t.Helper()
-		out, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name, BrandName: name, APIBaseURL: "https://" + uuid.NewString() + ".example.test/v1", QuoteReference: "terms", ExitTermsReference: "exit"})
+		out, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name, BrandName: name})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -200,9 +200,9 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			return gin.H{"id": m.ID, "status": status, "version": out.Merchant.Version, "message": "配置已保存；真实商户收款效果须在材料齐全后验证"}, e
 		case "operators":
 			var in struct {
-				Kind                                                                       organization.OperatorKind `json:"kind"`
-				Name, LegalName, BrandName, APIBaseURL, QuoteReference, ExitTermsReference string
-				SupplyTerms, ExitPolicy, ContractAttachmentID                              string
+				Kind                                          organization.OperatorKind `json:"kind"`
+				Name, LegalName, BrandName                    string
+				SupplyTerms, ExitPolicy, ContractAttachmentID string
 			}
 			var fields map[string]json.RawMessage
 			if json.Unmarshal(config, &fields) != nil {
@@ -212,14 +212,11 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			_ = json.Unmarshal(fields["name"], &in.Name)
 			_ = json.Unmarshal(fields["legal_name"], &in.LegalName)
 			_ = json.Unmarshal(fields["brand_name"], &in.BrandName)
-			_ = json.Unmarshal(fields["api_base_url"], &in.APIBaseURL)
-			_ = json.Unmarshal(fields["quote_reference"], &in.QuoteReference)
-			_ = json.Unmarshal(fields["exit_terms_reference"], &in.ExitTermsReference)
 			_ = json.Unmarshal(fields["supply_terms"], &in.SupplyTerms)
 			_ = json.Unmarshal(fields["exit_policy"], &in.ExitPolicy)
 			_ = json.Unmarshal(fields["contract_attachment_id"], &in.ContractAttachmentID)
-			out, e := a.Organization.CreateOperator(ctx, tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: op.ID, Kind: in.Kind, Name: in.Name, LegalName: in.LegalName, BrandName: in.BrandName, APIBaseURL: in.APIBaseURL, QuoteReference: in.QuoteReference, ExitTermsReference: in.ExitTermsReference, SupplyTerms: in.SupplyTerms, ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID})
-			return gin.H{"id": out.Operator.ID, "status": "configured", "message": "经营方已建立，请继续配置人员、供货、价格、收款与开业检查"}, e
+			out, e := a.Organization.CreateOperator(ctx, tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: op.ID, Kind: in.Kind, Name: in.Name, LegalName: in.LegalName, BrandName: in.BrandName, SupplyTerms: in.SupplyTerms, ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID})
+			return gin.H{"id": out.Operator.ID, "status": "configured", "message": "经营方已建立。供货关系已经生效，请继续邀请负责人，并配置价格、收款与开业检查"}, e
 		case "marketing":
 			var action struct {
 				Action, CustomerID, Status, Evidence, MerchantCampaignID, KOLCampaignID string

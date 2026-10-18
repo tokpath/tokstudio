@@ -222,7 +222,7 @@ func Bootstrap(ctx context.Context, c Config, gdb *gorm.DB) (Installation, error
 		if e = tx.Create(&staff).Error; e != nil {
 			return e
 		}
-		created, e := organization.New(gdb).BootstrapPlatform(ctx, tx, organization.BootstrapInput{BrandName: c.BrandName, OperatorName: c.OperatorName, LegalName: c.LegalName, APIBaseURL: c.PublicBaseURL, OwnerStaffID: staff.ID})
+		created, e := organization.New(gdb).BootstrapPlatform(ctx, tx, organization.BootstrapInput{BrandName: c.BrandName, OperatorName: c.OperatorName, LegalName: c.LegalName, OwnerStaffID: staff.ID})
 		if e != nil {
 			return e
 		}

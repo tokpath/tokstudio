@@ -14,7 +14,7 @@ import (
 
 func (f fixture) channel(t *testing.T) (fixture, string) {
 	t.Helper()
-	c, e := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.operator, Kind: organization.Channel, Name: "Channel", QuoteReference: "supply-v1", ExitTermsReference: "exit-v1"})
+	c, e := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.operator, Kind: organization.Channel, Name: "Channel"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -24,9 +24,6 @@ func (f fixture) channel(t *testing.T) (fixture, string) {
 		t.Fatal(e)
 	}
 	if _, e = f.org.AcceptStaffInvitation(f.ctx, nil, invite.Token, organization.VerifiedStaff{ID: owner, Email: invite.Email, EmailVerified: true}); e != nil {
-		t.Fatal(e)
-	}
-	if e = f.org.SetSupplyStatus(f.ctx, nil, f.owner, c.Operator.ID, "active", "signed supply agreement"); e != nil {
 		t.Fatal(e)
 	}
 	for _, feature := range []organization.BusinessFeature{organization.Registration, organization.NewPurchase, organization.Renewal, organization.Activity} {

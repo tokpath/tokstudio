@@ -76,7 +76,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 	platform := chain{op: f.operator, brand: f.brand, owner: f.owner, retail: "0.017"}
 	newOperator := func(parent chain, kind organization.OperatorKind, name, retail, supply, cost string) chain {
 		t.Helper()
-		created, e := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: parent.owner, ParentOperatorID: parent.op, Kind: kind, Name: name, BrandName: name, QuoteReference: "wholesale-contract", ExitTermsReference: "exit-terms"})
+		created, e := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: parent.owner, ParentOperatorID: parent.op, Kind: kind, Name: name, BrandName: name})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -87,9 +87,6 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 			t.Fatal(e)
 		}
 		if _, e = f.org.AcceptStaffInvitation(f.ctx, nil, inv.Token, organization.VerifiedStaff{ID: owner, Email: email, EmailVerified: true}); e != nil {
-			t.Fatal(e)
-		}
-		if e = f.org.SetSupplyStatus(f.ctx, nil, parent.owner, created.Operator.ID, "active", "signed synthetic agreement"); e != nil {
 			t.Fatal(e)
 		}
 		if e = f.cat.SetAuthorization(f.ctx, parent.op, created.Operator.ID, "public-model", true, 0); e != nil {

@@ -24,7 +24,7 @@ func (s *Service) BootstrapPlatform(ctx context.Context, tx *gorm.DB, in Bootstr
 	err = s.withTx(ctx, tx, func(tx *gorm.DB) error {
 		now := s.now()
 		opID, brandID := newID(), newID()
-		b := brandRow{ID: brandID, Kind: "official", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: "", Status: "active", CreatedAt: now}
+		b := brandRow{ID: brandID, Kind: "official", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, Status: "active", CreatedAt: now}
 		o := operatorRow{ID: opID, BrandID: brandID, Kind: Platform, Name: strings.TrimSpace(in.OperatorName), LegalName: in.LegalName, Lifecycle: "active", CreatedAt: now}
 		if err := tx.Create(&b).Error; err != nil {
 			return err
@@ -84,7 +84,7 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 			if strings.TrimSpace(in.BrandName) == "" {
 				return ErrInvalidInput
 			}
-			b = Brand{ID: newID(), Kind: "oem", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, APIBaseURL: "", Status: "active", CreatedAt: now}
+			b = Brand{ID: newID(), Kind: "oem", Name: strings.TrimSpace(in.BrandName), OwnerOperatorID: opID, Status: "active", CreatedAt: now}
 			row := brandRow(b)
 			if err = tx.Create(&row).Error; err != nil {
 				return err
@@ -100,7 +100,7 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 			return err
 		}
 		agreementID := newID()
-		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "active", QuoteReference: "supply:" + agreementID + ":v1", ExitTermsReference: "supply-exit:" + agreementID + ":v1", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
+		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "active", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
 		if err = tx.Create(&a).Error; err != nil {
 			return err
 		}

@@ -154,9 +154,6 @@ func (w testWorld) child(t *testing.T, parent OperatorCreated, parentOwner strin
 	if _, err = w.s.AcceptStaffInvitation(w.ctx, nil, inv.Token, VerifiedStaff{ID: owner, Email: email, EmailVerified: true}); err != nil {
 		t.Fatal(err)
 	}
-	if err = w.s.SetSupplyStatus(w.ctx, nil, parentOwner, c.Operator.ID, "active", "test-contract"); err != nil {
-		t.Fatal(err)
-	}
 	openRegistration(t, w.s, c.Operator.ID, owner)
 	return c, owner
 }

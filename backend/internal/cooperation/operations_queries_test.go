@@ -21,11 +21,8 @@ func TestPostgresProcurementExportKeepsActualPartyAndTimeScope(t *testing.T) {
 	if err = f.db.Model(&PurchaseOrder{}).Where("id=?", older.ID).Update("created_at", time.Now().Add(-48*time.Hour)).Error; err != nil {
 		t.Fatal(err)
 	}
-	child, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.platform, Kind: organization.Channel, Name: "unrelated sibling", QuoteReference: "terms", ExitTermsReference: "exit"})
+	child, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.platform, Kind: organization.Channel, Name: "unrelated sibling"})
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err = f.org.SetSupplyStatus(f.ctx, nil, f.owner, child.Operator.ID, "active", "signed test agreement"); err != nil {
 		t.Fatal(err)
 	}
 	inv, err := f.org.InviteStaff(f.ctx, nil, f.owner, child.Operator.ID, "export-sibling@example.test", "owner")

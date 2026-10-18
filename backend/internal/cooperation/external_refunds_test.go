@@ -65,11 +65,8 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform.Operator.ID, Kind: organization.Channel, Name: "Procurement buyer", QuoteReference: "supply", ExitTermsReference: "exit"})
+	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform.Operator.ID, Kind: organization.Channel, Name: "Procurement buyer"})
 	if e != nil {
-		t.Fatal(e)
-	}
-	if e = org.SetSupplyStatus(ctx, nil, owner, child.Operator.ID, "active", "signed supply"); e != nil {
 		t.Fatal(e)
 	}
 	invite, e := org.InviteStaff(ctx, nil, owner, child.Operator.ID, "independent-buyer@example.test", "owner")

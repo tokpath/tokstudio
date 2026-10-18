@@ -105,11 +105,11 @@ func TestPostgresCooperationRejectsForeignAndPathContractReferences(t *testing.T
 			t.Fatalf("operator linked unowned contract %q: %v", id, err)
 		}
 	}
-	created, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.platform, Kind: organization.OEM, Name: "new partner", BrandName: "Partner", APIBaseURL: "https://unverified.invalid/v1", SupplyTerms: "按双方已确认报价采购", ContractAttachmentID: ownID})
+	created, err := f.org.CreateOperator(f.ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.owner, ParentOperatorID: f.platform, Kind: organization.OEM, Name: "new partner", BrandName: "Partner", SupplyTerms: "按双方已确认报价采购", ContractAttachmentID: ownID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Supply.ContractAttachmentID != ownID || created.Supply.ExitPolicy != "non_refundable" || created.Supply.Version != 1 || created.Supply.QuoteReference == "" || created.Brand.APIBaseURL != "" {
+	if created.Supply.ContractAttachmentID != ownID || created.Supply.ExitPolicy != "non_refundable" || created.Supply.Version != 1 || created.Supply.Status != "active" {
 		t.Fatal("cooperation did not generate safe defaults", created)
 	}
 	if err = f.db.Table("organization_cooperation_contracts").Where("id=?", ownID).Update("object_key", "finance-evidence/foreign/stolen").Error; err == nil {

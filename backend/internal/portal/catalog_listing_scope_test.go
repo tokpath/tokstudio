@@ -16,16 +16,11 @@ func TestPostgresListingCoverageDoesNotTraverseUnrelatedOperators(t *testing.T) 
 	ctx := context.Background()
 	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{
 		ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: f.a.Installation.OperatorID,
-		Kind: organization.Channel, Name: "Unconfigured independent channel", LegalName: "Synthetic operator",
-		QuoteReference: "synthetic supply terms", ExitTermsReference: "synthetic exit terms",
-	})
+		Kind: organization.Channel, Name: "Unconfigured independent channel", LegalName: "Synthetic operator"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	model := f.configureExternalCatalog(t, f.server.URL)
-	if err = f.a.Organization.SetSupplyStatus(ctx, nil, f.a.Installation.OwnerStaffID, child.Operator.ID, "active", "synthetic agreement"); err != nil {
-		t.Fatal(err)
-	}
 	if err = f.a.Catalog.SetAuthorization(ctx, f.a.Installation.OperatorID, child.Operator.ID, model, true, 0); err != nil {
 		t.Fatal(err)
 	}

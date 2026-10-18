@@ -45,7 +45,7 @@ func (f *testApp) seedPlatformSimulation(t *testing.T, lab string) map[string]an
 	restricted := staff("platform-restricted@simulation.test", "受限员工仿真", []string{"organization.read", "staff.read", "reports.summary"})
 	create := func(kind organization.OperatorKind, name string) organization.Operator {
 		t.Helper()
-		out, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: kind, Name: name, LegalName: "合成仿真主体", BrandName: name, APIBaseURL: "https://platform-simulation.example.test/api/v1", QuoteReference: "isolated simulation terms", ExitTermsReference: "isolated simulation exit"})
+		out, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: kind, Name: name, LegalName: "合成仿真主体", BrandName: name})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +113,7 @@ func TestPostgresNewModelListingAndAuthorizationHonorPlannedActivation(t *testin
 	if err = f.a.Catalog.SavePublicModel(ctx, op, model, 1); err != nil {
 		t.Fatal(err)
 	}
-	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "scheduled child", LegalName: "synthetic", QuoteReference: "terms", ExitTermsReference: "exit"})
+	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "scheduled child", LegalName: "synthetic"})
 	if err != nil {
 		t.Fatal(err)
 	}

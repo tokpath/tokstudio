@@ -559,7 +559,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			items = append(items, item)
 		}
 		p["columns"] = []gin.H{col("name", "经营方", "text"), col("kind", "类型", "text"), col("legal_name", "经营主体", "text"), col("brand_id", "品牌", "text")}
-		p["operations"] = []operation{{Name: "create", Label: "建立 OEM / 渠道", Method: "POST", Path: base, Fields: []field{jsonField("kind(oem/channel)、name、legal_name、brand_name（OEM）、api_base_url（OEM）、quote_reference、exit_terms_reference。创建不自动开业。")}}}
+		p["operations"] = []operation{{Name: "create", Label: "建立 OEM / 渠道", Method: "POST", Path: base, Fields: []field{jsonField("合作类型、经营方名称、实际经营主体；OEM 另填品牌名称。可选合作约定、退出规则和合同。供货关系随创建生效，营业项目仍须单独开放。")}}}
 		if op.Kind == organization.OEM {
 			create := p["operations"].([]operation)[0]
 			create.Label = "建立直属渠道"

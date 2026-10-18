@@ -39,7 +39,6 @@ type Brand struct {
 	Kind            string    `json:"kind"`
 	Name            string    `json:"name"`
 	OwnerOperatorID string    `json:"owner_operator_id"`
-	APIBaseURL      string    `json:"api_base_url"`
 	Status          string    `json:"status"`
 	CreatedAt       time.Time `json:"created_at"`
 }
@@ -58,8 +57,6 @@ type SupplyAgreement struct {
 	SupplierID           string    `json:"supplier_id"`
 	BuyerID              string    `json:"buyer_id"`
 	Status               string    `json:"status"`
-	QuoteReference       string    `json:"quote_reference"`
-	ExitTermsReference   string    `json:"exit_terms_reference"`
 	SupplyTerms          string    `json:"supply_terms"`
 	ExitPolicy           string    `json:"exit_policy"`
 	ContractAttachmentID string    `json:"contract_attachment_id,omitempty"`
@@ -88,12 +85,12 @@ type BusinessStatus struct {
 	Version      int64     `json:"version"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
-type BootstrapInput struct{ BrandName, OperatorName, LegalName, APIBaseURL, OwnerStaffID string }
+type BootstrapInput struct{ BrandName, OperatorName, LegalName, OwnerStaffID string }
 type CreateOperatorInput struct {
-	ActorStaffID, ParentOperatorID                                             string
-	Kind                                                                       OperatorKind
-	Name, LegalName, BrandName, APIBaseURL, QuoteReference, ExitTermsReference string
-	SupplyTerms, ExitPolicy, ContractAttachmentID                              string
+	ActorStaffID, ParentOperatorID                string
+	Kind                                          OperatorKind
+	Name, LegalName, BrandName                    string
+	SupplyTerms, ExitPolicy, ContractAttachmentID string
 }
 type OperatorCreated struct {
 	Operator   Operator         `json:"operator"`

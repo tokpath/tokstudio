@@ -124,15 +124,11 @@ func (s *demoBuilder) staff(inviter, operator, email, name, role string) (Staff,
 	return p, e
 }
 func (s *demoBuilder) operator(parent, actor, email, name string, kind organization.OperatorKind) (organization.OperatorCreated, Staff, error) {
-	created, e := s.a.Organization.CreateOperator(s.ctx, s.tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: "测试主体 · 不用于真实交易", BrandName: "测试 OEM 品牌", QuoteReference: demoEvidence, ExitTermsReference: demoEvidence})
+	created, e := s.a.Organization.CreateOperator(s.ctx, s.tx, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: "测试主体 · 不用于真实交易", BrandName: "测试 OEM 品牌"})
 	if e != nil {
 		return created, Staff{}, e
 	}
 	owner, e := s.staff(actor, created.Operator.ID, email, name+"负责人", "owner")
-	if e != nil {
-		return created, owner, e
-	}
-	e = s.a.Organization.SetSupplyStatus(s.ctx, s.tx, actor, created.Operator.ID, "active", demoEvidence)
 	if e != nil {
 		return created, owner, e
 	}

@@ -19,7 +19,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	f := setupPortal(t)
 	ctx := context.Background()
 	parent, owner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
-	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: organization.Channel, Name: "authorization buyer", QuoteReference: "supply", ExitTermsReference: "exit"})
+	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: organization.Channel, Name: "authorization buyer"})
 	if err != nil {
 		t.Fatal(err)
 	}

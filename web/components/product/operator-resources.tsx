@@ -480,8 +480,6 @@ const savedFactLabels: Record<string, string> = {
   "legal_name": "法定名称",
   "brand_name": "OEM品牌名称",
   "api_base_url": "OEM API入口",
-  "quote_reference": "供货条款编号",
-  "exit_terms_reference": "退出条款编号",
   "threshold_usd": "终身资格累计净消费门槛 USD",
   "direct_rate": "直接推荐分佣比例（0到1）",
   "indirect_rate": "间接推荐分佣比例（0到1）",

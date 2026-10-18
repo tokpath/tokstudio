@@ -75,11 +75,8 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform.Operator.ID, Kind: organization.Channel, Name: "Buyer", QuoteReference: "quote", ExitTermsReference: "exit"})
+	child, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform.Operator.ID, Kind: organization.Channel, Name: "Buyer"})
 	if e != nil {
-		t.Fatal(e)
-	}
-	if e = org.SetSupplyStatus(ctx, nil, owner, child.Operator.ID, "active", "signed procurement contract"); e != nil {
 		t.Fatal(e)
 	}
 	invite, e := org.InviteStaff(ctx, nil, owner, child.Operator.ID, "buyer-owner@example.test", "owner")

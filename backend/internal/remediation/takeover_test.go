@@ -45,7 +45,7 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 	}
 	brand.s.Cooperation.Rates = takeoverRates{}
 	org := brand.s.Organization
-	created, e := org.CreateOperator(brand.ctx, nil, organization.CreateOperatorInput{ActorStaffID: brand.owner, ParentOperatorID: brand.operator, Kind: organization.Channel, Name: "Takeover Channel", QuoteReference: "supply-contract", ExitTermsReference: "exit-contract"})
+	created, e := org.CreateOperator(brand.ctx, nil, organization.CreateOperatorInput{ActorStaffID: brand.owner, ParentOperatorID: brand.operator, Kind: organization.Channel, Name: "Takeover Channel"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -55,9 +55,6 @@ func takeoverFixture(t *testing.T) (fixture, fixture, commerce.Order, usage.KeyS
 		t.Fatal(e)
 	}
 	if _, e = org.AcceptStaffInvitation(brand.ctx, nil, invite.Token, organization.VerifiedStaff{ID: owner, Email: invite.Email, EmailVerified: true}); e != nil {
-		t.Fatal(e)
-	}
-	if e = org.SetSupplyStatus(brand.ctx, nil, brand.owner, created.Operator.ID, "active", "signed supply contract"); e != nil {
 		t.Fatal(e)
 	}
 	for _, feature := range []organization.BusinessFeature{organization.Registration, organization.NewPurchase, organization.Renewal, organization.Activity} {

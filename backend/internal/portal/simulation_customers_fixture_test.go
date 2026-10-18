@@ -39,7 +39,7 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 	}
 	channel := func(name string) preparedChannel {
 		t.Helper()
-		created, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform, Kind: organization.Channel, Name: name, LegalName: name + " 合成主体", QuoteReference: "synthetic-customer-supply", ExitTermsReference: "synthetic-customer-exit"})
+		created, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: platform, Kind: organization.Channel, Name: name, LegalName: name + " 合成主体"})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -49,9 +49,6 @@ func (f *testApp) seedCustomerSimulation(t *testing.T, lab string) map[string]an
 			t.Fatal(e)
 		}
 		if _, e = f.a.Organization.AcceptStaffInvitation(ctx, nil, invitation.Token, organization.VerifiedStaff{ID: owner, Email: "owner@example.test", EmailVerified: true}); e != nil {
-			t.Fatal(e)
-		}
-		if e = f.a.Organization.SetSupplyStatus(ctx, nil, owner, op, "active", "isolated synthetic supply terms"); e != nil {
 			t.Fatal(e)
 		}
 		if _, e = f.a.Cooperation.DeliverPurchase(ctx, nil, cooperation.PurchaseInput{BuyerID: op, SupplierID: platform, OrderID: uuid.NewString(), ReceiptReference: "synthetic-opening-inventory", ActorID: owner, PaidUSD: d("10000"), PaidATG: d("10000"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":false,"method":"non_refundable","terms_reference":"synthetic-opening"}`), At: time.Now()}); e != nil {

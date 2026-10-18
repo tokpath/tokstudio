@@ -20,7 +20,7 @@ func TestPostgresTakeoverHTTPPreparationAndSnapshotReview(t *testing.T) {
 	f.openRegistration(t)
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	scope := "/v1/operators/" + f.a.Installation.OperatorID
-	child, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: f.a.Installation.OperatorID, Kind: organization.Channel, Name: "HTTP Channel", LegalName: "Channel Legal", QuoteReference: "supply terms", ExitTermsReference: "exit terms"})
+	child, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: f.a.Installation.OperatorID, Kind: organization.Channel, Name: "HTTP Channel", LegalName: "Channel Legal"})
 	if e != nil {
 		t.Fatal(e)
 	}

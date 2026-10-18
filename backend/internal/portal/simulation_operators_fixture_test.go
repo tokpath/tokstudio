@@ -53,11 +53,8 @@ func (f *testApp) seedOperatorSimulation(t *testing.T, lab string) map[string]an
 	}
 	create := func(actor, parent string, kind organization.OperatorKind, name string) organization.OperatorCreated {
 		t.Helper()
-		out, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name + " 合成经营主体", BrandName: "山海仿真模型", APIBaseURL: "http://operators.localhost:13003/api/v1", QuoteReference: "operator-simulation-supply-v1", ExitTermsReference: "operator-simulation-exit-v1"})
+		out, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: actor, ParentOperatorID: parent, Kind: kind, Name: name, LegalName: name + " 合成经营主体", BrandName: "山海仿真模型"})
 		if e != nil {
-			t.Fatal(e)
-		}
-		if e = f.a.Organization.SetSupplyStatus(ctx, nil, actor, out.Operator.ID, "active", "synthetic signed opening cooperation agreement"); e != nil {
 			t.Fatal(e)
 		}
 		return out
@@ -140,7 +137,7 @@ func TestPostgresIndependentChannelOwnerCannotCreateDescendantsOrExposeParentCus
 	f := setupPortal(t)
 	ctx := context.Background()
 	parent, parentOwner := f.a.Installation.OperatorID, f.a.Installation.OwnerStaffID
-	channel, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: parentOwner, ParentOperatorID: parent, Kind: organization.Channel, Name: "isolated channel", QuoteReference: "signed supply", ExitTermsReference: "signed exit"})
+	channel, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: parentOwner, ParentOperatorID: parent, Kind: organization.Channel, Name: "isolated channel"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +169,7 @@ func TestPostgresIndependentChannelOwnerCannotCreateDescendantsOrExposeParentCus
 	if len(out["operations"].([]any)) != 0 {
 		t.Fatal("channel was offered descendant creation", out["operations"])
 	}
-	status, out, _ = f.call(t, "POST", base, map[string]any{"kind": "channel", "name": "forbidden descendant", "legal_name": "forbidden", "quote_reference": "forbidden", "exit_terms_reference": "forbidden"}, "")
+	status, out, _ = f.call(t, "POST", base, map[string]any{"kind": "channel", "name": "forbidden descendant", "legal_name": "forbidden"}, "")
 	if status != 400 || out["error"].(map[string]any)["code"] != "invalid_input" {
 		t.Fatalf("invalid hierarchy must be a final user error, not an unknown financial result: %d %#v", status, out)
 	}
@@ -184,7 +181,7 @@ func TestPostgresIndependentChannelOwnerCannotCreateDescendantsOrExposeParentCus
 	if status != 403 {
 		t.Fatalf("child acquired parent customers: %d %#v", status, out)
 	}
-	oem, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: parentOwner, ParentOperatorID: parent, Kind: organization.OEM, Name: "independent OEM", BrandName: "independent OEM brand", QuoteReference: "OEM supply", ExitTermsReference: "OEM exit"})
+	oem, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: parentOwner, ParentOperatorID: parent, Kind: organization.OEM, Name: "independent OEM", BrandName: "independent OEM brand"})
 	if err != nil {
 		t.Fatal(err)
 	}

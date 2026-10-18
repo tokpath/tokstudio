@@ -117,7 +117,7 @@ func TestPostgresWorkspaceContextScopePaginationAndPermissions(t *testing.T) {
 	if out["subject"].(map[string]any)["values"].(map[string]any)["due_usd"] != "10.123456789123456789" {
 		t.Fatal("lost decimal precision")
 	}
-	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: op, Kind: organization.Channel, Name: "Context channel", LegalName: "Context channel legal", QuoteReference: "terms", ExitTermsReference: "exit"})
+	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: op, Kind: organization.Channel, Name: "Context channel", LegalName: "Context channel legal"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -36,11 +36,8 @@ func reviewStaff(t *testing.T, f *testApp, actor, operator, email, role string) 
 func reviewChannel(t *testing.T, f *testApp) (organization.OperatorCreated, Staff, Staff) {
 	t.Helper()
 	ctx := context.Background()
-	channel, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: f.a.Installation.OperatorID, Kind: organization.Channel, Name: "Independent review channel", LegalName: "Synthetic review entity", QuoteReference: "review supply", ExitTermsReference: "review exit"})
+	channel, e := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: f.a.Installation.OwnerStaffID, ParentOperatorID: f.a.Installation.OperatorID, Kind: organization.Channel, Name: "Independent review channel", LegalName: "Synthetic review entity"})
 	if e != nil {
-		t.Fatal(e)
-	}
-	if e = f.a.Organization.SetSupplyStatus(ctx, nil, f.a.Installation.OwnerStaffID, channel.Operator.ID, "active", "synthetic signed review supply terms"); e != nil {
 		t.Fatal(e)
 	}
 	owner := reviewStaff(t, f, f.a.Installation.OwnerStaffID, channel.Operator.ID, "channel-owner@review.test", "owner")

@@ -47,9 +47,6 @@ func TestExternalFrontendAcceptanceServer(t *testing.T) {
 	f.server = server
 	f.a.Config.WebOrigin = "http://127.0.0.1:13003"
 	f.a.Config.PublicBaseURL = "http://127.0.0.1:13003"
-	if err = f.a.DB.Exec("UPDATE organization_brands SET api_base_url=? WHERE id=?", "http://127.0.0.1:13003/api/v1", f.a.Installation.BrandID).Error; err != nil {
-		t.Fatal(err)
-	}
 	f.openRegistration(t)
 	f.registered(t, "customer@frontend.test")
 	model := f.configureExternalCatalog(t, lab)
@@ -73,7 +70,7 @@ func TestExternalFrontendAcceptanceServer(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "联调渠道", LegalName: "合成渠道主体", QuoteReference: "isolated supply terms", ExitTermsReference: "isolated exit terms"})
+	child, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: op, Kind: organization.Channel, Name: "联调渠道", LegalName: "合成渠道主体"})
 	if err != nil {
 		t.Fatal(err)
 	}

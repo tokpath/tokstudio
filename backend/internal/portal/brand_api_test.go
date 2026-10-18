@@ -32,7 +32,7 @@ func TestPostgresBrandAPIEndpointIgnoresLegacyInputAndChannelsInheritVerifiedDom
 	f := setupPortal(t)
 	ctx := context.Background()
 	owner, parent := f.a.Installation.OwnerStaffID, f.a.Installation.OperatorID
-	oem, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: organization.OEM, Name: "OEM entry", BrandName: "OEM entry", APIBaseURL: "https://legacy-unverified.invalid/api/v1", QuoteReference: "isolated terms", ExitTermsReference: "isolated exit"})
+	oem, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: parent, Kind: organization.OEM, Name: "OEM entry", BrandName: "OEM entry"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,10 +47,7 @@ func TestPostgresBrandAPIEndpointIgnoresLegacyInputAndChannelsInheritVerifiedDom
 	if err = f.a.DB.Exec("UPDATE organization_operators SET lifecycle='active' WHERE id=?", oem.Operator.ID).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err = f.a.DB.Exec("UPDATE organization_brands SET api_base_url=? WHERE id=?", "https://legacy-unverified.invalid/api/v1", oem.Brand.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	channel, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: oem.Operator.ID, Kind: organization.Channel, Name: "OEM channel", QuoteReference: "isolated terms", ExitTermsReference: "isolated exit"})
+	channel, err := f.a.Organization.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: oem.Operator.ID, Kind: organization.Channel, Name: "OEM channel"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +62,7 @@ func TestPostgresBrandAPIEndpointIgnoresLegacyInputAndChannelsInheritVerifiedDom
 	assertProjection := func(endpoint string) {
 		t.Helper()
 		if got := f.a.brandDTO(ctx, oem.Brand)["api_base_url"]; got != endpoint {
-			t.Fatalf("brand DTO still used the saved manual URL: %v", got)
+			t.Fatalf("brand DTO did not use the verified domain: %v", got)
 		}
 		status, page, _ := f.call(t, "GET", "/v1/operators/"+parent+"/domains", nil, "")
 		mustOK(t, status, page)

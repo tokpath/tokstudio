@@ -68,11 +68,8 @@ func setup(t *testing.T) fixture {
 	if e != nil {
 		t.Fatal(e)
 	}
-	c, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: p.Operator.ID, Kind: organization.Channel, Name: "Channel", QuoteReference: "contract-v1", ExitTermsReference: "exit-v1"})
+	c, e := org.CreateOperator(ctx, nil, organization.CreateOperatorInput{ActorStaffID: owner, ParentOperatorID: p.Operator.ID, Kind: organization.Channel, Name: "Channel"})
 	if e != nil {
-		t.Fatal(e)
-	}
-	if e = org.SetSupplyStatus(ctx, nil, owner, c.Operator.ID, "active", "signed test agreement"); e != nil {
 		t.Fatal(e)
 	}
 	s := New(db, l, org)

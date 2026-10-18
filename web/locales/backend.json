@@ -6520,5 +6520,25 @@
     "en": "{receipts} actual original-currency receipts await verified valuation or receipt matching; {recorded} recorded receipts retain unallocated principal",
     "ja": "元通貨の実受領金 {receipts} 件が評価確認または照合待ちです。登録済み入金 {recorded} 件に未配分元本が残っています",
     "ru": "{receipts} фактических поступлений в исходной валюте ожидают проверки оценки или сопоставления; {recorded} зарегистрированных поступлений содержат нераспределённую основную сумму"
+  },
+  "停止按此报价下单": {
+    "en": "Stop new orders from this quote",
+    "ja": "この見積での新規注文を停止",
+    "ru": "Остановить новые заказы по этому предложению"
+  },
+  "恢复按此报价下单": {
+    "en": "Allow new orders from this quote again",
+    "ja": "この見積での新規注文を再開",
+    "ru": "Снова разрешить новые заказы по этому предложению"
+  },
+  "停止后，采购方不能再按这条报价创建新订单。已经创建的订单仍按原条款办理。": {
+    "en": "After this, the buyer cannot create new orders from this quote. Existing orders keep their original terms.",
+    "ja": "停止後、購入者はこの見積で新しい注文を作成できません。作成済みの注文は元の条件のまま処理されます。",
+    "ru": "После этого покупатель не сможет создавать новые заказы по этому предложению. Уже созданные заказы сохраняют исходные условия."
+  },
+  "恢复后，采购方可以继续按这条报价创建新订单。": {
+    "en": "After this, the buyer can create new orders from this quote again.",
+    "ja": "再開後、購入者はこの見積で新しい注文を作成できます。",
+    "ru": "После этого покупатель снова сможет создавать новые заказы по этому предложению."
   }
 }

@@ -75,7 +75,13 @@ func (a *Application) contextSection(c *gin.Context, tx *gorm.DB, actor, op, res
 		return true
 	}
 	// Match the order-list read scope without granting sales mutations.
-	return resource == "orders" && a.Organization.RequirePermission(c.Request.Context(), tx, actor, op, "payments.manage") == nil
+	if resource == "orders" && a.Organization.RequirePermission(c.Request.Context(), tx, actor, op, "payments.manage") == nil {
+		return true
+	}
+	if resource == "refunds" && a.Organization.RequirePermission(c.Request.Context(), tx, actor, op, "payments.manage") == nil {
+		return true
+	}
+	return resource == "exits" && (a.Organization.RequirePermission(c.Request.Context(), tx, actor, op, "payments.manage") == nil || a.Organization.RequirePermission(c.Request.Context(), tx, actor, op, "refunds.manage") == nil)
 }
 func (a *Application) appendContextSection(c *gin.Context, out *workspaceContext, resource, title string, p gin.H) {
 	a.prepareResourcePage(c, p, resource)

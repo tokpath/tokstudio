@@ -28,8 +28,10 @@ func businessFields(o operation) []field {
 		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
 	case "commissions":
 		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), f("confirmation_seconds", "消费确认等待秒数", "integer"), f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), f("reward_validity_seconds", "注册奖励有效秒数", "integer"), f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
-	case "activities", "marketing":
-		return []field{optional("campaign_id", "现有活动编号（新建留空）", "text"), f("package_id", "适用套餐编号", "text"), selectField("eligibility", "参与对象", "any|符合当前活动资格", "first_order|首购客户", "existing|已有成交客户"), optional("final_price_usd", "最终成交价 USD（无折扣留空）", "decimal"), defaultField("gift_atg", "本活动额外赠送 ATG", "decimal", "0"), defaultField("concession_rate", "本人佣金让利比例（0到1）", "decimal", "0"), f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), defaultField("total_use_limit", "活动总次数上限", "integer", 100), defaultField("gift_budget_atg", "赠送总预算 ATG", "decimal", "0"), defaultField("discount_budget_usd", "折扣总预算 USD", "decimal", "0"), defaultField("enabled", "启用活动", "boolean", true), version}
+	case "activities":
+		return campaignFields(true, version)
+	case "marketing":
+		return campaignFields(false, version)
 	case "business-status":
 		return []field{selectField("feature", "营业项目", "registration|注册", "new_purchase|新购", "renewal|续费", "model_usage|模型调用", "activity|营销活动", "settlement|结算"), f("enabled", "通过真实依赖检查后开放", "boolean"), version, f("evidence_reference", "检查及授权依据", "text")}
 	case "branding", "channel-themes":
@@ -86,6 +88,13 @@ func businessFields(o operation) []field {
 	return o.Fields
 }
 
+func campaignFields(kol bool, version field) []field {
+	fields := []field{optional("campaign_id", "现有活动编号（新建留空）", "text"), f("package_id", "适用套餐编号", "text"), selectField("eligibility", "参与对象", "any|符合当前活动资格", "first_order|首购客户", "existing|已有成交客户"), optional("final_price_usd", "最终成交价 USD（无折扣留空）", "decimal"), defaultField("gift_atg", "本活动额外赠送 ATG", "decimal", "0")}
+	if kol {
+		fields = append(fields, defaultField("concession_rate", "本人佣金让利比例（0到1）", "decimal", "0"))
+	}
+	return append(fields, f("starts_at", "开始时间", "datetime"), f("ends_at", "结束时间", "datetime"), defaultField("per_customer_limit", "每位客户限次", "integer", 1), defaultField("total_use_limit", "活动总次数上限", "integer", 100), defaultField("gift_budget_atg", "赠送总预算 ATG", "decimal", "0"), defaultField("discount_budget_usd", "折扣总预算 USD", "decimal", "0"), defaultField("enabled", "启用活动", "boolean", true), version)
+}
 func supplyExitPolicyField() field {
 	v := selectField("exit_policy", "主动退出时的余额处理", "non_refundable|剩余采购余额不退", "remaining_paid_proportional|清算存量责任后，剩余购买额度按原实付比例退；赠送不退")
 	v.Default = "non_refundable"

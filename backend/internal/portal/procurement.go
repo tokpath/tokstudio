@@ -56,11 +56,21 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 		if q.ContractAttachmentID != "" {
 			v["contract_url"] = "/api/v1/operators/" + op.ID + "/contracts/" + q.ContractAttachmentID + "/content"
 		}
-		row := entity(q.ID, "quote", 0, v)
-		row["allowed_actions"] = []string{}
-		if view == "buyer" && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
-			row["allowed_actions"] = []string{"purchase"}
+		status := "quote"
+		actions := []string{}
+		if view == "supplier" {
+			if q.Enabled {
+				actions = []string{"disable_quote"}
+			} else {
+				status = "disabled"
+				actions = []string{"enable_quote"}
+			}
 		}
+		if view == "buyer" && q.Enabled && (q.ValidUntil == nil || time.Now().Before(*q.ValidUntil)) {
+			actions = []string{"purchase"}
+		}
+		row := entity(q.ID, status, 0, v)
+		row["allowed_actions"] = actions
 		items = append(items, row)
 	}
 	orders, e := a.Cooperation.ListPurchaseOrders(ctx, nil, actor, op.ID, view, 100)
@@ -126,7 +136,7 @@ func (a *Application) procurementResource(c *gin.Context, op organization.Operat
 	}
 	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("name", "报价或订单名称", "text"), col("buyer_name", "采购方", "text"), col("supplier_name", "供货方", "text"), col("price_usd", "成交USD", "usd"), col("allocated_usd", "已分配USD", "usd"), col("paid_atg", "购买库存", "atg"), col("gift_atg", "赠送库存", "atg"), col("exit_policy_summary", "成交时的退出规则", "text"), col("terms_summary", "合作约定", "text"), col("contract_url", "合作合同", "link"), col("state", "执行状态", "status")}
 	p["operations"] = []operation{{Name: "quote", Label: "向直属采购方发布供货报价", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "quote"), f("buyer_id", "直属采购方", "text"), optional("name", "报价名称（留空自动命名）", "text"), f("price_usd", "收款USD", "decimal"), f("paid_atg", "购买库存ATG", "decimal"), defaultField("gift_atg", "赠送库存ATG", "decimal", "0"), optional("terms_summary", "补充合作约定（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text"), optional("valid_until", "报价截止时间", "datetime"), defaultField("enabled", "允许按报价下单", "boolean", true)}}, {Name: "authorization", Label: "设定有限自动补货授权", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "hidden", "authorization"), f("quote_id", "已确认的供货报价", "text"), optional("supplier_id", "报价供货方", "hidden"), f("trigger_available_atg", "采购可用库存低于ATG时触发", "decimal"), f("single_limit_usd", "每次最高USD", "decimal"), f("period_limit_usd", "周期最高USD", "decimal"), selectField("period", "UTC自然周期", "month|月", "quarter|季", "year|年"), selectField("mode", "执行方式", "offline|仅建立待付订单", "automatic|已获授权Stripe自动扣款"), optional("merchant_id", "真实供货收款商户配置编号", "text"), optional("payment.payment_method", "Stripe已授权pm_编号", "password"), optional("payment.customer_ref", "Stripe已授权cus_编号", "password"), f("consent_reference", "本次补货范围与付款授权说明", "textarea"), defaultField("enabled", "启用授权", "boolean", true), defaultField("expected_version", "当前授权版本", "hidden", 0)}, Confirmation: "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。"}}
-	p["row_operations"] = []operation{{Name: "purchase", Label: "按原报价创建采购订单", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{}, Confirmation: "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "付款方式", "text")}, Description: "付款操作返回实际支付步骤，核实付款并交付后才可用。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "wallet_receipt", Label: "提交链上付款查找线索", Method: "POST", Path: base + "/{id}/wallet_receipt", Fields: []field{f("transaction_hash", "实际交易Hash（仅查找线索）", "text"), f("log_index", "目标Transfer事件索引（十六进制）", "text")}, Description: "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。"}, {Name: "fund", Label: "分配已核实收款", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实收款编号", "text"), f("amount_usd", "本次分配USD", "decimal")}}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
+	p["row_operations"] = []operation{{Name: "purchase", Label: "按原报价创建采购订单", Method: "POST", Path: base + "/{id}/purchase", Fields: []field{}, Confirmation: "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。"}, {Name: "disable_quote", Label: "停止按此报价下单", Method: "POST", Path: base + "/{id}/disable_quote", Fields: []field{}, Confirmation: "停止后，采购方不能再按这条报价创建新订单。已经创建的订单仍按原条款办理。"}, {Name: "enable_quote", Label: "恢复按此报价下单", Method: "POST", Path: base + "/{id}/enable_quote", Fields: []field{}, Confirmation: "恢复后，采购方可以继续按这条报价创建新订单。"}, {Name: "checkout", Label: "发起真实付款", Method: "POST", Path: base + "/{id}/checkout", Fields: []field{f("merchant_id", "付款方式", "text")}, Description: "付款操作返回实际支付步骤，核实付款并交付后才可用。"}, {Name: "query_payment", Label: "查询原付款与交付", Method: "POST", Path: base + "/{id}/query_payment", Fields: []field{}}, {Name: "wallet_receipt", Label: "提交链上付款查找线索", Method: "POST", Path: base + "/{id}/wallet_receipt", Fields: []field{f("transaction_hash", "实际交易Hash（仅查找线索）", "text"), f("log_index", "目标Transfer事件索引（十六进制）", "text")}, Description: "只适用于原EVM钱包checkout。服务端独立核验网络、合约、地址和确认数，提交线索不等于付款成功。"}, {Name: "fund", Label: "分配已核实收款", Permission: "payments.manage", Method: "POST", Path: base + "/{id}/fund", Fields: []field{f("receipt_id", "本方已核实收款编号", "text"), f("amount_usd", "本次分配USD", "decimal")}}, {Name: "fulfill", Label: "重试实际库存交付", Method: "POST", Path: base + "/{id}/fulfill", Fields: []field{}}, {Name: "cancel_authorization", Label: "停止未来自动补货", Method: "POST", Path: base + "/{id}/cancel_authorization", IncludeVersion: true, Fields: []field{}}}
 	ops := p["operations"].([]operation)
 	for i := range ops[1].Fields {
 		f := &ops[1].Fields[i]
@@ -245,6 +255,32 @@ func (a *Application) procurementAction(c *gin.Context, op organization.Operator
 	businessKey, _ := key(c)
 	if action == "checkout" {
 		a.procurementPayment(c, op, actor)
+		return
+	}
+	if action == "disable_quote" || action == "enable_quote" {
+		var in struct{}
+		if !body(c, &in) {
+			return
+		}
+		quote, e := a.Cooperation.GetPurchaseQuote(ctx, nil, actor, op.ID, id)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		if quote.SupplierID != op.ID {
+			handleError(c, organization.ErrForbidden)
+			return
+		}
+		enabled := action == "enable_quote"
+		if e = a.Cooperation.SetQuoteEnabled(ctx, nil, actor, id, enabled); e != nil {
+			handleError(c, e)
+			return
+		}
+		status := "disabled"
+		if enabled {
+			status = "quote"
+		}
+		c.JSON(200, commandResult(id, status))
 		return
 	}
 	if action == "query_payment" {

@@ -392,9 +392,17 @@ func TestPostgresCampaignCombinationLocksOriginalRatiosAndTwoHopScope(t *testing
 	if afterA.Sub(beforeA).Cmp(d("0.4")) != 0 || afterB.Sub(beforeB).Cmp(d("0.4")) != 0 {
 		t.Fatalf("original rates lost: indirect=%s direct=%s", afterA.Sub(beforeA), afterB.Sub(beforeB))
 	}
-	views, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", 20)
+	views, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", "", 20)
 	if err != nil || len(views) != 1 || views[0].SourceID != events[0].ID || views[0].BasisUSD.Cmp(d("8")) != 0 || views[0].AmountUSD.Cmp(d("0.4")) != 0 {
 		t.Fatalf("real commission base view=%+v %v", views, err)
+	}
+	matched, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", views[0].ID, 20)
+	if err != nil || len(matched) != 1 || matched[0].ID != views[0].ID {
+		t.Fatalf("commission search missed its own record: %+v %v", matched, err)
+	}
+	other, _, err := f.s.CommissionViews(f.ctx, nil, f.operator, b.Customer.ID, "", "missing-commission-record", 20)
+	if err != nil || len(other) != 0 {
+		t.Fatalf("commission search ignored the query: %+v %v", other, err)
 	}
 	if err = f.s.AccrueGrantEvent(f.ctx, nil, GrantEventInput{EventID: events[0].ID, OperatorID: f.operator, CustomerID: c.Customer.ID, OrderID: order.ID, Kind: "usage", PaidUSD: events[0].PaidUSD, OccurredAt: events[0].CreatedAt}); err != nil {
 		t.Fatal(err)

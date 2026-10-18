@@ -347,11 +347,42 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 	if e != nil && resource == "orders" && c.Request.Method == "GET" {
 		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
 	}
+	// Exit inventory stays with cooperation. Approving a supply failure needs
+	// refund authority, and paying that refund needs payment authority. Retail
+	// channel execution is likewise a payment action inside the refund workspace.
+	if e != nil && resource == "exits" {
+		e = a.permitAny(c, actor, op.ID, "payments.manage", "refunds.manage")
+	}
+	if e != nil && resource == "refunds" {
+		e = a.Organization.RequirePermission(c.Request.Context(), nil, actor, op.ID, "payments.manage")
+	}
 	if e != nil {
 		handleError(c, e)
 		return op, actor, false
 	}
 	return op, actor, true
+}
+func tagOperationPermissions(ops []operation, permission string, names ...string) []operation {
+	allowed := map[string]bool{}
+	for _, name := range names {
+		allowed[name] = true
+	}
+	for i := range ops {
+		if allowed[ops[i].Name] {
+			ops[i].Permission = permission
+		}
+	}
+	return ops
+}
+func (a *Application) permitAny(c *gin.Context, actor, operator string, permissions ...string) error {
+	var last error = organization.ErrForbidden
+	for _, permission := range permissions {
+		last = a.Organization.RequirePermission(c.Request.Context(), nil, actor, operator, permission)
+		if last == nil || !errors.Is(last, organization.ErrForbidden) {
+			return last
+		}
+	}
+	return last
 }
 func (a *Application) operatorResource(c *gin.Context) {
 	resource := c.Param("resource")

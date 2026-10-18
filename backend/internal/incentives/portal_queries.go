@@ -55,7 +55,7 @@ func readIncentiveCursor(cursor string) (time.Time, string, error) {
 
 // CommissionViews uses the exact eligible base persisted for this event/hop.
 // It never reconstructs the base from today's commission rates.
-func (s *Service) CommissionViews(ctx context.Context, tx *gorm.DB, operator, customer, cursor string, limit int) (out []CommissionView, next string, err error) {
+func (s *Service) CommissionViews(ctx context.Context, tx *gorm.DB, operator, customer, cursor, query string, limit int) (out []CommissionView, next string, err error) {
 	own, e := s.org.CurrentOwnership(ctx, tx, customer)
 	if e != nil {
 		return nil, "", e
@@ -64,6 +64,10 @@ func (s *Service) CommissionViews(ctx context.Context, tx *gorm.DB, operator, cu
 		return nil, "", ErrNotEligible
 	}
 	q := s.dbFor(ctx, tx).Table("incentives_commission_entries c").Select("c.id,e.source_event_id AS source_id,c.order_id,e.kind AS type,c.hop,c.status,c.amount_usd,b.base_usd AS basis_usd,c.reversed_usd,c.offset_usd,c.created_at,c.confirm_at AS confirms_at").Joins("JOIN incentives_confirmation_events e ON e.id=c.event_id").Joins("JOIN incentives_commission_bases b ON b.event_id=c.event_id AND b.hop=c.hop AND b.beneficiary_id=c.beneficiary_id").Where("c.operator_id=? AND c.beneficiary_id=?", operator, customer)
+	if term := strings.TrimSpace(query); term != "" {
+		like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(term) + "%"
+		q = q.Where(`(c.id::text ILIKE ? ESCAPE '\' OR e.source_event_id::text ILIKE ? ESCAPE '\' OR COALESCE(c.order_id::text,'') ILIKE ? ESCAPE '\' OR e.kind ILIKE ? ESCAPE '\' OR c.status ILIKE ? ESCAPE '\')`, like, like, like, like, like)
+	}
 	if cursor != "" {
 		at, id, e := readIncentiveCursor(cursor)
 		if e != nil {

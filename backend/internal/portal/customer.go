@@ -410,7 +410,7 @@ func (a *Application) setKeyState(state string) gin.HandlerFunc {
 }
 func (a *Application) commissions(c *gin.Context) {
 	id := subject(c)
-	rows, next, e := a.Incentives.CommissionViews(c.Request.Context(), nil, id.Customer.Ownership.OperatorID, id.Customer.Customer.ID, c.Query("cursor"), 50)
+	rows, next, e := a.Incentives.CommissionViews(c.Request.Context(), nil, id.Customer.Ownership.OperatorID, id.Customer.Customer.ID, c.Query("cursor"), c.Query("q"), 50)
 	if e != nil {
 		handleError(c, e)
 		return

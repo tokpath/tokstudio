@@ -20,11 +20,16 @@ func queryValue(t *testing.T, raw, name string) string {
 
 func TestPostgresOfficialGoogleEnvIsAdoptedForItsRedirect(t *testing.T) {
 	f := setupPortal(t)
+	status, out, _ := f.call(t, "GET", "/v1/public/context", nil, "")
+	mustOK(t, status, out)
+	if out["google_sign_in"] != true {
+		t.Fatal("official brand hid Google sign-in before a configuration existed", out["google_sign_in"])
+	}
 	redirect := f.server.URL + "/login/oauth/google"
 	if err := f.a.Organization.AdoptOfficialGoogleEnv(context.Background(), f.a.Installation.BrandID, f.a.Config.AppKey, "official-env.apps.googleusercontent.com", "env-secret", redirect); err != nil {
 		t.Fatal(err)
 	}
-	status, out, _ := f.call(t, "GET", "/v1/public/context", nil, "")
+	status, out, _ = f.call(t, "GET", "/v1/public/context", nil, "")
 	mustOK(t, status, out)
 	if out["google_sign_in"] != true {
 		t.Fatal("official environment configuration was not offered", out["google_sign_in"])

@@ -20,6 +20,12 @@ const googleAuthorizeURL = "https://accounts.google.com/o/oauth2/v2/auth"
 // GoogleExchanger replaces the live Google token exchange in tests.
 type GoogleExchanger func(context.Context, organization.GoogleCredential, string) (organization.GoogleProfile, error)
 
+// openGoogleCredential reads the saved client. The official brand stays available
+// after the secret is stored, without a separate admin switch or callback test.
+func (a *Application) openGoogleCredential(ctx context.Context, brandID, redirect string, testing bool) (organization.GoogleCredential, error) {
+	return a.Organization.OpenGoogleCredential(ctx, nil, brandID, redirect, a.Config.AppKey, testing || brandID == a.Installation.BrandID)
+}
+
 func (a *Application) googleRedirectURI(c *gin.Context) string {
 	scheme := "https"
 	if !a.Config.IsProduction() && c.Request.TLS == nil && !strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
@@ -192,7 +198,7 @@ func (a *Application) googleStart(c *gin.Context) {
 		return
 	}
 	redirect := a.googleRedirectURI(c)
-	cred, err := a.Organization.OpenGoogleCredential(c.Request.Context(), nil, brand(c).ID, redirect, a.Config.AppKey, false)
+	cred, err := a.openGoogleCredential(c.Request.Context(), brand(c).ID, redirect, false)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -251,7 +257,7 @@ func (a *Application) googleFinish(c *gin.Context) {
 		handleError(c, organization.ErrGoogleState)
 		return
 	}
-	cred, err := a.Organization.OpenGoogleCredential(ctx, nil, intent.BrandID, intent.RedirectURI, a.Config.AppKey, intent.TestOnly)
+	cred, err := a.openGoogleCredential(ctx, intent.BrandID, intent.RedirectURI, intent.TestOnly)
 	if err != nil || cred.Version != intent.ConfigVersion {
 		handleError(c, organization.ErrGoogleUnavailable)
 		return

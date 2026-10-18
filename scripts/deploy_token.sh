@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Called only by the manually approved exact-SHA preview deployment workflow.
+# Called by the exact-SHA test deployment workflow after successful release CI.
 # Does not prune global images, modify database generations or delete volumes.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

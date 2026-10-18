@@ -5,18 +5,36 @@ on:
     branches: [main, release/v0.1.0, feature/grokbot, "cursor/**"]
   pull_request:
 
+permissions:
+  contents: read
+
+# New pushes supersede unfinished checks, but never interrupt a deployment.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy-config:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: assert deploy host + test isolation
         run: |
           bash scripts/assert_deploy_isolation.sh
           bash scripts/refactor-assert-release.sh
+          node --test scripts/ci-backend.test.cjs scripts/deployment-target.test.cjs
 
-  backend:
+  backend-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [portal-1, portal-2, remediation, identity, core]
+    # Each shard owns its PostgreSQL, Redis and MinIO; no shared fault state.
     services:
       postgres:
         image: postgres:16-alpine
@@ -98,7 +116,18 @@ jobs:
           TOKENHUB_TEST_S3_REGION: us-east-1
           TOKENHUB_TEST_S3_ACCESS_KEY: minioadmin
           TOKENHUB_TEST_S3_SECRET_KEY: minioadmin
-        run: go test -race -p 1 -count=1 -timeout 15m ./...
+        run: node ../scripts/ci-backend.cjs "${{ matrix.shard }}"
+
+  # Keep the existing required check name; every shard must succeed.
+  backend:
+    if: always()
+    needs: backend-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every backend shard
+        env:
+          RESULT: ${{ needs.backend-tests.result }}
+        run: test "$RESULT" = success
 
   frontend:
     runs-on: ubuntu-latest
@@ -110,7 +139,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Restore Next.js compilation cache
+        uses: actions/cache@v4
+        with:
+          path: web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}-
       - name: verify OpenAPI artifacts match source
         run: |
           node ../scripts/refactor-openapi.cjs --check

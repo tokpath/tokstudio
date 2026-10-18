@@ -64,7 +64,9 @@ cd web && npm run build && npx playwright test
 
 ## 部署边界
 
-普通 push 只运行 CI，不发布。预览部署必须人工运行 `deploy-token`，选择 `release/v0.1.0` 中通过 CI 的完整提交 SHA，输入 `DEPLOY_TEST`，经 `tokenhub-test` Environment 门槛后部署该精确提交。部署仓库路径为 `/root/workspace/tokstudio`，目标预览主机名为 `test.tokpath.com`。2026-10-18 本轮发布已获授权，仍须遵守上述提交和 CI 门槛。
+推送 `release/v0.1.0` 后，完整 `ci` 成功会自动触发 `deploy-token`，将通过测试的精确提交部署到 `https://test.tokpath.com`，无需人工触发。PR、其他分支、失败或取消的 CI 不发布；已被新提交取代的自动任务跳过。部署串行执行，不中断正在进行的发布。保留人工 `workflow_dispatch` 作为恢复入口：选择 release 分支、填写已经通过 CI 的完整 SHA 和 `DEPLOY_TEST`。两种入口都只使用 `tokenhub-test` 环境和 `/root/workspace/tokstudio` 测试栈，保留已有账号、配置与业务数据。
+
+自动触发依赖默认分支上的 `deploy.yml`，当前默认分支为 `release/v0.1.0`；调整默认分支时须同步保留该工作流。CI 后端分为五个独立 runner，分别运行两组门户测试、退款纠错、组织与激励、其余所有包；每组使用自己的 PostgreSQL、Redis 和 MinIO，保留 `-race -count=1`。门户测试由 Go 自动枚举后无重叠分组，新测试和新包会自动纳入。`backend` 汇总检查要求全部分组成功。前端继续执行接口契约、单元测试、生产构建与浏览器测试，复用 npm 和 Next.js 编译缓存。新推送取消同分支尚未完成的 CI，不取消正在运行的部署。
 
 部署前准备新库、加密密钥、初始负责人、邮件、对象存储和备份密钥；运行 `make assert-deploy` 检查隔离约定。资金参数、上游供应商和商户配置通过各自经营权限管理，不能通过运维 SQL 直接改钱。凭据不进入 Git、日志、导出或通知。
 

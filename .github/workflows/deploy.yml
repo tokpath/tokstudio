@@ -1,8 +1,12 @@
-# 普通 push / CI 完成事件不发布；只允许人工选择已通过 CI 的完整提交。
-# 保留 test 栈、主机 Secret 和独立 concurrency。实际发布须完成产品验收与隔离新库配置。
+# Release push CI 成功后自动发布同一提交；保留人工精确 SHA 恢复入口。
+# 本工作流须保留在默认分支（当前 release/v0.1.0），workflow_run 才会触发。
 name: deploy-token
 
 on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [release/v0.1.0]
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -24,48 +28,41 @@ concurrency:
 
 jobs:
   validate:
-    if: github.ref == 'refs/heads/release/v0.1.0'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/release/v0.1.0') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'release/v0.1.0' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.target.outputs.sha }}
+      deploy: ${{ steps.target.outputs.deploy }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: release/v0.1.0
           fetch-depth: 0
-      - name: Validate explicit release target
+      - name: Select exact successful CI commit
         id: target
-        env:
-          DEPLOY_SHA: ${{ inputs.commit_sha }}
-          DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
-        run: |
-          set -euo pipefail
-          [[ "$DEPLOY_CONFIRMATION" == "DEPLOY_TEST" ]]
-          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
-          git merge-base --is-ancestor "$DEPLOY_SHA" origin/release/v0.1.0
-          echo "sha=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
-      - name: Require successful CI for exact commit
         uses: actions/github-script@v7
-        env:
-          DEPLOY_SHA: ${{ steps.target.outputs.sha }}
         with:
           script: |
-            const {data} = await github.rest.actions.listWorkflowRuns({
-              ...context.repo,
-              workflow_id: 'ci.yml',
-              branch: 'release/v0.1.0',
-              event: 'push',
-              head_sha: process.env.DEPLOY_SHA,
-              per_page: 100
-            });
-            const runs = data.workflow_runs.filter(run => run.head_sha === process.env.DEPLOY_SHA);
-            runs.sort((a, b) => b.run_number - a.run_number || b.run_attempt - a.run_attempt);
-            if (!runs.length || runs[0].status !== 'completed' || runs[0].conclusion !== 'success') {
-              core.setFailed('Selected commit must have a completed successful CI run.');
-            }
+            const validate = require('./scripts/deployment-target.cjs');
+            await validate({github, context, core});
+      - name: Require release ancestry
+        if: steps.target.outputs.deploy == 'true'
+        env:
+          DEPLOY_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$DEPLOY_SHA" origin/release/v0.1.0
 
   deploy:
     needs: validate
+    if: needs.validate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment:
       name: tokenhub-test
@@ -112,6 +109,11 @@ jobs:
             test -z "$(git status --porcelain --untracked-files=no)"
             DEPLOY_SHA='${{ needs.validate.outputs.sha }}'
             git merge-base --is-ancestor "$DEPLOY_SHA" "origin/$BRANCH"
+            # A newer push may arrive while this workflow waits for the host.
+            if [ '${{ github.event_name }}' = workflow_run ] && [ "$DEPLOY_SHA" != "$(git rev-parse "origin/$BRANCH")" ]; then
+              echo 'Newer release commit exists; skipping superseded automatic deployment.'
+              exit 0
+            fi
             git checkout --detach "$DEPLOY_SHA"
             test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
             bash scripts/deploy_token.sh

@@ -108,6 +108,12 @@ func New(ctx context.Context, c Config, gdb *gorm.DB) (*Application, error) {
 	if err := db.Readiness(ctx, gdb, AllMigrations()); err != nil {
 		return nil, err
 	}
+	return newApplication(ctx, c, gdb)
+}
+
+// newApplication binds services to an already validated connection. The explicit
+// demo command uses the caller's transaction after New verified readiness.
+func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, error) {
 	a := &Application{Config: c, DB: gdb, Metrics: observability.New()}
 	if e := gdb.WithContext(ctx).First(&a.Installation, "id='platform'").Error; e != nil {
 		return nil, errors.New("new system is not bootstrapped: run cmd/migrate with bootstrap credentials")

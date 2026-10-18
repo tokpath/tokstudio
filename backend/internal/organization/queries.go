@@ -91,6 +91,9 @@ func (s *Service) ListCustomersInScope(ctx context.Context, tx *gorm.DB, actor, 
 		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(search[0])) + "%"
 		q = q.Where(`customer_id IN (SELECT c.id FROM organization_customers c JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true WHERE c.display_name ILIKE ? OR i.email_normalized ILIKE ? OR c.id::text=?)`, term, term, strings.TrimSpace(search[0]))
 	}
+	if len(search) > 1 && strings.TrimSpace(search[1]) != "" {
+		q = q.Where("customer_id IN (SELECT id FROM organization_customers WHERE status=?)", strings.TrimSpace(search[1]))
+	}
 	if cursor != "" {
 		q = q.Where("customer_id>?", cursor)
 	}

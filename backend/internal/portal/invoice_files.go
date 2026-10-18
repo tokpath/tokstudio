@@ -176,7 +176,9 @@ func (a *Application) replaceInvoice(c *gin.Context) {
 }
 func (a *Application) procurementInvoicesResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
 	ctx := c.Request.Context()
-	rows, e := a.Operations.ListProcurementInvoices(ctx, actor, op.ID)
+	rows, next, e := a.Operations.ListProcurementInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
+	p["next_cursor"] = next
+	p["search_supported"], p["status_supported"] = true, true
 	if e != nil {
 		handleError(c, e)
 		return

@@ -46,6 +46,9 @@ func (s *Service) ListCustomerInvoices(ctx context.Context, customer, cursor str
 // Search runs inside the authenticated issuer/customer scope and before the
 // page limit. strpos treats a user's % and _ as literal text, never wildcards.
 func invoiceSearch(q *gorm.DB, search []string) *gorm.DB {
+	if len(search) > 1 && strings.TrimSpace(search[1]) != "" {
+		q = q.Where("state=?", strings.TrimSpace(search[1]))
+	}
 	if len(search) == 0 {
 		return q
 	}
@@ -79,4 +82,57 @@ func (s *Service) RequestHistoricalInvoice(ctx context.Context, customer, issuer
 		}
 		return nil
 	})
+}
+
+// Issuer and buyer queries retain their distinct authorities and relationships.
+func (s *Service) ListOperatorInvoicesPage(ctx context.Context, actor, operator, cursor, query, status string, limit int) ([]Invoice, string, error) {
+	var rows []Invoice
+	var next string
+	err := s.within(ctx, nil, func(tx *gorm.DB) error {
+		if err := s.require(ctx, tx, actor, operator, "invoices.manage"); err != nil {
+			return err
+		}
+		var err error
+		rows, next, err = invoicePage(tx.Where("operator_id=?", operator), cursor, query, status, limit)
+		return err
+	})
+	return rows, next, err
+}
+func (s *Service) ListProcurementInvoicesPage(ctx context.Context, actor, buyer, cursor, query, status string, limit int) ([]Invoice, string, error) {
+	var rows []Invoice
+	var next string
+	err := s.within(ctx, nil, func(tx *gorm.DB) error {
+		if err := s.require(ctx, tx, actor, buyer, "cooperation.manage"); err != nil {
+			return err
+		}
+		var err error
+		rows, next, err = invoicePage(tx.Where("party_kind='procurement' AND buyer_operator_id=?", buyer), cursor, query, status, limit)
+		return err
+	})
+	return rows, next, err
+}
+func invoicePage(q *gorm.DB, cursor, query, status string, limit int) ([]Invoice, string, error) {
+	if limit < 1 || limit > 100 {
+		return nil, "", ErrInvalid
+	}
+	if cursor != "" {
+		var c notificationCursor
+		raw, err := base64.RawURLEncoding.DecodeString(cursor)
+		if err != nil || json.Unmarshal(raw, &c) != nil || c.At.IsZero() || !validID(c.ID) {
+			return nil, "", ErrInvalid
+		}
+		q = q.Where("(created_at,id)<(?,?)", c.At, c.ID)
+	}
+	rows := []Invoice{}
+	if err := invoiceSearch(q, []string{query, status}).Order("created_at DESC,id DESC").Limit(limit + 1).Find(&rows).Error; err != nil {
+		return nil, "", err
+	}
+	next := ""
+	if len(rows) > limit {
+		rows = rows[:limit]
+		last := rows[len(rows)-1]
+		raw, _ := json.Marshal(notificationCursor{At: last.CreatedAt, ID: last.ID})
+		next = base64.RawURLEncoding.EncodeToString(raw)
+	}
+	return rows, next, nil
 }

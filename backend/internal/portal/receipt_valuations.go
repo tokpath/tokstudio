@@ -10,12 +10,13 @@ import (
 )
 
 func (a *Application) receiptValuationsResource(c *gin.Context, op organization.Operator, actor string) {
-	rows, next, e := a.Payments.PendingReceiptValuations(c.Request.Context(), actor, op.ID, c.Query("cursor"), 50)
+	rows, next, e := a.Payments.PendingReceiptValuations(c.Request.Context(), actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
 	if e != nil {
 		handleError(c, e)
 		return
 	}
 	p := page("收款估值待办")
+	p["search_supported"], p["status_supported"] = true, true
 	var allPending int
 	e = a.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		rows, e := a.Payments.PendingReceiptObligations(c.Request.Context(), tx, op.ID, nil)

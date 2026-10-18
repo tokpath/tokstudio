@@ -46,6 +46,18 @@ func TestPostgresInvoiceSearchPrecedesLimitAndRetainsIssuerAndCustomerScope(t *t
 				t.Fatal("search escaped original issuer scope")
 			}
 		}
+
+		paged, cursor, pageErr := s.ListOperatorInvoicesPage(ctx, auth.actor, operator, "", search, "issued", 1)
+		if pageErr != nil || len(paged) != 1 || paged[0].OperatorID != operator {
+			t.Fatalf("issuer page search escaped scope or applied limit first: %+v %q %v", paged, cursor, pageErr)
+		}
+		if search != "DOC_100%" && (paged[0].ID != target.ID || cursor != "") {
+			t.Fatal("exact invoice search returned the wrong page", paged, cursor)
+		}
+		rejected, _, pageErr := s.ListOperatorInvoicesPage(ctx, auth.actor, operator, "", search, "rejected", 1)
+		if pageErr != nil || len(rejected) != 0 {
+			t.Fatal("invoice status was not applied before limit", rejected, pageErr)
+		}
 		own, next, err := s.ListCustomerInvoices(ctx, customer, "", 1, search)
 		if err != nil || len(own) != 1 || own[0].ID != target.ID || next != "" {
 			t.Fatalf("customer search %q lost source or identity scope: %+v %q %v", search, own, next, err)

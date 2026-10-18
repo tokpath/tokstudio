@@ -1,0 +1,227 @@
+{
+  "准备额度和 Key，完成第一次调用。": {
+    "en": "Prepare credits and a Key for your first call.",
+    "ja": "クレジットと Key を準備して、初回の呼び出しを行いましょう。",
+    "ru": "Подготовьте кредиты и Key для первого вызова."
+  },
+  "查看可用额度、近期调用和套餐到期情况。": {
+    "en": "View available credits, recent calls, and plan expiry.",
+    "ja": "利用可能なクレジット、最近の呼び出し、プランの有効期限を確認できます。",
+    "ru": "Доступные кредиты, последние вызовы и сроки действия пакетов."
+  },
+  "支付余额与调用额度": {
+    "en": "Payment balance and usage credits",
+    "ja": "支払い残高と利用クレジット",
+    "ru": "Платёжный баланс и кредиты для вызовов"
+  },
+  "例如：充值 10 USD 只增加支付余额；购买并交付套餐后才增加 ATG 调用额度。": {
+    "en": "For example, topping up 10 USD only increases your payment balance. ATG usage credits are added after a plan is purchased and delivered.",
+    "ja": "例：10 USD をチャージすると支払い残高のみが増えます。ATG 利用クレジットはプランの購入・付与後に増えます。",
+    "ru": "Например, пополнение на 10 USD увеличит только платёжный баланс. Кредиты ATG появятся после покупки и предоставления пакета."
+  },
+  "Key 预算如何生效": {
+    "en": "How Key budgets work",
+    "ja": "Key 予算の仕組み",
+    "ru": "Как работает бюджет Key"
+  },
+  "例如：账号有 100 ATG，给某个 Key 设置每月 20 ATG 预算，该 Key 当月最多使用 20 ATG；创建时不会划走这 20 ATG，其他 Key 仍共享账号可用额度。": {
+    "en": "For example, with 100 ATG in your account, a monthly Key budget of 20 ATG limits that Key to 20 ATG per month. Creating it does not reserve 20 ATG; all Keys still share the account's available credits.",
+    "ja": "例：アカウントに 100 ATG があり、Key の月額予算を 20 ATG に設定すると、その Key は月に最大 20 ATG を利用できます。作成時に 20 ATG が移動・確保されるわけではなく、すべての Key がアカウントのクレジットを共有します。",
+    "ru": "Например, при балансе 100 ATG месячный бюджет Key в 20 ATG ограничит его расход до 20 ATG в месяц. Создание Key не резервирует эти 20 ATG: все Key используют общие кредиты аккаунта."
+  },
+  "调整预算、停用或重置密钥都不清零当前已用与预占。停用后不再受理新请求，已受理请求继续结算。": {
+    "en": "Changing budgets, disabling, or resetting a Key does not reset spent or held amounts. Disabling stops new requests; accepted requests still settle.",
+    "ja": "予算の変更、Key の無効化・リセットを行っても、利用済み額と仮確保額はリセットされません。無効化後は新規リクエストを受け付けませんが、受理済みのリクエストは精算されます。",
+    "ru": "Изменение бюджета, отключение или сброс Key не обнуляют расходы и резервы. Отключение останавливает новые запросы; принятые запросы продолжают рассчитываться."
+  },
+  "预算周期详情": {
+    "en": "Budget period details",
+    "ja": "予算期間の詳細",
+    "ru": "Период бюджета"
+  },
+  "已限定 {count} 个模型": {
+    "en": "Limited to {count} models",
+    "ja": "{count} 個のモデルに制限",
+    "ru": "Доступ к {count} моделям"
+  },
+  "查看模型范围": {
+    "en": "View allowed models",
+    "ja": "許可されたモデルを確認",
+    "ru": "Доступные модели"
+  },
+  "状态待核实，刷新记录": {
+    "en": "Status unverified — refresh",
+    "ja": "状態を確認するため更新",
+    "ru": "Статус не подтверждён — обновить"
+  },
+  "把 Base URL 和此 Key 填入应用，再选择模型 ID 即可开始调用。": {
+    "en": "Enter this Base URL and Key in your app, then choose a model ID to start calling.",
+    "ja": "アプリにこの Base URL と Key を設定し、モデル ID を選択すると呼び出しを開始できます。",
+    "ru": "Укажите этот Base URL и Key в приложении, затем выберите ID модели для вызова."
+  },
+  "套餐页面导航": {
+    "en": "Plan page navigation",
+    "ja": "プランページのナビゲーション",
+    "ru": "Навигация по пакетам"
+  },
+  "资金与记录": {
+    "en": "Funds and records",
+    "ja": "資金と記録",
+    "ru": "Средства и записи"
+  },
+  "链接中的活动当前不可用，可按当前可用条款继续购买。": {
+    "en": "The linked promotion is unavailable. You can continue with the currently available terms.",
+    "ja": "リンク先のキャンペーンは現在利用できません。現在利用可能な条件で購入を続けられます。",
+    "ru": "Акция по ссылке недоступна. Вы можете продолжить покупку на доступных сейчас условиях."
+  },
+  "正在核实分享活动，请稍候。": {
+    "en": "Checking the shared promotion…",
+    "ja": "共有されたキャンペーンを確認しています…",
+    "ru": "Проверяем акцию по ссылке…"
+  },
+  "余额优先组合": {
+    "en": "Use balance first",
+    "ja": "残高を優先して支払う",
+    "ru": "Сначала использовать баланс"
+  },
+  "本次支付如何组合": {
+    "en": "How this payment is split",
+    "ja": "今回の支払いの組み合わせ",
+    "ru": "Как распределяется этот платёж"
+  },
+  "例如：套餐 10 USD，余额 3 USD，默认用余额抵扣 3 USD，再直接支付 7 USD。勾选使用佣金后，才会用可用佣金继续补足。": {
+    "en": "For example, a 10 USD plan with a 3 USD balance uses 3 USD from your balance and charges the remaining 7 USD directly. Available commission is used only if you select it.",
+    "ja": "例：10 USD のプランで残高が 3 USD の場合、初期設定では残高から 3 USD を充当し、残りの 7 USD を直接支払います。利用可能なコミッションは、使用を選択した場合のみ充当されます。",
+    "ru": "Например, пакет за 10 USD при балансе 3 USD оплачивается 3 USD с баланса и 7 USD напрямую. Доступная комиссия используется только с вашего согласия."
+  },
+  "本次使用佣金不会授权未来续费使用佣金。": {
+    "en": "Using commission now does not authorize its use for future renewals.",
+    "ja": "今回のコミッション使用は、今後の更新での使用許可にはなりません。",
+    "ru": "Использование комиссии сейчас не разрешает использовать её при будущих продлениях."
+  },
+  "可用余额": {
+    "en": "Available balance",
+    "ja": "利用可能残高",
+    "ru": "Доступный баланс"
+  },
+  "本次余额抵扣": {
+    "en": "Balance applied",
+    "ja": "今回充当する残高",
+    "ru": "Списать с баланса"
+  },
+  "本次佣金抵扣": {
+    "en": "Commission applied",
+    "ja": "今回充当するコミッション",
+    "ru": "Списать из комиссии"
+  },
+  "精确调整抵扣金额": {
+    "en": "Adjust exact amounts",
+    "ja": "充当額を正確に調整",
+    "ru": "Указать точные суммы"
+  },
+  "未来续费": {
+    "en": "Future renewals",
+    "ja": "今後の更新",
+    "ru": "Будущие продления"
+  },
+  "到期自动续费如何扣款": {
+    "en": "How automatic renewal is paid",
+    "ja": "自動更新時の支払い方法",
+    "ru": "Как оплачивается автопродление"
+  },
+  "例如：月套餐到期时，用足额 USD 余额购买下一份套餐；只有单独授权后才用佣金补足。不会自动从外部钱包扣款，余额不足时不续费。": {
+    "en": "For example, when a monthly plan expires, a new plan is purchased with sufficient USD balance. Commission can cover a shortfall only with separate permission. External wallets are never charged automatically; renewal fails if authorized funds are insufficient.",
+    "ja": "例：月間プランの満了時に、十分な USD 残高で次のプランを購入します。コミッションによる不足分の補填には別途許可が必要です。外部ウォレットから自動で引き落とされることはなく、許可された資金が不足する場合は更新されません。",
+    "ru": "Например, по окончании месячного пакета новый пакет покупается при достаточном балансе USD. Комиссия покрывает нехватку только с отдельного разрешения. Внешние кошельки автоматически не списываются; при недостатке разрешённых средств продление не выполняется."
+  },
+  "提前用完不会提前续费，当前套餐到期余量不结转；续费条件变差时须重新确认。": {
+    "en": "Using all credits early does not trigger early renewal. Unused credits expire with the plan, and less favorable renewal terms require your confirmation again.",
+    "ja": "クレジットを早く使い切っても前倒しで更新されません。満了時の未使用分は繰り越されず、更新条件が悪化した場合は再確認が必要です。",
+    "ru": "Досрочное исчерпание кредитов не запускает продление. Остаток сгорает по окончании пакета; ухудшение условий продления требует нового подтверждения."
+  },
+  "快捷查询状态": {
+    "en": "Search by status",
+    "ja": "状態ですばやく検索",
+    "ru": "Поиск по статусу"
+  },
+  "搜索订单编号、订单类型或状态": {
+    "en": "Search order ID, type, or status",
+    "ja": "注文番号、種類、状態で検索",
+    "ru": "Номер, тип или статус заказа"
+  },
+  "查询全部订单；选择状态会替换当前关键词。": {
+    "en": "Search all orders. Selecting a status replaces the current search term.",
+    "ja": "すべての注文を検索します。状態を選択すると現在のキーワードが置き換わります。",
+    "ru": "Поиск по всем заказам. Выбранный статус заменит текущий поисковый запрос."
+  },
+  "搜索请求编号、模型 ID 或状态": {
+    "en": "Search request ID, model ID, or status",
+    "ja": "リクエスト番号、モデル ID、状態で検索",
+    "ru": "ID запроса, модели или статус"
+  },
+  "查询全部调用；选择状态会替换当前关键词。": {
+    "en": "Search all calls. Selecting a status replaces the current search term.",
+    "ja": "すべての呼び出しを検索します。状態を選択すると現在のキーワードが置き換わります。",
+    "ru": "Поиск по всем вызовам. Выбранный статус заменит текущий поисковый запрос."
+  },
+  "移动工作台工具": {
+    "en": "Mobile workspace tools",
+    "ja": "モバイルワークスペースのツール",
+    "ru": "Инструменты мобильного рабочего пространства"
+  },
+  "工作台工具": {
+    "en": "Workspace tools",
+    "ja": "ワークスペースのツール",
+    "ru": "Инструменты рабочего пространства"
+  },
+  "新建时系统生成唯一编号，编辑时保留原编号，无需手工填写。它用于识别本条价格或路由，不是公开模型 ID，也不会改变模型能力。": {
+    "en": "A unique ID is generated for new entries and retained when editing. It identifies this price or route; it is not the public model ID and does not change model capabilities.",
+    "ja": "新規作成時に一意の番号が生成され、編集時は元の番号が保持されます。価格またはルートを識別する番号で、公開モデル ID とは別です。モデルの能力は変更されません。",
+    "ru": "При создании формируется уникальный ID, который сохраняется при редактировании. Он обозначает эту цену или маршрут, отличается от публичного ID модели и не меняет её возможности."
+  },
+  "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称；供应商模型名在上游路由中单独配置，不要把密钥或供应商地址填在这里。": {
+    "en": "This is the public model ID used in application requests, for example text-pro-v1. Choose a stable, recognizable name. Configure the provider model name separately in the upstream route; do not enter credentials or provider URLs here.",
+    "ja": "アプリのリクエストで指定する公開モデル ID です。例：text-pro-v1。安定した識別しやすい名前を決めてください。プロバイダーのモデル名は上流ルートで別途設定します。ここにキーやプロバイダーの URL を入力しないでください。",
+    "ru": "Это публичный ID модели для запросов приложения, например text-pro-v1. Выберите стабильное понятное имя. Имя модели поставщика задаётся отдельно в вышестоящем маршруте. Не вводите здесь ключи или адреса поставщика."
+  },
+  "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。": {
+    "en": "Enter the verified model identity and revision, for example vendor-model-2026-01. The upstream route must match the public model identity so different models or revisions are not mixed under one public model.",
+    "ja": "検証済みのモデル識別情報とリビジョンを入力します。例：vendor-model-2026-01。異なるモデルやバージョンが混在しないように、上流ルートは対応する公開モデルの識別情報と一致する必要があります。",
+    "ru": "Укажите проверенную идентичность и ревизию модели, например vendor-model-2026-01. Вышестоящий маршрут должен соответствовать публичной модели, чтобы под одним ID не смешивались разные модели или версии."
+  },
+  "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。": {
+    "en": "Selecting saved provider credentials fills in the matching provider reference. It must identify the actual provider and is recorded separately from the provider protocol and model names.",
+    "ja": "保存済みのプロバイダー認証情報を選択すると、対応するプロバイダー参照が入力されます。実際の供給主体を指定し、プロトコル名やモデル名とは別に記録します。",
+    "ru": "После выбора сохранённых учётных данных подставляется ссылка на соответствующего поставщика. Она должна указывать на реального поставщика и хранится отдельно от названий протокола и модели."
+  },
+  "按双方接管合同填写服务责任每 ATG 的 USD 作价。例如 100 ATG、每 ATG 作价 0.02 USD，对应服务作价 2 USD；最终金额依完整责任快照核实，填写不会发起实际付款。": {
+    "en": "Enter the agreed USD value per ATG of service obligations. For example, 100 ATG at 0.02 USD per ATG is valued at 2 USD. The full obligation snapshot determines the final amount; entering a value does not initiate payment.",
+    "ja": "双方の接管契約に従って、サービス責任 1 ATG 当たりの USD 評価額を入力します。例：100 ATG × 0.02 USD = 2 USD。最終金額は完全な責任スナップショットで確認され、入力しても実際の支払いは開始されません。",
+    "ru": "Укажите согласованную договором стоимость обязательств в USD за ATG. Например, 100 ATG по 0.02 USD оцениваются в 2 USD. Итог проверяется по полному снимку обязательств; ввод не запускает платёж."
+  },
+  "这是采购库存抵扣时每 ATG 的合同 USD 作价，与承接服务作价分别约定。系统按真实库存和合同规则核算抵扣，不会因填写此价格增加库存或直接退款。": {
+    "en": "This is the contractual USD value per ATG used to offset procurement inventory, agreed separately from service obligations. Offsets use actual inventory and contract rules. This value does not add inventory or directly issue a refund.",
+    "ja": "調達在庫の相殺に使用する 1 ATG 当たりの契約上の USD 評価額です。サービス責任の評価額とは別に合意します。実際の在庫と契約条件に基づいて相殺され、入力しても在庫追加や直接返金は行われません。",
+    "ru": "Это договорная стоимость ATG в USD для зачёта закупленного запаса, согласуемая отдельно от стоимости услуг. Зачёт рассчитывается по реальному запасу и договору. Ввод цены не увеличивает запас и не оформляет возврат."
+  },
+  "正数增加渠道向品牌的合同结清额，负数减少该金额，并可能改变付款方向。没有额外约定填写 0；请在完整快照核对最终结清方向。": {
+    "en": "A positive amount increases the contractual settlement owed by the channel to the brand; a negative amount reduces it and may reverse the payment direction. Enter 0 if there is no extra agreement, and verify the final direction in the full snapshot.",
+    "ja": "正数はチャネルからブランドへの契約精算額を増やし、負数は減らします。支払い方向が逆転する場合もあります。追加合意がない場合は 0 を入力し、完全なスナップショットで最終方向を確認してください。",
+    "ru": "Положительная сумма увеличивает расчётный долг канала перед брендом, отрицательная уменьшает его и может изменить направление платежа. При отсутствии дополнительных условий укажите 0 и проверьте итоговое направление по полному снимку."
+  },
+  "填写双方已确认的接管合同编号或文件引用，用于核对本次承接范围、作价、库存退出和结清责任。创建方案不会代替双方签署合同。": {
+    "en": "Enter the takeover contract number or document reference confirmed by both parties. It supports checking the scope, valuation, inventory exit, and settlement obligations. Creating a proposal does not replace signing the contract.",
+    "ja": "双方が確認した接管契約番号または文書参照を入力し、承継範囲、評価額、在庫退出、精算責任を確認します。計画の作成は契約の署名に代わるものではありません。",
+    "ru": "Укажите номер или ссылку на договор, подтверждённый обеими сторонами. По нему проверяются объём передачи, оценка, выход из запасов и расчётные обязательства. Создание плана не заменяет подписание договора."
+  },
+  "填写本次实际清偿的 USD 金额，手续费单独记录。例如到账结清 9.8 USD、付款方另付手续费 0.2 USD，此处填 9.8，手续费填 0.2；非 USD 执行应保留当次真实估值依据。": {
+    "en": "Enter the USD amount actually settled and record fees separately. For example, if 9.8 USD settles the obligation and the payer pays a separate 0.2 USD fee, enter 9.8 here and 0.2 as the fee. Keep current valuation evidence for non-USD payments.",
+    "ja": "今回実際に精算した USD 額を入力し、手数料は別に記録します。例：精算入金 9.8 USD、支払者が別途負担する手数料 0.2 USD の場合、ここに 9.8、手数料に 0.2 を入力します。外貨の場合は今回の実際の評価根拠を保存してください。",
+    "ru": "Укажите фактически погашенную сумму в USD, а комиссию отдельно. Например, при погашении 9.8 USD и дополнительной комиссии плательщика 0.2 USD укажите здесь 9.8, а в поле комиссии 0.2. Для иной валюты сохраните актуальное основание оценки."
+  },
+  "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": {
+    "en": "Enter the unique transaction reference issued by the bank or payment channel for this actual payment. Do not register the same payment twice. It is separate from the contract number, and the actual proof remains subject to verification.",
+    "ja": "銀行または決済サービスが今回の実際の入出金に発行した一意の取引番号を入力します。同じ支払いを重複登録しないでください。契約番号とは別に記録し、提出後も実際の証憑に基づいて確認します。",
+    "ru": "Укажите уникальный номер этой фактической операции, выданный банком или платёжным каналом. Не регистрируйте один платёж дважды. Номер хранится отдельно от договора; поданные данные проверяются по реальному подтверждению."
+  }
+}

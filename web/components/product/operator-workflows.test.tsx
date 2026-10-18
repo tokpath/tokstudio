@@ -12,7 +12,7 @@ let currentSession: Session;
 vi.mock("./context", () => ({ useProduct: () => ({ session: currentSession }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 function staff(permissions: string[], kind: "platform" | "oem" | "channel" = "oem") { currentSession = { kind: "staff", staff: { id: "staff-1", email: "staff@example.test", display_name: "负责人" }, workspaces: [{ operator: { id: "operator-one", name: "山海服务", kind, brand_id: "brand-one" }, permissions }] }; }
-function page(items: Entity[] = [], extra: Partial<ResourcePage> = {}): ResourcePage { return { title: "业务记录", description: "精确归属的原业务记录", items, columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [], ...extra }; }
+function page(items: Entity[] = [], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "精确归属的原业务记录", items, columns: [{ key: "id", label: "编号", kind: "text" }], operations: [], row_operations: [], ...extra }; }
 function show(content: React.ReactNode) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return render(<QueryClientProvider client={cache}>{content}</QueryClientProvider>); }
 function response(data: unknown) { return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } }); }
 
@@ -226,7 +226,7 @@ it("revises an existing plan with its saved values and optimistic version", asyn
   show(<ResourceCollection embedded operatorID="operator-one" resource="plans" page={page([{ id: "plan-a", version: 7, values: { package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001" } }], { operations: [{ name: "publish", label: "发布套餐版本", method: "POST", path: "/api/v1/operators/operator-one/plans", permission: "sales.manage", fields: [{ name: "package_id", label: "现有套餐", kind: "text" }, { name: "name", label: "套餐名称", kind: "text", required: true }, { name: "paid_atg", label: "购买 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
   fireEvent.click(screen.getByRole("button", { name: "修订套餐" }));
   expect((screen.getByLabelText("套餐名称", { exact: false }) as HTMLInputElement).value).toBe("月度套餐");
-  expect((screen.getByLabelText("购买 ATG", { exact: false }) as HTMLInputElement).value).toBe("21.000000000000000001");
+  expect((screen.getByLabelText("购买 ATG", { exact: false, selector: "input" }) as HTMLInputElement).value).toBe("21.000000000000000001");
   fireEvent.click(screen.getByRole("button", { name: "发布套餐版本", exact: true }));
   await waitFor(() => expect(submitted).toEqual({ package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001", expected_version: 7 }));
 });
@@ -253,9 +253,9 @@ it("edits a directly managed channel coverage policy with that row's actual vers
   ], { row_operations: [{ name: "oversell", label: "设置授权超卖与缓冲", method: "POST", path: "/api/v1/operators/operator-one/coverage?target_operator_id={id}", permission: "cooperation.manage", fields: [{ name: "allowance", label: "销售超卖额度 ATG", kind: "decimal", required: true }, { name: "warning", label: "预警缓冲 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "配置版本", kind: "hidden", default_value: 0 }] }] })} />);
   expect(screen.getAllByRole("button", { name: "设置授权超卖与缓冲" })).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "设置授权超卖与缓冲" }));
-  expect((screen.getByLabelText("销售超卖额度 ATG", { exact: false }) as HTMLInputElement).value).toBe("9.000000000000000001");
-  expect((screen.getByLabelText("预警缓冲 ATG", { exact: false }) as HTMLInputElement).value).toBe("2.5");
-  fireEvent.change(screen.getByLabelText("销售超卖额度 ATG", { exact: false }), { target: { value: "12.000000000000000001" } });
+  expect((screen.getByLabelText("销售超卖额度 ATG", { exact: false, selector: "input" }) as HTMLInputElement).value).toBe("9.000000000000000001");
+  expect((screen.getByLabelText("预警缓冲 ATG", { exact: false, selector: "input" }) as HTMLInputElement).value).toBe("2.5");
+  fireEvent.change(screen.getByLabelText("销售超卖额度 ATG", { exact: false, selector: "input" }), { target: { value: "12.000000000000000001" } });
   fireEvent.click(screen.getByRole("button", { name: "设置授权超卖与缓冲", exact: true }));
   await waitFor(() => expect(submitted).toEqual({ allowance: "12.000000000000000001", warning: "2.5", expected_version: 7 }));
 });

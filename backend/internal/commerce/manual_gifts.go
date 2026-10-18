@@ -126,7 +126,7 @@ func (s *Service) IssueManualGift(ctx context.Context, tx *gorm.DB, in ManualGif
 	return out, e
 }
 
-func (s *Service) ListManualGifts(ctx context.Context, tx *gorm.DB, actor, op, customer, cursor string, limit int) ([]ManualGift, string, error) {
+func (s *Service) ListManualGifts(ctx context.Context, tx *gorm.DB, actor, op, customer, cursor string, limit int, filters ...string) ([]ManualGift, string, error) {
 	if !validID(op) || limit < 1 || limit > 200 || (customer != "" && !validID(customer)) {
 		return nil, "", ErrInvalidInput
 	}
@@ -147,6 +147,14 @@ func (s *Service) ListManualGifts(ctx context.Context, tx *gorm.DB, actor, op, c
 		return nil, "", ErrInvalidInput
 	}
 	q := s.dbFor(ctx, tx).Where("operator_id=?", op)
+	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
+		q = q.Where("(id::text ILIKE ? OR customer_id::text ILIKE ? OR grant_id::text ILIKE ? OR reason ILIKE ? OR evidence ILIKE ?)", term, term, term, term, term)
+	}
+	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" && strings.TrimSpace(filters[1]) != "delivered" {
+		q = q.Where("1=0")
+	}
+
 	if customer != "" {
 		q = q.Where("customer_id=?", customer)
 	}

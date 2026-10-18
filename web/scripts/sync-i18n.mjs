@@ -4,7 +4,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const messages = {};
-for (const name of ["common", "customer", "operator", "forms", "backend", "errors"]) {
+for (const name of ["common", "customer", "operator", "forms", "backend", "errors", "help", "customer-ux", "operator-ux", "discovery-ux"]) {
   Object.assign(messages, JSON.parse(await readFile(new URL(`locales/${name}.json`, root), "utf8")));
 }
 const generated = Object.fromEntries(Object.keys(messages).sort().map(source => {

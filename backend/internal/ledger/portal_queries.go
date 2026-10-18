@@ -73,7 +73,7 @@ func (s *Service) FindAccount(ctx context.Context, tx *gorm.DB, operator, owner,
 	})
 	return result, err
 }
-func (s *Service) ListOperatorAccounts(ctx context.Context, tx *gorm.DB, operator, owner, cursor, query string, limit int) ([]Account, error) {
+func (s *Service) ListOperatorAccounts(ctx context.Context, tx *gorm.DB, operator, owner, cursor, query string, limit int, statuses ...string) ([]Account, error) {
 	if !validPortalScope(operator, owner) || limit < 1 || limit > 100 {
 		return nil, ErrScope
 	}
@@ -85,6 +85,9 @@ func (s *Service) ListOperatorAccounts(ctx context.Context, tx *gorm.DB, operato
 	var result []Account
 	err := s.within(ctx, tx, func(t *gorm.DB) error {
 		q := t.Where("operator_id=?", operator).Order("id").Limit(limit)
+		if len(statuses) > 0 && statuses[0] != "" && statuses[0] != "open" {
+			q = q.Where("1=0")
+		}
 		if owner != "" {
 			q = q.Where("owner_id=?", owner)
 		}

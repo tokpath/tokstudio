@@ -4,16 +4,26 @@ import { randomUUID } from "node:crypto";
 
 const fixtureFile = process.env.TOKENHUB_FRONTEND_ACCEPTANCE_FILE;
 test.skip(!fixtureFile, "Requires the isolated live application and independent protocol service");
+test.use({ actionTimeout: 20_000 });
+
+// Field help carries the same business name; match its form control precisely.
+function control(scope: Page | Locator, label: string, exact = false) {
+  return scope.locator("input,textarea,select").and(scope.getByLabel(label, { exact }));
+}
 
 async function login(page: Page, person: { email: string; password: string }, kind = "staff") {
   await page.goto("/login");
   await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
-  await page.getByLabel("邮箱", { exact: true }).fill(person.email);
-  await page.getByLabel("密码", { exact: true }).fill(person.password);
+  await control(page, "邮箱", true).fill(person.email);
+  await control(page, "密码", true).fill(person.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(kind === "staff" ? /\/manage\// : /\/workspace/);
 }
+async function revealFields(panel: Locator) {
+  for (const summary of await panel.locator("details:not([open]) > summary").all()) await summary.click();
+}
 async function field(panel: Locator, name: string, value: string | boolean) {
+  await revealFields(panel);
   const box = panel.locator(`[data-command-field="${name}"]`);
   const select = box.locator("select");
   if (await select.count()) { await select.selectOption(String(value)); return; }
@@ -21,6 +31,7 @@ async function field(panel: Locator, name: string, value: string | boolean) {
   await box.locator("input,textarea").last().fill(value);
 }
 async function config(panel: Locator, name: string, value: string | boolean) {
+  await revealFields(panel);
   const box = panel.locator(`[data-config-path="${name}"]`).first();
   const select = box.locator("select");
   if (await select.count()) { await select.selectOption(String(value)); return; }
@@ -46,7 +57,7 @@ async function operation(page: Page, label: string, values: Record<string, strin
   return submit(page, label, path);
 }
 function localTime(date = new Date()) { return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16); }
-function card(page: Page, id: string) { return page.locator("section.rounded-card").filter({ has: page.getByText(id, { exact: true }) }).last(); }
+function recordRow(page: Page, id: string) { return page.getByRole("row").filter({ has: page.getByText(id, { exact: true }) }).last(); }
 
 test("independent OEM and channel run purchasing, authorization, retail, risk, exit and takeover through actual UI", async ({ browser }, info) => {
   test.setTimeout(600_000);
@@ -79,7 +90,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await finance.goto(`/manage/${f.channel_id}/orders`);
     await expect(finance.getByRole("link", { name: "模型与定价", exact: true })).toHaveCount(0);
     await support.goto(`/manage/${f.channel_id}/customers`);
-    if (!journal.takeover_executed) await expect(support.getByRole("button", { name: "客户工作台", exact: true })).toBeVisible();
+    if (!journal.takeover_executed) await expect(support.getByRole("link", { name: "客户工作台", exact: true })).toBeVisible();
     await expect(support.getByRole("link", { name: "收款与分配", exact: true })).toHaveCount(0);
     await readonly.goto(`/manage/${f.oem_id}/operators`);
     await expect(readonly.getByRole("button", { name: "建立 OEM / 渠道", exact: true })).toHaveCount(0);
@@ -97,7 +108,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await oem.goto(`/manage/${f.oem_id}/operators`);
       await oem.getByRole("button", { name: "建立直属渠道", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
-      await expect(panel.getByLabel("合作类型", { exact: false })).toHaveCount(0);
+      await expect(control(panel, "合作类型", false)).toHaveCount(0);
       for (const [name, value] of Object.entries({ name: "UI 新开直属渠道", legal_name: "UI 合成独立经营主体", quote_reference: "ui-new-channel-supply", exit_terms_reference: "ui-new-channel-exit" })) await field(panel, name, value);
       save("created_channel", await submit(oem, "建立直属渠道", `${oemBase}/operators`));
     }
@@ -116,8 +127,8 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
         invitationURL = String(mail?.Text || mail?.text || "").match(/http[^\s]+/)?.[0] || ""; return !!invitationURL;
       }, { timeout: 30_000, intervals: [500, 1000] }).toBe(true);
       const context = await browser.newContext({ baseURL: f.origin }), person = await context.newPage(); contexts.push(context); pages.push(person);
-      await person.goto(invitationURL); await person.getByLabel("显示名称", { exact: true }).fill("UI 新渠道独立负责人");
-      await person.getByLabel("经营人员密码", { exact: true }).fill("simulation-new-owner-password");
+      await person.goto(invitationURL); await control(person, "显示名称", true).fill("UI 新渠道独立负责人");
+      await control(person, "经营人员密码", true).fill("simulation-new-owner-password");
       const pending = person.waitForResponse(r => new URL(r.url()).pathname === "/api/v1/auth/staff-invitations/accept" && r.request().method() === "POST");
       await person.getByRole("button", { name: "验证邮箱并接受邀请", exact: true }).click();
       const response = await pending; expect(response.status(), await response.text()).toBe(200);
@@ -144,27 +155,35 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await channel.goto(`/manage/${f.channel_id}/pricing`);
       await channel.getByRole("button", { name: "发布价格版本", exact: true }).click();
       const panel = channel.getByRole("dialog").last();
-      await config(panel, "action", "bootstrap_price"); await config(panel, "price.id", randomUUID());
+      await config(panel, "action", "bootstrap_price");
+      const generatedPrice = panel.locator('[data-config-path="price.id"] input');
+      await expect(generatedPrice).toBeDisabled();
+      const priceID = await generatedPrice.inputValue();
+      expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
       await config(panel, "price.model_id", f.model_id); await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
       for (const [index, component] of ["input", "output"].entries()) {
         await panel.getByRole("button", { name: "添加计费组件", exact: true }).click();
         for (const [name, value] of Object.entries({ key: component, unit: "token", per: "1", rate: "0.004" })) await config(panel, `price.rule.components.${index}.${name}`, value);
       }
-      save("retail_price", await submit(channel, "发布价格版本", `${channelBase}/pricing`));
+      const published = await submit(channel, "发布价格版本", `${channelBase}/pricing`);
+      expect(published.id).toBe(priceID);
+      save("retail_price", published);
     }
 
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
+      await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
       save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, price_usd: "80", paid_atg: "100", gift_atg: "20", terms_reference: "operator-ui-fixed-supply", "exit_terms.voluntary_refund": true, "exit_terms.method": "remaining_paid_proportional", "exit_terms.terms_reference": "operator-ui-refund-proportional" }, `${oemBase}/procurement`));
     }
     if (!journal.purchase) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
-      await card(channel, journal.quote.id).getByRole("button", { name: "按原报价创建采购订单", exact: true }).click();
+      await channel.getByRole("button", { name: "立即补货", exact: true }).click();
+      await recordRow(channel, journal.quote.id).getByRole("button", { name: "按原报价创建采购订单", exact: true }).click();
       save("purchase", await submit(channel, "按原报价创建采购订单", `${channelBase}/procurement/${journal.quote.id}/purchase`));
     }
     if (!journal.checkout) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
-      await card(channel, journal.purchase.id).getByRole("button", { name: "发起真实付款", exact: true }).click();
+      await recordRow(channel, journal.purchase.id).getByRole("button", { name: "发起真实付款", exact: true }).click();
       await field(channel.getByRole("dialog").last(), "merchant_id", f.oem_manual_method_id);
       save("checkout", await submit(channel, "发起真实付款", `${channelBase}/procurement/${journal.purchase.id}/checkout`));
     }
@@ -174,29 +193,32 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.funded) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
-      await card(oem, journal.purchase.id).getByRole("button", { name: "分配已核实收款", exact: true }).click();
+      await recordRow(oem, journal.purchase.id).getByRole("button", { name: "分配已核实收款", exact: true }).click();
       const panel = oem.getByRole("dialog").last(); await field(panel, "receipt_id", journal.receipt.id); await field(panel, "amount_usd", "80");
       save("funded", await submit(oem, "分配已核实收款", `${oemBase}/procurement/${journal.purchase.id}/fund`));
     }
     if (!journal.delivered) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
-      const order = card(oem, journal.purchase.id);
+      const order = recordRow(oem, journal.purchase.id);
       await order.getByRole("button", { name: "重试实际库存交付", exact: true }).click();
       save("delivered", await submit(oem, "重试实际库存交付", `${oemBase}/procurement/${journal.purchase.id}/fulfill`));
     }
     if (!journal.authorization) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
+      await channel.getByRole("tab", { name: "自动补货", exact: true }).click();
       save("authorization", await operation(channel, "设定有限自动补货授权", { quote_id: journal.quote.id, trigger_available_atg: "10", single_limit_usd: "80", period_limit_usd: "160", period: "month", mode: "offline", consent_reference: "operator UI explicit offline replenishment consent" }, `${channelBase}/procurement`));
     }
     if (!journal.revised) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
-      await card(channel, journal.authorization.id).getByRole("button", { name: "修订本方自动补货授权", exact: true }).click();
+      await channel.getByRole("tab", { name: "自动补货", exact: true }).click();
+      await recordRow(channel, journal.authorization.id).getByRole("button", { name: "修订本方自动补货授权", exact: true }).click();
       const panel = channel.getByRole("dialog").last(); await field(panel, "period_limit_usd", "240"); await field(panel, "renewed_consent_reference", "operator UI revised consent 240 USD month");
       save("revised", await submit(channel, "修订本方自动补货授权", `${channelBase}/procurement`));
     }
     if (!journal.cancelled) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
-      await card(channel, journal.authorization.id).getByRole("button", { name: "停止未来自动补货", exact: true }).click();
+      await channel.getByRole("tab", { name: "自动补货", exact: true }).click();
+      await recordRow(channel, journal.authorization.id).getByRole("button", { name: "停止未来自动补货", exact: true }).click();
       save("cancelled", await submit(channel, "停止未来自动补货", `${channelBase}/procurement/${journal.authorization.id}/cancel_authorization`));
     }
     await channel.screenshot({ path: info.outputPath("operator-procurement-replenishment.png"), fullPage: true });
@@ -206,7 +228,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.oversell) {
       await oem.goto(`/manage/${f.oem_id}/coverage`);
-      await card(oem, f.channel_id).getByRole("button", { name: "设置授权超卖与缓冲", exact: true }).click();
+      await recordRow(oem, f.channel_id).getByRole("button", { name: "设置授权超卖与缓冲", exact: true }).click();
       const panel = oem.getByRole("dialog").last(); await field(panel, "allowance", "5"); await field(panel, "warning", "10");
       save("oversell", await submit(oem, "设置授权超卖与缓冲", `${oemBase}/coverage`));
     }
@@ -246,23 +268,28 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.topup_allocated) {
       await channel.goto(`/manage/${f.channel_id}/orders`);
-      await channel.getByLabel("搜索记录").fill(journal.topup.id); await channel.getByRole("button", { name: "查询", exact: true }).click();
-      await channel.getByRole("button", { name: "查看并办理", exact: true }).click();
-      await channel.getByRole("dialog").last().getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
+      await control(channel, "搜索记录").fill(journal.topup.id); await channel.getByRole("button", { name: "查询", exact: true }).click();
+      await channel.getByRole("link", { name: "查看并办理", exact: true }).click();
+      await expect(channel.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
+      await expect(channel.getByRole("dialog")).toHaveCount(0);
+      await channel.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
       const panel = channel.getByRole("dialog").last(); await field(panel, "receipt_id", journal.topup_receipt.id); await field(panel, "amount_usd", "50");
       save("topup_allocated", await submit(channel, "将已核实收款分配到此单", `${channelBase}/order-context/${journal.topup.id}/allocate`));
     }
     if (!journal.topup_delivered) {
       await channel.goto(`/manage/${f.channel_id}/orders`);
-      await channel.getByLabel("搜索记录").fill(journal.topup.id); await channel.getByRole("button", { name: "查询", exact: true }).click();
-      await channel.getByRole("button", { name: "查看并办理", exact: true }).click();
-      await channel.getByRole("dialog").last().getByRole("button", { name: "核实资金并重试交付", exact: true }).click();
+      await control(channel, "搜索记录").fill(journal.topup.id); await channel.getByRole("button", { name: "查询", exact: true }).click();
+      await channel.getByRole("link", { name: "查看并办理", exact: true }).click();
+      await expect(channel.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
+      await expect(channel.getByRole("dialog")).toHaveCount(0);
+      await channel.getByRole("button", { name: "核实资金并重试交付", exact: true }).click();
       save("topup_delivered", await submit(channel, "核实资金并重试交付", `${channelBase}/orders/${journal.topup.id}/fulfill`));
     }
     if (!journal.customer_order) {
       await customer.goto("/workspace/plans"); await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();
       await customer.getByRole("button", { name: "继续，核对成交条款" }).click();
-      await customer.getByLabel("本次使用 USD 支付余额", { exact: true }).fill("10");
+      await customer.getByText("精确调整抵扣金额", { exact: true }).click();
+      await control(customer, "本次使用 USD 支付余额", true).fill("10");
       await customer.getByRole("checkbox", { name: /^我确认本次价格/ }).check();
       const pending = customer.waitForResponse(r => new URL(r.url()).pathname === "/api/v1/me/orders" && r.request().method() === "POST");
       await customer.getByRole("button", { name: "确认购买并核实到账", exact: true }).click();
@@ -270,7 +297,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.customer_key) {
       await customer.goto("/workspace/keys"); await customer.getByRole("button", { name: "创建 Key", exact: true }).click();
-      await customer.getByLabel("名称", { exact: true }).fill("接管前连续使用的应用"); await customer.getByLabel("ATG 预算上限", { exact: true }).fill("10");
+      await control(customer, "名称", true).fill("接管前连续使用的应用"); await control(customer, "ATG 预算上限", true).fill("10");
       const pending = customer.waitForResponse(r => new URL(r.url()).pathname === "/api/v1/me/keys" && r.request().method() === "POST");
       await customer.getByRole("button", { name: "创建 Key", exact: true }).last().click(); const response = await pending, key = await response.json(); expect(response.status()).toBe(200);
       continuitySecret = key.secret;
@@ -282,8 +309,8 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await customer.goto("/workspace/playground");
       await customer.getByRole("combobox", { name: /^公开模型/ }).selectOption(f.model_id);
       await customer.getByRole("combobox", { name: /^能力/ }).selectOption("chat");
-      await customer.getByLabel("本次输入", { exact: true }).fill("Synthetic channel operation journey, preserve the account after takeover.");
-      await customer.getByLabel("最大输出 token", { exact: false }).fill("20");
+      await control(customer, "本次输入", true).fill("Synthetic channel operation journey, preserve the account after takeover.");
+      await control(customer, "最大输出 token", false).fill("20");
       const pending = customer.waitForResponse(r => new URL(r.url()).pathname === "/api/v1/me/playground" && r.request().method() === "POST");
       await customer.getByRole("button", { name: "确认计费并发送", exact: true }).click();
       const response = await pending, data = await response.json(); expect(response.status(), JSON.stringify(data)).toBe(200);
@@ -317,7 +344,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       await oem.goto(`/manage/${f.oem_id}/takeovers`); await oem.getByRole("button", { name: "发起接管准备", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
       await panel.getByRole("combobox", { name: /^直属渠道/ }).selectOption(f.channel_id);
-      for (const [label, value] of [["承接服务每ATG合同作价 USD（大于0）", "0.5"], ["采购库存每ATG合同抵扣 USD（大于0）", "0.5"], ["双方接管合同编号", "operator-ui-takeover-v1"], ["发起依据与证据引用", "explicit synthetic whole-channel takeover decision"]]) await panel.getByLabel(label, { exact: true }).fill(value);
+      for (const [label, value] of [["承接服务每ATG合同作价 USD（大于0）", "0.5"], ["采购库存每ATG合同抵扣 USD（大于0）", "0.5"], ["双方接管合同编号", "operator-ui-takeover-v1"], ["发起依据与证据引用", "explicit synthetic whole-channel takeover decision"]]) await control(panel, label, true).fill(value);
       await panel.getByRole("checkbox").check();
       const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers` && r.request().method() === "POST");
       await panel.getByRole("button", { name: "建立准备事项", exact: true }).click();
@@ -355,7 +382,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
       expect(journal.takeover_executed.settlement_due_usd.startsWith("-")).toBe(true);
       await oem.getByRole("button", { name: "登记实际收付款", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
-      for (const [label, value] of [["实际币种", "USD"], ["实际币种金额", amount], ["本次实际结清 USD", amount], ["唯一银行流水 / 支付凭证", "synthetic-takeover-payment-" + randomUUID()], ["核实依据与当次估值证据", "synthetic USD bank payment independently verified"], ["实际收付款时间", localTime()]]) await panel.getByLabel(label, { exact: true }).fill(value);
+      for (const [label, value] of [["实际币种", "USD"], ["实际币种金额", amount], ["本次实际结清 USD", amount], ["唯一银行流水 / 支付凭证", "synthetic-takeover-payment-" + randomUUID()], ["核实依据与当次估值证据", "synthetic USD bank payment independently verified"], ["实际收付款时间", localTime()]]) await control(panel, label, true).fill(value);
       await panel.getByRole("checkbox").check();
       const pending = oem.waitForResponse(r => new URL(r.url()).pathname === `${oemBase}/takeovers/${journal.takeover.id}/settle` && r.request().method() === "POST");
       await panel.getByRole("button", { name: "确认提交", exact: true }).click();
@@ -407,6 +434,7 @@ test("offline replenishment actually creates one unpaid order without creating i
   const save = (key: string, value: any) => { journal[key] = value; writeFileSync(file, JSON.stringify(journal, null, 2)); };
   const contexts = await Promise.all([browser.newContext({ baseURL: f.origin }), browser.newContext({ baseURL: f.origin })]);
   const [oem, buyer] = await Promise.all(contexts.map(context => context.newPage()));
+  for (const current of [oem, buyer]) current.setDefaultTimeout(20_000);
   const base = `/api/v1/operators/${f.other_channel_id}`, supplier = `/api/v1/operators/${f.oem_id}`;
   try {
     await login(oem, f.oem_owner); await login(buyer, f.other_owner);
@@ -421,16 +449,25 @@ test("offline replenishment actually creates one unpaid order without creating i
     }
     if (!journal.price) {
       await buyer.goto(`/manage/${f.other_channel_id}/pricing`); await buyer.getByRole("button", { name: "发布价格版本", exact: true }).click();
-      const panel = buyer.getByRole("dialog").last(); await config(panel, "action", "bootstrap_price"); await config(panel, "price.id", randomUUID()); await config(panel, "price.model_id", f.model_id); await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
+      const panel = buyer.getByRole("dialog").last(); await config(panel, "action", "bootstrap_price");
+      const generatedPrice = panel.locator('[data-config-path="price.id"] input');
+      await expect(generatedPrice).toBeDisabled();
+      const priceID = await generatedPrice.inputValue();
+      expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      await config(panel, "price.model_id", f.model_id); await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
       for (const [index, component] of ["input", "output"].entries()) { await panel.getByRole("button", { name: "添加计费组件", exact: true }).click(); for (const [name, value] of Object.entries({ key: component, unit: "token", per: "1", rate: "0.004" })) await config(panel, `price.rule.components.${index}.${name}`, value); }
-      save("price", await submit(buyer, "发布价格版本", `${base}/pricing`));
+      const published = await submit(buyer, "发布价格版本", `${base}/pricing`);
+      expect(published.id).toBe(priceID);
+      save("price", published);
     }
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
+      await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
       save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.other_channel_id, price_usd: "10", paid_atg: "20", gift_atg: "0", terms_reference: "offline actual replenishment quote", "exit_terms.voluntary_refund": false, "exit_terms.method": "non_refundable", "exit_terms.terms_reference": "offline non refundable terms" }, `${supplier}/procurement`));
     }
     if (!journal.authorization) {
       await buyer.goto(`/manage/${f.other_channel_id}/procurement`);
+      await buyer.getByRole("tab", { name: "自动补货", exact: true }).click();
       save("authorization", await operation(buyer, "设定有限自动补货授权", { quote_id: journal.quote.id, trigger_available_atg: "10", single_limit_usd: "10", period_limit_usd: "20", period: "month", mode: "offline", consent_reference: "offline actual UI replenishment consent only creates payable order" }, `${base}/procurement`));
     }
     let resource: any;
@@ -449,7 +486,8 @@ test("offline replenishment actually creates one unpaid order without creating i
     await expect(buyer.getByText(orders[0].id, { exact: true })).toBeVisible();
     await buyer.screenshot({ path: info.outputPath("offline-replenishment-original-unpaid-order.png"), fullPage: true });
     if (!journal.cancelled) {
-      await card(buyer, journal.authorization.id).getByRole("button", { name: "停止未来自动补货", exact: true }).click();
+      await buyer.getByRole("tab", { name: "自动补货", exact: true }).click();
+      await recordRow(buyer, journal.authorization.id).getByRole("button", { name: "停止未来自动补货", exact: true }).click();
       save("cancelled", await submit(buyer, "停止未来自动补货", `${base}/procurement/${journal.authorization.id}/cancel_authorization`));
     }
     const after = await (await buyer.request.get(`${base}/procurement`)).json();

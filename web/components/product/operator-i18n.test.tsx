@@ -12,15 +12,19 @@ vi.mock("./context", () => ({ useProduct: () => ({ session }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); document.cookie = "NEXT_LOCALE=; Max-Age=0; Path=/"; document.documentElement.lang = "zh-CN"; });
 function show(children: React.ReactNode) { return render(<I18nProvider initialLocale="en"><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><LanguageControl />{children}</QueryClientProvider></I18nProvider>); }
 function response(value: unknown) { return new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } }); }
-it("filters record types and statuses by their visible localized labels", async () => {
- const page: ResourcePage = { title: "退款事项", description: "", items: [{ id: "refund-case", status: "completed", values: { record_kind: "case" } }, { id: "refund-leg", status: "pending", values: { record_kind: "leg" } }], columns: [{ key: "record_kind", label: "记录类型", kind: "text" }], operations: [], row_operations: [] };
+it("sends localized search and status filters to the server without trimming authorized results", async () => {
+ const page: ResourcePage = { search_supported: true, status_supported: true, title: "退款事项", description: "", items: [{ id: "refund-case", status: "completed", values: { record_kind: "case" } }, { id: "refund-leg", status: "pending", values: { record_kind: "leg" } }], columns: [{ key: "record_kind", label: "记录类型", kind: "text" }], operations: [], row_operations: [] };
  const fetch = vi.fn(async () => response(page)); vi.stubGlobal("fetch", fetch); show(<ResourceScreen operatorID="operator-one" resource="refunds" />);
- await screen.findByText("Refund case", { selector: "td span" });
- fireEvent.change(screen.getByRole("textbox"), { target: { value: "Refund component" } }); fireEvent.click(screen.getByRole("button", { name: "Filter this page", exact: true }));
- expect(screen.queryByText("Refund case", { selector: "td span" })).toBeNull(); expect(screen.getByText("Refund component", { selector: "td span" })).toBeTruthy();
- fireEvent.click(screen.getByRole("button", { name: "Clear" })); fireEvent.change(screen.getByTestId("language-selector"), { target: { value: "ja" } });
- fireEvent.change(screen.getByRole("textbox"), { target: { value: translate("ja", "已完成") } }); fireEvent.click(screen.getByRole("button", { name: translate("ja", "筛选本页"), exact: true }));
- expect(screen.getByText(translate("ja", "退款事项"), { selector: "td span" })).toBeTruthy(); expect(screen.queryByText(translate("ja", "退款分项"), { selector: "td span" })).toBeNull(); expect(fetch).toHaveBeenCalledTimes(1);
+ await screen.findByText("refund-case");
+ fireEvent.change(screen.getByRole("textbox"), { target: { value: "Refund component" } }); fireEvent.click(screen.getByRole("button", { name: "Search", exact: true }));
+ await waitFor(() => expect(String(fetch.mock.calls.at(-1)?.[0])).toContain("q=Refund+component"));
+ // The server may include the case and its linked components. Preserve them all.
+ await screen.findByText("refund-case"); expect(screen.getByText("refund-leg")).toBeTruthy();
+ fireEvent.change(screen.getByTestId("language-selector"), { target: { value: "ja" } });
+ fireEvent.change(screen.getByRole("combobox", { name: translate("ja", "筛选状态") }), { target: { value: "completed" } });
+ await waitFor(() => expect(String(fetch.mock.calls.at(-1)?.[0])).toContain("status=completed"));
+ await screen.findByText("refund-case"); expect(screen.getByText("refund-leg")).toBeTruthy();
+ expect(screen.getByRole("option", { name: translate("ja", "已完成") })).toBeTruthy();
 });
 it("translates metadata while preserving names and evidence matching system copy", () => {
  const row = { id: "customer-a", values: { name: "客户", evidence: "查看详情", kind: "package" } }; expect(recordTitle(row, "customers", "ru")).toBe("客户");

@@ -57,8 +57,8 @@ async function purchase(page: Page, plan: string, operatorActivity?: string, kol
 }
 async function playground(page: Page, model: string) {
   await page.goto("/workspace/playground");
-  await page.getByLabel("公开模型", { exact: false }).selectOption(model);
-  await page.getByLabel("能力", { exact: false }).selectOption("chat");
+  await page.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
+  await page.getByRole("combobox", { name: "能力", exact: true }).selectOption("chat");
   await page.getByLabel("本次输入", { exact: true }).fill("Synthetic customer simulation, count actual HTTP model usage.");
   await page.getByLabel("最大输出 token（必填）", { exact: true }).fill("20");
   const response = page.waitForResponse(response => response.url().endsWith("/api/v1/me/playground") && response.request().method() === "POST");
@@ -72,8 +72,8 @@ async function resourceAction(page: Page, name: string, fields: Record<string, s
   await page.getByRole("button", { name, exact: true }).last().click();
   const panel = page.getByRole("dialog").last();
   for (const [label, value] of Object.entries(fields)) {
-    const exact = panel.getByLabel(label, { exact: true });
-    const field = await exact.count() ? exact : panel.getByLabel(label, { exact: false });
+    const exact = panel.getByLabel(label, { exact: true }).and(panel.locator("input,select,textarea"));
+    const field = await exact.count() ? exact : panel.getByLabel(label, { exact: false }).and(panel.locator("input,select,textarea"));
     if (await field.evaluate(element => element.tagName === "SELECT")) { await expect(field).toBeEnabled(); await field.selectOption(value); }
     else await field.fill(value);
   }
@@ -142,13 +142,13 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await kol.goto("/workspace/activities");
     await kol.getByRole("button", { name: "创建推广活动", exact: true }).click();
     await kol.getByLabel("适用套餐", { exact: true }).selectOption(f.plan_id);
-    await kol.getByLabel("本人让利百分点", { exact: false }).fill("16");
-    await kol.getByLabel("活动赠送预算 ATG", { exact: false }).fill("1000");
+    await kol.getByRole("textbox", { name: "本人让利百分点", exact: true }).fill("16");
+    await kol.getByRole("textbox", { name: "活动赠送预算 ATG", exact: true }).fill("1000");
     await kol.getByLabel("每位客户最多使用次数", { exact: true }).fill("10");
     await kol.getByLabel("我确认活动让利", { exact: false }).check();
     await kol.getByRole("button", { name: "确认发布活动", exact: true }).click();
     await expect(kol.getByText("请填写大于 0 且不超过 15 的让利百分点，最多 16 位小数。", { exact: true })).toBeVisible();
-    await kol.getByLabel("本人让利百分点", { exact: false }).fill("10");
+    await kol.getByRole("textbox", { name: "本人让利百分点", exact: true }).fill("10");
     const publishing = kol.waitForResponse(response => response.url().endsWith("/api/v1/me/activities") && response.request().method() === "POST");
     await kol.getByRole("button", { name: "确认发布活动", exact: true }).click();
     const published = await publishing; expect(published.status()).toBe(200); const activity = await published.json();
@@ -241,13 +241,13 @@ test("KOL activity, explicit combination, paid entitlement, shared Key budget, t
     await staff.goto(`/manage/${f.operator_id}/notifications`);
     await staff.getByRole("button", { name: "发送业务通知", exact: true }).click();
     const noticePanel = staff.getByRole("dialog").last();
-    await noticePanel.getByLabel("本经营范围收件人编号", { exact: false }).fill(f.buyer.id);
-    await noticePanel.getByLabel("通知类别", { exact: false }).selectOption("mandatory");
-    await noticePanel.getByLabel("级别", { exact: false }).selectOption("info");
+    await noticePanel.getByLabel("本经营范围收件人编号", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(f.buyer.id);
+    await noticePanel.getByLabel("通知类别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("mandatory");
+    await noticePanel.getByLabel("级别", { exact: false }).and(noticePanel.locator("input,select,textarea")).selectOption("info");
     const necessaryTitle = "已退订营销后仍收到的必要履约通知 " + randomUUID().slice(0,8);
-    await noticePanel.getByLabel("标题", { exact: false }).fill(necessaryTitle);
-    await noticePanel.getByLabel("通知正文", { exact: false }).fill("合成订单履约核对通知，必要业务授权保留。");
-    await noticePanel.getByLabel("业务关联依据", { exact: false }).fill(order.id);
+    await noticePanel.getByLabel("标题", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(necessaryTitle);
+    await noticePanel.getByLabel("通知正文", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill("合成订单履约核对通知，必要业务授权保留。");
+    await noticePanel.getByLabel("业务关联依据", { exact: false }).and(noticePanel.locator("input,select,textarea")).fill(order.id);
     const noticed = staff.waitForResponse(response => response.url().endsWith(`/api/v1/operators/${f.operator_id}/notifications`) && response.request().method() === "POST");
     await noticePanel.getByRole("button", { name: "发送业务通知", exact: true }).click();
     const noticedHTTP = await noticed; expect(noticedHTTP.status()).toBe(200); const notice = await noticedHTTP.json();

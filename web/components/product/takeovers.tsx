@@ -1,6 +1,6 @@
 "use client";
 import { useI18n } from "@/components/i18n";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { request } from "@/lib/api-client";
 import { TakeoversSchema, TakeoverSchema, type Takeover, Decimal, SignedDecimal } from "@/lib/contracts";
@@ -11,6 +11,8 @@ import { useCommand, Heading, Loading, ErrorPanel, Empty, Money, Notice, Status,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { FieldHelp } from "./field-help";
+import { businessFieldHelp } from "./business-field-help";
 import { OperatorPanel, ReadFacts, resourceValueText } from "./operator-resources";
 
 export function TakeoversScreen({operatorID,settlements=false}:{operatorID:string;settlements?:boolean}){
@@ -31,8 +33,16 @@ export function TakeoversScreen({operatorID,settlements=false}:{operatorID:strin
  <div className="space-y-7">{items.map(item=><TakeoverCard key={item.id} item={item} scope={scope} channelName={data.data.channels.find(c=>c.id===item.channel_id)?.name||item.channel_id} settlements={settlements} canPrepare={canPrepare} canExecute={canExecute}/>)}</div>
  </>;
 }
+const takeoverHelp: Record<string, string> = {
+ service_usd_per_atg: "按双方接管合同填写服务责任每 ATG 的 USD 作价。例如 100 ATG、每 ATG 作价 0.02 USD，对应服务作价 2 USD；最终金额依完整责任快照核实，填写不会发起实际付款。",
+ procurement_usd_per_atg: "这是采购库存抵扣时每 ATG 的合同 USD 作价，与承接服务作价分别约定。系统按真实库存和合同规则核算抵扣，不会因填写此价格增加库存或直接退款。",
+ extra_usd: "正数增加渠道向品牌的合同结清额，负数减少该金额，并可能改变付款方向。没有额外约定填写 0；请在完整快照核对最终结清方向。",
+ contract_reference: "填写双方已确认的接管合同编号或文件引用，用于核对本次承接范围、作价、库存退出和结清责任。创建方案不会代替双方签署合同。",
+ actual_usd: "填写本次实际清偿的 USD 金额，手续费单独记录。例如到账结清 9.8 USD、付款方另付手续费 0.2 USD，此处填 9.8，手续费填 0.2；非 USD 执行应保留当次真实估值依据。",
+ reference: "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。",
+};
 function Field({label,name,required=true,initial="",type="text"}:{label:string;name:string;required?:boolean;initial?:string;type?:string}){
-  const { t } = useI18n();return <label className="block text-sm">{t(label)}<Input name={name} type={type} required={required} defaultValue={initial} className="mt-2"/></label>}
+  const { t } = useI18n(); const id = useId(); const help = takeoverHelp[name] || businessFieldHelp(name); return <div className="text-sm"><label htmlFor={id}>{t(label)}</label>{help && <FieldHelp title={t(label)}>{t(help)}</FieldHelp>}<Input id={id} name={name} type={type} required={required} defaultValue={initial} className="mt-2"/></div>}
 function BeginTakeover({scope,channels,close}:{scope:string;channels:{id:string;name:string;legal_name:string}[];close:()=>void}){
   const { t } = useI18n();
  const command=useCommand(`${scope}/takeovers`,TakeoverSchema);const [validation,setValidation]=useState("");

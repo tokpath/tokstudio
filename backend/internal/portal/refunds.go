@@ -112,6 +112,7 @@ func (a *Application) cancelRefund(c *gin.Context) {
 	c.JSON(200, commandResult(out.ID, out.State))
 }
 func (a *Application) refundStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+	p["search_supported"], p["status_supported"] = true, true
 	policy := remediation.Policy{OperatorID: op.ID}
 	if err := a.DB.WithContext(c.Request.Context()).Where("operator_id=?", op.ID).Find(&policy).Error; err != nil {
 		handleError(c, err)
@@ -128,7 +129,7 @@ func (a *Application) refundStaffResource(c *gin.Context, op organization.Operat
 			rows = []remediation.Case{one}
 		}
 	} else {
-		rows, e = a.Remediation.Cases(c.Request.Context(), op.ID, "")
+		rows, p["next_cursor"], e = a.refundCasesPage(c, op.ID)
 	}
 	if e != nil {
 		handleError(c, e)

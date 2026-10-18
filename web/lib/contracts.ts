@@ -79,7 +79,7 @@ export type CommandField = z.infer<typeof FieldSchema>;
 export const OperationSchema = z.object({ name: z.string(), label: z.string(), method: z.enum(["POST", "PATCH", "DELETE"]), path: z.string(), description: z.string().optional(), confirmation: z.string().optional(), fields: z.array(FieldSchema), permission: z.string().optional(), include_version: z.boolean().optional() });
 export type Operation = z.infer<typeof OperationSchema>;
 export const ResourcePageSchema = z.object({ views:z.array(z.object({value:z.string(),label:z.string()})).optional(),
-  title: z.string(), description: z.string(), items: z.array(EntitySchema),
+  title: z.string(), description: z.string(), items: z.array(EntitySchema), search_supported: z.boolean().optional(), status_supported: z.boolean().optional(),
   columns: z.array(z.object({ key: z.string(), label: z.string(), kind: z.enum(["text", "usd", "atg", "decimal", "datetime", "status", "boolean", "link", "details"]) })),
   operations: z.array(OperationSchema), row_operations: z.array(OperationSchema),
   availability: z.array(AvailabilitySchema).optional(), next_cursor: z.string().nullable().optional(),
@@ -88,7 +88,7 @@ export const ResourcePageSchema = z.object({ views:z.array(z.object({value:z.str
 export type ResourcePage = z.infer<typeof ResourcePageSchema>;
 
 export type LoginInput = { kind: "customer" | "staff"; email: string; password: string };
-export type RegistrationInput = { email: string; password: string; display_name: string; invite_code?: string };
+export type RegistrationInput = { email: string; password: string; display_name: string; invite_code?: string; next?: string };
 export type KeyInput = { name: string; model_ids: string[] | null; budget: { limit_atg: DecimalString | null; period: "lifetime" | "month" | "quarter" | "year" }; rate_limit_rpm: number | null; concurrency_limit: number | null };
 export type OrderInput = { quote_id: string; terms_version: string; funding: { usd_balance: DecimalString; commission_usd: DecimalString; external_method_id?: string }; auto_renew: boolean; allow_commission: boolean };
 

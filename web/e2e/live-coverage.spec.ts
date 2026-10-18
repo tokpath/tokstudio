@@ -85,7 +85,18 @@ async function visit(page: Page, route: RouteCase, testInfo: TestInfo, mobileVie
     await page.getByRole("button", { name: "打开工作台导航", exact: true }).click();
     const navigation = page.getByRole("navigation", { name: "移动工作台", exact: true });
     await expect(navigation).toBeVisible();
-    await expect(navigation.getByRole("link")).toHaveCount(route.path.startsWith("/manage/") ? operatorSections.length : customerSections.length);
+    const operatorView = route.path.startsWith("/manage/");
+    const groups = (operatorView ? operatorSections : customerSections).filter(section => section.id !== "account");
+    // The active group expands its children vertically. Check the primary
+    // destinations independently from those extra links and the utility area.
+    const groupLinks = navigation.locator(":scope > div > a");
+    await expect(groupLinks).toHaveCount(groups.length);
+    const base = operatorView ? `/manage/${fixture!.operator_id}` : "/workspace";
+    for (let i = 0; i < groups.length; i++) {
+      const resource = groups[i].items[0][0];
+      await expect(groupLinks.nth(i)).toHaveAttribute("href", `${base}${resource ? `/${resource}` : ""}`);
+    }
+    await expect(page.getByRole("navigation", { name: "移动工作台工具", exact: true }).getByRole("link")).toHaveCount(operatorView ? 1 : 2);
     await noHorizontalOverflow(page);
     await page.getByRole("button", { name: "收起工作台导航", exact: true }).click();
   }

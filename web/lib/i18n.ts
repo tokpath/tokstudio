@@ -1,3 +1,7 @@
+import discoveryUx from "@/locales/discovery-ux.json";
+import operatorUx from "@/locales/operator-ux.json";
+import customerUx from "@/locales/customer-ux.json";
+import help from "@/locales/help.json";
 import common from "@/locales/common.json";
 import customer from "@/locales/customer.json";
 import operator from "@/locales/operator.json";
@@ -13,7 +17,7 @@ export const localeCookie = "NEXT_LOCALE";
 export type TranslationValues = Record<string, string | number>;
 export type Translator = (source: string, values?: TranslationValues) => string;
 export type Message = { en: string; ja: string; ru: string; zh?: string };
-export const catalogs = { common, customer, operator, forms, backend, errors };
+export const catalogs = { common, customer, operator, forms, backend, errors, help, customerUx, operatorUx, discoveryUx };
 export const messages: Record<string, Message> = Object.assign({}, ...Object.values(catalogs));
 
 export function normalizeLocale(value?: string | null): Locale | undefined {

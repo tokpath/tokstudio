@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -134,7 +135,7 @@ func (s *Service) attachReceiptDurably(ctx context.Context, tx *gorm.DB, m Merch
 	return e
 }
 
-func (s *Service) PendingReceiptValuations(ctx context.Context, actor, operator, cursor string, limit int) ([]ReceiptValuationView, string, error) {
+func (s *Service) PendingReceiptValuations(ctx context.Context, actor, operator, cursor string, limit int, filters ...string) ([]ReceiptValuationView, string, error) {
 	out := []ReceiptValuationView{}
 	if s.Authorize == nil {
 		return out, "", ErrForbidden
@@ -146,6 +147,14 @@ func (s *Service) PendingReceiptValuations(ctx context.Context, actor, operator,
 		limit = 100
 	}
 	q := s.DB.WithContext(ctx).Table("payments_verified_facts").Where("operator_id=? AND kind='receipt' AND state='awaiting_valuation'", operator)
+	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
+		q = q.Where("(id::text ILIKE ? OR order_id::text ILIKE ? OR merchant_id::text ILIKE ? OR fact::text ILIKE ? OR valuation_reason ILIKE ?)", term, term, term, term, term)
+	}
+	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" {
+		q = q.Where("state=?", strings.TrimSpace(filters[1]))
+	}
+
 	if cursor != "" {
 		id, e := base64.RawURLEncoding.DecodeString(cursor)
 		if e != nil || len(id) == 0 {

@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -11,6 +12,7 @@ func (a *Application) resourceResponse(c *gin.Context, p gin.H) {
 	c.JSON(200, p)
 }
 func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource string) {
+	prepareResourceFilters(c, p, resource)
 	scope := "/api/v1/me"
 	if c.Param("operatorId") != "" {
 		scope = "/api/v1/operators/" + c.Param("operatorId")
@@ -143,3 +145,43 @@ var paymentMaterials = []paymentMaterial{
 	{"rpc_url", "EVM只读节点RPC URL", []string{"evm_wallet"}}, {"chain_id", "EVM Chain ID", []string{"evm_wallet"}}, {"token_contract", "代币合约地址", []string{"evm_wallet"}}, {"token_decimals", "代币小数位数", []string{"evm_wallet"}}, {"wallet_address", "本商户收款钱包地址", []string{"evm_wallet"}}, {"asset", "收款资产符号", []string{"evm_wallet"}}, {"min_confirmations", "最少链上确认数", []string{"evm_wallet"}},
 }
 var _ fmt.Stringer
+
+// These sources load their complete authorized scope. Filtering them here is
+// equivalent to a database predicate before pagination. Bounded or paged sources
+// must declare their own capabilities only after applying predicates in SQL.
+func prepareResourceFilters(c *gin.Context, p gin.H, resource string) {
+	complete := c.Param("operatorId") != "" && contains([]string{"plans", "payment-methods", "operators", "agreements", "marketing", "commissions", "business-status", "staff", "catalog", "providers", "routes", "pricing", "coverage", "routing", "mail", "branding", "channel-themes", "domains", "risk", "alerts", "overview"}, resource)
+	if _, exists := p["search_supported"]; !exists {
+		p["search_supported"] = complete
+	}
+	if _, exists := p["status_supported"]; !exists {
+		p["status_supported"] = complete
+	}
+	if !complete {
+		return
+	}
+	rows, ok := p["items"].([]any)
+	if !ok {
+		return
+	}
+	query, status := strings.ToLower(strings.TrimSpace(c.Query("q"))), strings.TrimSpace(c.Query("status"))
+	if query == "" && status == "" {
+		return
+	}
+	filtered := make([]any, 0, len(rows))
+	for _, raw := range rows {
+		row, ok := raw.(gin.H)
+		if !ok {
+			continue
+		}
+		if status != "" && fmt.Sprint(row["status"]) != status {
+			continue
+		}
+		encoded, err := json.Marshal(row)
+		if query != "" && (err != nil || !strings.Contains(strings.ToLower(string(encoded)), query)) {
+			continue
+		}
+		filtered = append(filtered, raw)
+	}
+	p["items"] = filtered
+}

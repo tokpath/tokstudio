@@ -213,7 +213,7 @@ it.each(["{malformed",JSON.stringify({unexpected:"response"})])("locks an unveri
 it("validates percentage fractions without converting or rounding their decimal strings",async()=>{
   const fetch=vi.fn(async()=>new Response(JSON.stringify({id:"policy",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
   mount({name:"policy",label:"保存比例",method:"POST",path:"/api/v1/operators/operator-one/commissions",fields:[{name:"direct_rate",label:"直接比例（0到1）",kind:"decimal",required:true}]});
-  const rate=screen.getByLabelText("直接比例（0到1）",{exact:false});fireEvent.change(rate,{target:{value:"5"}});fireEvent.click(screen.getByRole("button",{name:"保存比例",exact:true}));expect(fetch).not.toHaveBeenCalled();
+  const rate=screen.getByRole("textbox",{name:/^直接比例（0到1）/});fireEvent.change(rate,{target:{value:"5"}});fireEvent.click(screen.getByRole("button",{name:"保存比例",exact:true}));expect(fetch).not.toHaveBeenCalled();
   expect(screen.getByRole("alert").textContent).toContain("5% 填写 0.05");
   fireEvent.change(rate,{target:{value:"0.050000000000000001"}});fireEvent.click(screen.getByRole("button",{name:"保存比例",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
   expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({direct_rate:"0.050000000000000001"});

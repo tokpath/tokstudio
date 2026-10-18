@@ -11,6 +11,7 @@ import (
 )
 
 func (a *Application) jobsResource(c *gin.Context, p gin.H, base string) {
+	p["status_supported"] = true
 	rows, e := a.Jobs.List(c.Request.Context(), c.Query("cursor"), c.Query("queue"), c.Query("status"), 51)
 	if e != nil {
 		handleError(c, e)

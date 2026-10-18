@@ -1,0 +1,36 @@
+// Business explanations use explicit field semantics, never guessed values.
+export function businessFieldHelp(name: string, existing?: string, lookup?: string): string | undefined {
+  if (existing) return existing;
+  const key = name.split(".").at(-1) || name;
+  if (["price.id", "upstream.id"].includes(name)) return "新建时系统生成唯一编号，编辑时保留原编号，无需手工填写。它用于识别本条价格或路由，不是公开模型 ID，也不会改变模型能力。";
+  if (name === "model.id") return "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称；供应商模型名在上游路由中单独配置，不要把密钥或供应商地址填在这里。";
+  if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";
+  if (name === "upstream.provider_id") return "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。";
+  if (["terms_reference", "quote_reference", "exit_terms_reference", "rules_reference", "method_reference"].includes(key)) return "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。";
+  if (["evidence", "evidence_reference", "verification_evidence", "consent_reference", "renewed_consent_reference", "evidence_id"].includes(key)) return "填写能够核实本次操作的材料、文件编号或链接，并说明核实结果。系统保留此依据供复核；填写文字本身不代表付款、授权或验证成功。";
+  if (["direct_rate", "indirect_rate"].includes(key)) return "例如 15% 填写 0.15。购买时固定订单的直接、间接比例及 KOL 让利，直接佣金比例须减去订单让利。实际有偿消费发生时分别判断两跳邀请人的有效分佣资格，之后取得资格不追溯；不合资格的份额不转给其他跳。";
+  if (["threshold_usd"].includes(key)) return "本账号订单中，实际消耗和到期未用的购买额度按对应实付 USD 经确认后累计，两类互斥，同一订单不超过有效实付金额。充值、有效期内未消费的购买额度和赠送不计入；到期确认不产生佣金。提高门槛不撤销已取得资格。";
+  if (["confirmation_seconds"].includes(key)) return "这是消费确认与佣金冻结的等待期，与请求用量待核实期限分别计算。等待期届满且相关消费无未结争议、完成确认后，消费计入资格，正确佣金解冻后才可使用或提现。已产生事件保留原确认时点，修订规则不追溯延长冻结。例如 7 天填写 604800 秒。";
+  if (["paid_atg", "gift_atg"].includes(key)) return "购买 ATG 与赠送 ATG 分开记录；套餐在足额付款并成功交付后生效。购买部分按订单实付分摊有偿消费基数，赠送不计资格或佣金。同一套餐订单内购买与各来源赠送按比例消耗、同期限；独立赠送有各自明确期限。";
+  if (["oversell_atg", "oversell_limit_atg", "oversell_limit", "oversell", "allowance"].includes(key)) return "只放宽可新增的销售承诺，不增加采购余额或授信。设为 0 时，售前须备足采购储备，按所有开放模型的最大采购成本覆盖购买、赠送及待成交承诺。调用预占仍须由真实采购余额覆盖，不足时不受理新调用；已售权益保留，由经营方补货履约。";
+  if (["provider_receipt_id", "payment_reference"].includes(key)) return "填写付款渠道或银行给出的原始唯一流水号，用来识别同一笔收款并防止重复入账。不要填写客户邮箱或自己新造的订单号。";
+  if (["valuation_evidence", "usd_per_unit"].includes(key)) return "记录本次实际执行的币种、金额及折合 USD 的依据。系统只确定 USD 应收应付；换汇在外部完成，不锁定历史汇率，也不由本字段发起换汇。";
+  if (["timezone"].includes(key)) return "使用 IANA 时区名称，例如 Asia/Shanghai、Asia/Tokyo、Europe/Moscow 或 UTC，不填写 UTC+8。Key 预算按经营时区的自然月、季、年划分；套餐的月、季、年期限则从每次成功交付起按约定时区的日历期间计算。切换界面语言不改变业务时区或周期边界。";
+  if (["expected_version", "version"].includes(key)) return "当前记录版本由系统带入，用于防止两人同时编辑相互覆盖。如果记录已更新，请重新读取后再提交，不需要自己猜版本号。";
+  if (["component", "key", "unit"].includes(key)) return "匹配调用实际用量的计费组件，例如 input_tokens。组件标识、单位和模型能力定义必须一致；价格填写每个计价基数对应的金额。";
+  if (["per", "rate"].includes(key)) return "例如每百万 token 收取 2 ATG：每多少单位填 1000000，基础单价填 2。零售价和供货价的单位为各自 ATG，供应商成本价为 USD。";
+  if (["multiplier", "model_multipliers"].includes(key)) return "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。";
+  if (["api_base_url"].includes(key)) return "填写客户实际调用的完整 API 入口，例如 https://api.example.com/v1。OEM 使用自己的已验证品牌域名；不要填写上游模型供应商地址。";
+  if (["hostname"].includes(key)) return "将该域名解析到平台指定入口，再按页面提示添加验证记录。填写不代表立即生效；必须完成域名所有权和 TLS 检查。";
+  if (["instructions"].includes(key)) return "这是实际发送给付款人的收款指引。说明收款账户、汇款备注和核实方式；测试环境请明确标注“测试，请勿转入真实资金”。";
+  if (key === "per_customer_limit") return "每位客户使用本活动的次数上限。KOL 活动还受同一 KOL 的跨活动累计次数限制，只对有效直属受邀客户生效；单笔最多一个 KOL 活动，不自动延续至后续购买或续费。";
+  if (key === "gift_budget_atg") return "限制本活动累计额外赠送的 ATG 总量，包含已用及待成交占用，不包含套餐原有额度。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限赠送。预算、次数及销售承载能力须同时满足，已成交承诺继续履约。";
+  if (["trigger_available_atg", "single_limit_usd", "period_limit_usd"].includes(key)) return "达到触发条件后按已授权报价补货，受单次金额及 UTC 自然月、季、年累计金额上限约束，同一采购账户不重复发起未完成的自动补货。线下模式只生成待付款订单；实际核实足额收款并交付后才增加采购余额，不能先授信。";
+  if (key === "kol_cross_activity_limit") return "同一客户在同一 KOL 的不同活动中累计可用次数上限，0 表示不单独限制这项累计次数。各活动自身的每人及总次数限制仍同时适用；待成交名额先占用，成交核销，失败或关闭释放。";
+  if (key === "discount_budget_usd") return "限制本活动累计 USD 降价总额，包含已用及待成交占用，与 ATG 赠送预算分别核实。待付款订单先占用，成交核销，失败或关闭释放；0 不表示无限折扣。降价后的有偿消费基数按本单实付分摊，优惠额不重复扣作成本。";
+  if (key.endsWith("_seconds")) return "按秒填写等待或有效时长：1 小时为 3600，1 天为 86400。0 是否允许以当前字段规则为准，不要把 0 默认理解为永久有效。";
+  if (name.startsWith("credentials.")) return "材料来自对应支付商户后台，必须属于本经营方的实际商户。保存后不回显敏感值；修改时留空通常表示沿用，实际启用仍会检查必需材料。";
+  if (/verified$|billable_bounds|usage_rules|capabilities/.test(key)) return "填写已经核实的供应商能力与证据。只有参数保留、用量可靠、上界和失败恢复均验证通过，才可开放调用；勾选不能代替联调。";
+  if (lookup) return "从当前有权限的业务记录中搜索并选择。看不到目标时先检查是否属于当前经营方，以及前置记录是否已经建立；不要用其他经营方的编号代替。";
+  return undefined;
+}

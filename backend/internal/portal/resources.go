@@ -409,7 +409,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		a.procurementResource(c, op, actor, p, base)
 		return
 	case "customers":
-		rows, e := a.Organization.ListCustomersInScope(ctx, nil, actor, op.ID, 51, c.Query("cursor"), c.Query("q"))
+		p["search_supported"], p["status_supported"] = true, true
+		rows, e := a.Organization.ListCustomersInScope(ctx, nil, actor, op.ID, 51, c.Query("cursor"), c.Query("q"), c.Query("status"))
 		if e != nil {
 			handleError(c, e)
 			return
@@ -447,7 +448,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_usd", "价格", "usd"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
 		p["operations"] = []operation{{Name: "publish", Label: "发布套餐版本", Method: "POST", Path: base, Fields: []field{jsonField("name、package_id（新建留空）、price_usd、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version")}}}
 	case "orders":
-		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, op.ID, c.Query("cursor"), c.Query("q"), 51)
+		p["search_supported"], p["status_supported"] = true, true
+		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, op.ID, c.Query("cursor"), c.Query("q"), 51, c.Query("status"))
 		if e != nil {
 			handleError(c, e)
 			return
@@ -480,7 +482,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["columns"] = []gin.H{col("id", "商户配置", "text"), col("driver", "协议", "text"), col("enabled", "启用", "boolean"), col("missing_fields", "待配置材料", "text"), col("fields_set", "已设置字段", "text")}
 		p["operations"] = []operation{{Name: "configure", Label: "保存真实商户配置", Method: "POST", Path: base, Fields: []field{jsonField("id(UUID)、driver(stripe/alipay/wechat/nowpayments/evm_wallet/manual)、enabled、credentials（按协议必填材料）、expected_version；不回显密钥。")}, Description: "材料齐全后启用实际驱动。协议测试证据不能代替真实商户验收。"}}
 	case "payments":
-		rows, e := a.Commerce.OperatorReceipts(ctx, nil, op.ID, c.Query("cursor"), 51)
+		p["search_supported"], p["status_supported"] = true, true
+		rows, e := a.Commerce.OperatorReceipts(ctx, nil, op.ID, c.Query("cursor"), 51, c.Query("q"), c.Query("status"))
 		if e != nil {
 			handleError(c, e)
 			return
@@ -507,7 +510,8 @@ func (a *Application) operatorResource(c *gin.Context) {
 		p["columns"] = []gin.H{col("Currency", "币种", "text"), col("USDPerUnit", "每单位 USD 估值", "decimal"), col("Source", "来源依据", "text"), col("ExpiresAt", "有效截止", "datetime")}
 		p["operations"] = []operation{{Name: "publish", Label: "发布收款估值依据", Method: "POST", Path: base, Fields: []field{f("currency", "币种", "text"), f("usd_per_unit", "每单位 USD", "decimal"), f("source", "授权依据/汇率来源", "text"), f("effective_at", "生效时间", "datetime"), f("expires_at", "失效时间", "datetime")}}}
 	case "assets", "ledger":
-		rows, e := a.Ledger.ListOperatorAccounts(ctx, nil, op.ID, "", c.Query("cursor"), c.Query("q"), 51)
+		p["search_supported"], p["status_supported"] = true, true
+		rows, e := a.Ledger.ListOperatorAccounts(ctx, nil, op.ID, "", c.Query("cursor"), c.Query("q"), 51, c.Query("status"))
 		if e != nil {
 			handleError(c, e)
 			return
@@ -593,7 +597,29 @@ func (a *Application) operatorResource(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
-		items = append(items, entity(op.ID, op.Lifecycle, row.Version, row))
+		v := values(row)
+		readiness := []gin.H{}
+		destinations := map[string]string{"incentives_policy": "commissions", "verification_mail": "mail", "reward_coverage": "coverage", "package": "plans", "payment": "payment-methods", "catalog_pricing": "pricing", "coverage": "coverage"}
+		for _, feature := range []organization.BusinessFeature{organization.Registration, organization.NewPurchase, organization.Renewal, organization.ModelUsage, organization.Activity, organization.Settlement} {
+			requirements, err := a.Check(ctx, nil, op, feature)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			checks := []gin.H{}
+			for _, requirement := range requirements {
+				resource := destinations[requirement.Code]
+				// A child cannot configure platform mail. Its own readiness
+				// remains visible without granting access to the platform.
+				if requirement.Code == "verification_mail" && op.Kind != organization.Platform {
+					resource = ""
+				}
+				checks = append(checks, gin.H{"code": requirement.Code, "description": requirement.Description, "ready": requirement.Ready, "resource": resource})
+			}
+			readiness = append(readiness, gin.H{"feature": feature, "requirements": checks})
+		}
+		v["readiness"] = readiness
+		items = append(items, entity(op.ID, op.Lifecycle, row.Version, v))
 		p["columns"] = []gin.H{col("registration", "注册", "boolean"), col("new_purchase", "新购", "boolean"), col("renewal", "续费", "boolean"), col("model_usage", "调用", "boolean"), col("activity", "营销", "boolean"), col("settlement", "结算", "boolean")}
 		p["operations"] = []operation{{Name: "set", Label: "提交开业配置检查", Method: "POST", Path: base, Fields: []field{jsonField("feature(registration/new_purchase/renewal/model_usage/activity/settlement)、enabled、expected_version、evidence_reference；只有通过真实依赖检查才会开放。")}}}
 	case "branding", "channel-themes":

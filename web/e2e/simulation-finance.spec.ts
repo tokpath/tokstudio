@@ -8,15 +8,21 @@ const persona = fixture?.personas?.finance;
 test.skip(!persona, "Requires isolated multi-persona simulation fixture");
 test.setTimeout(240_000);
 
+// Field help carries the same business name; match its form control precisely.
+function control(scope: Page | Locator, label: string, exact = false) {
+  return scope.locator("input,textarea,select").and(scope.getByLabel(label, { exact }));
+}
+
 async function login(page: Page, kind: "staff" | "customer", account: { email: string; password: string }) {
   await page.goto("/login");
   await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
-  await page.getByLabel("邮箱", { exact: true }).fill(account.email);
-  await page.getByLabel("密码", { exact: true }).fill(account.password);
+  await control(page, "邮箱", true).fill(account.email);
+  await control(page, "密码", true).fill(account.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(kind === "staff" ? /\/manage\// : /\/workspace/);
 }
 async function fields(panel: Locator, values: Record<string, string | boolean>) {
+  for (const summary of await panel.locator("details:not([open]) > summary").all()) await summary.click();
   for (const [name, value] of Object.entries(values)) {
     const field = panel.locator(`[data-command-field="${name}"]`);
     await expect(field).toBeVisible();
@@ -67,11 +73,10 @@ test("finance and customer reconcile partial receipts, independently review a re
       });
       receipts.push(receipt.id);
       await finance.goto(`${manage}/orders?record=${orderID}`);
-      await finance.getByLabel("搜索记录").fill(orderID);
-      await finance.getByRole("button", { name: "查询", exact: true }).click();
-      await finance.getByRole("button", { name: "查看并办理", exact: true }).click();
-      await expect(finance.getByRole("dialog").last().getByRole("button", { name: "核实资金并重试交付" })).toHaveCount(0);
-      await finance.getByRole("dialog").last().getByRole("button", { name: "将已核实收款分配到此单" }).click();
+      await expect(finance.getByRole("heading", { name: "订单与收款办理", exact: true })).toBeVisible();
+      await expect(finance.getByRole("dialog")).toHaveCount(0);
+      await expect(finance.getByRole("button", { name: "核实资金并重试交付" })).toHaveCount(0);
+      await finance.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
       await submit(finance, "将已核实收款分配到此单", `${base}/order-context/${orderID}/allocate`, { receipt_id: receipt.id, amount_usd: amount });
       if (amount === "60") {
         const credits = await (await customer.request.get("/api/v1/me/credits")).json();
@@ -127,19 +132,19 @@ test("finance and customer reconcile partial receipts, independently review a re
     await customer.getByRole("button", { name: "按原始收款申请发票", exact: true }).click();
     const invoice = await submit(customer, "按原始收款申请发票", "/api/v1/me/invoices", { "lines.0.receipt_id": receipts[0], "lines.0.amount_usd": "40", "details.title": "合成仿真客户", "details.tax_id": "SYNTHETIC-NOT-A-TAX-ID", "details.email": persona.customer.email });
     await finance.goto(`${manage}/invoices`);
-    await finance.getByLabel("搜索记录").fill(invoice.id);
+    await control(finance, "搜索记录").fill(invoice.id);
     await finance.getByRole("button", { name: "查询", exact: true }).click();
     await expect(finance.getByRole("button", { name: "文件与下载", exact: true })).toHaveCount(1);
     await finance.getByRole("button", { name: "文件与下载", exact: true }).click();
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cWZkAAAAASUVORK5CYII=", "base64");
-    await finance.getByLabel("票据文件（PDF/PNG/JPEG，不超过10MiB）").setInputFiles({ name: "synthetic-invoice.png", mimeType: "image/png", buffer: png });
+    await control(finance, "票据文件（PDF/PNG/JPEG，不超过10MiB）").setInputFiles({ name: "synthetic-invoice.png", mimeType: "image/png", buffer: png });
     const uploaded = finance.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `${base}/invoices/${invoice.id}/files`);
     await finance.getByRole("button", { name: "上传真实私有文件", exact: true }).click();
     expect((await uploaded).status()).toBe(200);
     await finance.getByRole("button", { name: "登记实际开票结果", exact: true }).click();
     await submit(finance, "登记实际开票结果", `${base}/invoices/${invoice.id}/register`, { state: "issued", invoice_reference: `SYNTHETIC-${randomUUID()}`, evidence: "SYNTHETIC invoice only; no legal document issued", reason: "Local role simulation" });
     await customer.reload();
-    await customer.getByLabel("搜索记录").fill(invoice.id);
+    await control(customer, "搜索记录").fill(invoice.id);
     await customer.getByRole("button", { name: "查询", exact: true }).click();
     await expect(customer.getByRole("button", { name: "文件与下载", exact: true })).toHaveCount(1);
     await customer.getByRole("button", { name: "文件与下载", exact: true }).click();
@@ -160,8 +165,13 @@ test("finance and customer reconcile partial receipts, independently review a re
     await expect(customer.getByText("已完成", { exact: true }).first()).toBeVisible();
     await expect(customer.getByRole("button", { name: "撤销未执行申请", exact: true })).toHaveCount(0);
     await finance.goto(`${manage}/refunds?record=${refund.id}`);
-    await expect(finance.getByText("已完成", { exact: true }).first()).toBeVisible();
-    for (const label of ["退款事项", "退款分项", "实际退款付款"]) await expect(finance.getByRole("button", { name: label, exact: true })).toBeVisible();
+    const refundCase = finance.locator("section.rounded-card").filter({ has: finance.getByText(refund.id, { exact: true }) });
+    await expect(refundCase.locator(":scope > div").first().getByText("已完成", { exact: true })).toBeVisible();
+    await expect(refundCase.getByText("退款责任", { exact: true })).toBeVisible();
+    await expect(refundCase.getByText("关联退款明细与付款", { exact: false })).toBeVisible();
+    await expect(refundCase.getByText(legID, { exact: true })).toBeVisible();
+    for (const payment of settled.filter(row => row.values.record_kind === "actual_refund_payment")) await expect(refundCase.getByText(payment.id, { exact: true })).toBeVisible();
+    expect(settled.filter(row => row.values.record_kind === "actual_refund_payment")).toHaveLength(1);
     await finance.screenshot({ path: info.outputPath("finance-refund-reconciled.png"), fullPage: true });
     expect(errors).toEqual([]);
     await info.attach("synthetic-finance-facts", { body: JSON.stringify({ order_id: orderID, receipt_ids: receipts, initial_customer_available_usd: String(startingBalance), credited_usd: "100", merchant_receipt_fees_usd: "3", refund_usd: "20", merchant_refund_fee_usd: "0.5", final_customer_available_usd: credits.usd_balance.available, final_customer_held_usd: credits.usd_balance.held, distinct_reviewers: 2, invoice_id: invoice.id, private_invoice_downloaded: true, other_customer_download_status: 404 }), contentType: "application/json" });

@@ -6,11 +6,16 @@ import { randomUUID } from "node:crypto";
 const fixturePath = process.env.TOKENHUB_FRONTEND_ACCEPTANCE_FILE;
 test.skip(!fixturePath, "Requires the isolated application and independent HTTP model service");
 
+// Field help carries the same business name; match its form control precisely.
+function control(scope: Page | Locator, label: string, exact = false) {
+  return scope.locator("input,textarea,select").and(scope.getByLabel(label, { exact }));
+}
+
 async function login(page: Page, account: { email: string; password: string }, kind = "staff") {
   await page.goto("/login");
   await page.getByRole("radio", { name: kind === "staff" ? "经营人员" : "客户", exact: true }).check();
-  await page.getByLabel("邮箱", { exact: true }).fill(account.email);
-  await page.getByLabel("密码", { exact: true }).fill(account.password);
+  await control(page, "邮箱", true).fill(account.email);
+  await control(page, "密码", true).fill(account.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(kind === "staff" ? /\/manage\// : /\/workspace/);
 }
@@ -32,7 +37,7 @@ async function submit(page: Page, dialog: Locator, label: string, path: string):
   return result;
 }
 async function close(dialog: Locator) { await dialog.getByRole("button", { name: "关闭办理面板", exact: true }).click(); }
-async function config(dialog: Locator, value: unknown) { await dialog.getByLabel("完整技术配置 JSON", { exact: true }).fill(JSON.stringify(value)); }
+async function config(dialog: Locator, value: unknown) { await control(dialog, "完整技术配置 JSON", true).fill(JSON.stringify(value)); }
 const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 async function evidence(info: TestInfo, name: string, facts: unknown) {
   const path = info.outputPath(`${name}.json`); writeFileSync(path, JSON.stringify(facts, null, 2));
@@ -49,7 +54,8 @@ test("technical administrator configures a real provider, verified model and rou
   const techContext = await browser.newContext(), ownerContext = await browser.newContext(), customerContext = await browser.newContext();
   const tech = await techContext.newPage(), owner = await ownerContext.newPage(), customer = await customerContext.newPage();
   const errors: string[] = []; for (const page of [tech, owner, customer]) { page.setDefaultTimeout(20_000); page.on("pageerror", error => errors.push(error.message)); }
-  const model = `simulation-${randomUUID()}`, route = randomUUID(), base = `/api/v1/operators/${p.operator_id}`;
+  const model = `simulation-${randomUUID()}`, base = `/api/v1/operators/${p.operator_id}`;
+  let route = "";
   const cap = { operation: "chat", streaming: false, input_types: ["text"], parameters: ["max_completion_tokens"], required_parameters: ["max_completion_tokens"], output_limit_parameter: "max_completion_tokens", max_input_bytes: 10000, max_output: 1000, billable_bounds: { input: "1000", output: "1000" }, usage_rules: [{ component: "input", unit: "token", path: "/prompt_tokens", zero_when_absent: false }, { component: "output", unit: "token", path: "/completion_tokens", zero_when_absent: false }], evidence_id: `independent-protocol:${p.lab_url}`, verified_at: new Date().toISOString(), parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true };
   try {
     await login(tech, p.tech);
@@ -58,15 +64,15 @@ test("technical administrator configures a real provider, verified model and rou
     await expect(tech.getByRole("link", { name: "收款方式", exact: true })).toHaveCount(0);
     await tech.goto(`/manage/${p.operator_id}/providers`);
     let dialog = await panel(tech, "创建或轮换凭据");
-    await dialog.getByLabel("新的供应商密钥", { exact: false }).fill("isolated-simulation-provider-key");
-    await dialog.getByLabel("启用", { exact: false }).check();
+    await control(dialog, "新的供应商密钥", false).fill("isolated-simulation-provider-key");
+    await control(dialog, "启用", false).check();
     const credentialResponse = await submit(tech, dialog, "创建或轮换凭据", `${base}/providers`);
     const credential = await credentialResponse.json(); await close(dialog);
     const credentials = await (await tech.request.get(`${base}/providers`)).json();
     const provider = credentials.items.find((row: any) => row.id === credential.id).values.provider_id;
     expect(JSON.stringify(credentials)).not.toContain("isolated-simulation-provider-key");
-    dialog = await panel(tech, "轮换凭据", tech.locator("section.rounded-card").filter({ hasText: credential.id }));
-    await dialog.getByLabel("新的供应商密钥", { exact: false }).fill("isolated-simulation-provider-key-rotated");
+    dialog = await panel(tech, "轮换凭据", tech.getByRole("row").filter({ hasText: credential.id }));
+    await control(dialog, "新的供应商密钥", false).fill("isolated-simulation-provider-key-rotated");
     const rotated = await submit(tech, dialog, "创建或轮换凭据", `${base}/providers`);
     expect((await rotated.json()).version).toBe(2);
     expect((await replay(tech, rotated)).status()).toBe(200);
@@ -77,26 +83,33 @@ test("technical administrator configures a real provider, verified model and rou
     dialog = await panel(tech, "维护公开模型与能力证据");
     await config(dialog, { model: { id: model, identity: model, display_name: "平台仿真聊天模型", enabled: false, capabilities: [cap] }, expected_version: 0 });
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
-    dialog = await panel(tech, "编辑模型", tech.locator("section.rounded-card").filter({ hasText: model }));
-    await expect(dialog.getByLabel("公开模型标识", { exact: false })).toHaveValue(model);
-    await dialog.getByLabel("客户看到的模型名称", { exact: false }).fill("平台仿真聊天模型（已修订）");
+    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: model }));
+    await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
+    await control(dialog, "客户看到的模型名称", false).fill("平台仿真聊天模型（已修订）");
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
     dialog = await panel(tech, "维护已验证路由");
+    const generatedRoute = dialog.locator('[data-config-path="upstream.id"] input');
+    await expect(generatedRoute).toBeDisabled();
+    route = await generatedRoute.inputValue();
+    expect(route).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     await config(dialog, { upstream: { id: route, public_model_id: model, identity: model, provider_id: provider, provider: "openai", model: "test-chat", credential_id: credential.id, enabled: true, healthy: true, priority: 10, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap] }, expected_version: 0 });
+    const routeCreated = await submit(tech, dialog, "维护已验证路由", `${base}/routes`);
+    expect(routeCreated.request().postDataJSON().configuration.upstream.id).toBe(route);
+    expect((await routeCreated.json()).id).toBe(route);
+    await close(dialog);
+    dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: model }));
+    await control(dialog, "选路优先级", false).fill("11");
     await submit(tech, dialog, "维护已验证路由", `${base}/routes`); await close(dialog);
-    dialog = await panel(tech, "编辑路由", tech.locator("section.rounded-card").filter({ hasText: model }));
-    await dialog.getByLabel("选路优先级", { exact: false }).fill("11");
-    await submit(tech, dialog, "维护已验证路由", `${base}/routes`); await close(dialog);
-    dialog = await panel(tech, "设置并发、熔断与恢复", tech.locator("section.rounded-card").filter({ hasText: model }));
-    for (const [label, value] of [["此上游最大同时在途", "5"], ["连续失败熔断阈值", "3"], ["未知用量熔断阈值", "2"], ["恢复所需成功探测次数", "2"], ["熔断冷却秒数", "60"]]) await dialog.getByLabel(label, { exact: false }).fill(value);
+    dialog = await panel(tech, "设置并发、熔断与恢复", tech.getByRole("row").filter({ hasText: model }));
+    for (const [label, value] of [["此上游最大同时在途", "5"], ["连续失败熔断阈值", "3"], ["未知用量熔断阈值", "2"], ["恢复所需成功探测次数", "2"], ["熔断冷却秒数", "60"]]) await control(dialog, label, false).fill(value);
     await submit(tech, dialog, "设置并发、熔断与恢复", `${base}/routes/${route}/limits`); await close(dialog);
     const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === route);
     expect(savedRoute.version).toBe(3); expect(savedRoute.values.priority).toBe(11); expect(savedRoute.values.credential_id).toBe(credential.id);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    dialog = await panel(tech, "编辑模型", tech.locator("section.rounded-card").filter({ hasText: model }));
+    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: model }));
     await dialog.getByRole("checkbox", { name: "开放模型", exact: false }).check();
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
@@ -108,16 +121,16 @@ test("technical administrator configures a real provider, verified model and rou
     let lead = Number(changePage.summary.find((item: any) => item.label === "通知提前秒数")?.value || 0);
     if (!lead) {
       dialog = await panel(owner, "设置提前通知规则");
-      await dialog.getByLabel("提前通知秒数", { exact: false }).fill("60");
-      await dialog.getByLabel("对客户公开的通知条款依据", { exact: false }).fill("合成仿真正常上新：至少提前60秒发送真实通知后才生效");
+      await control(dialog, "提前通知秒数", false).fill("60");
+      await control(dialog, "对客户公开的通知条款依据", false).fill("合成仿真正常上新：至少提前60秒发送真实通知后才生效");
       await submit(owner, dialog, "设置提前通知规则", `${base}/catalog-changes`); await close(dialog); lead = 60;
     }
     const effective = new Date(Math.ceil((Date.now() + (lead + 75) * 1000) / 60_000) * 60_000);
     await owner.goto(`/manage/${p.operator_id}/pricing`);
     dialog = await panel(owner, "授权或上架模型");
     await dialog.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
-    await dialog.getByLabel("计划生效时间", { exact: true }).fill(localTime(effective));
-    await dialog.getByLabel("变更及通知依据", { exact: true }).fill("合成仿真：新模型上架提前通知已有客户");
+    await control(dialog, "计划生效时间", true).fill(localTime(effective));
+    await control(dialog, "变更及通知依据", true).fill("合成仿真：新模型上架提前通知已有客户");
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
     dialog = await panel(owner, "授权或上架模型");
     await dialog.getByRole("combobox", { name: "办理事项", exact: true }).selectOption("authorization");
@@ -126,8 +139,21 @@ test("technical administrator configures a real provider, verified model and rou
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
     for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supplier", seller_id: provider, buyer_id: route }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
       dialog = await panel(owner, "发布价格版本");
-      await config(dialog, { action: scope.kind === "supplier" ? "bootstrap_price" : "price", price: { id: randomUUID(), scope, model_id: model, layer: "regular", effective_at: scope.kind === "supplier" ? new Date(Date.now() - 60_000).toISOString() : effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
-      await submit(owner, dialog, "发布价格版本", `${base}/pricing`); await close(dialog);
+      const generatedPrice = dialog.locator('[data-config-path="price.id"] input');
+      await expect(generatedPrice).toBeDisabled();
+      const priceID = await generatedPrice.inputValue();
+      expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      await config(dialog, { action: scope.kind === "supplier" ? "bootstrap_price" : "price", price: { id: priceID, scope, model_id: model, layer: "regular", effective_at: scope.kind === "supplier" ? new Date(Date.now() - 60_000).toISOString() : effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
+      const publication = await submit(owner, dialog, "发布价格版本", `${base}/pricing`);
+      expect(publication.request().postDataJSON().configuration.price.id).toBe(priceID);
+      const published = await publication.json();
+      if (scope.kind === "supplier") expect(published.id).toBe(priceID);
+      else {
+        const changes = await (await owner.request.get(`${base}/catalog-changes`)).json();
+        const scheduled = changes.items.find((item: any) => item.id === published.id);
+        expect(scheduled).toMatchObject({ values: { payload: { id: priceID, scope } } });
+      }
+      await close(dialog);
     }
 
     await owner.goto(`/manage/${p.operator_id}/business-status`);
@@ -135,16 +161,16 @@ test("technical administrator configures a real provider, verified model and rou
     if (!business.items[0].values.activity) {
       dialog = await panel(owner, "提交开业配置检查");
       await dialog.getByRole("combobox", { name: "营业项目", exact: false }).selectOption("activity");
-      await dialog.getByLabel("通过真实依赖检查后开放", { exact: false }).check();
-      await dialog.getByLabel("检查及授权依据", { exact: false }).fill("合成仿真：独立赠送的活动规则、真实覆盖及已配置邮件已核实");
+      await control(dialog, "通过真实依赖检查后开放", false).check();
+      await control(dialog, "检查及授权依据", false).fill("合成仿真：独立赠送的活动规则、真实覆盖及已配置邮件已核实");
       await submit(owner, dialog, "提交开业配置检查", `${base}/business-status`); await close(dialog);
     }
     await owner.goto(`/manage/${p.operator_id}/gifts`);
     dialog = await panel(owner, "核实并发放独立赠送");
     await dialog.getByRole("combobox", { name: "本经营方当前客户", exact: false }).selectOption(p.customer.id);
     await dialog.getByRole("combobox", { name: "明确赠送原因", exact: false }).selectOption("targeted_gift");
-    await dialog.getByLabel("本次新增赠送ATG", { exact: false }).fill("10");
-    await dialog.getByLabel("授权、事实和原事项关联依据", { exact: false }).fill("合成仿真：为真实模型协议调用发放独立赠送，不涉及现金或佣金");
+    await control(dialog, "本次新增赠送ATG", false).fill("10");
+    await control(dialog, "授权、事实和原事项关联依据", false).fill("合成仿真：为真实模型协议调用发放独立赠送，不涉及现金或佣金");
     await submit(owner, dialog, "核实并发放独立赠送", `${base}/gifts`); await close(dialog);
 
     await login(customer, p.customer, "customer");
@@ -154,8 +180,8 @@ test("technical administrator configures a real provider, verified model and rou
     }, { timeout: Math.max(120_000, effective.getTime() - Date.now() + 120_000), intervals: [5000] }).toBe(true);
     await customer.goto("/workspace/keys");
     await customer.getByRole("button", { name: "创建 Key", exact: true }).click();
-    await customer.getByLabel("名称", { exact: true }).fill("平台仿真应用");
-    await customer.getByLabel("ATG 预算上限").fill("5");
+    await control(customer, "名称", true).fill("平台仿真应用");
+    await control(customer, "ATG 预算上限").fill("5");
     const keyPending = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/keys") && response.request().method() === "POST");
     await customer.getByRole("button", { name: "创建 Key", exact: true }).last().click();
     const keyResponse = await keyPending; expect(keyResponse.status()).toBe(200); const key = await keyResponse.json();
@@ -191,20 +217,20 @@ test("brand administrator edits OEM and channel appearance, uploads a logo and k
     await page.goto(`/manage/${p.operator_id}/branding`);
     const oem = page.getByRole("row").filter({ hasText: "平台品牌仿真OEM" });
     let dialog = await panel(page, "编辑网站外观", oem);
-    await dialog.getByLabel("主色（留空继承", { exact: false }).fill("#3159A8");
-    await dialog.getByLabel("客户支持URL", { exact: false }).fill("https://support.example.test/platform-simulation");
+    await control(dialog, "主色（留空继承", false).fill("#3159A8");
+    await control(dialog, "客户支持URL", false).fill("https://support.example.test/platform-simulation");
     const saved = await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
     expect((await replay(page, saved)).status()).toBe(200); expect((await replay(page, saved, true)).status()).toBe(409);
     dialog = await panel(page, "编辑网站外观", oem);
-    await expect(dialog.getByLabel("主色（留空继承", { exact: false })).toHaveValue("#3159A8");
-    await dialog.getByLabel("背景色（留空继承）", { exact: false }).fill("#F4F6FB");
+    await expect(control(dialog, "主色（留空继承", false)).toHaveValue("#3159A8");
+    await control(dialog, "背景色（留空继承）", false).fill("#F4F6FB");
     await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
     dialog = await panel(page, "上传目标Logo", oem);
     const logoBytes = await page.screenshot({ clip: { x: 0, y: 0, width: 32, height: 32 } });
     await dialog.locator('input[type="file"]').setInputFiles({ name: "simulation-logo.png", mimeType: "image/png", buffer: logoBytes });
     const logo = await (await submit(page, dialog, "上传目标Logo", `${base}/branding/logo`)).json(); await close(dialog);
     dialog = await panel(page, "编辑网站外观", oem);
-    await dialog.getByLabel("已上传Logo地址", { exact: false }).fill(logo.asset.url);
+    await control(dialog, "已上传Logo地址", false).fill(logo.asset.url);
     await submit(page, dialog, "编辑网站外观", `${base}/branding`); await close(dialog);
     const brands = await (await page.request.get(`${base}/branding`)).json(), branded = brands.items.find((row: any) => row.id === p.oem_id);
     expect(branded.values.effective_theme.primary_color).toBe("#3159A8"); expect(branded.values.effective_theme.logo_url).toBe(logo.asset.url);
@@ -212,11 +238,11 @@ test("brand administrator edits OEM and channel appearance, uploads a logo and k
     await page.goto(`/manage/${p.operator_id}/channel-themes`);
     const channel = page.getByRole("row").filter({ hasText: "平台品牌仿真渠道" });
     dialog = await panel(page, "编辑网站外观", channel);
-    await dialog.getByLabel("主色（留空继承", { exact: false }).fill("#9B3C5C");
+    await control(dialog, "主色（留空继承", false).fill("#9B3C5C");
     await submit(page, dialog, "编辑网站外观", `${base}/channel-themes`); await close(dialog);
     dialog = await panel(page, "编辑网站外观", channel);
-    await expect(dialog.getByLabel("主色（留空继承", { exact: false })).toHaveValue("#9B3C5C");
-    await dialog.getByLabel("主色（留空继承", { exact: false }).fill("");
+    await expect(control(dialog, "主色（留空继承", false)).toHaveValue("#9B3C5C");
+    await control(dialog, "主色（留空继承", false).fill("");
     await submit(page, dialog, "编辑网站外观", `${base}/channel-themes`); await close(dialog);
     const channels = await (await page.request.get(`${base}/channel-themes`)).json(), inherited = channels.items.find((row: any) => row.id === p.channel_id);
     expect(inherited.values.primary_color).toBeFalsy();
@@ -227,7 +253,7 @@ test("brand administrator edits OEM and channel appearance, uploads a logo and k
     dialog = await panel(page, "申请域名验证");
     await dialog.getByRole("combobox", { name: "目标品牌经营方", exact: false }).selectOption(p.oem_id);
     const hostname = `simulation-${randomUUID()}.example.test`;
-    await dialog.getByLabel("品牌域名", { exact: false }).fill(hostname);
+    await control(dialog, "品牌域名", false).fill(hostname);
     const domain = await (await submit(page, dialog, "申请域名验证", `${base}/domains`)).json(); await close(dialog);
     const domainRow = page.getByRole("row").filter({ hasText: hostname });
     await expect(domainRow.getByRole("button", { name: "启用已验证域名" })).toHaveCount(0);
@@ -260,7 +286,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await page.goto(`/manage/${p.operator_id}/staff`);
     let dialog = await panel(page, "邮件邀请经营人员");
     const email = `invited-${randomUUID()}@simulation.test`, password = "invited-simulation-password";
-    await dialog.getByLabel("邮箱", { exact: false }).fill(email);
+    await control(dialog, "邮箱", false).fill(email);
     await dialog.getByRole("combobox", { name: "受邀角色", exact: false }).selectOption("readonly");
     await submit(page, dialog, "邮件邀请经营人员", `${base}/staff`); await close(dialog);
     let invitationURL = "";
@@ -274,8 +300,8 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
       return !!invitationURL;
     }, { timeout: 45_000 }).toBe(true);
     await employee.goto(new URL(invitationURL).pathname + new URL(invitationURL).search);
-    await employee.getByLabel("显示名称", { exact: false }).fill("已邀请受限员工");
-    await employee.getByLabel("经营人员密码", { exact: false }).fill(password);
+    await control(employee, "显示名称", false).fill("已邀请受限员工");
+    await control(employee, "经营人员密码", false).fill(password);
     await employee.getByRole("button", { name: "验证邮箱并接受邀请", exact: true }).click();
     await expect(employee.getByText("邀请已接受。", { exact: false })).toBeVisible();
     await login(employee, { email, password });
@@ -304,26 +330,26 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await page.goto(`/manage/${p.operator_id}/risk`);
     dialog = await panel(page, "新增预警规则");
     const rule = `simulation-rule-${randomUUID()}`;
-    await dialog.getByLabel("规则编号", { exact: false }).fill(rule);
+    await control(dialog, "规则编号", false).fill(rule);
     await dialog.getByRole("combobox", { name: "真实指标", exact: false }).selectOption("pending_usage");
-    await dialog.getByLabel("预警阈值", { exact: false }).fill("1"); await dialog.getByLabel("严重阈值", { exact: false }).fill("3");
+    await control(dialog, "预警阈值", false).fill("1"); await control(dialog, "严重阈值", false).fill("3");
     await dialog.getByRole("combobox", { name: "触发方向", exact: false }).selectOption("above");
-    await dialog.getByLabel("通知收件人ID", { exact: false }).fill(p.customer.id);
+    await control(dialog, "通知收件人ID", false).fill(p.customer.id);
     await submit(page, dialog, "新增预警规则", `${base}/risk`); await close(dialog);
     dialog = await panel(page, "修订此预警规则", page.getByRole("row").filter({ hasText: rule }));
-    await expect(dialog.getByLabel("预警阈值", { exact: false })).toHaveValue("1");
-    await dialog.getByLabel("预警阈值", { exact: false }).fill("2");
+    await expect(control(dialog, "预警阈值", false)).toHaveValue("1");
+    await control(dialog, "预警阈值", false).fill("2");
     const revised = await submit(page, dialog, "修订此预警规则", `${base}/risk`); await close(dialog);
     expect((await replay(page, revised)).status()).toBe(200); expect((await replay(page, revised, true)).status()).toBe(409);
 
     await page.goto(`/manage/${p.operator_id}/notifications`);
     dialog = await panel(page, "发送业务通知");
     const title = `仿真业务通知-${randomUUID()}`;
-    await dialog.getByLabel("本经营范围收件人编号", { exact: false }).fill(p.customer.id);
+    await control(dialog, "本经营范围收件人编号", false).fill(p.customer.id);
     await dialog.getByRole("combobox", { name: "通知类别", exact: false }).selectOption("mandatory");
     await dialog.getByRole("combobox", { name: "级别", exact: false }).selectOption("info");
-    await dialog.getByLabel("标题", { exact: false }).fill(title); await dialog.getByLabel("通知正文", { exact: false }).fill("平台模型和品牌配置实际仿真完成，本通知关联真实业务记录。");
-    await dialog.getByLabel("业务关联依据", { exact: false }).fill(rule);
+    await control(dialog, "标题", false).fill(title); await control(dialog, "通知正文", false).fill("平台模型和品牌配置实际仿真完成，本通知关联真实业务记录。");
+    await control(dialog, "业务关联依据", false).fill(rule);
     await submit(page, dialog, "发送业务通知", `${base}/notifications`); await close(dialog);
     await login(customer, p.customer, "customer"); await customer.goto("/workspace/notifications");
     await expect(customer.getByText(title, { exact: true })).toBeVisible();
@@ -340,14 +366,17 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
       await page.goto(`/manage/${p.operator_id}/exports`);
       dialog = await panel(page, "创建私有导出");
       await dialog.getByRole("combobox", { name: "导出业务", exact: false }).selectOption(kind);
-      await dialog.getByLabel("起始时间", { exact: false }).fill(localTime(new Date(Date.now() - 86400_000)));
-      await dialog.getByLabel("截至时间", { exact: false }).fill(localTime(new Date(Date.now() + 60_000)));
+      await control(dialog, "起始时间", false).fill(localTime(new Date(Date.now() - 86400_000)));
+      await control(dialog, "截至时间", false).fill(localTime(new Date(Date.now() + 60_000)));
       const exportResult = await (await submit(page, dialog, "创建私有导出", `${base}/exports`)).json(); await close(dialog); exportIDs.push(exportResult.id);
       await expect.poll(async () => { const resource = await (await page.request.get(`${base}/exports`)).json(); return resource.items.find((row: any) => row.id === exportResult.id)?.status; }, { timeout: 45_000 }).toBe("ready");
       await page.reload();
       const exports = await (await page.request.get(`${base}/exports`)).json(), exportRow = exports.items.find((item: any) => item.id === exportResult.id);
       const downloadLink = page.locator(`a[href="${base}/exports/${exportResult.id}/download"]`);
-      await expect(downloadLink.locator("xpath=ancestor::tr").locator("td").nth(2)).toHaveText(String(exportRow.values.row_count));
+      const countColumn = await page.getByRole("columnheader").allTextContents();
+      const countIndex = countColumn.findIndex(label => label.trim() === "记录数");
+      expect(countIndex).toBeGreaterThanOrEqual(0);
+      await expect(downloadLink.locator("xpath=ancestor::tr").locator("td").nth(countIndex)).toHaveText(String(exportRow.values.row_count));
       const downloadPending = page.waitForEvent("download"); await downloadLink.click();
       const download = await downloadPending, exportFile = testInfo.outputPath(`platform-${kind}-export.jsonl`); await download.saveAs(exportFile);
       const exported = readFileSync(exportFile, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line));

@@ -1,0 +1,202 @@
+{
+  "Base URL、应用 Key 和调用代码，在这里完成。": {
+    "en": "Find your Base URL, app Key and request code here.",
+    "ja": "Base URL、アプリの Key、呼び出しコードをここで設定できます。",
+    "ru": "Base URL, ключ приложения и код запроса — в одном месте."
+  },
+  "API Base URL": {
+    "en": "API Base URL",
+    "ja": "API Base URL",
+    "ru": "Базовый URL API"
+  },
+  "使用当前品牌公布的 API 地址。账号、套餐和 Key 仍归注册时确认的经营方。": {
+    "en": "Use the API address published by this brand. Your account, plans and Keys belong to the operator confirmed at registration.",
+    "ja": "現在のブランドが公開する API アドレスを使用します。アカウント、プラン、Key は登録時に確認した運営事業者に属します。",
+    "ru": "Используйте адрес API текущего бренда. Аккаунт, пакеты и ключи принадлежат оператору, подтверждённому при регистрации."
+  },
+  "将密钥保存为环境变量": {
+    "en": "Save the Key in the environment variable",
+    "ja": "Key を環境変数に保存",
+    "ru": "Сохраните ключ в переменной окружения"
+  },
+  "为此模型创建 Key": {
+    "en": "Create a Key for this model",
+    "ja": "このモデル用の Key を作成",
+    "ru": "Создать ключ для этой модели"
+  },
+  "选择要接入的模型": {
+    "en": "Select a model to integrate",
+    "ja": "接続するモデルを選択",
+    "ru": "Выберите модель для подключения"
+  },
+  "所选模型已不在当前目录，请明确选择其他模型；系统不会自动替换。": {
+    "en": "The selected model is no longer in this catalog. Choose another model explicitly; it will not be replaced automatically.",
+    "ja": "選択したモデルは現在のカタログにありません。他のモデルを明示的に選択してください。自動では置き換えられません。",
+    "ru": "Выбранной модели больше нет в каталоге. Выберите другую модель самостоятельно: автоматической замены не будет."
+  },
+  "运行示例会按实际用量扣减 ATG。": {
+    "en": "Running the example charges ATG for actual usage.",
+    "ja": "サンプルの実行時は実際の使用量に応じて ATG が差し引かれます。",
+    "ru": "Запуск примера расходует ATG по фактическому использованию."
+  },
+  "请求重试与计费": {
+    "en": "Retries and billing",
+    "ja": "再試行と課金",
+    "ru": "Повтор запросов и оплата"
+  },
+  "按可用状态筛选": {
+    "en": "Filter by availability",
+    "ja": "利用状態で絞り込み",
+    "ru": "Фильтр по доступности"
+  },
+  "当前可调用": {
+    "en": "Available now",
+    "ja": "現在呼び出し可能",
+    "ru": "Доступны сейчас"
+  },
+  "显示 {shown} / {total} 个模型": {
+    "en": "Showing {shown} of {total} models",
+    "ja": "{total} 件中 {shown} 件のモデルを表示",
+    "ru": "Показано моделей: {shown} из {total}"
+  },
+  "清除筛选": {
+    "en": "Clear filters",
+    "ja": "絞り込みを解除",
+    "ru": "Сбросить фильтры"
+  },
+  "计量价格 · ATG": {
+    "en": "Usage prices · ATG",
+    "ja": "従量料金 · ATG",
+    "ru": "Цены за использование · ATG"
+  },
+  "已选择 · 查看接入": {
+    "en": "Selected · view integration",
+    "ja": "選択済み · 接続方法を表示",
+    "ru": "Выбрано · подключение"
+  },
+  "接入此模型": {
+    "en": "Integrate this model",
+    "ja": "このモデルを接続",
+    "ru": "Подключить модель"
+  },
+  "先比较能力和价格，再为所选模型创建 Key、复制代码。": {
+    "en": "Compare capabilities and prices, then create a Key and copy code for your selected model.",
+    "ja": "機能と料金を比較してから、選択したモデル用の Key を作成し、コードをコピーします。",
+    "ru": "Сравните возможности и цены, затем создайте ключ и скопируйте код для выбранной модели."
+  },
+  "活动已发布，可以分享给直属受邀客户。": {
+    "en": "Campaign published. Share it with customers you invited directly.",
+    "ja": "キャンペーンを公開しました。直接招待した顧客に共有できます。",
+    "ru": "Кампания опубликована. Поделитесь ею с лично приглашёнными клиентами."
+  },
+  "单笔最多使用一个 KOL 活动，不能跨 KOL 领取；后续购买与续费不会自动继承。": {
+    "en": "Each order can use at most one KOL campaign from its direct inviter. It does not carry over to later purchases or renewals.",
+    "ja": "1 注文につき直属紹介者の KOL キャンペーンを 1 件まで利用できます。他の KOL からは受け取れず、次回購入や更新には自動継承されません。",
+    "ru": "В заказе доступна одна кампания KOL только от прямого пригласившего. Она не переносится на следующие покупки и продления."
+  },
+  "活动效果预览": {
+    "en": "Campaign preview",
+    "ja": "キャンペーンのプレビュー",
+    "ru": "Предпросмотр кампании"
+  },
+  "套餐基础总额度": {
+    "en": "Base plan credits",
+    "ja": "プランの基本合計枠",
+    "ru": "Базовый объём пакета"
+  },
+  "本活动每单加赠": {
+    "en": "Extra credits per order",
+    "ja": "注文ごとの追加特典",
+    "ru": "Бонус по кампании на заказ"
+  },
+  "含本活动的服务额度": {
+    "en": "Credits including this campaign",
+    "ja": "このキャンペーンを含むサービス枠",
+    "ru": "Объём с бонусом кампании"
+  },
+  "本人剩余直接佣金比例": {
+    "en": "Your remaining direct commission rate",
+    "ja": "自身に残る直接コミッション率",
+    "ru": "Ваша оставшаяся ставка прямой комиссии"
+  },
+  "选择套餐并填写有效的让利百分点，立即查看加赠与剩余佣金。": {
+    "en": "Select a plan and enter valid concession points to preview the bonus and remaining commission.",
+    "ja": "プランを選び、有効な還元パーセンテージポイントを入力すると、追加特典と残るコミッションを確認できます。",
+    "ru": "Выберите пакет и укажите допустимую уступку в процентных пунктах, чтобы увидеть бонус и оставшуюся комиссию."
+  },
+  "仅为活动预览，最终权益、次数、预算与组合资格由购买报价核实。": {
+    "en": "This is a preview. The purchase quote verifies final credits, usage limits, budgets and campaign compatibility.",
+    "ja": "これはプレビューです。最終的な特典、回数、予算、併用資格は購入見積もりで確認されます。",
+    "ru": "Это предварительный расчёт. Итоговые права, лимиты, бюджет и совместимость акций проверяются в предложении при покупке."
+  },
+  "活动分享链接": {
+    "en": "Campaign share link",
+    "ja": "キャンペーン共有リンク",
+    "ru": "Ссылка на кампанию"
+  },
+  "链接保留你的原邀请入口。已有客户的经营方和邀请人不会改变；活动只向有效直属受邀客户开放。": {
+    "en": "The link keeps your original invitation. Existing customers keep their operator and inviter; the campaign is available only to eligible direct referrals.",
+    "ja": "元の招待情報を保持したリンクです。既存顧客の運営事業者と紹介者は変更されず、対象の直属招待顧客のみ利用できます。",
+    "ru": "Ссылка сохраняет ваше исходное приглашение. У существующих клиентов оператор и пригласивший не меняются; кампания доступна только подходящим прямым рефералам."
+  },
+  "复制活动链接": {
+    "en": "Copy campaign link",
+    "ja": "キャンペーンリンクをコピー",
+    "ru": "Копировать ссылку на кампанию"
+  },
+  "分享邀请链接，查看邀请效果与 KOL 资格进度。": {
+    "en": "Share your invitation and track referrals and KOL qualification.",
+    "ja": "招待リンクを共有し、招待の成果と KOL 資格の進捗を確認できます。",
+    "ru": "Делитесь приглашением и отслеживайте рефералов и прогресс получения статуса KOL."
+  },
+  "使用邀请码": {
+    "en": "Use an invitation code",
+    "ja": "招待コードを使用",
+    "ru": "Использовать код приглашения"
+  },
+  "距离当前门槛还差": {
+    "en": "Remaining to the current threshold",
+    "ja": "現在の基準まであと",
+    "ru": "До текущего порога осталось"
+  },
+  "KOL 资格进度": {
+    "en": "KOL qualification progress",
+    "ja": "KOL 資格の進捗",
+    "ru": "Прогресс получения статуса KOL"
+  },
+  "尚不计入资格进度": {
+    "en": "Not yet counted toward qualification",
+    "ja": "まだ資格の進捗に含まれません",
+    "ru": "Пока не учитывается для статуса"
+  },
+  "分享链接中的套餐": {
+    "en": "Plan from the shared link",
+    "ja": "共有リンクのプラン",
+    "ru": "Пакет из ссылки"
+  },
+  "继续，核实活动资格": {
+    "en": "Continue to verify eligibility",
+    "ja": "続けてキャンペーン資格を確認",
+    "ru": "Продолжить и проверить право на акцию"
+  },
+  "已有账号，登录核实活动": {
+    "en": "Already have an account? Sign in to check",
+    "ja": "アカウントをお持ちの方はログインして確認",
+    "ru": "Уже есть аккаунт? Войдите для проверки"
+  },
+  "探索模型与价格": {
+    "en": "Explore models and prices",
+    "ja": "モデルと料金を見る",
+    "ru": "Посмотреть модели и цены"
+  },
+  "你正在查看分享的套餐活动。登录后会核实直属邀请关系、期限与剩余名额。": {
+    "en": "You are viewing a shared plan campaign. Sign in to verify your direct inviter, campaign dates and remaining availability.",
+    "ja": "共有されたプランキャンペーンを表示しています。ログイン後、直属の招待関係、期間、残り枠を確認します。",
+    "ru": "Вы просматриваете кампанию из ссылки. После входа будут проверены прямой пригласивший, сроки и оставшиеся места."
+  },
+  "已有账号的经营方和邀请人不会因打开链接而改变。": {
+    "en": "Opening this link does not change an existing account’s operator or inviter.",
+    "ja": "リンクを開いても、既存アカウントの運営事業者と紹介者は変わりません。",
+    "ru": "Открытие ссылки не меняет оператора и пригласившего существующего аккаунта."
+  }
+}

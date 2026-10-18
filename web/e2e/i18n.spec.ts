@@ -72,6 +72,19 @@ test("customer Key edits retain authored input, precise money, and the existing 
     await expect(page.getByLabel(text(locale, "名称"), { exact: true })).toHaveValue("查看详情");
     await expect(page.getByLabel(text(locale, "ATG 预算上限"), { exact: true })).toHaveValue("7.000000000000000001");
     await expect(page.getByRole("heading", { name: existingKey.name, exact: true })).toBeVisible();
+    const editor = page.getByRole("region", { name: text(locale, "编辑 Key 配置"), exact: true });
+    const helpTitle = text(locale, "Key 预算如何生效");
+    const trigger = editor.getByRole("button", { name: translate(locale, "了解{title}", { title: helpTitle }), exact: true });
+    await trigger.click();
+    const help = page.getByRole("dialog", { name: helpTitle, exact: true });
+    await expect(help).toBeVisible();
+    await expect(help.getByText(text(locale, "例如：账号有 100 ATG，给某个 Key 设置每月 20 ATG 预算，该 Key 当月最多使用 20 ATG；创建时不会划走这 20 ATG，其他 Key 仍共享账号可用额度。"), { exact: true })).toBeVisible();
+    expect(writes).toHaveLength(0);
+    await page.keyboard.press("Escape");
+    await expect(help).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.getByLabel(text(locale, "名称"), { exact: true })).toHaveValue("查看详情");
+    await expect(page.getByLabel(text(locale, "ATG 预算上限"), { exact: true })).toHaveValue("7.000000000000000001");
   }
   await page.getByTestId("language-selector").selectOption("ru");
   await page.getByRole("button", { name: text("ru", "保存配置"), exact: true }).click();
@@ -91,7 +104,7 @@ test("an unresolved financial modal switches language and retries the exact JSON
   });
   await page.goto("/workspace/withdrawals"); await page.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("申请金额 USD", { exact: false }).fill("0.000000000000000001"); await dialog.getByLabel("银行核实依据", { exact: false }).fill("查看详情");
+  await dialog.getByLabel("申请金额 USD", { exact: false }).fill("0.000000000000000001"); await dialog.getByRole("textbox", { name: /^银行核实依据/ }).fill("查看详情");
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button", { name: "确认费用并提交", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();
   await dialog.getByTestId("language-selector").selectOption("ru");
@@ -99,7 +112,7 @@ test("an unresolved financial modal switches language and retries the exact JSON
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toHaveValue("0.000000000000000001");
   await expect(dialog.getByLabel(text("ru", "申请金额 USD"), { exact: false })).toBeDisabled();
-  await expect(dialog.getByLabel(text("ru", "银行核实依据"), { exact: false })).toHaveValue("查看详情");
+  await expect(dialog.getByRole("textbox", { name: new RegExp("^" + text("ru", "银行核实依据")) })).toHaveValue("查看详情");
   await expect(dialog.getByRole("button", { name: text("ru", "关闭办理面板"), exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: text("ru", "重试本次操作"), exact: true }).click();
   await expect(dialog.getByRole("button", { name: text("ru", "本次操作已完成，关闭后查看最新记录"), exact: true })).toBeVisible();
@@ -112,14 +125,15 @@ test("operator server metadata translates while authored Chinese names and evide
   await page.route(`**/api/v1/operators/${operator.id}/invoices**`, route => route.fulfill({ json: { ...resource(), items: [{ id: "invoice-i18n", status: "completed", values: { name: "核实收款", record_kind: "case", evidence: "查看详情", amount_usd: "1.000000000000000001" } }], columns: [{ key: "name", label: "显示名称", kind: "text" }, { key: "record_kind", label: "记录类型", kind: "text" }, { key: "evidence", label: "银行核实凭证", kind: "text" }, { key: "amount_usd", label: "申请金额 USD", kind: "usd" }] } }));
   await page.goto(`/manage/${operator.id}/invoices`); await page.getByTestId("language-selector").selectOption("en");
   await expect(page.getByRole("heading", { name: "Items awaiting review", exact: true })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Record type", exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Refund case", exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "核实收款", exact: true })).toBeVisible(); await expect(page.getByRole("cell", { name: "查看详情", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: text("en", "名称与编号"), exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "核实收款 invoice-i18n", exact: true })).toBeVisible(); await expect(page.getByRole("cell", { name: "查看详情", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "View details", exact: true }).click(); const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "核实收款", exact: true })).toBeVisible();
+  await expect(dialog.getByText("Record type", { exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(dialog.getByText("Refund case", { exact: true }).filter({ visible: true })).toBeVisible();
   await dialog.getByTestId("language-selector").selectOption("ru");
   await expect(dialog.getByRole("heading", { name: "核实收款", exact: true })).toBeVisible();
-  await expect(dialog.getByText(text("ru", "银行核实凭证"), { exact: true })).toBeVisible();
+  await expect(dialog.getByText(text("ru", "银行核实凭证"), { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(dialog.getByText("查看详情", { exact: true }).first()).toBeVisible();
 });
 

@@ -100,11 +100,19 @@ func (s *Service) CurrentWithdrawalPolicy(ctx context.Context, tx *gorm.DB, oper
 	return WithdrawalPolicy(r), nil
 }
 
-func (s *Service) WithdrawalsForOperator(ctx context.Context, tx *gorm.DB, actor, operator, cursor string, limit int) (out []Withdrawal, next string, err error) {
+func (s *Service) WithdrawalsForOperator(ctx context.Context, tx *gorm.DB, actor, operator, cursor string, limit int, filters ...string) (out []Withdrawal, next string, err error) {
 	if err = s.org.RequirePermission(ctx, tx, actor, operator, "withdrawals.manage"); err != nil {
 		return
 	}
 	q := s.dbFor(ctx, tx).Model(&withdrawalRow{}).Where("operator_id=?", operator)
+	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
+		q = q.Where("(id::text ILIKE ? OR customer_id::text ILIKE ? OR recipient_reference ILIKE ?)", term, term, term)
+	}
+	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" {
+		q = q.Where("status=?", strings.TrimSpace(filters[1]))
+	}
+
 	if cursor != "" {
 		at, id, e := readIncentiveCursor(cursor)
 		if e != nil {

@@ -100,6 +100,15 @@ func TestReceiptValuationUsesActualTimeAndPreservesPendingOriginalMoney(t *testi
 			if e != nil || len(list) != 1 || list[0].FactID != fact.ID {
 				t.Fatal(list, e)
 			}
+
+			filtered, _, e := s.PendingReceiptValuations(ctx, "finance", m.OperatorID, "", 10, "CNY", "awaiting_valuation")
+			if e != nil || len(filtered) != 1 || filtered[0].FactID != fact.ID {
+				t.Fatal("pending original currency search failed", filtered, e)
+			}
+			filtered, _, e = s.PendingReceiptValuations(ctx, "finance", m.OperatorID, "", 10, "CNY", "completed")
+			if e != nil || len(filtered) != 0 {
+				t.Fatal("pending valuation status filter failed", filtered, e)
+			}
 			if _, _, e = s.PendingReceiptValuations(ctx, "customer", m.OperatorID, "", 10); !errors.Is(e, ErrForbidden) {
 				t.Fatalf("customer enumerated private pending facts: %v", e)
 			}

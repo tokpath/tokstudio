@@ -183,7 +183,7 @@ type queuedMessage struct {
 }
 
 func (queuedMessage) TableName() string { return "portal_messages" }
-func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Context, ch organization.VerificationChallenge, kind, name string) error {
+func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Context, ch organization.VerificationChallenge, kind, name string, continuations ...string) error {
 	proof, e := pc.RandomToken("verify_")
 	if e != nil {
 		return e
@@ -210,6 +210,11 @@ func (a *Application) queueChallenge(ctx context.Context, tx *gorm.DB, c *gin.Co
 		scheme = "http"
 	}
 	link := scheme + "://" + a.requestHost(c) + path + "?token=" + url.QueryEscape(token)
+	if kind == "registration" && len(continuations) > 0 {
+		if next := safeCustomerNext(continuations[0]); next != "" {
+			link += "&next=" + url.QueryEscape(next)
+		}
+	}
 	locale := httpx.RequestLocale(c.Request)
 	title = httpx.LocalizedText(locale, title)
 	message := mail.Message{ID: uuid.NewString(), To: ch.Intent.Email, Brand: brand(c).Name, Subject: title, Text: title + ":\n" + link + httpx.LocalizedText(locale, "\n链接过期后请重新发起。若非本人操作，请忽略。")}
@@ -232,10 +237,12 @@ func (a *Application) register(c *gin.Context) {
 		Password    string `json:"password"`
 		DisplayName string `json:"display_name"`
 		InviteCode  string `json:"invite_code"`
+		Next        string `json:"next"`
 	}
 	if !body(c, &in) {
 		return
 	}
+	in.Next = safeCustomerNext(in.Next)
 	if !a.Mail.Available() {
 		fail(c, 409, "pending_configuration", "当前经营方尚未配置验证邮件，请联系经营方", false)
 		return
@@ -252,7 +259,7 @@ func (a *Application) register(c *gin.Context) {
 		if _, e = a.Incentives.PrepareRegistrationPromise(c.Request.Context(), tx, ch.Intent); e != nil {
 			return nil, e
 		}
-		if e = a.queueChallenge(c.Request.Context(), tx, c, ch, "registration", in.DisplayName); e != nil {
+		if e = a.queueChallenge(c.Request.Context(), tx, c, ch, "registration", in.DisplayName, in.Next); e != nil {
 			return nil, e
 		}
 		op, e := a.Organization.GetOperator(c.Request.Context(), tx, ch.Intent.OperatorID)

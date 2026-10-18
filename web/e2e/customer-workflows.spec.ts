@@ -58,7 +58,7 @@ for (const navigationMode of ["native", "fallback"] as const) test(`unknown chec
   await expect(page.getByText("本次操作正在处理或结果待核实，请先完成原操作核实，再离开此页。")).toBeVisible();
   await expect(page).toHaveURL(/\/workspace\/plans\?plan=plan-one$/);
   expect(logoutAttempts).toBe(0);
-  await page.getByRole("link", { name: "API Key", exact: true }).click();
+  await page.getByRole("navigation", { name: "工作台", exact: true }).getByRole("link", { name: "API Key", exact: true }).click();
   await expect(page).toHaveURL(/\/workspace\/plans\?plan=plan-one$/);
   await page.evaluate(() => window.history.back());
   await expect(page.locator("html")).toHaveAttribute("data-customer-back-attempts", "1");

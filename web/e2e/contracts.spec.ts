@@ -51,7 +51,7 @@ test("registration uses the final explicit invitation and blocks invalid fallbac
 test("customer amounts stay precise and a created key secret disappears when closed", async ({ page }) => {
   await api(page); let created = false;
   await page.route("**/api/v1/me/keys", async route => { if (route.request().method() === "POST") { const body = route.request().postDataJSON(); expect(body.budget.limit_atg).toBe("5.000000000000000001"); created = true; await route.fulfill({ json: { key, secret: "th_secret_shown_once" } }); } else await route.fulfill({ json: { items: created ? [key] : [] } }); });
-  await page.goto("/workspace"); await expect(page.getByLabel("12.000000000000000001 ATG", { exact: true })).toBeVisible(); await page.getByRole("link", { name: "API Key", exact: true }).click(); await page.getByRole("button", { name: "创建 Key", exact: true }).click(); await page.getByLabel("名称", { exact: true }).fill("应用 Key"); await page.getByLabel("ATG 预算上限").fill("5.000000000000000001"); await page.getByRole("button", { name: "创建 Key", exact: true }).last().click(); await expect(page.getByText("th_secret_shown_once")).toBeVisible(); await page.getByRole("button", { name: "关闭", exact: true }).click(); await expect(page.getByText("th_secret_shown_once")).toHaveCount(0); await expect(page.getByText("th_lab_prefix…")).toBeVisible();
+  await page.goto("/workspace"); await expect(page.getByLabel("12.000000000000000001 ATG", { exact: true })).toBeVisible(); await page.getByRole("navigation", { name: "工作台", exact: true }).getByRole("link", { name: "API Key", exact: true }).click(); await page.getByRole("button", { name: "创建 Key", exact: true }).click(); await page.getByLabel("名称", { exact: true }).fill("应用 Key"); await page.getByLabel("ATG 预算上限", { exact: true }).fill("5.000000000000000001"); await page.getByRole("button", { name: "创建 Key", exact: true }).last().click(); await expect(page.getByText("th_secret_shown_once")).toBeVisible(); await page.getByRole("button", { name: "关闭", exact: true }).click(); await expect(page.getByText("th_secret_shown_once")).toHaveCount(0); await expect(page.getByText("th_lab_prefix…")).toBeVisible();
 });
 
 test("unknown financial action freezes input and retries its exact key and body", async ({ page }) => {
@@ -66,7 +66,19 @@ test("staff sees only granted workspace resources; customer cannot open manageme
 });
 
 test("mobile workspace exposes all customer flows without horizontal overflow", async ({ page }) => {
-  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/workspace"); await page.getByRole("button", { name: "打开工作台导航", exact: true }).click(); const nav = page.getByRole("navigation", { name: "移动工作台" }); await expect(nav.getByRole("link")).toHaveCount(7); await nav.getByRole("link", { name: "邀请与收益", exact: true }).click(); await expect(page.getByRole("navigation", { name: "邀请与收益内导航" }).getByRole("link", { name: "佣金明细", exact: true })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await page.screenshot({ path: "test-results/customer-mobile.png", fullPage: true });
+  await api(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/workspace");
+  await page.getByRole("button", { name: "打开工作台导航", exact: true }).click();
+  const nav = page.getByRole("navigation", { name: "移动工作台", exact: true });
+  await expect(nav.getByRole("link")).toHaveCount(6);
+  for (const title of ["概览", "模型与接入", "API Key", "用量与账单", "套餐与资金", "邀请与收益"]) await expect(nav.getByRole("link", { name: title, exact: true })).toBeVisible();
+  const tools = page.getByRole("navigation", { name: "移动工作台工具", exact: true });
+  await expect(tools.getByRole("link", { name: "账号与安全", exact: true })).toBeVisible();
+  await expect(tools.getByRole("link", { name: "通知与订阅", exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "邀请与收益", exact: true }).click();
+  await page.getByRole("button", { name: "打开工作台导航", exact: true }).click();
+  await expect(nav.getByRole("navigation", { name: "邀请与收益内导航", exact: true }).getByRole("link", { name: "佣金明细", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/customer-mobile.png", fullPage: true });
 });
 
 test("takeover requires complete snapshot review and separates actual cash settlement",async({page})=>{
@@ -76,5 +88,5 @@ test("takeover requires complete snapshot review and separates actual cash settl
  const submitted:unknown[]=[];
  await page.route("**/api/v1/operators/channel-1/takeovers**",async route=>{if(route.request().method()==="GET")return route.fulfill({json:{items:[item],channels:[{id:operator.id,name:operator.name,legal_name:operator.legal_name,lifecycle:"active"}]}});submitted.push(route.request().postDataJSON());item.state="completed";return route.fulfill({json:item})});
  await page.goto("/manage/channel-1/takeovers");await expect(page.getByRole("heading",{name:"渠道接管",exact:true})).toBeVisible();await page.getByRole("button",{name:"复核并执行接管"}).click();await expect(page.getByText("customer-one",{exact:false}).first()).toBeVisible();await expect(page.getByRole("dialog").getByText("original accepted exit",{exact:true})).toBeVisible();await expect(page.getByRole("textbox")).toHaveCount(0);await expect(page.getByRole("button",{name:"确认提交"})).toBeEnabled();await page.getByRole("checkbox").check();await page.getByRole("button",{name:"确认提交"}).click();expect(submitted).toEqual([{expected_snapshot:"snapshot-review-fingerprint"}]);
- await page.goto("/manage/channel-1/takeover-settlements");await expect(page.getByRole("heading",{name:"接管资金结清",exact:true})).toBeVisible();await page.getByRole("button",{name:"登记实际收付款"}).click();await expect(page.getByLabel("唯一银行流水 / 支付凭证")).toBeVisible();await expect(page.getByLabel("本次实际结清 USD")).toBeVisible();await page.screenshot({path:"test-results/takeover-cash-settlement.png",fullPage:true});
+ await page.goto("/manage/channel-1/takeover-settlements");await expect(page.getByRole("heading",{name:"接管资金结清",exact:true})).toBeVisible();await page.getByRole("button",{name:"登记实际收付款"}).click();await expect(page.getByRole("textbox", { name: "唯一银行流水 / 支付凭证", exact: true })).toBeVisible();await expect(page.getByRole("textbox", { name: "本次实际结清 USD", exact: true })).toBeVisible();await page.screenshot({path:"test-results/takeover-cash-settlement.png",fullPage:true});
 });

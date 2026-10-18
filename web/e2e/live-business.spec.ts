@@ -27,8 +27,9 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await customer.goto("/workspace/plans");
     await customer.getByRole("button", { name: "选择此套餐", exact: true }).first().click();
     await customer.getByRole("button", { name: "继续，核对成交条款" }).click();
-    await customer.getByRole("combobox", { name: "支付方式" }).selectOption(fixture.manual_method_id);
+    await customer.getByText("精确调整抵扣金额", { exact: true }).click();
     await customer.getByLabel("本次使用 USD 支付余额", { exact: true }).fill("0");
+    await customer.getByRole("combobox", { name: /^支付方式/ }).selectOption(fixture.manual_method_id);
     await customer.getByRole("checkbox", { name: /^我确认本次价格/ }).check();
     const orderResponse = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/orders") && response.request().method() === "POST");
     await customer.getByRole("button", { name: "确认订单，继续支付" }).click();
@@ -47,12 +48,12 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     for (const details of await receiptPanel.locator("details:not([open]) > summary").all()) await details.click();
     const reference = "synthetic-browser-" + randomUUID();
     for (const [label, value] of [["外部唯一收款流水", reference], ["实际入账总额USD", "100"], ["实际入账币种", "USD"], ["原币种实收金额", "100"], ["实际收款账号证明", "isolated synthetic recipient"], ["实际付款人账号证明", "isolated synthetic payer"], ["本次USD估值依据", "synthetic USD, no FX"], ["真实银行核实凭证", "SYNTHETIC ACCEPTANCE FACT ONLY: " + reference]]) {
-      await receiptPanel.getByLabel(label, { exact: false }).fill(value);
+      await receiptPanel.getByLabel(label, { exact: false }).and(receiptPanel.locator("input,textarea,select")).fill(value);
     }
     await receiptPanel.getByRole("combobox", { name: "手续费证据" }).selectOption("pending");
     const now = new Date(), local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0,16);
-    await receiptPanel.getByLabel("真实付款时刻", { exact: false }).fill(local);
-    await receiptPanel.getByLabel("核实时刻", { exact: false }).fill(local);
+    await receiptPanel.getByLabel("真实付款时刻", { exact: false }).and(receiptPanel.locator("input")).fill(local);
+    await receiptPanel.getByLabel("核实时刻", { exact: false }).and(receiptPanel.locator("input")).fill(local);
     const receiptResponse = staff.waitForResponse(response => response.url().endsWith(`/api/v1/operators/${fixture.operator_id}/payments`) && response.request().method() === "POST");
     if (await receiptPanel.getByRole("checkbox").count()) await receiptPanel.getByRole("checkbox").check();
     await receiptPanel.getByRole("button", { name: "登记人工核实收款", exact: true }).click();
@@ -61,18 +62,19 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await staff.goto(`/manage/${fixture.operator_id}/orders`);
     await staff.getByLabel("搜索记录").fill(order.id);
     await staff.getByRole("button", { name: "查询", exact: true }).click();
-    await expect(staff.getByRole("button", { name: "查看并办理" })).toHaveCount(1);
-    await staff.getByRole("button", { name: "查看并办理" }).click();
-    await staff.getByRole("dialog").last().getByRole("button", { name: "将已核实收款分配到此单" }).click();
+    await expect(staff.getByRole("link", { name: "查看并办理", exact: true })).toHaveCount(1);
+    await staff.getByRole("link", { name: "查看并办理", exact: true }).click();
+    await expect(staff).toHaveURL(new RegExp(`/orders\\?record=${order.id}`));
+    await staff.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
     const allocation = staff.getByRole("dialog").last();
-    await allocation.getByRole("combobox").selectOption(receipt.id);
-    await allocation.getByLabel("本次分配 USD", { exact: false }).fill("100");
+    await allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }).selectOption(receipt.id);
+    await allocation.getByRole("textbox", { name: /^本次分配 USD/ }).fill("100");
     await allocation.getByRole("checkbox").check();
     const allocationResponse = staff.waitForResponse(response => response.url().endsWith(`/order-context/${order.id}/allocate`) && response.request().method() === "POST");
     await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
     expect((await allocationResponse).status()).toBe(200);
     await allocation.getByRole("button", { name: "关闭办理面板" }).click();
-    await staff.getByRole("dialog").last().getByRole("button", { name: "核实资金并重试交付" }).click();
+    await staff.getByRole("button", { name: "核实资金并重试交付", exact: true }).click();
     const fulfill = staff.getByRole("dialog").last();
     await fulfill.getByRole("checkbox").check();
     const deliveryResponse = staff.waitForResponse(response => response.url().endsWith(`/orders/${order.id}/fulfill`) && response.request().method() === "POST");
@@ -85,7 +87,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await customer.goto("/workspace/keys");
     await customer.getByRole("button", { name: "创建 Key", exact: true }).click();
     await customer.getByLabel("名称", { exact: true }).fill("真实联调应用");
-    await customer.getByLabel("ATG 预算上限").fill("10");
+    await customer.getByLabel("ATG 预算上限", { exact: true }).fill("10");
     const keyResponse = customer.waitForResponse(response => response.url().endsWith("/api/v1/me/keys") && response.request().method() === "POST");
     await customer.getByRole("button", { name: "创建 Key", exact: true }).last().click();
     const keyHTTP = await keyResponse; expect(keyHTTP.status()).toBe(200); const key = await keyHTTP.json();
@@ -110,10 +112,10 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await staff.goto(`/manage/${fixture.operator_id}/customers`);
     await staff.getByLabel("搜索记录").fill(fixture.customer_email);
     await staff.getByRole("button", { name: "查询", exact: true }).click();
-    await expect(staff.getByRole("button", { name: "客户工作台", exact: true })).toHaveCount(1);
-    await staff.getByRole("button", { name: "客户工作台", exact: true }).click();
-    await staff.getByRole("dialog").last().getByRole("tab", { name: "模型调用" }).click();
-    await expect(staff.getByRole("dialog").last().getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
+    await expect(staff.getByRole("link", { name: "客户工作台", exact: true })).toHaveCount(1);
+    await staff.getByRole("link", { name: "客户工作台", exact: true }).click();
+    await staff.getByRole("tab", { name: "模型调用", exact: true }).click();
+    await expect(staff.getByRole("tabpanel", { name: "模型调用", exact: true }).getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
     await staff.screenshot({ path: testInfo.outputPath("real-operator-customer.png"), fullPage: true });
     expect(failures).toEqual([]);
     await testInfo.attach("verified-business-facts", { body: JSON.stringify({ order_id: order.id, receipt_id: receipt.id, granted_atg: "120", request_id: recordedRequestID, charged_atg: recordedRequest.charged_atg, replay_did_not_charge_again: true }), contentType: "application/json" });

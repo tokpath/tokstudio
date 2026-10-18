@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -49,17 +50,24 @@ func (s *Service) ListCustomerOrdersPage(ctx context.Context, tx *gorm.DB, custo
 	if !validID(customer) || limit < 1 || limit > 100 {
 		return nil, ErrInvalidInput
 	}
-	q := s.dbFor(ctx, tx).Where("customer_id=?", customer)
-	return orderPage(q, cursor, query, limit)
+	return orderPage(s.dbFor(ctx, tx).Where("customer_id=?", customer), cursor, query, limit)
 }
 
 // ListOperatorOrders never includes a child's retail orders. The application's
 // staff permission check must authorize this exact operator before calling it.
-func (s *Service) ListOperatorOrders(ctx context.Context, tx *gorm.DB, operator, cursor, query string, limit int) ([]Order, error) {
+func (s *Service) ListOperatorOrders(ctx context.Context, tx *gorm.DB, operator, cursor, query string, limit int, status ...string) ([]Order, error) {
 	if !validID(operator) || limit < 1 || limit > 100 {
 		return nil, ErrInvalidInput
 	}
-	return orderPage(s.dbFor(ctx, tx).Where("operator_id=?", operator), cursor, query, limit)
+	q := s.dbFor(ctx, tx).Where("operator_id=?", operator)
+	if len(status) > 0 && strings.TrimSpace(status[0]) != "" {
+		q = q.Where("status=?", strings.TrimSpace(status[0]))
+	}
+	if strings.TrimSpace(query) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(query)) + "%"
+		q = q.Where(`(id::text ILIKE ? OR kind ILIKE ? OR status ILIKE ? OR customer_id IN (SELECT c.id FROM organization_customers c LEFT JOIN organization_customer_identities i ON i.customer_id=c.id AND i.is_current=true WHERE c.display_name ILIKE ? OR i.email_normalized ILIKE ?))`, term, term, term, term, term)
+	}
+	return orderPage(q, cursor, "", limit)
 }
 func orderPage(q *gorm.DB, cursor, query string, limit int) ([]Order, error) {
 	q, err := cursorQuery(q, cursor)
@@ -158,11 +166,18 @@ func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, custo
 	}
 	return result, nil
 }
-func (s *Service) OperatorReceipts(ctx context.Context, tx *gorm.DB, operator, cursor string, limit int) ([]Receipt, error) {
+func (s *Service) OperatorReceipts(ctx context.Context, tx *gorm.DB, operator, cursor string, limit int, filters ...string) ([]Receipt, error) {
 	if !validID(operator) || limit < 1 || limit > 100 || (cursor != "" && !validID(cursor)) {
 		return nil, ErrInvalidInput
 	}
 	q := s.dbFor(ctx, tx).Where("operator_id=?", operator).Order("id").Limit(limit)
+	if len(filters) > 0 && strings.TrimSpace(filters[0]) != "" {
+		term := "%" + strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.TrimSpace(filters[0])) + "%"
+		q = q.Where("(id::text ILIKE ? OR provider ILIKE ? OR provider_receipt_id ILIKE ? OR payer_reference ILIKE ? OR recipient_reference ILIKE ? OR verification_evidence ILIKE ?)", term, term, term, term, term, term)
+	}
+	if len(filters) > 1 && strings.TrimSpace(filters[1]) != "" {
+		q = q.Where("fee_status=?", strings.TrimSpace(filters[1]))
+	}
 	if cursor != "" {
 		q = q.Where("id>?", cursor)
 	}

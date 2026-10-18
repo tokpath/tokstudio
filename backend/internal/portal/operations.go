@@ -91,7 +91,8 @@ func (a *Application) customerOperationsWorkspace(c *gin.Context, resource strin
 	op, customer := id.Customer.Ownership.OperatorID, id.Customer.Customer.ID
 	switch resource {
 	case "invoices":
-		rows, next, e := a.Operations.ListCustomerInvoices(ctx, customer, c.Query("cursor"), 50, c.Query("q"))
+		p["search_supported"], p["status_supported"] = true, true
+		rows, next, e := a.Operations.ListCustomerInvoices(ctx, customer, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
 		if e != nil {
 			handleError(c, e)
 			return true
@@ -194,7 +195,9 @@ func (a *Application) operatorOperationsResource(c *gin.Context, op organization
 		a.riskWorkspace(c, op, actor, resource, base, p)
 		return true
 	case "invoices":
-		rows, e := a.Operations.ListInvoices(ctx, actor, op.ID, false, c.Query("q"))
+		rows, next, e := a.Operations.ListOperatorInvoicesPage(ctx, actor, op.ID, c.Query("cursor"), c.Query("q"), c.Query("status"), 50)
+		p["next_cursor"] = next
+		p["search_supported"], p["status_supported"] = true, true
 		if e != nil {
 			handleError(c, e)
 			return true

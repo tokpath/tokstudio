@@ -80,12 +80,13 @@ func (a *Application) cancelWithdrawal(c *gin.Context) {
 	c.JSON(200, commandResult(c.Param("id"), "cancelled"))
 }
 func (a *Application) withdrawalStaffResource(c *gin.Context, op organization.Operator, actor string, p gin.H, base string) {
+	p["search_supported"], p["status_supported"] = true, true
 	var policy incentives.WithdrawalPolicy
 	if e := a.DB.WithContext(c.Request.Context()).Table("incentives_withdrawal_policies").Where("operator_id=?", op.ID).Order("version DESC").Limit(1).Find(&policy).Error; e != nil {
 		handleError(c, e)
 		return
 	}
-	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50)
+	rows, next, e := a.Incentives.WithdrawalsForOperator(c.Request.Context(), nil, actor, op.ID, c.Query("cursor"), 50, c.Query("q"), c.Query("status"))
 	if e != nil {
 		handleError(c, e)
 		return

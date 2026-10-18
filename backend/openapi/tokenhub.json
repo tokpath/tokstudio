@@ -8639,7 +8639,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -8931,7 +8940,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -9084,7 +9102,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -9369,7 +9396,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -9522,7 +9558,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -9675,7 +9720,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -9960,7 +10014,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -10113,7 +10176,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -10398,7 +10470,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -10683,7 +10764,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -10968,7 +11058,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -11253,7 +11352,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -11538,7 +11646,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -11823,7 +11940,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -12118,7 +12244,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -12403,7 +12538,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -12556,7 +12700,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -12709,7 +12862,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -12994,7 +13156,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -13147,7 +13318,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -13442,7 +13622,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -13727,7 +13916,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -14022,7 +14220,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -14307,7 +14514,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -14590,7 +14806,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -14743,7 +14968,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -15035,7 +15269,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -15330,7 +15573,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -15615,7 +15867,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -15910,7 +16171,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -16195,7 +16465,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -16348,7 +16627,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -16633,7 +16921,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -16925,7 +17222,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -17210,7 +17516,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -17495,7 +17810,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -17648,7 +17972,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -17801,7 +18134,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -18096,7 +18438,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -18381,7 +18732,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -18666,7 +19026,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -18958,7 +19327,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -19243,7 +19621,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -19396,7 +19783,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -19681,7 +20077,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -19966,7 +20371,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -20251,7 +20665,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -20536,7 +20959,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -20689,7 +21121,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -20842,7 +21283,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -20995,7 +21445,16 @@
             "name": "q",
             "in": "query",
             "required": false,
-            "description": "Server-side bounded search",
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
             "schema": {
               "type": "string"
             }
@@ -43206,6 +43665,12 @@
               "additionalProperties": true
             }
           },
+          "search_supported": {
+            "type": "boolean"
+          },
+          "status_supported": {
+            "type": "boolean"
+          },
           "columns": {
             "type": "array",
             "items": {
@@ -45446,6 +45911,11 @@
           },
           "invite_code": {
             "type": "string"
+          },
+          "next": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Optional continuation to /workspace/models, /workspace/plans or /workspace/playground. The server retains only allowed model/plan/kol_activity parameters in the verification email; invitation ownership is separate."
           }
         },
         "required": [

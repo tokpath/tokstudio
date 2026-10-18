@@ -8,6 +8,7 @@ export type ConfigNode = {
   help?: string;
   required?: boolean;
   default?: JSONValue;
+  generated?: "uuid";
   fields?: Record<string, ConfigNode>;
   item?: ConfigNode;
   options?: [string, string][];
@@ -63,7 +64,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   });
   if (/\/routes$/.test(operation.path)) return object("上游路由", {
     upstream: object("路由身份与供应商", {
-      id: text("路由标识"), public_model_id: { ...text("对应公开模型"), lookup: "models" }, identity: text("与公开模型一致的身份与版本"),
+      id: { ...text("路由标识"), generated: "uuid", readOnly: true }, public_model_id: { ...text("对应公开模型"), lookup: "models" }, identity: text("与公开模型一致的身份与版本"),
       provider_id: text("供应商引用"), provider: text("供应商协议名称"), model: text("供应商模型名称"), credential_id: { ...text("已保存的供应商凭据引用"), lookup: "credentials" },
       enabled: boolean("允许进入选路"), healthy: boolean("已核实健康"), priority: { ...integer("选路优先级", 0), signed: true },
       endpoints: record("已核实的完整服务端点", text("HTTPS 服务地址"), "键为调用能力，例如 chat、video_generation、video_retrieve、video_download；视频查询/下载必须使用 {task_id} 路径模板。"),
@@ -79,7 +80,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   if (/\/pricing$/.test(operation.path)) return object("模型价格", {
     action: select("发布方式", [["price", "按通知规则发布价格"], ["bootstrap_price", "初始化价格（仅首次开通）"]], "price"),
     price: object("价目与适用范围", {
-      id: text("本次价格版本标识"), model_id: { ...text("公开模型（自动跟随可用 * 表示默认规则）"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
+      id: { ...text("本次价格版本标识"), generated: "uuid", readOnly: true }, model_id: { ...text("公开模型（自动跟随可用 * 表示默认规则）"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
       layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: datetime("价格生效时间", true), ends_at: { ...datetime("价格结束时间（促销必填）"), nullable: true },
       rule: object("计价方式", {
         mode: select("计价方式", [["manual", "逐组件手动定价"], ["follow", "自动跟随上级价目"]], "manual"),
@@ -98,6 +99,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
 
 export function configDefaults(node: ConfigNode): JSONValue | undefined {
   if (node.default !== undefined) return node.default;
+  if (node.generated === "uuid") return crypto.randomUUID();
   if (node.kind === "object") return Object.fromEntries(Object.entries(node.fields || {}).flatMap(([key, child]) => { const value = configDefaults(child); return value === undefined ? [] : [[key, value]]; }));
   if (node.required) return "";
 }

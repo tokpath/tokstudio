@@ -1,0 +1,257 @@
+{
+  "今天需要处理的服务异常": {
+    "en": "Service issues to handle today",
+    "ja": "本日対応が必要なサービス障害",
+    "ru": "Проблемы сервиса на сегодня"
+  },
+  "今天需要处理的经营事项": {
+    "en": "Business tasks for today",
+    "ja": "本日の運営業務",
+    "ru": "Операционные задачи на сегодня"
+  },
+  "今天需要核实的资金事项": {
+    "en": "Financial items to verify today",
+    "ja": "本日確認が必要な資金業務",
+    "ru": "Финансовые операции для проверки"
+  },
+  "今天需要跟进的客户事项": {
+    "en": "Customer follow-ups for today",
+    "ja": "本日フォローが必要な顧客業務",
+    "ru": "Работа с клиентами на сегодня"
+  },
+  "办理说明与相关入口": {
+    "en": "Help and related tasks",
+    "ja": "手続きの説明と関連業務",
+    "ru": "Справка и связанные задачи"
+  },
+  "去完成": {
+    "en": "Complete setup",
+    "ja": "設定する",
+    "ru": "Настроить"
+  },
+  "已读取的配置检查已通过，请到营业设置选择要开放的项目。": {
+    "en": "The returned configuration checks passed. Choose which services to open in business settings.",
+    "ja": "取得した設定チェックは合格しました。営業設定で公開する項目を選択してください。",
+    "ru": "Полученные проверки пройдены. Выберите доступные услуги в настройках работы."
+  },
+  "常用办理入口": {
+    "en": "Common tasks",
+    "ja": "よく使う業務",
+    "ru": "Частые задачи"
+  },
+  "开业前，先完成这些准备": {
+    "en": "Complete these steps before opening",
+    "ja": "営業開始前の準備",
+    "ru": "Подготовка к открытию"
+  },
+  "按真实检查结果补齐配置，再逐项开放营业。": {
+    "en": "Complete the configuration from verified checks, then open each service.",
+    "ja": "実際のチェック結果に従って設定を補い、項目ごとに営業を開始してください。",
+    "ru": "Завершите настройку по результатам проверок, затем откройте нужные услуги."
+  },
+  "经营总览与待办": {
+    "en": "Business overview and tasks",
+    "ja": "運営概要とタスク",
+    "ru": "Обзор бизнеса и задачи"
+  },
+  "进入营业设置": {
+    "en": "Open business settings",
+    "ja": "営業設定を開く",
+    "ru": "Открыть настройки работы"
+  },
+  "配置检查尚未返回，请到营业设置核实具体依赖。": {
+    "en": "Configuration checks have not returned. Verify dependencies in business settings.",
+    "ja": "設定チェックの結果は未取得です。営業設定で必要条件を確認してください。",
+    "ru": "Результаты проверки ещё не получены. Проверьте зависимости в настройках работы."
+  },
+  "下一步：完成审批与独立复核。": {
+    "en": "Next: complete approval and independent review.",
+    "ja": "次の手順：承認と独立した再確認を完了してください。",
+    "ru": "Далее: завершите согласование и независимую проверку."
+  },
+  "下一步：展开关联明细，按每笔原收款的已授权动作办理。": {
+    "en": "Next: expand linked details and use the authorized actions for each original receipt.",
+    "ja": "次の手順：関連明細を開き、元の入金ごとに許可された操作を行ってください。",
+    "ru": "Далее: откройте детали и выполните разрешённые действия по каждому исходному платежу."
+  },
+  "下一步：查询原退款结果并核实实际付款，保留未知金额占用。": {
+    "en": "Next: query the original refund and verify actual payment. Keep unconfirmed amounts reserved.",
+    "ja": "次の手順：元の返金結果と実際の支払いを確認し、不明な金額の引当を維持してください。",
+    "ru": "Далее: запросите результат исходного возврата и проверьте оплату. Сохраните резерв для неподтверждённых сумм."
+  },
+  "仍待付款": {
+    "en": "Remaining to pay",
+    "ja": "未払い残額",
+    "ru": "Осталось выплатить"
+  },
+  "保存常用筛选": {
+    "en": "Save filter",
+    "ja": "よく使う絞り込みを保存",
+    "ru": "Сохранить фильтр"
+  },
+  "全部状态": {
+    "en": "All statuses",
+    "ja": "すべての状態",
+    "ru": "Все статусы"
+  },
+  "全部记录": {
+    "en": "All records",
+    "ja": "すべての記録",
+    "ru": "Все записи"
+  },
+  "关联退款明细与付款": {
+    "en": "Refund components and payments",
+    "ja": "関連する返金明細と支払い",
+    "ru": "Детали возврата и выплаты"
+  },
+  "名称与编号": {
+    "en": "Name and ID",
+    "ja": "名称と番号",
+    "ru": "Название и номер"
+  },
+  "在此管理有限补货授权和原执行结果。结果未知时只查询原付款。": {
+    "en": "Manage limited replenishment authorizations and original attempts here. Query the original payment when its outcome is unknown.",
+    "ja": "有限の補充承認と元の実行結果を管理します。結果が不明な場合は元の支払いのみを照会してください。",
+    "ru": "Управляйте разрешениями на пополнение с лимитами и исходными попытками. При неизвестном результате запрашивайте исходный платёж."
+  },
+  "已真实清偿": {
+    "en": "Actually settled",
+    "ja": "実際の支払済額",
+    "ru": "Фактически выплачено"
+  },
+  "常用筛选": {
+    "en": "Saved filters",
+    "ja": "保存した絞り込み",
+    "ru": "Сохранённые фильтры"
+  },
+  "本次实际付款": {
+    "en": "Actual payment",
+    "ja": "今回の実際の支払い",
+    "ru": "Фактическая выплата"
+  },
+  "本页其他关联记录": {
+    "en": "Other linked records on this page",
+    "ja": "このページのその他の関連記録",
+    "ru": "Другие связанные записи на странице"
+  },
+  "此事项已结束，可核对原责任与实际付款证据。": {
+    "en": "This case is closed. Review the original obligation and actual payment evidence.",
+    "ja": "この案件は終了しています。元の債務と実際の支払証拠を確認できます。",
+    "ru": "Дело закрыто. Можно проверить исходное обязательство и подтверждения выплат."
+  },
+  "清除常用筛选": {
+    "en": "Clear saved filters",
+    "ja": "保存した絞り込みを削除",
+    "ru": "Удалить сохранённые фильтры"
+  },
+  "立即补货": {
+    "en": "Replenish now",
+    "ja": "今すぐ補充",
+    "ru": "Пополнить сейчас"
+  },
+  "筛选状态": {
+    "en": "Filter by status",
+    "ja": "状態で絞り込む",
+    "ru": "Фильтр по статусу"
+  },
+  "自动补货": {
+    "en": "Automatic replenishment",
+    "ja": "自動補充",
+    "ru": "Автопополнение"
+  },
+  "返回原列表与筛选": {
+    "en": "Back to original list and filters",
+    "ja": "元の一覧と絞り込みに戻る",
+    "ru": "Вернуться к списку и фильтрам"
+  },
+  "追踪原采购订单的付款与交付。需要新增采购时选择立即补货。": {
+    "en": "Track payment and delivery on the original purchase order. Choose Replenish now for a new purchase.",
+    "ja": "元の仕入注文の支払いと納品を追跡します。追加購入は「今すぐ補充」から行えます。",
+    "ru": "Отслеживайте оплату и поставку исходного заказа. Для новой закупки выберите «Пополнить сейчас»."
+  },
+  "退款责任": {
+    "en": "Refund obligation",
+    "ja": "返金債務",
+    "ru": "Обязательство по возврату"
+  },
+  "选择已生效报价创建采购订单，付款并交付后增加采购余额。": {
+    "en": "Create a purchase order from a valid quote. Procurement balance increases after payment and delivery.",
+    "ja": "有効な見積から仕入注文を作成します。支払いと納品の完了後に仕入残高が増加します。",
+    "ru": "Создайте заказ по действующему предложению. Баланс закупок увеличится после оплаты и поставки."
+  },
+  "采购办理事项": {
+    "en": "Procurement tasks",
+    "ja": "仕入業務",
+    "ru": "Задачи по закупкам"
+  },
+  "供货订单": {
+    "en": "Supply orders",
+    "ja": "供給注文",
+    "ru": "Заказы на поставку"
+  },
+  "供货报价": {
+    "en": "Supply quotes",
+    "ja": "供給見積",
+    "ru": "Предложения поставки"
+  },
+  "发布供货报价": {
+    "en": "Publish supply quote",
+    "ja": "供給見積を公開",
+    "ru": "Опубликовать предложение"
+  },
+  "核对我方供货报价，并追踪采购方原订单的收款与库存交付。": {
+    "en": "Review our supply quotes and track receipt and inventory delivery on the buyer's original order.",
+    "ja": "自社の供給見積を確認し、購入者の元注文の入金と在庫納品を追跡します。",
+    "ru": "Проверяйте свои предложения и отслеживайте оплату и поставку по исходному заказу покупателя."
+  },
+  "补货授权": {
+    "en": "Replenishment authorization",
+    "ja": "補充の承認",
+    "ru": "Разрешение на пополнение"
+  },
+  "补货执行记录": {
+    "en": "Replenishment attempts",
+    "ja": "補充の実行記録",
+    "ru": "Попытки пополнения"
+  },
+  "跟进订单收款与交付": {
+    "en": "Follow up on order payment and delivery",
+    "ja": "注文の入金と納品をフォロー",
+    "ru": "Проверить оплату и исполнение заказов"
+  },
+  "从原订单核对收款、分配和交付状态。": {
+    "en": "Check receipt, allocation, and delivery against the original order.",
+    "ja": "元の注文から入金、割り当て、納品状況を確認してください。",
+    "ru": "Проверьте поступление, распределение средств и исполнение по исходному заказу."
+  },
+  "跟进未结退款事项": {
+    "en": "Follow up on open refunds",
+    "ja": "未完了の返金をフォロー",
+    "ru": "Проверить незавершённые возвраты"
+  },
+  "先核对审批与原退款结果，再按已授权动作办理。": {
+    "en": "Check approval and the original refund result, then use the authorized actions.",
+    "ja": "承認と元の返金結果を確認してから、許可された操作を行ってください。",
+    "ru": "Проверьте согласование и результат исходного возврата, затем выполните разрешённые действия."
+  },
+  "跟进佣金提现": {
+    "en": "Follow up on commission withdrawals",
+    "ja": "コミッション出金をフォロー",
+    "ru": "Проверить вывод комиссий"
+  },
+  "独立复核与实际付款分别核实，未知结果继续查询原操作。": {
+    "en": "Verify independent review and actual payment separately. Query the original operation when its outcome is unknown.",
+    "ja": "独立した再確認と実際の支払いをそれぞれ確認してください。結果が不明な場合は元の操作を照会します。",
+    "ru": "Проверяйте независимое согласование и фактическую выплату отдельно. При неизвестном результате запрашивайте исходную операцию."
+  },
+  "已暂停账号": {
+    "en": "Account suspended",
+    "ja": "アカウント停止中",
+    "ru": "Аккаунт приостановлен"
+  },
+  "已匿名": {
+    "en": "Anonymized",
+    "ja": "匿名化済み",
+    "ru": "Обезличен"
+  }
+}

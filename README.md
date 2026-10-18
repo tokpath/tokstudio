@@ -67,3 +67,18 @@ cd web && npm run build && npx playwright test
 普通 push 只运行 CI，不发布。预览部署必须人工运行 `deploy-token`，选择 `release/v0.1.0` 中通过 CI 的完整提交 SHA，输入 `DEPLOY_TEST`，经 `tokenhub-test` Environment 门槛后部署该精确提交。部署仓库路径为 `/root/workspace/tokstudio`，目标预览主机名为 `test.tokpath.com`。2026-10-18 本轮发布已获授权，仍须遵守上述提交和 CI 门槛。
 
 部署前准备新库、加密密钥、初始负责人、邮件、对象存储和备份密钥；运行 `make assert-deploy` 检查隔离约定。资金参数、上游供应商和商户配置通过各自经营权限管理，不能通过运维 SQL 直接改钱。凭据不进入 Git、日志、导出或通知。
+
+
+## 测试站验收数据
+
+`seed-demo` 是显式管理命令，不在 API、迁移或正常启动时运行。只允许 `test.tokpath.com`，本地非生产联调可使用 `localhost`；必须传入匹配的 `--host` 与 `--confirm TEST_DATA_ONLY`。先部署并验证项目外的独立测试模型，再通过环境变量 `TOKENHUB_DEMO_MODEL_KEY` 提供其凭据（不要放进命令参数或提交 Git）。
+
+```sh
+/seed-demo --host test.tokpath.com --confirm TEST_DATA_ONLY --model-base-url https://test.tokpath.com/__tokenhub_demo__
+```
+
+一次事务建立具名测试 OEM、直属渠道、OEM 渠道、采购余额与报价、测试套餐、人工收款配置、注册归属、购买订单、USD 余额、ATG 和推广活动。所有资金依据均标注 `TEST DATA ONLY`，无外部真实付款。提交完成后重复运行只返回原结果，不重复发放、不重置用户后续验收操作。若准备材料或权限核实失败，整个事务回滚。现有负责人账号和密码不被改写，OEM 域名也不会被伪造为已验证。
+
+新增客户账号为 `new@tokenhub.local`（新客户）、`customer@tokenhub.local`（已购客户，直属 KOL 邀请）、`kol@tokenhub.local`（已有资格的测试 KOL）、`channel-customer@tokenhub.local`（官方渠道客户）。新增经营账号为 `operations@tokenhub.local`、`finance@tokenhub.local`、`support@tokenhub.local`、`readonly@tokenhub.local`、`tech@tokenhub.local`、`oem@tokenhub.local`、`channel@tokenhub.local`、`oem-channel@tokenhub.local`、`channel-finance@tokenhub.local`。这些新增账号密码统一为 `password1`，仅供测试环境。
+
+公开模型 `demo-chat` 显式标注固定合成回复，独立上游需分别验证同步和流式能力。真实模型、支付商户及邮件资料仍由经营方配置。测试种子不放宽正常注册密码要求，也不开放无验证邮件能力的公众注册。

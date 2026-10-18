@@ -137,8 +137,10 @@ func (a *Application) RunPriceChecks(ctx context.Context, owner string, limit in
 
 var _ cooperation.CoverageSnapshot
 
-// Model removal is applied provisionally in the controller transaction. Any
-// outstanding obligation that can no longer be served rolls the change back.
+// Changes are applied provisionally in the controller transaction. A retail
+// listing belongs only to its operator; it does not change a child's listing or
+// authorization. Global model and inherited authorization changes also check
+// descendants whose service can be affected.
 func (a *Application) validateCatalogChange(ctx context.Context, tx *gorm.DB, change catalog.CatalogChange) error {
 	start := change.OperatorID
 	if change.Kind == "authorization" {
@@ -150,9 +152,13 @@ func (a *Application) validateCatalogChange(ctx context.Context, tx *gorm.DB, ch
 		}
 		start = flag.BuyerID
 	}
-	operators, e := a.Organization.CatalogNotificationOperators(ctx, tx, start)
-	if e != nil {
-		return e
+	operators := []string{start}
+	if change.Kind != "listing" {
+		var e error
+		operators, e = a.Organization.CatalogNotificationOperators(ctx, tx, start)
+		if e != nil {
+			return e
+		}
 	}
 	for _, op := range operators {
 		snapshot, e := a.Cooperation.Coverage(ctx, tx, op, change.EffectiveAt)

@@ -12,6 +12,10 @@ function decimal(value: bigint) {
   const digits = value.toString().padStart(precision + 1, "0");
   return `${digits.slice(0, -precision)}.${digits.slice(-precision)}`.replace(/\.?0+$/, "");
 }
+// Display the grant total without rounding high precision ATG amounts.
+export function totalCredits(...amounts: string[]) {
+  return decimal(amounts.reduce((total, amount) => total + units(amount), 0n));
+}
 export function fundingSuggestion(amount: string, availableBalance: string, availableCommission = "0", useCommission = false) {
   const total = units(amount), balance = units(availableBalance), commission = useCommission ? units(availableCommission) : 0n;
   const usdBalance = total < balance ? total : balance;

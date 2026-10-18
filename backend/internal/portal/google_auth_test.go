@@ -18,6 +18,26 @@ func queryValue(t *testing.T, raw, name string) string {
 	return u.Query().Get(name)
 }
 
+func TestPostgresOfficialGoogleEnvIsAdoptedForItsRedirect(t *testing.T) {
+	f := setupPortal(t)
+	redirect := f.server.URL + "/login/oauth/google"
+	if err := f.a.Organization.AdoptOfficialGoogleEnv(context.Background(), f.a.Installation.BrandID, f.a.Config.AppKey, "official-env.apps.googleusercontent.com", "env-secret", redirect); err != nil {
+		t.Fatal(err)
+	}
+	status, out, _ := f.call(t, "GET", "/v1/public/context", nil, "")
+	mustOK(t, status, out)
+	if out["google_sign_in"] != true {
+		t.Fatal("official environment configuration was not offered", out["google_sign_in"])
+	}
+	if err := f.a.Organization.AdoptOfficialGoogleEnv(context.Background(), f.a.Installation.BrandID, f.a.Config.AppKey, "replacement.apps.googleusercontent.com", "other-secret", redirect); err != nil {
+		t.Fatal(err)
+	}
+	view, err := f.a.Organization.GoogleConfig(context.Background(), nil, f.a.Installation.BrandID)
+	if err != nil || view.ClientID != "official-env.apps.googleusercontent.com" || !view.Enabled {
+		t.Fatal("restart replaced the adopted configuration", view, err)
+	}
+}
+
 func TestPostgresGoogleSignInRegistersAndStaysInsideTheBrand(t *testing.T) {
 	f := setupPortal(t)
 	f.openRegistration(t)

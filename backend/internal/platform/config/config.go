@@ -29,6 +29,9 @@ type Config struct {
 	OTELServiceName      string
 	LogLevel             string
 	EncryptionKey        string
+	GoogleClientID       string
+	GoogleClientSecret   string
+	GoogleRedirect       string
 	S3Endpoint           string
 	S3Region             string
 	S3Bucket             string
@@ -80,6 +83,9 @@ func Load() (*Config, error) {
 		OTELServiceName:      v.GetString("OTEL_SERVICE_NAME"),
 		LogLevel:             v.GetString("LOG_LEVEL"),
 		EncryptionKey:        firstNonEmpty(v.GetString("APP_KEY"), v.GetString("ENCRYPTION_KEY")),
+		GoogleClientID:       normalizeSecretValue(v.GetString("GOOGLE_CLIENT_ID")),
+		GoogleClientSecret:   normalizeSecretValue(v.GetString("GOOGLE_CLIENT_SECRET")),
+		GoogleRedirect:       normalizeSecretValue(v.GetString("GOOGLE_REDIRECT_URL")),
 		S3Endpoint:           v.GetString("S3_ENDPOINT"),
 		S3Region:             v.GetString("S3_REGION"),
 		S3Bucket:             v.GetString("S3_BUCKET"),

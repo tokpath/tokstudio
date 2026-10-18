@@ -92,6 +92,37 @@ func googleRedirects(raw []byte) []string {
 	}
 	return out
 }
+
+// AdoptOfficialGoogleEnv connects the official brand to the process environment
+// when the database has no Google configuration yet. An existing row is left
+// unchanged, so a later admin edit is not overwritten on restart.
+func (s *Service) AdoptOfficialGoogleEnv(ctx context.Context, brandID, encKey, clientID, secret, redirect string) error {
+	clientID, secret, redirect = strings.TrimSpace(clientID), strings.TrimSpace(secret), strings.TrimSpace(redirect)
+	if !validID(brandID) || encKey == "" || !validGoogleClientID(clientID) || secret == "" || redirect == "" {
+		return nil
+	}
+	return s.withTx(ctx, nil, func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "google-config:"+brandID).Error; err != nil {
+			return err
+		}
+		var row googleConfigRow
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&row, "brand_id=?", brandID).Error
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		cipher, err := crypto.Seal(encKey, secret)
+		if err != nil {
+			return err
+		}
+		raw, _ := json.Marshal([]string{redirect})
+		row = googleConfigRow{BrandID: brandID, ClientID: clientID, SecretCiphertext: cipher, Enabled: true, Version: 1, VerifiedRedirects: raw, UpdatedAt: s.now()}
+		return tx.Create(&row).Error
+	})
+}
+
 func validGoogleClientID(id string) bool {
 	id = strings.TrimSpace(id)
 	return strings.HasSuffix(id, ".apps.googleusercontent.com") && len(id) <= 255 && !strings.ContainsAny(id, " \t\r\n")

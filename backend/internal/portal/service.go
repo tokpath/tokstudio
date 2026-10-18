@@ -135,6 +135,9 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		a.ObjectStore = store
 	}
 	a.Organization = organization.New(gdb)
+	if err := a.Organization.AdoptOfficialGoogleEnv(ctx, a.Installation.BrandID, c.AppKey, c.GoogleClientID, c.GoogleClientSecret, c.GoogleRedirect); err != nil {
+		return nil, err
+	}
 	a.Ledger = ledger.New(gdb)
 	a.Branding = branding.NewWithDirectory(gdb, a.Organization)
 	a.Branding.SetAssetStore(a.ObjectStore)

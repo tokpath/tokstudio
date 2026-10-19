@@ -212,3 +212,57 @@ func TestPostgresCoverageCountsValidUnheldRightsAndPendingOnlyOnce(t *testing.T)
 		t.Fatalf("release conservation: %+v %v", c, e)
 	}
 }
+
+func TestPostgresUnpaidPurchaseHoldsInventoryUntilCancelled(t *testing.T) {
+	f := setup(t)
+	invite, err := f.org.InviteStaff(f.ctx, nil, f.owner, f.channel, "unpaid-hold@example.test", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.org.AcceptStaffInvitation(f.ctx, nil, invite.Token, organization.VerifiedStaff{ID: f.owner, Email: "unpaid-hold@example.test", EmailVerified: true}); err != nil {
+		t.Fatal(err)
+	}
+	until := time.Now().Add(time.Minute)
+	quote, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "不限时占用", PriceUSD: amount("10"), PaidATG: amount("100"), GiftATG: amount("20"), ExitPolicy: "non_refundable", Enabled: true, ValidUntil: &until})
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "open-ended-hold")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if order.ExpiresAt.Year() != 9999 || !order.ExpiresAt.Equal(openPurchaseDeadline) {
+		t.Fatal("unpaid purchase still has a payment deadline", order.ExpiresAt)
+	}
+	var commitment SalesCommitment
+	if err = f.db.Where("order_id=?", order.ID).First(&commitment).Error; err != nil || commitment.Status != "active" || commitment.ATG.Cmp(amount("120")) != 0 {
+		t.Fatal("inventory was not held", commitment, err)
+	}
+	if err = f.s.ClosePurchase(f.ctx, nil, f.owner, order.ID, commerce.PaymentClosureProof{}); !errors.Is(err, commerce.ErrPaymentUnknown) {
+		t.Fatal("cancel without a reason was accepted", err)
+	}
+	if err = f.s.ClosePurchase(f.ctx, nil, f.owner, order.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "operator released the unpaid hold"}); err != nil {
+		t.Fatal(err)
+	}
+	var closed PurchaseOrder
+	if err = f.db.First(&closed, "id=?", order.ID).Error; err != nil || closed.Status != "closed" {
+		t.Fatal(closed, err)
+	}
+	if err = f.db.First(&commitment, "id=?", commitment.ID).Error; err != nil || commitment.Status != "released" {
+		t.Fatal("cancel did not release inventory", commitment, err)
+	}
+	held, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "paid-still-held")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.db.Model(&PurchaseOrder{}).Where("id=?", held.ID).Update("status", "paid").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = f.s.ClosePurchase(f.ctx, nil, f.owner, held.ID, commerce.PaymentClosureProof{VerifiedUnpaid: true, EvidenceReference: "cannot cancel after payment"}); !errors.Is(err, commerce.ErrOrderState) {
+		t.Fatal("paid order was cancelled", err)
+	}
+	var still SalesCommitment
+	if err = f.db.Where("order_id=?", held.ID).First(&still).Error; err != nil || still.Status != "active" {
+		t.Fatal("paid order released inventory early", still, err)
+	}
+}

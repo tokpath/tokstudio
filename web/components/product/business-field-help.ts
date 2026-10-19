@@ -32,6 +32,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (["space", "sales_space"].includes(key)) return "剩余销售空间＝可用采购余额＋销售超卖额度−已承诺责任−待交付责任。空间不足会限制新增销售，超卖不会增加真实采购余额。";
   if (["required", "required_atg"].includes(key)) return "覆盖已经售出和赠送、仍需履约的权益，按开放模型最大采购成本核算。它是履约责任，不等于客户实际已经消耗的金额。";
   if (["pending", "pending_atg"].includes(key)) return "待付款或待交付订单已经预留的销售责任，避免多笔订单重复使用同一份销售空间。关闭或失败后按业务规则释放。";
+  if (["reserved_atg", "reserved_note", "payment_hold"].includes(key)) return "采购订单在待付款和待交付期间，按购买库存加赠送库存占用供货方的可售空间。未付款订单没有截止时间。付清并交付，或取消尚未分配收款的订单后释放。已完成和已关闭的订单不再占用。";
   if (["procurement_available", "procurement_available_atg"].includes(key)) return "真实已交付采购余额扣除调用预占后的可用金额。报价、未付款采购订单和超卖额度不会增加这里的余额。";
   if (key === "delivery_mode") return "手动开通可直接设置新账号初始密码，并把登录信息交给本人；首次登录须修改密码。已有账号不会被重设密码，应把接受邀请链接交给本人。邮件邀请需要先配置可用发信服务。";
   if (key === "initial_password") return "仅用于手动开通的新账号，至少 10 位，最长 72 字节。请把初始密码安全交给本人，首次登录会要求修改；已有账号沿用原密码并自行接受邀请。";

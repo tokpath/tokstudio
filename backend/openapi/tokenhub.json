@@ -25250,7 +25250,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认原报价购买/赠送库存、付款额与退出条款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -25392,7 +25392,7 @@
             }
           }
         },
-        "description": "付款操作返回实际支付步骤，核实付款并交付后才可用。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "本次付款尝试有时效，订单本身不因此关闭。未付清时库存继续占用，可再次发起付款或取消。核实付款并交付后库存才交付给采购方。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -25961,6 +25961,148 @@
           }
         },
         "description": " Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "cooperation.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/procurement/{id}/cancel": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_procurement_id_cancel",
+        "summary": "取消未付款订单",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_procurement_cancel"
+              }
+            }
+          }
+        },
+        "description": " Required explicit review: 确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -49321,6 +49463,19 @@
         "type": "object",
         "properties": {},
         "required": [],
+        "additionalProperties": false
+      },
+      "Operator_procurement_cancel": {
+        "type": "object",
+        "properties": {
+          "evidence": {
+            "type": "string",
+            "description": "取消原因"
+          }
+        },
+        "required": [
+          "evidence"
+        ],
         "additionalProperties": false
       },
       "Operator_procurement_cancel_authorization": {

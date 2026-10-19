@@ -56,6 +56,26 @@ it("keeps the full order page and its original uncertain operation mounted for a
   expect(attempts[0].body).toEqual({ amount_usd: "3.000000000000000001" });
 });
 
+it("shows which procurement order holds supplier inventory and who can release it", () => {
+  show(<ResourceCollection operatorID="operator-one" resource="procurement" businessView="supplier" embedded page={page([
+    { id: "order-open", status: "awaiting_payment", values: { record_kind: "order", name: "月度采购", reserved_atg: "120", reserved_note: "未付款，持续占用直到付清或取消", payment_hold: "不限时，直到付清或取消" }, allowed_actions: ["cancel"] },
+    { id: "order-done", status: "completed", values: { record_kind: "order", name: "已完成采购", reserved_atg: "80", reserved_note: "已释放，不再占用供货库存", payment_hold: "订单已结束，不再等待付款" }, allowed_actions: [] },
+  ], {
+    description: "固定报价保留成交与退出条款。未付款采购订单不设付款期限，按购买加赠送数量持续占用供货库存，付清交付或取消后释放。下表列出每一笔占用。自动扣款须另有真实支付授权；线下模式只自动建待付订单。",
+    summary: [{ label: "未付款占用", value: "120", unit: "ATG", detail: "这些订单没有付款截止时间。付清并交付，或取消尚未分配收款的订单后释放。" }, { label: "待交付占用", value: "0", unit: "ATG" }, { label: "正在占用的订单", value: "1" }],
+    columns: [{ key: "reserved_atg", label: "占用供货库存", kind: "atg" }, { key: "reserved_note", label: "占用说明", kind: "text" }, { key: "payment_hold", label: "付款期限", kind: "text" }],
+    row_operations: [{ name: "cancel", label: "取消未付款订单", method: "POST", path: "/api/v1/operators/operator-one/procurement/{id}/cancel", fields: [{ name: "evidence", label: "取消原因", kind: "textarea", required: true }], confirmation: "确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。" }],
+  })} />);
+  expect(screen.getByText("未付款占用")).toBeTruthy();
+  expect(screen.getAllByLabelText("120 ATG")).toHaveLength(2);
+  const hold = screen.getByText("未付款，持续占用直到付清或取消");
+  expect(hold.parentElement?.className).toContain("text-danger");
+  expect(screen.getByText("已释放，不再占用供货库存")).toBeTruthy();
+  expect(screen.getByText("不限时，直到付清或取消")).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "取消未付款订单" })).toHaveLength(1);
+  expect(screen.getByText("供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。")).toBeTruthy();
+});
+
 it("separates procurement quotes, orders, authorizations and attempts", () => {
   show(<ResourceCollection operatorID="operator-one" resource="procurement" businessView="buyer" embedded page={page([
     { id: "quote-a", values: { record_kind: "quote" } }, { id: "purchase-a", values: { record_kind: "order" } }, { id: "authorization-a", values: { record_kind: "authorization" } }, { id: "attempt-a", values: { record_kind: "replenishment_attempt" } },

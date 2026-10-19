@@ -16,6 +16,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// openPurchaseDeadline means the purchase order itself has no payment deadline.
+// Receipt checks still need a concrete time, and any real payment falls before it.
+// The inventory reservation stays until the order is paid and delivered, or cancelled.
+var openPurchaseDeadline = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+
 type PurchaseQuote struct {
 	Name                 string          `json:"name"`
 	TermsSummary         string          `json:"terms_summary"`
@@ -193,10 +198,7 @@ func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 				return ErrCoverage
 			}
 		}
-		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: q.PriceUSD, PaidATG: q.PaidATG, GiftATG: q.GiftATG, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: now.Add(30 * time.Minute), CreatedAt: now}
-		if q.ValidUntil != nil && q.ValidUntil.Before(out.ExpiresAt) {
-			out.ExpiresAt = *q.ValidUntil
-		}
+		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: q.PriceUSD, PaidATG: q.PaidATG, GiftATG: q.GiftATG, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: openPurchaseDeadline, CreatedAt: now}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -319,7 +321,9 @@ func (s *Service) ClosePurchase(ctx context.Context, tx *gorm.DB, actor, id stri
 			return e
 		}
 		if e := s.Organization.RequirePermission(ctx, t, actor, o.BuyerID, "cooperation.manage"); e != nil {
-			return e
+			if supplierErr := s.Organization.RequirePermission(ctx, t, actor, o.SupplierID, "cooperation.manage"); supplierErr != nil {
+				return e
+			}
 		}
 		if o.Status == "closed" {
 			return nil

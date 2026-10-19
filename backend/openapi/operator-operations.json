@@ -1871,7 +1871,7 @@
   },
   {
     "resource": "procurement",
-    "confirmation": "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。",
+    "confirmation": "确认原报价购买/赠送库存、付款额与退出条款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。",
     "description": "",
     "fields": [],
     "include_version": false,
@@ -1884,7 +1884,7 @@
   {
     "resource": "procurement",
     "confirmation": "",
-    "description": "付款操作返回实际支付步骤，核实付款并交付后才可用。",
+    "description": "本次付款尝试有时效，订单本身不因此关闭。未付清时库存继续占用，可再次发起付款或取消。核实付款并交付后库存才交付给采购方。",
     "fields": [
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
@@ -1974,6 +1974,25 @@
     "method": "POST",
     "name": "fulfill",
     "path": "/v1/operators/{operatorId}/procurement/{id}/fulfill",
+    "permission": "cooperation.manage"
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。",
+    "description": "",
+    "fields": [
+      {
+        "name": "evidence",
+        "label": "取消原因",
+        "kind": "textarea",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "取消未付款订单",
+    "method": "POST",
+    "name": "cancel",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/cancel",
     "permission": "cooperation.manage"
   },
   {

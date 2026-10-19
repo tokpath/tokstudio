@@ -164,10 +164,10 @@
     "ja": "審査・保持の根拠",
     "ru": "Основание проверки / хранения"
   },
-  "固定报价保留成交与退出条款。自动扣款须另有真实支付授权；线下模式只自动建待付订单。切换采购/供货视图可查看双方各自责任。": {
-    "en": "Fixed quotes retain sale and exit terms. Automatic charges require separate actual payment authorization; offline mode creates unpaid orders only. Switch purchasing/supplying views to see each party's obligations.",
-    "ja": "固定見積もりは成約・終了条件を保持します。自動引落しには別途実際の支払承認が必要です。オフライン方式は未払注文の自動作成のみです。調達・供給ビューで双方の責任を確認できます。",
-    "ru": "Фиксированное предложение сохраняет условия продажи и выхода. Автосписание требует отдельного разрешения на платёж; офлайн-режим лишь создаёт неоплаченные заказы. Видами закупок и поставок можно проверить обязательства сторон."
+  "固定报价保留成交与退出条款。未付款采购订单不设付款期限，按购买加赠送数量持续占用供货库存，付清交付或取消后释放。下表列出每一笔占用。自动扣款须另有真实支付授权；线下模式只自动建待付订单。": {
+    "en": "Fixed quotes keep the agreed sale and exit terms. Unpaid procurement orders have no payment deadline and keep holding supplier inventory for the purchased plus gifted amount until they are fully paid and delivered, or cancelled. The table lists each hold. Automatic charges need a separate real payment authorization; offline mode only creates unpaid orders.",
+    "ja": "固定見積は成約条件と終了条件を保持します。未払いの調達注文に支払期限はなく、購入分と贈呈分の供給在庫を、完済して納品するか取り消すまで確保し続けます。表は各注文の確保数量を示します。自動引き落としには別の実支払承認が必要です。オフラインでは未払い注文だけを作ります。",
+    "ru": "Фиксированное предложение сохраняет условия сделки и выхода. Неоплаченные заказы закупки не имеют срока оплаты и удерживают запас поставщика на купленное и подаренное количество, пока заказ не оплачен и не поставлен либо не отменён. Таблица показывает удержание по каждому заказу. Автосписание требует отдельного разрешения на платёж; офлайн-режим только создаёт неоплаченные заказы."
   },
   "记录类型": {
     "en": "Record type",
@@ -244,15 +244,110 @@
     "ja": "現在の承認バージョン（初回 0）",
     "ru": "Текущая версия разрешения (сначала 0)"
   },
-  "确认原报价购买/赠送库存、付款额与退出条款。创建订单不增加可用采购库存。": {
-    "en": "Confirm the original quote's purchased/gift inventory, payment amount, and exit terms. Creating an order does not increase available procurement inventory.",
-    "ja": "元の見積もりの購入・特典在庫、支払額、終了条件を確認します。注文作成では利用可能調達在庫は増えません。",
-    "ru": "Подтвердите купленный и бонусный запас, сумму и условия выхода исходного предложения. Создание заказа не увеличивает доступный закупочный запас."
+  "确认原报价购买/赠送库存、付款额与退出条款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。": {
+    "en": "Confirm the original quote's purchased and gifted inventory, payment amount, and exit terms. Creating the order holds that supplier inventory until it is paid and delivered or cancelled, and does not increase available procurement inventory.",
+    "ja": "元の見積の購入在庫、贈呈在庫、支払額、終了条件を確認します。注文を作ると、完済して納品するか取り消すまで、その数量の供給在庫を確保します。利用可能な調達在庫は増えません。",
+    "ru": "Подтвердите купленный и подаренный запас, сумму и условия выхода исходного предложения. Создание заказа удерживает этот запас поставщика до оплаты и поставки или отмены и не увеличивает доступный закупочный запас."
   },
-  "付款操作返回实际支付步骤，核实付款并交付后才可用。": {
-    "en": "The payment action returns actual payment steps. Inventory becomes available only after payment verification and delivery.",
-    "ja": "支払操作で実際の支払手順を取得します。支払確認・提供後にのみ利用可能になります。",
-    "ru": "Действие оплаты возвращает реальные шаги платежа. Запас доступен только после проверки оплаты и исполнения."
+  "本次付款尝试有时效，订单本身不因此关闭。未付清时库存继续占用，可再次发起付款或取消。核实付款并交付后库存才交付给采购方。": {
+    "en": "This payment attempt has a time limit, but the order stays open. Inventory remains held until it is paid; you can start payment again or cancel. Inventory is delivered to the buyer only after payment is verified and fulfilled.",
+    "ja": "この支払手続きには期限がありますが、注文自体は閉じません。未払いの間は在庫を確保したままなので、再度支払うか取り消せます。支払を確認して納品した後に、在庫は調達側へ渡されます。",
+    "ru": "У этой попытки оплаты есть срок, но сам заказ не закрывается. Пока он не оплачен, запас остаётся занятым; оплату можно начать снова или отменить заказ. Запас передаётся покупателю только после проверки оплаты и поставки."
+  },
+  "取消未付款订单": {
+    "en": "Cancel unpaid order",
+    "ja": "未払い注文を取り消す",
+    "ru": "Отменить неоплаченный заказ"
+  },
+  "取消原因": {
+    "en": "Reason for cancellation",
+    "ja": "取り消し理由",
+    "ru": "Причина отмены"
+  },
+  "确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。": {
+    "en": "Cancel this order with no allocated payment? Its supplier inventory hold is released immediately.",
+    "ja": "入金が未割り当てのこの注文を取り消しますか？取り消すと確保中の供給在庫は直ちに解放されます。",
+    "ru": "Отменить этот заказ без распределённой оплаты? Удержание запаса поставщика снимается сразу."
+  },
+  "占用供货库存": {
+    "en": "Supplier inventory held",
+    "ja": "確保中の供給在庫",
+    "ru": "Удерживаемый запас поставщика"
+  },
+  "占用说明": {
+    "en": "Hold explanation",
+    "ja": "確保の説明",
+    "ru": "Пояснение удержания"
+  },
+  "付款期限": {
+    "en": "Payment window",
+    "ja": "支払期限",
+    "ru": "Срок оплаты"
+  },
+  "未付款，持续占用直到付清或取消": {
+    "en": "Unpaid. This hold continues until the order is paid in full or cancelled.",
+    "ja": "未払いです。完済または取り消しまで在庫を確保し続けます。",
+    "ru": "Не оплачен. Удержание действует до полной оплаты или отмены."
+  },
+  "已有收款分配，库存仍占用；付清前不能取消": {
+    "en": "Some payment is already allocated, so inventory stays held. This order cannot be cancelled before it is paid in full.",
+    "ja": "一部の入金が割り当て済みのため在庫は確保されたままです。完済前は取り消せません。",
+    "ru": "Часть оплаты уже распределена, запас остаётся занятым. До полной оплаты отмена недоступна."
+  },
+  "已付款，持续占用直到交付完成": {
+    "en": "Paid. Inventory stays held until delivery finishes.",
+    "ja": "支払済みです。納品完了まで在庫を確保します。",
+    "ru": "Оплачен. Запас остаётся занятым до завершения поставки."
+  },
+  "已释放，不再占用供货库存": {
+    "en": "Released. This order no longer holds supplier inventory.",
+    "ja": "解放済みです。この注文は供給在庫を確保していません。",
+    "ru": "Освобождено. Этот заказ больше не удерживает запас поставщика."
+  },
+  "不限时，直到付清或取消": {
+    "en": "No time limit, until paid in full or cancelled",
+    "ja": "期限なし。完済または取り消しまで",
+    "ru": "Без срока, до полной оплаты или отмены"
+  },
+  "已付清，占用到交付完成": {
+    "en": "Paid in full. Held until delivery finishes",
+    "ja": "完済済み。納品完了まで確保",
+    "ru": "Оплачен полностью. Удерживается до завершения поставки"
+  },
+  "订单已结束，不再等待付款": {
+    "en": "Order finished. It is no longer waiting for payment",
+    "ja": "注文は終了し、支払いを待っていません",
+    "ru": "Заказ завершён и больше не ожидает оплату"
+  },
+  "未付款占用": {
+    "en": "Held by unpaid orders",
+    "ja": "未払い注文の確保",
+    "ru": "Удержание неоплаченными заказами"
+  },
+  "这些订单没有付款截止时间。付清并交付，或取消尚未分配收款的订单后释放。": {
+    "en": "These orders have no payment deadline. The hold ends after full payment and delivery, or when an order with no allocated payment is cancelled.",
+    "ja": "これらの注文に支払期限はありません。完済して納品するか、入金未割当の注文を取り消すと解放されます。",
+    "ru": "У этих заказов нет срока оплаты. Удержание снимается после полной оплаты и поставки либо при отмене заказа без распределённой оплаты."
+  },
+  "待交付占用": {
+    "en": "Held until delivery",
+    "ja": "納品までの確保",
+    "ru": "Удержание до поставки"
+  },
+  "收款已经分配，库存仍占用到交付完成。": {
+    "en": "Payment is allocated. Inventory stays held until delivery finishes.",
+    "ja": "入金は割り当て済みです。納品完了まで在庫を確保します。",
+    "ru": "Оплата распределена. Запас остаётся занятым до завершения поставки."
+  },
+  "正在占用的订单": {
+    "en": "Orders holding inventory",
+    "ja": "在庫を確保している注文",
+    "ru": "Заказы, удерживающие запас"
+  },
+  "未付款或已付款未交付的采购订单数量。": {
+    "en": "Count of procurement orders that are unpaid or paid but not yet delivered.",
+    "ja": "未払い、または支払済みで未納品の調達注文数です。",
+    "ru": "Число заказов закупки, которые не оплачены или оплачены, но ещё не поставлены."
   },
   "实际交易Hash（仅查找线索）": {
     "en": "Actual transaction hash (lookup hint only)",

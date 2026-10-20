@@ -95,10 +95,18 @@ func (k KVoucher) Lookup(ctx context.Context, m Merchant, o Order) (Fact, error)
 		return Fact{}, ErrProvider
 	}
 	switch order.Status {
-	case "pending_payment", "payment_submitted":
-		return Fact{}, ErrNotFinal
-	case "rejected", "refunded":
+	case "rejected", "refunded", "expired":
 		return Fact{}, ErrProvider
+	case "pending_payment", "payment_submitted":
+		// A live Gkash payment moves the order out of these states before a code exists.
+		// The sandbox never does that: it issues a dummy code without a completed payment.
+		sandbox, e := k.sandbox(ctx, m)
+		if e != nil {
+			return Fact{}, e
+		}
+		if !sandbox {
+			return Fact{}, ErrNotFinal
+		}
 	}
 	if len(order.Items) != 1 || order.Items[0].Qty < 1 || order.Items[0].Denomination == "" {
 		return Fact{}, ErrProvider
@@ -202,6 +210,19 @@ func (s *Service) KVoucherRefundChannels(ctx context.Context, operator string) [
 	return nil
 }
 
+func (k KVoucher) sandbox(ctx context.Context, m Merchant) (bool, error) {
+	raw, e := k.order(ctx, m, http.MethodGet, "/account", nil)
+	if e != nil {
+		return false, e
+	}
+	var account struct {
+		Test bool `json:"is_test_mode"`
+	}
+	if json.Unmarshal(raw, &account) != nil {
+		return false, ErrProvider
+	}
+	return account.Test, nil
+}
 func (k KVoucher) usdPerMYR(ctx context.Context, m Merchant) (ledger.Decimal, error) {
 	origin, e := k.origin(m)
 	if e != nil {

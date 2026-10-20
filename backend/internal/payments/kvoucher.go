@@ -378,14 +378,16 @@ func myrFaceForUSD(due, usdPerMYR ledger.Decimal) (string, error) {
 	if frac.Sign() < 0 {
 		frac.Abs(frac)
 	}
-	return whole.String() + "." + fmtFrac(frac), nil
-}
-func fmtFrac(frac *big.Int) string {
+	// KVoucher verifies the raw JSON. A trailing zero such as 4.00 is rewritten
+	// before verification and then rejected as a bad signature. 4 and 40.02 are stable.
+	if frac.Sign() == 0 {
+		return whole.String(), nil
+	}
 	text := frac.String()
 	if len(text) == 1 {
-		return "0" + text
+		text = "0" + text
 	}
-	return text
+	return whole.String() + "." + strings.TrimRight(text, "0"), nil
 }
 func normalizeRefundChannels(value string) []string {
 	allowed := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}

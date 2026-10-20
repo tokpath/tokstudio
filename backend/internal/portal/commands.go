@@ -202,11 +202,12 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			out, e := svc.SaveMerchant(ctx, actor, m, in.ExpectedVersion)
 			if e == nil && m.Driver == "kvoucher" && out.Merchant.Enabled && len(out.MissingFields) == 0 {
+				beforeID, beforeSecret := out.Merchant.Credentials["webhook_id"], out.Merchant.Credentials["webhook_secret"]
 				updated, hookErr := svc.EnsureKVoucherWebhook(ctx, out.Merchant, a.Config.PublicBaseURL)
 				if hookErr != nil {
 					return nil, hookErr
 				}
-				if updated.Credentials["webhook_id"] != out.Merchant.Credentials["webhook_id"] || updated.Credentials["webhook_secret"] != out.Merchant.Credentials["webhook_secret"] {
+				if updated.Credentials["webhook_id"] != beforeID || updated.Credentials["webhook_secret"] != beforeSecret {
 					out, e = svc.SaveMerchant(ctx, actor, updated, out.Merchant.Version)
 				}
 			}

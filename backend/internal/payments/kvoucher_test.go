@@ -19,6 +19,10 @@ func TestMYRFaceCoversUSDDueAfterKVoucherFee(t *testing.T) {
 	if err != nil || face != "40.02" {
 		t.Fatal(face, err)
 	}
+	whole, err := myrFaceForUSD(ledger.MustDecimal("1"), ledger.MustDecimal("0.245"))
+	if err != nil || whole != "4" {
+		t.Fatal(whole, err)
+	}
 }
 
 func TestKVoucherWebhookSignatureAndPaidRetrieval(t *testing.T) {

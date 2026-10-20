@@ -1,35 +1,30 @@
-// A new payment window has to be opened during the click that confirms the
-// method. Opening it after the checkout request returns is blocked by browsers.
+// The named window must be opened during the click that confirms KVoucher.
+// The form is submitted from this page into that window after checkout returns,
+// so the current page stays in place.
 
 const paymentWindowName = "tokpath-gkash";
 
 export function reservePaymentWindow(): Window | null {
-  const opened = window.open("about:blank", paymentWindowName);
-  if (!opened) return null;
-  opened.document.open();
-  opened.document.write("<!doctype html><title>Gkash</title><p>Opening payment page...</p>");
-  opened.document.close();
-  return opened;
+  return window.open("about:blank", paymentWindowName);
 }
 
 export function submitPaymentForm(target: Window | null, url: string, fields: Record<string, string>) {
   if (!target || target.closed) return false;
-  const doc = target.document;
-  doc.open();
-  doc.write("<!doctype html><title>Gkash</title><body></body>");
-  doc.close();
-  const form = doc.createElement("form");
+  const form = document.createElement("form");
   form.method = "POST";
   form.action = url;
+  form.target = paymentWindowName;
+  form.style.display = "none";
   for (const [name, value] of Object.entries(fields)) {
-    const input = doc.createElement("input");
+    const input = document.createElement("input");
     input.type = "hidden";
     input.name = name;
     input.value = value;
     form.append(input);
   }
-  doc.body.append(form);
+  document.body.append(form);
   form.submit();
+  form.remove();
   return true;
 }
 

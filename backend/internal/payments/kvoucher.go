@@ -145,7 +145,9 @@ func (KVoucher) VerifyWebhook(_ context.Context, m Merchant, w Webhook) (Hint, e
 		return Hint{}, ErrInvalid
 	}
 	hint := Hint{EventID: event.EventID, Kind: "receipt", ProviderID: event.Data.ID.String(), OrderID: event.Data.Metadata["order_ref"], SignatureVerified: true, Final: event.Event != "order.created" && event.Event != "test"}
-	if event.Event == "test" {
+	// order.created only means the order exists. Sandbox can already return a
+	// code then, which would mark our order paid before the payer sees the amount.
+	if event.Event == "test" || event.Event == "order.created" {
 		hint.Kind = "test"
 	}
 	return hint, nil

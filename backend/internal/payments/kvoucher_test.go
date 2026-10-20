@@ -79,6 +79,13 @@ func TestKVoucherWebhookSignatureAndPaidRetrieval(t *testing.T) {
 	if _, err = driver.VerifyWebhook(context.Background(), merchant, Webhook{Headers: http.Header{"X-Kvoucher-Signature": []string{"sha256=nope"}}, Body: body}); err == nil {
 		t.Fatal("accepted a bad signature")
 	}
+	created := []byte(`{"event_id":"evt-created","event":"order.created","data":{"id":30,"metadata":{"order_ref":"order-1"}}}`)
+	createdMAC := hmac.New(sha256.New, []byte(hex.EncodeToString(sum[:])))
+	createdMAC.Write(created)
+	createdHint, err := driver.VerifyWebhook(context.Background(), merchant, Webhook{Headers: http.Header{"X-Kvoucher-Signature": []string{"sha256=" + hex.EncodeToString(createdMAC.Sum(nil))}}, Body: created})
+	if err != nil || createdHint.Kind != "test" || createdHint.Final {
+		t.Fatal(createdHint, err)
+	}
 }
 
 func TestKVoucherSandboxBooksACodeBeforeTheGatewayLeavesPending(t *testing.T) {

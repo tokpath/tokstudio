@@ -633,10 +633,13 @@ func (a *Application) operatorResource(c *gin.Context) {
 			return
 		}
 		if e == nil {
-			items = append(items, entity(policy.ID, "effective", policy.Version, policy))
+			shown := values(policy)
+			shown["confirmation_days"] = policyDays(policy.ConfirmationSeconds)
+			shown["reward_validity_days"] = policyDays(policy.RewardValiditySeconds)
+			items = append(items, entity(policy.ID, "effective", policy.Version, shown))
 		}
-		p["columns"] = []gin.H{col("threshold_usd", "资格门槛", "usd"), col("direct_rate", "直属比例", "decimal"), col("indirect_rate", "间接比例", "decimal"), col("confirmation_seconds", "确认等待秒数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg")}
-		p["operations"] = []operation{{Name: "policy", Label: "发布资格与奖励政策", Method: "POST", Path: base, Fields: []field{jsonField("threshold_usd、direct_rate、indirect_rate、confirmation_seconds、invitee_atg、inviter_atg、reward_validity_seconds、kol_cross_activity_limit、expected_version")}, Description: "修改只影响规则指定的后续事实，已成立责任按原快照执行。"}}
+		p["columns"] = []gin.H{col("threshold_usd", "资格门槛", "usd"), col("direct_rate", "直属比例", "decimal"), col("indirect_rate", "间接比例", "decimal"), col("confirmation_days", "确认等待天数", "text"), col("reward_validity_days", "注册奖励有效天数", "text"), col("invitee_atg", "受邀奖励", "atg"), col("inviter_atg", "邀请奖励", "atg")}
+		p["operations"] = []operation{{Name: "policy", Label: "发布资格与奖励政策", Method: "POST", Path: base, Fields: []field{jsonField("threshold_usd、direct_rate、indirect_rate、confirmation_days、invitee_atg、inviter_atg、reward_validity_days、kol_cross_activity_limit、expected_version")}, Description: "修改只影响规则指定的后续事实，已成立责任按原快照执行。等待和奖励有效期按整天填写，默认 30 天。"}}
 	case "business-status":
 		row, e := a.Organization.GetBusinessStatus(ctx, nil, op.ID)
 		if e != nil {

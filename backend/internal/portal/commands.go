@@ -268,11 +268,22 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			out, e := a.Incentives.PublishCampaign(ctx, tx, in)
 			return gin.H{"id": out.CampaignID, "status": "published", "version": out.Version}, e
 		case "commissions":
-			var in incentives.PolicyInput
-			if json.Unmarshal(config, &in) != nil {
+			var in struct {
+				incentives.PolicyInput
+				ConfirmationDays   *int64 `json:"confirmation_days"`
+				RewardValidityDays *int64 `json:"reward_validity_days"`
+			}
+			if json.Unmarshal(config, &in) != nil || in.ConfirmationDays == nil || in.RewardValidityDays == nil {
 				return nil, incentives.ErrInvalidInput
 			}
-			out, e := a.Incentives.SetPolicy(ctx, tx, actor, op.ID, in)
+			confirmation, ok := policySecondsFromDays(*in.ConfirmationDays, 0, 365)
+			reward, rewardOK := policySecondsFromDays(*in.RewardValidityDays, 1, 3650)
+			if !ok || !rewardOK {
+				return nil, incentives.ErrInvalidInput
+			}
+			in.ConfirmationSeconds = confirmation
+			in.RewardValiditySeconds = reward
+			out, e := a.Incentives.SetPolicy(ctx, tx, actor, op.ID, in.PolicyInput)
 			return gin.H{"id": out.ID, "status": "published", "version": out.Version}, e
 		case "branding", "channel-themes":
 			target, targetErr := a.brandingTarget(c, op)

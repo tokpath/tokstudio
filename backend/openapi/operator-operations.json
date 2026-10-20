@@ -1298,8 +1298,8 @@
         "required": true
       },
       {
-        "name": "confirmation_seconds",
-        "label": "消费确认等待秒数",
+        "name": "confirmation_days",
+        "label": "消费确认等待天数",
         "kind": "integer",
         "required": true
       },
@@ -1316,8 +1316,8 @@
         "required": true
       },
       {
-        "name": "reward_validity_seconds",
-        "label": "注册奖励有效秒数",
+        "name": "reward_validity_days",
+        "label": "注册奖励有效天数",
         "kind": "integer",
         "required": true
       },

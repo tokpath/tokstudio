@@ -49290,10 +49290,10 @@
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "间接推荐分佣比例（0到1）"
           },
-          "confirmation_seconds": {
+          "confirmation_days": {
             "type": "integer",
             "minimum": 0,
-            "description": "消费确认等待秒数"
+            "description": "消费确认等待天数"
           },
           "invitee_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -49303,10 +49303,10 @@
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "邀请人注册赠送 ATG"
           },
-          "reward_validity_seconds": {
+          "reward_validity_days": {
             "type": "integer",
             "minimum": 0,
-            "description": "注册奖励有效秒数"
+            "description": "注册奖励有效天数"
           },
           "kol_cross_activity_limit": {
             "type": "integer",
@@ -49323,10 +49323,10 @@
           "threshold_usd",
           "direct_rate",
           "indirect_rate",
-          "confirmation_seconds",
+          "confirmation_days",
           "invitee_atg",
           "inviter_atg",
-          "reward_validity_seconds",
+          "reward_validity_days",
           "kol_cross_activity_limit",
           "expected_version"
         ],

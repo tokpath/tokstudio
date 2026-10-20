@@ -94,6 +94,16 @@
     "ja": "本アカウントの注文で消費済み、または未使用のまま期限切れとなった購入枠について、対応する実支払 USD を確認後に累積します。両区分は重複せず、各注文の有効な実支払額が上限です。入金、有効期間内の未消費購入枠、特典分は対象外です。期限切れ確認ではコミッションは発生せず、基準引上げでも取得済み資格は失われません。",
     "ru": "Для статуса учитывается подтверждённая оплаченная стоимость использованных или истёкших неиспользованных покупных единиц в заказах этого аккаунта. Категории не пересекаются; сумма по заказу не превышает действительную оплату. Пополнения, ещё действующие неиспользованные единицы и бонусы не учитываются. Подтверждение истечения не создаёт комиссию. Повышение порога сохраняет полученный статус."
   },
+  "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。": {
+    "en": "Enter whole days. The default is 30 days. Spending counts toward qualification, and the related commission can be used or withdrawn, only after the wait ends and there is no unresolved dispute. A wait that has already started keeps its original end time.",
+    "ja": "日数で入力します。既定は 30 日です。待機が終わり、未解決の争議がない消費だけが資格に算入され、対応するコミッションを利用・出金できます。すでに始まった待機は元の期限のままです。",
+    "ru": "Указывайте целые дни. По умолчанию 30 дней. Расход учитывается для статуса, а комиссию можно использовать или вывести только после окончания ожидания и при отсутствии нерешённого спора. Уже начатое ожидание сохраняет исходный срок."
+  },
+  "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。": {
+    "en": "Registration gifts last a whole number of days from successful registration. The default is 30 days. Unused registration rewards expire afterward.",
+    "ja": "登録特典は登録成功から日数で計算し、既定は 30 日です。期限後の未使用特典は使えません。",
+    "ru": "Подарок за регистрацию действует целое число дней с момента успешной регистрации. По умолчанию 30 дней. Неиспользованная награда после этого недоступна."
+  },
   "这是消费确认与佣金冻结的等待期，与请求用量待核实期限分别计算。等待期届满且相关消费无未结争议、完成确认后，消费计入资格，正确佣金解冻后才可使用或提现。已产生事件保留原确认时点，修订规则不追溯延长冻结。例如 7 天填写 604800 秒。": {
     "en": "This is the waiting period for spending confirmation and commission freezing, separate from request-usage verification. Spending counts toward qualification, and valid commission is released for use or withdrawal, only after the period ends and the related spending is confirmed without unresolved disputes. Existing events retain their original confirmation times; rule revisions do not extend freezes retroactively. Enter 604800 seconds for 7 days.",
     "ja": "消費確認とコミッション凍結の待機期間であり、リクエスト用量の検証期限とは別に計算します。期間経過後も未解決の争議がある消費は確認されません。争議なく確認された消費を資格に算入し、正しいコミッションを解凍して利用・出金可能にします。発生済みイベントの確認時点は保持され、規則改訂で凍結を遡って延長しません。7 日は 604800 秒です。",

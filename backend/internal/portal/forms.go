@@ -27,7 +27,11 @@ func businessFields(o operation) []field {
 	case "operators":
 		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
 	case "commissions":
-		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), f("confirmation_seconds", "消费确认等待秒数", "integer"), f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), f("reward_validity_seconds", "注册奖励有效秒数", "integer"), f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
+		confirmation := defaultField("confirmation_days", "消费确认等待天数", "integer", 30)
+		confirmation.Help = "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"
+		reward := defaultField("reward_validity_days", "注册奖励有效天数", "integer", 30)
+		reward.Help = "注册赠送额度从注册成功起按整天计算，默认 30 天。到期后尚未使用的注册奖励不再可用。"
+		return []field{f("threshold_usd", "终身资格累计净消费门槛 USD", "decimal"), f("direct_rate", "直接推荐分佣比例（0到1）", "decimal"), f("indirect_rate", "间接推荐分佣比例（0到1）", "decimal"), confirmation, f("invitee_atg", "受邀人注册赠送 ATG", "decimal"), f("inviter_atg", "邀请人注册赠送 ATG", "decimal"), reward, f("kol_cross_activity_limit", "KOL跨活动限制次数", "integer"), version}
 	case "activities":
 		return campaignFields(true, version)
 	case "marketing":
@@ -112,4 +116,28 @@ func cooperationBrandNameField() field {
 	v := f("brand_name", "OEM品牌名称", "text")
 	v.VisibleWhen = &fieldVisibility{Field: "kind", Values: []string{"oem"}}
 	return v
+}
+
+func policySecondsFromDays(days, min, max int64) (int64, bool) {
+	if days < min || days > max {
+		return 0, false
+	}
+	seconds := days * 86400
+	if seconds/86400 != days {
+		return 0, false
+	}
+	return seconds, true
+}
+
+// policyDays shows a stored duration as whole days. A leftover partial day is
+// rounded up so the form never asks the operator to type seconds.
+func policyDays(seconds int64) int64 {
+	if seconds <= 0 {
+		return 0
+	}
+	days := seconds / 86400
+	if seconds%86400 != 0 {
+		days++
+	}
+	return days
 }

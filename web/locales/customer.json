@@ -1964,6 +1964,51 @@
     "ja": "Gkash で支払う",
     "ru": "Перейти к оплате в Gkash"
   },
+  "重新打开 Gkash 付款": {
+    "en": "Open Gkash again",
+    "ja": "Gkash を開き直す",
+    "ru": "Открыть Gkash снова"
+  },
+  "改用其它付款方式": {
+    "en": "Choose another payment method",
+    "ja": "別の支払方法に戻る",
+    "ru": "Выбрать другой способ оплаты"
+  },
+  "选择其它付款方式": {
+    "en": "Another payment method",
+    "ja": "別の支払方法",
+    "ru": "Другой способ оплаты"
+  },
+  "确认更换付款方式": {
+    "en": "Confirm the new payment method",
+    "ja": "支払方法を変更する",
+    "ru": "Подтвердить новый способ оплаты"
+  },
+  "正在更换付款方式…": {
+    "en": "Changing the payment method…",
+    "ja": "支払方法を変更しています…",
+    "ru": "Меняем способ оплаты…"
+  },
+  "留下当前付款方式": {
+    "en": "Keep this payment method",
+    "ja": "今の支払方法のままにする",
+    "ru": "Оставить текущий способ"
+  },
+  "付款页金额": {
+    "en": "Amount on the payment page",
+    "ja": "支払ページの金額",
+    "ru": "Сумма на странице оплаты"
+  },
+  "这个金额含通道手续费。本订单仍按上方应付美元入账。": {
+    "en": "This amount includes the channel fee. This order is still recorded at the USD amount due shown above.",
+    "ja": "この金額には決済手数料が含まれます。注文の入金は上に表示された USD 請求額のままです。",
+    "ru": "Эта сумма включает комиссию канала. Заказ по-прежнему учитывается по сумме в USD выше."
+  },
+  "Gkash 付款页在新窗口打开，本页会留下来。请先看清付款页金额；不合适就改用其它付款方式。如果已经在 Gkash 付过，请先核实原通道，不要更换。": {
+    "en": "Gkash opens in a new window and this page stays here. Check the amount there. If it is not right, choose another method. If you already paid in Gkash, verify that payment before changing methods.",
+    "ja": "Gkash は新しいウィンドウで開き、このページは残ります。金額を確認し、合わなければ別の支払方法に戻ってください。すでに Gkash で支払った場合は、変更する前に元の決済を確認してください。",
+    "ru": "Gkash откроется в новом окне, а эта страница останется. Проверьте сумму. Если она не подходит, выберите другой способ. Если оплата в Gkash уже прошла, сначала проверьте её и не меняйте способ."
+  },
   "请在 Gkash 完成付款。付款页金额含通道手续费，本订单仍按应付美元入账。付完后回到此页并核实原通道。": {
     "en": "Complete payment in Gkash. The payment page includes the channel fee. This order is still recorded at its USD amount due. Return here afterward and check the original payment.",
     "ja": "Gkash で支払いを完了してください。支払ページの金額には決済手数料が含まれます。この注文の入金は当初の USD 請求額で記録されます。支払い後にこのページへ戻り、元の決済を確認してください。",

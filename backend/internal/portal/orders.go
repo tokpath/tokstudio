@@ -375,6 +375,67 @@ func (a *Application) order(c *gin.Context) {
 	}
 	c.JSON(200, dto)
 }
+func (a *Application) replacePaymentMethod(c *gin.Context) {
+	var in struct {
+		Method string `json:"external_method_id"`
+	}
+	if !body(c, &in) {
+		return
+	}
+	id := subject(c)
+	ctx := c.Request.Context()
+	raw, e := a.command(c, "payment-method:"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
+		o, e := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
+		if e != nil {
+			return nil, e
+		}
+		due := o.DueUSD.Sub(o.InternalUSD).Sub(o.CommissionUSD)
+		if due.Sign() <= 0 || o.ExternalAllocatedUSD.Sign() > 0 || o.Status == "completed" {
+			return nil, commerce.ErrOrderState
+		}
+		m, e := a.Payments.Merchant(ctx, o.OperatorID, in.Method)
+		if e != nil {
+			return nil, e
+		}
+		if !m.Enabled {
+			return nil, payments.ErrNotConfigured
+		}
+		var cr checkoutRow
+		if e = tx.First(&cr, "order_id=? AND customer_id=?", o.ID, o.CustomerID).Error; e != nil {
+			return nil, e
+		}
+		if cr.MerchantID != nil && *cr.MerchantID != m.ID {
+			intent, err := a.Payments.PaymentIntent(ctx, o.OperatorID, *cr.MerchantID, o.ID)
+			if err == nil && intent.State == "verified" {
+				return nil, payments.ErrConflict
+			}
+		}
+		if e = tx.Exec("UPDATE portal_order_checkout SET merchant_id=?, payment_order=NULL WHERE order_id=? AND customer_id=?", m.ID, o.ID, o.CustomerID).Error; e != nil {
+			return nil, e
+		}
+		return gin.H{"id": o.ID}, nil
+	})
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	var result struct{ ID string }
+	_ = json.Unmarshal(raw, &result)
+	o, e := a.Commerce.GetOrder(ctx, nil, id.Customer.Customer.ID, result.ID)
+	if e == nil {
+		e = a.ensureCheckout(ctx, o)
+	}
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	dto, e := a.orderDTO(ctx, o)
+	if e != nil {
+		handleError(c, e)
+		return
+	}
+	c.JSON(200, dto)
+}
 func (a *Application) reconcileOrder(c *gin.Context) {
 	id := subject(c)
 	ctx := c.Request.Context()

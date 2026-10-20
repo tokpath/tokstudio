@@ -44,5 +44,6 @@ export function useCommand<T extends z.ZodTypeAny>(path: string, schema: T, meth
     catch (e) { setError(e); return undefined; }
     finally { setBusy(false); }
   }
-  return { run, busy, error, result, unresolved, actionKey: attempt.current?.key };
+  function reset() { attempt.current = undefined; setResult(undefined); setError(undefined); }
+  return { run, reset, busy, error, result, unresolved, actionKey: attempt.current?.key };
 }

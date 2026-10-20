@@ -95,6 +95,20 @@ it("keeps payment instructions hidden for expired and refunded orders", () => {
   expect(screen.getByText(/此订单已结束/)).toBeTruthy();
 });
 
+it("keeps the order page and posts Gkash into a separate window", () => {
+  const change = vi.fn();
+  mount(<PaymentAction onChangeMethod={change} order={{ ...order, payment_action: { kind: "form", url: "https://api.gkash.my/api/PaymentForm.aspx", currency: "MYR", amount: "4.18", fields: { CID: "merchant", v_amount: "4.18" }, instructions: "请在 Gkash 完成付款。" } }} />);
+  const form = document.querySelector("form");
+  expect(form?.getAttribute("target")).toBe("tokpath-gkash");
+  expect(form?.getAttribute("method")?.toLowerCase()).toBe("post");
+  expect(form?.getAttribute("action")).toBe("https://api.gkash.my/api/PaymentForm.aspx");
+  expect(screen.getByRole("button", { name: "重新打开 Gkash 付款" })).toBeTruthy();
+  expect(screen.getByText("付款页金额")).toBeTruthy();
+  expect(screen.queryByText("merchant")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "改用其它付款方式" }));
+  expect(change).toHaveBeenCalledTimes(1);
+});
+
 it("shows offline bank account, original currency, precise amount and instructions without chain fields", () => {
   mount(<PaymentAction order={{ ...order, payment_action: { kind: "offline", address: "合成测试银行账号 6222-0000", currency: "USD", amount: "10.000000000000000001", instructions: "仅限隔离测试：付款备注原订单编号，由财务核对银行回单。" } }} />);
   expect(screen.getByText("合成测试银行账号 6222-0000")).toBeTruthy();

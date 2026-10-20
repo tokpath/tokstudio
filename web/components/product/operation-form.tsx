@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PaymentAction } from "./customer-plans";
+import { closePaymentWindow, reservePaymentWindow, submitPaymentForm } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useCommand } from "./shared";
 import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import { ConfigurationEditor } from "./operation-config-editor";
@@ -169,8 +170,17 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         assign(payload, field.name, parsed);
       }
       if (operation.include_version && row?.version !== undefined) payload.version = row.version;
-      if (Object.keys(activeFiles).length) { const data = new FormData(); for (const [key, value] of Object.entries(payload)) data.append(key, typeof value === "string" ? value : JSON.stringify(value)); for (const [key, file] of Object.entries(activeFiles)) data.append(key, file); await command.run(data); }
-      else await command.run(payload);
+      const kvoucher = operation.fields.some(field => {
+        if (field.name !== "merchant_id" && field.name !== "external_method_id") return false;
+        const selected = values[field.name] || "";
+        const label = field.options?.find(item => item.value === selected)?.label || referenceLabels[field.name] || "";
+        return label.toLowerCase().includes("kvoucher");
+      });
+      const payWindow = kvoucher ? reservePaymentWindow() : null;
+      const result = Object.keys(activeFiles).length ? await command.run((() => { const data = new FormData(); for (const [key, value] of Object.entries(payload)) data.append(key, typeof value === "string" ? value : JSON.stringify(value)); for (const [key, file] of Object.entries(activeFiles)) data.append(key, file); return data; })()) : await command.run(payload);
+      const payment = result?.order?.payment_action;
+      if (payment?.kind === "form" && payment.url && payment.fields) submitPaymentForm(payWindow, payment.url, payment.fields);
+      else closePaymentWindow(payWindow);
     } catch (error) { const configPath = error instanceof ConfigurationError ? error.fieldPath : undefined; setValidationError(error instanceof ConfigurationError ? error : error instanceof Error ? error.message : "请检查输入"); setInvalidField(currentField); setInvalidConfigPath(configPath); focusField(currentField, configPath); }
   }
   const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0"><p className="mb-2 text-xs font-medium tracking-wider text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2>{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={blocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
@@ -187,7 +197,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       {command.unresolved && <Notice><p className="font-medium text-ink">{t("本次办理结果待核实")}</p><p>{t("请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。")}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">{t("查看核对编号")}</summary><span className="mt-1 block break-all font-mono">{command.actionKey}</span></details></Notice>}
       {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p>{command.result.access_url && <AccessHandoff url={command.result.access_url} email={command.result.email} password={values.initial_password} requiresPasswordChange={command.result.requires_password_change} />}</div>}
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5"><Button type="submit" disabled={command.busy || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? t("原提交内容已锁定，等待核实。") : t("请先核对填写内容与实际凭证。")}</p>}</div>
-    </form>{command.result?.order && <PaymentAction order={command.result.order} />}</>;
+    </form>{command.result?.order && <PaymentAction order={command.result.order} onChangeMethod={operation.name === "checkout" ? () => command.reset() : undefined} />}</>;
   return embedded ? <section className="min-w-0">{content}</section> : <Card className="my-5">{content}</Card>;
 }
 

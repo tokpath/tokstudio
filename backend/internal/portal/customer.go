@@ -61,6 +61,7 @@ func (a *Application) customerRoutes(r *gin.RouterGroup) {
 	r.POST("/orders/quotes", a.quote)
 	r.POST("/orders", a.createOrder)
 	r.POST("/orders/:id/reconcile", a.reconcileOrder)
+	r.POST("/orders/:id/payment-method", a.replacePaymentMethod)
 	r.POST("/orders/:id/wallet-receipts", a.customerWalletReceipt)
 	r.GET("/requests", a.requests)
 	r.GET("/requests/:id", a.requestDetail)

@@ -425,11 +425,17 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		if q.Error != nil {
 			return q.Error
 		}
+		if q.RowsAffected > 0 && saved.MerchantID == in.MerchantID {
+			return nil
+		}
 		if q.RowsAffected > 0 {
-			if saved.MerchantID != in.MerchantID {
+			if o.AllocatedUSD.Sign() > 0 || o.Status == "completed" {
 				return payments.ErrConflict
 			}
-			return nil
+			intent, err := a.Payments.PaymentIntent(ctx, o.SupplierID, saved.MerchantID, id)
+			if err == nil && intent.State == "verified" {
+				return payments.ErrConflict
+			}
 		}
 		methods, e := a.Payments.PublicMethods(ctx, o.SupplierID)
 		if e != nil {
@@ -451,6 +457,9 @@ func (a *Application) procurementPayment(c *gin.Context, op organization.Operato
 		po := payments.Order{ID: id, OperatorID: o.SupplierID, MerchantID: in.MerchantID, Money: money, Valuation: val, AcceptedAt: o.CreatedAt, ExpiresAt: time.Now().UTC().Add(30 * time.Minute), Description: "TokenHub procurement " + id, NotifyURL: a.Config.PublicBaseURL + "/v1/payments/webhooks/" + in.MerchantID}
 		encoded, _ := json.Marshal(po)
 		saved = procurementCheckout{OrderID: id, BuyerID: op.ID, ActorID: actor, MerchantID: in.MerchantID, PaymentOrder: encoded, CreatedAt: time.Now().UTC()}
+		if q.RowsAffected > 0 {
+			return tx.Model(&procurementCheckout{}).Where("order_id=?", id).Updates(map[string]any{"merchant_id": in.MerchantID, "actor_id": actor, "payment_order": encoded}).Error
+		}
 		return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&saved).Error
 	})
 	if e != nil {

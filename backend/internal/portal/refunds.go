@@ -3,6 +3,7 @@ package portal
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
@@ -76,7 +77,20 @@ func (a *Application) refundWorkspace(c *gin.Context, p gin.H) {
 	p["description"] = "仅可退本人未使用的USD余额，按原始收款来源退回。已购ATG不能按现价或普通退订兑现；错误交易由经营方按原成交证据处理。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("operator_id", "原责任经营方", "text"), col("amount_usd", "申请USD", "usd"), col("kind", "类型", "text"), col("state", "处理状态", "status"), col("reason", "申请原因", "text"), col("created_at", "申请时间", "datetime")}
-	p["operations"] = []operation{{Name: "request", Label: "申请USD余额原路退回", Method: "POST", Path: "/api/v1/me/refunds", Fields: []field{f("amount_usd", "申请金额 USD", "decimal"), f("reason", "退款原因", "textarea")}, Confirmation: "将占用本人未使用USD余额并进入原路退款审核；未知支付结果期间不会重复付款。"}}
+	request := operation{Name: "request", Label: "申请USD余额原路退回", Method: "POST", Path: "/api/v1/me/refunds", Fields: []field{f("amount_usd", "申请金额 USD", "decimal"), f("reason", "退款原因", "textarea")}, Confirmation: "将占用本人未使用USD余额并进入原路退款审核；未知支付结果期间不会重复付款。"}
+	if id := subject(c); id != nil && id.Customer.Customer.ID != "" {
+		if channels := a.Payments.KVoucherRefundChannels(c.Request.Context(), id.Customer.Ownership.OperatorID); len(channels) > 0 {
+			options := make([]string, 0, len(channels))
+			labels := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}
+			for _, channel := range channels {
+				options = append(options, channel+"|"+labels[channel])
+			}
+			request.Label = "申请退款并登记收款账号"
+			request.Fields = []field{f("amount_usd", "申请金额 USD", "decimal"), selectField("payout_method", "收款方式", options...), f("payout_account", "收款账号", "text"), f("reason", "退款原因", "textarea")}
+			request.Confirmation = "提交后占用未使用的 USD 余额。经营方按你登记的账号线下打款，不会通过原支付通道自动退回。"
+		}
+	}
+	p["operations"] = []operation{request}
 	p["row_operations"] = []operation{{Name: "cancel", Label: "撤销未执行申请", Method: "POST", Path: "/api/v1/me/refunds/{id}/cancel", Fields: []field{}, Confirmation: "只可撤销尚未执行的原申请；已付款和结果未知的申请需继续核实。"}}
 
 	p["columns"] = append(p["columns"].([]gin.H), col("network", "退款网络", "text"), col("asset", "准确资产", "text"), col("token_contract", "代币合约", "text"), col("address", "本人授权接收地址", "text"), col("authorization_id", "财务已核实授权", "text"), col("route_version", "剩余款授权版本", "text"), col("history", "已封存授权历史", "details"))
@@ -86,13 +100,30 @@ func (a *Application) refundWorkspace(c *gin.Context, p gin.H) {
 }
 func (a *Application) requestRefund(c *gin.Context) {
 	var in struct {
-		Amount ledger.Decimal `json:"amount_usd"`
-		Reason string
+		Amount        ledger.Decimal `json:"amount_usd"`
+		Reason        string         `json:"reason"`
+		PayoutMethod  string         `json:"payout_method"`
+		PayoutAccount string         `json:"payout_account"`
 	}
 	if !body(c, &in) {
 		return
 	}
 	id := subject(c)
+	channels := a.Payments.KVoucherRefundChannels(c.Request.Context(), id.Customer.Ownership.OperatorID)
+	if len(channels) > 0 {
+		allowed := false
+		for _, channel := range channels {
+			if channel == in.PayoutMethod {
+				allowed = true
+			}
+		}
+		if !allowed || strings.TrimSpace(in.PayoutAccount) == "" {
+			handleError(c, payments.ErrInvalid)
+			return
+		}
+		labels := map[string]string{"bank": "银行卡", "alipay": "支付宝", "wechat": "微信支付", "tng": "Touch 'n Go", "duitnow": "DuitNow"}
+		in.Reason = "线下退款方式：" + labels[in.PayoutMethod] + "\n收款账号：" + strings.TrimSpace(in.PayoutAccount) + "\n退款原因：" + in.Reason
+	}
 	key, _ := key(c)
 	out, e := a.Remediation.RequestWalletRefund(c.Request.Context(), remediation.WalletRefundInput{OperatorID: id.Customer.Ownership.OperatorID, CustomerID: id.Customer.Customer.ID, BusinessKey: key, AmountUSD: in.Amount, Reason: in.Reason})
 	if e != nil {

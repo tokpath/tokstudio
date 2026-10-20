@@ -175,6 +175,14 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			svc := *a.Payments
 			svc.DB = tx
+			if m.Driver == "kvoucher" {
+				if strings.TrimSpace(m.Credentials["webhook_secret"]) == "" {
+					delete(m.Credentials, "webhook_secret")
+				}
+				if strings.TrimSpace(m.Credentials["webhook_id"]) == "" {
+					delete(m.Credentials, "webhook_id")
+				}
+			}
 			if in.ExpectedVersion > 0 {
 				old, e := svc.Merchant(ctx, op.ID, m.ID)
 				if e != nil {
@@ -193,8 +201,17 @@ func (a *Application) operatorCommand(c *gin.Context) {
 				}
 			}
 			out, e := svc.SaveMerchant(ctx, actor, m, in.ExpectedVersion)
+			if e == nil && m.Driver == "kvoucher" && out.Merchant.Enabled && len(out.MissingFields) == 0 {
+				updated, hookErr := svc.EnsureKVoucherWebhook(ctx, out.Merchant, a.Config.PublicBaseURL)
+				if hookErr != nil {
+					return nil, hookErr
+				}
+				if updated.Credentials["webhook_id"] != out.Merchant.Credentials["webhook_id"] || updated.Credentials["webhook_secret"] != out.Merchant.Credentials["webhook_secret"] {
+					out, e = svc.SaveMerchant(ctx, actor, updated, out.Merchant.Version)
+				}
+			}
 			status := "pending_configuration"
-			if len(out.MissingFields) == 0 && out.Merchant.Enabled {
+			if e == nil && len(out.MissingFields) == 0 && out.Merchant.Enabled {
 				status = "ready"
 			}
 			return gin.H{"id": m.ID, "status": status, "version": out.Merchant.Version, "message": "配置已保存；真实商户收款效果须在材料齐全后验证"}, e

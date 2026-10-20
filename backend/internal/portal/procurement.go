@@ -511,6 +511,8 @@ func procurementPaymentAction(ch payments.Checkout) gin.H {
 	switch {
 	case ch.ClientSecret != "":
 		p = gin.H{"kind": "stripe", "client_secret": ch.ClientSecret, "publishable_key": ch.PublishableKey}
+	case ch.URL != "" && len(ch.FormFields) > 0:
+		p = gin.H{"kind": "form", "url": ch.URL, "fields": ch.FormFields, "instructions": ch.Instructions}
 	case ch.URL != "":
 		p = gin.H{"kind": "redirect", "url": ch.URL}
 	case ch.PaymentAddress != "":

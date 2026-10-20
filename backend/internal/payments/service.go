@@ -69,7 +69,7 @@ type Service struct {
 }
 
 func NewService(db *gorm.DB, key string, auth Authorizer, http *Transport, sink ReceiptSink) *Service {
-	return &Service{DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "nowpayments": NOWPayments{http}, "evm_wallet": EVMWallet{http}, "manual": Manual{}}, Sink: sink}
+	return &Service{DB: db, EncryptionKey: key, Authorize: auth, Drivers: map[string]Driver{"stripe": Stripe{http}, "alipay": Alipay{http}, "wechat": Wechat{http}, "nowpayments": NOWPayments{http}, "evm_wallet": EVMWallet{http}, "manual": Manual{}, "kvoucher": KVoucher{http}}, Sink: sink}
 }
 
 type MerchantView struct {
@@ -360,6 +360,9 @@ func (s *Service) ReceiveWebhook(ctx context.Context, merchant string, w Webhook
 	hint, e := d.VerifyWebhook(ctx, m, w)
 	if e != nil || !hint.SignatureVerified {
 		return Hint{}, ErrSignature
+	}
+	if hint.Kind == "test" {
+		return hint, nil
 	}
 	if hint.OrderID == "" {
 		return Hint{}, ErrInvalid

@@ -237,6 +237,7 @@ func (a *Application) Router() *gin.Engine {
 	staff := v.Group("/operators/:operatorId", a.loadIdentity(true), a.requireStaff, a.requireCSRF)
 	a.operatorRoutes(staff)
 	a.modelRoutes(v)
+	v.POST("/payments/webhooks/kvoucher/:operatorId", a.kvoucherWebhook)
 	v.POST("/payments/webhooks/:merchantId", a.paymentWebhook)
 	r.NoRoute(func(c *gin.Context) { fail(c, 404, "not_found", "接口不存在", false) })
 	return r

@@ -139,14 +139,15 @@ func (o Order) Validate(m Merchant) error {
 }
 
 type Checkout struct {
-	ProviderID     string `json:"provider_id"`
-	State          string `json:"state"` // pending | requires_action | processing
-	URL            string `json:"url,omitempty"`
-	ClientSecret   string `json:"client_secret,omitempty"`
-	PublishableKey string `json:"publishable_key,omitempty"`
-	PaymentAddress string `json:"payment_address,omitempty"`
-	Instructions   string `json:"instructions,omitempty"`
-	PayMoney       *Money `json:"pay_money,omitempty"`
+	ProviderID     string            `json:"provider_id"`
+	State          string            `json:"state"` // pending | requires_action | processing
+	URL            string            `json:"url,omitempty"`
+	ClientSecret   string            `json:"client_secret,omitempty"`
+	PublishableKey string            `json:"publishable_key,omitempty"`
+	PaymentAddress string            `json:"payment_address,omitempty"`
+	Instructions   string            `json:"instructions,omitempty"`
+	PayMoney       *Money            `json:"pay_money,omitempty"`
+	FormFields     map[string]string `json:"form_fields,omitempty"`
 }
 type Refund struct {
 	ID                   string         `json:"id"`

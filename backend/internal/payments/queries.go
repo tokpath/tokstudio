@@ -20,15 +20,16 @@ func (in MerchantInput) Configuration() Merchant {
 }
 
 type PublicMethod struct {
-	ID            string `json:"id"`
-	Driver        string `json:"driver"`
-	Currency      string `json:"currency"`
-	Network       string `json:"network,omitempty"`
-	TokenContract string `json:"token_contract,omitempty"`
-	Instructions  string `json:"instructions,omitempty"`
-	Configured    bool   `json:"configured"`
-	RefundAPI     bool   `json:"refund_api"`
-	AutoCharge    bool   `json:"auto_charge"`
+	ID             string   `json:"id"`
+	Driver         string   `json:"driver"`
+	Currency       string   `json:"currency"`
+	Network        string   `json:"network,omitempty"`
+	TokenContract  string   `json:"token_contract,omitempty"`
+	Instructions   string   `json:"instructions,omitempty"`
+	Configured     bool     `json:"configured"`
+	RefundAPI      bool     `json:"refund_api"`
+	AutoCharge     bool     `json:"auto_charge"`
+	RefundChannels []string `json:"refund_channels,omitempty"`
 }
 
 func (s *Service) ListMerchantConfigs(ctx context.Context, actor, operator string) ([]MerchantView, error) {
@@ -93,6 +94,8 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 			currency = m.Credentials["asset"]
 		case "manual":
 			currency = m.Credentials["currency"]
+		case "kvoucher":
+			currency = "USD"
 		}
 		view := PublicMethod{ID: m.ID, Driver: m.Driver, Currency: currency, Configured: true, RefundAPI: m.Driver == "stripe" || m.Driver == "alipay" || m.Driver == "wechat", AutoCharge: m.Driver == "stripe"}
 		if m.Driver == "evm_wallet" {
@@ -105,6 +108,9 @@ func (s *Service) PublicMethods(ctx context.Context, operator string) ([]PublicM
 		}
 		if m.Driver == "manual" {
 			view.Instructions = m.Credentials["instructions"]
+		}
+		if m.Driver == "kvoucher" {
+			view.RefundChannels = normalizeRefundChannels(m.Credentials["refund_channels"])
 		}
 		out = append(out, view)
 	}

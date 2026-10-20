@@ -45,11 +45,11 @@ func businessFields(o operation) []field {
 	case "payments":
 		return []field{defaultField("provider", "人工核实通道", "text", "manual"), f("provider_receipt_id", "外部唯一收款流水", "text"), f("gross_usd", "实际入账总额USD", "decimal"), selectField("fee_status", "手续费证据", "pending|尚待核实", "confirmed|已核实"), optional("fee_usd", "已核实手续费USD", "decimal"), optional("net_usd", "已核实净入账USD", "decimal"), f("currency", "实际入账币种", "text"), f("original_amount", "原币种实收金额", "decimal"), optional("network", "原网络（链上收款必填）", "text"), f("recipient_reference", "实际收款账号证明", "text"), f("payer_reference", "实际付款人账号证明", "text"), f("valuation_evidence", "本次USD估值依据", "text"), f("verification_evidence", "真实银行核实凭证", "textarea"), f("paid_at", "真实付款时刻", "datetime"), f("observed_at", "核实时刻", "datetime"), optional("settled_at", "费用结算时刻（已确认必填）", "datetime")}
 	case "payment-methods":
-		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|银行人工核实"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
+		fields := []field{optional("id", "现有商户配置ID（首次留空）", "text"), selectField("driver", "真实通道协议", "stripe|Stripe", "alipay|支付宝", "wechat|微信支付", "nowpayments|NOWPayments", "evm_wallet|自有EVM钱包只读验证", "manual|银行人工核实", "kvoucher|KVoucher"), defaultField("enabled", "材料齐全后启用", "boolean", false), version}
 		asset := optional("asset_network_version_id", "平台已发布的准确资产与网络", "text")
 		asset.VisibleWhen = &fieldVisibility{Field: "driver", Values: []string{"evm_wallet", "nowpayments"}}
 		fields = append(fields, asset)
-		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "ipn_secret", "rpc_url", "wallet_address"} {
+		for _, key := range []string{"currency", "recipient_reference", "instructions", "secret_key", "publishable_key", "webhook_secret", "app_id", "mch_id", "merchant_api_private_key", "cert_serial", "api_v3_key", "wechat_public_key", "public_key_id", "app_private_key", "alipay_public_key", "seller_id", "api_key", "kvoucher_api_key", "kvoucher_api_secret", "refund_channels", "ipn_secret", "rpc_url", "wallet_address"} {
 			v := optional("credentials."+key, "通道材料 · "+key, "text")
 			if strings.Contains(key, "private_key") || strings.Contains(key, "public_key") {
 				v.Kind = "textarea"

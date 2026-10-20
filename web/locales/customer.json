@@ -1959,6 +1959,16 @@
     "ja": "決済サービスへ",
     "ru": "Перейти к оплате"
   },
+  "前往 Gkash 付款": {
+    "en": "Continue to Gkash",
+    "ja": "Gkash で支払う",
+    "ru": "Перейти к оплате в Gkash"
+  },
+  "请在 Gkash 完成付款。付款页金额含通道手续费，本订单仍按应付美元入账。付完后回到此页并核实原通道。": {
+    "en": "Complete payment in Gkash. The payment page includes the channel fee. This order is still recorded at its USD amount due. Return here afterward and check the original payment.",
+    "ja": "Gkash で支払いを完了してください。支払ページの金額には決済手数料が含まれます。この注文の入金は当初の USD 請求額で記録されます。支払い後にこのページへ戻り、元の決済を確認してください。",
+    "ru": "Завершите оплату в Gkash. На странице оплаты указана комиссия канала. Заказ учитывается по исходной сумме в USD. Затем вернитесь сюда и проверьте исходный платёж."
+  },
   "付款币种": {
     "en": "Payment currency",
     "ja": "支払通貨",

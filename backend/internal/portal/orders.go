@@ -318,6 +318,8 @@ func (a *Application) orderDTO(ctx context.Context, o commerce.Order) (gin.H, er
 				action = gin.H{"kind": "offline", "address": ch.PaymentAddress, "instructions": ch.Instructions}
 			case ch.ClientSecret != "":
 				action = gin.H{"kind": "stripe", "client_secret": ch.ClientSecret, "publishable_key": ch.PublishableKey}
+			case ch.URL != "" && len(ch.FormFields) > 0:
+				action = gin.H{"kind": "form", "url": ch.URL, "fields": ch.FormFields, "instructions": ch.Instructions}
 			case ch.URL != "":
 				action = gin.H{"kind": "redirect", "url": ch.URL}
 			case ch.PaymentAddress != "":
@@ -690,6 +692,36 @@ func (a *Application) deliverReceipt(ctx context.Context, op, receiptID, orderID
 		}
 		return a.authorizeRenewal(ctx, tx, order, cr)
 	})
+}
+func (a *Application) kvoucherWebhook(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20)
+	raw, e := io.ReadAll(c.Request.Body)
+	if e != nil {
+		fail(c, 400, "invalid_webhook", "回调内容无效", false)
+		return
+	}
+	methods, e := a.Payments.PublicMethods(c.Request.Context(), c.Param("operatorId"))
+	if e != nil {
+		fail(c, 400, "invalid_webhook", "回调签名或商户配置无效", false)
+		return
+	}
+	merchant := ""
+	for _, method := range methods {
+		if method.Driver == "kvoucher" {
+			merchant = method.ID
+			break
+		}
+	}
+	if merchant == "" {
+		fail(c, 400, "invalid_webhook", "回调签名或商户配置无效", false)
+		return
+	}
+	_, e = a.Payments.ReceiveWebhook(c.Request.Context(), merchant, payments.Webhook{Headers: c.Request.Header.Clone(), Body: raw, ReceivedAt: time.Now().UTC()})
+	if e != nil {
+		fail(c, 400, "invalid_webhook", "回调签名或商户配置无效", false)
+		return
+	}
+	c.JSON(200, gin.H{"received": true})
 }
 func (a *Application) paymentWebhook(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20)

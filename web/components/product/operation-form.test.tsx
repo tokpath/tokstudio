@@ -19,6 +19,21 @@ it("only sends materials belonging to the selected payment driver",async()=>{con
 
 it("serializes a hidden destination consent as a boolean",async()=>{const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"proposal",status:"awaiting_finance_verification"}),{status:200}));vi.stubGlobal("fetch",fetch);show({name:"destination",label:"确认剩余款目的地",method:"POST",path:"/api/v1/me/refunds/legs/leg/responsible-destination",fields:[{name:"responsible_execution",label:"本人同意",kind:"hidden",default_value:true}]});fireEvent.click(screen.getByRole("button",{name:"确认剩余款目的地",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({responsible_execution:true});});
 
+it("keeps confirmation and reward periods in the time section", () => {
+  show({ name: "policy", label: "发布资格与奖励政策", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
+    { name: "threshold_usd", label: "终身资格累计净消费门槛 USD", kind: "decimal", required: true },
+    { name: "confirmation_days", label: "消费确认等待天数", kind: "integer", required: true, default_value: 30 },
+    { name: "invitee_atg", label: "受邀人注册赠送 ATG", kind: "decimal", required: true },
+    { name: "reward_validity_days", label: "注册奖励有效天数", kind: "integer", required: true, default_value: 30 },
+  ] });
+  const time = screen.getByRole("heading", { name: "时间与有效期" }).closest("section");
+  const money = screen.getByRole("heading", { name: "金额、额度与办理规则" }).closest("section");
+  expect(time?.textContent).toContain("消费确认等待天数");
+  expect(time?.textContent).toContain("注册奖励有效天数");
+  expect(money?.textContent).not.toContain("消费确认等待天数");
+  expect(time?.textContent?.indexOf("消费确认等待天数")).toBeLessThan(time?.textContent?.indexOf("注册奖励有效天数") ?? 0);
+});
+
 function mount(operation:Operation,props:Partial<React.ComponentProps<typeof OperationForm>>={}){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} {...props}/></QueryClientProvider>)}
 function priceOperation(configuration:JSONValue):Operation{return {name:"price",label:"发布价格版本",method:"POST",path:"/api/v1/operators/operator-one/pricing",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true,default_value:configuration}]};}
 function priceConfig():JSONValue{return {action:"price",evidence:"verified-notice",price:{id:"price-new",model_id:"model-one",scope:{kind:"retail",seller_id:"operator-one"},layer:"regular",effective_at:"2026-12-01T00:00:00Z",rule:{mode:"manual",components:[{key:"input_tokens",unit:"token",per:"1000000",rate:"1.000000000000000001",tiers:[]}]},published:true},provider_extension:{exact:"0.000000000000000000000001"}};}

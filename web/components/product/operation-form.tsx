@@ -71,7 +71,7 @@ function visible(field: CommandField, values: Record<string, string>, row?: Enti
 function group(field: CommandField): string {
   if (field.name.startsWith("credentials.") || field.name === "api_base_url") return "通道接入材料";
   if (/evidence|reference|reason|explanation|terms/.test(field.name) && !field.lookup_url) return "依据与办理说明";
-  if (/(_at$|^from$|^to$|timezone|period|seconds)/.test(field.name)) return "时间与有效期";
+  if (/(_at$|^from$|^to$|timezone|period|seconds|days)/.test(field.name)) return "时间与有效期";
   if (field.kind === "decimal" || /budget|limit|approval|confirmation/.test(field.name)) return "金额、额度与办理规则";
   return "办理信息";
 }

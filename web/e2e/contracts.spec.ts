@@ -43,8 +43,8 @@ test("explicit dark mode keeps a branded white website readable", async ({ page 
   const surface = page.locator(".product-theme");
   await expect(surface).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await page.getByLabel("显示主题").selectOption("dark");
-  await expect(surface).toHaveCSS("background-color", "rgb(22, 21, 19)");
-  await expect(surface).toHaveCSS("color", "rgb(237, 234, 228)");
+  await expect(surface).toHaveCSS("background-color", "rgb(14, 22, 37)");
+  await expect(surface).toHaveCSS("color", "rgb(232, 238, 248)");
   await page.getByLabel("显示主题").selectOption("light");
   await expect(surface).toHaveCSS("color", "rgb(17, 24, 39)");
 });

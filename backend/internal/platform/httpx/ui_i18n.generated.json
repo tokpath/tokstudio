@@ -3287,6 +3287,12 @@
     "招待コードを使用",
     "Использовать код приглашения"
   ],
+  "使用邮箱继续": [
+    "使用邮箱继续",
+    "Continue with email",
+    "メールアドレスで続ける",
+    "Продолжить по электронной почте"
+  ],
   "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。": [
     "例如 1.2 表示按跟随价目的 120% 定价。它只是定价倍率；实际利润还取决于采购成本、赠送、佣金和费用，不能当作利润率。",
     "For example, 1.2 prices at 120% of the followed rate. This is a pricing multiplier, not a profit margin: real profit also depends on procurement cost, bonuses, commissions and fees.",
@@ -12748,6 +12754,12 @@
     "The service cannot complete the operation right now. Try again later.",
     "現在サービスで操作を完了できません。後ほど再試行してください。",
     "Сервис временно не может выполнить операцию. Повторите позже."
+  ],
+  "服务条款": [
+    "服务条款",
+    "Service terms",
+    "サービス条件",
+    "Условия обслуживания"
   ],
   "服务概览": [
     "服务概览",

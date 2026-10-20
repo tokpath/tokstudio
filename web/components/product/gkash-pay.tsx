@@ -22,7 +22,7 @@ export function GkashPay({ action, order, onChangeMethod }: { action: NonNullabl
   const methods = (context?.payment_methods || []).filter(item => item.status === "ready" && item.id !== "");
   const others = methods.filter(item => item.name !== "kvoucher");
   const customerCanSwitch = session?.kind === "customer" && others.length > 0;
-  return <div className="space-y-4">
+  return <div className="space-y-5">
     <DetailAmount action={action} />
     <Notice>{t("Gkash 付款页在新窗口打开，本页会留下来。请先看清付款页金额；不合适就改用其它付款方式。如果已经在 Gkash 付过，请先核实原通道，不要更换。")}</Notice>
     <form method="POST" action={href} target={paymentWindowName} className="flex flex-wrap gap-3">
@@ -42,5 +42,5 @@ export function GkashPay({ action, order, onChangeMethod }: { action: NonNullabl
 function DetailAmount({ action }: { action: NonNullable<Order["payment_action"]> }) {
   const { t } = useI18n();
   if (!action.amount) return null;
-  return <p className="text-sm leading-7">{t("付款页金额")}<span className="ml-2 font-medium"><Money value={action.amount} unit={action.currency || ""} /></span><span className="mt-1 block text-xs text-ink-mute">{t("这个金额含通道手续费。本订单仍按上方应付美元入账。")}</span></p>;
+  return <div className="rounded-xl border border-hairline bg-canvas p-4"><p className="text-xs text-ink-secondary">{t("付款页金额")}<span className="mt-2 block text-2xl font-semibold text-ink"><Money value={action.amount} unit={action.currency || ""} /></span><span className="mt-1 block text-xs text-ink-mute">{t("这个金额含通道手续费。本订单仍按上方应付美元入账。")}</span></p></div>;
 }

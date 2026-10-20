@@ -1,5 +1,9 @@
 import type { Config } from "tailwindcss";
 
+// The alpha placeholder lets Tailwind emit /opacity utilities while keeping
+// runtime OEM colors in hex CSS variables.
+const semanticColor = (name: string) => `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
+
 const config: Config = {
   darkMode: "class",
   content: {
@@ -20,30 +24,12 @@ const config: Config = {
         ],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
-      colors: {
-        canvas: "var(--canvas)",
-        "canvas-raised": "var(--canvas-raised)",
-        ink: "var(--ink)",
-        "ink-secondary": "var(--ink-secondary)",
-        "ink-mute": "var(--ink-mute)",
-        hairline: "var(--hairline)",
-        brand: "var(--brand)",
-        "brand-press": "var(--brand-press)",
-        "brand-soft": "var(--brand-soft)",
-        "brand-emphasis": "var(--brand-emphasis)",
-        "on-brand": "var(--on-brand)",
-        success: "var(--success)",
-        hold: "var(--hold)",
-        danger: "var(--danger)",
-        degraded: "var(--degraded)",
-        code: "var(--code)",
-        "code-ink": "var(--code-ink)",
-        "code-hairline": "var(--code-hairline)",
-        scrim: "var(--scrim)",
-      },
+      colors: Object.fromEntries([
+        "canvas", "canvas-raised", "ink", "ink-secondary", "ink-mute", "hairline", "brand", "brand-press", "brand-soft", "brand-emphasis", "on-brand", "success", "hold", "danger", "degraded", "code", "code-ink", "code-hairline", "scrim",
+      ].map(name => [name, semanticColor(name)])),
       borderRadius: {
         stamp: "10px",
-        card: "12px",
+        card: "16px",
         control: "8px",
       },
     },

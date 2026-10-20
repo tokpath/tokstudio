@@ -70,7 +70,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
     </div>}
     {isOpening && <OpeningChecklist operatorID={operatorID} row={businessRow} />}
     {isPlatform && <details className="mb-5"><summary className="cursor-pointer text-sm text-brand-emphasis">{t("平台直接维护供应商与上游路由")}</summary><div className="mt-3"><Notice><p>{t("平台没有上级采购账户。模型履约依赖供应商接入、有效成本价和合格上游路由；平台继续承担客户服务与对下供货责任。")}</p><div className="mt-3 flex flex-wrap gap-4">{[["providers", t("维护模型供应商")], ["routes", t("维护上游路由")]].filter(([resource]) => canReadResource(workspace, resource)).map(([resource, label]) => <Link key={resource} className="text-brand-emphasis underline" href={destination(resource)}>{t(label)}</Link>)}</div></Notice></div></details>}
-    <div className="mb-5 flex flex-wrap gap-2" aria-label={t("常用办理入口")}>{focusResources[focus].filter(resource => canReadResource(workspace, resource)).map(resource => <Button key={resource} variant="outline" asChild><Link href={destination(resource)}>{t(resourceLabel(resource))}<ArrowRight size={14} className="ml-2" /></Link></Button>)}</div>
+    <div className="mb-5 flex flex-wrap gap-2" aria-label={t("常用办理入口")}>{focusResources[focus].filter(resource => canReadResource(workspace, resource)).map(resource => <Button key={resource} variant="ghost" size="sm" asChild><Link href={destination(resource)}>{t(resourceLabel(resource))}<ArrowRight size={14} className="ml-2" /></Link></Button>)}</div>
     <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_1fr]">
       <Card className="min-w-0">
         <div className="mb-5 flex items-center gap-3">
@@ -102,6 +102,13 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
     </div>
     {overview.data && applicableMetrics.some(metric => metric.unit) && <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{applicableMetrics.filter(metric => metric.unit).map(metric => <div key={metric.key}><Stat label={t(metric.label)} value={metrics[metric.key] ?? t("尚未核实")} unit={metrics[metric.key] !== undefined ? metric.unit : undefined} detail={metrics[metric.key] !== undefined ? undefined : t("尚未取得可核实的指标，请到履约与超卖或采购页面查询原始责任。")} /><FieldHelp title={t(metric.label)}>{t(metric.detail)}</FieldHelp></div>)}
     </div>}
+    {overview.data && applicableMetrics.filter(metric => !metric.unit && metrics[metric.key] !== undefined).length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{applicableMetrics.filter(metric => !metric.unit && metrics[metric.key] !== undefined).map(metric => <div key={metric.key} className="rounded-control border border-hairline px-4 py-3">
+      <p className="text-xs text-ink-mute">{t(metric.label)}
+      </p>
+      <p className="mt-2 text-lg font-semibold">{metrics[metric.key]} <span className="text-xs font-normal text-ink-mute">{t("笔")}</span>
+      </p>
+    </div>)}
+    </div>}
     <Card className="mt-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -113,7 +120,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
         </div>{canReadResource(workspace, "business-status") && <Button asChild size="sm" variant="outline">
           <Link href={destination("business-status")}>{t("检查并调整营业项目")}</Link>
         </Button>}
-      </div>{business.isLoading ? <Loading /> : business.isError ? <ErrorPanel error={business.error} retry={() => void business.refetch()} compact /> : businessRow ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{businessFeatures.map(([key, label, help]) => <div key={key} className="rounded-control border border-hairline p-4">
+      </div>{business.isLoading ? <Loading /> : business.isError ? <ErrorPanel error={business.error} retry={() => void business.refetch()} compact /> : businessRow ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{businessFeatures.map(([key, label, help]) => <div key={key} className="rounded-xl bg-canvas p-4">
         <div className="flex items-center gap-2">{businessRow.values[key] ? <Check size={16} className="text-success" /> : <Circle size={15} className="text-ink-mute" />}
           <h3 className="text-sm font-medium">{t(label)}
           </h3>
@@ -126,13 +133,7 @@ export function OperatorOverview({ operatorID }: { operatorID: string }) {
       </div> : <p className="text-sm text-ink-mute">{t("营业项目详情需业务管理权限。")}</p>}
     </Card>
 
-    {overview.data && applicableMetrics.filter(metric => !metric.unit && metrics[metric.key] !== undefined).length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{applicableMetrics.filter(metric => !metric.unit && metrics[metric.key] !== undefined).map(metric => <div key={metric.key} className="rounded-control border border-hairline px-4 py-3">
-      <p className="text-xs text-ink-mute">{t(metric.label)}
-      </p>
-      <p className="mt-2 text-lg font-semibold">{metrics[metric.key]} <span className="text-xs font-normal text-ink-mute">{t("笔")}</span>
-      </p>
-    </div>)}
-    </div>}
+
   </>;
 }
 
@@ -261,8 +262,8 @@ function TaskRow({ title, description, count, href }: { title: string; descripti
       </span>
     </div>
     <p className="mt-2 text-xs leading-6 text-ink-mute">{t(description)}
-    </p>{!href && <p className="mt-1 text-xs text-ink-mute">{t("请由具备相应权限的人员办理。")}</p>}</>; return href ? <Link className="block rounded-control border border-hairline p-4 transition-colors hover:border-brand" href={href}>{body}
-    </Link> : <div className="rounded-control border border-hairline p-4">{body}
+    </p>{!href && <p className="mt-1 text-xs text-ink-mute">{t("请由具备相应权限的人员办理。")}</p>}</>; return href ? <Link className="block rounded-control bg-canvas px-4 py-4 transition-colors hover:bg-brand-soft" href={href}>{body}
+    </Link> : <div className="rounded-control bg-canvas p-4">{body}
     </div>;
 }
 function WorkflowGuide({ operatorID, resource }: { operatorID: string; resource: string }) {
@@ -270,7 +271,7 @@ function WorkflowGuide({ operatorID, resource }: { operatorID: string; resource:
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const flow = workflows[resource];
-  return <details className="mb-5 rounded-control border border-hairline bg-canvas-raised px-4 py-3"><summary className="cursor-pointer text-sm text-brand-emphasis">{t("办理说明与相关入口")}</summary><div className="mt-4">
+  return <details className="th-help-inline"><summary className="cursor-pointer text-sm text-brand-emphasis">{t("办理说明与相关入口")}</summary><div className="mt-4">
     <ol className="grid gap-5 md:grid-cols-3">{flow.steps.map(([title, text], index) => <li key={title} className="flex gap-3">
       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-emphasis">{index + 1}
       </span>

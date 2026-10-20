@@ -2,73 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TokenHub Clearing 1.0：纸是 Light，碳是 Dark。组件只写这些语义变量，见 DESIGN.md。 */
+/* TokenHub 2.0: quiet surfaces, precise data, brand-owned accents. */
 :root,
 html.light {
   --font-sans: Inter, ui-sans-serif, system-ui;
   --font-mono: "SFMono-Regular", Consolas;
-  --canvas: #f4f1ea;
-  --canvas-raised: #fffdf8;
-  --ink: #141414;
-  --ink-secondary: #4a453c;
-  --ink-mute: #7a7368;
+  --canvas: #f5f7fb;
+  --canvas-raised: #ffffff;
+  --ink: #172334;
+  --ink-secondary: #526178;
+  --ink-mute: #69788c;
   --muted: var(--ink-mute);
-  --hairline: #d9d3c7;
-  --brand: var(--oem-brand, #2150d6);
-  --brand-primary: var(--oem-brand, #2150d6);
-  --brand-press: var(--oem-brand-press, #183ca8);
-  --brand-soft: var(--oem-brand-soft, #dce6fb);
-  --brand-emphasis: var(--oem-brand-emphasis, #2150d6);
+  --hairline: #e1e7ef;
+  --brand: var(--oem-brand, #2f62e8);
+  --brand-primary: var(--oem-brand, #2f62e8);
+  --brand-press: var(--oem-brand-press, #2452ca);
+  --brand-soft: var(--oem-brand-soft, #e9efff);
+  --brand-emphasis: var(--oem-brand-emphasis, #2f62e8);
   --on-brand: var(--oem-on-brand, #ffffff);
+  --on-brand-press: #ffffff;
+  --on-danger: #ffffff;
   --success: #1f7a4d;
   --hold: #b45309;
   --danger: #c23b22;
   --degraded: #9a6700;
-  --code: #1f1d1a;
-  --code-ink: #edeae4;
-  --code-hairline: #2a2723;
-  --scrim: rgba(20, 20, 20, 0.4);
+  --code: #152033;
+  --code-ink: #e8eef8;
+  --code-hairline: #2b3a50;
+  --scrim: rgba(15, 28, 48, 0.32);
   color-scheme: light;
 }
 
 html.dark {
-  --canvas: #161513;
-  --canvas-raised: #1f1d1a;
-  --ink: #edeae4;
-  --ink-secondary: #c4bdb2;
-  --ink-mute: #8a8378;
+  --canvas: #0e1625;
+  --canvas-raised: #152033;
+  --ink: #e8eef8;
+  --ink-secondary: #b6c3d7;
+  --ink-mute: #8c9db6;
   --muted: var(--ink-mute);
-  --hairline: #2a2723;
-  --brand: var(--oem-brand, #2150d6);
-  --brand-primary: var(--oem-brand, #2150d6);
-  --brand-press: var(--oem-brand-press, #183ca8);
-  --brand-soft: var(--oem-brand-soft-dark, #243056);
-  --brand-emphasis: var(--oem-brand-emphasis-dark, #8aa4ff);
+  --hairline: #2b3a50;
+  --brand: var(--oem-brand, #2f62e8);
+  --brand-primary: var(--oem-brand, #2f62e8);
+  --brand-press: var(--oem-brand-press, #2452ca);
+  --brand-soft: var(--oem-brand-soft-dark, #233b65);
+  --brand-emphasis: var(--oem-brand-emphasis-dark, #a4bfff);
   --on-brand: var(--oem-on-brand, #ffffff);
   --success: #1f7a4d;
   --hold: #b45309;
   --danger: #c23b22;
   --degraded: #9a6700;
-  --code: #1f1d1a;
-  --code-ink: #edeae4;
-  --code-hairline: #2a2723;
-  --scrim: rgba(20, 20, 20, 0.64);
+  --code: #152033;
+  --code-ink: #e8eef8;
+  --code-hairline: #2b3a50;
+  --scrim: rgba(3, 9, 18, 0.64);
+  --success: #70d6aa;
+  --hold: #f3c472;
+  --danger: #ff9b9b;
+  --degraded: #edc981;
+  --on-danger: #351b24;
   color-scheme: dark;
 }
 
 /* Brand colors apply to the light surface; explicit dark mode keeps readable
    surfaces and retains the brand accent rather than inheriting a white canvas. */
 .product-theme {
-  --canvas: var(--branding-background, #f4f1ea);
-  --canvas-raised: var(--branding-background, #fffdf8);
-  --ink: var(--branding-text, #141414);
+  background-color: var(--canvas);
+  color: var(--ink);
+  --canvas: var(--branding-background, #f5f7fb);
+  --canvas-raised: var(--branding-background, #ffffff);
+  --ink: var(--branding-text, #172334);
   --brand-emphasis: var(--brand-primary);
+  --surface-subtle: color-mix(in srgb, var(--canvas) 82%, #dce5f2);
+  --surface-hover: color-mix(in srgb, var(--brand-primary) 5%, var(--canvas-raised));
+  --shadow-panel: 0 24px 80px rgba(15, 28, 48, .18);
 }
 html.dark .product-theme {
-  --canvas: #161513;
-  --canvas-raised: #1f1d1a;
-  --ink: #edeae4;
-  --brand-emphasis: color-mix(in srgb, var(--brand-primary) 60%, white);
+  --canvas: #0e1625;
+  --canvas-raised: #152033;
+  --ink: #e8eef8;
+  --brand-emphasis: color-mix(in srgb, var(--brand-primary) 45%, white);
+  --surface-subtle: #0e1625;
+  --surface-hover: #1b2a42;
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, .4);
 }
 
 body {
@@ -76,6 +91,7 @@ body {
   background: var(--canvas);
   color: var(--ink);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -158,3 +174,64 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   header, aside, footer, nav, button { display: none !important; }
   main { padding: 0 !important; }
 }
+
+/* Shared visual language; business components keep their semantic colors. */
+@layer components {
+  .th-card { box-shadow: 0 1px 2px rgb(15 28 48 / .025); }
+  .th-card > .th-empty { border: 0; background: transparent; padding: 24px 0; }
+  .th-page-heading { @apply mb-7 flex flex-wrap items-start justify-between gap-4; }
+  .th-page-heading h1 { @apply text-2xl font-semibold tracking-tight sm:text-[28px]; line-height: 1.3; }
+  .th-page-heading > div { @apply min-w-0; }
+  .th-page-heading .th-eyebrow { @apply mb-2; }
+  .th-money { font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
+  .th-workspace { background: var(--surface-subtle); }
+  .th-sidebar { background: var(--canvas-raised); }
+  .th-nav-item { @apply relative flex min-h-11 items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition-colors; }
+  .th-nav-item[aria-current=page], .th-nav-item[data-active=true] { background: var(--brand-soft); color: var(--brand-emphasis); font-weight: 600; }
+  .th-nav-item[data-active=true]::before { content: ''; position: absolute; inset-inline-start: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--brand); }
+  .th-nav-item:hover, .th-nav-subitem:hover { background: var(--surface-hover); }
+  .th-nav-subitem { @apply block min-h-10 rounded-control px-3 py-2.5 text-[13px] leading-5 transition-colors; }
+  .th-nav-subitem[aria-current=page] { background: var(--surface-hover); color: var(--brand-emphasis); font-weight: 600; }
+  .th-app-header { @apply sticky top-0 z-30 border-b border-hairline bg-canvas-raised; }
+  .th-header-link { @apply rounded-control px-2 py-2 transition-colors hover:bg-canvas hover:text-brand-emphasis; }
+  .th-table { @apply overflow-x-auto rounded-card border border-hairline bg-canvas-raised; }
+  .th-table thead { background: var(--surface-hover); }
+  .th-table th { @apply whitespace-nowrap px-5 py-3 text-xs font-medium text-ink-secondary; }
+  .th-table td { @apply max-w-sm px-5 py-3.5 align-middle; }
+  .th-table tbody tr { @apply border-b border-hairline transition-colors last:border-0; }
+  .th-table tbody tr:hover { background: var(--surface-hover); }
+  .th-toolbar { @apply mb-5 flex flex-wrap items-start justify-between gap-3 rounded-card border border-hairline bg-canvas-raised p-4; }
+  .th-help-inline { @apply mb-5 text-sm text-ink-secondary; }
+  .th-help-inline > summary { @apply w-fit cursor-pointer rounded-control py-1 text-xs font-medium text-brand-emphasis; }
+  .th-help-inline[open] { @apply rounded-card border border-hairline bg-canvas-raised px-4 py-3; }
+  .th-operation-panel { background: var(--canvas-raised); box-shadow: var(--shadow-panel); }
+  .th-review { @apply rounded-card border border-hairline p-5; background: var(--surface-hover); }
+  .th-stepper { @apply mb-7 grid grid-cols-3 gap-3 border-b border-hairline pb-5 text-xs; }
+  .th-form-actions { @apply sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-hairline bg-canvas-raised px-1 py-5; }
+  .th-auth-layout { @apply mx-auto grid min-h-[calc(100dvh-190px)] max-w-[1120px] items-center gap-12 px-5 py-10 lg:grid-cols-[1fr_1fr] lg:gap-20 lg:px-8 lg:py-16; }
+  .th-auth-intro { @apply hidden min-w-0 flex-col justify-center lg:flex; }
+  .th-auth-card { @apply w-full min-w-0; }
+  .th-auth-card > section { @apply p-6 sm:p-8; }
+  .th-auth-mark { @apply mb-8 grid size-12 place-items-center rounded-2xl bg-brand text-xl font-semibold text-on-brand; box-shadow: 0 8px 24px color-mix(in srgb, var(--brand) 20%, transparent); }
+  .th-hero { @apply relative grid items-center gap-12 py-4 lg:grid-cols-[1.12fr_1fr] lg:gap-16 lg:py-8; }
+  .th-hero h1 { @apply text-[38px] font-semibold leading-[1.16] tracking-[-0.045em] sm:text-[56px] xl:text-[62px]; text-wrap: balance; }
+  .th-hero-console { @apply relative min-w-0 overflow-hidden rounded-[24px] border p-6 sm:p-8; background: #14243d; border-color: #31435d; color: #e8eef8; box-shadow: 0 24px 60px rgb(15 28 48 / .13); }
+  .th-hero-console::before { content: ''; pointer-events: none; position: absolute; inset: 0; opacity: .16; background-image: linear-gradient(#6c86ab 1px, transparent 1px), linear-gradient(90deg, #6c86ab 1px, transparent 1px); background-size: 32px 32px; mask-image: linear-gradient(transparent 45%, black); }
+  .th-console-content { @apply relative; }
+  .th-console-endpoint { @apply my-6 rounded-xl border px-4 py-5; border-color: #3a4b65; background: #1a2e4c; }
+  .th-console-note { color: #a9bbd4; }
+  .th-console-copy button { border-color: #526785; color: #e8eef8; background: transparent; }
+  .th-console-copy button:hover { background: #273f61; }
+  .th-feature-row { @apply mt-12 grid gap-6 border-y border-hairline py-6 md:grid-cols-3; }
+  .th-feature-row > div { @apply flex items-start gap-3; }
+  .th-public-section { @apply mt-16 sm:mt-20; }
+  .th-plan-price { @apply my-6 text-4xl font-semibold tracking-tight; }
+  .th-plan-allowance { @apply rounded-xl px-4 py-4; background: var(--surface-hover); }
+  .th-balance-card { @apply relative overflow-hidden; background: var(--canvas-raised); border-color: color-mix(in srgb, var(--brand) 22%, var(--hairline)); }
+  .th-balance-card::before { content: ''; position: absolute; inset-inline: 0; top: 0; height: 3px; background: var(--brand); }
+  .th-payment-summary { @apply rounded-card border border-hairline bg-canvas-raised p-5 sm:p-6; }
+  .th-payment-action { @apply space-y-4 rounded-card border p-5 sm:p-6; border-color: color-mix(in srgb, var(--brand) 20%, var(--hairline)); background: var(--canvas-raised); }
+}
+input[type=checkbox], input[type=radio] { accent-color: var(--brand); }
+select:focus-visible, textarea:focus-visible { outline-color: var(--brand-emphasis); }
+@media (min-width: 1024px) { .th-app-header > div { min-height: 64px; } }

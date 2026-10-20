@@ -13,11 +13,11 @@ export function CopyButton({ value, label = "复制", disabled = false }: { valu
 }
 export function TaskLink({ href, title, children, icon }: { href: string; title: string; children: ReactNode; icon?: ReactNode }) {
   const { t } = useI18n();
-  return <Link href={href} className="group flex items-start gap-4 rounded-card border border-hairline bg-canvas-raised p-5 transition-colors hover:border-brand/50"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-brand-soft text-brand-emphasis">{icon || <ArrowRight className="h-4 w-4" />}</span><span className="min-w-0 flex-1"><span className="font-medium">{t(title)}</span><span className="mt-1 block text-sm leading-6 text-ink-secondary">{children}</span></span><ArrowRight className="mt-2 h-4 w-4 shrink-0 text-ink-mute group-hover:text-brand-emphasis" /></Link>;
+  return <Link href={href} className="group flex items-start gap-4 rounded-card border border-hairline bg-canvas-raised p-5 transition-[border-color,box-shadow] hover:border-brand/30 hover:shadow-sm"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-brand-soft text-brand-emphasis">{icon || <ArrowRight className="h-4 w-4" />}</span><span className="min-w-0 flex-1"><span className="font-medium">{t(title)}</span><span className="mt-1 block text-sm leading-6 text-ink-secondary">{children}</span></span><ArrowRight className="mt-2 h-4 w-4 shrink-0 text-ink-mute group-hover:text-brand-emphasis" /></Link>;
 }
 export function ContextHelp({ title = "了解规则", children }: { title?: string; children: ReactNode }) {
   const { t } = useI18n();
-  return <details className="rounded-control border border-hairline bg-canvas/50 px-4 py-3 text-sm"><summary className="cursor-pointer font-medium text-ink-secondary">{t(title)}</summary><div className="mt-3 space-y-3 text-sm leading-7 text-ink-secondary">{children}</div></details>;
+  return <details className="th-help-inline"><summary className="cursor-pointer font-medium text-brand-emphasis">{t(title)}</summary><div className="mt-3 space-y-3 text-sm leading-7 text-ink-secondary">{children}</div></details>;
 }
 export function DetailPairs({ items }: { items: { label: string; value: ReactNode }[] }) {
   const { t } = useI18n();

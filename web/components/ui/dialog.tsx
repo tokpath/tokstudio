@@ -17,7 +17,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-scrim", className)}
+    className={cn("fixed inset-0 z-50 bg-scrim backdrop-blur-[3px]", className)}
     {...props}
   />
 ));
@@ -34,13 +34,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 rounded-card border border-hairline bg-canvas-raised p-6 text-ink",
+        "th-operation-panel fixed left-1/2 top-1/2 z-50 grid w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 rounded-card border border-hairline bg-canvas-raised p-6 text-ink",
         className,
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-control text-ink-mute transition-colors duration-150 hover:bg-canvas hover:text-ink focus-visible:outline-none disabled:pointer-events-none">
+      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-control text-ink-mute transition-colors duration-150 hover:bg-canvas hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-emphasis disabled:pointer-events-none">
         <X className="size-4" strokeWidth={1.75} />
         <span className="sr-only">{t("关闭")}</span>
       </DialogPrimitive.Close>

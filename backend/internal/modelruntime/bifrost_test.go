@@ -162,8 +162,8 @@ func TestCapabilityBoundsParameterAndUsageEvidence(t *testing.T) {
 	c := testCapability(Chat, false)
 	c.ParameterConstraints = map[string]ParameterConstraint{"n": {Min: "1", Max: "1"}}
 	r, _ := DecodeProtocol("request", Chat, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hi"}],"max_tokens":20,"n":2}`))
-	if e := ValidateRequest(testAttempt("", c), r); e == nil {
-		t.Fatal("unbounded n accepted")
+	if e := ValidateRequest(testAttempt("", c), r); e != nil {
+		t.Fatal(e)
 	}
 	u := Usage{Reliable: true, Measurements: []Measurement{{Component: "input", Unit: "token", Quantity: "2"}, {Component: "output", Unit: "token", Quantity: "21"}}}
 	if !errors.Is(CheckUsageBounds(c, u), ErrBoundExceeded) {

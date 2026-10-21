@@ -107,7 +107,7 @@ func (a *Application) prepareResourcePage(c *gin.Context, p gin.H, resource stri
 						lookup = "credentials"
 					}
 				}
-				if lookup != "" {
+				if lookup != "" && f.Kind != "hidden" {
 					f.LookupURL = scope + "/references/" + lookup
 					f.Label = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(f.Label, " ID", ""), "ID", ""), "编号", "")
 				}

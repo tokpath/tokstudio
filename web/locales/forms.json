@@ -949,6 +949,11 @@
     "ja": "実際の業務レコードを選択し、今回の手続き内容を入力してください。",
     "ru": "Выберите существующую деловую запись и укажите запрашиваемое действие."
   },
+  "填写本次要保存的内容。": {
+    "en": "Enter what you want to save.",
+    "ja": "今回保存する内容を入力してください。",
+    "ru": "Укажите, что нужно сохранить."
+  },
   "按字段标示的 USD、ATG 或原币种填写。比例使用 0 到 1 的小数；精确值按原样提交。": {
     "en": "Use USD, ATG, or the original currency as indicated. Enter ratios as decimals from 0 to 1; exact values are submitted unchanged.",
     "ja": "各欄に示す USD、ATG、または元の通貨で入力してください。比率は 0 から 1 の小数を使用し、正確な値のまま送信されます。",

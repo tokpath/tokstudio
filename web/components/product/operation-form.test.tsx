@@ -19,6 +19,50 @@ it("only sends materials belonging to the selected payment driver",async()=>{con
 
 it("serializes a hidden destination consent as a boolean",async()=>{const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"proposal",status:"awaiting_finance_verification"}),{status:200}));vi.stubGlobal("fetch",fetch);show({name:"destination",label:"确认剩余款目的地",method:"POST",path:"/api/v1/me/refunds/legs/leg/responsible-destination",fields:[{name:"responsible_execution",label:"本人同意",kind:"hidden",default_value:true}]});fireEvent.click(screen.getByRole("button",{name:"确认剩余款目的地",exact:true}));await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({responsible_execution:true});});
 
+it("adds a supplier key with a name and keeps internal ids off the form", async () => {
+  const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "credential-new", status: "saved" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  show({ name: "credential", label: "添加供应商密钥", method: "POST", path: "/api/v1/operators/operator-one/providers", description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", fields: [
+    { name: "name", label: "凭据名称", kind: "text", required: true, help: "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。" },
+    { name: "secret", label: "供应商密钥", kind: "password", required: true },
+    { name: "enabled", label: "启用", kind: "boolean", required: true, default_value: true },
+    { name: "expected_version", label: "当前版本（首次0）", kind: "hidden", required: true, default_value: 0 },
+  ] });
+  expect(screen.queryByText(/引用/)).toBeNull();
+  expect(screen.queryByText("当前版本（首次0）")).toBeNull();
+  expect(screen.getByText("填写本次要保存的内容。")).toBeTruthy();
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "添加供应商密钥", exact: true }));
+  expect((await screen.findByRole("alert")).textContent).toContain("请填写凭据名称");
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText("凭据名称", { exact: true }), { target: { value: "OpenAI 生产" } });
+  fireEvent.change(screen.getByLabelText("供应商密钥", { exact: true }), { target: { value: "sk-test" } });
+  fireEvent.click(screen.getByRole("button", { name: "添加供应商密钥", exact: true }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ name: "OpenAI 生产", secret: "sk-test", enabled: true, expected_version: 0 });
+});
+
+it("renames a supplier key without showing its ids or requiring a new secret", async () => {
+  const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "credential-one", status: "saved" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  const row: Entity = { id: "credential-one", version: 4, values: { id: "credential-one", name: "OpenAI 生产", provider_id: "provider-one", enabled: true, fingerprint: "abcdef123456" } };
+  show({ name: "credential", label: "修改密钥", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [
+    { name: "name", label: "凭据名称", kind: "text", required: true },
+    { name: "secret", label: "新的供应商密钥", kind: "password" },
+    { name: "enabled", label: "启用", kind: "boolean", required: true, default_value: true },
+    { name: "id", label: "凭据", kind: "hidden" },
+    { name: "provider_id", label: "供应商", kind: "hidden" },
+    { name: "expected_version", label: "当前版本（首次0）", kind: "hidden", required: true, default_value: 0 },
+  ] }, row);
+  expect(screen.queryByText("凭据")).toBeNull();
+  expect(screen.queryByDisplayValue("provider-one")).toBeNull();
+  expect(screen.queryByText("选择实际业务记录，并填写本次要办理的事项。")).toBeNull();
+  fireEvent.change(screen.getByLabelText("凭据名称", { exact: true }), { target: { value: "OpenAI 备用" } });
+  fireEvent.click(screen.getByRole("button", { name: "修改密钥", exact: true }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ name: "OpenAI 备用", enabled: true, id: "credential-one", provider_id: "provider-one", expected_version: 4 });
+});
+
 it("keeps confirmation and reward periods in the time section", () => {
   show({ name: "policy", label: "发布资格与奖励政策", method: "POST", path: "/api/v1/operators/operator-one/commissions", fields: [
     { name: "threshold_usd", label: "终身资格累计净消费门槛 USD", kind: "decimal", required: true },

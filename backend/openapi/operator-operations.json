@@ -6572,35 +6572,28 @@
   {
     "resource": "providers",
     "confirmation": "",
-    "description": "",
+    "description": "填写名称和密钥。名称用来在列表里辨认这把密钥。",
     "fields": [
       {
         "name": "name",
         "label": "凭据名称",
         "kind": "text",
-        "required": true
-      },
-      {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/credentials",
-        "name": "id",
-        "label": "现有凭据引用（首次留空）",
-        "kind": "text"
-      },
-      {
-        "name": "provider_id",
-        "label": "现有供应商引用（首次留空）",
-        "kind": "text"
+        "required": true,
+        "help": "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
       },
       {
         "name": "secret",
-        "label": "新的供应商密钥（只更换时填写）",
-        "kind": "password"
+        "label": "供应商密钥",
+        "kind": "password",
+        "required": true,
+        "help": "粘贴供应商提供的密钥。保存后页面不再显示原文。"
       },
       {
         "name": "enabled",
         "label": "启用",
         "kind": "boolean",
-        "required": true
+        "required": true,
+        "default_value": true
       },
       {
         "name": "expected_version",
@@ -6610,11 +6603,61 @@
       }
     ],
     "include_version": false,
-    "label": "创建或轮换凭据",
+    "label": "添加供应商密钥",
     "method": "POST",
     "name": "credential",
     "path": "/v1/operators/{operatorId}/providers",
     "permission": "catalog.manage"
+  },
+  {
+    "resource": "providers",
+    "confirmation": "",
+    "description": "可以修改名称或启用状态。密钥留空表示不更换。",
+    "fields": [
+      {
+        "name": "name",
+        "label": "凭据名称",
+        "kind": "text",
+        "required": true,
+        "help": "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
+      },
+      {
+        "name": "secret",
+        "label": "新的供应商密钥",
+        "kind": "password",
+        "help": "留空表示继续使用原来的密钥。只有要更换时才填写。"
+      },
+      {
+        "name": "enabled",
+        "label": "启用",
+        "kind": "boolean",
+        "required": true,
+        "default_value": true
+      },
+      {
+        "name": "id",
+        "label": "凭据",
+        "kind": "hidden"
+      },
+      {
+        "name": "provider_id",
+        "label": "供应商",
+        "kind": "hidden"
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本（首次0）",
+        "kind": "hidden",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "label": "修改密钥",
+    "method": "POST",
+    "name": "credential",
+    "path": "/v1/operators/{operatorId}/providers",
+    "permission": "catalog.manage",
+    "variant": "revision"
   },
   {
     "resource": "catalog",

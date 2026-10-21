@@ -139,6 +139,36 @@
     "ja": "この機能が受け付ける入力とパラメータ、および最大入力サイズを記入します。",
     "ru": "Укажите, какие ввод и параметры принимает возможность, и максимальный размер ввода."
   },
+  "选择调用方式，并填写能接收的最大请求。客户请求里的参数会原样转发，不用在这里填写参数名。": {
+    "en": "Choose how this capability is called, and the largest request it can receive. Customer parameters are forwarded as written; do not list parameter names here.",
+    "ja": "呼び出し方と、受け付ける最大リクエストを記入します。お客様のパラメータはそのまま転送されるので、パラメータ名はここには書きません。",
+    "ru": "Выберите способ вызова и максимальный размер запроса. Параметры клиента пересылаются как есть; имена параметров здесь не указываются."
+  },
+  "只有用量里有一部分被重复计算时再填写。参数名不用在这里配置。": {
+    "en": "Fill this in only when part of the usage would otherwise be counted twice. Parameter names are not configured here.",
+    "ja": "使用量の一部が重複して計算される場合だけ記入します。パラメータ名はここでは設定しません。",
+    "ru": "Заполняйте только если часть расхода иначе посчитается дважды. Имена параметров здесь не задаются."
+  },
+  "已确认按客户原文转发": {
+    "en": "Confirmed: the customer request is forwarded unchanged",
+    "ja": "お客様のリクエストを原文のまま転送することを確認済み",
+    "ru": "Подтверждено: запрос клиента пересылается без изменений"
+  },
+  "客户要求一段一段返回时，选「是」。这不影响预估金额。": {
+    "en": "Choose yes when the customer asks for the reply in pieces. This does not change the estimated amount.",
+    "ja": "お客様が分割して受け取る場合は「はい」を選びます。見積金額には影響しません。",
+    "ru": "Выберите «да», если клиент просит ответ частями. На оценочную сумму это не влияет."
+  },
+  "按字节填写，必须大于 0。例如 1 MB 填写 1048576。超过这个大小的请求不会受理。": {
+    "en": "Enter bytes, greater than 0. For example, 1 MB is 1048576. A larger request is not accepted.",
+    "ja": "バイト数で、0 より大きく記入します。例：1 MB は 1048576。これを超えるリクエストは受け付けません。",
+    "ru": "Укажите байты, больше 0. Например, 1 МБ — это 1048576. Более крупный запрос не принимается."
+  },
+  "能力的转发确认、计量、用量上界和恢复验证必须全部通过。": {
+    "en": "Forwarding confirmation, metering, usage bounds, and recovery verification must all be complete.",
+    "ja": "転送確認、計量、使用量上限、復旧検証はすべて完了している必要があります。",
+    "ru": "Подтверждение пересылки, учёт, пределы расхода и проверка восстановления должны быть заполнены."
+  },
   "怎么计费": {
     "en": "How it is billed",
     "ja": "課金方法",

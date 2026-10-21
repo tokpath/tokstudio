@@ -313,9 +313,6 @@ func (a *Application) playground(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
-	maxOutput := int64(512)
-	limitParameter := ""
-	var supported []string
 	found := false
 	for _, model := range models {
 		if model.ID != in.Model || model.Status != "available" {
@@ -324,11 +321,6 @@ func (a *Application) playground(c *gin.Context) {
 		for _, cap := range model.Capabilities {
 			if cap.Operation == op {
 				found = true
-				if cap.MaxOutput > 0 && cap.MaxOutput < maxOutput {
-					maxOutput = cap.MaxOutput
-				}
-				limitParameter = cap.OutputLimitParameter
-				supported = cap.Parameters
 			}
 		}
 	}
@@ -340,29 +332,18 @@ func (a *Application) playground(c *gin.Context) {
 	switch op {
 	case modelruntime.Chat:
 		obj["messages"] = []any{gin.H{"role": "user", "content": in.Input}}
-		parameter := limitParameter
-		if parameter != "" {
-			obj[parameter] = maxOutput
-		}
 	case modelruntime.Responses:
 		obj["input"] = in.Input
-		parameter := limitParameter
-		if parameter != "" {
-			obj[parameter] = maxOutput
-		}
 	case modelruntime.Embedding:
 		obj["input"] = in.Input
 	case modelruntime.Image:
 		obj["prompt"] = in.Input
-		if contains(supported, "n") {
-			obj["n"] = 1
-		}
 	case modelruntime.Speech:
 		obj["input"] = in.Input
-		if contains(supported, "voice") && in.Voice != "" {
+		if in.Voice != "" {
 			obj["voice"] = in.Voice
 		}
-		if contains(supported, "response_format") && in.ResponseFormat != "" {
+		if in.ResponseFormat != "" {
 			obj["response_format"] = in.ResponseFormat
 		}
 	case modelruntime.Transcription:
@@ -370,7 +351,7 @@ func (a *Application) playground(c *gin.Context) {
 		obj["filename"] = in.Filename
 	case modelruntime.Video:
 		obj["prompt"] = in.Input
-		if contains(supported, "seconds") && in.Seconds != "" {
+		if in.Seconds != "" {
 			obj["seconds"] = in.Seconds
 		}
 	default:
@@ -388,7 +369,7 @@ func (a *Application) playground(c *gin.Context) {
 			return
 		}
 		for name, value := range parameters {
-			if !contains(supported, name) || contains([]string{"model", "messages", "input", "file", "filename", "stream"}, name) {
+			if contains([]string{"model", "messages", "input", "prompt", "file", "filename", "stream"}, name) {
 				handleError(c, modelruntime.ErrUnsupported)
 				return
 			}

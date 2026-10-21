@@ -38,22 +38,16 @@ const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({
 const record = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "record", label, item, help });
 const operations: [string, string][] = [["chat", "对话"], ["responses", "Responses"], ["embedding", "向量"], ["image_generation", "图片生成"], ["speech", "语音生成"], ["transcription", "语音转写"], ["video_generation", "视频生成"], ["video_retrieve", "视频任务查询"], ["video_download", "视频结果下载"]];
 const strings = (label: string) => array(label, text("值"));
-const inputTypes: [string, string][] = [["text", "文字"], ["image", "图片"], ["audio", "音频"], ["video", "视频"]];
 const capability: ConfigNode = {
   ...object("能力", {
     operation: select("调用能力", operations),
-    streaming: { ...boolean("支持流式输出"), help: "供应商可以持续一段一段返回内容时再勾选。" },
-    input_types: { ...array("允许的输入", text("值"), "勾选这项能力接受的内容种类，可以同时选多项。"), options: inputTypes },
-    parameters: { ...strings("接受的参数"), help: "只填写已经向供应商核实、调用时可以传入的参数，例如 max_completion_tokens。" },
-    required_parameters: { ...strings("必须填写的参数"), help: "这里的每一项都必须同时出现在「接受的参数」里。" },
-    max_input_bytes: { ...integer("最大输入大小（字节）"), help: "按字节填写，必须大于 0。例如 1 MB 填写 1048576。" },
-    max_output: integer("最大输出数量（无输出上限参数时可为 0）", 0), output_limit_parameter: text("输出上限参数名称", false),
+    streaming: { ...boolean("支持流式输出"), help: "客户要求一段一段返回时，选「是」。这不影响预估金额。" },
+    max_input_bytes: { ...integer("最大输入大小（字节）"), help: "按字节填写，必须大于 0。例如 1 MB 填写 1048576。超过这个大小的请求不会受理。" },
     billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), required: true },
     usage_rules: array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })),
-    parameter_constraints: record("参数允许范围", object("参数限制", { min: { ...text("最小值", false), kind: "rational", signed: true }, max: { ...text("最大值", false), kind: "rational", signed: true }, values: strings("允许值（与数值范围二选一）") })),
     subtract_paths: record("需要扣除的重复子用量", strings("扣除路径")),
     evidence_id: text("能力验证证据引用"), verified_at: datetime("验证完成时间", true),
-    parameters_verified: boolean("已验证参数完整保留"), usage_verified: boolean("已验证用量可靠"), bounds_verified: boolean("已验证用量上界"), recovery_verified: boolean("已验证失败恢复"),
+    parameters_verified: boolean("已确认按客户原文转发"), usage_verified: boolean("已验证用量可靠"), bounds_verified: boolean("已验证用量上界"), recovery_verified: boolean("已验证失败恢复"),
   }, "保存这项能力前，需要选择调用能力、填写最大输入、至少一项计费，以及验证依据、时间和下面四项确认。"),
   presentation: "capability",
 };
@@ -188,12 +182,6 @@ function rational(value: string): [bigint, bigint] | undefined {
   if (exponent5 >= 0n) numerator *= 5n ** exponent5; else denominator *= 5n ** -exponent5;
   return [numerator, denominator];
 }
-function compareRational(left: string, right: string): number {
-  const a = rational(left)!, b = rational(right)!;
-  const delta = a[0] * b[1] - b[0] * a[1];
-  return delta < 0n ? -1 : delta > 0n ? 1 : 0;
-}
-
 export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = node.label, fieldPath = "", pathParts: ConfigurationPathPart[] = [{ source: path }]): JSONValue {
   const fail = (message: string, values: Record<string, string | number> = { path }): never => { throw new ConfigurationError(message, fieldPath, values, pathParts); };
   if (value === null && node.nullable) return null;
@@ -207,6 +195,7 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
       else if (child.required) throw new ConfigurationError(child.readOnly ? "无法核实{label}，请重新选择业务记录后重试。" : "请填写{path} · {label}", child.readOnly && node.fields?.model_id?.lookup ? (fieldPath ? `${fieldPath}.model_id` : "model_id") : (fieldPath ? `${fieldPath}.${key}` : key), { path, label: child.label }, pathParts);
       else if (out[key] === "") delete out[key];
     }
+    if (node.presentation === "capability") for (const key of ["input_types", "parameters", "required_parameters", "parameter_constraints", "output_limit_parameter", "max_output"]) delete out[key];
     return out;
   }
   if (node.kind === "array") {
@@ -243,12 +232,9 @@ export function validateModelConfiguration(value: JSONValue): void {
   const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
   if (model.enabled && !capabilities.length) throw new ConfigurationError("开放模型或路由前，至少需要一项已验证能力。", `${prefix}.capabilities`);
   capabilities.forEach((capability, index) => {
-    const path = `${prefix}.capabilities.${index}`, parameters = (capability.parameters || []) as string[];
+    const path = `${prefix}.capabilities.${index}`;
     if (!(typeof capability.max_input_bytes === "number" && capability.max_input_bytes > 0)) throw new ConfigurationError("已验证能力的最大输入大小必须大于 0。", `${path}.max_input_bytes`);
-    for (const key of ["parameters_verified", "usage_verified", "bounds_verified", "recovery_verified"]) if (!capability[key]) throw new ConfigurationError("能力的参数、计量、用量上界和恢复验证必须全部通过。", `${path}.${key}`);
-    const required = (capability.required_parameters || []) as string[];
-    if (required.some(parameter => !parameters.includes(parameter))) throw new ConfigurationError("调用必填参数必须包含在保留并支持的参数中。", `${path}.required_parameters`);
-    if (capability.output_limit_parameter && (!parameters.includes(String(capability.output_limit_parameter)) || !(typeof capability.max_output === "number" && capability.max_output > 0))) throw new ConfigurationError("输出上限参数须已验证支持，并填写大于 0 的最大输出数量。", `${path}.output_limit_parameter`);
+    for (const key of ["parameters_verified", "usage_verified", "bounds_verified", "recovery_verified"]) if (!capability[key]) throw new ConfigurationError("能力的转发确认、计量、用量上界和恢复验证必须全部通过。", `${path}.${key}`);
     const bounds = (capability.billable_bounds || {}) as Record<string, JSONValue>, rules = (capability.usage_rules || []) as Record<string, JSONValue>[];
     if (!rules.length) throw new ConfigurationError("至少需要一个可靠的计量组件及对应有限用量上界。", `${path}.usage_rules`);
     const seen = new Set<string>();
@@ -259,12 +245,6 @@ export function validateModelConfiguration(value: JSONValue): void {
       if (bounds[component] === undefined) throw new ConfigurationError("每个计量组件都须有对应的有限用量上界。", `${path}.billable_bounds`);
     });
     if (Object.keys(bounds).length !== seen.size) throw new ConfigurationError("用量上界与计量组件须一一对应。", `${path}.billable_bounds`);
-    for (const [key, item] of Object.entries((capability.parameter_constraints || {}) as Record<string, Record<string, JSONValue>>)) {
-      const constraintPath = `${path}.parameter_constraints.${key}`;
-      if (!parameters.includes(key)) throw new ConfigurationError("参数限制只能用于已验证支持的参数。", constraintPath);
-      if (Array.isArray(item.values) && item.values.length && (item.min || item.max)) throw new ConfigurationError("参数限制请在允许值与数值范围中选择一种。", constraintPath);
-      if (item.min && item.max && compareRational(String(item.min), String(item.max)) > 0) throw new ConfigurationError("参数最小值不能大于最大值。", `${constraintPath}.min`);
-    }
   });
 }
 

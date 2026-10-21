@@ -27,6 +27,15 @@ func TestTextReservationUsesTheLargerOutputCeiling(t *testing.T) {
 	}
 }
 
+func TestImageInsideChatReservesTheInputBound(t *testing.T) {
+	q := quote(catalog.ComponentRate{Key: "input", Unit: "token", Per: "1", Rate: "0.001"})
+	q.Bounds["input"] = "1000"
+	r := modelruntime.Request{Operation: modelruntime.Chat, Input: []byte(`[{"role":"user","content":[{"type":"text","text":"hi"},{"type":"image_url","image_url":{"url":"https://example.test/a.png"}}]}]`)}
+	if got := reservationQuantities(q, r)["input"]; got != "1000" {
+		t.Fatalf("image input reservation = %s, want the registered bound", got)
+	}
+}
+
 func TestMissingOutputCeilingReservesTheRegisteredBound(t *testing.T) {
 	q := quote(catalog.ComponentRate{Key: "output", Unit: "token", Per: "1", Rate: "1"})
 	q.Bounds["output"] = "60"

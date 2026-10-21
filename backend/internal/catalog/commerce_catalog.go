@@ -516,33 +516,10 @@ func requestSupported(capabilities []modelruntime.Capability, r modelruntime.Req
 }
 func coversCapability(caps []modelruntime.Capability, want modelruntime.Capability) bool {
 	for _, c := range caps {
-		if !c.Verified() || c.Operation != want.Operation || c.Streaming != want.Streaming || c.MaxInputBytes < want.MaxInputBytes || c.MaxOutput < want.MaxOutput || c.OutputLimitParameter != want.OutputLimitParameter {
+		if !c.Verified() || c.Operation != want.Operation || c.Streaming != want.Streaming || c.MaxInputBytes < want.MaxInputBytes {
 			continue
 		}
-		ok := true
-		for _, p := range want.Parameters {
-			if !slices.Contains(c.Parameters, p) {
-				ok = false
-			}
-		}
-		for _, t := range want.InputTypes {
-			if !slices.Contains(c.InputTypes, t) {
-				ok = false
-			}
-		}
-		for _, required := range c.RequiredParameters {
-			if !slices.Contains(want.RequiredParameters, required) {
-				ok = false
-			}
-		}
-		for key, restriction := range c.ParameterConstraints {
-			if slices.Contains(want.Parameters, key) && !constraintCovers(restriction, want.ParameterConstraints[key]) {
-				ok = false
-			}
-		}
-		if ok {
-			return true
-		}
+		return true
 	}
 	return false
 }

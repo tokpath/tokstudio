@@ -50,14 +50,14 @@ it("sends transcription as multipart with the original file and parameter payloa
   expect((calls[0].headers as Headers).get("Content-Type")).toBeNull();
 });
 
-it("does not submit capabilities whose required structured parameters cannot be supplied by the simple form", async () => {
+it("still sends a chat request when the catalog lists a parameter the simple form does not render", async () => {
   const fetch = vi.fn(async () => response({ items: [model("chat", ["tools"], ["tools"])] }));
   vi.stubGlobal("fetch", fetch);
   show();
   fireEvent.change(await screen.findByLabelText("公开模型", { exact: true }), { target: { value: "public-model" } });
   fireEvent.change(screen.getByLabelText("能力", { exact: true }), { target: { value: "chat" } });
-  await screen.findByText(/需要完整结构化参数 tools/);
-  expect((screen.getByRole("button", { name: "确认计费并发送" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByText(/需要完整结构化参数/)).toBeNull();
+  expect((screen.getByRole("button", { name: "确认计费并发送" }) as HTMLButtonElement).disabled).toBe(false);
 });
 
 it("replays an unknown experience without releasing its content or creating a second request", async () => {

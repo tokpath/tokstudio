@@ -141,7 +141,13 @@ func reservationQuantities(q catalog.ModelQuote, r modelruntime.Request) map[str
 		quantity := bound
 		switch {
 		case unit == "token" && (strings.Contains(lower, "input") || strings.Contains(lower, "prompt")):
-			quantity = strconv.FormatInt(inputTokens*samples, 10)
+			n := inputTokens * samples
+			if inputHasUnsizedMedia(r.Input) {
+				if limit := positiveInt(bound); limit > n {
+					n = limit
+				}
+			}
+			quantity = strconv.FormatInt(n, 10)
 		case unit == "token" && (strings.Contains(lower, "output") || strings.Contains(lower, "completion")):
 			n := positiveInt(bound)
 			if hasCap {
@@ -265,6 +271,31 @@ func mediaDurationSeconds(blobs ...json.RawMessage) (int64, bool) {
 		return 0, false
 	}
 	return int64(math.Ceil(best)), true
+}
+
+func inputHasUnsizedMedia(raw json.RawMessage) bool {
+	found := false
+	var visit func(any)
+	visit = func(v any) {
+		switch x := v.(type) {
+		case map[string]any:
+			if kind, ok := x["type"].(string); ok {
+				switch kind {
+				case "image_url", "input_image", "input_audio", "audio", "video_url", "input_video":
+					found = true
+				}
+			}
+			for _, child := range x {
+				visit(child)
+			}
+		case []any:
+			for _, child := range x {
+				visit(child)
+			}
+		}
+	}
+	visit(parseJSON(raw))
+	return found
 }
 
 func spokenAcross(blobs ...json.RawMessage) int64 {

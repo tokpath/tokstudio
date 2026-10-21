@@ -80,16 +80,8 @@ func (c Capability) Verified() bool {
 	if !(c.EvidenceID != "" && !c.VerifiedAt.IsZero() && c.ParametersVerified && c.UsageVerified && c.BoundsVerified && c.RecoveryVerified && c.MaxInputBytes > 0 && len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
 		return false
 	}
-	for _, required := range c.RequiredParameters {
-		if !member(c.Parameters, required) {
-			return false
-		}
-	}
-	if c.OutputLimitParameter != "" && (!member(c.Parameters, c.OutputLimitParameter) || c.MaxOutput <= 0) {
-		return false
-	}
-	for parameter, constraint := range c.ParameterConstraints {
-		if !member(c.Parameters, parameter) || len(constraint.Values) > 0 && (constraint.Min != "" || constraint.Max != "") {
+	for _, constraint := range c.ParameterConstraints {
+		if len(constraint.Values) > 0 && (constraint.Min != "" || constraint.Max != "") {
 			return false
 		}
 		var min, max *big.Rat
@@ -232,18 +224,6 @@ func ValidateRequest(a Attempt, r Request) error {
 			}
 		}
 	}
-	for _, t := range r.InputTypes {
-		if !member(c.InputTypes, t) {
-			return fmt.Errorf("%w: input type %s", ErrUnsupported, t)
-		}
-	}
-	if r.Operation == Chat || r.Operation == Responses {
-		for _, t := range detectInputTypes(r.Input) {
-			if !member(c.InputTypes, t) {
-				return fmt.Errorf("%w: input type %s", ErrUnsupported, t)
-			}
-		}
-	}
 	if len(r.InputTypes) == 0 {
 		return ErrInvalidRequest
 	}
@@ -252,9 +232,6 @@ func ValidateRequest(a Attempt, r Request) error {
 		return ErrInvalidRequest
 	}
 	for k, v := range params {
-		if !member(c.Parameters, k) {
-			return fmt.Errorf("%w: parameter %s", ErrUnsupported, k)
-		}
 		if string(v) == "null" {
 			return fmt.Errorf("%w: null parameter %s", ErrInvalidRequest, k)
 		}
@@ -267,51 +244,6 @@ func ValidateRequest(a Attempt, r Request) error {
 			}
 		case "fallbacks", "provider", "model", "api_key", "headers", "base_url", "extra_params", "previous_response_id":
 			return fmt.Errorf("%w: managed parameter %s", ErrUnsupported, k)
-		}
-	}
-	for _, k := range c.RequiredParameters {
-		if _, ok := params[k]; !ok {
-			return fmt.Errorf("%w: required parameter %s", ErrInvalidRequest, k)
-		}
-	}
-	for key, rule := range c.ParameterConstraints {
-		value, exists := params[key]
-		if !exists {
-			continue
-		}
-		if len(rule.Values) > 0 {
-			var s string
-			if json.Unmarshal(value, &s) != nil || !member(rule.Values, s) {
-				return fmt.Errorf("%w: parameter value %s", ErrInvalidRequest, key)
-			}
-		}
-		if rule.Min != "" || rule.Max != "" {
-			var number json.Number
-			if json.Unmarshal(value, &number) != nil {
-				return ErrInvalidRequest
-			}
-			n, ok := new(big.Rat).SetString(string(number))
-			if !ok {
-				return ErrInvalidRequest
-			}
-			if rule.Min != "" {
-				min, ok := new(big.Rat).SetString(rule.Min)
-				if !ok || n.Cmp(min) < 0 {
-					return ErrInvalidRequest
-				}
-			}
-			if rule.Max != "" {
-				max, ok := new(big.Rat).SetString(rule.Max)
-				if !ok || n.Cmp(max) > 0 {
-					return ErrInvalidRequest
-				}
-			}
-		}
-	}
-	if c.OutputLimitParameter != "" {
-		var n int64
-		if v, ok := params[c.OutputLimitParameter]; !ok || json.Unmarshal(v, &n) != nil || n <= 0 || c.MaxOutput <= 0 || n > c.MaxOutput {
-			return fmt.Errorf("%w: explicit output bound required", ErrInvalidRequest)
 		}
 	}
 	return nil

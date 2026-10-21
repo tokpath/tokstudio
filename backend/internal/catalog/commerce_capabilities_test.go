@@ -5,30 +5,17 @@ import (
 	"testing"
 )
 
-func TestPublicCapabilityCannotExceedUpstreamParameterContract(t *testing.T) {
+func TestRouteCoverageIgnoresParameterLists(t *testing.T) {
 	want := commerceTestCapability()
-	want.Parameters = append(want.Parameters, "quality")
-	want.ParameterConstraints = map[string]modelruntime.ParameterConstraint{"quality": {Values: []string{"low", "high"}}}
 	have := want
-	have.ParameterConstraints = map[string]modelruntime.ParameterConstraint{"quality": {Values: []string{"low"}}}
-	if coversCapability([]modelruntime.Capability{have}, want) {
-		t.Fatal("upstream accepts only low quality but public model advertised high")
-	}
-	want.ParameterConstraints = map[string]modelruntime.ParameterConstraint{"quality": {Values: []string{"low"}}}
-	if !coversCapability([]modelruntime.Capability{have}, want) {
-		t.Fatal("compatible explicit public subset rejected")
-	}
+	want.Parameters = append(want.Parameters, "quality")
+	want.InputTypes = []string{"text"}
+	have.Parameters = nil
 	have.RequiredParameters = append(append([]string{}, have.RequiredParameters...), "quality")
-	if coversCapability([]modelruntime.Capability{have}, want) {
-		t.Fatal("upstream-only required parameter was hidden from public contract")
-	}
-	want.RequiredParameters = append(append([]string{}, want.RequiredParameters...), "quality")
-	if !coversCapability([]modelruntime.Capability{have}, want) {
-		t.Fatal("matched required parameter rejected")
-	}
+	have.InputTypes = []string{"text", "image"}
 	have.OutputLimitParameter = "different_output_parameter"
-	if coversCapability([]modelruntime.Capability{have}, want) {
-		t.Fatal("different output bound parameter treated as equivalent")
+	if !coversCapability([]modelruntime.Capability{have}, want) {
+		t.Fatal("parameter names blocked a route that can forward the request")
 	}
 	if constraintCovers(modelruntime.ParameterConstraint{Min: "2", Max: "5"}, modelruntime.ParameterConstraint{Min: "1", Max: "10"}) {
 		t.Fatal("wider public numeric range admitted")

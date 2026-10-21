@@ -93,6 +93,73 @@ func TestRepeatedSamplesMultiplyTokenReservation(t *testing.T) {
 	}
 }
 
+func TestImageCountUsesTheLargerKnownField(t *testing.T) {
+	q := quote(catalog.ComponentRate{Key: "pictures", Unit: "image", Per: "1", Rate: "1"})
+	q.Bounds["pictures"] = "8"
+	r := modelruntime.Request{Operation: modelruntime.Image, Params: []byte(`{"n":1,"parameters":{"sampleCount":4},"imageGenerationConfig":{"numberOfImages":2}}`)}
+	if got := reservationQuantities(q, r)["pictures"]; got != "4" {
+		t.Fatalf("image count = %s, want the larger visible count 4", got)
+	}
+	nested := modelruntime.Request{Operation: modelruntime.Image, Params: []byte(`{"parameters":{"n":3}}`)}
+	if got := reservationQuantities(q, nested)["pictures"]; got != "3" {
+		t.Fatalf("nested image count = %s", got)
+	}
+	open := modelruntime.Request{Operation: modelruntime.Image, Params: []byte(`{"sequential_image_generation":"auto"}`)}
+	if got := reservationQuantities(q, open)["pictures"]; got != "8" {
+		t.Fatalf("open-ended image count = %s, want the registered bound", got)
+	}
+	capped := modelruntime.Request{Operation: modelruntime.Image, Params: []byte(`{"sequential_image_generation":"auto","sequential_image_generation_options":{"max_images":3}}`)}
+	if got := reservationQuantities(q, capped)["pictures"]; got != "3" {
+		t.Fatalf("max_images = %s", got)
+	}
+}
+
+func TestDurationUsesTheLargerKnownField(t *testing.T) {
+	q := quote(catalog.ComponentRate{Key: "duration", Unit: "second", Per: "1", Rate: "1"})
+	q.Bounds["duration"] = "60"
+	r := modelruntime.Request{Operation: modelruntime.Video, Params: []byte(`{"seconds":"4","parameters":{"durationSeconds":8},"video":{"duration":"5s"}}`)}
+	if got := reservationQuantities(q, r)["duration"]; got != "8" {
+		t.Fatalf("duration = %s, want the larger visible duration 8", got)
+	}
+	frames := modelruntime.Request{Operation: modelruntime.Video, Params: []byte(`{"num_frames":24,"fps":8}`)}
+	if got := reservationQuantities(q, frames)["duration"]; got != "3" {
+		t.Fatalf("frame duration = %s, want 3 seconds", got)
+	}
+	unknownFrames := modelruntime.Request{Operation: modelruntime.Video, Params: []byte(`{"video_length":25}`)}
+	if got := reservationQuantities(q, unknownFrames)["duration"]; got != "60" {
+		t.Fatalf("frames without a rate = %s, want the registered bound", got)
+	}
+	several := modelruntime.Request{Operation: modelruntime.Video, Params: []byte(`{"duration":4,"parameters":{"sampleCount":2}}`)}
+	if got := reservationQuantities(q, several)["duration"]; got != "8" {
+		t.Fatalf("repeated video duration = %s, want 4 * 2", got)
+	}
+	sound := modelruntime.Request{Operation: modelruntime.Speech, Params: []byte(`{"text":"boom"}`)}
+	if got := reservationQuantities(q, sound)["duration"]; got != "60" {
+		t.Fatalf("sound effect without duration = %s, want the registered bound", got)
+	}
+}
+
+func TestSpeechTextUsesKnownFields(t *testing.T) {
+	q := quote(catalog.ComponentRate{Key: "spoken", Unit: "character", Per: "1", Rate: "1"})
+	q.Bounds["spoken"] = "500"
+	eleven := modelruntime.Request{Operation: modelruntime.Speech, Params: []byte(`{"text":"你好","voice_settings":{"stability":0.5}}`)}
+	if got := reservationQuantities(q, eleven)["spoken"]; got != "2" {
+		t.Fatalf("elevenlabs text = %s", got)
+	}
+	longer := modelruntime.Request{Operation: modelruntime.Speech, Params: []byte(`{"text":"hi","ssml":"<speak>hello</speak>"}`)}
+	if got := reservationQuantities(q, longer)["spoken"]; got != "20" {
+		t.Fatalf("longer speech source = %s, want 20", got)
+	}
+	turns := modelruntime.Request{Operation: modelruntime.Speech, Params: []byte(`{"multiSpeakerMarkup":{"turns":[{"speaker":"A","text":"ab"},{"speaker":"B","text":"cd"}]}}`)}
+	if got := reservationQuantities(q, turns)["spoken"]; got != "4" {
+		t.Fatalf("speaker turns = %s, want 4", got)
+	}
+	missing := modelruntime.Request{Operation: modelruntime.Speech, Params: []byte(`{"voice":"alloy"}`)}
+	if got := reservationQuantities(q, missing)["spoken"]; got != "500" {
+		t.Fatalf("missing speech text = %s, want the registered bound", got)
+	}
+}
+
 func TestFinishedVideoLookupReservesNothing(t *testing.T) {
 	q := quote(catalog.ComponentRate{Key: "duration", Unit: "second", Per: "1", Rate: "1"})
 	r := modelruntime.Request{Operation: modelruntime.VideoRetrieve, PublicModel: "m"}

@@ -76,7 +76,7 @@ test("technical administrator configures a real provider, verified model and rou
     let dialog = await panel(tech, "添加供应商密钥");
     await control(dialog, "凭据名称", true).fill(credentialName);
     await control(dialog, "供应商密钥", true).fill("isolated-simulation-provider-key");
-    await control(dialog, "启用", false).check();
+    await dialog.locator('[data-command-field="enabled"]').getByRole("radio", { name: "是", exact: true }).check();
     const credentialResponse = await submit(tech, dialog, "添加供应商密钥", `${base}/providers`);
     const credential = await credentialResponse.json(); await close(dialog);
     const credentials = await (await tech.request.get(`${base}/providers`)).json();
@@ -121,7 +121,7 @@ test("technical administrator configures a real provider, verified model and rou
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: revisedModelName }));
-    await dialog.getByRole("checkbox", { name: "开放模型", exact: false }).check();
+    await dialog.getByRole("radiogroup", { name: /开放模型/ }).getByRole("radio", { name: "是", exact: true }).check();
     await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
     expect((await tech.request.get(`${base}/payments`)).status()).toBe(403);
@@ -170,7 +170,7 @@ test("technical administrator configures a real provider, verified model and rou
     if (!business.items[0].values.activity) {
       dialog = await panel(owner, "提交开业配置检查");
       await dialog.getByRole("combobox", { name: "营业项目", exact: false }).selectOption("activity");
-      await control(dialog, "通过真实依赖检查后开放", false).check();
+      await dialog.getByRole("radiogroup", { name: "通过真实依赖检查后开放" }).getByRole("radio", { name: "是", exact: true }).check();
       await control(dialog, "检查及授权依据", false).fill("合成仿真：独立赠送的活动规则、真实覆盖及已配置邮件已核实");
       await submit(owner, dialog, "提交开业配置检查", `${base}/business-status`); await close(dialog);
     }

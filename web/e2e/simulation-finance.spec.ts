@@ -25,7 +25,7 @@ async function fields(panel: Locator, values: Record<string, string | boolean>) 
   for (const [name, value] of Object.entries(values)) {
     const field = panel.locator(`[data-command-field="${name}"]`);
     await expect(field).toBeVisible();
-    if (typeof value === "boolean") await field.locator('input[type="checkbox"]').setChecked(value);
+    if (typeof value === "boolean") await field.getByRole("radio", { name: value ? "是" : "否", exact: true }).check();
     else if (await field.locator("select").count()) await field.locator("select").selectOption(value);
     else await field.locator("input,textarea").first().fill(value);
   }

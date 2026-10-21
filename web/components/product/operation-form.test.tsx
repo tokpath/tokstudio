@@ -31,7 +31,9 @@ it("adds a supplier key with a name and keeps internal ids off the form", async 
   expect(screen.queryByText(/引用/)).toBeNull();
   expect(screen.queryByText("当前版本（首次0）")).toBeNull();
   expect(screen.getByText("填写本次要保存的内容。")).toBeTruthy();
-  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole("radiogroup", { name: "启用" })).toBeTruthy();
+  expect((screen.getByRole("radio", { name: "是" }) as HTMLInputElement).checked).toBe(true);
+  expect((screen.getByRole("radio", { name: "否" }) as HTMLInputElement).checked).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "添加供应商密钥", exact: true }));
   expect((await screen.findByRole("alert")).textContent).toContain("请填写凭据名称");
   expect(fetch).not.toHaveBeenCalled();
@@ -355,6 +357,9 @@ it("reads the locked EVM asset for FX visibility even when no money currency fie
 it("explains a new public model in three sections and keeps unusual limits folded", () => {
   show({ name: "save", label: "维护公开模型与能力证据", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
+  const openModel = screen.getByRole("radiogroup", { name: "开放模型" });
+  expect(openModel.textContent).toContain("是");
+  expect(openModel.textContent).toContain("否");
   expect(screen.getByLabelText("客户看到的模型名称", { exact: true })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "添加能力", exact: true }));
   expect(screen.getByRole("heading", { name: "怎么调用" })).toBeTruthy();

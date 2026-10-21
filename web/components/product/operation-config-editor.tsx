@@ -2,6 +2,7 @@
 import { useI18n } from "@/components/i18n";
 import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
+import { YesNoChoice } from "./yes-no";
 
 import { useDeferredValue, useId, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   const id = useId();
   const help = businessFieldHelp(fieldPath, node.help, node.lookup);
   const label = context ? t("{label}（{context}）", { label: t(node.label), context }) : t(node.label);
+  if (node.kind === "boolean") return <div data-config-path={fieldPath} className="min-w-0 text-sm"><span id={id} className="text-ink-secondary">{t(node.label)}</span>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}<YesNoChoice labelledBy={id} name={fieldPath || node.label} value={value === true} disabled={disabled} onChange={change} /></div>;
   if (node.kind === "object") {
     if (node.presentation === "capability") return <CapabilityFields node={node} value={value} change={change} disabled={disabled} operatorID={operatorID} context={context} fieldPath={fieldPath} />;
     const data = asObject(value);
@@ -77,8 +79,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   let displayed = raw;
   if (node.kind === "datetime" && raw) { const date = new Date(raw); if (!Number.isNaN(date.getTime())) displayed = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
   return <div data-config-path={fieldPath} className="min-w-0 text-sm"><label htmlFor={id} className="inline text-ink-secondary">{t(node.label)}</label>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}
-    {node.kind === "boolean" ? <label className="mt-2 flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input id={id} aria-label={label} type="checkbox" checked={value === true} disabled={disabled} onChange={event => change(event.target.checked)} />{value === true ? t("是") : t("否")}</label>
-      : node.kind === "select" ? <select id={id} aria-label={label} className={`${control} mt-2`} value={raw} disabled={disabled} onChange={event => change(event.target.value)}><option value="">{t("请选择")}</option>{node.options?.map(([key, text]) => <option key={key} value={key}>{t(text)}</option>)}</select>
+    {node.kind === "select" ? <select id={id} aria-label={label} className={`${control} mt-2`} value={raw} disabled={disabled} onChange={event => change(event.target.value)}><option value="">{t("请选择")}</option>{node.options?.map(([key, text]) => <option key={key} value={key}>{t(text)}</option>)}</select>
         : node.kind === "textarea" ? <textarea id={id} aria-label={label} className={`${control} mt-2 min-h-24`} value={raw} disabled={disabled} onChange={event => change(event.target.value)} />
           : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
 

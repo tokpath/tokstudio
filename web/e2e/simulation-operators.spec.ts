@@ -26,7 +26,7 @@ async function field(panel: Locator, name: string, value: string | boolean) {
   const box = panel.locator(`[data-command-field="${name}"]`);
   const select = box.locator("select");
   if (await select.count()) { await select.selectOption(String(value)); return; }
-  if (typeof value === "boolean") { await box.getByRole("checkbox").setChecked(value); return; }
+  if (typeof value === "boolean") { await box.getByRole("radio", { name: value ? "是" : "否", exact: true }).check(); return; }
   await box.locator("input,textarea").last().fill(value);
 }
 async function config(panel: Locator, name: string, value: string | boolean) {
@@ -34,7 +34,7 @@ async function config(panel: Locator, name: string, value: string | boolean) {
   const box = panel.locator(`[data-config-path="${name}"]`).first();
   const select = box.locator("select");
   if (await select.count()) { await select.selectOption(String(value)); return; }
-  if (typeof value === "boolean") { await box.getByRole("checkbox").setChecked(value); return; }
+  if (typeof value === "boolean") { await box.getByRole("radio", { name: value ? "是" : "否", exact: true }).check(); return; }
   await box.locator("input,textarea").last().fill(value);
 }
 async function submit(page: Page, label: string, path: string, status = 200) {

@@ -4439,6 +4439,12 @@
     "正確な返金ネットワーク（銀行は bank、EVM は十進数 Chain ID）",
     "Точная сеть возврата (bank для банка, десятичный Chain ID для EVM)"
   ],
+  "凭据名称": [
+    "凭据名称",
+    "Credential name",
+    "認証情報の名称",
+    "Название ключа"
+  ],
   "凭据已加密保存，请使用此证据ID关联原业务核实记录。": [
     "凭据已加密保存，请使用此证据ID关联原业务核实记录。",
     "Evidence encrypted and saved. Use this evidence ID to link the original business verification record.",
@@ -12251,6 +12257,12 @@
     "新しい供給元キー",
     "Новый ключ поставщика"
   ],
+  "新的供应商密钥（只更换时填写）": [
+    "新的供应商密钥（只更换时填写）",
+    "New supplier key (only when replacing it)",
+    "新しいサプライヤー鍵（交換するときだけ）",
+    "Новый ключ поставщика (только при замене)"
+  ],
   "新的复核到期（继续限制必填）": [
     "新的复核到期（继续限制必填）",
     "New review deadline (required to continue restriction)",
@@ -17303,6 +17315,12 @@
     "精算",
     "Расчёты"
   ],
+  "给这把密钥起一个便于辨认的名称，例如「OpenAI 生产」。之后可以只改名称，不必重新填写密钥。": [
+    "给这把密钥起一个便于辨认的名称，例如「OpenAI 生产」。之后可以只改名称，不必重新填写密钥。",
+    "Give this key a recognizable name, for example “OpenAI production”. You can rename it later without entering the key again.",
+    "見分けやすい名称を付けてください。例：「OpenAI 本番」。後から名称だけ変更でき、鍵を再入力する必要はありません。",
+    "Дайте ключу понятное название, например «OpenAI production». Позже название можно изменить, не вводя ключ заново."
+  ],
   "继续付款 / 查看详情": [
     "继续付款 / 查看详情",
     "Continue payment / view details",
@@ -21820,6 +21838,12 @@
     "Risk alerts",
     "リスク警告",
     "Предупреждения о рисках"
+  ],
+  "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。": [
+    "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。",
+    "Required when creating a key. Leave it blank later to change only the name or enabled state; the saved key stays the same.",
+    "初回作成時は必須です。後から名称や有効状態だけ変えるときは空欄にし、保存済みの鍵はそのままです。",
+    "Обязательно при создании. Позже оставьте пустым, чтобы изменить только название или состояние; сохранённый ключ не меняется."
   ],
   "首次新增时系统生成唯一编号；修订时沿用原编号。公开模型标识会出现在客户的 API 请求中，应使用稳定、可读的名称，例如 demo-chat。": [
     "首次新增时系统生成唯一编号；修订时沿用原编号。公开模型标识会出现在客户的 API 请求中，应使用稳定、可读的名称，例如 demo-chat。",

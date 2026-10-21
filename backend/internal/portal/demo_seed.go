@@ -360,7 +360,7 @@ func (s *demoBuilder) model(in DemoOptions, children [][2]string) error {
 	if e := a.Catalog.SavePublicModel(s.ctx, platform, m, 0); e != nil {
 		return e
 	}
-	if _, e := a.Catalog.SaveCredential(s.ctx, platform, credential, provider, in.ModelKey, true, 0); e != nil {
+	if _, e := a.Catalog.SaveCredential(s.ctx, platform, credential, provider, "测试模型密钥", in.ModelKey, true, 0); e != nil {
 		return e
 	}
 	u := catalog.UpstreamModel{ID: route, PublicModelID: modelID, Identity: modelID, ProviderID: provider, Provider: "openai", Model: "tokenhub-test-chat-v1", CredentialID: credential, Endpoints: map[modelruntime.Operation]string{modelruntime.Chat: strings.TrimRight(in.ModelBaseURL, "/") + "/v1/chat/completions"}, Capabilities: m.Capabilities, Enabled: true, Healthy: true}

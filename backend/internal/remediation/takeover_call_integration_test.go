@@ -47,7 +47,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	if err = cat.SavePublicModel(brand.ctx, brand.operator, m, 0); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = cat.SaveCredential(brand.ctx, brand.operator, "credential", "provider", "test-only-upstream-key", true, 0); err != nil {
+	if _, err = cat.SaveCredential(brand.ctx, brand.operator, "credential", "provider", "takeover test key", "test-only-upstream-key", true, 0); err != nil {
 		t.Fatal(err)
 	}
 	u := catalog.UpstreamModel{ID: "upstream", PublicModelID: m.ID, Identity: m.Identity, ProviderID: "provider", Provider: "openai", Model: "test-chat", CredentialID: "credential", Endpoints: map[modelruntime.Operation]string{modelruntime.Chat: base + "/v1/chat/completions"}, Capabilities: m.Capabilities, Enabled: true, Healthy: true}

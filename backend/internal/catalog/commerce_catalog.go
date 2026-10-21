@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
@@ -21,12 +22,16 @@ import (
 //go:embed commerce_schema.sql
 var commerceSchema string
 
+//go:embed commerce_schema_02_credential_name.sql
+var credentialNameSchema string
+
 //go:embed commerce_schema.sql
+//go:embed commerce_schema_02_credential_name.sql
 var commerceMigrationFS embed.FS
 
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
-func CommerceSchema() string { return commerceSchema }
+func CommerceSchema() string { return commerceSchema + "\n" + credentialNameSchema }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
 var ErrCatalogVersion = errors.New("catalog version conflict")
@@ -73,6 +78,7 @@ type UpstreamModel struct {
 }
 type CredentialView struct {
 	ID          string `json:"id"`
+	Name        string `json:"name"`
 	ProviderID  string `json:"provider_id"`
 	Fingerprint string `json:"fingerprint"`
 	Enabled     bool   `json:"enabled"`
@@ -251,28 +257,40 @@ func (s CommerceCatalog) upstreams(ctx context.Context, model string) ([]Upstrea
 	return out, nil
 }
 
-func (s CommerceCatalog) SaveCredential(ctx context.Context, actor, id, providerID, secret string, enabled bool, expected uint64) (CredentialView, error) {
+func (s CommerceCatalog) SaveCredential(ctx context.Context, actor, id, providerID, name, secret string, enabled bool, expected uint64) (CredentialView, error) {
 	var view CredentialView
 	err := s.mutate(ctx, func(tx CommerceCatalog) error {
 		var e error
-		view, e = tx.saveCredential(ctx, actor, id, providerID, secret, enabled, expected)
+		view, e = tx.saveCredential(ctx, actor, id, providerID, name, secret, enabled, expected)
 		return e
 	})
 	return view, err
 }
-func (s CommerceCatalog) saveCredential(ctx context.Context, actor, id, providerID, secret string, enabled bool, expected uint64) (CredentialView, error) {
+func (s CommerceCatalog) saveCredential(ctx context.Context, actor, id, providerID, name, secret string, enabled bool, expected uint64) (CredentialView, error) {
 	if !s.platform(actor) {
 		return CredentialView{}, ErrCatalogForbidden
 	}
-	if id == "" || providerID == "" || secret == "" || s.EncryptionKey == "" {
+	name = strings.TrimSpace(name)
+	if id == "" || providerID == "" || name == "" || len([]rune(name)) > 80 || s.EncryptionKey == "" || (expected == 0 && secret == "") {
 		return CredentialView{}, ErrInvalidInput
 	}
-	cipher, e := platformcrypto.Seal(s.EncryptionKey, secret)
-	if e != nil {
-		return CredentialView{}, e
+	var cipher, fingerprint string
+	var e error
+	if secret == "" {
+		var row struct{ Ciphertext, Fingerprint string }
+		e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("ciphertext,fingerprint").Where("id=? AND provider_id=? AND version=?", id, providerID, expected).Take(&row).Error
+		if e != nil {
+			return CredentialView{}, ErrCatalogVersion
+		}
+		cipher, fingerprint = row.Ciphertext, row.Fingerprint
+	} else {
+		cipher, e = platformcrypto.Seal(s.EncryptionKey, secret)
+		if e != nil {
+			return CredentialView{}, e
+		}
+		fingerprint = platformcrypto.HashToken(secret)[:12]
 	}
-	fingerprint := platformcrypto.HashToken(secret)[:12]
-	fields := map[string]any{"id": id, "provider_id": providerID, "ciphertext": cipher, "fingerprint": fingerprint, "enabled": enabled, "version": expected + 1}
+	fields := map[string]any{"id": id, "provider_id": providerID, "name": name, "ciphertext": cipher, "fingerprint": fingerprint, "enabled": enabled, "version": expected + 1}
 	if expected == 0 {
 		e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Create(fields).Error
 	} else {
@@ -283,7 +301,7 @@ func (s CommerceCatalog) saveCredential(ctx context.Context, actor, id, provider
 			e = ErrCatalogVersion
 		}
 	}
-	return CredentialView{ID: id, ProviderID: providerID, Fingerprint: fingerprint, Enabled: enabled, Version: expected + 1}, e
+	return CredentialView{ID: id, Name: name, ProviderID: providerID, Fingerprint: fingerprint, Enabled: enabled, Version: expected + 1}, e
 }
 
 // ResolveCredential satisfies modelruntime.CredentialSource. It pins the secret

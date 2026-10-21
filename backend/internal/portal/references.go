@@ -367,7 +367,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, humanJoin("供应商凭据", readableIdentifier(r.ProviderID), r.Fingerprint), gin.H{"id": r.ID, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version})
+			add(r.ID, credentialChoiceLabel(r.Name, r.ProviderID, r.Fingerprint), gin.H{"id": r.ID, "name": r.Name, "provider_id": r.ProviderID, "enabled": r.Enabled, "expected_version": r.Version})
 		}
 	case "merchants":
 		if customer {

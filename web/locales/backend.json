@@ -5949,6 +5949,26 @@
     "ja": "認証情報を作成・ローテーション",
     "ru": "Создать или сменить учётные данные"
   },
+  "凭据名称": {
+    "en": "Credential name",
+    "ja": "認証情報の名称",
+    "ru": "Название ключа"
+  },
+  "新的供应商密钥（只更换时填写）": {
+    "en": "New supplier key (only when replacing it)",
+    "ja": "新しいサプライヤー鍵（交換するときだけ）",
+    "ru": "Новый ключ поставщика (только при замене)"
+  },
+  "给这把密钥起一个便于辨认的名称，例如「OpenAI 生产」。之后可以只改名称，不必重新填写密钥。": {
+    "en": "Give this key a recognizable name, for example “OpenAI production”. You can rename it later without entering the key again.",
+    "ja": "見分けやすい名称を付けてください。例：「OpenAI 本番」。後から名称だけ変更でき、鍵を再入力する必要はありません。",
+    "ru": "Дайте ключу понятное название, например «OpenAI production». Позже название можно изменить, не вводя ключ заново."
+  },
+  "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。": {
+    "en": "Required when creating a key. Leave it blank later to change only the name or enabled state; the saved key stays the same.",
+    "ja": "初回作成時は必須です。後から名称や有効状態だけ変えるときは空欄にし、保存済みの鍵はそのままです。",
+    "ru": "Обязательно при создании. Позже оставьте пустым, чтобы изменить только название или состояние; сохранённый ключ не меняется."
+  },
   "新的供应商密钥": {
     "en": "New supplier secret",
     "ja": "新しい供給元キー",

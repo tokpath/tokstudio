@@ -6575,6 +6575,12 @@
     "description": "",
     "fields": [
       {
+        "name": "name",
+        "label": "凭据名称",
+        "kind": "text",
+        "required": true
+      },
+      {
         "lookup_url": "/api/v1/operators/{operatorId}/references/credentials",
         "name": "id",
         "label": "现有凭据引用（首次留空）",
@@ -6587,9 +6593,8 @@
       },
       {
         "name": "secret",
-        "label": "新的供应商密钥",
-        "kind": "password",
-        "required": true
+        "label": "新的供应商密钥（只更换时填写）",
+        "kind": "password"
       },
       {
         "name": "enabled",

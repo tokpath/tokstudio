@@ -464,7 +464,7 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	if e := cat.SavePublicModel(ctx, platform, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	if _, e := cat.SaveCredential(ctx, platform, credentialID, providerID, "fixture-provider-key", true, 0); e != nil {
+	if _, e := cat.SaveCredential(ctx, platform, credentialID, providerID, "fixture provider key", "fixture-provider-key", true, 0); e != nil {
 		t.Fatal(e)
 	}
 	upstream := catalog.UpstreamModel{ID: upstreamID, PublicModelID: modelID, Identity: modelID, ProviderID: providerID, Provider: "openai", Model: "test-chat", CredentialID: credentialID, Endpoints: map[modelruntime.Operation]string{modelruntime.Chat: lab + "/v1/chat/completions"}, Capabilities: m.Capabilities, Enabled: true, Healthy: true}

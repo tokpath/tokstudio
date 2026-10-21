@@ -53,6 +53,12 @@ func readableIdentifier(raw string) string {
 	}
 	return raw
 }
+func credentialChoiceLabel(name, providerID, fingerprint string) string {
+	if name = strings.TrimSpace(name); name != "" {
+		return name
+	}
+	return humanJoin("供应商凭据", readableIdentifier(providerID), fingerprint)
+}
 
 // All relation queries enforce the exact workspace boundary independently of
 // the source list. A parent membership never authorizes child customer names,
@@ -235,12 +241,12 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 		}
 	}
 	if len(refs["credential"]) > 0 && customer == "" && op == a.Installation.OperatorID && a.Organization.RequirePermission(c.Request.Context(), nil, id.Session.SubjectID, op, "catalog.manage") == nil {
-		var found []struct{ ID, ProviderID, Fingerprint string }
-		if err := db.Table("tokenhub_provider_credentials").Select("id,provider_id,fingerprint").Where("id IN ?", refs["credential"]).Scan(&found).Error; err != nil {
+		var found []struct{ ID, Name, ProviderID, Fingerprint string }
+		if err := db.Table("tokenhub_provider_credentials").Select("id,name,provider_id,fingerprint").Where("id IN ?", refs["credential"]).Scan(&found).Error; err != nil {
 			return err
 		}
 		for _, r := range found {
-			labels[r.ID] = humanJoin("供应商凭据", readableIdentifier(r.ProviderID), r.Fingerprint)
+			labels[r.ID] = credentialChoiceLabel(r.Name, r.ProviderID, r.Fingerprint)
 		}
 	}
 	packageQ := db.Table("commerce_packages").Select("id,name AS label").Where("operator_id=?", op)

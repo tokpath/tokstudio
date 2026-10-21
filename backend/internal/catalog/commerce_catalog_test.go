@@ -74,7 +74,7 @@ func seedCommerceModel(t *testing.T, s CommerceCatalog) {
 	if e := s.SavePublicModel(ctx, "platform", m, 0); e != nil {
 		t.Fatal(e)
 	}
-	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "secret-to-encrypt", true, 0); e != nil {
+	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "secret-to-encrypt", true, 0); e != nil {
 		t.Fatal(e)
 	}
 	u := UpstreamModel{ID: "upstream", PublicModelID: m.ID, Identity: m.Identity, ProviderID: "provider", Provider: "openai", Model: "exact-model", CredentialID: "credential", Capabilities: m.Capabilities, Enabled: true, Healthy: true}
@@ -90,7 +90,7 @@ func TestCommerceAuthorizationListingIdentityAndCredentials(t *testing.T) {
 	s := newCommerceTestStore(t)
 	seedCommerceModel(t, s)
 	ctx := context.Background()
-	if _, e := s.SaveCredential(ctx, "oem", "hack", "provider", "secret", true, 0); !errors.Is(e, ErrCatalogForbidden) {
+	if _, e := s.SaveCredential(ctx, "oem", "hack", "provider", "catalog test key", "secret", true, 0); !errors.Is(e, ErrCatalogForbidden) {
 		t.Fatal("OEM supplier key accepted")
 	}
 	if e := s.SetAuthorization(ctx, "platform", "oem", "model", true, 0); e != nil {
@@ -230,7 +230,7 @@ func TestCommerceRevisionLockSerializesAdmissionAndChanges(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		close(started)
-		_, e := s.SaveCredential(ctx, "platform", "credential", "provider", "rotated-secret", true, 1)
+		_, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "rotated-secret", true, 1)
 		done <- e
 	}()
 	<-started
@@ -253,5 +253,32 @@ func TestCommerceRevisionLockSerializesAdmissionAndChanges(t *testing.T) {
 	after, e := s.LockRevision(ctx)
 	if e != nil || after != before+1 {
 		t.Fatalf("revision before=%d after=%d err=%v", before, after, e)
+	}
+}
+
+func TestCredentialNameCanChangeWithoutReplacingTheSecret(t *testing.T) {
+	s := newCommerceTestStore(t)
+	ctx := context.Background()
+	first, e := s.SaveCredential(ctx, "platform", "credential", "provider", "OpenAI 生产", "secret-to-encrypt", true, 0)
+	if e != nil || first.Name != "OpenAI 生产" {
+		t.Fatal(first, e)
+	}
+	var before string
+	if e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("ciphertext").Where("id=?", "credential").Scan(&before).Error; e != nil || before == "" {
+		t.Fatal(before, e)
+	}
+	renamed, e := s.SaveCredential(ctx, "platform", "credential", "provider", "OpenAI 备用", "", true, 1)
+	if e != nil || renamed.Name != "OpenAI 备用" || renamed.Fingerprint != first.Fingerprint || renamed.Version != 2 {
+		t.Fatal(renamed, e)
+	}
+	var after string
+	if e = s.DB.WithContext(ctx).Table("tokenhub_provider_credentials").Select("ciphertext").Where("id=?", "credential").Scan(&after).Error; e != nil || after != before {
+		t.Fatal("renaming replaced the stored key", e)
+	}
+	if _, e = s.SaveCredential(ctx, "platform", "another", "provider", "  ", "secret", true, 0); !errors.Is(e, ErrInvalidInput) {
+		t.Fatal("blank name accepted", e)
+	}
+	if _, e = s.SaveCredential(ctx, "platform", "another", "provider", "没有密钥", "", true, 0); !errors.Is(e, ErrInvalidInput) {
+		t.Fatal("new credential accepted without a key", e)
 	}
 }

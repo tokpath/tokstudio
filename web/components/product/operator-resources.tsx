@@ -376,7 +376,7 @@ const savedFactLabels: Record<string, string> = {
   "capabilities": "验证能力",
   "enabled": "启用",
   "provider_id": "供应商",
-  "secret": "新的供应商密钥",
+  "secret": "新的供应商密钥（只更换时填写）",
   "expected_version": "当前版本（首次0）",
   "public_model_id": "公开模型",
   "provider": "协议",

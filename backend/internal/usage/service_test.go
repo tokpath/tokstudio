@@ -128,7 +128,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	if e = cat.SavePublicModel(ctx, p.Operator.ID, model, 0); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = cat.SaveCredential(ctx, p.Operator.ID, "credential", "provider", "integration-test-secret", true, 0); e != nil {
+	if _, e = cat.SaveCredential(ctx, p.Operator.ID, "credential", "provider", "integration test key", "integration-test-secret", true, 0); e != nil {
 		t.Fatal(e)
 	}
 	base := strings.TrimRight(os.Getenv("TOKENHUB_MODEL_MOCK_URL"), "/")

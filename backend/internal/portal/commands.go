@@ -469,8 +469,12 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			items = append(items, entity(row.ID, "configured", int64(row.Version), row))
 		}
 		p["description"] = "供应商凭据经加密保存，只返回凭据引用与版本。"
-		p["columns"] = []gin.H{col("id", "凭据引用", "text"), col("provider_id", "供应商", "text"), col("enabled", "启用", "boolean")}
-		p["operations"] = []operation{{Name: "credential", Label: "创建或轮换凭据", Method: "POST", Path: base, Fields: []field{optional("id", "现有凭据引用（首次留空）", "text"), optional("provider_id", "现有供应商引用（首次留空）", "text"), f("secret", "新的供应商密钥", "password"), f("enabled", "启用", "boolean"), f("expected_version", "当前版本（首次0）", "integer")}}}
+		p["columns"] = []gin.H{col("name", "凭据名称", "text"), col("id", "凭据引用", "text"), col("provider_id", "供应商", "text"), col("enabled", "启用", "boolean")}
+		name := f("name", "凭据名称", "text")
+		name.Help = "给这把密钥起一个便于辨认的名称，例如「OpenAI 生产」。之后可以只改名称，不必重新填写密钥。"
+		secret := optional("secret", "新的供应商密钥（只更换时填写）", "password")
+		secret.Help = "首次创建必须填写。以后只修改名称或启用状态时留空，已保存的密钥保持不变。"
+		p["operations"] = []operation{{Name: "credential", Label: "创建或轮换凭据", Method: "POST", Path: base, Fields: []field{name, optional("id", "现有凭据引用（首次留空）", "text"), optional("provider_id", "现有供应商引用（首次留空）", "text"), secret, f("enabled", "启用", "boolean"), f("expected_version", "当前版本（首次0）", "integer")}}}
 	case "routes":
 		models, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -565,6 +569,7 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		var in struct {
 			ID         string `json:"id"`
 			ProviderID string `json:"provider_id"`
+			Name       string `json:"name"`
 			Secret     string `json:"secret"`
 			Enabled    bool   `json:"enabled"`
 			Expected   uint64 `json:"expected_version"`
@@ -578,7 +583,7 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		if in.ProviderID == "" {
 			in.ProviderID = uuid.NewString()
 		}
-		out, e := cat.SaveCredential(ctx, op.ID, in.ID, in.ProviderID, in.Secret, in.Enabled, in.Expected)
+		out, e := cat.SaveCredential(ctx, op.ID, in.ID, in.ProviderID, in.Name, in.Secret, in.Enabled, in.Expected)
 		return gin.H{"id": out.ID, "status": "saved", "version": out.Version}, e
 	case "routes":
 		var in struct {

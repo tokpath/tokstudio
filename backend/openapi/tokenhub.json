@@ -52880,6 +52880,10 @@
       "Operator_providers_credential": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "凭据名称"
+          },
           "id": {
             "type": "string",
             "description": "现有凭据引用（首次留空）"
@@ -52890,7 +52894,7 @@
           },
           "secret": {
             "type": "string",
-            "description": "新的供应商密钥",
+            "description": "新的供应商密钥（只更换时填写）",
             "writeOnly": true
           },
           "enabled": {
@@ -52904,7 +52908,7 @@
           }
         },
         "required": [
-          "secret",
+          "name",
           "enabled",
           "expected_version"
         ],

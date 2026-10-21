@@ -59,6 +59,146 @@
     "ja": "呼び出し機能",
     "ru": "Возможность API"
   },
+  "允许的输入": {
+    "en": "Allowed input",
+    "ja": "許可する入力",
+    "ru": "Допустимый ввод"
+  },
+  "例如 text、image。有多种就逐个添加。": {
+    "en": "For example, text or image. Add one entry for each kind.",
+    "ja": "例：text、image。複数ある場合は一つずつ追加します。",
+    "ru": "Например, text или image. Каждый вид добавляйте отдельно."
+  },
+  "接受的参数": {
+    "en": "Accepted parameters",
+    "ja": "受け付けるパラメータ",
+    "ru": "Принимаемые параметры"
+  },
+  "只填写已经向供应商核实、调用时可以传入的参数，例如 max_completion_tokens。": {
+    "en": "Enter only parameters the supplier confirmed can be sent, for example max_completion_tokens.",
+    "ja": "供給元が受け付けると確認したパラメータだけ記入します。例：max_completion_tokens。",
+    "ru": "Указывайте только параметры, которые поставщик подтвердил, например max_completion_tokens."
+  },
+  "必须填写的参数": {
+    "en": "Required parameters",
+    "ja": "必須パラメータ",
+    "ru": "Обязательные параметры"
+  },
+  "这里的每一项都必须同时出现在「接受的参数」里。": {
+    "en": "Every item here must also appear in Accepted parameters.",
+    "ja": "ここにある項目は、すべて「受け付けるパラメータ」にも含まれている必要があります。",
+    "ru": "Каждый пункт здесь также должен быть в списке принимаемых параметров."
+  },
+  "供应商可以持续一段一段返回内容时再勾选。": {
+    "en": "Check this only when the supplier can return the result in parts.",
+    "ja": "供給元が結果を少しずつ返せる場合だけオンにします。",
+    "ru": "Отмечайте, только если поставщик возвращает результат частями."
+  },
+  "按字节填写，必须大于 0。例如 1 MB 填写 1048576。": {
+    "en": "Enter a size in bytes greater than 0. For 1 MB, enter 1048576.",
+    "ja": "バイト数で、0 より大きい値を記入します。1 MB なら 1048576。",
+    "ru": "Укажите размер в байтах больше 0. Для 1 МБ введите 1048576."
+  },
+  "客户选择模型时看到的名字，例如「对话 Pro」。以后可以修改。": {
+    "en": "The name customers see when choosing a model, for example “Chat Pro”. You can change it later.",
+    "ja": "お客様がモデルを選ぶときに見る名前です。例：「対話 Pro」。後から変更できます。",
+    "ru": "Имя, которое клиент видит при выборе модели, например «Chat Pro». Его можно изменить позже."
+  },
+  "第一次登记先不要勾选。每一项能力保存时都必须已经核实通过；勾选开放还要求已经有健康的上游路由。": {
+    "en": "Leave this unchecked the first time. Every capability must already be verified before it can be saved. Turning the model on also requires a healthy upstream route.",
+    "ja": "初回登録ではオフのままにします。各機能は検証済みでないと保存できません。公開するには、正常な上流ルートも必要です。",
+    "ru": "При первом добавлении не включайте. Каждую возможность можно сохранить только после проверки. Для открытия также нужен исправный маршрут."
+  },
+  "每一项都是一种客户可以调用的能力，例如对话或图片生成。": {
+    "en": "Each item is one capability a customer can call, such as chat or image generation.",
+    "ja": "各項目は、お客様が呼び出せる機能です。例：対話、画像生成。",
+    "ru": "Каждый пункт — возможность, которую вызывает клиент, например диалог или генерация изображений."
+  },
+  "保存这项能力前，需要选择调用能力、填写最大输入、至少一项计费，以及验证依据、时间和下面四项确认。": {
+    "en": "Before this capability can be saved, choose what it does, enter the maximum input, add at least one charge, and complete the evidence, time, and four confirmations below.",
+    "ja": "この機能を保存するには、呼び出し機能、最大入力、1 件以上の課金、検証根拠、日時、下の 4 つの確認が必要です。",
+    "ru": "Чтобы сохранить возможность, выберите действие, укажите максимальный ввод, добавьте хотя бы одну тарификацию и заполните основание, время и четыре подтверждения ниже."
+  },
+  "怎么调用": {
+    "en": "How it is called",
+    "ja": "呼び出し方",
+    "ru": "Как вызывается"
+  },
+  "写清这项能力接受什么输入和参数，以及最大能接收多大的输入。": {
+    "en": "State which inputs and parameters this capability accepts, and the largest input it can receive.",
+    "ja": "この機能が受け付ける入力とパラメータ、および最大入力サイズを記入します。",
+    "ru": "Укажите, какие ввод и параметры принимает возможность, и максимальный размер ввода."
+  },
+  "怎么计费": {
+    "en": "How it is billed",
+    "ja": "課金方法",
+    "ru": "Как тарифицируется"
+  },
+  "每一行是一项计费。名称以后要和价格里的组件一致，例如 input_tokens。用量路径是供应商返回用量里的位置，例如 /input_tokens。": {
+    "en": "Each row is one charge. The name must later match the price component, for example input_tokens. The usage path is where that quantity appears in the supplier response, for example /input_tokens.",
+    "ja": "1 行が 1 つの課金です。名称は後で価格の構成要素と一致させます。例：input_tokens。使用量パスは、供給元の応答でその数量がある場所です。例：/input_tokens。",
+    "ru": "Каждая строка — одна тарификация. Имя позже должно совпасть с компонентом цены, например input_tokens. Путь — место количества в ответе поставщика, например /input_tokens."
+  },
+  "保存前确认": {
+    "en": "Confirm before saving",
+    "ja": "保存前の確認",
+    "ru": "Подтверждение перед сохранением"
+  },
+  "四项都要勾上，并填写验证依据和时间。缺任何一项都无法保存这项能力。": {
+    "en": "Check all four boxes and enter the evidence and time. The capability cannot be saved if any of these are missing.",
+    "ja": "4 つすべてをオンにし、検証根拠と日時を記入します。一つでも欠けると、この機能は保存できません。",
+    "ru": "Отметьте все четыре пункта и укажите основание и время. Без любого из них возможность не сохранится."
+  },
+  "特殊规则（一般不用填）": {
+    "en": "Special rules (usually leave blank)",
+    "ja": "特別な規則（通常は空欄）",
+    "ru": "Особые правила (обычно не заполняют)"
+  },
+  "只有供应商限制了输出数量、参数取值范围，或有重复计算的用量时再填写。": {
+    "en": "Fill this in only when the supplier limits output size, restricts a parameter, or counts the same usage twice.",
+    "ja": "供給元が出力数やパラメータ範囲を制限している場合、または同じ使用量を二重に数える場合だけ記入します。",
+    "ru": "Заполняйте, только если поставщик ограничивает объём вывода, диапазон параметра или дважды считает одно и то же использование."
+  },
+  "添加计费项目": {
+    "en": "Add a charge",
+    "ja": "課金項目を追加",
+    "ru": "Добавить тарификацию"
+  },
+  "计费名称": {
+    "en": "Charge name",
+    "ja": "課金名",
+    "ru": "Название тарификации"
+  },
+  "验证过的最大用量": {
+    "en": "Verified maximum quantity",
+    "ja": "検証済みの最大使用量",
+    "ru": "Проверенный максимальный объём"
+  },
+  "没有这项用量时按 0": {
+    "en": "Treat a missing quantity as 0",
+    "ja": "この使用量が無いときは 0",
+    "ru": "Если количества нет, считать 0"
+  },
+  "尚未添加计费项目。对话常见的是输入和输出 token。": {
+    "en": "No charges yet. Chat models usually bill input and output tokens.",
+    "ja": "課金項目はまだありません。対話では入力と出力の token が一般的です。",
+    "ru": "Тарификаций пока нет. Для диалога обычно считают входные и выходные токены."
+  },
+  "{label} {index}": {
+    "en": "{label} {index}",
+    "ja": "{label} {index}",
+    "ru": "{label} {index}"
+  },
+  "没有这项用量时按 0 {index}": {
+    "en": "Treat a missing quantity as 0 {index}",
+    "ja": "この使用量が無いときは 0 {index}",
+    "ru": "Если количества нет, считать 0 {index}"
+  },
+  "移除计费项目 {index}": {
+    "en": "Remove charge {index}",
+    "ja": "課金項目 {index} を削除",
+    "ru": "Удалить тарификацию {index}"
+  },
   "支持流式输出": {
     "en": "Supports streaming",
     "ja": "ストリーミング対応",

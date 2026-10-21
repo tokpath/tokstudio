@@ -351,3 +351,23 @@ it("reads the locked EVM asset for FX visibility even when no money currency fie
   show(operation,{id:"leg",values:{asset:"USDC"}});
   expect(screen.getByLabelText(/实际估值来源/,{selector:"input"})).toBeTruthy();
 });
+
+it("explains a new public model in three sections and keeps unusual limits folded", () => {
+  show({ name: "save", label: "维护公开模型与能力证据", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
+  expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
+  expect(screen.getByLabelText("客户看到的模型名称", { exact: true })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "添加能力", exact: true }));
+  expect(screen.getByRole("heading", { name: "怎么调用" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "怎么计费" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "保存前确认" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "各计费组件的有限用量上界" })).toBeNull();
+  expect(screen.getByText("特殊规则（一般不用填）").closest("details")?.open).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "添加计费项目", exact: true }));
+  fireEvent.change(screen.getByLabelText("计费名称 1"), { target: { value: "input_tokens" } });
+  fireEvent.change(screen.getByLabelText("计量单位 1"), { target: { value: "token" } });
+  fireEvent.change(screen.getByLabelText("用量路径 1"), { target: { value: "/input_tokens" } });
+  fireEvent.change(screen.getByLabelText("验证过的最大用量 1"), { target: { value: "1000" } });
+  const saved = JSON.parse((screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement).value);
+  expect(saved.model.capabilities[0].usage_rules).toEqual([{ component: "input_tokens", unit: "token", path: "/input_tokens", zero_when_absent: false }]);
+  expect(saved.model.capabilities[0].billable_bounds).toEqual({ input_tokens: "1000" });
+});

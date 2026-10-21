@@ -21191,7 +21191,7 @@
             }
           }
         },
-        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },

@@ -3,7 +3,7 @@ import { useI18n } from "@/components/i18n";
 import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 
-import { useDeferredValue, useId, useState } from "react";
+import { useDeferredValue, useId, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -40,6 +40,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   const help = businessFieldHelp(fieldPath, node.help, node.lookup);
   const label = context ? t("{label}（{context}）", { label: t(node.label), context }) : t(node.label);
   if (node.kind === "object") {
+    if (node.presentation === "capability") return <CapabilityFields node={node} value={value} change={change} disabled={disabled} operatorID={operatorID} context={context} fieldPath={fieldPath} />;
     const data = asObject(value);
     const update = (key: string, selected: JSONValue, defaults?: Record<string, unknown>) => {
       const next = { ...data, [key]: selected };
@@ -82,6 +83,52 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
           : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
 
   </div>;
+}
+
+type MeterRow = { component: string; unit: string; path: string; zero: boolean; bound: string; extra: Record<string, JSONValue> };
+function meterRows(data: Record<string, JSONValue>): MeterRow[] {
+  const rules = Array.isArray(data.usage_rules) ? data.usage_rules : [];
+  const bounds = asObject(data.billable_bounds);
+  const seen = new Set<string>();
+  const rows = rules.map(rule => {
+    const item = asObject(rule);
+    const component = String(item.component || "");
+    seen.add(component);
+    const extra = { ...item };
+    for (const key of ["component", "unit", "path", "zero_when_absent", "bound"]) delete extra[key];
+    const stored = component && bounds[component] !== undefined ? bounds[component] : item.bound;
+    return { component, unit: String(item.unit || ""), path: String(item.path || ""), zero: item.zero_when_absent === true, bound: stored === undefined || stored === null ? "" : String(stored), extra };
+  });
+  for (const [key, bound] of Object.entries(bounds)) if (!seen.has(key)) rows.push({ component: key, unit: "", path: "", zero: false, bound: bound === undefined || bound === null ? "" : String(bound), extra: {} });
+  return rows;
+}
+function writeMeter(data: Record<string, JSONValue>, rows: MeterRow[]): Record<string, JSONValue> {
+  const bounds: Record<string, JSONValue> = {};
+  const rules = rows.map(row => {
+    const rule: Record<string, JSONValue> = { ...row.extra, component: row.component, unit: row.unit, path: row.path, zero_when_absent: row.zero };
+    if (row.component.trim()) bounds[row.component] = row.bound;
+    else if (row.bound) rule.bound = row.bound;
+    return rule;
+  });
+  return { ...data, usage_rules: rules, billable_bounds: bounds };
+}
+
+function CapabilityFields({ node, value, change, disabled, operatorID, context, fieldPath }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; operatorID?: string; context?: string; fieldPath?: string }) {
+  const { t } = useI18n();
+  const data = asObject(value);
+  const fields = node.fields || {};
+  const update = (key: string, selected: JSONValue) => change({ ...data, [key]: selected });
+  const render = (key: string) => fields[key] ? <NodeEditor key={key} node={fields[key]} value={data[key]} disabled={disabled} operatorID={operatorID} fieldPath={fieldPath ? `${fieldPath}.${key}` : key} change={next => update(key, next)} /> : null;
+  const rows = meterRows(data);
+  const setRows = (next: MeterRow[]) => change(writeMeter(data, next));
+  const advancedOpen = Number(data.max_output) > 0 || !!String(data.output_limit_parameter || "") || Object.keys(asObject(data.parameter_constraints)).length > 0 || Object.keys(asObject(data.subtract_paths)).length > 0;
+  const section = (title: string, help: string, body: ReactNode) => <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t(title)}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t(help)}</p></div>{body}</section>;
+  return <fieldset className="min-w-0 space-y-5 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{context || t(node.label)}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</legend>
+    {section("怎么调用", "写清这项能力接受什么输入和参数，以及最大能接收多大的输入。", <div className="grid gap-4 sm:grid-cols-2">{["operation", "streaming", "input_types", "parameters", "required_parameters", "max_input_bytes"].map(key => <div key={key} className={fields[key] && ["object", "array", "record", "textarea"].includes(fields[key].kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}>{render(key)}</div>)}</div>)}
+    {section("怎么计费", "每一行是一项计费。名称以后要和价格里的组件一致，例如 input_tokens。用量路径是供应商返回用量里的位置，例如 /input_tokens。", <div className="space-y-3"><div className="flex justify-end"><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { component: "", unit: "", path: "", zero: false, bound: "", extra: {} }])}><Plus aria-hidden="true" />{t("添加计费项目")}</Button></div>{!rows.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加计费项目。对话常见的是输入和输出 token。")}</p>}{rows.map((row, index) => <div key={index} className="space-y-3 rounded-control border border-hairline p-3"><div className="grid gap-3 sm:grid-cols-2">{([["component", "计费名称"], ["unit", "计量单位"], ["path", "用量路径"], ["bound", "验证过的最大用量"]] as const).map(([key, label]) => <label key={key} className="block text-xs text-ink-secondary">{t(label)}<Input aria-label={t("{label} {index}", { label: t(label), index: index + 1 })} className="mt-2" value={row[key]} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} /></label>)}</div><div className="flex items-center justify-between gap-3"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" aria-label={t("没有这项用量时按 0 {index}", { index: index + 1 })} checked={row.zero} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, zero: event.target.checked } : item))} />{t("没有这项用量时按 0")}</label><Button type="button" variant="ghost" size="icon" aria-label={t("移除计费项目 {index}", { index: index + 1 })} disabled={disabled} onClick={() => setRows(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div></div>)}</div>)}
+    {section("保存前确认", "四项都要勾上，并填写验证依据和时间。缺任何一项都无法保存这项能力。", <div className="grid gap-4 sm:grid-cols-2">{["evidence_id", "verified_at", "parameters_verified", "usage_verified", "bounds_verified", "recovery_verified"].map(key => <div key={key} className="min-w-0">{render(key)}</div>)}</div>)}
+    <details className="rounded-control border border-hairline p-4" open={advancedOpen || undefined}><summary className="cursor-pointer text-sm font-medium">{t("特殊规则（一般不用填）")}</summary><p className="mb-4 mt-2 text-xs leading-6 text-ink-mute">{t("只有供应商限制了输出数量、参数取值范围，或有重复计算的用量时再填写。")}</p><div className="grid gap-4 sm:grid-cols-2">{["max_output", "output_limit_parameter", "parameter_constraints", "subtract_paths"].map(key => <div key={key} className={fields[key] && ["object", "array", "record", "textarea"].includes(fields[key].kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}>{render(key)}</div>)}</div></details>
+  </fieldset>;
 }
 
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });

@@ -22,6 +22,10 @@ export type ConfigNode = {
   max?: number;
   nullable?: boolean;
   readOnly?: boolean;
+  /** Capability cards explain call, billing, and verification before the rare limits. */
+  presentation?: "capability";
+  /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
+  hideWhen?: { field: string; values: string[] };
 };
 const text = (label: string, required = true, help?: string): ConfigNode => ({ kind: "text", label, required, help });
 const decimal = (label: string, required = true): ConfigNode => ({ kind: "decimal", label, required });
@@ -34,17 +38,24 @@ const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({
 const record = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "record", label, item, help });
 const operations: [string, string][] = [["chat", "对话"], ["responses", "Responses"], ["embedding", "向量"], ["image_generation", "图片生成"], ["speech", "语音生成"], ["transcription", "语音转写"], ["video_generation", "视频生成"], ["video_retrieve", "视频任务查询"], ["video_download", "视频结果下载"]];
 const strings = (label: string) => array(label, text("值"));
-const capability = object("能力", {
-  operation: select("调用能力", operations), streaming: boolean("支持流式输出"),
-  input_types: strings("允许输入类型"), parameters: strings("保留并支持的参数"), required_parameters: strings("调用必填参数"),
-  max_input_bytes: integer("最大输入大小（字节）"), max_output: integer("最大输出数量（无输出上限参数时可为 0）", 0), output_limit_parameter: text("输出上限参数名称", false),
-  billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), required: true },
-  usage_rules: array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })),
-  parameter_constraints: record("参数允许范围", object("参数限制", { min: { ...text("最小值", false), kind: "rational", signed: true }, max: { ...text("最大值", false), kind: "rational", signed: true }, values: strings("允许值（与数值范围二选一）") })),
-  subtract_paths: record("需要扣除的重复子用量", strings("扣除路径")),
-  evidence_id: text("能力验证证据引用"), verified_at: datetime("验证完成时间", true),
-  parameters_verified: boolean("已验证参数完整保留"), usage_verified: boolean("已验证用量可靠"), bounds_verified: boolean("已验证用量上界"), recovery_verified: boolean("已验证失败恢复"),
-}, "仅填写已核实的真实能力。参数、计量、上界和恢复证据全部通过后才可开放。");
+const capability: ConfigNode = {
+  ...object("能力", {
+    operation: select("调用能力", operations),
+    streaming: { ...boolean("支持流式输出"), help: "供应商可以持续一段一段返回内容时再勾选。" },
+    input_types: { ...strings("允许的输入"), help: "例如 text、image。有多种就逐个添加。" },
+    parameters: { ...strings("接受的参数"), help: "只填写已经向供应商核实、调用时可以传入的参数，例如 max_completion_tokens。" },
+    required_parameters: { ...strings("必须填写的参数"), help: "这里的每一项都必须同时出现在「接受的参数」里。" },
+    max_input_bytes: { ...integer("最大输入大小（字节）"), help: "按字节填写，必须大于 0。例如 1 MB 填写 1048576。" },
+    max_output: integer("最大输出数量（无输出上限参数时可为 0）", 0), output_limit_parameter: text("输出上限参数名称", false),
+    billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), required: true },
+    usage_rules: array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })),
+    parameter_constraints: record("参数允许范围", object("参数限制", { min: { ...text("最小值", false), kind: "rational", signed: true }, max: { ...text("最大值", false), kind: "rational", signed: true }, values: strings("允许值（与数值范围二选一）") })),
+    subtract_paths: record("需要扣除的重复子用量", strings("扣除路径")),
+    evidence_id: text("能力验证证据引用"), verified_at: datetime("验证完成时间", true),
+    parameters_verified: boolean("已验证参数完整保留"), usage_verified: boolean("已验证用量可靠"), bounds_verified: boolean("已验证用量上界"), recovery_verified: boolean("已验证失败恢复"),
+  }, "保存这项能力前，需要选择调用能力、填写最大输入、至少一项计费，以及验证依据、时间和下面四项确认。"),
+  presentation: "capability",
+};
 const scope = (label: string, operatorID?: string) => object(label, {
   kind: select("价目用途", [["retail", "客户零售价"], ["supply", "对下级供货价"], ["supplier", "供应商成本价（USD）"]], "retail"),
   seller_id: { ...text("定价经营方或供应商（自动带入）"), default: operatorID, readOnly: true },
@@ -59,9 +70,17 @@ const component = object("计费组件", {
 
 export function configurationSchema(operation: Operation, operatorID?: string): ConfigNode | undefined {
   if (/\/catalog$/.test(operation.path)) return object("公开模型", {
-    model: object("模型身份与公开能力", { id: text("公开模型标识"), display_name: text("客户看到的模型名称"), identity: text("已核实模型身份与修订版本"), enabled: boolean("开放模型"), capabilities: array("已验证能力", capability) }),
-    expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true }, effective_at: datetime("计划生效时间（修订已开放模型时填写）"),
-    evidence: { ...text("变更及通知依据", false), kind: "textarea" }, emergency: boolean("紧急停用（须有真实事件依据）"),
+    model: object("模型身份与公开能力", {
+      id: text("公开模型标识"),
+      display_name: text("客户看到的模型名称", true, "客户选择模型时看到的名字，例如「对话 Pro」。以后可以修改。"),
+      identity: text("已核实模型身份与修订版本"),
+      enabled: { ...boolean("开放模型"), help: "第一次登记先不要勾选。每一项能力保存时都必须已经核实通过；勾选开放还要求已经有健康的上游路由。" },
+      capabilities: array("已验证能力", capability, "每一项都是一种客户可以调用的能力，例如对话或图片生成。"),
+    }),
+    expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
+    effective_at: { ...datetime("计划生效时间（修订已开放模型时填写）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
+    evidence: { ...text("变更及通知依据", false), kind: "textarea", hideWhen: { field: "expected_version", values: ["0", ""] } },
+    emergency: { ...boolean("紧急停用（须有真实事件依据）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
   });
   if (/\/routes$/.test(operation.path)) return object("上游路由", {
     upstream: object("路由身份与供应商", {
@@ -106,6 +125,7 @@ export function configDefaults(node: ConfigNode): JSONValue | undefined {
 }
 
 export function nodeVisible(node: ConfigNode, parent: Record<string, JSONValue>): boolean {
+  if (node.hideWhen && node.hideWhen.values.includes(String(parent[node.hideWhen.field] ?? ""))) return false;
   return !node.when || node.when.values.includes(String(parent[node.when.field] ?? ""));
 }
 

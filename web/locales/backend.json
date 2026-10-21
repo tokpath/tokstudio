@@ -1934,6 +1934,11 @@
     "ja": "公開モデルと能力の証憑を維持",
     "ru": "Обслуживать публичные модели и подтверждения возможностей"
   },
+  "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。": {
+    "en": "Enter the model name and the identifier used in requests. For each capability, fill in how it is called, how it is billed, and the confirmation section. All four confirmations are required before saving. Leave it closed to customers the first time.",
+    "ja": "まずモデル名と、リクエストで使う識別子を記入します。各機能は「呼び出し方、課金方法、保存前の確認」の順に記入します。4 つの確認をすべてオンにしないと保存できません。初回はお客様に公開しないでください。",
+    "ru": "Сначала укажите название модели и идентификатор для запросов. Для каждой возможности заполните вызов, тарификацию и подтверждение. Все четыре подтверждения нужны для сохранения. В первый раз не открывайте модель клиентам."
+  },
   "凭据引用": {
     "en": "Credential reference",
     "ja": "認証情報の参照",

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,36 +30,10 @@ func ceiling(v *big.Rat) (ledger.Decimal, error) {
 	return d, nil
 }
 
-// Estimate affects admission convenience only. Every procurement layer uses
-// the independent, verified maximum bound from the selected capabilities.
+// Estimate is the customer reservation for this request. Visible quantities
+// come from the original body; unknown quantities use the registered bound.
 func Estimate(q catalog.ModelQuote, r modelruntime.Request) (ledger.Decimal, error) {
-	quantities := map[string]string{}
-	for key, raw := range q.Bounds {
-		unit := ""
-		for _, rate := range q.Retail.Components {
-			if rate.Key == key {
-				unit = rate.Unit
-				break
-			}
-		}
-		bound, e := catalog.PriceDecimal(raw)
-		if e != nil {
-			return ledger.Zero(), e
-		}
-		n := new(big.Rat).Set(bound)
-		lower := strings.ToLower(key)
-		switch {
-		case unit == "token" && (strings.Contains(lower, "input") || strings.Contains(lower, "prompt")):
-			n.SetInt64(int64((len(r.Input)+len(r.Params)+2)/3) + 16)
-		case unit == "token" && (strings.Contains(lower, "output") || strings.Contains(lower, "completion")):
-			n.SetInt64(512)
-		}
-		if n.Cmp(bound) > 0 {
-			n.Set(bound)
-		}
-		quantities[key] = n.FloatString(24)
-	}
-	exact, e := q.Retail.Charge(quantities)
+	exact, e := q.Retail.Charge(reservationQuantities(q, r))
 	if e != nil {
 		return ledger.Zero(), e
 	}
@@ -218,8 +191,9 @@ func (s *Service) Admit(ctx context.Context, authenticated Key, businessKey stri
 			out.CustomerHoldID = &hold.ID
 		}
 		holds := []SupplyHold{}
+		reserved := reservationQuantities(quote, r)
 		for _, price := range quote.Supply {
-			exact, e := price.MaximumCharge(quote.Bounds)
+			exact, e := price.Charge(reserved)
 			if e != nil {
 				return e
 			}

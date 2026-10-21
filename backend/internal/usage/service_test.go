@@ -190,9 +190,9 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 }
 func request(t *testing.T, stream bool) modelruntime.Request {
 	t.Helper()
-	body := `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":1000}`
+	body := `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":400}`
 	if stream {
-		body = `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":1000,"stream":true}`
+		body = `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":400,"stream":true}`
 	}
 	r, e := modelruntime.DecodeProtocol("incoming", modelruntime.Chat, []byte(body))
 	if e != nil {

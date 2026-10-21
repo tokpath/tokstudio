@@ -163,8 +163,18 @@ func (a *Application) platformRequestsResource(c *gin.Context, op organization.O
 		items = append(items, entity(r.ID, r.Status, 0, r))
 	}
 	p["title"] = "请求与成本证据"
-	p["description"] = "当前平台经营范围最近24小时的前100条业务事实；查看更长范围请使用受权导出。无正文、明文Key或供应商凭据。未知供应成本单列。"
+	p["description"] = "当前平台经营范围最近24小时的前100条业务事实；查看更长范围请使用受权导出。预估占用是调用前锁定的应收上限，实际用量计价是按真实用量和受理时销售价算出的应收。对照这两列可判断预估偏高或偏低。无正文、明文Key或供应商凭据。未知供应成本单列。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("customer_id", "客户", "text"), col("status", "请求状态", "status"), col("charged_atg", "实扣ATG", "atg"), col("supplier_cost_usd", "已核实供应成本USD", "usd"), col("unverified_attempts", "成本证据状态", "status"), col("accepted_at", "受理时间", "datetime")}
+	p["columns"] = []gin.H{
+		col("customer_id", "客户", "text"),
+		col("model_id", "公开模型", "text"),
+		col("status", "请求状态", "status"),
+		{"key": "estimate_atg", "label": "预估占用", "kind": "atg", "help": "调用前锁定的应收上限。高于实际用量计价说明占用偏保守，低于实际用量计价说明预估没有盖住真实应收。"},
+		{"key": "actual_atg", "label": "实际用量计价", "kind": "atg", "help": "按真实用量和受理时的销售价计算的应收。客户余额足够时与实扣相同。"},
+		col("charged_atg", "实扣ATG", "atg"),
+		col("supplier_cost_usd", "已核实供应成本USD", "usd"),
+		col("unverified_attempts", "成本证据状态", "status"),
+		col("accepted_at", "受理时间", "datetime"),
+	}
 	a.resourceResponse(c, p)
 }

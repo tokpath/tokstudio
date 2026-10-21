@@ -4424,10 +4424,25 @@
     "ja": "申請日時",
     "ru": "Время заявки"
   },
-  "当前平台经营范围最近24小时的前100条业务事实；查看更长范围请使用受权导出。无正文、明文Key或供应商凭据。未知供应成本单列。": {
-    "en": "The first 100 business facts from the last 24 hours in the current platform scope. Use authorized export for a wider range. No content bodies, plaintext Keys or supplier credentials. Unknown supply costs are listed separately.",
-    "ja": "現在のプラットフォーム運営範囲における直近 24 時間の先頭 100 件を表示します。広い範囲は権限付きエクスポートをご利用ください。本文、平文 Key、供給元認証情報は含みません。不明な供給原価は別途記載します。",
-    "ru": "Первые 100 фактов за последние 24 часа в текущей области платформы. Для большего периода используйте разрешённый экспорт. Без содержимого запросов, открытых ключей и учётных данных поставщиков. Неизвестная себестоимость указана отдельно."
+  "当前平台经营范围最近24小时的前100条业务事实；查看更长范围请使用受权导出。预估占用是调用前锁定的应收上限，实际用量计价是按真实用量和受理时销售价算出的应收。对照这两列可判断预估偏高或偏低。无正文、明文Key或供应商凭据。未知供应成本单列。": {
+    "en": "The first 100 business facts from the last 24 hours in the current platform scope. Use authorized export for a wider range. Reserved amount is the receivable ceiling locked before the call. Actual usage price is the receivable from measured usage and the price locked at acceptance. Compare the two columns to see whether the reservation ran high or low. No content bodies, plaintext Keys or supplier credentials. Unknown supply costs are listed separately.",
+    "ja": "現在のプラットフォーム運営範囲における直近 24 時間の先頭 100 件を表示します。広い範囲は権限付きエクスポートをご利用ください。事前確保額は呼び出し前に固定した請求上限です。実際の使用量価格は、実使用量と受付時の販売価格から計算した請求額です。2列を比べると、見積もりが高すぎるか低すぎるかが分かります。本文、平文 Key、供給元認証情報は含みません。不明な供給原価は別途記載します。",
+    "ru": "Первые 100 фактов за последние 24 часа в текущей области платформы. Для большего периода используйте разрешённый экспорт. Резерв — это потолок к оплате, зафиксированный до вызова. Фактическая цена использования — сумма по реальному расходу и цене, зафиксированной при приёме. Сравнение этих столбцов показывает, завышен или занижен резерв. Без содержимого запросов, открытых ключей и учётных данных поставщиков. Неизвестная себестоимость указана отдельно."
+  },
+  "预估占用": {
+    "en": "Reserved amount",
+    "ja": "事前確保額",
+    "ru": "Зарезервированная сумма"
+  },
+  "调用前锁定的应收上限。高于实际用量计价说明占用偏保守，低于实际用量计价说明预估没有盖住真实应收。": {
+    "en": "The receivable ceiling locked before the call. Above the actual usage price, the reservation is conservative. Below it, the estimate did not cover the real receivable.",
+    "ja": "呼び出し前に固定した請求上限です。実際の使用量価格より高ければ確保は保守的、低ければ見積もりが実際の請求を覆っていません。",
+    "ru": "Потолок к оплате, зафиксированный до вызова. Если он выше фактической цены, резерв консервативен. Если ниже, оценка не покрыла реальную сумму."
+  },
+  "按真实用量和受理时的销售价计算的应收。客户余额足够时与实扣相同。": {
+    "en": "The receivable from measured usage and the selling price locked at acceptance. It matches the amount charged when the customer balance covers it.",
+    "ja": "実使用量と受付時に固定した販売価格から計算した請求額です。顧客残高が足りる場合は実請求額と一致します。",
+    "ru": "Сумма к оплате по реальному расходу и продажной цене, зафиксированной при приёме. Совпадает со списанием, если баланса клиента достаточно."
   },
   "已核实供应成本USD": {
     "en": "Verified supply cost (USD)",

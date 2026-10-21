@@ -252,11 +252,11 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 			if e != nil {
 				t.Fatal(e)
 			}
-			if ch.op != f.operator && (rows[0].SupplierCostUSD != nil || rows[0].UnverifiedAttempts != nil || strings.Contains(string(exported), "supplier_cost_usd") || strings.Contains(string(exported), "unverified_attempts")) {
+			if ch.op != f.operator && (rows[0].SupplierCostUSD != nil || rows[0].UnverifiedAttempts != nil || rows[0].EstimateATG != nil || strings.Contains(string(exported), "supplier_cost_usd") || strings.Contains(string(exported), "unverified_attempts") || strings.Contains(string(exported), "estimate_atg")) {
 				t.Fatal("downstream export leaked platform provider economics", string(exported))
 			}
-			if ch.op == f.operator && (rows[0].SupplierCostUSD == nil || rows[0].SupplierCostUSD.String() != "0.017") {
-				t.Fatal("platform lost actual supplier cost", rows[0])
+			if ch.op == f.operator && (rows[0].SupplierCostUSD == nil || rows[0].SupplierCostUSD.String() != "0.017" || rows[0].EstimateATG == nil || rows[0].EstimateATG.Sign() <= 0) {
+				t.Fatal("platform lost actual supplier cost or reservation", rows[0])
 			}
 			replay, e := f.s.Execute(f.ctx, key.Key, "actual-model-call", request(t, false), nil)
 			if e != nil || !replay.Replay {

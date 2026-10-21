@@ -41,8 +41,8 @@ func TestPostgresFinancialFactsKeepGiftCostWithinTotalAndCorrectionsSeparate(t *
 		t.Fatalf("retail correction must not fabricate supplier refund: %+v", report)
 	}
 	rows, e := f.s.OperationalRequests(f.ctx, nil, f.operator, f.customer, from, to, 100)
-	if e != nil || len(rows) != 1 || rows[0].ActualATG.String() != "0.8" || rows[0].ChargedATG.String() != "0.7" || rows[0].CorrectedATG.String() != "0.8" || rows[0].CorrectedChargedATG.String() != "0.7" || !rows[0].NetActualATG.IsZero() || !rows[0].NetChargedATG.IsZero() || rows[0].FulfillmentCostUSD.String() != "0.8" {
-		t.Fatal("export lost original and corrected facts or rewrote supplier cost", rows, e)
+	if e != nil || len(rows) != 1 || rows[0].EstimateATG == nil || rows[0].EstimateATG.Sign() <= 0 || rows[0].ActualATG.String() != "0.8" || rows[0].ChargedATG.String() != "0.7" || rows[0].CorrectedATG.String() != "0.8" || rows[0].CorrectedChargedATG.String() != "0.7" || !rows[0].NetActualATG.IsZero() || !rows[0].NetChargedATG.IsZero() || rows[0].FulfillmentCostUSD.String() != "0.8" {
+		t.Fatal("export lost reservation, original and corrected facts, or rewrote supplier cost", rows, e)
 	}
 	other, e := f.s.FinancialFacts(f.ctx, nil, uuid.NewString(), from, to)
 	if e != nil || other.CompletedRequests != 0 || !other.PaidInvocationUSD.IsZero() || !other.SupplierCostUSD.IsZero() {

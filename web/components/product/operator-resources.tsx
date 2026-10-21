@@ -679,6 +679,8 @@ const savedFactLabels: Record<string, string> = {
   "data": "原始业务事实",
   "requested_by": "申请人",
   "workspace": "进入原业务复核",
+  "estimate_atg": "预估占用",
+  "actual_atg": "实际用量计价",
   "charged_atg": "实扣ATG",
   "supplier_cost_usd": "已核实供应成本USD",
   "unverified_attempts": "成本证据状态",

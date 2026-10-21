@@ -10,12 +10,15 @@ import (
 )
 
 type OperationalUsage struct {
-	ID                  string          `json:"id"`
-	CustomerID          string          `json:"customer_id"`
-	ModelID             string          `json:"model_id"`
-	Operation           string          `json:"operation"`
-	Status              string          `json:"status"`
-	ActualATG           ledger.Decimal  `json:"actual_atg"`
+	ID         string         `json:"id"`
+	CustomerID string         `json:"customer_id"`
+	ModelID    string         `json:"model_id"`
+	Operation  string         `json:"operation"`
+	Status     string         `json:"status"`
+	ActualATG  ledger.Decimal `json:"actual_atg"`
+	// EstimateATG is the pre-call customer reservation. Only the platform audit
+	// export receives it; downstream operators do not use it to judge metering.
+	EstimateATG         *ledger.Decimal `json:"estimate_atg,omitempty"`
 	ChargedATG          ledger.Decimal  `json:"charged_atg"`
 	CorrectedATG        ledger.Decimal  `json:"corrected_atg"`
 	CorrectedChargedATG ledger.Decimal  `json:"corrected_charged_atg"`
@@ -45,7 +48,7 @@ func (s *Service) OperationalRequests(ctx context.Context, tx *gorm.DB, operator
 		fields := `r.id,r.customer_id,r.model_id,r.operation,r.status,r.actual_atg::text,r.charged_atg::text,r.corrected_atg::text,r.corrected_charged_atg::text,(r.actual_atg-r.corrected_atg)::text AS net_actual_atg,(r.charged_atg-r.corrected_charged_atg)::text AS net_charged_atg,r.merchant_shortfall::text,r.accepted_at`
 		q := t.Table("usage_requests r").Where("r.operator_id=? AND r.accepted_at>=? AND r.accepted_at<?", operator, from, to)
 		if operator == s.Catalog.PlatformOperatorID {
-			fields += `,COALESCE(a.cost,0)::text AS fulfillment_cost_usd,COALESCE(a.cost,0)::text AS supplier_cost_usd,COALESCE(a.pending,0) AS unverified_attempts`
+			fields += `,r.estimate_atg::text,COALESCE(a.cost,0)::text AS fulfillment_cost_usd,COALESCE(a.cost,0)::text AS supplier_cost_usd,COALESCE(a.pending,0) AS unverified_attempts`
 			q = q.Joins(`LEFT JOIN LATERAL (SELECT sum(supplier_cost_usd)cost,count(*) FILTER(WHERE cost_status='pending')pending FROM usage_attempts WHERE request_id=r.id)a ON true`)
 		} else {
 			// A downstream merchant can export its own historical procurement

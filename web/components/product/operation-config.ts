@@ -38,11 +38,12 @@ const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({
 const record = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "record", label, item, help });
 const operations: [string, string][] = [["chat", "对话"], ["responses", "Responses"], ["embedding", "向量"], ["image_generation", "图片生成"], ["speech", "语音生成"], ["transcription", "语音转写"], ["video_generation", "视频生成"], ["video_retrieve", "视频任务查询"], ["video_download", "视频结果下载"]];
 const strings = (label: string) => array(label, text("值"));
+const inputTypes: [string, string][] = [["text", "文字"], ["image", "图片"], ["audio", "音频"], ["video", "视频"]];
 const capability: ConfigNode = {
   ...object("能力", {
     operation: select("调用能力", operations),
     streaming: { ...boolean("支持流式输出"), help: "供应商可以持续一段一段返回内容时再勾选。" },
-    input_types: { ...strings("允许的输入"), help: "例如 text、image。有多种就逐个添加。" },
+    input_types: { ...array("允许的输入", text("值"), "勾选这项能力接受的内容种类，可以同时选多项。"), options: inputTypes },
     parameters: { ...strings("接受的参数"), help: "只填写已经向供应商核实、调用时可以传入的参数，例如 max_completion_tokens。" },
     required_parameters: { ...strings("必须填写的参数"), help: "这里的每一项都必须同时出现在「接受的参数」里。" },
     max_input_bytes: { ...integer("最大输入大小（字节）"), help: "按字节填写，必须大于 0。例如 1 MB 填写 1048576。" },

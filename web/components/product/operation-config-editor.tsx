@@ -67,6 +67,17 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];
+    if (node.options) {
+      const known = node.options.map(([key]) => key);
+      const selected = new Set(items.map(item => String(item)));
+      const extras = items.map(item => String(item)).filter(item => item && !known.includes(item));
+      const choose = (key: string, checked: boolean) => {
+        const next = new Set(selected);
+        if (checked) next.add(key); else next.delete(key);
+        change([...known.filter(item => next.has(item)), ...extras.filter(item => next.has(item))]);
+      };
+      return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm"><legend className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{[...node.options, ...extras.map(item => [item, item] as [string, string])].map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
+    }
     return <section data-config-path={fieldPath} aria-label={label} className="min-w-0 space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>} <span className="font-normal text-ink-mute">{t("{count} 项", { count: items.length })}</span></h4><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...items, configDefaults(node.item!) ?? ""])}><Plus aria-hidden="true" />{t("添加{item}", { item: node.item?.kind === "object" ? t(node.item.label) : t("项目") })}</Button></div>{!items.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加{item}", { item: t(node.label) })}</p>}{items.map((item, index) => <div key={index} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1"><NodeEditor node={node.item!} value={item} disabled={disabled} operatorID={operatorID} context={`${t(node.label)} ${index + 1}`} fieldPath={`${fieldPath}.${index}`} change={next => change(items.map((previous, i) => i === index ? next : previous))} /></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除{item} {index}", { item: t(node.label), index: index + 1 })} disabled={disabled} onClick={() => change(items.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>)}</section>;
   }
   if (node.kind === "record") {

@@ -64,10 +64,20 @@
     "ja": "許可する入力",
     "ru": "Допустимый ввод"
   },
-  "例如 text、image。有多种就逐个添加。": {
-    "en": "For example, text or image. Add one entry for each kind.",
-    "ja": "例：text、image。複数ある場合は一つずつ追加します。",
-    "ru": "Например, text или image. Каждый вид добавляйте отдельно."
+  "勾选这项能力接受的内容种类，可以同时选多项。": {
+    "en": "Select the kinds of content this capability accepts. More than one can be selected.",
+    "ja": "この機能が受け付ける内容の種類を選択します。複数選択できます。",
+    "ru": "Выберите виды содержимого, которые принимает эта возможность. Можно выбрать несколько."
+  },
+  "文字": {
+    "en": "Text",
+    "ja": "テキスト",
+    "ru": "Текст"
+  },
+  "图片": {
+    "en": "Image",
+    "ja": "画像",
+    "ru": "Изображение"
   },
   "接受的参数": {
     "en": "Accepted parameters",

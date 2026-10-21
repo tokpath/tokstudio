@@ -190,9 +190,11 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 }
 func request(t *testing.T, stream bool) modelruntime.Request {
 	t.Helper()
-	body := `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":400}`
+	// 520 output tokens prices this fixture between 0.5 and 0.6 ATG. One credit
+	// can hold only one such request, and the 0.6 budget still accepts it.
+	body := `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":520}`
 	if stream {
-		body = `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":400,"stream":true}`
+		body = `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":520,"stream":true}`
 	}
 	r, e := modelruntime.DecodeProtocol("incoming", modelruntime.Chat, []byte(body))
 	if e != nil {
@@ -203,6 +205,17 @@ func request(t *testing.T, stream bool) modelruntime.Request {
 func measured(input, output string) modelruntime.Usage {
 	return modelruntime.Usage{Source: "provider_usage", Reliable: true, Measurements: []modelruntime.Measurement{{Component: "input", Unit: "token", Quantity: input}, {Component: "output", Unit: "token", Quantity: output}}}
 }
+func TestFixtureRequestReservationSplitsOneCreditOnce(t *testing.T) {
+	q := quote(catalog.ComponentRate{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "output", Unit: "token", Per: "1", Rate: "0.001"})
+	est, err := Estimate(q, request(t, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if est.Cmp(d("0.5")) <= 0 || est.Cmp(d("0.6")) > 0 {
+		t.Fatalf("fixture reservation %s must be above 0.5 ATG and at most 0.6 ATG", est)
+	}
+}
+
 func TestPostgresActualOverageNoCustomerDebtAndKeyResetPreservesBudget(t *testing.T) {
 	limit := d("0.6")
 	f := setup(t, "0.7", &limit)

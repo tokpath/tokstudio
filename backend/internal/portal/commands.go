@@ -510,8 +510,8 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			item["allowed_actions"] = []string{"model"}
 			items = append(items, item)
 		}
-		p["description"] = "先添加供应商密钥。再为这个供应商登记模型：供应商那边的模型名称、怎么读取用量，以及 USD 成本价。客户零售价仍在模型与定价。"
-		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("model", "供应商模型", "text"), col("enabled", "启用", "boolean")}
+		p["description"] = "上半部分管理供应商密钥。下半部分为每个供应商模型填写协议、能力和供应商报价。文本按输入、输出和缓存命中计价；图片、语音、转写和视频按各自的数量计价。"
+		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("provider", "协议", "text"), col("model", "供应商模型", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
 		name := f("name", "凭据名称", "text")
 		name.Help = "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
 		createSecret := f("secret", "供应商密钥", "password")
@@ -522,9 +522,9 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		version := f("expected_version", "当前版本（首次0）", "integer")
 		// The credential id and provider id stay on the saved record so routes keep
 		// using the same key. People do not type them.
-		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、端点、计量、USD 成本价、expected_version")
-		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "配置供应商模型", Method: "POST", Path: base, Description: "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。", Fields: []field{modelHelp}}}
-		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的调用、用量读取和 USD 成本价。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
+		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、能力与供应商报价、expected_version")
+		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "添加供应商模型", Method: "POST", Path: base, Description: "选择已经保存的供应商密钥，填写协议、供应商模型名称，以及这种能力对应的供应商报价。", Fields: []field{modelHelp}}}
+		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的协议、能力和供应商报价。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
 	case "routes":
 		models, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)
 		if e != nil {

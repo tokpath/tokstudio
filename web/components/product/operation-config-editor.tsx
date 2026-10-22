@@ -4,7 +4,7 @@ import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { YesNoChoice } from "./yes-no";
 
-import { useDeferredValue, useId, useState, type ReactNode } from "react";
+import { useDeferredValue, useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
 import { ErrorPanel } from "./shared";
-import { configDefaults, nodeVisible, retainKnownFields, type ConfigNode } from "./operation-config";
+import { configDefaults, nodeVisible, retainKnownFields, supplierQuoteLines, type ConfigNode } from "./operation-config";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 const asObject = (value: JSONValue | undefined): Record<string, JSONValue> => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -51,7 +51,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       }
       change(next);
     };
-    const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.readOnly && !child.generated && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
+    const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
       node={child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
       value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={data}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
@@ -96,46 +96,41 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   </div>;
 }
 
-type MeterRow = { component: string; unit: string; path: string; zero: boolean; bound: string };
-function meterRows(data: Record<string, JSONValue>): MeterRow[] {
-  const rules = Array.isArray(data.usage_rules) ? data.usage_rules : [];
-  const bounds = asObject(data.billable_bounds);
-  const seen = new Set<string>();
-  const rows = rules.map(rule => {
-    const item = asObject(rule);
-    const component = String(item.component || "");
-    seen.add(component);
-    const stored = component && bounds[component] !== undefined ? bounds[component] : item.bound;
-    return { component, unit: String(item.unit || ""), path: String(item.path || ""), zero: item.zero_when_absent === true, bound: stored === undefined || stored === null ? "" : String(stored) };
-  });
-  for (const [key, bound] of Object.entries(bounds)) if (!seen.has(key)) rows.push({ component: key, unit: "", path: "", zero: false, bound: bound === undefined || bound === null ? "" : String(bound) });
-  return rows;
-}
-function writeMeter(data: Record<string, JSONValue>, rows: MeterRow[]): Record<string, JSONValue> {
-  const bounds: Record<string, JSONValue> = {};
-  const rules = rows.map(row => {
-    const rule: Record<string, JSONValue> = { component: row.component, unit: row.unit, path: row.path, zero_when_absent: row.zero };
-    if (row.component.trim()) bounds[row.component] = row.bound;
-    else if (row.bound) rule.bound = row.bound;
-    return rule;
-  });
-  return { ...data, usage_rules: rules, billable_bounds: bounds };
-}
-
 function CapabilityFields({ node, value, change, disabled, operatorID, context, fieldPath }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; operatorID?: string; context?: string; fieldPath?: string }) {
   const { t } = useI18n();
   const data = asObject(value);
   const fields = node.fields || {};
-  const update = (key: string, selected: JSONValue) => change({ ...data, [key]: selected });
-  const render = (key: string) => fields[key] ? <NodeEditor key={key} node={fields[key]} value={data[key]} disabled={disabled} operatorID={operatorID} fieldPath={fieldPath ? `${fieldPath}.${key}` : key} change={next => update(key, next)} /> : null;
-  const rows = meterRows(data);
-  const setRows = (next: MeterRow[]) => change(writeMeter(data, next));
-  const advancedOpen = Object.keys(asObject(data.subtract_paths)).length > 0;
-  const section = (title: string, help: string, body: ReactNode) => <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t(title)}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t(help)}</p></div>{body}</section>;
+  const quotes = Array.isArray(data.quotes) ? data.quotes.map(asObject) : [];
+  const lines = supplierQuoteLines(String(data.operation || ""));
+  const write = (next: Record<string, JSONValue>) => {
+    const operation = String(next.operation || "");
+    const current = Array.isArray(next.quotes) ? next.quotes.map(asObject) : quotes;
+    const kept = supplierQuoteLines(operation).map(line => {
+      const quote = current.find(item => String(item.key || "") === line.key);
+      return { key: line.key, rate: String(quote?.rate || ""), bound: String(quote?.bound || "") };
+    }).filter(quote => quote.rate || quote.bound);
+    change({ ...next, quotes: kept });
+  };
+  const update = (key: string, selected: JSONValue) => write({ ...data, [key]: selected });
+  const render = (key: string) => fields[key] && !fields[key].hidden ? <NodeEditor key={key} node={fields[key]} value={data[key]} disabled={disabled} operatorID={operatorID} fieldPath={fieldPath ? `${fieldPath}.${key}` : key} change={next => update(key, next)} /> : null;
+  const setQuote = (key: string, patch: { rate?: string; bound?: string }) => {
+    const current = lines.map(line => {
+      const quote = quotes.find(item => String(item.key || "") === line.key);
+      return { key: line.key, rate: String(quote?.rate || ""), bound: String(quote?.bound || "") };
+    });
+    write({ ...data, quotes: current.map(quote => quote.key === key ? { ...quote, ...patch } : quote) });
+  };
   return <fieldset className="min-w-0 space-y-5 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{context || t(node.label)}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</legend>
-    {section("怎么调用", "选择调用方式。客户请求会原样转发，不用在这里限制正文大小或填写参数名。", <div className="grid gap-4 sm:grid-cols-2">{["operation", "streaming"].map(key => <div key={key} className="min-w-0">{render(key)}</div>)}</div>)}
-    {section("怎么计费", "每一行是一项计费。名称以后要和价格里的组件一致，例如 input_tokens。用量路径是供应商返回用量里的位置，例如 /input_tokens。", <div className="space-y-3"><div className="flex justify-end"><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { component: "", unit: "", path: "", zero: false, bound: "" }])}><Plus aria-hidden="true" />{t("添加计费项目")}</Button></div>{!rows.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加计费项目。对话常见的是输入和输出 token。")}</p>}{rows.map((row, index) => <div key={index} className="space-y-3 rounded-control border border-hairline p-3"><div className="grid gap-3 sm:grid-cols-2">{([["component", "计费名称"], ["unit", "计量单位"], ["path", "用量路径"], ["bound", "验证过的最大用量"]] as const).map(([key, label]) => <label key={key} className="block text-xs text-ink-secondary">{t(label)}<Input aria-label={t("{label} {index}", { label: t(label), index: index + 1 })} className="mt-2" value={row[key]} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} /></label>)}</div><div className="flex items-center justify-between gap-3"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" aria-label={t("没有这项用量时按 0 {index}", { index: index + 1 })} checked={row.zero} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, zero: event.target.checked } : item))} />{t("没有这项用量时按 0")}</label><Button type="button" variant="ghost" size="icon" aria-label={t("移除计费项目 {index}", { index: index + 1 })} disabled={disabled} onClick={() => setRows(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div></div>)}</div>)}
-    <details className="rounded-control border border-hairline p-4" open={advancedOpen || undefined}><summary className="cursor-pointer text-sm font-medium">{t("特殊规则（一般不用填）")}</summary><p className="mb-4 mt-2 text-xs leading-6 text-ink-mute">{t("只有用量里有一部分被重复计算时再填写。参数名不用在这里配置。")}</p><div className="grid gap-4 sm:grid-cols-2">{["subtract_paths"].map(key => <div key={key} className="min-w-0 sm:col-span-2">{render(key)}</div>)}</div></details>
+    <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t("怎么调用")}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t("选择调用方式和转发协议。客户请求会原样转发。")}</p></div><div className="grid gap-4 sm:grid-cols-2">{["operation", "streaming"].map(key => <div key={key} className="min-w-0">{render(key)}</div>)}</div></section>
+    <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t("供应商报价")}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t("这是模型提供商的报价，只对当前这种能力生效。文本按输入、输出和缓存命中计价；图片按张，语音按字符，转写和视频按秒。缓存命中可以留空，留空时输入按全部 token 计价。最大用量用于客户没有写明数量时占用额度。")}</p></div>
+      {!lines.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("先选择调用能力，再填写这种能力的报价。")}</p>}
+      {lines.map(line => {
+        const quote = quotes.find(item => String(item.key || "") === line.key);
+        const rate = String(quote?.rate || "");
+        const bound = String(quote?.bound || "");
+        return <div key={line.key} className="grid gap-3 rounded-control border border-hairline p-3 sm:grid-cols-2"><label className="block text-xs text-ink-secondary">{t(line.label)}{t("单价")}<span className="mt-2 block text-sm text-ink">{t(line.perLabel)}</span><Input aria-label={t("{label}单价", { label: t(line.label) })} className="mt-2" inputMode="decimal" value={rate} disabled={disabled} placeholder={line.optional ? t("可以留空") : ""} onChange={event => setQuote(line.key, { rate: event.target.value })} /></label><label className="block text-xs text-ink-secondary">{t("最大用量")}<Input aria-label={t("{label}最大用量", { label: t(line.label) })} className="mt-2" value={bound} disabled={disabled} onChange={event => setQuote(line.key, { bound: event.target.value })} /></label></div>;
+      })}
+    </section>
   </fieldset>;
 }
 

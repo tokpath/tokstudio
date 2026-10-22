@@ -3012,5 +3012,135 @@
     "en": "Not chosen yet",
     "ja": "未選択",
     "ru": "Ещё не выбрано"
+  },
+  "供应商报价": {
+    "en": "Provider price",
+    "ja": "提供元の価格",
+    "ru": "Цена поставщика"
+  },
+  "最大用量": {
+    "en": "Maximum quantity",
+    "ja": "最大使用量",
+    "ru": "Максимальный объём"
+  },
+  "可以留空": {
+    "en": "Can be left blank",
+    "ja": "空欄可",
+    "ru": "Можно оставить пустым"
+  },
+  "美元 / 每 100 万 token": {
+    "en": "USD per 1 million tokens",
+    "ja": "100万トークンあたりの米ドル",
+    "ru": "USD за 1 миллион токенов"
+  },
+  "美元 / 每张图片": {
+    "en": "USD per image",
+    "ja": "画像1枚あたりの米ドル",
+    "ru": "USD за изображение"
+  },
+  "美元 / 每 100 万字符": {
+    "en": "USD per 1 million characters",
+    "ja": "100万文字あたりの米ドル",
+    "ru": "USD за 1 миллион символов"
+  },
+  "美元 / 每秒": {
+    "en": "USD per second",
+    "ja": "1秒あたりの米ドル",
+    "ru": "USD за секунду"
+  },
+  "{label}单价": {
+    "en": "{label} price",
+    "ja": "{label}の単価",
+    "ru": "Цена: {label}"
+  },
+  "{label}最大用量": {
+    "en": "{label} maximum quantity",
+    "ja": "{label}の最大使用量",
+    "ru": "Максимальный объём: {label}"
+  },
+  "先选择调用能力，再填写这种能力的报价。": {
+    "en": "Choose a capability, then enter that capability's provider price.",
+    "ja": "呼び出し能力を選んでから、その能力の提供元価格を入力します。",
+    "ru": "Сначала выберите возможность, затем укажите цену поставщика для неё."
+  },
+  "选择调用方式和转发协议。客户请求会原样转发。": {
+    "en": "Choose how the model is called. The customer request is forwarded as sent.",
+    "ja": "呼び出し方を選びます。顧客のリクエストはそのまま転送されます。",
+    "ru": "Выберите способ вызова. Запрос клиента пересылается как есть."
+  },
+  "这是模型提供商的报价，只对当前这种能力生效。文本按输入、输出和缓存命中计价；图片按张，语音按字符，转写和视频按秒。缓存命中可以留空，留空时输入按全部 token 计价。最大用量用于客户没有写明数量时占用额度。": {
+    "en": "This is the model provider's price for this capability. Text is priced by input, output, and cache hits. Images are priced per image, speech per character, and transcription or video per second. Leave cache blank to price all input tokens together. The maximum quantity is reserved when the customer does not state a quantity.",
+    "ja": "これはこの能力に対するモデル提供元の価格です。テキストは入力、出力、キャッシュヒットで計算します。画像は枚数、音声は文字数、文字起こしと動画は秒数です。キャッシュヒットは空欄にでき、空欄なら入力は全トークンで計算します。最大使用量は、顧客が数量を書かないときの占有に使います。",
+    "ru": "Это цена поставщика модели для этой возможности. Текст считается по входу, выходу и попаданиям в кэш. Изображения — по штукам, речь — по символам, расшифровка и видео — по секундам. Кэш можно оставить пустым: тогда вход считается по всем токенам. Максимальный объём резервируется, если клиент не указал количество."
+  },
+  "请填写{label}的供应商报价。": {
+    "en": "Enter the provider price for {label}.",
+    "ja": "{label}の提供元価格を入力してください。",
+    "ru": "Укажите цену поставщика для {label}."
+  },
+  "请填写{label}的最大用量。": {
+    "en": "Enter the maximum quantity for {label}.",
+    "ja": "{label}の最大使用量を入力してください。",
+    "ru": "Укажите максимальный объём для {label}."
+  },
+  "请为这项能力填写供应商报价。": {
+    "en": "Enter a provider price for this capability.",
+    "ja": "この能力の提供元価格を入力してください。",
+    "ru": "Укажите цену поставщика для этой возможности."
+  },
+  "同一种用量只能有一个供应商报价。": {
+    "en": "Each usage item can have only one provider price.",
+    "ja": "同じ使用量項目の提供元価格は一つだけです。",
+    "ru": "У одного вида расхода может быть только одна цена поставщика."
+  },
+  "供应商模型 {name} 写了 {count} 项供应商报价，报价和调用能力对应。": {
+    "en": "Supplier model {name} has {count} provider prices, each tied to a capability.",
+    "ja": "供給元モデル {name} には能力に対応する提供元価格が {count} 件あります。",
+    "ru": "У модели поставщика {name} есть {count} цен, каждая соответствует возможности."
+  },
+  "密钥加密保存，页面不再显示原文。更换时留空表示继续用原来的密钥。": {
+    "en": "The key is stored encrypted and is not shown again. Leave it blank to keep the current key.",
+    "ja": "鍵は暗号化して保存し、画面には再表示しません。空欄のままなら元の鍵を使い続けます。",
+    "ru": "Ключ хранится в зашифрованном виде и больше не показывается. Пустое поле сохраняет прежний ключ."
+  },
+  "每个模型填写协议、能力和供应商报价。文本按输入、输出、缓存命中计价；图片按张，语音按字符，转写和视频按秒。": {
+    "en": "Each model has a protocol, capabilities, and provider prices. Text is priced by input, output, and cache hits; images per image; speech per character; transcription and video per second.",
+    "ja": "各モデルにプロトコル、能力、提供元価格を記入します。テキストは入力・出力・キャッシュヒット、画像は枚数、音声は文字数、文字起こしと動画は秒数です。",
+    "ru": "Для каждой модели указывают протокол, возможности и цены поставщика. Текст считается по входу, выходу и кэшу; изображения — по штукам; речь — по символам; расшифровка и видео — по секундам."
+  },
+  "添加供应商模型": {
+    "en": "Add supplier model",
+    "ja": "供給元モデルを追加",
+    "ru": "Добавить модель поставщика"
+  },
+  "这一页上面管理供应商密钥，下面为每个模型填写协议、能力和供应商报价。报价是模型提供商的价格，按能力对应。": {
+    "en": "Keys are managed at the top of this page. Each model below has a protocol, capabilities, and the provider's price for those capabilities.",
+    "ja": "このページの上部で供給元の鍵を管理し、下部で各モデルのプロトコル、能力、提供元価格を記入します。価格は能力に対応します。",
+    "ru": "Сверху на этой странице управляют ключами поставщика. Ниже у каждой модели указывают протокол, возможности и цену поставщика для этих возможностей."
+  },
+  "管理密钥": {
+    "en": "Manage keys",
+    "ja": "鍵を管理",
+    "ru": "Управление ключами"
+  },
+  "选择密钥，填写协议和模型名称，再按能力填写报价。": {
+    "en": "Choose a key, enter the protocol and model name, then price each capability.",
+    "ja": "鍵を選び、プロトコルとモデル名を入力し、能力ごとに価格を記入します。",
+    "ru": "Выберите ключ, укажите протокол и имя модели, затем цену каждой возможности."
+  },
+  "上半部分管理供应商密钥。下半部分为每个供应商模型填写协议、能力和供应商报价。文本按输入、输出和缓存命中计价；图片、语音、转写和视频按各自的数量计价。": {
+    "en": "Manage provider keys in the upper part. In the lower part, each supplier model has a protocol, capabilities, and provider prices. Text uses input, output, and cache hits; images, speech, transcription, and video use their own quantities.",
+    "ja": "上部で供給元の鍵を管理します。下部では各モデルにプロトコル、能力、提供元価格を記入します。テキストは入力・出力・キャッシュヒット、画像・音声・文字起こし・動画はそれぞれの数量です。",
+    "ru": "В верхней части управляют ключами поставщика. В нижней у каждой модели указывают протокол, возможности и цены поставщика. Текст считается по входу, выходу и кэшу; изображения, речь, расшифровка и видео — по своим количествам."
+  },
+  "选择已经保存的供应商密钥，填写协议、供应商模型名称，以及这种能力对应的供应商报价。": {
+    "en": "Choose a saved provider key, then enter the protocol, the provider model name, and the price for each capability.",
+    "ja": "保存済みの供給元鍵を選び、プロトコル、供給元モデル名、能力に対応する提供元価格を入力します。",
+    "ru": "Выберите сохранённый ключ поставщика, затем укажите протокол, имя модели и цену каждой возможности."
+  },
+  "修改这个供应商模型的协议、能力和供应商报价。已经绑定的路由会跟着更新。": {
+    "en": "Change this supplier model's protocol, capabilities, and provider prices. Routes already bound to it are updated.",
+    "ja": "この供給元モデルのプロトコル、能力、提供元価格を変更します。紐づいたルートも更新されます。",
+    "ru": "Измените протокол, возможности и цены этой модели поставщика. Уже привязанные маршруты обновятся."
   }
 }

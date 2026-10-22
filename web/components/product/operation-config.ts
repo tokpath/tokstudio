@@ -24,6 +24,8 @@ export type ConfigNode = {
   readOnly?: boolean;
   /** Capability cards explain call, billing, and verification before the rare limits. */
   presentation?: "capability" | "operations";
+  /** Drawn by a custom editor. The value is still kept and submitted. */
+  hidden?: boolean;
   /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
   hideWhen?: { field: string; values: string[] };
 };
@@ -40,12 +42,13 @@ const operations: [string, string][] = [["chat", "对话"], ["responses", "Respo
 const strings = (label: string) => array(label, text("值"));
 const capability: ConfigNode = {
   ...object("能力", {
-    operation: select("调用能力", operations),
+    operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
     streaming: { ...boolean("支持流式输出"), help: "客户要求一段一段返回时，选「是」。这不影响预估金额。" },
-    billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), required: true },
-    usage_rules: array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })),
-    subtract_paths: record("需要扣除的重复子用量", strings("扣除路径")),
-  }, "保存这项能力前，选择调用方式，并至少填写一项计费。"),
+    quotes: { ...array("供应商报价", object("报价", { key: text("计费名称"), rate: { ...decimal("单价（美元）"), required: false }, bound: { ...text("最大用量", false), kind: "rational" } })), hidden: true },
+    billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), hidden: true },
+    usage_rules: { ...array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })), hidden: true },
+    subtract_paths: { ...record("需要扣除的重复子用量", strings("扣除路径")), hidden: true },
+  }, "选择一种调用，并填写这种能力对应的供应商报价。"),
   presentation: "capability",
 };
 const scope = (label: string, operatorID?: string) => object(label, {
@@ -77,13 +80,13 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       id: { ...text("供应商模型标识"), generated: "uuid", readOnly: true },
       credential_id: { ...text("供应商密钥"), lookup: "credentials" },
       provider_id: { ...text("供应商引用（选择密钥后自动带入）", false), readOnly: true },
-      provider: text("协议名称", true, "例如 openai。这是转发时使用的协议，不是给客户看的名字。"),
+      provider: text("协议", true, "例如 openai。这是转发时使用的协议，不是给客户看的名字。"),
       model: text("供应商模型名称", true, "供应商要求填写的模型名。客户请求里的名字写在公开模型上。"),
       enabled: { ...boolean("启用这个供应商模型"), default: true },
       endpoints: record("服务地址", text("HTTPS 服务地址"), "一般留空，系统按协议使用默认地址。视频查询和下载要填写带 {task_id} 的地址。"),
-      capabilities: array("怎么计费", capability, "每一项是一种调用。计费名称要和下面的成本价一致。"),
-      prices: array("成本价（USD）", object("成本价", { key: text("计费名称", true, "与上面的计费名称一致，例如 input。"), unit: text("计量单位"), per: { ...decimal("每多少单位"), default: "1" }, rate: decimal("单价（USD）") }), "这是平台付给供应商的价格，不是客户看到的零售价。"),
-    }, "填写供应商那边的模型名称、怎么读取用量，以及 USD 成本价。"),
+      capabilities: array("能力与供应商报价", capability, "每一种调用单独报价。文本填写输入、输出和缓存命中；图片、语音、转写和视频按各自的数量填写。"),
+      prices: { ...array("成本价（USD）", object("成本价", { key: text("计费名称", true, "与上面的计费名称一致，例如 input。"), unit: text("计量单位"), per: { ...decimal("每多少单位"), default: "1" }, rate: decimal("单价（USD）") }), "这是平台付给供应商的价格，不是客户看到的零售价。"), hidden: true },
+    }, "选择密钥，填写协议和供应商模型名称，再按能力填写供应商报价。"),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
   });
   if (/\/routes$/.test(operation.path)) return object("路由配置", {
@@ -258,6 +261,97 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
   else if (typeof value !== "string" || (node.required && !value.trim())) return fail("请填写{path}");
   if (node.kind === "select" && !node.options?.some(([option]) => option === value)) return fail("{path}请选择有效选项");
   return value;
+}
+
+export type SupplierQuoteLine = { key: string; label: string; unit: string; per: string; perLabel: string; path: string; optional?: boolean; zeroWhenAbsent?: boolean; subtractFrom?: string };
+
+// Paths are the usage locations this gateway already reads. People fill the
+// provider's price; they do not name vendor parameters.
+export function supplierQuoteLines(operation: string): SupplierQuoteLine[] {
+  const token = (key: string, label: string, path: string, optional = false): SupplierQuoteLine => ({ key, label, unit: "token", per: "1000000", perLabel: "美元 / 每 100 万 token", path, optional, zeroWhenAbsent: optional });
+  switch (operation) {
+    case "chat":
+      return [token("input", "输入", "/prompt_tokens"), token("output", "输出", "/completion_tokens"), { ...token("cache", "缓存命中", "/prompt_tokens_details/cached_read_tokens", true), subtractFrom: "input" }];
+    case "responses":
+      return [token("input", "输入", "/input_tokens"), token("output", "输出", "/output_tokens"), { ...token("cache", "缓存命中", "/input_tokens_details/cached_tokens", true), subtractFrom: "input" }];
+    case "embedding":
+      return [token("input", "输入", "/prompt_tokens")];
+    case "image_generation":
+      return [{ key: "image", label: "图片", unit: "image", per: "1", perLabel: "美元 / 每张图片", path: "/output_count" }];
+    case "speech":
+      return [{ key: "characters", label: "语音", unit: "character", per: "1000000", perLabel: "美元 / 每 100 万字符", path: "/input_chars" }];
+    case "transcription":
+      return [{ key: "audio_seconds", label: "音频", unit: "second", per: "1", perLabel: "美元 / 每秒", path: "/seconds" }];
+    case "video_generation":
+      return [{ key: "video_seconds", label: "视频", unit: "second", per: "1", perLabel: "美元 / 每秒", path: "/provider/seconds" }];
+    default:
+      return [];
+  }
+}
+
+function asRecord(value: JSONValue | undefined): Record<string, JSONValue> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+// Saved models keep technical metering. The form shows the provider's price
+// next to the capability that uses it.
+export function presentSupplierConfiguration(value: JSONValue): JSONValue {
+  const root = asRecord(value);
+  const model = asRecord(root.supplier_model);
+  if (!Array.isArray(model.capabilities)) return value;
+  const prices = Array.isArray(model.prices) ? model.prices : [];
+  const capabilities = model.capabilities.map(capability => {
+    const item = asRecord(capability);
+    if (!Object.keys(item).length || (Array.isArray(item.quotes) && item.quotes.length > 0)) return capability;
+    const bounds = asRecord(item.billable_bounds);
+    const quotes = (Array.isArray(item.usage_rules) ? item.usage_rules : []).flatMap(rule => {
+      const component = String(asRecord(rule).component || "");
+      if (!component) return [];
+      const price = prices.map(asRecord).find(item => String(item.key || "") === component);
+      return [{ key: component, rate: price?.rate ?? "", bound: bounds[component] ?? "" }];
+    });
+    return quotes.length ? { ...item, quotes } : capability;
+  });
+  return { ...root, supplier_model: { ...model, capabilities } };
+}
+
+// Turn the prices typed beside each capability into the metering the gateway
+// already uses to reserve and settle. One usage name has one provider price.
+export function applySupplierQuotes(value: JSONValue): JSONValue {
+  const root = asRecord(value);
+  const model = asRecord(root.supplier_model);
+  if (!Array.isArray(model.capabilities) || !model.capabilities.some(capability => Array.isArray(asRecord(capability).quotes))) return value;
+  const prices: Record<string, JSONValue>[] = [];
+  const priced = new Map<string, string>();
+  const capabilities = model.capabilities.map((capability, index) => {
+    const item = asRecord(capability);
+    const operation = String(item.operation || "");
+    const lines = supplierQuoteLines(operation);
+    const quotes = (Array.isArray(item.quotes) ? item.quotes : []).map(asRecord);
+    const rules: Record<string, JSONValue>[] = [];
+    const bounds: Record<string, JSONValue> = {};
+    const subtract: Record<string, JSONValue> = {};
+    lines.forEach(line => {
+      const quote = quotes.find(item => String(item.key || "") === line.key);
+      const rate = String(quote?.rate || "").trim();
+      const bound = String(quote?.bound || "").trim();
+      if (!rate && !bound) return;
+      if (!rate) throw new ConfigurationError("请填写{label}的供应商报价。", `supplier_model.capabilities.${index}.quotes`, { label: line.label });
+      if (!bound) throw new ConfigurationError("请填写{label}的最大用量。", `supplier_model.capabilities.${index}.quotes`, { label: line.label });
+      if (!Decimal.safeParse(rate).success) throw new ConfigurationError("{path}请输入非负十进制数，最多 24 位小数", `supplier_model.capabilities.${index}.quotes`, { path: line.label });
+      const previous = priced.get(line.key);
+      if (previous !== undefined && previous !== rate) throw new ConfigurationError("同一种用量只能有一个供应商报价。", "supplier_model.prices");
+      priced.set(line.key, rate);
+      rules.push({ component: line.key, unit: line.unit, path: line.path, zero_when_absent: line.zeroWhenAbsent === true });
+      bounds[line.key] = bound;
+      if (line.subtractFrom) subtract[line.subtractFrom] = [line.path];
+      if (!prices.some(price => price.key === line.key)) prices.push({ key: line.key, unit: line.unit, per: line.per, rate });
+    });
+    if (!rules.length) throw new ConfigurationError("请为这项能力填写供应商报价。", `supplier_model.capabilities.${index}.quotes`);
+    const { quotes: _quotes, ...rest } = item;
+    return { ...rest, usage_rules: rules, billable_bounds: bounds, ...(Object.keys(subtract).length ? { subtract_paths: subtract } : {}) };
+  });
+  return { ...root, supplier_model: { ...model, capabilities, prices } };
 }
 
 function validateMetering(capabilities: Record<string, JSONValue>[], prefix: string): void {

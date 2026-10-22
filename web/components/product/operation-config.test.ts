@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { configurationSchema, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
+import { configurationSchema, prepareConfiguration, applySupplierQuotes, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import type { JSONValue, Operation } from "@/lib/contracts";
 
 const operation: Operation = { name: "price", label: "发布价格", method: "POST", path: "/api/v1/operators/operator-one/pricing", fields: [] };
@@ -23,7 +23,21 @@ function verifiedModel(): JSONValue {
   return { supplier_model: { id: "supplier-model", credential_id: "credential", provider_id: "provider", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "image_generation", streaming: false, input_types: ["text"], parameters: ["temperature"], max_input_bytes: 1024, billable_bounds: { image: "1/3" }, usage_rules: [{ component: "image", unit: "image", path: "/images" }], parameter_constraints: { temperature: { min: "-1/3", max: "0.333333333333333333333333333333" } }, evidence_id: "probe-real", verified_at: "2026-10-18T00:00:00Z", parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true }], prices: [{ key: "image", unit: "image", per: "1", rate: "0.1" }] }, expected_version: 3 };
 }
 const catalogOperation: Operation = { name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] };
-const supplierOperation: Operation = { name: "model", label: "配置供应商模型", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [] };
+const supplierOperation: Operation = { name: "model", label: "添加供应商模型", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [] };
+it("turns a text capability's quotes into per-million-token provider prices", () => {
+  const drafted = prepareConfiguration({ supplier_model: { id: "supplier-model", credential_id: "credential", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "chat", streaming: false, quotes: [{ key: "input", rate: "3", bound: "128000" }, { key: "output", rate: "15", bound: "4096" }, { key: "cache", rate: "0.30", bound: "128000" }] }] }, expected_version: 0 }, configurationSchema(supplierOperation)!);
+  const prepared = prepareConfiguration(applySupplierQuotes(drafted), configurationSchema(supplierOperation)!);
+  expect(() => validateModelConfiguration(prepared)).not.toThrow();
+  expect(prepared).toMatchObject({ supplier_model: { prices: [{ key: "input", unit: "token", per: "1000000", rate: "3" }, { key: "output", unit: "token", per: "1000000", rate: "15" }, { key: "cache", unit: "token", per: "1000000", rate: "0.30" }], capabilities: [{ usage_rules: [{ component: "input", path: "/prompt_tokens" }, { component: "output", path: "/completion_tokens" }, { component: "cache", path: "/prompt_tokens_details/cached_read_tokens", zero_when_absent: true }], subtract_paths: { input: ["/prompt_tokens_details/cached_read_tokens"] } }] } });
+  const capability = (prepared as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
+  expect(capability.quotes).toBeUndefined();
+});
+it("prices an image by the picture and leaves cache unpriced when it is blank", () => {
+  const drafted = prepareConfiguration({ supplier_model: { id: "supplier-model", credential_id: "credential", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "chat", quotes: [{ key: "input", rate: "1", bound: "1000" }, { key: "output", rate: "2", bound: "1000" }] }, { operation: "image_generation", quotes: [{ key: "image", rate: "0.04", bound: "4" }] }] }, expected_version: 0 }, configurationSchema(supplierOperation)!);
+  const prepared = prepareConfiguration(applySupplierQuotes(drafted), configurationSchema(supplierOperation)!) as { supplier_model: { prices: { key: string }[]; capabilities: { operation: string; usage_rules: { component: string; unit: string; path: string }[] }[] } };
+  expect(prepared.supplier_model.prices.map(price => price.key)).toEqual(["input", "output", "image"]);
+  expect(prepared.supplier_model.capabilities[1].usage_rules).toEqual([{ component: "image", unit: "image", path: "/output_count", zero_when_absent: false }]);
+});
 it("validates fractional capability quantities and drops parameter lists that are not used for the estimate", () => {
   const value = prepareConfiguration(verifiedModel(), configurationSchema(supplierOperation)!);
   expect(() => validateModelConfiguration(value)).not.toThrow();

@@ -93,7 +93,7 @@ test("technical administrator configures a real provider, verified model and rou
     expect((await replay(tech, rotated, true)).status()).toBe(409);
     await close(dialog);
 
-    dialog = await panel(tech, "配置供应商模型");
+    dialog = await panel(tech, "添加供应商模型");
     await setPath(dialog, "supplier_model.credential_id", credential.id);
     await setPath(dialog, "supplier_model.provider", "openai");
     await setPath(dialog, "supplier_model.model", "test-chat");
@@ -102,23 +102,11 @@ test("technical administrator configures a real provider, verified model and rou
     await setPath(dialog, "supplier_model.endpoints.chat", `${p.lab_url}/v1/chat/completions`);
     await dialog.getByRole("button", { name: "添加能力", exact: true }).click();
     await setPath(dialog, "supplier_model.capabilities.0.operation", "chat");
-    await dialog.getByRole("button", { name: "添加计费项目", exact: true }).click();
-    await dialog.getByRole("button", { name: "添加计费项目", exact: true }).click();
-    for (const [index, row] of [["input", "/prompt_tokens"], ["output", "/completion_tokens"]].entries()) {
-      const number = index + 1;
-      await dialog.getByLabel(`计费名称 ${number}`, { exact: true }).fill(row[0]);
-      await dialog.getByLabel(`计量单位 ${number}`, { exact: true }).fill("token");
-      await dialog.getByLabel(`用量路径 ${number}`, { exact: true }).fill(row[1]);
-      await dialog.getByLabel(`验证过的最大用量 ${number}`, { exact: true }).fill("1000");
-    }
-    for (const name of ["input", "output"]) {
-      await dialog.getByRole("button", { name: "添加成本价", exact: true }).click();
-      const index = name === "input" ? 0 : 1;
-      await setPath(dialog, `supplier_model.prices.${index}.key`, name);
-      await setPath(dialog, `supplier_model.prices.${index}.unit`, "token");
-      await setPath(dialog, `supplier_model.prices.${index}.rate`, "0.001");
-    }
-    const supplierSaved = await submit(tech, dialog, "配置供应商模型", `${base}/providers`);
+    await dialog.getByLabel("输入单价", { exact: true }).fill("0.001");
+    await dialog.getByLabel("输入最大用量", { exact: true }).fill("1000");
+    await dialog.getByLabel("输出单价", { exact: true }).fill("0.001");
+    await dialog.getByLabel("输出最大用量", { exact: true }).fill("1000");
+    const supplierSaved = await submit(tech, dialog, "添加供应商模型", `${base}/providers`);
     const supplierModelID = supplierSaved.request().postDataJSON().configuration.supplier_model.id as string;
     expect(supplierModelID).toMatch(/^[0-9a-f-]{36}$/);
     await close(dialog);

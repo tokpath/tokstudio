@@ -6662,18 +6662,18 @@
   {
     "resource": "providers",
     "confirmation": "",
-    "description": "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。",
+    "description": "选择已经保存的供应商密钥，填写协议、供应商模型名称，以及这种能力对应的供应商报价。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "supplier_model：凭据、协议、供应商模型名称、端点、计量、USD 成本价、expected_version"
+        "help": "supplier_model：凭据、协议、供应商模型名称、能力与供应商报价、expected_version"
       }
     ],
     "include_version": false,
-    "label": "配置供应商模型",
+    "label": "添加供应商模型",
     "method": "POST",
     "name": "model",
     "path": "/v1/operators/{operatorId}/providers",

@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { PaymentAction } from "./customer-plans";
 import { closePaymentWindow, reservePaymentWindow, submitPaymentForm } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useCommand } from "./shared";
-import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, retainKnownFields, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
+import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, presentSupplierConfiguration, applySupplierQuotes, retainKnownFields, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import { ConfigurationEditor } from "./operation-config-editor";
 
 function nested(value: unknown, path: string): unknown { return path.split(".").reduce<unknown>((current, key) => current !== null && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined, value); }
@@ -53,7 +53,7 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
       let source = nested(row?.values, field.name) ?? field.default_value;
       if (row && /\/catalog$/.test(operation.path)) source = { model: row.values, expected_version: row.version ?? 0 };
       if (row && /\/routes$/.test(operation.path)) source = { route: row.values, expected_version: row.version ?? 0 };
-      if (row && /\/providers$/.test(operation.path) && operation.name === "model") source = { supplier_model: row.values, expected_version: row.version ?? 0 };
+      if (row && /\/providers$/.test(operation.path) && operation.name === "model") source = presentSupplierConfiguration({ supplier_model: row.values, expected_version: row.version ?? 0 });
       const defaults = configDefaults(schema) || {};
       const merged = source === undefined ? defaults : mergeValues(defaults, JSONValueSchema.parse(source));
       return JSON.stringify(retainKnownFields(merged, schema));
@@ -176,7 +176,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         else if (field.kind === "boolean" || (field.kind === "hidden" && typeof field.default_value === "boolean")) parsed = value === "true";
         else if (field.kind === "json") {
           try { parsed = JSONValueSchema.parse(JSON.parse(value)); } catch { throw new ConfigurationError("{label}格式无效，请检查上方填写的内容。", "", { label: field.label }); }
-          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/pricing$/.test(operation.path) && operation.name !== "listing") validatePriceConfiguration(parsed); else if (/\/(catalog|routes)$/.test(operation.path) || (/\/providers$/.test(operation.path) && operation.name === "model")) validateModelConfiguration(parsed); }
+          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/providers$/.test(operation.path) && operation.name === "model") parsed = prepareConfiguration(applySupplierQuotes(parsed), schema); if (/\/pricing$/.test(operation.path) && operation.name !== "listing") validatePriceConfiguration(parsed); else if (/\/(catalog|routes)$/.test(operation.path) || (/\/providers$/.test(operation.path) && operation.name === "model")) validateModelConfiguration(parsed); }
         }
         else if (field.kind === "datetime") { const date = new Date(value); if (Number.isNaN(date.getTime())) throw new ConfigurationError("{label}时间无效", "", { label: field.label }); parsed = date.toISOString(); }
         else { if (field.kind === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new ConfigurationError("请填写有效的{label}", "", { label: field.label }); parsed = value; }
@@ -252,7 +252,8 @@ function ConfigurationReview({ value }: { value: string }) {
     return <p className="text-sm text-ink-secondary">{t("公开模型 {model} 绑定了 {count} 个供应商模型，选路策略是{strategy}。", { model: String(route.public_model_id || t("待选择")), count: Array.isArray(route.bindings) ? route.bindings.length : 0, strategy: t(strategy || "待选择") })}</p>;
   }
   if (supplier) {
-    return <p className="text-sm text-ink-secondary">{t("供应商模型 {name} 写了 {count} 项 USD 成本价。", { name: String(supplier.model || t("待填写")), count: Array.isArray(supplier.prices) ? supplier.prices.length : 0 })}</p>;
+    const quoted = (Array.isArray(supplier.capabilities) ? supplier.capabilities : []).reduce((count, capability) => count + (capability && typeof capability === "object" && !Array.isArray(capability) && Array.isArray(capability.quotes) ? capability.quotes.filter(quote => quote && typeof quote === "object" && !Array.isArray(quote) && String(quote.rate || "").trim()).length : 0), 0);
+    return <p className="text-sm text-ink-secondary">{t("供应商模型 {name} 写了 {count} 项供应商报价，报价和调用能力对应。", { name: String(supplier.model || t("待填写")), count: quoted })}</p>;
   }
   if (price) {
     const scope = (price.scope || {}) as Record<string, JSONValue>, rule = (price.rule || {}) as Record<string, JSONValue>;

@@ -125,6 +125,11 @@ jobs:
           TOKENHUB_TEST_S3_ACCESS_KEY: minioadmin
           TOKENHUB_TEST_S3_SECRET_KEY: minioadmin
         run: node ../scripts/ci-backend.cjs "${{ matrix.shard }}"
+      - name: Verify static release binaries
+        if: matrix.shard == 'core-1'
+        run: |
+          bash scripts/build-release.sh /tmp/tokenhub-release
+          file /tmp/tokenhub-release/api | grep 'statically linked'
 
   # Keep the existing required check name; every shard must succeed.
   backend:

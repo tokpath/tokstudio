@@ -1,16 +1,15 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.27-bookworm AS build
+FROM golang:1.27-alpine AS toolchain
+RUN apk add --no-cache gcc musl-dev
+
+FROM toolchain AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux go build -o /out/api ./cmd/api \
- && CGO_ENABLED=0 GOOS=linux go build -o /out/worker ./cmd/worker \
- && CGO_ENABLED=0 GOOS=linux go build -o /out/migrate ./cmd/migrate \
- && CGO_ENABLED=0 GOOS=linux go build -o /out/seed-demo ./cmd/seed-demo \
- && CGO_ENABLED=0 GOOS=linux go build -o /out/backup ./cmd/backup
+    sh scripts/build-release.sh /out
 
 FROM postgres:16-alpine AS backup
 COPY --from=build /out/backup /usr/local/bin/tokenhub-backup

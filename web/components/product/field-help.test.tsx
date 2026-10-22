@@ -23,16 +23,18 @@ it.each(["zh", "en", "ja", "ru"] as Locale[])("opens help without submitting, cl
 });
 function show(operation:Operation,row?:Entity){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<I18nProvider><Locales/><QueryClientProvider client={cache}><OperationForm operation={operation} operatorID="operator-one" row={row}/></QueryClientProvider></I18nProvider>)}
 const route:Operation={name:"route",label:"保存路由",method:"POST",path:"/api/v1/operators/operator-one/routes",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true}]};
-it("generates route and price IDs and leaves the public model ID for an author",()=>{
+it("generates binding and price IDs and leaves the public model ID for an author",()=>{
  const price=configurationSchema({...route,path:"/api/v1/operators/operator-one/pricing",name:"price"})!,schema=configurationSchema(route)!,catalog=configurationSchema({...route,path:"/api/v1/operators/operator-one/catalog"})!;
- const first=configDefaults(schema)as{upstream:{id:string}},second=configDefaults(schema)as{upstream:{id:string}};
- expect(first.upstream.id).toMatch(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);expect(second.upstream.id).not.toBe(first.upstream.id);
+ const binding=schema.fields!.route.fields!.bindings.item!;
+ const first=configDefaults(binding)as{id:string},second=configDefaults(binding)as{id:string};
+ expect(first.id).toMatch(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);expect(second.id).not.toBe(first.id);
  expect(configDefaults(price)).toMatchObject({price:{id:expect.stringMatching(/^[\da-f-]{36}$/)}});expect(configDefaults(catalog)).toMatchObject({model:{id:""}});
 });
-it("retains generated route IDs through input and locale changes and preserves an existing route ID",()=>{
- vi.stubGlobal("fetch",vi.fn(async()=>response({items:[]})));const view=show(route),input=screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement,id=JSON.parse(input.value).upstream.id;expect(screen.queryByRole("textbox",{name:/^路由标识/})).toBeNull();
- expect(id).toMatch(/^[\da-f-]{36}$/);fireEvent.change(screen.getByRole("textbox",{name:/^供应商协议名称/}),{target:{value:"provider-protocol"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));expect(JSON.parse(input.value).upstream.id).toBe(id);view.unmount();
- show(route,{id:"route-existing",version:7,values:{provider:"existing-protocol",id:"stale-value"}});expect(JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value).upstream.id).toBe("route-existing");
+it("retains generated binding IDs through input and locale changes and preserves an existing binding ID",()=>{
+ vi.stubGlobal("fetch",vi.fn(async()=>response({items:[]})));const view=show(route);fireEvent.click(screen.getByRole("button",{name:"添加绑定",exact:true}));
+ const input=screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement,id=JSON.parse(input.value).route.bindings[0].id;expect(screen.queryByRole("textbox",{name:/^绑定标识/})).toBeNull();
+ expect(id).toMatch(/^[\da-f-]{36}$/);fireEvent.change(screen.getByRole("textbox",{name:/^选路优先级/}),{target:{value:"3"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));expect(JSON.parse(input.value).route.bindings[0].id).toBe(id);view.unmount();
+ show(route,{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-existing",supplier_model_id:"supplier-one",priority:2,enabled:true}]}});expect(JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value).route.bindings[0].id).toBe("binding-existing");
 });
 it("opening help does not unlock or resubmit an unresolved command",async()=>{
  const calls:RequestInit[]=[];vi.stubGlobal("fetch",vi.fn(async(_path:RequestInfo|URL,init?:RequestInit)=>{calls.push(init!);if(calls.length===1)throw new TypeError("network lost");return response({id:"policy",status:"saved"})}));

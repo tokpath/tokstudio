@@ -42,15 +42,13 @@ func TestExternalBifrostProtocolContracts(t *testing.T) {
 		endpoint, model, body string
 		rules                 []UsageRule
 		bounds                map[string]string
-		required              []string
-		constraints           map[string]ParameterConstraint
 	}
 	samples := []sample{
-		{Chat, "/v1/chat/completions", "test-chat", `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":20,"temperature":0.3}`, []UsageRule{{"input", "token", "/prompt_tokens", false}, {"output", "token", "/completion_tokens", false}}, map[string]string{"input": "100000", "output": "100000"}, []string{"max_completion_tokens"}, nil},
-		{Responses, "/v1/responses", "test-responses", `{"model":"public-model","input":"hello","max_output_tokens":20}`, []UsageRule{{"input", "token", "/input_tokens", false}, {"output", "token", "/output_tokens", false}}, map[string]string{"input": "100000", "output": "100000"}, []string{"max_output_tokens"}, nil},
-		{Embedding, "/v1/embeddings", "test-embedding", `{"model":"public-model","input":["hello","world"],"dimensions":3}`, []UsageRule{{"input", "token", "/prompt_tokens", false}}, map[string]string{"input": "100000"}, nil, nil},
-		{Image, "/v1/images/generations", "test-image", `{"model":"public-model","prompt":"a blue dot","n":1,"size":"1024x1024","response_format":"b64_json"}`, []UsageRule{{"image", "image", "/output_count", false}}, map[string]string{"image": "1"}, []string{"n", "size"}, map[string]ParameterConstraint{"n": {Min: "1", Max: "1"}, "size": {Values: []string{"1024x1024"}}}},
-		{Speech, "/v1/audio/speech", "test-speech", `{"model":"public-model","input":"hello","voice":"alloy","response_format":"wav"}`, []UsageRule{{"input_chars", "character", "/input_chars", false}}, map[string]string{"input_chars": "1000"}, []string{"voice", "response_format"}, nil},
+		{Chat, "/v1/chat/completions", "test-chat", `{"model":"public-model","messages":[{"role":"user","content":"hello"}],"max_tokens":20,"temperature":0.3}`, []UsageRule{{"input", "token", "/prompt_tokens", false}, {"output", "token", "/completion_tokens", false}}, map[string]string{"input": "100000", "output": "100000"}},
+		{Responses, "/v1/responses", "test-responses", `{"model":"public-model","input":"hello","max_output_tokens":20}`, []UsageRule{{"input", "token", "/input_tokens", false}, {"output", "token", "/output_tokens", false}}, map[string]string{"input": "100000", "output": "100000"}},
+		{Embedding, "/v1/embeddings", "test-embedding", `{"model":"public-model","input":["hello","world"],"dimensions":3}`, []UsageRule{{"input", "token", "/prompt_tokens", false}}, map[string]string{"input": "100000"}},
+		{Image, "/v1/images/generations", "test-image", `{"model":"public-model","prompt":"a blue dot","n":1,"size":"1024x1024","response_format":"b64_json"}`, []UsageRule{{"image", "image", "/output_count", false}}, map[string]string{"image": "1"}},
+		{Speech, "/v1/audio/speech", "test-speech", `{"model":"public-model","input":"hello","voice":"alloy","response_format":"wav"}`, []UsageRule{{"input_chars", "character", "/input_chars", false}}, map[string]string{"input_chars": "1000"}},
 	}
 	for _, s := range samples {
 		t.Run(string(s.operation), func(t *testing.T) {
@@ -59,15 +57,6 @@ func TestExternalBifrostProtocolContracts(t *testing.T) {
 				t.Fatal(e)
 			}
 			c := testCapability(s.operation, false)
-			c.Parameters = nil
-			var params map[string]json.RawMessage
-			_ = json.Unmarshal(r.Params, &params)
-			for key := range params {
-				c.Parameters = append(c.Parameters, key)
-			}
-			c.RequiredParameters = s.required
-			c.ParameterConstraints = s.constraints
-			c.OutputLimitParameter = ""
 			c.BillableBounds = s.bounds
 			c.UsageRules = s.rules
 			a := testAttempt(base+s.endpoint, c)
@@ -127,9 +116,6 @@ func TestExternalBifrostProtocolContracts(t *testing.T) {
 				t.Fatal(e)
 			}
 			c := testCapability(Responses, true)
-			c.Parameters = []string{"max_output_tokens"}
-			c.RequiredParameters = []string{"max_output_tokens"}
-			c.OutputLimitParameter = "max_output_tokens"
 			c.UsageRules = []UsageRule{{Component: "input", Unit: "token", Path: "/input_tokens"}, {Component: "output", Unit: "token", Path: "/output_tokens"}}
 			a := testAttempt(base+"/v1/responses", c)
 			a.UpstreamModel = model
@@ -158,10 +144,6 @@ func TestExternalBifrostProtocolContracts(t *testing.T) {
 			t.Fatal(e)
 		}
 		c := testCapability(Transcription, false)
-		c.InputTypes = []string{"audio"}
-		c.Parameters = []string{"response_format"}
-		c.RequiredParameters = []string{"response_format"}
-		c.OutputLimitParameter = ""
 		c.UsageRules = []UsageRule{{Component: "seconds", Unit: "second", Path: "/seconds"}}
 		c.BillableBounds = map[string]string{"seconds": "100"}
 		a := testAttempt(base+"/v1/audio/transcriptions", c)
@@ -177,10 +159,6 @@ func TestExternalBifrostProtocolContracts(t *testing.T) {
 			t.Fatal(e)
 		}
 		c := testCapability(Video, false)
-		c.Parameters = []string{"seconds", "size"}
-		c.RequiredParameters = []string{"seconds", "size"}
-		c.OutputLimitParameter = ""
-		c.ParameterConstraints = map[string]ParameterConstraint{"seconds": {Values: []string{"4"}}, "size": {Values: []string{"720x1280"}}}
 		c.UsageRules = []UsageRule{{Component: "video_second", Unit: "second", Path: "/actual_seconds"}}
 		c.BillableBounds = map[string]string{"video_second": "4"}
 		a := testAttempt(base+"/v1/videos", c)

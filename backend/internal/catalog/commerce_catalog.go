@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"math/big"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -28,15 +26,19 @@ var credentialNameSchema string
 //go:embed commerce_schema.sql
 //go:embed commerce_schema_02_credential_name.sql
 //go:embed commerce_schema_03_supplier_models.sql
+//go:embed commerce_schema_04_capability_fields.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
 var supplierModelSchema string
 
+//go:embed commerce_schema_04_capability_fields.sql
+var capabilityFieldSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -187,6 +189,7 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 	} else if in.Identity == "" {
 		in.Identity = in.ID
 	}
+	in.Capabilities = publicCapabilityRecords(in.Capabilities)
 	if in.Identity == "" || !validPublicCapabilities(in.Capabilities) {
 		return ErrInvalidInput
 	}
@@ -556,48 +559,6 @@ func requestSupported(capabilities []modelruntime.Capability, r modelruntime.Req
 	}
 	return false
 }
-func coversCapability(caps []modelruntime.Capability, want modelruntime.Capability) bool {
-	for _, c := range caps {
-		if !c.Verified() || c.Operation != want.Operation || c.Streaming != want.Streaming {
-			continue
-		}
-		return true
-	}
-	return false
-}
-
-// An upstream with narrower allowed values cannot back a broader public claim.
-// Requests are not rewritten to compensate for incompatible parameter schemas.
-func constraintCovers(have, want modelruntime.ParameterConstraint) bool {
-	if len(have.Values) > 0 {
-		if len(want.Values) == 0 {
-			return false
-		}
-		for _, v := range want.Values {
-			if !slices.Contains(have.Values, v) {
-				return false
-			}
-		}
-	}
-	for _, bound := range []struct {
-		have, want string
-		minimum    bool
-	}{{have.Min, want.Min, true}, {have.Max, want.Max, false}} {
-		if bound.have == "" {
-			continue
-		}
-		if bound.want == "" {
-			return false
-		}
-		h, hOK := new(big.Rat).SetString(bound.have)
-		w, wOK := new(big.Rat).SetString(bound.want)
-		if !hOK || !wOK || bound.minimum && w.Cmp(h) < 0 || !bound.minimum && w.Cmp(h) > 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func (s CommerceCatalog) PriceVersions(ctx context.Context, scope PriceScope, model string) ([]PriceVersion, error) {
 	var rows []catalogJSONRow
 	e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Select("id,definition").Where("scope_key=? AND public_model_id IN ?", scope.Key(), []string{model, "*"}).Order("effective_at DESC").Find(&rows).Error

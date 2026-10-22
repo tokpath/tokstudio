@@ -48,7 +48,6 @@ func (r RouteLimits) defaults() RouteLimits {
 type RoutingPolicy struct {
 	ModelID  string `json:"model_id" gorm:"primaryKey"`
 	Strategy string `json:"strategy"`
-	Evidence string `json:"evidence"`
 	Version  uint64 `json:"version"`
 }
 
@@ -97,10 +96,7 @@ func (s CommerceCatalog) SaveRoutingPolicy(ctx context.Context, actor string, p 
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
 	}
-	if p.Evidence == "" {
-		p.Evidence = "路由配置"
-	}
-	if len(p.Evidence) > 2000 || !validRouteStrategy(p.Strategy) {
+	if !validRouteStrategy(p.Strategy) {
 		return ErrInvalidInput
 	}
 	return s.mutate(ctx, func(c CommerceCatalog) error { return c.writeRoutingPolicy(ctx, p, expected) })
@@ -118,7 +114,7 @@ func (s CommerceCatalog) writeRoutingPolicy(ctx context.Context, p RoutingPolicy
 			return e
 		}
 	} else {
-		r := s.DB.WithContext(ctx).Model(&RoutingPolicy{}).Where("model_id=? AND version=?", p.ModelID, expected).Updates(map[string]any{"strategy": p.Strategy, "evidence": p.Evidence, "version": p.Version})
+		r := s.DB.WithContext(ctx).Model(&RoutingPolicy{}).Where("model_id=? AND version=?", p.ModelID, expected).Updates(map[string]any{"strategy": p.Strategy, "version": p.Version})
 		if r.Error != nil {
 			return r.Error
 		}

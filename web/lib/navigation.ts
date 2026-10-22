@@ -25,7 +25,7 @@ export const operatorNav: readonly NavigationSection[] = [
   { id: "technology", group: "平台技术", items: [["catalog", "公开模型"], ["providers", "模型供应商"], ["routes", "路由配置"], ["requests", "调用与成本核实"], ["jobs", "任务恢复"], ["payment-assets", "支付资产与网络"], ["mail", "邮件服务"]] },
 ];
 export const operatorSections = operatorNav;
-const platformOnly = new Set(["catalog", "providers", "routes", "routing", "requests", "jobs", "mail", "payment-assets"]);
+const platformOnly = new Set(["catalog", "providers", "routes", "requests", "jobs", "mail", "payment-assets"]);
 const parentOnly = new Set(["operators", "channel-themes", "domains", "takeovers", "takeover-settlements"]);
 type Workspace = { operator: { kind: string }; permissions: readonly string[] };
 export function staffNotificationPath(workspaces: readonly (Workspace & { operator: { id: string } })[], pathname: string, activeOperatorID?: string): string | undefined {

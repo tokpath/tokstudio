@@ -45,23 +45,8 @@ func TestExternalBifrostMediaStreamingContracts(t *testing.T) {
 					t.Fatal(e)
 				}
 				c := testCapability(sample.op, true)
-				c.InputTypes = append([]string{}, r.InputTypes...)
-				c.Parameters = nil
-				c.RequiredParameters = nil
-				c.OutputLimitParameter = ""
-				c.MaxOutput = 0
-				c.ParameterConstraints = nil
-				var params map[string]json.RawMessage
-				_ = json.Unmarshal(r.Params, &params)
-				for p := range params {
-					c.Parameters = append(c.Parameters, p)
-					c.RequiredParameters = append(c.RequiredParameters, p)
-				}
 				c.UsageRules = []UsageRule{{Component: "input", Unit: "token", Path: "/input_tokens"}, {Component: "output", Unit: "token", Path: "/output_tokens"}}
 				c.BillableBounds = map[string]string{"input": "12", "output": "5"}
-				if sample.op == Image {
-					c.ParameterConstraints = map[string]ParameterConstraint{"n": {Min: "1", Max: "1"}, "size": {Values: []string{"1024x1024"}}, "quality": {Values: []string{"high"}}, "output_format": {Values: []string{"png"}}, "partial_images": {Min: "1", Max: "1"}}
-				}
 				a := testAttempt(base+sample.path, c)
 				a.UpstreamModel = "test-" + string(sample.op) + "-" + mode
 				events := 0

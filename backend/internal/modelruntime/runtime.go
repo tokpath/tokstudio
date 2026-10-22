@@ -34,38 +34,17 @@ var (
 	ErrInvalidRequest = errors.New("invalid model request")
 )
 
-// Capability is one way to call an upstream model. A capability can be
-// advertised once it has a finite usage bound for every metering rule.
-// Confirmation flags and evidence text are stored only so older records still
-// decode; they are not a save or call gate.
+// Capability is one way to call an upstream model and how its usage is measured.
+// A public model only records the operation. Metering lives on the supplier model.
 type Capability struct {
-	Operation            Operation `json:"operation"`
-	Streaming            bool      `json:"streaming"`
-	InputTypes           []string  `json:"input_types"`
-	Parameters           []string  `json:"parameters"`
-	RequiredParameters   []string  `json:"required_parameters,omitempty"`
-	MaxInputBytes        int       `json:"max_input_bytes"`
-	MaxOutput            int64     `json:"max_output"`
-	OutputLimitParameter string    `json:"output_limit_parameter,omitempty"`
-	// BillableBounds has one finite quantity for every catalog price component.
-	// The probe must prove these bounds for every allowed parameter combination.
-	BillableBounds       map[string]string              `json:"billable_bounds"`
-	ParameterConstraints map[string]ParameterConstraint `json:"parameter_constraints,omitempty"`
-	UsageRules           []UsageRule                    `json:"usage_rules"`
+	Operation Operation `json:"operation"`
+	Streaming bool      `json:"streaming,omitempty"`
+	// BillableBounds has one finite quantity for every metering rule.
+	BillableBounds map[string]string `json:"billable_bounds,omitempty"`
+	UsageRules     []UsageRule       `json:"usage_rules,omitempty"`
 	// SubtractPaths removes included sub-units before charging a separate
 	// component (cached input or reasoning already included in output totals).
-	SubtractPaths      map[string][]string `json:"subtract_paths,omitempty"`
-	EvidenceID         string              `json:"evidence_id"`
-	VerifiedAt         time.Time           `json:"verified_at"`
-	ParametersVerified bool                `json:"parameters_verified"`
-	UsageVerified      bool                `json:"usage_verified"`
-	BoundsVerified     bool                `json:"bounds_verified"`
-	RecoveryVerified   bool                `json:"recovery_verified"`
-}
-type ParameterConstraint struct {
-	Min    string   `json:"min,omitempty"`
-	Max    string   `json:"max,omitempty"`
-	Values []string `json:"values,omitempty"`
+	SubtractPaths map[string][]string `json:"subtract_paths,omitempty"`
 }
 
 // Path is an RFC 6901 pointer into the normalized provider usage. No monetary
@@ -80,28 +59,6 @@ type UsageRule struct {
 func (c Capability) Verified() bool {
 	if !(len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
 		return false
-	}
-	for _, constraint := range c.ParameterConstraints {
-		if len(constraint.Values) > 0 && (constraint.Min != "" || constraint.Max != "") {
-			return false
-		}
-		var min, max *big.Rat
-		var ok bool
-		if constraint.Min != "" {
-			min, ok = new(big.Rat).SetString(constraint.Min)
-			if !ok {
-				return false
-			}
-		}
-		if constraint.Max != "" {
-			max, ok = new(big.Rat).SetString(constraint.Max)
-			if !ok {
-				return false
-			}
-		}
-		if min != nil && max != nil && min.Cmp(max) > 0 {
-			return false
-		}
 	}
 	seen := map[string]bool{}
 	for _, r := range c.UsageRules {
@@ -258,9 +215,9 @@ func member(values []string, key string) bool {
 	return false
 }
 
-// DecodeProtocol separates endpoint fields and parameters without decoding into
-// a lossy subset first. Unknown parameters survive and are rejected by the
-// verified capability/schema checks instead of silently disappearing.
+// DecodeProtocol separates endpoint fields from the rest of the body without
+// dropping customer parameters. Managed routing fields are rejected later;
+// every other parameter is forwarded as the customer sent it.
 func DecodeProtocol(id string, op Operation, body []byte) (Request, error) {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(body, &fields) != nil || fields == nil {

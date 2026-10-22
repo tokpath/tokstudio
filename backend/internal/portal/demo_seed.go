@@ -352,7 +352,7 @@ func (s *demoBuilder) model(in DemoOptions, children [][2]string) error {
 	platform := a.Installation.OperatorID
 	modelID := "demo-chat"
 	provider, credential, route := uuid.NewString(), uuid.NewString(), uuid.NewString()
-	cap := modelruntime.Capability{Operation: modelruntime.Chat, Streaming: true, InputTypes: []string{"text"}, Parameters: []string{"max_completion_tokens"}, RequiredParameters: []string{"max_completion_tokens"}, OutputLimitParameter: "max_completion_tokens", ParameterConstraints: map[string]modelruntime.ParameterConstraint{"max_completion_tokens": {Min: "6", Max: "256"}}, MaxInputBytes: 8192, MaxOutput: 256, BillableBounds: map[string]string{"input": "8192", "output": "256"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}, EvidenceID: "independent-test-model-contract-v1", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	cap := modelruntime.Capability{Operation: modelruntime.Chat, Streaming: true, BillableBounds: map[string]string{"input": "8192", "output": "256"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	m := catalog.PublicModel{ID: modelID, Identity: modelID, DisplayName: "测试模型 · Demo Chat（固定回复，无真实 AI）", Capabilities: []modelruntime.Capability{cap}}
 	syncCap := cap
 	syncCap.Streaming = false

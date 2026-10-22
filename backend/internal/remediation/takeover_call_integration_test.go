@@ -42,7 +42,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 		t.Fatal(err)
 	}
 	cat := catalog.CommerceCatalog{DB: brand.db, PlatformOperatorID: brand.operator, Operators: cooperation.CatalogDirectory{Organization: brand.s.Organization}, EncryptionKey: "takeover-test-only-encryption-secret"}
-	cap := modelruntime.Capability{Operation: modelruntime.Chat, InputTypes: []string{"text"}, Parameters: []string{"max_completion_tokens"}, RequiredParameters: []string{"max_completion_tokens"}, OutputLimitParameter: "max_completion_tokens", MaxInputBytes: 10000, MaxOutput: 1000, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}, EvidenceID: "local-real-http-takeover", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	m := catalog.PublicModel{ID: "after-takeover", Identity: "provider/test@1", DisplayName: "Test model", Capabilities: []modelruntime.Capability{cap}}
 	if err = cat.SavePublicModel(brand.ctx, brand.operator, m, 0); err != nil {
 		t.Fatal(err)

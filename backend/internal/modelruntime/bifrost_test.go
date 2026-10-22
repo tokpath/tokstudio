@@ -20,7 +20,7 @@ func (testCredentials) ResolveCredential(context.Context, string, string) (Crede
 	return Credential{ID: "credential", Secret: "platform-secret-do-not-log"}, nil
 }
 func testCapability(op Operation, stream bool) Capability {
-	return Capability{Operation: op, Streaming: stream, InputTypes: []string{"text", "image"}, Parameters: []string{"max_completion_tokens", "temperature", "tools", "tool_choice", "response_format", "n", "unknown"}, RequiredParameters: []string{"max_completion_tokens"}, MaxInputBytes: 100000, MaxOutput: 20, OutputLimitParameter: "max_completion_tokens", BillableBounds: map[string]string{"input": "10000", "output": "20"}, UsageRules: []UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}, EvidenceID: "test-contract-only", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	return Capability{Operation: op, Streaming: stream, BillableBounds: map[string]string{"input": "10000", "output": "20"}, UsageRules: []UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 }
 func testAttempt(endpoint string, c Capability) Attempt {
 	return Attempt{ID: "attempt", RequestID: "request", UpstreamID: "upstream", Provider: "openai", UpstreamModel: "upstream-exact-model", PublicModel: "public-model", CredentialID: "credential", BaseURL: endpoint, Deadline: time.Now().Add(10 * time.Second), Capability: c}
@@ -158,9 +158,8 @@ func TestBifrostStreamingUsageAndDisconnect(t *testing.T) {
 		})
 	}
 }
-func TestCapabilityBoundsParameterAndUsageEvidence(t *testing.T) {
+func TestCapabilityBoundsRejectUnmeteredUsage(t *testing.T) {
 	c := testCapability(Chat, false)
-	c.ParameterConstraints = map[string]ParameterConstraint{"n": {Min: "1", Max: "1"}}
 	r, _ := DecodeProtocol("request", Chat, []byte(`{"model":"public-model","messages":[{"role":"user","content":"hi"}],"max_tokens":20,"n":2}`))
 	if e := ValidateRequest(testAttempt("", c), r); e != nil {
 		t.Fatal(e)

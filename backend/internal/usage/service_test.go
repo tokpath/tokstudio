@@ -115,7 +115,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	}
 	coop := cooperation.New(db, l, org)
 	cat := catalog.CommerceCatalog{DB: db, PlatformOperatorID: p.Operator.ID, Operators: cooperation.CatalogDirectory{Organization: org}, EncryptionKey: "integration-only-encryption-key"}
-	capability := modelruntime.Capability{Operation: modelruntime.Chat, InputTypes: []string{"text"}, Parameters: []string{"max_completion_tokens"}, RequiredParameters: []string{"max_completion_tokens"}, OutputLimitParameter: "max_completion_tokens", MaxInputBytes: 10000, MaxOutput: 1000, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}, EvidenceID: "external-lab-contract", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	capability := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	if len(capabilityOverride) > 0 {
 		capability = capabilityOverride[0]
 	}

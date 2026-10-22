@@ -64,7 +64,7 @@ func newCommerceTestStore(t *testing.T) CommerceCatalog {
 	return CommerceCatalog{DB: db, PlatformOperatorID: "platform", EncryptionKey: "test-encryption-material", Operators: catalogTestOperators{"platform": {ID: "platform", BrandID: "official", Kind: "platform"}, "oem": {ID: "oem", BrandID: "oem-brand", ParentID: "platform", Kind: "oem"}, "channel": {ID: "channel", BrandID: "oem-brand", ParentID: "oem", Kind: "channel"}, "other": {ID: "other", BrandID: "other-brand", ParentID: "platform", Kind: "oem"}}}
 }
 func commerceTestCapability() modelruntime.Capability {
-	return modelruntime.Capability{Operation: modelruntime.Chat, InputTypes: []string{"text"}, Parameters: []string{"max_completion_tokens"}, RequiredParameters: []string{"max_completion_tokens"}, MaxInputBytes: 10000, MaxOutput: 100, OutputLimitParameter: "max_completion_tokens", BillableBounds: map[string]string{"input": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}}, EvidenceID: "test-evidence", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	return modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}}}
 }
 func seedCommerceModel(t *testing.T, s CommerceCatalog) {
 	t.Helper()
@@ -316,5 +316,15 @@ func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
 	quote, e := s.Quote(ctx, "official", "platform", request, at)
 	if e != nil || len(quote.Supplier) != 1 || quote.Supplier[0].Price.AssetUnit != "USD" || quote.Supplier[0].Price.Components[0].Rate != "1" {
 		t.Fatalf("%v %#v", e, quote.Supplier)
+	}
+}
+
+func TestPublicModelKeepsOnlyTheCheckedOperation(t *testing.T) {
+	got := publicCapabilityRecords([]modelruntime.Capability{{
+		Operation: modelruntime.Chat, Streaming: true, BillableBounds: map[string]string{"output": "10"},
+		UsageRules: []modelruntime.UsageRule{{Component: "output", Unit: "token", Path: "/completion_tokens"}},
+	}})
+	if len(got) != 1 || got[0].Operation != modelruntime.Chat || got[0].Streaming || len(got[0].BillableBounds) != 0 || len(got[0].UsageRules) != 0 {
+		t.Fatalf("%#v", got)
 	}
 }

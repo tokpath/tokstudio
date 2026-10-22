@@ -145,7 +145,7 @@ func TestExternalAsyncVideoUsesOriginalTaskAndBillsOnceAcrossPollingAndDownloads
 	if os.Getenv("TOKENHUB_MODEL_MOCK_URL") == "" {
 		t.Skip("separately deployed model mock required")
 	}
-	capability := modelruntime.Capability{Operation: modelruntime.Video, InputTypes: []string{"text"}, Parameters: []string{"seconds", "size"}, RequiredParameters: []string{"seconds", "size"}, MaxInputBytes: 10000, ParameterConstraints: map[string]modelruntime.ParameterConstraint{"seconds": {Values: []string{"4"}}, "size": {Values: []string{"720x1280"}}}, UsageRules: []modelruntime.UsageRule{{Component: "seconds", Unit: "second", Path: "/provider/seconds"}}, BillableBounds: map[string]string{"seconds": "4"}, EvidenceID: "external-lab-completed-duration", VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	capability := modelruntime.Capability{Operation: modelruntime.Video, UsageRules: []modelruntime.UsageRule{{Component: "seconds", Unit: "second", Path: "/provider/seconds"}}, BillableBounds: map[string]string{"seconds": "4"}}
 	f := setup(t, "100", nil, capability)
 	externalRuntime(t, f)
 	input, err := modelruntime.DecodeProtocol("incoming", modelruntime.Video, []byte(`{"model":"public-model","prompt":"a blue dot","seconds":"4","size":"720x1280"}`))

@@ -21494,168 +21494,6 @@
         "x-required-permission": "catalog.manage"
       }
     },
-    "/v1/operators/{operatorId}/routing": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_routing",
-        "summary": "Read exact operator routing workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResourcePage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      }
-    },
     "/v1/operators/{operatorId}/requests": {
       "get": {
         "operationId": "get__v1_operators_operatorId_requests",
@@ -22568,7 +22406,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/responses": {
@@ -22718,7 +22556,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/embeddings": {
@@ -22879,7 +22717,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/images/generations": {
@@ -23034,7 +22872,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/audio/speech": {
@@ -23195,7 +23033,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/audio/transcriptions": {
@@ -23372,7 +23210,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/videos": {
@@ -23589,7 +23427,7 @@
             }
           }
         },
-        "description": "OpenAI-shaped protocol with only catalog-verified parameters and capabilities. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
+        "description": "OpenAI-shaped call for a capability this public model offers. Customer parameters are forwarded unchanged. Brand-bound Bearer API Key. Optional stable Idempotency-Key up to150 characters: retrying identical content reuses one admitted request and charge; different content conflicts. No key means a new request. Billing requires verified usage. Stream errors after headers are emitted as SSE error events. Temporary result retention is bounded."
       }
     },
     "/v1/models": {
@@ -33619,290 +33457,6 @@
         "x-required-permission": "reports.view"
       }
     },
-    "/v1/operators/{operatorId}/routes/{id}/limits": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_routes_id_limits",
-        "summary": "设置并发、熔断与恢复",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_routes_limits"
-              }
-            }
-          }
-        },
-        "description": "保留原供应商模型与能力证据。真实占用、故障、探测与恢复状态在动态选路页面查看。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "catalog.manage"
-      }
-    },
-    "/v1/operators/{operatorId}/routing/{id}/policy": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_routing_id_policy",
-        "summary": "调整选路策略",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Operator_routing_policy"
-              }
-            }
-          }
-        },
-        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
-        "x-required-permission": "catalog.manage"
-      }
-    },
     "/v1/operators/{operatorId}/jobs/{id}/redrive": {
       "post": {
         "operationId": "post__v1_operators_operatorId_jobs_id_redrive",
@@ -38424,96 +37978,6 @@
         ],
         "additionalProperties": true
       },
-      "PublicCapability": {
-        "type": "object",
-        "properties": {
-          "operation": {
-            "type": "string"
-          },
-          "streaming": {
-            "type": "boolean"
-          },
-          "input_types": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "parameters": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "required_parameters": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "max_input_bytes": {
-            "type": "integer"
-          },
-          "max_output": {
-            "type": "integer"
-          },
-          "output_limit_parameter": {
-            "type": "string"
-          },
-          "parameter_constraints": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "min": {
-                  "type": "string"
-                },
-                "max": {
-                  "type": "string"
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": true
-            }
-          }
-        },
-        "required": [
-          "operation",
-          "streaming",
-          "input_types",
-          "parameters",
-          "required_parameters",
-          "max_input_bytes",
-          "max_output"
-        ],
-        "additionalProperties": true
-      },
       "Model": {
         "type": "object",
         "properties": {
@@ -38528,99 +37992,6 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
-          },
-          "capability_details": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "operation": {
-                  "type": "string"
-                },
-                "streaming": {
-                  "type": "boolean"
-                },
-                "input_types": {
-                  "anyOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "parameters": {
-                  "anyOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "required_parameters": {
-                  "anyOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "max_input_bytes": {
-                  "type": "integer"
-                },
-                "max_output": {
-                  "type": "integer"
-                },
-                "output_limit_parameter": {
-                  "type": "string"
-                },
-                "parameter_constraints": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "string"
-                      },
-                      "max": {
-                        "type": "string"
-                      },
-                      "values": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "additionalProperties": true
-                  }
-                }
-              },
-              "required": [
-                "operation",
-                "streaming",
-                "input_types",
-                "parameters",
-                "required_parameters",
-                "max_input_bytes",
-                "max_output"
-              ],
-              "additionalProperties": true
             }
           },
           "status": {
@@ -38771,9 +38142,6 @@
           },
           "unavailable_reason": {
             "type": "string"
-          },
-          "max_input_tokens": {
-            "type": "number"
           }
         },
         "required": [
@@ -47892,61 +47260,10 @@
           "streaming": {
             "type": "boolean"
           },
-          "input_types": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "parameters": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "required_parameters": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "max_input_bytes": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "max_output": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "output_limit_parameter": {
-            "type": "string"
-          },
           "billable_bounds": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            }
-          },
-          "parameter_constraints": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "min": {
-                  "type": "string"
-                },
-                "max": {
-                  "type": "string"
-                },
-                "values": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [],
-              "additionalProperties": false
             }
           },
           "usage_rules": {
@@ -47987,11 +47304,28 @@
         },
         "required": [
           "operation",
-          "input_types",
-          "parameters",
-          "max_input_bytes",
           "billable_bounds",
           "usage_rules"
+        ],
+        "additionalProperties": false
+      },
+      "PublicCapability": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "enum": [
+              "chat",
+              "responses",
+              "embedding",
+              "image_generation",
+              "speech",
+              "transcription",
+              "video_generation"
+            ]
+          }
+        },
+        "required": [
+          "operation"
         ],
         "additionalProperties": false
       },
@@ -48045,7 +47379,7 @@
           "capabilities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Capability"
+              "$ref": "#/components/schemas/PublicCapability"
             }
           }
         },
@@ -52975,91 +52309,6 @@
       },
       "Operator_routes_save": {
         "$ref": "#/components/schemas/RouteConfiguration"
-      },
-      "Operator_routes_limits": {
-        "type": "object",
-        "properties": {
-          "public_model_id": {
-            "type": "string",
-            "description": "公开模型"
-          },
-          "routing": {
-            "type": "object",
-            "properties": {
-              "max_concurrent": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "此上游最大同时在途（0不限）"
-              },
-              "failure_threshold": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "连续失败熔断阈值（0用默认3）"
-              },
-              "unknown_usage_threshold": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "未知用量熔断阈值（0用默认2）"
-              },
-              "recovery_successes": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "恢复所需成功探测次数（0用默认2）"
-              },
-              "cooldown_seconds": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "熔断冷却秒数（0用默认60）"
-              }
-            },
-            "required": [
-              "max_concurrent",
-              "failure_threshold",
-              "unknown_usage_threshold",
-              "recovery_successes",
-              "cooldown_seconds"
-            ],
-            "additionalProperties": false
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": [
-          "public_model_id",
-          "routing",
-          "version"
-        ],
-        "additionalProperties": false
-      },
-      "Operator_routing_policy": {
-        "type": "object",
-        "properties": {
-          "strategy": {
-            "type": "string",
-            "enum": [
-              "priority",
-              "lowest_latency",
-              "lowest_cost"
-            ],
-            "description": "选择策略"
-          },
-          "evidence": {
-            "type": "string",
-            "description": "实际策略调整依据"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": [
-          "strategy",
-          "evidence",
-          "version"
-        ],
-        "additionalProperties": false
       },
       "Operator_jobs_redrive": {
         "type": "object",

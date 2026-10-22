@@ -338,16 +338,8 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		a.confirmReceiptValuation(c, op, actor)
 		return
 	}
-	if resource == "routes" && action == "limits" {
-		a.routeLimitsAction(c, op, actor)
-		return
-	}
 	if resource == "catalog" && action == "availability" {
 		a.publicModelAvailability(c, op)
-		return
-	}
-	if resource == "routing" && action == "policy" {
-		a.routingAction(c, op, actor)
 		return
 	}
 	if resource == "staff" && action == "membership" {

@@ -200,7 +200,7 @@ func (a *Application) models(c *gin.Context) {
 		if m.Status != "available" {
 			status = m.Status
 		}
-		items = append(items, gin.H{"id": m.ID, "name": m.Name, "status": status, "capabilities": caps, "prices": prices, "capability_details": m.Capabilities, "upcoming_changes": m.UpcomingChanges})
+		items = append(items, gin.H{"id": m.ID, "name": m.Name, "status": status, "capabilities": caps, "prices": prices, "upcoming_changes": m.UpcomingChanges})
 	}
 	c.JSON(200, gin.H{"items": items})
 }

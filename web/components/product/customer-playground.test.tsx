@@ -6,25 +6,24 @@ import { Playground } from "./playground";
 import { apiExample } from "./customer-models";
 
 const response = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-function model(operation: string, parameters: string[] = [], required: string[] = []) { return { id: "public-model", name: "公开体验模型", capabilities: [operation], status: "active", prices: [], capability_details: [{ operation, streaming: false, input_types: ["text"], parameters, required_parameters: required, max_input_bytes: 4096, max_output: 512, parameter_constraints: { voice: { values: ["calm"] } } }] }; }
+function model(operation: string) { return { id: "public-model", name: "公开体验模型", capabilities: [operation], status: "active", prices: [] }; }
 function show() { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { ...render(<QueryClientProvider client={cache}><Playground /></QueryClientProvider>), cache }; }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it("sends declared speech parameters and uses the returned request for subsequent billing lookup", async () => {
+it("sends the speech text for the selected model", async () => {
   const calls: RequestInit[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { calls.push(init); return response({ request_id: "request-one", status: "succeeded", charged_atg: "0.000000000000000001", media_kind: "audio", result_url: "/api/v1/me/requests/request-one/result", result_expires_at: "2099-01-01T00:00:00Z" }); }
-    return response({ items: [model("speech", ["voice", "speed"], ["voice"])] });
+    return response({ items: [model("speech")] });
   }));
   show();
   fireEvent.change(await screen.findByLabelText("公开模型", { exact: true }), { target: { value: "public-model" } });
   fireEvent.change(screen.getByLabelText("能力", { exact: true }), { target: { value: "speech" } });
   fireEvent.change(screen.getByLabelText("合成语音文本"), { target: { value: "你好" } });
-  fireEvent.change(screen.getByLabelText("音色（必填）"), { target: { value: "calm" } });
-  fireEvent.change(screen.getByLabelText("语速（可选）"), { target: { value: "1.25" } });
+  expect(screen.queryByText("模型参数")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "确认计费并发送" }));
   await screen.findByText("本次体验结果");
-  expect(JSON.parse(String(calls[0].body))).toEqual({ model: "public-model", capability: "speech", input: "你好", parameters: { voice: "calm", speed: 1.25 } });
+  expect(JSON.parse(String(calls[0].body))).toEqual({ model: "public-model", capability: "speech", input: "你好" });
   expect(screen.getByRole("link", { name: "核对费用与任务状态" }).getAttribute("href")).toBe("/workspace/requests?record=request-one");
 });
 
@@ -32,26 +31,25 @@ it("sends transcription as multipart with the original file and parameter payloa
   const calls: RequestInit[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { calls.push(init); return response({ request_id: "transcription-one", status: "succeeded", charged_atg: "0.0001", text: "转写完成" }); }
-    return response({ items: [model("transcription", ["language"])] });
+    return response({ items: [model("transcription")] });
   }));
   show();
   fireEvent.change(await screen.findByLabelText("公开模型", { exact: true }), { target: { value: "public-model" } });
   fireEvent.change(screen.getByLabelText("能力", { exact: true }), { target: { value: "transcription" } });
   const file = new File(["synthetic audio"], "voice.wav", { type: "audio/wav" });
   fireEvent.change(screen.getByLabelText("音频文件"), { target: { files: [file] } });
-  fireEvent.change(screen.getByLabelText("输入语言（可选）"), { target: { value: "zh" } });
   fireEvent.submit(screen.getByLabelText("音频文件").closest("form")!);
   await screen.findByText("转写完成");
   const body = calls[0].body as FormData;
   expect(body.get("model")).toBe("public-model");
   expect(body.get("capability")).toBe("transcription");
-  expect(body.get("parameters")).toBe('{"language":"zh"}');
+  expect(body.get("parameters")).toBeNull();
   expect(body.get("file")).toBe(file);
   expect((calls[0].headers as Headers).get("Content-Type")).toBeNull();
 });
 
-it("still sends a chat request when the catalog lists a parameter the simple form does not render", async () => {
-  const fetch = vi.fn(async () => response({ items: [model("chat", ["tools"], ["tools"])] }));
+it("still sends a chat request without asking for vendor parameters", async () => {
+  const fetch = vi.fn(async () => response({ items: [model("chat")] }));
   vi.stubGlobal("fetch", fetch);
   show();
   fireEvent.change(await screen.findByLabelText("公开模型", { exact: true }), { target: { value: "public-model" } });
@@ -90,32 +88,18 @@ it("builds capability-specific API examples instead of sending every model to ch
   }
 });
 
-it.each([
-  { capability: "image", operation: "image_generation", name: "输出数量（必填）", parameter: "n", value: "2", expected: { size: "1024x1024", n: 2 } },
-  { capability: "video", operation: "video_generation", name: "期望秒数（必填）", parameter: "seconds", value: "4", expected: { size: "1024x1024", seconds: "4" } },
-])("matches $operation details to the browser $capability option and submits required constrained parameters", async ({ capability, operation, name, parameter, value, expected }) => {
+it.each(["image", "video"])("sends the %s prompt without a vendor parameter form", async capability => {
   const calls: RequestInit[] = [];
-  const entry = { ...model(capability), capability_details: [{ operation, streaming: false, input_types: ["text"], parameters: ["size", parameter], required_parameters: ["size", parameter], max_input_bytes: 4096, max_output: 512, parameter_constraints: { size: { values: ["1024x1024", "512x512"] }, [parameter]: { min: "1", max: "8" } } }] };
   vi.stubGlobal("fetch", vi.fn(async (_path: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") { calls.push(init); return response({ request_id: "generation-request", status: "succeeded", charged_atg: "0.01", text: "生成完成" }); }
-    return response({ items: [entry] });
+    return response({ items: [model(capability)] });
   }));
   show();
   fireEvent.change(await screen.findByLabelText("公开模型", { exact: true }), { target: { value: "public-model" } });
   fireEvent.change(screen.getByLabelText("能力", { exact: true }), { target: { value: capability } });
   fireEvent.change(screen.getByLabelText("本次输入"), { target: { value: "海边的日出" } });
-  const size = screen.getByLabelText("输出尺寸（必填）") as HTMLSelectElement;
-  const amount = screen.getByLabelText(name) as HTMLInputElement;
-  expect(size.required).toBe(true);
-  expect(amount.required).toBe(true);
-  expect(amount.type).toBe("number");
-  expect(amount.min).toBe("1");
-  expect(amount.max).toBe("8");
-  fireEvent.click(screen.getByRole("button", { name: "确认计费并发送" }));
-  expect(calls).toHaveLength(0);
-  fireEvent.change(size, { target: { value: "1024x1024" } });
-  fireEvent.change(amount, { target: { value } });
+  expect(screen.queryByText("模型参数")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "确认计费并发送" }));
   await screen.findByText("生成完成");
-  expect(JSON.parse(String(calls[0].body))).toEqual({ model: "public-model", capability, input: "海边的日出", parameters: expected });
+  expect(JSON.parse(String(calls[0].body))).toEqual({ model: "public-model", capability, input: "海边的日出" });
 });

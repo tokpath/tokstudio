@@ -114,7 +114,7 @@ func TestPostgresRoutingPoliciesChooseCostAndLatencyWithAuthority(t *testing.T) 
 	c := newCommerceTestStore(t)
 	seedCommerceModel(t, c)
 	ctx := context.Background()
-	p := RoutingPolicy{ModelID: "model", Strategy: "lowest_cost", Evidence: "platform approved routing policy"}
+	p := RoutingPolicy{ModelID: "model", Strategy: "lowest_cost"}
 	if e := c.SaveRoutingPolicy(ctx, "oem", p, 0); !errors.Is(e, ErrCatalogForbidden) {
 		t.Fatal("OEM set platform strategy")
 	}

@@ -187,7 +187,7 @@ it.each(locales)("localizes the live campaign preview in %s while preserving aut
 
 
 it("does not invent an output-limit parameter in generated integration code", () => {
-  const entry: Model = { ...models[0], capability_details: [{ operation: "chat", streaming: true, input_types: ["text"], parameters: ["max_completion_tokens"], required_parameters: ["max_completion_tokens"], output_limit_parameter: "max_completion_tokens", max_input_bytes: 8192, max_output: 256 }] };
+  const entry: Model = models[0];
   show(<ConnectionGuide models={[entry]} initialModel={entry.id} />);
   expect(screen.getByText(/curl /).textContent).not.toContain("max_completion_tokens");
   expect(screen.getByText(/curl /).textContent).toContain('"model": "selected/model"');

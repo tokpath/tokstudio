@@ -459,7 +459,7 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	upstreamID := uuid.NewString()
 	providerID := uuid.NewString()
 	credentialID := uuid.NewString()
-	cap := modelruntime.Capability{Operation: modelruntime.Chat, InputTypes: []string{"text"}, Parameters: []string{"max_completion_tokens"}, RequiredParameters: []string{"max_completion_tokens"}, OutputLimitParameter: "max_completion_tokens", MaxInputBytes: 10000, MaxOutput: 1000, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}, EvidenceID: "test-contract-only:" + lab, VerifiedAt: time.Now(), ParametersVerified: true, UsageVerified: true, BoundsVerified: true, RecoveryVerified: true}
+	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	m := catalog.PublicModel{ID: modelID, Identity: modelID, DisplayName: "Independent HTTP contract model", Capabilities: []modelruntime.Capability{cap}}
 	if e := cat.SavePublicModel(ctx, platform, m, 0); e != nil {
 		t.Fatal(e)

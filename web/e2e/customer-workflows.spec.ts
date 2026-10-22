@@ -74,21 +74,19 @@ for (const navigationMode of ["native", "fallback"] as const) test(`unknown chec
   await expect(page).toHaveURL(/\/workspace\/keys$/);
 });
 
-test("speech experience sends the model capability and its required parameters, then links to the same usage record", async ({ page }) => {
+test("speech experience sends the spoken text and links to the same usage record", async ({ page }) => {
   await customerAPI(page);
   const requests: { key: string; body: unknown }[] = [];
-  await page.route("**/api/v1/me/models", route => route.fulfill({ json: { items: [{ id: "public-speech", name: "公开语音模型", capabilities: ["speech"], status: "active", prices: [{ component: "characters", amount_atg: "0.000000000000000001", unit: "character" }], capability_details: [{ operation: "speech", streaming: false, input_types: ["text"], parameters: ["voice", "response_format"], required_parameters: ["voice"], max_input_bytes: 4096, max_output: 10000, parameter_constraints: { voice: { values: ["calm", "bright"] }, response_format: { values: ["mp3", "wav"] } } }] }] } }));
+  await page.route("**/api/v1/me/models", route => route.fulfill({ json: { items: [{ id: "public-speech", name: "公开语音模型", capabilities: ["speech"], status: "active", prices: [{ component: "characters", amount_atg: "0.000000000000000001", unit: "character" }] }] } }));
   await page.route("**/api/v1/me/playground", async route => { requests.push({ key: route.request().headers()["idempotency-key"], body: route.request().postDataJSON() }); await route.fulfill({ json: { request_id: "speech-request", status: "succeeded", charged_atg: "0.000000000000000001", media_kind: "audio", result_url: "/api/v1/me/requests/speech-request/result", result_expires_at: "2099-10-18T01:00:00Z" } }); });
   await page.goto("/workspace/playground");
   await page.getByRole("combobox", { name: "公开模型", exact: true }).selectOption("public-speech");
   await page.getByRole("combobox", { name: "能力", exact: true }).selectOption("speech");
   await page.getByLabel("合成语音文本").fill("你好，欢迎使用模型。");
-  await page.getByRole("combobox", { name: "音色（必填）", exact: true }).selectOption("calm");
-  await page.getByRole("combobox", { name: "结果格式（可选）", exact: true }).selectOption("mp3");
   await page.getByRole("button", { name: "确认计费并发送" }).click();
   await expect(page.getByLabel("0.000000000000000001 ATG", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "核对费用与任务状态" })).toHaveAttribute("href", "/workspace/requests?record=speech-request");
   expect(requests).toHaveLength(1);
-  expect(requests[0].body).toEqual({ model: "public-speech", capability: "speech", input: "你好，欢迎使用模型。", parameters: { voice: "calm", response_format: "mp3" } });
+  expect(requests[0].body).toEqual({ model: "public-speech", capability: "speech", input: "你好，欢迎使用模型。" });
   expect(requests[0].key).toMatch(/^[0-9a-f-]{36}$/);
 });

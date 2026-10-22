@@ -49,15 +49,24 @@ func publicOperation(op modelruntime.Operation) bool {
 		return false
 	}
 }
+
+// A public model records the checked operations only. Metering, streaming and
+// prices stay on the supplier model that a route binds to it.
+func publicCapabilityRecords(capabilities []modelruntime.Capability) []modelruntime.Capability {
+	out := make([]modelruntime.Capability, len(capabilities))
+	for i, capability := range capabilities {
+		out[i] = modelruntime.Capability{Operation: capability.Operation}
+	}
+	return out
+}
 func validPublicCapabilities(capabilities []modelruntime.Capability) bool {
 	for _, c := range capabilities {
 		if !publicOperation(c.Operation) {
 			return false
 		}
 	}
-	// The same operation may be stored twice, once for a streamed call and once
-	// without streaming. The form only checks the operation; the upstream copy
-	// still uses these records to decide which request shape it can carry.
+	// Listing the same operation more than once is harmless. Only the operation is
+	// kept; streamed and plain calls are distinguished on the supplier model.
 	return true
 }
 func operationOffered(capabilities []modelruntime.Capability, r modelruntime.Request) bool {
@@ -279,7 +288,7 @@ func (s CommerceCatalog) saveRouteConfiguration(ctx context.Context, actor strin
 			return e
 		}
 	}
-	return s.writeRoutingPolicy(ctx, RoutingPolicy{ModelID: publicModel.ID, Strategy: in.Strategy, Evidence: "路由配置"}, expected)
+	return s.writeRoutingPolicy(ctx, RoutingPolicy{ModelID: publicModel.ID, Strategy: in.Strategy}, expected)
 }
 func supplierModelPrice(model SupplierModel, upstreamID, publicModel string, at time.Time) (ResolvedPrice, error) {
 	components := append([]ComponentRate(nil), model.Prices...)

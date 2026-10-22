@@ -12,15 +12,7 @@ import (
 )
 
 type PublicCapability struct {
-	Operation            modelruntime.Operation                      `json:"operation"`
-	Streaming            bool                                        `json:"streaming"`
-	InputTypes           []string                                    `json:"input_types"`
-	Parameters           []string                                    `json:"parameters"`
-	RequiredParameters   []string                                    `json:"required_parameters"`
-	MaxInputBytes        int                                         `json:"max_input_bytes"`
-	MaxOutput            int64                                       `json:"max_output"`
-	OutputLimitParameter string                                      `json:"output_limit_parameter,omitempty"`
-	ParameterConstraints map[string]modelruntime.ParameterConstraint `json:"parameter_constraints,omitempty"`
+	Operation modelruntime.Operation `json:"operation"`
 }
 type PublicPriceComponent struct {
 	Component string      `json:"component"`
@@ -61,7 +53,7 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 				continue
 			}
 			seen[c.Operation] = true
-			view.Capabilities = append(view.Capabilities, PublicCapability{c.Operation, c.Streaming, c.InputTypes, c.Parameters, c.RequiredParameters, c.MaxInputBytes, c.MaxOutput, c.OutputLimitParameter, c.ParameterConstraints})
+			view.Capabilities = append(view.Capabilities, PublicCapability{Operation: c.Operation})
 		}
 		price, e := (PriceResolver{Source: s}).Resolve(ctx, PriceScope{Kind: "retail", SellerID: operator}, m.ID, at)
 		if e != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/url"
 	"os"
@@ -14,10 +15,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/platform/db/dbtest"
@@ -114,7 +117,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 		t.Fatal(e)
 	}
 	coop := cooperation.New(db, l, org)
-	cat := catalog.CommerceCatalog{DB: db, PlatformOperatorID: p.Operator.ID, Operators: cooperation.CatalogDirectory{Organization: org}, EncryptionKey: "integration-only-encryption-key"}
+	cat := catalog.CommerceCatalog{DB: db, PlatformOperatorID: p.Operator.ID, Operators: cooperation.CatalogDirectory{Organization: org}, EncryptionKey: "integration-only-encryption-key", Costs: &testCostCatalog{rate: .001}}
 	capability := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	if len(capabilityOverride) > 0 {
 		capability = capabilityOverride[0]
@@ -147,10 +150,10 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	if e = cat.SetListing(ctx, p.Operator.ID, model.ID, true, 0); e != nil {
 		t.Fatal(e)
 	}
-	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: p.Operator.ID}, {Kind: "supplier", SellerID: "provider", BuyerID: "upstream"}} {
-		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model.ID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "fixture-published-terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}}}}
+	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: p.Operator.ID}} {
+		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model.ID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "fixture-published-terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
 		if capability.Operation == modelruntime.Video {
-			price.Rule.Components = []catalog.ComponentRate{{Key: "seconds", Unit: "second", Per: "1", Rate: "0.01"}}
+			price.Rule.Components = []catalog.ComponentRate{{Key: "output_video_seconds", Unit: "second", Per: "1", Rate: "0.01"}}
 		}
 		// Fixture bootstrap has no sold liabilities. The production callback uses
 		// CatalogRates and emits coverage risk facts for affected operators.
@@ -203,10 +206,10 @@ func request(t *testing.T, stream bool) modelruntime.Request {
 	return r
 }
 func measured(input, output string) modelruntime.Usage {
-	return modelruntime.Usage{Source: "provider_usage", Reliable: true, Measurements: []modelruntime.Measurement{{Component: "input", Unit: "token", Quantity: input}, {Component: "output", Unit: "token", Quantity: output}}}
+	return modelruntime.Usage{Source: "provider_usage", Reliable: true, Measurements: []modelruntime.Measurement{{Component: "input", Unit: "token", Quantity: input}, {Component: "output", Unit: "token", Quantity: output}, {Component: "cache", Unit: "token", Quantity: "0"}}}
 }
 func TestFixtureRequestReservationSplitsOneCreditOnce(t *testing.T) {
-	q := quote(catalog.ComponentRate{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "output", Unit: "token", Per: "1", Rate: "0.001"})
+	q := quote(catalog.ComponentRate{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, catalog.ComponentRate{Key: "cache", Unit: "token", Per: "1", Rate: "0.001"})
 	est, err := Estimate(q, request(t, false))
 	if err != nil {
 		t.Fatal(err)
@@ -321,7 +324,7 @@ func TestExternalModelToLedgerHTTPIdempotencyAndMissingUsage(t *testing.T) {
 	if f.s.ResultStore == nil {
 		t.Fatal("HTTP replay integration requires TOKENHUB_TEST_S3_ENDPOINT and private bucket credentials")
 	}
-	runtime, e := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, EndpointGuard: func(_ context.Context, target string) error {
+	runtime, e := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, Costs: &modelpricing.Service{}, EndpointGuard: func(_ context.Context, target string) error {
 		u, e := url.Parse(target)
 		if e != nil || u.Host != origin.Host {
 			return modelruntime.ErrInvalidRequest
@@ -368,5 +371,55 @@ func TestExternalModelToLedgerHTTPIdempotencyAndMissingUsage(t *testing.T) {
 	free, e := f.s.ResolveTimeout(f.ctx, missing.Request.ID)
 	if e != nil || free.Status != "free" || !free.ChargedATG.IsZero() {
 		t.Fatalf("unverified result %+v %v", free, e)
+	}
+}
+
+type testCostCatalog struct{ rate float64 }
+
+func (c *testCostCatalog) Snapshot(_ context.Context, provider, model string, at time.Time) (json.RawMessage, error) {
+	rate := c.rate
+	rows := []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}
+	if strings.Contains(model, "video") {
+		videoRate := .01
+		rows = []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "video_generation", OutputCostPerSecond: &videoRate}}
+	}
+	return json.Marshal(modelpricing.Snapshot{Version: fmt.Sprint(rate), AcceptedAt: at, Rows: rows})
+}
+func (c *testCostCatalog) Estimate(ctx context.Context, snapshot json.RawMessage, r modelruntime.Request, cap modelruntime.Capability) *string {
+	return (&modelpricing.Service{}).Estimate(ctx, snapshot, r, cap)
+}
+
+type unavailableInputRuntime struct{}
+
+func (unavailableInputRuntime) Execute(context.Context, modelruntime.Attempt, modelruntime.Request, modelruntime.Emit) (modelruntime.Result, error) {
+	return modelruntime.Result{State: "not_dispatched", ErrorCode: "input_quantity_unavailable"}, modelruntime.ErrUsageUnknown
+}
+func TestUnmeasurableInputReleasesAllHoldsWithoutBreakingSupplierCircuit(t *testing.T) {
+	f := setup(t, "100", nil)
+	f.s.Runtime = unavailableInputRuntime{}
+	ex, e := f.s.Execute(f.ctx, f.key.Key, "unmeasurable-input", request(t, false), nil)
+	if !errors.Is(e, modelruntime.ErrUsageUnknown) || ex.Request.Status != "failed" || !ex.Request.ChargedATG.IsZero() {
+		t.Fatal(ex.Request, e)
+	}
+	grants, e := f.l.CustomerGrants(f.ctx, nil, f.operator, f.customer)
+	if e != nil || len(grants) != 1 {
+		t.Fatal(grants, e)
+	}
+	account, e := f.l.AccountInTransaction(f.ctx, nil, grants[0].AccountID)
+	if e != nil || account.Balance.String() != "100" || !account.Held.IsZero() {
+		t.Fatal(account, e)
+	}
+	var attempt AttemptRecord
+	if e = f.db.Where("request_id=?", ex.Request.ID).Take(&attempt).Error; e != nil || attempt.State != "not_dispatched" || attempt.CostStatus != "confirmed" || !attempt.SupplierCostUSD.IsZero() {
+		t.Fatal(attempt, e)
+	}
+	health, _, e := f.cat.RouteHealth(f.ctx, "public")
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, route := range health {
+		if route.Circuit == "open" || route.Failures != 0 || route.UnknownUsage != 0 {
+			t.Fatal("local media validation affected supplier health", route)
+		}
 	}
 }

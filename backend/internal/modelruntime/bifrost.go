@@ -18,6 +18,7 @@ import (
 // enforce the platform's URL allowlist and DNS/private-network policy for a
 // configured endpoint. It is deliberately not supplied by customer requests.
 type BifrostConfig struct {
+	Costs             CostMeter
 	Providers         []string
 	Credentials       CredentialSource
 	EndpointGuard     func(context.Context, string) error
@@ -104,7 +105,7 @@ func (privateLogger) LogHTTPRequest(schemas.LogLevel, string) schemas.LogEventBu
 }
 
 func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) (out Result, err error) {
-	out = Result{AttemptID: a.ID, State: "failed", Usage: Usage{Source: "unknown"}}
+	out = Result{AttemptID: a.ID, State: "not_dispatched", ErrorCode: "request_not_dispatched", Usage: Usage{Source: "unknown"}}
 	if b == nil || b.client == nil {
 		return out, fmt.Errorf("bifrost unavailable")
 	}
@@ -126,6 +127,28 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 	if err = b.guardResources(ctx, r.Params); err != nil {
 		return out, err
 	}
+	if a.Capability.Billing != nil {
+		if r.InputFacts == nil {
+			r.InputFacts = b.inputFacts(ctx, r, *a.Capability.Billing)
+		}
+		out.InputFacts = r.InputFacts
+		if r.Operation != VideoRetrieve && r.Operation != VideoDownload {
+			for _, item := range a.Capability.Billing.Input {
+				if item.Template == "tokens" || r.Operation == Transcription && item.Modality == "audio" && item.Template == "seconds" {
+					continue
+				}
+				for _, component := range item.Components("input") {
+					if _, known := r.InputFacts[component.Key]; !known {
+						zero := "0"
+						out.State = "not_dispatched"
+						out.ErrorCode = "input_quantity_unavailable"
+						out.Cost = &CostObservation{Source: "not_dispatched", AmountUSD: &zero, CalculatedUSD: &zero}
+						return out, ErrUsageUnknown
+					}
+				}
+			}
+		}
+	}
 	credential, err := b.config.Credentials.ResolveCredential(ctx, a.UpstreamID, a.CredentialID)
 	if err != nil || credential.ID != a.CredentialID || strings.TrimSpace(credential.Secret) == "" {
 		return out, fmt.Errorf("selected platform credential unavailable")
@@ -133,7 +156,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 	ctx, cancel := context.WithDeadline(ctx, a.Deadline)
 	defer cancel()
 	bc := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
-	if r.Operation == Video || r.Operation == VideoRetrieve || (r.Operation == Chat && r.Stream) {
+	if r.Operation == Video || r.Operation == VideoRetrieve || a.Provider == "openrouter" || (r.Operation == Chat && r.Stream) {
 		bc.SetValue(schemas.BifrostContextKeyAllowPerRequestRawOverride, true)
 		bc.SetValue(schemas.BifrostContextKeySendBackRawResponse, true)
 	}
@@ -166,8 +189,12 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if r.Stream {
+			out.State = "failed"
+			out.ErrorCode = ""
 			stream, failure = b.client.ChatCompletionStreamRequest(bc, &q)
 		} else {
+			out.State = "failed"
+			out.ErrorCode = ""
 			response, failure = b.client.ChatCompletionRequest(bc, &q)
 		}
 	case Responses:
@@ -182,21 +209,27 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if r.Stream {
+			out.State = "failed"
+			out.ErrorCode = ""
 			stream, failure = b.client.ResponsesStreamRequest(bc, &q)
 		} else {
+			out.State = "failed"
+			out.ErrorCode = ""
 			response, failure = b.client.ResponsesRequest(bc, &q)
 		}
 	case Embedding:
 		if r.Stream {
 			return out, ErrUnsupported
 		}
-		q := schemas.BifrostEmbeddingRequest{Provider: provider, Model: a.UpstreamModel, Input: &schemas.EmbeddingInput{}, Params: &schemas.EmbeddingParameters{}}
-		if err = decodePreserved(r.Input, q.Input); err != nil {
+		q := schemas.BifrostEmbeddingRequest{Provider: provider, Model: a.UpstreamModel, Params: &schemas.EmbeddingParameters{}}
+		if q.Input, err = embeddingInputs(r.Input); err != nil {
 			return out, err
 		}
 		if err = decodePreserved(r.Params, q.Params); err != nil {
 			return out, err
 		}
+		out.State = "failed"
+		out.ErrorCode = ""
 		response, failure = b.client.EmbeddingRequest(bc, &q)
 	case Image:
 		q := schemas.BifrostImageGenerationRequest{Provider: provider, Model: a.UpstreamModel, Input: &schemas.ImageGenerationInput{}, Params: &schemas.ImageGenerationParameters{}}
@@ -210,8 +243,12 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if r.Stream {
+			out.State = "failed"
+			out.ErrorCode = ""
 			stream, failure = b.client.ImageGenerationStreamRequest(bc, &q)
 		} else {
+			out.State = "failed"
+			out.ErrorCode = ""
 			response, failure = b.client.ImageGenerationRequest(bc, &q)
 		}
 	case Speech:
@@ -226,8 +263,12 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if r.Stream {
+			out.State = "failed"
+			out.ErrorCode = ""
 			stream, failure = b.client.SpeechStreamRequest(bc, &q)
 		} else {
+			out.State = "failed"
+			out.ErrorCode = ""
 			response, failure = b.client.SpeechRequest(bc, &q)
 		}
 	case Transcription:
@@ -242,8 +283,12 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			return out, err
 		}
 		if r.Stream {
+			out.State = "failed"
+			out.ErrorCode = ""
 			stream, failure = b.client.TranscriptionStreamRequest(bc, &q)
 		} else {
+			out.State = "failed"
+			out.ErrorCode = ""
 			response, failure = b.client.TranscriptionRequest(bc, &q)
 		}
 	case Video:
@@ -260,16 +305,22 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		if err = decodePreserved(r.Params, q.Params); err != nil {
 			return out, err
 		}
+		out.State = "failed"
+		out.ErrorCode = ""
 		response, failure = b.client.VideoGenerationRequest(bc, &q)
 	case VideoRetrieve:
 		if r.Stream || a.TaskID == "" {
 			return out, ErrInvalidRequest
 		}
+		out.State = "failed"
+		out.ErrorCode = ""
 		response, failure = b.client.VideoRetrieveRequest(bc, &schemas.BifrostVideoRetrieveRequest{Provider: provider, ID: a.TaskID})
 	case VideoDownload:
 		if r.Stream || a.TaskID == "" {
 			return out, ErrInvalidRequest
 		}
+		out.State = "failed"
+		out.ErrorCode = ""
 		response, failure = b.client.VideoDownloadRequest(bc, &schemas.BifrostVideoDownloadRequest{Provider: provider, ID: a.TaskID})
 	default:
 		return out, ErrUnsupported
@@ -282,6 +333,7 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 			out.State = "outcome_unknown"
 			return out, fmt.Errorf("empty upstream stream")
 		}
+		measurements := billingStream{}
 		for {
 			select {
 			case <-ctx.Done():
@@ -310,7 +362,13 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 				if e != nil {
 					return out, e
 				}
-				usage := extractUsage(chunk, a.Capability)
+				usage := measurements.measure(ctx, b, chunk, a.Capability, r)
+				if b.config.Costs != nil {
+					observation := measurements.cost(ctx, b.config.Costs, a, chunk)
+					if observation != nil && (observation.AmountUSD != nil || chunk.BifrostImageGenerationStreamResponse != nil) {
+						out.Cost = observation
+					}
+				}
 				if usage.Reliable {
 					out.Usage = usage
 				}
@@ -336,7 +394,15 @@ func (b *Bifrost) Execute(ctx context.Context, a Attempt, r Request, emit Emit) 
 		out.State = "outcome_unknown"
 		return out, err
 	}
-	out.Usage = extractUsage(response, a.Capability)
+	measured := b.measurableResponse(ctx, response, a.Capability)
+	out.Usage = extractBilledUsage(measured, a.Capability, r)
+	if b.config.Costs != nil {
+		costResponse := measured
+		if _, ok := measured.(map[string]any); ok {
+			costResponse = response
+		}
+		out.Cost = b.config.Costs.Observe(ctx, a, costResponse)
+	}
 	out.State = "completed"
 	if speech, ok := response.(*schemas.BifrostSpeechResponse); ok && speech != nil {
 		out.Binary = speech.Audio

@@ -16,6 +16,7 @@ type PublicCapability struct {
 }
 type PublicPriceComponent struct {
 	Component string      `json:"component"`
+	Label     string      `json:"label,omitempty"`
 	AmountATG string      `json:"amount_atg"`
 	Per       string      `json:"per"`
 	Unit      string      `json:"unit"`
@@ -67,7 +68,14 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 		if e != nil {
 			return nil, e
 		}
+		labels := map[string]string{}
+		for _, component := range m.BillingComponents() {
+			labels[component.Key] = component.Label
+		}
 		for _, c := range price.Components {
+			if _, active := labels[c.Key]; !active {
+				continue
+			}
 			rate, e := PriceDecimal(c.Rate)
 			if e != nil {
 				return nil, e
@@ -76,7 +84,7 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 			if e != nil {
 				return nil, e
 			}
-			component := PublicPriceComponent{Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit, Tiers: append([]PriceTier(nil), c.Tiers...)}
+			component := PublicPriceComponent{Label: labels[c.Key], Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit, Tiers: append([]PriceTier(nil), c.Tiers...)}
 			for i := range component.Tiers {
 				rate, e := PriceDecimal(component.Tiers[i].Rate)
 				if e != nil {
@@ -286,9 +294,6 @@ func (s CommerceCatalog) PublicChanges(ctx context.Context, operator, model stri
 			var price PriceVersion
 			if json.Unmarshal(c.Payload, &price) != nil {
 				return nil, ErrInvalidInput
-			}
-			if price.Scope.Kind == "supplier" {
-				continue
 			}
 			price.Published = true
 			// The JSON price retains nanoseconds while PostgreSQL timestamps

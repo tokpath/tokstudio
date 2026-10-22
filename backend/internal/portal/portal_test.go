@@ -478,8 +478,8 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	if e := cat.SetListing(ctx, platform, modelID, true, 0); e != nil {
 		t.Fatal(e)
 	}
-	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: platform}, {Kind: "supplier", SellerID: providerID, BuyerID: upstreamID}} {
-		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: modelID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "explicit synthetic protocol terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}}}}
+	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: platform}} {
+		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: modelID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "explicit synthetic protocol terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
 		if e := cat.PublishPrice(ctx, platform, price, func(ctx context.Context, tx *gorm.DB, _ catalog.PriceVersion) error {
 			_, e := f.a.Cooperation.Coverage(ctx, tx, platform, time.Now())
 			return e

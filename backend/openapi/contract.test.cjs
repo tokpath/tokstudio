@@ -71,17 +71,17 @@ test('model selectors document actual CAS revisions and exact direct-buyer scope
 });
 
 test('technical capability names match actual runtime operations and output DTOs retain operator context', () => {
-  const operations = document.components.schemas.Capability.properties.operation.enum;
+  const operations = document.components.schemas.SupplierCapability.properties.operation.enum;
   assert.ok(operations.includes('image_generation'));
   assert.ok(operations.includes('video_generation'));
-  assert.ok(operations.includes('video_retrieve'));
-  assert.ok(operations.includes('video_download'));
   assert.equal(operations.includes('image'), false);
-  const endpoints = document.components.schemas.UpstreamInput.properties.endpoints.properties;
-  assert.ok(endpoints.image_generation);
-  assert.ok(endpoints.video_generation);
-  assert.equal(endpoints.image, undefined);
-  assert.equal(document.components.schemas.UpstreamInput.required.includes('endpoints'), false);
+  const supplier= document.components.schemas.SupplierModelWrite.properties.supplier_model;
+  assert.ok(supplier.properties.base_url);
+  assert.equal(supplier.properties.endpoints, undefined);
+  assert.equal(supplier.properties.prices, undefined);
+  assert.equal(document.components.schemas.SupplierCapability.properties.usage_rules, undefined);
+  assert.ok(document.components.schemas.BillingProfile.properties.input);
+  assert.ok(document.components.schemas.BillingProfile.properties.output);
   assert.equal(document.components.schemas.RouteLimits.properties.max_concurrent.maximum, 100000);
   assert.equal(document.components.schemas.RouteLimits.properties.recovery_successes.maximum, 20);
   assert.ok(document.components.schemas.OperatorContext.properties.subject_operations);

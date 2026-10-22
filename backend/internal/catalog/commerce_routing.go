@@ -176,18 +176,24 @@ func (s CommerceCatalog) rankRoutes(ctx context.Context, q *ModelQuote) error {
 	costs := map[string]*big.Rat{}
 	if p.Strategy == "lowest_cost" {
 		for _, p := range q.Supplier {
-			v, e := p.Price.MaximumCharge(q.Bounds)
-			if e != nil {
-				return e
+			if p.EstimateUSD != nil {
+				if v, e := PriceDecimal(*p.EstimateUSD); e == nil {
+					costs[p.UpstreamID] = v
+				}
 			}
-			costs[p.UpstreamID] = v
 		}
 	}
 	sort.SliceStable(q.Candidates, func(i, j int) bool {
 		a, b := q.Candidates[i], q.Candidates[j]
 		if p.Strategy == "lowest_cost" {
-			if n := costs[a.ID].Cmp(costs[b.ID]); n != 0 {
-				return n < 0
+			x, y := costs[a.ID], costs[b.ID]
+			if x != nil && y != nil {
+				if n := x.Cmp(y); n != 0 {
+					return n < 0
+				}
+			}
+			if (x != nil) != (y != nil) {
+				return x != nil
 			}
 		}
 		if p.Strategy == "lowest_latency" {
@@ -291,6 +297,9 @@ func (s CommerceCatalog) ObserveRoute(ctx context.Context, attempt string, resul
 		var now time.Time
 		if e = t.Raw("SELECT clock_timestamp()").Row().Scan(&now); e != nil {
 			return e
+		}
+		if result.State == "not_dispatched" {
+			return t.Model(&routeLease{}).Where("attempt_id=?", attempt).Update("finished_at", now).Error
 		}
 		good := result.State == "completed" && result.Usage.Reliable
 		unknown := (result.State == "completed" || result.State == "outcome_unknown" || result.ErrorCode == "usage_unverified_before_deadline") && !result.Usage.Reliable

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,9 @@ import (
 )
 
 type AttemptRecord struct {
+	SupplierModelID                       string
+	CostObservation                       json.RawMessage `gorm:"type:jsonb"`
+	CalculatedCostUSD                     *ledger.Decimal
 	ID, RequestID, UpstreamID, ProviderID string
 	Definition                            json.RawMessage `gorm:"type:jsonb"`
 	State, ProviderRequestID, TaskID      string
@@ -118,8 +122,18 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 			return out, e
 		}
 		attempt := modelruntime.Attempt{ID: uuid.NewString(), RequestID: req.ID, UpstreamID: upstream.ID, Provider: upstream.Provider, UpstreamModel: upstream.Model, PublicModel: req.ModelID, CredentialID: upstream.CredentialID, BaseURL: upstream.Endpoints[input.Operation], Deadline: req.UsageDeadline, Capability: capability}
+		var acceptedQuote catalog.ModelQuote
+		if e = json.Unmarshal(req.PriceSnapshot, &acceptedQuote); e != nil {
+			return out, e
+		}
+		for _, price := range acceptedQuote.Supplier {
+			if price.UpstreamID == upstream.ID {
+				attempt.CostSnapshot = price.Snapshot
+			}
+		}
+		attempt.BillingParams = modelruntime.BillingParameters(input.Params)
 		definition, _ := json.Marshal(attempt)
-		row := AttemptRecord{ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID, ProviderID: upstream.ProviderID, Definition: definition, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}
+		row := AttemptRecord{SupplierModelID: upstream.SupplierModelID, ID: attempt.ID, RequestID: req.ID, UpstreamID: upstream.ID, ProviderID: upstream.ProviderID, Definition: definition, State: "dispatching", CostStatus: "pending", StartedAt: s.wallNow()}
 		e = s.DB.WithContext(executionCtx).Transaction(func(t *gorm.DB) error {
 			if e := s.Catalog.WithDB(t).ClaimRoute(executionCtx, upstream.ID, attempt.ID, req.ID, req.UsageDeadline); e != nil {
 				return e
@@ -160,6 +174,16 @@ func (s *Service) Execute(ctx context.Context, key Key, businessKey string, inpu
 		done()
 		if e != nil {
 			return out, e
+		}
+		if last.State == "not_dispatched" {
+			finalCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+			defer cancel()
+			out.Request, e = s.failUndispatched(finalCtx, req.ID, last.ErrorCode)
+			out.Result = last
+			if e != nil {
+				return out, e
+			}
+			return out, lastErr
 		}
 		if last.State == "submitted" || last.State == "outcome_unknown" || last.OutputDelivered || lastErr == nil {
 			break
@@ -232,27 +256,37 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 		}
 		now := s.wallNow()
 		updates := map[string]any{"state": result.State, "provider_request_id": result.ProviderRequestID, "task_id": result.TaskID, "error_code": result.ErrorCode, "output_delivered": row.OutputDelivered || result.OutputDelivered, "completed_at": now}
+		if result.InputFacts != nil {
+			var definition modelruntime.Attempt
+			if e := json.Unmarshal(row.Definition, &definition); e != nil {
+				return e
+			}
+			definition.InputFacts = result.InputFacts
+			encoded, _ := json.Marshal(definition)
+			updates["definition"] = encoded
+		}
 		if result.Usage.Reliable {
-			q, e := quantities(result.Usage)
-			if e != nil {
-				return e
-			}
-			var quote catalog.ModelQuote
-			if e = json.Unmarshal(request.PriceSnapshot, &quote); e != nil {
-				return e
-			}
-			var price *catalog.ResolvedPrice
-			for i := range quote.Supplier {
-				if quote.Supplier[i].UpstreamID == row.UpstreamID {
-					price = &quote.Supplier[i].Price
+			raw, _ := json.Marshal(result.Usage)
+			updates["usage"] = raw
+		}
+		if result.State == "not_dispatched" {
+			zero := "0"
+			result.Cost = &modelruntime.CostObservation{Source: "not_dispatched", AmountUSD: &zero, CalculatedUSD: &zero}
+		}
+		if row.CostStatus != "confirmed" && result.Cost != nil {
+			raw, _ := json.Marshal(result.Cost)
+			updates["cost_observation"] = raw
+			if result.Cost.CalculatedUSD != nil {
+				if exact, ok := new(big.Rat).SetString(*result.Cost.CalculatedUSD); ok && exact.Sign() >= 0 {
+					value, _ := ledger.Quantize(exact)
+					updates["calculated_cost_usd"] = value
 				}
 			}
-			if price == nil {
+		}
+		if row.CostStatus != "confirmed" && result.Cost != nil && result.Cost.AmountUSD != nil {
+			exact, ok := new(big.Rat).SetString(*result.Cost.AmountUSD)
+			if !ok || exact.Sign() < 0 {
 				return ErrConflict
-			}
-			exact, e := price.Charge(q)
-			if e != nil {
-				return e
 			}
 			amount, e := s.rounded(ctx, t, s.Catalog.PlatformOperatorID, s.Catalog.PlatformOperatorID, "supplier:"+row.ProviderID, attemptID, exact, "USD")
 			if e != nil {
@@ -272,8 +306,6 @@ func (s *Service) RecordAttempt(ctx context.Context, requestID, attemptID string
 					return e
 				}
 			}
-			raw, _ := json.Marshal(result.Usage)
-			updates["usage"] = raw
 			updates["supplier_cost_usd"] = amount
 			updates["cost_status"] = "confirmed"
 			if row.CostRecordedAt == nil {

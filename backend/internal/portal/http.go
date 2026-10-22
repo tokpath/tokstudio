@@ -24,6 +24,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -85,11 +86,11 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 400, "invalid_invite_code", "邀请码无效，请更正或显式移除；不会自动更改经营归属", false
 	case errors.Is(err, organization.ErrInvalidVerification):
 		status, code, msg, retry = 400, "invalid_verification", "验证凭据无效或已过期，请重新发起验证", false
-	case errors.Is(err, ledger.ErrAmount), errors.Is(err, cooperation.ErrExitTerms), errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
+	case errors.Is(err, modelpricing.ErrInput), errors.Is(err, ledger.ErrAmount), errors.Is(err, cooperation.ErrExitTerms), errors.Is(err, branding.ErrInvalidInput), errors.Is(err, remediation.ErrInvalid), errors.Is(err, operations.ErrInvalid), errors.Is(err, incentives.ErrInvalidInput), errors.Is(err, catalog.ErrInvalidInput), errors.Is(err, payments.ErrInvalid), errors.Is(err, organization.ErrInvalidInput), errors.Is(err, organization.ErrInvalidRelationship), errors.Is(err, commerce.ErrInvalidInput), errors.Is(err, modelruntime.ErrInvalidRequest), errors.Is(err, usage.ErrKey):
 		status, code, msg, retry = 400, "invalid_input", "输入不完整、不符合限制或身份凭据不可用", false
 	case errors.Is(err, usage.ErrSecretDisplayed):
 		status, code, msg, retry = 409, "secret_already_displayed", "此 Key 操作已完成；完整密钥只显示一次，请从列表重置以获得新密钥", false
-	case errors.Is(err, cooperation.ErrConflict), errors.Is(err, organization.ErrConflict), errors.Is(err, remediation.ErrConflict), errors.Is(err, ledger.ErrConflict), errors.Is(err, catalog.ErrCatalogVersion), errors.Is(err, incentives.ErrConflict), errors.Is(err, payments.ErrConflict), errors.Is(err, operations.ErrConflict), errors.Is(err, commerce.ErrConflict), errors.Is(err, usage.ErrConflict), errors.Is(err, branding.ErrConflict):
+	case errors.Is(err, modelpricing.ErrVersion), errors.Is(err, cooperation.ErrConflict), errors.Is(err, organization.ErrConflict), errors.Is(err, remediation.ErrConflict), errors.Is(err, ledger.ErrConflict), errors.Is(err, catalog.ErrCatalogVersion), errors.Is(err, incentives.ErrConflict), errors.Is(err, payments.ErrConflict), errors.Is(err, operations.ErrConflict), errors.Is(err, commerce.ErrConflict), errors.Is(err, usage.ErrConflict), errors.Is(err, branding.ErrConflict):
 		status, code, msg, retry = 409, "version_conflict", "内容已变化或操作编号已被其它内容使用，请刷新后重新确认", false
 	case errors.Is(err, usage.ErrBudget):
 		status, code, msg, retry = 429, "request_limit", "API Key 预算已用尽", false

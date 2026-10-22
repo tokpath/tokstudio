@@ -7879,6 +7879,9 @@
                 "receipts",
                 "credentials",
                 "supplier-models",
+                "pricing-models",
+                "cost-suppliers",
+                "cost-models",
                 "merchants",
                 "supplier-methods",
                 "buyers",
@@ -8039,6 +8042,9 @@
                 "receipts",
                 "credentials",
                 "supplier-models",
+                "pricing-models",
+                "cost-suppliers",
+                "cost-models",
                 "merchants",
                 "supplier-methods",
                 "buyers",
@@ -22109,6 +22115,608 @@
           }
         },
         "description": " Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "platform.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/bifrost": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_bifrost",
+        "summary": "Read exact operator bifrost workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque page cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+      },
+      "post": {
+        "operationId": "post__v1_operators_operatorId_bifrost",
+        "summary": "调整价目同步",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_bifrost_configure"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_bifrost_sync"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Platform only. Sync failures retain the last successful datasheet. Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "catalog.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/supplier-costs": {
+      "get": {
+        "operationId": "get__v1_operators_operatorId_supplier_costs",
+        "summary": "Read exact operator supplier-costs workspace",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque page cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "description": "Only workspace-provided view values are accepted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "record",
+            "in": "query",
+            "required": false,
+            "description": "Exact refund case context when following an authorized business record.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
+      },
+      "post": {
+        "operationId": "post__v1_operators_operatorId_supplier_costs",
+        "summary": "登记实际费用",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operator_supplier_costs_record"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_supplier_costs_edit"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Platform only. Comparison only; never changes customer or supplier ledger entries. Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "platform.manage"
       }
     },
@@ -38005,6 +38613,12 @@
                 "component": {
                   "type": "string"
                 },
+                "label": {
+                  "type": "string"
+                },
+                "per": {
+                  "type": "string"
+                },
                 "amount_atg": {
                   "type": "string",
                   "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
@@ -38859,6 +39473,9 @@
               "type": "object",
               "properties": {
                 "component": {
+                  "type": "string"
+                },
+                "label": {
                   "type": "string"
                 },
                 "quantity": {
@@ -47241,97 +47858,6 @@
         ],
         "additionalProperties": false
       },
-      "Capability": {
-        "type": "object",
-        "properties": {
-          "operation": {
-            "enum": [
-              "chat",
-              "responses",
-              "embedding",
-              "image_generation",
-              "speech",
-              "transcription",
-              "video_generation",
-              "video_retrieve",
-              "video_download"
-            ]
-          },
-          "streaming": {
-            "type": "boolean"
-          },
-          "quotes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "type": "string"
-                },
-                "rate": {
-                  "type": "string"
-                },
-                "bound": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "key",
-                "rate",
-                "bound"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "billable_bounds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "usage_rules": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "component": {
-                  "type": "string"
-                },
-                "unit": {
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "zero_when_absent": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "component",
-                "unit",
-                "path"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "subtract_paths": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "required": [
-          "operation",
-          "billable_bounds",
-          "usage_rules"
-        ],
-        "additionalProperties": false
-      },
       "PublicCapability": {
         "type": "object",
         "properties": {
@@ -47350,6 +47876,118 @@
         "required": [
           "operation"
         ],
+        "additionalProperties": false
+      },
+      "SupplierCapability": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "enum": [
+              "chat",
+              "responses",
+              "embedding",
+              "image_generation",
+              "speech",
+              "transcription",
+              "video_generation"
+            ]
+          },
+          "streaming": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false
+      },
+      "BillingVariant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "BillingItem": {
+        "type": "object",
+        "properties": {
+          "modality": {
+            "enum": [
+              "all",
+              "text",
+              "image",
+              "audio",
+              "video"
+            ]
+          },
+          "template": {
+            "enum": [
+              "tokens",
+              "images",
+              "megapixels",
+              "characters",
+              "seconds"
+            ]
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingVariant"
+            }
+          }
+        },
+        "required": [
+          "modality",
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "BillingProfile": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BillingItem"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BillingItem"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
         "additionalProperties": false
       },
       "RouteLimits": {
@@ -47417,141 +48055,131 @@
       },
       "RouteConfiguration": {
         "type": "object",
-        "additionalProperties": true,
+        "properties": {
+          "route": {
+            "type": "object",
+            "properties": {
+              "public_model_id": {
+                "type": "string"
+              },
+              "strategy": {
+                "enum": [
+                  "priority",
+                  "lowest_latency",
+                  "lowest_cost"
+                ]
+              },
+              "bindings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "supplier_model_id": {
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "integer"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "routing": {
+                      "$ref": "#/components/schemas/RouteLimits"
+                    }
+                  },
+                  "required": [
+                    "supplier_model_id",
+                    "enabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "public_model_id",
+              "bindings"
+            ],
+            "additionalProperties": false
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
         "required": [
           "route",
           "expected_version"
         ],
-        "properties": {
-          "route": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
+        "additionalProperties": false
       },
       "SupplierModelWrite": {
         "type": "object",
-        "additionalProperties": true,
-        "required": [
-          "supplier_model",
-          "expected_version"
-        ],
         "properties": {
           "supplier_model": {
             "type": "object",
-            "additionalProperties": true
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "credential_id": {
+                "type": "string"
+              },
+              "provider": {
+                "enum": [
+                  "openai",
+                  "anthropic",
+                  "gemini",
+                  "openrouter",
+                  "elevenlabs"
+                ]
+              },
+              "model": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "base_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "pricing_reference": {
+                "type": "string"
+              },
+              "cost_provider": {
+                "type": "string"
+              },
+              "cost_model": {
+                "type": "string"
+              },
+              "capabilities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SupplierCapability"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "credential_id",
+              "provider",
+              "model",
+              "enabled",
+              "capabilities"
+            ],
+            "additionalProperties": false
           },
           "expected_version": {
             "type": "integer",
             "minimum": 0
           }
-        }
-      },
-      "UpstreamInput": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "public_model_id": {
-            "type": "string"
-          },
-          "identity": {
-            "type": "string"
-          },
-          "provider_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "credential_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "endpoints": {
-            "type": "object",
-            "properties": {
-              "chat": {
-                "type": "string",
-                "format": "uri"
-              },
-              "responses": {
-                "type": "string",
-                "format": "uri"
-              },
-              "embedding": {
-                "type": "string",
-                "format": "uri"
-              },
-              "image_generation": {
-                "type": "string",
-                "format": "uri"
-              },
-              "speech": {
-                "type": "string",
-                "format": "uri"
-              },
-              "transcription": {
-                "type": "string",
-                "format": "uri"
-              },
-              "video_generation": {
-                "type": "string",
-                "format": "uri"
-              },
-              "video_retrieve": {
-                "type": "string",
-                "format": "uri-template",
-                "description": "Required for enabled video routes, e.g. https://provider/v1/videos/{task_id}. The server only replaces one escaped path segment."
-              },
-              "video_download": {
-                "type": "string",
-                "format": "uri-template",
-                "description": "Required for enabled video routes, e.g. https://provider/v1/videos/{task_id}/content."
-              }
-            },
-            "additionalProperties": false
-          },
-          "capabilities": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Capability"
-            }
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "healthy": {
-            "type": "boolean"
-          },
-          "priority": {
-            "type": "integer"
-          },
-          "routing": {
-            "$ref": "#/components/schemas/RouteLimits"
-          }
         },
         "required": [
-          "id",
-          "public_model_id",
-          "identity",
-          "provider_id",
-          "provider",
-          "model",
-          "credential_id",
-          "capabilities",
-          "enabled",
-          "healthy"
+          "supplier_model",
+          "expected_version"
         ],
         "additionalProperties": false
       },
@@ -47561,8 +48189,7 @@
           "kind": {
             "enum": [
               "retail",
-              "supply",
-              "supplier"
+              "supply"
             ]
           },
           "seller_id": {
@@ -47736,25 +48363,52 @@
         ],
         "additionalProperties": false
       },
-      "UpstreamWrite": {
-        "type": "object",
-        "properties": {
-          "upstream": {
-            "$ref": "#/components/schemas/UpstreamInput"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": [
-          "upstream",
-          "expected_version"
-        ],
-        "additionalProperties": false
-      },
       "PricingWrite": {
         "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "billing"
+              },
+              "model_id": {
+                "type": "string"
+              },
+              "operation": {
+                "enum": [
+                  "chat",
+                  "responses",
+                  "embedding",
+                  "image_generation",
+                  "speech",
+                  "transcription",
+                  "video_generation"
+                ]
+              },
+              "billing": {
+                "$ref": "#/components/schemas/BillingProfile"
+              },
+              "expected_version": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "effective_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "evidence": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "model_id",
+              "operation",
+              "billing",
+              "expected_version"
+            ],
+            "additionalProperties": false
+          },
           {
             "type": "object",
             "properties": {
@@ -52398,6 +53052,144 @@
           "port",
           "from",
           "security"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_pricing_template": {
+        "$ref": "#/components/schemas/PricingWrite"
+      },
+      "Operator_bifrost_configure": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "configure",
+            "description": "操作"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "自动同步"
+          },
+          "interval_hours": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "同步间隔（小时）"
+          },
+          "source_url": {
+            "type": "string",
+            "description": "价目来源地址"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本"
+          }
+        },
+        "required": [
+          "action",
+          "enabled",
+          "interval_hours",
+          "source_url",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_bifrost_sync": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "const": "sync",
+            "description": "操作"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_supplier_costs_record": {
+        "type": "object",
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "description": "供应商"
+          },
+          "supplier_model_id": {
+            "type": "string",
+            "description": "供应商模型（留空表示供应商整体）"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "期间开始"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "期间结束"
+          },
+          "amount_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "实际费用 USD"
+          },
+          "note": {
+            "type": "string",
+            "description": "备注"
+          }
+        },
+        "required": [
+          "provider_id",
+          "starts_at",
+          "ends_at",
+          "amount_usd"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_supplier_costs_edit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "记录"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "当前版本"
+          },
+          "provider_id": {
+            "type": "string",
+            "description": "供应商"
+          },
+          "supplier_model_id": {
+            "type": "string",
+            "description": "供应商模型（留空表示供应商整体）"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "期间开始"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "期间结束"
+          },
+          "amount_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "实际费用 USD"
+          },
+          "note": {
+            "type": "string",
+            "description": "备注"
+          }
+        },
+        "required": [
+          "id",
+          "expected_version",
+          "provider_id",
+          "starts_at",
+          "ends_at",
+          "amount_usd"
         ],
         "additionalProperties": false
       },

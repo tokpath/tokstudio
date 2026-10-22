@@ -6662,14 +6662,14 @@
   {
     "resource": "providers",
     "confirmation": "",
-    "description": "选择已经保存的供应商密钥，填写协议、供应商模型名称，以及这种能力对应的供应商报价。",
+    "description": "选择已保存的供应商密钥，配置协议、模型与能力；可选择 Bifrost 参考价目身份。供应商成本与经营方 ATG 定价分开。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "supplier_model：凭据、协议、供应商模型名称、能力与供应商报价、expected_version"
+        "help": "supplier_model：凭据、协议、模型名称、能力、可选服务根地址与 Bifrost 参考计价模型、expected_version"
       }
     ],
     "include_version": false,
@@ -6810,5 +6810,198 @@
     "name": "configure",
     "path": "/v1/operators/{operatorId}/mail",
     "permission": "platform.manage"
+  },
+  {
+    "resource": "pricing",
+    "name": "template",
+    "label": "配置计费模板",
+    "permission": "sales.manage",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/pricing",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "计费模板",
+        "kind": "json",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "confirmation": "",
+    "description": "Platform only; also requires catalog.manage. One non-overlapping measurement per modality and direction. Active-model changes require advance notice."
+  },
+  {
+    "resource": "bifrost",
+    "name": "configure",
+    "label": "调整价目同步",
+    "permission": "catalog.manage",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/bifrost",
+    "fields": [
+      {
+        "name": "action",
+        "label": "操作",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "configure"
+      },
+      {
+        "name": "enabled",
+        "label": "自动同步",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "interval_hours",
+        "label": "同步间隔（小时）",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "source_url",
+        "label": "价目来源地址",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "integer",
+        "required": true
+      }
+    ],
+    "include_version": false,
+    "confirmation": "",
+    "description": "Platform only. Sync failures retain the last successful datasheet."
+  },
+  {
+    "resource": "bifrost",
+    "name": "sync",
+    "label": "立即同步",
+    "permission": "catalog.manage",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/bifrost",
+    "fields": [
+      {
+        "name": "action",
+        "label": "操作",
+        "kind": "hidden",
+        "required": true,
+        "default_value": "sync"
+      }
+    ],
+    "include_version": false,
+    "confirmation": "",
+    "description": "Platform only. Queues a background refresh."
+  },
+  {
+    "resource": "supplier-costs",
+    "name": "record",
+    "label": "登记实际费用",
+    "permission": "platform.manage",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/supplier-costs",
+    "fields": [
+      {
+        "name": "provider_id",
+        "label": "供应商",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "supplier_model_id",
+        "label": "供应商模型（留空表示供应商整体）",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "starts_at",
+        "label": "期间开始",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "ends_at",
+        "label": "期间结束",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "实际费用 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "note",
+        "label": "备注",
+        "kind": "textarea",
+        "required": false
+      }
+    ],
+    "include_version": false,
+    "confirmation": "",
+    "description": "Platform only. Comparison only; never changes customer or supplier ledger entries."
+  },
+  {
+    "resource": "supplier-costs",
+    "name": "edit",
+    "label": "修改登记",
+    "permission": "platform.manage",
+    "method": "POST",
+    "path": "/v1/operators/{operatorId}/supplier-costs",
+    "fields": [
+      {
+        "name": "id",
+        "label": "记录",
+        "kind": "hidden",
+        "required": true
+      },
+      {
+        "name": "expected_version",
+        "label": "当前版本",
+        "kind": "integer",
+        "required": true
+      },
+      {
+        "name": "provider_id",
+        "label": "供应商",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "supplier_model_id",
+        "label": "供应商模型（留空表示供应商整体）",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "starts_at",
+        "label": "期间开始",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "ends_at",
+        "label": "期间结束",
+        "kind": "datetime",
+        "required": true
+      },
+      {
+        "name": "amount_usd",
+        "label": "实际费用 USD",
+        "kind": "decimal",
+        "required": true
+      },
+      {
+        "name": "note",
+        "label": "备注",
+        "kind": "textarea",
+        "required": false
+      }
+    ],
+    "include_version": false,
+    "confirmation": "",
+    "description": ""
   }
 ]

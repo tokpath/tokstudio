@@ -374,7 +374,7 @@ func (s *demoBuilder) model(in DemoOptions, children [][2]string) error {
 	if e := a.Catalog.SetListing(s.ctx, platform, modelID, true, 0); e != nil {
 		return e
 	}
-	scopes := []catalog.PriceScope{{Kind: "supplier", SellerID: provider, BuyerID: route}, {Kind: "retail", SellerID: platform}}
+	scopes := []catalog.PriceScope{{Kind: "retail", SellerID: platform}}
 	for _, pair := range children {
 		parent, child := pair[0], pair[1]
 		if e := a.Catalog.SetAuthorization(s.ctx, parent, child, modelID, true, 0); e != nil {
@@ -387,10 +387,7 @@ func (s *demoBuilder) model(in DemoOptions, children [][2]string) error {
 	}
 	for _, scope := range scopes {
 		actor := scope.SellerID
-		if scope.Kind == "supplier" {
-			actor = platform
-		}
-		p := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: modelID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: demoEvidence, Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1000", Rate: "0.1"}, {Key: "output", Unit: "token", Per: "1000", Rate: "0.2"}}}}
+		p := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: modelID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: demoEvidence, Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1000", Rate: "0.1"}, {Key: "output", Unit: "token", Per: "1000", Rate: "0.2"}, {Key: "cache", Unit: "token", Per: "1000", Rate: "0.1"}}}}
 		if e := a.Catalog.PublishPrice(s.ctx, actor, p, a.pricePublished); e != nil {
 			return e
 		}

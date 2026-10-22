@@ -121,10 +121,8 @@ func TestPostgresRoutingPoliciesChooseCostAndLatencyWithAuthority(t *testing.T) 
 	if e := c.SaveRoutingPolicy(ctx, "platform", p, 0); e != nil {
 		t.Fatal(e)
 	}
-	price := func(rate string) ResolvedPrice {
-		return ResolvedPrice{FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "input", Unit: "token", Rate: rate, Per: "1"}}}
-	}
-	q := ModelQuote{ModelID: "model", Bounds: map[string]string{"input": "1000"}, Candidates: []UpstreamModel{{ID: "expensive", Priority: 0}, {ID: "cheap", Priority: 1}}, Supplier: []SupplierPriceSnapshot{{UpstreamID: "expensive", Price: price("2")}, {UpstreamID: "cheap", Price: price("1")}}}
+	expensive, cheap := "2", "1"
+	q := ModelQuote{ModelID: "model", Candidates: []UpstreamModel{{ID: "expensive", Priority: 0}, {ID: "cheap", Priority: 1}}, Supplier: []SupplierPriceSnapshot{{UpstreamID: "expensive", EstimateUSD: &expensive}, {UpstreamID: "cheap", EstimateUSD: &cheap}}}
 	if e := c.rankRoutes(ctx, &q); e != nil {
 		t.Fatal(e)
 	}

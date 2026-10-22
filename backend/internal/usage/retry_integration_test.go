@@ -6,12 +6,9 @@ import (
 	"errors"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
-	"gorm.io/gorm"
 )
 
 func TestExternalFailedAttemptRetriesSameModelAndPreservesAcceptedSupplierPrice(t *testing.T) {
@@ -38,27 +35,15 @@ func TestExternalFailedAttemptRetriesSameModelAndPreservesAcceptedSupplierPrice(
 	if e := f.cat.SaveUpstream(f.ctx, f.operator, upstream, 0); e != nil {
 		t.Fatal(e)
 	}
-	publish := func(rate string, effective time.Time) error {
-		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: catalog.PriceScope{Kind: "supplier", SellerID: "provider", BuyerID: "fallback"}, ModelID: "public-model", Layer: "regular", EffectiveAt: effective, Published: true, NoticeID: "provider-rate-contract", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: rate}, {Key: "output", Unit: "token", Per: "1", Rate: rate}}}}
-		// Provider accounting prices do not alter customer prices or any
-		// wholesale edge. There is no downstream coverage change here.
-		return f.cat.PublishPrice(f.ctx, f.operator, price, func(_ context.Context, _ *gorm.DB, p catalog.PriceVersion) error {
-			if p.Scope.Kind != "supplier" {
-				return errors.New("test only changes platform supplier accounting price")
-			}
-			return nil
-		})
-	}
-	if e := publish("0.001", time.Now().Add(-time.Hour)); e != nil {
-		t.Fatal(e)
-	}
+	costSource := f.cat.Costs.(*testCostCatalog)
 	changed := false
 	ex, e := f.s.Execute(f.ctx, f.key.Key, "retry-at-original-price", request(t, true), func(_ context.Context, event modelruntime.Event) error {
 		if !changed && len(event.Data) > 0 {
 			changed = true
 			// A real streamed result is already in flight when the supplier's
 			// new price arrives. Neither its accepted cost nor retail may move.
-			return publish("0.1", time.Now())
+			costSource.rate = .1
+			return nil
 		}
 		return nil
 	})

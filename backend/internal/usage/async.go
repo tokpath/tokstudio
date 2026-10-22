@@ -89,17 +89,19 @@ func (s *Service) lifecycleAttempt(request Request, row AttemptRecord, operation
 			break
 		}
 	}
-	if !found || attempt.BaseURL == "" || row.TaskID == "" {
+	if !found || row.TaskID == "" {
 		return attempt, modelruntime.Request{}, ErrNotReady
 	}
-	endpoint, err := modelruntime.ResolveTaskEndpoint(attempt.BaseURL, row.TaskID)
-	if err != nil {
-		return attempt, modelruntime.Request{}, err
+	if attempt.BaseURL != "" {
+		endpoint, err := modelruntime.ResolveTaskEndpoint(attempt.BaseURL, row.TaskID)
+		if err != nil {
+			return attempt, modelruntime.Request{}, err
+		}
+		attempt.BaseURL = endpoint
 	}
-	attempt.BaseURL = endpoint
 	attempt.TaskID = row.TaskID
 	attempt.Deadline = s.wallNow().Add(2 * time.Minute)
-	return attempt, modelruntime.Request{ID: request.ID, PublicModel: request.ModelID, Operation: operation, Input: json.RawMessage(`{}`), Params: json.RawMessage(`{}`), InputTypes: []string{"text"}}, nil
+	return attempt, modelruntime.Request{InputFacts: attempt.InputFacts, ID: request.ID, PublicModel: request.ModelID, Operation: operation, Input: json.RawMessage(`{}`), Params: attempt.BillingParams, InputTypes: []string{"text"}}, nil
 }
 func (s *Service) DownloadAsync(ctx context.Context, customer, id string) (modelruntime.Result, error) {
 	request, e := s.GetRequest(ctx, customer, id)

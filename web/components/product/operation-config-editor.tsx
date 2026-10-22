@@ -1,4 +1,5 @@
 "use client";
+import { billingLabel } from "@/lib/model-billing";
 import { useI18n } from "@/components/i18n";
 import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
 import { ErrorPanel } from "./shared";
-import { configDefaults, nodeVisible, retainKnownFields, supplierQuoteLines, type ConfigNode } from "./operation-config";
+import { configDefaults, nodeVisible, retainKnownFields, type ConfigNode } from "./operation-config";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 const asObject = (value: JSONValue | undefined): Record<string, JSONValue> => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -33,17 +34,31 @@ export function ConfigurationEditor({ schema, value, disabled, change, operatorI
 function NodeEditor({ node, value, change, disabled, context = "", root = false, fieldPath = "", operatorID, choose, referenceContext }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; context?: string; root?: boolean; fieldPath?: string; operatorID?: string; choose?: (value: string, defaults: Record<string, unknown>) => void; referenceContext?: Record<string, JSONValue> }) {
   const { t } = useI18n();
   const id = useId();
+  const [modelMetadata,setModelMetadata]=useState<Record<string, JSONValue>>({});
   const help = businessFieldHelp(fieldPath, node.help, node.lookup);
   const label = context ? t("{label}（{context}）", { label: t(node.label), context }) : t(node.label);
   if (node.kind === "boolean") return <div data-config-path={fieldPath} className="min-w-0 text-sm"><span id={id} className="text-ink-secondary">{t(node.label)}</span>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}<YesNoChoice labelledBy={id} name={fieldPath || node.label} value={value === true} disabled={disabled} onChange={change} /></div>;
   if (node.kind === "object") {
-    if (node.presentation === "capability") return <CapabilityFields node={node} value={value} change={change} disabled={disabled} operatorID={operatorID} context={context} fieldPath={fieldPath} />;
+    if (node.presentation === "price") {
+      const price = asObject(value);
+      return <fieldset className="rounded-control border border-hairline p-4"><legend className="px-2 text-sm font-semibold">{billingLabel(String(price.label || price.key || "计费项目"), t)}</legend><p className="mb-3 text-xs text-ink-mute">{t("每 {per} {unit}", { per: String(price.per || "1"), unit: t(({token:"Token",image:"张",megapixel:"百万像素",character:"字符",second:"秒"} as Record<string,string>)[String(price.unit)] || String(price.unit || "")) })}</p><div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([, child]) => !child.readOnly).map(([key, child]) => <NodeEditor key={key} node={child} value={price[key]} disabled={disabled} operatorID={operatorID} fieldPath={`${fieldPath}.${key}`} change={next => change({ ...price, [key]: next })} />)}</div></fieldset>;
+    }
     const data = asObject(value);
     const update = (key: string, selected: JSONValue, defaults?: Record<string, unknown>) => {
       const next = { ...data, [key]: selected };
+      if(key==="template" && (selected==="tokens" || selected==="characters"))next.variants=[];
+      if(key==="modality") {next.template=selected==="image"?"images":selected==="audio" || selected==="video"?"seconds":"tokens";next.variants=[];}
       if ((data.action === "listing" || data.action === "authorization") && (key === "action" || key === "buyer_id")) { next.model_id = ""; next.expected_version = ""; }
       if (key === "kind" && node.fields?.seller_id?.readOnly && node.fields?.buyer_id?.lookupBy) { next.buyer_id="";next.seller_id=selected==="supplier"?"":node.fields.seller_id.default || ""; }
       if (key === "buyer_id" && data.kind === "supplier" && typeof defaults?.provider_id === "string") next.seller_id=defaults.provider_id;
+      if (key === "pricing_reference") { next.cost_provider=String(defaults?.cost_provider || ""); next.cost_model=String(defaults?.cost_model || ""); if (!data.model && defaults?.model) next.model=String(defaults.model); }
+      if (key === "model_id" && data.rule && typeof data.rule === "object" && !Array.isArray(data.rule) && Array.isArray(defaults?.pricing_components)) { next.rule={ ...asObject(data.rule), components: (defaults.pricing_components as Record<string, JSONValue>[]).map(item => ({ ...item, rate: "", tiers: [] })) }; }
+      if (key === "model_id" && data.action === "billing") {
+        const profiles=asObject(defaults?.billing as JSONValue);setModelMetadata(profiles);
+        const op=Object.keys(profiles)[0] || "chat";next.operation=op;next.billing=profiles[op] || {input:[],output:[]};
+        next.expected_version=typeof defaults?.expected_version === "number" ? defaults.expected_version : 0;
+      }
+      if (key === "operation" && data.action === "billing") next.billing=modelMetadata[String(selected)] || {input:[],output:[]};
       if (key === "credential_id" && typeof defaults?.provider_id === "string" && defaults.provider_id.trim()) next.provider_id = defaults.provider_id;
       if (key === "model_id" && (data.action === "listing" || data.action === "authorization")) {
         const version = defaults?.[data.action === "authorization" ? "authorization_version" : "listing_version"];
@@ -52,7 +67,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       change(next);
     };
     const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
-      node={child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
+      node={data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
       value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={data}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
@@ -67,6 +82,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];
+    if (node.item?.presentation === "price") return <section className="space-y-3"><h4 className="text-sm font-medium">{t(node.label)}</h4>{items.length ? items.map((item,index) => <NodeEditor key={index} node={node.item!} value={item} disabled={disabled} operatorID={operatorID} fieldPath={`${fieldPath}.${index}`} change={next => change(items.map((previous,i) => i===index ? next : previous))} />) : <p className="text-sm text-ink-mute">{t("先选择公开模型，系统会列出该模型的计费项目。")}</p>}</section>;
     if (node.options) {
       const known = node.options.map(([key]) => key);
       const selected = new Set(items.map(item => String(item)));
@@ -94,44 +110,6 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
           : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
 
   </div>;
-}
-
-function CapabilityFields({ node, value, change, disabled, operatorID, context, fieldPath }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; operatorID?: string; context?: string; fieldPath?: string }) {
-  const { t } = useI18n();
-  const data = asObject(value);
-  const fields = node.fields || {};
-  const quotes = Array.isArray(data.quotes) ? data.quotes.map(asObject) : [];
-  const lines = supplierQuoteLines(String(data.operation || ""));
-  const write = (next: Record<string, JSONValue>) => {
-    const operation = String(next.operation || "");
-    const current = Array.isArray(next.quotes) ? next.quotes.map(asObject) : quotes;
-    const kept = supplierQuoteLines(operation).map(line => {
-      const quote = current.find(item => String(item.key || "") === line.key);
-      return { key: line.key, rate: String(quote?.rate || ""), bound: String(quote?.bound || "") };
-    }).filter(quote => quote.rate || quote.bound);
-    change({ ...next, quotes: kept });
-  };
-  const update = (key: string, selected: JSONValue) => write({ ...data, [key]: selected });
-  const render = (key: string) => fields[key] && !fields[key].hidden ? <NodeEditor key={key} node={fields[key]} value={data[key]} disabled={disabled} operatorID={operatorID} fieldPath={fieldPath ? `${fieldPath}.${key}` : key} change={next => update(key, next)} /> : null;
-  const setQuote = (key: string, patch: { rate?: string; bound?: string }) => {
-    const current = lines.map(line => {
-      const quote = quotes.find(item => String(item.key || "") === line.key);
-      return { key: line.key, rate: String(quote?.rate || ""), bound: String(quote?.bound || "") };
-    });
-    write({ ...data, quotes: current.map(quote => quote.key === key ? { ...quote, ...patch } : quote) });
-  };
-  return <fieldset className="min-w-0 space-y-5 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{context || t(node.label)}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</legend>
-    <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t("怎么调用")}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t("选择调用方式和转发协议。客户请求会原样转发。")}</p></div><div className="grid gap-4 sm:grid-cols-2">{["operation", "streaming"].map(key => <div key={key} className="min-w-0">{render(key)}</div>)}</div></section>
-    <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t("供应商报价")}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t("这是模型提供商的报价，只对当前这种能力生效。文本按输入、输出和缓存命中计价；图片按张，语音按字符，转写和视频按秒。缓存命中可以留空，留空时输入按全部 token 计价。最大用量用于客户没有写明数量时占用额度。")}</p></div>
-      {!lines.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("先选择调用能力，再填写这种能力的报价。")}</p>}
-      {lines.map(line => {
-        const quote = quotes.find(item => String(item.key || "") === line.key);
-        const rate = String(quote?.rate || "");
-        const bound = String(quote?.bound || "");
-        return <div key={line.key} className="grid gap-3 rounded-control border border-hairline p-3 sm:grid-cols-2"><label className="block text-xs text-ink-secondary">{t(line.label)}{t("单价")}<span className="mt-2 block text-sm text-ink">{t(line.perLabel)}</span><Input aria-label={t("{label}单价", { label: t(line.label) })} className="mt-2" inputMode="decimal" value={rate} disabled={disabled} placeholder={line.optional ? t("可以留空") : ""} onChange={event => setQuote(line.key, { rate: event.target.value })} /></label><label className="block text-xs text-ink-secondary">{t("最大用量")}<Input aria-label={t("{label}最大用量", { label: t(line.label) })} className="mt-2" value={bound} disabled={disabled} onChange={event => setQuote(line.key, { bound: event.target.value })} /></label></div>;
-      })}
-    </section>
-  </fieldset>;
 }
 
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });

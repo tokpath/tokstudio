@@ -51,6 +51,34 @@ func (a *Application) references(c *gin.Context) {
 		}
 	}
 	switch kind {
+	case "pricing-models":
+		if customer || operator != a.Installation.OperatorID || !require("catalog.manage") {
+			return
+		}
+		rows, e := a.ModelPricing.Rows(ctx, query)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, r := range rows {
+			add(r.ID, humanJoin(r.Model, r.Provider, r.Mode), gin.H{"cost_provider": r.Provider, "cost_model": r.Model, "model": r.Model})
+		}
+	case "cost-suppliers":
+		if customer || operator != a.Installation.OperatorID || !require("platform.manage") {
+			return
+		}
+		rows, e := a.Catalog.AdminCredentials(ctx, operator)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		seen := map[string]bool{}
+		for _, r := range rows {
+			if !seen[r.ProviderID] {
+				add(r.ProviderID, r.Name, nil)
+				seen[r.ProviderID] = true
+			}
+		}
 	case "branding-brands":
 		if customer || !require("organization.read") {
 			return
@@ -202,7 +230,7 @@ func (a *Application) references(c *gin.Context) {
 			}
 		}
 		for _, model := range models {
-			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID]}
+			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID], "billing": model.Billing, "pricing_components": model.BillingComponents(), "expected_version": model.Version}
 			if buyer != "" {
 				defaults["authorization_version"] = authorizationVersions[model.ID]
 			}
@@ -353,8 +381,9 @@ func (a *Application) references(c *gin.Context) {
 		for _, r := range rows {
 			add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_usd": r.GrossUSD.Sub(r.AllocatedUSD).String(), "currency": r.Currency})
 		}
-	case "supplier-models":
-		if customer || !require("catalog.manage") {
+	case "supplier-models", "cost-models":
+		permission:="catalog.manage";if kind=="cost-models"{permission="platform.manage"}
+		if customer || !require(permission) {
 			return
 		}
 		if operator != a.Installation.OperatorID {
@@ -367,7 +396,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, model := range models {
-			if !model.Enabled {
+			if !model.Enabled && kind!="cost-models" {
 				continue
 			}
 			add(model.ID, humanJoin(model.Model, model.Provider), gin.H{"provider_id": model.ProviderID, "credential_id": model.CredentialID})

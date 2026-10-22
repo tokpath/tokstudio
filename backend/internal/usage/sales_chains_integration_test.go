@@ -18,6 +18,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
@@ -60,7 +61,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 	c.SetSalesCoverage(f.coop)
 	c.SetMarketing(inc)
 	f.s.GrantObserver = inc
-	runtime, e := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, EndpointGuard: func(_ context.Context, target string) error {
+	runtime, e := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, Costs: &modelpricing.Service{}, EndpointGuard: func(_ context.Context, target string) error {
 		u, e := url.Parse(target)
 		if e != nil || u.Host != origin.Host {
 			return modelruntime.ErrInvalidRequest
@@ -110,7 +111,7 @@ func TestExternalFourSalesChainsKeepPricesFundsSourcesAndCommissionsSeparate(t *
 			scope       catalog.PriceScope
 			rate, actor string
 		}{{catalog.PriceScope{Kind: "retail", SellerID: ch.op}, retailRate, ch.op}, {catalog.PriceScope{Kind: "supply", SellerID: ch.parent, BuyerID: ch.op}, ch.supply, ch.parent}} {
-			v := catalog.PriceVersion{ID: uuid.NewString(), Scope: p.scope, ModelID: "public-model", Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: "initial-published-terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: p.rate}, {Key: "output", Unit: "token", Per: "1", Rate: p.rate}}}}
+			v := catalog.PriceVersion{ID: uuid.NewString(), Scope: p.scope, ModelID: "public-model", Layer: "regular", EffectiveAt: time.Now().Add(-time.Minute), Published: true, NoticeID: "initial-published-terms", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: p.rate}, {Key: "output", Unit: "token", Per: "1", Rate: p.rate}, {Key: "cache", Unit: "token", Per: "1", Rate: p.rate}}}}
 			if e = f.cat.PublishPrice(f.ctx, p.actor, v, func(ctx context.Context, tx *gorm.DB, _ catalog.PriceVersion) error {
 				var obligations int64
 				if e := tx.WithContext(ctx).Model(&ledger.Grant{}).Where("operator_id=?", ch.op).Count(&obligations).Error; e != nil {

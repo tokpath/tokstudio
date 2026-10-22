@@ -35,31 +35,21 @@ var (
 )
 
 // Capability is one way to call an upstream model and how its usage is measured.
-// A public model only records the operation. Metering lives on the supplier model.
+// Its measuring contract is generated from the public billing template.
 type Capability struct {
-	Operation Operation `json:"operation"`
-	Streaming bool      `json:"streaming,omitempty"`
+	Billing   *BillingProfile `json:"billing,omitempty"`
+	Operation Operation       `json:"operation"`
+	Streaming bool            `json:"streaming,omitempty"`
 	// BillableBounds has one finite quantity for every metering rule.
 	BillableBounds map[string]string `json:"billable_bounds,omitempty"`
 	UsageRules     []UsageRule       `json:"usage_rules,omitempty"`
 	// SubtractPaths removes included sub-units before charging a separate
 	// component (cached input already included in the input total).
 	SubtractPaths map[string][]string `json:"subtract_paths,omitempty"`
-	// Quotes carries the provider price for one supplier capability. The catalog
-	// save replaces usage rules and the model price list from these lines, then
-	// drops the field so only the resulting metering is stored.
-	Quotes []CapabilityQuote `json:"quotes,omitempty"`
 }
 
-// CapabilityQuote is one provider price for a capability's known usage.
-type CapabilityQuote struct {
-	Key   string `json:"key"`
-	Rate  string `json:"rate"`
-	Bound string `json:"bound"`
-}
-
-// Path is an RFC 6901 pointer into the normalized provider usage. No monetary
-// cost from the SDK is used: supplier costs are priced from exact unit facts.
+// Path is an internal pointer into normalized quantity evidence; it is never
+// configured by an operator. Supplier cost is calculated independently.
 type UsageRule struct {
 	Component      string `json:"component"`
 	Unit           string `json:"unit"`
@@ -89,10 +79,11 @@ func (c Capability) Verified() bool {
 }
 
 type Request struct {
-	ID          string    `json:"request_id"`
-	PublicModel string    `json:"model"`
-	Operation   Operation `json:"operation"`
-	Stream      bool      `json:"stream"`
+	InputFacts  map[string]string `json:"-"`
+	ID          string            `json:"request_id"`
+	PublicModel string            `json:"model"`
+	Operation   Operation         `json:"operation"`
+	Stream      bool              `json:"stream"`
 	// Input and Params use Bifrost's canonical protocol schema. DecodeProtocol
 	// below accepts standard endpoint bodies without losing unsupported fields.
 	Input      json.RawMessage `json:"input"`
@@ -103,17 +94,20 @@ type Request struct {
 // Attempt contains references only. Secret resolution is platform owned and is
 // performed immediately before execution, never exposed through request JSON.
 type Attempt struct {
-	ID            string     `json:"attempt_id"`
-	RequestID     string     `json:"request_id"`
-	UpstreamID    string     `json:"upstream_id"`
-	Provider      string     `json:"provider"`
-	UpstreamModel string     `json:"upstream_model"`
-	PublicModel   string     `json:"public_model"`
-	CredentialID  string     `json:"credential_id"`
-	BaseURL       string     `json:"-"`
-	Deadline      time.Time  `json:"deadline"`
-	Capability    Capability `json:"capability"`
-	TaskID        string     `json:"task_id,omitempty"`
+	InputFacts    map[string]string `json:"input_facts,omitempty"`
+	BillingParams json.RawMessage   `json:"billing_params,omitempty"`
+	CostSnapshot  json.RawMessage   `json:"cost_snapshot,omitempty"`
+	ID            string            `json:"attempt_id"`
+	RequestID     string            `json:"request_id"`
+	UpstreamID    string            `json:"upstream_id"`
+	Provider      string            `json:"provider"`
+	UpstreamModel string            `json:"upstream_model"`
+	PublicModel   string            `json:"public_model"`
+	CredentialID  string            `json:"credential_id"`
+	BaseURL       string            `json:"-"`
+	Deadline      time.Time         `json:"deadline"`
+	Capability    Capability        `json:"capability"`
+	TaskID        string            `json:"task_id,omitempty"`
 }
 type Credential struct {
 	ID     string
@@ -135,16 +129,28 @@ type Usage struct {
 	Reliable     bool            `json:"reliable"`
 }
 type Result struct {
-	AttemptID         string          `json:"attempt_id"`
-	State             string          `json:"state"` // completed | submitted | failed | outcome_unknown
-	Output            json.RawMessage `json:"-"`
-	Binary            []byte          `json:"-"`
-	ContentType       string          `json:"content_type,omitempty"`
-	TaskID            string          `json:"task_id,omitempty"`
-	ProviderRequestID string          `json:"provider_request_id,omitempty"`
-	Usage             Usage           `json:"usage"`
-	OutputDelivered   bool            `json:"output_delivered"`
-	ErrorCode         string          `json:"error_code,omitempty"`
+	InputFacts        map[string]string `json:"input_facts,omitempty"`
+	Cost              *CostObservation  `json:"cost,omitempty"`
+	AttemptID         string            `json:"attempt_id"`
+	State             string            `json:"state"` // completed | submitted | failed | outcome_unknown
+	Output            json.RawMessage   `json:"-"`
+	Binary            []byte            `json:"-"`
+	ContentType       string            `json:"content_type,omitempty"`
+	TaskID            string            `json:"task_id,omitempty"`
+	ProviderRequestID string            `json:"provider_request_id,omitempty"`
+	Usage             Usage             `json:"usage"`
+	OutputDelivered   bool              `json:"output_delivered"`
+	ErrorCode         string            `json:"error_code,omitempty"`
+}
+type CostObservation struct {
+	CalculatedUSD *string `json:"calculated_usd,omitempty"`
+	ReportedUSD   *string `json:"reported_usd,omitempty"`
+	AmountUSD     *string `json:"amount_usd,omitempty"`
+	Source        string  `json:"source"`
+	Version       string  `json:"version,omitempty"`
+}
+type CostMeter interface {
+	Observe(context.Context, Attempt, any) *CostObservation
 }
 type Event struct {
 	Data  json.RawMessage
@@ -168,6 +174,11 @@ func ValidateRequest(a Attempt, r Request) error {
 			return ErrUnsupported
 		}
 		return nil
+	}
+	if c.Billing != nil {
+		if e := c.Billing.ValidateSpecifications(r.Params); e != nil {
+			return e
+		}
 	}
 	if !c.Verified() || c.Operation != r.Operation || c.Streaming != r.Stream {
 		return ErrUnsupported

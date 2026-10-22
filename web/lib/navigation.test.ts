@@ -4,8 +4,8 @@ import { canReadResource, customerSections, operatorNav, operatorLanding, sectio
 describe("task navigation and organization boundaries", () => {
   it("keeps every established operator capability reachable exactly once", () => {
     const resources = operatorNav.flatMap(section => section.items.map(([resource]) => resource));
-    expect(resources).toHaveLength(50);
-    expect(new Set(resources).size).toBe(50);
+    expect(resources).toHaveLength(52);
+    expect(new Set(resources).size).toBe(52);
     expect(resources).toContain("routes");
     expect(resources).not.toContain("routing");
     expect(customerSections).toHaveLength(7);

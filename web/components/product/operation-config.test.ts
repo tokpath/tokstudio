@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { configurationSchema, prepareConfiguration, applySupplierQuotes, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
+import { configurationSchema, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import type { JSONValue, Operation } from "@/lib/contracts";
 
 const operation: Operation = { name: "price", label: "发布价格", method: "POST", path: "/api/v1/operators/operator-one/pricing", fields: [] };
@@ -19,34 +19,14 @@ it("requires a finite promotion end time and an unbounded final tier", () => {
   expect(() => validatePriceConfiguration({ price: { layer: "regular", rule: { mode: "manual", components: [{ key: "quantity", per: "1", tiers: [{ from: "0", to: "100", rate: "1" }] }] } } })).toThrow("最后一阶");
 });
 
-function verifiedModel(): JSONValue {
-  return { supplier_model: { id: "supplier-model", credential_id: "credential", provider_id: "provider", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "image_generation", streaming: false, input_types: ["text"], parameters: ["temperature"], max_input_bytes: 1024, billable_bounds: { image: "1/3" }, usage_rules: [{ component: "image", unit: "image", path: "/images" }], parameter_constraints: { temperature: { min: "-1/3", max: "0.333333333333333333333333333333" } }, evidence_id: "probe-real", verified_at: "2026-10-18T00:00:00Z", parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true }], prices: [{ key: "image", unit: "image", per: "1", rate: "0.1" }] }, expected_version: 3 };
-}
-const catalogOperation: Operation = { name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] };
-const supplierOperation: Operation = { name: "model", label: "添加供应商模型", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [] };
-it("turns a text capability's quotes into per-million-token provider prices", () => {
-  const drafted = prepareConfiguration({ supplier_model: { id: "supplier-model", credential_id: "credential", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "chat", streaming: false, quotes: [{ key: "input", rate: "3", bound: "128000" }, { key: "output", rate: "15", bound: "4096" }, { key: "cache", rate: "0.30", bound: "128000" }] }] }, expected_version: 0 }, configurationSchema(supplierOperation)!);
-  const prepared = prepareConfiguration(applySupplierQuotes(drafted), configurationSchema(supplierOperation)!);
-  expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  expect(prepared).toMatchObject({ supplier_model: { prices: [{ key: "input", unit: "token", per: "1000000", rate: "3" }, { key: "output", unit: "token", per: "1000000", rate: "15" }, { key: "cache", unit: "token", per: "1000000", rate: "0.30" }], capabilities: [{ usage_rules: [{ component: "input", path: "/prompt_tokens" }, { component: "output", path: "/completion_tokens" }, { component: "cache", path: "/prompt_tokens_details/cached_read_tokens", zero_when_absent: true }], subtract_paths: { input: ["/prompt_tokens_details/cached_read_tokens"] } }] } });
-  const capability = (prepared as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
-  expect(capability.quotes).toEqual([{ key: "input", rate: "3", bound: "128000" }, { key: "output", rate: "15", bound: "4096" }, { key: "cache", rate: "0.30", bound: "128000" }]);
-});
-it("prices an image by the picture and leaves cache unpriced when it is blank", () => {
-  const drafted = prepareConfiguration({ supplier_model: { id: "supplier-model", credential_id: "credential", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "chat", quotes: [{ key: "input", rate: "1", bound: "1000" }, { key: "output", rate: "2", bound: "1000" }] }, { operation: "image_generation", quotes: [{ key: "image", rate: "0.04", bound: "4" }] }] }, expected_version: 0 }, configurationSchema(supplierOperation)!);
-  const prepared = prepareConfiguration(applySupplierQuotes(drafted), configurationSchema(supplierOperation)!) as { supplier_model: { prices: { key: string }[]; capabilities: { operation: string; usage_rules: { component: string; unit: string; path: string }[] }[] } };
-  expect(prepared.supplier_model.prices.map(price => price.key)).toEqual(["input", "output", "image"]);
-  expect(prepared.supplier_model.capabilities[1].usage_rules).toEqual([{ component: "image", unit: "image", path: "/output_count", zero_when_absent: false }]);
-});
-it("validates fractional capability quantities and drops parameter lists that are not used for the estimate", () => {
-  const value = prepareConfiguration(verifiedModel(), configurationSchema(supplierOperation)!);
-  expect(() => validateModelConfiguration(value)).not.toThrow();
-  expect(value).toMatchObject({ supplier_model: { capabilities: [{ billable_bounds: { image: "1/3" } }] } });
-  const capability = (value as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
-  expect(capability.parameters).toBeUndefined();
-  expect(capability.input_types).toBeUndefined();
-  expect(capability.max_input_bytes).toBeUndefined();
-  expect(capability.parameter_constraints).toBeUndefined();
+const catalogOperation: Operation = { name:"save",label:"添加公开模型",method:"POST",path:"/api/v1/operators/operator-one/catalog",fields:[] };
+const supplierOperation:Operation={name:"model",label:"添加供应商模型",method:"POST",path:"/api/v1/operators/operator-one/providers",fields:[]};
+it("supplier setup needs protocol support and an optional reference, no price formula",()=>{
+ const prepared=prepareConfiguration({supplier_model:{id:"s",credential_id:"key",provider:"openai",model:"vendor-model",enabled:true,capabilities:[{operation:"chat",streaming:true}],pricing_reference:"openai|gpt-test|chat"},expected_version:0},configurationSchema(supplierOperation)!);
+ expect(()=>validateModelConfiguration(prepared)).not.toThrow();
+ const model=(prepared as {supplier_model:Record<string,JSONValue>}).supplier_model;
+ expect(model.capabilities).toEqual([{operation:"chat",streaming:true}]);
+ expect(model).not.toHaveProperty("prices");expect(model).not.toHaveProperty("endpoints");
 });
 it("keeps a public model to its name and checked capabilities", () => {
   const prepared = prepareConfiguration({ model: { id: "public", display_name: "对话", enabled: false, route_configured: true, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0, provider_extension: { exact: "1" } }, configurationSchema(catalogOperation)!);
@@ -57,11 +37,6 @@ it("keeps a public model to its name and checked capabilities", () => {
   expect(capability.usage_rules).toBeUndefined();
   expect(capability.evidence_id).toBeUndefined();
 });
-it.each(["-1/2", "1/0", "not-a-number"])("rejects an invalid nonnegative capability bound %s", bound => {
-  const value = verifiedModel() as { supplier_model: { capabilities: { billable_bounds: Record<string, string> }[] } };
-  value.supplier_model.capabilities[0].billable_bounds.image = bound;
-  expect(() => prepareConfiguration(value, configurationSchema(supplierOperation)!)).toThrow("有效分数");
-});
 it("requires complete nested pricing objects and preserves an explicit absent promotion end", () => {
   expect(() => prepareConfiguration({ action: "price" }, configurationSchema(operation)!)).toThrow("价目与适用范围");
   const value: JSONValue = { action: "bootstrap_price", price: { id: "new-price", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one" }, layer: "regular", effective_at: "2026-12-01T00:00:00Z", ends_at: null, rule: { mode: "manual", components: [{ key: "image", unit: "image", per: "1", rate: "0" }] }, published: true } };
@@ -69,24 +44,21 @@ it("requires complete nested pricing objects and preserves an explicit absent pr
   expect(() => validatePriceConfiguration(prepared)).not.toThrow();
   expect(prepared).toMatchObject({ price: { ends_at: null } });
 });
-it("drops the old confirmation fields and still accepts a capability that only has metering", () => {
-  const value = verifiedModel() as { supplier_model: { capabilities: { usage_verified: boolean }[] } };
-  value.supplier_model.capabilities[0].usage_verified = false;
-  const prepared = prepareConfiguration(value, configurationSchema(supplierOperation)!);
-  expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  const capability = (prepared as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
-  expect(capability.usage_verified).toBeUndefined();
-  expect(capability.evidence_id).toBeUndefined();
-});
-it("matches the backend rational radix and exponent rules instead of reinterpreting integer fractions as decimal", () => {
-  const value = verifiedModel() as { supplier_model: { capabilities: { billable_bounds: Record<string, string> }[] } };
-  const capability = value.supplier_model.capabilities[0];
-  capability.billable_bounds.image = "0b1/010";
-  const prepared = prepareConfiguration(value, configurationSchema(supplierOperation)!);
-  expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  expect(prepared).toMatchObject({ supplier_model: { capabilities: [{ billable_bounds: { image: "0b1/010" } }] } });
-});
 it("enforces the published wildcard and model override rules", () => {
   expect(() => validatePriceConfiguration({ price: { model_id: "*", layer: "regular", rule: { mode: "manual" } } })).toThrow("默认规则");
   expect(() => validatePriceConfiguration({ price: { model_id: "*", layer: "regular", rule: { mode: "follow", multiplier: "1", model_multipliers: { "*": "2" } } } })).toThrow("实际模型");
+});
+
+it("supports megapixels independently and hides pricing identity fields",()=>{
+ const template=configurationSchema({...operation,name:"template"})!;
+ expect(template.fields?.billing.fields?.input.item?.fields?.template.options).toContainEqual(["megapixels","按百万像素"]);
+ expect(template.fields?.billing.fields?.output.item?.fields?.modality.options).toContainEqual(["audio","音频"]);
+ const price=configurationSchema(operation)!;
+ const component=price.fields?.price.fields?.rule.fields?.components.item;
+ expect(component?.presentation).toBe("price");expect(component?.fields?.key.readOnly).toBe(true);
+});
+
+it("rejects overlapping aggregate and modality input meters",()=>{
+ expect(()=>validateModelConfiguration({action:"billing",billing:{input:[{modality:"all",template:"tokens"},{modality:"image",template:"images"}],output:[]}})).toThrow("不能在同一方向并用");
+ expect(()=>validateModelConfiguration({action:"billing",billing:{input:[{modality:"text",template:"tokens"},{modality:"image",template:"megapixels"}],output:[{modality:"text",template:"tokens"}]}})).not.toThrow();
 });

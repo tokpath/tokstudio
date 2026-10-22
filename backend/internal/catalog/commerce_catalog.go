@@ -60,16 +60,23 @@ type CommerceCatalog struct {
 	Operators          OperatorDirectory
 	PlatformOperatorID string
 	EncryptionKey      string
+	Costs              interface {
+		Snapshot(context.Context, string, string, time.Time) (json.RawMessage, error)
+		Estimate(context.Context, json.RawMessage, modelruntime.Request, modelruntime.Capability) *string
+	}
 }
 type PublicModel struct {
-	ID           string                    `json:"id"`
-	Identity     string                    `json:"identity"` // platform-attested model identity/revision
-	DisplayName  string                    `json:"display_name"`
-	Enabled      bool                      `json:"enabled"`
-	Capabilities []modelruntime.Capability `json:"capabilities"`
-	Version      uint64                    `json:"version"`
+	Billing      map[modelruntime.Operation]modelruntime.BillingProfile `json:"billing"`
+	ID           string                                                 `json:"id"`
+	Identity     string                                                 `json:"identity"` // platform-attested model identity/revision
+	DisplayName  string                                                 `json:"display_name"`
+	Enabled      bool                                                   `json:"enabled"`
+	Capabilities []modelruntime.Capability                              `json:"capabilities"`
+	Version      uint64                                                 `json:"version"`
 }
 type UpstreamModel struct {
+	CostProvider  string `json:"cost_provider"`
+	CostModel     string `json:"cost_model"`
 	ID            string `json:"id"`
 	PublicModelID string `json:"public_model_id"`
 	Identity      string `json:"identity"`
@@ -171,6 +178,9 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 		if e != nil {
 			return e
 		}
+		if in.Billing == nil {
+			in.Billing = old.Billing
+		}
 		if in.Identity == "" {
 			in.Identity = old.Identity
 		}
@@ -188,6 +198,19 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 		}
 	} else if in.Identity == "" {
 		in.Identity = in.ID
+	}
+	if in.Billing == nil {
+		in.Billing = map[modelruntime.Operation]modelruntime.BillingProfile{}
+	}
+	for _, c := range in.Capabilities {
+		p, ok := in.Billing[c.Operation]
+		if !ok {
+			p = modelruntime.DefaultBilling(c.Operation)
+		}
+		if !p.Valid(c.Operation) {
+			return ErrInvalidInput
+		}
+		in.Billing[c.Operation] = p
 	}
 	in.Capabilities = publicCapabilityRecords(in.Capabilities)
 	if in.Identity == "" || !validPublicCapabilities(in.Capabilities) {
@@ -234,23 +257,26 @@ func (s CommerceCatalog) saveUpstream(ctx context.Context, actor string, in Upst
 	if !in.Routing.valid() {
 		return ErrInvalidInput
 	}
-	if in.Enabled {
-		if len(in.Capabilities) == 0 {
-			return modelruntime.ErrUnsupported
-		}
-		for _, c := range in.Capabilities {
-			if !c.Verified() {
-				return modelruntime.ErrUnsupported
-			}
-			if c.Operation == modelruntime.Video {
-				for _, operation := range []modelruntime.Operation{modelruntime.VideoRetrieve, modelruntime.VideoDownload} {
-					if _, e := modelruntime.ResolveTaskEndpoint(in.Endpoints[operation], "validation-task"); e != nil {
-						return ErrInvalidInput
-					}
-				}
-			}
-		}
+	if in.Enabled && len(in.Capabilities) == 0 {
+		return modelruntime.ErrUnsupported
 	}
+	for i, c := range in.Capabilities {
+		if !publicOperation(c.Operation) {
+			return ErrInvalidInput
+		}
+		p, ok := model.Billing[c.Operation]
+		if !ok {
+			p = modelruntime.DefaultBilling(c.Operation)
+		}
+		in.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
+	}
+	if in.CostProvider == "" {
+		in.CostProvider = in.Provider
+	}
+	if in.CostModel == "" {
+		in.CostModel = in.Model
+	}
+
 	in.Version = expected + 1
 	return s.saveDefinition(ctx, "tokenhub_upstreams", in.ID, in, expected, map[string]any{"public_model_id": in.PublicModelID, "provider_id": in.ProviderID})
 }
@@ -524,6 +550,13 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	}
 	out := make([]UpstreamModel, 0)
 	for _, u := range upstreams {
+		for i, c := range u.Capabilities {
+			p, ok := m.Billing[c.Operation]
+			if !ok {
+				p = modelruntime.DefaultBilling(c.Operation)
+			}
+			u.Capabilities[i] = p.Capability(c.Operation, c.Streaming)
+		}
 		h := health[u.ID]
 		if u.Enabled && u.Healthy && u.Identity == m.Identity && requestSupported(u.Capabilities, r) && (h.OpenUntil == nil || !h.OpenUntil.After(now)) {
 			out = append(out, u)
@@ -577,6 +610,7 @@ func (s CommerceCatalog) PriceVersions(ctx context.Context, scope PriceScope, mo
 }
 
 type ModelQuote struct {
+	Billing        modelruntime.Capability `json:"billing"`
 	CatalogVersion uint64                  `json:"catalog_version"`
 	ModelID        string                  `json:"model_id"`
 	AcceptedAt     time.Time               `json:"accepted_at"`
@@ -587,8 +621,9 @@ type ModelQuote struct {
 	Candidates     []UpstreamModel         `json:"-"`
 }
 type SupplierPriceSnapshot struct {
-	UpstreamID string        `json:"upstream_id"`
-	Price      ResolvedPrice `json:"price"`
+	EstimateUSD *string         `json:"estimate_usd,omitempty"`
+	Snapshot    json.RawMessage `json:"snapshot"`
+	UpstreamID  string          `json:"upstream_id"`
 }
 
 // Quote resolves all price books and takes a component-wise maximum across
@@ -608,7 +643,12 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 	if e != nil {
 		return ModelQuote{}, e
 	}
-	q := ModelQuote{CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
+	active, e := SelectCapability(upstreams[0], r)
+	if e != nil {
+		return ModelQuote{}, e
+	}
+	retail = activePrice(retail, active.BillableBounds)
+	q := ModelQuote{Billing: active, CatalogVersion: revision, ModelID: r.PublicModel, AcceptedAt: at, Retail: retail, Bounds: map[string]string{}, Candidates: upstreams}
 	for _, u := range upstreams {
 		cap, e := SelectCapability(u, r)
 		if e != nil {
@@ -636,31 +676,18 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 				q.Bounds[key] = raw
 			}
 		}
-		// Supplier USD cost belongs to the supplier model. A route saved before
-		// that page existed still resolves the price book keyed by the upstream.
-		var cost ResolvedPrice
-		if u.SupplierModelID != "" {
-			supplierModel, modelErr := s.SupplierModel(ctx, u.SupplierModelID)
-			if modelErr != nil {
-				return ModelQuote{}, modelErr
+		var snapshot json.RawMessage
+		if s.Costs != nil {
+			snapshot, e = s.Costs.Snapshot(ctx, u.CostProvider, u.CostModel, at)
+			if e != nil {
+				return ModelQuote{}, e
 			}
-			if !supplierModel.Enabled {
-				return ModelQuote{}, ErrPriceUnavailable
-			}
-			cost, e = supplierModelPrice(supplierModel, u.ID, r.PublicModel, at)
-		} else {
-			cost, e = resolver.Resolve(ctx, PriceScope{Kind: "supplier", SellerID: u.ProviderID, BuyerID: u.ID}, r.PublicModel, at)
 		}
-		if e != nil {
-			return ModelQuote{}, e
+		var estimate *string
+		if s.Costs != nil {
+			estimate = s.Costs.Estimate(ctx, snapshot, r, cap)
 		}
-		if _, e = cost.MaximumCharge(cap.BillableBounds); e != nil {
-			return ModelQuote{}, e
-		}
-		if _, e = CoverageFactor(retail, cost); e != nil {
-			return ModelQuote{}, e
-		}
-		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Price: cost})
+		q.Supplier = append(q.Supplier, SupplierPriceSnapshot{UpstreamID: u.ID, Snapshot: snapshot, EstimateUSD: estimate})
 	}
 	if _, e = retail.MaximumCharge(q.Bounds); e != nil {
 		return ModelQuote{}, e
@@ -674,6 +701,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 		if e != nil {
 			return ModelQuote{}, e
 		}
+		price = activePrice(price, q.Bounds)
 		if _, e = price.MaximumCharge(q.Bounds); e != nil {
 			return ModelQuote{}, e
 		}
@@ -699,7 +727,7 @@ func (s CommerceCatalog) PublishPrice(ctx context.Context, actor string, v Price
 	return s.mutate(ctx, func(tx CommerceCatalog) error { return tx.publishPrice(ctx, actor, v, validateCoverage) })
 }
 func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v PriceVersion, validateCoverage func(context.Context, *gorm.DB, PriceVersion) error) error {
-	if ((v.Scope.Kind != "supplier" && actor != v.Scope.SellerID) || (v.Scope.Kind == "supplier" && !s.platform(actor))) || validateCoverage == nil {
+	if actor != v.Scope.SellerID || validateCoverage == nil {
 		return ErrCatalogForbidden
 	}
 	if e := ValidatePriceVersion(v); e != nil {
@@ -710,19 +738,10 @@ func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v Price
 			return e
 		}
 	}
-	if v.Scope.Kind == "supplier" {
-		var count int64
-		if e := s.DB.WithContext(ctx).Table("tokenhub_upstreams").Where("id=? AND provider_id=? AND public_model_id=?", v.Scope.BuyerID, v.Scope.SellerID, v.ModelID).Count(&count).Error; e != nil {
-			return e
-		}
-		if count != 1 {
-			return ErrInvalidInput
-		}
-	}
 	if !v.Published {
 		return ErrChangeNotice
 	}
-	if v.Scope.Kind != "supplier" {
+	{
 		var existing int64
 		if e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Where("scope_key=?", v.Scope.Key()).Count(&existing).Error; e != nil {
 			return e

@@ -19,6 +19,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
@@ -47,6 +48,7 @@ func AllMigrations() []db.ModuleMigrations {
 	add(outbox.Migrations())
 	add(mail.Migrations())
 	add(catalog.CommerceMigrations())
+	add(modelpricing.Migrations())
 	add(cooperation.Migrations())
 	add(commerce.Migrations())
 	add(incentives.Migrations())
@@ -76,6 +78,7 @@ type Staff struct {
 func (Staff) TableName() string { return "portal_staff" }
 
 type Application struct {
+	ModelPricing       *modelpricing.Service
 	DomainVerifier     branding.DomainVerifier
 	Metrics            *observability.Metrics
 	Redis              *redis.Client
@@ -149,7 +152,8 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 		}
 		a.DomainVerifier = verifier
 	}
-	a.Catalog = catalog.CommerceCatalog{DB: gdb, Operators: cooperation.CatalogDirectory{Organization: a.Organization}, PlatformOperatorID: a.Installation.OperatorID, EncryptionKey: c.AppKey}
+	a.ModelPricing = &modelpricing.Service{DB: gdb, AllowTestLoopback: c.TestLoopback}
+	a.Catalog = catalog.CommerceCatalog{Costs: a.ModelPricing, DB: gdb, Operators: cooperation.CatalogDirectory{Organization: a.Organization}, PlatformOperatorID: a.Installation.OperatorID, EncryptionKey: c.AppKey}
 	a.Cooperation = cooperation.New(gdb, a.Ledger, a.Organization)
 	a.Cooperation.Rates = cooperation.CatalogRates{Catalog: a.Catalog, Organization: a.Organization}
 	a.Commerce = commerce.New(gdb)
@@ -160,7 +164,7 @@ func newApplication(ctx context.Context, c Config, gdb *gorm.DB) (*Application, 
 	a.Jobs = jobs.New(gdb)
 	a.Mail = mail.NewService(gdb, c.AppKey, mail.SMTPOptions{Host: c.SMTPHost, Port: c.SMTPPort, Username: c.SMTPUsername, Password: c.SMTPPassword, From: c.SMTPFrom, Security: c.SMTPSecurity, Production: c.IsProduction()})
 	a.Payments = payments.NewService(gdb, c.AppKey, a.Organization, payments.NewTransport(c.TestLoopback), portalReceiptSink{Application: a, CommerceSink: payments.CommerceSink{Commerce: a.Commerce}})
-	runtime, err := modelruntime.NewBifrost(ctx, modelruntime.BifrostConfig{AllowTestLoopback: c.TestLoopback, Providers: []string{"openai", "anthropic", "gemini", "openrouter", "elevenlabs"}, Credentials: a.Catalog, EndpointGuard: a.guardEndpoint, ResourceGuard: a.guardResource})
+	runtime, err := modelruntime.NewBifrost(ctx, modelruntime.BifrostConfig{Costs: a.ModelPricing, AllowTestLoopback: c.TestLoopback, Providers: []string{"openai", "anthropic", "gemini", "openrouter", "elevenlabs"}, Credentials: a.Catalog, EndpointGuard: a.guardEndpoint, ResourceGuard: a.guardResource})
 	if err != nil {
 		return nil, err
 	}

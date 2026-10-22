@@ -148,6 +148,7 @@ func TestCommerceConcurrentPromotionPublicationAndRollback(t *testing.T) {
 			v.Layer = "promotion"
 			v.EndsAt = &end
 			v.NoticeID = "notice"
+			v.Rule.Components = append(v.Rule.Components, ComponentRate{Key: "output", Unit: "token", Per: "1000000", Rate: "0"}, ComponentRate{Key: "cache", Unit: "token", Per: "1000000", Rate: "0"})
 			e := s.PublishPrice(ctx, "platform", v, func(context.Context, *gorm.DB, PriceVersion) error { callbacks.Add(1); return nil })
 			if e == nil {
 				success.Add(1)
@@ -160,6 +161,7 @@ func TestCommerceConcurrentPromotionPublicationAndRollback(t *testing.T) {
 	}
 	v := priceAt("rejected", PriceScope{Kind: "retail", SellerID: "platform"}, at, "1")
 	v.NoticeID = "notice"
+	v.Rule.Components = append(v.Rule.Components, ComponentRate{Key: "output", Unit: "token", Per: "1000000", Rate: "0"}, ComponentRate{Key: "cache", Unit: "token", Per: "1000000", Rate: "0"})
 	if e := s.PublishPrice(ctx, "platform", v, func(context.Context, *gorm.DB, PriceVersion) error { return ErrUnboundedCoverage }); e == nil {
 		t.Fatal("coverage failure committed")
 	}
@@ -185,14 +187,10 @@ func TestCommerceQuoteLocksEverySupplyPriceAndMaximum(t *testing.T) {
 	for i, scope := range []PriceScope{{Kind: "retail", SellerID: "channel"}, {Kind: "supply", SellerID: "oem", BuyerID: "channel"}, {Kind: "supply", SellerID: "platform", BuyerID: "oem"}} {
 		v := priceAt(uuid.NewString(), scope, at, []string{"10", "6", "4"}[i])
 		v.NoticeID = "notice"
+		v.Rule.Components = append(v.Rule.Components, ComponentRate{Key: "output", Unit: "token", Per: "1000000", Rate: "0"}, ComponentRate{Key: "cache", Unit: "token", Per: "1000000", Rate: "0"})
 		if e := s.PublishPrice(ctx, scope.SellerID, v, func(context.Context, *gorm.DB, PriceVersion) error { return nil }); e != nil {
 			t.Fatal(e)
 		}
-	}
-	supplier := priceAt("supplier-price", PriceScope{Kind: "supplier", SellerID: "provider", BuyerID: "upstream"}, at, "1")
-	supplier.NoticeID = "notice"
-	if e := s.PublishPrice(ctx, "platform", supplier, func(context.Context, *gorm.DB, PriceVersion) error { return nil }); e != nil {
-		t.Fatal(e)
 	}
 	r, _ := modelruntime.DecodeProtocol("request", modelruntime.Chat, []byte(`{"model":"model","messages":[{"role":"user","content":"hi"}],"max_tokens":10}`))
 	q, e := s.Quote(ctx, "oem-brand", "channel", r, at)
@@ -202,14 +200,14 @@ func TestCommerceQuoteLocksEverySupplyPriceAndMaximum(t *testing.T) {
 	if len(q.Supply) != 2 || q.Supply[0].Scope.SellerID != "oem" || q.Supply[1].Scope.SellerID != "platform" {
 		t.Fatalf("supply chain %#v", q.Supply)
 	}
-	if q.Bounds["input"] != "1000" {
+	if q.Bounds["input"] != "131072" {
 		t.Fatal("lost maximum")
 	}
-	if len(q.Supplier) != 1 || q.Supplier[0].Price.AssetUnit != "USD" {
+	if len(q.Supplier) != 1 || q.Supplier[0].UpstreamID != "upstream" {
 		t.Fatal("supplier USD cost snapshot missing")
 	}
 	charge, e := q.Supply[1].MaximumCharge(q.Bounds)
-	if e != nil || charge.RatString() != "1/250" {
+	if e != nil || charge.RatString() != "8192/15625" {
 		t.Fatalf("maximum %v %v", charge, e)
 	}
 }
@@ -283,7 +281,7 @@ func TestCredentialNameCanChangeWithoutReplacingTheSecret(t *testing.T) {
 	}
 }
 
-func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
+func TestSupplierBindingDoesNotRequireManualSupplierPrices(t *testing.T) {
 	s := newCommerceTestStore(t)
 	ctx := context.Background()
 	capability := commerceTestCapability()
@@ -295,7 +293,7 @@ func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
 	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "secret-to-encrypt", true, 0); e != nil {
 		t.Fatal(e)
 	}
-	supplier := SupplierModel{ID: "supplier-model", CredentialID: "credential", Provider: "openai", Model: "exact-model", Capabilities: []modelruntime.Capability{capability}, Prices: []ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "1"}, {Key: "output", Unit: "token", Per: "1", Rate: "1"}}, Enabled: true}
+	supplier := SupplierModel{ID: "supplier-model", CredentialID: "credential", Provider: "openai", Model: "exact-model", Capabilities: []modelruntime.Capability{capability}, Enabled: true}
 	if e := s.SaveSupplierModel(ctx, "platform", supplier, 0); e != nil {
 		t.Fatal(e)
 	}
@@ -311,12 +309,13 @@ func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
 	at := time.Now().UTC()
 	retail := priceAt(uuid.NewString(), PriceScope{Kind: "retail", SellerID: "platform"}, at, "2")
 	retail.NoticeID = "notice"
+	retail.Rule.Components = append(retail.Rule.Components, ComponentRate{Key: "output", Unit: "token", Per: "1000000", Rate: "0"}, ComponentRate{Key: "cache", Unit: "token", Per: "1000000", Rate: "0"})
 	if e := s.PublishPrice(ctx, "platform", retail, func(context.Context, *gorm.DB, PriceVersion) error { return nil }); e != nil {
 		t.Fatal(e)
 	}
 	request, _ := modelruntime.DecodeProtocol("request", modelruntime.Chat, []byte(`{"model":"model","messages":[{"role":"user","content":"hi"}],"max_tokens":10}`))
 	quote, e := s.Quote(ctx, "official", "platform", request, at)
-	if e != nil || len(quote.Supplier) != 1 || quote.Supplier[0].Price.AssetUnit != "USD" || quote.Supplier[0].Price.Components[0].Rate != "1" {
+	if e != nil || len(quote.Supplier) != 1 || quote.Supplier[0].UpstreamID == "" {
 		t.Fatalf("%v %#v", e, quote.Supplier)
 	}
 }

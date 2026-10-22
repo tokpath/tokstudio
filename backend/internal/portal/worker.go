@@ -393,6 +393,23 @@ func (a *Application) RunWorker(ctx context.Context, concurrency int, onError fu
 		}
 	}
 	var workers sync.WaitGroup
+	if a.ModelPricing != nil {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				report("model_pricing", a.ModelPricing.RunSync(ctx))
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
+
 	for i := 0; i < concurrency; i++ {
 		workers.Add(1)
 		go func() {

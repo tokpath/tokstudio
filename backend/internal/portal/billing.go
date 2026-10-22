@@ -29,6 +29,12 @@ func (a *Application) billingDetails(ctx context.Context, r usage.Request, out g
 		measurements[m.Component] = m.Quantity
 		units[m.Component] = m.Unit
 	}
+	labels := map[string]string{}
+	if quote.Billing.Billing != nil {
+		for _, component := range quote.Billing.Billing.Components(quote.Billing.Operation) {
+			labels[component.Key] = component.Label
+		}
+	}
 	components := []any{}
 	displayed := ledger.Zero()
 	for _, rate := range quote.Retail.Components {
@@ -52,7 +58,7 @@ func (a *Application) billingDetails(ctx context.Context, r usage.Request, out g
 		if quote.Retail.FactorNumerator != "1" || quote.Retail.FactorDenominator != "1" {
 			description += " × " + quote.Retail.FactorNumerator + "/" + quote.Retail.FactorDenominator
 		}
-		components = append(components, gin.H{"component": rate.Key, "quantity": quantity, "unit": units[rate.Key], "price_description": description, "amount_atg": amount})
+		components = append(components, gin.H{"label": labels[rate.Key], "component": rate.Key, "quantity": quantity, "unit": units[rate.Key], "price_description": description, "amount_atg": amount})
 	}
 	difference := r.ActualATG.Sub(displayed)
 	if !difference.IsZero() {

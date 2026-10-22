@@ -87,7 +87,7 @@ function referenceFetch(){return vi.fn(async(input:RequestInfo|URL,_init?:Reques
 
 it("edits component and progressive tier prices as exact strings and drops unknown fields",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
-  fireEvent.change(screen.getByLabelText(/^基础单价/),{target:{value:"0.000000000000000000000001"}});
+  fireEvent.change(screen.getByLabelText(/^ATG 单价/),{target:{value:"0.000000000000000000000001"}});
   fireEvent.click(screen.getByRole("button",{name:"添加阶梯",exact:true}));
   fireEvent.change(screen.getByLabelText(/^起始数量/),{target:{value:"0"}});
   fireEvent.change(screen.getByLabelText(/^本阶梯单价/),{target:{value:"0.123456789012345678901234"}});

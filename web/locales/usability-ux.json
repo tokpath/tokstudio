@@ -808,5 +808,595 @@
     "en": "Continue with email",
     "ja": "メールアドレスで続ける",
     "ru": "Продолжить по электронной почте"
+  },
+  "ATG 单价": {
+    "en": "ATG rate",
+    "ja": "ATG 単価",
+    "ru": "Цена в ATG"
+  },
+  "Bifrost 参考计价模型": {
+    "en": "Bifrost pricing reference",
+    "ja": "Bifrost 参照料金モデル",
+    "ru": "Модель цен Bifrost"
+  },
+  "Bifrost 设置": {
+    "en": "Bifrost settings",
+    "ja": "Bifrost 設定",
+    "ru": "Настройки Bifrost"
+  },
+  "OpenAI 兼容": {
+    "en": "OpenAI compatible",
+    "ja": "OpenAI 互換",
+    "ru": "Совместимый с OpenAI"
+  },
+  "action:billing、model_id、operation、billing、expected_version。已开放模型的变更须填写生效时间和通知依据。": {
+    "en": "action:billing, model_id, operation, billing, expected_version. Changes to available models require an effective time and notice details.",
+    "ja": "action:billing、model_id、operation、billing、expected_version。公開中モデルの変更には適用時刻と通知の根拠が必要です。",
+    "ru": "action:billing, model_id, operation, billing, expected_version. Для изменения доступной модели укажите время вступления в силу и основание уведомления."
+  },
+  "supplier_model：凭据、协议、供应商模型名称、能力与参考成本模型、expected_version": {
+    "en": "supplier_model: credential, protocol, supplier model name, capabilities, cost reference, expected_version",
+    "ja": "supplier_model：認証情報、プロトコル、供給元モデル名、機能、原価参照モデル、expected_version",
+    "ru": "supplier_model: учётные данные, протокол, имя модели поставщика, возможности, модель расчёта затрат, expected_version"
+  },
+  "上半部分管理供应商连接，下半部分维护供应商模型与能力。上游成本优先采用可靠的供应商费用，否则由 Bifrost 参考价目计算。": {
+    "en": "Manage supplier connections, then their models and capabilities. Use verified supplier charges when available; otherwise calculate costs with Bifrost reference prices.",
+    "ja": "供給元接続と、そのモデル・機能を管理します。信頼できる供給元の請求額を優先し、それ以外は Bifrost の参照料金で原価を計算します。",
+    "ru": "Управляйте подключениями поставщиков, их моделями и возможностями. Используются подтверждённые расходы поставщика, иначе — расчёт по справочнику Bifrost."
+  },
+  "上次成功同步": {
+    "en": "Last successful sync",
+    "ja": "最終同期成功",
+    "ru": "Последняя успешная синхронизация"
+  },
+  "不分档时留空。不需要填写判断公式。": {
+    "en": "Leave empty for a single rate. No formulas are needed.",
+    "ja": "区分しない場合は空欄にします。判定式は不要です。",
+    "ru": "Оставьте пустым для единого тарифа. Формулы не нужны."
+  },
+  "不区分": {
+    "en": "No distinction",
+    "ja": "区分なし",
+    "ru": "Без разделения"
+  },
+  "中": {
+    "en": "Medium",
+    "ja": "中",
+    "ru": "Среднее"
+  },
+  "价目同步失败，请检查来源地址和网络后重试": {
+    "en": "Price sync failed. Check the source URL and network, then retry.",
+    "ja": "料金の同期に失敗しました。取得元 URL とネットワークを確認して再試行してください。",
+    "ru": "Не удалось синхронизировать цены. Проверьте URL источника и сеть, затем повторите попытку."
+  },
+  "价目来源地址": {
+    "en": "Price source URL",
+    "ja": "料金の取得元 URL",
+    "ru": "URL источника цен"
+  },
+  "低": {
+    "en": "Low",
+    "ja": "低",
+    "ru": "Низкое"
+  },
+  "例如 1024x1024。输入图片按实际尺寸识别，输出规格也会核对实际结果。": {
+    "en": "For example, 1024x1024. Input images use their actual dimensions; output specifications are checked against the result.",
+    "ja": "例：1024x1024。入力画像は実際の寸法で判定し、出力仕様も実際の結果と照合します。",
+    "ru": "Например, 1024x1024. Для входных изображений используются фактические размеры; параметры вывода сверяются с результатом."
+  },
+  "供应商支持的能力": {
+    "en": "Supported supplier capabilities",
+    "ja": "供給元の対応機能",
+    "ru": "Возможности поставщика"
+  },
+  "供应商整体": {
+    "en": "All supplier models",
+    "ja": "供給元全体",
+    "ru": "Все модели поставщика"
+  },
+  "供应商模型 {name} 登记了 {count} 项能力，成本使用供应商报告或 Bifrost 参考价目核算。": {
+    "en": "Supplier model {name} has {count} capabilities. Costs use supplier reports or Bifrost reference prices.",
+    "ja": "供給元モデル {name} には {count} 個の機能があります。原価は供給元の報告または Bifrost 参照料金で計算します。",
+    "ru": "Для модели поставщика {name} зарегистрировано возможностей: {count}. Затраты определяются по данным поставщика или справочнику Bifrost."
+  },
+  "供应商模型（留空表示供应商整体）": {
+    "en": "Supplier model (empty for all models)",
+    "ja": "供給元モデル（空欄は供給元全体）",
+    "ru": "Модель поставщика (пусто — все модели)"
+  },
+  "供应商能力": {
+    "en": "Supplier capability",
+    "ja": "供給元の機能",
+    "ru": "Возможность поставщика"
+  },
+  "供货采购方": {
+    "en": "Wholesale buyer",
+    "ja": "卸売の購入先",
+    "ru": "Оптовый покупатель"
+  },
+  "修改登记": {
+    "en": "Edit record",
+    "ja": "登録を編集",
+    "ru": "Изменить запись"
+  },
+  "修改这个供应商模型的协议、能力和参考成本模型。已经绑定的路由会跟着更新。": {
+    "en": "Edit this supplier model's protocol, capabilities, and cost reference. Bound routes update with it.",
+    "ja": "供給元モデルのプロトコル・機能・原価参照モデルを変更します。紐付くルートも更新されます。",
+    "ru": "Измените протокол, возможности и модель расчёта затрат. Связанные маршруты обновятся автоматически."
+  },
+  "先选择公开模型，系统会列出该模型的计费项目。": {
+    "en": "Select a public model to see its billing items.",
+    "ja": "公開モデルを選ぶと、その課金項目が表示されます。",
+    "ru": "Выберите публичную модель, чтобы увидеть её позиции тарификации."
+  },
+  "全部模态": {
+    "en": "All modalities",
+    "ja": "全モダリティ",
+    "ru": "Все модальности"
+  },
+  "全部模态（统一 Token）": {
+    "en": "All modalities (aggregate tokens)",
+    "ja": "全モダリティ（合計 Token）",
+    "ru": "Все модальности (общие токены)"
+  },
+  "凭据": {
+    "en": "Credential",
+    "ja": "認証情報",
+    "ru": "Учётные данные"
+  },
+  "勾选供应商实际支持的能力。计量规则由系统适配，参考成本由 Bifrost 计算。": {
+    "en": "Select capabilities the supplier supports. The system normalizes usage; Bifrost calculates reference costs.",
+    "ja": "供給元が実際に対応する機能を選択します。使用量はシステムが正規化し、参照原価は Bifrost が計算します。",
+    "ru": "Выберите поддерживаемые поставщиком возможности. Система нормализует использование, Bifrost рассчитывает справочные затраты."
+  },
+  "参考价目供应商": {
+    "en": "Reference price supplier",
+    "ja": "参照料金の供給元",
+    "ru": "Поставщик справочных цен"
+  },
+  "参考计价模型": {
+    "en": "Reference pricing model",
+    "ja": "参照料金モデル",
+    "ru": "Модель справочных цен"
+  },
+  "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。": {
+    "en": "Configure only outputs you charge for. Speech priced by input characters may omit a separate output charge.",
+    "ja": "課金する出力のみ設定します。音声合成を入力文字数で課金する場合、出力料金を別に設定する必要はありません。",
+    "ru": "Настраивайте только платные виды вывода. При оплате синтеза речи по входным символам отдельная плата за вывод не обязательна."
+  },
+  "可不单独计收输入费用。统一 Token 与分模态项目不能在同一方向并用。": {
+    "en": "Input charges are optional. Aggregate tokens and modality items cannot overlap within one direction.",
+    "ja": "入力料金は省略できます。同じ方向で合計 Token とモダリティ別項目は併用できません。",
+    "ru": "Плата за ввод необязательна. Общие токены и отдельные модальности нельзя совмещать для одного направления."
+  },
+  "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。": {
+    "en": "Measure each content item once. Modality pricing requires a reliable usage breakdown.",
+    "ja": "同じ内容は一つの方法で計量します。モダリティ別課金には信頼できる使用量の内訳が必要です。",
+    "ru": "Каждый контент измеряется одним способом. Для раздельной тарификации нужна достоверная разбивка использования."
+  },
+  "同一方向的同一种模态只能配置一个计量项目。": {
+    "en": "Use one billing item per modality in each direction.",
+    "ja": "同じ方向の同じモダリティには一つの計量項目のみ設定できます。",
+    "ru": "Для каждой модальности в одном направлении допускается одна позиция тарификации."
+  },
+  "同步提示": {
+    "en": "Sync message",
+    "ja": "同期メッセージ",
+    "ru": "Сообщение синхронизации"
+  },
+  "同步模型供应商参考价目，用于上游成本核算。客户与下级经营方继续按各自的 ATG 价目计费。": {
+    "en": "Sync supplier reference prices for upstream cost accounting. Customers and downstream operators keep their own ATG prices.",
+    "ja": "上流原価の計算用に供給元の参照料金を同期します。顧客と下位事業者にはそれぞれの ATG 料金を適用します。",
+    "ru": "Синхронизация справочных цен поставщиков для расчёта затрат. Для клиентов и нижестоящих операторов сохраняются собственные цены в ATG."
+  },
+  "同步间隔（小时）": {
+    "en": "Sync interval (hours)",
+    "ja": "同期間隔（時間）",
+    "ru": "Интервал синхронизации (часы)"
+  },
+  "基础 ATG 价格": {
+    "en": "Base ATG prices",
+    "ja": "基本 ATG 料金",
+    "ru": "Базовые цены в ATG"
+  },
+  "处理时长": {
+    "en": "Processed duration",
+    "ja": "処理時間",
+    "ru": "Длительность обработки"
+  },
+  "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。": {
+    "en": "Usually leave empty for official providers. For compatible services, enter the provider's API Base URL; the system builds request paths.",
+    "ja": "公式供給元は通常空欄にします。互換サービスでは API Base URL を入力します。呼出パスはシステムが生成します。",
+    "ru": "Для официальных поставщиков обычно оставьте пустым. Для совместимых сервисов укажите API Base URL; пути запросов создаст система."
+  },
+  "定价经营方（自动带入）": {
+    "en": "Pricing operator (automatic)",
+    "ja": "料金設定事業者（自動入力）",
+    "ru": "Оператор, задающий цену (автоматически)"
+  },
+  "实际费用 USD": {
+    "en": "Actual cost USD",
+    "ja": "実際の費用 USD",
+    "ru": "Фактические затраты, USD"
+  },
+  "客户看到的规格名称": {
+    "en": "Specification name shown to customers",
+    "ja": "顧客に表示する仕様名",
+    "ru": "Название параметра для клиента"
+  },
+  "尺寸（可选）": {
+    "en": "Dimensions (optional)",
+    "ja": "寸法（任意）",
+    "ru": "Размеры (необязательно)"
+  },
+  "差额 USD": {
+    "en": "Difference USD",
+    "ja": "差額 USD",
+    "ru": "Разница, USD"
+  },
+  "张": {
+    "en": "images",
+    "ja": "枚",
+    "ru": "изображений"
+  },
+  "成本计算组件": {
+    "en": "Cost calculation component",
+    "ja": "原価計算コンポーネント",
+    "ru": "Компонент расчёта затрат"
+  },
+  "按 Token": {
+    "en": "Per token",
+    "ja": "Token 数",
+    "ru": "За токены"
+  },
+  "按字符": {
+    "en": "Per character",
+    "ja": "文字数",
+    "ru": "За символы"
+  },
+  "按张": {
+    "en": "Per image",
+    "ja": "画像の枚数",
+    "ru": "За изображение"
+  },
+  "按百万像素": {
+    "en": "Per megapixel",
+    "ja": "メガピクセル数",
+    "ru": "За мегапиксель"
+  },
+  "按秒": {
+    "en": "Per second",
+    "ja": "秒数",
+    "ru": "За секунду"
+  },
+  "接口协议": {
+    "en": "API protocol",
+    "ja": "API プロトコル",
+    "ru": "Протокол API"
+  },
+  "提交后由后台执行，刷新本页查看结果。": {
+    "en": "Runs in the background after submission. Refresh this page for results.",
+    "ja": "送信後にバックグラウンドで実行します。ページを更新すると結果を確認できます。",
+    "ru": "После отправки выполняется в фоне. Обновите страницу для просмотра результата."
+  },
+  "操作": {
+    "en": "Action",
+    "ja": "操作",
+    "ru": "Действие"
+  },
+  "普通输入": {
+    "en": "Uncached input",
+    "ja": "通常入力",
+    "ru": "Некэшированный ввод"
+  },
+  "最低延迟": {
+    "en": "Lowest latency",
+    "ja": "最小遅延",
+    "ru": "Минимальная задержка"
+  },
+  "最近尝试": {
+    "en": "Last attempt",
+    "ja": "最終試行",
+    "ru": "Последняя попытка"
+  },
+  "期间开始": {
+    "en": "Period start",
+    "ja": "期間開始",
+    "ru": "Начало периода"
+  },
+  "期间结束": {
+    "en": "Period end",
+    "ja": "期間終了",
+    "ru": "Конец периода"
+  },
+  "未取得核算金额的调用": {
+    "en": "Calls without a calculated cost",
+    "ja": "原価未計算の呼び出し",
+    "ru": "Вызовы без расчёта затрат"
+  },
+  "标准": {
+    "en": "Standard",
+    "ja": "標準",
+    "ru": "Стандартное"
+  },
+  "模型计费模板": {
+    "en": "Model billing templates",
+    "ja": "モデル課金テンプレート",
+    "ru": "Шаблоны тарификации модели"
+  },
+  "每 {per} {unit}": {
+    "en": "Per {per} {unit}",
+    "ja": "{per} {unit} あたり",
+    "ru": "За {per} {unit}"
+  },
+  "登记供应商实际费用，与同一供应商、模型和期间的系统核算金额并列对比。登记不会修改调用费用或客户账单。结束时间不包含在统计期间内。": {
+    "en": "Record supplier costs alongside calculated costs for the same supplier, model, and period. Records do not change request charges or customer bills. The end time is exclusive.",
+    "ja": "同じ供給元・モデル・期間について実際の費用と計算原価を比較します。登録しても呼出料金や顧客請求は変更しません。終了時刻は集計期間に含みません。",
+    "ru": "Сравните фактические и рассчитанные затраты для одного поставщика, модели и периода. Запись не меняет оплату вызовов и счета клиентов. Время окончания не входит в период."
+  },
+  "登记实际 USD": {
+    "en": "Recorded actual USD",
+    "ja": "登録した実費 USD",
+    "ru": "Зарегистрированные фактические затраты, USD"
+  },
+  "登记实际费用": {
+    "en": "Record actual cost",
+    "ja": "実際の費用を登録",
+    "ru": "Записать фактические затраты"
+  },
+  "百万像素": {
+    "en": "megapixels",
+    "ja": "メガピクセル",
+    "ru": "мегапикселей"
+  },
+  "真实上游成本": {
+    "en": "Actual upstream costs",
+    "ja": "実際の上流原価",
+    "ru": "Фактические затраты поставщиков"
+  },
+  "立即同步": {
+    "en": "Sync now",
+    "ja": "今すぐ同期",
+    "ru": "Синхронизировать сейчас"
+  },
+  "等待同步": {
+    "en": "Sync queued",
+    "ja": "同期待ち",
+    "ru": "Ожидание синхронизации"
+  },
+  "系统核算 USD": {
+    "en": "Calculated USD",
+    "ja": "計算原価 USD",
+    "ru": "Рассчитанные затраты, USD"
+  },
+  "统一 Token 与分模态计费不能在同一方向并用。": {
+    "en": "Aggregate token and modality pricing cannot be combined within one direction.",
+    "ja": "同じ方向で合計 Token 課金とモダリティ別課金は併用できません。",
+    "ru": "Общую и раздельную тарификацию токенов нельзя совмещать в одном направлении."
+  },
+  "缓存读取 · ": {
+    "en": "Cache reads · ",
+    "ja": "キャッシュ読取 · ",
+    "ru": "Чтение кэша · "
+  },
+  "自动同步": {
+    "en": "Automatic sync",
+    "ja": "自動同期",
+    "ru": "Автоматическая синхронизация"
+  },
+  "至少选择一种供应商能力。": {
+    "en": "Select at least one supplier capability.",
+    "ja": "供給元の機能を一つ以上選択してください。",
+    "ru": "Выберите хотя бы одну возможность поставщика."
+  },
+  "至少配置一个输入或输出计量项目。": {
+    "en": "Configure at least one input or output billing item.",
+    "ja": "入力または出力の計量項目を一つ以上設定してください。",
+    "ru": "Настройте хотя бы одну позицию тарификации ввода или вывода."
+  },
+  "规格": {
+    "en": "Specification",
+    "ja": "仕様",
+    "ru": "Параметр"
+  },
+  "规格标识": {
+    "en": "Specification ID",
+    "ja": "仕様 ID",
+    "ru": "ID параметра"
+  },
+  "规格档位（可选）": {
+    "en": "Specification tiers (optional)",
+    "ja": "仕様区分（任意）",
+    "ru": "Категории параметров (необязательно)"
+  },
+  "规格至少填写尺寸或质量。": {
+    "en": "Enter dimensions or quality for each specification.",
+    "ja": "各仕様に寸法または品質を入力してください。",
+    "ru": "Для каждого параметра укажите размеры или качество."
+  },
+  "计价数量": {
+    "en": "Pricing quantity",
+    "ja": "料金の基準数量",
+    "ru": "Расчётное количество"
+  },
+  "计划生效时间（变更已开放模型时填写）": {
+    "en": "Effective time (required when changing an available model)",
+    "ja": "適用予定時刻（公開中モデルの変更時に必要）",
+    "ru": "Время вступления в силу (для изменения доступной модели)"
+  },
+  "计费模板": {
+    "en": "Billing template",
+    "ja": "課金テンプレート",
+    "ru": "Шаблон тарификации"
+  },
+  "计费项目": {
+    "en": "Billing item",
+    "ja": "課金項目",
+    "ru": "Позиция тарификации"
+  },
+  "计费项目名称": {
+    "en": "Billing item name",
+    "ja": "課金項目名",
+    "ru": "Название позиции тарификации"
+  },
+  "计量范围": {
+    "en": "Measurement scope",
+    "ja": "計量範囲",
+    "ru": "Область измерения"
+  },
+  "计量项目": {
+    "en": "Measurement item",
+    "ja": "計量項目",
+    "ru": "Позиция измерения"
+  },
+  "记录": {
+    "en": "Record",
+    "ja": "記録",
+    "ru": "Запись"
+  },
+  "调整价目同步": {
+    "en": "Configure price sync",
+    "ja": "料金の同期設定",
+    "ru": "Настроить синхронизацию цен"
+  },
+  "质量（可选）": {
+    "en": "Quality (optional)",
+    "ja": "品質（任意）",
+    "ru": "Качество (необязательно)"
+  },
+  "输入与输出计量": {
+    "en": "Input and output measurement",
+    "ja": "入力と出力の計量",
+    "ru": "Измерение ввода и вывода"
+  },
+  "输入图片": {
+    "en": "Input images",
+    "ja": "入力画像",
+    "ru": "Входные изображения"
+  },
+  "输入文本": {
+    "en": "Input text",
+    "ja": "入力テキスト",
+    "ru": "Входной текст"
+  },
+  "输入视频": {
+    "en": "Input video",
+    "ja": "入力動画",
+    "ru": "Входное видео"
+  },
+  "输入计量项目": {
+    "en": "Input billing items",
+    "ja": "入力の計量項目",
+    "ru": "Позиции тарификации ввода"
+  },
+  "输入音频": {
+    "en": "Input audio",
+    "ja": "入力音声",
+    "ru": "Входное аудио"
+  },
+  "输出像素面积": {
+    "en": "Output pixel area",
+    "ja": "出力のピクセル面積",
+    "ru": "Площадь выходного изображения"
+  },
+  "输出图片": {
+    "en": "Output images",
+    "ja": "出力画像",
+    "ru": "Выходные изображения"
+  },
+  "输出文本": {
+    "en": "Output text",
+    "ja": "出力テキスト",
+    "ru": "Выходной текст"
+  },
+  "输出时长": {
+    "en": "Output duration",
+    "ja": "出力時間",
+    "ru": "Длительность вывода"
+  },
+  "输出视频": {
+    "en": "Output video",
+    "ja": "出力動画",
+    "ru": "Выходное видео"
+  },
+  "输出计量项目": {
+    "en": "Output billing items",
+    "ja": "出力の計量項目",
+    "ru": "Позиции тарификации вывода"
+  },
+  "输出音频": {
+    "en": "Output audio",
+    "ja": "出力音声",
+    "ru": "Выходное аудио"
+  },
+  "选择供应商连接、接口协议和供应商模型，选择参考计价模型并确认能力。": {
+    "en": "Choose a supplier connection, API protocol, supplier model, pricing reference, and supported capabilities.",
+    "ja": "供給元接続・API プロトコル・モデル・参照料金モデル・対応機能を選択します。",
+    "ru": "Выберите подключение поставщика, протокол API, модель, справочные цены и поддерживаемые возможности."
+  },
+  "选择供应商连接与模型，确认实际能力，并选择用于成本核算的参考计价模型。": {
+    "en": "Choose the supplier connection and model, confirm capabilities, and select its cost reference.",
+    "ja": "供給元接続とモデルを選び、対応機能を確認し、原価計算用の参照モデルを選択します。",
+    "ru": "Выберите подключение и модель поставщика, подтвердите возможности и выберите модель расчёта затрат."
+  },
+  "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。": {
+    "en": "Select a supplier and model from the reference price sheet. Unmatched costs remain unverified, never free.",
+    "ja": "参照料金から供給元とモデルを選びます。一致しない原価は未確認とし、無料とは扱いません。",
+    "ru": "Выберите поставщика и модель из справочника цен. При отсутствии совпадения затраты остаются неподтверждёнными, а не нулевыми."
+  },
+  "选择是时，同时支持普通调用与流式调用。用量由系统适配读取。": {
+    "en": "Yes enables both regular and streaming calls. The system normalizes usage.",
+    "ja": "「はい」で通常・ストリーミングの両方を有効にします。使用量はシステムが正規化します。",
+    "ru": "«Да» включает обычные и потоковые вызовы. Система нормализует использование."
+  },
+  "配置计费模板": {
+    "en": "Configure billing templates",
+    "ja": "課金テンプレートを設定",
+    "ru": "Настроить шаблоны тарификации"
+  },
+  "零售价使用客户 ATG，供货价使用采购 ATG。供应商成本由 Bifrost 独立核算。倍率不是利润率。": {
+    "en": "Retail prices use customer ATG; wholesale prices use procurement ATG. Bifrost calculates supplier costs independently. A multiplier is not a profit margin.",
+    "ja": "小売料金は顧客 ATG、卸売料金は仕入 ATG を使います。供給元原価は Bifrost が別途計算します。倍率は利益率ではありません。",
+    "ru": "Розничные цены используют ATG клиентов, оптовые — закупочные ATG. Bifrost отдельно рассчитывает затраты поставщика. Множитель не является нормой прибыли."
+  },
+  "预估最低成本": {
+    "en": "Lowest estimated cost",
+    "ja": "推定原価が最小",
+    "ru": "Минимальные расчётные затраты"
+  },
+  "高": {
+    "en": "High",
+    "ja": "高",
+    "ru": "Высокое"
+  },
+  "高清": {
+    "en": "HD",
+    "ja": "高精細",
+    "ru": "Высокая чёткость"
+  },
+  "默认每 24 小时同步官方价目。同步失败时继续使用上次成功的数据。": {
+    "en": "Sync official prices every 24 hours by default. Failed syncs retain the last successful data.",
+    "ja": "既定では公式料金を 24 時間ごとに同期します。失敗時は前回成功時のデータを維持します。",
+    "ru": "По умолчанию официальные цены синхронизируются каждые 24 часа. При ошибке сохраняются последние успешные данные."
+  },
+  "供应商与期间": {
+    "en": "Supplier and period",
+    "ja": "供給者と対象期間",
+    "ru": "Поставщик и период"
+  },
+  "{count} 次调用缺少核算金额": {
+    "en": "{count} calls without a calculated cost",
+    "ja": "{count} 件の呼び出しの計算原価が未取得",
+    "ru": "Нет расчётной стоимости для {count} вызовов"
+  },
+  "已登记": {
+    "en": "Recorded",
+    "ja": "登録済み",
+    "ru": "Зарегистрировано"
+  },
+  "选择协议、供应商模型与能力；参考成本由 Bifrost 核算，客户与下级的 ATG 价格在模型定价中设置。": {
+    "en": "Choose the protocol, supplier model and capabilities. Bifrost calculates reference costs; set customer and downstream ATG prices under model pricing.",
+    "ja": "プロトコル、供給者モデル、機能を選択します。参考原価は Bifrost が計算し、顧客と下位事業者の ATG 価格はモデル価格設定で指定します。",
+    "ru": "Выберите протокол, модель поставщика и возможности. Bifrost рассчитывает справочную стоимость; цены ATG для клиентов и нижестоящих операторов задаются в ценах моделей."
   }
 }

@@ -1,6 +1,6 @@
 package catalog
 
-// This file defines versioned TokenHub retail, supply and supplier pricing.
+// This file defines versioned TokenHub retail and supply pricing.
 
 import (
 	"context"
@@ -34,22 +34,20 @@ func PriceDecimal(value string) (*big.Rat, error) {
 // PriceScope identifies either an operator's retail book, or a directed supply
 // edge. ATG and procurement ATG have separate books even when numbers coincide.
 type PriceScope struct {
-	Kind     string `json:"kind"` // retail | supply | supplier (USD per upstream)
+	Kind     string `json:"kind"` // retail | supply
 	SellerID string `json:"seller_id"`
 	BuyerID  string `json:"buyer_id,omitempty"`
 }
 
 func (s PriceScope) Key() string { return s.Kind + ":" + s.SellerID + ":" + s.BuyerID }
 func (s PriceScope) Validate() error {
-	if s.SellerID == "" || (s.Kind != "retail" && s.Kind != "supply" && s.Kind != "supplier") || ((s.Kind == "supply" || s.Kind == "supplier") && (s.BuyerID == "" || s.BuyerID == s.SellerID)) || (s.Kind == "retail" && s.BuyerID != "") {
+	if s.SellerID == "" || (s.Kind != "retail" && s.Kind != "supply") || (s.Kind == "supply" && (s.BuyerID == "" || s.BuyerID == s.SellerID)) || (s.Kind == "retail" && s.BuyerID != "") {
 		return ErrInvalidInput
 	}
 	return nil
 }
 func (s PriceScope) AssetUnit() string {
 	switch s.Kind {
-	case "supplier":
-		return "USD"
 	case "supply":
 		return "procurement_ATG"
 	default:
@@ -199,9 +197,6 @@ func ValidatePriceVersion(v PriceVersion) error {
 	}
 	switch v.Rule.Mode {
 	case "follow":
-		if v.Scope.Kind == "supplier" {
-			return ErrInvalidInput
-		}
 		if v.Rule.Follow == nil || v.Rule.Follow.Validate() != nil || *v.Rule.Follow == v.Scope || len(v.Rule.Components) > 0 {
 			return ErrInvalidInput
 		}

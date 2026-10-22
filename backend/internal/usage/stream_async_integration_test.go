@@ -4,16 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/google/uuid"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
-	"gorm.io/gorm"
 )
 
 func externalRuntime(t *testing.T, f fixture) string {
@@ -29,7 +29,7 @@ func externalRuntime(t *testing.T, f fixture) string {
 	if f.s.ResultStore == nil {
 		t.Fatal("private S3 required")
 	}
-	runtime, err := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, EndpointGuard: func(_ context.Context, target string) error {
+	runtime, err := modelruntime.NewBifrost(f.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, AllowTestLoopback: true, Credentials: f.cat, Costs: &modelpricing.Service{}, EndpointGuard: func(_ context.Context, target string) error {
 		u, err := url.Parse(target)
 		if err != nil || u.Host != origin.Host {
 			return modelruntime.ErrInvalidRequest
@@ -75,17 +75,6 @@ func TestExternalStreamingBillsReliableDisconnectedUsageAndNeverRegenerates(t *t
 			// A healthy second candidate makes accidental regeneration observable.
 			upstream.ID, upstream.Model, upstream.Priority = "fallback", "test-chat", 99
 			if err := f.cat.SaveUpstream(f.ctx, f.operator, upstream, 0); err != nil {
-				t.Fatal(err)
-			}
-			price := catalog.PriceVersion{ID: uuid.NewString(), Scope: catalog.PriceScope{Kind: "supplier", SellerID: "provider", BuyerID: "fallback"}, ModelID: "public-model", Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "stream-contract", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}}}}
-			// This additional platform supplier cost changes no retail price or
-			// procurement edge, so there is no downstream coverage to recompute.
-			if err := f.cat.PublishPrice(f.ctx, f.operator, price, func(_ context.Context, _ *gorm.DB, p catalog.PriceVersion) error {
-				if p.Scope.Kind != "supplier" {
-					return errors.New("fixture only permits supplier price")
-				}
-				return nil
-			}); err != nil {
 				t.Fatal(err)
 			}
 			output := 0

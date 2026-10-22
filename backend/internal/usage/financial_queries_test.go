@@ -15,7 +15,8 @@ func TestPostgresFinancialFactsKeepGiftCostWithinTotalAndCorrectionsSeparate(t *
 	if e := f.db.Create(&row).Error; e != nil {
 		t.Fatal(e)
 	}
-	result := modelruntime.Result{State: "completed", Usage: measured("400", "400")}
+	cost := "0.8"
+	result := modelruntime.Result{State: "completed", Usage: measured("400", "400"), Cost: &modelruntime.CostObservation{AmountUSD: &cost, CalculatedUSD: &cost, Source: "bifrost_calculated"}}
 	if e := f.s.RecordAttempt(f.ctx, req.ID, id, result); e != nil {
 		t.Fatal(e)
 	}

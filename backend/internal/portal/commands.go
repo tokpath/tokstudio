@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/cooperation"
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
@@ -70,6 +71,14 @@ func (a *Application) operatorCommand(c *gin.Context) {
 	}
 	if resource == "restrictions" {
 		a.restrictionsCommand(c, op, actor)
+		return
+	}
+	if resource == "bifrost" {
+		a.modelSettingsCommand(c, op, actor)
+		return
+	}
+	if resource == "supplier-costs" {
+		a.actualCostCommand(c, op, actor)
 		return
 	}
 	if resource == "mail" {
@@ -510,7 +519,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			item["allowed_actions"] = []string{"model"}
 			items = append(items, item)
 		}
-		p["description"] = "上半部分管理供应商密钥。下半部分为每个供应商模型填写协议、能力和供应商报价。文本按输入、输出和缓存命中计价；图片、语音、转写和视频按各自的数量计价。"
+		p["description"] = "上半部分管理供应商连接，下半部分维护供应商模型与能力。上游成本优先采用可靠的供应商费用，否则由 Bifrost 参考价目计算。"
 		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("provider", "协议", "text"), col("model", "供应商模型", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
 		name := f("name", "凭据名称", "text")
 		name.Help = "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
@@ -522,9 +531,9 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		version := f("expected_version", "当前版本（首次0）", "integer")
 		// The credential id and provider id stay on the saved record so routes keep
 		// using the same key. People do not type them.
-		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、能力与供应商报价、expected_version")
-		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "添加供应商模型", Method: "POST", Path: base, Description: "选择已经保存的供应商密钥，填写协议、供应商模型名称，以及这种能力对应的供应商报价。", Fields: []field{modelHelp}}}
-		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的协议、能力和供应商报价。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
+		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、能力与参考成本模型、expected_version")
+		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "添加供应商模型", Method: "POST", Path: base, Description: "选择供应商连接、接口协议和供应商模型，选择参考计价模型并确认能力。", Fields: []field{modelHelp}}}
+		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的协议、能力和参考成本模型。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
 	case "routes":
 		models, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -595,10 +604,14 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		for _, m := range models {
 			items = append(items, entity(m.ID, m.Status, 1, m))
 		}
-		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "精确组件价格", "text"), col("status", "状态", "status")}
+		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "基础 ATG 价格", "text"), col("status", "状态", "status")}
 		p["operations"] = []operation{{Name: "price", Label: "发布价格版本", Method: "POST", Path: base, Fields: []field{jsonField("action:'price'、price:{id,scope:{kind,seller_id,buyer_id?},model_id,layer,effective_at,ends_at?,rule,notice_id,published:true}。调价后将重算已售责任覆盖。")}}, {Name: "listing", Label: "授权或上架模型", Method: "POST", Path: base, Fields: []field{jsonField("action:'listing' 或 'authorization'、model_id、buyer_id（授权时）、enabled、expected_version")}}}
 	default:
 		return false
+	}
+	if resource == "pricing" && op.ID == a.Installation.OperatorID && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "catalog.manage") == nil {
+		operations := p["operations"].([]operation)
+		p["operations"] = append(operations, operation{Name: "template", Label: "配置计费模板", Method: "POST", Path: base, Fields: []field{jsonField("action:billing、model_id、operation、billing、expected_version。已开放模型的变更须填写生效时间和通知依据。")}})
 	}
 	p["items"] = items
 	a.resourceResponse(c, p)
@@ -702,19 +715,50 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		return gin.H{"id": op.ID, "status": "saved", "version": out.Version}, e
 	case "pricing":
 		var in struct {
-			Action      string               `json:"action"`
-			Price       catalog.PriceVersion `json:"price"`
-			ModelID     string               `json:"model_id"`
-			BuyerID     string               `json:"buyer_id"`
-			Enabled     bool                 `json:"enabled"`
-			Expected    uint64               `json:"expected_version"`
-			EffectiveAt time.Time            `json:"effective_at"`
-			Evidence    string               `json:"evidence"`
+			Action      string                      `json:"action"`
+			Operation   modelruntime.Operation      `json:"operation"`
+			Billing     modelruntime.BillingProfile `json:"billing"`
+			Price       catalog.PriceVersion        `json:"price"`
+			ModelID     string                      `json:"model_id"`
+			BuyerID     string                      `json:"buyer_id"`
+			Enabled     bool                        `json:"enabled"`
+			Expected    uint64                      `json:"expected_version"`
+			EffectiveAt time.Time                   `json:"effective_at"`
+			Evidence    string                      `json:"evidence"`
 		}
 		if json.Unmarshal(raw, &in) != nil {
 			return nil, catalog.ErrInvalidInput
 		}
 		switch in.Action {
+		case "billing":
+			if op.ID != a.Installation.OperatorID || a.Organization.RequirePermission(ctx, tx, actor, op.ID, "catalog.manage") != nil {
+				return nil, catalog.ErrCatalogForbidden
+			}
+			if !in.Billing.Valid(in.Operation) {
+				return nil, catalog.ErrInvalidInput
+			}
+			m, e := cat.PublicModel(ctx, in.ModelID)
+			if e != nil {
+				return nil, e
+			}
+			found := false
+			for _, cap := range m.Capabilities {
+				if cap.Operation == in.Operation {
+					found = true
+				}
+			}
+			if !found {
+				return nil, catalog.ErrInvalidInput
+			}
+			if m.Billing == nil {
+				m.Billing = map[modelruntime.Operation]modelruntime.BillingProfile{}
+			}
+			m.Billing[in.Operation] = in.Billing
+			if in.EffectiveAt.IsZero() {
+				return commandResult(m.ID, "saved"), cat.SavePublicModel(ctx, op.ID, m, in.Expected)
+			}
+			out, e := controller.SchedulePublicModel(ctx, op.ID, m, in.Expected, in.EffectiveAt, in.Evidence)
+			return commandResult(out.ID, out.State), e
 		case "listing":
 			if in.Expected == 0 && in.Enabled && in.EffectiveAt.IsZero() {
 				e := cat.SetListing(ctx, op.ID, in.ModelID, true, 0)
@@ -732,10 +776,10 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			out, e := controller.ScheduleAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
 		case "price", "bootstrap_price":
-			if in.Price.Scope.SellerID != op.ID && !(op.Kind == organization.Platform && in.Price.Scope.Kind == "supplier") {
+			if in.Price.Scope.SellerID != op.ID || in.Price.Scope.Kind == "supplier" {
 				return nil, catalog.ErrCatalogForbidden
 			}
-			if in.Action == "bootstrap_price" || in.Price.Scope.Kind == "supplier" {
+			if in.Action == "bootstrap_price" {
 				e := cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
 				return commandResult(in.Price.ID, "published"), e
 			}

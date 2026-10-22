@@ -139,7 +139,7 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 	return out, e
 }
 func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v PriceVersion, evidence string) (CatalogChange, error) {
-	if (v.Scope.Kind != "supplier" && v.Scope.SellerID != actor) || (v.Scope.Kind == "supplier" && !c.Catalog.platform(actor)) {
+	if v.Scope.SellerID != actor {
 		return CatalogChange{}, ErrCatalogForbidden
 	}
 	if v.Scope.Kind == "supply" {
@@ -153,9 +153,6 @@ func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v Pri
 	}
 	if e := ValidatePriceVersion(v); e != nil {
 		return CatalogChange{}, e
-	}
-	if v.Scope.Kind == "supplier" {
-		return CatalogChange{}, ErrInvalidInput
 	}
 	v.Published = true
 	v.NoticeID = ""
@@ -173,9 +170,6 @@ func (s CommerceCatalog) CatalogChanges(ctx context.Context, operator string) ([
 	return out, e
 }
 func (s CommerceCatalog) requirePriceNotice(ctx context.Context, v PriceVersion) error {
-	if v.Scope.Kind == "supplier" {
-		return nil
-	}
 	var change CatalogChange
 	if e := s.DB.WithContext(ctx).First(&change, "id=? AND kind='price' AND state IN ('announced','applied')", v.NoticeID).Error; e != nil {
 		return ErrChangeNotice

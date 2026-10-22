@@ -20,7 +20,7 @@ async function login(page: Page, account: { email: string; password: string }, k
 }
 
 async function panel(page: Page, label: string, row?: Locator) {
-  await (row || page).getByRole("button", { name: label, exact: true }).click();
+  await (row || page).getByRole("button", { name: label, exact: true }).first().click();
   const dialog = page.getByRole("dialog").last();
   for (const details of await dialog.locator("details:not([open]) > summary").all()) await details.click();
   return dialog;
@@ -97,15 +97,9 @@ test("technical administrator configures a real provider, verified model and rou
     await setPath(dialog, "supplier_model.credential_id", credential.id);
     await setPath(dialog, "supplier_model.provider", "openai");
     await setPath(dialog, "supplier_model.model", "test-chat");
-    await dialog.getByRole("button", { name: "添加服务地址项目", exact: true }).click();
-    await dialog.getByLabel("服务地址项目名称 1", { exact: true }).fill("chat");
-    await setPath(dialog, "supplier_model.endpoints.chat", `${p.lab_url}/v1/chat/completions`);
-    await dialog.getByRole("button", { name: "添加能力", exact: true }).click();
+    await setPath(dialog, "supplier_model.base_url", `${p.lab_url}/v1`);
+    await dialog.getByRole("button", { name: "添加供应商能力", exact: true }).click();
     await setPath(dialog, "supplier_model.capabilities.0.operation", "chat");
-    await dialog.getByLabel("输入单价", { exact: true }).fill("0.001");
-    await dialog.getByLabel("输入最大用量", { exact: true }).fill("1000");
-    await dialog.getByLabel("输出单价", { exact: true }).fill("0.001");
-    await dialog.getByLabel("输出最大用量", { exact: true }).fill("1000");
     const supplierSaved = await submit(tech, dialog, "添加供应商模型", `${base}/providers`);
     const supplierModelID = supplierSaved.request().postDataJSON().configuration.supplier_model.id as string;
     expect(supplierModelID).toMatch(/^[0-9a-f-]{36}$/);
@@ -139,9 +133,9 @@ test("technical administrator configures a real provider, verified model and rou
     await close(dialog);
     dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await control(dialog, "选路优先级", false).fill("11");
-    await submit(tech, dialog, "配置路由", `${base}/routes`); await close(dialog);
+    await submit(tech, dialog, "编辑路由", `${base}/routes`); await close(dialog);
     const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === model);
-    expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].credential_id).toBe(credential.id);
+    expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].supplier_model_id).toBe(supplierModelID);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     const modelRow = tech.getByRole("row").filter({ hasText: revisedModelName });
@@ -183,11 +177,8 @@ test("technical administrator configures a real provider, verified model and rou
       if ("buyer_id" in scope) await setPath(dialog, "price.scope.buyer_id", scope.buyer_id);
       await setPath(dialog, "price.model_id", model);
       await setPath(dialog, "price.effective_at", localTime(effective));
-      for (const [index, name] of ["input", "output"].entries()) {
-        await dialog.getByRole("button", { name: "添加计费组件", exact: true }).click();
-        await setPath(dialog, `price.rule.components.${index}.key`, name);
-        await setPath(dialog, `price.rule.components.${index}.unit`, "token");
-        await setPath(dialog, `price.rule.components.${index}.rate`, "0.001");
+      for (const index of [0, 1, 2]) {
+        await setPath(dialog, `price.rule.components.${index}.rate`, "1");
       }
       await setPath(dialog, "price.notice_id", "independent HTTP protocol simulation terms");
       await setPath(dialog, "evidence", "isolated activation with actual advance notice");
@@ -441,4 +432,69 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     await page.screenshot({ path: testInfo.outputPath("platform-export-ready.png"), fullPage: true });
     await evidence(testInfo, "platform-staff-risk-export-facts", { invited_staff: staffID, fine_grants_saved: true, denied_payments: true, denied_exports: true, risk_rule: rule, risk_version: 2, notification_title: title, export_ids: exportIDs });
   } finally { await context.close(); await employeeContext.close(); await customerContext.close(); await exporterContext.close(); }
+});
+
+test("platform configures input and output modality billing, synchronizes Bifrost prices and records actual supplier cost", async ({ browser }, testInfo) => {
+  test.setTimeout(180_000);
+  const fixture = JSON.parse(readFileSync(fixturePath!, "utf8")), p = fixture.personas.platform, base = `/api/v1/operators/${p.operator_id}`;
+  const context = await browser.newContext(), page = await context.newPage();
+  page.setDefaultTimeout(20_000);
+  const model = `multimodal-${randomUUID()}`, note = `独立联调：供应商账单合计，仅用于对比 ${randomUUID().slice(0,8)}`;
+  try {
+    await login(page, { email: fixture.owner_email, password: fixture.owner_password });
+    await page.goto(`/manage/${p.operator_id}/catalog`);
+    let dialog = await panel(page, "添加公开模型");
+    await setPath(dialog, "model.id", model);
+    await setPath(dialog, "model.display_name", "多模态组合计费验收");
+    await dialog.getByRole("checkbox", { name: "对话", exact: true }).check();
+    await submit(page, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
+    await page.goto(`/manage/${p.operator_id}/pricing`);
+    dialog = await panel(page, "配置计费模板");
+    await setPath(dialog, "model_id", model);
+    await setPath(dialog, "billing.input.0.modality", "text");
+    await dialog.locator('[data-config-path="billing.input"]').getByRole("button", { name: "添加计量项目", exact: true }).click();
+    await setPath(dialog, "billing.input.1.modality", "image");
+    await setPath(dialog, "billing.input.1.template", "megapixels");
+    await setPath(dialog, "billing.output.0.modality", "text");
+    const saved = await submit(page, dialog, "配置计费模板", `${base}/pricing`);
+    expect(saved.request().postDataJSON().configuration.billing).toMatchObject({ input: [{ modality: "text", template: "tokens" }, { modality: "image", template: "megapixels" }], output: [{ modality: "text", template: "tokens" }] });
+    await close(dialog);
+
+    await page.goto(`/manage/${p.operator_id}/bifrost`);
+    dialog = await panel(page, "调整价目同步");
+    await control(dialog, "价目来源地址", true).fill(`${p.lab_url}/datasheet`);
+    await control(dialog, "同步间隔（小时）", true).fill("24");
+    await submit(page, dialog, "调整价目同步", `${base}/bifrost`); await close(dialog);
+    dialog = await panel(page, "立即同步");
+    await submit(page, dialog, "立即同步", `${base}/bifrost`); await close(dialog);
+    await expect.poll(async () => {
+      const settings = await (await page.request.get(`${base}/bifrost`)).json();
+      return !!settings.items?.[0]?.values?.last_success_at && !settings.items?.[0]?.values?.sync_requested;
+    }, { timeout: 30_000 }).toBe(true);
+    const refs = await (await page.request.get(`${base}/references/pricing-models?q=test-chat`)).json();
+    expect(refs.items.length).toBeGreaterThan(0);
+    const suppliers = await (await page.request.get(`${base}/references/cost-suppliers`)).json();
+    expect(suppliers.items.length).toBeGreaterThan(0);
+    await page.goto(`/manage/${p.operator_id}/supplier-costs`);
+    dialog = await panel(page, "登记实际费用");
+    await dialog.getByRole("combobox", { name: "供应商", exact: true }).selectOption(suppliers.items[0].value);
+    await control(dialog, "期间开始", true).fill(localTime(new Date(Date.now() - 86_400_000)));
+    await control(dialog, "期间结束", true).fill(localTime(new Date(Date.now() + 60_000)));
+    await control(dialog, "实际费用 USD", true).fill("92");
+    await control(dialog, "备注", true).fill(note);
+    const recorded = await submit(page, dialog, "登记实际费用", `${base}/supplier-costs`); const actual = await recorded.json(); await close(dialog);
+    let row = page.getByRole("row").filter({ hasText: note });
+    await expect(row).toBeVisible();
+    dialog = await panel(page, "修改登记", row);
+    await control(dialog, "实际费用 USD", true).fill("91");
+    await submit(page, dialog, "修改登记", `${base}/supplier-costs`); await close(dialog);
+    const actuals = await (await page.request.get(`${base}/supplier-costs`)).json();
+    expect(actuals.items.find((item: any) => item.id === actual.id).values.amount_usd).toBe("91");
+    for (const locale of ["en", "ja", "ru", "zh"]) {
+      await page.getByTestId("language-selector").selectOption(locale);
+      await expect(page.locator("html")).toHaveAttribute("lang", locale === "zh" ? "zh-CN" : locale);
+      await page.screenshot({ path: testInfo.outputPath(`supplier-costs-${locale}.png`), fullPage: true });
+    }
+    await evidence(testInfo, "model-pricing-acceptance", { model, input_and_output_combined: true, sync_hours: 24, actual_record_id: actual.id, actual_usd: "91" });
+  } finally { await context.close(); }
 });

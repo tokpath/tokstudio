@@ -2,6 +2,9 @@ package remediation
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/maximhq/bifrost/framework/configstore/tables"
+	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"net/url"
 	"os"
 	"strings"
@@ -41,7 +44,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	if err = brand.db.Table("ledger_journals").Where("operator_id=?", channel.operator).Count(&oldJournals).Error; err != nil {
 		t.Fatal(err)
 	}
-	cat := catalog.CommerceCatalog{DB: brand.db, PlatformOperatorID: brand.operator, Operators: cooperation.CatalogDirectory{Organization: brand.s.Organization}, EncryptionKey: "takeover-test-only-encryption-secret"}
+	cat := catalog.CommerceCatalog{DB: brand.db, PlatformOperatorID: brand.operator, Operators: cooperation.CatalogDirectory{Organization: brand.s.Organization}, EncryptionKey: "takeover-test-only-encryption-secret", Costs: &takeoverCostSource{}}
 	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
 	m := catalog.PublicModel{ID: "after-takeover", Identity: "provider/test@1", DisplayName: "Test model", Capabilities: []modelruntime.Capability{cap}}
 	if err = cat.SavePublicModel(brand.ctx, brand.operator, m, 0); err != nil {
@@ -62,8 +65,8 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 		t.Fatal(err)
 	}
 	brand.s.Cooperation.Rates = cooperation.CatalogRates{Catalog: cat, Organization: brand.s.Organization}
-	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: brand.operator}, {Kind: "supplier", SellerID: "provider", BuyerID: u.ID}} {
-		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: m.ID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "opening-current-brand-price", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}}}}
+	for _, scope := range []catalog.PriceScope{{Kind: "retail", SellerID: brand.operator}} {
+		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: m.ID, Layer: "regular", EffectiveAt: time.Now().Add(-time.Hour), Published: true, NoticeID: "opening-current-brand-price", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "output", Unit: "token", Per: "1", Rate: "0.001"}, {Key: "cache", Unit: "token", Per: "1", Rate: "0.001"}}}}
 		if err = cat.PublishPrice(brand.ctx, brand.operator, price, func(ctx context.Context, tx *gorm.DB, _ catalog.PriceVersion) error {
 			_, e := brand.s.Cooperation.Coverage(ctx, tx, brand.operator, time.Now())
 			return e
@@ -82,7 +85,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	runtime, err := modelruntime.NewBifrost(brand.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, Credentials: cat, AllowTestLoopback: true, EndpointGuard: func(_ context.Context, target string) error {
+	runtime, err := modelruntime.NewBifrost(brand.ctx, modelruntime.BifrostConfig{Providers: []string{"openai"}, Credentials: cat, Costs: &modelpricing.Service{}, AllowTestLoopback: true, EndpointGuard: func(_ context.Context, target string) error {
 		u, e := url.Parse(target)
 		if e != nil || u.Host != origin.Host {
 			return modelruntime.ErrInvalidRequest
@@ -134,4 +137,11 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	if cost.String() != "0.017" {
 		t.Fatal("brand did not carry future supplier cost", cost.String())
 	}
+}
+
+type takeoverCostSource struct{ modelpricing.Service }
+
+func (takeoverCostSource) Snapshot(_ context.Context, provider, model string, at time.Time) (json.RawMessage, error) {
+	rate := .001
+	return json.Marshal(modelpricing.Snapshot{Version: "takeover-cost-fixture", AcceptedAt: at, Rows: []tables.TableModelPricing{{Provider: provider, Model: model, Mode: "chat", InputCostPerToken: &rate, OutputCostPerToken: &rate, CacheReadInputTokenCost: &rate}}})
 }

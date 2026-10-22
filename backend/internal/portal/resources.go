@@ -299,11 +299,11 @@ func permissionFor(resource string) string {
 		return "staff.read"
 	case "business-status":
 		return "business.manage"
-	case "catalog", "providers", "routes":
+	case "catalog", "providers", "routes", "bifrost":
 		return "catalog.manage"
 	case "payment-assets":
 		return "providers.manage"
-	case "requests", "jobs", "mail":
+	case "requests", "jobs", "mail", "supplier-costs":
 		return "platform.manage"
 	case "notifications", "alerts", "risk":
 		return "operations.manage"
@@ -334,7 +334,7 @@ func (a *Application) staffScope(c *gin.Context, resource string) (organization.
 		fail(c, 404, "not_found", "经营资源不存在", false)
 		return op, actor, false
 	}
-	if strings.HasPrefix(permission, "platform.") || resource == "catalog" || resource == "providers" || resource == "routes" || resource == "payment-assets" {
+	if strings.HasPrefix(permission, "platform.") || resource == "catalog" || resource == "providers" || resource == "routes" || resource == "payment-assets" || resource == "bifrost" || resource == "supplier-costs" {
 		if op.ID != a.Installation.OperatorID {
 			fail(c, 403, "platform_required", "此能力只由平台维护", false)
 			return op, actor, false
@@ -415,6 +415,12 @@ func (a *Application) operatorResource(c *gin.Context) {
 		return
 	case "restrictions":
 		a.restrictionsResource(c, op, actor, p, base)
+		return
+	case "bifrost":
+		a.modelSettingsResource(c, p, base)
+		return
+	case "supplier-costs":
+		a.actualCostResource(c, p, base)
 		return
 	case "mail":
 		a.mailResource(c, p, base)

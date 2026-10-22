@@ -3,25 +3,29 @@ package catalog
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 )
 
-// SupplierModel is one model a provider sells. Its metering and USD price are
-// the platform's cost. Binding it to a public model happens on the route page.
+// SupplierModel is a provider connection and supported operations, with an
+// optional Bifrost cost identity. Public ATG prices are managed independently.
 type SupplierModel struct {
-	ID           string                            `json:"id"`
-	ProviderID   string                            `json:"provider_id"`
-	CredentialID string                            `json:"credential_id"`
-	Provider     string                            `json:"provider"`
-	Model        string                            `json:"model"`
-	Endpoints    map[modelruntime.Operation]string `json:"endpoints,omitempty"`
-	Capabilities []modelruntime.Capability         `json:"capabilities"`
-	Prices       []ComponentRate                   `json:"prices"`
-	Enabled      bool                              `json:"enabled"`
-	Version      uint64                            `json:"version"`
+	BaseURL          string                    `json:"base_url,omitempty"`
+	PricingReference string                    `json:"pricing_reference,omitempty"`
+	CostProvider     string                    `json:"cost_provider"`
+	CostModel        string                    `json:"cost_model"`
+	ID               string                    `json:"id"`
+	ProviderID       string                    `json:"provider_id"`
+	CredentialID     string                    `json:"credential_id"`
+	Provider         string                    `json:"provider"`
+	Model            string                    `json:"model"`
+	Capabilities     []modelruntime.Capability `json:"capabilities"`
+	Enabled          bool                      `json:"enabled"`
+	Version          uint64                    `json:"version"`
 }
 
 // RouteBinding attaches one supplier model to a public model.
@@ -50,8 +54,8 @@ func publicOperation(op modelruntime.Operation) bool {
 	}
 }
 
-// A public model records the checked operations only. Metering, streaming and
-// prices stay on the supplier model that a route binds to it.
+// A public model records the checked operations; its billing template is
+// managed separately. Supplier models record protocol support and cost identity.
 func publicCapabilityRecords(capabilities []modelruntime.Capability) []modelruntime.Capability {
 	out := make([]modelruntime.Capability, len(capabilities))
 	for i, capability := range capabilities {
@@ -83,7 +87,7 @@ func operationOffered(capabilities []modelruntime.Capability, r modelruntime.Req
 }
 func upstreamOffers(capabilities []modelruntime.Capability, op modelruntime.Operation) bool {
 	for _, c := range capabilities {
-		if c.Verified() && c.Operation == op {
+		if c.Operation == op {
 			return true
 		}
 	}
@@ -132,9 +136,43 @@ func (s CommerceCatalog) saveSupplierModel(ctx context.Context, actor string, in
 		return ErrInvalidInput
 	}
 	in.ProviderID = credential.ProviderID
-	if e := normalizeSupplierModel(&in); e != nil {
-		return e
+	switch in.Provider {
+	case "openai", "anthropic", "gemini", "openrouter", "elevenlabs":
+	default:
+		return ErrInvalidInput
 	}
+	if in.BaseURL != "" && in.Provider != "openai" && in.Provider != "anthropic" && in.Provider != "openrouter" {
+		return ErrInvalidInput
+	}
+	in.CostProvider, in.CostModel = in.Provider, in.Model
+	if in.PricingReference != "" {
+		var reference struct{ Provider, Model string }
+		if e := s.DB.WithContext(ctx).Table("model_pricing_rows").Select("provider,model").Where("id=?", in.PricingReference).Take(&reference).Error; e != nil {
+			return ErrInvalidInput
+		}
+		in.CostProvider, in.CostModel = reference.Provider, reference.Model
+	}
+	if in.BaseURL != "" {
+		u, e := url.Parse(in.BaseURL)
+		if e != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") {
+			return ErrInvalidInput
+		}
+	}
+	modes := []modelruntime.Capability{}
+	seen := map[string]bool{}
+	for _, c := range in.Capabilities {
+		for _, stream := range []bool{false, true} {
+			if stream && !c.Streaming {
+				continue
+			}
+			key := string(c.Operation) + fmt.Sprint(stream)
+			if !seen[key] {
+				seen[key] = true
+				modes = append(modes, modelruntime.Capability{Operation: c.Operation, Streaming: stream})
+			}
+		}
+	}
+	in.Capabilities = modes
 	if !supplierModelReady(in) {
 		return ErrInvalidInput
 	}
@@ -145,37 +183,16 @@ func (s CommerceCatalog) saveSupplierModel(ctx context.Context, actor string, in
 	return s.refreshSupplierBindings(ctx, actor, in)
 }
 func supplierModelReady(in SupplierModel) bool {
-	if len(in.Capabilities) == 0 || len(in.Prices) == 0 {
+	if len(in.Capabilities) == 0 {
 		return false
 	}
-	priced := map[string]string{}
-	for _, price := range in.Prices {
-		if price.Key == "" || price.Unit == "" || priced[price.Key] != "" {
-			return false
-		}
-		per, e := PriceDecimal(price.Per)
-		rate, rateErr := PriceDecimal(price.Rate)
-		if e != nil || rateErr != nil || per.Sign() <= 0 || rate.Sign() < 0 {
-			return false
-		}
-		priced[price.Key] = price.Unit
-	}
+	seen := map[string]bool{}
 	for _, c := range in.Capabilities {
-		if !c.Verified() {
+		key := string(c.Operation) + fmt.Sprint(c.Streaming)
+		if !publicOperation(c.Operation) || seen[key] {
 			return false
 		}
-		if c.Operation == modelruntime.Video {
-			for _, operation := range []modelruntime.Operation{modelruntime.VideoRetrieve, modelruntime.VideoDownload} {
-				if _, e := modelruntime.ResolveTaskEndpoint(in.Endpoints[operation], "validation-task"); e != nil {
-					return false
-				}
-			}
-		}
-		for _, rule := range c.UsageRules {
-			if priced[rule.Component] != rule.Unit {
-				return false
-			}
-		}
+		seen[key] = true
 	}
 	return true
 }
@@ -205,12 +222,14 @@ func (s CommerceCatalog) refreshSupplierBindings(ctx context.Context, actor stri
 	return nil
 }
 func applySupplierModel(upstream *UpstreamModel, model SupplierModel, identity string) {
+	upstream.CostProvider = model.CostProvider
+	upstream.CostModel = model.CostModel
 	upstream.Identity = identity
 	upstream.ProviderID = model.ProviderID
 	upstream.Provider = model.Provider
 	upstream.Model = model.Model
 	upstream.CredentialID = model.CredentialID
-	upstream.Endpoints = model.Endpoints
+	upstream.Endpoints = supplierEndpoints(model)
 	upstream.Capabilities = model.Capabilities
 	upstream.SupplierModelID = model.ID
 }
@@ -293,19 +312,20 @@ func (s CommerceCatalog) saveRouteConfiguration(ctx context.Context, actor strin
 	}
 	return s.writeRoutingPolicy(ctx, RoutingPolicy{ModelID: publicModel.ID, Strategy: in.Strategy}, expected)
 }
-func supplierModelPrice(model SupplierModel, upstreamID, publicModel string, at time.Time) (ResolvedPrice, error) {
-	components := append([]ComponentRate(nil), model.Prices...)
-	for i := range components {
-		components[i].Tiers = append([]PriceTier(nil), components[i].Tiers...)
+
+func supplierEndpoints(model SupplierModel) map[modelruntime.Operation]string {
+	out := map[modelruntime.Operation]string{}
+	if model.BaseURL == "" {
+		return out
 	}
-	return ResolvedPrice{
-		AssetUnit:         "USD",
-		Scope:             PriceScope{Kind: "supplier", SellerID: model.ProviderID, BuyerID: upstreamID},
-		ModelID:           publicModel,
-		AcceptedAt:        at,
-		Components:        components,
-		FactorNumerator:   "1",
-		FactorDenominator: "1",
-		Lineage:           []PriceLineage{{VersionID: model.ID, Scope: PriceScope{Kind: "supplier", SellerID: model.ProviderID, BuyerID: model.ID}, Layer: "regular"}},
-	}, nil
+	base := strings.TrimRight(model.BaseURL, "/")
+	paths := map[modelruntime.Operation]string{modelruntime.Chat: "/chat/completions", modelruntime.Responses: "/responses", modelruntime.Embedding: "/embeddings", modelruntime.Image: "/images/generations", modelruntime.Speech: "/audio/speech", modelruntime.Transcription: "/audio/transcriptions", modelruntime.Video: "/videos", modelruntime.VideoRetrieve: "/videos/{task_id}", modelruntime.VideoDownload: "/videos/{task_id}/content"}
+	if model.Provider == "anthropic" {
+		paths[modelruntime.Chat] = "/messages"
+		paths[modelruntime.Responses] = "/messages"
+	}
+	for op, path := range paths {
+		out[op] = base + path
+	}
+	return out
 }

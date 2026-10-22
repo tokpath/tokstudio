@@ -440,6 +440,9 @@ func humanRecordTitle(v gin.H, resource string, labels map[string]string) string
 		}
 		return model
 	}
+	if resource == "supplier-costs" {
+		return humanJoin(humanString(v, "provider_name"), humanString(v, "model_name"))
+	}
 	kinds := map[string]string{"case": "退款事项", "leg": "退款分项", "actual_refund_payment": "实际退款付款", "exit": "采购退出事项", "refund_leg": "退出退款分项", "buyer_refund_leg": "采购方退款分项", "quote": "采购报价", "order": "采购订单", "authorization": "自动补货授权", "replenishment_attempt": "自动补货执行", "topup": "余额充值", "package": "套餐购买", "renewal": "套餐续费"}
 	kind := kinds[humanString(v, "record_kind", "kind")]
 	if kind == "" {

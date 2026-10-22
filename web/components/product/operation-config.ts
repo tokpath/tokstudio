@@ -4,7 +4,7 @@ import { translate, type Locale } from "@/lib/i18n";
 
 export type ConfigNode = {
   label: string;
-  kind: "text" | "textarea" | "decimal" | "rational" | "integer" | "boolean" | "datetime" | "select" | "object" | "array" | "record";
+  kind: "text" | "textarea" | "decimal" | "integer" | "boolean" | "datetime" | "select" | "object" | "array" | "record";
   help?: string;
   required?: boolean;
   default?: JSONValue;
@@ -13,7 +13,7 @@ export type ConfigNode = {
   item?: ConfigNode;
   options?: [string, string][];
   when?: { field: string; values: string[] };
-  lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes" | "supplier-models";
+  lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes" | "supplier-models" | "pricing-models";
   lookupBy?: { field: string; values: Record<string, "buyers" | "routes"> };
   lookupWhen?: { field: string; values: string[] };
   wildcard?: boolean;
@@ -23,7 +23,7 @@ export type ConfigNode = {
   nullable?: boolean;
   readOnly?: boolean;
   /** Capability cards explain call, billing, and verification before the rare limits. */
-  presentation?: "capability" | "operations";
+  presentation?: "operations" | "price";
   /** Drawn by a custom editor. The value is still kept and submitted. */
   hidden?: boolean;
   /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
@@ -40,28 +40,35 @@ const array = (label: string, item: ConfigNode, help?: string): ConfigNode => ({
 const record = (label: string, item: ConfigNode, help?: string): ConfigNode => ({ kind: "record", label, item, help });
 const operations: [string, string][] = [["chat", "对话"], ["responses", "Responses"], ["embedding", "向量"], ["image_generation", "图片生成"], ["speech", "语音生成"], ["transcription", "语音转写"], ["video_generation", "视频生成"], ["video_retrieve", "视频任务查询"], ["video_download", "视频结果下载"]];
 const strings = (label: string) => array(label, text("值"));
-const capability: ConfigNode = {
-  ...object("能力", {
-    operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
-    streaming: { ...boolean("支持流式输出"), help: "客户要求一段一段返回时，选「是」。这不影响预估金额。" },
-    quotes: { ...array("供应商报价", object("报价", { key: text("计费名称"), rate: { ...decimal("单价（美元）"), required: false }, bound: { ...text("最大用量", false), kind: "rational" } })), hidden: true },
-    billable_bounds: { ...record("各计费组件的有限用量上界", { ...text("用量上界", true, "使用精确数量；可填写经验证的分数，例如 1/2。"), kind: "rational" }), hidden: true },
-    usage_rules: { ...array("计量组件", object("计量规则", { component: text("组件标识"), unit: text("计量单位"), path: text("用量路径", true, "供应商标准化用量中的 RFC 6901 路径，例如 /input_tokens。"), zero_when_absent: boolean("缺少此用量时可确认是零") })), hidden: true },
-    subtract_paths: { ...record("需要扣除的重复子用量", strings("扣除路径")), hidden: true },
-  }, "选择一种调用，并填写这种能力对应的供应商报价。"),
-  presentation: "capability",
-};
+const capability: ConfigNode = object("供应商能力", {
+  operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
+  streaming: { ...boolean("支持流式输出"), help: "选择是时，同时支持普通调用与流式调用。用量由系统适配读取。" },
+});
 const scope = (label: string, operatorID?: string) => object(label, {
   kind: select("价目用途", [["retail", "客户零售价"], ["supply", "对下级供货价"]], "retail"),
-  seller_id: { ...text("定价经营方或供应商（自动带入）"), default: operatorID, readOnly: true },
-  buyer_id: { ...text("供货采购方或成本上游路由"), lookupBy: {field:"kind",values:{supply:"buyers",supplier:"routes"}}, when: { field: "kind", values: ["supply", "supplier"] } },
+  seller_id: { ...text("定价经营方（自动带入）"), default: operatorID, readOnly: true },
+  buyer_id: { ...text("供货采购方"), lookupBy: {field:"kind",values:{supply:"buyers"}}, when: { field: "kind", values: ["supply"] } },
 });
 const tier = object("阶梯", { from: decimal("起始数量（含）"), to: decimal("结束数量（不含，最后一阶可留空）", false), rate: decimal("本阶梯单价") });
-const component = object("计费组件", {
-  key: text("组件标识", true, "与模型计量组件完全一致，例如 input_tokens 或 image:1024x1024:high。"),
-  unit: text("计量单位", true, "例如 token、image、second、request。"), per: { ...decimal("每多少单位"), default: "1" }, rate: decimal("基础单价"),
-  tiers: array("渐进阶梯价格（可选）", tier, "从 0 连续衔接，区间左闭右开；最后一阶结束数量留空表示不限上界。"),
-});
+const component: ConfigNode = { ...object("计费项目", {
+  key: { ...text("计费项目"), readOnly: true },
+  label: { ...text("计费项目名称", false), readOnly: true },
+  unit: { ...text("计量单位"), readOnly: true },
+  per: { ...decimal("计价数量"), readOnly: true },
+  rate: decimal("ATG 单价"),
+  tiers: array("渐进阶梯价格（可选）", tier),
+}), presentation: "price" };
+
+const billingTemplates: [string,string][] = [["tokens","按 Token"],["images","按张"],["megapixels","按百万像素"],["characters","按字符"],["seconds","按秒"]];
+function billingItem(direction:"input"|"output"):ConfigNode{return object("计量项目",{
+ modality:select("计量范围",[["all","全部模态（统一 Token）"],["text","文本"],["image","图片"],["audio","音频"],["video","视频"]],"all"),
+ template:select("计费模板",billingTemplates,"tokens"),
+ variants:{...array("规格档位（可选）",object("规格",{
+  id:{...text("规格标识"),generated:"uuid",readOnly:true},name:text("客户看到的规格名称"),size:text("尺寸（可选）",false,"例如 1024x1024。输入图片按实际尺寸识别，输出规格也会核对实际结果。"),
+  ...(direction==="output"?{quality:{...select("质量（可选）",[["","不区分"],["standard","标准"],["hd","高清"],["high","高"],["medium","中"],["low","低"]],""),required:false}}:{}),
+ }),"不分档时留空。不需要填写判断公式。"),when:{field:"modality",values:direction==="input"?["image"]:["image","video"]},hideWhen:{field:"template",values:["tokens"]}},
+})}
+
 
 export function configurationSchema(operation: Operation, operatorID?: string): ConfigNode | undefined {
   if (/\/catalog$/.test(operation.path)) return object("公开模型", {
@@ -80,19 +87,21 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       id: { ...text("供应商模型标识"), generated: "uuid", readOnly: true },
       credential_id: { ...text("供应商密钥"), lookup: "credentials" },
       provider_id: { ...text("供应商引用（选择密钥后自动带入）", false), readOnly: true },
-      provider: text("协议", true, "例如 openai。这是转发时使用的协议，不是给客户看的名字。"),
+      provider: select("接口协议", [["openai", "OpenAI 兼容"], ["anthropic", "Claude"], ["gemini", "Gemini"], ["openrouter", "OpenRouter"], ["elevenlabs", "ElevenLabs"]], "openai"),
       model: text("供应商模型名称", true, "供应商要求填写的模型名。客户请求里的名字写在公开模型上。"),
       enabled: { ...boolean("启用这个供应商模型"), default: true },
-      endpoints: record("服务地址", text("HTTPS 服务地址"), "一般留空，系统按协议使用默认地址。视频查询和下载要填写带 {task_id} 的地址。"),
-      capabilities: array("能力与供应商报价", capability, "每一种调用单独报价。文本填写输入、输出和缓存命中；图片、语音、转写和视频按各自的数量填写。"),
-      prices: { ...array("成本价（USD）", object("成本价", { key: text("计费名称", true, "与上面的计费名称一致，例如 input。"), unit: text("计量单位"), per: { ...decimal("每多少单位"), default: "1" }, rate: decimal("单价（USD）") }), "这是平台付给供应商的价格，不是客户看到的零售价。"), hidden: true },
-    }, "选择密钥，填写协议和供应商模型名称，再按能力填写供应商报价。"),
+      base_url: { ...text("API Base URL", false, "官方供应商通常留空。兼容服务填写供应商公布的 API Base URL，具体调用路径由系统生成。"), when: {field:"provider",values:["openai","anthropic","openrouter"]} },
+      pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。" },
+      cost_provider: { ...text("参考价目供应商", false), readOnly: true },
+      cost_model: { ...text("参考计价模型", false), readOnly: true },
+      capabilities: array("供应商支持的能力", capability, "勾选供应商实际支持的能力。计量规则由系统适配，参考成本由 Bifrost 计算。"),
+    }, "选择供应商连接与模型，确认实际能力，并选择用于成本核算的参考计价模型。"),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
   });
   if (/\/routes$/.test(operation.path)) return object("路由配置", {
     route: object("公开模型的路由", {
       public_model_id: { ...text("公开模型"), lookup: "models" },
-      strategy: select("选路策略", [["priority", "固定优先级"], ["lowest_latency", "已验证最低延迟"], ["lowest_cost", "已验证最低成本"]], "priority"),
+      strategy: select("选路策略", [["priority", "固定优先级"], ["lowest_latency", "最低延迟"], ["lowest_cost", "预估最低成本"]], "priority"),
       bindings: array("绑定的供应商模型", object("绑定", {
         id: { ...text("绑定标识"), generated: "uuid", readOnly: true },
         supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },
@@ -102,6 +111,18 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       }), "一个公开模型可以绑多个供应商模型。数字小的优先级先被考虑。"),
     }, "选择先用哪一条，并写下连续失败后暂时停用的数字。"),
     expected_version: { ...integer("当前策略版本（自动带入）", 0), readOnly: true },
+  });
+  if (/\/pricing$/.test(operation.path) && operation.name === "template") return object("模型计费模板", {
+    action: { ...text("操作"), default: "billing", readOnly: true },
+    model_id: { ...text("公开模型"), lookup: "models" },
+    operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
+    billing: object("输入与输出计量", {
+      input: array("输入计量项目", billingItem("input"), "可不单独计收输入费用。统一 Token 与分模态项目不能在同一方向并用。"),
+      output: array("输出计量项目", billingItem("output"), "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。"),
+    }, "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。"),
+    expected_version: { ...integer("当前版本", 0), readOnly: true },
+    effective_at: datetime("计划生效时间（变更已开放模型时填写）"),
+    evidence: { ...text("变更及通知依据", false), kind: "textarea" },
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "listing") return object("授权与上架", {
     action: select("办理事项", [["listing", "本经营方上架 / 下架"], ["authorization", "授权 / 撤销下级模型权限"]], "listing"),
@@ -122,7 +143,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
         }, when: { field: "mode", values: ["follow"] } },
         multiplier: { ...decimal("默认倍率（定价参数）"), when: { field: "mode", values: ["follow"] } },
         model_multipliers: { ...record("指定模型倍率覆盖（可选）", decimal("模型倍率")), when: { field: "mode", values: ["follow"] } },
-      }, "零售价使用客户 ATG，供货价使用采购 ATG。供应商的 USD 成本价写在供应商模型上。倍率不是利润率。"),
+      }, "零售价使用客户 ATG，供货价使用采购 ATG。供应商成本由 Bifrost 独立核算。倍率不是利润率。"),
       notice_id: text("客户通知记录引用", false), published: { ...boolean("发布此价格版本", true), required: true, readOnly: true },
     }), evidence: { ...text("发布与通知依据", false), kind: "textarea" },
   });
@@ -175,48 +196,6 @@ export class ConfigurationError extends Error {
   }
 }
 
-// Capability quantities and constraints are rational strings, unlike prices.
-// Compare their integer numerator/denominator without ever rounding a quantity.
-function rational(value: string): [bigint, bigint] | undefined {
-  const radix = (raw: string, fraction: boolean) => {
-    const prefix = /^0([bBoOxX])/.exec(raw)?.[1]?.toLowerCase();
-    const base = prefix === "b" ? 2 : prefix === "o" ? 8 : prefix === "x" ? 16 : fraction && raw.length > 1 && raw[0] === "0" ? 8 : 10;
-    return { base, digits: prefix ? raw.slice(2) : base === 8 && fraction && raw[0] === "0" ? raw.slice(1) : raw, prefixed: !!prefix || base === 8 && fraction };
-  };
-  const digitSet = (base: number) => base === 2 ? "[01]" : base === 8 ? "[0-7]" : base === 16 ? "[\\da-fA-F]" : "\\d";
-  const digitsValid = (raw: string, base: number, prefix = false) => new RegExp(`^${prefix ? "_?" : ""}${digitSet(base)}(?:_?${digitSet(base)})*$`).test(raw);
-  const integer = (raw: string, signed: boolean): bigint | undefined => {
-    const sign = signed && /^[+-]/.test(raw) ? raw[0] : "", unsigned = sign ? raw.slice(1) : raw, parsed = radix(unsigned, true);
-    if (!digitsValid(parsed.digits, parsed.base, parsed.prefixed)) return;
-    const digits = parsed.digits.replaceAll("_", ""), prefix = parsed.base === 2 ? "0b" : parsed.base === 8 ? "0o" : parsed.base === 16 ? "0x" : "";
-    return BigInt(prefix + digits) * (sign === "-" ? -1n : 1n);
-  };
-  if (value.includes("/")) {
-    const parts = value.split("/");
-    if (parts.length !== 2) return;
-    const numerator = integer(parts[0], true), denominator = integer(parts[1], false);
-    return numerator !== undefined && denominator !== undefined && denominator > 0n ? [numerator, denominator] : undefined;
-  }
-  const sign = /^[+-]/.test(value) ? value[0] : "", unsigned = sign ? value.slice(1) : value, parsed = radix(unsigned, false);
-  const exponentIndex = parsed.digits.search(parsed.base === 16 ? /[pP]/ : /[eEpP]/);
-  const mantissa = exponentIndex < 0 ? parsed.digits : parsed.digits.slice(0, exponentIndex), exponentText = exponentIndex < 0 ? "" : parsed.digits.slice(exponentIndex);
-  if (exponentText && !/^[eEpP][+-]?\d(?:_?\d)*$/.test(exponentText)) return;
-  const exponent = exponentText ? BigInt(exponentText.slice(1).replaceAll("_", "")) : 0n;
-  if (exponent < -(2n ** 63n) || exponent >= 2n ** 63n) return;
-  const parts = mantissa.split(".");
-  if (parts.length > 2 || !parts.some(part => part.replaceAll("_", ""))) return;
-  if (parts.some((part, index) => part && !digitsValid(part, parsed.base, index === 0 && parsed.prefixed))) return;
-  const digits = parts.map(part => part.replaceAll("_", "")).join(""), prefix = parsed.base === 2 ? "0b" : parsed.base === 8 ? "0o" : parsed.base === 16 ? "0x" : "";
-  let numerator = BigInt(prefix + digits) * (sign === "-" ? -1n : 1n);
-  if (numerator === 0n) return [0n, 1n];
-  const places = BigInt((parts[1] || "").replaceAll("_", "").length), decimalExponent = !exponentText || /^[eE]/.test(exponentText);
-  const exponent2 = exponent - places * BigInt(parsed.base === 16 ? 4 : parsed.base === 8 ? 3 : 1), exponent5 = (decimalExponent ? exponent : 0n) - (parsed.base === 10 ? places : 0n);
-  if (exponent5 < -1000000n || exponent5 > 1000000n || exponent2 < -10000000n || exponent2 > 10000000n) return;
-  let denominator = 1n;
-  if (exponent2 >= 0n) numerator *= 2n ** exponent2; else denominator *= 2n ** -exponent2;
-  if (exponent5 >= 0n) numerator *= 5n ** exponent5; else denominator *= 5n ** -exponent5;
-  return [numerator, denominator];
-}
 export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = node.label, fieldPath = "", pathParts: ConfigurationPathPart[] = [{ source: path }]): JSONValue {
   const fail = (message: string, values: Record<string, string | number> = { path }): never => { throw new ConfigurationError(message, fieldPath, values, pathParts); };
   if (value === null && node.nullable) return null;
@@ -250,7 +229,7 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
     }));
   }
   if (node.kind === "decimal") { if (typeof value !== "string" || !Decimal.safeParse(value).success) return fail("{path}请输入非负十进制数，最多 24 位小数"); }
-  else if (node.kind === "rational") { const parsed = typeof value === "string" ? rational(value) : undefined; if (!parsed || (!node.signed && parsed[0] < 0n)) return fail(node.signed ? "{path}请输入精确数量或有效分数，分母须大于 0" : "{path}请输入非负精确数量或有效分数，分母须大于 0"); }
+
   else if (node.kind === "integer") {
     if (typeof value !== "number" || !Number.isSafeInteger(value) || (!node.signed && value < 0)) return fail(node.signed ? "{path}应为安全整数" : "{path}应为非负整数");
     if (node.min !== undefined && value < node.min) return fail("{path}不能小于 {min}", { path, min: node.min });
@@ -263,127 +242,38 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
   return value;
 }
 
-export type SupplierQuoteLine = { key: string; label: string; unit: string; per: string; perLabel: string; path: string; optional?: boolean; zeroWhenAbsent?: boolean; subtractFrom?: string };
-
-// Paths are the usage locations this gateway already reads. People fill the
-// provider's price; they do not name vendor parameters.
-export function supplierQuoteLines(operation: string): SupplierQuoteLine[] {
-  const token = (key: string, label: string, path: string, optional = false): SupplierQuoteLine => ({ key, label, unit: "token", per: "1000000", perLabel: "美元 / 每 100 万 token", path, optional, zeroWhenAbsent: optional });
-  switch (operation) {
-    case "chat":
-      return [token("input", "输入", "/prompt_tokens"), token("output", "输出", "/completion_tokens"), { ...token("cache", "缓存命中", "/prompt_tokens_details/cached_read_tokens", true), subtractFrom: "input" }];
-    case "responses":
-      return [token("input", "输入", "/input_tokens"), token("output", "输出", "/output_tokens"), { ...token("cache", "缓存命中", "/input_tokens_details/cached_tokens", true), subtractFrom: "input" }];
-    case "embedding":
-      return [token("input", "输入", "/prompt_tokens")];
-    case "image_generation":
-      return [{ key: "image", label: "图片", unit: "image", per: "1", perLabel: "美元 / 每张图片", path: "/output_count" }];
-    case "speech":
-      return [{ key: "characters", label: "语音", unit: "character", per: "1000000", perLabel: "美元 / 每 100 万字符", path: "/input_chars" }];
-    case "transcription":
-      return [{ key: "audio_seconds", label: "音频", unit: "second", per: "1", perLabel: "美元 / 每秒", path: "/seconds" }];
-    case "video_generation":
-      return [{ key: "video_seconds", label: "视频", unit: "second", per: "1", perLabel: "美元 / 每秒", path: "/provider/seconds" }];
-    default:
-      return [];
-  }
-}
-
-function asRecord(value: JSONValue | undefined): Record<string, JSONValue> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-
-// Saved models keep technical metering. The form shows the provider's price
-// next to the capability that uses it.
 export function presentSupplierConfiguration(value: JSONValue): JSONValue {
-  const root = asRecord(value);
-  const model = asRecord(root.supplier_model);
-  if (!Array.isArray(model.capabilities)) return value;
-  const prices = Array.isArray(model.prices) ? model.prices : [];
-  const capabilities = model.capabilities.map(capability => {
-    const item = asRecord(capability);
-    if (!Object.keys(item).length || (Array.isArray(item.quotes) && item.quotes.length > 0)) return capability;
-    const bounds = asRecord(item.billable_bounds);
-    const quotes = (Array.isArray(item.usage_rules) ? item.usage_rules : []).flatMap(rule => {
-      const component = String(asRecord(rule).component || "");
-      if (!component) return [];
-      const price = prices.map(asRecord).find(item => String(item.key || "") === component);
-      return [{ key: component, rate: price?.rate ?? "", bound: bounds[component] ?? "" }];
-    });
-    return quotes.length ? { ...item, quotes } : capability;
-  });
-  return { ...root, supplier_model: { ...model, capabilities } };
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const root = value as Record<string, JSONValue>, model = root.supplier_model as Record<string, JSONValue>;
+  if (!model || !Array.isArray(model.capabilities)) return value;
+  const modes = new Map<string, Record<string, JSONValue>>();
+  for (const item of model.capabilities) if (item && typeof item === "object" && !Array.isArray(item)) {
+    const cap = item as Record<string, JSONValue>, key = String(cap.operation || "");
+    const previous = modes.get(key); modes.set(key, { operation: key, streaming: cap.streaming === true || previous?.streaming === true });
+  }
+  return { ...root, supplier_model: { ...model, capabilities: [...modes.values()] } };
 }
 
-// Turn the prices typed beside each capability into the metering the gateway
-// already uses to reserve and settle. One usage name has one provider price.
-export function applySupplierQuotes(value: JSONValue): JSONValue {
-  const root = asRecord(value);
-  const model = asRecord(root.supplier_model);
-  if (!Array.isArray(model.capabilities) || !model.capabilities.some(capability => Array.isArray(asRecord(capability).quotes))) return value;
-  const prices: Record<string, JSONValue>[] = [];
-  const priced = new Map<string, string>();
-  const capabilities = model.capabilities.map((capability, index) => {
-    const item = asRecord(capability);
-    const operation = String(item.operation || "");
-    const lines = supplierQuoteLines(operation);
-    const quotes = (Array.isArray(item.quotes) ? item.quotes : []).map(asRecord);
-    const rules: Record<string, JSONValue>[] = [];
-    const bounds: Record<string, JSONValue> = {};
-    const subtract: Record<string, JSONValue> = {};
-    lines.forEach(line => {
-      const quote = quotes.find(item => String(item.key || "") === line.key);
-      const rate = String(quote?.rate || "").trim();
-      const bound = String(quote?.bound || "").trim();
-      if (!rate && !bound) return;
-      if (!rate) throw new ConfigurationError("请填写{label}的供应商报价。", `supplier_model.capabilities.${index}.quotes`, { label: line.label });
-      if (!bound) throw new ConfigurationError("请填写{label}的最大用量。", `supplier_model.capabilities.${index}.quotes`, { label: line.label });
-      if (!Decimal.safeParse(rate).success) throw new ConfigurationError("{path}请输入非负十进制数，最多 24 位小数", `supplier_model.capabilities.${index}.quotes`, { path: line.label });
-      const previous = priced.get(line.key);
-      if (previous !== undefined && previous !== rate) throw new ConfigurationError("同一种用量只能有一个供应商报价。", "supplier_model.prices");
-      priced.set(line.key, rate);
-      rules.push({ component: line.key, unit: line.unit, path: line.path, zero_when_absent: line.zeroWhenAbsent === true });
-      bounds[line.key] = bound;
-      if (line.subtractFrom) subtract[line.subtractFrom] = [line.path];
-      if (!prices.some(price => price.key === line.key)) prices.push({ key: line.key, unit: line.unit, per: line.per, rate });
-    });
-    if (!rules.length) throw new ConfigurationError("请为这项能力填写供应商报价。", `supplier_model.capabilities.${index}.quotes`);
-    return { ...item, usage_rules: rules, billable_bounds: bounds, ...(Object.keys(subtract).length ? { subtract_paths: subtract } : {}) };
-  });
-  return { ...root, supplier_model: { ...model, capabilities, prices } };
-}
-
-function validateMetering(capabilities: Record<string, JSONValue>[], prefix: string): void {
-  if (!capabilities.length) throw new ConfigurationError("至少需要一项计费。", `${prefix}.capabilities`);
-  capabilities.forEach((capability, index) => {
-    const path = `${prefix}.capabilities.${index}`;
-    const bounds = (capability.billable_bounds || {}) as Record<string, JSONValue>, rules = (capability.usage_rules || []) as Record<string, JSONValue>[];
-    if (!rules.length) throw new ConfigurationError("至少需要一个可靠的计量组件及对应有限用量上界。", `${path}.usage_rules`);
-    const seen = new Set<string>();
-    rules.forEach((rule, ruleIndex) => {
-      const component = String(rule.component);
-      if (seen.has(component)) throw new ConfigurationError("计量组件标识不能重复。", `${path}.usage_rules.${ruleIndex}.component`);
-      seen.add(component);
-      if (bounds[component] === undefined) throw new ConfigurationError("每个计量组件都须有对应的有限用量上界。", `${path}.billable_bounds`);
-    });
-    if (Object.keys(bounds).length !== seen.size) throw new ConfigurationError("用量上界与计量组件须一一对应。", `${path}.billable_bounds`);
-  });
-}
 export function validateModelConfiguration(value: JSONValue): void {
   const root = value as Record<string, JSONValue>;
+  if(root.action==="billing") {
+    const billing=root.billing as Record<string,JSONValue>;
+    const inputs=Array.isArray(billing?.input)?billing.input:[],outputs=Array.isArray(billing?.output)?billing.output:[];
+    if(!inputs.length && !outputs.length)throw new ConfigurationError("至少配置一个输入或输出计量项目。","billing.input");
+    for(const direction of ["input","output"] as const){const items=(direction==="input"?inputs:outputs) as Record<string,JSONValue>[];const seen=new Set<string>();
+      items.forEach((item,index)=>{const path=`billing.${direction}.${index}`;const modality=String(item.modality);
+        if(seen.has(modality))throw new ConfigurationError("同一方向的同一种模态只能配置一个计量项目。",`${path}.modality`);seen.add(modality);
+        if(modality==="all" && items.length>1)throw new ConfigurationError("统一 Token 与分模态计费不能在同一方向并用。",`${path}.modality`);
+        const variants=Array.isArray(item.variants)?item.variants as Record<string,JSONValue>[]:[];
+        variants.forEach((variant,i)=>{if(!variant.size && !variant.quality)throw new ConfigurationError("规格至少填写尺寸或质量。",`${path}.variants.${i}.size`);});
+      });
+    }
+    return;
+  }
   if (root.supplier_model && typeof root.supplier_model === "object" && !Array.isArray(root.supplier_model)) {
     const model = root.supplier_model as Record<string, JSONValue>;
     const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
-    validateMetering(capabilities, "supplier_model");
-    const priced = new Map<string, string>();
-    ((model.prices || []) as Record<string, JSONValue>[]).forEach((price, index) => {
-      const key = String(price.key || "");
-      if (!key || priced.has(key)) throw new ConfigurationError("每一项成本价都要对应一个不重复的计费名称。", `supplier_model.prices.${index}.key`);
-      priced.set(key, String(price.unit || ""));
-    });
-    capabilities.forEach(capability => ((capability.usage_rules || []) as Record<string, JSONValue>[]).forEach(rule => {
-      if (priced.get(String(rule.component)) !== String(rule.unit || "")) throw new ConfigurationError("成本价的名称和单位要与计费一致。", "supplier_model.prices");
-    }));
+    if (!capabilities.length) throw new ConfigurationError("至少选择一种供应商能力。", "supplier_model.capabilities");
     return;
   }
   if (root.route && typeof root.route === "object" && !Array.isArray(root.route)) {
@@ -425,7 +315,7 @@ export function validatePriceConfiguration(value: JSONValue): void {
   }
   if (rule.mode === "follow") {
     const scope = price.scope as Record<string, JSONValue> | undefined, follow = rule.follow as Record<string, JSONValue> | undefined;
-    if (scope?.kind === "supplier") throw new ConfigurationError("供应商成本价须逐组件手动定价。", "price.rule.mode");
+
     if (follow?.kind && follow.kind !== "supply") throw new ConfigurationError("自动跟随须使用直接上级对本经营方的供货价。", "price.rule.follow.kind");
     if (scope && follow && ["kind", "seller_id", "buyer_id"].every(key => (scope[key] || "") === (follow[key] || ""))) throw new ConfigurationError("自动跟随的价目不能是本次定价范围本身。", "price.rule.follow");
     if (compareDecimal(String(rule.multiplier), "0") <= 0) throw new ConfigurationError("自动跟随倍率必须大于 0。", "price.rule.multiplier");

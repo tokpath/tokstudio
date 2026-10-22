@@ -30,7 +30,7 @@ it("turns a text capability's quotes into per-million-token provider prices", ()
   expect(() => validateModelConfiguration(prepared)).not.toThrow();
   expect(prepared).toMatchObject({ supplier_model: { prices: [{ key: "input", unit: "token", per: "1000000", rate: "3" }, { key: "output", unit: "token", per: "1000000", rate: "15" }, { key: "cache", unit: "token", per: "1000000", rate: "0.30" }], capabilities: [{ usage_rules: [{ component: "input", path: "/prompt_tokens" }, { component: "output", path: "/completion_tokens" }, { component: "cache", path: "/prompt_tokens_details/cached_read_tokens", zero_when_absent: true }], subtract_paths: { input: ["/prompt_tokens_details/cached_read_tokens"] } }] } });
   const capability = (prepared as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
-  expect(capability.quotes).toBeUndefined();
+  expect(capability.quotes).toEqual([{ key: "input", rate: "3", bound: "128000" }, { key: "output", rate: "15", bound: "4096" }, { key: "cache", rate: "0.30", bound: "128000" }]);
 });
 it("prices an image by the picture and leaves cache unpriced when it is blank", () => {
   const drafted = prepareConfiguration({ supplier_model: { id: "supplier-model", credential_id: "credential", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "chat", quotes: [{ key: "input", rate: "1", bound: "1000" }, { key: "output", rate: "2", bound: "1000" }] }, { operation: "image_generation", quotes: [{ key: "image", rate: "0.04", bound: "4" }] }] }, expected_version: 0 }, configurationSchema(supplierOperation)!);

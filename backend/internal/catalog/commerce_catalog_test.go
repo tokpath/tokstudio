@@ -287,13 +287,15 @@ func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
 	s := newCommerceTestStore(t)
 	ctx := context.Background()
 	capability := commerceTestCapability()
+	capability.UsageRules = append(capability.UsageRules, modelruntime.UsageRule{Component: "output", Unit: "token", Path: "/completion_tokens"})
+	capability.BillableBounds["output"] = "1000"
 	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", DisplayName: "Model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}}, 0); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "secret-to-encrypt", true, 0); e != nil {
 		t.Fatal(e)
 	}
-	supplier := SupplierModel{ID: "supplier-model", CredentialID: "credential", Provider: "openai", Model: "exact-model", Capabilities: []modelruntime.Capability{capability}, Prices: []ComponentRate{{Key: "input", Unit: "token", Per: "1000000", Rate: "1"}}, Enabled: true}
+	supplier := SupplierModel{ID: "supplier-model", CredentialID: "credential", Provider: "openai", Model: "exact-model", Capabilities: []modelruntime.Capability{capability}, Prices: []ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "1"}, {Key: "output", Unit: "token", Per: "1", Rate: "1"}}, Enabled: true}
 	if e := s.SaveSupplierModel(ctx, "platform", supplier, 0); e != nil {
 		t.Fatal(e)
 	}

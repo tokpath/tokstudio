@@ -348,8 +348,7 @@ export function applySupplierQuotes(value: JSONValue): JSONValue {
       if (!prices.some(price => price.key === line.key)) prices.push({ key: line.key, unit: line.unit, per: line.per, rate });
     });
     if (!rules.length) throw new ConfigurationError("请为这项能力填写供应商报价。", `supplier_model.capabilities.${index}.quotes`);
-    const { quotes: _quotes, ...rest } = item;
-    return { ...rest, usage_rules: rules, billable_bounds: bounds, ...(Object.keys(subtract).length ? { subtract_paths: subtract } : {}) };
+    return { ...item, usage_rules: rules, billable_bounds: bounds, ...(Object.keys(subtract).length ? { subtract_paths: subtract } : {}) };
   });
   return { ...root, supplier_model: { ...model, capabilities, prices } };
 }

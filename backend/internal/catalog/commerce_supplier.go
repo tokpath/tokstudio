@@ -132,6 +132,9 @@ func (s CommerceCatalog) saveSupplierModel(ctx context.Context, actor string, in
 		return ErrInvalidInput
 	}
 	in.ProviderID = credential.ProviderID
+	if e := normalizeSupplierModel(&in); e != nil {
+		return e
+	}
 	if !supplierModelReady(in) {
 		return ErrInvalidInput
 	}

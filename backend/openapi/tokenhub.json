@@ -47260,6 +47260,29 @@
           "streaming": {
             "type": "boolean"
           },
+          "quotes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "rate": {
+                  "type": "string"
+                },
+                "bound": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "rate",
+                "bound"
+              ],
+              "additionalProperties": false
+            }
+          },
           "billable_bounds": {
             "type": "object",
             "additionalProperties": {

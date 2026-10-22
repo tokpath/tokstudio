@@ -3,7 +3,7 @@
 module.exports=function({root,schemas,paths,add,obj,str,bool,integer,uuid,decimal,priceDecimal,ref,array,json}){
  const fs=require('node:fs'),path=require('node:path'),time={type:'string',format:'date-time'};
  const rule=obj({component:str,unit:str,path:str,zero_when_absent:bool},['component','unit','path']);
- schemas.Capability=obj({operation:{enum:['chat','responses','embedding','image_generation','speech','transcription','video_generation','video_retrieve','video_download']},streaming:bool,billable_bounds:{type:'object',additionalProperties:str},usage_rules:array(rule),subtract_paths:{type:'object',additionalProperties:array(str)}},['operation','billable_bounds','usage_rules']);
+ schemas.Capability=obj({operation:{enum:['chat','responses','embedding','image_generation','speech','transcription','video_generation','video_retrieve','video_download']},streaming:bool,quotes:array(obj({key:str,rate:str,bound:str},['key','rate','bound'])),billable_bounds:{type:'object',additionalProperties:str},usage_rules:array(rule),subtract_paths:{type:'object',additionalProperties:array(str)}},['operation','billable_bounds','usage_rules']);
  schemas.PublicCapability=obj({operation:{enum:['chat','responses','embedding','image_generation','speech','transcription','video_generation']}},['operation']);
  schemas.RouteLimits=obj({max_concurrent:{...integer,maximum:100000},failure_threshold:{...integer,maximum:100},unknown_usage_threshold:{...integer,maximum:100},recovery_successes:{...integer,maximum:20},cooldown_seconds:{...integer,maximum:86400}},[]);
  schemas.PublicModelInput=obj({id:str,identity:str,display_name:str,enabled:bool,capabilities:array(ref('PublicCapability'))});

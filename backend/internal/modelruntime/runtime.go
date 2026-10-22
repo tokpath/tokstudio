@@ -43,8 +43,19 @@ type Capability struct {
 	BillableBounds map[string]string `json:"billable_bounds,omitempty"`
 	UsageRules     []UsageRule       `json:"usage_rules,omitempty"`
 	// SubtractPaths removes included sub-units before charging a separate
-	// component (cached input or reasoning already included in output totals).
+	// component (cached input already included in the input total).
 	SubtractPaths map[string][]string `json:"subtract_paths,omitempty"`
+	// Quotes carries the provider price for one supplier capability. The catalog
+	// save replaces usage rules and the model price list from these lines, then
+	// drops the field so only the resulting metering is stored.
+	Quotes []CapabilityQuote `json:"quotes,omitempty"`
+}
+
+// CapabilityQuote is one provider price for a capability's known usage.
+type CapabilityQuote struct {
+	Key   string `json:"key"`
+	Rate  string `json:"rate"`
+	Bound string `json:"bound"`
 }
 
 // Path is an RFC 6901 pointer into the normalized provider usage. No monetary

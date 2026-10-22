@@ -458,7 +458,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			items = append(items, entity(row.ID, "configured", int64(row.Version), row))
 		}
 		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
-		p["operations"] = []operation{{Name: "save", Label: "维护公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、enabled、capabilities（勾选的调用能力）、expected_version")}}}
+		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、enabled、capabilities（勾选的调用能力）、expected_version")}}}
 	case "providers":
 		rows, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
 		if e != nil {

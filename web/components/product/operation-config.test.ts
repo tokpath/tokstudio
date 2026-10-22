@@ -22,7 +22,7 @@ it("requires a finite promotion end time and an unbounded final tier", () => {
 function verifiedModel(): JSONValue {
   return { supplier_model: { id: "supplier-model", credential_id: "credential", provider_id: "provider", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "image_generation", streaming: false, input_types: ["text"], parameters: ["temperature"], max_input_bytes: 1024, billable_bounds: { image: "1/3" }, usage_rules: [{ component: "image", unit: "image", path: "/images" }], parameter_constraints: { temperature: { min: "-1/3", max: "0.333333333333333333333333333333" } }, evidence_id: "probe-real", verified_at: "2026-10-18T00:00:00Z", parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true }], prices: [{ key: "image", unit: "image", per: "1", rate: "0.1" }] }, expected_version: 3 };
 }
-const catalogOperation: Operation = { name: "save", label: "维护公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] };
+const catalogOperation: Operation = { name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] };
 const supplierOperation: Operation = { name: "model", label: "配置供应商模型", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [] };
 it("validates fractional capability quantities and drops parameter lists that are not used for the estimate", () => {
   const value = prepareConfiguration(verifiedModel(), configurationSchema(supplierOperation)!);

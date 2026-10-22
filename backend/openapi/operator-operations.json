@@ -6693,7 +6693,7 @@
       }
     ],
     "include_version": false,
-    "label": "维护公开模型",
+    "label": "添加公开模型",
     "method": "POST",
     "name": "save",
     "path": "/v1/operators/{operatorId}/catalog",

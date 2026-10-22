@@ -99,13 +99,13 @@ test("technical administrator configures a real provider, verified model and rou
     await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    dialog = await panel(tech, "维护公开模型");
+    dialog = await panel(tech, "添加公开模型");
     await config(dialog, { model: { id: model, display_name: modelName, enabled: false, capabilities: [{ operation: "chat" }] }, expected_version: 0 });
-    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
+    await submit(tech, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: modelName }));
     await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
     await control(dialog, "客户看到的模型名称", false).fill(revisedModelName);
-    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
+    await submit(tech, dialog, "编辑模型", `${base}/catalog`); await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
     dialog = await panel(tech, "配置路由");
@@ -123,7 +123,7 @@ test("technical administrator configures a real provider, verified model and rou
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await dialog.getByRole("radiogroup", { name: /开放模型/ }).getByRole("radio", { name: "是", exact: true }).check();
-    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
+    await submit(tech, dialog, "编辑模型", `${base}/catalog`); await close(dialog);
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
     expect((await tech.request.get(`${base}/payments`)).status()).toBe(403);
 
@@ -328,7 +328,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     for (const label of ["查看合作主体", "查看人员", "查看经营汇总", "维护平台模型与路由"]) await expect(dialog.getByRole("checkbox", { name: label, exact: true })).toBeChecked();
     await expect(dialog.getByRole("checkbox", { name: "管理收款", exact: true })).not.toBeChecked(); await close(dialog);
     await employee.reload(); await employee.goto(`/manage/${p.operator_id}/catalog`);
-    await expect(employee.getByRole("button", { name: "维护公开模型", exact: true })).toBeVisible();
+    await expect(employee.getByRole("button", { name: "添加公开模型", exact: true })).toBeVisible();
     expect((await employee.request.get(`${base}/payments`)).status()).toBe(403);
     expect((await employee.request.get(`${base}/exports`)).status()).toBe(403);
     await employee.goto(`/manage/${p.operator_id}/staff`);

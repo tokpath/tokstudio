@@ -21069,7 +21069,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_catalog",
-        "summary": "维护公开模型",
+        "summary": "添加公开模型",
         "tags": [
           "Operator browser API"
         ],

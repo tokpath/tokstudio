@@ -6871,10 +6871,10 @@
     "ja": "末尾が .apps.googleusercontent.com のクライアント ID を入力してください。初回保存にはシークレットが必要です。",
     "ru": "Укажите идентификатор клиента, оканчивающийся на .apps.googleusercontent.com. При первом сохранении нужен секрет."
   },
-  "维护公开模型": {
-    "en": "Maintain public models",
-    "ja": "公開モデルを維持",
-    "ru": "Обслуживать публичные модели"
+  "添加公开模型": {
+    "en": "Add a public model",
+    "ja": "公開モデルを追加",
+    "ru": "Добавить публичную модель"
   },
   "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。": {
     "en": "Enter the public model ID and the name customers see, check the capabilities, and choose whether it is enabled. Leave it closed to customers the first time. Metering and the supplier price belong on the supplier model.",

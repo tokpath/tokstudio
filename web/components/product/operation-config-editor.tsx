@@ -26,12 +26,7 @@ export function ConfigurationEditor({ schema, value, disabled, change, operatorI
   try { parsed = value ? JSON.parse(value) as JSONValue : emptyDefaults; if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("configuration object required"); }
   catch { parsed = {}; invalid = true; }
   return <div className="space-y-5">
-    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("高级配置内容无法读取，请展开技术高级配置并修正格式。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
-    <details className="rounded-control border border-hairline bg-canvas p-4 text-sm">
-      <summary className="cursor-pointer font-medium text-ink-secondary">{t("技术高级配置")}</summary>
-      <p className="my-3 text-xs leading-6 text-ink-mute">{t("这是上面同一份配置的原文，方便一次贴入。表单不认识的字段不会保存。")}</p>
-      <textarea aria-label={t("完整技术配置 JSON")} className={`${control} min-h-64 font-mono text-xs`} value={value} disabled={disabled} onChange={event => change(event.target.value)} spellCheck={false} />
-    </details>
+    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("配置内容无法读取，请关闭后重新打开。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
   </div>;
 }
 

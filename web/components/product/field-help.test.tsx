@@ -30,11 +30,19 @@ it("generates binding and price IDs and leaves the public model ID for an author
  expect(first.id).toMatch(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);expect(second.id).not.toBe(first.id);
  expect(configDefaults(price)).toMatchObject({price:{id:expect.stringMatching(/^[\da-f-]{36}$/)}});expect(configDefaults(catalog)).toMatchObject({model:{id:""}});
 });
-it("retains generated binding IDs through input and locale changes and preserves an existing binding ID",()=>{
- vi.stubGlobal("fetch",vi.fn(async()=>response({items:[]})));const view=show(route);fireEvent.click(screen.getByRole("button",{name:"添加绑定",exact:true}));
- const input=screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement,id=JSON.parse(input.value).route.bindings[0].id;expect(screen.queryByRole("textbox",{name:/^绑定标识/})).toBeNull();
- expect(id).toMatch(/^[\da-f-]{36}$/);fireEvent.change(screen.getByRole("textbox",{name:/^选路优先级/}),{target:{value:"3"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));expect(JSON.parse(input.value).route.bindings[0].id).toBe(id);view.unmount();
- show(route,{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-existing",supplier_model_id:"supplier-one",priority:2,enabled:true}]}});expect(JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value).route.bindings[0].id).toBe("binding-existing");
+it("retains generated binding IDs through input and locale changes and preserves an existing binding ID",async()=>{
+ const fetch=vi.fn(async(input:RequestInfo|URL)=>response(String(input).includes("supplier-models")?{items:[{value:"supplier-one",label:"供应商模型甲"}]}:String(input).includes("/references/")?{items:[{value:"model-one",label:"业务模型一"}]}:{id:"saved",status:"saved"}));
+ vi.stubGlobal("fetch",fetch);const view=show(route);fireEvent.click(screen.getByRole("button",{name:"添加绑定",exact:true}));
+ expect(screen.queryByRole("textbox",{name:/^绑定标识/})).toBeNull();
+ const model=screen.getByRole("combobox",{name:/^公开模型/});const supplier=screen.getByRole("combobox",{name:/^供应商模型/});
+ await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));fireEvent.change(model,{target:{value:"model-one"}});
+ await waitFor(()=>expect((supplier as HTMLSelectElement).disabled).toBe(false));fireEvent.change(supplier,{target:{value:"supplier-one"}});
+ fireEvent.change(screen.getByRole("textbox",{name:/^选路优先级/}),{target:{value:"3"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));
+ fireEvent.click(screen.getByRole("button",{name:translate("ru","保存路由"),exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
+ const posted=JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body));const id=posted.configuration.route.bindings[0].id;expect(id).toMatch(/^[\da-f-]{36}$/);expect(posted.configuration.route.bindings[0].priority).toBe(3);view.unmount();fetch.mockClear();
+ show(route,{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-existing",supplier_model_id:"supplier-one",priority:2,enabled:true}]}});
+ fireEvent.click(screen.getByRole("button",{name:"保存路由",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
+ expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body)).configuration.route.bindings[0].id).toBe("binding-existing");
 });
 it("opening help does not unlock or resubmit an unresolved command",async()=>{
  const calls:RequestInit[]=[];vi.stubGlobal("fetch",vi.fn(async(_path:RequestInfo|URL,init?:RequestInit)=>{calls.push(init!);if(calls.length===1)throw new TypeError("network lost");return response({id:"policy",status:"saved"})}));

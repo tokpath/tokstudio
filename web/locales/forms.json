@@ -1014,20 +1014,10 @@
     "ja": "段階の終了数量は開始数量より大きい値にしてください。",
     "ru": "Конечное количество ступени должно быть больше начального."
   },
-  "高级配置内容无法读取，请展开技术高级配置并修正格式。": {
-    "en": "The advanced configuration cannot be read. Open the technical configuration and correct its format.",
-    "ja": "詳細設定を読み取れません。技術詳細設定を開いて形式を修正してください。",
-    "ru": "Не удалось прочитать расширенную конфигурацию. Откройте технические настройки и исправьте формат."
-  },
-  "技术高级配置": {
-    "en": "Advanced technical configuration",
-    "ja": "技術詳細設定",
-    "ru": "Расширенные технические настройки"
-  },
-  "这是上面同一份配置的原文，方便一次贴入。表单不认识的字段不会保存。": {
-    "en": "This is the same configuration as the form above, so it can be pasted in one step. Fields the form does not know are not saved.",
-    "ja": "上のフォームと同じ設定の原文です。まとめて貼り付けられます。フォームが知らない項目は保存されません。",
-    "ru": "Это тот же текст конфигурации, что и в форме выше, его можно вставить целиком. Неизвестные форме поля не сохраняются."
+  "配置内容无法读取，请关闭后重新打开。": {
+    "en": "The configuration cannot be read. Close it and open it again.",
+    "ja": "設定を読み取れません。閉じてから開き直してください。",
+    "ru": "Не удалось прочитать конфигурацию. Закройте её и откройте снова."
   },
   "可以重试原来的内容。写错了或改变主意时，放弃并关闭，回到列表后重新填写。如果列表里已经有这条记录，不要用同一个标识再添加一次。": {
     "en": "You can retry the original contents. If something was entered incorrectly or you changed your mind, abandon and close, then fill it in again from the list. If the record is already there, do not add it again with the same identifier.",
@@ -1058,11 +1048,6 @@
     "en": "Customers can call it after it is opened in the list. It cannot be opened until a route is configured.",
     "ja": "一覧で開いてから、顧客が呼び出せます。ルートが未設定のときは開けません。",
     "ru": "Клиенты смогут вызывать модель после открытия в списке. Без настроенного маршрута открыть нельзя."
-  },
-  "完整技术配置 JSON": {
-    "en": "Complete technical configuration JSON",
-    "ja": "完全な技術設定 JSON",
-    "ru": "Полная техническая конфигурация JSON"
   },
   "项": {
     "en": "items",
@@ -2773,10 +2758,10 @@
     "ja": "{label}は非負整数にしてください",
     "ru": "{label}: требуется неотрицательное целое число"
   },
-  "{label}格式无效，请检查技术高级配置。": {
-    "en": "{label} has an invalid format. Check the advanced technical configuration.",
-    "ja": "{label}の形式が無効です。技術詳細設定を確認してください。",
-    "ru": "Недопустимый формат {label}. Проверьте расширенные технические настройки."
+  "{label}格式无效，请检查上方填写的内容。": {
+    "en": "{label} has an invalid format. Check the fields above.",
+    "ja": "{label}の形式が無効です。上の入力内容を確認してください。",
+    "ru": "Недопустимый формат {label}. Проверьте поля выше."
   },
   "{label}时间无效": {
     "en": "{label} has an invalid date or time",

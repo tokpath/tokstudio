@@ -57,7 +57,8 @@ it("localizes structured configuration paths without translating schema keys or 
   const input = screen.getByLabelText("基础单价", { exact: false });
   fireEvent.click(screen.getByRole("button", { name: "ja", exact: true }));
   expect(screen.getByLabelText(translate("ja", "基础单价"), { exact: false })).toBe(input);
-  expect((screen.getByLabelText(translate("ja", "完整技术配置 JSON")) as HTMLTextAreaElement).value).toBe(value);
+  expect((input as HTMLInputElement).value).toBe("1.000000000000000000000001");
+  expect(screen.queryByLabelText(translate("ja", "完整技术配置 JSON"))).toBeNull();
   expect(change).not.toHaveBeenCalled();
 });
 it("preserves operator-authored record keys inside localized configuration errors", () => {

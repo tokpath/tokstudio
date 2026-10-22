@@ -213,9 +213,8 @@ it("reads authorization revisions for the selected buyer and clears stale model 
   fireEvent.change(buyer,{target:{value:"buyer-one"}});await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(model,{target:{value:"model-one"}});
   expect(screen.queryByLabelText(/^当前上架 \/ 授权版本/)).toBeNull();
-  const technical=screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement;expect(JSON.parse(technical.value).expected_version).toBe(3);
-  fireEvent.change(buyer,{target:{value:"buyer-two"}});expect((model as HTMLSelectElement).value).toBe("");expect(JSON.parse(technical.value).expected_version).toBe("");
-  await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));fireEvent.change(model,{target:{value:"model-one"}});expect(JSON.parse(technical.value).expected_version).toBe(9);
+  fireEvent.change(buyer,{target:{value:"buyer-two"}});expect((model as HTMLSelectElement).value).toBe("");
+  await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));fireEvent.change(model,{target:{value:"model-one"}});
   fireEvent.click(screen.getByRole("button",{name:"授权或上架模型",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body)).configuration).toMatchObject({action:"authorization",buyer_id:"buyer-two",model_id:"model-one",expected_version:9});
   expect(fetch.mock.calls.some(call=>String(call[0]).includes("buyer_id=buyer-one"))).toBe(true);expect(fetch.mock.calls.some(call=>String(call[0]).includes("buyer_id=buyer-two"))).toBe(true);
@@ -234,9 +233,7 @@ it("keeps the default follow wildcard available beside model references",async()
   const model=screen.getByRole("combobox",{name:/公开模型（自动跟随/});await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));
   expect(screen.getByRole("option",{name:"全部模型的默认跟随规则（*）"})).toBeTruthy();
   fireEvent.change(model,{target:{value:"*"}});
-  const configuration=JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value);
-  expect(configuration.price.model_id).toBe("*");
-  expect(configuration.provider_extension).toBeUndefined();
+  expect((model as HTMLSelectElement).value).toBe("*");
 });
 
 it("never prefills secrets from records and omits untouched optional secrets instead of clearing them",async()=>{
@@ -354,7 +351,7 @@ it("reads the locked EVM asset for FX visibility even when no money currency fie
   expect(screen.getByLabelText(/实际估值来源/,{selector:"input"})).toBeTruthy();
 });
 
-it("asks only for a public model's name and capabilities", () => {
+it("asks only for a public model's name and capabilities", async () => {
   show({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
   expect(screen.queryByRole("radiogroup", { name: "开放模型" })).toBeNull();
@@ -362,8 +359,15 @@ it("asks only for a public model's name and capabilities", () => {
   expect(screen.getByText("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "怎么计费" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "保存前确认" })).toBeNull();
+  expect(screen.queryByLabelText("完整技术配置 JSON")).toBeNull();
+  fireEvent.change(screen.getByLabelText("公开模型标识", { exact: true }), { target: { value: "gpt" } });
+  fireEvent.change(screen.getByLabelText("客户看到的模型名称", { exact: true }), { target: { value: "GPT" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
-  const saved = JSON.parse((screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement).value);
+  const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "gpt", status: "saved" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  fireEvent.click(screen.getByRole("button", { name: "添加公开模型", exact: true }));
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  const saved = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).configuration;
   expect(saved.model.capabilities).toEqual([{ operation: "chat" }]);
   expect(saved.model.enabled).toBeUndefined();
 });

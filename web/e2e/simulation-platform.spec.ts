@@ -36,16 +36,19 @@ async function submit(page: Page, dialog: Locator, label: string, path: string):
   return result;
 }
 async function close(dialog: Locator) { await dialog.getByRole("button", { name: "关闭办理面板", exact: true }).click(); }
-function mergeConfig(current: unknown, next: unknown): unknown {
-  if (!current || !next || typeof current !== "object" || typeof next !== "object" || Array.isArray(current) || Array.isArray(next)) return next;
-  const before = current as Record<string, unknown>, after = next as Record<string, unknown>;
-  return Object.fromEntries(Object.entries({ ...before, ...after }).map(([key, value]) => [key, key in before && key in after ? mergeConfig(before[key], after[key]) : value]));
-}
-async function config(dialog: Locator, value: unknown) {
-  const input = control(dialog, "完整技术配置 JSON", true);
-  // Preserve the form's generated identities and automatic revision defaults.
-  // Assertions obtain those identifiers from the successful POST afterwards.
-  await input.fill(JSON.stringify(mergeConfig(JSON.parse(await input.inputValue()), value)));
+async function setPath(dialog: Locator, path: string, value: string | boolean) {
+  const box = dialog.locator(`[data-config-path="${path}"]`).first();
+  const select = box.locator("select");
+  if (await select.count()) {
+    await expect(select).toBeEnabled();
+    await select.selectOption(String(value));
+    return;
+  }
+  if (typeof value === "boolean") {
+    await box.getByRole("radio", { name: value ? "是" : "否", exact: true }).check();
+    return;
+  }
+  await box.locator("input,textarea").last().fill(value);
 }
 const localTime = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 async function evidence(info: TestInfo, name: string, facts: unknown) {
@@ -65,7 +68,6 @@ test("technical administrator configures a real provider, verified model and rou
   const errors: string[] = []; for (const page of [tech, owner, customer]) { page.setDefaultTimeout(20_000); page.on("pageerror", error => errors.push(error.message)); }
   const model = `simulation-${randomUUID()}`, modelName = `平台仿真聊天模型-${randomUUID()}`, revisedModelName = `${modelName}（已修订）`, base = `/api/v1/operators/${p.operator_id}`;
   let route = "";
-  const cap = { operation: "chat", streaming: false, input_types: ["text"], parameters: ["max_completion_tokens"], required_parameters: ["max_completion_tokens"], output_limit_parameter: "max_completion_tokens", max_input_bytes: 10000, max_output: 1000, billable_bounds: { input: "1000", output: "1000" }, usage_rules: [{ component: "input", unit: "token", path: "/prompt_tokens", zero_when_absent: false }, { component: "output", unit: "token", path: "/completion_tokens", zero_when_absent: false }], evidence_id: `independent-protocol:${p.lab_url}`, verified_at: new Date().toISOString(), parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true };
   try {
     await login(tech, p.tech);
     await tech.getByRole("link", { name: "平台技术", exact: true }).click();
@@ -92,7 +94,30 @@ test("technical administrator configures a real provider, verified model and rou
     await close(dialog);
 
     dialog = await panel(tech, "配置供应商模型");
-    await config(dialog, { supplier_model: { credential_id: credential.id, provider: "openai", model: "test-chat", enabled: true, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap], prices: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] } });
+    await setPath(dialog, "supplier_model.credential_id", credential.id);
+    await setPath(dialog, "supplier_model.provider", "openai");
+    await setPath(dialog, "supplier_model.model", "test-chat");
+    await dialog.getByRole("button", { name: "添加服务地址项目", exact: true }).click();
+    await dialog.getByLabel("服务地址项目名称 1", { exact: true }).fill("chat");
+    await setPath(dialog, "supplier_model.endpoints.chat", `${p.lab_url}/v1/chat/completions`);
+    await dialog.getByRole("button", { name: "添加能力", exact: true }).click();
+    await setPath(dialog, "supplier_model.capabilities.0.operation", "chat");
+    await dialog.getByRole("button", { name: "添加计费项目", exact: true }).click();
+    await dialog.getByRole("button", { name: "添加计费项目", exact: true }).click();
+    for (const [index, row] of [["input", "/prompt_tokens"], ["output", "/completion_tokens"]].entries()) {
+      const number = index + 1;
+      await dialog.getByLabel(`计费名称 ${number}`, { exact: true }).fill(row[0]);
+      await dialog.getByLabel(`计量单位 ${number}`, { exact: true }).fill("token");
+      await dialog.getByLabel(`用量路径 ${number}`, { exact: true }).fill(row[1]);
+      await dialog.getByLabel(`验证过的最大用量 ${number}`, { exact: true }).fill("1000");
+    }
+    for (const name of ["input", "output"]) {
+      await dialog.getByRole("button", { name: "添加成本价", exact: true }).click();
+      const index = name === "input" ? 0 : 1;
+      await setPath(dialog, `supplier_model.prices.${index}.key`, name);
+      await setPath(dialog, `supplier_model.prices.${index}.unit`, "token");
+      await setPath(dialog, `supplier_model.prices.${index}.rate`, "0.001");
+    }
     const supplierSaved = await submit(tech, dialog, "配置供应商模型", `${base}/providers`);
     const supplierModelID = supplierSaved.request().postDataJSON().configuration.supplier_model.id as string;
     expect(supplierModelID).toMatch(/^[0-9a-f-]{36}$/);
@@ -100,7 +125,9 @@ test("technical administrator configures a real provider, verified model and rou
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "添加公开模型");
-    await config(dialog, { model: { id: model, display_name: modelName, enabled: false, capabilities: [{ operation: "chat" }] }, expected_version: 0 });
+    await setPath(dialog, "model.id", model);
+    await setPath(dialog, "model.display_name", modelName);
+    await dialog.getByRole("checkbox", { name: "对话", exact: true }).check();
     await submit(tech, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: modelName }));
     await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
@@ -109,7 +136,15 @@ test("technical administrator configures a real provider, verified model and rou
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
     dialog = await panel(tech, "配置路由");
-    await config(dialog, { route: { public_model_id: model, strategy: "priority", bindings: [{ supplier_model_id: supplierModelID, priority: 10, enabled: true, routing: { max_concurrent: 5, failure_threshold: 3, unknown_usage_threshold: 2, recovery_successes: 2, cooldown_seconds: 60 } }] } });
+    await setPath(dialog, "route.public_model_id", model);
+    await dialog.getByRole("button", { name: "添加绑定", exact: true }).click();
+    await setPath(dialog, "route.bindings.0.supplier_model_id", supplierModelID);
+    await setPath(dialog, "route.bindings.0.priority", "10");
+    await setPath(dialog, "route.bindings.0.routing.max_concurrent", "5");
+    await setPath(dialog, "route.bindings.0.routing.failure_threshold", "3");
+    await setPath(dialog, "route.bindings.0.routing.unknown_usage_threshold", "2");
+    await setPath(dialog, "route.bindings.0.routing.recovery_successes", "2");
+    await setPath(dialog, "route.bindings.0.routing.cooldown_seconds", "60");
     const routeCreated = await submit(tech, dialog, "配置路由", `${base}/routes`);
     route = (await routeCreated.json()).id;
     expect(route).toBe(model);
@@ -156,7 +191,18 @@ test("technical administrator configures a real provider, verified model and rou
     for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
       dialog = await panel(owner, "发布价格版本");
       await expect(dialog.locator('[data-config-path="price.id"] input')).toHaveCount(0);
-      await config(dialog, { action: "price", price: { scope, model_id: model, layer: "regular", effective_at: effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
+      await setPath(dialog, "price.scope.kind", scope.kind);
+      if ("buyer_id" in scope) await setPath(dialog, "price.scope.buyer_id", scope.buyer_id);
+      await setPath(dialog, "price.model_id", model);
+      await setPath(dialog, "price.effective_at", localTime(effective));
+      for (const [index, name] of ["input", "output"].entries()) {
+        await dialog.getByRole("button", { name: "添加计费组件", exact: true }).click();
+        await setPath(dialog, `price.rule.components.${index}.key`, name);
+        await setPath(dialog, `price.rule.components.${index}.unit`, "token");
+        await setPath(dialog, `price.rule.components.${index}.rate`, "0.001");
+      }
+      await setPath(dialog, "price.notice_id", "independent HTTP protocol simulation terms");
+      await setPath(dialog, "evidence", "isolated activation with actual advance notice");
       const publication = await submit(owner, dialog, "发布价格版本", `${base}/pricing`);
       const published = await publication.json();
       const priceID = publication.request().postDataJSON().configuration.price.id;

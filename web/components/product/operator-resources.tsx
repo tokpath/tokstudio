@@ -8,13 +8,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { X, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { request } from "@/lib/api-client";
-import { ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
+import { CommandResultSchema, ResourcePageSchema, type Entity, type Operation, type JSONValue, type ResourcePage } from "@/lib/contracts";
 import { canReadResource, resourceLabel } from "@/lib/navigation";
 import { useNavigationBlock } from "@/lib/navigation-guard";
 import { useProduct } from "./context";
 import { InvoiceFiles } from "./invoice-files";
 import { OperationForm } from "./operation-form";
-import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table, When, statusLabels } from "./shared";
+import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table, useCommand, When, statusLabels } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -107,6 +107,25 @@ function resourceFilterStatusLabel(resource: string, status: string): string {
   return ({ partial: "部分付款", anonymized: "已匿名", open: "正常" } as Record<string, string>)[status] || statusLabels[status] || status;
 }
 
+function PublicModelSwitch({ row, operatorID }: { row: Entity; operatorID: string }) {
+  const { t } = useI18n();
+  const saved = row.values.enabled === true;
+  const [pending, setPending] = useState<boolean>();
+  const open = pending ?? saved;
+  const routed = row.values.route_configured === true;
+  const blocked = !open && !routed;
+  const command = useCommand(`/api/v1/operators/${encodeURIComponent(operatorID)}/catalog/${encodeURIComponent(row.id)}/availability`, CommandResultSchema);
+  const message = command.error instanceof Error ? command.error.message : "";
+  useEffect(() => { setPending(undefined); }, [saved, row.version]);
+  return <div className="flex min-w-0 flex-col items-start gap-1">
+    <button type="button" role="switch" aria-checked={open} aria-label={t("开放模型")} disabled={blocked || command.busy} title={blocked ? t("还没有配置路由，不能开放") : undefined} onClick={() => { const next = !open; setPending(next); void command.run({ enabled: next, expected_version: row.version ?? 0 }).then(result => { if (!result) setPending(undefined); }); }} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${open ? "bg-brand" : "bg-hairline"}`}>
+      <span aria-hidden className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${open ? "translate-x-5" : ""}`} />
+    </button>
+    {blocked && <span className="max-w-40 text-xs leading-5 text-ink-mute">{t("还没有配置路由，不能开放")}</span>}
+    {!!message && <span role="alert" className="max-w-48 text-xs leading-5 text-danger">{t(message)}</span>}
+  </div>;
+}
+
 export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
   const { t, locale } = useI18n();
   const { session } = useProduct();
@@ -138,7 +157,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const populatedColumns = page.columns.filter(column => resourceColumnVisible(column.key, resourceName) && !["id", "status", "name", "display_name", "record_kind"].includes(column.key) && rows.some(row => hasResourceValue(row.values[column.key])));
   const procurementHold = (row: Entity) => resourceName === "procurement" && ["awaiting_payment", "paid"].includes(row.status || "");
   const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p>{row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}</div>;
-  const renderTable = (items: Entity[]) => <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...populatedColumns.filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["usd", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t("状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
+  const renderTable = (items: Entity[]) => <Table rows={items} getID={row => row.id} empty={t("当前筛选下没有记录。可查询其他编号或继续办理新事项。")} columns={[{ label: t("名称与事项"), cell: identity }, ...populatedColumns.filter(column => column.key !== "state").map(column => ({ label: column.label, help: businessFieldHelp(`${resourceName}.${column.key}`, column.help), align: ["usd", "atg", "decimal"].includes(column.kind) ? "right" as const : undefined, cell: (row: Entity) => { if (resourceName === "catalog" && column.key === "enabled" && operatorID) return <PublicModelSwitch row={row} operatorID={operatorID} />; const value = <ResourceValue value={readableResourceValue(row, column.key, locale)} kind={column.kind} field={column.key} />; if (column.key === "reserved_atg" && procurementHold(row)) return <span className="inline-flex rounded-md bg-danger/10 px-2 py-1 font-semibold text-danger">{value}</span>; if (column.key === "reserved_note" && procurementHold(row)) return <span className="font-medium text-danger">{value}</span>; return value; } })), { label: t("状态"), cell: (row: Entity) => row.status ? <Status value={row.status} /> : <span>—</span> }, { label: t("办理"), cell: (row: Entity) => actions(row) }]} />;
   const renderRefund = (row: Entity, children: Entity[]) => <section key={row.id} className="rounded-card border border-hairline bg-canvas-raised p-5"><div className="flex flex-wrap items-start justify-between gap-3">{identity(row)}{row.status && <Status value={row.status} />}</div><div className="my-4 grid gap-4 sm:grid-cols-3"><div><p className="mb-1 text-xs text-ink-mute">{t("退款责任")}</p><ResourceValue value={row.values.amount_usd} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("已真实清偿")}</p><ResourceValue value={sumResourceAmounts(children, "settled_usd")} kind="usd" /></div><div><p className="mb-1 text-xs text-ink-mute">{t("仍待付款")}</p><ResourceValue value={sumResourceAmounts(children, "remaining_usd")} kind="usd" /></div></div><p className="mb-4 text-sm text-ink-secondary">{t(refundNextStep(row, children))}</p>{actions(row)}{children.length > 0 && <details className="mt-5 border-t border-hairline pt-4" open={!!record}><summary className="cursor-pointer text-sm text-brand-emphasis">{t("关联退款明细与付款")} · {children.length}</summary><div className="mt-4 space-y-4">{children.map(leg => <div key={leg.id} className="rounded-control border border-hairline p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3">{identity(leg)}{leg.status && <Status value={leg.status} />}</div><div className="mb-4 grid gap-3 sm:grid-cols-3">{["amount_usd", "settled_usd", "remaining_usd"].map(key => <div key={key}><p className="mb-1 text-xs text-ink-mute">{t(page.columns.find(column => column.key === key)?.label || key)}</p><ResourceValue value={leg.values[key]} kind="usd" /></div>)}</div>{actions(leg)}{page.items.filter(payment => payment.values.record_kind === "actual_refund_payment" && payment.values.leg_id === leg.id).map(payment => <div key={payment.id} className="mt-4 border-l-2 border-hairline pl-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2">{identity(payment)}{payment.status && <Status value={payment.status} />}</div><p className="mb-3 text-xs text-ink-secondary">{t("本次实际付款")} <ResourceValue value={payment.values.actual_payment_usd ?? payment.values.actual_usd} kind="usd" /> · {t("手续费")} <ResourceValue value={payment.values.fee_usd} kind="usd" /></p>{actions(payment)}</div>)}</div>)}</div></details>}</section>;
   const refundCases = resourceName === "refunds" ? rows.filter(row => row.values.record_kind === "case") : [];
   const linkedRefundIDs = new Set(refundCases.flatMap(row => { const legs = rows.filter(leg => leg.values.record_kind === "leg" && leg.values.case_id === row.id); return [row.id, ...legs.map(leg => leg.id), ...rows.filter(payment => legs.some(leg => payment.values.leg_id === leg.id)).map(payment => payment.id)]; }));
@@ -192,7 +211,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
     </div>}
     </div> : renderTable(rows)}
     {selection && <OperatorPanel title={t(selection.operation.label)} description={selection.row ? recordTitle(selection.row, resourceName, locale) : customer ? t("在当前客户范围内办理") : t("在当前经营范围内办理")} open blocked={blocked} close={closeOperation}>
-      <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} />
+      <OperationForm key={`${selection.operation.name}:${selection.row?.id || "new"}`} operation={selection.operation} row={selection.row} operatorID={operatorID} embedded initialValues={{ ...savedValues, ...initialValues }} lockedFields={Object.keys(initialValues || {})} onBlockedChange={setBlocked} onAbandon={() => setSelection(undefined)} />
     </OperatorPanel>}
     {invoiceID && <InvoiceFiles scope={`${scope}/${resourceName}`} invoiceID={invoiceID} upload={!customer && resourceName === "invoices"} close={() => setInvoiceID("")} />}
     {facts && <OperatorPanel open title={recordTitle(facts, resourceName, locale)} description={t("记录 {id}", { id: facts.id })} close={() => setFacts(undefined)}>

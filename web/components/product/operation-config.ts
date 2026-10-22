@@ -65,8 +65,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
     model: object("模型名称与能力", {
       id: text("公开模型标识"),
       display_name: text("客户看到的模型名称", true, "客户选择模型时看到的名字，例如「对话 Pro」。以后可以修改。"),
-      enabled: { ...boolean("开放模型"), help: "选「是」后客户才能调用。每一项已勾选的能力都要已经在路由配置里绑上可用的供应商模型。" },
-      capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
+      capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
     effective_at: { ...datetime("计划生效时间（修订已开放模型时填写）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
@@ -133,13 +132,32 @@ export function configDefaults(node: ConfigNode): JSONValue | undefined {
   if (node.required) return "";
 }
 
+// Keep only the fields the form knows. Records keep their named entries.
+export function retainKnownFields(value: JSONValue, node: ConfigNode): JSONValue {
+  if (node.kind === "object") {
+    if (!value || Array.isArray(value) || typeof value !== "object") return value;
+    const source = value as Record<string, JSONValue>;
+    return Object.fromEntries(Object.entries(node.fields || {}).flatMap(([key, child]) => source[key] === undefined ? [] : [[key, retainKnownFields(source[key], child)]]));
+  }
+  if (node.kind === "array" && Array.isArray(value)) {
+    const items = value.map(item => node.item ? retainKnownFields(item, node.item) : item);
+    if (node.options && items.every(item => typeof item === "string")) {
+      const allowed = new Set(node.options.map(([key]) => key));
+      return items.filter(item => allowed.has(String(item)));
+    }
+    return items;
+  }
+  if (node.kind === "record" && value && !Array.isArray(value) && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, node.item ? retainKnownFields(item, node.item) : item]));
+  return value;
+}
+
 export function nodeVisible(node: ConfigNode, parent: Record<string, JSONValue>): boolean {
   if (node.hideWhen && node.hideWhen.values.includes(String(parent[node.hideWhen.field] ?? ""))) return false;
   return !node.when || node.when.values.includes(String(parent[node.when.field] ?? ""));
 }
 
-// Prune only fields that are explicitly conditional. All unknown extension
-// fields survive a structured edit, and all monetary values stay as strings.
+// Only fields drawn on the form are kept. Anything else is dropped on save.
+// Monetary values stay as strings.
 type ConfigurationPathPart = { source: string; separator?: string; literal?: boolean };
 
 export class ConfigurationError extends Error {
@@ -202,20 +220,24 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
   if (value === null && !node.required && ["object", "array", "record"].includes(node.kind)) return null;
   if (node.kind === "object") {
     if (!value || Array.isArray(value) || typeof value !== "object") return fail("{path}应为一组业务字段");
-    const out = { ...value };
+    const source = value as Record<string, JSONValue>;
+    const out: Record<string, JSONValue> = {};
     for (const [key, child] of Object.entries(node.fields || {})) {
-      if (!nodeVisible(child, value)) { delete out[key]; continue; }
-      if (out[key] !== undefined && out[key] !== "") out[key] = prepareConfiguration(out[key], child, `${path} · ${child.label}`, fieldPath ? `${fieldPath}.${key}` : key, [...pathParts, { source: child.label, separator: " · " }]);
+      if (!nodeVisible(child, source)) continue;
+      const current = source[key];
+      if (current !== undefined && current !== "") out[key] = prepareConfiguration(current, child, `${path} · ${child.label}`, fieldPath ? `${fieldPath}.${key}` : key, [...pathParts, { source: child.label, separator: " · " }]);
       else if (child.required) throw new ConfigurationError(child.readOnly ? "无法核实{label}，请重新选择业务记录后重试。" : "请填写{path} · {label}", child.readOnly && node.fields?.model_id?.lookup ? (fieldPath ? `${fieldPath}.model_id` : "model_id") : (fieldPath ? `${fieldPath}.${key}` : key), { path, label: child.label }, pathParts);
-      else if (out[key] === "") delete out[key];
     }
-    if (node.presentation === "capability") for (const key of ["input_types", "parameters", "required_parameters", "parameter_constraints", "output_limit_parameter", "max_output", "max_input_bytes", "evidence_id", "verified_at", "parameters_verified", "usage_verified", "bounds_verified", "recovery_verified"]) delete out[key];
-    if (node.fields?.operation && !node.fields.usage_rules) for (const key of ["input_types", "parameters", "required_parameters", "parameter_constraints", "output_limit_parameter", "max_output", "max_input_bytes", "evidence_id", "verified_at", "parameters_verified", "usage_verified", "bounds_verified", "recovery_verified", "usage_rules", "billable_bounds", "subtract_paths", "streaming"]) delete out[key];
     return out;
   }
   if (node.kind === "array") {
     if (!Array.isArray(value)) return fail("{path}应为列表");
-    return value.map((item, index) => prepareConfiguration(item, node.item!, `${path} ${index + 1}`, `${fieldPath}.${index}`, [...pathParts, { source: String(index + 1), separator: " ", literal: true }]));
+    const items = value.map((item, index) => prepareConfiguration(item, node.item!, `${path} ${index + 1}`, `${fieldPath}.${index}`, [...pathParts, { source: String(index + 1), separator: " ", literal: true }]));
+    if (node.options && items.every(item => typeof item === "string")) {
+      const allowed = new Set(node.options.map(([key]) => key));
+      return items.filter(item => allowed.has(String(item)));
+    }
+    return items;
   }
   if (node.kind === "record") {
     if (!value || Array.isArray(value) || typeof value !== "object") return fail("{path}应为按名称配置的字段");
@@ -284,7 +306,6 @@ export function validateModelConfiguration(value: JSONValue): void {
   const model = root.model as Record<string, JSONValue> | undefined;
   if (!model) return;
   const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
-  if (model.enabled && !capabilities.length) throw new ConfigurationError("开放模型前，至少勾选一项能力。", "model.capabilities");
   const seen = new Set<string>();
   capabilities.forEach((capability, index) => {
     const operation = String(capability.operation || "");

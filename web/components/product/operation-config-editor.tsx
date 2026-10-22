@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
 import { ErrorPanel } from "./shared";
-import { configDefaults, nodeVisible, type ConfigNode } from "./operation-config";
+import { configDefaults, nodeVisible, retainKnownFields, type ConfigNode } from "./operation-config";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 const asObject = (value: JSONValue | undefined): Record<string, JSONValue> => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -26,10 +26,10 @@ export function ConfigurationEditor({ schema, value, disabled, change, operatorI
   try { parsed = value ? JSON.parse(value) as JSONValue : emptyDefaults; if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("configuration object required"); }
   catch { parsed = {}; invalid = true; }
   return <div className="space-y-5">
-    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("高级配置内容无法读取，请展开技术高级配置并修正格式。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} change={next => change(JSON.stringify(next))} root />}
+    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("高级配置内容无法读取，请展开技术高级配置并修正格式。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
     <details className="rounded-control border border-hairline bg-canvas p-4 text-sm">
       <summary className="cursor-pointer font-medium text-ink-secondary">{t("技术高级配置")}</summary>
-      <p className="my-3 text-xs leading-6 text-ink-mute">{t("供技术人员导入完整验证配置或维护扩展字段。结构化编辑会保留额外字段；此处修改后请重新核对所有业务条款。")}</p>
+      <p className="my-3 text-xs leading-6 text-ink-mute">{t("这是上面同一份配置的原文，方便一次贴入。表单不认识的字段不会保存。")}</p>
       <textarea aria-label={t("完整技术配置 JSON")} className={`${control} min-h-64 font-mono text-xs`} value={value} disabled={disabled} onChange={event => change(event.target.value)} spellCheck={false} />
     </details>
   </div>;
@@ -75,13 +75,12 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     if (node.options) {
       const known = node.options.map(([key]) => key);
       const selected = new Set(items.map(item => String(item)));
-      const extras = items.map(item => String(item)).filter(item => item && !known.includes(item));
       const choose = (key: string, checked: boolean) => {
         const next = new Set(selected);
         if (checked) next.add(key); else next.delete(key);
-        change([...known.filter(item => next.has(item)), ...extras.filter(item => next.has(item))]);
+        change(known.filter(item => next.has(item)));
       };
-      return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm"><legend className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{[...node.options, ...extras.map(item => [item, item] as [string, string])].map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
+      return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm"><legend className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{node.options.map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
     }
     return <section data-config-path={fieldPath} aria-label={label} className="min-w-0 space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>} <span className="font-normal text-ink-mute">{t("{count} 项", { count: items.length })}</span></h4><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...items, configDefaults(node.item!) ?? ""])}><Plus aria-hidden="true" />{t("添加{item}", { item: node.item?.kind === "object" ? t(node.item.label) : t("项目") })}</Button></div>{!items.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加{item}", { item: t(node.label) })}</p>}{items.map((item, index) => <div key={index} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1"><NodeEditor node={node.item!} value={item} disabled={disabled} operatorID={operatorID} context={`${t(node.label)} ${index + 1}`} fieldPath={`${fieldPath}.${index}`} change={next => change(items.map((previous, i) => i === index ? next : previous))} /></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除{item} {index}", { item: t(node.label), index: index + 1 })} disabled={disabled} onClick={() => change(items.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>)}</section>;
   }
@@ -102,7 +101,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   </div>;
 }
 
-type MeterRow = { component: string; unit: string; path: string; zero: boolean; bound: string; extra: Record<string, JSONValue> };
+type MeterRow = { component: string; unit: string; path: string; zero: boolean; bound: string };
 function meterRows(data: Record<string, JSONValue>): MeterRow[] {
   const rules = Array.isArray(data.usage_rules) ? data.usage_rules : [];
   const bounds = asObject(data.billable_bounds);
@@ -111,18 +110,16 @@ function meterRows(data: Record<string, JSONValue>): MeterRow[] {
     const item = asObject(rule);
     const component = String(item.component || "");
     seen.add(component);
-    const extra = { ...item };
-    for (const key of ["component", "unit", "path", "zero_when_absent", "bound"]) delete extra[key];
     const stored = component && bounds[component] !== undefined ? bounds[component] : item.bound;
-    return { component, unit: String(item.unit || ""), path: String(item.path || ""), zero: item.zero_when_absent === true, bound: stored === undefined || stored === null ? "" : String(stored), extra };
+    return { component, unit: String(item.unit || ""), path: String(item.path || ""), zero: item.zero_when_absent === true, bound: stored === undefined || stored === null ? "" : String(stored) };
   });
-  for (const [key, bound] of Object.entries(bounds)) if (!seen.has(key)) rows.push({ component: key, unit: "", path: "", zero: false, bound: bound === undefined || bound === null ? "" : String(bound), extra: {} });
+  for (const [key, bound] of Object.entries(bounds)) if (!seen.has(key)) rows.push({ component: key, unit: "", path: "", zero: false, bound: bound === undefined || bound === null ? "" : String(bound) });
   return rows;
 }
 function writeMeter(data: Record<string, JSONValue>, rows: MeterRow[]): Record<string, JSONValue> {
   const bounds: Record<string, JSONValue> = {};
   const rules = rows.map(row => {
-    const rule: Record<string, JSONValue> = { ...row.extra, component: row.component, unit: row.unit, path: row.path, zero_when_absent: row.zero };
+    const rule: Record<string, JSONValue> = { component: row.component, unit: row.unit, path: row.path, zero_when_absent: row.zero };
     if (row.component.trim()) bounds[row.component] = row.bound;
     else if (row.bound) rule.bound = row.bound;
     return rule;
@@ -142,7 +139,7 @@ function CapabilityFields({ node, value, change, disabled, operatorID, context, 
   const section = (title: string, help: string, body: ReactNode) => <section className="space-y-3"><div><h4 className="text-sm font-semibold">{t(title)}</h4><p className="mt-1 text-xs leading-6 text-ink-mute">{t(help)}</p></div>{body}</section>;
   return <fieldset className="min-w-0 space-y-5 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{context || t(node.label)}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</legend>
     {section("怎么调用", "选择调用方式。客户请求会原样转发，不用在这里限制正文大小或填写参数名。", <div className="grid gap-4 sm:grid-cols-2">{["operation", "streaming"].map(key => <div key={key} className="min-w-0">{render(key)}</div>)}</div>)}
-    {section("怎么计费", "每一行是一项计费。名称以后要和价格里的组件一致，例如 input_tokens。用量路径是供应商返回用量里的位置，例如 /input_tokens。", <div className="space-y-3"><div className="flex justify-end"><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { component: "", unit: "", path: "", zero: false, bound: "", extra: {} }])}><Plus aria-hidden="true" />{t("添加计费项目")}</Button></div>{!rows.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加计费项目。对话常见的是输入和输出 token。")}</p>}{rows.map((row, index) => <div key={index} className="space-y-3 rounded-control border border-hairline p-3"><div className="grid gap-3 sm:grid-cols-2">{([["component", "计费名称"], ["unit", "计量单位"], ["path", "用量路径"], ["bound", "验证过的最大用量"]] as const).map(([key, label]) => <label key={key} className="block text-xs text-ink-secondary">{t(label)}<Input aria-label={t("{label} {index}", { label: t(label), index: index + 1 })} className="mt-2" value={row[key]} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} /></label>)}</div><div className="flex items-center justify-between gap-3"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" aria-label={t("没有这项用量时按 0 {index}", { index: index + 1 })} checked={row.zero} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, zero: event.target.checked } : item))} />{t("没有这项用量时按 0")}</label><Button type="button" variant="ghost" size="icon" aria-label={t("移除计费项目 {index}", { index: index + 1 })} disabled={disabled} onClick={() => setRows(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div></div>)}</div>)}
+    {section("怎么计费", "每一行是一项计费。名称以后要和价格里的组件一致，例如 input_tokens。用量路径是供应商返回用量里的位置，例如 /input_tokens。", <div className="space-y-3"><div className="flex justify-end"><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { component: "", unit: "", path: "", zero: false, bound: "" }])}><Plus aria-hidden="true" />{t("添加计费项目")}</Button></div>{!rows.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加计费项目。对话常见的是输入和输出 token。")}</p>}{rows.map((row, index) => <div key={index} className="space-y-3 rounded-control border border-hairline p-3"><div className="grid gap-3 sm:grid-cols-2">{([["component", "计费名称"], ["unit", "计量单位"], ["path", "用量路径"], ["bound", "验证过的最大用量"]] as const).map(([key, label]) => <label key={key} className="block text-xs text-ink-secondary">{t(label)}<Input aria-label={t("{label} {index}", { label: t(label), index: index + 1 })} className="mt-2" value={row[key]} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} /></label>)}</div><div className="flex items-center justify-between gap-3"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" aria-label={t("没有这项用量时按 0 {index}", { index: index + 1 })} checked={row.zero} disabled={disabled} onChange={event => setRows(rows.map((item, i) => i === index ? { ...item, zero: event.target.checked } : item))} />{t("没有这项用量时按 0")}</label><Button type="button" variant="ghost" size="icon" aria-label={t("移除计费项目 {index}", { index: index + 1 })} disabled={disabled} onClick={() => setRows(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div></div>)}</div>)}
     <details className="rounded-control border border-hairline p-4" open={advancedOpen || undefined}><summary className="cursor-pointer text-sm font-medium">{t("特殊规则（一般不用填）")}</summary><p className="mb-4 mt-2 text-xs leading-6 text-ink-mute">{t("只有用量里有一部分被重复计算时再填写。参数名不用在这里配置。")}</p><div className="grid gap-4 sm:grid-cols-2">{["subtract_paths"].map(key => <div key={key} className="min-w-0 sm:col-span-2">{render(key)}</div>)}</div></details>
   </fieldset>;
 }

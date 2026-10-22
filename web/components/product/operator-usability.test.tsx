@@ -171,3 +171,19 @@ it("restores deep-link filters and accepts only same-operator return destination
   window.history.replaceState(null, "", "/manage/operator-one/customers?record=customer-a&returnTo=https%3A%2F%2Foutside.test");
   expect(subjectReturnURL("operator-one", "customers")).toBe("/manage/operator-one/customers");
 });
+
+it("opens a public model from the list only after a route exists", async () => {
+  const closed = { id: "gpt", version: 3, values: { display_name: "GPT Sol", enabled: false, route_configured: false, capabilities: ["对话"] } };
+  const ready = { id: "ready", version: 4, values: { display_name: "Ready Chat", enabled: false, route_configured: true, capabilities: ["对话"] } };
+  const posts: unknown[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") { posts.push(JSON.parse(String(init.body))); return response({ id: "ready", status: "saved" }); }
+    return response({});
+  }));
+  show(<ResourceCollection operatorID="operator-one" resource="catalog" page={page([closed, ready], { columns: [{ key: "display_name", label: "名称", kind: "text" }, { key: "enabled", label: "开放模型", kind: "boolean", help: "在列表里打开后，客户才能调用。没有配置路由时不能打开。" }] })} />);
+  const closedSwitch = within(screen.getByRole("row", { name: /gpt/ })).getByRole("switch", { name: "开放模型" });
+  expect((closedSwitch as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText("还没有配置路由，不能开放")).toBeTruthy();
+  fireEvent.click(within(screen.getByRole("row", { name: /ready/ })).getByRole("switch", { name: "开放模型" }));
+  await waitFor(() => expect(posts).toEqual([{ enabled: true, expected_version: 4 }]));
+});

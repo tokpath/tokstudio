@@ -85,7 +85,7 @@ function priceOperation(configuration:JSONValue):Operation{return {name:"price",
 function priceConfig():JSONValue{return {action:"price",evidence:"verified-notice",price:{id:"price-new",model_id:"model-one",scope:{kind:"retail",seller_id:"operator-one"},layer:"regular",effective_at:"2026-12-01T00:00:00Z",rule:{mode:"manual",components:[{key:"input_tokens",unit:"token",per:"1000000",rate:"1.000000000000000001",tiers:[]}]},published:true},provider_extension:{exact:"0.000000000000000000000001"}};}
 function referenceFetch(){return vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/")?{items:[{value:"model-one",label:"业务模型一"}]}:{id:"saved",status:"published"}),{status:200}));}
 
-it("edits component and progressive tier prices as exact strings while retaining extension fields",async()=>{
+it("edits component and progressive tier prices as exact strings and drops unknown fields",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
   fireEvent.change(screen.getByLabelText(/^基础单价/),{target:{value:"0.000000000000000000000001"}});
   fireEvent.click(screen.getByRole("button",{name:"添加阶梯",exact:true}));
@@ -96,7 +96,7 @@ it("edits component and progressive tier prices as exact strings while retaining
   const call=fetch.mock.calls.find(call=>call[1]?.method==="POST")!;
   const payload=JSON.parse(String(call[1]?.body));
   expect(payload.configuration.price.rule.components[0]).toEqual({key:"input_tokens",unit:"token",per:"1000000",rate:"0.000000000000000000000001",tiers:[{from:"0",rate:"0.123456789012345678901234"}]});
-  expect(payload.configuration.provider_extension).toEqual({exact:"0.000000000000000000000001"});
+  expect(payload.configuration.provider_extension).toBeUndefined();
 });
 
 it("locates an invalid tier without submitting or rounding its amount",async()=>{
@@ -236,7 +236,7 @@ it("keeps the default follow wildcard available beside model references",async()
   fireEvent.change(model,{target:{value:"*"}});
   const configuration=JSON.parse((screen.getByLabelText("完整技术配置 JSON")as HTMLTextAreaElement).value);
   expect(configuration.price.model_id).toBe("*");
-  expect(configuration.provider_extension.exact).toBe("0.000000000000000000000001");
+  expect(configuration.provider_extension).toBeUndefined();
 });
 
 it("never prefills secrets from records and omits untouched optional secrets instead of clearing them",async()=>{
@@ -354,16 +354,31 @@ it("reads the locked EVM asset for FX visibility even when no money currency fie
   expect(screen.getByLabelText(/实际估值来源/,{selector:"input"})).toBeTruthy();
 });
 
-it("asks only for a public model's name, capabilities, and whether it is enabled", () => {
+it("asks only for a public model's name and capabilities", () => {
   show({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
-  const openModel = screen.getByRole("radiogroup", { name: "开放模型" });
-  expect(openModel.textContent).toContain("是");
-  expect(openModel.textContent).toContain("否");
+  expect(screen.queryByRole("radiogroup", { name: "开放模型" })).toBeNull();
   expect(screen.getByLabelText("客户看到的模型名称", { exact: true })).toBeTruthy();
+  expect(screen.getByText("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "怎么计费" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "保存前确认" })).toBeNull();
   fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
   const saved = JSON.parse((screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement).value);
   expect(saved.model.capabilities).toEqual([{ operation: "chat" }]);
+  expect(saved.model.enabled).toBeUndefined();
+});
+
+it("lets a model form be closed when the submit result is unknown", async () => {
+  const close = vi.fn(), blocked = vi.fn();
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("connection lost")));
+  mount({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] }, { onClose: close, onAbandon: close, onBlockedChange: blocked });
+  fireEvent.change(screen.getByLabelText("公开模型标识", { exact: true }), { target: { value: "gpt-sol" } });
+  fireEvent.change(screen.getByLabelText("客户看到的模型名称", { exact: true }), { target: { value: "GPT Sol" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "添加公开模型", exact: true }));
+  await screen.findByRole("button", { name: "放弃并关闭", exact: true });
+  expect(blocked).toHaveBeenLastCalledWith(false);
+  expect((screen.getByRole("button", { name: "关闭", exact: true }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "放弃并关闭", exact: true }));
+  expect(close).toHaveBeenCalled();
 });

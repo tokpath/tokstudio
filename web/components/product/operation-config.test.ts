@@ -8,7 +8,7 @@ it("omits fields belonging to the other pricing mode without losing precise foll
   const value: JSONValue = { action: "price", price: { id: "follow", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one", buyer_id: "stale-buyer" }, layer: "regular", effective_at: "2026-12-01T00:00:00Z", rule: { mode: "follow", components: [{ key: "stale" }], follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" }, extension: "preserved" }, published: true } };
   const prepared = prepareConfiguration(value, schema) as { price: { scope: object; rule: object } };
   expect(prepared.price.scope).toEqual({ kind: "retail", seller_id: "operator-one" });
-  expect(prepared.price.rule).toEqual({ mode: "follow", follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" }, extension: "preserved" });
+  expect(prepared.price.rule).toEqual({ mode: "follow", follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" } });
 });
 it("checks tier continuity using exact 24 digit decimals", () => {
   const value: JSONValue = { price: { layer: "regular", rule: { mode: "manual", components: [{ key: "quantity", per: "1", tiers: [{ from: "0", to: "0.000000000000000000000001", rate: "1" }, { from: "0.000000000000000000000002", rate: "1" }] }] } } };
@@ -34,9 +34,10 @@ it("validates fractional capability quantities and drops parameter lists that ar
   expect(capability.max_input_bytes).toBeUndefined();
   expect(capability.parameter_constraints).toBeUndefined();
 });
-it("keeps a public model to its name, checked capabilities, and enabled flag", () => {
-  const prepared = prepareConfiguration({ model: { id: "public", display_name: "对话", enabled: false, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0 }, configurationSchema(catalogOperation)!);
+it("keeps a public model to its name and checked capabilities", () => {
+  const prepared = prepareConfiguration({ model: { id: "public", display_name: "对话", enabled: false, route_configured: true, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0, provider_extension: { exact: "1" } }, configurationSchema(catalogOperation)!);
   expect(() => validateModelConfiguration(prepared)).not.toThrow();
+  expect(prepared).toEqual({ model: { id: "public", display_name: "对话", capabilities: [{ operation: "chat" }] }, expected_version: 0 });
   expect(prepared).toMatchObject({ model: { capabilities: [{ operation: "chat" }] } });
   const capability = (prepared as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
   expect(capability.usage_rules).toBeUndefined();

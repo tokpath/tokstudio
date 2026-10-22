@@ -111,6 +111,10 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 410, "result_unavailable", "临时结果已到期或暂不可回读，请查看保留状态", false
 	case errors.Is(err, catalog.ErrChangeNotice):
 		status, code, msg, retry = 409, "advance_notice_required", "普通调价或模型变更必须配置提前通知规则，并安排满足提前量的生效时间", false
+	case errors.Is(err, catalog.ErrPublicRoute):
+		status, code, msg, retry = 409, "public_route_required", "还没有可用的路由，不能对客户开放这个模型", false
+	case errors.Is(err, catalog.ErrPublicCapability):
+		status, code, msg, retry = 409, "public_capability_required", "请先勾选至少一项能力，再开放这个模型", false
 	case errors.Is(err, remediation.ErrNotReady), errors.Is(err, operations.ErrNotReady), errors.Is(err, incentives.ErrNotReady), errors.Is(err, modelruntime.ErrUnsupported), errors.Is(err, commerce.ErrNotReady), errors.Is(err, payments.ErrNotConfigured):
 		status, code, msg, retry = 409, "pending_configuration", "相关能力尚未完成配置或验证，请联系当前经营方", false
 	case errors.Is(err, remediation.ErrPaymentMismatch):

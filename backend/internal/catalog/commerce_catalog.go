@@ -43,6 +43,8 @@ var ErrCatalogForbidden = errors.New("catalog action outside operator authority"
 var ErrCatalogVersion = errors.New("catalog version conflict")
 var ErrInvalidInput = errors.New("invalid catalog input")
 var ErrModelNotVisible = errors.New("model not visible to operator")
+var ErrPublicRoute = errors.New("public capability has no verified healthy upstream")
+var ErrPublicCapability = errors.New("public model has no capability")
 
 type CatalogOperator struct{ ID, BrandID, ParentID, Kind string }
 type OperatorDirectory interface {
@@ -125,6 +127,35 @@ func (s CommerceCatalog) mutate(ctx context.Context, fn func(CommerceCatalog) er
 func (s CommerceCatalog) SavePublicModel(ctx context.Context, actor string, in PublicModel, expected uint64) error {
 	return s.mutate(ctx, func(tx CommerceCatalog) error { return tx.savePublicModel(ctx, actor, in, expected) })
 }
+
+// SetPublicModelEnabled is the list switch. It changes only whether customers
+// can call the model, and it takes effect immediately. Other edits still use
+// the advance-notice path.
+func (s CommerceCatalog) SetPublicModelEnabled(ctx context.Context, actor, id string, enabled bool, expected uint64) error {
+	if !s.platform(actor) {
+		return ErrCatalogForbidden
+	}
+	return s.mutate(ctx, func(tx CommerceCatalog) error {
+		m, e := tx.PublicModel(ctx, id)
+		if e != nil {
+			return e
+		}
+		if m.Enabled == enabled {
+			return nil
+		}
+		if m.Version != expected {
+			return ErrCatalogVersion
+		}
+		m.Enabled = enabled
+		return tx.savePublicModel(context.WithValue(ctx, catalogApplyKey{}, true), actor, m, expected)
+	})
+}
+
+func (s CommerceCatalog) EnabledRouteModelIDs(ctx context.Context) ([]string, error) {
+	var ids []string
+	e := s.DB.WithContext(ctx).Table("tokenhub_upstreams").Where("definition->>'enabled' = ?", "true").Distinct().Pluck("public_model_id", &ids).Error
+	return ids, e
+}
 func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in PublicModel, expected uint64) error {
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
@@ -173,11 +204,11 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 				}
 			}
 			if !found {
-				return errors.New("public capability has no verified healthy upstream")
+				return ErrPublicRoute
 			}
 		}
 		if len(in.Capabilities) == 0 {
-			return modelruntime.ErrUnsupported
+			return ErrPublicCapability
 		}
 	}
 	in.Version = expected + 1

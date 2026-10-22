@@ -121,9 +121,13 @@ test("technical administrator configures a real provider, verified model and rou
     expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].credential_id).toBe(credential.id);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: revisedModelName }));
-    await dialog.getByRole("radiogroup", { name: /开放模型/ }).getByRole("radio", { name: "是", exact: true }).check();
-    await submit(tech, dialog, "编辑模型", `${base}/catalog`); await close(dialog);
+    const modelRow = tech.getByRole("row").filter({ hasText: revisedModelName });
+    const toggle = modelRow.getByRole("switch", { name: "开放模型" });
+    await expect(toggle).toBeEnabled();
+    const opened = tech.waitForResponse(response => new URL(response.url()).pathname.endsWith("/availability") && response.request().method() === "POST");
+    await toggle.click();
+    expect((await opened).status()).toBe(200);
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
     expect((await tech.request.get(`${base}/payments`)).status()).toBe(403);
 

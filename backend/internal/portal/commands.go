@@ -342,6 +342,10 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		a.routeLimitsAction(c, op, actor)
 		return
 	}
+	if resource == "catalog" && action == "availability" {
+		a.publicModelAvailability(c, op)
+		return
+	}
 	if resource == "routing" && action == "policy" {
 		a.routingAction(c, op, actor)
 		return
@@ -444,6 +448,22 @@ func (a *Application) operatorRowCommand(c *gin.Context) {
 		fail(c, 404, "not_found", "经营命令不存在", false)
 	}
 }
+func (a *Application) publicModelAvailability(c *gin.Context, op organization.Operator) {
+	var in struct {
+		Enabled  bool   `json:"enabled"`
+		Expected uint64 `json:"expected_version"`
+	}
+	if !body(c, &in) {
+		return
+	}
+	ctx := c.Request.Context()
+	raw, e := a.command(c, "catalog-availability:"+op.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
+		e := a.Catalog.WithDB(tx).SetPublicModelEnabled(ctx, op.ID, c.Param("id"), in.Enabled, in.Expected)
+		return commandResult(c.Param("id"), "saved"), e
+	})
+	jsonResponse(c, raw, e)
+}
+
 func (a *Application) catalogResource(c *gin.Context, op organization.Operator, actor, resource string, p gin.H, base string) bool {
 	ctx := c.Request.Context()
 	items := []any{}
@@ -454,11 +474,24 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
-		for _, row := range rows {
-			items = append(items, entity(row.ID, "configured", int64(row.Version), row))
+		routedIDs, routeErr := a.Catalog.EnabledRouteModelIDs(ctx)
+		if routeErr != nil {
+			handleError(c, routeErr)
+			return true
 		}
-		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
-		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、enabled、capabilities（勾选的调用能力）、expected_version")}}}
+		routed := map[string]bool{}
+		for _, id := range routedIDs {
+			routed[id] = true
+		}
+		for _, row := range rows {
+			item := entity(row.ID, "configured", int64(row.Version), row)
+			item["values"].(gin.H)["route_configured"] = routed[row.ID]
+			items = append(items, item)
+		}
+		openColumn := col("enabled", "开放模型", "boolean")
+		openColumn["help"] = "在列表里打开后，客户才能调用。没有配置路由时不能打开。"
+		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("capabilities", "能力", "text"), openColumn}
+		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，并勾选可以调用的能力。是否对客户开放在列表里切换。没有配置路由时不能打开。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、capabilities（勾选的调用能力）、expected_version。是否开放不在这里修改。")}}}
 	case "providers":
 		rows, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -599,6 +632,17 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		if in.Emergency {
 			out, e := controller.EmergencyDisablePublicModel(ctx, op.ID, in.Model.ID, in.Evidence, in.Expected)
 			return commandResult(out.ID, out.State), e
+		}
+		// Opening and closing happen on the list switch. Saving the form keeps
+		// the current availability, and a new model stays closed.
+		if in.Expected == 0 {
+			in.Model.Enabled = false
+		} else {
+			old, e := cat.PublicModel(ctx, in.Model.ID)
+			if e != nil {
+				return nil, e
+			}
+			in.Model.Enabled = old.Enabled
 		}
 		if in.Expected > 0 && in.EffectiveAt.IsZero() {
 			e := cat.SavePublicModel(ctx, op.ID, in.Model, in.Expected)

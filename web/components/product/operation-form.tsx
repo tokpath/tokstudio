@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { PaymentAction } from "./customer-plans";
 import { closePaymentWindow, reservePaymentWindow, submitPaymentForm } from "@/lib/payment-window";
 import { ErrorPanel, Notice, useCommand } from "./shared";
-import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
+import { configDefaults, configurationSchema, ConfigurationError, prepareConfiguration, retainKnownFields, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import { ConfigurationEditor } from "./operation-config-editor";
 
 function nested(value: unknown, path: string): unknown { return path.split(".").reduce<unknown>((current, key) => current !== null && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined, value); }
@@ -55,7 +55,8 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
       if (row && /\/routes$/.test(operation.path)) source = { route: row.values, expected_version: row.version ?? 0 };
       if (row && /\/providers$/.test(operation.path) && operation.name === "model") source = { supplier_model: row.values, expected_version: row.version ?? 0 };
       const defaults = configDefaults(schema) || {};
-      return JSON.stringify(source === undefined ? defaults : mergeValues(defaults, JSONValueSchema.parse(source)));
+      const merged = source === undefined ? defaults : mergeValues(defaults, JSONValueSchema.parse(source));
+      return JSON.stringify(retainKnownFields(merged, schema));
     }
   }
   if ((fieldName(field) === "expected_version" || fieldName(field) === "version") && row?.version !== undefined) return String(row.version);
@@ -98,9 +99,10 @@ type OperationFormProps = {
   embedded?: boolean;
   onBlockedChange?: (blocked: boolean) => void;
   onClose?: () => void;
+  onAbandon?: () => void;
 };
 
-export function OperationForm({ operation, row, operatorID, initialValues, lockedFields = [], embedded = false, onBlockedChange, onClose }: OperationFormProps) {
+export function OperationForm({ operation, row, operatorID, initialValues, lockedFields = [], embedded = false, onBlockedChange, onClose, onAbandon }: OperationFormProps) {
   const { t, locale } = useI18n();
   const path = operation.path.replaceAll("{id}", encodeURIComponent(row?.id || "")).replaceAll("{operator_id}", encodeURIComponent(operatorID || ""));
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(operation.fields.map(field => [field.name, initial(field, operation, row, initialValues, operatorID)])));
@@ -112,21 +114,26 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
   const [invalidConfigPath, setInvalidConfigPath] = useState<string>();
   const formRef = useRef<HTMLFormElement>(null);
   const command = useCommand(path, CommandResultSchema, operation.method);
-  const blocked = command.busy || command.unresolved;
-  const disabled = blocked || !!command.result;
+  // Money movements stay on the panel until the same attempt is verified.
+  // Model setup can be abandoned when the result is unknown.
+  const canLeave = /\/(catalog|providers|routes)$/.test(operation.path);
+  const frozen = command.busy || command.unresolved || !!command.result;
+  const dismissLocked = command.busy || (command.unresolved && !canLeave);
+  const disabled = frozen;
   const scoped = operatorID ? path.startsWith(`/api/v1/operators/${encodeURIComponent(operatorID)}/`) : path.startsWith("/api/v1/me/");
   const fields = operation.fields.filter(field => visible(field, values, row));
   const groups = Array.from(new Set(fields.map(group)));
   const schema = configurationSchema(operation, operatorID);
   const objectName = row?.presentation?.title || row && ["display_name", "name", "plan_name", "customer_name", "title"].map(key => row.values[key]).find(value => typeof value === "string" && value);
 
-  useEffect(() => { onBlockedChange?.(blocked); }, [blocked, onBlockedChange]);
+  useEffect(() => { onBlockedChange?.(dismissLocked); }, [dismissLocked, onBlockedChange]);
   useEffect(() => {
-    if (!blocked) return;
+    if (!command.busy && !command.unresolved) return;
     const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
-  }, [blocked]);
+  }, [command.busy, command.unresolved]);
+  function leaveUnresolved() { command.reset(); (onAbandon || onClose)?.(); }
   function focusField(name?: string, configPath?: string) {
     const configTarget = configPath && Array.from(formRef.current?.querySelectorAll<HTMLElement>("[data-config-path]") || []).find(element => element.dataset.configPath === configPath);
     const target = Array.from(formRef.current?.querySelectorAll<HTMLElement>("[data-command-field]") || []).find(element => element.dataset.commandField === name);
@@ -189,7 +196,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       else closePaymentWindow(payWindow);
     } catch (error) { const configPath = error instanceof ConfigurationError ? error.fieldPath : undefined; setValidationError(error instanceof ConfigurationError ? error : error instanceof Error ? error.message : "请检查输入"); setInvalidField(currentField); setInvalidConfigPath(configPath); focusField(currentField, configPath); }
   }
-  const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0">{!embedded && <><p className="th-eyebrow mb-2 text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2></>}{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && !embedded && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={blocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
+  const content = <><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0">{!embedded && <><p className="th-eyebrow mb-2 text-brand-emphasis">{t("业务办理")}</p><h2 className="text-xl font-semibold">{t(operation.label)}</h2></>}{operation.description && <p className="mt-2 text-sm leading-7 text-ink-secondary">{t(operation.description)}</p>}{objectName && !embedded && <p className="mt-3 text-sm text-ink-secondary">{t("办理对象：")}<span className="font-medium text-ink">{String(objectName)}</span></p>}</div>{onClose && <Button type="button" variant="ghost" size="sm" disabled={dismissLocked} onClick={onClose}>{command.result ? t("返回记录") : t("关闭")}</Button>}</div>
     <ol aria-label={t("办理步骤")} className="th-stepper"><li className="flex items-center gap-2 text-brand-emphasis"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft">{command.result ? <Check className="size-3" /> : "1"}</span>{t("填写事项")}</li><li className="flex items-center gap-2 text-ink-secondary"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">2</span>{t("核对影响")}</li><li className={`flex items-center gap-2 ${command.result ? "text-success" : "text-ink-mute"}`}><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas">{command.result ? <Check className="size-3" /> : "3"}</span>{command.result ? t("已完成") : t("提交办理")}</li></ol>
     <form ref={formRef} onSubmit={submit} noValidate className="space-y-7">
       {!command.result && groups.map(name => <section key={name} className="space-y-4">{!(fields.length === 1 && fields[0].kind === "json") && <div><h3 className="text-sm font-semibold">{t(name)}</h3><p className="mt-1 text-xs leading-6 text-ink-mute">{t(groupIntro(name, fields.filter(field => group(field) === name)))}</p></div>}<div className="grid gap-5 sm:grid-cols-2">{fields.filter(field => group(field) === name).map(field => <div key={field.name} data-command-field={field.name} className={field.kind === "json" || field.kind === "textarea" || (field.kind === "csv" || field.name === "grants") && field.options ? "min-w-0 sm:col-span-2" : "min-w-0"}>
@@ -200,9 +207,9 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
       {!command.result && <div className="th-review"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-brand-emphasis" aria-hidden="true" />{t("提交前核对")}</h3><Review fields={fields} values={values} files={files} referenceLabels={referenceLabels} /><p className="mt-3 text-xs leading-6 text-ink-mute">{t("本次操作将保存在当前经营范围。服务器核实成功后，最新结果会同步到业务记录。")}</p>{operation.confirmation && <label className="mt-4 flex items-start gap-3 border-t border-hairline pt-4 text-sm leading-7"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} className="mt-2 size-4 shrink-0" disabled={disabled} />{t(operation.confirmation)}</label>}</div>}
       {validationError && <div role="alert" className="rounded-control border border-danger/30 p-4 text-sm text-danger"><p>{validationError instanceof ConfigurationError ? validationError.localized(locale) : t(validationError)}</p>{invalidField && <button type="button" className="mt-2 underline underline-offset-4" onClick={() => focusField(invalidField, invalidConfigPath)}>{t("定位需要修改的字段")}</button>}</div>}
       {!!command.error && <ErrorPanel error={command.error} />}
-      {command.unresolved && <Notice><p className="font-medium text-ink">{t("本次办理结果待核实")}</p><p>{t("请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。")}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">{t("查看核对编号")}</summary><span className="mt-1 block break-all font-mono">{command.actionKey}</span></details></Notice>}
+      {command.unresolved && <Notice><p className="font-medium text-ink">{t("本次办理结果待核实")}</p>{canLeave ? <p>{t("可以重试原来的内容。写错了或改变主意时，放弃并关闭，回到列表后重新填写。如果列表里已经有这条记录，不要用同一个标识再添加一次。")}</p> : <p>{t("请保持此办理面板，查询业务记录或重试本次操作。重试会复用原提交内容与同一操作编号，避免重复办理。")}</p>}<div className="mt-3 flex flex-wrap items-center gap-3">{canLeave && <Button type="button" variant="outline" size="sm" onClick={leaveUnresolved}>{t("放弃并关闭")}</Button>}<details className="text-xs"><summary className="cursor-pointer">{t("查看核对编号")}</summary><span className="mt-1 block break-all font-mono">{command.actionKey}</span></details></div></Notice>}
       {command.result && <div role="status" className="rounded-control border border-success/30 bg-success/5 p-5"><CheckCircle2 className="mb-3 size-6 text-success" aria-hidden="true" /><h3 className="font-semibold">{t("{operation}已受理", { operation: t(operation.label) })}</h3><p className="mt-2 text-sm leading-7 text-ink-secondary">{t(command.result.message || "本次办理已保存。返回业务记录即可查看最新进展及后续可办理事项。")}</p>{command.result.access_url && <AccessHandoff url={command.result.access_url} email={command.result.email} password={values.initial_password} requiresPasswordChange={command.result.requires_password_change} />}</div>}
-      <div className="th-form-actions"><Button type="submit" disabled={command.busy || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? t("原提交内容已锁定，等待核实。") : t("请先核对填写内容与实际凭证。")}</p>}</div>
+      <div className="th-form-actions"><Button type="submit" disabled={command.busy || !scoped || !!command.result}>{command.busy ? t("正在提交，请稍候…") : command.unresolved ? t("重试本次操作") : command.result ? t("本次操作已完成，关闭后查看最新记录") : t(operation.label)}</Button>{!command.result && <p className="text-xs leading-6 text-ink-mute">{command.busy ? t("正在保存，请保持页面。") : command.unresolved ? (canLeave ? t("可以放弃并关闭，回到列表后重新填写。") : t("原提交内容已锁定，等待核实。")) : t("请先核对填写内容与实际凭证。")}</p>}</div>
     </form>{command.result?.order && <PaymentAction order={command.result.order} onChangeMethod={operation.name === "checkout" ? () => command.reset() : undefined} />}</>;
   return embedded ? <section className="min-w-0">{content}</section> : <Card className="my-5">{content}</Card>;
 }
@@ -238,7 +245,7 @@ function ConfigurationReview({ value }: { value: string }) {
   catch { return <p className="text-sm text-danger">{t("业务配置尚未完整，请检查上方字段。")}</p>; }
   const model = parsed.model as Record<string, JSONValue> | undefined, route = parsed.route as Record<string, JSONValue> | undefined, supplier = parsed.supplier_model as Record<string, JSONValue> | undefined, price = parsed.price as Record<string, JSONValue> | undefined;
   if (model) {
-    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{String(model.display_name || t("待填写模型名称"))}</p><p>{t("公开模型")}{model.enabled ? t("将开放") : t("保持停用")} · {Array.isArray(model.capabilities) ? model.capabilities.length : 0} {t("项已登记能力")}</p></div>;
+    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{String(model.display_name || t("待填写模型名称"))}</p><p>{Array.isArray(model.capabilities) ? model.capabilities.length : 0} {t("项已登记能力")}</p><p>{t("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")}</p></div>;
   }
   if (route) {
     const strategy = ({ priority: "固定优先级", lowest_latency: "已验证最低延迟", lowest_cost: "已验证最低成本" } as Record<string, string>)[String(route.strategy || "")] || String(route.strategy || "");

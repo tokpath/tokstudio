@@ -50,13 +50,14 @@ func publicOperation(op modelruntime.Operation) bool {
 	}
 }
 func validPublicCapabilities(capabilities []modelruntime.Capability) bool {
-	seen := map[modelruntime.Operation]bool{}
 	for _, c := range capabilities {
-		if !publicOperation(c.Operation) || seen[c.Operation] {
+		if !publicOperation(c.Operation) {
 			return false
 		}
-		seen[c.Operation] = true
 	}
+	// The same operation may be stored twice, once for a streamed call and once
+	// without streaming. The form only checks the operation; the upstream copy
+	// still uses these records to decide which request shape it can carry.
 	return true
 }
 func operationOffered(capabilities []modelruntime.Capability, r modelruntime.Request) bool {

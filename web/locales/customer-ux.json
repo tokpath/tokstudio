@@ -179,10 +179,10 @@
     "ja": "新規作成時に一意の番号が生成され、編集時は元の番号が保持されます。価格またはルートを識別する番号で、公開モデル ID とは別です。モデルの能力は変更されません。",
     "ru": "При создании формируется уникальный ID, который сохраняется при редактировании. Он обозначает эту цену или маршрут, отличается от публичного ID модели и не меняет её возможности."
   },
-  "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称；供应商模型名在上游路由中单独配置，不要把密钥或供应商地址填在这里。": {
-    "en": "This is the public model ID used in application requests, for example text-pro-v1. Choose a stable, recognizable name. Configure the provider model name separately in the upstream route; do not enter credentials or provider URLs here.",
-    "ja": "アプリのリクエストで指定する公開モデル ID です。例：text-pro-v1。安定した識別しやすい名前を決めてください。プロバイダーのモデル名は上流ルートで別途設定します。ここにキーやプロバイダーの URL を入力しないでください。",
-    "ru": "Это публичный ID модели для запросов приложения, например text-pro-v1. Выберите стабильное понятное имя. Имя модели поставщика задаётся отдельно в вышестоящем маршруте. Не вводите здесь ключи или адреса поставщика."
+  "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称。供应商模型名称写在模型供应商页，不要把密钥或供应商地址填在这里。": {
+    "en": "This is the public model ID used in application requests, for example text-pro-v1. Choose a stable, recognizable name. The supplier model name belongs on the supplier page. Do not enter secrets or supplier addresses here.",
+    "ja": "アプリのリクエストで指定する公開モデル ID です。例：text-pro-v1。安定して見分けやすい名前にしてください。供給元のモデル名は供給元のページに書きます。ここに鍵や供給元のアドレスは書きません。",
+    "ru": "Это публичный ID модели в запросе приложения, например text-pro-v1. Выберите стабильное понятное имя. Имя модели поставщика указывается на странице поставщика. Не вводите здесь секреты или адреса поставщика."
   },
   "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。": {
     "en": "Enter the verified model identity and revision, for example vendor-model-2026-01. The upstream route must match the public model identity so different models or revisions are not mixed under one public model.",

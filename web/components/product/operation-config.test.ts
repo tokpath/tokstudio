@@ -20,23 +20,32 @@ it("requires a finite promotion end time and an unbounded final tier", () => {
 });
 
 function verifiedModel(): JSONValue {
-  return { model: { id: "verified-model", display_name: "业务模型", identity: "revision-one", enabled: false, capabilities: [{ operation: "image_generation", streaming: false, input_types: ["text"], parameters: ["temperature"], max_input_bytes: 1024, billable_bounds: { image: "1/3" }, usage_rules: [{ component: "image", unit: "image", path: "/images" }], parameter_constraints: { temperature: { min: "-1/3", max: "0.333333333333333333333333333333" } }, evidence_id: "probe-real", verified_at: "2026-10-18T00:00:00Z", parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true }] }, expected_version: 3 };
+  return { supplier_model: { id: "supplier-model", credential_id: "credential", provider_id: "provider", provider: "openai", model: "vendor-model", enabled: true, capabilities: [{ operation: "image_generation", streaming: false, input_types: ["text"], parameters: ["temperature"], max_input_bytes: 1024, billable_bounds: { image: "1/3" }, usage_rules: [{ component: "image", unit: "image", path: "/images" }], parameter_constraints: { temperature: { min: "-1/3", max: "0.333333333333333333333333333333" } }, evidence_id: "probe-real", verified_at: "2026-10-18T00:00:00Z", parameters_verified: true, usage_verified: true, bounds_verified: true, recovery_verified: true }], prices: [{ key: "image", unit: "image", per: "1", rate: "0.1" }] }, expected_version: 3 };
 }
 const catalogOperation: Operation = { name: "save", label: "维护公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] };
+const supplierOperation: Operation = { name: "model", label: "配置供应商模型", method: "POST", path: "/api/v1/operators/operator-one/providers", fields: [] };
 it("validates fractional capability quantities and drops parameter lists that are not used for the estimate", () => {
-  const value = prepareConfiguration(verifiedModel(), configurationSchema(catalogOperation)!);
+  const value = prepareConfiguration(verifiedModel(), configurationSchema(supplierOperation)!);
   expect(() => validateModelConfiguration(value)).not.toThrow();
-  expect(value).toMatchObject({ model: { capabilities: [{ billable_bounds: { image: "1/3" } }] } });
-  const capability = (value as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
+  expect(value).toMatchObject({ supplier_model: { capabilities: [{ billable_bounds: { image: "1/3" } }] } });
+  const capability = (value as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
   expect(capability.parameters).toBeUndefined();
   expect(capability.input_types).toBeUndefined();
   expect(capability.max_input_bytes).toBeUndefined();
   expect(capability.parameter_constraints).toBeUndefined();
 });
+it("keeps a public model to its name, checked capabilities, and enabled flag", () => {
+  const prepared = prepareConfiguration({ model: { id: "public", display_name: "对话", enabled: false, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0 }, configurationSchema(catalogOperation)!);
+  expect(() => validateModelConfiguration(prepared)).not.toThrow();
+  expect(prepared).toMatchObject({ model: { capabilities: [{ operation: "chat" }] } });
+  const capability = (prepared as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
+  expect(capability.usage_rules).toBeUndefined();
+  expect(capability.evidence_id).toBeUndefined();
+});
 it.each(["-1/2", "1/0", "not-a-number"])("rejects an invalid nonnegative capability bound %s", bound => {
-  const value = verifiedModel() as { model: { capabilities: { billable_bounds: Record<string, string> }[] } };
-  value.model.capabilities[0].billable_bounds.image = bound;
-  expect(() => prepareConfiguration(value, configurationSchema(catalogOperation)!)).toThrow("有效分数");
+  const value = verifiedModel() as { supplier_model: { capabilities: { billable_bounds: Record<string, string> }[] } };
+  value.supplier_model.capabilities[0].billable_bounds.image = bound;
+  expect(() => prepareConfiguration(value, configurationSchema(supplierOperation)!)).toThrow("有效分数");
 });
 it("requires complete nested pricing objects and preserves an explicit absent promotion end", () => {
   expect(() => prepareConfiguration({ action: "price" }, configurationSchema(operation)!)).toThrow("价目与适用范围");
@@ -46,21 +55,21 @@ it("requires complete nested pricing objects and preserves an explicit absent pr
   expect(prepared).toMatchObject({ price: { ends_at: null } });
 });
 it("drops the old confirmation fields and still accepts a capability that only has metering", () => {
-  const value = verifiedModel() as { model: { capabilities: { usage_verified: boolean }[] } };
-  value.model.capabilities[0].usage_verified = false;
-  const prepared = prepareConfiguration(value, configurationSchema(catalogOperation)!);
+  const value = verifiedModel() as { supplier_model: { capabilities: { usage_verified: boolean }[] } };
+  value.supplier_model.capabilities[0].usage_verified = false;
+  const prepared = prepareConfiguration(value, configurationSchema(supplierOperation)!);
   expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  const capability = (prepared as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
+  const capability = (prepared as { supplier_model: { capabilities: Record<string, unknown>[] } }).supplier_model.capabilities[0];
   expect(capability.usage_verified).toBeUndefined();
   expect(capability.evidence_id).toBeUndefined();
 });
 it("matches the backend rational radix and exponent rules instead of reinterpreting integer fractions as decimal", () => {
-  const value = verifiedModel() as { model: { capabilities: { billable_bounds: Record<string, string> }[] } };
-  const capability = value.model.capabilities[0];
+  const value = verifiedModel() as { supplier_model: { capabilities: { billable_bounds: Record<string, string> }[] } };
+  const capability = value.supplier_model.capabilities[0];
   capability.billable_bounds.image = "0b1/010";
-  const prepared = prepareConfiguration(value, configurationSchema(catalogOperation)!);
+  const prepared = prepareConfiguration(value, configurationSchema(supplierOperation)!);
   expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  expect(prepared).toMatchObject({ model: { capabilities: [{ billable_bounds: { image: "0b1/010" } }] } });
+  expect(prepared).toMatchObject({ supplier_model: { capabilities: [{ billable_bounds: { image: "0b1/010" } }] } });
 });
 it("enforces the published wildcard and model override rules", () => {
   expect(() => validatePriceConfiguration({ price: { model_id: "*", layer: "regular", rule: { mode: "manual" } } })).toThrow("默认规则");

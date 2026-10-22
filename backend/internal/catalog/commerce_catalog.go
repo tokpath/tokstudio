@@ -27,11 +27,17 @@ var credentialNameSchema string
 
 //go:embed commerce_schema.sql
 //go:embed commerce_schema_02_credential_name.sql
+//go:embed commerce_schema_03_supplier_models.sql
 var commerceMigrationFS embed.FS
+
+//go:embed commerce_schema_03_supplier_models.sql
+var supplierModelSchema string
 
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
-func CommerceSchema() string { return commerceSchema + "\n" + credentialNameSchema }
+func CommerceSchema() string {
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema
+}
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
 var ErrCatalogVersion = errors.New("catalog version conflict")
@@ -68,13 +74,14 @@ type UpstreamModel struct {
 	Model         string `json:"model"`
 	CredentialID  string `json:"credential_id"`
 	// Endpoints are exact verified URLs, not customer-controlled base URLs.
-	Endpoints    map[modelruntime.Operation]string `json:"endpoints,omitempty"`
-	Capabilities []modelruntime.Capability         `json:"capabilities"`
-	Enabled      bool                              `json:"enabled"`
-	Healthy      bool                              `json:"healthy"`
-	Priority     int                               `json:"priority"`
-	Routing      RouteLimits                       `json:"routing"`
-	Version      uint64                            `json:"version"`
+	Endpoints       map[modelruntime.Operation]string `json:"endpoints,omitempty"`
+	Capabilities    []modelruntime.Capability         `json:"capabilities"`
+	Enabled         bool                              `json:"enabled"`
+	Healthy         bool                              `json:"healthy"`
+	Priority        int                               `json:"priority"`
+	Routing         RouteLimits                       `json:"routing"`
+	SupplierModelID string                            `json:"supplier_model_id,omitempty"`
+	Version         uint64                            `json:"version"`
 }
 type CredentialView struct {
 	ID          string `json:"id"`
@@ -122,13 +129,17 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
 	}
-	if in.ID == "" || in.Identity == "" || in.DisplayName == "" {
+	in.DisplayName = strings.TrimSpace(in.DisplayName)
+	if in.ID == "" || in.DisplayName == "" {
 		return ErrInvalidInput
 	}
 	if expected > 0 {
 		old, e := s.PublicModel(ctx, in.ID)
 		if e != nil {
 			return e
+		}
+		if in.Identity == "" {
+			in.Identity = old.Identity
 		}
 		if old.Identity != in.Identity {
 			return ErrInvalidInput
@@ -142,11 +153,11 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 				return ErrChangeNotice
 			}
 		}
+	} else if in.Identity == "" {
+		in.Identity = in.ID
 	}
-	for _, c := range in.Capabilities {
-		if !c.Verified() {
-			return modelruntime.ErrUnsupported
-		}
+	if in.Identity == "" || !validPublicCapabilities(in.Capabilities) {
+		return ErrInvalidInput
 	}
 	if in.Enabled {
 		upstreams, e := s.upstreams(ctx, in.ID)
@@ -156,7 +167,7 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 		for _, c := range in.Capabilities {
 			found := false
 			for _, u := range upstreams {
-				if u.Enabled && u.Healthy && u.Identity == in.Identity && coversCapability(u.Capabilities, c) {
+				if u.Enabled && u.Healthy && u.Identity == in.Identity && upstreamOffers(u.Capabilities, c.Operation) {
 					found = true
 					break
 				}
@@ -466,7 +477,7 @@ func (s CommerceCatalog) Routes(ctx context.Context, brand, operator string, r m
 	if e != nil {
 		return nil, e
 	}
-	if !requestSupported(m.Capabilities, r) {
+	if !operationOffered(m.Capabilities, r) {
 		return nil, modelruntime.ErrUnsupported
 	}
 	upstreams, e := s.upstreams(ctx, r.PublicModel)
@@ -633,9 +644,21 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 				q.Bounds[key] = raw
 			}
 		}
-		// Supplier pricing is exact USD and belongs to this provider/upstream
-		// combination. Retail or wholesale multipliers never infer this cost.
-		cost, e := resolver.Resolve(ctx, PriceScope{Kind: "supplier", SellerID: u.ProviderID, BuyerID: u.ID}, r.PublicModel, at)
+		// Supplier USD cost belongs to the supplier model. A route saved before
+		// that page existed still resolves the price book keyed by the upstream.
+		var cost ResolvedPrice
+		if u.SupplierModelID != "" {
+			supplierModel, modelErr := s.SupplierModel(ctx, u.SupplierModelID)
+			if modelErr != nil {
+				return ModelQuote{}, modelErr
+			}
+			if !supplierModel.Enabled {
+				return ModelQuote{}, ErrPriceUnavailable
+			}
+			cost, e = supplierModelPrice(supplierModel, u.ID, r.PublicModel, at)
+		} else {
+			cost, e = resolver.Resolve(ctx, PriceScope{Kind: "supplier", SellerID: u.ProviderID, BuyerID: u.ID}, r.PublicModel, at)
+		}
 		if e != nil {
 			return ModelQuote{}, e
 		}

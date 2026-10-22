@@ -457,8 +457,8 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		for _, row := range rows {
 			items = append(items, entity(row.ID, "configured", int64(row.Version), row))
 		}
-		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("identity", "事实身份", "text"), col("capabilities", "验证能力", "text"), col("enabled", "启用", "boolean")}
-		p["operations"] = []operation{{Name: "save", Label: "维护公开模型与能力证据", Method: "POST", Path: base, Description: "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。", Fields: []field{jsonField("model 对象：id、identity、display_name、enabled、capabilities（调用方式、计量和用量上界）、expected_version")}}}
+		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
+		p["operations"] = []operation{{Name: "save", Label: "维护公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、enabled、capabilities（勾选的调用能力）、expected_version")}}}
 	case "providers":
 		rows, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -466,10 +466,27 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			return true
 		}
 		for _, row := range rows {
-			items = append(items, entity(row.ID, "configured", int64(row.Version), row))
+			item := entity(row.ID, "configured", int64(row.Version), row)
+			values := item["values"].(gin.H)
+			values["record_kind"] = "credential"
+			item["allowed_actions"] = []string{"credential"}
+			items = append(items, item)
 		}
-		p["description"] = "每把供应商密钥都有自己的名称，方便辨认。密钥加密保存，页面不再显示原文。"
-		p["columns"] = []gin.H{col("name", "凭据名称", "text"), col("enabled", "启用", "boolean")}
+		models, e := a.Catalog.AdminSupplierModels(ctx, a.Installation.OperatorID)
+		if e != nil {
+			handleError(c, e)
+			return true
+		}
+		for _, row := range models {
+			item := entity(row.ID, "configured", int64(row.Version), row)
+			values := item["values"].(gin.H)
+			values["record_kind"] = "supplier_model"
+			values["name"] = row.Model
+			item["allowed_actions"] = []string{"model"}
+			items = append(items, item)
+		}
+		p["description"] = "先添加供应商密钥。再为这个供应商登记模型：供应商那边的模型名称、怎么读取用量，以及 USD 成本价。客户零售价仍在模型与定价。"
+		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("model", "供应商模型", "text"), col("enabled", "启用", "boolean")}
 		name := f("name", "凭据名称", "text")
 		name.Help = "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
 		createSecret := f("secret", "供应商密钥", "password")
@@ -480,8 +497,9 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		version := f("expected_version", "当前版本（首次0）", "integer")
 		// The credential id and provider id stay on the saved record so routes keep
 		// using the same key. People do not type them.
-		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}}
-		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}}
+		modelHelp := jsonField("supplier_model：凭据、协议、供应商模型名称、端点、计量、USD 成本价、expected_version")
+		p["operations"] = []operation{{Name: "credential", Label: "添加供应商密钥", Method: "POST", Path: base, Description: "填写名称和密钥。名称用来在列表里辨认这把密钥。", Fields: []field{name, createSecret, enabled, version}}, {Name: "model", Label: "配置供应商模型", Method: "POST", Path: base, Description: "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。", Fields: []field{modelHelp}}}
+		p["row_operations"] = []operation{{Name: "credential", Label: "修改密钥", Method: "POST", Path: base, Description: "可以修改名称或启用状态。密钥留空表示不更换。", Fields: []field{name, editSecret, enabled, optional("id", "凭据", "hidden"), optional("provider_id", "供应商", "hidden"), version}}, {Name: "model", Label: "编辑供应商模型", Method: "POST", Path: base, Description: "修改这个供应商模型的调用、用量读取和 USD 成本价。已经绑定的路由会跟着更新。", Fields: []field{modelHelp}}}
 	case "routes":
 		models, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -489,18 +507,43 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			return true
 		}
 		for _, m := range models {
-			rows, e := a.Catalog.AdminUpstreams(ctx, a.Installation.OperatorID, m.ID)
+			policy, e := a.Catalog.RoutingPolicy(ctx, m.ID)
 			if e != nil {
 				handleError(c, e)
 				return true
 			}
-			for _, row := range rows {
-				items = append(items, entity(row.ID, "configured", int64(row.Version), row))
+			upstreams, e := a.Catalog.AdminUpstreams(ctx, a.Installation.OperatorID, m.ID)
+			if e != nil {
+				handleError(c, e)
+				return true
 			}
+			health, _, e := a.Catalog.RouteHealth(ctx, m.ID)
+			if e != nil {
+				handleError(c, e)
+				return true
+			}
+			bindings := []gin.H{}
+			names := []string{}
+			open := false
+			for _, row := range upstreams {
+				state := health[row.ID]
+				if state.Circuit == "open" {
+					open = true
+				}
+				if row.Model != "" {
+					names = append(names, row.Model)
+				}
+				bindings = append(bindings, gin.H{"id": row.ID, "supplier_model_id": row.SupplierModelID, "model": row.Model, "credential_id": row.CredentialID, "priority": row.Priority, "enabled": row.Enabled, "routing": row.Routing, "circuit": state.Circuit})
+			}
+			summary := "可接单"
+			if open {
+				summary = "熔断中"
+			}
+			items = append(items, entity(m.ID, "configured", int64(policy.Version), gin.H{"public_model_id": m.ID, "display_name": m.DisplayName, "strategy": policy.Strategy, "supplier_models": strings.Join(names, "、"), "health_summary": summary, "bindings": bindings}))
 		}
-		p["columns"] = []gin.H{col("public_model_id", "公开模型", "text"), col("provider", "协议", "text"), col("model", "上游模型", "text"), col("credential_id", "凭据引用", "text"), col("priority", "优先级", "text"), col("healthy", "健康", "boolean")}
-		p["row_operations"] = []operation{{Name: "limits", Label: "设置并发、熔断与恢复", Method: "POST", Path: base + "/{id}/limits", IncludeVersion: true, Fields: []field{defaultField("public_model_id", "公开模型", "hidden", ""), f("routing.max_concurrent", "此上游最大同时在途（0不限）", "integer"), f("routing.failure_threshold", "连续失败熔断阈值（0用默认3）", "integer"), f("routing.unknown_usage_threshold", "未知用量熔断阈值（0用默认2）", "integer"), f("routing.recovery_successes", "恢复所需成功探测次数（0用默认2）", "integer"), f("routing.cooldown_seconds", "熔断冷却秒数（0用默认60）", "integer")}, Description: "保留原供应商模型与能力证据。真实占用、故障、探测与恢复状态在动态选路页面查看。"}}
-		p["operations"] = []operation{{Name: "save", Label: "维护已验证路由", Method: "POST", Path: base, Fields: []field{jsonField("upstream 对象 id、public_model_id、identity、provider_id、provider、model、credential_id、endpoints、capabilities、enabled、healthy、priority、expected_version。视频还必须配置 endpoints.video_retrieve 为 https://供应商/v1/videos/{task_id}、video_download 为 https://供应商/v1/videos/{task_id}/content；填路径模板而非具体任务ID。能力证据不足不能开放。")}}}
+		p["description"] = "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。"
+		p["columns"] = []gin.H{col("display_name", "公开模型", "text"), col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
+		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version")}}}
 	case "catalog-changes":
 		rows, e := a.Catalog.CatalogChanges(ctx, op.ID)
 		if e != nil {
@@ -573,6 +616,14 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		out, e := controller.SchedulePublicModel(ctx, op.ID, in.Model, in.Expected, in.EffectiveAt, in.Evidence)
 		return commandResult(out.ID, out.State), e
 	case "providers":
+		var supplier struct {
+			Model    catalog.SupplierModel `json:"supplier_model"`
+			Expected uint64                `json:"expected_version"`
+		}
+		if json.Unmarshal(raw, &supplier) == nil && supplier.Model.CredentialID != "" {
+			e := cat.SaveSupplierModel(ctx, op.ID, supplier.Model, supplier.Expected)
+			return commandResult(supplier.Model.ID, "saved"), e
+		}
 		var in struct {
 			ID         string `json:"id"`
 			ProviderID string `json:"provider_id"`
@@ -594,14 +645,14 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		return gin.H{"id": out.ID, "status": "saved", "version": out.Version}, e
 	case "routes":
 		var in struct {
-			Upstream catalog.UpstreamModel `json:"upstream"`
-			Expected uint64                `json:"expected_version"`
+			Route    catalog.RouteConfiguration `json:"route"`
+			Expected uint64                     `json:"expected_version"`
 		}
-		if json.Unmarshal(raw, &in) != nil {
+		if json.Unmarshal(raw, &in) != nil || in.Route.PublicModelID == "" {
 			return nil, catalog.ErrInvalidInput
 		}
-		e := cat.SaveUpstream(ctx, op.ID, in.Upstream, in.Expected)
-		return commandResult(in.Upstream.ID, "saved"), e
+		e := cat.SaveRouteConfiguration(ctx, op.ID, in.Route, in.Expected)
+		return commandResult(in.Route.PublicModelID, "saved"), e
 	case "catalog-changes":
 		var in struct {
 			LeadSeconds    int64  `json:"lead_seconds"`

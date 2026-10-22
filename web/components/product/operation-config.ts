@@ -13,7 +13,7 @@ export type ConfigNode = {
   item?: ConfigNode;
   options?: [string, string][];
   when?: { field: string; values: string[] };
-  lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes";
+  lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes" | "supplier-models";
   lookupBy?: { field: string; values: Record<string, "buyers" | "routes"> };
   lookupWhen?: { field: string; values: string[] };
   wildcard?: boolean;
@@ -23,7 +23,7 @@ export type ConfigNode = {
   nullable?: boolean;
   readOnly?: boolean;
   /** Capability cards explain call, billing, and verification before the rare limits. */
-  presentation?: "capability";
+  presentation?: "capability" | "operations";
   /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
   hideWhen?: { field: string; values: string[] };
 };
@@ -49,7 +49,7 @@ const capability: ConfigNode = {
   presentation: "capability",
 };
 const scope = (label: string, operatorID?: string) => object(label, {
-  kind: select("价目用途", [["retail", "客户零售价"], ["supply", "对下级供货价"], ["supplier", "供应商成本价（USD）"]], "retail"),
+  kind: select("价目用途", [["retail", "客户零售价"], ["supply", "对下级供货价"]], "retail"),
   seller_id: { ...text("定价经营方或供应商（自动带入）"), default: operatorID, readOnly: true },
   buyer_id: { ...text("供货采购方或成本上游路由"), lookupBy: {field:"kind",values:{supply:"buyers",supplier:"routes"}}, when: { field: "kind", values: ["supply", "supplier"] } },
 });
@@ -62,27 +62,44 @@ const component = object("计费组件", {
 
 export function configurationSchema(operation: Operation, operatorID?: string): ConfigNode | undefined {
   if (/\/catalog$/.test(operation.path)) return object("公开模型", {
-    model: object("模型身份与公开能力", {
+    model: object("模型名称与能力", {
       id: text("公开模型标识"),
       display_name: text("客户看到的模型名称", true, "客户选择模型时看到的名字，例如「对话 Pro」。以后可以修改。"),
-      identity: text("已核实模型身份与修订版本"),
-      enabled: { ...boolean("开放模型"), help: "第一次登记先不要勾选。每一项能力保存时都必须已经核实通过；勾选开放还要求已经有健康的上游路由。" },
-      capabilities: array("已验证能力", capability, "每一项都是一种客户可以调用的能力，例如对话或图片生成。"),
+      enabled: { ...boolean("开放模型"), help: "选「是」后客户才能调用。每一项已勾选的能力都要已经在路由配置里绑上可用的供应商模型。" },
+      capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
     effective_at: { ...datetime("计划生效时间（修订已开放模型时填写）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
     evidence: { ...text("变更及通知依据", false), kind: "textarea", hideWhen: { field: "expected_version", values: ["0", ""] } },
     emergency: { ...boolean("紧急停用（须有真实事件依据）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
   });
-  if (/\/routes$/.test(operation.path)) return object("上游路由", {
-    upstream: object("路由身份与供应商", {
-      id: { ...text("路由标识"), generated: "uuid", readOnly: true }, public_model_id: { ...text("对应公开模型"), lookup: "models" }, identity: text("与公开模型一致的身份与版本"),
-      provider_id: {...text("供应商引用（选择凭据后自动带入）"),readOnly:true}, provider: text("供应商协议名称"), model: text("供应商模型名称"), credential_id: { ...text("已保存的供应商凭据引用"), lookup: "credentials" },
-      enabled: boolean("允许进入选路"), healthy: boolean("已核实健康"), priority: { ...integer("选路优先级", 0), signed: true },
-      endpoints: record("已核实的完整服务端点", text("HTTPS 服务地址"), "键为调用能力，例如 chat、video_generation、video_retrieve、video_download；视频查询/下载必须使用 {task_id} 路径模板。"),
-      routing: { ...object("容量、熔断与恢复", { max_concurrent: { ...integer("最大同时在途（0 不额外限制）", 0), max: 100000 }, failure_threshold: { ...integer("连续失败阈值（0 使用默认 3）", 0), max: 100 }, unknown_usage_threshold: { ...integer("未知用量阈值（0 使用默认 2）", 0), max: 100 }, recovery_successes: { ...integer("恢复成功探测次数（0 使用默认 2）", 0), max: 20 }, cooldown_seconds: { ...integer("冷却秒数（0 使用默认 60）", 0), max: 86400 } }), required: false },
-      capabilities: array("路由已验证能力", capability),
-    }), expected_version: { ...integer("当前路由版本（自动带入）", 0), readOnly: true },
+  if (/\/providers$/.test(operation.path) && operation.name === "model") return object("供应商模型", {
+    supplier_model: object("供应商模型与成本价", {
+      id: { ...text("供应商模型标识"), generated: "uuid", readOnly: true },
+      credential_id: { ...text("供应商密钥"), lookup: "credentials" },
+      provider_id: { ...text("供应商引用（选择密钥后自动带入）", false), readOnly: true },
+      provider: text("协议名称", true, "例如 openai。这是转发时使用的协议，不是给客户看的名字。"),
+      model: text("供应商模型名称", true, "供应商要求填写的模型名。客户请求里的名字写在公开模型上。"),
+      enabled: { ...boolean("启用这个供应商模型"), default: true },
+      endpoints: record("服务地址", text("HTTPS 服务地址"), "一般留空，系统按协议使用默认地址。视频查询和下载要填写带 {task_id} 的地址。"),
+      capabilities: array("怎么计费", capability, "每一项是一种调用。计费名称要和下面的成本价一致。"),
+      prices: array("成本价（USD）", object("成本价", { key: text("计费名称", true, "与上面的计费名称一致，例如 input。"), unit: text("计量单位"), per: { ...decimal("每多少单位"), default: "1" }, rate: decimal("单价（USD）") }), "这是平台付给供应商的价格，不是客户看到的零售价。"),
+    }, "填写供应商那边的模型名称、怎么读取用量，以及 USD 成本价。"),
+    expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
+  });
+  if (/\/routes$/.test(operation.path)) return object("路由配置", {
+    route: object("公开模型的路由", {
+      public_model_id: { ...text("公开模型"), lookup: "models" },
+      strategy: select("选路策略", [["priority", "固定优先级"], ["lowest_latency", "已验证最低延迟"], ["lowest_cost", "已验证最低成本"]], "priority"),
+      bindings: array("绑定的供应商模型", object("绑定", {
+        id: { ...text("绑定标识"), generated: "uuid", readOnly: true },
+        supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },
+        priority: { ...integer("选路优先级", 0), signed: true },
+        enabled: { ...boolean("这条绑定接单"), default: true },
+        routing: { ...object("熔断", { max_concurrent: { ...integer("最大同时在途（0 不额外限制）", 0), max: 100000 }, failure_threshold: { ...integer("连续失败阈值（0 使用默认 3）", 0), max: 100 }, unknown_usage_threshold: { ...integer("未知用量阈值（0 使用默认 2）", 0), max: 100 }, recovery_successes: { ...integer("恢复成功探测次数（0 使用默认 2）", 0), max: 20 }, cooldown_seconds: { ...integer("冷却秒数（0 使用默认 60）", 0), max: 86400 } }), required: false },
+      }), "一个公开模型可以绑多个供应商模型。数字小的优先级先被考虑。"),
+    }, "选择先用哪一条，并写下连续失败后暂时停用的数字。"),
+    expected_version: { ...integer("当前策略版本（自动带入）", 0), readOnly: true },
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "listing") return object("授权与上架", {
     action: select("办理事项", [["listing", "本经营方上架 / 下架"], ["authorization", "授权 / 撤销下级模型权限"]], "listing"),
@@ -103,7 +120,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
         }, when: { field: "mode", values: ["follow"] } },
         multiplier: { ...decimal("默认倍率（定价参数）"), when: { field: "mode", values: ["follow"] } },
         model_multipliers: { ...record("指定模型倍率覆盖（可选）", decimal("模型倍率")), when: { field: "mode", values: ["follow"] } },
-      }, "零售价使用客户 ATG，供货价使用采购 ATG，供应商成本价使用 USD。倍率不是利润率。"),
+      }, "零售价使用客户 ATG，供货价使用采购 ATG。供应商的 USD 成本价写在供应商模型上。倍率不是利润率。"),
       notice_id: text("客户通知记录引用", false), published: { ...boolean("发布此价格版本", true), required: true, readOnly: true },
     }), evidence: { ...text("发布与通知依据", false), kind: "textarea" },
   });
@@ -193,6 +210,7 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
       else if (out[key] === "") delete out[key];
     }
     if (node.presentation === "capability") for (const key of ["input_types", "parameters", "required_parameters", "parameter_constraints", "output_limit_parameter", "max_output", "max_input_bytes", "evidence_id", "verified_at", "parameters_verified", "usage_verified", "bounds_verified", "recovery_verified"]) delete out[key];
+    if (node.fields?.operation && !node.fields.usage_rules) for (const key of ["input_types", "parameters", "required_parameters", "parameter_constraints", "output_limit_parameter", "max_output", "max_input_bytes", "evidence_id", "verified_at", "parameters_verified", "usage_verified", "bounds_verified", "recovery_verified", "usage_rules", "billable_bounds", "subtract_paths", "streaming"]) delete out[key];
     return out;
   }
   if (node.kind === "array") {
@@ -220,14 +238,8 @@ export function prepareConfiguration(value: JSONValue, node: ConfigNode, path = 
   return value;
 }
 
-export function validateModelConfiguration(value: JSONValue): void {
-  const root = value as Record<string, JSONValue>, model = (root.model || root.upstream) as Record<string, JSONValue> | undefined;
-  if (!model) return;
-  const prefix = root.model ? "model" : "upstream";
-  // The backend permits a disabled upstream to retain incomplete probe results.
-  if (root.upstream && !model.enabled) return;
-  const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
-  if (model.enabled && !capabilities.length) throw new ConfigurationError("开放模型或路由前，至少需要一项已验证能力。", `${prefix}.capabilities`);
+function validateMetering(capabilities: Record<string, JSONValue>[], prefix: string): void {
+  if (!capabilities.length) throw new ConfigurationError("至少需要一项计费。", `${prefix}.capabilities`);
   capabilities.forEach((capability, index) => {
     const path = `${prefix}.capabilities.${index}`;
     const bounds = (capability.billable_bounds || {}) as Record<string, JSONValue>, rules = (capability.usage_rules || []) as Record<string, JSONValue>[];
@@ -240,6 +252,45 @@ export function validateModelConfiguration(value: JSONValue): void {
       if (bounds[component] === undefined) throw new ConfigurationError("每个计量组件都须有对应的有限用量上界。", `${path}.billable_bounds`);
     });
     if (Object.keys(bounds).length !== seen.size) throw new ConfigurationError("用量上界与计量组件须一一对应。", `${path}.billable_bounds`);
+  });
+}
+export function validateModelConfiguration(value: JSONValue): void {
+  const root = value as Record<string, JSONValue>;
+  if (root.supplier_model && typeof root.supplier_model === "object" && !Array.isArray(root.supplier_model)) {
+    const model = root.supplier_model as Record<string, JSONValue>;
+    const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
+    validateMetering(capabilities, "supplier_model");
+    const priced = new Map<string, string>();
+    ((model.prices || []) as Record<string, JSONValue>[]).forEach((price, index) => {
+      const key = String(price.key || "");
+      if (!key || priced.has(key)) throw new ConfigurationError("每一项成本价都要对应一个不重复的计费名称。", `supplier_model.prices.${index}.key`);
+      priced.set(key, String(price.unit || ""));
+    });
+    capabilities.forEach(capability => ((capability.usage_rules || []) as Record<string, JSONValue>[]).forEach(rule => {
+      if (priced.get(String(rule.component)) !== String(rule.unit || "")) throw new ConfigurationError("成本价的名称和单位要与计费一致。", "supplier_model.prices");
+    }));
+    return;
+  }
+  if (root.route && typeof root.route === "object" && !Array.isArray(root.route)) {
+    const seen = new Set<string>();
+    (((root.route as Record<string, JSONValue>).bindings || []) as Record<string, JSONValue>[]).forEach((binding, index) => {
+      const id = String(binding.supplier_model_id || "");
+      if (!id) throw new ConfigurationError("请选择供应商模型。", `route.bindings.${index}.supplier_model_id`);
+      if (seen.has(id)) throw new ConfigurationError("同一个供应商模型只要绑定一次。", `route.bindings.${index}.supplier_model_id`);
+      seen.add(id);
+    });
+    return;
+  }
+  const model = root.model as Record<string, JSONValue> | undefined;
+  if (!model) return;
+  const capabilities = (model.capabilities || []) as Record<string, JSONValue>[];
+  if (model.enabled && !capabilities.length) throw new ConfigurationError("开放模型前，至少勾选一项能力。", "model.capabilities");
+  const seen = new Set<string>();
+  capabilities.forEach((capability, index) => {
+    const operation = String(capability.operation || "");
+    if (!operation) throw new ConfigurationError("请选择调用能力。", `model.capabilities.${index}.operation`);
+    if (seen.has(operation)) throw new ConfigurationError("同一种调用能力只需要勾选一次。", `model.capabilities.${index}.operation`);
+    seen.add(operation);
   });
 }
 

@@ -282,3 +282,39 @@ func TestCredentialNameCanChangeWithoutReplacingTheSecret(t *testing.T) {
 		t.Fatal("new credential accepted without a key", e)
 	}
 }
+
+func TestSupplierModelPriceIsUsedWhenTheRouteBindsIt(t *testing.T) {
+	s := newCommerceTestStore(t)
+	ctx := context.Background()
+	capability := commerceTestCapability()
+	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", DisplayName: "Model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}}, 0); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "secret-to-encrypt", true, 0); e != nil {
+		t.Fatal(e)
+	}
+	supplier := SupplierModel{ID: "supplier-model", CredentialID: "credential", Provider: "openai", Model: "exact-model", Capabilities: []modelruntime.Capability{capability}, Prices: []ComponentRate{{Key: "input", Unit: "token", Per: "1000000", Rate: "1"}}, Enabled: true}
+	if e := s.SaveSupplierModel(ctx, "platform", supplier, 0); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.SaveRouteConfiguration(ctx, "platform", RouteConfiguration{PublicModelID: "model", Strategy: "priority", Bindings: []RouteBinding{{SupplierModelID: "supplier-model", Priority: 1, Enabled: true}}}, 0); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", DisplayName: "Model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}, Enabled: true}, 1); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.SetListing(ctx, "platform", "model", true, 0); e != nil {
+		t.Fatal(e)
+	}
+	at := time.Now().UTC()
+	retail := priceAt(uuid.NewString(), PriceScope{Kind: "retail", SellerID: "platform"}, at, "2")
+	retail.NoticeID = "notice"
+	if e := s.PublishPrice(ctx, "platform", retail, func(context.Context, *gorm.DB, PriceVersion) error { return nil }); e != nil {
+		t.Fatal(e)
+	}
+	request, _ := modelruntime.DecodeProtocol("request", modelruntime.Chat, []byte(`{"model":"model","messages":[{"role":"user","content":"hi"}],"max_tokens":10}`))
+	quote, e := s.Quote(ctx, "official", "platform", request, at)
+	if e != nil || len(quote.Supplier) != 1 || quote.Supplier[0].Price.AssetUnit != "USD" || quote.Supplier[0].Price.Components[0].Rate != "1" {
+		t.Fatalf("%v %#v", e, quote.Supplier)
+	}
+}

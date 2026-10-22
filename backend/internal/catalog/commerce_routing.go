@@ -97,30 +97,37 @@ func (s CommerceCatalog) SaveRoutingPolicy(ctx context.Context, actor string, p 
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
 	}
-	if p.Evidence == "" || len(p.Evidence) > 2000 || (p.Strategy != "priority" && p.Strategy != "lowest_latency" && p.Strategy != "lowest_cost") {
+	if p.Evidence == "" {
+		p.Evidence = "路由配置"
+	}
+	if len(p.Evidence) > 2000 || !validRouteStrategy(p.Strategy) {
 		return ErrInvalidInput
 	}
-	return s.mutate(ctx, func(c CommerceCatalog) error {
-		if _, e := c.PublicModel(ctx, p.ModelID); e != nil {
+	return s.mutate(ctx, func(c CommerceCatalog) error { return c.writeRoutingPolicy(ctx, p, expected) })
+}
+func validRouteStrategy(strategy string) bool {
+	return strategy == "priority" || strategy == "lowest_latency" || strategy == "lowest_cost"
+}
+func (s CommerceCatalog) writeRoutingPolicy(ctx context.Context, p RoutingPolicy, expected uint64) error {
+	if _, e := s.PublicModel(ctx, p.ModelID); e != nil {
+		return e
+	}
+	p.Version = expected + 1
+	if expected == 0 {
+		if e := s.DB.WithContext(ctx).Create(&p).Error; e != nil {
 			return e
 		}
-		p.Version = expected + 1
-		if expected == 0 {
-			if e := c.DB.Create(&p).Error; e != nil {
-				return e
-			}
-		} else {
-			r := c.DB.Model(&RoutingPolicy{}).Where("model_id=? AND version=?", p.ModelID, expected).Updates(map[string]any{"strategy": p.Strategy, "evidence": p.Evidence, "version": p.Version})
-			if r.Error != nil {
-				return r.Error
-			}
-			if r.RowsAffected != 1 {
-				return ErrCatalogVersion
-			}
+	} else {
+		r := s.DB.WithContext(ctx).Model(&RoutingPolicy{}).Where("model_id=? AND version=?", p.ModelID, expected).Updates(map[string]any{"strategy": p.Strategy, "evidence": p.Evidence, "version": p.Version})
+		if r.Error != nil {
+			return r.Error
 		}
-		b, _ := json.Marshal(p)
-		return c.DB.Exec("INSERT INTO tokenhub_route_events(id,upstream_id,kind,reference,data) VALUES(?,?,?,?,?::jsonb)", uuid.NewString(), "", "policy_changed", uuid.NewString(), string(b)).Error
-	})
+		if r.RowsAffected != 1 {
+			return ErrCatalogVersion
+		}
+	}
+	b, _ := json.Marshal(p)
+	return s.DB.WithContext(ctx).Exec("INSERT INTO tokenhub_route_events(id,upstream_id,kind,reference,data) VALUES(?,?,?,?,?::jsonb)", uuid.NewString(), "", "policy_changed", uuid.NewString(), string(b)).Error
 }
 func (s CommerceCatalog) AdminRouting(ctx context.Context, actor, model string) (RoutingView, error) {
 	if !s.platform(actor) {
@@ -140,6 +147,9 @@ func (s CommerceCatalog) AdminRouting(ctx context.Context, actor, model string) 
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].UpstreamID < rows[j].UpstreamID })
 	return RoutingView{Policy: p, Health: rows}, nil
+}
+func (s CommerceCatalog) RouteHealth(ctx context.Context, model string) (map[string]RouteHealth, time.Time, error) {
+	return s.routeHealth(ctx, model)
 }
 func (s CommerceCatalog) routeHealth(ctx context.Context, model string) (map[string]RouteHealth, time.Time, error) {
 	var rows []RouteHealth

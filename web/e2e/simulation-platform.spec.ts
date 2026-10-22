@@ -81,7 +81,6 @@ test("technical administrator configures a real provider, verified model and rou
     const credential = await credentialResponse.json(); await close(dialog);
     const credentials = await (await tech.request.get(`${base}/providers`)).json();
     const credentialView = credentials.items.find((row: any) => row.id === credential.id);
-    const provider = credentialView.values.provider_id;
     expect(credentialView.presentation?.title).toBe(credentialName);
     expect(JSON.stringify(credentials)).not.toContain("isolated-simulation-provider-key");
     dialog = await panel(tech, "修改密钥", tech.getByRole("row").filter({ hasText: credentialName }));
@@ -92,37 +91,39 @@ test("technical administrator configures a real provider, verified model and rou
     expect((await replay(tech, rotated, true)).status()).toBe(409);
     await close(dialog);
 
+    dialog = await panel(tech, "配置供应商模型");
+    await config(dialog, { supplier_model: { credential_id: credential.id, provider: "openai", model: "test-chat", enabled: true, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap], prices: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] } });
+    const supplierSaved = await submit(tech, dialog, "配置供应商模型", `${base}/providers`);
+    const supplierModelID = supplierSaved.request().postDataJSON().configuration.supplier_model.id as string;
+    expect(supplierModelID).toMatch(/^[0-9a-f-]{36}$/);
+    await close(dialog);
+
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    dialog = await panel(tech, "维护公开模型与能力证据");
-    await config(dialog, { model: { id: model, identity: model, display_name: modelName, enabled: false, capabilities: [cap] }, expected_version: 0 });
-    await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
+    dialog = await panel(tech, "维护公开模型");
+    await config(dialog, { model: { id: model, display_name: modelName, enabled: false, capabilities: [{ operation: "chat" }] }, expected_version: 0 });
+    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: modelName }));
     await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
     await control(dialog, "客户看到的模型名称", false).fill(revisedModelName);
-    await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
+    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
-    dialog = await panel(tech, "维护已验证路由");
-    await expect(dialog.locator('[data-config-path="upstream.id"] input')).toHaveCount(0);
-    await config(dialog, { upstream: { public_model_id: model, identity: model, provider_id: provider, provider: "openai", model: "test-chat", credential_id: credential.id, enabled: true, healthy: true, priority: 10, endpoints: { chat: `${p.lab_url}/v1/chat/completions` }, capabilities: [cap] }, expected_version: 0 });
-    const routeCreated = await submit(tech, dialog, "维护已验证路由", `${base}/routes`);
+    dialog = await panel(tech, "配置路由");
+    await config(dialog, { route: { public_model_id: model, strategy: "priority", bindings: [{ supplier_model_id: supplierModelID, priority: 10, enabled: true, routing: { max_concurrent: 5, failure_threshold: 3, unknown_usage_threshold: 2, recovery_successes: 2, cooldown_seconds: 60 } }] } });
+    const routeCreated = await submit(tech, dialog, "配置路由", `${base}/routes`);
     route = (await routeCreated.json()).id;
-    expect(route).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    expect(routeCreated.request().postDataJSON().configuration.upstream.id).toBe(route);
+    expect(route).toBe(model);
     await close(dialog);
     dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await control(dialog, "选路优先级", false).fill("11");
-    await submit(tech, dialog, "维护已验证路由", `${base}/routes`); await close(dialog);
-    dialog = await panel(tech, "设置并发、熔断与恢复", tech.getByRole("row").filter({ hasText: revisedModelName }));
-    for (const [label, value] of [["此上游最大同时在途", "5"], ["连续失败熔断阈值", "3"], ["未知用量熔断阈值", "2"], ["恢复所需成功探测次数", "2"], ["熔断冷却秒数", "60"]]) await control(dialog, label, false).fill(value);
-    await submit(tech, dialog, "设置并发、熔断与恢复", `${base}/routes/${route}/limits`); await close(dialog);
-    const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === route);
-    expect(savedRoute.version).toBe(3); expect(savedRoute.values.priority).toBe(11); expect(savedRoute.values.credential_id).toBe(credential.id);
+    await submit(tech, dialog, "配置路由", `${base}/routes`); await close(dialog);
+    const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === model);
+    expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].credential_id).toBe(credential.id);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: revisedModelName }));
     await dialog.getByRole("radiogroup", { name: /开放模型/ }).getByRole("radio", { name: "是", exact: true }).check();
-    await submit(tech, dialog, "维护公开模型与能力证据", `${base}/catalog`); await close(dialog);
+    await submit(tech, dialog, "维护公开模型", `${base}/catalog`); await close(dialog);
     await tech.screenshot({ path: testInfo.outputPath("platform-catalog.png"), fullPage: true });
     expect((await tech.request.get(`${base}/payments`)).status()).toBe(403);
 
@@ -148,20 +149,17 @@ test("technical administrator configures a real provider, verified model and rou
     await dialog.getByRole("combobox", { name: "被授权的直属下级", exact: true }).selectOption(p.channel_id);
     await dialog.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
-    for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supplier", seller_id: provider, buyer_id: route }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
+    for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
       dialog = await panel(owner, "发布价格版本");
       await expect(dialog.locator('[data-config-path="price.id"] input')).toHaveCount(0);
-      await config(dialog, { action: scope.kind === "supplier" ? "bootstrap_price" : "price", price: { scope, model_id: model, layer: "regular", effective_at: scope.kind === "supplier" ? new Date(Date.now() - 60_000).toISOString() : effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
+      await config(dialog, { action: "price", price: { scope, model_id: model, layer: "regular", effective_at: effective.toISOString(), rule: { mode: "manual", components: [{ key: "input", unit: "token", per: "1", rate: "0.001" }, { key: "output", unit: "token", per: "1", rate: "0.001" }] }, notice_id: "independent HTTP protocol simulation terms", published: true }, evidence: "isolated activation with actual advance notice" });
       const publication = await submit(owner, dialog, "发布价格版本", `${base}/pricing`);
       const published = await publication.json();
       const priceID = publication.request().postDataJSON().configuration.price.id;
       expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-      if (scope.kind === "supplier") expect(published.id).toBe(priceID);
-      else {
-        const changes = await (await owner.request.get(`${base}/catalog-changes`)).json();
-        const scheduled = changes.items.find((item: any) => item.id === published.id);
-        expect(scheduled).toMatchObject({ values: { payload: { id: priceID, scope } } });
-      }
+      const changes = await (await owner.request.get(`${base}/catalog-changes`)).json();
+      const scheduled = changes.items.find((item: any) => item.id === published.id);
+      expect(scheduled).toMatchObject({ values: { payload: { id: priceID, scope } } });
       await close(dialog);
     }
 
@@ -209,7 +207,7 @@ test("technical administrator configures a real provider, verified model and rou
     await customer.goto("/workspace/requests"); await expect(customer.getByText(model, { exact: true }).first()).toBeVisible();
     await customer.screenshot({ path: testInfo.outputPath("platform-customer-call.png"), fullPage: true });
     expect(errors).toEqual([]);
-    await evidence(testInfo, "platform-model-facts", { model, route, credential_id: credential.id, route_version: 3, credential_version: 2, request_id: requestID, replay_did_not_charge_again: true, customer_charged_atg: requestFact.charged_atg });
+    await evidence(testInfo, "platform-model-facts", { model, route, credential_id: credential.id, route_version: 2, credential_version: 2, request_id: requestID, replay_did_not_charge_again: true, customer_charged_atg: requestFact.charged_atg });
   } catch (error) {
     await testInfo.attach("technical-ui-at-failure", { body: await tech.locator("body").ariaSnapshot(), contentType: "text/plain" });
     await testInfo.attach("owner-ui-at-failure", { body: await owner.locator("body").ariaSnapshot(), contentType: "text/plain" });
@@ -330,7 +328,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     for (const label of ["查看合作主体", "查看人员", "查看经营汇总", "维护平台模型与路由"]) await expect(dialog.getByRole("checkbox", { name: label, exact: true })).toBeChecked();
     await expect(dialog.getByRole("checkbox", { name: "管理收款", exact: true })).not.toBeChecked(); await close(dialog);
     await employee.reload(); await employee.goto(`/manage/${p.operator_id}/catalog`);
-    await expect(employee.getByRole("button", { name: "维护公开模型与能力证据", exact: true })).toBeVisible();
+    await expect(employee.getByRole("button", { name: "维护公开模型", exact: true })).toBeVisible();
     expect((await employee.request.get(`${base}/payments`)).status()).toBe(403);
     expect((await employee.request.get(`${base}/exports`)).status()).toBe(403);
     await employee.goto(`/manage/${p.operator_id}/staff`);

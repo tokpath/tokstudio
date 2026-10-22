@@ -50,7 +50,6 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       if (key === "kind" && node.fields?.seller_id?.readOnly && node.fields?.buyer_id?.lookupBy) { next.buyer_id="";next.seller_id=selected==="supplier"?"":node.fields.seller_id.default || ""; }
       if (key === "buyer_id" && data.kind === "supplier" && typeof defaults?.provider_id === "string") next.seller_id=defaults.provider_id;
       if (key === "credential_id" && typeof defaults?.provider_id === "string" && defaults.provider_id.trim()) next.provider_id = defaults.provider_id;
-      if (key === "public_model_id" && typeof defaults?.identity === "string" && defaults.identity.trim()) next.identity = defaults.identity;
       if (key === "model_id" && (data.action === "listing" || data.action === "authorization")) {
         const version = defaults?.[data.action === "authorization" ? "authorization_version" : "listing_version"];
         next.expected_version = typeof version === "number" && Number.isSafeInteger(version) && version >= 0 ? version : "";
@@ -64,6 +63,12 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
     /></div>)}</div>;
     return root ? children : <fieldset className="min-w-0 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend>{children}</fieldset>;
+  }
+  if (node.kind === "array" && node.presentation === "operations") {
+    const items = Array.isArray(value) ? value : [];
+    const selected = new Set(items.map(item => typeof item === "string" ? item : String(asObject(item).operation || "")));
+    const choose = (key: string, checked: boolean) => change((node.options || []).filter(([op]) => op === key ? checked : selected.has(op)).map(([op]) => ({ operation: op })));
+    return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2"><legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{(node.options || []).map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];

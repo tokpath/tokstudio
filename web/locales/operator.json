@@ -569,6 +569,11 @@
     "ja": "モデル供給元を管理",
     "ru": "Управление поставщиками моделей"
   },
+  "配置路由": {
+    "en": "Set up routes",
+    "ja": "ルートを設定",
+    "ru": "Настроить маршруты"
+  },
   "维护上游路由": {
     "en": "Manage upstream routes",
     "ja": "上流ルートを管理",
@@ -2704,5 +2709,125 @@
     "en": "Set the total package price and record purchased and bonus credits separately. Each revision creates a new version; existing orders retain their original terms.",
     "ja": "プランの総額を設定し、購入枠と特典枠を分けて記録します。変更ごとに新しいバージョンを公開し、既存の注文は元の条件を保持します。",
     "ru": "Укажите общую цену пакета и раздельно учитывайте купленные и бонусные единицы. Каждое изменение создаёт новую версию; действующие заказы сохраняют исходные условия."
+  },
+  "登记供应商和供应商模型": {
+    "en": "Register suppliers and their models",
+    "ja": "供給元と供給元モデルを登録",
+    "ru": "Регистрация поставщиков и их моделей"
+  },
+  "每把供应商密钥都有名称，方便辨认。密钥加密保存，页面不再显示原文。供应商模型在这里填写用量读取方式和 USD 成本价。": {
+    "en": "Each supplier secret has a name so you can recognize it. The secret is stored encrypted and is not shown again. Supplier models record how usage is read and the USD cost.",
+    "ja": "各供給元の鍵には名前があり、見分けられます。鍵は暗号化して保存され、画面には再表示されません。供給元モデルには使用量の読み取り方と USD コストを記入します。",
+    "ru": "У каждого ключа поставщика есть имя. Ключ хранится в зашифрованном виде и больше не показывается. У модели поставщика указывают, как читать расход, и цену в USD."
+  },
+  "登记供应商模型": {
+    "en": "Register a supplier model",
+    "ja": "供給元モデルを登録",
+    "ru": "Зарегистрировать модель поставщика"
+  },
+  "填写供应商模型名称、计费方式和 USD 成本价。": {
+    "en": "Enter the supplier model name, how it is metered, and the USD cost.",
+    "ja": "供給元モデル名、課金方法、USD コストを記入します。",
+    "ru": "Укажите имя модели поставщика, способ учёта и цену в USD."
+  },
+  "再到路由配置绑定": {
+    "en": "Then bind it in route setup",
+    "ja": "その後ルート設定で紐付け",
+    "ru": "Затем привяжите в настройке маршрутов"
+  },
+  "把这些供应商模型绑到公开模型，并选择选路策略。": {
+    "en": "Bind these supplier models to a public model and choose the routing strategy.",
+    "ja": "これらの供給元モデルを公開モデルに紐付け、経路戦略を選びます。",
+    "ru": "Привяжите эти модели поставщика к публичной модели и выберите стратегию маршрута."
+  },
+  "登记公开模型": {
+    "en": "Register a public model",
+    "ja": "公開モデルを登録",
+    "ru": "Зарегистрировать публичную модель"
+  },
+  "公开模型是客户请求里使用的名字。这里填写名称、勾选能力，并决定是否启用。": {
+    "en": "A public model is the name used in a customer request. Enter the name, check the capabilities, and choose whether it is enabled.",
+    "ja": "公開モデルは顧客リクエストで使う名前です。名称を記入し、能力を選び、有効にするかを決めます。",
+    "ru": "Публичная модель — это имя в запросе клиента. Укажите имя, отметьте возможности и решите, включена ли она."
+  },
+  "填写名称": {
+    "en": "Enter the name",
+    "ja": "名称を記入",
+    "ru": "Указать имя"
+  },
+  "填写请求里使用的标识，以及客户看到的名称。": {
+    "en": "Enter the identifier used in requests and the name customers see.",
+    "ja": "リクエストで使う識別子と、顧客に見える名称を記入します。",
+    "ru": "Укажите идентификатор для запросов и имя, которое видит клиент."
+  },
+  "勾选能力": {
+    "en": "Check capabilities",
+    "ja": "能力を選択",
+    "ru": "Отметить возможности"
+  },
+  "勾选对话、图片、语音或视频。": {
+    "en": "Check chat, image, speech, or video.",
+    "ja": "対話、画像、音声、動画を選択します。",
+    "ru": "Отметьте диалог, изображение, речь или видео."
+  },
+  "决定是否启用": {
+    "en": "Choose whether it is enabled",
+    "ja": "有効にするかを決める",
+    "ru": "Решить, включена ли модель"
+  },
+  "启用前先在路由配置里绑好供应商模型，并发布客户价格。": {
+    "en": "Before enabling, bind a supplier model in route setup and publish the customer price.",
+    "ja": "有効にする前に、ルート設定で供給元モデルを紐付け、顧客価格を公開します。",
+    "ru": "Перед включением привяжите модель поставщика в настройке маршрутов и опубликуйте цену для клиента."
+  },
+  "把供应商模型绑到公开模型": {
+    "en": "Bind supplier models to a public model",
+    "ja": "供給元モデルを公開モデルに紐付け",
+    "ru": "Привязать модели поставщика к публичной модели"
+  },
+  "一个公开模型可以绑多个供应商模型。策略决定先用哪一条，熔断数字决定连续失败后暂时停用哪一条。": {
+    "en": "One public model can use several supplier models. The strategy chooses which one goes first. The circuit-breaker numbers decide when a failing one pauses.",
+    "ja": "1 つの公開モデルに複数の供給元モデルを紐付けできます。戦略が先に使うものを決め、遮断の数字が連続失敗後に一時停止するものを決めます。",
+    "ru": "К одной публичной модели можно привязать несколько моделей поставщика. Стратегия выбирает, какую использовать первой. Числа защиты решают, какую остановить после серии сбоев."
+  },
+  "选择公开模型": {
+    "en": "Choose the public model",
+    "ja": "公開モデルを選択",
+    "ru": "Выбрать публичную модель"
+  },
+  "选择客户请求里使用的那个模型。": {
+    "en": "Choose the model named in the customer request.",
+    "ja": "顧客リクエストで使うモデルを選びます。",
+    "ru": "Выберите модель, имя которой стоит в запросе клиента."
+  },
+  "绑定供应商模型": {
+    "en": "Bind supplier models",
+    "ja": "供給元モデルを紐付け",
+    "ru": "Привязать модели поставщика"
+  },
+  "可以绑多个，并给每条写下优先级和熔断数字。": {
+    "en": "Bind more than one, and set a priority and circuit-breaker numbers on each.",
+    "ja": "複数紐付けでき、それぞれに優先度と遮断の数字を記入します。",
+    "ru": "Можно привязать несколько и для каждой указать приоритет и числа защиты."
+  },
+  "选择策略": {
+    "en": "Choose the strategy",
+    "ja": "戦略を選択",
+    "ru": "Выбрать стратегию"
+  },
+  "固定优先级、已测到的最低延迟，或按最大用量估算的最低成本。": {
+    "en": "Fixed priority, the lowest measured latency, or the lowest cost estimated from the maximum usage.",
+    "ja": "固定優先度、測定済みの最低遅延、または最大使用量で見積もった最低コスト。",
+    "ru": "Фиксированный приоритет, наименьшая измеренная задержка или наименьшая стоимость по максимальному расходу."
+  },
+  "供应商密钥": {
+    "en": "Supplier secret",
+    "ja": "供給元の鍵",
+    "ru": "Ключ поставщика"
+  },
+  "供应商模型": {
+    "en": "Supplier model",
+    "ja": "供給元モデル",
+    "ru": "Модель поставщика"
   }
 }

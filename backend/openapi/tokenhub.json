@@ -7878,6 +7878,7 @@
                 "orders",
                 "receipts",
                 "credentials",
+                "supplier-models",
                 "merchants",
                 "supplier-methods",
                 "buyers",
@@ -8037,6 +8038,7 @@
                 "orders",
                 "receipts",
                 "credentials",
+                "supplier-models",
                 "merchants",
                 "supplier-methods",
                 "buyers",
@@ -20891,6 +20893,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/Operator_providers_credential_revision"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Operator_providers_model"
                   }
                 ]
               }
@@ -21064,7 +21069,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_catalog",
-        "summary": "维护公开模型与能力证据",
+        "summary": "维护公开模型",
         "tags": [
           "Operator browser API"
         ],
@@ -21191,7 +21196,7 @@
             }
           }
         },
-        "description": "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },
@@ -21358,7 +21363,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_routes",
-        "summary": "维护已验证路由",
+        "summary": "配置路由",
         "tags": [
           "Operator browser API"
         ],
@@ -21485,7 +21490,7 @@
             }
           }
         },
-        "description": " Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },
@@ -48053,6 +48058,42 @@
         ],
         "additionalProperties": false
       },
+      "RouteConfiguration": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "route",
+          "expected_version"
+        ],
+        "properties": {
+          "route": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SupplierModelWrite": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "supplier_model",
+          "expected_version"
+        ],
+        "properties": {
+          "supplier_model": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "UpstreamInput": {
         "type": "object",
         "properties": {
@@ -52926,11 +52967,14 @@
         ],
         "additionalProperties": false
       },
+      "Operator_providers_model": {
+        "$ref": "#/components/schemas/SupplierModelWrite"
+      },
       "Operator_catalog_save": {
         "$ref": "#/components/schemas/CatalogWrite"
       },
       "Operator_routes_save": {
-        "$ref": "#/components/schemas/UpstreamWrite"
+        "$ref": "#/components/schemas/RouteConfiguration"
       },
       "Operator_routes_limits": {
         "type": "object",

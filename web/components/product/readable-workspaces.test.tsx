@@ -64,17 +64,9 @@ it("keeps public model identifiers readable and never disguises an internal UUID
  expect(row.values.customer_id).toBe(supplierID);
 });
 
-it("selects a saved upstream for supplier cost and derives its provider without asking for UUIDs",async()=>{
- const fetch=vi.fn(async(input:RequestInfo|URL)=>response({items:String(input).includes("references/routes")?[{value:rowID,label:"上游模型甲 · 标准协议 · text-pro-v1",defaults:{provider_id:supplierID}}]:[]}));vi.stubGlobal("fetch",fetch);
+it("keeps supplier USD cost off the customer price form",()=>{
  show(<OperationForm operatorID="workspace" operation={{name:"price",label:"发布模型价格",method:"POST",path:"/api/v1/operators/workspace/pricing",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true}]}} />);
- expect(screen.queryByRole("textbox",{name:/定价经营方或供应商/})).toBeNull();
- fireEvent.change(screen.getByRole("combobox",{name:/^价目用途/}),{target:{value:"supplier"}});
- const route=screen.getByRole("combobox",{name:/^供货采购方或成本上游路由/});
- await waitFor(()=>expect((route as HTMLSelectElement).disabled).toBe(false));
- fireEvent.change(route,{target:{value:rowID}});
- const value=JSON.parse((screen.getByLabelText("完整技术配置 JSON") as HTMLTextAreaElement).value);
- expect(value.price.scope).toEqual({kind:"supplier",seller_id:supplierID,buyer_id:rowID});
- expect(screen.queryByText(rowID)).toBeNull();expect(screen.queryByText(supplierID)).toBeNull();
+ expect(screen.queryByRole("option",{name:"供应商成本价（USD）"})).toBeNull();
 });
 
 it("explains the warning buffer inside the editable coverage form",()=>{

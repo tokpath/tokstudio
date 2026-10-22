@@ -3,7 +3,7 @@ export function businessFieldHelp(name: string, existing?: string, lookup?: stri
   if (existing) return existing;
   const key = name.split(".").at(-1) || name;
   if (["price.id", "upstream.id"].includes(name)) return "新建时系统生成唯一编号，编辑时保留原编号，无需手工填写。它用于识别本条价格或路由，不是公开模型 ID，也不会改变模型能力。";
-  if (name === "model.id") return "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称；供应商模型名在上游路由中单独配置，不要把密钥或供应商地址填在这里。";
+  if (name === "model.id") return "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称。供应商模型名称写在模型供应商页，不要把密钥或供应商地址填在这里。";
   if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";
   if (name === "upstream.provider_id") return "选择已保存的供应商凭据后，系统会带入对应供应商引用。它必须指向真实供应商主体，与供应商协议名称和模型名称分别记录。";
   if (["terms_reference", "rules_reference", "method_reference"].includes(key)) return "填写已公示或已签署条款的编号或链接，例如 plan-2026-01。它用于追溯本次成交依据；请先准备真实条款，不要随意编造。";

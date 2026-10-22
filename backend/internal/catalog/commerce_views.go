@@ -55,10 +55,13 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 		if e != nil {
 			return nil, e
 		}
+		seen := map[modelruntime.Operation]bool{}
 		for _, c := range m.Capabilities {
-			if c.Verified() {
-				view.Capabilities = append(view.Capabilities, PublicCapability{c.Operation, c.Streaming, c.InputTypes, c.Parameters, c.RequiredParameters, c.MaxInputBytes, c.MaxOutput, c.OutputLimitParameter, c.ParameterConstraints})
+			if !publicOperation(c.Operation) || seen[c.Operation] {
+				continue
 			}
+			seen[c.Operation] = true
+			view.Capabilities = append(view.Capabilities, PublicCapability{c.Operation, c.Streaming, c.InputTypes, c.Parameters, c.RequiredParameters, c.MaxInputBytes, c.MaxOutput, c.OutputLimitParameter, c.ParameterConstraints})
 		}
 		price, e := (PriceResolver{Source: s}).Resolve(ctx, PriceScope{Kind: "retail", SellerID: operator}, m.ID, at)
 		if e != nil {

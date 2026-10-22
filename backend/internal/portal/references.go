@@ -353,6 +353,25 @@ func (a *Application) references(c *gin.Context) {
 		for _, r := range rows {
 			add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_usd": r.GrossUSD.Sub(r.AllocatedUSD).String(), "currency": r.Currency})
 		}
+	case "supplier-models":
+		if customer || !require("catalog.manage") {
+			return
+		}
+		if operator != a.Installation.OperatorID {
+			handleError(c, organization.ErrForbidden)
+			return
+		}
+		models, e := a.Catalog.AdminSupplierModels(ctx, operator)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		for _, model := range models {
+			if !model.Enabled {
+				continue
+			}
+			add(model.ID, humanJoin(model.Model, model.Provider), gin.H{"provider_id": model.ProviderID, "credential_id": model.CredentialID})
+		}
 	case "credentials":
 		if customer || !require("catalog.manage") {
 			return

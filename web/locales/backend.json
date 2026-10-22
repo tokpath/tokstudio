@@ -6870,5 +6870,75 @@
     "en": "Enter a client ID ending in .apps.googleusercontent.com. The first save must include the secret.",
     "ja": "末尾が .apps.googleusercontent.com のクライアント ID を入力してください。初回保存にはシークレットが必要です。",
     "ru": "Укажите идентификатор клиента, оканчивающийся на .apps.googleusercontent.com. При первом сохранении нужен секрет."
+  },
+  "维护公开模型": {
+    "en": "Maintain public models",
+    "ja": "公開モデルを維持",
+    "ru": "Обслуживать публичные модели"
+  },
+  "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。": {
+    "en": "Enter the public model ID and the name customers see, check the capabilities, and choose whether it is enabled. Leave it closed to customers the first time. Metering and the supplier price belong on the supplier model.",
+    "ja": "公開モデル ID と顧客に見える名称を記入し、呼び出せる能力を選び、有効にするかを決めます。初回は顧客に公開しないでください。計量と供給元価格は供給元モデルに書きます。",
+    "ru": "Укажите публичный ID и имя для клиента, отметьте возможности и решите, включена ли модель. В первый раз не открывайте её клиентам. Учёт и цена поставщика задаются у модели поставщика."
+  },
+  "先添加供应商密钥。再为这个供应商登记模型：供应商那边的模型名称、怎么读取用量，以及 USD 成本价。客户零售价仍在模型与定价。": {
+    "en": "Add the supplier secret first. Then register that supplier's models: the supplier model name, how usage is read, and the USD cost. Customer retail prices stay on model pricing.",
+    "ja": "まず供給元の鍵を追加します。次にその供給元のモデルを登録します。供給元のモデル名、使用量の読み取り方、USD コストです。顧客の小売価格はモデルと価格に残します。",
+    "ru": "Сначала добавьте ключ поставщика. Затем зарегистрируйте его модели: имя у поставщика, способ чтения расхода и себестоимость в USD. Розница для клиента остаётся в ценах моделей."
+  },
+  "配置供应商模型": {
+    "en": "Configure a supplier model",
+    "ja": "供給元モデルを設定",
+    "ru": "Настроить модель поставщика"
+  },
+  "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。": {
+    "en": "Choose a saved supplier secret, then enter the supplier model name, how usage is read, and the USD cost.",
+    "ja": "保存済みの供給元の鍵を選び、供給元のモデル名、使用量の読み取り方、USD コストを記入します。",
+    "ru": "Выберите сохранённый ключ поставщика и укажите имя модели, способ чтения расхода и себестоимость в USD."
+  },
+  "编辑供应商模型": {
+    "en": "Edit supplier model",
+    "ja": "供給元モデルを編集",
+    "ru": "Изменить модель поставщика"
+  },
+  "修改这个供应商模型的调用、用量读取和 USD 成本价。已经绑定的路由会跟着更新。": {
+    "en": "Change how this supplier model is called, how usage is read, and the USD cost. Routes already bound to it follow the change.",
+    "ja": "この供給元モデルの呼び出し、使用量の読み取り、USD コストを変更します。すでに紐付いたルートも更新されます。",
+    "ru": "Измените вызов этой модели поставщика, чтение расхода и себестоимость в USD. Уже привязанные маршруты обновятся вместе с ней."
+  },
+  "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。": {
+    "en": "Bind one or more supplier models to a public model and choose which one is used first. After repeated failures or unreadable usage, that binding pauses according to its numbers.",
+    "ja": "公開モデルに 1 つ以上の供給元モデルを紐付け、どれを先に使うか選びます。連続失敗や使用量が読めないときは、各紐付けの数字に従って一時停止します。",
+    "ru": "Привяжите к публичной модели одну или несколько моделей поставщика и выберите, какую использовать первой. После серии сбоев или нечитаемого расхода привязка останавливается по своим числам."
+  },
+  "配置路由": {
+    "en": "Set up routes",
+    "ja": "ルートを設定",
+    "ru": "Настроить маршруты"
+  },
+  "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。": {
+    "en": "Choose a public model, bind supplier models, and choose fixed priority, lowest latency, or lowest cost. Circuit-breaker numbers belong on each binding.",
+    "ja": "公開モデルを選び、供給元モデルを紐付け、固定優先度、最低遅延、最低コストのいずれかを選びます。遮断の数字は各紐付けに書きます。",
+    "ru": "Выберите публичную модель, привяжите модели поставщика и выберите фиксированный приоритет, наименьшую задержку или наименьшую стоимость. Числа защиты указываются на каждой привязке."
+  },
+  "选路策略": {
+    "en": "Routing strategy",
+    "ja": "経路戦略",
+    "ru": "Стратегия маршрута"
+  },
+  "熔断": {
+    "en": "Circuit breaker",
+    "ja": "遮断",
+    "ru": "Защита от сбоев"
+  },
+  "可接单": {
+    "en": "Accepting",
+    "ja": "受付中",
+    "ru": "Принимает"
+  },
+  "熔断中": {
+    "en": "Paused",
+    "ja": "遮断中",
+    "ru": "Остановлен"
   }
 }

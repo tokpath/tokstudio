@@ -6660,20 +6660,40 @@
     "variant": "revision"
   },
   {
-    "resource": "catalog",
+    "resource": "providers",
     "confirmation": "",
-    "description": "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。",
+    "description": "选择已经保存的供应商密钥，填写供应商那边的模型名称、用量读取方式和 USD 成本价。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "model 对象：id、identity、display_name、enabled、capabilities（调用方式、计量和用量上界）、expected_version"
+        "help": "supplier_model：凭据、协议、供应商模型名称、端点、计量、USD 成本价、expected_version"
       }
     ],
     "include_version": false,
-    "label": "维护公开模型与能力证据",
+    "label": "配置供应商模型",
+    "method": "POST",
+    "name": "model",
+    "path": "/v1/operators/{operatorId}/providers",
+    "permission": "catalog.manage"
+  },
+  {
+    "resource": "catalog",
+    "confirmation": "",
+    "description": "填写公开模型标识和客户看到的名称，勾选可以调用的能力，再决定是否启用。第一次先不要对客户开放。计费和供应商价格写在供应商模型上。",
+    "fields": [
+      {
+        "name": "configuration",
+        "label": "配置 JSON",
+        "kind": "json",
+        "required": true,
+        "help": "model 对象：id、display_name、enabled、capabilities（勾选的调用能力）、expected_version"
+      }
+    ],
+    "include_version": false,
+    "label": "维护公开模型",
     "method": "POST",
     "name": "save",
     "path": "/v1/operators/{operatorId}/catalog",
@@ -6682,18 +6702,18 @@
   {
     "resource": "routes",
     "confirmation": "",
-    "description": "",
+    "description": "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "upstream 对象 id、public_model_id、identity、provider_id、provider、model、credential_id、endpoints、capabilities、enabled、healthy、priority、expected_version。视频还必须配置 endpoints.video_retrieve 为 https://供应商/v1/videos/{task_id}、video_download 为 https://供应商/v1/videos/{task_id}/content；填路径模板而非具体任务ID。能力证据不足不能开放。"
+        "help": "route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version"
       }
     ],
     "include_version": false,
-    "label": "维护已验证路由",
+    "label": "配置路由",
     "method": "POST",
     "name": "save",
     "path": "/v1/operators/{operatorId}/routes",

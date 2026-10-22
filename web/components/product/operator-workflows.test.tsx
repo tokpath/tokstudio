@@ -99,7 +99,7 @@ it("explains platform upstream responsibility without presenting zero procuremen
   await screen.findByText("处理实际款入账");
   expect(screen.getByText("平台直接维护供应商与上游路由")).toBeTruthy();
   expect(screen.getByText("平台没有上级采购账户。", { exact: false })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "维护上游路由" }).getAttribute("href")).toBe("/manage/operator-one/routes");
+  expect(screen.getByRole("link", { name: "配置路由" }).getAttribute("href")).toBe("/manage/operator-one/routes");
   for (const label of ["剩余销售承载空间", "可用采购余额", "已使用超卖空间"]) expect(screen.queryByText(label, { exact: true })).toBeNull();
   expect(screen.queryByLabelText("0 ATG", { exact: true })).toBeNull();
   expect(screen.queryByRole("link", { name: "采购补货", exact: false })).toBeNull();

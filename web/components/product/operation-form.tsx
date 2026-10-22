@@ -52,7 +52,8 @@ function initial(field: CommandField, operation: Operation, row?: Entity, contex
     if (schema) {
       let source = nested(row?.values, field.name) ?? field.default_value;
       if (row && /\/catalog$/.test(operation.path)) source = { model: row.values, expected_version: row.version ?? 0 };
-      if (row && /\/routes$/.test(operation.path)) source = { upstream: { ...row.values, id: row.id }, expected_version: row.version ?? 0 };
+      if (row && /\/routes$/.test(operation.path)) source = { route: row.values, expected_version: row.version ?? 0 };
+      if (row && /\/providers$/.test(operation.path) && operation.name === "model") source = { supplier_model: row.values, expected_version: row.version ?? 0 };
       const defaults = configDefaults(schema) || {};
       return JSON.stringify(source === undefined ? defaults : mergeValues(defaults, JSONValueSchema.parse(source)));
     }
@@ -168,7 +169,7 @@ export function OperationForm({ operation, row, operatorID, initialValues, locke
         else if (field.kind === "boolean" || (field.kind === "hidden" && typeof field.default_value === "boolean")) parsed = value === "true";
         else if (field.kind === "json") {
           try { parsed = JSONValueSchema.parse(JSON.parse(value)); } catch { throw new ConfigurationError("{label}格式无效，请检查技术高级配置。", "", { label: field.label }); }
-          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/pricing$/.test(operation.path) && operation.name !== "listing") validatePriceConfiguration(parsed); else if (/\/(catalog|routes)$/.test(operation.path)) validateModelConfiguration(parsed); }
+          if (schema) { parsed = prepareConfiguration(parsed, schema); if (/\/pricing$/.test(operation.path) && operation.name !== "listing") validatePriceConfiguration(parsed); else if (/\/(catalog|routes)$/.test(operation.path) || (/\/providers$/.test(operation.path) && operation.name === "model")) validateModelConfiguration(parsed); }
         }
         else if (field.kind === "datetime") { const date = new Date(value); if (Number.isNaN(date.getTime())) throw new ConfigurationError("{label}时间无效", "", { label: field.label }); parsed = date.toISOString(); }
         else { if (field.kind === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new ConfigurationError("请填写有效的{label}", "", { label: field.label }); parsed = value; }
@@ -235,10 +236,16 @@ function ConfigurationReview({ value }: { value: string }) {
   let parsed: Record<string, JSONValue>;
   try { const next = JSON.parse(value); if (!next || typeof next !== "object" || Array.isArray(next)) throw new Error(); parsed = next; }
   catch { return <p className="text-sm text-danger">{t("业务配置尚未完整，请检查上方字段。")}</p>; }
-  const model = parsed.model as Record<string, JSONValue> | undefined, upstream = parsed.upstream as Record<string, JSONValue> | undefined, price = parsed.price as Record<string, JSONValue> | undefined;
-  if (model || upstream) {
-    const item = model || upstream!;
-    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{model ? String(item.display_name || t("待填写模型名称")) : t("上游模型：{model}", { model: String(item.model || t("待填写")) })}</p><p>{model ? t("公开模型") : t("路由")}{item.enabled ? t("将开放") : t("保持停用")} · {Array.isArray(item.capabilities) ? item.capabilities.length : 0}  {t("项已登记能力")}{upstream && ` · ${upstream.healthy ? t("已核实健康") : t("尚未确认健康")}`}</p><p className="text-xs">{t("身份与版本：")}{String(item.identity || t("待核实"))}</p>{upstream && <p className="text-xs">{t("选路优先级：")}{String(upstream.priority ?? 0)}{t("。请核对路由与公开模型的身份、能力及计量是否一致。")}</p>}</div>;
+  const model = parsed.model as Record<string, JSONValue> | undefined, route = parsed.route as Record<string, JSONValue> | undefined, supplier = parsed.supplier_model as Record<string, JSONValue> | undefined, price = parsed.price as Record<string, JSONValue> | undefined;
+  if (model) {
+    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{String(model.display_name || t("待填写模型名称"))}</p><p>{t("公开模型")}{model.enabled ? t("将开放") : t("保持停用")} · {Array.isArray(model.capabilities) ? model.capabilities.length : 0} {t("项已登记能力")}</p></div>;
+  }
+  if (route) {
+    const strategy = ({ priority: "固定优先级", lowest_latency: "已验证最低延迟", lowest_cost: "已验证最低成本" } as Record<string, string>)[String(route.strategy || "")] || String(route.strategy || "");
+    return <p className="text-sm text-ink-secondary">{t("公开模型 {model} 绑定了 {count} 个供应商模型，选路策略是{strategy}。", { model: String(route.public_model_id || t("待选择")), count: Array.isArray(route.bindings) ? route.bindings.length : 0, strategy: t(strategy || "待选择") })}</p>;
+  }
+  if (supplier) {
+    return <p className="text-sm text-ink-secondary">{t("供应商模型 {name} 写了 {count} 项 USD 成本价。", { name: String(supplier.model || t("待填写")), count: Array.isArray(supplier.prices) ? supplier.prices.length : 0 })}</p>;
   }
   if (price) {
     const scope = (price.scope || {}) as Record<string, JSONValue>, rule = (price.rule || {}) as Record<string, JSONValue>;

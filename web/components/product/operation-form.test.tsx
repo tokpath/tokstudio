@@ -370,6 +370,7 @@ it("explains a new public model in three sections and keeps unusual limits folde
   expect(screen.queryByText("接受的参数")).toBeNull();
   expect(screen.queryByText("必须填写的参数")).toBeNull();
   expect(screen.queryByText("允许的输入")).toBeNull();
+  expect(screen.queryByText("最大输入大小（字节）", { exact: false })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "添加计费项目", exact: true }));
   fireEvent.change(screen.getByLabelText("计费名称 1"), { target: { value: "input_tokens" } });
   fireEvent.change(screen.getByLabelText("计量单位 1"), { target: { value: "token" } });

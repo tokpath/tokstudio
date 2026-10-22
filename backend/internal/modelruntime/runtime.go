@@ -77,7 +77,7 @@ type UsageRule struct {
 }
 
 func (c Capability) Verified() bool {
-	if !(c.EvidenceID != "" && !c.VerifiedAt.IsZero() && c.ParametersVerified && c.UsageVerified && c.BoundsVerified && c.RecoveryVerified && c.MaxInputBytes > 0 && len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
+	if !(c.EvidenceID != "" && !c.VerifiedAt.IsZero() && c.ParametersVerified && c.UsageVerified && c.BoundsVerified && c.RecoveryVerified && len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
 		return false
 	}
 	for _, constraint := range c.ParameterConstraints {
@@ -203,7 +203,7 @@ func ValidateRequest(a Attempt, r Request) error {
 	if !c.Verified() || c.Operation != r.Operation || c.Streaming != r.Stream {
 		return ErrUnsupported
 	}
-	if len(r.Input) == 0 || len(r.Input)+len(r.Params) > c.MaxInputBytes || !json.Valid(r.Input) {
+	if len(r.Input) == 0 || !json.Valid(r.Input) {
 		return ErrInvalidRequest
 	}
 	if r.Operation == Chat {

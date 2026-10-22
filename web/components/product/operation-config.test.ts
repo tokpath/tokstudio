@@ -30,6 +30,7 @@ it("validates fractional capability quantities and drops parameter lists that ar
   const capability = (value as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
   expect(capability.parameters).toBeUndefined();
   expect(capability.input_types).toBeUndefined();
+  expect(capability.max_input_bytes).toBeUndefined();
   expect(capability.parameter_constraints).toBeUndefined();
 });
 it.each(["-1/2", "1/0", "not-a-number"])("rejects an invalid nonnegative capability bound %s", bound => {

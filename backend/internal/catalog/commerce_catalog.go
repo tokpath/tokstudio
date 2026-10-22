@@ -516,7 +516,7 @@ func requestSupported(capabilities []modelruntime.Capability, r modelruntime.Req
 }
 func coversCapability(caps []modelruntime.Capability, want modelruntime.Capability) bool {
 	for _, c := range caps {
-		if !c.Verified() || c.Operation != want.Operation || c.Streaming != want.Streaming || c.MaxInputBytes < want.MaxInputBytes {
+		if !c.Verified() || c.Operation != want.Operation || c.Streaming != want.Streaming {
 			continue
 		}
 		return true

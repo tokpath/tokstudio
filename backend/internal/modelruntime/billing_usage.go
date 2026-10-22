@@ -150,6 +150,11 @@ func imageOutputFacts(item BillingItem, r Request, body map[string]any, facts ma
 		if !ok {
 			return false
 		}
+		address, _ := entry["url"].(string)
+		encoded, _ := entry["b64_json"].(string)
+		if strings.TrimSpace(address) == "" && strings.TrimSpace(encoded) == "" {
+			return false
+		}
 		quantity := big.NewRat(1, 1)
 		selector := r.Params
 		w, h := imageDimensions(entry)

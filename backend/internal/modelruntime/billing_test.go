@@ -159,3 +159,13 @@ func TestAggregateAudioDurationCannotBeChargedAsOutput(t *testing.T) {
 		t.Fatal("malformed declared output treated as no image", got)
 	}
 }
+
+func TestEmptyImageEntriesCannotBecomeChargeableImages(t *testing.T) {
+	c := DefaultBilling(Image).Capability(Image, false)
+	for _, item := range []map[string]any{{}, {"url": "", "b64_json": ""}, {"width": 1024, "height": 1024}} {
+		got := extractBilledUsage(map[string]any{"data": []any{item}}, c, Request{Operation: Image})
+		if got.Reliable {
+			t.Fatal("empty output was billed as an image", got)
+		}
+	}
+}

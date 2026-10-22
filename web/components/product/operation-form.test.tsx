@@ -364,7 +364,7 @@ it("explains a new public model in three sections and keeps unusual limits folde
   fireEvent.click(screen.getByRole("button", { name: "添加能力", exact: true }));
   expect(screen.getByRole("heading", { name: "怎么调用" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "怎么计费" })).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "保存前确认" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "保存前确认" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "各计费组件的有限用量上界" })).toBeNull();
   expect(screen.getByText("特殊规则（一般不用填）").closest("details")?.open).toBe(false);
   expect(screen.queryByText("接受的参数")).toBeNull();

@@ -34,9 +34,10 @@ var (
 	ErrInvalidRequest = errors.New("invalid model request")
 )
 
-// Capability is a probe result for one upstream model/protocol/mode combination.
-// VerifiedAt alone is insufficient: evidence must cover parameter preservation,
-// usage, bound enforcement and failure recovery before it can be advertised.
+// Capability is one way to call an upstream model. A capability can be
+// advertised once it has a finite usage bound for every metering rule.
+// Confirmation flags and evidence text are stored only so older records still
+// decode; they are not a save or call gate.
 type Capability struct {
 	Operation            Operation `json:"operation"`
 	Streaming            bool      `json:"streaming"`
@@ -77,7 +78,7 @@ type UsageRule struct {
 }
 
 func (c Capability) Verified() bool {
-	if !(c.EvidenceID != "" && !c.VerifiedAt.IsZero() && c.ParametersVerified && c.UsageVerified && c.BoundsVerified && c.RecoveryVerified && len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
+	if !(len(c.BillableBounds) > 0 && len(c.UsageRules) > 0) {
 		return false
 	}
 	for _, constraint := range c.ParameterConstraints {

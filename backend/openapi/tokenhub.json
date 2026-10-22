@@ -21191,7 +21191,7 @@
             }
           }
         },
-        "description": "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },
@@ -47978,25 +47978,6 @@
                 "type": "string"
               }
             }
-          },
-          "evidence_id": {
-            "type": "string"
-          },
-          "verified_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "parameters_verified": {
-            "type": "boolean"
-          },
-          "usage_verified": {
-            "type": "boolean"
-          },
-          "bounds_verified": {
-            "type": "boolean"
-          },
-          "recovery_verified": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -48005,13 +47986,7 @@
           "parameters",
           "max_input_bytes",
           "billable_bounds",
-          "usage_rules",
-          "evidence_id",
-          "verified_at",
-          "parameters_verified",
-          "usage_verified",
-          "bounds_verified",
-          "recovery_verified"
+          "usage_rules"
         ],
         "additionalProperties": false
       },

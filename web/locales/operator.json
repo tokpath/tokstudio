@@ -1599,6 +1599,21 @@
     "ja": "能力の証憑で公開モデルを維持",
     "ru": "Поддерживайте публичные модели на основе подтверждений возможностей"
   },
+  "公开模型是客户选定的服务身份。授权与路由变化保持身份和调用方式一致。": {
+    "en": "A public model is the service identity chosen by the customer. Authorization and route changes keep the identity and how it is called the same.",
+    "ja": "公開モデルは顧客が選択したサービスの識別です。権限やルートを変更しても、識別と呼び出し方は同じままにします。",
+    "ru": "Публичная модель — это услуга, которую выбирает клиент. Изменения разрешений и маршрутов сохраняют её идентичность и способ вызова."
+  },
+  "填写计量": {
+    "en": "Enter metering",
+    "ja": "計量を記入",
+    "ru": "Указать учёт"
+  },
+  "为每种调用选择方式，并填写计费名称、单位、用量路径和最大用量。": {
+    "en": "For each call, choose how it is invoked and enter the charge name, unit, usage path, and maximum usage.",
+    "ja": "呼び出しごとに方式を選び、課金名、単位、使用量パス、最大使用量を記入します。",
+    "ru": "Для каждого вызова выберите способ и укажите название тарифа, единицу, путь расхода и максимальный расход."
+  },
   "公开模型是客户选定的服务身份。授权与路由变化保持身份、参数和能力一致。": {
     "en": "A public model is the service identity chosen by the customer. Authorization and route changes preserve identity, parameters, and capabilities.",
     "ja": "公開モデルは顧客が選択したサービスの識別です。権限やルートを変更しても、識別、パラメータ、能力の一貫性を保ちます。",

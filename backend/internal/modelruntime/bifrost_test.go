@@ -169,9 +169,9 @@ func TestCapabilityBoundsParameterAndUsageEvidence(t *testing.T) {
 	if !errors.Is(CheckUsageBounds(c, u), ErrBoundExceeded) {
 		t.Fatal("upper bound error ignored")
 	}
-	c.BoundsVerified = false
+	c.UsageRules = nil
 	if c.Verified() {
-		t.Fatal("unverified route advertised")
+		t.Fatal("capability without metering was treated as ready")
 	}
 }
 func TestCachedAndReasoningComponentsDoNotDoubleCharge(t *testing.T) {

@@ -1331,6 +1331,12 @@
     "model オブジェクト：id、identity、display_name、enabled、capabilities（実際のパラメータ・使用量・上限・復旧証拠が必須）、expected_version",
     "Объект model: id, identity, display_name, enabled, capabilities (требуется реальное подтверждение параметров/использования/пределов/восстановления), expected_version"
   ],
+  "model 对象：id、identity、display_name、enabled、capabilities（调用方式、计量和用量上界）、expected_version": [
+    "model 对象：id、identity、display_name、enabled、capabilities（调用方式、计量和用量上界）、expected_version",
+    "model object: id, identity, display_name, enabled, capabilities (how it is called, metering, and usage bounds), expected_version",
+    "model オブジェクト：id、identity、display_name、enabled、capabilities（呼び出し方、計量、使用量上限）、expected_version",
+    "Объект model: id, identity, display_name, enabled, capabilities (способ вызова, учёт и пределы расхода), expected_version"
+  ],
   "money:{currency,amount}、refund_valuation（非USD必填本次FX实际报价）、valued_at、fx_execution_reference；原merchant/order由服务器解析。": [
     "money:{currency,amount}、refund_valuation（非USD必填本次FX实际报价）、valued_at、fx_execution_reference；原merchant/order由服务器解析。",
     "money:{currency,amount}, refund_valuation (actual FX quote required for non-USD), valued_at, fx_execution_reference; original merchant/order resolved by the server.",
@@ -2302,6 +2308,12 @@
     "A separate key for each app",
     "アプリごとに専用 Key",
     "Отдельный ключ для каждого приложения"
+  ],
+  "为每种调用选择方式，并填写计费名称、单位、用量路径和最大用量。": [
+    "为每种调用选择方式，并填写计费名称、单位、用量路径和最大用量。",
+    "For each call, choose how it is invoked and enter the charge name, unit, usage path, and maximum usage.",
+    "呼び出しごとに方式を選び、課金名、単位、使用量パス、最大使用量を記入します。",
+    "Для каждого вызова выберите способ и укажите название тарифа, единицу, путь расхода и максимальный расход."
   ],
   "为第一个应用创建 Key": [
     "为第一个应用创建 Key",
@@ -3629,17 +3641,17 @@
     "更新設定を保存",
     "Сохранить настройки продления"
   ],
+  "保存这项能力前，选择调用方式，并至少填写一项计费。": [
+    "保存这项能力前，选择调用方式，并至少填写一项计费。",
+    "Before saving this capability, choose how it is called and add at least one charge.",
+    "この機能を保存する前に、呼び出し方を選び、課金を 1 件以上記入します。",
+    "Перед сохранением выберите способ вызова и добавьте хотя бы одну тарификацию."
+  ],
   "保存这项能力前，需要选择调用能力、填写最大输入、至少一项计费，以及验证依据、时间和下面四项确认。": [
     "保存这项能力前，需要选择调用能力、填写最大输入、至少一项计费，以及验证依据、时间和下面四项确认。",
     "Before this capability can be saved, choose what it does, enter the maximum input, add at least one charge, and complete the evidence, time, and four confirmations below.",
     "この機能を保存するには、呼び出し機能、最大入力、1 件以上の課金、検証根拠、日時、下の 4 つの確認が必要です。",
     "Чтобы сохранить возможность, выберите действие, укажите максимальный ввод, добавьте хотя бы одну тарификацию и заполните основание, время и четыре подтверждения ниже."
-  ],
-  "保存这项能力前，需要选择调用能力、至少一项计费，以及验证依据、时间和下面四项确认。": [
-    "保存这项能力前，需要选择调用能力、至少一项计费，以及验证依据、时间和下面四项确认。",
-    "Before this capability can be saved, choose what it does, add at least one charge, and complete the evidence, time, and four confirmations below.",
-    "この機能を保存するには、呼び出し機能、1 件以上の課金、検証根拠、日時、下の 4 つの確認が必要です。",
-    "Чтобы сохранить возможность, выберите действие, добавьте хотя бы одну тарификацию и заполните основание, время и четыре подтверждения ниже."
   ],
   "保存邮件授权": [
     "保存邮件授权",
@@ -4019,6 +4031,12 @@
     "先に全額入金",
     "Сначала получить полную оплату"
   ],
+  "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。": [
+    "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。",
+    "Enter the model name and the identifier used in requests. For each capability, fill in how it is called and how it is billed. Leave it closed to customers the first time.",
+    "まずモデル名と、リクエストで使う識別子を記入します。各機能は呼び出し方と課金方法を記入します。初回はお客様に公開しないでください。",
+    "Сначала укажите название модели и идентификатор для запросов. Для каждой возможности заполните способ вызова и тарификацию. В первый раз не открывайте модель клиентам."
+  ],
   "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。": [
     "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。",
     "Enter the model name and the identifier used in requests. For each capability, fill in how it is called, how it is billed, and the confirmation section. All four confirmations are required before saving. Leave it closed to customers the first time.",
@@ -4234,6 +4252,12 @@
     "A public model is the service identity chosen by the customer. Authorization and route changes preserve identity, parameters, and capabilities.",
     "公開モデルは顧客が選択したサービスの識別です。権限やルートを変更しても、識別、パラメータ、能力の一貫性を保ちます。",
     "Публичная модель определяет выбранную клиентом услугу. Изменения разрешений и маршрутов сохраняют её идентичность, параметры и возможности."
+  ],
+  "公开模型是客户选定的服务身份。授权与路由变化保持身份和调用方式一致。": [
+    "公开模型是客户选定的服务身份。授权与路由变化保持身份和调用方式一致。",
+    "A public model is the service identity chosen by the customer. Authorization and route changes keep the identity and how it is called the same.",
+    "公開モデルは顧客が選択したサービスの識別です。権限やルートを変更しても、識別と呼び出し方は同じままにします。",
+    "Публичная модель — это услуга, которую выбирает клиент. Изменения разрешений и маршрутов сохраняют её идентичность и способ вызова."
   ],
   "公开模型标识": [
     "公开模型标识",
@@ -6958,6 +6982,12 @@
     "Enter verifiable material, a document ID or link, and the verification result. This is retained for review; text alone does not confirm payment, authorization or validation.",
     "操作を確認できる資料、文書番号やリンクと確認結果を入力します。監査のため保存されますが、記入だけで支払いや権限、検証が成立するわけではありません。",
     "Укажите проверяемые материалы, номер документа или ссылку и результат проверки. Запись сохраняется для контроля, но сама по себе не подтверждает оплату, разрешение или проверку."
+  ],
+  "填写计量": [
+    "填写计量",
+    "Enter metering",
+    "計量を記入",
+    "Указать учёт"
   ],
   "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。": [
     "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。",

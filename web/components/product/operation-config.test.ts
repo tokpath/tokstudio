@@ -45,10 +45,14 @@ it("requires complete nested pricing objects and preserves an explicit absent pr
   expect(() => validatePriceConfiguration(prepared)).not.toThrow();
   expect(prepared).toMatchObject({ price: { ends_at: null } });
 });
-it("rejects an incomplete capability confirmation", () => {
+it("drops the old confirmation fields and still accepts a capability that only has metering", () => {
   const value = verifiedModel() as { model: { capabilities: { usage_verified: boolean }[] } };
   value.model.capabilities[0].usage_verified = false;
-  expect(() => validateModelConfiguration(prepareConfiguration(value, configurationSchema(catalogOperation)!))).toThrow("验证必须全部通过");
+  const prepared = prepareConfiguration(value, configurationSchema(catalogOperation)!);
+  expect(() => validateModelConfiguration(prepared)).not.toThrow();
+  const capability = (prepared as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
+  expect(capability.usage_verified).toBeUndefined();
+  expect(capability.evidence_id).toBeUndefined();
 });
 it("matches the backend rational radix and exponent rules instead of reinterpreting integer fractions as decimal", () => {
   const value = verifiedModel() as { model: { capabilities: { billable_bounds: Record<string, string> }[] } };

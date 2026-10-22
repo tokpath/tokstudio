@@ -144,10 +144,10 @@
     "ja": "呼び出し方を選びます。お客様のリクエストはそのまま転送されます。本文の大きさやパラメータ名はここでは制限しません。",
     "ru": "Выберите способ вызова. Запрос клиента пересылается как есть. Здесь не ограничивают размер текста и не перечисляют имена параметров."
   },
-  "保存这项能力前，需要选择调用能力、至少一项计费，以及验证依据、时间和下面四项确认。": {
-    "en": "Before this capability can be saved, choose what it does, add at least one charge, and complete the evidence, time, and four confirmations below.",
-    "ja": "この機能を保存するには、呼び出し機能、1 件以上の課金、検証根拠、日時、下の 4 つの確認が必要です。",
-    "ru": "Чтобы сохранить возможность, выберите действие, добавьте хотя бы одну тарификацию и заполните основание, время и четыре подтверждения ниже."
+  "保存这项能力前，选择调用方式，并至少填写一项计费。": {
+    "en": "Before saving this capability, choose how it is called and add at least one charge.",
+    "ja": "この機能を保存する前に、呼び出し方を選び、課金を 1 件以上記入します。",
+    "ru": "Перед сохранением выберите способ вызова и добавьте хотя бы одну тарификацию."
   },
   "只有用量里有一部分被重复计算时再填写。参数名不用在这里配置。": {
     "en": "Fill this in only when part of the usage would otherwise be counted twice. Parameter names are not configured here.",

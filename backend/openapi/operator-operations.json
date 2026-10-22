@@ -6662,14 +6662,14 @@
   {
     "resource": "catalog",
     "confirmation": "",
-    "description": "先填写模型名称和请求时使用的标识。每项能力按「怎么调用、怎么计费、保存前确认」填写。四项确认都勾上才能保存。第一次先不要对客户开放。",
+    "description": "先填写模型名称和请求时使用的标识。每项能力填写怎么调用和怎么计费。第一次先不要对客户开放。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "model 对象：id、identity、display_name、enabled、capabilities（必须有真实参数/用量/上界/恢复证据）、expected_version"
+        "help": "model 对象：id、identity、display_name、enabled、capabilities（调用方式、计量和用量上界）、expected_version"
       }
     ],
     "include_version": false,

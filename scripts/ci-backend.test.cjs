@@ -1,29 +1,40 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
-const { shards, packageShard, portalTests } = require('./ci-backend.cjs');
+const { shards, packageShard, portalTests, packagesForShard } = require('./ci-backend.cjs');
 
 test('every existing or future package has exactly one partition', () => {
-  for (const name of ['portal', 'remediation', 'organization', 'incentives', 'usage', 'future']) {
-    const assigned = shards.filter(shard => packageShard(`example/internal/${name}`) === (shard.startsWith('portal-') ? 'portal' : shard));
-    assert.equal(assigned.length, name === 'portal' ? 2 : 1);
+  const counts = { portal: 4, remediation: 2, organization: 1, incentives: 1, usage: 2, future: 2 };
+  for (const [name, count] of Object.entries(counts)) {
+    const assigned = shards.filter(shard => packageShard(`example/internal/${name}`) === shard.replace(/-\d+$/, ''));
+    assert.equal(assigned.length, count, name);
   }
   assert.equal(packageShard('example/cmd/new-command'), 'core');
   assert.equal(packageShard('example/internal/portal/subpackage'), 'core');
   const workflow = readFileSync(`${__dirname}/../.github/workflows/ci.yml`, 'utf8');
   assert.ok(workflow.includes(`shard: [${shards.join(', ')}]`));
 });
-test('portal shards cover all tests, examples and fuzz seeds exactly once, including additions', () => {
+test('portal and remediation shards cover every test exactly once', () => {
   const names = ['TestA', 'TestAB', 'TestNew', 'ExampleUsage', 'FuzzInput'];
   const listing = [...names, 'BenchmarkSpeed', 'ok  example/internal/portal 0.01s', 'diagnostic text'].join('\n');
-  const first = portalTests(listing, 'portal-1');
-  const second = portalTests(listing, 'portal-2');
-  assert.deepEqual([...first, ...second].sort(), [...names].sort());
-  assert.equal(new Set([...first, ...second]).size, names.length);
-  assert.deepEqual(portalTests([...names].reverse().join('\n'), 'portal-1'), first);
+  for (const group of ['portal', 'remediation']) {
+    const parts = shards.filter(shard => shard.startsWith(`${group}-`)).map(shard => portalTests(listing, shard));
+    const covered = parts.flat();
+    assert.deepEqual(covered.sort(), [...names].sort());
+    assert.equal(new Set(covered).size, names.length);
+  }
+  assert.deepEqual(portalTests([...names].reverse().join('\n'), 'portal-1'), portalTests(listing, 'portal-1'));
+});
+test('core packages are divided without dropping or repeating one', () => {
+  const packages = ['example/internal/usage', 'example/internal/catalog', 'example/internal/payments', 'example/cmd/api', 'example/internal/modelruntime', 'example/internal/ledger'];
+  const covered = shards.filter(shard => shard.startsWith('core-')).flatMap(shard => packagesForShard(packages, shard));
+  assert.deepEqual(covered.sort(), [...packages].sort());
+  assert.equal(new Set(covered).size, packages.length);
+  assert.deepEqual(packagesForShard(['example/internal/organization'], 'organization'), ['example/internal/organization']);
 });
 test('inventory failures cannot turn a missing test suite green', () => {
   assert.throws(() => portalTests('compile failed', 'portal-1'));
   assert.throws(() => portalTests('TestA\nTestA', 'portal-1'));
-  assert.throws(() => portalTests('TestA', 'portal-3'));
+  assert.throws(() => portalTests('TestA', 'portal-5'));
+  assert.throws(() => portalTests('TestA', 'organization'));
 });

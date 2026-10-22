@@ -1,9 +1,12 @@
+# syntax=docker/dockerfile:1
 FROM golang:1.27-bookworm AS build
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/api ./cmd/api \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /out/api ./cmd/api \
  && CGO_ENABLED=0 GOOS=linux go build -o /out/worker ./cmd/worker \
  && CGO_ENABLED=0 GOOS=linux go build -o /out/migrate ./cmd/migrate \
  && CGO_ENABLED=0 GOOS=linux go build -o /out/seed-demo ./cmd/seed-demo \

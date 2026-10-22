@@ -15,7 +15,9 @@ if [[ "$(df -Pk "$ROOT" | awk 'NR == 2 { print $4 }')" -lt 3145728 ]]; then
   echo "Less than 3 GiB free; clean unused build artifacts explicitly before deploying." >&2
   exit 1
 fi
-"${COMPOSE[@]}" build api worker migrate web
+# 先后端一次，再编网页。worker 和 migrate 复用刚才的后端镜像。
+"${COMPOSE[@]}" build api web
+"${COMPOSE[@]}" build worker migrate
 "${COMPOSE[@]}" up -d postgres redis minio minio-init
 # Re-run the explicit migrator on every selected build. It refuses a legacy DB
 # and verifies immutable migration checksums before API or worker can start.

@@ -79,7 +79,9 @@ services:
         mc anonymous set none "local/$${TOKENHUB_S3_BUCKET}"
 
   migrate:
-    build: ./backend
+    # api、worker、migrate 共用这一次编译结果，避免同一次部署把后端编三遍。
+    image: &backend-image tokenhub-backend:${TOKENHUB_BACKEND_TAG:-local}
+    build: &backend-build ./backend
     entrypoint: ["/migrate"]
     env_file: [.env]
     environment: *application-env
@@ -88,7 +90,8 @@ services:
       minio-init: {condition: service_completed_successfully}
 
   api:
-    build: ./backend
+    image: *backend-image
+    build: *backend-build
     env_file: [.env]
     environment: *application-env
     healthcheck:
@@ -102,7 +105,8 @@ services:
       redis: {condition: service_healthy}
 
   worker:
-    build: ./backend
+    image: *backend-image
+    build: *backend-build
     entrypoint: ["/worker"]
     env_file: [.env]
     environment: *application-env

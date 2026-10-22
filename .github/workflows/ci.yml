@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [portal-1, portal-2, remediation, identity, core]
+        shard: [portal-1, portal-2, portal-3, portal-4, remediation-1, remediation-2, core-1, core-2, organization, incentives]
     # Each shard owns its PostgreSQL, Redis and MinIO; no shared fault state.
     services:
       postgres:
@@ -67,6 +67,14 @@ jobs:
         with:
           go-version: "1.27"
           cache-dependency-path: backend/go.sum
+      - name: Restore Go build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-${{ hashFiles('backend/**/*.go', 'backend/**/*.sql') }}
+          restore-keys: |
+            go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-
+            go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-
       - name: start MinIO
         working-directory: .
         run: |
@@ -155,5 +163,10 @@ jobs:
           node --test ../backend/openapi/contract.test.cjs
       - run: npm test
       - run: npm run build
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test

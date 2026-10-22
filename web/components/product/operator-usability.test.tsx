@@ -8,8 +8,9 @@ import { OperatorOverview, OperatorWorkflowScreen } from "./operator-workflows";
 import { readResourceListState, subjectReturnURL, subjectURL } from "./operator-list-state";
 
 let permissions = ["*"];
-vi.mock("./context", () => ({ useProduct: () => ({ session: { kind: "staff", staff: { id: "staff-1", email: "staff@example.test", display_name: "负责人" }, workspaces: [{ operator: { id: "operator-one", name: "经营方", kind: "oem", brand_id: "brand-one" }, permissions }] } as Session }) }));
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); localStorage.clear(); permissions = ["*"]; });
+let operatorKind: "platform" | "oem" | "channel" = "oem";
+vi.mock("./context", () => ({ useProduct: () => ({ session: { kind: "staff", staff: { id: "staff-1", email: "staff@example.test", display_name: "负责人" }, workspaces: [{ operator: { id: "operator-one", name: "经营方", kind: operatorKind, brand_id: "brand-one" }, permissions }] } as Session }) }));
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); localStorage.clear(); permissions = ["*"]; operatorKind = "oem"; });
 function page(items: Entity[], extra: Partial<ResourcePage> = {}): ResourcePage { return { search_supported: true, status_supported: true, title: "业务记录", description: "", columns: [{ key: "id", label: "编号", kind: "text" }], items: items.map(item => ({...item,presentation:item.presentation || {title: item.id, labels:{}}})), operations: [], row_operations: [], ...extra }; }
 function show(children: React.ReactNode) { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{children}</QueryClientProvider>); }
 function response(data: unknown) { return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } }); }
@@ -170,6 +171,18 @@ it("restores deep-link filters and accepts only same-operator return destination
   expect(subjectReturnURL("operator-one", "customers")).toBe(original);
   window.history.replaceState(null, "", "/manage/operator-one/customers?record=customer-a&returnTo=https%3A%2F%2Foutside.test");
   expect(subjectReturnURL("operator-one", "customers")).toBe("/manage/operator-one/customers");
+});
+
+it("lists a public model's checked capabilities without saved filters or a detail action", async () => {
+  operatorKind = "platform";
+  vi.stubGlobal("fetch", vi.fn(async () => response(page([{ id: "gpt", status: "configured", presentation: { title: "GPT Sol", labels: {} }, values: { display_name: "GPT Sol", enabled: false, route_configured: false, capabilities: [{ operation: "chat" }, { operation: "responses" }, { operation: "chat" }] } }], { title: "公开模型", description: "说明", columns: [{ key: "display_name", label: "名称", kind: "text" }, { key: "capabilities", label: "能力", kind: "text" }, { key: "enabled", label: "开放模型", kind: "boolean" }], operations: [{ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [] }] }))));
+  show(<ResourceScreen operatorID="operator-one" resource="catalog" />);
+  await screen.findByRole("heading", { name: "公开模型" });
+  expect(screen.queryByRole("button", { name: "保存常用筛选" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "查看详情" })).toBeNull();
+  expect(screen.queryByText("查看明细与证据")).toBeNull();
+  expect(screen.getByText("对话、Responses")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "编辑模型" })).toBeTruthy();
 });
 
 it("opens a public model from the list only after a route exists", async () => {

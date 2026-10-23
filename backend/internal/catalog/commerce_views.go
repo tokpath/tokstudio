@@ -15,12 +15,11 @@ type PublicCapability struct {
 	Operation modelruntime.Operation `json:"operation"`
 }
 type PublicPriceComponent struct {
-	Component string      `json:"component"`
-	Label     string      `json:"label,omitempty"`
-	AmountATG string      `json:"amount_atg"`
-	Per       string      `json:"per"`
-	Unit      string      `json:"unit"`
-	Tiers     []PriceTier `json:"tiers,omitempty"`
+	Component string `json:"component"`
+	Label     string `json:"label,omitempty"`
+	AmountATG string `json:"amount_atg"`
+	Per       string `json:"per"`
+	Unit      string `json:"unit"`
 }
 type PublicCatalogModel struct {
 	ID              string                 `json:"id"`
@@ -84,18 +83,7 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 			if e != nil {
 				return nil, e
 			}
-			component := PublicPriceComponent{Label: labels[c.Key], Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit, Tiers: append([]PriceTier(nil), c.Tiers...)}
-			for i := range component.Tiers {
-				rate, e := PriceDecimal(component.Tiers[i].Rate)
-				if e != nil {
-					return nil, e
-				}
-				component.Tiers[i].Rate, e = exactPublicDecimal(new(big.Rat).Mul(rate, factor))
-				if e != nil {
-					return nil, e
-				}
-			}
-			view.Prices = append(view.Prices, component)
+			view.Prices = append(view.Prices, PublicPriceComponent{Label: labels[c.Key], Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit})
 		}
 		out = append(out, view)
 	}
@@ -260,18 +248,7 @@ func publicPriceComponents(price ResolvedPrice) ([]PublicPriceComponent, error) 
 		if e != nil {
 			return nil, e
 		}
-		component := PublicPriceComponent{Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit, Tiers: append([]PriceTier(nil), c.Tiers...)}
-		for i := range component.Tiers {
-			rate, e := PriceDecimal(component.Tiers[i].Rate)
-			if e != nil {
-				return nil, e
-			}
-			component.Tiers[i].Rate, e = exactPublicDecimal(new(big.Rat).Mul(rate, factor))
-			if e != nil {
-				return nil, e
-			}
-		}
-		out = append(out, component)
+		out = append(out, PublicPriceComponent{Component: c.Key, AmountATG: amount, Per: c.Per, Unit: c.Unit})
 	}
 	return out, nil
 }

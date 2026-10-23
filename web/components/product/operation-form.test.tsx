@@ -82,28 +82,26 @@ it("keeps confirmation and reward periods in the time section", () => {
 
 function mount(operation:Operation,props:Partial<React.ComponentProps<typeof OperationForm>>={}){const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><OperationForm operatorID={operation.path.startsWith("/api/v1/me/")?undefined:"operator-one"} operation={operation} {...props}/></QueryClientProvider>)}
 function priceOperation(configuration:JSONValue):Operation{return {name:"price",label:"发布价格版本",method:"POST",path:"/api/v1/operators/operator-one/pricing",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true,default_value:configuration}]};}
-function priceConfig():JSONValue{return {action:"price",evidence:"verified-notice",price:{id:"price-new",model_id:"model-one",scope:{kind:"retail",seller_id:"operator-one"},layer:"regular",effective_at:"2026-12-01T00:00:00Z",rule:{mode:"manual",components:[{key:"input_tokens",unit:"token",per:"1000000",rate:"1.000000000000000001",tiers:[]}]},published:true},provider_extension:{exact:"0.000000000000000000000001"}};}
+function priceConfig():JSONValue{return {action:"price",evidence:"verified-notice",price:{id:"price-new",model_id:"model-one",scope:{kind:"retail",seller_id:"operator-one"},layer:"regular",effective_at:"2026-12-01T00:00:00Z",rule:{mode:"manual",components:[{key:"input_tokens",unit:"token",per:"1000000",rate:"1.000000000000000001"}]},published:true},provider_extension:{exact:"0.000000000000000000000001"}};}
 function referenceFetch(){return vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/")?{items:[{value:"model-one",label:"业务模型一"}]}:{id:"saved",status:"published"}),{status:200}));}
 
-it("edits component and progressive tier prices as exact strings and drops unknown fields",async()=>{
+it("edits a component price as an exact string and drops unknown fields",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
-  fireEvent.change(screen.getByLabelText(/^ATG 单价/),{target:{value:"0.000000000000000000000001"}});
-  fireEvent.click(screen.getByRole("button",{name:"添加阶梯",exact:true}));
-  fireEvent.change(screen.getByLabelText(/^起始数量/),{target:{value:"0"}});
-  fireEvent.change(screen.getByLabelText(/^本阶梯单价/),{target:{value:"0.123456789012345678901234"}});
+  expect(screen.queryByRole("button",{name:"添加阶梯",exact:true})).toBeNull();
+  const rate=screen.getByLabelText(/^ATG 单价/);
+  fireEvent.change(rate,{target:{value:"0.000000000000000000000001"}});
   fireEvent.click(screen.getByRole("button",{name:"发布价格版本",exact:true}));
   await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   const call=fetch.mock.calls.find(call=>call[1]?.method==="POST")!;
   const payload=JSON.parse(String(call[1]?.body));
-  expect(payload.configuration.price.rule.components[0]).toEqual({key:"input_tokens",unit:"token",per:"1000000",rate:"0.000000000000000000000001",tiers:[{from:"0",rate:"0.123456789012345678901234"}]});
+  expect(payload.configuration.price.rule.components[0]).toEqual({key:"input_tokens",unit:"token",per:"1000000",rate:"0.000000000000000000000001"});
   expect(payload.configuration.provider_extension).toBeUndefined();
+  expect(payload.configuration.price.rule.components[0].tiers).toBeUndefined();
 });
 
-it("locates an invalid tier without submitting or rounding its amount",async()=>{
+it("locates an invalid unit price without submitting or rounding its amount",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
-  fireEvent.click(screen.getByRole("button",{name:"添加阶梯",exact:true}));
-  fireEvent.change(screen.getByLabelText(/^起始数量/),{target:{value:"0"}});
-  const rate=screen.getByLabelText(/^本阶梯单价/);
+  const rate=screen.getByLabelText(/^ATG 单价/);
   fireEvent.change(rate,{target:{value:"0.1234567890123456789012345"}});
   fireEvent.click(screen.getByRole("button",{name:"发布价格版本",exact:true}));
   expect(screen.getByRole("alert").textContent).toContain("最多 24 位小数");

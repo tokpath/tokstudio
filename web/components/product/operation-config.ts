@@ -49,14 +49,12 @@ const scope = (label: string, operatorID?: string) => object(label, {
   seller_id: { ...text("定价经营方（自动带入）"), default: operatorID, readOnly: true },
   buyer_id: { ...text("供货采购方"), lookupBy: {field:"kind",values:{supply:"buyers"}}, when: { field: "kind", values: ["supply"] } },
 });
-const tier = object("阶梯", { from: decimal("起始数量（含）"), to: decimal("结束数量（不含，最后一阶可留空）", false), rate: decimal("本阶梯单价") });
 const component: ConfigNode = { ...object("计费项目", {
   key: { ...text("计费项目"), readOnly: true },
   label: { ...text("计费项目名称", false), readOnly: true },
   unit: { ...text("计量单位"), readOnly: true },
   per: { ...decimal("计价数量"), readOnly: true },
   rate: decimal("ATG 单价"),
-  tiers: array("渐进阶梯价格（可选）", tier),
 }), presentation: "price" };
 
 const billingTemplates: [string,string][] = [["tokens","按 Token"],["images","按张"],["megapixels","按百万像素"],["characters","按字符"],["seconds","按秒"]];
@@ -338,15 +336,5 @@ export function validatePriceConfiguration(value: JSONValue): void {
     if (seen.has(String(component.key))) throw new ConfigurationError("同一价格中，计费组件标识不能重复。", `${path}.key`);
     seen.add(String(component.key));
     if (compareDecimal(String(component.per), "0") <= 0) throw new ConfigurationError("每多少单位必须大于 0。", `${path}.per`);
-    const tiers = (component.tiers || []) as Record<string, JSONValue>[];
-    let from = "0";
-    tiers.forEach((tier, tierIndex) => {
-      const tierPath = `${path}.tiers.${tierIndex}`;
-      if (compareDecimal(String(tier.from), from) !== 0) throw new ConfigurationError("阶梯价格应从 0 开始，且与上一阶结束数量连续衔接。", `${tierPath}.from`);
-      if (tierIndex === tiers.length - 1 && tier.to) throw new ConfigurationError("最后一阶的结束数量请留空，覆盖剩余用量。", `${tierPath}.to`);
-      if (tierIndex < tiers.length - 1 && !tier.to) throw new ConfigurationError("中间阶梯必须填写结束数量。", `${tierPath}.to`);
-      if (tier.to && compareDecimal(String(tier.to), String(tier.from)) <= 0) throw new ConfigurationError("阶梯结束数量必须大于起始数量。", `${tierPath}.to`);
-      from = String(tier.to || "0");
-    });
   });
 }

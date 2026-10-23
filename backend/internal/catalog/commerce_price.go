@@ -56,19 +56,13 @@ func (s PriceScope) AssetUnit() string {
 }
 
 // ComponentRate describes one billable unit and one exact specification. Keys
-// include specification/condition identity, e.g. image:1024x1024:high. Tiers are
-// progressive: [From,To); an omitted To covers the remainder. A zero quantity
-// must never incur a fixed fee; per-request fees use a separate request unit.
+// include specification/condition identity, e.g. image:1024x1024:high. The same
+// rate applies to the whole quantity. A zero quantity must never incur a fixed
+// fee; per-request fees use a separate request unit.
 type ComponentRate struct {
-	Key   string      `json:"key"`
-	Unit  string      `json:"unit"`
-	Per   string      `json:"per"`
-	Rate  string      `json:"rate"`
-	Tiers []PriceTier `json:"tiers,omitempty"`
-}
-type PriceTier struct {
-	From string `json:"from"`
-	To   string `json:"to,omitempty"`
+	Key  string `json:"key"`
+	Unit string `json:"unit"`
+	Per  string `json:"per"`
 	Rate string `json:"rate"`
 }
 type PriceRule struct {
@@ -166,12 +160,9 @@ func (r PriceResolver) resolve(ctx context.Context, scope PriceScope, model stri
 	}
 	line := PriceLineage{VersionID: v.ID, Scope: scope, Layer: v.Layer, Multiplier: multiplier}
 	if v.Rule.Mode == "manual" {
-		// Deep copy by value, including the tier slices, so later configuration
-		// edits cannot change an accepted request's in-memory snapshot.
+		// Copy the component list so a later price edit cannot change a request
+		// that already accepted this snapshot.
 		components := append([]ComponentRate(nil), v.Rule.Components...)
-		for i := range components {
-			components[i].Tiers = append([]PriceTier(nil), components[i].Tiers...)
-		}
 		return ResolvedPrice{AssetUnit: scope.AssetUnit(), Scope: scope, ModelID: model, AcceptedAt: at, Components: components, FactorNumerator: "1", FactorDenominator: "1", Lineage: []PriceLineage{line}}, nil
 	}
 	base, err := r.resolve(ctx, *v.Rule.Follow, model, at, seen)
@@ -227,30 +218,6 @@ func ValidatePriceVersion(v PriceVersion) error {
 			if _, e = PriceDecimal(c.Rate); e != nil {
 				return e
 			}
-			last := new(big.Rat)
-			for i, t := range c.Tiers {
-				from, e := PriceDecimal(t.From)
-				if e != nil || from.Cmp(last) != 0 {
-					return errors.New("price tiers must be contiguous and start at zero")
-				}
-				if _, e = PriceDecimal(t.Rate); e != nil {
-					return e
-				}
-				if t.To == "" {
-					if i != len(c.Tiers)-1 {
-						return ErrInvalidInput
-					}
-				} else {
-					to, e := PriceDecimal(t.To)
-					if e != nil || to.Cmp(from) <= 0 {
-						return ErrInvalidInput
-					}
-					last = to
-				}
-			}
-			if len(c.Tiers) > 0 && c.Tiers[len(c.Tiers)-1].To != "" {
-				return errors.New("last price tier must be unbounded")
-			}
 		}
 	default:
 		return ErrInvalidInput
@@ -295,30 +262,11 @@ func (p ResolvedPrice) Charge(quantities map[string]string) (*big.Rat, error) {
 		if e != nil || per.Sign() <= 0 {
 			return nil, ErrInvalidInput
 		}
-		cost := new(big.Rat)
-		if len(c.Tiers) == 0 {
-			rate, e := PriceDecimal(c.Rate)
-			if e != nil {
-				return nil, e
-			}
-			cost.Mul(q, rate)
-		} else {
-			for _, t := range c.Tiers {
-				from, _ := PriceDecimal(t.From)
-				if q.Cmp(from) <= 0 {
-					break
-				}
-				end := new(big.Rat).Set(q)
-				if t.To != "" {
-					to, _ := PriceDecimal(t.To)
-					if end.Cmp(to) > 0 {
-						end = to
-					}
-				}
-				rate, _ := PriceDecimal(t.Rate)
-				cost.Add(cost, new(big.Rat).Mul(new(big.Rat).Sub(end, from), rate))
-			}
+		rate, e := PriceDecimal(c.Rate)
+		if e != nil {
+			return nil, e
 		}
+		cost := new(big.Rat).Mul(q, rate)
 		total.Add(total, cost.Quo(cost, per))
 	}
 	for k := range quantities {
@@ -383,12 +331,6 @@ func extremeRate(c ComponentRate, min bool) (*big.Rat, error) {
 		return nil, ErrInvalidInput
 	}
 	values := []string{c.Rate}
-	if len(c.Tiers) > 0 {
-		values = nil
-		for _, t := range c.Tiers {
-			values = append(values, t.Rate)
-		}
-	}
 	var out *big.Rat
 	for _, v := range values {
 		r, e := PriceDecimal(v)
@@ -406,8 +348,8 @@ func extremeRate(c ComponentRate, min bool) (*big.Rat, error) {
 	return out, nil
 }
 
-// MaximumCharge is exact for progressive nonnegative tiers, including fixed
-// request units. Bounds must come from the verified route's admitted limits.
+// MaximumCharge is exact for a nonnegative unit rate, including a fixed
+// per-request component. Bounds must come from the verified route's admitted limits.
 func (p ResolvedPrice) MaximumCharge(bounds map[string]string) (*big.Rat, error) {
 	return p.Charge(bounds)
 }

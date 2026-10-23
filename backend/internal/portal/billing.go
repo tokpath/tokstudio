@@ -51,10 +51,6 @@ func (a *Application) billingDetails(ctx context.Context, r usage.Request, out g
 		amount, _ := ledger.Quantize(exact)
 		displayed = displayed.Add(amount)
 		description := rate.Rate + " / " + rate.Per + " " + rate.Unit
-		if len(rate.Tiers) > 0 {
-			raw, _ := json.Marshal(rate.Tiers)
-			description = "progressive tiers " + string(raw) + " / " + rate.Per + " " + rate.Unit
-		}
 		if quote.Retail.FactorNumerator != "1" || quote.Retail.FactorDenominator != "1" {
 			description += " × " + quote.Retail.FactorNumerator + "/" + quote.Retail.FactorDenominator
 		}

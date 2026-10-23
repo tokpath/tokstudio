@@ -434,26 +434,6 @@
     "ja": "購入事業者 / 上流ルート",
     "ru": "Оператор-покупатель / вышестоящий маршрут"
   },
-  "阶梯": {
-    "en": "Tier",
-    "ja": "段階",
-    "ru": "Ступень"
-  },
-  "起始数量（含）": {
-    "en": "Starting quantity (inclusive)",
-    "ja": "開始数量（含む）",
-    "ru": "Начальное количество (включительно)"
-  },
-  "结束数量（不含，最后一阶可留空）": {
-    "en": "Ending quantity (exclusive; leave blank for the final tier)",
-    "ja": "終了数量（含まない。最終段階は空欄可）",
-    "ru": "Конечное количество (не включается; для последней ступени можно оставить пустым)"
-  },
-  "本阶梯单价": {
-    "en": "Unit price for this tier",
-    "ja": "この段階の単価",
-    "ru": "Цена единицы на этой ступени"
-  },
   "计费组件": {
     "en": "Billing component",
     "ja": "課金項目",
@@ -478,16 +458,6 @@
     "en": "Base unit price",
     "ja": "基本単価",
     "ru": "Базовая цена единицы"
-  },
-  "渐进阶梯价格（可选）": {
-    "en": "Progressive tiered prices (optional)",
-    "ja": "累進段階料金（任意）",
-    "ru": "Прогрессивные ступенчатые цены (необязательно)"
-  },
-  "从 0 连续衔接，区间左闭右开；最后一阶结束数量留空表示不限上界。": {
-    "en": "Start at 0 with contiguous ranges, inclusive at the start and exclusive at the end. Leave the final end blank for no upper limit.",
-    "ja": "0 から連続した範囲を設定します。開始値を含み終了値は含みません。最終段階の終了値が空欄なら上限なしです。",
-    "ru": "Начните с 0 и задайте непрерывные диапазоны: начало включается, конец — нет. Пустой конец последней ступени означает отсутствие верхнего предела."
   },
   "公开模型": {
     "en": "Public model",
@@ -974,26 +944,6 @@
     "ja": "価格あたりの単位数は 0 より大きい値にしてください。",
     "ru": "Количество единиц на цену должно быть больше 0."
   },
-  "阶梯价格应从 0 开始，且与上一阶结束数量连续衔接。": {
-    "en": "Tiered pricing must start at 0 and each tier must start where the previous tier ends.",
-    "ja": "段階料金は 0 から開始し、各段階は前の終了数量から連続させてください。",
-    "ru": "Ступенчатые цены должны начинаться с 0, а каждая ступень — продолжать предыдущую без разрыва."
-  },
-  "最后一阶的结束数量请留空，覆盖剩余用量。": {
-    "en": "Leave the final tier's ending quantity blank to cover all remaining usage.",
-    "ja": "残りの使用量をすべて対象にするため、最終段階の終了数量は空欄にしてください。",
-    "ru": "Оставьте конечное количество последней ступени пустым для всего оставшегося использования."
-  },
-  "中间阶梯必须填写结束数量。": {
-    "en": "Intermediate tiers require an ending quantity.",
-    "ja": "中間段階には終了数量が必要です。",
-    "ru": "Для промежуточных ступеней требуется конечное количество."
-  },
-  "阶梯结束数量必须大于起始数量。": {
-    "en": "A tier's ending quantity must be greater than its starting quantity.",
-    "ja": "段階の終了数量は開始数量より大きい値にしてください。",
-    "ru": "Конечное количество ступени должно быть больше начального."
-  },
   "配置内容无法读取，请关闭后重新打开。": {
     "en": "The configuration cannot be read. Close it and open it again.",
     "ja": "設定を読み取れません。閉じてから開き直してください。",
@@ -1413,16 +1363,6 @@
     "en": ", base unit price",
     "ja": "、基本単価",
     "ru": ", базовая цена единицы"
-  },
-  "另按已填写的": {
-    "en": "Also uses the entered",
-    "ja": "追加で入力済みの",
-    "ru": "Также используются указанные"
-  },
-  "个连续阶梯计价，请核对每阶数量和单价。": {
-    "en": "contiguous tiers. Check the quantity and rate for each tier.",
-    "ja": "段階の連続料金を適用します。各段階の数量と単価を確認してください。",
-    "ru": "непрерывные ступени. Проверьте количество и цену каждой ступени."
   },
   "价格按请求受理时固定。本次变更将按通知规则生效，并重算已售责任覆盖；已受理请求保留原价格。": {
     "en": "Prices are fixed when a request is accepted. This change takes effect under notification rules and recalculates coverage of sold obligations; accepted requests retain their original prices.",

@@ -10,13 +10,8 @@ it("omits fields belonging to the other pricing mode without losing precise foll
   expect(prepared.price.scope).toEqual({ kind: "retail", seller_id: "operator-one" });
   expect(prepared.price.rule).toEqual({ mode: "follow", follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" } });
 });
-it("checks tier continuity using exact 24 digit decimals", () => {
-  const value: JSONValue = { price: { layer: "regular", rule: { mode: "manual", components: [{ key: "quantity", per: "1", tiers: [{ from: "0", to: "0.000000000000000000000001", rate: "1" }, { from: "0.000000000000000000000002", rate: "1" }] }] } } };
-  expect(() => validatePriceConfiguration(value)).toThrow("连续衔接");
-});
-it("requires a finite promotion end time and an unbounded final tier", () => {
+it("requires a finite promotion end time", () => {
   expect(() => validatePriceConfiguration({ price: { layer: "promotion" } })).toThrow("结束时间");
-  expect(() => validatePriceConfiguration({ price: { layer: "regular", rule: { mode: "manual", components: [{ key: "quantity", per: "1", tiers: [{ from: "0", to: "100", rate: "1" }] }] } } })).toThrow("最后一阶");
 });
 
 const catalogOperation: Operation = { name:"save",label:"添加公开模型",method:"POST",path:"/api/v1/operators/operator-one/catalog",fields:[] };

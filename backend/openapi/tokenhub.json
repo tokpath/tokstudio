@@ -38776,38 +38776,6 @@
                 },
                 "unit": {
                   "type": "string"
-                },
-                "tiers": {
-                  "anyOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "from": {
-                            "type": "string",
-                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                          },
-                          "to": {
-                            "type": "string",
-                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                          },
-                          "rate": {
-                            "type": "string",
-                            "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                          }
-                        },
-                        "required": [
-                          "from",
-                          "rate"
-                        ],
-                        "additionalProperties": true
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
                 }
               },
               "required": [
@@ -38854,31 +38822,6 @@
                           },
                           "per": {
                             "type": "string"
-                          },
-                          "tiers": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "from": {
-                                  "type": "string",
-                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                                },
-                                "to": {
-                                  "type": "string",
-                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                                },
-                                "rate": {
-                                  "type": "string",
-                                  "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,24})?$"
-                                }
-                              },
-                              "required": [
-                                "from",
-                                "rate"
-                              ],
-                              "additionalProperties": true
-                            }
                           }
                         },
                         "required": [
@@ -48381,28 +48324,6 @@
                 },
                 "rate": {
                   "$ref": "#/components/schemas/Decimal"
-                },
-                "tiers": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "from": {
-                        "$ref": "#/components/schemas/Decimal"
-                      },
-                      "to": {
-                        "$ref": "#/components/schemas/Decimal"
-                      },
-                      "rate": {
-                        "$ref": "#/components/schemas/Decimal"
-                      }
-                    },
-                    "required": [
-                      "from",
-                      "rate"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "required": [

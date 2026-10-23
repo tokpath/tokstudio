@@ -194,7 +194,7 @@ func (a *Application) models(c *gin.Context) {
 		}
 		prices := []any{}
 		for _, p := range m.Prices {
-			prices = append(prices, gin.H{"component": p.Component, "label": p.Label, "amount_atg": p.AmountATG, "per": p.Per, "unit": p.Unit, "tiers": p.Tiers})
+			prices = append(prices, gin.H{"component": p.Component, "label": p.Label, "amount_atg": p.AmountATG, "per": p.Per, "unit": p.Unit})
 		}
 		status := "active"
 		if m.Status != "available" {

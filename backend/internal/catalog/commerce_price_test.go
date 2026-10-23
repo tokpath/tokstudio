@@ -61,9 +61,9 @@ func TestPromotionEndsAtCurrentRegularPriceAndFollowSnapshots(t *testing.T) {
 		t.Fatal("accepted snapshot changed")
 	}
 }
-func TestPriceTierCoverageIsConservativeForAllQuantities(t *testing.T) {
-	retail := ResolvedPrice{ModelID: "model", FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "tokens", Unit: "token", Per: "1000", Rate: "0", Tiers: []PriceTier{{From: "0", To: "100", Rate: "3"}, {From: "100", Rate: "1"}}}, {Key: "request", Unit: "request", Per: "1", Rate: "0.1"}}}
-	supply := ResolvedPrice{ModelID: "model", FactorNumerator: "2", FactorDenominator: "3", Components: []ComponentRate{{Key: "tokens", Unit: "token", Per: "1000", Rate: "0", Tiers: []PriceTier{{From: "0", To: "200", Rate: "1"}, {From: "200", Rate: "2"}}}, {Key: "request", Unit: "request", Per: "1", Rate: "0.2"}}}
+func TestCoverageFactorBoundsEveryQuantity(t *testing.T) {
+	retail := ResolvedPrice{ModelID: "model", FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "tokens", Unit: "token", Per: "1000", Rate: "3"}, {Key: "request", Unit: "request", Per: "1", Rate: "0.1"}}}
+	supply := ResolvedPrice{ModelID: "model", FactorNumerator: "2", FactorDenominator: "3", Components: []ComponentRate{{Key: "tokens", Unit: "token", Per: "1000", Rate: "1"}, {Key: "request", Unit: "request", Per: "1", Rate: "0.2"}}}
 	k, e := CoverageFactor(retail, supply)
 	if e != nil {
 		t.Fatal(e)

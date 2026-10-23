@@ -52,7 +52,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       if (key === "kind" && node.fields?.seller_id?.readOnly && node.fields?.buyer_id?.lookupBy) { next.buyer_id="";next.seller_id=selected==="supplier"?"":node.fields.seller_id.default || ""; }
       if (key === "buyer_id" && data.kind === "supplier" && typeof defaults?.provider_id === "string") next.seller_id=defaults.provider_id;
       if (key === "pricing_reference") { next.cost_provider=String(defaults?.cost_provider || ""); next.cost_model=String(defaults?.cost_model || ""); if (!data.model && defaults?.model) next.model=String(defaults.model); }
-      if (key === "model_id" && data.rule && typeof data.rule === "object" && !Array.isArray(data.rule) && Array.isArray(defaults?.pricing_components)) { next.rule={ ...asObject(data.rule), components: (defaults.pricing_components as Record<string, JSONValue>[]).map(item => ({ ...item, rate: "", tiers: [] })) }; }
+      if (key === "model_id" && data.rule && typeof data.rule === "object" && !Array.isArray(data.rule) && Array.isArray(defaults?.pricing_components)) { next.rule={ ...asObject(data.rule), components: (defaults.pricing_components as Record<string, JSONValue>[]).map(item => ({ ...item, rate: "" })) }; }
       if (key === "model_id" && data.action === "billing") {
         const profiles=asObject(defaults?.billing as JSONValue);setModelMetadata(profiles);
         const op=Object.keys(profiles)[0] || "chat";next.operation=op;next.billing=profiles[op] || {input:[],output:[]};

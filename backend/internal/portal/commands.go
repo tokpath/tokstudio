@@ -499,6 +499,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
+		labels := supplierLabels(rows)
 		for _, row := range rows {
 			item := entity(row.ID, "configured", int64(row.Version), row)
 			values := item["values"].(gin.H)
@@ -516,11 +517,14 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			values := item["values"].(gin.H)
 			values["record_kind"] = "supplier_model"
 			values["name"] = row.Model
+			if label := labels[row.CredentialID]; label != "" {
+				values["supplier_name"] = label
+			}
 			item["allowed_actions"] = []string{"model"}
 			items = append(items, item)
 		}
 		p["description"] = "上半部分管理供应商连接，下半部分维护供应商模型与能力。上游成本优先采用可靠的供应商费用，否则由 Bifrost 参考价目计算。"
-		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("provider", "协议", "text"), col("model", "供应商模型", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
+		p["columns"] = []gin.H{col("record_kind", "类型", "text"), col("name", "名称", "text"), col("supplier_name", "供应商", "text"), col("provider", "协议", "text"), col("model", "供应商模型", "text"), col("capabilities", "能力", "text"), col("enabled", "启用", "boolean")}
 		name := f("name", "凭据名称", "text")
 		name.Help = "例如「OpenAI 生产」。以后可以只改名称，不必重新填写密钥。"
 		createSecret := f("secret", "供应商密钥", "password")

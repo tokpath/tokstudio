@@ -11,10 +11,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
+
+func TestSupplierLabelsUseTheCredentialNamePeopleSee(t *testing.T) {
+	providerID := uuid.NewString()
+	labels := supplierLabels([]catalog.CredentialView{
+		{ID: "named", Name: "onerouter", ProviderID: providerID, Fingerprint: "abc"},
+		{ID: "blank", Name: "  ", ProviderID: providerID, Fingerprint: "c07e3f6b0758"},
+	})
+	if labels["named"] != "onerouter" || labels["blank"] != "供应商凭据 · c07e3f6b0758" {
+		t.Fatal(labels)
+	}
+}
 
 func TestHumanRecordTitleUsesSavedNamesAndBusinessFacts(t *testing.T) {
 	internal := uuid.NewString()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"gorm.io/gorm"
 )
 
@@ -58,6 +59,18 @@ func credentialChoiceLabel(name, providerID, fingerprint string) string {
 		return name
 	}
 	return humanJoin("供应商凭据", readableIdentifier(providerID), fingerprint)
+}
+
+// supplierLabels names each saved key the same way the key list does, so a
+// model row can show which supplier connection it uses.
+func supplierLabels(rows []catalog.CredentialView) map[string]string {
+	out := map[string]string{}
+	for _, row := range rows {
+		if label := credentialChoiceLabel(row.Name, row.ProviderID, row.Fingerprint); label != "" {
+			out[row.ID] = label
+		}
+	}
+	return out
 }
 
 // All relation queries enforce the exact workspace boundary independently of

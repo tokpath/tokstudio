@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { ResourceCollection, ResourceScreen } from "./operator-resources";
@@ -48,6 +48,26 @@ it("groups Chinese refund types by their exact case and leg IDs and keeps future
   expect(refund.textContent).not.toContain("future_record_kind");
   expect(screen.getByText("本页其他关联记录")).toBeTruthy();
   expect(page.items[2].values.record_kind).toBe("actual_refund_payment");
+});
+
+it("shows which supplier a model uses without adding that column to the key list", () => {
+  const page: ResourcePage = { title: "模型供应商", description: "", columns: [
+    { key: "name", label: "名称", kind: "text" },
+    { key: "supplier_name", label: "供应商", kind: "text" },
+    { key: "provider", label: "协议", kind: "text" },
+    { key: "model", label: "供应商模型", kind: "text" },
+  ], items: [
+    { id: "cred", values: { record_kind: "credential", name: "onerouter" }, presentation: { title: "onerouter", labels: {} } },
+    { id: "model-a", values: { record_kind: "supplier_model", name: "gpt-6.1-sol", supplier_name: "onerouter", provider: "openai", model: "gpt-6.1-sol" }, presentation: { title: "gpt-6.1-sol", labels: {} } },
+    { id: "model-b", values: { record_kind: "supplier_model", name: "gpt-6.1-sol", supplier_name: "官方 OpenAI", provider: "openai", model: "gpt-6.1-sol" }, presentation: { title: "gpt-6.1-sol", labels: {} } },
+  ], operations: [], row_operations: [] };
+  render(<ResourceCollection operatorID="operator-search" resource="providers" page={page} />);
+  const models = screen.getByRole("heading", { name: "供应商模型" }).closest("section")!;
+  expect(within(models).getByRole("columnheader", { name: "供应商" })).toBeTruthy();
+  expect(within(models).getByText("onerouter")).toBeTruthy();
+  expect(within(models).getByText("官方 OpenAI")).toBeTruthy();
+  const keys = screen.getByRole("heading", { name: "供应商密钥" }).closest("section")!;
+  expect(within(keys).queryByRole("columnheader", { name: "供应商" })).toBeNull();
 });
 
 it("shows one search on the provider page and keeps add actions on each section", () => {

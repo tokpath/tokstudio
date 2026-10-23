@@ -104,7 +104,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       bindings: array("绑定的供应商模型", object("绑定", {
         id: { ...text("绑定标识"), generated: "uuid", readOnly: true },
         supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },
-        priority: { ...integer("选路优先级", 0), signed: true },
+        priority: { ...integer("选路优先级（数字越小越优先）", 0), signed: true },
         enabled: { ...boolean("这条绑定接单"), default: true },
         routing: { ...object("熔断", { max_concurrent: { ...integer("最大同时在途（0 不额外限制）", 0), max: 100000 }, failure_threshold: { ...integer("连续失败阈值（0 使用默认 3）", 0), max: 100 }, unknown_usage_threshold: { ...integer("未知用量阈值（0 使用默认 2）", 0), max: 100 }, recovery_successes: { ...integer("恢复成功探测次数（0 使用默认 2）", 0), max: 20 }, cooldown_seconds: { ...integer("冷却秒数（0 使用默认 60）", 0), max: 86400 } }), required: false },
       }), "一个公开模型可以绑多个供应商模型。数字小的优先级先被考虑。"),

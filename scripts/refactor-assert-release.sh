@@ -37,7 +37,9 @@ for expected in required:
     assert expected in workflow, f'release gate missing: {expected}'
 for expected in ["workflow_id: 'ci.yml'", 'head_sha: sha', "runs[0].conclusion !== 'success'", 'current.commit.sha !== sha']:
     assert expected in target, f'CI verification missing: {expected}'
-assert 'needs: backend-tests' in ci and 'if: always()' in ci, 'backend aggregate gate missing'
+assert 'needs: [changes, backend-tests]' in ci and 'if: always()' in ci, 'backend aggregate gate missing'
+assert 'test "$CHANGES_RESULT" = success' in ci, 'change detection must succeed before accepting skipped suites'
+assert 'test "$RESULT" = skipped' in ci and 'BACKEND_CHANGED:' in ci, 'unchanged backend must explicitly verify the skipped result'
 assert 'test "$RESULT" = success' in ci, 'failed shards must fail the backend check'
 assert 'git pull' not in workflow, 'deployment must not advance past the selected SHA'
 print('release: successful CI auto-deployment, exact SHA, stale-run guard and test isolation gates present')

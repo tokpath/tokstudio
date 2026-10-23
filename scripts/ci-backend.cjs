@@ -6,7 +6,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const { appendFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
-const divisions = { portal: 4, remediation: 2, core: 2, organization: 1, incentives: 1 };
+const divisions = { portal: 6, remediation: 2, core: 2, organization: 1, incentives: 1, commerce: 1, usage: 1 };
 const shards = Object.entries(divisions).flatMap(([group, count]) => count === 1
   ? [group]
   : Array.from({ length: count }, (_, index) => `${group}-${index + 1}`));
@@ -15,6 +15,10 @@ function packageShard(pkg) {
   if (pkg.endsWith('/internal/remediation')) return 'remediation';
   if (pkg.endsWith('/internal/organization')) return 'organization';
   if (pkg.endsWith('/internal/incentives')) return 'incentives';
+  // These two integration suites dominated one core runner when bundled with
+  // each other and all remaining packages. Give each its own infrastructure.
+  if (pkg.endsWith('/internal/commerce')) return 'commerce';
+  if (pkg.endsWith('/internal/usage')) return 'usage';
   // New packages are included automatically, including packages without tests.
   return 'core';
 }
@@ -55,6 +59,10 @@ function run(shard) {
   const packages = capture(['list', './...']).trim().split(/\s+/);
   const selected = packagesForShard(packages, shard);
   if (!selected.length) throw new Error(`No packages for ${shard}`);
+  // Compile dependencies with Go's normal CPU parallelism first. Keep test
+  // execution at -p 1 because packages can change shared Redis/S3 fault state.
+  // Unlike an empty test run, `list -export` never executes tests or TestMain.
+  capture(['list', '-race', '-deps', '-test', '-export', ...selected]);
   const args = ['test', '-race', '-p', '1', '-count=1', '-timeout', '15m'];
   let inventory = selected.join('\n');
   if (shardGroup(shard) === 'portal' || shardGroup(shard) === 'remediation') {

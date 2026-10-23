@@ -10,6 +10,12 @@ if [[ "$#" -lt 1 ]]; then
 fi
 
 COMPOSE=(docker compose "$@")
+# Deployment already built and checked its selected revision. Keep interactive
+# local startup's existing build behavior, including on an explicit recovery.
+BUILD_FLAG=--build
+if [[ "${TOKENHUB_COMPOSE_NO_BUILD:-0}" == 1 ]]; then
+  BUILD_FLAG=--no-build
+fi
 
 dump_minio_logs() {
   echo "---- minio / minio-init logs ----" >&2
@@ -37,7 +43,7 @@ recreate_minio_volume() {
   docker volume rm "$vol" >/dev/null 2>&1 || true
 }
 
-if "${COMPOSE[@]}" up --build -d; then
+if "${COMPOSE[@]}" up "$BUILD_FLAG" -d; then
   exit 0
 fi
 
@@ -50,7 +56,7 @@ if [[ "${TOKENHUB_RESET_PREVIEW_MINIO_VOLUME:-0}" != "1" ]]; then
 fi
 recreate_minio_volume
 
-if "${COMPOSE[@]}" up --build -d; then
+if "${COMPOSE[@]}" up "$BUILD_FLAG" -d; then
   echo "compose up succeeded after MinIO volume recreate" >&2
   exit 0
 fi

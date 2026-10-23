@@ -14,6 +14,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identify affected suites
+        id: changes
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.sha }}
+        run: node scripts/ci-changes.cjs
+
   deploy-config:
     runs-on: ubuntu-latest
     steps:
@@ -25,15 +41,21 @@ jobs:
         run: |
           bash scripts/assert_deploy_isolation.sh
           bash scripts/refactor-assert-release.sh
-          node --test scripts/ci-backend.test.cjs scripts/deployment-target.test.cjs
+          node --test scripts/ci-backend.test.cjs scripts/ci-changes.test.cjs scripts/deployment-target.test.cjs scripts/deploy-build.test.cjs
+          bash scripts/assert_minio_recovery.sh
+          node scripts/refactor-openapi.cjs --check
+          node --test backend/openapi/contract.test.cjs
+          node web/scripts/sync-i18n.mjs --check
 
   backend-tests:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [portal-1, portal-2, portal-3, portal-4, remediation-1, remediation-2, core-1, core-2, organization, incentives]
+        shard: [portal-1, portal-2, portal-3, portal-4, portal-5, portal-6, remediation-1, remediation-2, core-1, core-2, organization, incentives, commerce, usage]
     # Each shard owns its PostgreSQL, Redis and MinIO; no shared fault state.
     services:
       postgres:
@@ -64,17 +86,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
+        id: go
         with:
           go-version: "1.27"
-          cache-dependency-path: backend/go.sum
-      - name: Restore Go build cache
+          # One cache owns both directories. setup-go's default cache also
+          # restores go-build, which previously downloaded it a second time.
+          cache: false
+      - name: Restore Go dependencies and build cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/go-build
-          key: go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-${{ hashFiles('backend/**/*.go', 'backend/**/*.sql') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-${{ hashFiles('backend/**/*.go', 'backend/**/*.sql', 'backend/**/*.json', 'scripts/ci-backend.cjs') }}
           restore-keys: |
-            go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-
-            go-build-${{ runner.os }}-go1.27-${{ matrix.shard }}-
+            go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-
+            go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-
       - name: start MinIO
         working-directory: .
         run: |
@@ -131,18 +158,29 @@ jobs:
           bash scripts/build-release.sh /tmp/tokenhub-release
           file /tmp/tokenhub-release/api | grep 'statically linked'
 
-  # Keep the existing required check name; every shard must succeed.
+  # Keep the required check name. Affected backend suites must all succeed;
+  # only a successful path comparison may accept intentionally skipped shards.
   backend:
     if: always()
-    needs: backend-tests
+    needs: [changes, backend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Require every backend shard
         env:
           RESULT: ${{ needs.backend-tests.result }}
-        run: test "$RESULT" = success
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+        run: |
+          test "$CHANGES_RESULT" = success
+          if [ "$BACKEND_CHANGED" = false ]; then
+            test "$RESULT" = skipped
+          else
+            test "$RESULT" = success
+          fi
 
   frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -162,10 +200,6 @@ jobs:
           key: next-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
           restore-keys: |
             next-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}-
-      - name: verify OpenAPI artifacts match source
-        run: |
-          node ../scripts/refactor-openapi.cjs --check
-          node --test ../backend/openapi/contract.test.cjs
       - run: npm test
       - run: npm run build
       - name: Restore Playwright browsers

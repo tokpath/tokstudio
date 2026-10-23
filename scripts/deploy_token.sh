@@ -15,14 +15,14 @@ if [[ "$(df -Pk "$ROOT" | awk 'NR == 2 { print $4 }')" -lt 3145728 ]]; then
   echo "Less than 3 GiB free; clean unused build artifacts explicitly before deploying." >&2
   exit 1
 fi
-# 先后端一次，再编网页。worker 和 migrate 复用刚才的后端镜像。
-"${COMPOSE[@]}" build api web
-"${COMPOSE[@]}" build worker migrate
+# Build once. worker/migrate share api's image; include the optional backup
+# image now so startup never initiates another build when that profile is on.
+"${COMPOSE[@]}" build api web backup
 "${COMPOSE[@]}" up -d postgres redis minio minio-init
 # Re-run the explicit migrator on every selected build. It refuses a legacy DB
 # and verifies immutable migration checksums before API or worker can start.
 "${COMPOSE[@]}" run --rm migrate
-bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
+TOKENHUB_COMPOSE_NO_BUILD=1 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
 
 NOVA_CADDY="${NOVA_CADDY:-/root/workspace/nova/Caddyfile}"
 CADDY_SNIPPET="$ROOT/deploy/caddy-test.tokpath.com.caddy"

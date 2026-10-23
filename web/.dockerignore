@@ -5,3 +5,7 @@ playwright-report
 .git
 *.tsbuildinfo
 .env*
+e2e
+**/*.test.ts
+**/*.test.tsx
+playwright.config.ts

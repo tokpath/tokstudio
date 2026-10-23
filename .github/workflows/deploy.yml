@@ -87,13 +87,14 @@ jobs:
             set -euo pipefail
             # 磁盘耗尽时 git fetch 也会失败，因此先清理可重建缓存与悬空镜像。
             df -h /root/workspace
-            # 不用的旧镜像可以删。构建缓存留下，下一次只重编改过的层。
-            # 磁盘低于 8GiB 时才收缩缓存，并至少保留 4GiB，避免每次部署都全量编译。
-            docker image prune -af >/dev/null || true
+            # 只有低磁盘空间时才清理悬空镜像；平时保留构建层和已有基础镜像。
             free_kb="$(df -Pk /root/workspace | awk 'NR == 2 { print $4 }')"
             if [ "$free_kb" -lt 8388608 ]; then
-              if ! docker builder prune -af --keep-storage 4GB >/dev/null 2>&1; then
-                docker builder prune -af --filter until=48h >/dev/null || true
+              docker image prune -f >/dev/null || true
+              if [ "$(df -Pk /root/workspace | awk 'NR == 2 { print $4 }')" -lt 8388608 ]; then
+                if ! docker builder prune -af --keep-storage 4GB >/dev/null 2>&1; then
+                  docker builder prune -af --filter until=48h >/dev/null || true
+                fi
               fi
             fi
             df -h /root/workspace

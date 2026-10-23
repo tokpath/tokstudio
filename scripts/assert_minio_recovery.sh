@@ -103,6 +103,7 @@ fi
   echo "default failure must not stop/remove containers or delete volumes" >&2
   exit 1
 }
+grep -q 'up --build -d' "$COMPOSE_MOCK_STATE/docker.log"
 
 export COMPOSE_MOCK_STATE="$TMP/explicit-reset"
 TOKENHUB_RESET_PREVIEW_MINIO_VOLUME=1 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml -f docker-compose.token.yml
@@ -120,3 +121,19 @@ grep -q 'volume rm tokstudio_tokenhub_v2_minio' "$COMPOSE_MOCK_STATE/ops.log" \
   }
 
 echo "ok: minio recovery retries once after volume rm"
+
+# An already-built deployment must not start another build, even on recovery.
+export COMPOSE_MOCK_STATE="$TMP/prebuilt-preserve"
+if TOKENHUB_COMPOSE_NO_BUILD=1 TOKENHUB_RESET_PREVIEW_MINIO_VOLUME=0 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml; then
+  echo "expected prebuilt failure to remain failed" >&2
+  exit 1
+fi
+[[ ! -f "$COMPOSE_MOCK_STATE/ops.log" ]]
+grep -q 'up --no-build -d' "$COMPOSE_MOCK_STATE/docker.log"
+if grep -q 'up --build' "$COMPOSE_MOCK_STATE/docker.log"; then exit 1; fi
+
+export COMPOSE_MOCK_STATE="$TMP/prebuilt-retry"
+TOKENHUB_COMPOSE_NO_BUILD=1 TOKENHUB_RESET_PREVIEW_MINIO_VOLUME=1 bash "$ROOT/scripts/compose_up_with_minio_recovery.sh" -f docker-compose.yml
+[[ "$(grep -c 'up --no-build -d' "$COMPOSE_MOCK_STATE/docker.log")" == 2 ]]
+if grep -q 'up --build' "$COMPOSE_MOCK_STATE/docker.log"; then exit 1; fi
+echo "ok: prebuilt startup and explicit recovery never rebuild images"

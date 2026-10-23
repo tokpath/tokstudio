@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS tokenhub_model_price_versions (
  UNIQUE(scope_key,public_model_id,layer,effective_at)
 );
 CREATE INDEX IF NOT EXISTS tokenhub_model_price_effective ON tokenhub_model_price_versions(scope_key,public_model_id,effective_at DESC);
+CREATE TABLE IF NOT EXISTS tokenhub_catalog_notice_policies(
+ operator_id text PRIMARY KEY,lead_seconds bigint NOT NULL CHECK(lead_seconds>=60),rules_reference text NOT NULL,version bigint NOT NULL
+);
 CREATE TABLE IF NOT EXISTS tokenhub_catalog_changes(
  id text PRIMARY KEY,operator_id text NOT NULL,kind text NOT NULL,resource_id text NOT NULL,
  payload jsonb NOT NULL,fingerprint text NOT NULL,effective_at timestamptz NOT NULL,lead_seconds bigint NOT NULL,

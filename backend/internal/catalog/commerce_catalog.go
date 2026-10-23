@@ -27,6 +27,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_02_credential_name.sql
 //go:embed commerce_schema_03_supplier_models.sql
 //go:embed commerce_schema_04_capability_fields.sql
+//go:embed commerce_schema_05_drop_notice_policies.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -35,10 +36,13 @@ var supplierModelSchema string
 //go:embed commerce_schema_04_capability_fields.sql
 var capabilityFieldSchema string
 
+//go:embed commerce_schema_05_drop_notice_policies.sql
+var dropNoticePolicySchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")

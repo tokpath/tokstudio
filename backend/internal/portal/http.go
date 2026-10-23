@@ -74,6 +74,8 @@ func handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, branding.ErrNotFound), errors.Is(err, gorm.ErrRecordNotFound), errors.Is(err, organization.ErrNotFound), errors.Is(err, commerce.ErrNotFound):
 		status, code, msg, retry = 404, "not_found", "记录不存在或不属于当前范围", false
+	case errors.Is(err, catalog.ErrResolutionPrice):
+		status, code, msg, retry = 403, "resolution_owner", "只有平台经营方可以为图片或视频新增分辨率，其它经营方只能为已有分辨率标价。", false
 	case errors.Is(err, remediation.ErrScope), errors.Is(err, operations.ErrForbidden), errors.Is(err, payments.ErrForbidden), errors.Is(err, catalog.ErrCatalogForbidden), errors.Is(err, incentives.ErrNotEligible), errors.Is(err, organization.ErrForbidden), errors.Is(err, commerce.ErrScope), errors.Is(err, ledger.ErrScope):
 		status, code, msg, retry = 403, "forbidden", "当前身份没有此经营范围的操作权限", false
 	case errors.Is(err, errStaffPasswordLength):

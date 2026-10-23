@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
-import { configDefaults, nodeVisible, retainKnownFields, type ConfigNode } from "./operation-config";
+import { configDefaults, groupResolutionPrices, nodeVisible, resolutionPriceable, retainKnownFields, type ConfigNode } from "./operation-config";
 import { RecordPicker, type RecordChoice } from "./record-picker";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
@@ -41,7 +41,9 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   if (node.kind === "object") {
     if (node.presentation === "price") {
       const price = asObject(value);
-      return <fieldset className="rounded-control border border-hairline p-4"><legend className="px-2 text-sm font-semibold">{billingLabel(String(price.label || price.key || "计费项目"), t)}</legend><p className="mb-3 text-xs text-ink-mute">{t("每 {per} {unit}", { per: String(price.per || "1"), unit: t(({token:"Token",image:"张",megapixel:"百万像素",character:"字符",second:"秒"} as Record<string,string>)[String(price.unit)] || String(price.unit || "")) })}</p><div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([, child]) => !child.readOnly).map(([key, child]) => <NodeEditor key={key} node={child} value={price[key]} disabled={disabled} operatorID={operatorID} fieldPath={`${fieldPath}.${key}`} change={next => change({ ...price, [key]: next })} />)}</div></fieldset>;
+      const resolutions = Array.isArray(price.resolutions) ? price.resolutions : [];
+      const pricedBySize = resolutionPriceable(String(price.key || ""), String(price.unit || ""));
+      return <fieldset className="rounded-control border border-hairline p-4"><legend className="px-2 text-sm font-semibold">{billingLabel(String(price.label || price.key || "计费项目"), t)}</legend><p className="mb-3 text-xs text-ink-mute">{t("每 {per} {unit}", { per: String(price.per || "1"), unit: t(({token:"Token",image:"张",megapixel:"百万像素",character:"字符",second:"秒"} as Record<string,string>)[String(price.unit)] || String(price.unit || "")) })}</p><div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => key !== "resolutions" && !child.readOnly).map(([key, child]) => <NodeEditor key={key} node={child} value={price[key]} disabled={disabled} operatorID={operatorID} fieldPath={`${fieldPath}.${key}`} change={next => change({ ...price, [key]: next })} />)}</div>{pricedBySize && <ResolutionPrices fieldPath={fieldPath} help={node.fields?.resolutions?.help} rows={resolutions} disabled={disabled} change={next => change({ ...price, resolutions: next })} />}</fieldset>;
     }
     const data = asObject(value);
     const update = (key: string, selected: JSONValue, defaults?: Record<string, unknown>) => {
@@ -52,7 +54,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       if (key === "kind" && node.fields?.seller_id?.readOnly && node.fields?.buyer_id?.lookupBy) { next.buyer_id="";next.seller_id=selected==="supplier"?"":node.fields.seller_id.default || ""; }
       if (key === "buyer_id" && data.kind === "supplier" && typeof defaults?.provider_id === "string") next.seller_id=defaults.provider_id;
       if (key === "pricing_reference") { next.cost_provider=String(defaults?.cost_provider || ""); next.cost_model=String(defaults?.cost_model || ""); if (!data.model && defaults?.model) next.model=String(defaults.model); }
-      if (key === "model_id" && data.rule && typeof data.rule === "object" && !Array.isArray(data.rule) && Array.isArray(defaults?.pricing_components)) { next.rule={ ...asObject(data.rule), components: (defaults.pricing_components as Record<string, JSONValue>[]).map(item => ({ ...item, rate: "" })) }; }
+      if (key === "model_id" && data.rule && typeof data.rule === "object" && !Array.isArray(data.rule) && Array.isArray(defaults?.pricing_components)) { next.rule={ ...asObject(data.rule), components: groupResolutionPrices((defaults.pricing_components as Record<string, JSONValue>[]).map(item => ({ ...item, rate: "" }))) }; }
       if (key === "model_id" && data.action === "billing") {
         const profiles=asObject(defaults?.billing as JSONValue);setModelMetadata(profiles);
         const op=Object.keys(profiles)[0] || "chat";next.operation=op;next.billing=profiles[op] || {input:[],output:[]};
@@ -111,6 +113,11 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
           : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled || idLocked} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
 
   </div>;
+}
+
+function ResolutionPrices({ fieldPath, help, rows, disabled, change }: { fieldPath: string; help?: string; rows: JSONValue[]; disabled: boolean; change: (rows: JSONValue[]) => void }) {
+  const { t } = useI18n();
+  return <section className="mt-4 space-y-3 border-t border-hairline pt-4"><div className="flex flex-wrap items-center justify-between gap-3"><h5 className="text-sm font-medium">{t("分辨率价格（可选）")}{help && <FieldHelp title={t("分辨率价格（可选）")}>{t(help)}</FieldHelp>}</h5><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...rows, { size: "", rate: "" }])}><Plus aria-hidden="true" />{t("添加分辨率")}</Button></div>{rows.map((row, index) => { const item = asObject(row); const update = (key: string, next: string) => change(rows.map((previous, i) => i === index ? { ...asObject(previous), [key]: next } : previous)); return <div key={index} className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><div data-config-path={`${fieldPath}.resolutions.${index}.size`}><label className="text-xs text-ink-secondary">{t("分辨率")}<Input aria-label={t("分辨率 {index}", { index: index + 1 })} className="mt-2" value={String(item.size || "")} disabled={disabled} placeholder="1024x1024" onChange={event => update("size", event.target.value)} /></label></div><div data-config-path={`${fieldPath}.resolutions.${index}.rate`}><label className="text-xs text-ink-secondary">{t("该分辨率的 ATG 单价")}<Input aria-label={t("该分辨率的 ATG 单价 {index}", { index: index + 1 })} className="mt-2" inputMode="decimal" value={String(item.rate || "")} disabled={disabled} onChange={event => update("rate", event.target.value)} /></label></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除分辨率 {index}", { index: index + 1 })} disabled={disabled} onClick={() => change(rows.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>; })}</section>;
 }
 
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });

@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -239,8 +240,109 @@ func (p ResolvedPrice) Factor() (*big.Rat, error) {
 	return new(big.Rat).SetFrac(n, d), nil
 }
 
+// resolutionParent separates a meter key from one specification suffix.
+// image:1024x1024:high is not a single suffix and stays one exact key.
+func resolutionParent(key string) (string, bool) {
+	parent, child, ok := strings.Cut(key, ":")
+	if !ok || parent == "" || child == "" || strings.Contains(child, ":") {
+		return "", false
+	}
+	return parent, true
+}
+func quantityHasChild(quantities map[string]string, parent string) bool {
+	prefix := parent + ":"
+	for key := range quantities {
+		if strings.HasPrefix(key, prefix) && !strings.Contains(key[len(prefix):], ":") {
+			return true
+		}
+	}
+	return false
+}
+func (p ResolvedPrice) matchingRate(key string) (ComponentRate, bool) {
+	for _, component := range p.Components {
+		if component.Key == key {
+			return component, true
+		}
+	}
+	parent, ok := resolutionParent(key)
+	if !ok {
+		return ComponentRate{}, false
+	}
+	for _, component := range p.Components {
+		if component.Key == parent {
+			return component, true
+		}
+	}
+	return ComponentRate{}, false
+}
+func (p ResolvedPrice) childRate(parent string) (ComponentRate, bool, error) {
+	var best *ComponentRate
+	var bestUnit *big.Rat
+	for i := range p.Components {
+		got, ok := resolutionParent(p.Components[i].Key)
+		if !ok || got != parent {
+			continue
+		}
+		unit, e := extremeRate(p.Components[i], false)
+		if e != nil {
+			return ComponentRate{}, false, e
+		}
+		if best == nil || unit.Cmp(bestUnit) > 0 {
+			best = &p.Components[i]
+			bestUnit = unit
+		}
+	}
+	if best == nil {
+		return ComponentRate{}, false, nil
+	}
+	return *best, true, nil
+}
+func applyCost(total *big.Rat, component ComponentRate, raw string) error {
+	quantity, e := PriceDecimal(raw)
+	if e != nil {
+		return e
+	}
+	per, e := PriceDecimal(component.Per)
+	if e != nil || per.Sign() <= 0 {
+		return ErrInvalidInput
+	}
+	rate, e := PriceDecimal(component.Rate)
+	if e != nil {
+		return e
+	}
+	cost := new(big.Rat).Mul(quantity, rate)
+	total.Add(total, cost.Quo(cost, per))
+	return nil
+}
+
+// componentCovers accepts a listed resolution price, its base meter, or any
+// priced resolution when an older price has no separate base component.
+func componentCovers(components []ComponentRate, key, unit string) bool {
+	for _, rate := range components {
+		if rate.Unit == unit && rate.Key == key {
+			return true
+		}
+	}
+	if parent, ok := resolutionParent(key); ok {
+		for _, rate := range components {
+			if rate.Unit == unit && rate.Key == parent {
+				return true
+			}
+		}
+	}
+	for _, rate := range components {
+		parent, ok := resolutionParent(rate.Key)
+		if ok && parent == key && rate.Unit == unit {
+			return true
+		}
+	}
+	return false
+}
+
 // Charge requires a quantity (including explicit zero) for every component.
-// Omitted evidence cannot accidentally settle as a free request.
+// Omitted evidence cannot accidentally settle as a free request. A resolution
+// quantity without its own price uses the base meter. A base quantity that is
+// absent because only resolutions were measured is zero.
 func (p ResolvedPrice) Charge(quantities map[string]string) (*big.Rat, error) {
 	factor, err := p.Factor()
 	if err != nil {
@@ -248,37 +350,59 @@ func (p ResolvedPrice) Charge(quantities map[string]string) (*big.Rat, error) {
 	}
 	total := new(big.Rat)
 	known := map[string]bool{}
-	for _, c := range p.Components {
-		known[c.Key] = true
-		raw, ok := quantities[c.Key]
+	for _, component := range p.Components {
+		known[component.Key] = true
+		raw, ok := quantities[component.Key]
 		if !ok {
-			return nil, fmt.Errorf("missing usage %s", c.Key)
+			if quantityHasChild(quantities, component.Key) {
+				raw = "0"
+			} else {
+				return nil, fmt.Errorf("missing usage %s", component.Key)
+			}
 		}
-		q, e := PriceDecimal(raw)
-		if e != nil {
+		if e := applyCost(total, component, raw); e != nil {
 			return nil, e
 		}
-		per, e := PriceDecimal(c.Per)
-		if e != nil || per.Sign() <= 0 {
-			return nil, ErrInvalidInput
-		}
-		rate, e := PriceDecimal(c.Rate)
-		if e != nil {
-			return nil, e
-		}
-		cost := new(big.Rat).Mul(q, rate)
-		total.Add(total, cost.Quo(cost, per))
 	}
-	for k := range quantities {
-		if !known[k] {
-			return nil, fmt.Errorf("unknown usage component %s", k)
+	for key, raw := range quantities {
+		if known[key] {
+			continue
 		}
+		if rate, ok := p.matchingRate(key); ok {
+			if e := applyCost(total, rate, raw); e != nil {
+				return nil, e
+			}
+			continue
+		}
+		amount, e := PriceDecimal(raw)
+		if e != nil {
+			return nil, e
+		}
+		if amount.Sign() > 0 {
+			rate, ok, e := p.childRate(key)
+			if e != nil {
+				return nil, e
+			}
+			if ok {
+				if e = applyCost(total, rate, raw); e != nil {
+					return nil, e
+				}
+				continue
+			}
+		} else if _, child := resolutionParent(key); child {
+			continue
+		} else if _, ok, e := p.childRate(key); e != nil {
+			return nil, e
+		} else if ok {
+			continue
+		}
+		return nil, fmt.Errorf("unknown usage component %s", key)
 	}
 	return total.Mul(total, factor), nil
 }
 
-// CoverageFactor is a conservative upper bound over every component and tier.
-// Ratios use the lowest retail marginal rate and highest procurement rate.
+// CoverageFactor is a conservative upper bound over every component, including a
+// resolution that one side prices specifically and the other side prices on the base meter.
 // A fixed per-request fee is represented by a request component on both books.
 func CoverageFactor(retail, procurement ResolvedPrice) (*big.Rat, error) {
 	if retail.ModelID != procurement.ModelID {
@@ -292,17 +416,27 @@ func CoverageFactor(retail, procurement ResolvedPrice) (*big.Rat, error) {
 	if e != nil {
 		return nil, e
 	}
-	rates := map[string]ComponentRate{}
-	for _, c := range retail.Components {
-		rates[c.Key] = c
+	keys := map[string]bool{}
+	for _, component := range retail.Components {
+		keys[component.Key] = true
+	}
+	for _, component := range procurement.Components {
+		keys[component.Key] = true
 	}
 	max := new(big.Rat)
-	for _, p := range procurement.Components {
-		r, ok := rates[p.Key]
-		if !ok || r.Unit != p.Unit {
-			return nil, fmt.Errorf("incomparable component %s", p.Key)
+	for key := range keys {
+		retailRate, e := pricedForCoverage(retail, key)
+		if e != nil {
+			return nil, e
 		}
-		pr, e := extremeRate(p, false)
+		procurementRate, e := pricedForCoverage(procurement, key)
+		if e != nil {
+			return nil, e
+		}
+		if retailRate.Unit != procurementRate.Unit {
+			return nil, fmt.Errorf("incomparable component %s", key)
+		}
+		pr, e := extremeRate(procurementRate, false)
 		if e != nil {
 			return nil, e
 		}
@@ -310,13 +444,13 @@ func CoverageFactor(retail, procurement ResolvedPrice) (*big.Rat, error) {
 		if pr.Sign() == 0 {
 			continue
 		}
-		rr, e := extremeRate(r, true)
+		rr, e := extremeRate(retailRate, true)
 		if e != nil {
 			return nil, e
 		}
 		rr.Mul(rr, rf)
 		if rr.Sign() == 0 {
-			return nil, fmt.Errorf("%w: %s", ErrUnboundedCoverage, p.Key)
+			return nil, fmt.Errorf("%w: %s", ErrUnboundedCoverage, key)
 		}
 		k := new(big.Rat).Quo(pr, rr)
 		if k.Cmp(max) > 0 {
@@ -324,6 +458,19 @@ func CoverageFactor(retail, procurement ResolvedPrice) (*big.Rat, error) {
 		}
 	}
 	return max, nil
+}
+func pricedForCoverage(price ResolvedPrice, key string) (ComponentRate, error) {
+	if rate, ok := price.matchingRate(key); ok {
+		return rate, nil
+	}
+	rate, ok, e := price.childRate(key)
+	if e != nil {
+		return ComponentRate{}, e
+	}
+	if !ok {
+		return ComponentRate{}, fmt.Errorf("incomparable component %s", key)
+	}
+	return rate, nil
 }
 func extremeRate(c ComponentRate, min bool) (*big.Rat, error) {
 	per, e := PriceDecimal(c.Per)

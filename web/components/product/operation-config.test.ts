@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { configurationSchema, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
+import { canonicalResolution, configurationSchema, groupResolutionPrices, prepareConfiguration, validateModelConfiguration, validatePriceConfiguration } from "./operation-config";
 import type { JSONValue, Operation } from "@/lib/contracts";
 
 const operation: Operation = { name: "price", label: "发布价格", method: "POST", path: "/api/v1/operators/operator-one/pricing", fields: [] };
@@ -38,6 +38,31 @@ it("requires complete nested pricing objects and preserves an explicit absent pr
   const prepared = prepareConfiguration(value, configurationSchema(operation)!);
   expect(() => validatePriceConfiguration(prepared)).not.toThrow();
   expect(prepared).toMatchObject({ price: { ends_at: null } });
+});
+it("expands image and video resolution prices and keeps other meters unchanged", () => {
+  expect(canonicalResolution("1024X1024")).toBe("1024x1024");
+  expect(canonicalResolution("0x1")).toBeUndefined();
+  const grouped = groupResolutionPrices([
+    { key: "output_image_images", label: "图片生成 · 输出图片", unit: "image", per: "1" },
+    { key: "output_image_images:1024x1024", label: "图片生成 · 输出图片 · 1024x1024", unit: "image", per: "1", rate: "8" },
+    { key: "input_audio_seconds", label: "语音转写 · 输入音频", unit: "second", per: "1" },
+  ]);
+  expect(grouped).toEqual([
+    { key: "output_image_images", label: "图片生成 · 输出图片", unit: "image", per: "1", resolutions: [{ size: "1024x1024", rate: "8" }] },
+    { key: "input_audio_seconds", label: "语音转写 · 输入音频", unit: "second", per: "1", resolutions: [] },
+  ]);
+  const price = { price: { model_id: "picture", layer: "regular", published: true, rule: { mode: "manual", components: [
+    { key: "output_image_images", unit: "image", per: "1", rate: "3", resolutions: [{ size: "1024X1024", rate: "8" }] },
+    { key: "output_video_seconds", unit: "second", per: "1", rate: "1", resolutions: [] },
+  ] } } };
+  expect(() => validatePriceConfiguration(price)).not.toThrow();
+  expect(price.price.rule.components).toEqual([
+    { key: "output_image_images", unit: "image", per: "1", rate: "3" },
+    { key: "output_image_images:1024x1024", unit: "image", per: "1", rate: "8" },
+    { key: "output_video_seconds", unit: "second", per: "1", rate: "1" },
+  ]);
+  expect(() => validatePriceConfiguration({ price: { model_id: "speech", layer: "regular", rule: { mode: "manual", components: [{ key: "input_audio_seconds", unit: "second", per: "1", rate: "1", resolutions: [{ size: "1024x1024", rate: "9" }] }] } } })).toThrow("只有图片和视频");
+  expect(() => validatePriceConfiguration({ price: { model_id: "picture", layer: "regular", rule: { mode: "manual", components: [{ key: "output_image_images", unit: "image", per: "1", rate: "1", resolutions: [{ size: "big", rate: "1" }] }] } } })).toThrow("宽x高");
 });
 it("enforces the published wildcard and model override rules", () => {
   expect(() => validatePriceConfiguration({ price: { model_id: "*", layer: "regular", rule: { mode: "manual" } } })).toThrow("默认规则");

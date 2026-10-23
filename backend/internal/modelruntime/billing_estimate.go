@@ -55,7 +55,7 @@ func EstimateUsage(c Capability, r Request) map[string]string {
 						continue
 					}
 				}
-				if selected != "" && !strings.HasSuffix(component.Key, ":"+selected) {
+				if selected != "" && !strings.HasSuffix(component.Key, ":"+selected) || selected == "" && len(item.Variants) > 0 && strings.Contains(component.Key, ":") {
 					out[component.Key] = "0"
 					continue
 				}

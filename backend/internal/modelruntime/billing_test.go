@@ -42,7 +42,7 @@ func TestComponentLabelsNameTheCapability(t *testing.T) {
 		t.Fatal("image input and sized output")
 	}
 	labels := image.Components(Image)
-	if labels[0].Label != "图片生成 · 输入图片" || labels[1].Label != "图片生成 · 输出图片 · 高清" {
+	if labels[0].Label != "图片生成 · 输入图片" || labels[1].Label != "图片生成 · 输出图片 · 高清" || labels[2].Key != "output_image_images" || labels[2].Label != "图片生成 · 输出图片" {
 		t.Fatal(labels)
 	}
 	video := BillingProfile{Input: []BillingItem{{Modality: "video", Template: "seconds", Variants: []BillingVariant{{ID: "hd", Name: "高清", Size: "1280x720"}}}}}
@@ -186,6 +186,40 @@ func TestAggregateAudioDurationCannotBeChargedAsOutput(t *testing.T) {
 	bad := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": []any{map[string]any{"type": "image_url", "image_url": map[string]any{}}}}}}}
 	if got := extractBilledUsage(bad, images.Capability(Chat, false), Request{Operation: Chat}); got.Reliable {
 		t.Fatal("malformed declared output treated as no image", got)
+	}
+}
+
+func TestResolutionMeterUsesTheListedSizeOrTheBasePrice(t *testing.T) {
+	item := BillingItem{Modality: "image", Template: "images", Variants: []BillingVariant{{ID: "1024x1024", Name: "1024x1024", Size: "1024x1024"}}}
+	selected, e := item.SelectVariant([]byte(`{"size":"1024x1024"}`))
+	if e != nil || selected != "1024x1024" {
+		t.Fatal(selected, e)
+	}
+	selected, e = item.SelectVariant([]byte(`{"size":"512x512"}`))
+	if e != nil || selected != "" {
+		t.Fatal(selected, e)
+	}
+	ambiguous := BillingItem{Variants: []BillingVariant{{ID: "a", Name: "A", Size: "1024x1024"}, {ID: "b", Name: "B", Size: "1024x1024"}}}
+	if _, e = ambiguous.SelectVariant([]byte(`{"size":"1024x1024"}`)); e == nil {
+		t.Fatal("two prices for one size")
+	}
+	profile := BillingProfile{Output: []BillingItem{item}}
+	capability := profile.Capability(Image, false)
+	listed := extractBilledUsage(map[string]any{"data": []any{map[string]any{"url": "https://cdn.example/listed.png", "width": 1024, "height": 1024}}}, capability, Request{Operation: Image, Params: []byte(`{"size":"1024x1024"}`)})
+	if !listed.Reliable || qmap(listed)["output_image_images:1024x1024"].Cmp(big.NewRat(1, 1)) != 0 || qmap(listed)["output_image_images"].Sign() != 0 {
+		t.Fatal(listed)
+	}
+	other := extractBilledUsage(map[string]any{"data": []any{map[string]any{"url": "https://cdn.example/other.png", "width": 512, "height": 512}}}, capability, Request{Operation: Image, Params: []byte(`{"size":"512x512"}`)})
+	if !other.Reliable || qmap(other)["output_image_images"].Cmp(big.NewRat(1, 1)) != 0 || qmap(other)["output_image_images:1024x1024"].Sign() != 0 {
+		t.Fatal(other)
+	}
+	matched := EstimateUsage(capability, Request{Operation: Image, Params: []byte(`{"size":"1024x1024","n":2}`)})
+	if matched["output_image_images:1024x1024"] != "2.000000000000000000" || matched["output_image_images"] != "0" {
+		t.Fatal(matched)
+	}
+	fallback := EstimateUsage(capability, Request{Operation: Image, Params: []byte(`{"size":"512x512","n":2}`)})
+	if fallback["output_image_images"] != "2.000000000000000000" || fallback["output_image_images:1024x1024"] != "0" {
+		t.Fatal(fallback)
 	}
 }
 

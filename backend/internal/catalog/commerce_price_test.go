@@ -122,3 +122,30 @@ func TestFollowCycleAndOverlappingPromotionsRejected(t *testing.T) {
 		t.Fatal("overlapping promotions accepted")
 	}
 }
+func TestResolutionPriceFallsBackToTheBaseRate(t *testing.T) {
+	retail := ResolvedPrice{ModelID: "model", FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "output_image_images", Unit: "image", Per: "1", Rate: "10"}, {Key: "output_image_images:1024x1024", Unit: "image", Per: "1", Rate: "2"}}}
+	supply := ResolvedPrice{ModelID: "model", FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "output_image_images", Unit: "image", Per: "1", Rate: "4"}}}
+	factor, e := CoverageFactor(retail, supply)
+	if e != nil || factor.Cmp(big.NewRat(2, 1)) != 0 {
+		t.Fatalf("coverage %v %v", factor, e)
+	}
+	sold, e := retail.Charge(map[string]string{"output_image_images": "1", "output_image_images:1024x1024": "0"})
+	if e != nil || sold.Cmp(big.NewRat(10, 1)) != 0 {
+		t.Fatalf("base size %v %v", sold, e)
+	}
+	sold, e = retail.Charge(map[string]string{"output_image_images": "0", "output_image_images:1024x1024": "1"})
+	if e != nil || sold.Cmp(big.NewRat(2, 1)) != 0 {
+		t.Fatalf("listed size %v %v", sold, e)
+	}
+	bought, e := supply.Charge(map[string]string{"output_image_images": "0", "output_image_images:1024x1024": "1"})
+	if e != nil || bought.Cmp(big.NewRat(4, 1)) != 0 {
+		t.Fatalf("older supply price %v %v", bought, e)
+	}
+	active := activePrice(supply, map[string]string{"output_image_images": "1", "output_image_images:1024x1024": "1"})
+	if len(active.Components) != 1 || active.Components[0].Key != "output_image_images" {
+		t.Fatal(active.Components)
+	}
+	if !componentCovers(supply.Components, "output_image_images:1024x1024", "image") {
+		t.Fatal("base price did not cover the resolution")
+	}
+}

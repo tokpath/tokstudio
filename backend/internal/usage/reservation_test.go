@@ -54,7 +54,7 @@ func TestReservationOnlyOccupiesSelectedSpecification(t *testing.T) {
 	c := modelruntime.BillingProfile{Output: []modelruntime.BillingItem{{Modality: "image", Template: "images", Variants: []modelruntime.BillingVariant{{ID: "small", Name: "Small", Size: "512x512"}, {ID: "large", Name: "Large", Size: "1024x1024"}}}}}.Capability(modelruntime.Image, false)
 	r := modelruntime.Request{Operation: modelruntime.Image, Params: []byte(`{"size":"512x512","n":3}`)}
 	got := reservationQuantities(catalog.ModelQuote{Billing: c}, r)
-	if got["output_image_images:large"] != "0" || got["output_image_images:small"] != "3.000000000000000000" {
+	if got["output_image_images:large"] != "0" || got["output_image_images:small"] != "3.000000000000000000" || got["output_image_images"] != "0" {
 		t.Fatal(got)
 	}
 	r.Operation = modelruntime.VideoRetrieve

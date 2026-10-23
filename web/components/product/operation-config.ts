@@ -49,13 +49,55 @@ const scope = (label: string, operatorID?: string) => object(label, {
   seller_id: { ...text("定价经营方（自动带入）"), default: operatorID, readOnly: true },
   buyer_id: { ...text("供货采购方"), lookupBy: {field:"kind",values:{supply:"buyers"}}, when: { field: "kind", values: ["supply"] } },
 });
+const resolutionPrice = object("分辨率价格", {
+  size: text("分辨率", true, "例如 1024x1024 或 1280x720"),
+  rate: decimal("该分辨率的 ATG 单价"),
+});
 const component: ConfigNode = { ...object("计费项目", {
   key: { ...text("计费项目"), readOnly: true },
   label: { ...text("计费项目名称", false), readOnly: true },
   unit: { ...text("计量单位"), readOnly: true },
   per: { ...decimal("计价数量"), readOnly: true },
   rate: decimal("ATG 单价"),
+  resolutions: { ...array("分辨率价格（可选）", resolutionPrice, "图片和视频可以按分辨率单独标价。写在这里的尺寸按这一行的单价计费；没有单独标价的尺寸，按上面的单价计费。"), required: false },
 }), presentation: "price" };
+
+// Image and video meters can carry one rate per frame size. Audio seconds and token meters cannot.
+export function resolutionPriceable(key: string, unit: string) {
+  return unit === "image" || unit === "megapixel" || (unit === "second" && key.includes("video"));
+}
+export function canonicalResolution(value: string): string | undefined {
+  const match = /^(\d+)[xX](\d+)$/.exec(value.trim());
+  if (!match) return;
+  const width = Number(match[1]), height = Number(match[2]);
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 || width > 65536 || height > 65536) return;
+  if (String(width) !== match[1] || String(height) !== match[2]) return;
+  return `${width}x${height}`;
+}
+export function groupResolutionPrices(components: Record<string, JSONValue>[]): Record<string, JSONValue>[] {
+  const kept: Record<string, JSONValue>[] = [];
+  const extras = new Map<string, Record<string, JSONValue>[]>();
+  for (const item of components) {
+    const key = String(item.key || "");
+    const cut = key.indexOf(":");
+    const size = cut > 0 ? canonicalResolution(key.slice(cut + 1)) : undefined;
+    if (size && !key.slice(cut + 1).includes(":") && resolutionPriceable(key.slice(0, cut), String(item.unit || ""))) {
+      const parent = key.slice(0, cut);
+      extras.set(parent, [...(extras.get(parent) || []), { size, rate: item.rate ?? "" }]);
+      continue;
+    }
+    kept.push({ ...item, resolutions: Array.isArray(item.resolutions) ? item.resolutions : [] });
+  }
+  for (const [parent, rows] of extras) {
+    const found = kept.find(item => item.key === parent);
+    if (found) { found.resolutions = rows; continue; }
+    const sample = components.find(item => String(item.key || "").startsWith(`${parent}:`));
+    const parts = String(sample?.label || parent).split(" · ");
+    const suffix = canonicalResolution(parts[parts.length - 1] || "");
+    kept.push({ key: parent, label: suffix ? parts.slice(0, -1).join(" · ") : String(sample?.label || parent), unit: sample?.unit || "", per: sample?.per || "1", rate: "", resolutions: rows });
+  }
+  return kept;
+}
 
 const billingTemplates: [string,string][] = [["tokens","按 Token"],["images","按张"],["megapixels","按百万像素"],["characters","按字符"],["seconds","按秒"]];
 function billingItem(direction:"input"|"output"):ConfigNode{return object("计量项目",{
@@ -328,7 +370,8 @@ export function validatePriceConfiguration(value: JSONValue): void {
     }
     return;
   }
-  const components = (rule.components || []) as Record<string, JSONValue>[];
+  rule.components = expandResolutionPrices((rule.components || []) as Record<string, JSONValue>[]);
+  const components = rule.components as Record<string, JSONValue>[];
   if (!components.length) throw new ConfigurationError("手动定价至少需要一个计费组件。", "price.rule.components");
   const seen = new Set<string>();
   components.forEach((component, index) => {
@@ -337,4 +380,28 @@ export function validatePriceConfiguration(value: JSONValue): void {
     seen.add(String(component.key));
     if (compareDecimal(String(component.per), "0") <= 0) throw new ConfigurationError("每多少单位必须大于 0。", `${path}.per`);
   });
+}
+
+// A resolution row becomes its own price component, key:WxH, before the server sees the form.
+function expandResolutionPrices(components: Record<string, JSONValue>[]): Record<string, JSONValue>[] {
+  const out: Record<string, JSONValue>[] = [];
+  components.forEach((component, index) => {
+    const resolutions = Array.isArray(component.resolutions) ? component.resolutions as Record<string, JSONValue>[] : [];
+    const next = { ...component };
+    delete next.resolutions;
+    out.push(next);
+    const seen = new Set<string>();
+    resolutions.forEach((row, rowIndex) => {
+      const size = canonicalResolution(String(row?.size || ""));
+      const path = `price.rule.components.${index}.resolutions.${rowIndex}.size`;
+      if (!size) throw new ConfigurationError("分辨率请写成宽x高，例如 1024x1024。", path);
+      if (!resolutionPriceable(String(component.key || ""), String(component.unit || ""))) throw new ConfigurationError("只有图片和视频可以按分辨率定价。", path);
+      if (seen.has(size)) throw new ConfigurationError("同一计费项目里，分辨率不能重复。", path);
+      seen.add(size);
+      const child: Record<string, JSONValue> = { key: `${component.key}:${size}`, unit: component.unit, per: component.per, rate: row.rate };
+      if (typeof component.label === "string" && component.label) child.label = `${component.label} · ${size}`;
+      out.push(child);
+    });
+  });
+  return out;
 }

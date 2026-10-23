@@ -814,6 +814,46 @@
     "ja": "ATG 単価",
     "ru": "Цена в ATG"
   },
+  "分辨率价格（可选）": {
+    "en": "Resolution prices (optional)",
+    "ja": "解像度価格（任意）",
+    "ru": "Цены по разрешению (необязательно)"
+  },
+  "分辨率": {
+    "en": "Resolution",
+    "ja": "解像度",
+    "ru": "Разрешение"
+  },
+  "该分辨率的 ATG 单价": {
+    "en": "ATG rate for this resolution",
+    "ja": "この解像度の ATG 単価",
+    "ru": "Цена в ATG для этого разрешения"
+  },
+  "添加分辨率": {
+    "en": "Add resolution",
+    "ja": "解像度を追加",
+    "ru": "Добавить разрешение"
+  },
+  "分辨率 {index}": {
+    "en": "Resolution {index}",
+    "ja": "解像度 {index}",
+    "ru": "Разрешение {index}"
+  },
+  "该分辨率的 ATG 单价 {index}": {
+    "en": "ATG rate for resolution {index}",
+    "ja": "解像度 {index} の ATG 単価",
+    "ru": "Цена в ATG для разрешения {index}"
+  },
+  "移除分辨率 {index}": {
+    "en": "Remove resolution {index}",
+    "ja": "解像度 {index} を削除",
+    "ru": "Удалить разрешение {index}"
+  },
+  "图片和视频可以按分辨率单独标价。写在这里的尺寸按这一行的单价计费；没有单独标价的尺寸，按上面的单价计费。": {
+    "en": "Image and video prices can vary by resolution. A listed size uses the rate on its row. Any other size uses the rate above.",
+    "ja": "画像と動画は解像度ごとに単価を設定できます。記入したサイズはその行の単価、未記入のサイズは上の単価で計算します。",
+    "ru": "Для изображений и видео можно задать цену по разрешению. Указанный размер считается по цене своей строки, остальные размеры — по цене выше."
+  },
   "Bifrost 参考计价模型": {
     "en": "Bifrost pricing reference",
     "ja": "Bifrost 参照料金モデル",

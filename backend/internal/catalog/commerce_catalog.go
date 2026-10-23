@@ -42,6 +42,7 @@ func CommerceSchema() string {
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
+var ErrResolutionPrice = errors.New("only the platform operator can add a resolution price")
 var ErrCatalogVersion = errors.New("catalog version conflict")
 var ErrInvalidInput = errors.New("invalid catalog input")
 var ErrModelNotVisible = errors.New("model not visible to operator")
@@ -653,14 +654,7 @@ func (s CommerceCatalog) Quote(ctx context.Context, brand, operator string, r mo
 			return ModelQuote{}, e
 		}
 		for _, rule := range cap.UsageRules {
-			found := false
-			for _, rate := range retail.Components {
-				if rate.Key == rule.Component && rate.Unit == rule.Unit {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if !componentCovers(retail.Components, rule.Component, rule.Unit) {
 				return ModelQuote{}, fmt.Errorf("unpriced metering component %s", rule.Component)
 			}
 		}
@@ -727,6 +721,11 @@ func (s CommerceCatalog) PublishPrice(ctx context.Context, actor string, v Price
 func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v PriceVersion, validateCoverage func(context.Context, *gorm.DB, PriceVersion) error) error {
 	if actor != v.Scope.SellerID || validateCoverage == nil {
 		return ErrCatalogForbidden
+	}
+	if v.ModelID != "*" && v.Rule.Mode == "manual" {
+		if e := s.syncResolutionPrices(ctx, actor, &v); e != nil {
+			return e
+		}
 	}
 	if e := ValidatePriceVersion(v); e != nil {
 		return e

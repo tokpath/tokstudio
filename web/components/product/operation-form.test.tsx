@@ -97,6 +97,29 @@ it("edits a component price as an exact string and drops unknown fields",async()
   expect(payload.configuration.price.rule.components[0]).toEqual({key:"input_tokens",unit:"token",per:"1000000",rate:"0.000000000000000000000001"});
   expect(payload.configuration.provider_extension).toBeUndefined();
   expect(payload.configuration.price.rule.components[0].tiers).toBeUndefined();
+  expect(screen.queryByRole("button", { name: "添加分辨率" })).toBeNull();
+});
+
+it("prices an image resolution from the component card and leaves audio unchanged", async () => {
+  const fetch = referenceFetch();
+  vi.stubGlobal("fetch", fetch);
+  mount(priceOperation({ action: "price", evidence: "verified-notice", price: { id: "price-new", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one" }, layer: "regular", effective_at: "2026-12-01T00:00:00Z", rule: { mode: "manual", components: [
+    { key: "output_image_images", label: "图片生成 · 输出图片", unit: "image", per: "1", rate: "3" },
+    { key: "input_audio_seconds", label: "语音转写 · 输入音频", unit: "second", per: "1", rate: "1" },
+  ] }, published: true } }));
+  expect(screen.getAllByRole("button", { name: "添加分辨率" })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "添加分辨率" }));
+  fireEvent.change(screen.getByLabelText("分辨率 1"), { target: { value: "1024x1024" } });
+  fireEvent.change(screen.getByLabelText("该分辨率的 ATG 单价 1"), { target: { value: "8" } });
+  fireEvent.click(screen.getByRole("button", { name: "发布价格版本", exact: true }));
+  await waitFor(() => expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(true));
+  const call = fetch.mock.calls.find(call => call[1]?.method === "POST")!;
+  const payload = JSON.parse(String(call[1]?.body));
+  expect(payload.configuration.price.rule.components).toEqual([
+    { key: "output_image_images", label: "图片生成 · 输出图片", unit: "image", per: "1", rate: "3" },
+    { key: "output_image_images:1024x1024", label: "图片生成 · 输出图片 · 1024x1024", unit: "image", per: "1", rate: "8" },
+    { key: "input_audio_seconds", label: "语音转写 · 输入音频", unit: "second", per: "1", rate: "1" },
+  ]);
 });
 
 it("locates an invalid unit price without submitting or rounding its amount",async()=>{

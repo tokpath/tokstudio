@@ -3359,6 +3359,11 @@
     "ja": "現在のユーザーにはこの事業範囲の操作権限がありません",
     "ru": "У текущей учётной записи нет прав на действия в этой области оператора"
   },
+  "只有平台经营方可以为图片或视频新增分辨率，其它经营方只能为已有分辨率标价。": {
+    "en": "Only the platform operator can add an image or video resolution. Other operators can price resolutions that already exist.",
+    "ja": "画像または動画の解像度を追加できるのはプラットフォーム事業者だけです。他の事業者は既存の解像度に価格を設定できます。",
+    "ru": "Добавлять разрешение изображения или видео может только оператор платформы. Остальные операторы могут задавать цену уже существующим разрешениям."
+  },
   "邀请码无效，请更正或显式移除；不会自动更改经营归属": {
     "en": "Invalid invitation code. Correct or explicitly remove it; operator attribution will not change automatically.",
     "ja": "招待コードが無効です。修正または明示的に削除してください。所属事業者は自動では変更しません。",

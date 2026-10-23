@@ -3,6 +3,7 @@ package modelruntime
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -169,10 +170,13 @@ func (item BillingItem) components(direction string, op Operation) []BillingComp
 		cacheLabel = capabilityName(op) + " · 缓存读取"
 	}
 	if len(item.Variants) > 0 {
+		// Listed resolutions are priced on their own. The unsuffixed key remains
+		// the price for every other measured size.
 		out := []BillingComponent{}
 		for _, v := range item.Variants {
 			out = append(out, BillingComponent{key + ":" + v.ID, label + " · " + v.Name, unit, per})
 		}
+		out = append(out, BillingComponent{key, label, unit, per})
 		return out
 	}
 	out := []BillingComponent{{key, label, unit, per}}
@@ -216,6 +220,54 @@ func (p BillingProfile) Capability(op Operation, stream bool) Capability {
 	}
 	return c
 }
+func CanonicalSize(size string) (string, bool) {
+	var width, height int64
+	if !parseSize(size, &width, &height) {
+		return "", false
+	}
+	return strconv.FormatInt(width, 10) + "x" + strconv.FormatInt(height, 10), true
+}
+
+// SplitResolution reports the meter key and canonical size encoded as key:WxH.
+func SplitResolution(key string) (string, string, bool) {
+	parent, size, ok := strings.Cut(key, ":")
+	if !ok || parent == "" || strings.Contains(size, ":") {
+		return "", "", false
+	}
+	canonical, ok := CanonicalSize(size)
+	if !ok || canonical != size {
+		return "", "", false
+	}
+	return parent, canonical, true
+}
+
+// EnsureSize adds a resolution that can be priced on its own. An existing
+// variant with the same size keeps its identifier so older prices still match.
+func (item *BillingItem) EnsureSize(size string) (string, bool, error) {
+	canonical, ok := CanonicalSize(size)
+	if !ok || canonical != size || strings.ContainsAny(size, " :/@") || len(size) > 80 {
+		return "", false, ErrInvalidRequest
+	}
+	found := ""
+	for _, variant := range item.Variants {
+		if variant.ID != size && variant.Size != size {
+			continue
+		}
+		if found != "" && found != variant.ID {
+			return "", false, fmt.Errorf("%w: ambiguous billing specification", ErrUnsupported)
+		}
+		found = variant.ID
+	}
+	if found != "" {
+		return found, false, nil
+	}
+	if len(item.Variants) >= 32 {
+		return "", false, ErrInvalidRequest
+	}
+	item.Variants = append(item.Variants, BillingVariant{ID: size, Name: size, Size: size})
+	return size, true, nil
+}
+
 func (item BillingItem) SelectVariant(params json.RawMessage) (string, error) {
 	if len(item.Variants) == 0 {
 		return "", nil
@@ -224,20 +276,33 @@ func (item BillingItem) SelectVariant(params json.RawMessage) (string, error) {
 	if json.Unmarshal(params, &fields) != nil {
 		return "", ErrInvalidRequest
 	}
-	value := func(key string) string { var s string; _ = json.Unmarshal(fields[key], &s); return s }
+	value := func(key string) string {
+		var text string
+		_ = json.Unmarshal(fields[key], &text)
+		return text
+	}
 	size, quality := value("size"), value("quality")
-	selected := ""
-	for _, v := range item.Variants {
-		if (v.Size == "" || v.Size == size) && (v.Quality == "" || v.Quality == quality) {
-			if selected != "" {
-				return "", fmt.Errorf("%w: ambiguous billing specification", ErrUnsupported)
-			}
-			selected = v.ID
+	best, selected := -1, ""
+	for _, variant := range item.Variants {
+		if variant.Size != "" && variant.Size != size || variant.Quality != "" && variant.Quality != quality {
+			continue
 		}
+		score := 0
+		if variant.Size != "" {
+			score += 2
+		}
+		if variant.Quality != "" {
+			score++
+		}
+		if score < best {
+			continue
+		}
+		if score == best {
+			return "", fmt.Errorf("%w: ambiguous billing specification", ErrUnsupported)
+		}
+		best, selected = score, variant.ID
 	}
-	if selected == "" {
-		return "", fmt.Errorf("%w: unpriced billing specification", ErrUnsupported)
-	}
+	// No listed resolution matches. Callers bill the unsuffixed meter instead.
 	return selected, nil
 }
 func (p BillingProfile) ValidateSpecifications(params json.RawMessage) error {

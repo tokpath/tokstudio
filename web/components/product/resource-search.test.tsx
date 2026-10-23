@@ -50,6 +50,18 @@ it("groups Chinese refund types by their exact case and leg IDs and keeps future
   expect(page.items[2].values.record_kind).toBe("actual_refund_payment");
 });
 
+it("shows one search on the provider page and keeps add actions on each section", () => {
+  const page: ResourcePage = { search_supported: true, title: "模型供应商", description: "", items: [], columns: [], operations: [
+    { name: "credential", label: "添加供应商密钥", method: "POST", path: "/api/v1/operators/operator-search/providers", fields: [] },
+    { name: "model", label: "添加供应商模型", method: "POST", path: "/api/v1/operators/operator-search/providers", fields: [] },
+  ], row_operations: [] };
+  render(<ResourceCollection operatorID="operator-search" resource="providers" page={page} toolbar={<input aria-label="搜索记录" />} />);
+  expect(screen.getByRole("heading", { name: "供应商密钥" })).toBeTruthy();
+  expect(screen.getAllByRole("textbox", { name: "搜索记录" })).toHaveLength(1);
+  expect(screen.getAllByRole("button", { name: "添加供应商密钥", exact: true })).toHaveLength(1);
+  expect(screen.getAllByRole("button", { name: "添加供应商模型", exact: true })).toHaveLength(1);
+});
+
 it("forwards refund queries to the server and preserves its complete case context", async () => {
   const page: ResourcePage = { search_supported: true, status_supported: true, title: "退款办理", description: "原退款记录", items: [
     { id: "refund-case", values: { record_kind: "case" } },

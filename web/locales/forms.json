@@ -504,10 +504,15 @@
     "ja": "公開モデル ID",
     "ru": "Идентификатор публичной модели"
   },
-  "客户看到的模型名称": {
-    "en": "Model name shown to customers",
-    "ja": "顧客に表示するモデル名",
-    "ru": "Название модели для клиентов"
+  "客户请求和页面都使用这个标识，例如 demo-chat。创建后不能修改。": {
+    "en": "Requests and pages use this identifier, for example demo-chat. It cannot be changed after creation.",
+    "ja": "リクエストと画面の両方でこの識別子を使います。例：demo-chat。作成後は変更できません。",
+    "ru": "Запросы и страницы используют этот идентификатор, например demo-chat. После создания его нельзя изменить."
+  },
+  "待填写公开模型标识": {
+    "en": "Public model ID needed",
+    "ja": "公開モデル ID を入力",
+    "ru": "Нужен идентификатор публичной модели"
   },
   "已核实模型身份与修订版本": {
     "en": "Verified model identity and revision",

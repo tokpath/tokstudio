@@ -73,8 +73,7 @@ function billingItem(direction:"input"|"output"):ConfigNode{return object("计�
 export function configurationSchema(operation: Operation, operatorID?: string): ConfigNode | undefined {
   if (/\/catalog$/.test(operation.path)) return object("公开模型", {
     model: object("模型名称与能力", {
-      id: text("公开模型标识"),
-      display_name: text("客户看到的模型名称", true, "客户选择模型时看到的名字，例如「对话 Pro」。以后可以修改。"),
+      id: text("公开模型标识", true, "客户请求和页面都使用这个标识，例如 demo-chat。创建后不能修改。"),
       capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },

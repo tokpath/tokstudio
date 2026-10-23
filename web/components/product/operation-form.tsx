@@ -246,7 +246,7 @@ function ConfigurationReview({ value }: { value: string }) {
   catch { return <p className="text-sm text-danger">{t("业务配置尚未完整，请检查上方字段。")}</p>; }
   const model = parsed.model as Record<string, JSONValue> | undefined, route = parsed.route as Record<string, JSONValue> | undefined, supplier = parsed.supplier_model as Record<string, JSONValue> | undefined, price = parsed.price as Record<string, JSONValue> | undefined;
   if (model) {
-    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{String(model.display_name || t("待填写模型名称"))}</p><p>{Array.isArray(model.capabilities) ? model.capabilities.length : 0} {t("项已登记能力")}</p><p>{t("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")}</p></div>;
+    return <div className="space-y-2 text-sm text-ink-secondary"><p className="font-medium text-ink">{String(model.id || t("待填写公开模型标识"))}</p><p>{Array.isArray(model.capabilities) ? model.capabilities.length : 0} {t("项已登记能力")}</p><p>{t("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")}</p></div>;
   }
   if (route) {
     const strategy = ({ priority: "固定优先级", lowest_latency: "已验证最低延迟", lowest_cost: "已验证最低成本" } as Record<string, string>)[String(route.strategy || "")] || String(route.strategy || "");

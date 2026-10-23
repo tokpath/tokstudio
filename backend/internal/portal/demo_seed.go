@@ -353,7 +353,7 @@ func (s *demoBuilder) model(in DemoOptions, children [][2]string) error {
 	modelID := "demo-chat"
 	provider, credential, route := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	cap := modelruntime.Capability{Operation: modelruntime.Chat, Streaming: true, BillableBounds: map[string]string{"input": "8192", "output": "256"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
-	m := catalog.PublicModel{ID: modelID, Identity: modelID, DisplayName: "测试模型 · Demo Chat（固定回复，无真实 AI）", Capabilities: []modelruntime.Capability{cap}}
+	m := catalog.PublicModel{ID: modelID, Identity: modelID, Capabilities: []modelruntime.Capability{cap}}
 	syncCap := cap
 	syncCap.Streaming = false
 	m.Capabilities = []modelruntime.Capability{syncCap, cap}

@@ -234,7 +234,7 @@ func (a *Application) references(c *gin.Context) {
 			if buyer != "" {
 				defaults["authorization_version"] = authorizationVersions[model.ID]
 			}
-			add(model.ID, model.DisplayName+" · "+model.Identity, defaults)
+			add(model.ID, model.ID, defaults)
 		}
 	case "payment-assets":
 		if customer || !require("payments.manage") {
@@ -382,7 +382,10 @@ func (a *Application) references(c *gin.Context) {
 			add(r.ID, r.Provider+" · "+r.GrossUSD.String()+" USD · "+r.ProviderReceiptID, gin.H{"receipt_id": r.ID, "amount_usd": r.GrossUSD.Sub(r.AllocatedUSD).String(), "currency": r.Currency})
 		}
 	case "supplier-models", "cost-models":
-		permission:="catalog.manage";if kind=="cost-models"{permission="platform.manage"}
+		permission := "catalog.manage"
+		if kind == "cost-models" {
+			permission = "platform.manage"
+		}
 		if customer || !require(permission) {
 			return
 		}
@@ -396,7 +399,7 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, model := range models {
-			if !model.Enabled && kind!="cost-models" {
+			if !model.Enabled && kind != "cost-models" {
 				continue
 			}
 			add(model.ID, humanJoin(model.Model, model.Provider), gin.H{"provider_id": model.ProviderID, "credential_id": model.CredentialID})

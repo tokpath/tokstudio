@@ -371,7 +371,7 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 
 	if len(refs["model"]) > 0 {
 		var found []humanLabelRow
-		q := db.Table("tokenhub_public_models m").Select("m.id,m.definition->>'display_name' AS label").Where("m.id IN ?", refs["model"])
+		q := db.Table("tokenhub_public_models m").Select("m.id,m.id AS label").Where("m.id IN ?", refs["model"])
 		if op != a.Installation.OperatorID {
 			q = q.Where("EXISTS (SELECT 1 FROM tokenhub_model_listings l WHERE l.public_model_id=m.id AND l.operator_id=?)", op)
 		}
@@ -440,6 +440,11 @@ func (a *Application) projectResourceLabels(c *gin.Context, p gin.H, resource st
 func humanRecordTitle(v gin.H, resource string, labels map[string]string) string {
 	if v == nil {
 		return "业务记录"
+	}
+	if resource == "catalog" {
+		if id := humanString(v, "id"); id != "" {
+			return id
+		}
 	}
 	if name := humanString(v, "name", "display_name", "title", "filename", "hostname", "operator_name"); name != "" {
 		return name

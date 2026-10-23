@@ -460,7 +460,7 @@ func (f *testApp) configureExternalCatalog(t *testing.T, lab string) string {
 	providerID := uuid.NewString()
 	credentialID := uuid.NewString()
 	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
-	m := catalog.PublicModel{ID: modelID, Identity: modelID, DisplayName: "Independent HTTP contract model", Capabilities: []modelruntime.Capability{cap}}
+	m := catalog.PublicModel{ID: modelID, Identity: modelID, Capabilities: []modelruntime.Capability{cap}}
 	if e := cat.SavePublicModel(ctx, platform, m, 0); e != nil {
 		t.Fatal(e)
 	}

@@ -151,7 +151,7 @@ func TestPostgresModelChangeRollsBackWhenCoverageCannotBeVerified(t *testing.T) 
 	if e != nil {
 		t.Fatal(e)
 	}
-	m.DisplayName = "Planned Name"
+	m.Enabled = false
 	effective := now.Add(3 * time.Minute)
 	change, e := c.SchedulePublicModel(context.Background(), "platform", m, m.Version, effective, "change requiring responsibility evaluation")
 	if e != nil {
@@ -166,7 +166,7 @@ func TestPostgresModelChangeRollsBackWhenCoverageCannotBeVerified(t *testing.T) 
 		t.Fatal(e)
 	}
 	unchanged, e := s.PublicModel(context.Background(), "model")
-	if e != nil || unchanged.DisplayName == m.DisplayName {
+	if e != nil || !unchanged.Enabled {
 		t.Fatal("unverified change became effective", e)
 	}
 	var stored CatalogChange
@@ -182,7 +182,7 @@ func TestPostgresModelChangeRollsBackWhenCoverageCannotBeVerified(t *testing.T) 
 		if e := json.Unmarshal(row.Definition, &applied); e != nil {
 			return e
 		}
-		if applied.DisplayName != m.DisplayName {
+		if applied.Enabled {
 			return errors.New("coverage validator did not see candidate state")
 		}
 		return nil
@@ -191,7 +191,7 @@ func TestPostgresModelChangeRollsBackWhenCoverageCannotBeVerified(t *testing.T) 
 		t.Fatal(e)
 	}
 	applied, e := s.PublicModel(context.Background(), "model")
-	if e != nil || applied.DisplayName != m.DisplayName {
+	if e != nil || applied.Enabled {
 		t.Fatal("verified candidate did not apply", e)
 	}
 }
@@ -206,7 +206,7 @@ func TestPostgresLateNoticeBlocksChangeAndEmergencyStopsImmediately(t *testing.T
 	if e != nil {
 		t.Fatal(e)
 	}
-	m.DisplayName = "Planned Name"
+	m.Enabled = false
 	if e = s.SavePublicModel(context.Background(), "platform", m, m.Version); !errors.Is(e, ErrChangeNotice) {
 		t.Fatal("ordinary model change bypassed plan")
 	}
@@ -224,7 +224,7 @@ func TestPostgresLateNoticeBlocksChangeAndEmergencyStopsImmediately(t *testing.T
 		t.Fatal("late notice did not block normal application")
 	}
 	still, _ := s.PublicModel(context.Background(), "model")
-	if still.DisplayName == "Planned Name" {
+	if !still.Enabled {
 		t.Fatal("late model change applied")
 	}
 	emergency, e := c.EmergencyDisablePublicModel(context.Background(), "platform", "model", "verified emergency reference", still.Version)

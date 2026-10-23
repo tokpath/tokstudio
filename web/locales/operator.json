@@ -2745,20 +2745,25 @@
     "ja": "公開モデルを登録",
     "ru": "Зарегистрировать публичную модель"
   },
-  "公开模型是客户请求里使用的名字。这里填写名称和勾选能力。是否开放在列表里切换。": {
-    "en": "A public model is the name used in a customer request. Enter the name and check the capabilities here. Whether it is open is switched in the list.",
-    "ja": "公開モデルは顧客リクエストで使う名前です。ここでは名称を記入し、能力を選びます。公開するかは一覧で切り替えます。",
-    "ru": "Публичная модель — это имя в запросе клиента. Здесь указывают имя и отмечают возможности. Открытие переключается в списке."
+  "公开模型标识就是客户请求里使用的名字。这里填写标识并勾选能力。是否开放在列表里切换。": {
+    "en": "The public model ID is the name used in a customer request. Enter that ID and check the capabilities here. Whether it is open is switched in the list.",
+    "ja": "公開モデル ID は顧客リクエストで使う名前です。ここではその ID を記入し、能力を選びます。公開するかは一覧で切り替えます。",
+    "ru": "Идентификатор публичной модели — это имя в запросе клиента. Здесь указывают этот идентификатор и отмечают возможности. Открытие переключается в списке."
+  },
+  "填写标识": {
+    "en": "Enter the ID",
+    "ja": "識別子を記入",
+    "ru": "Указать идентификатор"
+  },
+  "填写客户请求里使用的公开模型标识。": {
+    "en": "Enter the public model ID used in customer requests.",
+    "ja": "顧客リクエストで使う公開モデル ID を記入します。",
+    "ru": "Укажите идентификатор публичной модели, который используется в запросах клиента."
   },
   "填写名称": {
     "en": "Enter the name",
     "ja": "名称を記入",
     "ru": "Указать имя"
-  },
-  "填写请求里使用的标识，以及客户看到的名称。": {
-    "en": "Enter the identifier used in requests and the name customers see.",
-    "ja": "リクエストで使う識別子と、顧客に見える名称を記入します。",
-    "ru": "Укажите идентификатор для запросов и имя, которое видит клиент."
   },
   "勾选能力": {
     "en": "Check capabilities",

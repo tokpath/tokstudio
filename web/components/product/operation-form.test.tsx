@@ -356,13 +356,12 @@ it("asks only for a public model's name and capabilities", async () => {
   show({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] });
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
   expect(screen.queryByRole("radiogroup", { name: "开放模型" })).toBeNull();
-  expect(screen.getByLabelText("客户看到的模型名称", { exact: true })).toBeTruthy();
+  expect(screen.queryByLabelText("客户看到的模型名称", { exact: true })).toBeNull();
   expect(screen.getByText("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "怎么计费" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "保存前确认" })).toBeNull();
   expect(screen.queryByLabelText("完整技术配置 JSON")).toBeNull();
   fireEvent.change(screen.getByLabelText("公开模型标识", { exact: true }), { target: { value: "gpt" } });
-  fireEvent.change(screen.getByLabelText("客户看到的模型名称", { exact: true }), { target: { value: "GPT" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
   const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "gpt", status: "saved" }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);
@@ -378,7 +377,6 @@ it("lets a model form be closed when the submit result is unknown", async () => 
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("connection lost")));
   mount({ name: "save", label: "添加公开模型", method: "POST", path: "/api/v1/operators/operator-one/catalog", fields: [{ name: "configuration", label: "配置 JSON", kind: "json", required: true }] }, { onClose: close, onAbandon: close, onBlockedChange: blocked });
   fireEvent.change(screen.getByLabelText("公开模型标识", { exact: true }), { target: { value: "gpt-sol" } });
-  fireEvent.change(screen.getByLabelText("客户看到的模型名称", { exact: true }), { target: { value: "GPT Sol" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "对话", exact: true }));
   fireEvent.click(screen.getByRole("button", { name: "添加公开模型", exact: true }));
   await screen.findByRole("button", { name: "放弃并关闭", exact: true });

@@ -124,7 +124,7 @@ func setup(t *testing.T, credits string, limit *ledger.Decimal, capabilityOverri
 	}
 	streamed := capability
 	streamed.Streaming = true
-	model := catalog.PublicModel{ID: "public-model", Identity: "vendor/test@1", DisplayName: "Test model", Capabilities: []modelruntime.Capability{capability, streamed}}
+	model := catalog.PublicModel{ID: "public-model", Identity: "vendor/test@1", Capabilities: []modelruntime.Capability{capability, streamed}}
 	if capability.Operation == modelruntime.Video {
 		model.Capabilities = []modelruntime.Capability{capability}
 	}

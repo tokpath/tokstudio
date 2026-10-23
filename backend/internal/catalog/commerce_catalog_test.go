@@ -70,7 +70,7 @@ func seedCommerceModel(t *testing.T, s CommerceCatalog) {
 	t.Helper()
 	ctx := context.Background()
 	cap := commerceTestCapability()
-	m := PublicModel{ID: "model", Identity: "vendor/model@revision", DisplayName: "Model", Capabilities: []modelruntime.Capability{cap}}
+	m := PublicModel{ID: "model", Identity: "vendor/model@revision", Capabilities: []modelruntime.Capability{cap}}
 	if e := s.SavePublicModel(ctx, "platform", m, 0); e != nil {
 		t.Fatal(e)
 	}
@@ -287,7 +287,7 @@ func TestSupplierBindingDoesNotRequireManualSupplierPrices(t *testing.T) {
 	capability := commerceTestCapability()
 	capability.UsageRules = append(capability.UsageRules, modelruntime.UsageRule{Component: "output", Unit: "token", Path: "/completion_tokens"})
 	capability.BillableBounds["output"] = "1000"
-	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", DisplayName: "Model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}}, 0); e != nil {
+	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}}, 0); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := s.SaveCredential(ctx, "platform", "credential", "provider", "catalog test key", "secret-to-encrypt", true, 0); e != nil {
@@ -300,7 +300,7 @@ func TestSupplierBindingDoesNotRequireManualSupplierPrices(t *testing.T) {
 	if e := s.SaveRouteConfiguration(ctx, "platform", RouteConfiguration{PublicModelID: "model", Strategy: "priority", Bindings: []RouteBinding{{SupplierModelID: "supplier-model", Priority: 1, Enabled: true}}}, 0); e != nil {
 		t.Fatal(e)
 	}
-	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", DisplayName: "Model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}, Enabled: true}, 1); e != nil {
+	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}, Enabled: true}, 1); e != nil {
 		t.Fatal(e)
 	}
 	if e := s.SetListing(ctx, "platform", "model", true, 0); e != nil {

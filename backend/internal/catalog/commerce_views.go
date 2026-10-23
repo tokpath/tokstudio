@@ -40,7 +40,7 @@ func (s CommerceCatalog) PublicCatalog(ctx context.Context, operator string, at 
 	}
 	out := []PublicCatalogModel{}
 	for _, m := range models {
-		view := PublicCatalogModel{ID: m.ID, Name: m.DisplayName, Status: "available", Capabilities: []PublicCapability{}, Prices: []PublicPriceComponent{}}
+		view := PublicCatalogModel{ID: m.ID, Name: m.ID, Status: "available", Capabilities: []PublicCapability{}, Prices: []PublicPriceComponent{}}
 		if !m.Enabled {
 			view.Status = "disabled"
 		}

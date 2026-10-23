@@ -491,8 +491,8 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		}
 		openColumn := col("enabled", "开放模型", "boolean")
 		openColumn["help"] = "在列表里打开后，客户才能调用。没有配置路由时不能打开。"
-		p["columns"] = []gin.H{col("id", "公开 ID", "text"), col("display_name", "名称", "text"), col("capabilities", "能力", "text"), openColumn}
-		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识和客户看到的名称，并勾选可以调用的能力。是否对客户开放在列表里切换。没有配置路由时不能打开。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、display_name、capabilities（勾选的调用能力）、expected_version。是否开放不在这里修改。")}}}
+		p["columns"] = []gin.H{col("id", "公开模型标识", "text"), col("capabilities", "能力", "text"), openColumn}
+		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识，并勾选可以调用的能力。客户请求和页面都使用这个标识。是否对客户开放在列表里切换。没有配置路由时不能打开。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、capabilities（勾选的调用能力）、expected_version。是否开放不在这里修改。")}}}
 	case "providers":
 		rows, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
 		if e != nil {
@@ -577,10 +577,10 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			if open {
 				summary = "熔断中"
 			}
-			items = append(items, entity(m.ID, "configured", int64(policy.Version), gin.H{"public_model_id": m.ID, "display_name": m.DisplayName, "strategy": policy.Strategy, "supplier_models": strings.Join(names, "、"), "health_summary": summary, "bindings": bindings}))
+			items = append(items, entity(m.ID, "configured", int64(policy.Version), gin.H{"public_model_id": m.ID, "name": m.ID, "strategy": policy.Strategy, "supplier_models": strings.Join(names, "、"), "health_summary": summary, "bindings": bindings}))
 		}
 		p["description"] = "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。"
-		p["columns"] = []gin.H{col("display_name", "公开模型", "text"), col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
+		p["columns"] = []gin.H{col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
 		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version")}}}
 	case "catalog-changes":
 		rows, e := a.Catalog.CatalogChanges(ctx, op.ID)

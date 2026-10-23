@@ -46,7 +46,7 @@ func TestExternalTakenOverCustomerKeepsKeyAndFutureCostBelongsToBrand(t *testing
 	}
 	cat := catalog.CommerceCatalog{DB: brand.db, PlatformOperatorID: brand.operator, Operators: cooperation.CatalogDirectory{Organization: brand.s.Organization}, EncryptionKey: "takeover-test-only-encryption-secret", Costs: &takeoverCostSource{}}
 	cap := modelruntime.Capability{Operation: modelruntime.Chat, BillableBounds: map[string]string{"input": "1000", "output": "1000"}, UsageRules: []modelruntime.UsageRule{{Component: "input", Unit: "token", Path: "/prompt_tokens"}, {Component: "output", Unit: "token", Path: "/completion_tokens"}}}
-	m := catalog.PublicModel{ID: "after-takeover", Identity: "provider/test@1", DisplayName: "Test model", Capabilities: []modelruntime.Capability{cap}}
+	m := catalog.PublicModel{ID: "after-takeover", Identity: "provider/test@1", Capabilities: []modelruntime.Capability{cap}}
 	if err = cat.SavePublicModel(brand.ctx, brand.operator, m, 0); err != nil {
 		t.Fatal(err)
 	}

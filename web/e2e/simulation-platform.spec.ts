@@ -67,7 +67,7 @@ test("technical administrator configures a real provider, verified model and rou
   const techContext = await browser.newContext(), ownerContext = await browser.newContext(), customerContext = await browser.newContext();
   const tech = await techContext.newPage(), owner = await ownerContext.newPage(), customer = await customerContext.newPage();
   const errors: string[] = []; for (const page of [tech, owner, customer]) { page.setDefaultTimeout(20_000); page.on("pageerror", error => errors.push(error.message)); }
-  const model = `simulation-${randomUUID()}`, modelName = `平台仿真聊天模型-${randomUUID()}`, revisedModelName = `${modelName}（已修订）`, base = `/api/v1/operators/${p.operator_id}`;
+  const model = `simulation-${randomUUID()}`, base = `/api/v1/operators/${p.operator_id}`;
   let route = "";
   try {
     await login(tech, p.tech);
@@ -109,12 +109,10 @@ test("technical administrator configures a real provider, verified model and rou
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     dialog = await panel(tech, "添加公开模型");
     await setPath(dialog, "model.id", model);
-    await setPath(dialog, "model.display_name", modelName);
     await dialog.getByRole("checkbox", { name: "对话", exact: true }).check();
     await submit(tech, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
-    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: modelName }));
+    dialog = await panel(tech, "编辑模型", tech.getByRole("row").filter({ hasText: model }));
     await expect(control(dialog, "公开模型标识", false)).toHaveValue(model);
-    await control(dialog, "客户看到的模型名称", false).fill(revisedModelName);
     await submit(tech, dialog, "编辑模型", `${base}/catalog`); await close(dialog);
 
     await tech.goto(`/manage/${p.operator_id}/routes`);
@@ -132,14 +130,14 @@ test("technical administrator configures a real provider, verified model and rou
     route = (await routeCreated.json()).id;
     expect(route).toBe(model);
     await close(dialog);
-    dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: revisedModelName }));
+    dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: model }));
     await control(dialog, "选路优先级", false).fill("11");
     await submit(tech, dialog, "编辑路由", `${base}/routes`); await close(dialog);
     const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === model);
     expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].supplier_model_id).toBe(supplierModelID);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
-    const modelRow = tech.getByRole("row").filter({ hasText: revisedModelName });
+    const modelRow = tech.getByRole("row").filter({ hasText: model });
     const toggle = modelRow.getByRole("switch", { name: "开放模型" });
     await expect(toggle).toBeEnabled();
     const opened = tech.waitForResponse(response => new URL(response.url()).pathname.endsWith("/availability") && response.request().method() === "POST");
@@ -445,7 +443,6 @@ test("platform configures input and output modality billing, synchronizes Bifros
     await page.goto(`/manage/${p.operator_id}/catalog`);
     let dialog = await panel(page, "添加公开模型");
     await setPath(dialog, "model.id", model);
-    await setPath(dialog, "model.display_name", "多模态组合计费验收");
     await dialog.getByRole("checkbox", { name: "对话", exact: true }).check();
     await submit(page, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
     await page.goto(`/manage/${p.operator_id}/pricing`);

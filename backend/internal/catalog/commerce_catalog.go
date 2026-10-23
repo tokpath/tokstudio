@@ -69,7 +69,6 @@ type PublicModel struct {
 	Billing      map[modelruntime.Operation]modelruntime.BillingProfile `json:"billing"`
 	ID           string                                                 `json:"id"`
 	Identity     string                                                 `json:"identity"` // platform-attested model identity/revision
-	DisplayName  string                                                 `json:"display_name"`
 	Enabled      bool                                                   `json:"enabled"`
 	Capabilities []modelruntime.Capability                              `json:"capabilities"`
 	Version      uint64                                                 `json:"version"`
@@ -169,8 +168,7 @@ func (s CommerceCatalog) savePublicModel(ctx context.Context, actor string, in P
 	if !s.platform(actor) {
 		return ErrCatalogForbidden
 	}
-	in.DisplayName = strings.TrimSpace(in.DisplayName)
-	if in.ID == "" || in.DisplayName == "" {
+	if in.ID == "" {
 		return ErrInvalidInput
 	}
 	if expected > 0 {

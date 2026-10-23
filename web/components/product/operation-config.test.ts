@@ -29,9 +29,9 @@ it("supplier setup needs protocol support and an optional reference, no price fo
  expect(model).not.toHaveProperty("prices");expect(model).not.toHaveProperty("endpoints");
 });
 it("keeps a public model to its name and checked capabilities", () => {
-  const prepared = prepareConfiguration({ model: { id: "public", display_name: "对话", enabled: false, route_configured: true, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0, provider_extension: { exact: "1" } }, configurationSchema(catalogOperation)!);
+  const prepared = prepareConfiguration({ model: { id: "public", enabled: false, route_configured: true, capabilities: [{ operation: "chat", usage_rules: [{ component: "input" }], evidence_id: "old" }] }, expected_version: 0, provider_extension: { exact: "1" } }, configurationSchema(catalogOperation)!);
   expect(() => validateModelConfiguration(prepared)).not.toThrow();
-  expect(prepared).toEqual({ model: { id: "public", display_name: "对话", capabilities: [{ operation: "chat" }] }, expected_version: 0 });
+  expect(prepared).toEqual({ model: { id: "public", capabilities: [{ operation: "chat" }] }, expected_version: 0 });
   expect(prepared).toMatchObject({ model: { capabilities: [{ operation: "chat" }] } });
   const capability = (prepared as { model: { capabilities: Record<string, unknown>[] } }).model.capabilities[0];
   expect(capability.usage_rules).toBeUndefined();

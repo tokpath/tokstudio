@@ -68,7 +68,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     };
     const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
       node={data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
-      value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={data}
+      value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
     /></div>)}</div>;
@@ -102,12 +102,13 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
   }
   const raw = value === undefined || value === null ? "" : String(value);
   if (node.lookup && operatorID) return <div data-config-path={fieldPath}><ConfigReference node={{ ...node, help }} label={label} value={raw} operatorID={operatorID} disabled={disabled} referenceContext={referenceContext} change={(selected, defaults) => choose ? choose(selected, defaults) : change(selected)} /></div>;
+  const idLocked = fieldPath === "model.id" && Number(referenceContext?.expected_version) > 0;
   let displayed = raw;
   if (node.kind === "datetime" && raw) { const date = new Date(raw); if (!Number.isNaN(date.getTime())) displayed = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
   return <div data-config-path={fieldPath} className="min-w-0 text-sm"><div className="flex min-h-7 items-center max-sm:min-h-11"><label htmlFor={id} className="text-ink-secondary">{t(node.label)}</label>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</div>
     {node.kind === "select" ? <select id={id} aria-label={label} className={`${control} mt-2`} value={raw} disabled={disabled} onChange={event => change(event.target.value)}><option value="">{t("请选择")}</option>{node.options?.map(([key, text]) => <option key={key} value={key}>{t(text)}</option>)}</select>
         : node.kind === "textarea" ? <textarea id={id} aria-label={label} className={`${control} mt-2 min-h-24`} value={raw} disabled={disabled} onChange={event => change(event.target.value)} />
-          : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
+          : <Input id={id} aria-label={label} className="mt-2" type={node.kind === "datetime" ? "datetime-local" : "text"} inputMode={node.kind === "integer" ? "numeric" : node.kind === "decimal" ? "decimal" : undefined} value={displayed} disabled={disabled || idLocked} onChange={event => { const next = event.target.value; change(node.kind === "integer" && (node.signed ? /^-?\d+$/ : /^\d+$/).test(next) && Number.isSafeInteger(Number(next)) ? Number(next) : next); }} />}
 
   </div>;
 }

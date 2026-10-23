@@ -385,3 +385,23 @@ it("lets a model form be closed when the submit result is unknown", async () => 
   fireEvent.click(screen.getByRole("button", { name: "放弃并关闭", exact: true }));
   expect(close).toHaveBeenCalled();
 });
+
+it("publishes procurement tiers through named controls and previews exact ATG",async()=>{
+  const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"quote",status:"published"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  show({name:"quote",label:"发布阶梯报价",method:"POST",path:"/api/v1/operators/operator-one/procurement",fields:[{name:"action",label:"办理类型",kind:"hidden",default_value:"quote"},{name:"gift_tiers",label:"阶梯赠送",kind:"json",required:true,default_value:[{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]}]});
+  expect(screen.getByText("购买 2000 ATG + 赠送 10 ATG = 合计 2010 ATG")).toBeTruthy();
+  expect(screen.queryByRole("textbox",{name:/JSON/})).toBeNull();
+  expect((screen.getAllByLabelText("区间起点 USD")[0] as HTMLInputElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button",{name:"发布阶梯报价",exact:true}));
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).gift_tiers).toEqual([{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]);
+});
+it("buys any procurement amount using the quote preview and sends only that amount",async()=>{
+  const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({id:"order",status:"awaiting_payment"}),{status:200}));vi.stubGlobal("fetch",fetch);
+  show({name:"purchase",label:"按金额采购",method:"POST",path:"/api/v1/operators/operator-one/procurement/{id}/purchase",fields:[{name:"amount_usd",label:"本次采购USD",kind:"decimal",required:true}]},{id:"quote",values:{gift_tiers:[{from_usd:"0",gift_percent:"0"},{from_usd:"1000",gift_percent:"1"},{from_usd:"2000",gift_percent:"2"}]}});
+  fireEvent.change(screen.getByLabelText("本次采购USD",{exact:false}),{target:{value:"2500"}});
+  expect(screen.getByText("购买 2500 ATG + 赠送 20 ATG = 合计 2520 ATG")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"按金额采购",exact:true}));
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({amount_usd:"2500"});
+});

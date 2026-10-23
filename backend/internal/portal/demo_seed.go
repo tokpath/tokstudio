@@ -137,7 +137,7 @@ func (s *demoBuilder) operator(parent, actor, email, name string, kind organizat
 	if e != nil {
 		return created, owner, e
 	}
-	_, e = s.a.Cooperation.PublishPurchaseQuote(s.ctx, s.tx, actor, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: created.Operator.ID, PriceUSD: ledger.MustDecimal("80"), PaidATG: ledger.MustDecimal("100"), GiftATG: ledger.MustDecimal("10"), ExitTerms: terms, TermsReference: demoEvidence, Enabled: true})
+	_, e = s.a.Cooperation.PublishPurchaseQuote(s.ctx, s.tx, actor, cooperation.PurchaseQuote{SupplierID: parent, BuyerID: created.Operator.ID, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.Zero()}, {FromUSD: ledger.FromInt64(1000), GiftPercent: ledger.FromInt64(1)}, {FromUSD: ledger.FromInt64(2000), GiftPercent: ledger.FromInt64(2)}}, ExitTerms: terms, TermsReference: demoEvidence, Enabled: true})
 	return created, owner, e
 }
 func (s *demoBuilder) setup(operator, actor string) (commerce.PackageQuote, incentives.Policy, error) {

@@ -102,11 +102,11 @@ func testExternalStablecoinProcurement(t *testing.T, base, mode string) {
 	if _, e = pay.SaveMerchant(ctx, owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, PriceUSD: ledger.FromInt64(10), PaidATG: ledger.FromInt64(100), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-original-source-return"}`), TermsReference: "signed-inclusive-final-price", Enabled: true})
+	quote, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-original-source-return"}`), TermsReference: "signed-inclusive-final-price", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
-	order, e := coop.CreatePurchaseOrder(ctx, nil, buyerActor, buyer, quote.ID, "purchase")
+	order, e := coop.CreatePurchaseOrder(ctx, nil, buyerActor, buyer, quote.ID, "purchase", ledger.FromInt64(10))
 	if e != nil {
 		t.Fatal(e)
 	}

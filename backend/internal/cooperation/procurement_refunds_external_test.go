@@ -103,11 +103,11 @@ func testProcurementExitRefund(t *testing.T, base, mode string) {
 	if _, e = pay.SaveMerchant(ctx, owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	q, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, PriceUSD: ledger.FromInt64(10), PaidATG: ledger.FromInt64(80), GiftATG: ledger.FromInt64(20), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-refund-v1"}`), TermsReference: "signed-v1", Enabled: true})
+	q, e := coop.PublishPurchaseQuote(ctx, nil, owner, cooperation.PurchaseQuote{SupplierID: supplier, BuyerID: buyer, GiftTiers: []cooperation.PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: ledger.FromInt64(900)}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"signed-refund-v1"}`), TermsReference: "signed-v1", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
-	order, e := coop.CreatePurchaseOrder(ctx, nil, owner, buyer, q.ID, "actual-purchase")
+	order, e := coop.CreatePurchaseOrder(ctx, nil, owner, buyer, q.ID, "actual-purchase", ledger.FromInt64(10))
 	if e != nil {
 		t.Fatal(e)
 	}

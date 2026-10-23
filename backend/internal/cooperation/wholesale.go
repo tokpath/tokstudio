@@ -22,23 +22,22 @@ import (
 var openPurchaseDeadline = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
 
 type PurchaseQuote struct {
-	Name                 string          `json:"name"`
-	TermsSummary         string          `json:"terms_summary"`
-	ContractAttachmentID string          `json:"contract_attachment_id,omitempty"`
-	Version              int64           `json:"version"`
-	ExitPolicy           string          `json:"exit_policy,omitempty" gorm:"-"`
-	ID                   string          `json:"id"`
-	SupplierID           string          `json:"supplier_id"`
-	BuyerID              string          `json:"buyer_id"`
-	PriceUSD             ledger.Decimal  `json:"price_usd"`
-	PaidATG              ledger.Decimal  `json:"paid_atg"`
-	GiftATG              ledger.Decimal  `json:"gift_atg"`
-	ExitTerms            json.RawMessage `json:"exit_terms" gorm:"type:jsonb"`
-	TermsReference       string          `json:"terms_reference"`
-	ValidUntil           *time.Time      `json:"valid_until"`
-	Enabled              bool            `json:"enabled"`
-	CreatedBy            string          `json:"created_by"`
-	CreatedAt            time.Time       `json:"created_at"`
+	Name                 string             `json:"name"`
+	TermsSummary         string             `json:"terms_summary"`
+	ContractAttachmentID string             `json:"contract_attachment_id,omitempty"`
+	Version              int64              `json:"version"`
+	ExitPolicy           string             `json:"exit_policy,omitempty" gorm:"-"`
+	ID                   string             `json:"id"`
+	SupplierID           string             `json:"supplier_id"`
+	BuyerID              string             `json:"buyer_id"`
+	GiftTiers            []PurchaseGiftTier `json:"gift_tiers" gorm:"serializer:json;type:jsonb"`
+	LegacyPricing        json.RawMessage    `json:"legacy_pricing,omitempty" gorm:"type:jsonb"`
+	ExitTerms            json.RawMessage    `json:"exit_terms" gorm:"type:jsonb"`
+	TermsReference       string             `json:"terms_reference"`
+	ValidUntil           *time.Time         `json:"valid_until"`
+	Enabled              bool               `json:"enabled"`
+	CreatedBy            string             `json:"created_by"`
+	CreatedAt            time.Time          `json:"created_at"`
 }
 
 func (PurchaseQuote) TableName() string { return "cooperation_purchase_quotes" }
@@ -47,6 +46,7 @@ type PurchaseOrder struct {
 	Name                 string          `json:"name"`
 	TermsSummary         string          `json:"terms_summary"`
 	ContractAttachmentID string          `json:"contract_attachment_id,omitempty"`
+	PricingSnapshot      json.RawMessage `json:"pricing_snapshot" gorm:"type:jsonb"`
 	QuoteVersion         int64           `json:"quote_version"`
 	ID                   string          `json:"id"`
 	SupplierID           string          `json:"supplier_id"`
@@ -82,7 +82,7 @@ func (s *Service) PublishPurchaseQuote(ctx context.Context, tx *gorm.DB, actor s
 	if err != nil {
 		return out, err
 	}
-	if in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || len(in.Name) > 200 || len(in.TermsSummary) > 10000 {
+	if ValidatePurchaseTiers(in.GiftTiers) != nil || len(in.LegacyPricing) > 0 || len(in.Name) > 200 || len(in.TermsSummary) > 10000 {
 		return out, ledger.ErrAmount
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
@@ -116,7 +116,7 @@ func (s *Service) PublishPurchaseQuote(ctx context.Context, tx *gorm.DB, actor s
 		in.ID = uuid.NewString()
 		in.Name, in.TermsSummary = strings.TrimSpace(in.Name), strings.TrimSpace(in.TermsSummary)
 		if in.Name == "" {
-			in.Name = fmt.Sprintf("%s ATG / %s USD 供货报价", in.PaidATG.String(), in.PriceUSD.String())
+			in.Name = "阶梯赠送供货报价"
 		}
 		in.TermsReference = fmt.Sprintf("procurement-quote:%s:v%d", in.ID, in.Version)
 		in.ExitTerms, _ = json.Marshal(ProcurementExitTerms{Version: 1, VoluntaryRefund: policy == "remaining_paid_proportional", Method: policy, TermsReference: fmt.Sprintf("procurement-exit:%s:v%d", in.ID, in.Version)})
@@ -137,19 +137,27 @@ func (s *Service) SetQuoteEnabled(ctx context.Context, tx *gorm.DB, actor, id st
 		if e := s.Organization.RequirePermission(ctx, t, actor, q.SupplierID, "cooperation.manage"); e != nil {
 			return e
 		}
+		if enabled && ValidatePurchaseTiers(q.GiftTiers) != nil {
+			return ErrConflict
+		}
 		return t.Model(&PurchaseQuote{}).Where("id=?", id).Update("enabled", enabled).Error
 	})
 }
-func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, buyer, quoteID, key string) (PurchaseOrder, error) {
+func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, buyer, quoteID, key string, amount ledger.Decimal) (PurchaseOrder, error) {
+	return s.createPurchaseOrder(ctx, tx, actor, buyer, quoteID, key, amount, false)
+}
+func (s *Service) createPurchaseOrder(ctx context.Context, tx *gorm.DB, actor, buyer, quoteID, key string, amount ledger.Decimal, supplierOrder bool) (PurchaseOrder, error) {
 	var out PurchaseOrder
-	if key == "" {
+	if key == "" || !amount.Valid() || amount.Sign() <= 0 {
 		return out, ErrConflict
 	}
 	e := s.within(ctx, tx, func(t *gorm.DB) error {
-		if e := s.Organization.RequirePermission(ctx, t, actor, buyer, "cooperation.manage"); e != nil {
-			return e
+		if !supplierOrder {
+			if e := s.Organization.RequirePermission(ctx, t, actor, buyer, "cooperation.manage"); e != nil {
+				return e
+			}
 		}
-		fp := hash([]string{buyer, quoteID, key})
+		fp := hash([]string{buyer, quoteID, key, amount.String()})
 		if e := t.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", "purchase:"+buyer+":"+key).Error; e != nil {
 			return e
 		}
@@ -188,7 +196,12 @@ func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 		if e = s.Lock(ctx, t, buyer); e != nil {
 			return e
 		}
-		qty := q.PaidATG.Add(q.GiftATG)
+		pricing, e := CalculatePurchase(q.GiftTiers, amount)
+		if e != nil {
+			return e
+		}
+		pricingSnapshot, _ := json.Marshal(pricing)
+		qty := pricing.PaidATG.Add(pricing.GiftATG)
 		if snapshot.HasUpstream {
 			needed, e := conservative(qty, rates.Children[buyer])
 			if e != nil {
@@ -198,7 +211,7 @@ func (s *Service) CreatePurchaseOrder(ctx context.Context, tx *gorm.DB, actor, b
 				return ErrCoverage
 			}
 		}
-		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: q.PriceUSD, PaidATG: q.PaidATG, GiftATG: q.GiftATG, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: openPurchaseDeadline, CreatedAt: now}
+		out = PurchaseOrder{Name: q.Name, TermsSummary: q.TermsSummary, ContractAttachmentID: q.ContractAttachmentID, QuoteVersion: q.Version, ID: uuid.NewString(), SupplierID: q.SupplierID, BuyerID: buyer, QuoteID: q.ID, BusinessKey: key, Fingerprint: fp, DueUSD: amount, PaidATG: pricing.PaidATG, GiftATG: pricing.GiftATG, PricingSnapshot: pricingSnapshot, ExitTerms: q.ExitTerms, TermsReference: q.TermsReference, Status: "awaiting_payment", ExpiresAt: openPurchaseDeadline, CreatedAt: now}
 		if e = t.Create(&out).Error; e != nil {
 			return e
 		}
@@ -245,17 +258,24 @@ func (s *Service) fundPurchase(ctx context.Context, tx *gorm.DB, collector *comm
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
-		if out.Status == "completed" || amount.Cmp(out.DueUSD.Sub(out.AllocatedUSD)) > 0 {
+		// A callback retry with a different event key still refers to the same payment.
+		var existing PurchaseAllocation
+		found := t.Where("order_id=? AND receipt_id=?", orderID, receiptID).Limit(1).Find(&existing)
+		if found.Error != nil {
+			return found.Error
+		}
+		if found.RowsAffected > 0 && existing.AmountUSD.Cmp(amount) == 0 && out.AllocatedUSD.Cmp(out.DueUSD) == 0 {
+			return nil
+		}
+		if out.Status != "awaiting_payment" || !out.AllocatedUSD.IsZero() || amount.Cmp(out.DueUSD) != 0 {
 			return ErrConflict
 		}
-		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountUSD: amount, Deadline: out.ExpiresAt})
+		reservation, e := collector.ReserveReceiptFunds(ctx, t, commerce.ReceiptFundsInput{OperatorID: out.SupplierID, ReceiptID: receiptID, DestinationID: out.ID, BusinessKey: "wholesale:" + out.ID + ":" + key, ActorID: actor, AmountUSD: amount, WholeReceipt: true, Deadline: out.ExpiresAt})
 		if e != nil {
 			return e
 		}
-		out.AllocatedUSD = out.AllocatedUSD.Add(amount)
-		if out.AllocatedUSD.Cmp(out.DueUSD) == 0 {
-			out.Status = "paid"
-		}
+		out.AllocatedUSD = amount
+		out.Status = "paid"
 		if e = t.Save(&out).Error; e != nil {
 			return e
 		}
@@ -385,4 +405,48 @@ func ProcurementExitTermsSummary(raw json.RawMessage) string {
 		policy = t.Method
 	}
 	return ProcurementExitPolicySummary(policy)
+}
+
+// PurchaseFromReceipt turns one verified, unallocated offline payment into one
+// purchase order. Creation, allocation and inventory delivery commit together.
+func (s *Service) PurchaseFromReceipt(ctx context.Context, tx *gorm.DB, collector *commerce.Service, actor, supplier, quoteID, receiptID, key string) (PurchaseOrder, error) {
+	var out PurchaseOrder
+	if collector == nil {
+		return out, ErrConflict
+	}
+	err := s.within(ctx, tx, func(t *gorm.DB) error {
+		if e := s.Organization.RequirePermission(ctx, t, actor, supplier, "cooperation.manage"); e != nil {
+			return e
+		}
+		if e := s.Organization.RequirePermission(ctx, t, actor, supplier, "payments.manage"); e != nil {
+			return e
+		}
+		q, e := s.GetPurchaseQuote(ctx, t, actor, supplier, quoteID)
+		if e != nil {
+			return e
+		}
+		if q.SupplierID != supplier {
+			return organization.ErrForbidden
+		}
+		receipt, e := collector.GetReceipt(ctx, t, supplier, receiptID)
+		if e != nil {
+			return e
+		}
+		// Receipt identity is part of the command, so a changed receipt cannot replay
+		// an earlier purchase even if it has the same amount.
+		out, e = s.createPurchaseOrder(ctx, t, actor, q.BuyerID, q.ID, "receipt:"+receiptID, receipt.GrossUSD, true)
+		if e != nil {
+			return e
+		}
+		out, e = s.FundPurchase(ctx, t, collector, actor, out.ID, receiptID, key, receipt.GrossUSD)
+		if e != nil {
+			return e
+		}
+		_, e = s.FulfillPurchase(ctx, t, out.ID, actor)
+		if e != nil {
+			return e
+		}
+		return t.First(&out, "id=?", out.ID).Error
+	})
+	return out, err
 }

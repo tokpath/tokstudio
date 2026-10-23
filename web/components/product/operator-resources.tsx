@@ -17,6 +17,7 @@ import { OperationForm } from "./operation-form";
 import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table, useCommand, When, statusLabels } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PurchaseTierSummary } from "./purchase-tiers";
 import { Card } from "@/components/ui/card";
 import { readResourceListState, updateResourceListURL, subjectURL, type ResourceFilter } from "./operator-list-state";
 import { FieldHelp } from "./field-help";
@@ -43,6 +44,8 @@ type ResourceOptions = {
   record?: string;
   inspectionLinks?: boolean;
   businessView?: string;
+  procurementSection?: string;
+  onProcurementSection?: (section:string)=>void;
 };
 
 export function ResourceScreen({ operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, record, inspectionLinks }: ResourceOptions) {
@@ -50,12 +53,9 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const { session } = useProduct();
   const [filters, setFilters] = useState(readResourceListState);
   const [query, setQuery] = useState(filters.q);
-  const [saved, setSaved] = useState<ResourceFilter[]>([]);
   const searchDescription = useId();
   const scope = operatorID ? `/api/v1/operators/${encodeURIComponent(operatorID)}` : "/api/v1/me";
   const resourceName = resource.split("/")[0];
-  const storageKey = `resource-filters:${session?.kind === "staff" ? session.staff.id : session?.kind === "customer" ? session.customer.id : "anonymous"}:${scope}:${resource}`;
-  useEffect(() => { try { const items: unknown = JSON.parse(localStorage.getItem(storageKey) || "[]"); setSaved(Array.isArray(items) ? items.filter((item): item is ResourceFilter => !!item && typeof item.q === "string" && typeof item.status === "string" && typeof item.view === "string").slice(0, 5) : []); } catch { setSaved([]); } }, [storageKey]);
   useEffect(() => { updateResourceListURL(filters); }, [filters]);
   const parameters = new URLSearchParams();
   if (filters.cursor) parameters.set("cursor", filters.cursor);
@@ -63,9 +63,10 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   if (filters.view) parameters.set("view", filters.view);
   if (filters.status) parameters.set("status", filters.status);
   if (record) parameters.set("record", record);
+  else if(resourceName === "procurement") parameters.set("section",filters.section || "orders");
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const canRead = customer ? session?.kind === "customer" : canReadResource(workspace, resourceName);
-  const data = useQuery({ queryKey: ["resource", scope, resource, filters.cursor, filters.q, filters.view, filters.status, record || ""], queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead });
+  const data = useQuery({ queryKey: ["resource", scope, resource, filters.cursor, filters.q, filters.view, filters.status, filters.section, record || ""], queryFn: ({ signal }) => request(`${scope}/${resource}${parameters.size ? `?${parameters}` : ""}`, ResourcePageSchema, { signal }), enabled: canRead });
   if (!canRead) return <Empty title={t("没有查看权限")}>{t("此页面需要当前经营方明确授予相应权限。")}</Empty>;
   if (data.isPending) return <Loading />;
   if (data.isError) return <ErrorPanel error={data.error} retry={() => void data.refetch()} />;
@@ -73,17 +74,16 @@ export function ResourceScreen({ operatorID, resource, customer = false, embedde
   const serverSearch = page.search_supported === true;
   const statusFilter = page.status_supported === true;
   const apply = (next: Partial<ResourceFilter>) => setFilters(current => ({ ...current, ...next, cursor: "", history: [] }));
-  const save = () => { const next = [{ q: filters.q, status: filters.status, view: filters.view }, ...saved.filter(item => item.q !== filters.q || item.status !== filters.status || item.view !== filters.view)].slice(0, 5); setSaved(next); try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Filtering remains available when browser storage is unavailable. */ } };
-  const statuses = [...new Set([...(resourceFilterStatuses[resourceName] || []), ...page.items.flatMap(item => item.status ? [item.status] : []), filters.status].filter(Boolean))];
+  const statuses = [...new Set([...(resourceName==="procurement" ? (filters.section==="quotes" ? ["quote","disabled","expired","archived"] : filters.section==="automatic" ? ["authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","completed","failed_unpaid","cancelled_unpaid"] : ["awaiting_payment","paid","completed","closed","exception"]) : resourceFilterStatuses[resourceName] || []), ...page.items.flatMap(item => item.status ? [item.status] : []), filters.status].filter(Boolean))];
   return <>
     {record && <div className="mb-5"><Notice><div className="flex flex-wrap items-center justify-between gap-3"><span>{t("正在办理关联事项")}</span><Link className="text-brand-emphasis underline" href={operatorID ? `/manage/${encodeURIComponent(operatorID)}/${resource}` : `/workspace/${resource}`}>{t("返回全部记录")}</Link></div></Notice></div>}
-    {page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value })}>{t(item.label)}</Button>)}</div>}
-    <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} record={record} toolbar={<div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
+    {page.views && <div aria-label={t("业务视图")} className="mb-5 flex flex-wrap gap-2">{page.views.map(item => <Button key={item.value} variant={(filters.view || page.views?.[0]?.value) === item.value ? "default" : "outline"} onClick={() => apply({ view: item.value, ...(resourceName==="procurement" ? {section:"orders",status:""} : {}) })}>{t(item.label)}</Button>)}</div>}
+    <ResourceCollection page={page} operatorID={operatorID} resource={resource} customer={customer} embedded={embedded} layout={layout} onInspect={onInspect} inspectionLinks={inspectionLinks} businessView={filters.view || page.views?.[0]?.value} procurementSection={record ? (page.items[0]?.values.record_kind==="quote" ? "quotes" : ["authorization","replenishment_attempt"].includes(String(page.items[0]?.values.record_kind)) ? "automatic" : "orders") : filters.section || "orders"} onProcurementSection={section=>apply({section,status:""})} record={record} toolbar={serverSearch || statusFilter ? <div className="min-w-0 flex-1 basis-[32rem]"><form onSubmit={event => { event.preventDefault(); apply({ q: query.trim() }); }}>
       <div className="flex flex-wrap items-center gap-2">{serverSearch && <div className="relative min-w-48 flex-1"><Search size={15} aria-hidden className="absolute left-3 top-3.5 text-ink-mute" /><Input aria-label={t("搜索记录")} aria-describedby={searchDescription} placeholder={resourceName === "customers" ? t("搜索客户名称或邮箱") : resourceName === "invoices" ? t("搜索发票编号、开票凭证或原始收款编号") : t("搜索业务编号、名称或关联记录")} value={query} onChange={event => setQuery(event.target.value)} className="pl-9" /></div>}
       {statusFilter && <label className="flex items-center gap-2 text-xs text-ink-secondary"><span>{t("状态")}</span><select className="min-h-11 rounded-control border border-hairline bg-canvas-raised px-3 text-sm" aria-label={t("筛选状态")} value={filters.status} onChange={event => apply({ status: event.target.value })}><option value="">{t("全部状态")}</option>{statuses.map(status => <option key={status} value={status}>{t(resourceFilterStatusLabel(resourceName, status))}</option>)}</select></label>}
-      {serverSearch && <Button variant="outline" type="submit">{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}{resourceName !== "catalog" && (serverSearch || statusFilter || !!page.views?.length) && <Button type="button" variant="ghost" onClick={save}>{t("保存常用筛选")}</Button>}</div>
+      {serverSearch && <Button variant="outline" type="submit">{t("查询")}</Button>}{(serverSearch && filters.q || statusFilter && filters.status) && <Button variant="ghost" type="button" onClick={() => { setQuery(""); apply({ q: "", status: "" }); }}>{t("清除")}</Button>}</div>
       {serverSearch && <p id={searchDescription} className="mt-2 text-xs leading-6 text-ink-mute">{t("在当前权限范围内检索记录，结果按当前列表规则分页。")}</p>}
-    </form>{resourceName !== "catalog" && saved.length > 0 && (serverSearch || statusFilter || !!page.views?.length) && <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="text-ink-mute">{t("常用筛选")}</span>{saved.map((item, index) => <Button key={index} size="sm" variant="ghost" onClick={() => { setQuery(item.q); apply(item); }}>{[item.q, item.status ? t(resourceFilterStatusLabel(resourceName, item.status)) : "", item.view ? t(page.views?.find(view => view.value === item.view)?.label || item.view) : ""].filter(Boolean).join(" · ") || t("全部记录")}</Button>)}<Button size="sm" variant="ghost" onClick={() => { setSaved([]); try { localStorage.removeItem(storageKey); } catch {} }}>{t("清除常用筛选")}</Button></div>}</div>} />
+    </form></div> : undefined} />
     <div className="mt-5 flex items-center justify-between gap-3"><p className="text-xs text-ink-mute">{t("当前页 {count} 条", { count: page.items.length })}{page.next_cursor ? t(" · 还有后续记录") : ""}</p><div className="flex gap-2">{filters.history.length > 0 && <Button variant="outline" onClick={() => setFilters(current => { const history = [...current.history]; return { ...current, cursor: history.pop() || "", history }; })}>{t("上一页")}</Button>}{page.next_cursor && <Button variant="outline" onClick={() => setFilters(current => ({ ...current, history: [...current.history, current.cursor], cursor: page.next_cursor || "" }))}>{t("下一页")}</Button>}</div></div>
   </>;
 }
@@ -94,6 +94,7 @@ const resourceFilterStatuses: Record<string, readonly string[]> = {
   customers: ["active", "stopped", "closing", "closed", "anonymized", "suspended"],
   orders: ["pending", "partial", "paid", "completed", "closed", "exception"],
   payments: ["pending", "confirmed"],
+  procurement: ["quote","disabled","expired","archived","awaiting_payment","paid","completed","closed","exception","authorization","prepared","awaiting_manual_payment","outcome_unknown","verified_payment_delivery_pending","failed_unpaid","cancelled_unpaid"],
   refunds: ["pending_review", "approved", "paying", "completed", "rejected", "cancelled", "exception"],
   withdrawals: ["requested", "approved", "paying", "unknown", "paid", "cancelled", "failed"],
   invoices: ["requested", "issued", "rejected", "review_required", "voided"],
@@ -139,15 +140,16 @@ function PublicModelSwitch({ row, operatorID }: { row: Entity; operatorID: strin
   </div>;
 }
 
-export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
+export function ResourceCollection({ page, operatorID, resource, customer = false, embedded = false, layout = "table", onInspect, toolbar, initialValues, actionsOnly = false, record, inspectionLinks, businessView, procurementSection, onProcurementSection }: ResourceOptions & { page: ResourcePage; toolbar?: ReactNode; initialValues?: Record<string, JSONValue>; actionsOnly?: boolean }) {
   const { t, locale } = useI18n();
   const { session } = useProduct();
   const workspace = session?.kind === "staff" ? session.workspaces.find(item => item.operator.id === operatorID) : undefined;
   const [selection, setSelection] = useState<{ operation: Operation; row?: Entity }>();
   const [blocked, setBlocked] = useState(false), [invoiceID, setInvoiceID] = useState(""), [facts, setFacts] = useState<Entity>();
   const [recordKind, setRecordKind] = useState("");
-  const [procurementTab, setProcurementTab] = useState("orders");
-  useEffect(() => { setProcurementTab("orders"); }, [businessView]);
+  const [localProcurementTab,setLocalProcurementTab]=useState("orders");
+  const procurementTab=procurementSection || localProcurementTab;
+  const setProcurementTab=(next:string)=>{setLocalProcurementTab(next);onProcurementSection?.(next);};
   const resourceName = resource.split("/")[0];
   const canOperate = (operation: Operation) => !operation.permission || !!workspace?.permissions.includes("*") || !!workspace?.permissions.includes(operation.permission);
   const operations = page.operations.filter(operation => canOperate(operation) && (resourceName !== "procurement" || (operation.name === "quote" ? procurementTab === "quotes" : operation.name === "authorization" ? procurementTab === "automatic" : true)));
@@ -328,6 +330,7 @@ export function OperatorPanel({ title, description, open, close, blocked = false
 export function ResourceValue({ value, kind = "text", field }: { value?: JSONValue; kind?: string; field?: string }) {
   const { t, locale } = useI18n();
   if (value === null || value === undefined) return <span className="text-ink-mute">—</span>;
+  if (field === "gift_tiers") return <PurchaseTierSummary value={value} />;
   if (field === "record_kind" && typeof value === "string") return <span>{recordKindLabel(value, locale)}</span>;
   if (kind === "link" && typeof value === "string" && (value.startsWith("/manage/") || value.startsWith("/api/v1/operators/"))) return <a className="text-brand-emphasis underline" href={value}>{field === "contract_url" ? t("查看私有合同") : value.includes("download") || value.endsWith("/content") ? t("下载私有文件") : t("进入业务办理")}
   </a>;

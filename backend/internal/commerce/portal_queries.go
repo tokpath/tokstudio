@@ -235,12 +235,15 @@ func (s *Service) CustomerHistoricalReceiptReferences(ctx context.Context, tx *g
 	e := query.Order("r.id").Limit(limit).Scan(&rows).Error
 	return rows, e
 }
-func (s *Service) SearchOperatorReceipts(ctx context.Context, tx *gorm.DB, operator, q, cursor string, limit int) ([]Receipt, error) {
+func (s *Service) SearchOperatorReceipts(ctx context.Context, tx *gorm.DB, operator, q, cursor string, limit int, wholeReceipt ...bool) ([]Receipt, error) {
 	if !validID(operator) || limit < 1 || limit > 50 || len(q) > 200 {
 		return nil, ErrInvalidInput
 	}
 	rows := []Receipt{}
 	query := s.dbFor(ctx, tx).Table("commerce_receipts").Where("operator_id=?", operator)
+	if len(wholeReceipt) > 0 && wholeReceipt[0] {
+		query = query.Where("allocated_usd=0")
+	}
 	if cursor != "" {
 		if !validID(cursor) {
 			return nil, ErrInvalidInput

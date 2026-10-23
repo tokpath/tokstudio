@@ -13893,6 +13893,15 @@
             }
           },
           {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "description": "orders, quotes or automatic; filters are applied before pagination.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "record",
             "in": "query",
             "required": false,
@@ -25834,7 +25843,7 @@
     "/v1/operators/{operatorId}/procurement/{id}/purchase": {
       "post": {
         "operationId": "post__v1_operators_operatorId_procurement_id_purchase",
-        "summary": "按原报价创建采购订单",
+        "summary": "按金额采购",
         "tags": [
           "Operator browser API"
         ],
@@ -25969,7 +25978,7 @@
             }
           }
         },
-        "description": " Required explicit review: 确认原报价购买/赠送库存、付款额与退出条款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": " Required explicit review: 确认本次金额、分段赠送数量与退出条款。每单一笔足额付款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -26111,7 +26120,7 @@
             }
           }
         },
-        "description": "本次付款尝试有时效，订单本身不因此关闭。未付清时库存继续占用，可再次发起付款或取消。核实付款并交付后库存才交付给采购方。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "每单使用一个付款方式和一笔足额付款。付款结果未知时查询原交易，不能另付一笔。足额核实后自动交付。 Requires cooperation.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "cooperation.manage"
       }
     },
@@ -26402,7 +26411,7 @@
     "/v1/operators/{operatorId}/procurement/{id}/fund": {
       "post": {
         "operationId": "post__v1_operators_operatorId_procurement_id_fund",
-        "summary": "分配已核实收款",
+        "summary": "关联线下收款并交付",
         "tags": [
           "Operator browser API"
         ],
@@ -26537,7 +26546,7 @@
             }
           }
         },
-        "description": " Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "只能关联一笔未分配且金额与订单完全一致的收款，核实后自动交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "payments.manage"
       }
     },
@@ -34205,6 +34214,148 @@
         },
         "description": " Required explicit review: 只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。 Requires platform.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "platform.manage"
+      }
+    },
+    "/v1/operators/{operatorId}/procurement/{id}/offline_purchase": {
+      "post": {
+        "operationId": "post__v1_operators_operatorId_procurement_id_offline_purchase",
+        "summary": "登记线下采购",
+        "tags": [
+          "Operator browser API"
+        ],
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CSRF"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in authenticated scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business state, configuration, version, or unknown outcome requires review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Temporary result expired or unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request budget, rate, or concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or verified route unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operator_procurement_offline_purchase"
+              }
+            }
+          }
+        },
+        "description": "选择一笔尚未分配的收款，系统按该笔 USD 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。 Requires payments.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "x-required-permission": "payments.manage"
       }
     },
     "/v1/operators/{operatorId}/takeovers/{id}/refresh": {
@@ -49467,17 +49618,27 @@
             "type": "string",
             "description": "报价名称（留空自动命名）"
           },
-          "price_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "收款USD"
-          },
-          "paid_atg": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "购买库存ATG"
-          },
-          "gift_atg": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "赠送库存ATG"
+          "gift_tiers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "from_usd": {
+                  "$ref": "#/components/schemas/LedgerDecimal"
+                },
+                "gift_percent": {
+                  "$ref": "#/components/schemas/LedgerDecimal"
+                }
+              },
+              "required": [
+                "from_usd",
+                "gift_percent"
+              ],
+              "additionalProperties": false
+            },
+            "description": "阶梯赠送"
           },
           "terms_summary": {
             "type": "string",
@@ -49508,9 +49669,7 @@
         "required": [
           "action",
           "buyer_id",
-          "price_usd",
-          "paid_atg",
-          "gift_atg",
+          "gift_tiers",
           "exit_policy",
           "enabled"
         ],
@@ -49530,6 +49689,10 @@
           "supplier_id": {
             "type": "string",
             "description": "报价供货方"
+          },
+          "amount_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "每次采购USD"
           },
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -49598,6 +49761,7 @@
         "required": [
           "action",
           "quote_id",
+          "amount_usd",
           "trigger_available_atg",
           "single_limit_usd",
           "period_limit_usd",
@@ -49627,6 +49791,10 @@
           "supplier_id": {
             "type": "string",
             "description": "报价供货方"
+          },
+          "amount_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "每次采购USD"
           },
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -49696,6 +49864,7 @@
           "id",
           "action",
           "quote_id",
+          "amount_usd",
           "trigger_available_atg",
           "single_limit_usd",
           "period_limit_usd",
@@ -49709,8 +49878,15 @@
       },
       "Operator_procurement_purchase": {
         "type": "object",
-        "properties": {},
-        "required": [],
+        "properties": {
+          "amount_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal",
+            "description": "本次采购USD"
+          }
+        },
+        "required": [
+          "amount_usd"
+        ],
         "additionalProperties": false
       },
       "Operator_procurement_checkout": {
@@ -49755,16 +49931,11 @@
         "properties": {
           "receipt_id": {
             "type": "string",
-            "description": "本方已核实收款编号"
-          },
-          "amount_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "本次分配USD"
+            "description": "本方已核实的整笔收款"
           }
         },
         "required": [
-          "receipt_id",
-          "amount_usd"
+          "receipt_id"
         ],
         "additionalProperties": false
       },
@@ -53190,6 +53361,19 @@
           "starts_at",
           "ends_at",
           "amount_usd"
+        ],
+        "additionalProperties": false
+      },
+      "Operator_procurement_offline_purchase": {
+        "type": "object",
+        "properties": {
+          "receipt_id": {
+            "type": "string",
+            "description": "本方已核实的整笔收款"
+          }
+        },
+        "required": [
+          "receipt_id"
         ],
         "additionalProperties": false
       },

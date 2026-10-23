@@ -131,16 +131,15 @@ it("prioritizes finance work from authorized order and refund sources", async ()
   expect(calls.some(url => url.endsWith("/withdrawals") || url.endsWith("/requests"))).toBe(false);
 });
 
-it("saves filters without a cursor and keeps search authoritative across pages", async () => {
+it("keeps search authoritative across pages without saving filter presets", async () => {
   const calls: string[] = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => { calls.push(String(input)); return response(page([{ id: "untrimmed-server-result", values: {} }], { next_cursor: "next" })); }));
   show(<ResourceScreen operatorID="operator-one" resource="payments" />);
   await screen.findByText("untrimmed-server-result");
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "bank-a" } } ); fireEvent.click(screen.getByRole("button", { name: "查询", exact: true }));
   await screen.findByText("untrimmed-server-result"); await waitFor(() => expect(calls.at(-1)).toContain("q=bank-a"));
-  fireEvent.click(screen.getByRole("button", { name: "保存常用筛选" }));
-  const saved = JSON.parse(localStorage.getItem("resource-filters:staff-1:/api/v1/operators/operator-one:payments")!);
-  expect(saved).toEqual([{ q: "bank-a", status: "", view: "" }]);
+  expect(screen.queryByRole("button", { name: "保存常用筛选" })).toBeNull();
+  expect(localStorage.getItem("resource-filters:staff-1:/api/v1/operators/operator-one:payments")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "下一页" }));
   await waitFor(() => expect(calls.at(-1)).toContain("cursor=next&q=bank-a"));
 });

@@ -34,6 +34,7 @@ type ReplenishmentAuthorization struct {
 	BuyerID             string         `json:"buyer_id"`
 	SupplierID          string         `json:"supplier_id"`
 	QuoteID             string         `json:"quote_id"`
+	AmountUSD           ledger.Decimal `json:"amount_usd"`
 	TriggerAvailableATG ledger.Decimal `json:"trigger_available_atg"`
 	SingleLimitUSD      ledger.Decimal `json:"single_limit_usd"`
 	PeriodLimitUSD      ledger.Decimal `json:"period_limit_usd"`
@@ -114,7 +115,7 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 	if e := r.ready(); e != nil {
 		return a, e
 	}
-	if a.TriggerAvailableATG.Sign() < 0 || a.SingleLimitUSD.Sign() <= 0 || a.PeriodLimitUSD.Cmp(a.SingleLimitUSD) < 0 || !a.TriggerAvailableATG.Valid() || !a.SingleLimitUSD.Valid() || !a.PeriodLimitUSD.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
+	if !a.AmountUSD.Valid() || a.AmountUSD.Sign() <= 0 || a.AmountUSD.Cmp(a.SingleLimitUSD) > 0 || a.TriggerAvailableATG.Sign() < 0 || a.SingleLimitUSD.Sign() <= 0 || a.PeriodLimitUSD.Cmp(a.SingleLimitUSD) < 0 || !a.TriggerAvailableATG.Valid() || !a.SingleLimitUSD.Valid() || !a.PeriodLimitUSD.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
 		return a, ErrReplenishment
 	}
 	e := r.Cooperation.within(ctx, nil, func(t *gorm.DB) error {
@@ -128,7 +129,7 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 		if e := t.First(&q, "id=? AND buyer_id=? AND enabled", a.QuoteID, a.BuyerID).Error; e != nil {
 			return e
 		}
-		if q.PriceUSD.Cmp(a.SingleLimitUSD) > 0 || q.SupplierID != a.SupplierID {
+		if ValidatePurchaseTiers(q.GiftTiers) != nil || q.SupplierID != a.SupplierID {
 			return ErrReplenishment
 		}
 		var old ReplenishmentAuthorization
@@ -253,11 +254,11 @@ func (r *Replenisher) prepare(ctx context.Context, a ReplenishmentAuthorization)
 		if e = t.Model(&ReplenishmentAttempt{}).Where("buyer_id=? AND created_at>=? AND created_at<? AND state NOT IN ('cancelled_unpaid','failed_unpaid')", a.BuyerID, window.Start, *window.End).Select("COALESCE(sum(amount_usd),0)::text").Row().Scan(&committed); e != nil {
 			return e
 		}
-		if quote.PriceUSD.Cmp(a.SingleLimitUSD) > 0 || committed.Add(quote.PriceUSD).Cmp(a.PeriodLimitUSD) > 0 {
+		if ValidatePurchaseTiers(quote.GiftTiers) != nil || a.AmountUSD.Sign() <= 0 || a.AmountUSD.Cmp(a.SingleLimitUSD) > 0 || committed.Add(a.AmountUSD).Cmp(a.PeriodLimitUSD) > 0 {
 			return ErrReplenishment
 		}
 		id := uuid.NewString()
-		order, e := r.Cooperation.CreatePurchaseOrder(ctx, t, a.AuthorizedBy, a.BuyerID, a.QuoteID, "auto:"+id)
+		order, e := r.Cooperation.CreatePurchaseOrder(ctx, t, a.AuthorizedBy, a.BuyerID, a.QuoteID, "auto:"+id, a.AmountUSD)
 		if e != nil {
 			return e
 		}
@@ -269,7 +270,7 @@ func (r *Replenisher) prepare(ctx context.Context, a ReplenishmentAuthorization)
 		if e != nil {
 			return e
 		}
-		attempt := ReplenishmentAttempt{ID: id, BuyerID: a.BuyerID, AuthorizationID: a.ID, AuthorizationVersion: a.Version, PurchaseOrderID: order.ID, SnapshotCiphertext: cipher, PeriodStart: window.Start, PeriodEnd: *window.End, AmountUSD: quote.PriceUSD, State: "prepared", CreatedAt: now, UpdatedAt: now}
+		attempt := ReplenishmentAttempt{ID: id, BuyerID: a.BuyerID, AuthorizationID: a.ID, AuthorizationVersion: a.Version, PurchaseOrderID: order.ID, SnapshotCiphertext: cipher, PeriodStart: window.Start, PeriodEnd: *window.End, AmountUSD: a.AmountUSD, State: "prepared", CreatedAt: now, UpdatedAt: now}
 		if a.Mode == "offline" {
 			attempt.State = "awaiting_manual_payment"
 		}
@@ -455,19 +456,7 @@ func (r *Replenisher) applyReceipt(ctx context.Context, o PurchaseOrder, receipt
 		if e != nil {
 			return e
 		}
-		available := receipt.GrossUSD.Sub(receipt.AllocatedUSD)
-		need := o.DueUSD.Sub(o.AllocatedUSD)
-		if need.IsZero() {
-			_, e = r.Cooperation.FulfillPurchase(ctx, t, o.ID, "system:automatic-procurement")
-			return e
-		}
-		if available.Cmp(need) > 0 {
-			available = need
-		}
-		if available.Sign() <= 0 {
-			return nil
-		}
-		o, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, available)
+		o, e = r.Cooperation.ApplyVerifiedPurchaseReceipt(ctx, t, r.Collector, o.ID, receiptID, "auto:"+receiptID, receipt.GrossUSD)
 		if e != nil {
 			return e
 		}
@@ -512,4 +501,26 @@ func (s *Service) PendingProcurement(ctx context.Context, tx *gorm.DB, buyer str
 		return t.Model(&ProcurementExitRefund{}).Where("buyer_id=? AND state NOT IN ('completed','released_unpaid')", buyer).Count(&out.Refunds).Error
 	})
 	return out, e
+}
+
+// UsesAutomaticPayment keeps an order on the payment method already accepted
+// in its immutable replenishment authorization, even after later revisions.
+func (r *Replenisher) UsesAutomaticPayment(ctx context.Context, tx *gorm.DB, orderID string) (bool, error) {
+	db := r.Cooperation.DB.WithContext(ctx)
+	if tx != nil {
+		db = tx.WithContext(ctx)
+	}
+	var attempt ReplenishmentAttempt
+	found := db.Where("purchase_order_id=?", orderID).Limit(1).Find(&attempt)
+	if found.Error != nil {
+		return false, found.Error
+	}
+	if found.RowsAffected == 0 || attempt.ErrorCode == "authorization_changed_before_submission" {
+		return false, nil
+	}
+	var snapshot replenishmentSnapshot
+	if err := r.open(attempt.SnapshotCiphertext, &snapshot); err != nil {
+		return false, err
+	}
+	return snapshot.Authorization.Mode == "automatic", nil
 }

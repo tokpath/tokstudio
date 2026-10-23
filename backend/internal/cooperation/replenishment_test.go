@@ -44,7 +44,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 	if _, e = pay.SaveMerchant(f.ctx, f.owner, m, 0); e != nil {
 		t.Fatal(e)
 	}
-	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, PriceUSD: amount("10"), PaidATG: amount("100"), ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
+	quote, e := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("900")}}, ExitTerms: json.RawMessage(`{"version":1,"voluntary_refund":true,"method":"remaining_paid_proportional","terms_reference":"accepted-exit-v1"}`), TermsReference: "quote-v1", Enabled: true})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -54,7 +54,7 @@ func replenishmentFixture(t *testing.T, base string) (fixture, *Replenisher, pay
 func authorizeReplenishment(t *testing.T, f fixture, r *Replenisher, m payments.Merchant, q PurchaseQuote, mode string) ReplenishmentAuthorization {
 	t.Helper()
 	merchant := m.ID
-	a, e := r.SaveAuthorization(f.ctx, f.owner, ReplenishmentAuthorizationInput{ReplenishmentAuthorization: ReplenishmentAuthorization{BuyerID: f.channel, SupplierID: f.platform, QuoteID: q.ID, TriggerAvailableATG: amount("200"), SingleLimitUSD: amount("10"), PeriodLimitUSD: amount("10"), Period: "month", Mode: mode, MerchantID: &merchant, ConsentReference: "explicit-consent:one", Enabled: true}, Payment: ReplenishmentPayment{PaymentMethod: "pm_synthetic", CustomerRef: "cus_synthetic"}})
+	a, e := r.SaveAuthorization(f.ctx, f.owner, ReplenishmentAuthorizationInput{ReplenishmentAuthorization: ReplenishmentAuthorization{BuyerID: f.channel, SupplierID: f.platform, QuoteID: q.ID, AmountUSD: amount("10"), TriggerAvailableATG: amount("200"), SingleLimitUSD: amount("10"), PeriodLimitUSD: amount("10"), Period: "month", Mode: mode, MerchantID: &merchant, ConsentReference: "explicit-consent:one", Enabled: true}, Payment: ReplenishmentPayment{PaymentMethod: "pm_synthetic", CustomerRef: "cus_synthetic"}})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -72,6 +72,9 @@ func TestPostgresOfflineReplenishmentNeverGrantsUnverifiedCredit(t *testing.T) {
 	_ = f.db.Model(&PurchaseOrder{}).Count(&count).Error
 	if count != 1 {
 		t.Fatal("in-flight offline procurement was duplicated")
+	}
+	if automatic, err := r.UsesAutomaticPayment(f.ctx, nil, jobs[0].PurchaseOrderID); err != nil || automatic {
+		t.Fatal("offline order cannot require an automatic payment", err)
 	}
 	if _, e = f.s.Position(f.ctx, nil, f.channel); !errors.Is(e, gorm.ErrRecordNotFound) {
 		t.Fatal("offline order created procurement credit before payment")
@@ -108,6 +111,9 @@ func TestExternalAutomaticProcurementUnknownThenOriginalSignedCallback(t *testin
 		t.Fatalf("unknown original procurement %+v %v", jobs, e)
 	}
 	orderID := jobs[0].PurchaseOrderID
+	if automatic, err := r.UsesAutomaticPayment(f.ctx, nil, orderID); err != nil || !automatic {
+		t.Fatal("automatic payment must keep its original method", err)
+	}
 	if e = r.CancelAuthorization(f.ctx, f.owner, f.channel, a.Version); e != nil {
 		t.Fatal(e)
 	}
@@ -154,8 +160,13 @@ func TestExternalAutomaticProcurementUnknownThenOriginalSignedCallback(t *testin
 	settled := labControl(t, base, "/__control/payments/"+provider+"/settle", map[string]any{})
 	labControl(t, base, "/__control/webhooks", map[string]any{"url": server.URL, "event_id": settled["event_id"], "repeat": 2})
 	for range 2 {
-		if e = <-callbacks; e != nil {
-			t.Fatal(e)
+		select {
+		case e = <-callbacks:
+			if e != nil {
+				t.Fatal(e)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("independent payment service could not reach the callback listener")
 		}
 	}
 	inboxAttempts, inboxErr := r.Payments.RunPending(f.ctx, 20)

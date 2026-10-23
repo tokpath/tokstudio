@@ -223,11 +223,11 @@ func TestPostgresUnpaidPurchaseHoldsInventoryUntilCancelled(t *testing.T) {
 		t.Fatal(err)
 	}
 	until := time.Now().Add(time.Minute)
-	quote, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "不限时占用", PriceUSD: amount("10"), PaidATG: amount("100"), GiftATG: amount("20"), ExitPolicy: "non_refundable", Enabled: true, ValidUntil: &until})
+	quote, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "不限时占用", GiftTiers: []PurchaseGiftTier{{FromUSD: ledger.Zero(), GiftPercent: amount("1100")}}, ExitPolicy: "non_refundable", Enabled: true, ValidUntil: &until})
 	if err != nil {
 		t.Fatal(err)
 	}
-	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "open-ended-hold")
+	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "open-ended-hold", amount("10"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestPostgresUnpaidPurchaseHoldsInventoryUntilCancelled(t *testing.T) {
 	if err = f.db.First(&commitment, "id=?", commitment.ID).Error; err != nil || commitment.Status != "released" {
 		t.Fatal("cancel did not release inventory", commitment, err)
 	}
-	held, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "paid-still-held")
+	held, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "paid-still-held", amount("10"))
 	if err != nil {
 		t.Fatal(err)
 	}

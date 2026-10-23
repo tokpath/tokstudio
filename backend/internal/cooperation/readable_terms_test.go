@@ -42,7 +42,7 @@ func TestPostgresReadableQuoteGeneratesReferencesAndFreezesAcceptedRules(t *test
 	}
 	publish := func(policy string) PurchaseQuote {
 		t.Helper()
-		q, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "日常采购", TermsSummary: "按实际到账交付", PriceUSD: amount("10"), PaidATG: amount("100"), GiftATG: amount("20"), ExitPolicy: policy, Enabled: true, TermsReference: "client-controlled-reference", Version: 999})
+		q, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, Name: "日常采购", TermsSummary: "按实际到账交付", GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("1100")}}, ExitPolicy: policy, Enabled: true, TermsReference: "client-controlled-reference", Version: 999})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func TestPostgresReadableQuoteGeneratesReferencesAndFreezesAcceptedRules(t *test
 	if err != nil || !terms.VoluntaryRefund || terms.Method != "remaining_paid_proportional" || !strings.Contains(terms.TermsReference, q.ID) {
 		t.Fatal(terms, err)
 	}
-	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "accepted-readable-rule")
+	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "accepted-readable-rule", amount("10"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestPostgresReadableQuoteGeneratesReferencesAndFreezesAcceptedRules(t *test
 	if string(stored.ExitTerms) != string(order.ExitTerms) || stored.Name != q.Name || stored.TermsSummary != q.TermsSummary || stored.QuoteVersion != 1 {
 		t.Fatal("new quote changed accepted order", stored)
 	}
-	again, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "accepted-readable-rule")
+	again, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, q.ID, "accepted-readable-rule", amount("10"))
 	if err != nil || again.ID != order.ID {
 		t.Fatal("same-key purchase retry duplicated order", again, err)
 	}
@@ -96,7 +96,7 @@ func TestPostgresCooperationRejectsForeignAndPathContractReferences(t *testing.T
 		}
 	}
 	for _, id := range []string{foreignID, pendingID, "/private/contracts/signed.pdf", "https://example.test/signed.pdf"} {
-		_, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, PriceUSD: amount("10"), PaidATG: amount("100"), ContractAttachmentID: id, Enabled: true})
+		_, err := f.s.PublishPurchaseQuote(f.ctx, nil, f.owner, PurchaseQuote{SupplierID: f.platform, BuyerID: f.channel, GiftTiers: []PurchaseGiftTier{{FromUSD: amount("0"), GiftPercent: amount("900")}}, ContractAttachmentID: id, Enabled: true})
 		if !errors.Is(err, organization.ErrForbidden) && !errors.Is(err, organization.ErrInvalidInput) {
 			t.Fatalf("unowned contract accepted %q: %v", id, err)
 		}

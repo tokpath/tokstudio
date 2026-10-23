@@ -10,11 +10,11 @@ import (
 
 func TestPostgresProcurementExportKeepsActualPartyAndTimeScope(t *testing.T) {
 	f, _, _, quote := replenishmentFixture(t, "http://127.0.0.1:18090")
-	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "export-included")
+	order, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "export-included", amount("10"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	older, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "export-outside-range")
+	older, err := f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, f.channel, quote.ID, "export-outside-range", amount("10"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestPostgresProcurementExportKeepsActualPartyAndTimeScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, child.Operator.ID, otherQuote.ID, "export-foreign"); err != nil {
+	if _, err = f.s.CreatePurchaseOrder(f.ctx, nil, f.owner, child.Operator.ID, otherQuote.ID, "export-foreign", amount("10")); err != nil {
 		t.Fatal(err)
 	}
 	from, to := time.Now().Add(-time.Hour), time.Now().Add(time.Minute)

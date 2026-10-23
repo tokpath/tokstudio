@@ -8,6 +8,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"strings"
+	"time"
 )
 
 type referenceChoice struct {
@@ -363,13 +364,13 @@ func (a *Application) references(c *gin.Context) {
 		if !require("payments.manage", "refunds.manage", "invoices.manage") {
 			return
 		}
-		rows, e := a.Commerce.SearchOperatorReceipts(ctx, nil, operator, query, c.Query("cursor"), 50)
+		rows, e := a.Commerce.SearchOperatorReceipts(ctx, nil, operator, query, c.Query("cursor"), 50, c.Query("whole") == "true")
 		if e != nil {
 			handleError(c, e)
 			return
 		}
 		if len(rows) == 50 {
-			more, e := a.Commerce.SearchOperatorReceipts(ctx, nil, operator, query, rows[49].ID, 1)
+			more, e := a.Commerce.SearchOperatorReceipts(ctx, nil, operator, query, rows[49].ID, 1, c.Query("whole") == "true")
 			if e != nil {
 				handleError(c, e)
 				return
@@ -507,7 +508,9 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		for _, r := range rows {
-			add(r.ID, humanJoin(r.Name, r.PriceUSD.String()+" USD", r.PaidATG.String()+" + "+r.GiftATG.String()+" ATG"), gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID})
+			if r.Enabled && len(r.GiftTiers) > 0 && (r.ValidUntil == nil || time.Now().Before(*r.ValidUntil)) {
+				add(r.ID, humanJoin(r.Name, "1 USD = 1 ATG + 阶梯赠送"), gin.H{"quote_id": r.ID, "supplier_id": r.SupplierID, "gift_tiers": r.GiftTiers})
+			}
 		}
 	case "campaigns":
 		if customer {

@@ -23,6 +23,7 @@ async function revealFields(panel: Locator) {
 }
 async function field(panel: Locator, name: string, value: string | boolean) {
   await revealFields(panel);
+  if(name==="gift_tiers"){await panel.locator('[data-command-field="gift_tiers"]').getByLabel("本段赠送 %").first().fill(String(value));return;}
   const box = panel.locator(`[data-command-field="${name}"]`);
   const select = box.locator("select");
   if (await select.count()) { await select.selectOption(String(value)); return; }
@@ -184,13 +185,14 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
       await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
-      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, price_usd: "80", paid_atg: "100", gift_atg: "20", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任", exit_policy: "remaining_paid_proportional" }, `${oemBase}/procurement`));
+      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.channel_id, gift_tiers: "50", name: "UI 星河供货报价", terms_summary: "先实际收款再交付采购库存；退出前清算存量服务责任", exit_policy: "remaining_paid_proportional" }, `${oemBase}/procurement`));
     }
     if (!journal.purchase) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
       await channel.getByRole("button", { name: "立即补货", exact: true }).click();
-      await (await recordRow(channel, journal.quote.id)).getByRole("button", { name: "按原报价创建采购订单", exact: true }).click();
-      save("purchase", await submit(channel, "按原报价创建采购订单", `${channelBase}/procurement/${journal.quote.id}/purchase`));
+      await (await recordRow(channel, journal.quote.id)).getByRole("button", { name: "按金额采购", exact: true }).click();
+      await field(channel.getByRole("dialog").last(),"amount_usd","80");
+      save("purchase", await submit(channel, "按金额采购", `${channelBase}/procurement/${journal.quote.id}/purchase`));
     }
     if (!journal.checkout) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
@@ -204,20 +206,19 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.funded) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
-      await (await recordRow(oem, journal.purchase.id)).getByRole("button", { name: "分配已核实收款", exact: true }).click();
-      const panel = oem.getByRole("dialog").last(); await field(panel, "receipt_id", journal.receipt.id); await field(panel, "amount_usd", "80");
-      save("funded", await submit(oem, "分配已核实收款", `${oemBase}/procurement/${journal.purchase.id}/fund`));
+      await (await recordRow(oem, journal.purchase.id)).getByRole("button", { name: "关联线下收款并交付", exact: true }).click();
+      const panel = oem.getByRole("dialog").last(); await field(panel, "receipt_id", journal.receipt.id);
+      save("funded", await submit(oem, "关联线下收款并交付", `${oemBase}/procurement/${journal.purchase.id}/fund`));
     }
     if (!journal.delivered) {
-      await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
-      const order = await recordRow(oem, journal.purchase.id);
-      await order.getByRole("button", { name: "重试实际库存交付", exact: true }).click();
-      save("delivered", await submit(oem, "重试实际库存交付", `${oemBase}/procurement/${journal.purchase.id}/fulfill`));
+      const page = await (await channel.request.get(`${channelBase}/procurement?section=orders`)).json();
+      expect(page.items.find((row:any)=>row.id===journal.purchase.id)?.status).toBe("completed");
+      save("delivered",{id:journal.purchase.id,status:"completed"});
     }
     if (!journal.authorization) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
       await channel.getByRole("tab", { name: "自动补货", exact: true }).click();
-      save("authorization", await operation(channel, "设定有限自动补货授权", { quote_id: journal.quote.id, trigger_available_atg: "10", single_limit_usd: "80", period_limit_usd: "160", period: "month", mode: "offline", consent_reference: "operator UI explicit offline replenishment consent" }, `${channelBase}/procurement`));
+      save("authorization", await operation(channel, "设定有限自动补货授权", { quote_id: journal.quote.id, amount_usd:"80", trigger_available_atg: "10", single_limit_usd: "80", period_limit_usd: "160", period: "month", mode: "offline", consent_reference: "operator UI explicit offline replenishment consent" }, `${channelBase}/procurement`));
     }
     if (!journal.revised) {
       await channel.goto(`/manage/${f.channel_id}/procurement`);
@@ -483,12 +484,12 @@ test("offline replenishment actually creates one unpaid order without creating i
     if (!journal.quote) {
       await oem.goto(`/manage/${f.oem_id}/procurement`); await oem.getByRole("button", { name: "我方供货", exact: true }).click();
       await oem.getByRole("tab", { name: "供货报价", exact: true }).click();
-      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.other_channel_id, price_usd: "10", paid_atg: "20", gift_atg: "0", name: "UI 离线补货报价", terms_summary: "有限补货授权仅创建待付订单，实际收款后才交付", exit_policy: "non_refundable" }, `${supplier}/procurement`));
+      save("quote", await operation(oem, "向直属采购方发布供货报价", { buyer_id: f.other_channel_id, gift_tiers: "100", name: "UI 离线补货报价", terms_summary: "有限补货授权仅创建待付订单，实际收款后才交付", exit_policy: "non_refundable" }, `${supplier}/procurement`));
     }
     if (!journal.authorization) {
       await buyer.goto(`/manage/${f.other_channel_id}/procurement`);
       await buyer.getByRole("tab", { name: "自动补货", exact: true }).click();
-      save("authorization", await operation(buyer, "设定有限自动补货授权", { quote_id: journal.quote.id, trigger_available_atg: "10", single_limit_usd: "10", period_limit_usd: "20", period: "month", mode: "offline", consent_reference: "offline actual UI replenishment consent only creates payable order" }, `${base}/procurement`));
+      save("authorization", await operation(buyer, "设定有限自动补货授权", { quote_id: journal.quote.id, amount_usd:"10", trigger_available_atg: "10", single_limit_usd: "10", period_limit_usd: "20", period: "month", mode: "offline", consent_reference: "offline actual UI replenishment consent only creates payable order" }, `${base}/procurement`));
     }
     let resource: any;
     await expect.poll(async () => {

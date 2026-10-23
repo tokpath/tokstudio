@@ -1509,23 +1509,16 @@
         "kind": "text"
       },
       {
-        "name": "price_usd",
-        "label": "收款USD",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "paid_atg",
-        "label": "购买库存ATG",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "gift_atg",
-        "label": "赠送库存ATG",
-        "kind": "decimal",
+        "name": "gift_tiers",
+        "label": "阶梯赠送",
+        "kind": "json",
         "required": true,
-        "default_value": "0"
+        "default_value": [
+          {
+            "from_usd": "0",
+            "gift_percent": "0"
+          }
+        ]
       },
       {
         "name": "terms_summary",
@@ -1578,7 +1571,7 @@
   },
   {
     "resource": "procurement",
-    "confirmation": "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
+    "confirmation": "确认每次采购金额、阶梯赠送、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
     "description": "",
     "fields": [
       {
@@ -1600,6 +1593,12 @@
         "name": "supplier_id",
         "label": "报价供货方",
         "kind": "hidden"
+      },
+      {
+        "name": "amount_usd",
+        "label": "每次采购USD",
+        "kind": "decimal",
+        "required": true
       },
       {
         "name": "trigger_available_atg",
@@ -1720,7 +1719,7 @@
   },
   {
     "resource": "procurement",
-    "confirmation": "确认固定报价、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
+    "confirmation": "确认每次采购金额、阶梯赠送、单次限额及UTC周期限额。未知付款仅查询原交易，不能自动再次扣款。",
     "description": "修订本经营方唯一的原自动补货授权，按当前版本保存，不取消重建。每次修订须重新确认并填写本次独立授权依据；敏感付款资料不回显。",
     "fields": [
       {
@@ -1748,6 +1747,12 @@
         "name": "supplier_id",
         "label": "报价供货方",
         "kind": "hidden"
+      },
+      {
+        "name": "amount_usd",
+        "label": "每次采购USD",
+        "kind": "decimal",
+        "required": true
       },
       {
         "name": "trigger_available_atg",
@@ -1871,11 +1876,18 @@
   },
   {
     "resource": "procurement",
-    "confirmation": "确认原报价购买/赠送库存、付款额与退出条款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。",
+    "confirmation": "确认本次金额、分段赠送数量与退出条款。每单一笔足额付款。创建后按购买加赠送数量占用供货库存，直到付清交付或取消，不增加可用采购库存。",
     "description": "",
-    "fields": [],
+    "fields": [
+      {
+        "name": "amount_usd",
+        "label": "本次采购USD",
+        "kind": "decimal",
+        "required": true
+      }
+    ],
     "include_version": false,
-    "label": "按原报价创建采购订单",
+    "label": "按金额采购",
     "method": "POST",
     "name": "purchase",
     "path": "/v1/operators/{operatorId}/procurement/{id}/purchase",
@@ -1884,7 +1896,7 @@
   {
     "resource": "procurement",
     "confirmation": "",
-    "description": "本次付款尝试有时效，订单本身不因此关闭。未付清时库存继续占用，可再次发起付款或取消。核实付款并交付后库存才交付给采购方。",
+    "description": "每单使用一个付款方式和一笔足额付款。付款结果未知时查询原交易，不能另付一笔。足额核实后自动交付。",
     "fields": [
       {
         "lookup_url": "/api/v1/operators/{operatorId}/references/supplier-methods",
@@ -1941,24 +1953,18 @@
   {
     "resource": "procurement",
     "confirmation": "",
-    "description": "",
+    "description": "只能关联一笔未分配且金额与订单完全一致的收款，核实后自动交付。",
     "fields": [
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts?whole=true",
         "name": "receipt_id",
-        "label": "本方已核实收款编号",
+        "label": "本方已核实的整笔收款",
         "kind": "text",
-        "required": true
-      },
-      {
-        "name": "amount_usd",
-        "label": "本次分配USD",
-        "kind": "decimal",
         "required": true
       }
     ],
     "include_version": false,
-    "label": "分配已核实收款",
+    "label": "关联线下收款并交付",
     "method": "POST",
     "name": "fund",
     "path": "/v1/operators/{operatorId}/procurement/{id}/fund",
@@ -7003,5 +7009,25 @@
     "include_version": false,
     "confirmation": "",
     "description": ""
+  },
+  {
+    "resource": "procurement",
+    "confirmation": "",
+    "description": "选择一笔尚未分配的收款，系统按该笔 USD 金额和本报价计算购买与赠送 ATG，一次完成订单与交付。",
+    "fields": [
+      {
+        "name": "receipt_id",
+        "label": "本方已核实的整笔收款",
+        "kind": "text",
+        "required": true,
+        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts?whole=true"
+      }
+    ],
+    "include_version": false,
+    "label": "登记线下采购",
+    "method": "POST",
+    "name": "offline_purchase",
+    "path": "/v1/operators/{operatorId}/procurement/{id}/offline_purchase",
+    "permission": "payments.manage"
   }
 ]

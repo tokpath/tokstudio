@@ -17,6 +17,7 @@ type ReceiptFundsInput struct {
 	BusinessKey   string         `json:"business_key"`
 	ActorID       string         `json:"actor_id"`
 	AmountUSD     ledger.Decimal `json:"amount_usd"`
+	WholeReceipt  bool           `json:"-"`
 	Deadline      time.Time      `json:"deadline"`
 }
 type ReceiptFundsReservation struct {
@@ -90,6 +91,9 @@ func (s *Service) ReserveReceiptFunds(ctx context.Context, tx *gorm.DB, in Recei
 				return ErrTimingUnverified
 			}
 			proof = "observed_before_expiry"
+		}
+		if in.WholeReceipt && (!r.AllocatedUSD.IsZero() || r.GrossUSD.Cmp(in.AmountUSD) != 0) {
+			return ErrExcessAllocation
 		}
 		if r.GrossUSD.Sub(r.AllocatedUSD).Cmp(in.AmountUSD) < 0 {
 			return ErrExcessAllocation

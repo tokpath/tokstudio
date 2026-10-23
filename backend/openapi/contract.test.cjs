@@ -162,3 +162,16 @@ test('contracts are private multipart uploads and renewal consent can identify t
   assert.equal(renewal.requestBody.content['application/json'].schema.properties.quote_id.format, 'uuid');
   assert.ok(document.components.schemas.Quote.properties.terms_summary);
 });
+
+test('procurement uses progressive bonus bands and one whole external payment per order', () => {
+  const schemas = document.components.schemas;
+  const quote = schemas.Operator_procurement_quote;
+  assert.equal(quote.properties.price_usd, undefined);
+  assert.equal(quote.properties.paid_atg, undefined);
+  assert.equal(quote.properties.gift_tiers.type, 'array');
+  assert.equal(quote.properties.gift_tiers.items.properties.gift_percent.$ref, '#/components/schemas/LedgerDecimal');
+  assert.ok(schemas.Operator_procurement_purchase.required.includes('amount_usd'));
+  assert.deepEqual(Object.keys(schemas.Operator_procurement_fund.properties), ['receipt_id']);
+  assert.deepEqual(Object.keys(schemas.Operator_procurement_offline_purchase.properties), ['receipt_id']);
+  assert.ok(schemas.Operator_procurement_authorization.required.includes('amount_usd'));
+});

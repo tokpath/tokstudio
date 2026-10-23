@@ -148,16 +148,7 @@ test("technical administrator configures a real provider, verified model and rou
     expect((await tech.request.get(`${base}/payments`)).status()).toBe(403);
 
     await login(owner, { email: fixture.owner_email, password: fixture.owner_password });
-    await owner.goto(`/manage/${p.operator_id}/catalog-changes`);
-    const changePage = await (await owner.request.get(`${base}/catalog-changes`)).json();
-    let lead = Number(changePage.summary.find((item: any) => item.label === "通知提前秒数")?.value || 0);
-    if (!lead) {
-      dialog = await panel(owner, "设置提前通知规则");
-      await control(dialog, "提前通知秒数", false).fill("60");
-      await control(dialog, "对客户公开的通知条款依据", false).fill("合成仿真正常上新：至少提前60秒发送真实通知后才生效");
-      await submit(owner, dialog, "设置提前通知规则", `${base}/catalog-changes`); await close(dialog); lead = 60;
-    }
-    const effective = new Date(Math.ceil((Date.now() + (lead + 75) * 1000) / 60_000) * 60_000);
+    const effective = new Date(Math.ceil((Date.now() + 135 * 1000) / 60_000) * 60_000);
     await owner.goto(`/manage/${p.operator_id}/pricing`);
     dialog = await panel(owner, "授权或上架模型");
     await chooseControl(dialog.getByRole("combobox", { name: "公开模型", exact: true }), model);
@@ -185,9 +176,7 @@ test("technical administrator configures a real provider, verified model and rou
       const published = await publication.json();
       const priceID = publication.request().postDataJSON().configuration.price.id;
       expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-      const changes = await (await owner.request.get(`${base}/catalog-changes`)).json();
-      const scheduled = changes.items.find((item: any) => item.id === published.id);
-      expect(scheduled).toMatchObject({ values: { payload: { id: priceID, scope } } });
+      expect(published.id).toMatch(/^[0-9a-f-]{36}$/);
       await close(dialog);
     }
 

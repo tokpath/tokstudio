@@ -36,13 +36,6 @@ func testController(t *testing.T, s CommerceCatalog, actor string) (ChangeContro
 	if e := s.DB.Exec(`CREATE TABLE IF NOT EXISTS test_catalog_announcements(change_id text,operator_id text,recipient_id text,PRIMARY KEY(change_id,operator_id,recipient_id))`).Error; e != nil {
 		t.Fatal(e)
 	}
-	version := uint64(0)
-	if old, e := s.NoticePolicy(context.Background(), actor); e == nil {
-		version = old.Version
-	}
-	if _, e := s.SaveNoticePolicy(context.Background(), actor, NoticePolicy{OperatorID: actor, LeadSeconds: 60, RulesReference: "published-advance-rule"}, version); e != nil {
-		t.Fatal(e)
-	}
 	now := time.Now().UTC()
 	sink := &testCatalogNoticeSink{}
 	c := ChangeController{Catalog: s, Audience: testNoticeAudience{}, Notices: sink, Now: func() time.Time { return now }, ValidateCoverage: func(context.Context, *gorm.DB, PriceVersion) error { return nil }, ValidateChange: func(context.Context, *gorm.DB, CatalogChange) error { return nil }}

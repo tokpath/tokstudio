@@ -443,7 +443,6 @@ const savedFactLabels: Record<string, string> = {
   "announced_at": "实际通知",
   "applied_at": "实际应用",
   "error_code": "待复核原因",
-  "lead_seconds": "提前通知秒数（至少60）",
   "rules_reference": "对客户公开的通知条款依据",
   "prices": "精确组件价格",
   "status": "状态",

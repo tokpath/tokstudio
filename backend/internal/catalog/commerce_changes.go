@@ -14,14 +14,9 @@ import (
 
 var ErrChangeNotice = errors.New("catalog change requires an actual advance notification plan")
 
-type NoticePolicy struct {
-	OperatorID     string `gorm:"primaryKey" json:"operator_id"`
-	LeadSeconds    int64  `json:"lead_seconds"`
-	RulesReference string `json:"rules_reference"`
-	Version        uint64 `json:"version"`
-}
-
-func (NoticePolicy) TableName() string { return "tokenhub_catalog_notice_policies" }
+// catalogAdvanceLead is the fixed notice period for an ordinary price or model
+// change. It is not configured per operator.
+const catalogAdvanceLead = 60 * time.Second
 
 type CatalogChange struct {
 	ID              string          `json:"id"`
@@ -70,29 +65,6 @@ func changeFingerprint(kind, resource string, payload json.RawMessage) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
 }
-func (s CommerceCatalog) SaveNoticePolicy(ctx context.Context, actor string, p NoticePolicy, expected uint64) (NoticePolicy, error) {
-	if p.OperatorID != actor || p.LeadSeconds < 60 || p.LeadSeconds > 86400*365 || p.RulesReference == "" {
-		return p, ErrCatalogForbidden
-	}
-	e := s.mutate(ctx, func(tx CommerceCatalog) error {
-		var old NoticePolicy
-		q := tx.DB.WithContext(ctx).Where("operator_id=?", actor).Limit(1).Find(&old)
-		if q.Error != nil {
-			return q.Error
-		}
-		if (q.RowsAffected == 0 && expected != 0) || (q.RowsAffected > 0 && old.Version != expected) {
-			return ErrCatalogVersion
-		}
-		p.Version = expected + 1
-		return tx.DB.WithContext(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "operator_id"}}, UpdateAll: true}).Create(&p).Error
-	})
-	return p, e
-}
-func (s CommerceCatalog) NoticePolicy(ctx context.Context, operator string) (NoticePolicy, error) {
-	var out NoticePolicy
-	e := s.DB.WithContext(ctx).First(&out, "operator_id=?", operator).Error
-	return out, e
-}
 func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, evidence string, payload any, expected uint64, effective time.Time, scope PriceScope) (CatalogChange, error) {
 	out := CatalogChange{}
 	if c.Audience == nil || c.Notices == nil || evidence == "" {
@@ -103,12 +75,8 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 		return out, e
 	}
 	e = c.Catalog.mutate(ctx, func(tx CommerceCatalog) error {
-		policy, e := tx.NoticePolicy(ctx, actor)
-		if e != nil {
-			return ErrChangeNotice
-		}
 		now := c.now()
-		if effective.Before(now.Add(time.Duration(policy.LeadSeconds)*time.Second + time.Minute)) {
+		if effective.Before(now.Add(catalogAdvanceLead + time.Minute)) {
 			return ErrChangeNotice
 		}
 		affected := []string{actor}
@@ -125,7 +93,7 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 				return e
 			}
 		}
-		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), LeadSeconds: policy.LeadSeconds, ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
+		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), LeadSeconds: int64(catalogAdvanceLead / time.Second), ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
 		if e = tx.DB.WithContext(ctx).Create(&out).Error; e != nil {
 			return e
 		}

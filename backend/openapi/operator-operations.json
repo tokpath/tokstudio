@@ -1026,37 +1026,6 @@
     "permission": "sales.manage"
   },
   {
-    "resource": "catalog-changes",
-    "confirmation": "",
-    "description": "",
-    "fields": [
-      {
-        "name": "lead_seconds",
-        "label": "提前通知秒数（至少60）",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "rules_reference",
-        "label": "对客户公开的通知条款依据",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前规则版本（自动带入）",
-        "kind": "hidden",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "label": "设置提前通知规则",
-    "method": "POST",
-    "name": "policy",
-    "path": "/v1/operators/{operatorId}/catalog-changes",
-    "permission": "sales.manage"
-  },
-  {
     "resource": "marketing",
     "confirmation": "",
     "description": "",

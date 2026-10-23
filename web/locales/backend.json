@@ -1399,10 +1399,10 @@
     "ja": "非公開オブジェクトストレージを一時的に利用できません。この案件を保持して後で再試行してください。",
     "ru": "Закрытое объектное хранилище временно недоступно. Сохраните текущее дело и повторите позже."
   },
-  "普通调价或模型变更必须配置提前通知规则，并安排满足提前量的生效时间": {
-    "en": "Ordinary price or model changes require advance notice rules and an effective time that meets the notice period.",
-    "ja": "通常の価格・モデル変更には事前通知規則と、必要な通知期間を満たす適用日時が必要です。",
-    "ru": "Обычные изменения цен или моделей требуют правил предварительного уведомления и времени вступления в силу с соблюдением срока."
+  "普通调价或模型变更必须填写通知依据，并安排至少提前 2 分钟的生效时间": {
+    "en": "Ordinary price or model changes require notice evidence and an effective time at least 2 minutes ahead.",
+    "ja": "通常の価格・モデル変更には通知根拠と、少なくとも2分後の適用日時が必要です。",
+    "ru": "Обычные изменения цен или моделей требуют основание уведомления и время вступления в силу не раньше чем через 2 минуты."
   },
   "原币实际款已保留，等待财务核实真实付款时点估值；请勿重复付款": {
     "en": "The actual original currency payment is retained, awaiting finance verification of its value at payment time. Do not pay again.",
@@ -3999,16 +3999,6 @@
     "ja": "実際の通知",
     "ru": "Фактическое уведомление"
   },
-  "通知提前秒数": {
-    "en": "Advance notice seconds",
-    "ja": "事前通知の秒数",
-    "ru": "Упреждение уведомления в секундах"
-  },
-  "设置提前通知规则": {
-    "en": "Set advance notice rules",
-    "ja": "事前通知ルールを設定",
-    "ru": "Задать правила предварительного уведомления"
-  },
   "当前规则版本（自动带入）": {
     "en": "Current rule version (filled automatically)",
     "ja": "現在のルールバージョン（自動入力）",
@@ -6078,16 +6068,6 @@
     "en": "Actual application",
     "ja": "実際の適用",
     "ru": "Фактическое применение"
-  },
-  "规则版本": {
-    "en": "Rule version",
-    "ja": "ルールの版",
-    "ru": "Версия правила"
-  },
-  "提前通知秒数（至少60）": {
-    "en": "Advance notice (seconds; at least 60)",
-    "ja": "事前通知秒数（最低 60）",
-    "ru": "Заблаговременное уведомление, с (не менее 60)"
   },
   "模型": {
     "en": "Model",

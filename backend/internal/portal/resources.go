@@ -281,7 +281,7 @@ func permissionFor(resource string) string {
 		return "reports.view"
 	case "customers":
 		return "customers.read"
-	case "plans", "orders", "pricing", "catalog-changes":
+	case "plans", "orders", "pricing":
 		return "sales.manage"
 	case "payments", "payment-methods", "valuations", "receipt-valuations", "evidence":
 		return "payments.manage"
@@ -722,7 +722,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 	case "withdrawals":
 		a.withdrawalStaffResource(c, op, actor, p, base)
 		return
-	case "catalog", "providers", "routes", "pricing", "catalog-changes":
+	case "catalog", "providers", "routes", "pricing":
 		if a.catalogResource(c, op, actor, resource, p, base) {
 			return
 		}

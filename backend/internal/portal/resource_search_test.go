@@ -130,7 +130,7 @@ func TestPostgresRefundSearchPagesCasesBeforeLoadingTheirDetails(t *testing.T) {
 
 func TestResourceSearchCapabilitiesDoNotAdvertiseTruncatedLists(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	for _, resource := range []string{"procurement", "exits", "evidence", "audit", "catalog-changes", "notifications"} {
+	for _, resource := range []string{"procurement", "exits", "evidence", "audit", "jobs", "notifications"} {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Params = gin.Params{{Key: "operatorId", Value: "operator"}}
 		c.Request = httptest.NewRequest("GET", "/?q=needle", nil)

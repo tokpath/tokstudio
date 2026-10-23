@@ -119,8 +119,8 @@ func TestPostgresNewModelListingAndAuthorizationHonorPlannedActivation(t *testin
 	}
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	base := "/v1/operators/" + op
-	status, out, _ := f.call(t, "POST", base+"/catalog-changes", map[string]any{"lead_seconds": 60, "rules_reference": "synthetic notice terms", "expected_version": 0}, uuid.NewString())
-	mustOK(t, status, out)
+	var status int
+	var out map[string]any
 	for _, action := range []string{"listing", "authorization"} {
 		input := map[string]any{"action": action, "model_id": model.ID, "enabled": true, "expected_version": 0, "effective_at": time.Now().Add(3 * time.Minute), "evidence": "actual scheduled release, never immediate bootstrap"}
 		if action == "authorization" {
@@ -130,15 +130,6 @@ func TestPostgresNewModelListingAndAuthorizationHonorPlannedActivation(t *testin
 		mustOK(t, status, out)
 		if out["status"] != "announcing" || out["id"] == model.ID {
 			t.Fatal("planned first activation bypassed its notification plan", action, out)
-		}
-	}
-	status, page, _ := f.call(t, "GET", base+"/catalog-changes", nil, "")
-	mustOK(t, status, page)
-	fields := page["operations"].([]any)[0].(map[string]any)["fields"].([]any)
-	for _, item := range fields {
-		field := item.(map[string]any)
-		if field["name"] == "expected_version" && field["default_value"] != float64(1) {
-			t.Fatal("reopening notice policy lost its saved concurrency version", field)
 		}
 	}
 	var changes int64

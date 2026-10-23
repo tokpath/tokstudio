@@ -111,7 +111,7 @@ func handleError(c *gin.Context, err error) {
 	case errors.Is(err, usage.ErrResultUnavailable):
 		status, code, msg, retry = 410, "result_unavailable", "临时结果已到期或暂不可回读，请查看保留状态", false
 	case errors.Is(err, catalog.ErrChangeNotice):
-		status, code, msg, retry = 409, "advance_notice_required", "普通调价或模型变更必须配置提前通知规则，并安排满足提前量的生效时间", false
+		status, code, msg, retry = 409, "advance_notice_required", "普通调价或模型变更必须填写通知依据，并安排至少提前 2 分钟的生效时间", false
 	case errors.Is(err, catalog.ErrPublicRoute):
 		status, code, msg, retry = 409, "public_route_required", "还没有可用的路由，不能对客户开放这个模型", false
 	case errors.Is(err, catalog.ErrPublicCapability):

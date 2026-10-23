@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -328,7 +327,7 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			}
 			out, e := a.Organization.SetBusinessStatus(ctx, tx, organization.SetBusinessStatusInput{ActorStaffID: actor, OperatorID: op.ID, Feature: in.Feature, Enabled: in.Enabled, ExpectedVersion: in.ExpectedVersion, EvidenceReference: in.Evidence}, a)
 			return gin.H{"id": op.ID, "status": "updated", "version": out.Version}, e
-		case "catalog", "providers", "routes", "pricing", "catalog-changes":
+		case "catalog", "providers", "routes", "pricing":
 			return a.catalogCommand(ctx, tx, op, actor, resource, config)
 		}
 		return nil, commerce.ErrNotReady
@@ -582,23 +581,6 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		p["description"] = "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。"
 		p["columns"] = []gin.H{col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
 		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version")}}}
-	case "catalog-changes":
-		rows, e := a.Catalog.CatalogChanges(ctx, op.ID)
-		if e != nil {
-			handleError(c, e)
-			return true
-		}
-		for _, row := range rows {
-			items = append(items, entity(row.ID, row.State, int64(row.ExpectedVersion), row))
-		}
-		p["columns"] = []gin.H{col("kind", "变更类型", "text"), col("resource_id", "模型/资源", "text"), col("effective_at", "计划生效", "datetime"), col("announced_at", "实际通知", "datetime"), col("applied_at", "实际应用", "datetime"), col("error_code", "待复核原因", "text")}
-		policy, e := a.Catalog.NoticePolicy(ctx, op.ID)
-		if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
-			handleError(c, e)
-			return true
-		}
-		p["summary"] = []gin.H{{"label": "通知提前秒数", "value": fmt.Sprint(policy.LeadSeconds)}, {"label": "规则版本", "value": fmt.Sprint(policy.Version)}, {"label": "通知规则依据", "value": policy.RulesReference}}
-		p["operations"] = []operation{{Name: "policy", Label: "设置提前通知规则", Method: "POST", Path: base, Fields: []field{defaultField("lead_seconds", "提前通知秒数（至少60）", "integer", policy.LeadSeconds), defaultField("rules_reference", "对客户公开的通知条款依据", "text", policy.RulesReference), defaultField("expected_version", "当前规则版本（自动带入）", "integer", policy.Version)}}}
 	case "pricing":
 		models, e := a.Catalog.PublicCatalog(ctx, op.ID, time.Now())
 		if e != nil {
@@ -706,17 +688,6 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 		}
 		e := cat.SaveRouteConfiguration(ctx, op.ID, in.Route, in.Expected)
 		return commandResult(in.Route.PublicModelID, "saved"), e
-	case "catalog-changes":
-		var in struct {
-			LeadSeconds    int64  `json:"lead_seconds"`
-			RulesReference string `json:"rules_reference"`
-			Expected       uint64 `json:"expected_version"`
-		}
-		if json.Unmarshal(raw, &in) != nil {
-			return nil, catalog.ErrInvalidInput
-		}
-		out, e := cat.SaveNoticePolicy(ctx, op.ID, catalog.NoticePolicy{OperatorID: op.ID, LeadSeconds: in.LeadSeconds, RulesReference: in.RulesReference}, in.Expected)
-		return gin.H{"id": op.ID, "status": "saved", "version": out.Version}, e
 	case "pricing":
 		var in struct {
 			Action      string                      `json:"action"`

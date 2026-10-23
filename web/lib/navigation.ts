@@ -16,7 +16,7 @@ export const customerNav = customerSections.map(section => section.items[0]);
 export const operatorNav: readonly NavigationSection[] = [
   { id: "overview", group: "工作台", items: [["overview", "工作台"]] },
   { id: "customers", group: "客户", items: [["customers", "客户服务"]] },
-  { id: "products", group: "商品与定价", items: [["plans", "套餐与续费"], ["pricing", "模型与定价"], ["catalog-changes", "价格与模型变更"]] },
+  { id: "products", group: "商品与定价", items: [["plans", "套餐与续费"], ["pricing", "模型与定价"]] },
   { id: "marketing", group: "营销与推广", items: [["marketing", "活动管理"], ["commissions", "邀请与分佣规则"], ["gifts", "赠送与补偿"]] },
   { id: "finance", group: "资金办理", items: [["orders", "订单与交付"], ["payments", "收款与分配"], ["receipt-valuations", "收款待估值"], ["refunds", "退款与冲正"], ["withdrawals", "提现办理"], ["disputes", "争议与扣回"], ["invoices", "票据办理"], ["reconciliation", "对账与差额"], ["assets", "资产账户"], ["ledger", "账本与占用"], ["valuations", "估值依据"], ["evidence", "付款凭据"]] },
   { id: "cooperation", group: "采购与合作", items: [["operators", "下属经营方"], ["procurement", "采购与补货"], ["contracts", "合作合同"], ["coverage", "履约与超卖"], ["alerts", "风险预警"], ["procurement-invoices", "采购开票"], ["takeovers", "渠道接管"], ["takeover-settlements", "接管结清"], ["exits", "合作退出"], ["branding", "品牌外观"], ["domains", "品牌域名"], ["channel-themes", "渠道外观"]] },

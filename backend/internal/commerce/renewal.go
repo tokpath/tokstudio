@@ -21,7 +21,7 @@ func (s *Service) EnableAutoRenewal(ctx context.Context, tx *gorm.DB, customerID
 		if err != nil {
 			return err
 		}
-		if o.Status != "completed" || o.Kind == "topup" || o.QuoteID == nil || o.Period == ledger.Lifetime {
+		if o.Status != "completed" || o.Kind == "topup" || o.QuoteID == nil || o.Period == ledger.Lifetime || o.SubscriptionID != nil {
 			return ErrOrderState
 		}
 		var d deliveryRow
@@ -102,8 +102,14 @@ func (s *Service) ConfirmRenewal(ctx context.Context, tx *gorm.DB, customerID, i
 		if quote.OperatorID != r.OperatorID {
 			return ErrScope
 		}
-		if quote.PackageID != r.PackageID && r.OriginalOperatorID == r.OperatorID {
-			return ErrScope
+		if quote.PackageID != r.PackageID {
+			authorized, err := s.GetQuote(ctx, tx, r.AuthorizedQuoteID)
+			if err != nil {
+				return err
+			}
+			if authorized.OperatorID == r.OperatorID {
+				return ErrScope
+			}
 		}
 		p, err := s.GetPackage(ctx, tx, r.OperatorID, quote.PackageID)
 		if err != nil {
@@ -111,6 +117,9 @@ func (s *Service) ConfirmRenewal(ctx context.Context, tx *gorm.DB, customerID, i
 		}
 		if p.CurrentQuoteID == nil || *p.CurrentQuoteID != quoteID {
 			return ErrConflict
+		}
+		if !p.RenewalEnabled {
+			return organization.ErrBusinessClosed
 		}
 		if quote.Period == ledger.Lifetime {
 			return ErrOrderState
@@ -130,8 +139,8 @@ func (s *Service) ConfirmRenewal(ctx context.Context, tx *gorm.DB, customerID, i
 	return
 }
 
-// RecordRenewalNotice requires delivery evidence for this exact due cycle and
-// quote, rather than merely evidence that a notification was enqueued.
+// RecordRenewalNotice records a durable customer-facing notification for the
+// exact cycle and quote. Consent to adverse changes is checked separately.
 func (s *Service) RecordRenewalNotice(ctx context.Context, tx *gorm.DB, id, quoteID string, cycle time.Time, evidence string) error {
 	if !validID(id) || !validID(quoteID) || cycle.IsZero() || evidence == "" {
 		return ErrInvalidInput

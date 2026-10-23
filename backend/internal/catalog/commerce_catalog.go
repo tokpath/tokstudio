@@ -726,11 +726,6 @@ func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v Price
 	if actor != v.Scope.SellerID || validateCoverage == nil {
 		return ErrCatalogForbidden
 	}
-	if v.ModelID != "*" && v.Rule.Mode == "manual" {
-		if e := s.syncResolutionPrices(ctx, actor, &v); e != nil {
-			return e
-		}
-	}
 	if e := ValidatePriceVersion(v); e != nil {
 		return e
 	}
@@ -744,13 +739,23 @@ func (s CommerceCatalog) publishPrice(ctx context.Context, actor string, v Price
 	}
 	{
 		var existing int64
-		if e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Where("scope_key=?", v.Scope.Key()).Count(&existing).Error; e != nil {
+		if e := s.DB.WithContext(ctx).Table("tokenhub_model_price_versions").Where("scope_key=? AND (public_model_id=? OR public_model_id='*' OR ?='*')", v.Scope.Key(), v.ModelID, v.ModelID).Count(&existing).Error; e != nil {
 			return e
 		}
 		if existing > 0 {
 			if e := s.requirePriceNotice(ctx, v); e != nil {
 				return e
 			}
+		}
+	}
+	// Verify the exact announced request before adding system-derived bridge
+	// meters or normalizing resolution IDs for a pending measuring contract.
+	if v.ModelID != "*" && v.Rule.Mode == "manual" {
+		if e := s.syncResolutionPrices(ctx, actor, &v); e != nil {
+			return e
+		}
+		if e := ValidatePriceVersion(v); e != nil {
+			return e
 		}
 	}
 

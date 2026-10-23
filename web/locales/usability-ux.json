@@ -1448,5 +1448,430 @@
     "en": "Choose the protocol, supplier model and capabilities. Bifrost calculates reference costs; set customer and downstream ATG prices under model pricing.",
     "ja": "プロトコル、供給者モデル、機能を選択します。参考原価は Bifrost が計算し、顧客と下位事業者の ATG 価格はモデル価格設定で指定します。",
     "ru": "Выберите протокол, модель поставщика и возможности. Bifrost рассчитывает справочную стоимость; цены ATG для клиентов и нижестоящих операторов задаются в ценах моделей."
+  },
+  "此套餐当前不支持续费，已购权益不受影响。": {
+    "en": "Renewal is currently unavailable for this package. Existing credits are unaffected.",
+    "ja": "このプランは現在更新できません。購入済みの権利には影響しません。",
+    "ru": "Продление этого пакета сейчас недоступно. Приобретённые права сохраняются."
+  },
+  "下次续费": {
+    "en": "Next renewal",
+    "ja": "次回の更新",
+    "ru": "Следующее продление"
+  },
+  "续费服务约定": {
+    "en": "Renewal terms",
+    "ja": "更新の利用条件",
+    "ru": "Условия продления"
+  },
+  "续费时间": {
+    "en": "Renewal date",
+    "ja": "更新日時",
+    "ru": "Дата продления"
+  },
+  "续费余额不足，请补足 USD 余额后等待系统重试，或停止续费。": {
+    "en": "Insufficient renewal funds. Add USD balance and wait for an automatic retry, or cancel renewal.",
+    "ja": "更新の残高が不足しています。USD 残高を追加して自動再試行を待つか、更新を停止してください。",
+    "ru": "Недостаточно средств для продления. Пополните баланс USD и дождитесь автоматической попытки или отключите продление."
+  },
+  "全部已授权模型（跟随上级）": {
+    "en": "All authorized models (follow upstream)",
+    "ja": "許可済みの全モデル（上位の価格に追従）",
+    "ru": "Все разрешённые модели (по цене поставщика)"
+  },
+  "分辨率价格": {
+    "en": "Resolution price",
+    "ja": "解像度別価格",
+    "ru": "Цена по разрешению"
+  },
+  "例如 1024x1024 或 1280x720": {
+    "en": "For example, 1024x1024 or 1280x720",
+    "ja": "例：1024x1024、1280x720",
+    "ru": "Например, 1024x1024 или 1280x720"
+  },
+  "当前策略版本（自动带入）": {
+    "en": "Current policy version (automatic)",
+    "ja": "現在のポリシーバージョン（自動入力）",
+    "ru": "Текущая версия правил (автоматически)"
+  },
+  "促销开始时间（留空自动安排）": {
+    "en": "Promotion starts (leave blank for automatic scheduling)",
+    "ja": "キャンペーン開始日時（空欄で自動設定）",
+    "ru": "Начало акции (пусто — автоматически)"
+  },
+  "促销结束时间": {
+    "en": "Promotion ends",
+    "ja": "キャンペーン終了日時",
+    "ru": "Окончание акции"
+  },
+  "设置单价": {
+    "en": "Set unit prices",
+    "ja": "単価を設定",
+    "ru": "Задать тарифы"
+  },
+  "跟随上级供货价": {
+    "en": "Follow upstream supply prices",
+    "ja": "上位の供給価格に追従",
+    "ru": "Следовать закупочной цене поставщика"
+  },
+  "上级供货价的倍率": {
+    "en": "Upstream supply price multiplier",
+    "ja": "上位の供給価格に対する倍率",
+    "ru": "Множитель закупочной цены поставщика"
+  },
+  "请选择该模态支持的计量方式。": {
+    "en": "Choose a measurement supported by this modality.",
+    "ja": "このモダリティに対応する計量方式を選択してください。",
+    "ru": "Выберите способ измерения для этой модальности."
+  },
+  "向量模型仅配置输入计量。": {
+    "en": "Embedding models measure input only.",
+    "ja": "埋め込みモデルは入力のみを計量します。",
+    "ru": "Для моделей эмбеддингов учитывается только ввод."
+  },
+  "销售与续费": {
+    "en": "Sales and renewals",
+    "ja": "販売と更新",
+    "ru": "Продажи и продление"
+  },
+  "补充说明": {
+    "en": "Additional information",
+    "ja": "補足説明",
+    "ru": "Дополнительные сведения"
+  },
+  "套餐内容": {
+    "en": "Package contents",
+    "ja": "プラン内容",
+    "ru": "Состав пакета"
+  },
+  "不计费": {
+    "en": "No charge",
+    "ja": "課金しない",
+    "ru": "Не тарифицировать"
+  },
+  "系统自动安排变更通知和生效，不影响已受理请求。": {
+    "en": "The system handles change notices and activation. Accepted requests are unaffected.",
+    "ja": "変更通知と適用日時はシステムが自動で処理します。受付済みのリクエストには影響しません。",
+    "ru": "Система отправляет уведомления и вводит изменения в действие. Принятые запросы не затрагиваются."
+  },
+  "跟随上级供货价，倍率": {
+    "en": "Follow upstream supply prices, multiplier",
+    "ja": "上位の供給価格に追従、倍率",
+    "ru": "По закупочной цене поставщика, множитель"
+  },
+  "暂无已授权模型，请先完成公开模型与模型授权。": {
+    "en": "No authorized models yet. Configure public models and model authorization first.",
+    "ja": "許可済みのモデルがありません。公開モデルと利用許可を先に設定してください。",
+    "ru": "Разрешённых моделей пока нет. Сначала настройте публичные модели и разрешения."
+  },
+  "创建一个通用额度套餐即可开始准备销售。": {
+    "en": "Create a general credit package to prepare for sales.",
+    "ja": "共通クレジットのプランを作成して販売準備を始めましょう。",
+    "ru": "Создайте пакет универсальных кредитов для подготовки к продажам."
+  },
+  "编辑套餐": {
+    "en": "Edit package",
+    "ja": "プランを編集",
+    "ru": "Изменить пакет"
+  },
+  "设置套餐总售价，分别记录购买额度与赠送额度。修改后新订单使用新条件，已有成交保留原条款。": {
+    "en": "Set the package price and its purchased and bonus credits. New orders use updated terms; completed purchases retain their original terms.",
+    "ja": "価格と購入・特典クレジットを設定します。変更後の条件は新規注文に適用され、購入済みの条件は維持されます。",
+    "ru": "Задайте цену, оплаченные и бонусные кредиты. Новые условия применяются к новым заказам; прежние покупки сохраняют исходные условия."
+  },
+  "分别控制新购与续费；涨价或权益减少时，由客户重新确认。": {
+    "en": "Manage new purchases and renewals separately. Price increases or reduced benefits require customer confirmation.",
+    "ja": "新規購入と更新は個別に管理します。値上げや権利の縮小にはお客様の再確認が必要です。",
+    "ru": "Новые покупки и продления управляются отдельно. Повышение цены или сокращение прав требует подтверждения клиента."
+  },
+  "设置客户或直属下级的 ATG 单价，也可按倍率跟随上级供货价。": {
+    "en": "Set ATG unit prices for customers or direct partners, or apply a multiplier to upstream supply prices.",
+    "ja": "お客様や直属の下位事業者向けの ATG 単価を設定するか、上位の供給価格に倍率を適用します。",
+    "ru": "Задайте тарифы ATG для клиентов или прямых партнёров либо примените множитель к цене поставщика."
+  },
+  "系统自动处理调价通知、生效安排和承载重算。": {
+    "en": "The system handles price notices, activation and coverage recalculation.",
+    "ja": "価格変更の通知、適用日時、履行余力の再計算はシステムが処理します。",
+    "ru": "Система уведомляет об изменениях цен, назначает дату применения и пересчитывает покрытие."
+  },
+  "请输入非负十进制金额，最多 24 位小数": {
+    "en": "Enter a non-negative decimal amount with up to 24 decimal places.",
+    "ja": "小数点以下24桁までの0以上の金額を入力してください。",
+    "ru": "Введите неотрицательное число с точностью до 24 знаков после запятой."
+  },
+  "分别设置输入和输出。每个方向使用统一 Token，或按模态组合；同一份内容只计费一次。单价在模型价格中填写。": {
+    "en": "Set input and output separately. Use aggregate tokens or combine modalities for each direction, without double charging. Set rates in model pricing.",
+    "ja": "入力と出力を別々に設定します。各方向で一括 Token またはモダリティ別の組み合わせを選び、同じ内容は一度だけ課金します。単価はモデル価格で設定します。",
+    "ru": "Настройте ввод и вывод отдельно. Для каждого направления выберите общие токены или сочетание модальностей без двойного начисления. Тарифы задаются в ценах модели."
+  },
+  "输入计量": {
+    "en": "Input measurement",
+    "ja": "入力の計量",
+    "ru": "Измерение ввода"
+  },
+  "输出计量": {
+    "en": "Output measurement",
+    "ja": "出力の計量",
+    "ru": "Измерение вывода"
+  },
+  "统一 Token 适合上游只提供汇总 Token 的情况。按模态组合时，应确认系统能可靠取得各模态用量；文本、图片、音频、视频各选一种计量方式。": {
+    "en": "Use aggregate tokens when upstream provides only a token total. For separate modalities, verify reliable usage data and choose one measurement each for text, images, audio and video.",
+    "ja": "上流が合計 Token のみを返す場合は一括 Token を使用します。モダリティ別の場合、用量を確実に取得できることを確認し、テキスト・画像・音声・動画ごとに計量方式を一つ選びます。",
+    "ru": "Общие токены подходят, если поставщик возвращает только итоговое число токенов. При разделении по модальностям обеспечьте достоверные данные и выберите по одному способу для текста, изображений, аудио и видео."
+  },
+  "统一 Token": {
+    "en": "Aggregate tokens",
+    "ja": "一括 Token",
+    "ru": "Общие токены"
+  },
+  "按模态组合": {
+    "en": "Combine modalities",
+    "ja": "モダリティ別に組み合わせる",
+    "ru": "По модальностям"
+  },
+  "本方向的所有模态合并按 Token 计费，不再叠加图片张数或媒体时长。": {
+    "en": "All modalities in this direction share token billing, without adding image counts or media duration.",
+    "ja": "この方向の全モダリティをまとめて Token で課金し、画像数やメディアの時間は重ねて課金しません。",
+    "ru": "Все модальности этого направления оплачиваются по токенам, без дополнительных начислений за изображения или длительность."
+  },
+  "计量方式": {
+    "en": "Measurement",
+    "ja": "計量方式",
+    "ru": "Способ измерения"
+  },
+  "按尺寸或质量细分（可选）": {
+    "en": "Differentiate by size or quality (optional)",
+    "ja": "サイズ・品質で細分化（任意）",
+    "ru": "Разделить по размеру или качеству (необязательно)"
+  },
+  "Token 输入会自动列出普通输入和缓存读取两个单价；缓存写入归普通输入，不重复计费。": {
+    "en": "Token input automatically has separate rates for regular input and cache reads. Cache writes count as regular input, without double charging.",
+    "ja": "Token 入力には通常入力とキャッシュ読み取りの単価が自動で用意されます。キャッシュ書き込みは通常入力に含まれ、重複課金しません。",
+    "ru": "Для токенов ввода автоматически выделяются обычный ввод и чтение кеша. Запись в кеш относится к обычному вводу без двойного начисления."
+  },
+  "平台已停用": {
+    "en": "Disabled by the platform",
+    "ja": "プラットフォームが停止中",
+    "ru": "Отключено платформой"
+  },
+  "尚未上架，可先准备计费与价格": {
+    "en": "Not listed yet; prepare billing and prices first",
+    "ja": "未公開です。先に計量方式と価格を設定できます",
+    "ru": "Ещё не выставлено; можно подготовить тарификацию и цены"
+  },
+  "价格未配齐，暂不可调用": {
+    "en": "Pricing is incomplete; requests are unavailable",
+    "ja": "価格設定が未完了のため利用できません",
+    "ru": "Цены настроены не полностью; вызовы недоступны"
+  },
+  "已上架": {
+    "en": "Listed",
+    "ja": "公開済み",
+    "ru": "Выставлено"
+  },
+  "设置价格": {
+    "en": "Set prices",
+    "ja": "価格を設定",
+    "ru": "Настроить цены"
+  },
+  "尚未定价。先确认计费模板，再填写本模型的 ATG 单价。": {
+    "en": "No prices yet. Confirm the billing template, then enter ATG unit prices for this model.",
+    "ja": "価格が未設定です。計量テンプレートを確認して、このモデルの ATG 単価を入力してください。",
+    "ru": "Цены ещё не заданы. Проверьте шаблон тарификации и укажите тарифы ATG для модели."
+  },
+  "供货价": {
+    "en": "Supply price",
+    "ja": "供給価格",
+    "ru": "Цена поставки"
+  },
+  "待生效": {
+    "en": "Scheduled",
+    "ja": "適用待ち",
+    "ru": "Ожидает применения"
+  },
+  "调整价格": {
+    "en": "Adjust prices",
+    "ja": "価格を変更",
+    "ru": "Изменить цены"
+  },
+  "变更尚未完成，请检查配置后重新保存。当前有效配置继续使用。": {
+    "en": "The change is incomplete. Check the configuration and save again. Current settings remain effective.",
+    "ja": "変更が完了していません。設定を確認して再保存してください。現在の設定は引き続き有効です。",
+    "ru": "Изменение не завершено. Проверьте настройки и сохраните заново. Текущие настройки продолжают действовать."
+  },
+  "变更已保存，系统正在通知并安排生效，当前请求仍按原配置结算。": {
+    "en": "Changes are saved. The system is notifying customers and scheduling activation; current requests retain their original pricing.",
+    "ja": "変更を保存しました。通知と適用を準備しています。現在のリクエストは元の設定で精算されます。",
+    "ru": "Изменения сохранены. Система уведомляет клиентов и готовит применение; текущие запросы рассчитываются по прежним условиям."
+  },
+  "在售": {
+    "en": "On sale",
+    "ja": "販売中",
+    "ru": "В продаже"
+  },
+  "已停止新购": {
+    "en": "New purchases stopped",
+    "ja": "新規購入を停止中",
+    "ru": "Новые покупки отключены"
+  },
+  "无需续费": {
+    "en": "No renewal needed",
+    "ja": "更新不要",
+    "ru": "Продление не требуется"
+  },
+  "可由客户授权续费": {
+    "en": "Customer-authorized renewal available",
+    "ja": "お客様の承認で更新可能",
+    "ru": "Доступно продление по разрешению клиента"
+  },
+  "已停止续费": {
+    "en": "Renewal stopped",
+    "ja": "更新を停止中",
+    "ru": "Продление отключено"
+  },
+  "计费模板正在更新，请按新模板配齐价格；已有请求继续使用原快照。": {
+    "en": "The billing template is being updated. Complete prices for the new template; accepted requests keep their original snapshot.",
+    "ja": "計量テンプレートを更新中です。新しいテンプレートの価格を設定してください。受付済みリクエストには元の条件が適用されます。",
+    "ru": "Шаблон тарификации обновляется. Заполните цены для нового шаблона; принятые запросы сохраняют исходные условия."
+  },
+  "不限期套餐无需续费，可随时另购套餐增加额度。": {
+    "en": "Lifetime packages need no renewal. Buy another package whenever you need more credits.",
+    "ja": "無期限プランの更新は不要です。必要なときに別のプランを購入してクレジットを追加できます。",
+    "ru": "Бессрочный пакет не требует продления. Для пополнения кредитов можно купить другой пакет."
+  },
+  "本套餐已到期，可选择当前在售套餐重新购买。": {
+    "en": "This package has expired. You can purchase a currently available package.",
+    "ja": "このプランは期限切れです。現在販売中のプランを購入できます。",
+    "ru": "Срок пакета истёк. Можно приобрести один из доступных пакетов."
+  },
+  "经营方已停止此套餐的续费，当前已购权益不受影响。": {
+    "en": "The operator has stopped renewal for this package. Existing credits are unaffected.",
+    "ja": "事業者はこのプランの更新を停止しました。購入済みの権利には影響しません。",
+    "ru": "Оператор прекратил продление пакета. Приобретённые права сохраняются."
+  },
+  "此笔额度的续费已在最新一期套餐中管理。": {
+    "en": "Renewal for these credits is managed with the latest package cycle.",
+    "ja": "このクレジットの更新は最新のプラン期間で管理されています。",
+    "ru": "Продление этих кредитов управляется в последнем периоде пакета."
+  },
+  "系统暂时无法安排变更通知，请稍后重试；当前有效配置不变。": {
+    "en": "Change notices cannot be scheduled right now. Try again later; current settings remain effective.",
+    "ja": "現在、変更通知を設定できません。後でもう一度お試しください。現在の設定は変わりません。",
+    "ru": "Сейчас не удаётся запланировать уведомления. Повторите позже; текущие настройки сохраняются."
+  },
+  "允许到期续费": {
+    "en": "Allow renewal at expiry",
+    "ja": "期限時の更新を許可",
+    "ru": "Разрешить продление по окончании срока"
+  },
+  "仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。": {
+    "en": "Customers must authorize renewal themselves. New purchases and renewals are controlled separately; existing purchases keep their original terms.",
+    "ja": "お客様自身による更新の承認が必要です。新規購入と更新は個別に管理し、購入済みの条件は維持されます。",
+    "ru": "Клиенты самостоятельно разрешают продление. Новые покупки и продления управляются отдельно; прежние покупки сохраняют условия."
+  },
+  "创建套餐": {
+    "en": "Create package",
+    "ja": "プランを作成",
+    "ru": "Создать пакет"
+  },
+  "售价 USD": {
+    "en": "Price in USD",
+    "ja": "販売価格 USD",
+    "ru": "Цена в USD"
+  },
+  "购买额度 ATG": {
+    "en": "Purchased credits in ATG",
+    "ja": "購入クレジット ATG",
+    "ru": "Оплаченные кредиты ATG"
+  },
+  "赠送额度 ATG": {
+    "en": "Bonus credits in ATG",
+    "ja": "特典クレジット ATG",
+    "ru": "Бонусные кредиты ATG"
+  },
+  "设置模型价格": {
+    "en": "Set model prices",
+    "ja": "モデル価格を設定",
+    "ru": "Настроить цены модели"
+  },
+  "设置计费模板": {
+    "en": "Set billing template",
+    "ja": "計量テンプレートを設定",
+    "ru": "Настроить шаблон тарификации"
+  },
+  "授权与上架": {
+    "en": "Authorization and listing",
+    "ja": "利用許可と公開",
+    "ru": "Разрешения и публикация"
+  },
+  "客户当前调用价": {
+    "en": "Current customer rates",
+    "ja": "現在のお客様向け利用価格",
+    "ru": "Текущие тарифы клиентов"
+  },
+  "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。": {
+    "en": "Enter the price, purchased and bonus credits, and validity. Manage new purchases and renewals separately. Saving publishes the package; existing orders keep their agreed terms.",
+    "ja": "価格、購入・特典クレジット、有効期間を入力し、新規購入と更新を個別に管理します。保存すると公開され、既存注文は購入時の条件で履行されます。",
+    "ru": "Укажите цену, оплаченные и бонусные кредиты, срок действия. Новые покупки и продления управляются отдельно. Сохранение публикует пакет; прежние заказы сохраняют условия."
+  },
+  "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。": {
+    "en": "Choose a model and pricing audience, then enter ATG unit prices. The system creates price versions and handles change notices automatically.",
+    "ja": "モデルと価格の適用先を選び、ATG 単価を入力します。価格バージョンと変更通知はシステムが自動で処理するため、通知番号や根拠の入力は不要です。",
+    "ru": "Выберите модель и получателя цены, укажите тарифы ATG. Система создаёт версии цен и уведомляет автоматически; номера уведомлений и основания не требуются."
+  },
+  "上架和授权分别管理，正常变更由系统自动通知并安排生效。": {
+    "en": "Listing and authorization are separate. The system automatically announces and schedules ordinary changes.",
+    "ja": "公開と利用許可は個別に管理します。通常の変更はシステムが自動で通知し、適用日時を設定します。",
+    "ru": "Публикация и разрешения управляются отдельно. Система автоматически уведомляет об обычных изменениях и назначает их применение."
+  },
+  "按能力分别设置输入与输出的计量方式，按模态组合且不重复计费。已启用模型的变更由系统自动通知。": {
+    "en": "Set input and output measurements for each capability, combining modalities without double charging. Changes to enabled models are announced automatically.",
+    "ja": "機能ごとに入力・出力の計量方式を設定し、モダリティを組み合わせても重複課金しません。有効なモデルの変更は自動で通知されます。",
+    "ru": "Настройте измерение ввода и вывода для каждой возможности, сочетая модальности без двойного начисления. Изменения активных моделей сопровождаются автоматическими уведомлениями."
+  },
+  "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。首次定价直接发布；后续变更由系统通知并安排生效。": {
+    "en": "Choose a model and set customer or direct partner rates. Billing templates define measurements, ATG rates define credit deductions, and supplier costs are accounted separately. Initial prices publish immediately; the system announces and schedules revisions.",
+    "ja": "モデルを選び、お客様向け価格や直属の下位事業者への供給価格を設定します。テンプレートで計量方式、ATG 単価で消費量を決め、仕入原価は別に集計します。初回価格は即時公開し、以後の変更はシステムが通知・適用します。",
+    "ru": "Выберите модель и задайте тарифы для клиентов или прямых партнёров. Шаблон определяет единицы измерения, тарифы ATG — списание кредитов, а расходы поставщика учитываются отдельно. Первые цены публикуются сразу; изменения уведомляются и планируются автоматически."
+  },
+  "全模型默认": {
+    "en": "All-model default",
+    "ja": "全モデルの既定値",
+    "ru": "По умолчанию для всех моделей"
+  },
+  "套餐续费条件更新": {
+    "en": "Package renewal terms updated",
+    "ja": "プラン更新条件が変更されました",
+    "ru": "Условия продления пакета обновлены"
+  },
+  "套餐已停止续费": {
+    "en": "Package renewal stopped",
+    "ja": "プランの更新が停止されました",
+    "ru": "Продление пакета прекращено"
+  },
+  "套餐「{name}」的后续续费条件已更新。下次报价为 {usd} USD，购买 {paid} ATG，赠送 {gift} ATG。价格上涨或权益减少须在套餐页面重新确认，否则不会扣款；当前已购权益不受影响。": {
+    "en": "Renewal terms for “{name}” have changed. The next price is {usd} USD for {paid} purchased ATG and {gift} bonus ATG. Confirm any price increase or reduced benefits on the packages page; otherwise no charge is made. Existing credits are unaffected.",
+    "ja": "「{name}」の更新条件が変更されました。次回は {usd} USD で購入 {paid} ATG、特典 {gift} ATG です。値上げや権利縮小はプランページで再確認が必要です。確認なしに課金されず、購入済みの権利は維持されます。",
+    "ru": "Условия продления «{name}» изменены. Следующая цена: {usd} USD за {paid} оплаченных ATG и {gift} бонусных ATG. Повышение цены или сокращение прав нужно подтвердить на странице пакетов, иначе списания не будет. Прежние права сохраняются."
+  },
+  "经营方已停止套餐「{name}」的后续续费，当前已购额度和有效期保持不变。可在套餐页面选择其他在售套餐。": {
+    "en": "The operator has stopped future renewals of “{name}”. Existing credits and validity are unchanged. Choose another available package on the packages page.",
+    "ja": "事業者は「{name}」の今後の更新を停止しました。購入済みクレジットと有効期間は変更されません。プランページで他の販売中プランを選べます。",
+    "ru": "Оператор прекратил будущие продления «{name}». Приобретённые кредиты и срок действия сохраняются. На странице пакетов можно выбрать другой доступный пакет."
+  },
+  "公开模型 {model} 的价格或使用条件即将更新，最早于 {time} 生效；系统完成通知后保留提前通知时间，如通知延迟则顺延。具体状态与价格可在模型目录或合作报价中查看，已受理请求继续按原快照结算。": {
+    "en": "Prices or conditions for public model {model} will change no earlier than {time}. The notice period starts after notification completes, and delays postpone activation. Check the model catalog or partner prices for details; accepted requests retain their original snapshot.",
+    "ja": "公開モデル {model} の価格または利用条件を変更します。適用は最も早くて {time} で、通知完了後に事前通知期間を確保します。通知が遅れた場合は適用も延期します。詳細はモデル一覧や供給価格で確認できます。受付済みリクエストは元の条件で精算します。",
+    "ru": "Цены или условия публичной модели {model} изменятся не раньше {time}. Период предварительного уведомления отсчитывается после завершения рассылки; задержка отложит применение. Подробности доступны в каталоге и ценах партнёров. Принятые запросы рассчитываются по исходным условиям."
+  },
+  "保存后系统会自动处理版本与通知，已购权益不重算。": {
+    "en": "The system handles versions and notices after saving. Existing purchases are not recalculated.",
+    "ja": "保存後はシステムがバージョンと通知を処理します。購入済みの権利は再計算しません。",
+    "ru": "После сохранения система обработает версии и уведомления. Приобретённые права не пересчитываются."
+  },
+  "上架与下架": {
+    "en": "List or unlist models",
+    "ja": "モデルの公開・非公開",
+    "ru": "Публикация и снятие моделей"
   }
 }

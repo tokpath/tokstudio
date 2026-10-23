@@ -85,4 +85,51 @@ func TestPostgresReadablePackageTermsReachPurchaseAndRenewalConfirmation(t *test
 	if err != nil || stored.AuthorizedQuoteID != newer.ID {
 		t.Fatal("confirmed renewal was not bound to the displayed quote", stored, err)
 	}
+	// A customer who did not authorize renewal at purchase must receive the
+	// same protection when enabling it later, rather than bypassing consent.
+	standalone := order
+	standalone.ID, standalone.BusinessKey = uuid.NewString(), uuid.NewString()
+	if err = f.a.DB.Table("commerce_orders").Create(&standalone).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = f.a.DB.Table("commerce_deliveries").Create(&commerce.Delivery{ID: uuid.NewString(), OrderID: standalone.ID, EffectiveAt: now, ExpiresAt: &expiry, DeliveredAt: now}).Error; err != nil {
+		t.Fatal(err)
+	}
+	path = "/v1/me/plans/" + standalone.ID + "/renewal"
+	status, out, _ = f.call(t, "PATCH", path, map[string]any{"auto_renew": true, "version": 1, "quote_id": newer.ID}, "")
+	if status != 409 {
+		t.Fatal("first-time renewal bypassed changed-term consent", status, out)
+	}
+	status, out, _ = f.call(t, "PATCH", path, map[string]any{"auto_renew": true, "version": 1, "quote_id": newer.ID, "confirmed_changed_terms": true}, "")
+	mustOK(t, status, out)
+	created, err := f.a.Commerce.GetSubscription(ctx, nil, customer.ID, out["id"].(string))
+	if err != nil || created.AuthorizedQuoteID != newer.ID {
+		t.Fatal(created, err)
+	}
+	// Publishing an in-app reminder is sufficient for an existing mandate;
+	// this customer never reads a notification and no email jobs are delivered.
+	if err = f.a.runRenewal(ctx, workerPayload{ID: created.ID, CustomerID: customer.ID, OperatorID: parent}); err != nil {
+		t.Fatal(err)
+	}
+	created, err = f.a.Commerce.GetSubscription(ctx, nil, customer.ID, created.ID)
+	if err != nil || created.NoticeDeliveredAt == nil || !strings.HasPrefix(created.NoticeEvidence, "in-app-published:") {
+		t.Fatal("renewal still requires reading mail or notifications", created, err)
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	status, out, _ = f.call(t, "POST", "/v1/operators/"+parent+"/plans", map[string]any{"package_id": original.PackageID, "expected_version": 3, "name": "Readable customer plan", "price_usd": "10", "paid_atg": "100", "gift_atg": "20", "period": "month", "new_purchase_enabled": true, "renewal_enabled": false}, "")
+	mustOK(t, status, out)
+	pkg, err := f.a.Commerce.GetPackage(ctx, nil, parent, original.PackageID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.a.runPackageChange(ctx, workerPayload{ID: *pkg.CurrentQuoteID, OperatorID: parent}); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.a.runPackageChange(ctx, workerPayload{ID: *pkg.CurrentQuoteID, OperatorID: parent}); err != nil {
+		t.Fatal(err)
+	}
+	var count int64
+	if err = f.a.DB.Table("operations_notifications").Where("recipient_id=? AND title=?", customer.ID, "套餐已停止续费").Count(&count).Error; err != nil || count != 2 {
+		t.Fatal("stop-renewal notice was lost or duplicated", count, err)
+	}
 }

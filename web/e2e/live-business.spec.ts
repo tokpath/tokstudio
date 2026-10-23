@@ -116,7 +116,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await expect(staff.getByRole("link", { name: "客户工作台", exact: true })).toHaveCount(1);
     await staff.getByRole("link", { name: "客户工作台", exact: true }).click();
     await staff.getByRole("tab", { name: "模型调用", exact: true }).click();
-    await expect(staff.getByRole("tabpanel", { name: "模型调用", exact: true }).getByText(`Independent HTTP contract model · ${fixture.model_id}`, { exact: true }).first()).toBeVisible();
+    await expect(staff.getByRole("tabpanel", { name: "模型调用", exact: true }).getByText(fixture.model_id, { exact: true }).first()).toBeVisible();
     await staff.screenshot({ path: testInfo.outputPath("real-operator-customer.png"), fullPage: true });
     expect(failures).toEqual([]);
     await testInfo.attach("verified-business-facts", { body: JSON.stringify({ order_id: order.id, receipt_id: receipt.id, granted_atg: "120", request_id: recordedRequestID, charged_atg: recordedRequest.charged_atg, replay_did_not_charge_again: true }), contentType: "application/json" });

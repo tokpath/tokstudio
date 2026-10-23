@@ -16,9 +16,6 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 	if !validID(in.OperatorID) || strings.TrimSpace(in.Name) == "" || len(in.TermsSummary) > 10000 || in.PriceUSD.Sign() <= 0 || in.PaidATG.Sign() <= 0 || in.GiftATG.Sign() < 0 || !in.PriceUSD.Valid() || !in.PaidATG.Valid() || !in.GiftATG.Valid() {
 		return out, ErrInvalidInput
 	}
-	if _, err = ledger.PeriodEnd(s.now(), in.Period, in.Timezone); err != nil {
-		return out, err
-	}
 	if in.Period == ledger.Lifetime && in.RenewalEnabled {
 		return out, ErrInvalidInput
 	}
@@ -59,6 +56,15 @@ func (s *Service) PublishPackage(ctx context.Context, tx *gorm.DB, in PublishPac
 			}
 			version = old.Version + 1
 			before = PackageQuote(old)
+			if in.Timezone == "" {
+				in.Timezone = old.Timezone
+			}
+		}
+		if in.Timezone == "" {
+			in.Timezone = "Asia/Shanghai"
+		}
+		if _, err := ledger.PeriodEnd(s.now(), in.Period, in.Timezone); err != nil {
+			return err
 		}
 		terms := strings.TrimSpace(in.TermsSummary)
 		if terms == "" {

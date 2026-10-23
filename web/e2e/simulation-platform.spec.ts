@@ -150,29 +150,24 @@ test("technical administrator configures a real provider, verified model and rou
     await login(owner, { email: fixture.owner_email, password: fixture.owner_password });
     const effective = new Date(Math.ceil((Date.now() + 135 * 1000) / 60_000) * 60_000);
     await owner.goto(`/manage/${p.operator_id}/pricing`);
-    dialog = await panel(owner, "授权或上架模型");
+    dialog = await panel(owner, "授权与上架");
     await chooseControl(dialog.getByRole("combobox", { name: "公开模型", exact: true }), model);
-    await control(dialog, "计划生效时间", true).fill(localTime(effective));
-    await control(dialog, "变更及通知依据", true).fill("合成仿真：新模型上架提前通知已有客户");
-    await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
-    dialog = await panel(owner, "授权或上架模型");
+    await submit(owner, dialog, "授权与上架", `${base}/pricing`); await close(dialog);
+    dialog = await panel(owner, "授权与上架");
     await dialog.getByRole("combobox", { name: "办理事项", exact: true }).selectOption("authorization");
     await chooseControl(dialog.getByRole("combobox", { name: "被授权的直属下级", exact: true }), p.channel_id);
     await chooseControl(dialog.getByRole("combobox", { name: "公开模型", exact: true }), model);
-    await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
+    await submit(owner, dialog, "授权与上架", `${base}/pricing`); await close(dialog);
     for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
-      dialog = await panel(owner, "发布价格版本");
+      dialog = await panel(owner, "设置模型价格");
       await expect(dialog.locator('[data-config-path="price.id"] input')).toHaveCount(0);
       await setPath(dialog, "price.scope.kind", scope.kind);
       if ("buyer_id" in scope) await setPath(dialog, "price.scope.buyer_id", scope.buyer_id);
       await setPath(dialog, "price.model_id", model);
-      await setPath(dialog, "price.effective_at", localTime(effective));
       for (const index of [0, 1, 2]) {
         await setPath(dialog, `price.rule.components.${index}.rate`, "1");
       }
-      await setPath(dialog, "price.notice_id", "independent HTTP protocol simulation terms");
-      await setPath(dialog, "evidence", "isolated activation with actual advance notice");
-      const publication = await submit(owner, dialog, "发布价格版本", `${base}/pricing`);
+      const publication = await submit(owner, dialog, "设置模型价格", `${base}/pricing`);
       const published = await publication.json();
       const priceID = publication.request().postDataJSON().configuration.price.id;
       expect(priceID).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -435,14 +430,13 @@ test("platform configures input and output modality billing, synchronizes Bifros
     await dialog.getByRole("checkbox", { name: "对话", exact: true }).check();
     await submit(page, dialog, "添加公开模型", `${base}/catalog`); await close(dialog);
     await page.goto(`/manage/${p.operator_id}/pricing`);
-    dialog = await panel(page, "配置计费模板");
+    dialog = await panel(page, "设置计费模板");
     await setPath(dialog, "model_id", model);
-    await setPath(dialog, "billing.input.0.modality", "text");
-    await dialog.locator('[data-config-path="billing.input"]').getByRole("button", { name: "添加计量项目", exact: true }).click();
-    await setPath(dialog, "billing.input.1.modality", "image");
-    await setPath(dialog, "billing.input.1.template", "megapixels");
-    await setPath(dialog, "billing.output.0.modality", "text");
-    const saved = await submit(page, dialog, "配置计费模板", `${base}/pricing`);
+    await dialog.locator('[data-config-path="billing.input"]').getByRole("radio", {name:"按模态组合",exact:true}).check();
+    await dialog.getByRole("checkbox", {name:"输入计量 · 图片",exact:true}).check();
+    await dialog.getByRole("combobox", {name:"输入计量 · 图片 · 计量方式",exact:true}).selectOption("megapixels");
+    await dialog.locator('[data-config-path="billing.output"]').getByRole("radio", {name:"按模态组合",exact:true}).check();
+    const saved = await submit(page, dialog, "设置计费模板", `${base}/pricing`);
     expect(saved.request().postDataJSON().configuration.billing).toMatchObject({ input: [{ modality: "text", template: "tokens" }, { modality: "image", template: "megapixels" }], output: [{ modality: "text", template: "tokens" }] });
     await close(dialog);
 

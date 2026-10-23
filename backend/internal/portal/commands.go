@@ -159,6 +159,9 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			in.OperatorID = op.ID
 
 			out, e := a.Commerce.PublishPackage(ctx, tx, in)
+			if e == nil && in.PackageID != "" {
+				e = a.enqueuePackageChange(ctx, tx, out, "")
+			}
 			return gin.H{"id": out.PackageID, "status": "published", "version": out.Version}, e
 		case "payments":
 			var in commerce.VerifiedReceipt
@@ -582,22 +585,29 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		p["columns"] = []gin.H{col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
 		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version")}}}
 	case "pricing":
-		models, e := a.Catalog.PublicCatalog(ctx, op.ID, time.Now())
+		var e error
+		items, e = a.pricingWorkspaceItems(ctx, op, c.Query("q"))
 		if e != nil {
 			handleError(c, e)
 			return true
 		}
-		for _, m := range models {
-			items = append(items, entity(m.ID, m.Status, 1, m))
+		p["description"] = "选择模型，设置客户零售价或直属下级供货价。计费模板决定计量方式，ATG 单价决定扣多少额度，供应商成本独立核算。首次定价直接发布；后续变更由系统通知并安排生效。"
+		p["search_supported"] = true
+		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "客户当前调用价", "text"), col("status", "状态", "status")}
+		listingLabel := "授权与上架"
+		if op.Kind == organization.Channel {
+			listingLabel = "上架与下架"
 		}
-		p["columns"] = []gin.H{col("name", "模型", "text"), col("prices", "基础 ATG 价格", "text"), col("status", "状态", "status")}
-		p["operations"] = []operation{{Name: "price", Label: "发布价格版本", Method: "POST", Path: base, Fields: []field{jsonField("action:'price'、price:{id,scope:{kind,seller_id,buyer_id?},model_id,layer,effective_at,ends_at?,rule,notice_id,published:true}。调价后将重算已售责任覆盖。")}}, {Name: "listing", Label: "授权或上架模型", Method: "POST", Path: base, Fields: []field{jsonField("action:'listing' 或 'authorization'、model_id、buyer_id（授权时）、enabled、expected_version")}}}
+		p["operations"] = []operation{
+			{Name: "price", Label: "设置模型价格", Method: "POST", Path: base, Description: "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。", Fields: []field{jsonField("action:price、price:{scope,model_id,layer,rule,ends_at?}；版本、发布状态与普通调价时间由系统生成。")}},
+			{Name: "listing", Label: listingLabel, Method: "POST", Path: base, Description: "上架和授权分别管理，正常变更由系统自动通知并安排生效。", Fields: []field{jsonField("action:listing 或 authorization、model_id、buyer_id（授权时）、enabled、expected_version")}},
+		}
 	default:
 		return false
 	}
 	if resource == "pricing" && op.ID == a.Installation.OperatorID && a.Organization.RequirePermission(ctx, nil, actor, op.ID, "catalog.manage") == nil {
 		operations := p["operations"].([]operation)
-		p["operations"] = append(operations, operation{Name: "template", Label: "配置计费模板", Method: "POST", Path: base, Fields: []field{jsonField("action:billing、model_id、operation、billing、expected_version。已开放模型的变更须填写生效时间和通知依据。")}})
+		p["operations"] = append(operations, operation{Name: "template", Label: "设置计费模板", Method: "POST", Path: base, Description: "按能力分别设置输入与输出的计量方式，按模态组合且不重复计费。已启用模型的变更由系统自动通知。", Fields: []field{jsonField("action:billing、model_id、operation、billing、expected_version")}})
 	}
 	p["items"] = items
 	a.resourceResponse(c, p)
@@ -632,6 +642,16 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			old, e := cat.PublicModel(ctx, in.Model.ID)
 			if e != nil {
 				return nil, e
+			}
+			if old.Version != in.Expected {
+				return nil, catalog.ErrCatalogVersion
+			}
+			if in.Model.Billing == nil {
+				prepared, err := a.preparedPricingModel(ctx, old)
+				if err != nil {
+					return nil, err
+				}
+				in.Model.Billing = prepared.Billing
 			}
 			in.Model.Enabled = old.Enabled
 		}
@@ -716,6 +736,14 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			if e != nil {
 				return nil, e
 			}
+			if m.Version != in.Expected {
+				return nil, catalog.ErrCatalogVersion
+			}
+			prepared, e := a.preparedPricingModel(ctx, m)
+			if e != nil {
+				return nil, e
+			}
+			m = prepared
 			found := false
 			for _, cap := range m.Capabilities {
 				if cap.Operation == in.Operation {
@@ -730,7 +758,10 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			}
 			m.Billing[in.Operation] = in.Billing
 			if in.EffectiveAt.IsZero() {
-				return commandResult(m.ID, "saved"), cat.SavePublicModel(ctx, op.ID, m, in.Expected)
+				e = cat.SavePublicModel(ctx, op.ID, m, in.Expected)
+				if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
+					return commandResult(m.ID, "saved"), e
+				}
 			}
 			out, e := controller.SchedulePublicModel(ctx, op.ID, m, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
@@ -751,12 +782,35 @@ func (a *Application) catalogCommand(ctx context.Context, tx *gorm.DB, op organi
 			out, e := controller.ScheduleAuthorization(ctx, op.ID, in.BuyerID, in.ModelID, in.Enabled, in.Expected, in.EffectiveAt, in.Evidence)
 			return commandResult(out.ID, out.State), e
 		case "price", "bootstrap_price":
+			if in.Price.Scope.SellerID == "" {
+				in.Price.Scope.SellerID = op.ID
+			}
 			if in.Price.Scope.SellerID != op.ID || in.Price.Scope.Kind == "supplier" {
 				return nil, catalog.ErrCatalogForbidden
 			}
-			if in.Action == "bootstrap_price" {
-				e := cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
+			if in.Price.ID == "" {
+				in.Price.ID = uuid.NewString()
+			}
+			if in.Price.Rule.Mode == "follow" {
+				if op.ParentOperatorID == nil {
+					return nil, catalog.ErrCatalogForbidden
+				}
+				in.Price.Rule.Follow = &catalog.PriceScope{Kind: "supply", SellerID: *op.ParentOperatorID, BuyerID: op.ID}
+			}
+			automaticTime := in.Price.EffectiveAt.IsZero()
+			if automaticTime {
+				in.Price.EffectiveAt = time.Now().UTC()
+			}
+			in.Price.Published = true
+			in.Price.NoticeID = ""
+			// One save operation: first prices publish immediately, revisions are
+			// automatically announced. The caller never manages notice records.
+			e := cat.PublishPrice(ctx, op.ID, in.Price, a.pricePublished)
+			if e == nil || !errors.Is(e, catalog.ErrChangeNotice) {
 				return commandResult(in.Price.ID, "published"), e
+			}
+			if automaticTime {
+				in.Price.EffectiveAt = time.Time{}
 			}
 			out, e := controller.SchedulePrice(ctx, op.ID, in.Price, in.Evidence)
 			return commandResult(out.ID, out.State), e

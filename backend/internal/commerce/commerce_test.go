@@ -705,6 +705,25 @@ func TestPostgresRenewalNoticeConsentFundingAndUniqueCycle(t *testing.T) {
 	if err != nil || result.Status != "completed" || result.Order == nil || result.Order.Kind != "renewal" {
 		t.Fatalf("renewal=%+v %v", result, err)
 	}
+	packages, err := f.s.ListCustomerDeliveries(f.ctx, nil, f.customer, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controls := 0
+	for _, item := range packages {
+		if item.Subscription != nil {
+			controls++
+			if item.Order.ID != result.Order.ID || item.Subscription.ID != sub.ID {
+				t.Fatal("renewal controls stayed on an old delivery", item)
+			}
+		}
+	}
+	if controls != 1 {
+		t.Fatal("one renewal chain has multiple or missing controls", packages)
+	}
+	if _, err = f.s.EnableAutoRenewal(f.ctx, nil, f.customer, result.Order.ID, "duplicate renewal attempt", false); !errors.Is(err, ErrOrderState) {
+		t.Fatal("renewal order created a second charging chain", err)
+	}
 	if a := f.balance(t, "commission:available"); a.Balance.Cmp(d("100")) != 0 {
 		t.Fatal("renewal spent commission without consent")
 	}

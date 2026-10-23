@@ -32,6 +32,7 @@ type workerPayload struct {
 	OperatorID string `json:"operator_id,omitempty"`
 	CustomerID string `json:"customer_id,omitempty"`
 	ID         string `json:"id,omitempty"`
+	Cursor     string `json:"cursor,omitempty"`
 }
 
 func (a *Application) schedule(ctx context.Context, kind, subject string, p workerPayload, interval time.Duration) error {
@@ -273,6 +274,8 @@ func (a *Application) runMaintenance(ctx context.Context, job jobs.Job) error {
 		return a.Usage.ExpireCustomerCredits(ctx, p.OperatorID, p.CustomerID)
 	case "renewal":
 		return a.runRenewal(ctx, p)
+	case "package_change":
+		return a.runPackageChange(ctx, p)
 	case "usage":
 		r, e := a.Usage.GetRequest(ctx, p.CustomerID, p.ID)
 		if e != nil {

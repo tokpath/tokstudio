@@ -10268,7 +10268,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_plans",
-        "summary": "发布套餐版本",
+        "summary": "创建套餐",
         "tags": [
           "Operator browser API"
         ],
@@ -10395,7 +10395,7 @@
             }
           }
         },
-        "description": " Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。 Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "sales.manage"
       }
     },
@@ -11900,7 +11900,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_pricing",
-        "summary": "发布价格版本",
+        "summary": "设置模型价格",
         "tags": [
           "Operator browser API"
         ],
@@ -12027,7 +12027,7 @@
             }
           }
         },
-        "description": " Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。 Requires sales.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "sales.manage"
       }
     },
@@ -38814,6 +38814,15 @@
           "auto_renew": {
             "type": "boolean"
           },
+          "auto_renew_available": {
+            "type": "boolean"
+          },
+          "renewal_unavailable_reason": {
+            "type": "string"
+          },
+          "next_renewal_at": {
+            "type": "string"
+          },
           "allow_commission": {
             "type": "boolean"
           },
@@ -48000,8 +48009,7 @@
           }
         },
         "required": [
-          "kind",
-          "seller_id"
+          "kind"
         ],
         "additionalProperties": false
       },
@@ -48041,17 +48049,8 @@
               "additionalProperties": false
             }
           },
-          "follow": {
-            "$ref": "#/components/schemas/PriceScope"
-          },
           "multiplier": {
             "$ref": "#/components/schemas/Decimal"
-          },
-          "model_multipliers": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Decimal"
-            }
           }
         },
         "required": [
@@ -48095,22 +48094,13 @@
           },
           "rule": {
             "$ref": "#/components/schemas/PriceRule"
-          },
-          "notice_id": {
-            "type": "string"
-          },
-          "published": {
-            "type": "boolean"
           }
         },
         "required": [
-          "id",
           "scope",
           "model_id",
           "layer",
-          "effective_at",
-          "rule",
-          "published"
+          "rule"
         ],
         "additionalProperties": false
       },
@@ -48123,16 +48113,6 @@
           "expected_version": {
             "type": "integer",
             "minimum": 0
-          },
-          "effective_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "evidence": {
-            "type": "string"
-          },
-          "emergency": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -48169,13 +48149,6 @@
               "expected_version": {
                 "type": "integer",
                 "minimum": 0
-              },
-              "effective_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "evidence": {
-                "type": "string"
               }
             },
             "required": [
@@ -48191,16 +48164,10 @@
             "type": "object",
             "properties": {
               "action": {
-                "enum": [
-                  "price",
-                  "bootstrap_price"
-                ]
+                "const": "price"
               },
               "price": {
                 "$ref": "#/components/schemas/PriceVersion"
-              },
-              "evidence": {
-                "type": "string"
               }
             },
             "required": [
@@ -48224,13 +48191,6 @@
               "expected_version": {
                 "type": "integer",
                 "minimum": 0
-              },
-              "effective_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "evidence": {
-                "type": "string"
               }
             },
             "required": [
@@ -48260,13 +48220,6 @@
               "expected_version": {
                 "type": "integer",
                 "minimum": 0
-              },
-              "effective_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "evidence": {
-                "type": "string"
               }
             },
             "required": [
@@ -48525,7 +48478,7 @@
         "properties": {
           "package_id": {
             "type": "string",
-            "description": "现有套餐编号（新建留空）"
+            "description": "套餐"
           },
           "name": {
             "type": "string",
@@ -48533,15 +48486,15 @@
           },
           "price_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "成交价格 USD"
+            "description": "售价 USD"
           },
           "paid_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "购买权益 ATG"
+            "description": "购买额度 ATG"
           },
           "gift_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "套餐赠送 ATG"
+            "description": "赠送额度 ATG"
           },
           "period": {
             "type": "string",
@@ -48553,10 +48506,6 @@
             ],
             "description": "有效期"
           },
-          "timezone": {
-            "type": "string",
-            "description": "经营时区"
-          },
           "terms_summary": {
             "type": "string",
             "description": "对客户公示的服务约定（可选） — 留空采用默认规则：通用额度按调用时报价使用，按成交期限有效；到期余量不结转，套餐不支持一般性退款，可停止未来续费；交易错误、未正确交付或无法履约走异常流程。新条款会固定到本次报价，变更须按续费规则重新确认。"
@@ -48567,7 +48516,7 @@
           },
           "renewal_enabled": {
             "type": "boolean",
-            "description": "允许续费"
+            "description": "允许到期续费 — 仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。"
           },
           "expected_version": {
             "type": "integer",
@@ -48581,7 +48530,6 @@
           "paid_atg",
           "gift_atg",
           "period",
-          "timezone",
           "new_purchase_enabled",
           "renewal_enabled",
           "expected_version"

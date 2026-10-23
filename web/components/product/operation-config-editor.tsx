@@ -15,11 +15,12 @@ import { type JSONValue } from "@/lib/contracts";
 import { request } from "@/lib/api-client";
 import { configDefaults, groupResolutionPrices, nodeVisible, resolutionPriceable, retainKnownFields, type ConfigNode } from "./operation-config";
 import { RecordPicker, type RecordChoice } from "./record-picker";
+import { BillingTemplateEditor } from "./billing-template-editor";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 const asObject = (value: JSONValue | undefined): Record<string, JSONValue> => value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
-export function ConfigurationEditor({ schema, value, disabled, change, operatorID }: { schema: ConfigNode; value: string; disabled: boolean; change: (value: string) => void; operatorID?: string }) {
+export function ConfigurationEditor({ schema, value, disabled, change, operatorID, modelProfiles, allowFollow = true, allowDownstream = true }: { schema: ConfigNode; value: string; disabled: boolean; change: (value: string) => void; operatorID?: string; modelProfiles?: JSONValue; allowFollow?: boolean; allowDownstream?: boolean }) {
   const { t } = useI18n();
   const [emptyDefaults] = useState(() => configDefaults(schema) || {});
   let parsed: JSONValue;
@@ -27,18 +28,19 @@ export function ConfigurationEditor({ schema, value, disabled, change, operatorI
   try { parsed = value ? JSON.parse(value) as JSONValue : emptyDefaults; if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("configuration object required"); }
   catch { parsed = {}; invalid = true; }
   return <div className="space-y-5">
-    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("配置内容无法读取，请关闭后重新打开。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
+    {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("配置内容无法读取，请关闭后重新打开。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} referenceContext={{model_profiles:modelProfiles || {}, allow_follow:allowFollow, allow_downstream:allowDownstream}} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
   </div>;
 }
 
 function NodeEditor({ node, value, change, disabled, context = "", root = false, fieldPath = "", operatorID, choose, referenceContext }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; context?: string; root?: boolean; fieldPath?: string; operatorID?: string; choose?: (value: string, defaults: Record<string, unknown>) => void; referenceContext?: Record<string, JSONValue> }) {
   const { t } = useI18n();
   const id = useId();
-  const [modelMetadata,setModelMetadata]=useState<Record<string, JSONValue>>({});
+  const [modelMetadata,setModelMetadata]=useState<Record<string, JSONValue>>(() => asObject(referenceContext?.model_profiles));
   const help = businessFieldHelp(fieldPath, node.help, node.lookup);
   const label = context ? t("{label}（{context}）", { label: t(node.label), context }) : t(node.label);
   if (node.kind === "boolean") return <div data-config-path={fieldPath} className="min-w-0 text-sm"><span id={id} className="text-ink-secondary">{t(node.label)}</span>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}<YesNoChoice labelledBy={id} name={fieldPath || node.label} value={value === true} disabled={disabled} onChange={change} /></div>;
   if (node.kind === "object") {
+    if (node.presentation === "billing") return <BillingTemplateEditor value={asObject(value)} operation={String(referenceContext?.operation || "")} disabled={disabled} change={change} variants={(direction, index, values, update) => <NodeEditor node={node.fields![direction].item!.fields!.variants} value={values} disabled={disabled} operatorID={operatorID} fieldPath={`${fieldPath}.${direction}.${index}.variants`} change={update} />} />;
     if (node.presentation === "price") {
       const price = asObject(value);
       const resolutions = Array.isArray(price.resolutions) ? price.resolutions : [];
@@ -68,8 +70,8 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       }
       change(next);
     };
-    const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
-      node={data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
+    const children = <div className="grid gap-4 sm:grid-cols-2">{Object.entries(node.fields || {}).filter(([key, child]) => !child.hidden && !child.readOnly && !child.generated && !(key === "action" && data.action === "listing" && referenceContext?.allow_downstream === false) && !(key === "scope" && fieldPath === "price" && referenceContext?.allow_downstream === false) && !(key === "mode" && data.mode === "manual" && referenceContext?.allow_follow === false) && key !== "version" && key !== "expected_version" && !key.endsWith("_version") && nodeVisible(child, data)).map(([key, child]) => <div key={key} className={["object", "array", "record", "textarea"].includes(child.kind) ? "min-w-0 sm:col-span-2" : "min-w-0"}><NodeEditor
+      node={key==="mode" && referenceContext?.allow_follow===false && child.options?.some(([key])=>key==="follow") ? {...child,options:child.options.filter(([key])=>key!=="follow")} : data.action==="billing" && key==="operation" && Object.keys(modelMetadata).length ? {...child,options:child.options?.filter(([op])=>Object.hasOwn(modelMetadata,op))} : key==="template" && typeof data.modality==="string" ? {...child,options:child.options?.filter(([template])=>(data.modality==="all"?["tokens"]:data.modality==="text"?["tokens","characters"]:data.modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"]).includes(template))} : child.lookupBy ? {...child,lookup:child.lookupBy.values[String(data[child.lookupBy.field])]} : child.lookupWhen && !child.lookupWhen.values.includes(String(data[child.lookupWhen.field])) ? { ...child, lookup: undefined } : child}
       value={data[key]} disabled={disabled || !!child.readOnly} operatorID={operatorID} referenceContext={{ ...(referenceContext || {}), ...data }}
       context={root ? context : [context, t(node.label)].filter(Boolean).join(" · ")} fieldPath={fieldPath ? `${fieldPath}.${key}` : key}
       change={next => update(key, next)} choose={(selected, defaults) => update(key, selected, defaults)}
@@ -129,9 +131,9 @@ function ConfigReference({ node, label, value, operatorID, disabled, change, ref
   const ready = !needsBuyer || !!buyerID;
   const data = useQuery({ queryKey: ["references", path, deferred, cursor, buyerID], enabled: ready, queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
   const selected = useQuery({ queryKey: ["reference-label", path, value, buyerID], enabled: ready && !!value && value !== "*" && !data.data?.items.some(item => item.value === value), queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(value)}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
-  const currentLabel = !value ? "" : value === "*" ? t("全部模型的默认跟随规则（*）") : data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录");
+  const currentLabel = !value ? "" : value === "*" ? t("全部已授权模型（跟随上级）") : data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录");
   const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: item.label, defaults: item.defaults }));
   return <div className="min-w-0 text-sm"><div className="flex min-h-7 items-center max-sm:min-h-11"><span className="text-ink-secondary">{t(node.label)}</span>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</div>
-    <RecordPicker label={label} required={node.required} disabled={disabled} ready={ready} value={value} displayLabel={currentLabel} options={options} placeholder={ready ? t("按名称或业务编号搜索") : t("请先选择被授权的直属下级")} emptyLabel={ready ? t("请选择实际业务记录") : t("请先选择被授权的直属下级")} wildcardLabel={node.wildcard ? t("全部模型的默认跟随规则（*）") : undefined} loading={data.isPending} error={data.isError ? data.error : undefined} onRetry={() => void data.refetch()} moreLabel={data.data?.next_cursor ? t("更多记录") : undefined} onMore={data.data?.next_cursor ? () => setCursor(data.data!.next_cursor!) : undefined} onQuery={next => { setSearch(next); setCursor(""); }} onChoose={choice => { setSelectedLabel(choice?.label || ""); change(choice?.value || "", choice?.defaults || {}); }} />
+    <RecordPicker label={label} required={node.required} disabled={disabled} ready={ready} value={value} displayLabel={currentLabel} options={options} placeholder={ready ? t("按名称或业务编号搜索") : t("请先选择被授权的直属下级")} emptyLabel={ready ? t("请选择实际业务记录") : t("请先选择被授权的直属下级")} wildcardLabel={node.wildcard && asObject(referenceContext?.rule).mode === "follow" ? t("全部已授权模型（跟随上级）") : undefined} loading={data.isPending} error={data.isError ? data.error : undefined} onRetry={() => void data.refetch()} moreLabel={data.data?.next_cursor ? t("更多记录") : undefined} onMore={data.data?.next_cursor ? () => setCursor(data.data!.next_cursor!) : undefined} onQuery={next => { setSearch(next); setCursor(""); }} onChoose={choice => { setSelectedLabel(choice?.label || ""); change(choice?.value || "", choice?.defaults || {}); }} />
   </div>;
 }

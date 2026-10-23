@@ -16,6 +16,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/incentives"
 	"github.com/tokpath/tokstudio/backend/internal/jobs"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/payments"
 	"gorm.io/gorm"
 )
@@ -537,29 +538,54 @@ func (a *Application) subscriptions(c *gin.Context) {
 		if row.Delivery.ExpiresAt != nil && !time.Now().Before(*row.Delivery.ExpiresAt) {
 			status = "expired"
 		}
-		out := gin.H{"id": row.Order.ID, "name": row.Name, "status": status, "purchase_remaining_atg": paid, "gift_remaining_atg": gift, "effective_at": row.Delivery.EffectiveAt, "expires_at": row.Delivery.ExpiresAt, "auto_renew": false, "allow_commission": false, "requires_confirmation": false, "version": 1}
+		out := gin.H{"id": row.Order.ID, "name": row.Name, "status": status, "purchase_remaining_atg": paid, "gift_remaining_atg": gift, "effective_at": row.Delivery.EffectiveAt, "expires_at": row.Delivery.ExpiresAt, "auto_renew": false, "auto_renew_available": false, "allow_commission": false, "requires_confirmation": false, "version": 1}
+		if row.Delivery.ExpiresAt == nil {
+			out["renewal_unavailable_reason"] = "不限期套餐无需续费，可随时另购套餐增加额度。"
+		} else if row.Subscription == nil && status == "expired" {
+			out["renewal_unavailable_reason"] = "本套餐已到期，可选择当前在售套餐重新购买。"
+		} else {
+			out["renewal_unavailable_reason"] = "经营方已停止此套餐的续费，当前已购权益不受影响。"
+		}
 		if row.Order.QuoteID != nil {
 			if original, err := a.Commerce.GetQuote(c.Request.Context(), nil, *row.Order.QuoteID); err == nil {
 				out["terms_summary"] = commerce.PackageTermsSummary(original)
+				if row.Subscription == nil && original.OperatorID != row.Order.OperatorID && row.Delivery.ExpiresAt != nil && status != "expired" {
+					out["auto_renew_available"], out["requires_confirmation"], out["requires_current_plan"] = true, true, true
+					out["changed_terms"] = []string{"经营责任已转至当前品牌方，请明确选择其当前可续费套餐及新条款，原成交历史保持。"}
+				}
+				if row.Delivery.ExpiresAt != nil && (status != "expired" || row.Subscription != nil) && original.OperatorID == row.Order.OperatorID {
+					if pkg, err := a.Commerce.GetPackage(c.Request.Context(), nil, row.Order.OperatorID, original.PackageID); err == nil && pkg.CurrentQuoteID != nil {
+						if current, err := a.Commerce.GetQuote(c.Request.Context(), nil, *pkg.CurrentQuoteID); err == nil {
+							out["auto_renew_available"] = pkg.RenewalEnabled && current.Period != ledger.Lifetime
+							out["renewal_quote"] = renewalQuoteView(pkg, current)
+							out["requires_confirmation"] = commerce.RequiresRenewalConfirmation(original, current)
+						}
+					}
+				}
 			}
 		}
 		if s := row.Subscription; s != nil {
 			out["id"] = s.ID
-			out["auto_renew"] = s.Status == "active"
+			out["auto_renew"] = s.Status != "cancelled"
 			out["allow_commission"] = s.AllowCommission
 			out["version"] = s.Version
+			out["next_renewal_at"] = s.NextDueAt
 			out["status"] = s.Status
-			out["requires_current_plan"] = s.OriginalOperatorID != s.OperatorID
-			if s.OriginalOperatorID != s.OperatorID {
+			accepted, err := a.Commerce.GetQuote(c.Request.Context(), nil, s.AuthorizedQuoteID)
+			needsPlan := err == nil && accepted.OperatorID != s.OperatorID
+			out["requires_current_plan"] = needsPlan
+			if needsPlan {
+				out["auto_renew_available"] = true
 				out["changed_terms"] = []string{"经营责任已转至当前品牌方，请明确选择其当前可续费套餐及新条款，原成交历史保持。"}
 			}
-			out["requires_confirmation"] = s.Status == "needs_confirmation" || s.OriginalOperatorID != s.OperatorID
-			if s.OriginalOperatorID == s.OperatorID {
+			out["requires_confirmation"] = s.Status == "needs_confirmation" || needsPlan
+			if !needsPlan {
 				pkg, err := a.Commerce.GetPackage(c.Request.Context(), nil, s.OperatorID, s.PackageID)
 				if err == nil && pkg.CurrentQuoteID != nil {
 					current, err := a.Commerce.GetQuote(c.Request.Context(), nil, *pkg.CurrentQuoteID)
 					if err == nil {
-						out["renewal_quote"] = gin.H{"quote_id": current.ID, "plan_id": pkg.ID, "name": pkg.Name, "price_usd": current.PriceUSD, "purchase_atg": current.PaidATG, "gift_atg": current.GiftATG, "validity": validity(current.Period), "terms_summary": commerce.PackageTermsSummary(current)}
+						out["auto_renew_available"] = pkg.RenewalEnabled && current.Period != ledger.Lifetime
+						out["renewal_quote"] = renewalQuoteView(pkg, current)
 						authorized, err := a.Commerce.GetQuote(c.Request.Context(), nil, s.AuthorizedQuoteID)
 						if err == nil && commerce.RequiresRenewalConfirmation(authorized, current) {
 							out["requires_confirmation"] = true
@@ -568,10 +594,19 @@ func (a *Application) subscriptions(c *gin.Context) {
 				}
 			}
 		}
+		if row.RenewalManagedElsewhere {
+			out["auto_renew_available"], out["requires_confirmation"] = false, false
+			out["renewal_unavailable_reason"] = "此笔额度的续费已在最新一期套餐中管理。"
+		}
 		items = append(items, out)
 	}
 	c.JSON(200, gin.H{"items": items})
 }
+
+func renewalQuoteView(pkg commerce.Package, quote commerce.PackageQuote) gin.H {
+	return gin.H{"quote_id": quote.ID, "plan_id": pkg.ID, "name": pkg.Name, "price_usd": quote.PriceUSD, "purchase_atg": quote.PaidATG, "gift_atg": quote.GiftATG, "validity": validity(quote.Period), "terms_summary": commerce.PackageTermsSummary(quote)}
+}
+
 func (a *Application) renewal(c *gin.Context) {
 	var in struct {
 		AutoRenew       bool   `json:"auto_renew"`
@@ -588,10 +623,61 @@ func (a *Application) renewal(c *gin.Context) {
 	ctx := c.Request.Context()
 	raw, e := a.command(c, "renewal:"+id.Customer.Customer.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
 		s, e := a.Commerce.GetSubscription(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
-		if errors.Is(e, gorm.ErrRecordNotFound) && in.AutoRenew {
+		if (errors.Is(e, gorm.ErrRecordNotFound) || errors.Is(e, commerce.ErrNotFound)) && in.AutoRenew {
+			order, err := a.Commerce.GetOrder(ctx, tx, id.Customer.Customer.ID, c.Param("id"))
+			if err != nil {
+				return nil, err
+			}
+			if order.QuoteID == nil {
+				return nil, commerce.ErrOrderState
+			}
+			var delivery commerce.Delivery
+			if err = tx.Table("commerce_deliveries").Where("order_id=?", order.ID).Take(&delivery).Error; err != nil {
+				return nil, err
+			}
+			if delivery.ExpiresAt == nil || !time.Now().Before(*delivery.ExpiresAt) {
+				return nil, commerce.ErrOrderState
+			}
+			original, err := a.Commerce.GetQuote(ctx, tx, *order.QuoteID)
+			if err != nil {
+				return nil, err
+			}
+			planID := original.PackageID
+			if original.OperatorID != order.OperatorID {
+				if !in.Confirmed || in.PlanID == "" {
+					return nil, commerce.ErrConflict
+				}
+				planID = in.PlanID
+			}
+			if err = tx.Exec("SELECT id FROM commerce_packages WHERE id=? AND operator_id=? FOR SHARE", planID, order.OperatorID).Error; err != nil {
+				return nil, err
+			}
+			pkg, err := a.Commerce.GetPackage(ctx, tx, order.OperatorID, planID)
+			if err != nil {
+				return nil, err
+			}
+			if !pkg.RenewalEnabled || pkg.CurrentQuoteID == nil {
+				return nil, organization.ErrBusinessClosed
+			}
+			current, err := a.Commerce.GetQuote(ctx, tx, *pkg.CurrentQuoteID)
+			if err != nil {
+				return nil, err
+			}
+			if (in.QuoteID != "" && in.QuoteID != current.ID) || (current.ID != original.ID && in.QuoteID == "") || (commerce.RequiresRenewalConfirmation(original, current) && !in.Confirmed) {
+				return nil, commerce.ErrConflict
+			}
+			if current.Period == ledger.Lifetime {
+				return nil, commerce.ErrOrderState
+			}
 			out, err := a.Commerce.EnableAutoRenewal(ctx, tx, id.Customer.Customer.ID, c.Param("id"), "customer explicitly enabled renewal", in.AllowCommission)
 			if err != nil {
 				return nil, err
+			}
+			if current.ID != out.AuthorizedQuoteID {
+				out, err = a.Commerce.ConfirmRenewal(ctx, tx, id.Customer.Customer.ID, out.ID, current.ID, "explicit browser renewal consent", out.Version, in.AllowCommission)
+				if err != nil {
+					return nil, err
+				}
 			}
 			return commandResult(out.ID, out.Status), nil
 		}
@@ -604,8 +690,12 @@ func (a *Application) renewal(c *gin.Context) {
 		if !in.AutoRenew {
 			e = a.Commerce.CancelAutoRenewal(ctx, tx, id.Customer.Customer.ID, s.ID)
 		} else {
+			authorized, err := a.Commerce.GetQuote(ctx, tx, s.AuthorizedQuoteID)
+			if err != nil {
+				return nil, err
+			}
 			planID := s.PackageID
-			if s.OriginalOperatorID != s.OperatorID {
+			if authorized.OperatorID != s.OperatorID {
 				if !in.Confirmed || in.PlanID == "" {
 					return nil, commerce.ErrConflict
 				}
@@ -628,10 +718,6 @@ func (a *Application) renewal(c *gin.Context) {
 			}
 			if (in.Confirmed || s.AuthorizedQuoteID != *p.CurrentQuoteID) && in.QuoteID == "" {
 				return nil, commerce.ErrConflict
-			}
-			authorized, err := a.Commerce.GetQuote(ctx, tx, s.AuthorizedQuoteID)
-			if err != nil {
-				return nil, err
 			}
 			current, err := a.Commerce.GetQuote(ctx, tx, *p.CurrentQuoteID)
 			if err != nil {

@@ -347,13 +347,12 @@
   {
     "resource": "plans",
     "confirmation": "",
-    "description": "",
+    "description": "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。",
     "fields": [
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/plans",
         "name": "package_id",
-        "label": "现有套餐编号（新建留空）",
-        "kind": "text"
+        "label": "套餐",
+        "kind": "hidden"
       },
       {
         "name": "name",
@@ -363,19 +362,19 @@
       },
       {
         "name": "price_usd",
-        "label": "成交价格 USD",
+        "label": "售价 USD",
         "kind": "decimal",
         "required": true
       },
       {
         "name": "paid_atg",
-        "label": "购买权益 ATG",
+        "label": "购买额度 ATG",
         "kind": "decimal",
         "required": true
       },
       {
         "name": "gift_atg",
-        "label": "套餐赠送 ATG",
+        "label": "赠送额度 ATG",
         "kind": "decimal",
         "required": true,
         "default_value": "0"
@@ -387,29 +386,23 @@
         "required": true,
         "options": [
           {
-            "label": "不限期",
-            "value": "lifetime"
+            "value": "lifetime",
+            "label": "不限期"
           },
           {
-            "label": "自然月",
-            "value": "month"
+            "value": "month",
+            "label": "一个日历月"
           },
           {
-            "label": "自然季",
-            "value": "quarter"
+            "value": "quarter",
+            "label": "三个日历月"
           },
           {
-            "label": "自然年",
-            "value": "year"
+            "value": "year",
+            "label": "十二个日历月"
           }
-        ]
-      },
-      {
-        "name": "timezone",
-        "label": "经营时区",
-        "kind": "text",
-        "required": true,
-        "default_value": "Asia/Shanghai"
+        ],
+        "default_value": "lifetime"
       },
       {
         "name": "terms_summary",
@@ -426,10 +419,19 @@
       },
       {
         "name": "renewal_enabled",
-        "label": "允许续费",
+        "label": "允许到期续费",
         "kind": "boolean",
         "required": true,
-        "default_value": false
+        "default_value": false,
+        "visible_when": {
+          "field": "period",
+          "values": [
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        "help": "仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。"
       },
       {
         "name": "expected_version",
@@ -440,7 +442,7 @@
       }
     ],
     "include_version": false,
-    "label": "发布套餐版本",
+    "label": "创建套餐",
     "method": "POST",
     "name": "publish",
     "path": "/v1/operators/{operatorId}/plans",
@@ -988,18 +990,18 @@
   {
     "resource": "pricing",
     "confirmation": "",
-    "description": "",
+    "description": "选择模型和定价对象，填写 ATG 单价。系统自动生成价格版本并处理调价通知，无需填写通知编号或依据。",
     "fields": [
       {
         "name": "configuration",
         "label": "配置 JSON",
         "kind": "json",
         "required": true,
-        "help": "action:'price'、price:{id,scope:{kind,seller_id,buyer_id?},model_id,layer,effective_at,ends_at?,rule,notice_id,published:true}。调价后将重算已售责任覆盖。"
+        "help": "action:price、price:{scope,model_id,layer,rule,ends_at?}；版本、发布状态与普通调价时间由系统生成。"
       }
     ],
     "include_version": false,
-    "label": "发布价格版本",
+    "label": "设置模型价格",
     "method": "POST",
     "name": "price",
     "path": "/v1/operators/{operatorId}/pricing",
@@ -1008,7 +1010,7 @@
   {
     "resource": "pricing",
     "confirmation": "",
-    "description": "",
+    "description": "上架和授权分别管理，正常变更由系统自动通知并安排生效。",
     "fields": [
       {
         "name": "configuration",
@@ -1019,7 +1021,7 @@
       }
     ],
     "include_version": false,
-    "label": "授权或上架模型",
+    "label": "授权与上架",
     "method": "POST",
     "name": "listing",
     "path": "/v1/operators/{operatorId}/pricing",
@@ -6789,7 +6791,7 @@
   {
     "resource": "pricing",
     "name": "template",
-    "label": "配置计费模板",
+    "label": "设置计费模板",
     "permission": "sales.manage",
     "method": "POST",
     "path": "/v1/operators/{operatorId}/pricing",
@@ -6803,7 +6805,7 @@
     ],
     "include_version": false,
     "confirmation": "",
-    "description": "Platform only; also requires catalog.manage. One non-overlapping measurement per modality and direction. Active-model changes require advance notice."
+    "description": "Platform only; also requires catalog.manage. Select one input and output measurement per modality. Notifications and activation are scheduled automatically."
   },
   {
     "resource": "bifrost",

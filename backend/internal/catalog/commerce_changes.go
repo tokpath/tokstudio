@@ -67,8 +67,14 @@ func changeFingerprint(kind, resource string, payload json.RawMessage) string {
 }
 func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, evidence string, payload any, expected uint64, effective time.Time, scope PriceScope) (CatalogChange, error) {
 	out := CatalogChange{}
-	if c.Audience == nil || c.Notices == nil || evidence == "" {
+	if c.Audience == nil || c.Notices == nil {
 		return out, ErrChangeNotice
+	}
+	if effective.IsZero() {
+		effective = c.nextEffectiveAt()
+	}
+	if evidence == "" {
+		evidence = "system:catalog-publication"
 	}
 	raw, e := json.Marshal(payload)
 	if e != nil {
@@ -94,6 +100,15 @@ func (c ChangeController) schedule(ctx context.Context, actor, kind, resource, e
 			}
 		}
 		out = CatalogChange{ID: uuid.NewString(), OperatorID: actor, Kind: kind, ResourceID: resource, Payload: raw, Fingerprint: changeFingerprint(kind, resource, raw), EffectiveAt: effective.UTC(), LeadSeconds: int64(catalogAdvanceLead / time.Second), ExpectedVersion: expected, State: "announcing", Evidence: evidence, CreatedAt: now}
+		if kind != "price" {
+			previous := tx.DB.WithContext(ctx).Model(&CatalogChange{}).Where("operator_id=? AND kind=? AND resource_id=? AND state IN ('announcing','announced')", actor, kind, resource)
+			if kind == "authorization" {
+				previous = previous.Where("payload->>'buyer_id'=?", scope.BuyerID)
+			}
+			if e := previous.Updates(map[string]any{"state": "superseded", "error_code": ""}).Error; e != nil {
+				return e
+			}
+		}
 		if e = tx.DB.WithContext(ctx).Create(&out).Error; e != nil {
 			return e
 		}
@@ -119,12 +134,20 @@ func (c ChangeController) SchedulePrice(ctx context.Context, actor string, v Pri
 			return CatalogChange{}, ErrCatalogForbidden
 		}
 	}
+	if v.EffectiveAt.IsZero() {
+		v.EffectiveAt = c.nextEffectiveAt()
+	}
 	if e := ValidatePriceVersion(v); e != nil {
 		return CatalogChange{}, e
 	}
 	v.Published = true
 	v.NoticeID = ""
 	return c.schedule(ctx, actor, "price", v.ModelID, evidence, v, 0, v.EffectiveAt, v.Scope)
+}
+
+func (c ChangeController) nextEffectiveAt() time.Time {
+	// Leave time for the worker to create the notices before the fixed lead.
+	return c.now().Add(catalogAdvanceLead + time.Minute + 5*time.Second)
 }
 func (c ChangeController) SchedulePublicModel(ctx context.Context, actor string, m PublicModel, expected uint64, effective time.Time, evidence string) (CatalogChange, error) {
 	if !c.Catalog.platform(actor) {
@@ -151,9 +174,10 @@ func (s CommerceCatalog) requirePriceNotice(ctx context.Context, v PriceVersion)
 	return nil
 }
 
-// Run completes durable fanout before applying any normal change. If fanout
-// misses its promised advance period, the change is blocked for rescheduling;
-// old prices/model state remain effective and accepted snapshots are untouched.
+// Run completes durable fanout before applying a normal change. Automatic
+// publications move forward if fanout is delayed; explicitly scheduled plans
+// retain their promised time and require review if it is missed. Accepted
+// request snapshots are untouched in either case.
 func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, error) {
 	if c.Audience == nil || c.Notices == nil {
 		return nil, ErrChangeNotice
@@ -218,12 +242,34 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 					return e
 				}
 				if remaining == 0 {
-					now := c.now()
+					now := c.now().Truncate(time.Microsecond)
 					state := "announced"
 					code := ""
 					if !current.EffectiveAt.IsZero() && current.EffectiveAt.Before(now.Add(time.Duration(current.LeadSeconds)*time.Second)) {
-						state = "notice_late"
-						code = "advance_period_not_satisfied"
+						if current.Evidence == "system:catalog-publication" {
+							// Worker delays must not turn a simple save into a manual
+							// rescheduling task. Keep the old state effective until the
+							// full notice period has elapsed after durable fanout.
+							current.EffectiveAt = now.Add(time.Duration(current.LeadSeconds) * time.Second)
+							if current.Kind == "price" {
+								var price PriceVersion
+								if e := json.Unmarshal(current.Payload, &price); e != nil {
+									return e
+								}
+								price.EffectiveAt = current.EffectiveAt
+								if price.EndsAt != nil && !price.EndsAt.After(price.EffectiveAt) {
+									state, code = "expired", "promotion_ended_before_publication"
+								}
+								current.Payload, _ = json.Marshal(price)
+								current.Fingerprint = changeFingerprint(current.Kind, current.ResourceID, current.Payload)
+							}
+							if e := tx.Model(&current).Updates(map[string]any{"effective_at": current.EffectiveAt, "payload": current.Payload, "fingerprint": current.Fingerprint}).Error; e != nil {
+								return e
+							}
+						} else {
+							state = "notice_late"
+							code = "advance_period_not_satisfied"
+						}
 					}
 					if current.Kind == "emergency_model_disable" {
 						state = "applied"
@@ -253,6 +299,11 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 				}
 				if current.State != "announced" {
 					return nil
+				}
+				if current.Kind != "price" && current.Evidence == "system:catalog-publication" && current.EffectiveAt.Before(c.now()) {
+					// Readiness may recover after the original activation time.
+					// Check the prices actually in force now, not an obsolete date.
+					current.EffectiveAt = c.now().Truncate(time.Microsecond)
 				}
 				applyCtx := context.WithValue(ctx, catalogApplyKey{}, true)
 				switch current.Kind {
@@ -299,7 +350,7 @@ func (c ChangeController) Run(ctx context.Context, limit int) ([]CatalogChange, 
 					}
 				}
 				now := c.now()
-				return store.DB.Model(&current).Updates(map[string]any{"state": "applied", "applied_at": now, "error_code": ""}).Error
+				return store.DB.Model(&current).Updates(map[string]any{"state": "applied", "applied_at": now, "effective_at": current.EffectiveAt, "error_code": ""}).Error
 			})
 			if e != nil {
 				_ = c.Catalog.DB.WithContext(ctx).Model(&CatalogChange{}).Where("id=?", change.ID).Update("error_code", "application_requires_review").Error

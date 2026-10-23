@@ -190,7 +190,7 @@ func (a *Application) references(c *gin.Context) {
 		if operator == a.Installation.OperatorID {
 			models, err = a.Catalog.AdminModels(ctx, operator)
 		} else {
-			models, err = a.Catalog.AvailableModels(ctx, operator, false)
+			models, err = a.Catalog.PricingModels(ctx, operator)
 		}
 		if err != nil {
 			handleError(c, err)
@@ -231,7 +231,12 @@ func (a *Application) references(c *gin.Context) {
 			}
 		}
 		for _, model := range models {
-			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID], "billing": model.Billing, "pricing_components": model.BillingComponents(), "expected_version": model.Version}
+			prepared, err := a.preparedPricingModel(ctx, model)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID], "billing": prepared.Billing, "pricing_components": prepared.BillingComponents(), "expected_version": model.Version}
 			if buyer != "" {
 				defaults["authorization_version"] = authorizationVersions[model.ID]
 			}

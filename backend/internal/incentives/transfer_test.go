@@ -256,7 +256,11 @@ func TestPostgresTakeoverTransfersWalletQualificationsCommissionsAndPendingWithd
 	if result, e := brand.commerce.RenewSubscription(brand.ctx, nil, sub.ID); e != nil || result.Status != "needs_confirmation" {
 		t.Fatalf("renewal auto-accepted new terms=%+v %v", result, e)
 	}
-	if _, e = brand.commerce.ConfirmRenewal(brand.ctx, nil, b.Customer.ID, sub.ID, brand.quote.ID, "explicit customer consent to brand replacement package", subMoved.Version, false); e != nil {
+	replacement, e := brand.commerce.PublishPackage(brand.ctx, nil, commerce.PublishPackageInput{ActorStaffID: brand.owner, OperatorID: brand.operator, PackageID: brand.quote.PackageID, ExpectedVersion: brand.quote.Version, Name: "Brand monthly renewal", PriceUSD: brand.quote.PriceUSD, PaidATG: brand.quote.PaidATG, GiftATG: brand.quote.GiftATG, Period: brand.quote.Period, Timezone: brand.quote.Timezone, TermsSummary: brand.quote.TermsSummary, NewPurchaseEnabled: true, RenewalEnabled: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = brand.commerce.ConfirmRenewal(brand.ctx, nil, b.Customer.ID, sub.ID, replacement.ID, "explicit customer consent to brand replacement package", subMoved.Version, false); e != nil {
 		t.Fatalf("cannot choose new brand package=%v", e)
 	}
 }

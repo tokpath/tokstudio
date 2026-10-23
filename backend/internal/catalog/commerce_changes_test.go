@@ -13,6 +13,38 @@ import (
 
 type testNoticeAudience struct{}
 
+func TestPostgresAutomaticPublicationSurvivesDelayedWorker(t *testing.T) {
+	s := newCommerceTestStore(t)
+	seedCommerceModel(t, s)
+	c, now, _ := testController(t, s, "platform")
+	scope := PriceScope{Kind: "retail", SellerID: "platform"}
+	base := priceAt("base", scope, now.Add(-time.Hour), "1")
+	if err := s.PublishPrice(context.Background(), "platform", base, c.ValidateCoverage); err != nil {
+		t.Fatal(err)
+	}
+	next := priceAt(uuid.NewString(), scope, time.Time{}, "2")
+	change, err := c.SchedulePrice(context.Background(), "platform", next, "")
+	if err != nil || !change.EffectiveAt.After(*now) {
+		t.Fatal(change, err)
+	}
+	*now = now.Add(10 * time.Minute).Truncate(time.Microsecond).Add(789 * time.Nanosecond)
+	if _, err = c.Run(context.Background(), 20); err != nil {
+		t.Fatal(err)
+	}
+	var stored CatalogChange
+	if err = s.DB.First(&stored, "id=?", change.ID).Error; err != nil || stored.State != "applied" || !stored.EffectiveAt.After(*now) {
+		t.Fatal("automatic change was stranded after worker delay", stored, err)
+	}
+	current, err := (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", *now)
+	if err != nil || current.Lineage[0].VersionID != "base" {
+		t.Fatal("new price bypassed notice lead", current, err)
+	}
+	current, err = (PriceResolver{Source: s}).Resolve(context.Background(), scope, "model", stored.EffectiveAt)
+	if err != nil || current.Lineage[0].VersionID != next.ID {
+		t.Fatal("rescheduled price never became available", current, err)
+	}
+}
+
 func (testNoticeAudience) CatalogNotificationOperators(_ context.Context, _ *gorm.DB, operator string) ([]string, error) {
 	return []string{operator}, nil
 }

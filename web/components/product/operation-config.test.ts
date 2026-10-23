@@ -8,7 +8,7 @@ it("omits fields belonging to the other pricing mode without losing precise foll
   const value: JSONValue = { action: "price", price: { id: "follow", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one", buyer_id: "stale-buyer" }, layer: "regular", effective_at: "2026-12-01T00:00:00Z", rule: { mode: "follow", components: [{ key: "stale" }], follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" }, extension: "preserved" }, published: true } };
   const prepared = prepareConfiguration(value, schema) as { price: { scope: object; rule: object } };
   expect(prepared.price.scope).toEqual({ kind: "retail", seller_id: "operator-one" });
-  expect(prepared.price.rule).toEqual({ mode: "follow", follow: { kind: "supply", seller_id: "parent", buyer_id: "operator-one" }, multiplier: "1.000000000000000000000001", model_multipliers: { "model-one": "1.123456789012345678901234" } });
+  expect(prepared.price.rule).toEqual({ mode: "follow", multiplier: "1.000000000000000000000001" });
 });
 it("requires a finite promotion end time", () => {
   expect(() => validatePriceConfiguration({ price: { layer: "promotion" } })).toThrow("结束时间");
@@ -32,12 +32,14 @@ it("keeps a public model to its name and checked capabilities", () => {
   expect(capability.usage_rules).toBeUndefined();
   expect(capability.evidence_id).toBeUndefined();
 });
-it("requires complete nested pricing objects and preserves an explicit absent promotion end", () => {
+it("requires complete price objects and omits publication bookkeeping and non-promotion dates", () => {
   expect(() => prepareConfiguration({ action: "price" }, configurationSchema(operation)!)).toThrow("价目与适用范围");
   const value: JSONValue = { action: "bootstrap_price", price: { id: "new-price", model_id: "model-one", scope: { kind: "retail", seller_id: "operator-one" }, layer: "regular", effective_at: "2026-12-01T00:00:00Z", ends_at: null, rule: { mode: "manual", components: [{ key: "image", unit: "image", per: "1", rate: "0" }] }, published: true } };
   const prepared = prepareConfiguration(value, configurationSchema(operation)!);
   expect(() => validatePriceConfiguration(prepared)).not.toThrow();
-  expect(prepared).toMatchObject({ price: { ends_at: null } });
+  expect(prepared).not.toHaveProperty("price.ends_at");
+  expect(prepared).not.toHaveProperty("price.effective_at");
+  expect(prepared).not.toHaveProperty("price.published");
 });
 it("expands image and video resolution prices and keeps other meters unchanged", () => {
   expect(canonicalResolution("1024X1024")).toBe("1024x1024");

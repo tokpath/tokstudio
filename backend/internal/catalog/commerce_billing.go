@@ -2,6 +2,9 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"math/big"
 	"strings"
 
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
@@ -148,6 +151,13 @@ func (s CommerceCatalog) syncResolutionPrices(ctx context.Context, actor string,
 	if e != nil {
 		return e
 	}
+	var pending []CatalogChange
+	if e = s.DB.WithContext(ctx).Where("operator_id=? AND kind='model' AND resource_id=? AND expected_version=? AND state IN ('announcing','announced')", s.PlatformOperatorID, model.ID, model.Version).Order("created_at DESC,id DESC").Limit(1).Find(&pending).Error; e != nil {
+		return e
+	}
+	if len(pending) > 0 {
+		return s.preparePendingBillingPrice(ctx, actor, model, &pending[0], v)
+	}
 	changed, e := applyResolutionPrices(&model, v.Rule.Components)
 	if e != nil || !changed {
 		return e
@@ -158,4 +168,87 @@ func (s CommerceCatalog) syncResolutionPrices(ctx context.Context, actor string,
 	// The price publication is the notice. Resolution meters have to exist at
 	// the same moment, including for a model that is already open.
 	return s.savePublicModel(context.WithValue(ctx, catalogApplyKey{}, true), actor, model, model.Version)
+}
+
+// Prices can be prepared while a template is being announced. Sizes belong to
+// that pending template, so saving a price must not advance the live model CAS
+// and invalidate its pending change. Old meters retain their previous rates
+// until the runtime switches templates; only the selected profile is billed.
+func (s CommerceCatalog) preparePendingBillingPrice(ctx context.Context, actor string, current PublicModel, change *CatalogChange, price *PriceVersion) error {
+	var next PublicModel
+	if e := json.Unmarshal(change.Payload, &next); e != nil {
+		return e
+	}
+	if next.Billing == nil {
+		next.Billing = current.Billing
+	}
+	changed, e := applyResolutionPrices(&next, price.Rule.Components)
+	if e != nil {
+		return e
+	}
+	if changed {
+		if !s.platform(actor) {
+			return ErrResolutionPrice
+		}
+		raw, e := json.Marshal(next)
+		if e != nil {
+			return e
+		}
+		if e = s.DB.WithContext(ctx).Model(change).Updates(map[string]any{"payload": raw, "fingerprint": changeFingerprint("model", next.ID, raw)}).Error; e != nil {
+			return e
+		}
+	}
+	previous, e := (PriceResolver{Source: billingRegularSource{CommerceCatalog: s, Scope: price.Scope}}).Resolve(ctx, price.Scope, current.ID, price.EffectiveAt)
+	if errors.Is(e, ErrPriceUnavailable) {
+		return nil
+	}
+	if e != nil {
+		return e
+	}
+	factor, e := previous.Factor()
+	if e != nil {
+		return e
+	}
+	wanted, provided := map[string]bool{}, map[string]bool{}
+	for _, component := range current.BillingComponents() {
+		wanted[component.Key] = true
+	}
+	for _, component := range price.Rule.Components {
+		provided[component.Key] = true
+	}
+	for _, component := range previous.Components {
+		if !wanted[component.Key] || provided[component.Key] {
+			continue
+		}
+		rate, e := PriceDecimal(component.Rate)
+		if e != nil {
+			return e
+		}
+		component.Rate, e = exactPublicDecimal(new(big.Rat).Mul(rate, factor))
+		if e != nil {
+			return e
+		}
+		price.Rule.Components = append(price.Rule.Components, component)
+		provided[component.Key] = true
+	}
+	return nil
+}
+
+type billingRegularSource struct {
+	CommerceCatalog
+	Scope PriceScope
+}
+
+func (s billingRegularSource) PriceVersions(ctx context.Context, scope PriceScope, model string) ([]PriceVersion, error) {
+	rows, e := s.CommerceCatalog.PriceVersions(ctx, scope, model)
+	if e != nil || scope != s.Scope {
+		return rows, e
+	}
+	regular := []PriceVersion{}
+	for _, row := range rows {
+		if row.Layer == "regular" {
+			regular = append(regular, row)
+		}
+	}
+	return regular, nil
 }

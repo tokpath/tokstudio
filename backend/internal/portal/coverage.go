@@ -161,6 +161,11 @@ func (a *Application) validateCatalogChange(ctx context.Context, tx *gorm.DB, ch
 		}
 	}
 	for _, op := range operators {
+		if change.Kind == "model" {
+			if e := a.validateServingModelPrices(ctx, tx, op, change.ResourceID, change.EffectiveAt); e != nil {
+				return e
+			}
+		}
 		snapshot, e := a.Cooperation.Coverage(ctx, tx, op, change.EffectiveAt)
 		if e != nil {
 			return e
@@ -168,6 +173,61 @@ func (a *Application) validateCatalogChange(ctx context.Context, tx *gorm.DB, ch
 		if snapshot.HasUpstream && snapshot.Space.Sign() < 0 {
 			return catalog.ErrChangeNotice
 		}
+	}
+	return nil
+}
+
+// A live retailer keeps its old measuring contract until both its retail book
+// and the supply chain can price the replacement. Disabled/unlisted services
+// can still be configured freely before opening. Cache and size overrides may
+// fall back to the existing optional-meter rules; base meters must be priced.
+func (a *Application) validateServingModelPrices(ctx context.Context, tx *gorm.DB, operator, modelID string, at time.Time) error {
+	state, e := a.Organization.GetBusinessStatus(ctx, tx, operator)
+	if e != nil || !state.ModelUsage {
+		return e
+	}
+	cat := a.Catalog.WithDB(tx)
+	models, e := cat.AvailableModels(ctx, operator, true)
+	if e != nil {
+		return e
+	}
+	for _, model := range models {
+		if model.ID != modelID {
+			continue
+		}
+		scopes := []catalog.PriceScope{{Kind: "retail", SellerID: operator}}
+		current := operator
+		for {
+			op, err := a.Organization.GetOperator(ctx, tx, current)
+			if err != nil {
+				return err
+			}
+			if op.ParentOperatorID == nil {
+				break
+			}
+			scopes = append(scopes, catalog.PriceScope{Kind: "supply", SellerID: *op.ParentOperatorID, BuyerID: current})
+			current = *op.ParentOperatorID
+		}
+		for _, scope := range scopes {
+			price, err := (catalog.PriceResolver{Source: cat}).Resolve(ctx, scope, modelID, at)
+			if err != nil {
+				return err
+			}
+			units := map[string]string{}
+			for _, rate := range price.Components {
+				units[rate.Key] = rate.Unit
+			}
+			for _, meter := range model.BillingComponents() {
+				if strings.HasPrefix(meter.Key, "cache") {
+					continue
+				}
+				key, _, _ := strings.Cut(meter.Key, ":")
+				if units[meter.Key] != meter.Unit && units[key] != meter.Unit {
+					return catalog.ErrPriceUnavailable
+				}
+			}
+		}
+		break
 	}
 	return nil
 }

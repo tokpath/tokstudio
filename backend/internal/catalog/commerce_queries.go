@@ -12,6 +12,16 @@ import (
 // requires its own listing; a wholesale obligation includes authorized models
 // even when the buyer has temporarily taken them off its retail shelf.
 func (s CommerceCatalog) AvailableModels(ctx context.Context, operator string, retail bool) ([]PublicModel, error) {
+	return s.availableModels(ctx, operator, retail, true)
+}
+
+// PricingModels also includes unlisted and globally disabled models so an
+// operator can prepare prices before opening sales or inspect a paused model.
+func (s CommerceCatalog) PricingModels(ctx context.Context, operator string) ([]PublicModel, error) {
+	return s.availableModels(ctx, operator, false, false)
+}
+
+func (s CommerceCatalog) availableModels(ctx context.Context, operator string, retail, requireEnabled bool) ([]PublicModel, error) {
 	var rows []catalogJSONRow
 	if e := s.DB.WithContext(ctx).Table("tokenhub_public_models").Order("id").Find(&rows).Error; e != nil {
 		return nil, e
@@ -22,7 +32,7 @@ func (s CommerceCatalog) AvailableModels(ctx context.Context, operator string, r
 		if e := json.Unmarshal(row.Definition, &m); e != nil {
 			return nil, e
 		}
-		e := s.authorized(ctx, operator, m.ID)
+		e := s.requireAuthorization(ctx, operator, m.ID, requireEnabled)
 		if errors.Is(e, ErrModelNotVisible) {
 			continue
 		}

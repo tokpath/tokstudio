@@ -155,29 +155,25 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     // A fresh channel receives its model permission from the OEM in the UI.
     if (!journal.authorized) {
       await oem.goto(`/manage/${f.oem_id}/pricing`);
-      await oem.getByRole("button", { name: "授权或上架模型", exact: true }).click();
+      await oem.getByRole("button", { name: "授权与上架", exact: true }).click();
       const panel = oem.getByRole("dialog").last();
       await config(panel, "action", "authorization"); await config(panel, "buyer_id", f.channel_id); await config(panel, "model_id", f.model_id);
-      save("authorized", await submit(oem, "授权或上架模型", `${oemBase}/pricing`));
+      save("authorized", await submit(oem, "授权与上架", `${oemBase}/pricing`));
     }
     if (!journal.listed) {
       await channel.goto(`/manage/${f.channel_id}/pricing`);
-      await channel.getByRole("button", { name: "授权或上架模型", exact: true }).click();
+      await channel.getByRole("button", { name: "上架与下架", exact: true }).click();
       const panel = channel.getByRole("dialog").last(); await config(panel, "model_id", f.model_id);
-      save("listed", await submit(channel, "授权或上架模型", `${channelBase}/pricing`));
+      save("listed", await submit(channel, "上架与下架", `${channelBase}/pricing`));
     }
     if (!journal.retail_price) {
       await channel.goto(`/manage/${f.channel_id}/pricing`);
-      await channel.getByRole("button", { name: "发布价格版本", exact: true }).click();
+      await channel.getByRole("button", { name: "设置模型价格", exact: true }).click();
       const panel = channel.getByRole("dialog").last();
-      await config(panel, "action", "bootstrap_price");
       await expect(panel.locator('[data-config-path="price.id"]')).toHaveCount(0);
-      await config(panel, "price.model_id", f.model_id); await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
-      for (const [index, component] of ["input", "output"].entries()) {
-        await panel.getByRole("button", { name: "添加计费组件", exact: true }).click();
-        for (const [name, value] of Object.entries({ key: component, unit: "token", per: "1", rate: "0.004" })) await config(panel, `price.rule.components.${index}.${name}`, value);
-      }
-      const published = await submit(channel, "发布价格版本", `${channelBase}/pricing`);
+      await config(panel, "price.model_id", f.model_id);
+      for (const input of await panel.locator('[data-config-path^="price.rule.components."][data-config-path$=".rate"] input').all()) await input.fill("4000");
+      const published = await submit(channel, "设置模型价格", `${channelBase}/pricing`);
       expect(published.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
       save("retail_price", published);
     }
@@ -249,7 +245,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     await channel.screenshot({ path: info.outputPath("operator-channel-coverage-readonly.png"), fullPage: true });
     if (!journal.plan) {
       await channel.goto(`/manage/${f.channel_id}/plans`);
-      save("plan", await operation(channel, "发布套餐版本", { name: "星河 UI 开业套餐", price_usd: "10", paid_atg: "20", gift_atg: "5", period: "month", terms_summary: "星河渠道客户支持与服务约定", new_purchase_enabled: true, renewal_enabled: false }, `${channelBase}/plans`));
+      save("plan", await operation(channel, "创建套餐", { name: "星河 UI 开业套餐", price_usd: "10", paid_atg: "20", gift_atg: "5", period: "month", terms_summary: "星河渠道客户支持与服务约定", new_purchase_enabled: true, renewal_enabled: false }, `${channelBase}/plans`));
     }
     if (!journal.business_open) {
       for (const feature of ["new_purchase", "model_usage"]) {
@@ -260,7 +256,7 @@ test("independent OEM and channel run purchasing, authorization, retail, risk, e
     }
     if (!journal.oem_plan) {
       await oem.goto(`/manage/${f.oem_id}/plans`);
-      save("oem_plan", await operation(oem, "发布套餐版本", { name: "山海品牌直营套餐", price_usd: "15", paid_atg: "30", gift_atg: "5", period: "month", terms_summary: "山海品牌直营客户支持与服务约定", new_purchase_enabled: true, renewal_enabled: false }, `${oemBase}/plans`));
+      save("oem_plan", await operation(oem, "创建套餐", { name: "山海品牌直营套餐", price_usd: "15", paid_atg: "30", gift_atg: "5", period: "month", terms_summary: "山海品牌直营客户支持与服务约定", new_purchase_enabled: true, renewal_enabled: false }, `${oemBase}/plans`));
     }
     if (!journal.oem_business_open) {
       for (const feature of ["registration", "new_purchase", "model_usage"]) {
@@ -463,21 +459,21 @@ test("offline replenishment actually creates one unpaid order without creating i
   try {
     await login(oem, f.oem_owner); await login(buyer, f.other_owner);
     if (!journal.authorized) {
-      await oem.goto(`/manage/${f.oem_id}/pricing`); await oem.getByRole("button", { name: "授权或上架模型", exact: true }).click();
+      await oem.goto(`/manage/${f.oem_id}/pricing`); await oem.getByRole("button", { name: "授权与上架", exact: true }).click();
       const panel = oem.getByRole("dialog").last(); await config(panel, "action", "authorization"); await config(panel, "buyer_id", f.other_channel_id); await config(panel, "model_id", f.model_id);
-      save("authorized", await submit(oem, "授权或上架模型", `${supplier}/pricing`));
+      save("authorized", await submit(oem, "授权与上架", `${supplier}/pricing`));
     }
     if (!journal.listed) {
-      await buyer.goto(`/manage/${f.other_channel_id}/pricing`); await buyer.getByRole("button", { name: "授权或上架模型", exact: true }).click();
-      await config(buyer.getByRole("dialog").last(), "model_id", f.model_id); save("listed", await submit(buyer, "授权或上架模型", `${base}/pricing`));
+      await buyer.goto(`/manage/${f.other_channel_id}/pricing`); await buyer.getByRole("button", { name: "上架与下架", exact: true }).click();
+      await config(buyer.getByRole("dialog").last(), "model_id", f.model_id); save("listed", await submit(buyer, "上架与下架", `${base}/pricing`));
     }
     if (!journal.price) {
-      await buyer.goto(`/manage/${f.other_channel_id}/pricing`); await buyer.getByRole("button", { name: "发布价格版本", exact: true }).click();
-      const panel = buyer.getByRole("dialog").last(); await config(panel, "action", "bootstrap_price");
+      await buyer.goto(`/manage/${f.other_channel_id}/pricing`); await buyer.getByRole("button", { name: "设置模型价格", exact: true }).click();
+      const panel = buyer.getByRole("dialog").last();
       await expect(panel.locator('[data-config-path="price.id"]')).toHaveCount(0);
-      await config(panel, "price.model_id", f.model_id); await config(panel, "price.effective_at", localTime(new Date(Date.now() - 60_000)));
-      for (const [index, component] of ["input", "output"].entries()) { await panel.getByRole("button", { name: "添加计费组件", exact: true }).click(); for (const [name, value] of Object.entries({ key: component, unit: "token", per: "1", rate: "0.004" })) await config(panel, `price.rule.components.${index}.${name}`, value); }
-      const published = await submit(buyer, "发布价格版本", `${base}/pricing`);
+      await config(panel, "price.model_id", f.model_id);
+      for (const input of await panel.locator('[data-config-path^="price.rule.components."][data-config-path$=".rate"] input').all()) await input.fill("4000");
+      const published = await submit(buyer, "设置模型价格", `${base}/pricing`);
       expect(published.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
       save("price", published);
     }

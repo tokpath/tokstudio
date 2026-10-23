@@ -23,7 +23,7 @@ export type ConfigNode = {
   nullable?: boolean;
   readOnly?: boolean;
   /** Capability cards explain call, billing, and verification before the rare limits. */
-  presentation?: "operations" | "price";
+  presentation?: "operations" | "price" | "billing";
   /** Drawn by a custom editor. The value is still kept and submitted. */
   hidden?: boolean;
   /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
@@ -117,9 +117,6 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
-    effective_at: { ...datetime("计划生效时间（修订已开放模型时填写）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
-    evidence: { ...text("变更及通知依据", false), kind: "textarea", hideWhen: { field: "expected_version", values: ["0", ""] } },
-    emergency: { ...boolean("紧急停用（须有真实事件依据）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
   });
   if (/\/providers$/.test(operation.path) && operation.name === "model") return object("供应商模型", {
     supplier_model: object("供应商模型与成本价", {
@@ -161,36 +158,28 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
     action: { ...text("操作"), default: "billing", readOnly: true },
     model_id: { ...text("公开模型"), lookup: "models" },
     operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
-    billing: object("输入与输出计量", {
+    billing: { ...object("输入与输出计量", {
       input: array("输入计量项目", billingItem("input"), "同一能力的输入可以按模态分开定价，例如语音生成的输入文本、图片生成的输入图片。选择全部模态时，文本和图片共用一个 Token 单价，不能再单列图片。"),
       output: array("输出计量项目", billingItem("output"), "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。"),
-    }, "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。"),
+    }, "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。"), presentation: "billing" },
     expected_version: { ...integer("当前版本", 0), readOnly: true },
-    effective_at: datetime("计划生效时间（变更已开放模型时填写）"),
-    evidence: { ...text("变更及通知依据", false), kind: "textarea" },
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "listing") return object("授权与上架", {
     action: select("办理事项", [["listing", "本经营方上架 / 下架"], ["authorization", "授权 / 撤销下级模型权限"]], "listing"),
     buyer_id: { ...text("被授权的直属下级"), lookup: "buyers", when: { field: "action", values: ["authorization"] } }, model_id: { ...text("公开模型"), lookup: "models" }, enabled: boolean("允许使用此模型", true),
-    expected_version: { ...integer("当前上架 / 授权版本（自动带入）", 0), required: true, readOnly: true }, effective_at: datetime("计划生效时间"), evidence: { ...text("变更及通知依据", false), kind: "textarea" },
+    expected_version: { ...integer("当前上架 / 授权版本（自动带入）", 0), required: true, readOnly: true },
   });
   if (/\/pricing$/.test(operation.path)) return object("模型价格", {
-    action: select("发布方式", [["price", "按通知规则发布价格"], ["bootstrap_price", "初始化价格（仅首次开通）"]], "price"),
+    action: { ...text("操作"), default: "price", readOnly: true },
     price: object("价目与适用范围", {
-      id: { ...text("本次价格版本标识"), generated: "uuid", readOnly: true }, model_id: { ...text("公开模型（自动跟随可用 * 表示默认规则）"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
-      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: datetime("价格生效时间", true), ends_at: { ...datetime("价格结束时间（促销必填）"), nullable: true },
+      id: { ...text("本次价格版本标识"), generated: "uuid", readOnly: true }, model_id: { ...text("公开模型"), lookup: "models", wildcard: true }, scope: scope("本次定价范围", operatorID),
+      layer: select("价格类别", [["regular", "常规价格"], ["promotion", "限时促销价"]], "regular"), effective_at: { ...datetime("促销开始时间（留空自动安排）"), when: { field: "layer", values: ["promotion"] } }, ends_at: { ...datetime("促销结束时间", true), when: { field: "layer", values: ["promotion"] } },
       rule: object("计价方式", {
-        mode: select("计价方式", [["manual", "逐组件手动定价"], ["follow", "自动跟随上级价目"]], "manual"),
+        mode: select("计价方式", [["manual", "设置单价"], ["follow", "跟随上级供货价"]], "manual"),
         components: { ...array("组件价格", component), when: { field: "mode", values: ["manual"] } },
-        follow: { ...scope("跟随的上级价目"), fields: {
-          kind: { ...select("跟随价目用途", [["supply", "直接上级对本经营方的供货价"]], "supply"), readOnly: true },
-          seller_id: { ...text("直接上级经营方"), lookup: "suppliers" }, buyer_id: { ...text("供货买方（本经营方）"), default: operatorID, readOnly: true },
-        }, when: { field: "mode", values: ["follow"] } },
-        multiplier: { ...decimal("默认倍率（定价参数）"), when: { field: "mode", values: ["follow"] } },
-        model_multipliers: { ...record("指定模型倍率覆盖（可选）", decimal("模型倍率")), when: { field: "mode", values: ["follow"] } },
+        multiplier: { ...{ ...decimal("上级供货价的倍率"), default: "1" }, when: { field: "mode", values: ["follow"] } },
       }, "零售价使用客户 ATG，供货价使用采购 ATG。供应商成本由 Bifrost 独立核算。倍率不是利润率。"),
-      notice_id: text("客户通知记录引用", false), published: { ...boolean("发布此价格版本", true), required: true, readOnly: true },
-    }), evidence: { ...text("发布与通知依据", false), kind: "textarea" },
+    }),
   });
 }
 
@@ -309,10 +298,13 @@ export function validateModelConfiguration(value: JSONValue): void {
       items.forEach((item,index)=>{const path=`billing.${direction}.${index}`;const modality=String(item.modality);
         if(seen.has(modality))throw new ConfigurationError("同一方向的同一种模态只能配置一个计量项目。",`${path}.modality`);seen.add(modality);
         if(modality==="all" && items.length>1)throw new ConfigurationError("统一 Token 与分模态计费不能在同一方向并用。",`${path}.modality`);
+        const allowed=modality==="all"?["tokens"]:modality==="text"?["tokens","characters"]:modality==="image"?["tokens","images","megapixels"]:["tokens","seconds"];
+        if(!["all","text","image","audio","video"].includes(modality) || !allowed.includes(String(item.template)))throw new ConfigurationError("请选择该模态支持的计量方式。",`${path}.template`);
         const variants=Array.isArray(item.variants)?item.variants as Record<string,JSONValue>[]:[];
         variants.forEach((variant,i)=>{if(!variant.size && !variant.quality)throw new ConfigurationError("规格至少填写尺寸或质量。",`${path}.variants.${i}.size`);});
       });
     }
+    if(root.operation==="embedding" && outputs.length)throw new ConfigurationError("向量模型仅配置输入计量。","billing.output");
     return;
   }
   if (root.supplier_model && typeof root.supplier_model === "object" && !Array.isArray(root.supplier_model)) {

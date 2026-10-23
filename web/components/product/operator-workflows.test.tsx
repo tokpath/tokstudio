@@ -223,12 +223,12 @@ it("revises an existing plan with its saved values and optimistic version", asyn
   staff(["plans.read", "sales.manage"]);
   let submitted: unknown;
   vi.stubGlobal("fetch", vi.fn(async (_input, init) => { submitted = JSON.parse(String(init?.body)); return response({ id: "plan-a", status: "published" }); }));
-  show(<ResourceCollection embedded operatorID="operator-one" resource="plans" page={page([{ id: "plan-a", version: 7, values: { package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001" } }], { operations: [{ name: "publish", label: "发布套餐版本", method: "POST", path: "/api/v1/operators/operator-one/plans", permission: "sales.manage", fields: [{ name: "package_id", label: "现有套餐", kind: "text" }, { name: "name", label: "套餐名称", kind: "text", required: true }, { name: "paid_atg", label: "购买 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
-  fireEvent.click(screen.getByRole("button", { name: "修订套餐" }));
+  show(<ResourceCollection embedded operatorID="operator-one" resource="plans" page={page([{ id: "plan-a", version: 7, values: { package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001", gift_atg:"0", price_usd:"20", period:"month", new_purchase_enabled:true,renewal_enabled:true } }], { operations: [{ name: "publish", label: "发布套餐版本", method: "POST", path: "/api/v1/operators/operator-one/plans", permission: "sales.manage", fields: [{ name: "package_id", label: "现有套餐", kind: "text" }, { name: "name", label: "套餐名称", kind: "text", required: true }, { name: "paid_atg", label: "购买 ATG", kind: "decimal", required: true }, { name: "expected_version", label: "当前版本", kind: "hidden", default_value: 0 }] }] })} />);
+  fireEvent.click(screen.getByRole("button", { name: "编辑套餐" }));
   const dialog = screen.getByRole("dialog");
   expect((within(dialog).getByLabelText("套餐名称", { exact: false }) as HTMLInputElement).value).toBe("月度套餐");
   expect((within(dialog).getByLabelText("购买 ATG", { exact: false, selector: "input" }) as HTMLInputElement).value).toBe("21.000000000000000001");
-  fireEvent.click(within(dialog).getByRole("button", { name: "修订套餐", exact: true }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "编辑套餐", exact: true }));
   await waitFor(() => expect(submitted).toEqual({ package_id: "plan-a", name: "月度套餐", paid_atg: "21.000000000000000001", expected_version: 7 }));
 });
 

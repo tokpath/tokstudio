@@ -89,10 +89,11 @@ func orderPage(q *gorm.DB, cursor, query string, limit int) ([]Order, error) {
 }
 
 type DeliveredPackage struct {
-	Order        Order
-	Delivery     Delivery
-	Subscription *Subscription
-	Name         string
+	Order                   Order
+	Delivery                Delivery
+	Subscription            *Subscription
+	Name                    string
+	RenewalManagedElsewhere bool
 }
 
 // ListCustomerDeliveries includes packages without auto-renewal. Five bounded
@@ -112,11 +113,15 @@ func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, custo
 		return result, nil
 	}
 	orderIDs := make([]string, 0, len(orders))
+	subscriptionIDs := []string{}
 	packageIDs := []string{}
 	var quotes []quoteRow
 	quoteIDs := []string{}
 	for _, order := range orders {
 		orderIDs = append(orderIDs, order.ID)
+		if order.SubscriptionID != nil {
+			subscriptionIDs = append(subscriptionIDs, *order.SubscriptionID)
+		}
 		if order.QuoteID != nil {
 			quoteIDs = append(quoteIDs, *order.QuoteID)
 		}
@@ -146,21 +151,33 @@ func (s *Service) ListCustomerDeliveries(ctx context.Context, tx *gorm.DB, custo
 		byOrder[delivery.OrderID] = Delivery(delivery)
 	}
 	var subscriptions []subscriptionRow
-	if err := gdb.Where("customer_id=? AND source_order_id IN ?", customer, orderIDs).Find(&subscriptions).Error; err != nil {
+	if err := gdb.Where("customer_id=? AND (source_order_id IN ? OR id IN ?)", customer, orderIDs, subscriptionIDs).Find(&subscriptions).Error; err != nil {
 		return nil, err
 	}
 	bySubscription := map[string]Subscription{}
+	bySource := map[string]string{}
 	for _, subscription := range subscriptions {
-		bySubscription[subscription.SourceOrderID] = Subscription(subscription)
+		bySubscription[subscription.ID] = Subscription(subscription)
+		bySource[subscription.SourceOrderID] = subscription.ID
 	}
+	shown := map[string]bool{}
 	for _, row := range orders {
 		item := DeliveredPackage{Order: Order(row), Delivery: byOrder[row.ID]}
 		if row.QuoteID != nil {
 			item.Name = names[quotePackages[*row.QuoteID]]
 		}
-		if subscription, ok := bySubscription[row.ID]; ok {
-			copy := subscription
-			item.Subscription = &copy
+		subscriptionID := bySource[row.ID]
+		if row.SubscriptionID != nil {
+			subscriptionID = *row.SubscriptionID
+		}
+		if subscription, ok := bySubscription[subscriptionID]; ok {
+			if !shown[subscription.ID] {
+				copy := subscription
+				item.Subscription = &copy
+				shown[subscription.ID] = true
+			} else {
+				item.RenewalManagedElsewhere = true
+			}
 		}
 		result = append(result, item)
 	}

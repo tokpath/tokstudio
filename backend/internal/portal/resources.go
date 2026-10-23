@@ -485,7 +485,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 			items = append(items, entity(row.ID, "configured", ver, v))
 		}
 		p["columns"] = []gin.H{col("name", "名称", "text"), col("price_usd", "价格", "usd"), col("paid_atg", "购买", "atg"), col("gift_atg", "赠送", "atg"), col("period", "有效期", "text"), col("terms_summary", "服务约定", "text"), col("new_purchase_enabled", "新购", "boolean"), col("renewal_enabled", "续费", "boolean")}
-		p["operations"] = []operation{{Name: "publish", Label: "发布套餐版本", Method: "POST", Path: base, Fields: []field{jsonField("name、package_id（新建留空）、price_usd、paid_atg、gift_atg、period(lifetime/month/quarter/year)、timezone、terms_reference、new_purchase_enabled、renewal_enabled、expected_version")}}}
+		p["operations"] = []operation{{Name: "publish", Label: "创建套餐", Method: "POST", Path: base, Description: "填写售价、购买与赠送额度和有效期，分别控制新购与续费。保存即发布，已有订单仍按成交时条款履约。", Fields: []field{jsonField("name、package_id、price_usd、paid_atg、gift_atg、period、terms_summary、new_purchase_enabled、renewal_enabled、expected_version")}}}
 	case "orders":
 		p["search_supported"], p["status_supported"] = true, true
 		rows, e := a.Commerce.ListOperatorOrders(ctx, nil, op.ID, c.Query("cursor"), c.Query("q"), 51, c.Query("status"))

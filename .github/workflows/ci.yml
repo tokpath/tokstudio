@@ -37,6 +37,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # The contract generator parses frontend types with its locked TypeScript
+      # dependency, including when the frontend build is intentionally skipped.
+      - name: Install contract parser dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: assert deploy host + test isolation
         run: |
           bash scripts/assert_deploy_isolation.sh

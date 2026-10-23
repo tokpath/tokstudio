@@ -204,6 +204,13 @@ func (b *Bifrost) inputFacts(ctx context.Context, r Request, p BillingProfile) m
 					}
 					if quantity == nil {
 						reliable = false
+					} else if item.Modality == "video" && len(item.Variants) > 0 {
+						size := mp4DisplaySize(raw)
+						if size == "" {
+							reliable = false
+						} else {
+							selector, _ = json.Marshal(map[string]string{"size": size})
+						}
 					}
 				}
 			}

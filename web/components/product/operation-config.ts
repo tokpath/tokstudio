@@ -62,9 +62,9 @@ function billingItem(direction:"input"|"output"):ConfigNode{return object("计�
  modality:select("计量范围",[["all","全部模态（统一 Token）"],["text","文本"],["image","图片"],["audio","音频"],["video","视频"]],"all"),
  template:select("计费模板",billingTemplates,"tokens"),
  variants:{...array("规格档位（可选）",object("规格",{
-  id:{...text("规格标识"),generated:"uuid",readOnly:true},name:text("客户看到的规格名称"),size:text("尺寸（可选）",false,"例如 1024x1024。输入图片按实际尺寸识别，输出规格也会核对实际结果。"),
+  id:{...text("规格标识"),generated:"uuid",readOnly:true},name:text("客户看到的规格名称"),size:text("分辨率（可选）",false,"例如 1024x1024 或 1280x720。留空表示这一档不限制分辨率。输入按文件的实际尺寸匹配，输出按结果尺寸核对。"),
   ...(direction==="output"?{quality:{...select("质量（可选）",[["","不区分"],["standard","标准"],["hd","高清"],["high","高"],["medium","中"],["low","低"]],""),required:false}}:{}),
- }),"不分档时留空。不需要填写判断公式。"),when:{field:"modality",values:direction==="input"?["image"]:["image","video"]},hideWhen:{field:"template",values:["tokens"]}},
+ }),"图片和视频可以按分辨率分档，每档单独定价。不需要分档就留空。"),when:{field:"modality",values:["image","video"]},hideWhen:{field:"template",values:["tokens"]}},
 })}
 
 
@@ -120,8 +120,8 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
     model_id: { ...text("公开模型"), lookup: "models" },
     operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")),
     billing: object("输入与输出计量", {
-      input: array("输入计量项目", billingItem("input"), "可不单独计收输入费用。统一 Token 与分模态项目不能在同一方向并用。"),
-      output: array("输出计量项目", billingItem("output"), "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。"),
+      input: array("输入计量项目", billingItem("input"), "同一能力的输入可以按模态分开定价，例如语音生成的输入文本、图片生成的输入图片。选择全部模态时，文本和图片共用一个 Token 单价，不能再单列图片。"),
+      output: array("输出计量项目", billingItem("output"), "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。"),
     }, "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。"),
     expected_version: { ...integer("当前版本", 0), readOnly: true },
     effective_at: datetime("计划生效时间（变更已开放模型时填写）"),

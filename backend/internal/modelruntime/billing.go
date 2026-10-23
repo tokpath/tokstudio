@@ -74,9 +74,6 @@ func (p BillingProfile) Valid(op Operation) bool {
 			case "audio", "video":
 				allowed = item.Template == "tokens" || item.Template == "seconds"
 			}
-			if direction == "input" && item.Modality == "video" && len(item.Variants) > 0 {
-				return false
-			}
 			if !allowed || len(item.Variants) > 32 || len(item.Variants) > 0 && (item.Modality != "image" && item.Modality != "video" || item.Template == "tokens") {
 				return false
 			}
@@ -123,43 +120,76 @@ func (item BillingItem) Key(direction string) string {
 	suffix := map[string]string{"images": "images", "megapixels": "megapixels", "characters": "characters", "seconds": "seconds", "tokens": "tokens"}[item.Template]
 	return direction + "_" + item.Modality + "_" + suffix
 }
-func (item BillingItem) Components(direction string) []BillingComponent {
-	label := map[string]string{"all": "全部模态", "text": "文本", "image": "图片", "audio": "音频", "video": "视频"}[item.Modality]
-	prefix := "输入"
-	if direction == "output" {
-		prefix = "输出"
+func capabilityName(op Operation) string {
+	switch op {
+	case Chat:
+		return "对话"
+	case Responses:
+		return "Responses"
+	case Embedding:
+		return "向量"
+	case Image:
+		return "图片生成"
+	case Speech:
+		return "语音生成"
+	case Transcription:
+		return "语音转写"
+	case Video:
+		return "视频生成"
+	default:
+		return string(op)
 	}
+}
+func (item BillingItem) meterLabel(direction string) string {
+	if item.Modality == "all" {
+		if direction == "input" {
+			return "输入（全部按 Token）"
+		}
+		return "输出（全部按 Token）"
+	}
+	modality := map[string]string{"text": "文本", "image": "图片", "audio": "音频", "video": "视频"}[item.Modality]
+	if direction == "output" {
+		return "输出" + modality
+	}
+	return "输入" + modality
+}
+func (item BillingItem) Components(direction string) []BillingComponent {
+	return item.components(direction, "")
+}
+func (item BillingItem) components(direction string, op Operation) []BillingComponent {
 	unit, per := map[string]string{"tokens": "token", "images": "image", "megapixels": "megapixel", "characters": "character", "seconds": "second"}[item.Template], "1"
 	if item.Template == "tokens" || item.Template == "characters" {
 		per = "1000000"
 	}
 	key := item.Key(direction)
-	ordinary := prefix + label
-	if item.Modality == "all" {
-		ordinary = map[string]string{"input": "普通输入", "output": "输出"}[direction]
+	label := item.meterLabel(direction)
+	cacheLabel := "缓存读取"
+	if op != "" {
+		label = capabilityName(op) + " · " + label
+		cacheLabel = capabilityName(op) + " · 缓存读取"
 	}
 	if len(item.Variants) > 0 {
 		out := []BillingComponent{}
 		for _, v := range item.Variants {
-			out = append(out, BillingComponent{key + ":" + v.ID, prefix + label + " · " + v.Name, unit, per})
+			out = append(out, BillingComponent{key + ":" + v.ID, label + " · " + v.Name, unit, per})
 		}
 		return out
 	}
-	out := []BillingComponent{{key, ordinary, unit, per}}
+	out := []BillingComponent{{key, label, unit, per}}
 	if direction == "input" && item.Template == "tokens" {
 		cache := "cache_" + item.Modality
 		if item.Modality == "all" {
 			cache = "cache"
 		}
-		out = append(out, BillingComponent{cache, "缓存读取 · " + label, "token", "1000000"})
+		out = append(out, BillingComponent{cache, cacheLabel, "token", "1000000"})
 	}
 	return out
 }
-func (p BillingProfile) Components(_ Operation) []BillingComponent {
+func (p BillingProfile) Components(op Operation) []BillingComponent {
 	out := []BillingComponent{}
 	for _, direction := range []string{"input", "output"} {
 		for _, item := range p.Items(direction) {
-			out = append(out, item.Components(direction)...)
+			out = append(out, item.components(direction, op)...)
 		}
 	}
 	return out

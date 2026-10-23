@@ -2,6 +2,8 @@ package catalog
 
 import (
 	"context"
+	"strings"
+
 	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 )
 
@@ -15,8 +17,21 @@ func activePrice(price ResolvedPrice, keys map[string]string) ResolvedPrice {
 	}
 	return out
 }
+func mergeBillingLabel(current, next string) string {
+	head, tail, ok := strings.Cut(current, " · ")
+	nextHead, nextTail, nextOK := strings.Cut(next, " · ")
+	if !ok || !nextOK || tail != nextTail {
+		return current
+	}
+	for _, name := range strings.Split(head, "、") {
+		if name == nextHead {
+			return current
+		}
+	}
+	return head + "、" + nextHead + " · " + tail
+}
 func (m PublicModel) BillingComponents() []modelruntime.BillingComponent {
-	seen := map[string]bool{}
+	index := map[string]int{}
 	out := []modelruntime.BillingComponent{}
 	for _, capability := range m.Capabilities {
 		profile, ok := m.Billing[capability.Operation]
@@ -24,10 +39,12 @@ func (m PublicModel) BillingComponents() []modelruntime.BillingComponent {
 			profile = modelruntime.DefaultBilling(capability.Operation)
 		}
 		for _, component := range profile.Components(capability.Operation) {
-			if !seen[component.Key] {
-				seen[component.Key] = true
-				out = append(out, component)
+			if at, seen := index[component.Key]; seen {
+				out[at].Label = mergeBillingLabel(out[at].Label, component.Label)
+				continue
 			}
+			index[component.Key] = len(out)
+			out = append(out, component)
 		}
 	}
 	return out

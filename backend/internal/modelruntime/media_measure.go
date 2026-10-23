@@ -188,6 +188,53 @@ func KnownVideoSeconds(response any) *big.Rat {
 	return nil
 }
 
+func boxBody(raw []byte, kind string) []byte {
+	for pos := 0; pos+8 <= len(raw); {
+		n := int64(binary.BigEndian.Uint32(raw[pos : pos+4]))
+		header := 8
+		if n == 1 {
+			if pos+16 > len(raw) {
+				return nil
+			}
+			wide := binary.BigEndian.Uint64(raw[pos+8 : pos+16])
+			if wide > 1<<40 {
+				return nil
+			}
+			n = int64(wide)
+			header = 16
+		}
+		if n == 0 {
+			n = int64(len(raw) - pos)
+		}
+		if n < int64(header) || n > int64(len(raw)-pos) {
+			return nil
+		}
+		if string(raw[pos+4:pos+8]) == kind {
+			return raw[pos+header : pos+int(n)]
+		}
+		pos += int(n)
+	}
+	return nil
+}
+func mp4DisplaySize(raw []byte) string {
+	tkhd := boxBody(boxBody(boxBody(raw, "moov"), "trak"), "tkhd")
+	if len(tkhd) < 84 || (tkhd[0] != 0 && tkhd[0] != 1) {
+		return ""
+	}
+	widthAt := 76
+	if tkhd[0] == 1 {
+		widthAt = 80
+	}
+	if len(tkhd) < widthAt+8 {
+		return ""
+	}
+	w := binary.BigEndian.Uint32(tkhd[widthAt:widthAt+4]) >> 16
+	h := binary.BigEndian.Uint32(tkhd[widthAt+4:widthAt+8]) >> 16
+	if w == 0 || h == 0 || w > 65536 || h > 65536 {
+		return ""
+	}
+	return strconv.FormatUint(uint64(w), 10) + "x" + strconv.FormatUint(uint64(h), 10)
+}
 func mp4Seconds(raw []byte) *big.Rat {
 	for pos := 0; pos+8 <= len(raw); {
 		n := int64(binary.BigEndian.Uint32(raw[pos : pos+4]))

@@ -849,10 +849,10 @@
     "ja": "最終同期成功",
     "ru": "Последняя успешная синхронизация"
   },
-  "不分档时留空。不需要填写判断公式。": {
-    "en": "Leave empty for a single rate. No formulas are needed.",
-    "ja": "区分しない場合は空欄にします。判定式は不要です。",
-    "ru": "Оставьте пустым для единого тарифа. Формулы не нужны."
+  "图片和视频可以按分辨率分档，每档单独定价。不需要分档就留空。": {
+    "en": "Images and videos can use separate prices for each resolution. Leave this empty for one price.",
+    "ja": "画像と動画は解像度ごとに別料金にできます。区分しない場合は空欄にします。",
+    "ru": "Для изображений и видео можно задать цену по каждому разрешению. Оставьте пустым для одной цены."
   },
   "不区分": {
     "en": "No distinction",
@@ -879,10 +879,10 @@
     "ja": "低",
     "ru": "Низкое"
   },
-  "例如 1024x1024。输入图片按实际尺寸识别，输出规格也会核对实际结果。": {
-    "en": "For example, 1024x1024. Input images use their actual dimensions; output specifications are checked against the result.",
-    "ja": "例：1024x1024。入力画像は実際の寸法で判定し、出力仕様も実際の結果と照合します。",
-    "ru": "Например, 1024x1024. Для входных изображений используются фактические размеры; параметры вывода сверяются с результатом."
+  "例如 1024x1024 或 1280x720。留空表示这一档不限制分辨率。输入按文件的实际尺寸匹配，输出按结果尺寸核对。": {
+    "en": "For example, 1024x1024 or 1280x720. Leave blank when this tier does not depend on resolution. Inputs match the file's actual size; outputs are checked against the result.",
+    "ja": "例：1024x1024 または 1280x720。この段階が解像度に依存しない場合は空欄にします。入力はファイルの実寸法、出力は結果の寸法で照合します。",
+    "ru": "Например, 1024x1024 или 1280x720. Оставьте пустым, если ступень не зависит от разрешения. Вход сопоставляется с фактическим размером файла, выход — с результатом."
   },
   "供应商支持的能力": {
     "en": "Supported supplier capabilities",
@@ -959,15 +959,15 @@
     "ja": "参照料金モデル",
     "ru": "Модель справочных цен"
   },
-  "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。": {
-    "en": "Configure only outputs you charge for. Speech priced by input characters may omit a separate output charge.",
-    "ja": "課金する出力のみ設定します。音声合成を入力文字数で課金する場合、出力料金を別に設定する必要はありません。",
-    "ru": "Настраивайте только платные виды вывода. При оплате синтеза речи по входным символам отдельная плата за вывод не обязательна."
+  "只配置需要计价的输出。语音合成按输入字符计价时，可以不再单列输出费用。图片和视频可以按分辨率分档。": {
+    "en": "Configure only outputs you charge for. Speech priced by input characters may omit a separate output charge. Images and videos can be priced by resolution.",
+    "ja": "課金する出力のみ設定します。音声合成を入力文字数で課金する場合、出力料金を別に設定する必要はありません。画像と動画は解像度ごとに料金を分けられます。",
+    "ru": "Настраивайте только платные виды вывода. При оплате синтеза речи по входным символам отдельная плата за вывод не обязательна. Изображения и видео можно тарифицировать по разрешению."
   },
-  "可不单独计收输入费用。统一 Token 与分模态项目不能在同一方向并用。": {
-    "en": "Input charges are optional. Aggregate tokens and modality items cannot overlap within one direction.",
-    "ja": "入力料金は省略できます。同じ方向で合計 Token とモダリティ別項目は併用できません。",
-    "ru": "Плата за ввод необязательна. Общие токены и отдельные модальности нельзя совмещать для одного направления."
+  "同一能力的输入可以按模态分开定价，例如语音生成的输入文本、图片生成的输入图片。选择全部模态时，文本和图片共用一个 Token 单价，不能再单列图片。": {
+    "en": "Price each capability's inputs by modality, such as speech input text or image-generation input images. All-modality tokens share one rate and cannot also list images separately.",
+    "ja": "機能ごとに入力をモダリティ別料金にできます。例：音声生成の入力テキスト、画像生成の入力画像。全モダリティを選ぶとテキストと画像が同じ Token 単価になり、画像を別に追加できません。",
+    "ru": "Ввод каждой возможности можно оценить по модальности, например входной текст речи или входное изображение. Общие токены задают одну цену для текста и изображений, и отдельно указать изображения уже нельзя."
   },
   "同一份内容只采用一种计量方式。按模态组合时，系统必须能够可靠拆分用量。": {
     "en": "Measure each content item once. Modality pricing requires a reliable usage breakdown.",
@@ -1024,10 +1024,20 @@
     "ja": "顧客に表示する仕様名",
     "ru": "Название параметра для клиента"
   },
-  "尺寸（可选）": {
-    "en": "Dimensions (optional)",
-    "ja": "寸法（任意）",
-    "ru": "Размеры (необязательно)"
+  "分辨率（可选）": {
+    "en": "Resolution (optional)",
+    "ja": "解像度（任意）",
+    "ru": "Разрешение (необязательно)"
+  },
+  "输入（全部按 Token）": {
+    "en": "Input (all modalities, per token)",
+    "ja": "入力（すべて Token 課金）",
+    "ru": "Ввод (все модальности, за токен)"
+  },
+  "输出（全部按 Token）": {
+    "en": "Output (all modalities, per token)",
+    "ja": "出力（すべて Token 課金）",
+    "ru": "Вывод (все модальности, за токен)"
   },
   "差额 USD": {
     "en": "Difference USD",

@@ -28,6 +28,28 @@ func qmap(u Usage) map[string]*big.Rat {
 	}
 	return out
 }
+func TestComponentLabelsNameTheCapability(t *testing.T) {
+	speech := DefaultBilling(Speech).Components(Speech)
+	if len(speech) != 1 || speech[0].Label != "语音生成 · 输入文本" {
+		t.Fatal(speech)
+	}
+	chat := DefaultBilling(Chat).Components(Chat)
+	if chat[0].Label != "对话 · 输入（全部按 Token）" || chat[1].Label != "对话 · 缓存读取" || chat[2].Label != "对话 · 输出（全部按 Token）" {
+		t.Fatal(chat)
+	}
+	image := BillingProfile{Input: []BillingItem{{Modality: "image", Template: "images"}}, Output: []BillingItem{{Modality: "image", Template: "images", Variants: []BillingVariant{{ID: "hd", Name: "高清", Size: "1024x1024"}}}}}
+	if !image.Valid(Image) {
+		t.Fatal("image input and sized output")
+	}
+	labels := image.Components(Image)
+	if labels[0].Label != "图片生成 · 输入图片" || labels[1].Label != "图片生成 · 输出图片 · 高清" {
+		t.Fatal(labels)
+	}
+	video := BillingProfile{Input: []BillingItem{{Modality: "video", Template: "seconds", Variants: []BillingVariant{{ID: "hd", Name: "高清", Size: "1280x720"}}}}}
+	if !video.Valid(Video) {
+		t.Fatal("input video resolution rejected")
+	}
+}
 func TestBillingDirectionsRejectOverlappingInputAndOutput(t *testing.T) {
 	cases := []struct {
 		profile BillingProfile
@@ -144,6 +166,13 @@ func TestMP4DurationFollowsAtomBoundaries(t *testing.T) {
 	}
 	if got := mp4Seconds(moov[:len(moov)-1]); got != nil {
 		t.Fatal("trusted truncated metadata", got)
+	}
+	tkhd := make([]byte, 84)
+	binary.BigEndian.PutUint32(tkhd[76:80], 1280<<16)
+	binary.BigEndian.PutUint32(tkhd[80:84], 720<<16)
+	sized := box("moov", box("trak", box("tkhd", tkhd)))
+	if got := mp4DisplaySize(sized); got != "1280x720" {
+		t.Fatal(got)
 	}
 }
 

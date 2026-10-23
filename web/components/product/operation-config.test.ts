@@ -48,6 +48,8 @@ it("supports megapixels independently and hides pricing identity fields",()=>{
  const template=configurationSchema({...operation,name:"template"})!;
  expect(template.fields?.billing.fields?.input.item?.fields?.template.options).toContainEqual(["megapixels","按百万像素"]);
  expect(template.fields?.billing.fields?.output.item?.fields?.modality.options).toContainEqual(["audio","音频"]);
+ expect(template.fields?.billing.fields?.input.item?.fields?.variants.when?.values).toEqual(["image","video"]);
+ expect(template.fields?.billing.fields?.output.item?.fields?.variants.when?.values).toEqual(["image","video"]);
  const price=configurationSchema(operation)!;
  const component=price.fields?.price.fields?.rule.fields?.components.item;
  expect(component?.presentation).toBe("price");expect(component?.fields?.key.readOnly).toBe(true);

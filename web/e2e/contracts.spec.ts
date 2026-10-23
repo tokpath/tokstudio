@@ -31,7 +31,7 @@ async function api(page: Page, session: unknown = customer) {
 }
 
 test("public brand and operator remain distinct; model micro-prices stay exact", async ({ page }) => {
-  await api(page, { kind: "anonymous" }); await page.goto("/"); await expect(page.getByText("实际经营方：星河渠道")).toBeVisible(); await expect(page.getByRole("heading", { name: /一个品牌入口.*连接你的模型与应用/ })).toBeVisible(); await page.getByRole("link", { name: "模型与价格", exact: true }).click(); await expect(page.getByRole("heading", { name: "公开文本模型" })).toBeVisible(); await expect(page.getByLabel("0.00000001 ATG", { exact: true })).toBeVisible();
+  await api(page, { kind: "anonymous" }); await page.goto("/"); await expect(page.getByText("实际经营方：星河渠道")).toBeVisible(); await expect(page.getByRole("heading", { name: /一个品牌入口.*连接你的模型与应用/ })).toBeVisible(); await page.getByRole("link", { name: "模型与价格", exact: true }).click(); await expect(page.getByRole("heading", { name: "public-chat" })).toBeVisible(); await expect(page.getByLabel("0.00000001 ATG", { exact: true })).toBeVisible();
 });
 
 test("explicit dark mode keeps a branded white website readable", async ({ page }) => {

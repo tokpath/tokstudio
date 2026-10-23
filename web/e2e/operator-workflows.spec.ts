@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { chooseControl } from "./choose-control";
 
 const brand = { id: "brand-one", name: "山海模型", api_base_url: "https://api.shanhai.example/v1", theme: {} };
 const operator = { id: "operator-one", name: "山海经营方", legal_name: "山海服务主体", kind: "oem", brand_id: brand.id };
@@ -68,7 +69,7 @@ test("operator handles customer, original receipt, delivery and precise refund c
   await expect(workspace.getByLabel(`${due} USD`, { exact: true }).filter({ visible: true })).toBeVisible();
   await workspace.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
   const allocation = page.getByRole("dialog");
-  await allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }).selectOption("receipt-one");
+  await chooseControl(allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }), "receipt-one");
   await expect(allocation.getByRole("textbox", { name: /^本次分配 USD/ })).toHaveValue(due);
   await allocation.getByRole("checkbox").check();
   await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
@@ -118,7 +119,7 @@ test("uncertain receipt allocation keeps its original order and customer return 
   expect(new URL(orderURL).searchParams.get("returnTo")).toContain("/customers?record=customer-one");
   await page.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
   const allocation = page.getByRole("dialog");
-  await allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }).selectOption("receipt-one");
+  await chooseControl(allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }), "receipt-one");
   await allocation.getByRole("checkbox").check();
   await allocation.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
   await expect(allocation.getByRole("button", { name: "重试本次操作", exact: true })).toBeVisible();

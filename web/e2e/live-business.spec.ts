@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { chooseControl } from "./choose-control";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
@@ -66,7 +67,7 @@ test("real purchase, verified manual receipt, entitlement, API key and Bifrost r
     await expect(staff).toHaveURL(new RegExp(`/orders\\?record=${order.id}`));
     await staff.getByRole("button", { name: "将已核实收款分配到此单", exact: true }).click();
     const allocation = staff.getByRole("dialog").last();
-    await allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }).selectOption(receipt.id);
+    await chooseControl(allocation.getByRole("combobox", { name: "选择已核实收款", exact: true }), receipt.id);
     await allocation.getByRole("textbox", { name: /^本次分配 USD/ }).fill("100");
     await allocation.getByRole("checkbox").check();
     const allocationResponse = staff.waitForResponse(response => response.url().endsWith(`/order-context/${order.id}/allocate`) && response.request().method() === "POST");

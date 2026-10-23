@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type Response, type TestInfo } from "@playwright/test";
+import { chooseControl } from "./choose-control";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -161,14 +162,14 @@ test("technical administrator configures a real provider, verified model and rou
     const effective = new Date(Math.ceil((Date.now() + (lead + 75) * 1000) / 60_000) * 60_000);
     await owner.goto(`/manage/${p.operator_id}/pricing`);
     dialog = await panel(owner, "授权或上架模型");
-    await dialog.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
+    await chooseControl(dialog.getByRole("combobox", { name: "公开模型", exact: true }), model);
     await control(dialog, "计划生效时间", true).fill(localTime(effective));
     await control(dialog, "变更及通知依据", true).fill("合成仿真：新模型上架提前通知已有客户");
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
     dialog = await panel(owner, "授权或上架模型");
     await dialog.getByRole("combobox", { name: "办理事项", exact: true }).selectOption("authorization");
-    await dialog.getByRole("combobox", { name: "被授权的直属下级", exact: true }).selectOption(p.channel_id);
-    await dialog.getByRole("combobox", { name: "公开模型", exact: true }).selectOption(model);
+    await chooseControl(dialog.getByRole("combobox", { name: "被授权的直属下级", exact: true }), p.channel_id);
+    await chooseControl(dialog.getByRole("combobox", { name: "公开模型", exact: true }), model);
     await submit(owner, dialog, "授权或上架模型", `${base}/pricing`); await close(dialog);
     for (const scope of [{ kind: "retail", seller_id: p.operator_id }, { kind: "supply", seller_id: p.operator_id, buyer_id: p.channel_id }]) {
       dialog = await panel(owner, "发布价格版本");
@@ -203,7 +204,7 @@ test("technical administrator configures a real provider, verified model and rou
     }
     await owner.goto(`/manage/${p.operator_id}/gifts`);
     dialog = await panel(owner, "核实并发放独立赠送");
-    await dialog.getByRole("combobox", { name: "本经营方当前客户", exact: false }).selectOption(p.customer.id);
+    await chooseControl(dialog.getByRole("combobox", { name: "本经营方当前客户", exact: false }), p.customer.id);
     await dialog.getByRole("combobox", { name: "明确赠送原因", exact: false }).selectOption("targeted_gift");
     await control(dialog, "本次新增赠送ATG", false).fill("10");
     await control(dialog, "授权、事实和原事项关联依据", false).fill("合成仿真：为真实模型协议调用发放独立赠送，不涉及现金或佣金");
@@ -287,7 +288,7 @@ test("brand administrator edits OEM and channel appearance, uploads a logo and k
 
     await page.goto(`/manage/${p.operator_id}/domains`);
     dialog = await panel(page, "申请域名验证");
-    await dialog.getByRole("combobox", { name: "目标品牌经营方", exact: false }).selectOption(p.oem_id);
+    await chooseControl(dialog.getByRole("combobox", { name: "目标品牌经营方", exact: false }), p.oem_id);
     const hostname = `simulation-${randomUUID()}.example.test`;
     await control(dialog, "品牌域名", false).fill(hostname);
     const domain = await (await submit(page, dialog, "申请域名验证", `${base}/domains`)).json(); await close(dialog);
@@ -386,8 +387,7 @@ test("owner invites an employee, saves fine permissions, configures risk and sen
     dialog = await panel(page, "发送业务通知");
     const title = `仿真业务通知-${randomUUID()}`;
     const recipient = dialog.locator('[data-command-field="recipient_id"]');
-    await recipient.getByRole("textbox").fill(p.customer.email);
-    await recipient.getByRole("combobox").selectOption(p.customer.id);
+    await chooseControl(recipient.getByRole("combobox"), p.customer.id);
     await dialog.getByRole("combobox", { name: "通知类别", exact: false }).selectOption("mandatory");
     await dialog.getByRole("combobox", { name: "级别", exact: false }).selectOption("info");
     await control(dialog, "标题", false).fill(title); await control(dialog, "通知正文", false).fill("平台模型和品牌配置实际仿真完成，本通知关联真实业务记录。");
@@ -477,7 +477,7 @@ test("platform configures input and output modality billing, synchronizes Bifros
     expect(suppliers.items.length).toBeGreaterThan(0);
     await page.goto(`/manage/${p.operator_id}/supplier-costs`);
     dialog = await panel(page, "登记实际费用");
-    await dialog.getByRole("combobox", { name: "供应商", exact: true }).selectOption(suppliers.items[0].value);
+    await chooseControl(dialog.getByRole("combobox", { name: "供应商", exact: true }), suppliers.items[0].value);
     await control(dialog, "期间开始", true).fill(localTime(new Date(Date.now() - 86_400_000)));
     await control(dialog, "期间结束", true).fill(localTime(new Date(Date.now() + 60_000)));
     await control(dialog, "实际费用 USD", true).fill("92");

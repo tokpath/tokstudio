@@ -230,10 +230,11 @@ it("blocks listing when its reference response does not supply a verified revisi
 
 it("keeps the default follow wildcard available beside model references",async()=>{
   const fetch=referenceFetch();vi.stubGlobal("fetch",fetch);mount(priceOperation(priceConfig()));
-  const model=screen.getByRole("combobox",{name:/公开模型（自动跟随/});await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));
+  const model=screen.getByRole("combobox",{name:/公开模型（自动跟随/});await waitFor(()=>expect((model as HTMLInputElement).disabled).toBe(false));
+  fireEvent.focus(model);
   expect(screen.getByRole("option",{name:"全部模型的默认跟随规则（*）"})).toBeTruthy();
   fireEvent.change(model,{target:{value:"*"}});
-  expect((model as HTMLSelectElement).value).toBe("*");
+  expect((model as HTMLInputElement).value).toBe("全部模型的默认跟随规则（*）");
 });
 
 it("never prefills secrets from records and omits untouched optional secrets instead of clearing them",async()=>{

@@ -39,8 +39,11 @@ it("restores a chosen reference beyond the first result page and reviews its nam
  const fetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>init?.method==="POST"?response({id:rowID,status:"saved"}):response(String(input).includes(encodeURIComponent(supplierID))?{items:[{value:supplierID,label:"真实供货方 · legal@example.test"}]}:{items:[],next_cursor:"later"}));vi.stubGlobal("fetch",fetch);
  const op:Operation={name:"save",label:"保存约定",method:"POST",path:"/api/v1/operators/workspace/operators",fields:[{name:"supplier_id",label:"供货方",kind:"text",required:true,lookup_url:"/api/v1/operators/workspace/references/suppliers"}]};
  show(<OperationForm operation={op} operatorID="workspace" initialValues={{supplier_id:supplierID}} />);
+ const supplier=await screen.findByRole("combobox",{name:"供货方"});
+ await waitFor(()=>expect((supplier as HTMLInputElement).value).toBe("真实供货方 · legal@example.test"));
+ fireEvent.focus(supplier);
  await screen.findByRole("option",{name:"真实供货方 · legal@example.test"});
- await waitFor(()=>expect(screen.getAllByText("真实供货方 · legal@example.test").length).toBeGreaterThan(1));
+ await waitFor(()=>expect(screen.getAllByText("真实供货方 · legal@example.test").length).toBeGreaterThan(0));
  expect(screen.queryByText(supplierID)).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"保存约定",exact:true}));
  await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));

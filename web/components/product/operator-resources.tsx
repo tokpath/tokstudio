@@ -291,6 +291,13 @@ function refundNextStep(row: Entity, legs: Entity[]): string {
   return "下一步：展开关联明细，按每笔原收款的已授权动作办理。";
 }
 
+// The choice list is drawn on the page, outside the dialog. A modal dialog
+// ignores clicks there, so choosing a record must not count as leaving.
+function recordPickerEvent(event: { detail?: { originalEvent?: Event } }) {
+  const target = event.detail?.originalEvent?.target;
+  return target instanceof Element && !!target.closest("[data-record-picker-menu]");
+}
+
 export function OperatorPanel({ title, description, open, close, blocked = false, children, onBlockedChange }: { title: string; description: string; open: boolean; close: () => void; blocked?: boolean; children: ReactNode; onBlockedChange?: (blocked: boolean) => void }) {
   const { t } = useI18n();
   const [childLocks, setChildLocks] = useState<Set<string>>(() => new Set());
@@ -307,7 +314,7 @@ export function OperatorPanel({ title, description, open, close, blocked = false
   return <PanelLockContext.Provider value={updateLock}><Dialog.Root open={open} onOpenChange={value => { if (!value && !locked) close(); }}>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim backdrop-blur-[3px]" />
-      <Dialog.Content className="th-operation-panel fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-hairline p-5 focus:outline-none sm:max-w-4xl sm:p-8" onEscapeKeyDown={event => { if (locked) event.preventDefault(); }} onPointerDownOutside={event => { if (locked) event.preventDefault(); }} onInteractOutside={event => { if (locked) event.preventDefault(); }}>
+      <Dialog.Content className="th-operation-panel fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-hairline p-5 focus:outline-none sm:max-w-4xl sm:p-8" onEscapeKeyDown={event => { if (locked) event.preventDefault(); }} onPointerDownOutside={event => { if (locked || recordPickerEvent(event)) event.preventDefault(); }} onInteractOutside={event => { if (locked || recordPickerEvent(event)) event.preventDefault(); }}>
         <div className="mb-6 flex items-start justify-between gap-5 border-b border-hairline pb-5">
           <div className="min-w-0">
             <Dialog.Title className="text-2xl font-semibold tracking-tight">{title}

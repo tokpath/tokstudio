@@ -100,7 +100,7 @@ export function RecordPicker({ label, required, invalid, disabled, ready = true,
     setOpen(false);
   }
 
-  const menu = open && box ? <ul ref={list} id={listId} role="listbox" aria-label={label} style={{ top: box.top, left: box.left, width: box.width }} className="fixed z-[80] max-h-60 overflow-auto rounded-control border border-hairline bg-canvas-raised py-1 text-sm shadow-lg">
+  const menu = open && box ? <ul ref={list} id={listId} role="listbox" aria-label={label} data-record-picker-menu="" style={{ top: box.top, left: box.left, width: box.width, pointerEvents: "auto" }} className="pointer-events-auto fixed z-[80] max-h-60 overflow-auto rounded-control border border-hairline bg-canvas-raised py-1 text-sm shadow-lg">
     <li><button type="button" role="option" aria-selected={value === ""} className="block min-h-11 w-full px-3 text-left text-ink-secondary hover:bg-canvas" onMouseDown={event => event.preventDefault()} onClick={() => choose(null)}>{emptyLabel}</button></li>
     {rows.map(item => <li key={item.value}><button type="button" role="option" aria-selected={item.value === value} className="block min-h-11 w-full px-3 text-left hover:bg-canvas" onMouseDown={event => event.preventDefault()} onClick={() => choose(item)}>{item.label}</button></li>)}
     {loading && <li className="px-3 py-2 text-xs text-ink-mute">{placeholder}</li>}

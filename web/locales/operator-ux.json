@@ -179,11 +179,6 @@
     "ja": "供給見積",
     "ru": "Предложения поставки"
   },
-  "发布供货报价": {
-    "en": "Publish supply quote",
-    "ja": "供給見積を公開",
-    "ru": "Опубликовать предложение"
-  },
   "供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。": {
     "en": "Supply orders list the inventory held by each purchase. Unpaid orders have no time limit and are released only after full payment or cancellation.",
     "ja": "供給注文では、各調達が確保している在庫を一覧します。未払い注文に期限はなく、完済または取り消し後に解放されます。",

@@ -105,7 +105,10 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-${{ hashFiles('backend/**/*.go', 'backend/**/*.sql', 'backend/**/*.json', 'scripts/ci-backend.cjs') }}
+          # Cache dependency/toolchain snapshots, not each application commit.
+          # Go validates changed source/embedded files itself; a source hash
+          # here uploaded hundreds of MB per shard after every small edit.
+          key: go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-deps-${{ hashFiles('backend/go.mod', 'backend/scripts/build-release.sh', 'scripts/ci-backend.cjs') }}
           restore-keys: |
             go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-${{ hashFiles('backend/go.sum') }}-
             go-ci-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ matrix.shard }}-

@@ -21202,7 +21202,7 @@
             }
           }
         },
-        "description": "填写公开模型标识，并勾选可以调用的能力。客户请求和页面都使用这个标识。是否对客户开放在列表里切换。没有配置路由时不能打开。计费和供应商价格写在供应商模型上。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "填写公开模型标识，并勾选可以调用的能力。客户请求和页面都使用这个标识。是否对客户开放在列表里切换。没有配置路由时不能打开。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。 Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },

@@ -629,31 +629,6 @@
     "ja": "容量、サーキットブレーカー、復旧",
     "ru": "Ёмкость, автоматическое отключение и восстановление"
   },
-  "最大同时在途（0 不额外限制）": {
-    "en": "Maximum concurrent requests (0 for no additional limit)",
-    "ja": "最大同時実行数（0 は追加制限なし）",
-    "ru": "Максимум одновременных запросов (0 — без дополнительного ограничения)"
-  },
-  "连续失败阈值（0 使用默认 3）": {
-    "en": "Consecutive failure threshold (0 uses default 3)",
-    "ja": "連続失敗しきい値（0 は既定の 3）",
-    "ru": "Порог последовательных сбоев (0 — по умолчанию 3)"
-  },
-  "未知用量阈值（0 使用默认 2）": {
-    "en": "Unknown usage threshold (0 uses default 2)",
-    "ja": "使用量不明のしきい値（0 は既定の 2）",
-    "ru": "Порог неизвестного использования (0 — по умолчанию 2)"
-  },
-  "恢复成功探测次数（0 使用默认 2）": {
-    "en": "Successful recovery probes (0 uses default 2)",
-    "ja": "復旧に必要な成功プローブ回数（0 は既定の 2）",
-    "ru": "Успешные проверки для восстановления (0 — по умолчанию 2)"
-  },
-  "冷却秒数（0 使用默认 60）": {
-    "en": "Cooldown seconds (0 uses default 60)",
-    "ja": "クールダウン秒数（0 は既定の 60）",
-    "ru": "Пауза в секундах (0 — по умолчанию 60)"
-  },
   "路由已验证能力": {
     "en": "Verified route capabilities",
     "ja": "ルートの検証済み機能",
@@ -2813,11 +2788,6 @@
     "ja": "呼び出せる能力",
     "ru": "Возможности, которые может вызвать клиент"
   },
-  "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。是否对客户开放，在列表里切换。": {
-    "en": "Check what customers can call. Metering and the supplier price belong on the supplier model. Whether customers can call it is switched in the list.",
-    "ja": "顧客が呼び出せる能力を選択します。計量と供給元価格は供給元モデルに書きます。顧客に公開するかは一覧で切り替えます。",
-    "ru": "Отметьте, что может вызвать клиент. Учёт и цена поставщика задаются у модели поставщика. Доступ для клиентов переключается в списке."
-  },
   "供应商模型与成本价": {
     "en": "Supplier model and cost",
     "ja": "供給元モデルとコスト",
@@ -2952,11 +2922,6 @@
     "en": "One public model can bind several supplier models. A smaller priority number is considered first.",
     "ja": "1 つの公開モデルに複数の供給元モデルを紐付けできます。優先度の数字が小さい方が先に考慮されます。",
     "ru": "К одной публичной модели можно привязать несколько моделей поставщика. Меньший приоритет рассматривается раньше."
-  },
-  "选择先用哪一条，并写下连续失败后暂时停用的数字。": {
-    "en": "Choose which binding is used first, and enter the numbers that pause it after repeated failures.",
-    "ja": "どれを先に使うかを選び、連続失敗後に一時停止する数字を記入します。",
-    "ru": "Выберите, какую привязку использовать первой, и укажите числа, после которых она временно останавливается."
   },
   "零售价使用客户 ATG，供货价使用采购 ATG。供应商的 USD 成本价写在供应商模型上。倍率不是利润率。": {
     "en": "Retail prices use customer ATG. Supply prices use procurement ATG. The supplier USD cost is entered on the supplier model. A multiplier is not a profit margin.",
@@ -3147,5 +3112,70 @@
     "en": "Change this supplier model's protocol, capabilities, and provider prices. Routes already bound to it are updated.",
     "ja": "この供給元モデルのプロトコル、能力、提供元価格を変更します。紐づいたルートも更新されます。",
     "ru": "Измените протокол, возможности и цены этой модели поставщика. Уже привязанные маршруты обновятся."
+  },
+  "勾选客户可以调用的能力。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。是否对客户开放，在列表里切换。": {
+    "en": "Select the capabilities customers can call. Set billing templates and retail/wholesale ATG prices in Model pricing. Reference prices on supplier models are used only to calculate upstream costs. Toggle customer availability in the list.",
+    "ja": "顧客が呼び出せる機能を選択します。課金テンプレートと小売・卸売 ATG 価格は「モデルと価格」で設定します。供給元モデルの参考価格表は上流コストの計算にのみ使用します。顧客への公開は一覧で切り替えます。",
+    "ru": "Выберите доступные клиентам возможности. Шаблоны тарификации и розничные/оптовые цены в ATG задаются в разделе «Модели и цены». Справочные цены моделей поставщиков используются только для расчёта затрат. Доступ для клиентов переключается в списке."
+  },
+  "最大并发请求数": {
+    "en": "Maximum concurrent requests",
+    "ja": "最大同時リクエスト数",
+    "ru": "Максимум одновременных запросов"
+  },
+  "连续失败次数": {
+    "en": "Consecutive failure limit",
+    "ja": "連続失敗回数",
+    "ru": "Порог последовательных сбоев"
+  },
+  "用量无法核实次数": {
+    "en": "Unverified usage limit",
+    "ja": "使用量を確認できない回数",
+    "ru": "Порог запросов с неподтверждённым расходом"
+  },
+  "恢复所需成功次数": {
+    "en": "Successes required to recover",
+    "ja": "復旧に必要な成功回数",
+    "ru": "Успешных запросов для восстановления"
+  },
+  "故障暂停时长（秒）": {
+    "en": "Failure cooldown (seconds)",
+    "ja": "障害時の停止時間（秒）",
+    "ru": "Пауза после сбоя (сек.)"
+  },
+  "选择可用的供应商模型和选路策略。熔断参数已填入系统默认值，通常无需修改。": {
+    "en": "Choose available supplier models and a routing strategy. Circuit breaker settings are prefilled with system defaults and usually need no changes.",
+    "ja": "利用可能な供給元モデルとルーティング方式を選択します。障害時の停止・復旧設定には既定値が入力済みで、通常は変更不要です。",
+    "ru": "Выберите доступные модели поставщиков и стратегию маршрутизации. Параметры защиты уже заполнены системными значениями; обычно менять их не нужно."
+  },
+  "这条绑定连续出错或用量无法核实时，暂时停止接单；暂停结束后逐个放行新请求，确认成功且用量可靠后恢复。不会停用其他正常绑定。": {
+    "en": "Temporarily stop this binding after repeated failures or unverified usage. After the cooldown, admit new requests one at a time and restore normal traffic after verified successes. Other healthy bindings remain available.",
+    "ja": "この接続で失敗や使用量未確認が続くと、一時的に受付を停止します。停止時間後は新規リクエストを一件ずつ通し、成功と使用量を確認して復旧します。他の正常な接続は停止しません。",
+    "ru": "При повторных сбоях или неподтверждённом расходе эта привязка временно перестаёт принимать запросы. После паузы новые запросы пропускаются по одному до подтверждённого восстановления. Другие исправные привязки продолжают работать."
+  },
+  "限制这条绑定同时处理的请求数。填 0 表示不额外限制，但仍受客户、供应商等其他并发限制约束。": {
+    "en": "Limit concurrent requests on this binding. Enter 0 for no additional limit; customer, supplier, and other concurrency limits still apply.",
+    "ja": "この接続で同時に処理するリクエスト数です。0 は追加制限なしですが、顧客や供給元などの同時実行制限は引き続き適用されます。",
+    "ru": "Ограничение одновременных запросов для этой привязки. 0 — без дополнительного ограничения; ограничения клиента, поставщика и другие лимиты сохраняются."
+  },
+  "连续失败或用量无法核实的请求达到此次数时，暂停这条绑定。成功且用量可核实的请求会清零计数。填 0 采用系统默认 3 次，不表示关闭熔断。": {
+    "en": "Pause this binding after this many consecutive failed requests or requests with unverified usage. A successful request with verified usage resets the counter. Entering 0 uses the system default of 3; it does not disable protection.",
+    "ja": "失敗または使用量を確認できないリクエストがこの回数連続すると停止します。成功し使用量も確認できたリクエストで回数がリセットされます。0 は既定の 3 回を使用し、保護を無効にはしません。",
+    "ru": "Приостановить привязку после указанного числа последовательных сбоев или запросов с неподтверждённым расходом. Успешный запрос с подтверждённым расходом сбрасывает счётчик. 0 означает системное значение 3, а не отключение защиты."
+  },
+  "自上次成功且用量可核实的请求后，用量仍无法核实的请求累计达到此次数时，暂停这条绑定。填 0 采用系统默认 2 次，不表示关闭熔断。": {
+    "en": "Pause this binding when requests with unverified usage reach this count since the last successful request with verified usage. Entering 0 uses the system default of 2; it does not disable protection.",
+    "ja": "直近の成功かつ使用量確認済みのリクエスト以降、使用量を確認できないリクエストがこの回数に達すると停止します。0 は既定の 2 回を使用し、保護を無効にはしません。",
+    "ru": "Приостановить привязку, когда после последнего успешного запроса с подтверждённым расходом число запросов с неподтверждённым расходом достигнет этого порога. 0 означает системное значение 2, а не отключение защиты."
+  },
+  "暂停结束后，每次只放行一个新请求尝试恢复。连续成功且用量可核实达到此次数后恢复正常；失败则重新暂停。填 0 采用系统默认 2 次。": {
+    "en": "After the cooldown, admit one new request at a time. Restore normal traffic after this many consecutive successes with verified usage; a failure starts another cooldown. Entering 0 uses the system default of 2.",
+    "ja": "停止時間後、新規リクエストを一件ずつ通します。使用量を確認できる成功がこの回数連続すると通常運転に戻り、失敗すると再び停止します。0 は既定の 2 回を使用します。",
+    "ru": "После паузы пропускать новые запросы по одному. Обычная работа возобновляется после указанного числа последовательных успешных запросов с подтверждённым расходом; сбой снова запускает паузу. 0 означает системное значение 2."
+  },
+  "故障后暂停接单的秒数，到期后等待新请求逐个尝试恢复，并非立即恢复全部流量。填 0 采用系统默认 60 秒，不表示不暂停。": {
+    "en": "Seconds to stop accepting requests after a failure. When the cooldown ends, wait for new requests to test recovery one at a time rather than restoring all traffic immediately. Entering 0 uses the system default of 60 seconds; it does not skip the cooldown.",
+    "ja": "障害後に受付を停止する秒数です。時間経過後は新規リクエストで一件ずつ復旧を確認し、直ちに全トラフィックを戻すわけではありません。0 は既定の 60 秒を使用し、停止を省略しません。",
+    "ru": "Время остановки приёма запросов после сбоя в секундах. После паузы восстановление проверяется новыми запросами по одному, а не немедленным возвратом всего потока. 0 означает системные 60 секунд, а не отсутствие паузы."
   }
 }

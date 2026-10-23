@@ -492,7 +492,7 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 		openColumn := col("enabled", "开放模型", "boolean")
 		openColumn["help"] = "在列表里打开后，客户才能调用。没有配置路由时不能打开。"
 		p["columns"] = []gin.H{col("id", "公开模型标识", "text"), col("capabilities", "能力", "text"), openColumn}
-		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识，并勾选可以调用的能力。客户请求和页面都使用这个标识。是否对客户开放在列表里切换。没有配置路由时不能打开。计费和供应商价格写在供应商模型上。", Fields: []field{jsonField("model 对象：id、capabilities（勾选的调用能力）、expected_version。是否开放不在这里修改。")}}}
+		p["operations"] = []operation{{Name: "save", Label: "添加公开模型", Method: "POST", Path: base, Description: "填写公开模型标识，并勾选可以调用的能力。客户请求和页面都使用这个标识。是否对客户开放在列表里切换。没有配置路由时不能打开。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。", Fields: []field{jsonField("model 对象：id、capabilities（勾选的调用能力）、expected_version。是否开放不在这里修改。")}}}
 	case "providers":
 		rows, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
 		if e != nil {

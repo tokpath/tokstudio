@@ -398,11 +398,17 @@ func (a *Application) references(c *gin.Context) {
 			handleError(c, e)
 			return
 		}
+		credentials, e := a.Catalog.AdminCredentials(ctx, operator)
+		if e != nil {
+			handleError(c, e)
+			return
+		}
+		labels := supplierLabels(credentials)
 		for _, model := range models {
 			if !model.Enabled && kind != "cost-models" {
 				continue
 			}
-			add(model.ID, humanJoin(model.Model, model.Provider), gin.H{"provider_id": model.ProviderID, "credential_id": model.CredentialID})
+			add(model.ID, humanJoin(model.Model, labels[model.CredentialID], model.Provider), gin.H{"provider_id": model.ProviderID, "credential_id": model.CredentialID})
 		}
 	case "credentials":
 		if customer || !require("catalog.manage") {

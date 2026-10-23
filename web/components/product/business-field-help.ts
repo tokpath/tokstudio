@@ -2,6 +2,16 @@
 export function businessFieldHelp(name: string, existing?: string, lookup?: string): string | undefined {
   if (existing) return existing;
   const key = name.split(".").at(-1) || name;
+  if (name.startsWith("routing.") || name.includes(".routing.")) {
+    const routingHelp: Record<string, string> = {
+      max_concurrent: "限制这条绑定同时处理的请求数。填 0 表示不额外限制，但仍受客户、供应商等其他并发限制约束。",
+      failure_threshold: "连续失败或用量无法核实的请求达到此次数时，暂停这条绑定。成功且用量可核实的请求会清零计数。填 0 采用系统默认 3 次，不表示关闭熔断。",
+      unknown_usage_threshold: "自上次成功且用量可核实的请求后，用量仍无法核实的请求累计达到此次数时，暂停这条绑定。填 0 采用系统默认 2 次，不表示关闭熔断。",
+      recovery_successes: "暂停结束后，每次只放行一个新请求尝试恢复。连续成功且用量可核实达到此次数后恢复正常；失败则重新暂停。填 0 采用系统默认 2 次。",
+      cooldown_seconds: "故障后暂停接单的秒数，到期后等待新请求逐个尝试恢复，并非立即恢复全部流量。填 0 采用系统默认 60 秒，不表示不暂停。",
+    };
+    if (routingHelp[key]) return routingHelp[key];
+  }
   if (["price.id", "upstream.id"].includes(name)) return "新建时系统生成唯一编号，编辑时保留原编号，无需手工填写。它用于识别本条价格或路由，不是公开模型 ID，也不会改变模型能力。";
   if (name === "model.id") return "这是应用请求中填写的公开模型 ID，例如 text-pro-v1。请确定稳定且便于识别的名称。供应商模型名称写在模型供应商页，不要把密钥或供应商地址填在这里。";
   if (name === "upstream.identity" || name === "model.identity") return "填写已经核实的模型身份和修订版本，例如 vendor-model-2026-01。上游路由须与对应公开模型身份一致，避免把不同模型或版本混在同一个公开模型下。";

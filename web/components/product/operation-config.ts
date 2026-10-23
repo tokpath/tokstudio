@@ -74,7 +74,7 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
   if (/\/catalog$/.test(operation.path)) return object("公开模型", {
     model: object("模型名称与能力", {
       id: text("公开模型标识", true, "客户请求和页面都使用这个标识，例如 demo-chat。创建后不能修改。"),
-      capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费和供应商价格写在供应商模型上。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
+      capabilities: { ...array("可调用的能力", object("能力", { operation: select("调用能力", operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download")) }), "勾选客户可以调用的能力。计费模板和零售、批发 ATG 价格在「模型与定价」设置；供应商模型上的参考价目仅用于核算上游成本。是否对客户开放，在列表里切换。"), presentation: "operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
     effective_at: { ...datetime("计划生效时间（修订已开放模型时填写）"), hideWhen: { field: "expected_version", values: ["0", ""] } },
@@ -106,9 +106,15 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
         supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },
         priority: { ...integer("选路优先级（数字越小越优先）", 0), signed: true },
         enabled: { ...boolean("这条绑定接单"), default: true },
-        routing: { ...object("熔断", { max_concurrent: { ...integer("最大同时在途（0 不额外限制）", 0), max: 100000 }, failure_threshold: { ...integer("连续失败阈值（0 使用默认 3）", 0), max: 100 }, unknown_usage_threshold: { ...integer("未知用量阈值（0 使用默认 2）", 0), max: 100 }, recovery_successes: { ...integer("恢复成功探测次数（0 使用默认 2）", 0), max: 20 }, cooldown_seconds: { ...integer("冷却秒数（0 使用默认 60）", 0), max: 86400 } }), required: false },
+        routing: { ...object("熔断", {
+          max_concurrent: { ...integer("最大并发请求数", 0), max: 100000 },
+          failure_threshold: { ...integer("连续失败次数", 3), max: 100 },
+          unknown_usage_threshold: { ...integer("用量无法核实次数", 2), max: 100 },
+          recovery_successes: { ...integer("恢复所需成功次数", 2), max: 20 },
+          cooldown_seconds: { ...integer("故障暂停时长（秒）", 60), max: 86400 },
+        }, "这条绑定连续出错或用量无法核实时，暂时停止接单；暂停结束后逐个放行新请求，确认成功且用量可靠后恢复。不会停用其他正常绑定。"), required: false },
       }), "一个公开模型可以绑多个供应商模型。数字小的优先级先被考虑。"),
-    }, "选择先用哪一条，并写下连续失败后暂时停用的数字。"),
+    }, "选择可用的供应商模型和选路策略。熔断参数已填入系统默认值，通常无需修改。"),
     expected_version: { ...integer("当前策略版本（自动带入）", 0), readOnly: true },
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "template") return object("模型计费模板", {

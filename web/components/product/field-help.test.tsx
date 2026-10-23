@@ -7,6 +7,7 @@ import { translate, type Locale } from "@/lib/i18n";
 import { FieldHelp } from "./field-help";
 import { OperationForm } from "./operation-form";
 import { configDefaults, configurationSchema } from "./operation-config";
+import { businessFieldHelp } from "./business-field-help";
 import type { Entity, Operation } from "@/lib/contracts";
 const help = "例如：账号有 100 ATG，给某个 Key 设置每月 20 ATG 预算，该 Key 当月最多使用 20 ATG；创建时不会划走这 20 ATG，其他 Key 仍共享账号可用额度。";
 const response = (data: unknown) => new Response(JSON.stringify(data), { status: 200 });
@@ -40,9 +41,27 @@ it("retains generated binding IDs through input and locale changes and preserves
  fireEvent.change(screen.getByRole("textbox",{name:/^选路优先级/}),{target:{value:"3"}});fireEvent.click(screen.getByRole("button",{name:"ru",exact:true}));
  fireEvent.click(screen.getByRole("button",{name:translate("ru","保存路由"),exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
  const posted=JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body));const id=posted.configuration.route.bindings[0].id;expect(id).toMatch(/^[\da-f-]{36}$/);expect(posted.configuration.route.bindings[0].priority).toBe(3);view.unmount();fetch.mockClear();
- show(route,{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-existing",supplier_model_id:"supplier-one",priority:2,enabled:true}]}});
+ expect(posted.configuration.route.bindings[0].routing).toEqual({max_concurrent:0,failure_threshold:3,unknown_usage_threshold:2,recovery_successes:2,cooldown_seconds:60});
+ const inherited={max_concurrent:0,failure_threshold:0,unknown_usage_threshold:0,recovery_successes:0,cooldown_seconds:0};
+ show(route,{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-existing",supplier_model_id:"supplier-one",priority:2,enabled:true,routing:inherited}]}});
  fireEvent.click(screen.getByRole("button",{name:"保存路由",exact:true}));await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
  expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body)).configuration.route.bindings[0].id).toBe("binding-existing");
+ expect(JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body)).configuration.route.bindings[0].routing).toEqual(inherited);
+});
+it.each(["zh","en","ja","ru"] as Locale[])("explains circuit defaults and concurrency zero without changing form values in %s",async locale=>{
+ const fetch=vi.fn(async()=>response({items:[]}));vi.stubGlobal("fetch",fetch);show(route);
+ fireEvent.click(screen.getByRole("button",{name:"添加绑定",exact:true}));fireEvent.click(screen.getByRole("button",{name:locale,exact:true}));
+ const fields=configurationSchema(route)!.fields!.route.fields!.bindings.item!.fields!.routing.fields!;
+ for(const [key,node] of Object.entries(fields)){
+  const title=translate(locale,node.label),explanation=businessFieldHelp(`route.bindings.0.routing.${key}`)!;
+  if(locale!=="zh")expect(translate(locale,explanation)).not.toBe(explanation);
+  const input=screen.getByRole("textbox",{name:new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}`)}) as HTMLInputElement;
+  expect(input.value).toBe(String(node.default));
+  fireEvent.click(screen.getByRole("button",{name:translate(locale,"了解{title}",{title})}));
+  expect(await screen.findByRole("dialog",{name:title})).toBeTruthy();expect(screen.getByText(translate(locale,explanation))).toBeTruthy();
+  fireEvent.keyDown(document.activeElement||document.body,{key:"Escape"});await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());expect(input.value).toBe(String(node.default));
+ }
+ expect(fetch.mock.calls.some(call=>(call as unknown as [unknown,RequestInit])[1]?.method==="POST")).toBe(false);
 });
 it("opening help does not unlock or resubmit an unresolved command",async()=>{
  const calls:RequestInit[]=[];vi.stubGlobal("fetch",vi.fn(async(_path:RequestInfo|URL,init?:RequestInit)=>{calls.push(init!);if(calls.length===1)throw new TypeError("network lost");return response({id:"policy",status:"saved"})}));

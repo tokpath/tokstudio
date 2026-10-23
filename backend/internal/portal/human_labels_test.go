@@ -14,6 +14,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/catalog"
 	"github.com/tokpath/tokstudio/backend/internal/commerce"
 	"github.com/tokpath/tokstudio/backend/internal/ledger"
+	"github.com/tokpath/tokstudio/backend/internal/modelruntime"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 )
 
@@ -25,6 +26,52 @@ func TestSupplierLabelsUseTheCredentialNamePeopleSee(t *testing.T) {
 	})
 	if labels["named"] != "onerouter" || labels["blank"] != "供应商凭据 · c07e3f6b0758" {
 		t.Fatal(labels)
+	}
+}
+
+func TestPostgresSupplierModelReferencesDistinguishSuppliersAndSearchTheirNames(t *testing.T) {
+	f := setupPortal(t)
+	ctx := context.Background()
+	op := f.a.Installation.OperatorID
+	for _, supplier := range []struct {
+		name    string
+		enabled bool
+	}{{"North supplier", true}, {"South supplier", true}, {"Retired supplier", false}} {
+		credentialID := uuid.NewString()
+		if _, err := f.a.Catalog.SaveCredential(ctx, op, credentialID, uuid.NewString(), supplier.name, "private-test-secret", true, 0); err != nil {
+			t.Fatal(err)
+		}
+		model := catalog.SupplierModel{ID: uuid.NewString(), CredentialID: credentialID, Provider: "openai", Model: "same-model", Enabled: supplier.enabled, Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}}
+		if err := f.a.Catalog.SaveSupplierModel(ctx, op, model, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.login(t, "staff", "owner@example.test", "owner-password-test")
+	for _, kind := range []string{"supplier-models", "cost-models"} {
+		path := "/v1/operators/" + op + "/references/" + kind
+		status, out, _ := f.call(t, "GET", path, nil, "")
+		mustOK(t, status, out)
+		want := map[string]bool{"same-model · North supplier · openai": true, "same-model · South supplier · openai": true}
+		if kind == "cost-models" {
+			want["same-model · Retired supplier · openai"] = true
+		}
+		items := out["items"].([]any)
+		if len(items) != len(want) {
+			t.Fatal(kind, out)
+		}
+		for _, raw := range items {
+			label := raw.(map[string]any)["label"].(string)
+			if !want[label] {
+				t.Fatal("missing supplier name or leaked unrelated data", kind, raw)
+			}
+			delete(want, label)
+		}
+		status, out, _ = f.call(t, "GET", path+"?q="+url.QueryEscape("south supplier"), nil, "")
+		mustOK(t, status, out)
+		items = out["items"].([]any)
+		if len(items) != 1 || items[0].(map[string]any)["label"] != "same-model · South supplier · openai" {
+			t.Fatal("supplier-name search did not disambiguate models", kind, out)
+		}
 	}
 }
 

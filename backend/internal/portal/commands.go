@@ -175,7 +175,13 @@ func (a *Application) operatorCommand(c *gin.Context) {
 			out, e := a.Commerce.RecordManualReceipt(ctx, tx, actor, fact)
 			if e == nil && in.OrderID != "" {
 				businessKey, _ := key(c)
-				_, e = a.allocateWholeRetailReceipt(ctx, tx, actor, op.ID, out.ID, in.OrderID, "manual:"+businessKey)
+				matching := tx.Transaction(func(match *gorm.DB) error {
+					_, err := a.allocateWholeRetailReceipt(ctx, match, actor, op.ID, out.ID, in.OrderID, "manual:"+businessKey)
+					return err
+				})
+				if matching != nil {
+					return gin.H{"id": out.ID, "status": "recorded", "message": "真实收款已登记，订单尚未关联；请在收款记录核对金额和原订单，原付款未知时先核实原交易"}, nil
+				}
 			}
 			return commandResult(out.ID, "recorded"), e
 		case "payment-methods":

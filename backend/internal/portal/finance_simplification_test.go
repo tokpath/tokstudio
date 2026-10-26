@@ -96,8 +96,32 @@ func TestPostgresFinanceReceiptLinksOneOrderAndDerivesOnlyKnownValues(t *testing
 	}
 	input["order_id"], input["provider_receipt_id"] = unsafe.ID, "must-not-bypass-online-payment"
 	status, out, _ = f.call(t, "POST", base+"/payments", input, uuid.NewString())
-	if status != 409 || out["error"].(map[string]any)["code"] != "original_payment_pending" {
-		t.Fatal(status, out)
+	mustOK(t, status, out)
+	unmatched, err := f.a.Commerce.GetReceipt(ctx, nil, operator, out["id"].(string))
+	if err != nil || !unmatched.AllocatedUSD.IsZero() || !strings.Contains(out["message"].(string), "尚未关联") {
+		t.Fatal("real money lost or online checkout bypassed", unmatched, out, err)
+	}
+	short, err := f.a.Commerce.CreateTopUpOrder(ctx, nil, commerce.CreateTopUpInput{OperatorID: operator, CustomerID: customer, BusinessKey: uuid.NewString(), ExpectedOwnershipVersion: 1, AmountUSD: ledger.MustDecimal("20")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	input["order_id"], input["provider_receipt_id"] = short.ID, "short-payment-kept-for-review"
+	shortKey := uuid.NewString()
+	status, out, _ = f.call(t, "POST", base+"/payments", input, shortKey)
+	mustOK(t, status, out)
+	shortReceipt := out["id"].(string)
+	status, replay, _ = f.call(t, "POST", base+"/payments", input, shortKey)
+	mustOK(t, status, replay)
+	if replay["id"] != shortReceipt {
+		t.Fatal("unmatched receipt duplicated", replay)
+	}
+	unmatched, err = f.a.Commerce.GetReceipt(ctx, nil, operator, shortReceipt)
+	if err != nil || !unmatched.AllocatedUSD.IsZero() || unmatched.GrossUSD.String() != "10" {
+		t.Fatal("short real receipt lost", unmatched, err)
+	}
+	status, out, _ = f.call(t, "POST", base+"/payments/"+shortReceipt+"/allocate", map[string]any{"order_id": short.ID}, uuid.NewString())
+	if status != 409 || out["error"].(map[string]any)["code"] != "receipt_amount_conflict" || out["error"].(map[string]any)["retryable"] != false {
+		t.Fatal("known mismatch reported as an uncertain execution", status, out)
 	}
 }
 

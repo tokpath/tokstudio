@@ -130,6 +130,8 @@ func handleError(c *gin.Context, err error) {
 		status, code, msg, retry = 409, "independent_review_required", "此事项需要另一位有权限的人员独立复核", false
 	case errors.Is(err, commerce.ErrWholePayment):
 		status, code, msg, retry = 409, "whole_payment_required", "一个订单只关联一笔足额外部付款；金额不符的款项请单独登记并按异常处理", false
+	case errors.Is(err, commerce.ErrExcessAllocation):
+		status, code, msg, retry = 409, "receipt_amount_conflict", "收款金额不足、已被使用或超出订单应付，请核对原收款和订单", false
 	case errors.Is(err, cooperation.ErrLiability), errors.Is(err, cooperation.ErrCoverage), errors.Is(err, remediation.ErrState), errors.Is(err, commerce.ErrOrderState), errors.Is(err, commerce.ErrNotPaid), errors.Is(err, incentives.ErrWithdrawalState):
 		status, code, msg, retry = 409, "state_restricted", "当前业务状态或资金条件不允许此操作，请查询原记录", false
 	case errors.Is(err, ledger.ErrInsufficient):

@@ -2293,5 +2293,15 @@
     "en": "The original payment is awaiting verification. This action was not performed. Check the original transaction first to avoid duplicate payments.",
     "ja": "元の支払いは確認待ちです。この操作は実行していません。二重払いを防ぐため、先に元の取引を確認してください。",
     "ru": "Исходный платёж ожидает проверки. Это действие не выполнено. Сначала проверьте исходную операцию, чтобы избежать повторной оплаты."
+  },
+  "真实收款已登记，订单尚未关联；请在收款记录核对金额和原订单，原付款未知时先核实原交易": {
+    "en": "The actual receipt has been recorded, but the order is not linked yet. Check the amount and original order in Receipts. Verify any unresolved original payment first.",
+    "ja": "実際の入金を記録しましたが、注文はまだ関連付けられていません。入金記録で金額と元の注文を確認し、未確定の支払いがある場合は先に結果を確認してください。",
+    "ru": "Фактическое поступление зарегистрировано, но заказ пока не связан. Проверьте сумму и исходный заказ в разделе поступлений. Сначала уточните результат незавершённого исходного платежа."
+  },
+  "收款金额不足、已被使用或超出订单应付，请核对原收款和订单": {
+    "en": "The receipt is insufficient, already used, or exceeds the order amount. Check the original receipt and order.",
+    "ja": "入金額が不足している、既に使用済み、または注文金額を超えています。元の入金と注文を確認してください。",
+    "ru": "Сумма поступления недостаточна, уже использована или превышает сумму заказа. Проверьте исходное поступление и заказ."
   }
 }

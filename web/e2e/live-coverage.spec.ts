@@ -15,7 +15,7 @@ const desktop = { width: 1365, height: 960 }, mobile = { width: 390, height: 844
 const operatorCases: RouteCase[] = operatorSections.flatMap(section => section.items.map(([resource, label]) => ({
   path: `/manage/${fixture?.operator_id || "unconfigured"}/${resource}`,
   label: `${section.group} / ${label}`,
-  api: [`/api/v1/operators/${fixture?.operator_id || "unconfigured"}/${resource === "reports" ? "reports/financial" : resource === "takeover-settlements" ? "takeovers" : resource}`],
+  api: [`/api/v1/operators/${fixture?.operator_id || "unconfigured"}/${resource === "reports" ? "reports/financial" : resource}`],
   allowedErrors: ["pending_configuration", "unmet_requirements"],
   evidence: ["overview", "coverage", "reports"].includes(resource),
 })));

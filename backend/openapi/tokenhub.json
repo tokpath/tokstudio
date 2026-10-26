@@ -15092,168 +15092,6 @@
         }
       }
     },
-    "/v1/operators/{operatorId}/takeover-settlements": {
-      "get": {
-        "operationId": "get__v1_operators_operatorId_takeover_settlements",
-        "summary": "Read exact operator takeover-settlements workspace",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque page cursor",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Server-side search only when the response declares search_supported; matching occurs within the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Exact business status only when the response declares status_supported; applied in the authorized scope before pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "description": "Only workspace-provided view values are accepted.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "record",
-            "in": "query",
-            "required": false,
-            "description": "Exact refund case context when following an authorized business record.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Takeovers"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "description": "Requires authenticated staff membership and the domain permission for this exact operator. Allowed operations, explicit typed fields and row actions are returned by the workspace; no generic writable table API exists."
-      }
-    },
     "/v1/operators/{operatorId}/exits": {
       "get": {
         "operationId": "get__v1_operators_operatorId_exits",
@@ -34678,588 +34516,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExecutionProof"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/operators/{operatorId}/takeover-settlements/{id}/refresh": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_takeover_settlements_id_refresh",
-        "summary": "Takeover refresh preserving customer rights and separate actual cash settlement",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Takeover"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/operators/{operatorId}/takeover-settlements/{id}/execute": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_takeover_settlements_id_execute",
-        "summary": "Takeover execute preserving customer rights and separate actual cash settlement",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Takeover"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "expected_snapshot": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "expected_snapshot"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/operators/{operatorId}/takeover-settlements/{id}/cancel": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_takeover_settlements_id_cancel",
-        "summary": "Takeover cancel preserving customer rights and separate actual cash settlement",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Takeover"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "evidence": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "evidence"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/operators/{operatorId}/takeover-settlements/{id}/settle": {
-      "post": {
-        "operationId": "post__v1_operators_operatorId_takeover_settlements_id_settle",
-        "summary": "Takeover settle preserving customer rights and separate actual cash settlement",
-        "tags": [
-          "Operator browser API"
-        ],
-        "security": [
-          {
-            "BrowserSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "operatorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/CSRF"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Takeover"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or missing idempotency key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Wrong tenant, permission, origin, CSRF or frozen action",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in authenticated scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Business state, configuration, version, or unknown outcome requires review",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Temporary result expired or unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Request budget, rate, or concurrency limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency or verified route unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExecutionProof"
+                "$ref": "#/components/schemas/TakeoverSettlement"
               }
             }
           }
@@ -49116,14 +48373,6 @@
             "type": "string",
             "description": "合作约定说明（可选）"
           },
-          "exit_policy": {
-            "type": "string",
-            "enum": [
-              "non_refundable",
-              "remaining_paid_proportional"
-            ],
-            "description": "主动退出时的余额处理 — 报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
-          },
           "contract_attachment_id": {
             "type": "string",
             "description": "已上传合作合同（可选）"
@@ -49133,8 +48382,7 @@
           "kind",
           "name",
           "legal_name",
-          "brand_name",
-          "exit_policy"
+          "brand_name"
         ],
         "additionalProperties": false
       },
@@ -49232,18 +48480,13 @@
             "type": "string",
             "format": "date-time",
             "description": "报价截止时间"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "允许按报价下单"
           }
         },
         "required": [
           "action",
           "buyer_id",
           "gift_tiers",
-          "exit_policy",
-          "enabled"
+          "exit_policy"
         ],
         "additionalProperties": false
       },
@@ -49269,10 +48512,6 @@
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "采购可用库存低于ATG时触发"
-          },
-          "single_limit_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "每次最高USD"
           },
           "period_limit_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -49316,10 +48555,6 @@
             "required": [],
             "additionalProperties": false
           },
-          "consent_reference": {
-            "type": "string",
-            "description": "本次补货范围与付款授权说明"
-          },
           "enabled": {
             "type": "boolean",
             "description": "启用授权"
@@ -49328,6 +48563,10 @@
             "type": "integer",
             "minimum": 0,
             "description": "当前授权版本"
+          },
+          "consent_confirmed": {
+            "type": "boolean",
+            "description": "确认本次补货授权"
           }
         },
         "required": [
@@ -49335,13 +48574,12 @@
           "quote_id",
           "amount_usd",
           "trigger_available_atg",
-          "single_limit_usd",
           "period_limit_usd",
           "period",
           "mode",
-          "consent_reference",
           "enabled",
-          "expected_version"
+          "expected_version",
+          "consent_confirmed"
         ],
         "additionalProperties": false
       },
@@ -49371,10 +48609,6 @@
           "trigger_available_atg": {
             "$ref": "#/components/schemas/LedgerDecimal",
             "description": "采购可用库存低于ATG时触发"
-          },
-          "single_limit_usd": {
-            "$ref": "#/components/schemas/LedgerDecimal",
-            "description": "每次最高USD"
           },
           "period_limit_usd": {
             "$ref": "#/components/schemas/LedgerDecimal",
@@ -49418,10 +48652,6 @@
             "required": [],
             "additionalProperties": false
           },
-          "renewed_consent_reference": {
-            "type": "string",
-            "description": "本次修订的独立授权凭证（请重新确认并填写）"
-          },
           "enabled": {
             "type": "boolean",
             "description": "启用授权"
@@ -49430,6 +48660,10 @@
             "type": "integer",
             "minimum": 0,
             "description": "当前授权版本"
+          },
+          "consent_confirmed": {
+            "type": "boolean",
+            "description": "确认本次补货授权"
           }
         },
         "required": [
@@ -49438,13 +48672,12 @@
           "quote_id",
           "amount_usd",
           "trigger_available_atg",
-          "single_limit_usd",
           "period_limit_usd",
           "period",
           "mode",
-          "renewed_consent_reference",
           "enabled",
-          "expected_version"
+          "expected_version",
+          "consent_confirmed"
         ],
         "additionalProperties": false
       },
@@ -49519,15 +48752,8 @@
       },
       "Operator_procurement_cancel": {
         "type": "object",
-        "properties": {
-          "evidence": {
-            "type": "string",
-            "description": "取消原因"
-          }
-        },
-        "required": [
-          "evidence"
-        ],
+        "properties": {},
+        "required": [],
         "additionalProperties": false
       },
       "Operator_procurement_cancel_authorization": {
@@ -49896,14 +49122,13 @@
           },
           "evidence": {
             "type": "string",
-            "description": "合同依据与未了责任处理证据"
+            "description": "申请说明（可选）"
           }
         },
         "required": [
           "action",
           "mode",
-          "quantity",
-          "evidence"
+          "quantity"
         ],
         "additionalProperties": false
       },
@@ -49967,10 +49192,6 @@
           "proof": {
             "type": "object",
             "properties": {
-              "receipt_id": {
-                "type": "string",
-                "description": "原收款ID"
-              },
               "external_reference": {
                 "type": "string",
                 "description": "真实银行退款唯一流水"
@@ -50001,19 +49222,13 @@
               "evidence_reference": {
                 "type": "string",
                 "description": "银行核实证据"
-              },
-              "recipient_reference": {
-                "type": "string",
-                "description": "原已核实付款人账户"
               }
             },
             "required": [
-              "receipt_id",
               "external_reference",
               "money",
               "executed_at",
-              "evidence_reference",
-              "recipient_reference"
+              "evidence_reference"
             ],
             "additionalProperties": false
           },
@@ -52941,6 +52156,61 @@
           "evidence"
         ],
         "additionalProperties": false
+      },
+      "TakeoverSettlement": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/LedgerDecimal"
+          },
+          "actual_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal"
+          },
+          "fee_usd": {
+            "$ref": "#/components/schemas/LedgerDecimal"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "currency",
+          "amount",
+          "fee_usd",
+          "occurred_at",
+          "evidence"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "currency": {
+                  "const": "USD"
+                }
+              },
+              "required": [
+                "currency"
+              ]
+            },
+            "else": {
+              "required": [
+                "actual_usd"
+              ]
+            }
+          }
+        ]
       },
       "TakeoverInput": {
         "type": "object",

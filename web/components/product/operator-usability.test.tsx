@@ -72,7 +72,7 @@ it("shows which procurement order holds supplier inventory and who can release i
   const hold = screen.getByText("未付款，持续占用直到付清或取消");
   expect(hold.parentElement?.className).toContain("text-danger");
   expect(screen.getByText("已释放，不再占用供货库存")).toBeTruthy();
-  expect(screen.getByText("不限时，直到付清或取消")).toBeTruthy();
+  expect(screen.getByText("付款后自动发放采购额度；未付款订单可取消。")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "取消未付款订单" })).toHaveLength(1);
   expect(screen.getByText("供货订单列出每一笔采购占用的库存。未付款订单不限时，直到付清或取消后才释放。")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "发布供货报价" })).toBeNull();

@@ -1363,24 +1363,6 @@
         "kind": "textarea"
       },
       {
-        "name": "exit_policy",
-        "label": "主动退出时的余额处理",
-        "kind": "select",
-        "required": true,
-        "options": [
-          {
-            "label": "剩余采购余额不退",
-            "value": "non_refundable"
-          },
-          {
-            "label": "清算存量责任后，剩余购买额度按原实付比例退；赠送不退",
-            "value": "remaining_paid_proportional"
-          }
-        ],
-        "default_value": "non_refundable",
-        "help": "报价和订单会固定本次退出规则。选择可退不自动退出或打款；仍须清算存量责任，再办理退出及实际退款。"
-      },
-      {
         "name": "contract_attachment_id",
         "label": "已上传合作合同（可选）",
         "kind": "text",
@@ -1524,13 +1506,6 @@
         "name": "valid_until",
         "label": "报价截止时间",
         "kind": "datetime"
-      },
-      {
-        "name": "enabled",
-        "label": "允许按报价下单",
-        "kind": "boolean",
-        "required": true,
-        "default_value": true
       }
     ],
     "include_version": false,
@@ -1574,12 +1549,6 @@
       {
         "name": "trigger_available_atg",
         "label": "采购可用库存低于ATG时触发",
-        "kind": "decimal",
-        "required": true
-      },
-      {
-        "name": "single_limit_usd",
-        "label": "每次最高USD",
         "kind": "decimal",
         "required": true
       },
@@ -1661,12 +1630,6 @@
         }
       },
       {
-        "name": "consent_reference",
-        "label": "本次补货范围与付款授权说明",
-        "kind": "textarea",
-        "required": true
-      },
-      {
         "name": "enabled",
         "label": "启用授权",
         "kind": "boolean",
@@ -1679,6 +1642,13 @@
         "kind": "hidden",
         "required": true,
         "default_value": 0
+      },
+      {
+        "name": "consent_confirmed",
+        "label": "确认本次补货授权",
+        "kind": "hidden",
+        "required": true,
+        "default_value": true
       }
     ],
     "include_version": false,
@@ -1732,12 +1702,6 @@
         "required": true
       },
       {
-        "name": "single_limit_usd",
-        "label": "每次最高USD",
-        "kind": "decimal",
-        "required": true
-      },
-      {
         "name": "period_limit_usd",
         "label": "周期最高USD",
         "kind": "decimal",
@@ -1817,12 +1781,6 @@
         "help": "修订同一收款配置的自动授权时，两项同时留空沿用原加密付款资料；更换收款配置或任一项时须重新填写完整资料。"
       },
       {
-        "name": "renewed_consent_reference",
-        "label": "本次修订的独立授权凭证（请重新确认并填写）",
-        "kind": "textarea",
-        "required": true
-      },
-      {
         "name": "enabled",
         "label": "启用授权",
         "kind": "boolean",
@@ -1835,6 +1793,13 @@
         "kind": "hidden",
         "required": true,
         "default_value": 0
+      },
+      {
+        "name": "consent_confirmed",
+        "label": "确认本次补货授权",
+        "kind": "hidden",
+        "required": true,
+        "default_value": true
       }
     ],
     "include_version": false,
@@ -1957,14 +1922,7 @@
     "resource": "procurement",
     "confirmation": "确认取消这笔尚未分配收款的订单？取消后立即释放它占用的供货库存。",
     "description": "",
-    "fields": [
-      {
-        "name": "evidence",
-        "label": "取消原因",
-        "kind": "textarea",
-        "required": true
-      }
-    ],
+    "fields": [],
     "include_version": false,
     "label": "取消未付款订单",
     "method": "POST",
@@ -2405,13 +2363,19 @@
       {
         "name": "approval_id",
         "label": "供货失约批准编号（失约退出必填）",
-        "kind": "text"
+        "kind": "text",
+        "visible_when": {
+          "field": "mode",
+          "values": [
+            "supply_failure"
+          ]
+        }
       },
       {
         "name": "evidence",
-        "label": "合同依据与未了责任处理证据",
+        "label": "申请说明（可选）",
         "kind": "textarea",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -2505,13 +2469,6 @@
     "description": "",
     "fields": [
       {
-        "lookup_url": "/api/v1/operators/{operatorId}/references/receipts",
-        "name": "proof.receipt_id",
-        "label": "原收款ID",
-        "kind": "text",
-        "required": true
-      },
-      {
         "name": "proof.external_reference",
         "label": "真实银行退款唯一流水",
         "kind": "text",
@@ -2539,12 +2496,6 @@
         "name": "proof.evidence_reference",
         "label": "银行核实证据",
         "kind": "textarea",
-        "required": true
-      },
-      {
-        "name": "proof.recipient_reference",
-        "label": "原已核实付款人账户",
-        "kind": "text",
         "required": true
       },
       {

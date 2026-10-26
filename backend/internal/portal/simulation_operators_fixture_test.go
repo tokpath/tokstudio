@@ -89,7 +89,7 @@ func (f *testApp) seedOperatorSimulation(t *testing.T, lab string) map[string]an
 		if scope.SellerID == platform {
 			rate = "0.001"
 		}
-		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model, Layer: "regular", EffectiveAt: now.Add(-time.Minute), Published: true, NoticeID: "synthetic opening supply price", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: rate}, {Key: "output", Unit: "token", Per: "1", Rate: rate}}}}
+		price := catalog.PriceVersion{ID: uuid.NewString(), Scope: scope, ModelID: model, Layer: "regular", EffectiveAt: now.Add(-time.Minute), Published: true, NoticeID: "synthetic opening supply price", Rule: catalog.PriceRule{Mode: "manual", Components: []catalog.ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: rate}, {Key: "output", Unit: "token", Per: "1", Rate: rate}, {Key: "cache", Unit: "token", Per: "1", Rate: rate}}}}
 		if err = f.a.Catalog.PublishPrice(ctx, scope.SellerID, price, f.a.pricePublished); err != nil {
 			t.Fatal(err)
 		}

@@ -290,16 +290,16 @@ const takeover = {
 };
 
 it("shows takeover facts without offering ungranted financial or preparation actions", async () => {
-  staff(["takeovers.read", "takeover-settlements.read"]);
+  staff(["takeovers.read", "takeovers.read"]);
   vi.stubGlobal("fetch", vi.fn(async () => response({ items: [takeover], channels: [] })));
-  show(<TakeoversScreen operatorID="operator-one" settlements />);
+  show(<TakeoversScreen operatorID="operator-one" />);
   await screen.findByRole("heading", { name: "channel-one" });
   expect(screen.queryByRole("button", { name: "登记实际收付款" })).toBeNull();
   expect(screen.queryByRole("button", { name: "发起接管准备" })).toBeNull();
 });
 
 it("retries an uncertain takeover settlement with the original proof and action key", async () => {
-  staff(["takeover-settlements.read", "cooperation.manage", "refunds.manage"]);
+  staff(["takeovers.read", "cooperation.manage", "refunds.manage"]);
   const submissions: { body: unknown; key: string | null }[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_input, init) => {
     if (init?.method === "POST") {
@@ -309,9 +309,9 @@ it("retries an uncertain takeover settlement with the original proof and action 
     }
     return response({ items: [takeover], channels: [] });
   }));
-  show(<TakeoversScreen operatorID="operator-one" settlements />);
+  show(<TakeoversScreen operatorID="operator-one" />);
   fireEvent.click(await screen.findByRole("button", { name: "登记实际收付款" }));
-  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["本次实际结清 USD", "5.000000000000000001"], ["唯一银行流水 / 支付凭证", "bank-one"], ["核实依据与当次估值证据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
+  for (const [label, value] of [["实际币种金额", "5.000000000000000001"], ["唯一银行流水 / 支付凭证", "bank-one"], ["核实依据与当次估值证据", "bank-proof-one"], ["实际收付款时间", "2026-10-18T12:34"]]) fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "确认提交" }));
   await screen.findByRole("button", { name: "重试原操作" });

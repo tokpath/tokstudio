@@ -128,7 +128,7 @@ func TestPostgresTieredQuoteUpgradePreservesAcceptedOrders(t *testing.T) {
 			t.Fatal(e)
 		}
 		for _, entry := range entries {
-			if entry.Name() == "0010_tiered_purchase_quotes.sql" {
+			if entry.Name() >= "0010_tiered_purchase_quotes.sql" {
 				continue
 			}
 			sql, e := fs.ReadFile(files, entry.Name())

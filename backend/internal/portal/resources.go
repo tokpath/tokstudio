@@ -317,7 +317,7 @@ func permissionFor(resource string) string {
 		return "security.manage"
 	case "withdrawals":
 		return "withdrawals.manage"
-	case "refunds", "disputes", "takeovers", "takeover-settlements", "approvals":
+	case "refunds", "disputes", "takeovers", "approvals":
 		return "refunds.manage"
 	}
 	return ""
@@ -404,7 +404,7 @@ func (a *Application) operatorResource(c *gin.Context) {
 	case "gifts":
 		a.manualGiftsResource(c, op, actor, p, base)
 		return
-	case "takeovers", "takeover-settlements":
+	case "takeovers":
 		a.takeoverResource(c, op, actor)
 		return
 	case "evidence":

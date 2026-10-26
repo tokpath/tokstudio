@@ -18,6 +18,7 @@ import { Empty, ErrorPanel, Heading, Loading, Money, Notice, Stat, Status, Table
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PurchaseTierSummary } from "./purchase-tiers";
+import { ProcurementCards } from "./procurement-cards";
 import { ModelPricingCard, PackageCard, priceDraft } from "./pricing-cards";
 import { Card } from "@/components/ui/card";
 import { readResourceListState, updateResourceListURL, subjectURL, type ResourceFilter } from "./operator-list-state";
@@ -175,7 +176,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   const populatedColumns = columnsFor(rows);
   const procurementHold = (row: Entity) => resourceName === "procurement" && ["awaiting_payment", "paid"].includes(row.status || "");
   const identity = (row: Entity) => <div className="min-w-32"><p className="font-medium">{recordTitle(row, resourceName, locale)}</p>{row.presentation?.subtitle && <p className="mt-1 text-xs text-ink-mute">{row.presentation.subtitle}</p>}</div>;
-  const renderTable = (items: Entity[]) => resourceName === "supplier-costs" ? <Table rows={items} getID={row => row.id} columns={[
+  const renderTable = (items: Entity[]) => resourceName === "procurement" ? <ProcurementCards rows={items} title={row => recordTitle(row, resourceName, locale)} actions={actions} /> : resourceName === "supplier-costs" ? <Table rows={items} getID={row => row.id} columns={[
     {label:"供应商与期间",cell:row=><div className="min-w-48 max-w-72"><p className="font-medium">{String(row.values.provider_name || "")}</p><p className="mt-1 text-xs text-ink-secondary">{row.values.model_name === "供应商整体" ? t("供应商整体") : String(row.values.model_name || "")}</p><p className="mt-2 text-xs text-ink-mute"><When value={String(row.values.starts_at)} /> — <When value={String(row.values.ends_at)} /></p>{row.values.note && <p className="mt-2 line-clamp-2 text-xs leading-5 text-ink-secondary">{String(row.values.note)}</p>}</div>},
     ...["calculated_usd","amount_usd","difference_usd"].map(key=>({label:page.columns.find(column=>column.key===key)?.label || key,align:"right" as const,cell:(row:Entity)=><div className="min-w-24 whitespace-nowrap"><Money value={String(row.values[key])} unit="USD" />{key==="calculated_usd" && Number(row.values.pending_count)>0 && <p className="mt-2 text-xs text-hold">{t("{count} 次调用缺少核算金额",{count:Number(row.values.pending_count)})}</p>}</div>})),
     {label:"办理",cell:row=><div className="min-w-28">{actions(row)}</div>},
@@ -191,7 +192,7 @@ export function ResourceCollection({ page, operatorID, resource, customer = fals
   </div>;
   return <>
     {!embedded && <Heading title={page.title === resourceName ? resourceLabel(resourceName) : page.title} description={page.description} />}
-    {page.summary && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
+    {page.summary && (resourceName !== "procurement" || procurementTab === "orders") && <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{page.summary.map((item, index) => <div key={index}><Stat {...item} detail={undefined} help={item.detail} /></div>)}
     </div>}
     {page.availability?.filter(item => !item.enabled).map(item => <div key={item.capability} className="mb-4">
       <Notice>{t(item.reason || "相应业务暂未开放")}{item.next_action && <p>{t(item.next_action)}
@@ -643,7 +644,6 @@ const savedFactLabels: Record<string, string> = {
   "valid_until": "报价截止时间",
   "quote_id": "固定成交报价编号",
   "trigger_available_atg": "采购可用库存低于ATG时触发",
-  "single_limit_usd": "每次最高USD",
   "period_limit_usd": "周期最高USD",
   "merchant_id": "真实供货收款商户配置编号",
   "payment.payment_method": "Stripe已授权pm_编号",

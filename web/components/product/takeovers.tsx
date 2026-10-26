@@ -15,22 +15,22 @@ import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { OperatorPanel, ReadFacts, resourceValueText } from "./operator-resources";
 
-export function TakeoversScreen({operatorID,settlements=false}:{operatorID:string;settlements?:boolean}){
+export function TakeoversScreen({operatorID}:{operatorID:string}){
   const { t } = useI18n();
  const {session}=useProduct();const scope=`/api/v1/operators/${encodeURIComponent(operatorID)}`;
  const workspace=session?.kind==="staff"?session.workspaces.find(w=>w.operator.id===operatorID):undefined;
- const canRead=canReadResource(workspace,settlements?"takeover-settlements":"takeovers");
+ const canRead=canReadResource(workspace,"takeovers");
  const has=(permission:string)=>!!workspace&&(workspace.permissions.includes("*")||workspace.permissions.includes(permission));
  const canPrepare=has("cooperation.manage"),canExecute=canPrepare&&has("refunds.manage");
  const data=useQuery({queryKey:["takeovers",operatorID],queryFn:()=>request(`${scope}/takeovers`,TakeoversSchema),enabled:canRead});
  const [creating,setCreating]=useState(false);
  if(!canRead)return <Empty title={t("没有查看权限")}>{t("需要品牌经营方的合作与退款权限。")}</Empty>;
  if(data.isPending)return <Loading/>;if(data.isError)return <ErrorPanel error={data.error} retry={()=>void data.refetch()}/>;
- const items=settlements?data.data.items.filter(item=>item.state==="completed"):data.data.items;
- return <><Heading title={settlements?t("接管资金结清"):t("渠道接管")} description={settlements?t("客户权益接管完成后，双方实际收付款仍独立办理。登记真实银行凭证与当次USD估值，支持分批结清。"):t("先暂停新增业务，等待在途事项结清，再审阅完整资产与责任快照。执行接管不会继承原渠道商户密钥。")} actions={!settlements&&canExecute&&<Button onClick={()=>setCreating(true)}>{t("发起接管准备")}</Button>}/>
- {creating&&!settlements&&<BeginTakeover scope={scope} channels={data.data.channels} close={()=>setCreating(false)}/>}
- {!items.length&&<Empty>{settlements?t("暂无已完成接管的结清事项。"):t("尚未建立接管方案。")}</Empty>}
- <div className="space-y-7">{items.map(item=><TakeoverCard key={item.id} item={item} scope={scope} channelName={data.data.channels.find(c=>c.id===item.channel_id)?.name||item.channel_id} settlements={settlements} canPrepare={canPrepare} canExecute={canExecute}/>)}</div>
+ const items=data.data.items;
+ return <><Heading title={t("渠道接管")} description={t("从接管准备、客户权益承接到双方资金结清，在同一事项中连续办理。")} actions={canExecute&&<Button onClick={()=>setCreating(true)}>{t("发起接管准备")}</Button>}/>
+ {creating&&<BeginTakeover scope={scope} channels={data.data.channels} close={()=>setCreating(false)}/>}
+ {!items.length&&<Empty>{t("尚未建立接管方案。")}</Empty>}
+ <div className="space-y-7">{items.map(item=><TakeoverCard key={item.id} item={item} scope={scope} channelName={data.data.channels.find(c=>c.id===item.channel_id)?.name||item.channel_id} canPrepare={canPrepare} canExecute={canExecute}/>)}</div>
  </>;
 }
 const takeoverHelp: Record<string, string> = {
@@ -41,8 +41,8 @@ const takeoverHelp: Record<string, string> = {
  actual_usd: "填写本次实际清偿的 USD 金额，手续费单独记录。例如到账结清 9.8 USD、付款方另付手续费 0.2 USD，此处填 9.8，手续费填 0.2；非 USD 执行应保留当次真实估值依据。",
  reference: "填写银行或支付通道为本次实际收付款出具的唯一流水号，不要重复登记同一笔款项。它与合同编号分别记录，提交后仍按真实凭证核实。",
 };
-function Field({label,name,required=true,initial="",type="text"}:{label:string;name:string;required?:boolean;initial?:string;type?:string}){
-  const { t } = useI18n(); const id = useId(); const help = takeoverHelp[name] || businessFieldHelp(name); return <div className="text-sm"><label htmlFor={id}>{t(label)}</label>{help && <FieldHelp title={t(label)}>{t(help)}</FieldHelp>}<Input id={id} name={name} type={type} required={required} defaultValue={initial} className="mt-2"/></div>}
+function Field({label,name,required=true,initial="",type="text",onChange}:{label:string;name:string;required?:boolean;initial?:string;type?:string;onChange?:(value:string)=>void}){
+  const { t } = useI18n(); const id = useId(); const help = takeoverHelp[name] || businessFieldHelp(name); return <div className="text-sm"><label htmlFor={id}>{t(label)}</label>{help && <FieldHelp title={t(label)}>{t(help)}</FieldHelp>}<Input id={id} name={name} type={type} required={required} defaultValue={initial} onChange={event=>onChange?.(event.target.value)} className="mt-2"/></div>}
 function BeginTakeover({scope,channels,close}:{scope:string;channels:{id:string;name:string;legal_name:string}[];close:()=>void}){
   const { t } = useI18n();
  const command=useCommand(`${scope}/takeovers`,TakeoverSchema);const [validation,setValidation]=useState("");
@@ -54,15 +54,15 @@ function BeginTakeover({scope,channels,close}:{scope:string;channels:{id:string;
  <label className="md:col-span-2 text-sm leading-7"><input required type="checkbox" className="mr-3"/>{t("确认暂停此渠道新增注册、购买、调用和自动补货。取消方案后也需要另行检查再恢复营业。")}</label></fieldset>
  {validation&&<p role="alert" className="text-danger">{t(validation)}</p>}{command.unresolved&&<Notice>{t("方案办理结果待核实，请保持此面板。重试沿用原始填写内容和同一操作编号。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<Button disabled={command.busy}>{command.unresolved?t("重试原方案"):t("建立准备事项")}</Button></form></OperatorPanel>
 }
-function TakeoverCard({item,scope,channelName,settlements,canPrepare,canExecute}:{item:Takeover;scope:string;channelName:string;settlements:boolean;canPrepare:boolean;canExecute:boolean}){
+function TakeoverCard({item,scope,channelName,canPrepare,canExecute}:{item:Takeover;scope:string;channelName:string;canPrepare:boolean;canExecute:boolean}){
   const { t } = useI18n();
  const [details,setDetails]=useState(false),[action,setAction]=useState<"execute"|"cancel"|"settle">();
  const refresh=useCommand(`${scope}/takeovers/${item.id}/refresh`,TakeoverSchema);
  const snapshot=item.snapshot;const payable=item.settlement_due_usd.replace(/^-/g,"");const fullySettled=compareDecimal(item.settled_usd,payable)>=0;const stages=[{label:t("暂停与排空"),done:["awaiting_approval","completed"].includes(item.state)},{label:t("完整责任复核"),done:item.state==="completed"},{label:t("权益承接完成"),done:item.state==="completed"},{label:t("实际资金结清"),done:item.state==="completed"&&fullySettled}];const direction=item.settlement_due_usd.startsWith("-")?t("品牌向渠道付款"):t("渠道向品牌付款");
- return <Card><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold">{channelName}</h2><p className="mt-2 break-all font-mono text-xs text-ink-mute">{item.id}</p><p className="mt-2 text-sm">{t("合同")} {item.contract_reference} · <When value={item.created_at}/></p></div><Status value={item.state}/></div>
+ return <Card><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold">{channelName}</h2><p className="mt-2 text-sm">{t("合同")} {item.contract_reference} · <When value={item.created_at}/></p></div><Status value={item.state}/></div>
  <ol aria-label={t("接管办理进度")} className="mt-6 grid gap-2 sm:grid-cols-4">{stages.map((stage,index)=><li key={stage.label} className={`rounded-control border p-3 text-xs ${stage.done?"border-success/30 text-success":"border-hairline text-ink-mute"}`}><span className="mr-2 font-mono">{index+1}</span>{stage.label}{stage.done&&<span className="ml-2">{t("已完成")}</span>}</li>)}</ol><div className="my-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label={t("承接服务作价")} value={item.service_usd} unit="USD"/><Stat label={t("承接现金与佣金责任")} value={item.cash_usd} unit="USD"/><Stat label={t("采购库存抵扣")} value={item.procurement_offset_usd} unit="USD" detail={`${item.procurement_offset_atg} ATG`}/><Stat label={t("合同可退采购余额")} value={item.remaining_procurement_refund_usd} unit="USD"/></div>
  <Notice><p>{t("结清方向：{direction}，合同结清额", { direction })} <Money value={payable} unit="USD"/>{t("；已登记结清")} <Money value={item.settled_usd} unit="USD"/>{t("。")}</p><p>{t("客户权益转移与双方现金支付分别记账。收款方资产、原付款来源和历史凭证保留；不因点击办理推定已收付款。")}</p></Notice>
- <div className="mt-5 flex flex-wrap gap-3">{snapshot&&<Button variant="outline" onClick={()=>setDetails(v=>!v)}>{details?t("收起完整快照"):t("审阅完整快照")}</Button>}{canPrepare&&!settlements&&["preparing","awaiting_approval"].includes(item.state)&&<><Button disabled={refresh.busy} variant="outline" onClick={()=>void refresh.run({})}>{refresh.unresolved?t("重试原快照检查"):t("排空检查并刷新快照")}</Button><Button variant="outline" disabled={refresh.busy||refresh.unresolved} onClick={()=>setAction("cancel")}>{t("取消方案")}</Button></>}{canExecute&&!settlements&&item.state==="awaiting_approval"&&snapshot&&<Button disabled={refresh.busy||refresh.unresolved} onClick={()=>{setDetails(true);setAction("execute")}}>{t("复核并执行接管")}</Button>}{canExecute&&settlements&&item.state==="completed"&&!fullySettled&&<Button onClick={()=>setAction("settle")}>{t("登记实际收付款")}</Button>}</div>
+ <div className="mt-5 flex flex-wrap gap-3">{snapshot&&<Button variant="outline" onClick={()=>setDetails(v=>!v)}>{details?t("收起完整快照"):t("审阅完整快照")}</Button>}{canPrepare&&["preparing","awaiting_approval"].includes(item.state)&&<><Button disabled={refresh.busy} variant="outline" onClick={()=>void refresh.run({})}>{refresh.unresolved?t("重试原快照检查"):t("排空检查并刷新快照")}</Button><Button variant="outline" disabled={refresh.busy||refresh.unresolved} onClick={()=>setAction("cancel")}>{t("取消方案")}</Button></>}{canExecute&&item.state==="awaiting_approval"&&snapshot&&<Button disabled={refresh.busy||refresh.unresolved} onClick={()=>{setDetails(true);setAction("execute")}}>{t("复核并执行接管")}</Button>}{canExecute&&item.state==="completed"&&!fullySettled&&<Button onClick={()=>setAction("settle")}>{t("登记实际收付款")}</Button>}</div>
  {!!refresh.error&&<div className="mt-4"><ErrorPanel error={refresh.error}/></div>}
  {details&&snapshot&&<TakeoverSnapshot item={item}/>}
  {action&&<TakeoverAction key={action} action={action} scope={scope} item={item} direction={direction} close={()=>setAction(undefined)}/>}
@@ -80,11 +80,11 @@ function Facts({title,value}:{title:string;value:unknown}) {
 function TakeoverAction({action,scope,item,direction,close}:{action:"execute"|"cancel"|"settle";scope:string;item:Takeover;direction:string;close:()=>void}){
   const { t } = useI18n();
  const command=useCommand(`${scope}/takeovers/${item.id}/${action}`,TakeoverSchema);
- const [validation,setValidation]=useState("");
- async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(command.unresolved){if(await command.run({}))close();return}const f=new FormData(event.currentTarget);const input:Record<string,unknown>=Object.fromEntries(f.entries());if(action==="execute")input.expected_snapshot=item.snapshot_fingerprint;if(action==="settle"){const at=new Date(String(input.occurred_at));if(Number.isNaN(at.getTime())||!Decimal.safeParse(input.amount).success||!Decimal.safeParse(input.actual_usd).success||!Decimal.safeParse(input.fee_usd).success){setValidation("请填写有效收付款时间及精确十进制金额。");return}input.occurred_at=at.toISOString()}setValidation("");if(await command.run(input))close()}
+ const [validation,setValidation]=useState("");const [currency,setCurrency]=useState("USD");
+ async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(command.unresolved){if(await command.run({}))close();return}const f=new FormData(event.currentTarget);const input:Record<string,unknown>=Object.fromEntries(f.entries());if(action==="execute")input.expected_snapshot=item.snapshot_fingerprint;if(action==="settle"){input.currency=String(input.currency).trim().toUpperCase();if(input.currency==="USD")input.actual_usd=input.amount;const at=new Date(String(input.occurred_at));if(Number.isNaN(at.getTime())||!Decimal.safeParse(input.amount).success||!Decimal.safeParse(input.actual_usd).success||!Decimal.safeParse(input.fee_usd).success){setValidation("请填写有效收付款时间及精确十进制金额。");return}input.occurred_at=at.toISOString()}setValidation("");if(await command.run(input))close()}
  return <OperatorPanel open title={action==="execute"?t("复核完整责任并执行"):action==="cancel"?t("取消准备方案"):t("登记本次实际结清")} description={t("渠道接管 {id} · 合同 {contract}", { id: item.id, contract: item.contract_reference })} blocked={command.busy||command.unresolved} close={close}>{action==="execute"&&<TakeoverSnapshot item={item}/>}<form onSubmit={submit} className="space-y-5"><fieldset disabled={command.busy||command.unresolved} className="grid gap-5 md:grid-cols-2">
  {action==="cancel"&&<Field name="evidence" label={t("取消依据")}/>}
- {action==="settle"&&<><Notice>{t("{direction}。填写实际执行币种和金额、本次折合USD以及付款方手续费；不得使用原订单汇率代替本次真实执行事实。", { direction })}</Notice><Field name="currency" label={t("实际币种")} initial="USD"/><Field name="amount" label={t("实际币种金额")}/><Field name="actual_usd" label={t("本次实际结清 USD")}/><Field name="fee_usd" label={t("付款方另付手续费 USD")} initial="0"/><Field name="reference" label={t("唯一银行流水 / 支付凭证")}/><Field name="evidence" label={t("核实依据与当次估值证据")}/><Field name="occurred_at" label={t("实际收付款时间")} type="datetime-local"/></>}
+ {action==="settle"&&<><Notice>{t("{direction}。填写实际执行币种和金额、本次折合USD以及付款方手续费；不得使用原订单汇率代替本次真实执行事实。", { direction })}</Notice><Field name="currency" label={t("实际币种")} initial="USD" onChange={setCurrency}/><Field name="amount" label={t("实际币种金额")}/>{currency.trim().toUpperCase()!=="USD"&&<Field name="actual_usd" label={t("本次实际结清 USD")}/>}<Field name="fee_usd" label={t("付款方另付手续费 USD")} initial="0"/><Field name="reference" label={t("唯一银行流水 / 支付凭证")}/><Field name="evidence" label={t("核实依据与当次估值证据")}/><Field name="occurred_at" label={t("实际收付款时间")} type="datetime-local"/></>}
  <label className="md:col-span-2 text-sm leading-7"><input required type="checkbox" className="mr-3"/>{action==="execute"?t("我已审阅上述完整客户、四类资产、采购批次、覆盖计算、合同及正负结清额。服务器会重新核对快照并执行独立复核策略。"):action==="cancel"?t("确认取消方案；不会自动恢复渠道营业。"):t("已向银行或支付通道核实本次实际收付款，凭证真实且未重复登记。")}</label></fieldset>
  {validation&&<p role="alert" className="text-danger">{t(validation)}</p>}{command.unresolved&&<Notice>{t("本次办理结果待核实，请保持此面板。重试沿用原始凭证和同一操作编号，不重复办理。")}</Notice>}{!!command.error&&<ErrorPanel error={command.error}/>}<div className="flex gap-3"><Button disabled={command.busy}>{command.unresolved?t("重试原操作"):t("确认提交")}</Button><Button type="button" variant="outline" disabled={command.unresolved||command.busy} onClick={close}>{t("返回")}</Button></div></form></OperatorPanel>
 }

@@ -55,7 +55,7 @@ func TestPostgresTakeoverHTTPPreparationAndSnapshotReview(t *testing.T) {
 	if gates.Registration || gates.NewPurchase || gates.ModelUsage {
 		t.Fatal("cancel silently reopened channel", gates)
 	}
-	status, out, _ = f.call(t, "GET", scope+"/takeover-settlements", nil, "")
+	status, out, _ = f.call(t, "GET", scope+"/takeovers", nil, "")
 	mustOK(t, status, out)
 }
 func TestPostgresCaddyTLSAskOnlyConfiguredAndVerifiedDomains(t *testing.T) {

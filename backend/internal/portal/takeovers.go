@@ -2,6 +2,7 @@ package portal
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/tokpath/tokstudio/backend/internal/ledger"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"github.com/tokpath/tokstudio/backend/internal/remediation"
 )
@@ -79,6 +80,14 @@ func (a *Application) takeoverAction(c *gin.Context, op organization.Operator, a
 			return
 		}
 		in.BusinessKey, _ = key(c)
+		if in.Currency == "USD" {
+			amount, err := ledger.ParseDecimal(in.Amount)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			in.ActualUSD = amount
+		}
 		out, e = a.Remediation.RecordTakeoverSettlement(ctx, actor, op.ID, id, in)
 	default:
 		fail(c, 404, "not_found", "接管操作不存在", false)

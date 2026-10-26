@@ -36,7 +36,6 @@ type ReplenishmentAuthorization struct {
 	QuoteID             string         `json:"quote_id"`
 	AmountUSD           ledger.Decimal `json:"amount_usd"`
 	TriggerAvailableATG ledger.Decimal `json:"trigger_available_atg"`
-	SingleLimitUSD      ledger.Decimal `json:"single_limit_usd"`
 	PeriodLimitUSD      ledger.Decimal `json:"period_limit_usd"`
 	Period              ledger.Period  `json:"period"`
 	Mode                string         `json:"mode"`
@@ -115,7 +114,7 @@ func (r *Replenisher) SaveAuthorization(ctx context.Context, actor string, in Re
 	if e := r.ready(); e != nil {
 		return a, e
 	}
-	if !a.AmountUSD.Valid() || a.AmountUSD.Sign() <= 0 || a.AmountUSD.Cmp(a.SingleLimitUSD) > 0 || a.TriggerAvailableATG.Sign() < 0 || a.SingleLimitUSD.Sign() <= 0 || a.PeriodLimitUSD.Cmp(a.SingleLimitUSD) < 0 || !a.TriggerAvailableATG.Valid() || !a.SingleLimitUSD.Valid() || !a.PeriodLimitUSD.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
+	if !a.AmountUSD.Valid() || a.AmountUSD.Sign() <= 0 || a.TriggerAvailableATG.Sign() < 0 || a.PeriodLimitUSD.Cmp(a.AmountUSD) < 0 || !a.TriggerAvailableATG.Valid() || !a.PeriodLimitUSD.Valid() || a.ConsentReference == "" || (a.Period != ledger.Month && a.Period != ledger.Quarter && a.Period != ledger.Year) || (a.Mode != "automatic" && a.Mode != "offline") {
 		return a, ErrReplenishment
 	}
 	e := r.Cooperation.within(ctx, nil, func(t *gorm.DB) error {
@@ -254,7 +253,7 @@ func (r *Replenisher) prepare(ctx context.Context, a ReplenishmentAuthorization)
 		if e = t.Model(&ReplenishmentAttempt{}).Where("buyer_id=? AND created_at>=? AND created_at<? AND state NOT IN ('cancelled_unpaid','failed_unpaid')", a.BuyerID, window.Start, *window.End).Select("COALESCE(sum(amount_usd),0)::text").Row().Scan(&committed); e != nil {
 			return e
 		}
-		if ValidatePurchaseTiers(quote.GiftTiers) != nil || a.AmountUSD.Sign() <= 0 || a.AmountUSD.Cmp(a.SingleLimitUSD) > 0 || committed.Add(a.AmountUSD).Cmp(a.PeriodLimitUSD) > 0 {
+		if ValidatePurchaseTiers(quote.GiftTiers) != nil || a.AmountUSD.Sign() <= 0 || committed.Add(a.AmountUSD).Cmp(a.PeriodLimitUSD) > 0 {
 			return ErrReplenishment
 		}
 		id := uuid.NewString()

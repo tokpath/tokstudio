@@ -161,7 +161,7 @@ func TestPostgresReadableCooperationFormsDoNotRequireInternalReferences(t *testi
 				for _, value := range op["fields"].([]any) {
 					field := value.(map[string]any)
 					name := field["name"].(string)
-					if name == "api_base_url" || name == "quote_reference" || name == "exit_terms_reference" || name == "terms_reference" || strings.HasPrefix(name, "exit_terms.") {
+					if (resource == "operators" && name == "exit_policy") || name == "api_base_url" || name == "quote_reference" || name == "exit_terms_reference" || name == "terms_reference" || strings.HasPrefix(name, "exit_terms.") {
 						t.Fatal("business form exposes a technical term reference", resource, field)
 					}
 					if (name == "action" || name == "version" || name == "expected_version") && field["kind"] != "hidden" {
@@ -171,10 +171,10 @@ func TestPostgresReadableCooperationFormsDoNotRequireInternalReferences(t *testi
 			}
 		}
 	}
-	status, out, _ := f.call(t, "POST", "/v1/operators/"+parent+"/operators", map[string]any{"kind": "channel", "name": "Simple partner", "legal_name": "Partner company", "supply_terms": "按已确认报价采购", "exit_policy": "remaining_paid_proportional"}, "")
+	status, out, _ := f.call(t, "POST", "/v1/operators/"+parent+"/operators", map[string]any{"kind": "channel", "name": "Simple partner", "legal_name": "Partner company", "supply_terms": "按已确认报价采购"}, "")
 	mustOK(t, status, out)
 	agreement, e := f.a.Organization.GetSupplyAgreement(context.Background(), nil, out["id"].(string))
-	if e != nil || agreement.SupplyTerms != "按已确认报价采购" || agreement.ExitPolicy != "remaining_paid_proportional" {
+	if e != nil || agreement.SupplyTerms != "按已确认报价采购" {
 		t.Fatal("form business rules were lost", agreement, e)
 	}
 }

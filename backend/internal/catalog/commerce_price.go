@@ -434,7 +434,7 @@ func CoverageFactor(retail, procurement ResolvedPrice) (*big.Rat, error) {
 			return nil, e
 		}
 		if retailRate.Unit != procurementRate.Unit {
-			return nil, fmt.Errorf("incomparable component %s", key)
+			return nil, fmt.Errorf("%w: incomparable component %s", ErrUnboundedCoverage, key)
 		}
 		pr, e := extremeRate(procurementRate, false)
 		if e != nil {
@@ -468,7 +468,7 @@ func pricedForCoverage(price ResolvedPrice, key string) (ComponentRate, error) {
 		return ComponentRate{}, e
 	}
 	if !ok {
-		return ComponentRate{}, fmt.Errorf("incomparable component %s", key)
+		return ComponentRate{}, fmt.Errorf("%w: incomparable component %s", ErrUnboundedCoverage, key)
 	}
 	return rate, nil
 }

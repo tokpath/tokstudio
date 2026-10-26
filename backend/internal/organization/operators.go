@@ -64,12 +64,6 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 		if p.Lifecycle != "active" {
 			return ErrBusinessClosed
 		}
-		if in.ExitPolicy == "" {
-			in.ExitPolicy = "non_refundable"
-		}
-		if in.ExitPolicy != "non_refundable" && in.ExitPolicy != "remaining_paid_proportional" {
-			return ErrInvalidInput
-		}
 		in.ContractAttachmentID = strings.TrimSpace(in.ContractAttachmentID)
 		if err = s.RequireSupplyContract(ctx, tx, p.ID, in.ContractAttachmentID); err != nil {
 			return err
@@ -100,7 +94,7 @@ func (s *Service) CreateOperator(ctx context.Context, tx *gorm.DB, in CreateOper
 			return err
 		}
 		agreementID := newID()
-		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "active", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ExitPolicy: in.ExitPolicy, ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
+		a := supplyRow{ID: agreementID, SupplierID: p.ID, BuyerID: opID, Status: "active", SupplyTerms: strings.TrimSpace(in.SupplyTerms), ContractAttachmentID: in.ContractAttachmentID, Version: 1, CreatedAt: now}
 		if err = tx.Create(&a).Error; err != nil {
 			return err
 		}

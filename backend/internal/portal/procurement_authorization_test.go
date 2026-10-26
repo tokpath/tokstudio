@@ -46,17 +46,16 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	firstMerchant, secondMerchant := merchant(), merchant()
 	f.login(t, "staff", "owner@example.test", "owner-password-test")
 	path := "/v1/operators/" + child.Operator.ID + "/procurement"
-	base := map[string]any{"action": "authorization", "amount_usd": "10", "supplier_id": parent, "quote_id": quote.ID, "trigger_available_atg": "10.000000000000000001", "single_limit_usd": "10", "period_limit_usd": "20", "period": "month", "mode": "automatic", "merchant_id": firstMerchant, "enabled": true}
+	base := map[string]any{"action": "authorization", "amount_usd": "10", "supplier_id": parent, "quote_id": quote.ID, "trigger_available_atg": "10.000000000000000001", "period_limit_usd": "20", "period": "month", "mode": "automatic", "merchant_id": firstMerchant, "enabled": true}
 	body := func(id string, version int, consent string) map[string]any {
 		v := map[string]any{}
 		for key, value := range base {
 			v[key] = value
 		}
 		v["expected_version"] = version
-		if version == 0 {
-			v["consent_reference"] = consent
-		} else {
-			v["id"], v["renewed_consent_reference"] = id, consent
+		v["consent_confirmed"] = consent != ""
+		if version > 0 {
+			v["id"] = id
 		}
 		return v
 	}
@@ -110,7 +109,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 			}
 			for _, value := range op["fields"].([]any) {
 				field := value.(map[string]any)
-				if field["name"] == "renewed_consent_reference" && field["default_value"] != nil {
+				if field["name"] == "renewed_consent_reference" || field["name"] == "consent_reference" || field["name"] == "single_limit_usd" {
 					t.Fatal("old consent was filled as a new confirmation", field)
 				}
 			}
@@ -124,7 +123,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	key := uuid.NewString()
 	status, out = post(revision, key)
 	mustOK(t, status, out)
-	if out["authorization"].(map[string]any)["authorized_by"] != owner || out["authorization"].(map[string]any)["consent_reference"] != "confirmed-contract" {
+	if out["authorization"].(map[string]any)["authorized_by"] != owner || !strings.HasPrefix(out["authorization"].(map[string]any)["consent_reference"].(string), "procurement-consent:"+owner+":") {
 		t.Fatal("idempotent command did not retain its sanitized authorization evidence", out)
 	}
 	if out["id"] != id || out["version"] != float64(2) {
@@ -140,7 +139,7 @@ func TestPostgresProcurementAuthorizationRevisionCASAndPaymentBoundaries(t *test
 	}{
 		{"changed merchant without materials", func(v map[string]any) { v["merchant_id"] = secondMerchant }, 400},
 		{"half payment material", func(v map[string]any) { v["payment"] = map[string]any{"payment_method": "pm_partial"} }, 400},
-		{"missing current consent", func(v map[string]any) { delete(v, "renewed_consent_reference") }, 400},
+		{"missing current consent", func(v map[string]any) { delete(v, "consent_confirmed") }, 400},
 		{"foreign authorization identifier", func(v map[string]any) { v["id"] = uuid.NewString() }, 403},
 		{"stale version", func(v map[string]any) { v["expected_version"] = 1 }, 409},
 	} {

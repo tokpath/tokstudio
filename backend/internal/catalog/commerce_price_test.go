@@ -149,3 +149,16 @@ func TestResolutionPriceFallsBackToTheBaseRate(t *testing.T) {
 		t.Fatal("base price did not cover the resolution")
 	}
 }
+
+func TestCoverageFactorClassifiesIncompleteOrIncompatiblePrices(t *testing.T) {
+	retail := ResolvedPrice{ModelID: "model", FactorNumerator: "1", FactorDenominator: "1", Components: []ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "1"}, {Key: "cache", Unit: "token", Per: "1", Rate: "1"}}}
+	supply := retail
+	supply.Components = []ComponentRate{{Key: "input", Unit: "token", Per: "1", Rate: "1"}}
+	if _, err := CoverageFactor(retail, supply); !errors.Is(err, ErrUnboundedCoverage) {
+		t.Fatal("missing cost meter was not classified as unready coverage", err)
+	}
+	supply.Components = []ComponentRate{{Key: "input", Unit: "character", Per: "1", Rate: "1"}, {Key: "cache", Unit: "token", Per: "1", Rate: "1"}}
+	if _, err := CoverageFactor(retail, supply); !errors.Is(err, ErrUnboundedCoverage) {
+		t.Fatal("incompatible units were not classified as unready coverage", err)
+	}
+}

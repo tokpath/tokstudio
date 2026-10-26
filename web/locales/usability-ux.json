@@ -1983,5 +1983,125 @@
     "en": "View background tasks and failure reasons. After fixing the cause, retry the original task. The system bounds retries and prevents duplicate processing.",
     "ja": "バックグラウンドタスクと失敗原因を確認します。原因を解消した後、元のタスクを再試行できます。再試行回数の制限と重複処理の防止は自動で行います。",
     "ru": "Просматривайте фоновые задачи и причины сбоев. После устранения причины повторите исходную задачу. Система ограничит число попыток и предотвратит дублирование."
+  },
+  "从接管准备、客户权益承接到双方资金结清，在同一事项中连续办理。": {
+    "en": "Prepare the takeover, transfer customer rights and settle funds in one case.",
+    "ja": "接管準備、顧客権利の引継ぎ、資金精算を同じ案件で続けて処理します。",
+    "ru": "Подготовка передачи, перенос прав клиентов и расчёты сторон ведутся в одном деле."
+  },
+  "每 1 USD 购买 1 ATG，赠送按本单金额分段累加。": {
+    "en": "Each USD buys 1 ATG. Bonus credits accumulate across the tiers of this order.",
+    "ja": "1 USDで1 ATGを購入し、特典は注文金額の各段階に応じて加算されます。",
+    "ru": "За каждый USD начисляется 1 ATG. Бонус суммируется по ступеням суммы этого заказа."
+  },
+  "采购金额": {
+    "en": "Purchase amount",
+    "ja": "仕入金額",
+    "ru": "Сумма закупки"
+  },
+  "低于此采购余额时补货": {
+    "en": "Replenish below this procurement balance",
+    "ja": "この仕入残高を下回ると補充",
+    "ru": "Пополнение при закупочном остатке ниже"
+  },
+  "付款后自动发放采购额度；未付款订单可取消。": {
+    "en": "Procurement credits are delivered after payment. Unpaid orders can be cancelled.",
+    "ja": "入金後に仕入残高を自動付与します。未払いの注文は取り消せます。",
+    "ru": "Закупочные кредиты начисляются после оплаты. Неоплаченный заказ можно отменить."
+  },
+  "款项已确认，正在完成额度交付。": {
+    "en": "Payment confirmed; credit delivery is in progress.",
+    "ja": "入金確認済み、残高を付与中です。",
+    "ru": "Оплата подтверждена, кредиты начисляются."
+  },
+  "Stripe 自动扣款": {
+    "en": "Automatic Stripe payment",
+    "ja": "Stripeで自動決済",
+    "ru": "Автоматическое списание Stripe"
+  },
+  "自动建单，人工付款": {
+    "en": "Create orders automatically; pay manually",
+    "ja": "自動で注文作成、支払いは手動",
+    "ru": "Автоматическое создание заказа, оплата вручную"
+  },
+  "补充约定与合同": {
+    "en": "Additional terms and contract",
+    "ja": "補足合意と契約書",
+    "ru": "Дополнительные условия и договор"
+  },
+  "补充约定（可选）": {
+    "en": "Additional terms (optional)",
+    "ja": "補足合意（任意）",
+    "ru": "Дополнительные условия (необязательно)"
+  },
+  "确认本次补货授权": {
+    "en": "Confirm this replenishment authorization",
+    "ja": "今回の補充承認を確認",
+    "ru": "Подтверждение разрешения на пополнение"
+  },
+  "我已确认每次采购金额、触发条件、阶梯赠送及周期总上限，并授权所选补货方式。付款结果未知时只核实原交易。": {
+    "en": "I confirm the purchase amount, trigger, tiered bonuses and period limit, and authorize the selected replenishment method. Unknown payment outcomes must be checked against the original transaction.",
+    "ja": "購入金額、開始条件、段階特典、期間上限を確認し、選択した補充方法を承認します。支払結果が不明な場合は元の取引を確認します。",
+    "ru": "Я подтверждаю сумму закупки, порог, ступенчатый бонус и лимит периода и разрешаю выбранный способ пополнения. Неизвестный результат оплаты проверяется по исходной операции."
+  },
+  "调整本方自动补货设置，每次保存均须确认新的采购范围和上限。敏感付款资料不回显。": {
+    "en": "Update replenishment settings and confirm the new scope and limits each time. Sensitive payment details are never displayed.",
+    "ja": "自動補充設定を変更し、保存のたびに新しい範囲と上限を確認します。機密の支払情報は表示しません。",
+    "ru": "Изменяйте настройки пополнения, подтверждая новые условия и лимиты при каждом сохранении. Секретные платёжные данные не отображаются."
+  },
+  "申请说明（可选）": {
+    "en": "Request note (optional)",
+    "ja": "申請の説明（任意）",
+    "ru": "Комментарий к заявке (необязательно)"
+  },
+  "确认阶梯报价": {
+    "en": "Review tiered quote",
+    "ja": "段階見積を確認",
+    "ru": "Проверка ступенчатого предложения"
+  },
+  "按采购金额查看阶梯赠送、到账额度与退出约定。": {
+    "en": "Review tiered bonuses, delivered credits and exit terms for the purchase amount.",
+    "ja": "購入金額に応じた段階特典、付与残高、退出条件を確認します。",
+    "ru": "Проверьте бонус по ступеням, начисляемые кредиты и условия выхода для суммы закупки."
+  },
+  "经营方确认取消未付款采购订单": {
+    "en": "Operator confirmed cancellation of an unpaid purchase order",
+    "ja": "事業者が未払い仕入注文の取消を確認",
+    "ru": "Оператор подтвердил отмену неоплаченного закупочного заказа"
+  },
+  "采购方确认按原成交约定申请退出": {
+    "en": "Buyer confirmed exit under the original accepted terms",
+    "ja": "購入者が当初の取引条件による退出を確認",
+    "ru": "Покупатель подтвердил выход по исходным согласованным условиям"
+  },
+  "发起时间": {
+    "en": "Created at",
+    "ja": "作成日時",
+    "ru": "Время создания"
+  },
+  "处理提示": {
+    "en": "Processing note",
+    "ja": "処理状況の案内",
+    "ru": "Примечание по обработке"
+  },
+  "继续原付款": {
+    "en": "Continue original payment",
+    "ja": "元の支払いを続ける",
+    "ru": "Продолжить исходную оплату"
+  },
+  "继续原订单的付款页面或收款说明，保持原付款方式和同一笔交易。": {
+    "en": "Continue the original payment page or instructions using the same payment method and transaction.",
+    "ja": "同じ支払方法・取引のまま、元の支払画面または入金案内を続けます。",
+    "ru": "Откройте исходную платёжную страницу или инструкции с тем же способом оплаты и той же операцией."
+  },
+  "已核实的原付款人账户：{account}": {
+    "en": "Verified original payer account: {account}",
+    "ja": "確認済みの元の支払人の口座：{account}",
+    "ru": "Подтверждённый счёт исходного плательщика: {account}"
+  },
+  "请先补齐模型及各层有效价格，系统才能核实采购与履约责任。": {
+    "en": "Complete the model prices at every supply level so procurement and service obligations can be verified.",
+    "ja": "仕入と履行責任を確認できるよう、各供給階層の有効なモデル価格を設定してください。",
+    "ru": "Укажите действующие цены моделей на каждом уровне поставки, чтобы система могла проверить закупочные и сервисные обязательства."
   }
 }

@@ -191,8 +191,14 @@ func (a *Application) exitsResource(c *gin.Context, op organization.Operator, ac
 	p["description"] = "先按原合同及真实责任覆盖移除库存，再逐原收款来源办理退款。客户未了责任不会因退出按钮消失。未知付款保留占用。"
 	p["items"] = items
 	p["columns"] = []gin.H{col("record_kind", "记录类型", "text"), col("buyer_id", "采购方", "text"), col("supplier_id", "供货方", "text"), col("contract_usd", "合同退款责任", "usd"), col("book_cost_usd", "退出账面成本", "usd"), col("cost_difference_usd", "合同与成本差额", "usd"), col("refunded_usd", "已核实退回", "usd"), col("receipt_id", "原收款", "text")}
-	p["operations"] = []operation{{Name: "request", Label: "按合同申请退出库存", Permission: "cooperation.manage", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "request"), selectField("mode", "退出原因", "voluntary_exit|按合同自愿退出", "supply_failure|已有供货失约批准"), f("quantity", "拟移除采购库存ATG", "decimal"), optional("approval_id", "供货失约批准编号（失约退出必填）", "text"), f("evidence", "合同依据与未了责任处理证据", "textarea")}, Confirmation: "将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。"}, {Name: "approve_failure", Label: "供货方批准真实供货失约", Permission: "refunds.manage", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "approve_failure"), f("buyer_id", "直属采购方编号", "text"), f("evidence", "实际供货失约与承接责任依据", "textarea")}}}
-	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录原路银行退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "原银行路线与付款计划证据", "textarea")}, Confirmation: "仅保存唯一付款意图，不能把计划当作银行退款成功。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{f("proof.receipt_id", "原收款ID", "text"), f("proof.external_reference", "真实银行退款唯一流水", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "银行核实证据", "textarea"), f("proof.recipient_reference", "原已核实付款人账户", "text")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
+	p["operations"] = []operation{{Name: "request", Label: "按合同申请退出库存", Permission: "cooperation.manage", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "request"), selectField("mode", "退出原因", "voluntary_exit|按合同自愿退出", "supply_failure|已有供货失约批准"), f("quantity", "拟移除采购库存ATG", "decimal"), optional("approval_id", "供货失约批准编号（失约退出必填）", "text"), optional("evidence", "申请说明（可选）", "textarea")}, Confirmation: "将按原采购批次条款计算可退款并真实移除库存；仅未占用且责任已结清或已批准承接部分可以退出。"}, {Name: "approve_failure", Label: "供货方批准真实供货失约", Permission: "refunds.manage", Method: "POST", Path: base, Fields: []field{defaultField("action", "办理类型", "text", "approve_failure"), f("buyer_id", "直属采购方编号", "text"), f("evidence", "实际供货失约与承接责任依据", "textarea")}}}
+	ops := p["operations"].([]operation)
+	for i := range ops[0].Fields {
+		if ops[0].Fields[i].Name == "approval_id" {
+			ops[0].Fields[i].VisibleWhen = &fieldVisibility{Field: "mode", Values: []string{"supply_failure"}}
+		}
+	}
+	p["row_operations"] = []operation{{Name: "prepare_refund", Label: "按原来源预留本次退款", Method: "POST", Path: base + "/{id}/prepare_refund", Fields: []field{f("receipt_id", "原采购收款编号", "text"), f("amount_usd", "本次合同退款USD", "decimal")}}, {Name: "begin_manual", Label: "记录原路银行退款意图", Method: "POST", Path: base + "/{id}/begin_manual", Fields: []field{f("evidence", "原银行路线与付款计划证据", "textarea")}, Confirmation: "仅保存唯一付款意图，不能把计划当作银行退款成功。"}, {Name: "verify_manual", Label: "核实原付款人实际退款", Method: "POST", Path: base + "/{id}/verify_manual", Fields: append([]field{f("proof.external_reference", "真实银行退款唯一流水", "text"), f("proof.money.currency", "本次付款币种", "text"), f("proof.money.amount", "本次实际付款金额", "decimal"), f("proof.executed_at", "实际退款时间", "datetime"), f("proof.evidence_reference", "银行核实证据", "textarea")}, executionValuationFields("proof.money.currency")...)}, {Name: "execute_refund", Label: "通过原通道执行退款", Method: "POST", Path: base + "/{id}/execute_refund", Fields: append([]field{f("money.currency", "本次付款币种", "text"), f("money.amount", "本次实际执行金额", "decimal")}, executionValuationFields("money.currency")...), Confirmation: "使用本次真实执行汇率，退款ID固定为原leg；未知时只查询原交易。"}, {Name: "release_refund", Label: "取消尚未执行的预留", Method: "POST", Path: base + "/{id}/release_refund", Fields: []field{f("evidence", "取消依据", "textarea")}}}
 	p["row_operations"] = append(p["row_operations"].([]operation), procurementDestinationOperations(base)...)
 	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "payments.manage", "prepare_refund", "begin_manual", "verify_manual", "execute_refund", "release_refund", "confirm_fee", "close_route", "verify_manual_failure", "verify_replacement_destination", "verify_replacement", "verify_destination", "verify_evm", "verify_external")
 	p["row_operations"] = tagOperationPermissions(p["row_operations"].([]operation), "cooperation.manage", "propose_destination")
@@ -224,6 +230,9 @@ func (a *Application) exitsCommand(c *gin.Context, op organization.Operator, act
 	}
 	ctx := c.Request.Context()
 	key, _ := key(c)
+	if in.Action == "request" && in.Evidence == "" {
+		in.Evidence = "采购方确认按原成交约定申请退出"
+	}
 	raw, e := a.command(c, "exit:"+op.ID, in, func(tx *gorm.DB) (any, error) {
 		if in.Action == "approve_failure" {
 			agreement, e := a.Organization.GetSupplyAgreement(ctx, tx, in.BuyerID)
@@ -286,6 +295,22 @@ func (a *Application) exitsAction(c *gin.Context, op organization.Operator, acto
 		e = err
 		result = commandResult(id, out.State)
 	case "verify_manual":
+		if err := a.Organization.RequirePermission(ctx, nil, actor, op.ID, "payments.manage"); err != nil {
+			handleError(c, err)
+			return
+		}
+		var leg cooperation.ProcurementExitRefund
+		if err := a.DB.WithContext(ctx).Where("id=? AND supplier_id=?", id, op.ID).Take(&leg).Error; err != nil {
+			handleError(c, err)
+			return
+		}
+		receipt, err := a.Commerce.GetReceipt(ctx, nil, op.ID, leg.ReceiptID)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
+		in.Proof.ReceiptID = leg.ReceiptID
+		in.Proof.RecipientReference = receipt.PayerReference
 		in.Valuation = payments.EnsureValuationIdentity(in.Valuation, "procurement-bank:"+op.ID+":"+id+":"+in.Proof.ExternalReference, in.Proof.Money.Currency)
 		out, err := a.ProcurementRefunds.RecordManualRefund(ctx, actor, id, in.Proof, in.Valuation, in.ValuedAt, in.FX)
 		e = err

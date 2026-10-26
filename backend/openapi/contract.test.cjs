@@ -120,10 +120,13 @@ test('risk rules use current rule CAS and operations permission while observatio
 test('procurement revisions explicitly retain authorization identity and require fresh consent', () => {
   const create = document.components.schemas.Operator_procurement_authorization;
   const revise = document.components.schemas.Operator_procurement_authorization_revision;
-  assert.ok(create.required.includes('consent_reference'));
+  assert.ok(create.required.includes('consent_confirmed'));
+  assert.equal(create.properties.single_limit_usd, undefined);
+  assert.equal(create.properties.consent_reference, undefined);
   assert.equal(create.properties.id, undefined);
   assert.ok(revise.required.includes('id'));
-  assert.ok(revise.required.includes('renewed_consent_reference'));
+  assert.ok(revise.required.includes('consent_confirmed'));
+  assert.equal(revise.properties.renewed_consent_reference, undefined);
   assert.equal(revise.properties.consent_reference, undefined);
   assert.equal(revise.properties.expected_version.type, 'integer');
   assert.equal(revise.properties.payment.properties.payment_method.writeOnly, true);

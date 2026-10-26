@@ -109,7 +109,7 @@ func TestPostgresCooperationRejectsForeignAndPathContractReferences(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Supply.ContractAttachmentID != ownID || created.Supply.ExitPolicy != "non_refundable" || created.Supply.Version != 1 || created.Supply.Status != "active" {
+	if created.Supply.ContractAttachmentID != ownID || created.Supply.Version != 1 || created.Supply.Status != "active" {
 		t.Fatal("cooperation did not generate safe defaults", created)
 	}
 	if err = f.db.Table("organization_cooperation_contracts").Where("id=?", ownID).Update("object_key", "finance-evidence/foreign/stolen").Error; err == nil {

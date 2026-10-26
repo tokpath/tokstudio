@@ -29,7 +29,7 @@ func businessFields(o operation) []field {
 		renewal.Help = "仅允许客户自行授权续费，不会替客户开启。停止新购与停止续费分别控制，已购权益保持原条款。"
 		return []field{optional("package_id", "套餐", "hidden"), f("name", "套餐名称", "text"), f("price_usd", "售价 USD", "decimal"), f("paid_atg", "购买额度 ATG", "decimal"), defaultField("gift_atg", "赠送额度 ATG", "decimal", "0"), period, packageTermsField(), defaultField("new_purchase_enabled", "允许新购", "boolean", true), renewal, version}
 	case "operators":
-		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), supplyExitPolicyField(), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
+		return []field{selectField("kind", "合作类型", "oem|独立OEM品牌", "channel|同品牌渠道"), f("name", "经营方名称", "text"), f("legal_name", "实际经营主体", "text"), cooperationBrandNameField(), optional("supply_terms", "合作约定说明（可选）", "textarea"), optional("contract_attachment_id", "已上传合作合同（可选）", "text")}
 	case "commissions":
 		confirmation := defaultField("confirmation_days", "消费确认等待天数", "integer", 30)
 		confirmation.Help = "按整天填写，默认 30 天。等待期满且相关消费没有未结争议后，才计入资格，对应佣金才能使用或提现。已经开始等待的记录仍按原来的到期时间，不会因为后来改政策而延长。"

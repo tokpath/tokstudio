@@ -297,7 +297,7 @@ func TestSupplierBindingDoesNotRequireManualSupplierPrices(t *testing.T) {
 	if e := s.SaveSupplierModel(ctx, "platform", supplier, 0); e != nil {
 		t.Fatal(e)
 	}
-	if e := s.SaveRouteConfiguration(ctx, "platform", RouteConfiguration{PublicModelID: "model", Strategy: "priority", Bindings: []RouteBinding{{SupplierModelID: "supplier-model", Priority: 1, Enabled: true}}}, 0); e != nil {
+	if e := s.SaveRouteConfiguration(ctx, "platform", RouteConfiguration{PublicModelID: "model", Strategy: "priority", Bindings: []RouteBinding{{SupplierModelID: "supplier-model", Enabled: true}}}, 0); e != nil {
 		t.Fatal(e)
 	}
 	if e := s.SavePublicModel(ctx, "platform", PublicModel{ID: "model", Capabilities: []modelruntime.Capability{{Operation: modelruntime.Chat}}, Enabled: true}, 1); e != nil {

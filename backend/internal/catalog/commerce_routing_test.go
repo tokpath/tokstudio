@@ -20,10 +20,6 @@ func TestPostgresRoutingCapacityCircuitRecoveryAndLateObservation(t *testing.T) 
 		t.Fatal(e)
 	}
 	u := rows[0]
-	u.Routing = RouteLimits{MaxConcurrent: 2, FailureThreshold: 1, UnknownUsageThreshold: 1, RecoverySuccesses: 2, CooldownSeconds: 60}
-	if e = c.SaveUpstream(ctx, "platform", u, u.Version); e != nil {
-		t.Fatal(e)
-	}
 	var wg sync.WaitGroup
 	results := make(chan string, 12)
 	errs := make(chan error, 12)
@@ -50,8 +46,8 @@ func TestPostgresRoutingCapacityCircuitRecoveryAndLateObservation(t *testing.T) 
 	for id := range results {
 		ids = append(ids, id)
 	}
-	if len(ids) != 2 {
-		t.Fatalf("capacity admitted %d", len(ids))
+	if len(ids) != 12 {
+		t.Fatalf("healthy route admitted %d", len(ids))
 	}
 	bad := modelruntime.Result{State: "completed", Usage: modelruntime.Usage{Reliable: false}}
 	good := modelruntime.Result{State: "completed", Usage: modelruntime.Usage{Reliable: true}}
@@ -62,22 +58,34 @@ func TestPostgresRoutingCapacityCircuitRecoveryAndLateObservation(t *testing.T) 
 		t.Fatal(e)
 	}
 	view, e := c.AdminRouting(ctx, "platform", "model")
+	if e != nil || view.Health[0].Circuit != "closed" || view.Health[0].UnknownUsage != 1 {
+		t.Fatal("one unverifiable result or duplicate tripped circuit", view, e)
+	}
+	if e = c.ObserveRoute(ctx, ids[1], bad); e != nil {
+		t.Fatal(e)
+	}
+	view, e = c.AdminRouting(ctx, "platform", "model")
 	if e != nil {
 		t.Fatal(e)
 	}
-	if view.Health[0].Circuit != "open" || view.Health[0].UnknownUsage != 1 {
+	if view.Health[0].Circuit != "open" || view.Health[0].UnknownUsage != 2 {
 		t.Fatalf("duplicate counted: %+v", view.Health)
 	}
 	if e = c.ClaimRoute(ctx, u.ID, "too-early", "request", time.Now().Add(time.Minute)); !errors.Is(e, ErrRouteUnavailable) {
 		t.Fatalf("cooldown bypass: %v", e)
 	}
 	// An earlier in-flight success cannot clear a newer trip epoch.
-	if e = c.ObserveRoute(ctx, ids[1], good); e != nil {
+	if e = c.ObserveRoute(ctx, ids[2], good); e != nil {
 		t.Fatal(e)
 	}
 	view, _ = c.AdminRouting(ctx, "platform", "model")
 	if view.Health[0].Circuit != "open" {
 		t.Fatal("late success reset circuit")
+	}
+	for _, id := range ids[3:] {
+		if e = c.ObserveRoute(ctx, id, modelruntime.Result{State: "not_dispatched"}); e != nil {
+			t.Fatal(e)
+		}
 	}
 	if e = c.DB.Model(&RouteHealth{}).Where("upstream_id=?", u.ID).Update("open_until", time.Now().Add(-time.Second)).Error; e != nil {
 		t.Fatal(e)

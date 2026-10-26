@@ -470,6 +470,9 @@ func (a *Application) publicModelAvailability(c *gin.Context, op organization.Op
 func (a *Application) catalogResource(c *gin.Context, op organization.Operator, actor, resource string, p gin.H, base string) bool {
 	ctx := c.Request.Context()
 	items := []any{}
+	if resource == "catalog" || resource == "providers" || resource == "routes" {
+		p["status_supported"] = false
+	}
 	switch resource {
 	case "catalog":
 		rows, e := a.Catalog.AdminModels(ctx, a.Installation.OperatorID)
@@ -546,6 +549,12 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			handleError(c, e)
 			return true
 		}
+		credentials, e := a.Catalog.AdminCredentials(ctx, a.Installation.OperatorID)
+		if e != nil {
+			handleError(c, e)
+			return true
+		}
+		suppliers := supplierLabels(credentials)
 		for _, m := range models {
 			policy, e := a.Catalog.RoutingPolicy(ctx, m.ID)
 			if e != nil {
@@ -564,26 +573,31 @@ func (a *Application) catalogResource(c *gin.Context, op organization.Operator, 
 			}
 			bindings := []gin.H{}
 			names := []string{}
-			open := false
+			active, ready := 0, 0
 			for _, row := range upstreams {
 				state := health[row.ID]
-				if state.Circuit == "open" {
-					open = true
+				if row.Enabled && row.Healthy {
+					active++
+					if state.OpenUntil == nil || !state.OpenUntil.After(time.Now()) {
+						ready++
+					}
 				}
 				if row.Model != "" {
-					names = append(names, row.Model)
+					names = append(names, humanJoin(row.Model, suppliers[row.CredentialID]))
 				}
-				bindings = append(bindings, gin.H{"id": row.ID, "supplier_model_id": row.SupplierModelID, "model": row.Model, "credential_id": row.CredentialID, "priority": row.Priority, "enabled": row.Enabled, "routing": row.Routing, "circuit": state.Circuit})
+				bindings = append(bindings, gin.H{"id": row.ID, "supplier_model_id": row.SupplierModelID, "model": row.Model, "credential_id": row.CredentialID, "enabled": row.Enabled, "circuit": state.Circuit})
 			}
-			summary := "可接单"
-			if open {
-				summary = "熔断中"
+			summary := "未配置可用线路"
+			if ready > 0 {
+				summary = "可接单"
+			} else if active > 0 {
+				summary = "线路暂停，等待恢复"
 			}
 			items = append(items, entity(m.ID, "configured", int64(policy.Version), gin.H{"public_model_id": m.ID, "name": m.ID, "strategy": policy.Strategy, "supplier_models": strings.Join(names, "、"), "health_summary": summary, "bindings": bindings}))
 		}
-		p["description"] = "为一个公开模型绑上一个或多个供应商模型，并选择先用哪一条。连续失败或读不到用量时，按每条绑定上的数字暂时停用。"
-		p["columns"] = []gin.H{col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "熔断", "text")}
-		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型，绑上供应商模型，并选择固定优先级、最低延迟或最低成本。熔断数字写在每一条绑定上。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、优先级、启用、熔断数字）、expected_version")}}}
+		p["description"] = "为公开模型选择供应商模型和选路策略。系统自动暂停故障线路并探测恢复，其他正常线路继续服务。"
+		p["columns"] = []gin.H{col("strategy", "选路策略", "text"), col("supplier_models", "供应商模型", "text"), col("health_summary", "线路状态", "text")}
+		p["operations"] = []operation{{Name: "save", Label: "配置路由", Method: "POST", Path: base, Description: "选择公开模型和供应商模型，按列表顺序优先、最低延迟或预估最低成本选路。", Fields: []field{jsonField("route：public_model_id、strategy、bindings（供应商模型、启用，数组顺序即优先顺序）、expected_version")}}}
 	case "pricing":
 		var e error
 		items, e = a.pricingWorkspaceItems(ctx, op, c.Query("q"))

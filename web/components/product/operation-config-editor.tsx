@@ -5,10 +5,10 @@ import { FieldHelp } from "./field-help";
 import { businessFieldHelp } from "./business-field-help";
 import { YesNoChoice } from "./yes-no";
 
-import { useDeferredValue, useId, useState } from "react";
+import { createContext, useContext, useDeferredValue, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type JSONValue } from "@/lib/contracts";
@@ -19,17 +19,18 @@ import { BillingTemplateEditor } from "./billing-template-editor";
 
 const control = "min-h-11 w-full min-w-0 rounded-control border border-hairline bg-canvas-raised px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 const asObject = (value: JSONValue | undefined): Record<string, JSONValue> => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const ReferencePending = createContext<(pending: boolean) => void>(() => {});
 
-export function ConfigurationEditor({ schema, value, disabled, change, operatorID, modelProfiles, allowFollow = true, allowDownstream = true }: { schema: ConfigNode; value: string; disabled: boolean; change: (value: string) => void; operatorID?: string; modelProfiles?: JSONValue; allowFollow?: boolean; allowDownstream?: boolean }) {
+export function ConfigurationEditor({ schema, value, disabled, change, operatorID, modelProfiles, allowFollow = true, allowDownstream = true, onPendingChange = () => {} }: { schema: ConfigNode; value: string; disabled: boolean; change: (value: string) => void; operatorID?: string; modelProfiles?: JSONValue; allowFollow?: boolean; allowDownstream?: boolean; onPendingChange?: (pending: boolean) => void }) {
   const { t } = useI18n();
   const [emptyDefaults] = useState(() => configDefaults(schema) || {});
   let parsed: JSONValue;
   let invalid = false;
   try { parsed = value ? JSON.parse(value) as JSONValue : emptyDefaults; if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("configuration object required"); }
   catch { parsed = {}; invalid = true; }
-  return <div className="space-y-5">
+  return <ReferencePending.Provider value={onPendingChange}><div className="space-y-5">
     {invalid ? <div className="rounded-control border border-danger/30 p-4 text-sm text-danger">{t("配置内容无法读取，请关闭后重新打开。")}</div> : <NodeEditor node={schema} value={parsed} disabled={disabled} operatorID={operatorID} referenceContext={{model_profiles:modelProfiles || {}, allow_follow:allowFollow, allow_downstream:allowDownstream}} change={next => change(JSON.stringify(retainKnownFields(next, schema)))} root />}
-  </div>;
+  </div></ReferencePending.Provider>;
 }
 
 function NodeEditor({ node, value, change, disabled, context = "", root = false, fieldPath = "", operatorID, choose, referenceContext }: { node: ConfigNode; value: JSONValue | undefined; change: (value: JSONValue) => void; disabled: boolean; context?: string; root?: boolean; fieldPath?: string; operatorID?: string; choose?: (value: string, defaults: Record<string, unknown>) => void; referenceContext?: Record<string, JSONValue> }) {
@@ -50,6 +51,15 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     const data = asObject(value);
     const update = (key: string, selected: JSONValue, defaults?: Record<string, unknown>) => {
       const next = { ...data, [key]: selected };
+      if (key === "public_model_id" && node.fields?.bindings) {
+        next.bindings = Array.isArray(defaults?.route_bindings) ? defaults.route_bindings as JSONValue[] : [];
+        next.strategy = String(defaults?.route_strategy || "priority");
+        next.route_version = typeof defaults?.routing_version === "number" ? defaults.routing_version : 0;
+      }
+      if (key === "route" && typeof asObject(selected).route_version === "number") {
+        const {route_version, ...route} = asObject(selected);
+        next.expected_version = route_version; next.route = route;
+      }
       if(key==="template" && (selected==="tokens" || selected==="characters"))next.variants=[];
       if(key==="modality") {next.template=selected==="image"?"images":selected==="audio" || selected==="video"?"seconds":"tokens";next.variants=[];}
       if ((data.action === "listing" || data.action === "authorization") && (key === "action" || key === "buyer_id")) { next.model_id = ""; next.expected_version = ""; }
@@ -78,11 +88,11 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
     /></div>)}</div>;
     return root ? children : <fieldset className="min-w-0 rounded-control border border-hairline bg-canvas/40 p-4"><legend className="px-2 text-sm font-semibold">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend>{children}</fieldset>;
   }
-  if (node.kind === "array" && node.presentation === "operations") {
+  if (node.kind === "array" && (node.presentation === "operations" || node.presentation === "supplier-operations")) {
     const items = Array.isArray(value) ? value : [];
-    const selected = new Set(items.map(item => typeof item === "string" ? item : String(asObject(item).operation || "")));
-    const choose = (key: string, checked: boolean) => change((node.options || []).filter(([op]) => op === key ? checked : selected.has(op)).map(([op]) => ({ operation: op })));
-    return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2"><legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{(node.options || []).map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
+    const selected = new Map(items.map(item => { const cap = asObject(item); return [String(cap.operation || ""), cap]; }));
+    const choose = (key: string, checked: boolean) => change((node.options || []).filter(([op]) => op === key ? checked : selected.has(op)).map(([op]) => selected.get(op) || { operation: op, ...(node.presentation === "supplier-operations" ? {streaming:false} : {}) }));
+    return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm sm:col-span-2"><legend className="text-sm font-medium">{label}{help && <FieldHelp title={label}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{(node.options || []).map(([key, text]) => <div key={key} className="rounded-control border border-hairline px-3 py-2"><label className="flex min-h-11 items-center gap-3"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>{node.presentation === "supplier-operations" && selected.has(key) && !["embedding","video_generation"].includes(key) && <label className="ml-7 flex min-h-11 items-center gap-3 text-xs text-ink-secondary"><input type="checkbox" aria-label={t("{ability}支持流式输出", {ability:t(text)})} checked={selected.get(key)?.streaming === true} disabled={disabled} onChange={event => change(items.map(item => asObject(item).operation === key ? {...asObject(item),streaming:event.target.checked} : item))} />{t("支持流式输出")}</label>}</div>)}</div></fieldset>;
   }
   if (node.kind === "array") {
     const items = Array.isArray(value) ? value : [];
@@ -97,7 +107,7 @@ function NodeEditor({ node, value, change, disabled, context = "", root = false,
       };
       return <fieldset data-config-path={fieldPath} className="min-w-0 text-sm"><legend className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>}</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{node.options.map(([key, text]) => <label key={key} className="flex min-h-11 items-center gap-3 rounded-control border border-hairline px-3 py-2"><input type="checkbox" aria-label={t(text)} checked={selected.has(key)} disabled={disabled} onChange={event => choose(key, event.target.checked)} />{t(text)}</label>)}</div></fieldset>;
     }
-    return <section data-config-path={fieldPath} aria-label={label} className="min-w-0 space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>} <span className="font-normal text-ink-mute">{t("{count} 项", { count: items.length })}</span></h4><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...items, configDefaults(node.item!) ?? ""])}><Plus aria-hidden="true" />{t("添加{item}", { item: node.item?.kind === "object" ? t(node.item.label) : t("项目") })}</Button></div>{!items.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加{item}", { item: t(node.label) })}</p>}{items.map((item, index) => <div key={index} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1"><NodeEditor node={node.item!} value={item} disabled={disabled} operatorID={operatorID} context={`${t(node.label)} ${index + 1}`} fieldPath={`${fieldPath}.${index}`} change={next => change(items.map((previous, i) => i === index ? next : previous))} /></div><Button type="button" variant="ghost" size="icon" aria-label={t("移除{item} {index}", { item: t(node.label), index: index + 1 })} disabled={disabled} onClick={() => change(items.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>)}</section>;
+    return <section data-config-path={fieldPath} aria-label={label} className="min-w-0 space-y-3"><div className="flex flex-wrap items-center justify-between gap-3"><h4 className="text-sm font-medium">{t(node.label)}{help && <FieldHelp title={t(node.label)}>{t(help)}</FieldHelp>} <span className="font-normal text-ink-mute">{t("{count} 项", { count: items.length })}</span></h4><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => change([...items, configDefaults(node.item!) ?? ""])}><Plus aria-hidden="true" />{t("添加{item}", { item: node.item?.kind === "object" ? t(node.item.label) : t("项目") })}</Button></div>{!items.length && <p className="rounded-control border border-dashed border-hairline p-4 text-xs text-ink-mute">{t("尚未添加{item}", { item: t(node.label) })}</p>}{items.map((item, index) => <div key={index} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1"><NodeEditor node={node.item!} value={item} disabled={disabled} operatorID={operatorID} referenceContext={referenceContext} context={`${t(node.label)} ${index + 1}`} fieldPath={`${fieldPath}.${index}`} change={next => change(items.map((previous, i) => i === index ? next : previous))} /></div>{node.presentation === "routes" && <div className="flex flex-col"><Button type="button" variant="ghost" size="icon" aria-label={t("上移线路 {index}", {index:index + 1})} disabled={disabled || index === 0} onClick={() => { const next=[...items];[next[index-1],next[index]]=[next[index],next[index-1]];change(next); }}><ArrowUp aria-hidden="true" /></Button><Button type="button" variant="ghost" size="icon" aria-label={t("下移线路 {index}", {index:index + 1})} disabled={disabled || index === items.length - 1} onClick={() => { const next=[...items];[next[index+1],next[index]]=[next[index],next[index+1]];change(next); }}><ArrowDown aria-hidden="true" /></Button></div>}<Button type="button" variant="ghost" size="icon" aria-label={t("移除{item} {index}", { item: t(node.label), index: index + 1 })} disabled={disabled} onClick={() => change(items.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></div>)}</section>;
   }
   if (node.kind === "record") {
     const entries = Object.entries(asObject(value));
@@ -125,15 +135,37 @@ function ResolutionPrices({ fieldPath, help, rows, disabled, change }: { fieldPa
 const ReferenceSchema = z.object({ items: z.array(z.object({ value: z.string(), label: z.string(), defaults: z.record(z.unknown()).optional() })), next_cursor: z.string().optional() });
 function ConfigReference({ node, label, value, operatorID, disabled, change, referenceContext }: { node: ConfigNode; label: string; value: string; operatorID: string; disabled: boolean; change: (value: string, defaults: Record<string, unknown>) => void; referenceContext?: Record<string, JSONValue> }) {
   const { t } = useI18n();
+  const pendingChanged = useContext(ReferencePending);
   const [search, setSearch] = useState(""); const deferred = useDeferredValue(search); const [cursor, setCursor] = useState(""); const [selectedLabel, setSelectedLabel] = useState("");
+  const [choosing, setChoosing] = useState(false), [choiceError, setChoiceError] = useState<unknown>();
+  const choiceSequence = useRef(0);
   const path = `/api/v1/operators/${encodeURIComponent(operatorID)}/references/${node.lookup}`;
   const needsBuyer = node.lookup === "models" && referenceContext?.action === "authorization", buyerID = needsBuyer ? String(referenceContext?.buyer_id || "") : "";
   const ready = !needsBuyer || !!buyerID;
-  const data = useQuery({ queryKey: ["references", path, deferred, cursor, buyerID], enabled: ready, queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
-  const selected = useQuery({ queryKey: ["reference-label", path, value, buyerID], enabled: ready && !!value && value !== "*" && !data.data?.items.some(item => item.value === value), queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(value)}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
+  const modelID = node.lookup === "supplier-models" ? String(referenceContext?.public_model_id || "") : "";
+  const extra = `${node.lookupPurpose ? `&purpose=${node.lookupPurpose}` : ""}${modelID ? `&public_model_id=${encodeURIComponent(modelID)}` : ""}`;
+  const data = useQuery({ queryKey: ["references", path, deferred, cursor, buyerID, extra], enabled: ready, queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(deferred)}&cursor=${encodeURIComponent(cursor)}${extra}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
+  const selected = useQuery({ queryKey: ["reference-label", path, value, buyerID, extra], enabled: ready && !!value && value !== "*" && !data.data?.items.some(item => item.value === value), queryFn: ({ signal }) => request(`${path}?q=${encodeURIComponent(value)}${extra}${needsBuyer ? `&buyer_id=${encodeURIComponent(buyerID)}` : ""}`, ReferenceSchema, { signal }) });
   const currentLabel = !value ? "" : value === "*" ? t("全部已授权模型（跟随上级）") : data.data?.items.find(item => item.value === value)?.label || selected.data?.items.find(item => item.value === value)?.label || selectedLabel || t(selected.isPending ? "正在读取关联记录名称…" : "已选择关联记录");
   const options: RecordChoice[] = (data.data?.items || []).map(item => ({ value: item.value, label: item.label, defaults: item.defaults }));
+  async function selectChoice(choice: RecordChoice | null) {
+    setChoiceError(undefined);
+    if (!choice || node.lookupPurpose !== "routing") {
+      setSelectedLabel(choice?.label || ""); change(choice?.value || "", choice?.defaults || {}); return;
+    }
+    // A cached model choice may predate the last route save. Read the selected
+    // model's current bindings and CAS together before replacing the draft.
+    const sequence = ++choiceSequence.current;
+    setChoosing(true); pendingChanged(true);
+    try {
+      const current = await request(`${path}?q=${encodeURIComponent(choice.value)}${extra}`, ReferenceSchema);
+      const found = current.items.find(item => item.value === choice.value);
+      if (!found) throw new Error(t("请选择实际业务记录"));
+      if (sequence === choiceSequence.current) { setSelectedLabel(found.label); change(found.value, found.defaults || {}); }
+    } catch (error) { if (sequence === choiceSequence.current) setChoiceError(error); }
+    finally { if (sequence === choiceSequence.current) { setChoosing(false); pendingChanged(false); } }
+  }
   return <div className="min-w-0 text-sm"><div className="flex min-h-7 items-center max-sm:min-h-11"><span className="text-ink-secondary">{t(node.label)}</span>{node.required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}{node.help && <FieldHelp title={t(node.label)}>{t(node.help)}</FieldHelp>}</div>
-    <RecordPicker label={label} required={node.required} disabled={disabled} ready={ready} value={value} displayLabel={currentLabel} options={options} placeholder={ready ? t("按名称或业务编号搜索") : t("请先选择被授权的直属下级")} emptyLabel={ready ? t("请选择实际业务记录") : t("请先选择被授权的直属下级")} wildcardLabel={node.wildcard && asObject(referenceContext?.rule).mode === "follow" ? t("全部已授权模型（跟随上级）") : undefined} loading={data.isPending} error={data.isError ? data.error : undefined} onRetry={() => void data.refetch()} moreLabel={data.data?.next_cursor ? t("更多记录") : undefined} onMore={data.data?.next_cursor ? () => setCursor(data.data!.next_cursor!) : undefined} onQuery={next => { setSearch(next); setCursor(""); }} onChoose={choice => { setSelectedLabel(choice?.label || ""); change(choice?.value || "", choice?.defaults || {}); }} />
+    <RecordPicker label={label} required={node.required} disabled={disabled || choosing} ready={ready} value={value} displayLabel={currentLabel} options={options} placeholder={ready ? t("按名称或业务编号搜索") : t("请先选择被授权的直属下级")} emptyLabel={ready ? t("请选择实际业务记录") : t("请先选择被授权的直属下级")} wildcardLabel={node.wildcard && asObject(referenceContext?.rule).mode === "follow" ? t("全部已授权模型（跟随上级）") : undefined} loading={data.isPending || choosing} error={choiceError || (data.isError ? data.error : undefined)} onRetry={() => { setChoiceError(undefined); void data.refetch(); }} moreLabel={data.data?.next_cursor ? t("更多记录") : undefined} onMore={data.data?.next_cursor ? () => setCursor(data.data!.next_cursor!) : undefined} onQuery={next => { setSearch(next); setCursor(""); }} onChoose={choice => void selectChoice(choice)} />
   </div>;
 }

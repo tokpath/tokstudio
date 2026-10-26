@@ -11,11 +11,14 @@ func (a *Application) mailResource(c *gin.Context, p gin.H, base string) {
 		handleError(c, e)
 		return
 	}
+	p["status_supported"] = false
 	p["title"] = "验证与通知邮件服务"
 	p["description"] = "SMTP配置仅平台维护，密码加密保存且不回显。已接收表示SMTP服务器接受投递，不代表邮箱最终送达。"
 	p["items"] = []any{entity("platform", "configured", 0, settings)}
 	p["columns"] = []gin.H{col("host", "SMTP服务器", "text"), col("port", "端口", "text"), col("from", "发信地址", "text"), col("security", "传输安全", "text"), col("password_set", "密码已配置", "boolean"), col("available", "通过配置预检", "boolean"), col("source", "配置来源", "text")}
-	p["operations"] = []operation{{Name: "configure", Label: "保存邮件服务配置", Method: "POST", Path: base, Fields: []field{f("enabled", "启用SMTP", "boolean"), f("host", "SMTP主机", "text"), f("port", "端口", "integer"), optional("username", "SMTP认证用户名", "text"), optional("password", "新密码（留空保留）", "password"), f("from", "已授权发信地址", "email"), selectField("security", "传输方式", "starttls|STARTTLS", "tls|TLS", "plain|明文（仅隔离测试）")}}}
+	security := selectField("security", "传输方式", "starttls|STARTTLS", "tls|TLS")
+	security.Default = settings.Security
+	p["operations"] = []operation{{Name: "configure", Label: "保存邮件服务配置", Method: "POST", Path: base, Fields: []field{defaultField("enabled", "启用SMTP", "boolean", settings.Enabled), defaultField("host", "SMTP主机", "text", settings.Host), defaultField("port", "端口", "integer", settings.Port), optional("username", "SMTP认证用户名", "text"), optional("password", "新密码（留空保留）", "password"), defaultField("from", "已授权发信地址", "email", settings.From), security}}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) mailCommand(c *gin.Context) {

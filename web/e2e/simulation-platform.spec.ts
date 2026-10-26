@@ -99,8 +99,7 @@ test("technical administrator configures a real provider, verified model and rou
     await setPath(dialog, "supplier_model.provider", "openai");
     await setPath(dialog, "supplier_model.model", "test-chat");
     await setPath(dialog, "supplier_model.base_url", `${p.lab_url}/v1`);
-    await dialog.getByRole("button", { name: "添加供应商能力", exact: true }).click();
-    await setPath(dialog, "supplier_model.capabilities.0.operation", "chat");
+    await dialog.getByRole("checkbox", {name:"对话",exact:true}).check();
     const supplierSaved = await submit(tech, dialog, "添加供应商模型", `${base}/providers`);
     const supplierModelID = supplierSaved.request().postDataJSON().configuration.supplier_model.id as string;
     expect(supplierModelID).toMatch(/^[0-9a-f-]{36}$/);
@@ -120,21 +119,15 @@ test("technical administrator configures a real provider, verified model and rou
     await setPath(dialog, "route.public_model_id", model);
     await dialog.getByRole("button", { name: "添加绑定", exact: true }).click();
     await setPath(dialog, "route.bindings.0.supplier_model_id", supplierModelID);
-    await setPath(dialog, "route.bindings.0.priority", "10");
-    await setPath(dialog, "route.bindings.0.routing.max_concurrent", "5");
-    await setPath(dialog, "route.bindings.0.routing.failure_threshold", "3");
-    await setPath(dialog, "route.bindings.0.routing.unknown_usage_threshold", "2");
-    await setPath(dialog, "route.bindings.0.routing.recovery_successes", "2");
-    await setPath(dialog, "route.bindings.0.routing.cooldown_seconds", "60");
     const routeCreated = await submit(tech, dialog, "配置路由", `${base}/routes`);
     route = (await routeCreated.json()).id;
     expect(route).toBe(model);
     await close(dialog);
     dialog = await panel(tech, "编辑路由", tech.getByRole("row").filter({ hasText: model }));
-    await control(dialog, "选路优先级", false).fill("11");
+    await expect(dialog.locator('[data-config-path$=".routing"],[data-config-path$=".priority"]')).toHaveCount(0);
     await submit(tech, dialog, "编辑路由", `${base}/routes`); await close(dialog);
     const routes = await (await tech.request.get(`${base}/routes`)).json(), savedRoute = routes.items.find((row: any) => row.id === model);
-    expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBe(11); expect(savedRoute.values.bindings[0].supplier_model_id).toBe(supplierModelID);
+    expect(savedRoute.version).toBe(2); expect(savedRoute.values.bindings[0].priority).toBeUndefined(); expect(savedRoute.values.bindings[0].supplier_model_id).toBe(supplierModelID);
 
     await tech.goto(`/manage/${p.operator_id}/catalog`);
     const modelRow = tech.getByRole("row").filter({ hasText: model });
@@ -441,10 +434,7 @@ test("platform configures input and output modality billing, synchronizes Bifros
     await close(dialog);
 
     await page.goto(`/manage/${p.operator_id}/bifrost`);
-    dialog = await panel(page, "调整价目同步");
-    await control(dialog, "价目来源地址", true).fill(`${p.lab_url}/datasheet`);
-    await control(dialog, "同步间隔（小时）", true).fill("24");
-    await submit(page, dialog, "调整价目同步", `${base}/bifrost`); await close(dialog);
+    await expect(page.getByRole("button",{name:"调整价目同步",exact:true})).toHaveCount(0);
     dialog = await panel(page, "立即同步");
     await submit(page, dialog, "立即同步", `${base}/bifrost`); await close(dialog);
     await expect.poll(async () => {

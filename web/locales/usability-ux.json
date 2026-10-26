@@ -1873,5 +1873,115 @@
     "en": "List or unlist models",
     "ja": "モデルの公開・非公開",
     "ru": "Публикация и снятие моделей"
+  },
+  "{ability}支持流式输出": {
+    "en": "Stream {ability}",
+    "ja": "{ability}のストリーミング",
+    "ru": "Потоковый вывод: {ability}"
+  },
+  "上移线路 {index}": {
+    "en": "Move route {index} up",
+    "ja": "経路 {index} を上へ",
+    "ru": "Переместить маршрут {index} вверх"
+  },
+  "下移线路 {index}": {
+    "en": "Move route {index} down",
+    "ja": "経路 {index} を下へ",
+    "ru": "Переместить маршрут {index} вниз"
+  },
+  "按列表顺序优先": {
+    "en": "Prefer list order",
+    "ja": "一覧の順序で優先",
+    "ru": "В порядке списка"
+  },
+  "保存后配置生效。": {
+    "en": "Settings take effect after saving.",
+    "ja": "保存後に設定が反映されます。",
+    "ru": "Настройки вступят в силу после сохранения."
+  },
+  "每 24 小时": {
+    "en": "Every 24 hours",
+    "ja": "24時間ごと",
+    "ru": "Каждые 24 часа"
+  },
+  "线路状态": {
+    "en": "Route status",
+    "ja": "経路の状態",
+    "ru": "Состояние маршрутов"
+  },
+  "未配置可用线路": {
+    "en": "No enabled routes configured",
+    "ja": "有効な経路が未設定です",
+    "ru": "Нет настроенных активных маршрутов"
+  },
+  "线路暂停，等待恢复": {
+    "en": "Routes paused; awaiting recovery",
+    "ja": "経路を一時停止中、復旧待ち",
+    "ru": "Маршруты приостановлены, ожидается восстановление"
+  },
+  "备注（可选）": {
+    "en": "Note (optional)",
+    "ja": "備考（任意）",
+    "ru": "Примечание (необязательно)"
+  },
+  "价目同步失败，系统将自动重试。已有价目继续使用。": {
+    "en": "Price sync failed. The system will retry automatically and keep the last successful prices.",
+    "ja": "価格の同期に失敗しました。自動で再試行し、取得済みの価格を引き続き使用します。",
+    "ru": "Не удалось обновить цены. Система повторит попытку автоматически; последние успешные данные сохраняются."
+  },
+  "勾选供应商实际支持的能力；支持流式的能力可以单独开启。": {
+    "en": "Select the operations your supplier supports. Enable streaming separately where supported.",
+    "ja": "供給者が対応する機能を選択し、対応する機能ごとにストリーミングを有効にできます。",
+    "ru": "Выберите поддерживаемые поставщиком операции. Потоковый вывод включается отдельно для каждой поддерживаемой операции."
+  },
+  "排在前面的优先使用；也作为延迟或成本相同时的选择顺序。故障暂停与恢复由系统自动处理。": {
+    "en": "Earlier routes take priority, including ties in latency or cost. The system pauses failing routes and checks recovery automatically.",
+    "ja": "上位の経路を優先し、遅延やコストが同じ場合もこの順序で選択します。障害時の一時停止と復旧確認は自動で行います。",
+    "ru": "Ранние маршруты имеют приоритет, в том числе при равной задержке или стоимости. Приостановка сбоивших маршрутов и проверка восстановления выполняются автоматически."
+  },
+  "选择公开模型后会带入已有路由。只需选择供应商模型、调整顺序和选路策略。": {
+    "en": "Selecting a public model loads its existing routes. Choose supplier models, arrange their order and select a routing strategy.",
+    "ja": "公開モデルを選択すると既存の経路が読み込まれます。供給者モデルを選び、順序と選択方式を設定してください。",
+    "ru": "При выборе публичной модели загружаются её маршруты. Выберите модели поставщиков, их порядок и стратегию маршрутизации."
+  },
+  "先登记供应商密钥，再添加供应商模型和能力。Bifrost 参考价目仅用于成本核算，对客 ATG 价格在商品与定价设置。": {
+    "en": "Register a supplier key, then add its models and operations. Bifrost reference prices calculate upstream costs; customer ATG prices are set under Products and pricing.",
+    "ja": "供給者キーを登録し、モデルと機能を追加します。Bifrostの参考価格は仕入原価の計算専用です。顧客向けATG価格は商品と価格設定で管理します。",
+    "ru": "Зарегистрируйте ключ поставщика, затем добавьте модели и операции. Справочные цены Bifrost используются для расчёта затрат; цены ATG для клиентов задаются в разделе товаров и цен."
+  },
+  "一个公开模型可以使用多个供应商模型。按列表顺序、最低延迟或预估最低成本选路，故障暂停与恢复由系统自动处理。": {
+    "en": "A public model can use several supplier models. Route by list order, lowest latency or estimated cost. Failure protection and recovery are automatic.",
+    "ja": "公開モデルに複数の供給者モデルを利用できます。一覧の順序、最低遅延、推定最低コストで経路を選択し、障害時の保護と復旧は自動で行います。",
+    "ru": "Публичная модель может использовать несколько моделей поставщиков. Выбор идёт по порядку списка, задержке или ожидаемой стоимости. Защита от сбоев и восстановление автоматические."
+  },
+  "为公开模型选择供应商模型和选路策略。系统自动暂停故障线路并探测恢复，其他正常线路继续服务。": {
+    "en": "Choose supplier models and a routing strategy. The system pauses failing routes and checks their recovery while healthy routes continue serving requests.",
+    "ja": "公開モデルの供給者モデルと経路の選択方式を設定します。障害のある経路を自動で一時停止して復旧を確認し、正常な経路でサービスを継続します。",
+    "ru": "Выберите модели поставщиков и стратегию маршрутизации. Система приостановит сбоившие маршруты и проверит восстановление; исправные маршруты продолжат работу."
+  },
+  "选择公开模型和供应商模型，按列表顺序优先、最低延迟或预估最低成本选路。": {
+    "en": "Choose a public model and supplier models, then route by list order, lowest latency or estimated cost.",
+    "ja": "公開モデルと供給者モデルを選び、一覧の順序、最低遅延、推定最低コストで経路を選択します。",
+    "ru": "Выберите публичную модель и модели поставщиков, затем порядок списка, минимальную задержку или ожидаемую стоимость."
+  },
+  "选择密钥、协议和模型名称，勾选能力，按需选择参考成本模型。": {
+    "en": "Choose a key, protocol and model name. Select supported operations and an optional reference cost model.",
+    "ja": "キー、プロトコル、モデル名を設定し、対応機能と必要に応じて原価参照モデルを選択します。",
+    "ru": "Выберите ключ, протокол и название модели. Отметьте операции и при необходимости справочную модель для расчёта затрат."
+  },
+  "选择支持相应能力的供应商模型，上下移动调整优先顺序。": {
+    "en": "Choose compatible supplier models and move them up or down to set priority.",
+    "ja": "対応する供給者モデルを選び、上下に移動して優先順序を設定します。",
+    "ru": "Выберите совместимые модели поставщиков и измените приоритет кнопками вверх и вниз."
+  },
+  "系统每 24 小时自动同步 Bifrost 官方价目；失败会自动重试并保留上次成功的数据。也可手动提交同步，刷新本页查看结果。": {
+    "en": "Official Bifrost prices sync automatically every 24 hours. Failed attempts retry without erasing the last successful data. You can also request a sync and refresh this page to see the result.",
+    "ja": "Bifrost公式価格を24時間ごとに自動同期します。失敗時は前回の正常なデータを保持して再試行します。手動で同期を依頼し、ページを更新して結果を確認することもできます。",
+    "ru": "Официальные цены Bifrost обновляются каждые 24 часа. При сбое система повторит попытку и сохранит последние успешные данные. Можно также запросить обновление вручную и обновить страницу для проверки результата."
+  },
+  "查看后台任务和失败原因。排除故障后可以重试原任务，系统自动控制重试次数并防止重复处理。": {
+    "en": "View background tasks and failure reasons. After fixing the cause, retry the original task. The system bounds retries and prevents duplicate processing.",
+    "ja": "バックグラウンドタスクと失敗原因を確認します。原因を解消した後、元のタスクを再試行できます。再試行回数の制限と重複処理の防止は自動で行います。",
+    "ru": "Просматривайте фоновые задачи и причины сбоев. После устранения причины повторите исходную задачу. Система ограничит число попыток и предотвратит дублирование."
   }
 }

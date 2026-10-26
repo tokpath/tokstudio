@@ -196,6 +196,16 @@ func (a *Application) references(c *gin.Context) {
 			handleError(c, err)
 			return
 		}
+		routing := c.Query("purpose") == "routing"
+		if routing {
+			if operator != a.Installation.OperatorID {
+				handleError(c, organization.ErrForbidden)
+				return
+			}
+			if !require("catalog.manage") {
+				return
+			}
+		}
 		buyer := c.Query("buyer_id")
 		if buyer != "" {
 			child, e := a.Organization.GetOperator(ctx, nil, buyer)
@@ -237,6 +247,27 @@ func (a *Application) references(c *gin.Context) {
 				return
 			}
 			defaults := gin.H{"public_model_id": model.ID, "identity": model.Identity, "listing_version": listingVersions[model.ID], "billing": prepared.Billing, "pricing_components": prepared.BillingComponents(), "expected_version": model.Version}
+			if routing {
+				policy, err := a.Catalog.RoutingPolicy(ctx, model.ID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				upstreams, err := a.Catalog.AdminUpstreams(ctx, operator, model.ID)
+				if err != nil {
+					handleError(c, err)
+					return
+				}
+				bindings := []gin.H{}
+				for _, upstream := range upstreams {
+					if upstream.SupplierModelID != "" {
+						bindings = append(bindings, gin.H{"id": upstream.ID, "supplier_model_id": upstream.SupplierModelID, "enabled": upstream.Enabled})
+					}
+				}
+				defaults["routing_version"] = policy.Version
+				defaults["route_strategy"] = policy.Strategy
+				defaults["route_bindings"] = bindings
+			}
 			if buyer != "" {
 				defaults["authorization_version"] = authorizationVersions[model.ID]
 			}
@@ -410,7 +441,22 @@ func (a *Application) references(c *gin.Context) {
 			return
 		}
 		labels := supplierLabels(credentials)
+		var public *catalog.PublicModel
+		if modelID := c.Query("public_model_id"); modelID != "" && kind == "supplier-models" {
+			selected, err := a.Catalog.PublicModel(ctx, modelID)
+			if err != nil {
+				handleError(c, err)
+				return
+			}
+			public = &selected
+		}
 		for _, model := range models {
+			if public != nil && !catalog.SupplierSupportsModel(model, *public) {
+				continue
+			}
+			if provider := c.Query("provider_id"); provider != "" && model.ProviderID != provider {
+				continue
+			}
 			if !model.Enabled && kind != "cost-models" {
 				continue
 			}

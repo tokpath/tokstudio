@@ -8,6 +8,7 @@ import (
 	"github.com/tokpath/tokstudio/backend/internal/modelpricing"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
+	"runtime/debug"
 )
 
 func (a *Application) modelSettingsResource(c *gin.Context, p gin.H, base string) {
@@ -18,20 +19,15 @@ func (a *Application) modelSettingsResource(c *gin.Context, p gin.H, base string
 	}
 	p["title"] = "Bifrost 设置"
 	p["description"] = "同步模型供应商参考价目，用于上游成本核算。客户与下级经营方继续按各自的 ATG 价目计费。"
-	p["summary"] = []gin.H{{"label": "Bifrost Core", "value": "1.13.1"}, {"label": "成本计算组件", "value": "1.10.1"}, {"label": "同步间隔（小时）", "value": fmt.Sprint(settings.IntervalHours)}}
+	p["summary"] = []gin.H{{"label": "Bifrost Core", "value": bifrostDependencyVersion("core")}, {"label": "成本计算组件", "value": bifrostDependencyVersion("framework")}, {"label": "自动同步", "value": "每 24 小时"}}
 	p["items"] = []any{entity("platform", "configured", int64(settings.Version), settings)}
-	p["columns"] = []gin.H{col("enabled", "自动同步", "boolean"), col("last_success_at", "上次成功同步", "datetime"), col("last_attempt_at", "最近尝试", "datetime"), col("sync_requested", "等待同步", "boolean"), col("last_error", "同步提示", "text")}
-	p["operations"] = []operation{
-		{Name: "configure", Label: "调整价目同步", Method: "POST", Path: base, Fields: []field{defaultField("action", "操作", "hidden", "configure"), defaultField("enabled", "自动同步", "boolean", settings.Enabled), defaultField("interval_hours", "同步间隔（小时）", "integer", settings.IntervalHours), defaultField("source_url", "价目来源地址", "text", settings.SourceURL), defaultField("expected_version", "当前版本", "hidden", settings.Version)}, Description: "默认每 24 小时同步官方价目。同步失败时继续使用上次成功的数据。"},
-		{Name: "sync", Label: "立即同步", Method: "POST", Path: base, Fields: []field{defaultField("action", "操作", "hidden", "sync")}, Description: "提交后由后台执行，刷新本页查看结果。"},
-	}
+	p["columns"] = []gin.H{col("last_success_at", "上次成功同步", "datetime"), col("last_attempt_at", "最近尝试", "datetime"), col("sync_requested", "等待同步", "boolean"), col("last_error", "同步提示", "text")}
+	p["operations"] = []operation{{Name: "sync", Label: "立即同步", Method: "POST", Path: base, Fields: []field{defaultField("action", "操作", "hidden", "sync")}, Description: "系统每 24 小时自动同步 Bifrost 官方价目；失败会自动重试并保留上次成功的数据。也可手动提交同步，刷新本页查看结果。"}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) modelSettingsCommand(c *gin.Context, op organization.Operator, actor string) {
 	var in struct {
-		modelpricing.Settings
-		Action   string `json:"action"`
-		Expected uint64 `json:"expected_version"`
+		Action string `json:"action"`
 	}
 	if !body(c, &in) {
 		return
@@ -42,10 +38,7 @@ func (a *Application) modelSettingsCommand(c *gin.Context, op organization.Opera
 		if in.Action == "sync" {
 			return commandResult("platform", "pending"), service.RequestSync(c.Request.Context())
 		}
-		if in.Action != "configure" {
-			return nil, modelpricing.ErrInput
-		}
-		return commandResult("platform", "saved"), service.Update(c.Request.Context(), in.Settings, in.Expected)
+		return nil, modelpricing.ErrInput
 	})
 	jsonResponse(c, raw, e)
 }
@@ -134,4 +127,15 @@ func (a *Application) actualCostCommand(c *gin.Context, op organization.Operator
 		return commandResult(in.ID, "recorded"), service.SaveActual(c.Request.Context(), in.ActualCost, in.Expected)
 	})
 	jsonResponse(c, raw, e)
+}
+
+func bifrostDependencyVersion(module string) string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range info.Deps {
+			if dep.Path == "github.com/maximhq/bifrost/"+module {
+				return dep.Version
+			}
+		}
+	}
+	return "unknown"
 }

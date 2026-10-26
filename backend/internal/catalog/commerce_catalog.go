@@ -28,6 +28,7 @@ var credentialNameSchema string
 //go:embed commerce_schema_03_supplier_models.sql
 //go:embed commerce_schema_04_capability_fields.sql
 //go:embed commerce_schema_05_drop_notice_policies.sql
+//go:embed commerce_schema_06_automatic_circuit.sql
 var commerceMigrationFS embed.FS
 
 //go:embed commerce_schema_03_supplier_models.sql
@@ -39,10 +40,13 @@ var capabilityFieldSchema string
 //go:embed commerce_schema_05_drop_notice_policies.sql
 var dropNoticePolicySchema string
 
+//go:embed commerce_schema_06_automatic_circuit.sql
+var automaticCircuitSchema string
+
 func CommerceMigrations() (string, fs.FS) { return "catalog_v2", commerceMigrationFS }
 
 func CommerceSchema() string {
-	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema
+	return commerceSchema + "\n" + credentialNameSchema + "\n" + supplierModelSchema + "\n" + capabilityFieldSchema + "\n" + dropNoticePolicySchema + "\n" + automaticCircuitSchema
 }
 
 var ErrCatalogForbidden = errors.New("catalog action outside operator authority")
@@ -94,7 +98,7 @@ type UpstreamModel struct {
 	Enabled         bool                              `json:"enabled"`
 	Healthy         bool                              `json:"healthy"`
 	Priority        int                               `json:"priority"`
-	Routing         RouteLimits                       `json:"routing"`
+	Detached        bool                              `json:"route_detached,omitempty"`
 	SupplierModelID string                            `json:"supplier_model_id,omitempty"`
 	Version         uint64                            `json:"version"`
 }
@@ -255,9 +259,6 @@ func (s CommerceCatalog) saveUpstream(ctx context.Context, actor string, in Upst
 		return e
 	}
 	if in.ID == "" || in.ProviderID == "" || in.Provider == "" || in.Model == "" || in.CredentialID == "" || in.Identity != model.Identity {
-		return ErrInvalidInput
-	}
-	if !in.Routing.valid() {
 		return ErrInvalidInput
 	}
 	if in.Enabled && len(in.Capabilities) == 0 {

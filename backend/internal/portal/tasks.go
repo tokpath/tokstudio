@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tokpath/tokstudio/backend/internal/operations"
 	"github.com/tokpath/tokstudio/backend/internal/organization"
 	"gorm.io/gorm"
 )
@@ -31,26 +30,21 @@ func (a *Application) jobsResource(c *gin.Context, p gin.H, base string) {
 		items = append(items, row)
 	}
 	p["title"] = "持久任务与异常恢复"
-	p["description"] = "展示原任务与有界重试。恢复保留原业务编号和单调fencing历史；外部支付未知结果必须查询原交易。"
+	p["description"] = "查看后台任务和失败原因。排除故障后可以重试原任务，系统自动控制重试次数并防止重复处理。"
 	p["items"] = items
-	p["columns"] = []gin.H{col("queue", "队列", "text"), col("kind", "任务类型", "text"), col("business_key", "原业务编号", "text"), col("attempts", "已尝试", "text"), col("max_attempts", "重试上限", "text"), col("status", "状态", "status"), col("last_error", "上次错误", "text"), col("available_at", "可执行时间", "datetime")}
-	p["row_operations"] = []operation{{Name: "redrive", Label: "恢复原任务", Method: "POST", Path: base + "/{id}/redrive", Fields: []field{f("additional_attempts", "追加尝试次数1–10", "integer"), f("reason", "人工核实与恢复原因", "textarea")}, Confirmation: "只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。"}}
+	p["columns"] = []gin.H{col("kind", "任务类型", "text"), col("attempts", "已尝试", "text"), col("status", "状态", "status"), col("last_error", "上次错误", "text"), col("available_at", "可执行时间", "datetime")}
+	p["row_operations"] = []operation{{Name: "redrive", Label: "恢复原任务", Method: "POST", Path: base + "/{id}/redrive", Fields: []field{optional("reason", "备注（可选）", "textarea")}, Confirmation: "只恢复原任务，不创建新支付或模型请求。已产生的外部事实仍按原业务编号去重。"}}
 	a.resourceResponse(c, p)
 }
 func (a *Application) redrive(c *gin.Context, op organization.Operator) {
 	var in struct {
-		Additional int `json:"additional_attempts"`
-		Reason     string
+		Reason string
 	}
 	if !body(c, &in) {
 		return
 	}
-	if in.Reason == "" {
-		handleError(c, operations.ErrInvalid)
-		return
-	}
 	raw, e := a.command(c, "redrive:"+op.ID+":"+c.Param("id"), in, func(tx *gorm.DB) (any, error) {
-		if e := a.Jobs.RedriveTx(tx, c.Param("id"), in.Additional); e != nil {
+		if e := a.Jobs.RedriveTx(tx, c.Param("id"), 3); e != nil {
 			return nil, e
 		}
 		return commandResult(c.Param("id"), "pending"), nil

@@ -43,9 +43,6 @@ var ErrVersion = errors.New("model pricing version conflict")
 
 type Settings struct {
 	ID            string     `json:"id"`
-	Enabled       bool       `json:"enabled"`
-	SourceURL     string     `json:"source_url"`
-	IntervalHours int        `json:"interval_hours"`
 	Version       uint64     `json:"version"`
 	SheetVersion  string     `json:"sheet_version"`
 	LastSuccessAt *time.Time `json:"last_success_at"`
@@ -88,26 +85,14 @@ func (ActualCost) TableName() string { return "model_actual_costs" }
 type Service struct {
 	DB                *gorm.DB
 	AllowTestLoopback bool
+	// TestSourceURL is honored only by isolated integration test instances.
+	TestSourceURL string
 }
 
 func (s *Service) Settings(ctx context.Context) (Settings, error) {
 	var out Settings
 	e := s.DB.WithContext(ctx).First(&out, "id='platform'").Error
 	return out, e
-}
-func (s *Service) Update(ctx context.Context, in Settings, expected uint64) error {
-	u, e := url.Parse(in.SourceURL)
-	if e != nil || u.User != nil || u.Hostname() == "" || (u.Scheme != "https" && !(s.AllowTestLoopback && u.Scheme == "http")) || in.IntervalHours < 1 || in.IntervalHours > 720 {
-		return ErrInput
-	}
-	r := s.DB.WithContext(ctx).Model(&Settings{}).Where("id='platform' AND version=?", expected).Updates(map[string]any{"enabled": in.Enabled, "source_url": in.SourceURL, "interval_hours": in.IntervalHours, "version": expected + 1, "sync_requested": in.Enabled})
-	if r.Error != nil {
-		return r.Error
-	}
-	if r.RowsAffected != 1 {
-		return ErrVersion
-	}
-	return nil
 }
 func (s *Service) RequestSync(ctx context.Context) error {
 	return s.DB.WithContext(ctx).Model(&Settings{}).Where("id='platform'").Update("sync_requested", true).Error
@@ -142,13 +127,17 @@ func (s *Service) RunSync(ctx context.Context) error {
 			return e
 		}
 		now := time.Now().UTC()
-		if !cfg.SyncRequested && (!cfg.Enabled || cfg.LastSuccessAt != nil && now.Before(cfg.LastSuccessAt.Add(time.Duration(cfg.IntervalHours)*time.Hour))) {
+		if !cfg.SyncRequested && (cfg.LastSuccessAt != nil && now.Before(cfg.LastSuccessAt.Add(24*time.Hour))) {
 			return nil
 		}
 		if !cfg.SyncRequested && cfg.LastAttemptAt != nil && now.Before(cfg.LastAttemptAt.Add(5*time.Minute)) {
 			return nil
 		}
-		payload, e := s.fetch(ctx, cfg.SourceURL)
+		source := "https://getbifrost.ai/datasheet"
+		if s.AllowTestLoopback && s.TestSourceURL != "" {
+			source = s.TestSourceURL
+		}
+		payload, e := s.fetch(ctx, source)
 		var rows []tables.TableModelPricing
 		if e == nil {
 			rows, e = parseSheet(ctx, payload)
@@ -156,7 +145,7 @@ func (s *Service) RunSync(ctx context.Context) error {
 		if e != nil {
 			// Keep the last good sheet. An unavailable feed must not erase prices or
 			// make every process retry it once per request.
-			return tx.Model(&Settings{}).Where("id='platform'").Updates(map[string]any{"last_attempt_at": now, "last_error": "价目同步失败，请检查来源地址和网络后重试", "sync_requested": false}).Error
+			return tx.Model(&Settings{}).Where("id='platform'").Updates(map[string]any{"last_attempt_at": now, "last_error": "价目同步失败，系统将自动重试。已有价目继续使用。", "sync_requested": false}).Error
 		}
 		digest := sha256.Sum256(payload)
 		version := hex.EncodeToString(digest[:])

@@ -16,33 +16,17 @@ import (
 
 var ErrRouteUnavailable = errors.New("route capacity or verified health unavailable")
 
-// Zero values select conservative defaults; zero concurrency means no extra
-// platform capacity limit, without bypassing provider or customer limits.
-type RouteLimits struct {
-	MaxConcurrent         int `json:"max_concurrent"`
+// circuitLimits is snapshotted per attempt so observations are deterministic.
+// Operators choose routes; routine failure protection is owned by the runtime.
+type circuitLimits struct {
 	FailureThreshold      int `json:"failure_threshold"`
 	UnknownUsageThreshold int `json:"unknown_usage_threshold"`
 	RecoverySuccesses     int `json:"recovery_successes"`
 	CooldownSeconds       int `json:"cooldown_seconds"`
 }
 
-func (r RouteLimits) valid() bool {
-	return r.MaxConcurrent >= 0 && r.MaxConcurrent <= 100000 && r.FailureThreshold >= 0 && r.FailureThreshold <= 100 && r.UnknownUsageThreshold >= 0 && r.UnknownUsageThreshold <= 100 && r.RecoverySuccesses >= 0 && r.RecoverySuccesses <= 20 && r.CooldownSeconds >= 0 && r.CooldownSeconds <= 86400
-}
-func (r RouteLimits) defaults() RouteLimits {
-	if r.FailureThreshold == 0 {
-		r.FailureThreshold = 3
-	}
-	if r.UnknownUsageThreshold == 0 {
-		r.UnknownUsageThreshold = 2
-	}
-	if r.RecoverySuccesses == 0 {
-		r.RecoverySuccesses = 2
-	}
-	if r.CooldownSeconds == 0 {
-		r.CooldownSeconds = 60
-	}
-	return r
+func standardCircuitLimits() circuitLimits {
+	return circuitLimits{FailureThreshold: 3, UnknownUsageThreshold: 2, RecoverySuccesses: 2, CooldownSeconds: 60}
 }
 
 type RoutingPolicy struct {
@@ -255,13 +239,13 @@ func (s CommerceCatalog) ClaimRoute(ctx context.Context, upstream, attempt, requ
 		if !errors.Is(e, gorm.ErrRecordNotFound) {
 			return e
 		}
-		limits := u.Routing.defaults()
+		limits := standardCircuitLimits()
 		var active int64
 		if e = t.Model(&routeLease{}).Where("upstream_id=? AND finished_at IS NULL AND expires_at>?", upstream, now).Count(&active).Error; e != nil {
 			return e
 		}
 		probe := h.Circuit != "closed"
-		if (limits.MaxConcurrent > 0 && active >= int64(limits.MaxConcurrent)) || (probe && active > 0) {
+		if probe && active > 0 {
 			return ErrRouteUnavailable
 		}
 		b, _ := json.Marshal(limits)
@@ -303,7 +287,7 @@ func (s CommerceCatalog) ObserveRoute(ctx context.Context, attempt string, resul
 		}
 		good := result.State == "completed" && result.Usage.Reliable
 		unknown := (result.State == "completed" || result.State == "outcome_unknown" || result.ErrorCode == "usage_unverified_before_deadline") && !result.Usage.Reliable
-		var limits RouteLimits
+		var limits circuitLimits
 		if e = json.Unmarshal(lease.Limits, &limits); e != nil {
 			return e
 		}

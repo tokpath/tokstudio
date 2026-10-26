@@ -7908,6 +7908,24 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "public_model_id",
+            "in": "query",
+            "required": false,
+            "description": "For supplier-models: offer models supporting at least one public operation",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider_id",
+            "in": "query",
+            "required": false,
+            "description": "For cost-models: limit choices to this supplier",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8073,6 +8091,24 @@
             }
           },
           {
+            "name": "public_model_id",
+            "in": "query",
+            "required": false,
+            "description": "For supplier-models: offer models supporting at least one public operation",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider_id",
+            "in": "query",
+            "required": false,
+            "description": "For cost-models: limit choices to this supplier",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "buyer_id",
             "in": "query",
             "required": false,
@@ -8225,6 +8261,17 @@
               "format": "uuid"
             },
             "description": "An exact direct child operator. Returns authorization_version for this seller/buyer/model; missing records return version 0. Every choice always returns the current operator listing_version."
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "routing"
+              ]
+            },
+            "description": "Platform catalog managers only: include current route bindings, order, strategy and routing_version. This is the route policy CAS, not the public model version."
           }
         ],
         "responses": {
@@ -21996,7 +22043,7 @@
       },
       "post": {
         "operationId": "post__v1_operators_operatorId_bifrost",
-        "summary": "调整价目同步",
+        "summary": "立即同步",
         "tags": [
           "Operator browser API"
         ],
@@ -22118,19 +22165,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/Operator_bifrost_configure"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Operator_bifrost_sync"
-                  }
-                ]
+                "$ref": "#/components/schemas/Operator_bifrost_sync"
               }
             }
           }
         },
-        "description": "Platform only. Sync failures retain the last successful datasheet. Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
+        "description": "Platform only. Queues a background refresh. Requires catalog.manage. Exact target authority and allowed current state are enforced; actor identity is always taken from authenticated staff session.",
         "x-required-permission": "catalog.manage"
       }
     },
@@ -47574,6 +47614,23 @@
           "authorization_version": {
             "type": "integer",
             "minimum": 0
+          },
+          "routing_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "route_strategy": {
+            "enum": [
+              "priority",
+              "lowest_latency",
+              "lowest_cost"
+            ]
+          },
+          "route_bindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteBindingInput"
+            }
           }
         },
         "required": [
@@ -47799,38 +47856,6 @@
         "required": [],
         "additionalProperties": false
       },
-      "RouteLimits": {
-        "type": "object",
-        "properties": {
-          "max_concurrent": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100000
-          },
-          "failure_threshold": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "unknown_usage_threshold": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "recovery_successes": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 20
-          },
-          "cooldown_seconds": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 86400
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
       "PublicModelInput": {
         "type": "object",
         "properties": {
@@ -47862,6 +47887,25 @@
         ],
         "additionalProperties": false
       },
+      "RouteBindingInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "supplier_model_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "supplier_model_id",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
       "RouteConfiguration": {
         "type": "object",
         "properties": {
@@ -47881,29 +47925,7 @@
               "bindings": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "supplier_model_id": {
-                      "type": "string"
-                    },
-                    "priority": {
-                      "type": "integer"
-                    },
-                    "enabled": {
-                      "type": "boolean"
-                    },
-                    "routing": {
-                      "$ref": "#/components/schemas/RouteLimits"
-                    }
-                  },
-                  "required": [
-                    "supplier_model_id",
-                    "enabled"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouteBindingInput"
                 }
               }
             },
@@ -52711,20 +52733,12 @@
       "Operator_jobs_redrive": {
         "type": "object",
         "properties": {
-          "additional_attempts": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "追加尝试次数1–10"
-          },
           "reason": {
             "type": "string",
-            "description": "人工核实与恢复原因"
+            "description": "备注（可选）"
           }
         },
-        "required": [
-          "additional_attempts",
-          "reason"
-        ],
+        "required": [],
         "additionalProperties": false
       },
       "Operator_mail_configure": {
@@ -52761,8 +52775,7 @@
             "type": "string",
             "enum": [
               "starttls",
-              "tls",
-              "plain"
+              "tls"
             ],
             "description": "传输方式"
           }
@@ -52778,41 +52791,6 @@
       },
       "Operator_pricing_template": {
         "$ref": "#/components/schemas/PricingWrite"
-      },
-      "Operator_bifrost_configure": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "const": "configure",
-            "description": "操作"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "自动同步"
-          },
-          "interval_hours": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "同步间隔（小时）"
-          },
-          "source_url": {
-            "type": "string",
-            "description": "价目来源地址"
-          },
-          "expected_version": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "当前版本"
-          }
-        },
-        "required": [
-          "action",
-          "enabled",
-          "interval_hours",
-          "source_url",
-          "expected_version"
-        ],
-        "additionalProperties": false
       },
       "Operator_bifrost_sync": {
         "type": "object",

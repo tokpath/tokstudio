@@ -22,6 +22,10 @@ func TestPostgresSheetSyncPinsAcceptedPricesAndRetainsGoodSheet(t *testing.T) {
 	if e = db.Exec(string(raw)).Error; e != nil {
 		t.Fatal(e)
 	}
+	fixed, _ := migrations.ReadFile("migrate/0002_fixed_official_sync.sql")
+	if e = db.Exec(string(fixed)).Error; e != nil {
+		t.Fatal(e)
+	}
 	var requests atomic.Int64
 	var fail atomic.Bool
 	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,17 +37,12 @@ func TestPostgresSheetSyncPinsAcceptedPricesAndRetainsGoodSheet(t *testing.T) {
 		fmt.Fprint(w, `{"gpt-test":{"provider":"openai","mode":"chat","input_cost_per_token":0.001,"output_cost_per_token":0.002},"metadata":{"provider":"openai","mode":"chat"}}`)
 	}))
 	defer feed.Close()
-	s := Service{DB: db, AllowTestLoopback: true}
+	s := Service{DB: db, AllowTestLoopback: true, TestSourceURL: feed.URL}
 	ctx := context.Background()
-	cfg, _ := s.Settings(ctx)
-	cfg.SourceURL = feed.URL
-	if e = s.Update(ctx, cfg, cfg.Version); e != nil {
-		t.Fatal(e)
-	}
 	if e = s.RunSync(ctx); e != nil {
 		t.Fatal(e)
 	}
-	cfg, e = s.Settings(ctx)
+	cfg, e := s.Settings(ctx)
 	if e != nil || cfg.LastSuccessAt == nil || cfg.LastError != "" || cfg.SheetVersion == "" {
 		t.Fatal(cfg, e)
 	}
@@ -75,19 +74,17 @@ func TestPostgresSheetSyncPinsAcceptedPricesAndRetainsGoodSheet(t *testing.T) {
 		t.Fatal("accepted quote did not pin cost basis")
 	}
 
-	broken.Enabled = false
-	if e = s.Update(ctx, broken, broken.Version); e != nil {
+	if e = s.RunSync(ctx); e != nil || requests.Load() != 2 {
+		t.Fatal("failed sync retried without backoff", requests.Load(), e)
+	}
+	if e = db.Model(&Settings{}).Where("id='platform'").Updates(map[string]any{"last_success_at": time.Now().Add(-25 * time.Hour), "last_attempt_at": time.Now().Add(-6 * time.Minute)}).Error; e != nil {
 		t.Fatal(e)
 	}
-	if e = s.RunSync(ctx); e != nil || requests.Load() != 2 {
-		t.Fatal("disabled automatic sync still fetched", requests.Load(), e)
+	fail.Store(false)
+	if e = s.RunSync(ctx); e != nil || requests.Load() != 3 {
+		t.Fatal("24h automatic sync did not run", requests.Load(), e)
 	}
-	broken, _ = s.Settings(ctx)
-	s.AllowTestLoopback = false
-	cfg.SourceURL = feed.URL
-	if e = s.Update(ctx, cfg, broken.Version); e != ErrInput {
-		t.Fatal("production accepted insecure feed", e)
-	}
+
 }
 func TestPostgresActualCostRegistrationStaysSimpleAndScoped(t *testing.T) {
 	db := dbtest.New(t)

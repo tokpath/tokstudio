@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"sort"
 	"strings"
 	"time"
 
@@ -167,7 +168,16 @@ func (s CommerceCatalog) AdminUpstreams(ctx context.Context, actor, model string
 	if !s.platform(actor) {
 		return nil, ErrCatalogForbidden
 	}
-	return s.upstreams(ctx, model)
+	rows, err := s.upstreams(ctx, model)
+	kept := rows[:0]
+	for _, row := range rows {
+		if !row.Detached {
+			kept = append(kept, row)
+		}
+	}
+	rows = kept
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Priority < rows[j].Priority })
+	return rows, err
 }
 
 type AuthorizationView struct {

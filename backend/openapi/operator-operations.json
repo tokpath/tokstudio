@@ -6702,16 +6702,10 @@
     "description": "",
     "fields": [
       {
-        "name": "additional_attempts",
-        "label": "追加尝试次数1–10",
-        "kind": "integer",
-        "required": true
-      },
-      {
         "name": "reason",
-        "label": "人工核实与恢复原因",
+        "label": "备注（可选）",
         "kind": "textarea",
-        "required": true
+        "required": false
       }
     ],
     "include_version": false,
@@ -6773,10 +6767,6 @@
           {
             "label": "TLS",
             "value": "tls"
-          },
-          {
-            "label": "明文（仅隔离测试）",
-            "value": "plain"
           }
         ]
       }
@@ -6806,50 +6796,6 @@
     "include_version": false,
     "confirmation": "",
     "description": "Platform only; also requires catalog.manage. Select one input and output measurement per modality. Notifications and activation are scheduled automatically."
-  },
-  {
-    "resource": "bifrost",
-    "name": "configure",
-    "label": "调整价目同步",
-    "permission": "catalog.manage",
-    "method": "POST",
-    "path": "/v1/operators/{operatorId}/bifrost",
-    "fields": [
-      {
-        "name": "action",
-        "label": "操作",
-        "kind": "hidden",
-        "required": true,
-        "default_value": "configure"
-      },
-      {
-        "name": "enabled",
-        "label": "自动同步",
-        "kind": "boolean",
-        "required": true
-      },
-      {
-        "name": "interval_hours",
-        "label": "同步间隔（小时）",
-        "kind": "integer",
-        "required": true
-      },
-      {
-        "name": "source_url",
-        "label": "价目来源地址",
-        "kind": "text",
-        "required": true
-      },
-      {
-        "name": "expected_version",
-        "label": "当前版本",
-        "kind": "integer",
-        "required": true
-      }
-    ],
-    "include_version": false,
-    "confirmation": "",
-    "description": "Platform only. Sync failures retain the last successful datasheet."
   },
   {
     "resource": "bifrost",

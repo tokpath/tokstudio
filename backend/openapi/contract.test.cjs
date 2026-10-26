@@ -67,6 +67,8 @@ test('model selectors document actual CAS revisions and exact direct-buyer scope
   assert.ok(defaults.required.includes('listing_version'));
   assert.equal(defaults.properties.authorization_version.type, 'integer');
   assert.equal(defaults.required.includes('authorization_version'), false);
+  assert.equal(defaults.properties.routing_version.type, 'integer');
+  assert.ok(models.parameters.find(parameter => parameter.name === 'purpose'));
   assert.ok(operation('references/branding-brands', 'get').description.includes('channels are excluded'));
 });
 
@@ -82,8 +84,11 @@ test('technical capability names match actual runtime operations and output DTOs
   assert.equal(document.components.schemas.SupplierCapability.properties.usage_rules, undefined);
   assert.ok(document.components.schemas.BillingProfile.properties.input);
   assert.ok(document.components.schemas.BillingProfile.properties.output);
-  assert.equal(document.components.schemas.RouteLimits.properties.max_concurrent.maximum, 100000);
-  assert.equal(document.components.schemas.RouteLimits.properties.recovery_successes.maximum, 20);
+  assert.equal(document.components.schemas.RouteLimits, undefined);
+  const binding = document.components.schemas.RouteBindingInput.properties;
+  assert.equal(binding.routing, undefined);
+  assert.equal(binding.priority, undefined);
+  assert.ok(binding.supplier_model_id);
   assert.ok(document.components.schemas.OperatorContext.properties.subject_operations);
   assert.ok(document.paths['/v1/operators/{operatorId}/customer-context/{id}']);
   assert.ok(document.paths['/v1/operators/{operatorId}/order-context/{id}/allocate']);

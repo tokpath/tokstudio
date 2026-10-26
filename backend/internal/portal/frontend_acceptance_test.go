@@ -30,6 +30,7 @@ func TestExternalFrontendAcceptanceServer(t *testing.T) {
 		t.Fatal("independent protocol service required")
 	}
 	f := setupPortal(t)
+	f.a.ModelPricing.TestSourceURL = lab + "/datasheet"
 	f.server.Close()
 	// The local Next proxy sends the original browser Host. Trust only its
 	// loopback source, exactly as a configured ingress is trusted in deployment.

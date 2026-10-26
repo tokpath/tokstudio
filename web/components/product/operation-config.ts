@@ -14,6 +14,7 @@ export type ConfigNode = {
   options?: [string, string][];
   when?: { field: string; values: string[] };
   lookup?: "models" | "credentials" | "buyers" | "suppliers" | "routes" | "supplier-models" | "pricing-models";
+  lookupPurpose?: "routing";
   lookupBy?: { field: string; values: Record<string, "buyers" | "routes"> };
   lookupWhen?: { field: string; values: string[] };
   wildcard?: boolean;
@@ -23,7 +24,7 @@ export type ConfigNode = {
   nullable?: boolean;
   readOnly?: boolean;
   /** Capability cards explain call, billing, and verification before the rare limits. */
-  presentation?: "operations" | "price" | "billing";
+  presentation?: "operations" | "supplier-operations" | "routes" | "price" | "billing";
   /** Drawn by a custom editor. The value is still kept and submitted. */
   hidden?: boolean;
   /** Hide a field when a sibling has one of these values. Hidden fields are omitted on submit. */
@@ -130,28 +131,20 @@ export function configurationSchema(operation: Operation, operatorID?: string): 
       pricing_reference: { ...text("Bifrost 参考计价模型", false), lookup: "pricing-models", help: "选择参考价目中的供应商与模型，用于系统核算成本。未匹配的成本会标为待核实，不会记成免费。" },
       cost_provider: { ...text("参考价目供应商", false), readOnly: true },
       cost_model: { ...text("参考计价模型", false), readOnly: true },
-      capabilities: array("供应商支持的能力", capability, "勾选供应商实际支持的能力。计量规则由系统适配，参考成本由 Bifrost 计算。"),
+      capabilities: { ...array("供应商支持的能力", capability, "勾选供应商实际支持的能力；支持流式的能力可以单独开启。"), presentation: "supplier-operations", options: operations.filter(([key]) => key !== "video_retrieve" && key !== "video_download") },
     }, "选择供应商连接与模型，确认实际能力，并选择用于成本核算的参考计价模型。"),
     expected_version: { ...integer("当前记录版本（自动带入）", 0), readOnly: true },
   });
   if (/\/routes$/.test(operation.path)) return object("路由配置", {
     route: object("公开模型的路由", {
-      public_model_id: { ...text("公开模型"), lookup: "models" },
-      strategy: select("选路策略", [["priority", "固定优先级"], ["lowest_latency", "最低延迟"], ["lowest_cost", "预估最低成本"]], "priority"),
-      bindings: array("绑定的供应商模型", object("绑定", {
+      public_model_id: { ...text("公开模型"), lookup: "models", lookupPurpose: "routing" },
+      strategy: select("选路策略", [["priority", "按列表顺序优先"], ["lowest_latency", "最低延迟"], ["lowest_cost", "预估最低成本"]], "priority"),
+      bindings: { ...array("绑定的供应商模型", object("绑定", {
         id: { ...text("绑定标识"), generated: "uuid", readOnly: true },
         supplier_model_id: { ...text("供应商模型"), lookup: "supplier-models" },
-        priority: { ...integer("选路优先级（数字越小越优先）", 0), signed: true },
         enabled: { ...boolean("这条绑定接单"), default: true },
-        routing: { ...object("熔断", {
-          max_concurrent: { ...integer("最大并发请求数", 0), max: 100000 },
-          failure_threshold: { ...integer("连续失败次数", 3), max: 100 },
-          unknown_usage_threshold: { ...integer("用量无法核实次数", 2), max: 100 },
-          recovery_successes: { ...integer("恢复所需成功次数", 2), max: 20 },
-          cooldown_seconds: { ...integer("故障暂停时长（秒）", 60), max: 86400 },
-        }, "这条绑定连续出错或用量无法核实时，暂时停止接单；暂停结束后逐个放行新请求，确认成功且用量可靠后恢复。不会停用其他正常绑定。"), required: false },
-      }), "一个公开模型可以绑多个供应商模型。数字小的优先级先被考虑。"),
-    }, "选择可用的供应商模型和选路策略。熔断参数已填入系统默认值，通常无需修改。"),
+      }), "排在前面的优先使用；也作为延迟或成本相同时的选择顺序。故障暂停与恢复由系统自动处理。"), presentation: "routes" },
+    }, "选择公开模型后会带入已有路由。只需选择供应商模型、调整顺序和选路策略。"),
     expected_version: { ...integer("当前策略版本（自动带入）", 0), readOnly: true },
   });
   if (/\/pricing$/.test(operation.path) && operation.name === "template") return object("模型计费模板", {

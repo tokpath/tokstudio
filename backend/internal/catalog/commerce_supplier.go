@@ -30,11 +30,9 @@ type SupplierModel struct {
 
 // RouteBinding attaches one supplier model to a public model.
 type RouteBinding struct {
-	ID              string      `json:"id"`
-	SupplierModelID string      `json:"supplier_model_id"`
-	Priority        int         `json:"priority"`
-	Enabled         bool        `json:"enabled"`
-	Routing         RouteLimits `json:"routing"`
+	ID              string `json:"id"`
+	SupplierModelID string `json:"supplier_model_id"`
+	Enabled         bool   `json:"enabled"`
 }
 
 // RouteConfiguration is the route page: several supplier models for one public
@@ -264,13 +262,13 @@ func (s CommerceCatalog) saveRouteConfiguration(ctx context.Context, actor strin
 	}
 	kept := map[string]bool{}
 	seen := map[string]bool{}
-	for _, binding := range in.Bindings {
-		if binding.SupplierModelID == "" || seen[binding.SupplierModelID] || !binding.Routing.valid() {
+	for position, binding := range in.Bindings {
+		if binding.SupplierModelID == "" || seen[binding.SupplierModelID] {
 			return ErrInvalidInput
 		}
 		seen[binding.SupplierModelID] = true
 		supplierModel, e := s.SupplierModel(ctx, binding.SupplierModelID)
-		if e != nil || (binding.Enabled && !supplierModel.Enabled) {
+		if e != nil || (binding.Enabled && !supplierModel.Enabled) || !SupplierSupportsModel(supplierModel, publicModel) {
 			return ErrInvalidInput
 		}
 		upstream, version := UpstreamModel{}, uint64(0)
@@ -291,21 +289,22 @@ func (s CommerceCatalog) saveRouteConfiguration(ctx context.Context, actor strin
 		}
 		applySupplierModel(&upstream, supplierModel, publicModel.Identity)
 		upstream.PublicModelID = publicModel.ID
-		upstream.Priority = binding.Priority
+		upstream.Detached = false
+		upstream.Priority = position
 		upstream.Enabled = binding.Enabled
 		upstream.Healthy = binding.Enabled
-		upstream.Routing = binding.Routing
 		if e = s.saveUpstream(ctx, actor, upstream, version); e != nil {
 			return e
 		}
 		kept[upstream.ID] = true
 	}
 	for _, upstream := range current {
-		if kept[upstream.ID] || (!upstream.Enabled && !upstream.Healthy) {
+		if kept[upstream.ID] || upstream.Detached {
 			continue
 		}
 		upstream.Enabled = false
 		upstream.Healthy = false
+		upstream.Detached = true
 		if e = s.saveUpstream(ctx, actor, upstream, upstream.Version); e != nil {
 			return e
 		}
@@ -328,4 +327,17 @@ func supplierEndpoints(model SupplierModel) map[modelruntime.Operation]string {
 		out[op] = base + path
 	}
 	return out
+}
+
+// SupplierSupportsModel permits capability-specific fallback routes but rejects
+// bindings that cannot handle any operation exposed by the public model.
+func SupplierSupportsModel(supplier SupplierModel, public PublicModel) bool {
+	for _, offered := range supplier.Capabilities {
+		for _, requested := range public.Capabilities {
+			if offered.Operation == requested.Operation {
+				return true
+			}
+		}
+	}
+	return false
 }

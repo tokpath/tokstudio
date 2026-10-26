@@ -30,7 +30,7 @@ it("adds a supplier key with a name and keeps internal ids off the form", async 
   ] });
   expect(screen.queryByText(/引用/)).toBeNull();
   expect(screen.queryByText("当前版本（首次0）")).toBeNull();
-  expect(screen.getByText("填写本次要保存的内容。")).toBeTruthy();
+  expect(screen.queryByText("填写本次要保存的内容。")).toBeNull();
   expect(screen.getByRole("radiogroup", { name: "启用" })).toBeTruthy();
   expect((screen.getByRole("radio", { name: "是" }) as HTMLInputElement).checked).toBe(true);
   expect((screen.getByRole("radio", { name: "否" }) as HTMLInputElement).checked).toBe(false);
@@ -171,7 +171,7 @@ it("keeps the route strategy version when another supplier model is selected",as
   await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   const payload=JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body));
   expect(payload.configuration.expected_version).toBe(7);
-  expect(payload.configuration.route).toMatchObject({public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-one",supplier_model_id:"new-supplier",priority:2}]});
+  expect(payload.configuration.route).toMatchObject({public_model_id:"model-one",strategy:"priority",bindings:[{id:"binding-one",supplier_model_id:"new-supplier",enabled:true}]});
 });
 
 it("keeps reference defaults, the hidden revision and exact amounts together",async()=>{
@@ -197,17 +197,48 @@ it("uploads only the file visible for the selected business path",async()=>{
   expect(body.get("bank_file")).toBeNull();expect((body.get("chain_file") as File).name).toBe("chain.txt");expect(body.get("kind")).toBe("chain");
 });
 
-it("changes the public model without dropping the supplier models already bound to it",async()=>{
-  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/models")?{items:[{value:"model-two",label:"业务模型二",defaults:{public_model_id:"model-two",identity:"revision-two",expected_version:99}}]}:String(input).includes("/references/")?{items:[]}:{id:"model-two",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
+it("loads the selected public model routing version and its own supplier bindings",async()=>{
+  const fetch=vi.fn(async(input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(String(input).includes("/references/models")?{items:[{value:"model-two",label:"业务模型二",defaults:{public_model_id:"model-two",identity:"revision-two",expected_version:99,routing_version:11,route_strategy:"priority",route_bindings:[{id:"binding-two",supplier_model_id:"supplier-two",enabled:true}]}}]}:String(input).includes("/references/")?{items:[]}:{id:"model-two",status:"saved"}),{status:200}));vi.stubGlobal("fetch",fetch);
   mount({name:"save",label:"保存路由",method:"POST",path:"/api/v1/operators/operator-one/routes",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true}]},{row:{id:"model-one",version:7,values:{public_model_id:"model-one",strategy:"lowest_cost",bindings:[{id:"binding-one",supplier_model_id:"supplier-one",priority:-2,enabled:true}]}}});
   const model=screen.getByRole("combobox",{name:/^公开模型/});await waitFor(()=>expect((model as HTMLSelectElement).disabled).toBe(false));
   fireEvent.change(model,{target:{value:"model-two"}});
+  await waitFor(()=>expect((screen.getByRole("button",{name:"保存路由",exact:true}) as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(screen.getByRole("button",{name:"保存路由",exact:true}));
   await waitFor(()=>expect(fetch.mock.calls.some(call=>call[1]?.method==="POST")).toBe(true));
   const payload=JSON.parse(String(fetch.mock.calls.find(call=>call[1]?.method==="POST")?.[1]?.body));
-  expect(payload.configuration.expected_version).toBe(7);
-  expect(payload.configuration.route).toMatchObject({public_model_id:"model-two",strategy:"lowest_cost",bindings:[{id:"binding-one",supplier_model_id:"supplier-one",priority:-2}]});
+  expect(payload.configuration.expected_version).toBe(11);
+  expect(payload.configuration.route).toMatchObject({public_model_id:"model-two",strategy:"priority",bindings:[{id:"binding-two",supplier_model_id:"supplier-two",enabled:true}]});
   expect(payload.configuration.route.identity).toBeUndefined();
+});
+
+it("waits for fresh routing data rather than submitting cached empty bindings", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path.includes("/references/models")) {
+      const exact = new URL(path, "http://test.local").searchParams.get("q") === "existing-model";
+      if (exact) await gate;
+      return new Response(JSON.stringify({items:[{value:"existing-model",label:"Existing model",defaults:{routing_version:exact?6:0,route_strategy:"priority",route_bindings:exact?[{id:"binding-existing",supplier_model_id:"supplier-one",enabled:true}]:[]}}]}));
+    }
+    return new Response(JSON.stringify(init?.method === "POST" ? {id:"existing-model",status:"saved"} : {items:[]}));
+  });
+  vi.stubGlobal("fetch", fetch);
+  show({name:"save",label:"保存路由",method:"POST",path:"/api/v1/operators/operator-one/routes",fields:[{name:"configuration",label:"配置 JSON",kind:"json",required:true}]});
+  const model = screen.getByRole("combobox", {name:/^公开模型/});
+  await waitFor(() => expect((model as HTMLSelectElement).disabled).toBe(false));
+  fireEvent.change(model, {target:{value:"existing-model"}});
+  const submit = screen.getByRole("button", {name:"保存路由",exact:true});
+  expect((submit as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(submit);
+  expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(false);
+  release();
+  await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(submit);
+  await waitFor(() => expect(fetch.mock.calls.some(call => call[1]?.method === "POST")).toBe(true));
+  const sent = JSON.parse(String(fetch.mock.calls.find(call => call[1]?.method === "POST")?.[1]?.body));
+  expect(sent.configuration.expected_version).toBe(6);
+  expect(sent.configuration.route.bindings[0].id).toBe("binding-existing");
 });
 
 it("offers model references for listing without copying route defaults into the authorization",async()=>{
@@ -379,7 +410,7 @@ it("asks only for a public model's name and capabilities", async () => {
   expect(screen.queryByLabelText("计划生效时间（修订已开放模型时填写）", { exact: false })).toBeNull();
   expect(screen.queryByRole("radiogroup", { name: "开放模型" })).toBeNull();
   expect(screen.queryByLabelText("客户看到的模型名称", { exact: true })).toBeNull();
-  expect(screen.getByText("是否对客户开放，在公开模型列表里切换。没有配置路由时不能打开。")).toBeTruthy();
+  expect(screen.queryByRole("heading", {name:"提交前核对"})).toBeNull();
   expect(screen.queryByRole("heading", { name: "怎么计费" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "保存前确认" })).toBeNull();
   expect(screen.queryByLabelText("完整技术配置 JSON")).toBeNull();
